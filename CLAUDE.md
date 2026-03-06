@@ -58,7 +58,7 @@ Verify that the tech stack combination (Vite + Svelte + wasm-pack + Tauri v2) wo
 - [x] Export a simple function from Rust → call it from Svelte (Hello WASM level)
 
 #### Commit 3: Tauri v2 integration
-- [ ] Verify Tauri v2 desktop build (same code works in both web and desktop)
+- [x] Verify Tauri v2 desktop build (same code works in both web and desktop)
 
 ### Done Criteria
 - `bun run dev` launches a web dev server; Svelte displays the result of a WASM function call

@@ -4,7 +4,7 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 const config = {
 	preprocess: vitePreprocess(),
 	kit: {
-		adapter: adapter({ fallback: '200.html' }),
+		adapter: adapter({ fallback: 'index.html' }),
 		alias: {
 			$wasm: 'wasm/pkg'
 		}

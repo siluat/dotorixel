@@ -5,7 +5,7 @@ dist/
 
 # Rust
 target/
-Cargo.lock
+/wasm/Cargo.lock
 pkg/
 
 # Tauri

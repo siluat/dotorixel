@@ -54,8 +54,8 @@ Verify that the tech stack combination (Vite + Svelte + wasm-pack + Tauri v2) wo
 - [x] Add README.md (minimal: project name, one-line description, license badge)
 
 #### Commit 2: Vite + Svelte + wasm-pack scaffolding
-- [ ] Scaffold project with Vite + Svelte + wasm-pack
-- [ ] Export a simple function from Rust → call it from Svelte (Hello WASM level)
+- [x] Scaffold project with Vite + Svelte + wasm-pack
+- [x] Export a simple function from Rust → call it from Svelte (Hello WASM level)
 
 #### Commit 3: Tauri v2 integration
 - [ ] Verify Tauri v2 desktop build (same code works in both web and desktop)

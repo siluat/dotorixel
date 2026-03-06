@@ -79,7 +79,7 @@ Verify that the tech stack combination (Vite + Svelte + wasm-pack + Tauri v2) wo
 - [ ] Git tag v0.1.0
 - [ ] Create CHANGELOG.md (Keep a Changelog format)
 - [ ] GitHub Release
-- [ ] Set up CI (GitHub Actions: build + test)
+- [ ] Set up CI (GitHub Actions: `tauri build` + Vitest + `tauri-driver` E2E)
 
 ### Phase 1 → 2 transition
 - [ ] Decide project file format (must be decided before Phase 2 starts)
@@ -159,4 +159,5 @@ Verify that the tech stack combination (Vite + Svelte + wasm-pack + Tauri v2) wo
 - **Test behaviors, not implementation.** Assert on outcomes, not internal steps. If refactoring the internals breaks a test without changing behavior, the test was too tightly coupled.
 - **Prioritize regression defense.** Focus test coverage on code paths where bugs would be hard to catch visually — edge cases in coordinate math, boundary conditions in flood fill, undo/redo state consistency.
 - **Don't test the framework.** Don't verify that the UI framework's reactivity or rendering works correctly — that's the framework's job. Do test your own logic that *feeds into* the framework: state derivations, event handlers, computed values.
+- **Guard the dev/prod gap.** Vite dev server (`http://localhost`) and Tauri production build (`tauri://localhost`) have different runtime behaviors — CSP enforcement, asset protocol handling, and WASM loading can all diverge. Unit tests and dev-mode verification alone cannot catch these. CI must include `tauri build` and `tauri-driver` E2E tests against the production artifact to prevent regressions that only surface in the packaged app.
 

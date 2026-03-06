@@ -40,39 +40,26 @@ AGPL-3.0-or-later. Dual licensing and proprietary premium features are available
 
 SemVer. Phase milestones map to minor versions: Phase 1 → v0.1.0, Phase 2 → v0.2.0. Git tags and GitHub Releases start at v0.1.0. CHANGELOG.md follows [Keep a Changelog](https://keepachangelog.com) format.
 
-## Current Phase: Phase 0 — Build Pipeline Verification
+## Current Phase: Phase 1 — Canvas Foundation
 
-### Goal
-Verify that the tech stack combination (Vite + Svelte + wasm-pack + Tauri v2) works smoothly together.
+## Completed Phases
 
-### Tasks
-
-#### Commit 1: Project initial documents
-- [x] Add CLAUDE.md (project instructions)
-- [x] Add LICENSE file (AGPL-3.0-or-later)
-- [x] Add .gitignore (Node, Rust, Tauri, OS files)
-- [x] Add README.md (minimal: project name, one-line description, license badge)
-
-#### Commit 2: Vite + Svelte + wasm-pack scaffolding
-- [x] Scaffold project with Vite + Svelte + wasm-pack
-- [x] Export a simple function from Rust → call it from Svelte (Hello WASM level)
-
-#### Commit 3: Tauri v2 integration
-- [x] Verify Tauri v2 desktop build (same code works in both web and desktop)
-
-### Done Criteria
-- `bun run dev` launches a web dev server; Svelte displays the result of a WASM function call
-- `bun run tauri dev` launches a desktop app with the same behavior
+### Phase 0: Build Pipeline Verification — Done
+Verified Vite + SvelteKit + wasm-pack + Tauri v2 integration. `bun run dev` (web) and `bun run tauri dev` (desktop) both work.
 
 ## Roadmap
 
 ### Phase 1: Canvas Foundation (MVP v0.1)
-- [ ] Canvas creation (8x8, 16x16, 32x32)
-- [ ] Pixel grid display
-- [ ] Zoom in/out + panning
-- [ ] Pencil tool (1px), eraser
+
+Work order follows dependency chain: data structure → rendering → interaction → state management → export.
+
+- [ ] Vitest setup (test environment for pure functions)
+- [ ] Canvas creation (8x8, 16x16, 32x32) — pixel data structure + creation logic
+- [ ] Pixel grid display — Canvas2D rendering
+- [ ] Pencil tool (1px), eraser — first interaction, validates coordinate transform
 - [ ] Single color picker
-- [ ] Undo/Redo (snapshot-based)
+- [ ] Zoom in/out + panning — viewport transform, testable with drawing
+- [ ] Undo/Redo (snapshot-based) — requires state-changing operations to exist
 - [ ] PNG export
 
 ### Phase 1 completion

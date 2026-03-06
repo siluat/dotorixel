@@ -1,38 +1,26 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  async function loadWasm() {
+    const wasm = await import('$wasm/dotorixel_wasm.js');
+    await wasm.default();
+    return { add: wasm.add(2, 3), greet: wasm.greet('dotorixel') };
+  }
 
-  let addResult = $state<number | null>(null);
-  let greetResult = $state<string | null>(null);
-  let isLoading = $state(true);
-  let error = $state<string | null>(null);
-
-  onMount(async () => {
-    try {
-      const wasm = await import('$wasm/dotorixel_wasm.js');
-      await wasm.default();
-      addResult = wasm.add(2, 3);
-      greetResult = wasm.greet('dotorixel');
-      isLoading = false;
-    } catch (e) {
-      error = e instanceof Error ? e.message : 'Failed to load WASM module';
-      isLoading = false;
-    }
-  });
+  const wasmReady = loadWasm();
 </script>
 
 <main>
   <h1>DOTORIXEL</h1>
   <p>Build pipeline verification</p>
 
-  {#if isLoading}
+  {#await wasmReady}
     <p>Loading WASM module...</p>
-  {:else if error}
-    <p>Error: {error}</p>
-  {:else}
+  {:then results}
     <section>
       <h2>WASM Results</h2>
-      <p>add(2, 3) = {addResult}</p>
-      <p>greet("dotorixel") = {greetResult}</p>
+      <p>add(2, 3) = {results.add}</p>
+      <p>greet("dotorixel") = {results.greet}</p>
     </section>
-  {/if}
+  {:catch error}
+    <p>Error: {error.message}</p>
+  {/await}
 </main>

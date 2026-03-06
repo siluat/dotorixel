@@ -111,10 +111,11 @@ describe('getPixel / setPixel', () => {
 		expect(() => setPixel(canvas, x, y, RED)).toThrow(RangeError);
 	});
 
-	it('includes coordinates and canvas size in error message', () => {
+	it('includes coordinates, canvas size, and valid range in error message', () => {
 		const canvas = createCanvas(16);
 		expect(() => getPixel(canvas, 20, 5)).toThrow('(20, 5)');
 		expect(() => getPixel(canvas, 20, 5)).toThrow('16x16');
+		expect(() => getPixel(canvas, 20, 5)).toThrow('x in [0, 15]');
 	});
 });
 

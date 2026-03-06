@@ -47,7 +47,8 @@ export function isInsideBounds(canvas: PixelCanvas, x: number, y: number): boole
 export function getPixel(canvas: PixelCanvas, x: number, y: number): Color {
 	if (!isInsideBounds(canvas, x, y)) {
 		throw new RangeError(
-			`Pixel coordinates (${x}, ${y}) are out of bounds for ${canvas.width}x${canvas.height} canvas`
+			`Pixel coordinates (${x}, ${y}) are out of bounds for ${canvas.width}x${canvas.height} canvas. ` +
+				`Valid range: x in [0, ${canvas.width - 1}], y in [0, ${canvas.height - 1}]`
 		);
 	}
 	const i = pixelIndex(canvas.width, x, y);
@@ -62,7 +63,8 @@ export function getPixel(canvas: PixelCanvas, x: number, y: number): Color {
 export function setPixel(canvas: PixelCanvas, x: number, y: number, color: Color): void {
 	if (!isInsideBounds(canvas, x, y)) {
 		throw new RangeError(
-			`Pixel coordinates (${x}, ${y}) are out of bounds for ${canvas.width}x${canvas.height} canvas`
+			`Pixel coordinates (${x}, ${y}) are out of bounds for ${canvas.width}x${canvas.height} canvas. ` +
+				`Valid range: x in [0, ${canvas.width - 1}], y in [0, ${canvas.height - 1}]`
 		);
 	}
 	const i = pixelIndex(canvas.width, x, y);

@@ -17,7 +17,7 @@ ctx.stroke(); // lineWidth = 1
 
 Canvas2D uses a vector graphics coordinate system. Integer coordinates land on **pixel boundaries**, not pixel centers.
 
-```
+```text
 coords:  x=0       x=1       x=2
           |         |         |
       +---+---+---+---+---+---+---
@@ -29,7 +29,7 @@ coords:  x=0       x=1       x=2
 
 `stroke` expands equally in both directions from the coordinate by `lineWidth`. With `lineWidth=1`, it extends 0.5px on each side.
 
-```
+```text
 lineWidth=1 at x=1:
 
   x=0.5     x=1     x=1.5
@@ -48,7 +48,7 @@ lineWidth=1 at x=1:
 
 Add 0.5 to align the stroke center with the pixel center.
 
-```
+```text
 lineWidth=1 at x=1.5:
 
   x=1      x=1.5     x=2
@@ -90,7 +90,7 @@ However, this **misaligns all fill operations by 0.5px**. `fillRect(0, 0, 10, 10
 Avoid stroke entirely by drawing 1px rectangles with fill.
 
 ```typescript
-for (let x = 0; x <= canvasWidth; x++) {
+for (let x = 1; x < canvasWidth; x++) {
     ctx.fillRect(x * pixelSize, 0, 1, displayHeight);
 }
 ```

@@ -20,7 +20,7 @@ A 2D pixel art editor. Positioned as a learning-first, cross-platform tool.
 
 MVP starts with a standard Tauri structure + a single WASM crate. No Cargo workspace yet — introduce it when Rust code sharing between WASM and Tauri backend is actually needed.
 
-```
+```text
 dotorixel/
 ├── wasm/               # Rust → WASM (single crate, wasm-pack)
 ├── src/                # Svelte frontend (shared by web & Tauri)
@@ -97,7 +97,7 @@ Work order follows dependency chain: data structure → rendering → interactio
 
 [Conventional Commits](https://www.conventionalcommits.org/) format.
 
-```
+```text
 <type>: <subject>
 
 <optional body>

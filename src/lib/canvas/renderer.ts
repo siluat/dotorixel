@@ -85,13 +85,13 @@ function renderGrid(
 	ctx.lineWidth = 1;
 	ctx.beginPath();
 
-	for (let x = 0; x <= canvas.width; x++) {
+	for (let x = 1; x < canvas.width; x++) {
 		const px = x * pixelSize + 0.5;
 		ctx.moveTo(px, 0);
 		ctx.lineTo(px, displaySize.height);
 	}
 
-	for (let y = 0; y <= canvas.height; y++) {
+	for (let y = 1; y < canvas.height; y++) {
 		const py = y * pixelSize + 0.5;
 		ctx.moveTo(0, py);
 		ctx.lineTo(displaySize.width, py);

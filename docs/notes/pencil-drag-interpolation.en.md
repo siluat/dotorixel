@@ -59,13 +59,13 @@ Event 1 → Event 2 → Event 3
 
 ### Where to Apply
 
-The current design requires minimal changes:
+Files changed:
 
+- **`canvas.ts`**: Add `CanvasCoords` type definition, add `clearCanvas()` utility
+- **`renderer.ts`**: Add `screenToCanvas()` to convert screen coordinates to canvas space
 - **`tool.ts`**: Add `interpolatePixels()` pure function
 - **`PixelCanvasView.svelte`**: Pass both previous and current coordinates from `drawAt()`
 - **`+page.svelte`**: Call `applyTool()` for each interpolated coordinate in `handleDraw`
-
-Lower layers (`renderer.ts`, `canvas.ts`) require no changes.
 
 ## Alternatives
 

@@ -59,13 +59,13 @@ function interpolatePixels(x0: number, y0: number, x1: number, y1: number): {x: 
 
 ### 적용 위치
 
-현재 설계에서 변경이 필요한 부분은 최소한이다:
+변경이 필요한 부분:
 
+- **`canvas.ts`**: `CanvasCoords` 타입 정의 추가, `clearCanvas()` 유틸 추가
+- **`renderer.ts`**: 화면 좌표를 캔버스 좌표로 변환하는 `screenToCanvas()` 추가
 - **`tool.ts`**: `interpolatePixels()` 순수 함수 추가
 - **`PixelCanvasView.svelte`**: `drawAt()`에서 이전 좌표와 현재 좌표를 함께 전달
 - **`+page.svelte`**: `handleDraw`에서 보간된 좌표들에 `applyTool()` 반복 호출
-
-`renderer.ts`, `canvas.ts` 등 하위 레이어는 변경 불필요.
 
 ## Alternatives
 

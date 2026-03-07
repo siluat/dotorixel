@@ -10,3 +10,11 @@ export {
 	setPixel,
 	isInsideBounds
 } from './canvas/canvas.ts';
+
+export {
+	type ViewportConfig,
+	getDefaultPixelSize,
+	createDefaultViewport,
+	getDisplaySize,
+	renderPixelCanvas
+} from './canvas/renderer.ts';

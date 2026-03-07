@@ -154,7 +154,7 @@ Source: `src/js/tools/drawing/SimplePen.js`, `src/js/utils/PixelUtils.js`
 
 Source: `src/doc/algo.cpp`
 
-**All three projects use Bresenham.** No cases of DDA or event-based approaches were found.
+**All three reviewed projects use Bresenham.** Among these case studies, no DDA or purely event-based approaches were found.
 
 ## Reference
 

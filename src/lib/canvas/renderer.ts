@@ -1,9 +1,20 @@
-import type { PixelCanvas, CanvasSize } from './canvas.ts';
+import type { PixelCanvas, CanvasSize, CanvasCoords } from './canvas.ts';
 
 export interface ViewportConfig {
 	readonly pixelSize: number;
 	readonly showGrid: boolean;
 	readonly gridColor: string;
+}
+
+export function screenToCanvas(
+	screenX: number,
+	screenY: number,
+	viewport: ViewportConfig
+): CanvasCoords {
+	return {
+		x: Math.floor(screenX / viewport.pixelSize),
+		y: Math.floor(screenY / viewport.pixelSize)
+	};
 }
 
 const TARGET_DISPLAY_SIZE = 512;

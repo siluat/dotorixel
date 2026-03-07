@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getDefaultPixelSize, getDisplaySize, createDefaultViewport } from './renderer.ts';
+import { getDefaultPixelSize, getDisplaySize, createDefaultViewport, screenToCanvas } from './renderer.ts';
 import { createCanvas, type CanvasSize } from './canvas.ts';
 
 describe('getDefaultPixelSize', () => {
@@ -23,6 +23,33 @@ describe('getDisplaySize', () => {
 		const canvas = createCanvas(8);
 		const size = getDisplaySize(canvas, { pixelSize: 10, showGrid: false, gridColor: '#ccc' });
 		expect(size).toEqual({ width: 80, height: 80 });
+	});
+});
+
+describe('screenToCanvas', () => {
+	const viewport = { pixelSize: 32, showGrid: true, gridColor: '#ccc' };
+
+	it('converts origin to canvas coordinate (0, 0)', () => {
+		expect(screenToCanvas(0, 0, viewport)).toEqual({ x: 0, y: 0 });
+	});
+
+	it('maps coordinates within a pixel to the same canvas coordinate', () => {
+		expect(screenToCanvas(1, 1, viewport)).toEqual({ x: 0, y: 0 });
+		expect(screenToCanvas(31, 31, viewport)).toEqual({ x: 0, y: 0 });
+	});
+
+	it('maps pixel boundary to next canvas coordinate', () => {
+		expect(screenToCanvas(32, 0, viewport)).toEqual({ x: 1, y: 0 });
+		expect(screenToCanvas(0, 32, viewport)).toEqual({ x: 0, y: 1 });
+	});
+
+	it('works with different pixel sizes', () => {
+		const smallViewport = { pixelSize: 10, showGrid: false, gridColor: '#ccc' };
+		expect(screenToCanvas(25, 15, smallViewport)).toEqual({ x: 2, y: 1 });
+	});
+
+	it('floors fractional screen coordinates', () => {
+		expect(screenToCanvas(33.7, 65.9, viewport)).toEqual({ x: 1, y: 2 });
 	});
 });
 

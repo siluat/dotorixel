@@ -8,7 +8,9 @@ export {
 	createCanvasWithColor,
 	getPixel,
 	setPixel,
-	isInsideBounds
+	isInsideBounds,
+	clearCanvas,
+	type CanvasCoords
 } from './canvas/canvas.ts';
 
 export {
@@ -16,5 +18,8 @@ export {
 	getDefaultPixelSize,
 	createDefaultViewport,
 	getDisplaySize,
+	screenToCanvas,
 	renderPixelCanvas
 } from './canvas/renderer.ts';
+
+export { type ToolType, applyTool, interpolatePixels } from './canvas/tool.ts';

@@ -15,6 +15,11 @@ export interface PixelCanvas {
 	readonly pixels: PixelData;
 }
 
+export interface CanvasCoords {
+	readonly x: number;
+	readonly y: number;
+}
+
 export const TRANSPARENT: Color = { r: 0, g: 0, b: 0, a: 0 };
 
 function pixelIndex(width: number, x: number, y: number): number {
@@ -58,6 +63,10 @@ export function getPixel(canvas: PixelCanvas, x: number, y: number): Color {
 		b: canvas.pixels[i + 2],
 		a: canvas.pixels[i + 3]
 	};
+}
+
+export function clearCanvas(canvas: PixelCanvas): void {
+	canvas.pixels.fill(0);
 }
 
 export function setPixel(canvas: PixelCanvas, x: number, y: number, color: Color): void {

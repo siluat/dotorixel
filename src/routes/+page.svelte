@@ -1,26 +1,32 @@
 <script lang="ts">
-  async function loadWasm() {
-    const wasm = await import('$wasm/dotorixel_wasm.js');
-    await wasm.default();
-    return { add: wasm.add(2, 3), greet: wasm.greet('dotorixel') };
-  }
+	import { createCanvas } from '$lib/canvas/canvas';
+	import { createDefaultViewport } from '$lib/canvas/renderer';
+	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 
-  const wasmReady = loadWasm();
+	const pixelCanvas = createCanvas(16);
+	const viewport = createDefaultViewport(16);
 </script>
 
 <main>
-  <h1>DOTORIXEL</h1>
-  <p>Build pipeline verification</p>
-
-  {#await wasmReady}
-    <p>Loading WASM module...</p>
-  {:then results}
-    <section>
-      <h2>WASM Results</h2>
-      <p>add(2, 3) = {results.add}</p>
-      <p>greet("dotorixel") = {results.greet}</p>
-    </section>
-  {:catch error}
-    <p>Error: {error.message}</p>
-  {/await}
+	<h1>DOTORIXEL</h1>
+	<div class="canvas-container">
+		<PixelCanvasView {pixelCanvas} {viewport} />
+	</div>
 </main>
+
+<style>
+	main {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 2rem;
+	}
+
+	h1 {
+		margin-bottom: 1.5rem;
+	}
+
+	.canvas-container {
+		border: 1px solid #999;
+	}
+</style>

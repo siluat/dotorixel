@@ -20,7 +20,7 @@ A 2D pixel art editor. Positioned as a learning-first, cross-platform tool.
 
 MVP starts with a standard Tauri structure + a single WASM crate. No Cargo workspace yet — introduce it when Rust code sharing between WASM and Tauri backend is actually needed.
 
-```
+```text
 dotorixel/
 ├── wasm/               # Rust → WASM (single crate, wasm-pack)
 ├── src/                # Svelte frontend (shared by web & Tauri)
@@ -55,7 +55,7 @@ Work order follows dependency chain: data structure → rendering → interactio
 
 - [x] Vitest setup (test environment for pure functions)
 - [x] Canvas creation (8x8, 16x16, 32x32) — pixel data structure + creation logic
-- [ ] Pixel grid display — Canvas2D rendering
+- [x] Pixel grid display — Canvas2D rendering
 - [ ] Pencil tool (1px), eraser — first interaction, validates coordinate transform
 - [ ] Single color picker
 - [ ] Zoom in/out + panning — viewport transform, testable with drawing
@@ -98,7 +98,7 @@ Work order follows dependency chain: data structure → rendering → interactio
 
 [Conventional Commits](https://www.conventionalcommits.org/) format.
 
-```
+```text
 <type>: <subject>
 
 <optional body>
@@ -143,6 +143,10 @@ When a commit or PR completes a roadmap item, update its checkbox in this file (
 
 - **Least privilege by default.** Start with the most restrictive configuration and expand permissions only when a concrete need arises. Never pre-authorize "just in case." This applies to CSP directives, Tauri capabilities, file system access, and any other permission boundary.
 - **Verify each expansion.** When broadening a security policy, confirm the change is necessary by reproducing the specific failure it resolves. Document *why* the permission was added (e.g., as a code comment or commit message).
+
+### Markdown
+
+- **Fenced code blocks must have a language tag.** Use `typescript`, `rust`, `bash`, `text`, etc. Never leave a bare ` ``` `.
 
 ### Testing
 

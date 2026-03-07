@@ -57,7 +57,7 @@ Work order follows dependency chain: data structure → rendering → interactio
 - [x] Canvas creation (8x8, 16x16, 32x32) — pixel data structure + creation logic
 - [x] Pixel grid display — Canvas2D rendering
 - [x] Pencil tool (1px), eraser — first interaction, validates coordinate transform
-- [ ] Single color picker
+- [x] Single color picker
 - [ ] Zoom in/out + panning — viewport transform, testable with drawing
 - [ ] Undo/Redo (snapshot-based) — requires state-changing operations to exist
 - [ ] PNG export

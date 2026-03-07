@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { colorToHex, hexToColor, TRANSPARENT } from './color.ts';
-import type { Color } from './color.ts';
+import { colorToHex, hexToColor, TRANSPARENT, type Color } from './color.ts';
 
 describe('colorToHex', () => {
 	it('converts black to #000000', () => {

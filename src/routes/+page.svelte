@@ -1,11 +1,8 @@
 <script lang="ts">
-	import { createCanvas, clearCanvas } from '$lib/canvas/canvas';
+	import { createCanvas, clearCanvas, type CanvasCoords } from '$lib/canvas/canvas';
 	import { createDefaultViewport } from '$lib/canvas/renderer';
-	import { applyTool, interpolatePixels } from '$lib/canvas/tool';
-	import type { ToolType } from '$lib/canvas/tool';
-	import type { CanvasCoords } from '$lib/canvas/canvas';
-	import { colorToHex, hexToColor } from '$lib/canvas/color';
-	import type { Color } from '$lib/canvas/color';
+	import { applyTool, interpolatePixels, type ToolType } from '$lib/canvas/tool';
+	import { colorToHex, hexToColor, type Color } from '$lib/canvas/color';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 
 	const pixelCanvas = createCanvas(16);

@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { Color } from './color.ts';
-import { TRANSPARENT } from './color.ts';
+import { TRANSPARENT, type Color } from './color.ts';
 import {
 	createCanvas,
 	createCanvasWithColor,

@@ -1,7 +1,5 @@
-import type { Color } from './color.ts';
-import { TRANSPARENT } from './color.ts';
-import type { PixelCanvas, CanvasCoords } from './canvas.ts';
-import { isInsideBounds, setPixel } from './canvas.ts';
+import { TRANSPARENT, type Color } from './color.ts';
+import { isInsideBounds, setPixel, type PixelCanvas, type CanvasCoords } from './canvas.ts';
 
 export type ToolType = 'pencil' | 'eraser';
 

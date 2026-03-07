@@ -1,9 +1,4 @@
-export interface Color {
-	readonly r: number;
-	readonly g: number;
-	readonly b: number;
-	readonly a: number;
-}
+import type { Color } from './color.ts';
 
 export type CanvasSize = 8 | 16 | 32;
 
@@ -19,8 +14,6 @@ export interface CanvasCoords {
 	readonly x: number;
 	readonly y: number;
 }
-
-export const TRANSPARENT: Color = { r: 0, g: 0, b: 0, a: 0 };
 
 function pixelIndex(width: number, x: number, y: number): number {
 	return (y * width + x) * 4;

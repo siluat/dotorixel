@@ -1,9 +1,9 @@
+export { type Color, TRANSPARENT, colorToHex, hexToColor } from './canvas/color.ts';
+
 export {
-	type Color,
 	type CanvasSize,
 	type PixelData,
 	type PixelCanvas,
-	TRANSPARENT,
 	createCanvas,
 	createCanvasWithColor,
 	getPixel,

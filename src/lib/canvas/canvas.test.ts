@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
+import type { Color } from './color.ts';
+import { TRANSPARENT } from './color.ts';
 import {
 	createCanvas,
 	createCanvasWithColor,
 	getPixel,
 	setPixel,
 	isInsideBounds,
-	TRANSPARENT,
-	type CanvasSize,
-	type Color
+	type CanvasSize
 } from './canvas.ts';
 
 const RED: Color = { r: 255, g: 0, b: 0, a: 255 };

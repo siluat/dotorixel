@@ -3,7 +3,8 @@
 	import { createDefaultViewport } from '$lib/canvas/renderer';
 	import { applyTool, interpolatePixels } from '$lib/canvas/tool';
 	import type { ToolType } from '$lib/canvas/tool';
-	import type { CanvasCoords, Color } from '$lib/canvas/canvas';
+	import type { CanvasCoords } from '$lib/canvas/canvas';
+	import type { Color } from '$lib/canvas/color';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 
 	const pixelCanvas = createCanvas(16);

@@ -53,8 +53,8 @@ Verified Vite + SvelteKit + wasm-pack + Tauri v2 integration. `bun run dev` (web
 
 Work order follows dependency chain: data structure → rendering → interaction → state management → export.
 
-- [ ] Vitest setup (test environment for pure functions)
-- [ ] Canvas creation (8x8, 16x16, 32x32) — pixel data structure + creation logic
+- [x] Vitest setup (test environment for pure functions)
+- [x] Canvas creation (8x8, 16x16, 32x32) — pixel data structure + creation logic
 - [ ] Pixel grid display — Canvas2D rendering
 - [ ] Pencil tool (1px), eraser — first interaction, validates coordinate transform
 - [ ] Single color picker
@@ -108,6 +108,10 @@ Work order follows dependency chain: data structure → rendering → interactio
 - **subject**: lowercase, no period, imperative mood
 - **body**: only when additional context is needed
 - scope: introduce when the project grows enough to need it
+
+### Roadmap Tracking
+
+When a commit or PR completes a roadmap item, update its checkbox in this file (`[ ]` → `[x]`) as part of the same change.
 
 ### Code Style
 

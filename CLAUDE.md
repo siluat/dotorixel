@@ -53,8 +53,8 @@ Verified Vite + SvelteKit + wasm-pack + Tauri v2 integration. `bun run dev` (web
 
 Work order follows dependency chain: data structure → rendering → interaction → state management → export.
 
-- [ ] Vitest setup (test environment for pure functions)
-- [ ] Canvas creation (8x8, 16x16, 32x32) — pixel data structure + creation logic
+- [x] Vitest setup (test environment for pure functions)
+- [x] Canvas creation (8x8, 16x16, 32x32) — pixel data structure + creation logic
 - [ ] Pixel grid display — Canvas2D rendering
 - [ ] Pencil tool (1px), eraser — first interaction, validates coordinate transform
 - [ ] Single color picker
@@ -109,6 +109,10 @@ Work order follows dependency chain: data structure → rendering → interactio
 - **body**: only when additional context is needed
 - scope: introduce when the project grows enough to need it
 
+### Roadmap Tracking
+
+When a commit or PR completes a roadmap item, update its checkbox in this file (`[ ]` → `[x]`) as part of the same change.
+
 ### Code Style
 
 - **Declarative over imperative.** Express *what* should happen, not *how*. Prefer data descriptions and transformations over step-by-step mutations.
@@ -127,7 +131,7 @@ Work order follows dependency chain: data structure → rendering → interactio
 - **Depend on interfaces, not implementations.** Modules (rendering, state management, tool system) should interact through types and contracts, not concrete implementations. This keeps them independently replaceable.
 - **High cohesion, low coupling.** Group code by what changes together. A tool's logic, its state, and its cursor behavior belong together — not scattered across "utils/", "types/", and "state/" directories.
 - **Right-sized modules.** Single responsibility is valuable, but a module split so finely that understanding one feature requires jumping across 8 files is worse than a slightly larger, self-contained module. Optimize for navigability: a reader should understand a feature by looking at one place.
-- **Core logic lives in pure functions.** Coordinate transforms, Undo/Redo, pixel manipulation, and tool algorithms must be free of side effects and framework dependencies. This is a structural rule, not just a style preference — it enables testability, portability across runtimes, and future migration paths.
+- **Core logic is self-contained.** Coordinate transforms, pixel manipulation, tool algorithms, and undo/redo must have no framework dependencies (DOM, Svelte, Tauri APIs) and no hidden side effects (global state, I/O). Stateless transformations should be pure functions; stateful operations may mutate explicitly passed data structures. This is a structural rule — it enables testability, portability across runtimes, and future migration paths.
 
 ### Error Handling
 

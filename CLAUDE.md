@@ -34,7 +34,7 @@ When Rust core logic grows and needs to be shared between WASM and Tauri backend
 
 ## License
 
-AGPL-3.0-or-later. Dual licensing and proprietary premium features are available as the copyright holder.
+MIT
 
 ## Versioning
 
@@ -80,7 +80,6 @@ Work order follows dependency chain: data structure → rendering → interactio
 - [ ] HSV color picker, foreground/background color swap, preset palettes
 
 ### Future triggers (not tied to a specific phase)
-- [ ] First external contributor → set up CLA
 - [ ] Community forming → add CONTRIBUTING.md, Code of Conduct, issue/PR templates
 
 ## MVP Technical Decisions

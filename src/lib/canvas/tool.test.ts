@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { TRANSPARENT, type Color } from './color.ts';
 import { applyTool, interpolatePixels } from './tool.ts';
-import { createCanvas, createCanvasWithColor, getPixel, TRANSPARENT } from './canvas.ts';
-import type { Color } from './canvas.ts';
+import { createCanvas, createCanvasWithColor, getPixel } from './canvas.ts';
 
 const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
 const RED: Color = { r: 255, g: 0, b: 0, a: 255 };

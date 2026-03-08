@@ -50,6 +50,7 @@
 	$effect(() => {
 		if (!canvasEl) return;
 		const handler = (event: WheelEvent) => {
+			if (event.deltaY === 0) return;
 			event.preventDefault();
 			const rect = canvasEl!.getBoundingClientRect();
 			const screenX = event.clientX - rect.left;
@@ -159,6 +160,12 @@
 			isSpaceHeld = false;
 		}
 	}
+
+	function handleWindowBlur(): void {
+		isDrawing = false;
+		isPanning = false;
+		isSpaceHeld = false;
+	}
 </script>
 
 <svelte:window
@@ -166,6 +173,7 @@
 	onmouseup={handleMouseUp}
 	onkeydown={handleKeyDown}
 	onkeyup={handleKeyUp}
+	onblur={handleWindowBlur}
 />
 
 <canvas

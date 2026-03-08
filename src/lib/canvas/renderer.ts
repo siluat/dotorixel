@@ -1,48 +1,10 @@
-import type { PixelCanvas, CanvasSize, CanvasCoords } from './canvas.ts';
+import type { PixelCanvas } from './canvas.ts';
+import type { ViewportConfig } from './viewport.ts';
+import { getDisplaySize } from './viewport.ts';
 
-export interface ViewportConfig {
-	readonly pixelSize: number;
-	readonly showGrid: boolean;
-	readonly gridColor: string;
-}
-
-export function screenToCanvas(
-	screenX: number,
-	screenY: number,
-	viewport: ViewportConfig
-): CanvasCoords {
-	return {
-		x: Math.floor(screenX / viewport.pixelSize),
-		y: Math.floor(screenY / viewport.pixelSize)
-	};
-}
-
-const TARGET_DISPLAY_SIZE = 512;
 const MIN_CHECKER_SIZE = 4;
 const CHECKER_LIGHT = '#ffffff';
 const CHECKER_DARK = '#e0e0e0';
-
-export function getDefaultPixelSize(canvasSize: CanvasSize): number {
-	return Math.floor(TARGET_DISPLAY_SIZE / canvasSize);
-}
-
-export function createDefaultViewport(canvasSize: CanvasSize): ViewportConfig {
-	return {
-		pixelSize: getDefaultPixelSize(canvasSize),
-		showGrid: true,
-		gridColor: '#cccccc'
-	};
-}
-
-export function getDisplaySize(
-	canvas: PixelCanvas,
-	viewport: ViewportConfig
-): { width: number; height: number } {
-	return {
-		width: canvas.width * viewport.pixelSize,
-		height: canvas.height * viewport.pixelSize
-	};
-}
 
 function renderCheckerboard(
 	ctx: CanvasRenderingContext2D,

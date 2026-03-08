@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { PixelCanvas, CanvasCoords } from './canvas.ts';
-	import type { ViewportConfig } from './renderer.ts';
-	import { getDisplaySize, renderPixelCanvas, screenToCanvas } from './renderer.ts';
+	import type { ViewportConfig } from './viewport.ts';
+	import { getDisplaySize, screenToCanvas } from './viewport.ts';
+	import { renderPixelCanvas } from './renderer.ts';
 
 	interface Props {
 		pixelCanvas: PixelCanvas;

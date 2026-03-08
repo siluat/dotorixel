@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getDefaultPixelSize, getDisplaySize, createDefaultViewport, screenToCanvas } from './renderer.ts';
+import { getDefaultPixelSize, getDisplaySize, createDefaultViewport, screenToCanvas } from './viewport.ts';
 import { createCanvas, type CanvasSize } from './canvas.ts';
 
 describe('getDefaultPixelSize', () => {

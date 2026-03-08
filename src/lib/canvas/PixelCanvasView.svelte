@@ -1,27 +1,35 @@
 <script lang="ts">
 	import type { PixelCanvas, CanvasCoords } from './canvas.ts';
-	import type { ViewportConfig } from './viewport.ts';
-	import { getDisplaySize, screenToCanvas } from './viewport.ts';
+	import type { ViewportConfig, ViewportSize } from './viewport.ts';
+	import { screenToCanvas, zoomAtPoint, pan, nextZoomLevel, prevZoomLevel } from './viewport.ts';
 	import { renderPixelCanvas } from './renderer.ts';
 
 	interface Props {
 		pixelCanvas: PixelCanvas;
 		viewport: ViewportConfig;
+		viewportSize?: ViewportSize;
 		renderVersion?: number;
 		onDraw?: (current: CanvasCoords, previous: CanvasCoords | null) => void;
+		onViewportChange?: (viewport: ViewportConfig) => void;
 		toolCursor?: string;
 	}
 
 	let {
 		pixelCanvas,
 		viewport,
+		viewportSize = { width: 512, height: 512 },
 		renderVersion = 0,
 		onDraw,
+		onViewportChange,
 		toolCursor = 'crosshair'
 	}: Props = $props();
 
 	let canvasEl: HTMLCanvasElement | undefined = $state();
 	let isDrawing = $state(false);
+	let isPanning = $state(false);
+	let isSpaceHeld = $state(false);
+	let panStartX = $state(0);
+	let panStartY = $state(0);
 	let lastPixelX = $state(-1);
 	let lastPixelY = $state(-1);
 
@@ -30,15 +38,37 @@
 		const ctx = canvasEl.getContext('2d');
 		if (!ctx) return;
 
-		// Read renderVersion to subscribe to mutation-triggered re-renders
 		void renderVersion;
 
-		const displaySize = getDisplaySize(pixelCanvas, viewport);
-		canvasEl.width = displaySize.width;
-		canvasEl.height = displaySize.height;
+		canvasEl.width = viewportSize.width;
+		canvasEl.height = viewportSize.height;
 
-		renderPixelCanvas(ctx, pixelCanvas, viewport);
+		renderPixelCanvas(ctx, pixelCanvas, viewport, viewportSize);
 	});
+
+	// Register wheel listener with { passive: false } to allow preventDefault
+	$effect(() => {
+		if (!canvasEl) return;
+		const handler = (event: WheelEvent) => {
+			event.preventDefault();
+			const rect = canvasEl!.getBoundingClientRect();
+			const screenX = event.clientX - rect.left;
+			const screenY = event.clientY - rect.top;
+			const newZoom =
+				event.deltaY < 0
+					? nextZoomLevel(viewport.zoom)
+					: prevZoomLevel(viewport.zoom);
+			if (newZoom !== viewport.zoom) {
+				onViewportChange?.(zoomAtPoint(viewport, screenX, screenY, newZoom));
+			}
+		};
+		canvasEl.addEventListener('wheel', handler, { passive: false });
+		return () => canvasEl?.removeEventListener('wheel', handler);
+	});
+
+	const cursorStyle = $derived(
+		isPanning ? 'grabbing' : isSpaceHeld ? 'grab' : toolCursor
+	);
 
 	function getCanvasCoords(event: MouseEvent): CanvasCoords {
 		const rect = canvasEl!.getBoundingClientRect();
@@ -54,8 +84,28 @@
 		onDraw?.(coords, previous);
 	}
 
+	function startPan(event: MouseEvent): void {
+		isPanning = true;
+		panStartX = event.clientX;
+		panStartY = event.clientY;
+	}
+
 	function handleMouseDown(event: MouseEvent): void {
+		// Middle click → pan
+		if (event.button === 1) {
+			event.preventDefault();
+			startPan(event);
+			return;
+		}
+
 		if (event.button !== 0) return;
+
+		// Space + left click → pan
+		if (isSpaceHeld) {
+			startPan(event);
+			return;
+		}
+
 		isDrawing = true;
 		lastPixelX = -1;
 		lastPixelY = -1;
@@ -63,12 +113,22 @@
 	}
 
 	function handleMouseMove(event: MouseEvent): void {
+		if (isPanning) {
+			const deltaX = event.clientX - panStartX;
+			const deltaY = event.clientY - panStartY;
+			panStartX = event.clientX;
+			panStartY = event.clientY;
+			onViewportChange?.(pan(viewport, deltaX, deltaY));
+			return;
+		}
+
 		if (!isDrawing) return;
 		drawAt(getCanvasCoords(event));
 	}
 
 	function handleMouseUp(): void {
 		isDrawing = false;
+		isPanning = false;
 	}
 
 	function handleMouseLeave(event: MouseEvent): void {
@@ -76,15 +136,33 @@
 			drawAt(getCanvasCoords(event));
 		}
 		isDrawing = false;
+		isPanning = false;
+	}
+
+	function handleKeyDown(event: KeyboardEvent): void {
+		if (event.code === 'Space' && !event.repeat) {
+			event.preventDefault();
+			isSpaceHeld = true;
+		}
+	}
+
+	function handleKeyUp(event: KeyboardEvent): void {
+		if (event.code === 'Space') {
+			isSpaceHeld = false;
+		}
 	}
 </script>
 
-<svelte:window onmouseup={handleMouseUp} />
+<svelte:window
+	onmouseup={handleMouseUp}
+	onkeydown={handleKeyDown}
+	onkeyup={handleKeyUp}
+/>
 
 <canvas
 	bind:this={canvasEl}
 	class="pixel-canvas"
-	style:cursor={toolCursor}
+	style:cursor={cursorStyle}
 	onmousedown={handleMouseDown}
 	onmousemove={handleMouseMove}
 	onmouseleave={handleMouseLeave}

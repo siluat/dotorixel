@@ -22,5 +22,7 @@ export async function exportAsPng(canvas: PixelCanvas, filename?: string): Promi
 	anchor.download = filename ?? generateExportFilename(canvas);
 	anchor.click();
 
-	URL.revokeObjectURL(url);
+	// Defer revocation so the browser can start the download before the URL is invalidated.
+	// Immediate revocation after click() can silently cancel downloads in Firefox.
+	setTimeout(() => URL.revokeObjectURL(url), 0);
 }

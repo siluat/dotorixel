@@ -128,8 +128,12 @@
 		viewport = fitToViewport(viewport, pixelCanvas, viewportSize);
 	}
 
-	function handleExportPng(): void {
-		exportAsPng(pixelCanvas);
+	async function handleExportPng(): Promise<void> {
+		try {
+			await exportAsPng(pixelCanvas);
+		} catch (error) {
+			console.error('PNG export failed:', error);
+		}
 	}
 </script>
 

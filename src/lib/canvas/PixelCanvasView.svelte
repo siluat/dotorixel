@@ -6,7 +6,7 @@
 
 	type InteractionMode =
 		| { readonly type: 'idle' }
-		| { type: 'drawing'; lastPixelX: number; lastPixelY: number }
+		| { type: 'drawing'; lastPixel: CanvasCoords | null }
 		| { type: 'panning'; startX: number; startY: number };
 
 	interface Props {
@@ -55,10 +55,10 @@
 			const rect = canvasEl!.getBoundingClientRect();
 			const screenX = event.clientX - rect.left;
 			const screenY = event.clientY - rect.top;
-			const newZoom =
-				event.deltaY < 0
-					? nextZoomLevel(viewport.zoom)
-					: prevZoomLevel(viewport.zoom);
+			const isZoomIn = event.deltaY < 0;
+			const newZoom = isZoomIn
+				? nextZoomLevel(viewport.zoom)
+				: prevZoomLevel(viewport.zoom);
 			if (newZoom !== viewport.zoom) {
 				onViewportChange?.(zoomAtPoint(viewport, screenX, screenY, newZoom));
 			}
@@ -78,31 +78,30 @@
 
 	function drawAt(coords: CanvasCoords): void {
 		if (interaction.type !== 'drawing') return;
-		if (coords.x === interaction.lastPixelX && coords.y === interaction.lastPixelY) return;
-		const previous =
-			interaction.lastPixelX !== -1
-				? { x: interaction.lastPixelX, y: interaction.lastPixelY }
-				: null;
-		interaction.lastPixelX = coords.x;
-		interaction.lastPixelY = coords.y;
-		onDraw?.(coords, previous);
+		const lastPixel = interaction.lastPixel;
+		if (lastPixel && coords.x === lastPixel.x && coords.y === lastPixel.y) return;
+		interaction.lastPixel = coords;
+		onDraw?.(coords, lastPixel);
 	}
 
 	function handleMouseDown(event: MouseEvent): void {
-		if (event.button === 1) {
+		const isMiddleClick = event.button === 1;
+		const isLeftClick = event.button === 0;
+
+		if (isMiddleClick) {
 			event.preventDefault();
 			interaction = { type: 'panning', startX: event.clientX, startY: event.clientY };
 			return;
 		}
 
-		if (event.button !== 0) return;
+		if (!isLeftClick) return;
 
 		if (isSpaceHeld) {
 			interaction = { type: 'panning', startX: event.clientX, startY: event.clientY };
 			return;
 		}
 
-		interaction = { type: 'drawing', lastPixelX: -1, lastPixelY: -1 };
+		interaction = { type: 'drawing', lastPixel: null };
 		drawAt(getCanvasCoords(event));
 	}
 

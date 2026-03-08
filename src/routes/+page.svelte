@@ -88,10 +88,11 @@
 		if (isInteractiveTarget(event.target)) return;
 
 		const isCtrlOrCmd = event.ctrlKey || event.metaKey;
-		if (isCtrlOrCmd && event.key === 'z' && !event.shiftKey) {
+		const isZKey = event.key.toLowerCase() === 'z';
+		if (isCtrlOrCmd && isZKey && !event.shiftKey) {
 			event.preventDefault();
 			handleUndo();
-		} else if (isCtrlOrCmd && event.key === 'z' && event.shiftKey) {
+		} else if (isCtrlOrCmd && isZKey && event.shiftKey) {
 			event.preventDefault();
 			handleRedo();
 		}

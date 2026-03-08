@@ -60,7 +60,7 @@ Work order follows dependency chain: data structure → rendering → interactio
 - [x] Single color picker
 - [x] Zoom in/out + panning — viewport transform, testable with drawing
 - [x] Undo/Redo (snapshot-based) — requires state-changing operations to exist
-- [ ] PNG export
+- [x] PNG export
 
 ### Phase 1 completion
 - [ ] Git tag v0.1.0

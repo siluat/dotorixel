@@ -113,6 +113,11 @@
 
 	function handleWindowMouseMove(event: MouseEvent): void {
 		if (interaction.type !== 'panning') return;
+		const hasLostMouseUp = event.buttons === 0;
+		if (hasLostMouseUp) {
+			interaction = { type: 'idle' };
+			return;
+		}
 		const deltaX = event.clientX - interaction.startX;
 		const deltaY = event.clientY - interaction.startY;
 		interaction.startX = event.clientX;

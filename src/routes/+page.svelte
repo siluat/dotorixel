@@ -11,6 +11,7 @@
 	import { applyTool, interpolatePixels, type ToolType } from '$lib/canvas/tool';
 	import { colorToHex, hexToColor, type Color } from '$lib/canvas/color';
 	import { createHistoryManager } from '$lib/canvas/history';
+	import { exportAsPng } from '$lib/canvas/export';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 
 	const pixelCanvas = createCanvas(16);
@@ -126,6 +127,10 @@
 	function handleFit(): void {
 		viewport = fitToViewport(viewport, pixelCanvas, viewportSize);
 	}
+
+	function handleExportPng(): void {
+		exportAsPng(pixelCanvas);
+	}
 </script>
 
 <svelte:window onkeydown={handleKeyDown} />
@@ -162,6 +167,8 @@
 		<span class="zoom-label">{zoomPercent}%</span>
 		<button class="tool-button" onclick={handleZoomIn}>+</button>
 		<button class="tool-button" onclick={handleFit}>Fit</button>
+		<span class="separator"></span>
+		<button class="tool-button" onclick={handleExportPng}>Export PNG</button>
 	</div>
 	<div class="canvas-container">
 		<PixelCanvasView

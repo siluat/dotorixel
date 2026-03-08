@@ -113,17 +113,19 @@
 	}
 
 	function handleMouseMove(event: MouseEvent): void {
-		if (isPanning) {
-			const deltaX = event.clientX - panStartX;
-			const deltaY = event.clientY - panStartY;
-			panStartX = event.clientX;
-			panStartY = event.clientY;
-			onViewportChange?.(pan(viewport, deltaX, deltaY));
-			return;
-		}
+		if (isPanning) return;
 
 		if (!isDrawing) return;
 		drawAt(getCanvasCoords(event));
+	}
+
+	function handleWindowMouseMove(event: MouseEvent): void {
+		if (!isPanning) return;
+		const deltaX = event.clientX - panStartX;
+		const deltaY = event.clientY - panStartY;
+		panStartX = event.clientX;
+		panStartY = event.clientY;
+		onViewportChange?.(pan(viewport, deltaX, deltaY));
 	}
 
 	function handleMouseUp(): void {
@@ -136,11 +138,17 @@
 			drawAt(getCanvasCoords(event));
 		}
 		isDrawing = false;
-		isPanning = false;
+	}
+
+	function isInteractiveTarget(target: EventTarget | null): boolean {
+		return (
+			target instanceof HTMLElement &&
+			target.closest('button, input, select, textarea, [contenteditable="true"]') !== null
+		);
 	}
 
 	function handleKeyDown(event: KeyboardEvent): void {
-		if (event.code === 'Space' && !event.repeat) {
+		if (event.code === 'Space' && !event.repeat && !isInteractiveTarget(event.target)) {
 			event.preventDefault();
 			isSpaceHeld = true;
 		}
@@ -154,6 +162,7 @@
 </script>
 
 <svelte:window
+	onmousemove={handleWindowMouseMove}
 	onmouseup={handleMouseUp}
 	onkeydown={handleKeyDown}
 	onkeyup={handleKeyUp}

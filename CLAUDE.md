@@ -58,7 +58,7 @@ Work order follows dependency chain: data structure → rendering → interactio
 - [x] Pixel grid display — Canvas2D rendering
 - [x] Pencil tool (1px), eraser — first interaction, validates coordinate transform
 - [x] Single color picker
-- [ ] Zoom in/out + panning — viewport transform, testable with drawing
+- [x] Zoom in/out + panning — viewport transform, testable with drawing
 - [ ] Undo/Redo (snapshot-based) — requires state-changing operations to exist
 - [ ] PNG export
 
@@ -115,8 +115,9 @@ When a commit or PR completes a roadmap item, update its checkbox in this file (
 
 ### Code Style
 
-- **Declarative over imperative.** Express *what* should happen, not *how*. Prefer data descriptions and transformations over step-by-step mutations.
+- **Declarative over imperative, when it clarifies.** Prefer data descriptions and transformations over step-by-step mutations when it makes the code easier to understand. When imperative logic is more direct (e.g., canvas rendering, sequential I/O), use it without apology.
 - **Readable code over clever code.** If a function needs a comment to explain *what* it does, rename it. Reserve comments for *why* — non-obvious constraints, trade-offs, or domain context.
+- **Make conditions self-documenting.** When a condition requires domain knowledge or API familiarity to understand (e.g., `event.button === 1`, `value === -1`), choose the right level of clarification: name the condition (`const isMiddleClick = event.button === 1`) when it appears in one place, define a shared constant when the same magic value appears in multiple places, or eliminate the magic value through types (`null` instead of `-1` as a sentinel) when the type system can enforce the meaning.
 - **Right paradigm for the situation.** Use pure functions for stateless data transformations (coordinate math, color conversion). Use objects with encapsulation when identity and lifecycle matter (history manager, tool state). Don't force one paradigm everywhere.
 
 ### Naming

@@ -59,7 +59,7 @@ Work order follows dependency chain: data structure → rendering → interactio
 - [x] Pencil tool (1px), eraser — first interaction, validates coordinate transform
 - [x] Single color picker
 - [x] Zoom in/out + panning — viewport transform, testable with drawing
-- [ ] Undo/Redo (snapshot-based) — requires state-changing operations to exist
+- [x] Undo/Redo (snapshot-based) — requires state-changing operations to exist
 - [ ] PNG export
 
 ### Phase 1 completion

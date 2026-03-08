@@ -10,6 +10,7 @@
 	} from '$lib/canvas/viewport';
 	import { applyTool, interpolatePixels, type ToolType } from '$lib/canvas/tool';
 	import { colorToHex, hexToColor, type Color } from '$lib/canvas/color';
+	import { createHistoryManager } from '$lib/canvas/history';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 
 	const pixelCanvas = createCanvas(16);
@@ -20,15 +21,80 @@
 	let renderVersion = $state(0);
 	let foregroundColor: Color = $state({ r: 0, g: 0, b: 0, a: 255 });
 
+	const history = createHistoryManager();
+	let historyVersion = $state(0);
+	let isDrawing = $state(false);
+
+	const canUndo = $derived.by(() => {
+		void historyVersion;
+		return history.canUndo;
+	});
+	const canRedo = $derived.by(() => {
+		void historyVersion;
+		return history.canRedo;
+	});
+
 	const zoomPercent = $derived(Math.round(viewport.zoom * 100));
 
 	function handleViewportChange(newViewport: ViewportConfig): void {
 		viewport = newViewport;
 	}
 
+	function handleDrawStart(): void {
+		isDrawing = true;
+		history.pushSnapshot(pixelCanvas.pixels);
+		historyVersion++;
+	}
+
+	function handleDrawEnd(): void {
+		isDrawing = false;
+	}
+
+	function handleUndo(): void {
+		if (isDrawing) return;
+		const snapshot = history.undo(pixelCanvas.pixels);
+		if (snapshot) {
+			pixelCanvas.pixels.set(snapshot);
+			renderVersion++;
+			historyVersion++;
+		}
+	}
+
+	function handleRedo(): void {
+		if (isDrawing) return;
+		const snapshot = history.redo(pixelCanvas.pixels);
+		if (snapshot) {
+			pixelCanvas.pixels.set(snapshot);
+			renderVersion++;
+			historyVersion++;
+		}
+	}
+
 	function handleClear(): void {
+		history.pushSnapshot(pixelCanvas.pixels);
+		historyVersion++;
 		clearCanvas(pixelCanvas);
 		renderVersion++;
+	}
+
+	function isInteractiveTarget(target: EventTarget | null): boolean {
+		return (
+			target instanceof HTMLElement &&
+			target.closest('button, input, select, textarea, [contenteditable="true"]') !== null
+		);
+	}
+
+	function handleKeyDown(event: KeyboardEvent): void {
+		if (isInteractiveTarget(event.target)) return;
+
+		const isCtrlOrCmd = event.ctrlKey || event.metaKey;
+		if (isCtrlOrCmd && event.key === 'z' && !event.shiftKey) {
+			event.preventDefault();
+			handleUndo();
+		} else if (isCtrlOrCmd && event.key === 'z' && event.shiftKey) {
+			event.preventDefault();
+			handleRedo();
+		}
 	}
 
 	function handleDraw(current: CanvasCoords, previous: CanvasCoords | null): void {
@@ -61,6 +127,8 @@
 	}
 </script>
 
+<svelte:window onkeydown={handleKeyDown} />
+
 <main>
 	<h1>DOTORIXEL</h1>
 	<div class="toolbar">
@@ -78,13 +146,16 @@
 		>
 			Eraser
 		</button>
-		<button class="tool-button" onclick={handleClear}>Clear</button>
 		<input
 			type="color"
 			class="color-picker"
 			value={colorToHex(foregroundColor)}
 			oninput={(e) => (foregroundColor = hexToColor(e.currentTarget.value))}
 		/>
+		<span class="separator"></span>
+		<button class="tool-button" onclick={handleUndo} disabled={!canUndo}>Undo</button>
+		<button class="tool-button" onclick={handleRedo} disabled={!canRedo}>Redo</button>
+		<button class="tool-button" onclick={handleClear}>Clear</button>
 		<span class="separator"></span>
 		<button class="tool-button" onclick={handleZoomOut}>−</button>
 		<span class="zoom-label">{zoomPercent}%</span>
@@ -98,6 +169,8 @@
 			{viewportSize}
 			{renderVersion}
 			onDraw={handleDraw}
+			onDrawStart={handleDrawStart}
+			onDrawEnd={handleDrawEnd}
 			onViewportChange={handleViewportChange}
 		/>
 	</div>

@@ -32,3 +32,5 @@ export {
 export { renderPixelCanvas } from './canvas/renderer.ts';
 
 export { type ToolType, applyTool, interpolatePixels } from './canvas/tool.ts';
+
+export { type HistoryManager, createHistoryManager } from './canvas/history.ts';

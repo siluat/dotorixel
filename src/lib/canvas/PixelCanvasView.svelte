@@ -15,6 +15,8 @@
 		viewportSize?: ViewportSize;
 		renderVersion?: number;
 		onDraw?: (current: CanvasCoords, previous: CanvasCoords | null) => void;
+		onDrawStart?: () => void;
+		onDrawEnd?: () => void;
 		onViewportChange?: (viewport: ViewportConfig) => void;
 		toolCursor?: string;
 	}
@@ -25,6 +27,8 @@
 		viewportSize = { width: 512, height: 512 },
 		renderVersion = 0,
 		onDraw,
+		onDrawStart,
+		onDrawEnd,
 		onViewportChange,
 		toolCursor = 'crosshair'
 	}: Props = $props();
@@ -102,6 +106,7 @@
 		}
 
 		interaction = { type: 'drawing', lastPixel: null };
+		onDrawStart?.();
 		drawAt(getCanvasCoords(event));
 	}
 
@@ -125,12 +130,16 @@
 	}
 
 	function handleMouseUp(): void {
+		if (interaction.type === 'drawing') {
+			onDrawEnd?.();
+		}
 		interaction = { type: 'idle' };
 	}
 
 	function handleMouseLeave(event: MouseEvent): void {
 		if (interaction.type === 'drawing') {
 			drawAt(getCanvasCoords(event));
+			onDrawEnd?.();
 			interaction = { type: 'idle' };
 		}
 	}
@@ -156,6 +165,9 @@
 	}
 
 	function handleWindowBlur(): void {
+		if (interaction.type === 'drawing') {
+			onDrawEnd?.();
+		}
 		interaction = { type: 'idle' };
 		isSpaceHeld = false;
 	}

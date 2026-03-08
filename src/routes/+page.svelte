@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { createCanvas, clearCanvas } from '$lib/canvas/canvas';
+	import { createCanvas, clearCanvas, type CanvasCoords } from '$lib/canvas/canvas';
 	import { createDefaultViewport } from '$lib/canvas/renderer';
-	import { applyTool, interpolatePixels } from '$lib/canvas/tool';
-	import type { ToolType } from '$lib/canvas/tool';
-	import type { CanvasCoords, Color } from '$lib/canvas/canvas';
+	import { applyTool, interpolatePixels, type ToolType } from '$lib/canvas/tool';
+	import { colorToHex, hexToColor, type Color } from '$lib/canvas/color';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 
 	const pixelCanvas = createCanvas(16);
@@ -12,7 +11,7 @@
 	let activeTool: ToolType = $state('pencil');
 	let renderVersion = $state(0);
 
-	const foregroundColor: Color = { r: 0, g: 0, b: 0, a: 255 };
+	let foregroundColor: Color = $state({ r: 0, g: 0, b: 0, a: 255 });
 
 	function handleClear(): void {
 		clearCanvas(pixelCanvas);
@@ -51,6 +50,12 @@
 			Eraser
 		</button>
 		<button class="tool-button" onclick={handleClear}>Clear</button>
+		<input
+			type="color"
+			class="color-picker"
+			value={colorToHex(foregroundColor)}
+			oninput={(e) => (foregroundColor = hexToColor(e.currentTarget.value))}
+		/>
 	</div>
 	<div class="canvas-container">
 		<PixelCanvasView {pixelCanvas} {viewport} {renderVersion} onDraw={handleDraw} />
@@ -81,6 +86,17 @@
 		background: #f0f0f0;
 		cursor: pointer;
 		font-size: 0.875rem;
+	}
+
+	.color-picker {
+		width: 2.25rem;
+		height: 2.25rem;
+		padding: 0.125rem;
+		border: 1px solid #999;
+		border-radius: 0;
+		background: #f0f0f0;
+		cursor: pointer;
+		margin-left: 0.5rem;
 	}
 
 	.tool-button.active {

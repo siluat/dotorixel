@@ -15,11 +15,20 @@ export {
 
 export {
 	type ViewportConfig,
+	type ViewportSize,
 	getDefaultPixelSize,
 	createDefaultViewport,
 	getDisplaySize,
 	screenToCanvas,
-	renderPixelCanvas
-} from './canvas/renderer.ts';
+	effectivePixelSize,
+	zoomAtPoint,
+	pan,
+	fitToViewport,
+	ZOOM_LEVELS,
+	nextZoomLevel,
+	prevZoomLevel
+} from './canvas/viewport.ts';
+
+export { renderPixelCanvas } from './canvas/renderer.ts';
 
 export { type ToolType, applyTool, interpolatePixels } from './canvas/tool.ts';

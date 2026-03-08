@@ -4,6 +4,11 @@
 	import { screenToCanvas, zoomAtPoint, pan, nextZoomLevel, prevZoomLevel } from './viewport.ts';
 	import { renderPixelCanvas } from './renderer.ts';
 
+	type InteractionMode =
+		| { readonly type: 'idle' }
+		| { type: 'drawing'; lastPixelX: number; lastPixelY: number }
+		| { type: 'panning'; startX: number; startY: number };
+
 	interface Props {
 		pixelCanvas: PixelCanvas;
 		viewport: ViewportConfig;
@@ -25,13 +30,8 @@
 	}: Props = $props();
 
 	let canvasEl: HTMLCanvasElement | undefined = $state();
-	let isDrawing = $state(false);
-	let isPanning = $state(false);
+	let interaction = $state<InteractionMode>({ type: 'idle' });
 	let isSpaceHeld = $state(false);
-	let panStartX = $state(0);
-	let panStartY = $state(0);
-	let lastPixelX = $state(-1);
-	let lastPixelY = $state(-1);
 
 	$effect(() => {
 		if (!canvasEl) return;
@@ -68,7 +68,7 @@
 	});
 
 	const cursorStyle = $derived(
-		isPanning ? 'grabbing' : isSpaceHeld ? 'grab' : toolCursor
+		interaction.type === 'panning' ? 'grabbing' : isSpaceHeld ? 'grab' : toolCursor
 	);
 
 	function getCanvasCoords(event: MouseEvent): CanvasCoords {
@@ -77,68 +77,58 @@
 	}
 
 	function drawAt(coords: CanvasCoords): void {
-		if (coords.x === lastPixelX && coords.y === lastPixelY) return;
+		if (interaction.type !== 'drawing') return;
+		if (coords.x === interaction.lastPixelX && coords.y === interaction.lastPixelY) return;
 		const previous =
-			lastPixelX !== -1 ? { x: lastPixelX, y: lastPixelY } : null;
-		lastPixelX = coords.x;
-		lastPixelY = coords.y;
+			interaction.lastPixelX !== -1
+				? { x: interaction.lastPixelX, y: interaction.lastPixelY }
+				: null;
+		interaction.lastPixelX = coords.x;
+		interaction.lastPixelY = coords.y;
 		onDraw?.(coords, previous);
 	}
 
-	function startPan(event: MouseEvent): void {
-		isPanning = true;
-		panStartX = event.clientX;
-		panStartY = event.clientY;
-	}
-
 	function handleMouseDown(event: MouseEvent): void {
-		// Middle click → pan
 		if (event.button === 1) {
 			event.preventDefault();
-			startPan(event);
+			interaction = { type: 'panning', startX: event.clientX, startY: event.clientY };
 			return;
 		}
 
 		if (event.button !== 0) return;
 
-		// Space + left click → pan
 		if (isSpaceHeld) {
-			startPan(event);
+			interaction = { type: 'panning', startX: event.clientX, startY: event.clientY };
 			return;
 		}
 
-		isDrawing = true;
-		lastPixelX = -1;
-		lastPixelY = -1;
+		interaction = { type: 'drawing', lastPixelX: -1, lastPixelY: -1 };
 		drawAt(getCanvasCoords(event));
 	}
 
 	function handleMouseMove(event: MouseEvent): void {
-		if (isPanning) return;
-
-		if (!isDrawing) return;
+		if (interaction.type !== 'drawing') return;
 		drawAt(getCanvasCoords(event));
 	}
 
 	function handleWindowMouseMove(event: MouseEvent): void {
-		if (!isPanning) return;
-		const deltaX = event.clientX - panStartX;
-		const deltaY = event.clientY - panStartY;
-		panStartX = event.clientX;
-		panStartY = event.clientY;
+		if (interaction.type !== 'panning') return;
+		const deltaX = event.clientX - interaction.startX;
+		const deltaY = event.clientY - interaction.startY;
+		interaction.startX = event.clientX;
+		interaction.startY = event.clientY;
 		onViewportChange?.(pan(viewport, deltaX, deltaY));
 	}
 
 	function handleMouseUp(): void {
-		isDrawing = false;
-		isPanning = false;
+		interaction = { type: 'idle' };
 	}
 
 	function handleMouseLeave(event: MouseEvent): void {
-		if (isDrawing) {
+		if (interaction.type === 'drawing') {
 			drawAt(getCanvasCoords(event));
+			interaction = { type: 'idle' };
 		}
-		isDrawing = false;
 	}
 
 	function isInteractiveTarget(target: EventTarget | null): boolean {
@@ -162,8 +152,7 @@
 	}
 
 	function handleWindowBlur(): void {
-		isDrawing = false;
-		isPanning = false;
+		interaction = { type: 'idle' };
 		isSpaceHeld = false;
 	}
 </script>

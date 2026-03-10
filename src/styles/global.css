@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+@import 'galmuri/dist/galmuri.css';
 
 :root {
 	/* ── Colors ─────────────────────────────── */
@@ -42,8 +42,9 @@
 
 	/* ── Typography ─────────────────────────── */
 
-	--font-heading: 'Press Start 2P', monospace;
-	--font-body: 'VT323', monospace;
+	--font-heading: 'Galmuri14', monospace;
+	--font-body: 'Galmuri11', monospace;
+	--font-mono: 'GalmuriMono11', monospace;
 
 	/* ── Spacing ────────────────────────────── */
 

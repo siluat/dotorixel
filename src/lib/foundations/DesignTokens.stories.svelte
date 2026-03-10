@@ -92,42 +92,56 @@
 
 <Story name="Typography">
 	<div class="catalog">
-		<h2 class="section-title">Heading Font</h2>
+		<h2 class="section-title">Heading Font — Galmuri14</h2>
 		<p class="section-desc">
-			<code>--font-heading</code>: Press Start 2P — pixel-perfect bitmap-style font for titles and
-			labels.
+			<code>--font-heading</code>: Galmuri14 — Nintendo DS inspired pixel font for titles and
+			labels. Supports Korean, English, Japanese kana, CJK ideographs.
 		</p>
 		<div class="type-samples">
-			<p class="type-sample" style="font-family: var(--font-heading); font-size: 8px;">
-				8px — DOTORIXEL Pixel Art Editor
-			</p>
-			<p class="type-sample" style="font-family: var(--font-heading); font-size: 12px;">
-				12px — DOTORIXEL Pixel Art Editor
+			<p class="type-sample" style="font-family: var(--font-heading); font-size: 14px;">
+				14px — DOTORIXEL 도토리셀 픽셀 아트 에디터
 			</p>
 			<p class="type-sample" style="font-family: var(--font-heading); font-size: 16px;">
-				16px — DOTORIXEL Pixel Art Editor
+				16px — DOTORIXEL 도토리셀 픽셀 아트 에디터
 			</p>
-			<p class="type-sample" style="font-family: var(--font-heading); font-size: 24px;">
-				24px — DOTORIXEL
+			<p class="type-sample" style="font-family: var(--font-heading); font-size: 28px;">
+				28px — DOTORIXEL 도토리셀
 			</p>
 		</div>
 
-		<h2 class="section-title">Body Font</h2>
+		<h2 class="section-title">Body Font — Galmuri11</h2>
 		<p class="section-desc">
-			<code>--font-body</code>: VT323 — monospace pixel font for interface text and body content.
+			<code>--font-body</code>: Galmuri11 — proportional pixel font for interface text.
+			Has Bold (700) and Condensed variants.
 		</p>
 		<div class="type-samples">
+			<p class="type-sample" style="font-family: var(--font-body); font-size: 11px;">
+				11px — The quick brown fox jumps over the lazy dog. 다람쥐 헌 쳇바퀴에 타고파.
+			</p>
 			<p class="type-sample" style="font-family: var(--font-body); font-size: 16px;">
-				16px — The quick brown fox jumps over the lazy dog. 0123456789
+				16px — The quick brown fox jumps over the lazy dog. 다람쥐 헌 쳇바퀴에 타고파.
 			</p>
-			<p class="type-sample" style="font-family: var(--font-body); font-size: 20px;">
-				20px — The quick brown fox jumps over the lazy dog. 0123456789
+			<p class="type-sample" style="font-family: var(--font-body); font-size: 22px;">
+				22px — The quick brown fox jumps over the lazy dog. 다람쥐 헌 쳇바퀴에 타고파.
 			</p>
-			<p class="type-sample" style="font-family: var(--font-body); font-size: 24px;">
-				24px — The quick brown fox jumps over the lazy dog. 0123456789
+			<p class="type-sample" style="font-family: var(--font-body); font-size: 22px; font-weight: 700;">
+				22px Bold — The quick brown fox. 다람쥐 헌 쳇바퀴에 타고파.
 			</p>
-			<p class="type-sample" style="font-family: var(--font-body); font-size: 32px;">
-				32px — The quick brown fox jumps over the lazy dog.
+		</div>
+
+		<h2 class="section-title">Mono Font — GalmuriMono11</h2>
+		<p class="section-desc">
+			<code>--font-mono</code>: GalmuriMono11 — fixed-width variant for numbers and code.
+		</p>
+		<div class="type-samples">
+			<p class="type-sample" style="font-family: var(--font-mono); font-size: 11px;">
+				11px — 0123456789 Zoom: 400% Canvas: 16×16
+			</p>
+			<p class="type-sample" style="font-family: var(--font-mono); font-size: 16px;">
+				16px — 0123456789 Zoom: 400% Canvas: 16×16
+			</p>
+			<p class="type-sample" style="font-family: var(--font-mono); font-size: 22px;">
+				22px — 0123456789 Zoom: 400% Canvas: 16×16
 			</p>
 		</div>
 	</div>

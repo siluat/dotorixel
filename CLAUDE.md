@@ -171,8 +171,8 @@ When a commit or PR completes a roadmap item, update its checkbox in this file (
 
 - **Co-locate with the component.** Story files live next to their component: `Component.stories.svelte` beside `Component.svelte`. This follows the "group code by what changes together" architecture principle.
 - **Svelte CSF v5 format.** Use `defineMeta` in `<script module>` and the destructured `Story` component. No CSF3 (JS object) format.
-- **Title reflects directory structure.** e.g., `Canvas/PixelCanvasView`, `UI/PixelButton`. Hierarchy maps to `src/lib/` subdirectories.
-- **Reuse core functions for story data.** Prefer `createCanvas()`, `createCanvasWithColor()` etc. over manually constructing test data. Stories double as living documentation of how core APIs are used.
+- **Let autotitle handle hierarchy.** Omit the `title` property — Storybook generates sidebar hierarchy from the file path automatically. Only set `title` when the desired hierarchy differs from the physical location.
+- **Reuse pure data factory functions for story data.** Prefer `createCanvas()`, `createCanvasWithColor()` etc. over manually constructing test data. Only use deterministic, side-effect-free functions — mock anything that involves I/O, global state, or randomness.
 
 ### Styling
 

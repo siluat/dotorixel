@@ -6,7 +6,6 @@
 	import type { Color } from './color.ts';
 
 	const { Story } = defineMeta({
-		title: 'Canvas/PixelCanvasView',
 		component: PixelCanvasView
 	});
 

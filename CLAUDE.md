@@ -15,6 +15,7 @@ A 2D pixel art editor. Positioned as a learning-first, cross-platform tool.
 | Build | Vite + wasm-pack | |
 | Web Deployment | Vercel | SPA via adapter-static |
 | Testing | Vitest | Unified test runner — pure functions now, component tests later |
+| Component Preview | Storybook 10 | `@storybook/sveltekit`, Svelte CSF v5 |
 
 ## Project Structure
 
@@ -22,6 +23,7 @@ MVP starts with a standard Tauri structure + a single WASM crate. No Cargo works
 
 ```text
 dotorixel/
+├── .storybook/         # Storybook config (main.ts, preview.ts)
 ├── wasm/               # Rust → WASM (single crate, wasm-pack)
 ├── src/                # Svelte frontend (shared by web & Tauri)
 ├── src-tauri/          # Tauri v2 config & Rust backend (own Cargo.toml)
@@ -68,6 +70,7 @@ Work order followed dependency chain: data structure → rendering → interacti
 
 Design reference: `~/Projects/dotorixel-ui-concept` (v0 prototype, React + Tailwind). Implement in Svelte + vanilla CSS.
 
+- [x] Storybook setup — component preview environment for UI development
 - [ ] Global styles & design tokens — CSS variables (light mode color tokens), pixel fonts (Press Start 2P, VT323), base reset
 - [ ] Primitive components — PixelPanel (default/inset/raised), PixelButton (default/primary/secondary, sm/md/icon), ColorSwatch (sm/md, selected state)
 - [ ] Toolbar component — lucide-svelte setup, tool selection, undo/redo, zoom, grid toggle, clear, export
@@ -163,6 +166,19 @@ When a commit or PR completes a roadmap item, update its checkbox in this file (
 ### Markdown
 
 - **Fenced code blocks must have a language tag.** Use `typescript`, `rust`, `bash`, `text`, etc. Never leave a bare ` ``` `.
+
+### Stories
+
+- **Co-locate with the component.** Story files live next to their component: `Component.stories.svelte` beside `Component.svelte`. This follows the "group code by what changes together" architecture principle.
+- **Svelte CSF v5 format.** Use `defineMeta` in `<script module>` and the destructured `Story` component. No CSF3 (JS object) format.
+- **Let autotitle handle hierarchy.** Omit the `title` property — Storybook generates sidebar hierarchy from the file path automatically. Only set `title` when the desired hierarchy differs from the physical location.
+- **Reuse pure data factory functions for story data.** Prefer `createCanvas()`, `createCanvasWithColor()` etc. over manually constructing test data. Only use deterministic, side-effect-free functions — mock anything that involves I/O, global state, or randomness.
+
+### Styling
+
+- **Vanilla CSS only.** No CSS frameworks (Tailwind, UnoCSS, etc.). Component styles use Svelte `<style>` scoped blocks.
+- **Design tokens as CSS custom properties.** Colors, spacing, fonts defined in a global CSS file and consumed via `var(--token-name)`. Global styles are imported in `.storybook/preview.ts` for Storybook and in the app layout for production.
+- **Component styles are scoped by default.** Use Svelte's built-in `<style>` scoping. Only extract to a shared CSS file when the same styles are genuinely reused across multiple components.
 
 ### Testing
 

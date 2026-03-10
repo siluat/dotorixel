@@ -31,3 +31,6 @@ Open http://localhost:5173 in your browser.
 | `bun run preview` | Preview production build |
 | `bun run wasm:build` | Build WASM module only |
 | `bun run check` | Run svelte-check type checking |
+| `bun run test` | Run unit tests |
+| `bun run storybook` | Start Storybook dev server (port 6006) |
+| `bun run build-storybook` | Build static Storybook site |

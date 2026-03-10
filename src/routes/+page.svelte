@@ -165,6 +165,7 @@
 	<input
 		type="color"
 		class="color-picker"
+		aria-label="Foreground color"
 		value={colorToHex(foregroundColor)}
 		oninput={(e) => (foregroundColor = hexToColor(e.currentTarget.value))}
 	/>

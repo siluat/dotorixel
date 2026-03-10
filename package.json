@@ -33,6 +33,7 @@
 		"vitest": "^4.0.18"
 	},
 	"dependencies": {
-		"galmuri": "^2.40.3"
+		"galmuri": "^2.40.3",
+		"lucide-svelte": "^0.577.0"
 	}
 }

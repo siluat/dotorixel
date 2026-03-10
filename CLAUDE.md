@@ -68,6 +68,7 @@ Work order followed dependency chain: data structure → rendering → interacti
 
 Design reference: `~/Projects/dotorixel-ui-concept` (v0 prototype, React + Tailwind). Implement in Svelte + vanilla CSS.
 
+- [x] Storybook setup — component preview environment for UI development
 - [ ] Global styles & design tokens — CSS variables (light mode color tokens), pixel fonts (Press Start 2P, VT323), base reset
 - [ ] Primitive components — PixelPanel (default/inset/raised), PixelButton (default/primary/secondary, sm/md/icon), ColorSwatch (sm/md, selected state)
 - [ ] Toolbar component — lucide-svelte setup, tool selection, undo/redo, zoom, grid toggle, clear, export

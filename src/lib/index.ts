@@ -36,3 +36,7 @@ export { type ToolType, applyTool, interpolatePixels } from './canvas/tool.ts';
 export { type HistoryManager, createHistoryManager } from './canvas/history.ts';
 
 export { exportAsPng, generateExportFilename } from './canvas/export.ts';
+
+export { default as PixelPanel } from './ui/PixelPanel.svelte';
+export { default as PixelButton } from './ui/PixelButton.svelte';
+export { default as ColorSwatch } from './ui/ColorSwatch.svelte';

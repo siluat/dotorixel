@@ -9,7 +9,7 @@ A 2D pixel art editor. Positioned as a learning-first, cross-platform tool.
 | UI | TypeScript + Svelte | SvelteKit (adapter-static) |
 | Canvas Rendering | Canvas2D | MVP scope. WebGL2 later |
 | Core Logic | TypeScript | JS-first for MVP. Migrate to Rust when performance demands it |
-| Rust/WASM | wasm-pack | Phase 0: build pipeline verification only |
+| Rust/WASM | wasm-pack | Build pipeline verified. Production use when performance demands it |
 | Desktop | Tauri v2 | Same codebase as web |
 | Package Manager | bun | Also used for script execution |
 | Build | Vite + wasm-pack | |
@@ -38,20 +38,22 @@ AGPL-3.0-or-later. Dual licensing and proprietary premium features are available
 
 ## Versioning
 
-SemVer. Phase milestones map to minor versions: Phase 1 → v0.1.0, Phase 2 → v0.2.0. Git tags and GitHub Releases start at v0.1.0. CHANGELOG.md follows [Keep a Changelog](https://keepachangelog.com) format.
+SemVer. Git tags and GitHub Releases start at v0.1.0. CHANGELOG.md follows [Keep a Changelog](https://keepachangelog.com) format.
 
-## Current Phase: Phase 1 — Canvas Foundation
+## Current Version: v0.1.0 — Canvas Foundation
 
-## Completed Phases
+## Completed Milestones
 
-### Phase 0: Build Pipeline Verification — Done
+### Build Pipeline Verification — Done
 Verified Vite + SvelteKit + wasm-pack + Tauri v2 integration. `bun run dev` (web) and `bun run tauri dev` (desktop) both work.
 
 ## Roadmap
 
-### Phase 1: Canvas Foundation (MVP v0.1)
+### v0.1.0: Canvas Foundation (MVP)
 
-Work order follows dependency chain: data structure → rendering → interaction → state management → export.
+#### Core (complete)
+
+Work order followed dependency chain: data structure → rendering → interaction → state management → export.
 
 - [x] Vitest setup (test environment for pure functions)
 - [x] Canvas creation (8x8, 16x16, 32x32) — pixel data structure + creation logic
@@ -62,24 +64,37 @@ Work order follows dependency chain: data structure → rendering → interactio
 - [x] Undo/Redo (snapshot-based) — requires state-changing operations to exist
 - [x] PNG export
 
-### Phase 1 completion
-- [ ] Git tag v0.1.0
+#### UI
+
+Design reference: `~/Projects/dotorixel-ui-concept` (v0 prototype, React + Tailwind). Implement in Svelte + vanilla CSS.
+
+- [ ] Global styles & design tokens — CSS variables (light mode color tokens), pixel fonts (Press Start 2P, VT323), base reset
+- [ ] Primitive components — PixelPanel (default/inset/raised), PixelButton (default/primary/secondary, sm/md/icon), ColorSwatch (sm/md, selected state)
+- [ ] Toolbar component — lucide-svelte setup, tool selection, undo/redo, zoom, grid toggle, clear, export
+- [ ] ColorPalette component — 36-color palette, current color preview, custom color input, recent colors
+- [ ] CanvasSettings component — size presets (8/16/32/64), custom W/H input, resize
+- [ ] StatusBar component — canvas size, zoom %, current tool display
+- [ ] Layout integration — 3-column responsive layout (+page.svelte refactoring)
+
+#### Release
+
 - [ ] Create CHANGELOG.md (Keep a Changelog format)
-- [ ] GitHub Release
 - [ ] Set up CI (GitHub Actions: `tauri build` + Vitest + `tauri-driver` E2E)
+- [ ] Git tag v0.1.0
+- [ ] GitHub Release
 
-### Phase 1 → 2 transition
-- [ ] Decide project file format (must be decided before Phase 2 starts)
-- [ ] Update this CLAUDE.md: move "Current Phase" to Phase 2
+### v0.2.0: Basic Tool Expansion
 
-### Phase 2: Basic Tool Expansion
+- [ ] Decide project file format (prerequisite — must be decided before v0.2.0 work begins)
 - [ ] Line tool (Bresenham), rectangle/circle, flood fill, eyedropper
 - [ ] Grid visibility toggle
 
-### Phase 3: Color System
+### v0.3.0: Color System
+
 - [ ] HSV color picker, foreground/background color swap, preset palettes
 
-### Future triggers (not tied to a specific phase)
+### Future triggers (not tied to a specific version)
+
 - [ ] First external contributor → set up CLA
 - [ ] Community forming → add CONTRIBUTING.md, Code of Conduct, issue/PR templates
 

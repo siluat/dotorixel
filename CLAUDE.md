@@ -71,8 +71,8 @@ Work order followed dependency chain: data structure → rendering → interacti
 Design reference: `~/Projects/dotorixel-ui-concept` (v0 prototype, React + Tailwind). Implement in Svelte + vanilla CSS.
 
 - [x] Storybook setup — component preview environment for UI development
-- [ ] Global styles & design tokens — CSS variables (light mode color tokens), pixel font (Galmuri), base reset
-- [ ] Primitive components — PixelPanel (default/inset/raised), PixelButton (default/primary/secondary, sm/md/icon), ColorSwatch (sm/md, selected state)
+- [x] Global styles & design tokens — CSS variables (light mode color tokens), pixel font (Galmuri), base reset
+- [x] Primitive components — PixelPanel (default/inset/raised), PixelButton (default/primary/secondary, sm/md/icon), ColorSwatch (sm/md, selected state)
 - [ ] Toolbar component — lucide-svelte setup, tool selection, undo/redo, zoom, grid toggle, clear, export
 - [ ] ColorPalette component — 36-color palette, current color preview, custom color input, recent colors
 - [ ] CanvasSettings component — size presets (8/16/32/64), custom W/H input, resize
@@ -136,7 +136,7 @@ When a commit or PR completes a roadmap item, update its checkbox in this file (
 
 - **Declarative over imperative, when it clarifies.** Prefer data descriptions and transformations over step-by-step mutations when it makes the code easier to understand. When imperative logic is more direct (e.g., canvas rendering, sequential I/O), use it without apology.
 - **Readable code over clever code.** If a function needs a comment to explain *what* it does, rename it. Reserve comments for *why* — non-obvious constraints, trade-offs, or domain context.
-- **Make conditions self-documenting.** When a condition requires domain knowledge or API familiarity to understand (e.g., `event.button === 1`, `value === -1`), choose the right level of clarification: name the condition (`const isMiddleClick = event.button === 1`) when it appears in one place, define a shared constant when the same magic value appears in multiple places, or eliminate the magic value through types (`null` instead of `-1` as a sentinel) when the type system can enforce the meaning.
+- **Make values self-documenting.** When a value requires domain knowledge to understand, choose the right level of clarification: name the value (`const isMiddleClick = event.button === 1`, `--press-offset: calc(...)`) when it appears in one place, define a shared constant or token when the same value appears in multiple places, or eliminate the magic value through types (`null` instead of `-1` as a sentinel) when the type system can enforce the meaning. For CSS, prefer component-scoped custom properties over comments when a value is derived from design tokens (e.g., `--depth: calc((var(--border-width) + var(--border-width-thick)) / 2)`). Promote to a global token only when reuse across components is confirmed.
 - **Right paradigm for the situation.** Use pure functions for stateless data transformations (coordinate math, color conversion). Use objects with encapsulation when identity and lifecycle matter (history manager, tool state). Don't force one paradigm everywhere.
 
 ### Naming

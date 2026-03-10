@@ -13,6 +13,7 @@
 	import { createHistoryManager } from '$lib/canvas/history';
 	import { exportAsPng } from '$lib/canvas/export';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
+	import Toolbar from '$lib/ui/Toolbar.svelte';
 
 	const pixelCanvas = createCanvas(16);
 	const viewportSize = { width: 512, height: 512 };
@@ -128,6 +129,10 @@
 		viewport = fitToViewport(viewport, pixelCanvas, viewportSize);
 	}
 
+	function handleGridToggle(): void {
+		viewport = { ...viewport, showGrid: !viewport.showGrid };
+	}
+
 	async function handleExportPng(): Promise<void> {
 		try {
 			await exportAsPng(pixelCanvas);
@@ -141,39 +146,28 @@
 
 <main>
 	<h1>DOTORIXEL</h1>
-	<div class="toolbar">
-		<button
-			class="tool-button"
-			class:active={activeTool === 'pencil'}
-			onclick={() => (activeTool = 'pencil')}
-		>
-			Pencil
-		</button>
-		<button
-			class="tool-button"
-			class:active={activeTool === 'eraser'}
-			onclick={() => (activeTool = 'eraser')}
-		>
-			Eraser
-		</button>
-		<input
-			type="color"
-			class="color-picker"
-			value={colorToHex(foregroundColor)}
-			oninput={(e) => (foregroundColor = hexToColor(e.currentTarget.value))}
-		/>
-		<span class="separator"></span>
-		<button class="tool-button" onclick={handleUndo} disabled={!canUndo}>Undo</button>
-		<button class="tool-button" onclick={handleRedo} disabled={!canRedo}>Redo</button>
-		<button class="tool-button" onclick={handleClear}>Clear</button>
-		<span class="separator"></span>
-		<button class="tool-button" onclick={handleZoomOut}>−</button>
-		<span class="zoom-label">{zoomPercent}%</span>
-		<button class="tool-button" onclick={handleZoomIn}>+</button>
-		<button class="tool-button" onclick={handleFit}>Fit</button>
-		<span class="separator"></span>
-		<button class="tool-button" onclick={handleExportPng}>Export PNG</button>
-	</div>
+	<Toolbar
+		{activeTool}
+		{canUndo}
+		{canRedo}
+		{zoomPercent}
+		showGrid={viewport.showGrid}
+		onToolChange={(tool) => (activeTool = tool)}
+		onUndo={handleUndo}
+		onRedo={handleRedo}
+		onZoomIn={handleZoomIn}
+		onZoomOut={handleZoomOut}
+		onFit={handleFit}
+		onGridToggle={handleGridToggle}
+		onClear={handleClear}
+		onExport={handleExportPng}
+	/>
+	<input
+		type="color"
+		class="color-picker"
+		value={colorToHex(foregroundColor)}
+		oninput={(e) => (foregroundColor = hexToColor(e.currentTarget.value))}
+	/>
 	<div class="canvas-container">
 		<PixelCanvasView
 			{pixelCanvas}
@@ -193,26 +187,8 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		gap: var(--space-4);
 		padding: 2rem;
-	}
-
-	h1 {
-		margin-bottom: 1.5rem;
-	}
-
-	.toolbar {
-		display: flex;
-		gap: 0.5rem;
-		align-items: center;
-		margin-bottom: 1rem;
-	}
-
-	.tool-button {
-		padding: 0.5rem 1rem;
-		border: 1px solid #999;
-		background: #f0f0f0;
-		cursor: pointer;
-		font-size: 0.875rem;
 	}
 
 	.color-picker {
@@ -223,27 +199,6 @@
 		border-radius: 0;
 		background: #f0f0f0;
 		cursor: pointer;
-		margin-left: 0.5rem;
-	}
-
-	.tool-button.active {
-		background: #333;
-		color: #fff;
-		border-color: #333;
-	}
-
-	.separator {
-		width: 1px;
-		height: 1.5rem;
-		background: #ccc;
-		margin: 0 0.25rem;
-	}
-
-	.zoom-label {
-		font-size: 0.875rem;
-		min-width: 3.5rem;
-		text-align: center;
-		font-variant-numeric: tabular-nums;
 	}
 
 	.canvas-container {

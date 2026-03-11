@@ -26,8 +26,9 @@
 
 		if (!value.startsWith('#')) {
 			value = '#' + value;
-			input.value = value;
 		}
+		value = value.slice(0, 7);
+		input.value = value;
 
 		hexInput = value;
 		isHexValid = isValidHex(value);

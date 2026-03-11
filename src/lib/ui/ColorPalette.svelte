@@ -79,6 +79,7 @@
 				value={hexInput}
 				maxlength="7"
 				aria-label="Hex color code"
+				aria-invalid={!isHexValid}
 				oninput={handleHexInput}
 				onblur={commitHexInput}
 				onkeydown={handleHexKeyDown}

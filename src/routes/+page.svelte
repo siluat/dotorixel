@@ -9,11 +9,12 @@
 		type ViewportConfig
 	} from '$lib/canvas/viewport';
 	import { applyTool, interpolatePixels, type ToolType } from '$lib/canvas/tool';
-	import { colorToHex, hexToColor, type Color } from '$lib/canvas/color';
+	import { colorToHex, hexToColor, addRecentColor, type Color } from '$lib/canvas/color';
 	import { createHistoryManager } from '$lib/canvas/history';
 	import { exportAsPng } from '$lib/canvas/export';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 	import Toolbar from '$lib/ui/Toolbar.svelte';
+	import ColorPalette from '$lib/ui/ColorPalette.svelte';
 
 	const pixelCanvas = createCanvas(16);
 	const viewportSize = { width: 512, height: 512 };
@@ -22,6 +23,7 @@
 	let activeTool: ToolType = $state('pencil');
 	let renderVersion = $state(0);
 	let foregroundColor: Color = $state({ r: 0, g: 0, b: 0, a: 255 });
+	let recentColors: string[] = $state([]);
 
 	const history = createHistoryManager();
 	let historyVersion = $state(0);
@@ -46,6 +48,9 @@
 		isDrawing = true;
 		history.pushSnapshot(pixelCanvas.pixels);
 		historyVersion++;
+		if (activeTool === 'pencil') {
+			recentColors = addRecentColor(recentColors, colorToHex(foregroundColor));
+		}
 	}
 
 	function handleDrawEnd(): void {
@@ -133,6 +138,10 @@
 		viewport = { ...viewport, showGrid: !viewport.showGrid };
 	}
 
+	function handleColorChange(hex: string): void {
+		foregroundColor = hexToColor(hex);
+	}
+
 	async function handleExportPng(): Promise<void> {
 		try {
 			await exportAsPng(pixelCanvas);
@@ -162,12 +171,10 @@
 		onClear={handleClear}
 		onExport={handleExportPng}
 	/>
-	<input
-		type="color"
-		class="color-picker"
-		aria-label="Foreground color"
-		value={colorToHex(foregroundColor)}
-		oninput={(e) => (foregroundColor = hexToColor(e.currentTarget.value))}
+	<ColorPalette
+		selectedColor={colorToHex(foregroundColor)}
+		{recentColors}
+		onColorChange={handleColorChange}
 	/>
 	<div class="canvas-container">
 		<PixelCanvasView
@@ -190,16 +197,6 @@
 		align-items: center;
 		gap: var(--space-4);
 		padding: 2rem;
-	}
-
-	.color-picker {
-		width: 2.25rem;
-		height: 2.25rem;
-		padding: 0.125rem;
-		border: 1px solid #999;
-		border-radius: 0;
-		background: #f0f0f0;
-		cursor: pointer;
 	}
 
 	.canvas-container {

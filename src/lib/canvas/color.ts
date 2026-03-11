@@ -20,3 +20,17 @@ export function hexToColor(hex: string): Color {
 	const b = parseInt(hex.slice(5, 7), 16);
 	return { r, g, b, a: 255 };
 }
+
+export function isValidHex(hex: string): boolean {
+	return /^#[0-9a-fA-F]{6}$/.test(hex);
+}
+
+export function addRecentColor(
+	recentColors: string[],
+	color: string,
+	maxCount = 12
+): string[] {
+	const normalized = color.toLowerCase();
+	const filtered = recentColors.filter((c) => c.toLowerCase() !== normalized);
+	return [color, ...filtered].slice(0, maxCount);
+}

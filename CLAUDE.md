@@ -74,7 +74,7 @@ Design reference: `~/Projects/dotorixel-ui-concept` (v0 prototype, React + Tailw
 - [x] Global styles & design tokens — CSS variables (light mode color tokens), pixel font (Galmuri), base reset
 - [x] Primitive components — PixelPanel (default/inset/raised), PixelButton (default/primary/secondary, sm/md/icon), ColorSwatch (sm/md, selected state)
 - [x] Toolbar component — lucide-svelte setup, tool selection, undo/redo, zoom, grid toggle, clear, export
-- [ ] ColorPalette component — 36-color palette, current color preview, custom color input, recent colors
+- [x] ColorPalette component — 36-color palette, current color preview, custom color input, recent colors
 - [ ] CanvasSettings component — size presets (8/16/32/64), custom W/H input, resize
 - [ ] StatusBar component — canvas size, zoom %, current tool display
 - [ ] Layout integration — 3-column responsive layout (+page.svelte refactoring)

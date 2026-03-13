@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { isValidCanvasDimension, CANVAS_PRESETS } from '$lib/canvas/canvas';
 	import PixelPanel from './PixelPanel.svelte';
-	import PixelButton from './PixelButton.svelte';
+	import BevelButton from './BevelButton.svelte';
 
 	interface Props {
 		canvasWidth: number;
@@ -49,13 +49,13 @@
 
 		<div class="presets">
 			{#each CANVAS_PRESETS as size}
-				<PixelButton
+				<BevelButton
 					size="sm"
 					variant={isCurrentPreset(size) ? 'primary' : 'default'}
 					onclick={() => handlePreset(size)}
 				>
 					{size}×{size}
-				</PixelButton>
+				</BevelButton>
 			{/each}
 		</div>
 
@@ -90,9 +90,9 @@
 					onkeydown={handleKeyDown}
 				/>
 			</label>
-			<PixelButton size="sm" disabled={!canApply} onclick={applyCustomSize}>
+			<BevelButton size="sm" disabled={!canApply} onclick={applyCustomSize}>
 				Apply
-			</PixelButton>
+			</BevelButton>
 		</div>
 	</div>
 </PixelPanel>

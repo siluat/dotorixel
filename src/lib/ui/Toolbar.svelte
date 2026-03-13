@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ToolType } from '$lib/canvas/tool';
 	import PixelPanel from './PixelPanel.svelte';
-	import PixelButton from './PixelButton.svelte';
+	import BevelButton from './BevelButton.svelte';
 	import {
 		Pencil,
 		Eraser,
@@ -57,60 +57,60 @@
 	];
 </script>
 
-<PixelPanel style="padding: var(--space-2)">
+<PixelPanel style="padding: var(--space-2) calc(var(--space-2) + var(--border-width)) calc(var(--space-2) + var(--border-width)) var(--space-2)">
 	<div class="toolbar">
 		<div class="toolbar-group">
 			{#each tools as tool}
 				{@const Icon = tool.icon}
-				<PixelButton
+				<BevelButton
 					size="icon"
 					active={activeTool === tool.type}
 					title={tool.label}
 					onclick={() => onToolChange(tool.type)}
 				>
 					<Icon size={ICON_SIZE} />
-				</PixelButton>
+				</BevelButton>
 			{/each}
 		</div>
 
 		<span class="separator"></span>
 
 		<div class="toolbar-group">
-			<PixelButton size="icon" disabled={!canUndo} title="Undo" onclick={onUndo}>
+			<BevelButton size="icon" disabled={!canUndo} title="Undo" onclick={onUndo}>
 				<Undo2 size={ICON_SIZE} />
-			</PixelButton>
-			<PixelButton size="icon" disabled={!canRedo} title="Redo" onclick={onRedo}>
+			</BevelButton>
+			<BevelButton size="icon" disabled={!canRedo} title="Redo" onclick={onRedo}>
 				<Redo2 size={ICON_SIZE} />
-			</PixelButton>
+			</BevelButton>
 		</div>
 
 		<span class="separator"></span>
 
 		<div class="toolbar-group">
-			<PixelButton size="icon" title="Zoom Out" onclick={onZoomOut}>
+			<BevelButton size="icon" title="Zoom Out" onclick={onZoomOut}>
 				<ZoomOut size={ICON_SIZE} />
-			</PixelButton>
+			</BevelButton>
 			<span class="zoom-label">{zoomPercent}%</span>
-			<PixelButton size="icon" title="Zoom In" onclick={onZoomIn}>
+			<BevelButton size="icon" title="Zoom In" onclick={onZoomIn}>
 				<ZoomIn size={ICON_SIZE} />
-			</PixelButton>
-			<PixelButton size="icon" title="Fit to View" onclick={onFit}>
+			</BevelButton>
+			<BevelButton size="icon" title="Fit to View" onclick={onFit}>
 				<Maximize2 size={ICON_SIZE} />
-			</PixelButton>
-			<PixelButton size="icon" active={showGrid} title="Toggle Grid" onclick={onGridToggle}>
+			</BevelButton>
+			<BevelButton size="icon" active={showGrid} title="Toggle Grid" onclick={onGridToggle}>
 				<Grid3X3 size={ICON_SIZE} />
-			</PixelButton>
+			</BevelButton>
 		</div>
 
 		<span class="separator"></span>
 
 		<div class="toolbar-group">
-			<PixelButton size="icon" title="Clear Canvas" onclick={onClear}>
+			<BevelButton size="icon" title="Clear Canvas" onclick={onClear}>
 				<Trash2 size={ICON_SIZE} />
-			</PixelButton>
-			<PixelButton variant="secondary" size="icon" title="Export PNG" onclick={onExport}>
+			</BevelButton>
+			<BevelButton size="icon" title="Export PNG" onclick={onExport}>
 				<Download size={ICON_SIZE} />
-			</PixelButton>
+			</BevelButton>
 		</div>
 	</div>
 </PixelPanel>

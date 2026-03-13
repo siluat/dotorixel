@@ -4,6 +4,7 @@
 	interface Props {
 		variant?: 'default' | 'primary' | 'secondary';
 		size?: 'sm' | 'md' | 'icon';
+		shadow?: boolean;
 		active?: boolean;
 		disabled?: boolean;
 		title?: string;
@@ -14,6 +15,7 @@
 	let {
 		variant = 'default',
 		size = 'md',
+		shadow = true,
 		active = false,
 		disabled = false,
 		title,
@@ -24,8 +26,9 @@
 
 <button
 	type="button"
-	class="pixel-button pixel-button--{variant} pixel-button--{size}"
-	class:pixel-button--active={active}
+	class="flat-button flat-button--{variant} flat-button--{size}"
+	class:flat-button--shadow={shadow}
+	class:flat-button--active={active}
 	aria-pressed={active ? 'true' : undefined}
 	{disabled}
 	{title}
@@ -35,8 +38,7 @@
 </button>
 
 <style>
-	.pixel-button {
-		--press-offset: calc(var(--border-width-thick) - var(--border-width));
+	.flat-button {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -47,23 +49,24 @@
 		letter-spacing: 0.05em;
 		cursor: pointer;
 		border-style: solid;
+		border-width: var(--border-width);
 		transition: none;
 	}
 
 	/* ── Size variants ── */
 
-	.pixel-button--sm {
+	.flat-button--sm {
 		height: 28px;
 		padding: 0 var(--space-3);
 		font-size: 10px;
 	}
 
-	.pixel-button--md {
+	.flat-button--md {
 		height: 36px;
 		padding: 0 var(--space-4);
 	}
 
-	.pixel-button--icon {
+	.flat-button--icon {
 		width: 36px;
 		height: 36px;
 		padding: 0;
@@ -71,81 +74,70 @@
 
 	/* ── Default variant ── */
 
-	.pixel-button--default {
+	.flat-button--default {
 		background: var(--color-surface);
 		color: var(--color-surface-fg);
 		border-color: var(--color-border);
-		border-width: var(--border-width);
-		border-top-color: var(--color-border-highlight);
-		border-left-color: var(--color-border-highlight);
-		border-bottom-color: var(--color-border-shadow);
-		border-right-color: var(--color-border-shadow);
-		border-bottom-width: var(--border-width-thick);
-		border-right-width: var(--border-width-thick);
 	}
 
-	.pixel-button--default:hover:not(:disabled) {
+	.flat-button--default:hover:not(:disabled) {
 		background: var(--color-muted);
 	}
 
 	/* ── Primary variant ── */
 
-	.pixel-button--primary {
+	.flat-button--primary {
 		background: var(--color-primary);
 		color: var(--color-primary-fg);
-		border-width: var(--border-width);
-		border-top-color: color-mix(in oklch, var(--color-primary), white 20%);
-		border-left-color: color-mix(in oklch, var(--color-primary), white 20%);
-		border-bottom-color: color-mix(in oklch, var(--color-primary), black 40%);
-		border-right-color: color-mix(in oklch, var(--color-primary), black 40%);
-		border-bottom-width: var(--border-width-thick);
-		border-right-width: var(--border-width-thick);
+		border-color: color-mix(in oklch, var(--color-primary), black 20%);
 	}
 
-	.pixel-button--primary:hover:not(:disabled) {
+	.flat-button--primary:hover:not(:disabled) {
 		background: color-mix(in oklch, var(--color-primary), black 10%);
 	}
 
 	/* ── Secondary variant ── */
 
-	.pixel-button--secondary {
+	.flat-button--secondary {
 		background: var(--color-secondary);
 		color: var(--color-secondary-fg);
-		border-width: var(--border-width);
-		border-top-color: var(--color-border-highlight);
-		border-left-color: var(--color-border-highlight);
-		border-bottom-color: var(--color-border-shadow);
-		border-right-color: var(--color-border-shadow);
-		border-bottom-width: var(--border-width-thick);
-		border-right-width: var(--border-width-thick);
+		border-color: var(--color-border);
 	}
 
-	.pixel-button--secondary:hover:not(:disabled) {
+	.flat-button--secondary:hover:not(:disabled) {
 		background: color-mix(in oklch, var(--color-secondary), var(--color-bg) 20%);
+	}
+
+	/* ── Shadow ── */
+
+	.flat-button--shadow {
+		box-shadow: var(--border-width) var(--border-width) 0 var(--color-border-shadow);
 	}
 
 	/* ── Active state (after variant rules so it takes precedence) ── */
 
-	.pixel-button--active {
+	.flat-button--active {
 		background: var(--color-accent);
 		color: var(--color-accent-fg);
 	}
 
-	.pixel-button--active:hover:not(:disabled) {
+	.flat-button--active:hover:not(:disabled) {
 		background: var(--color-accent);
 	}
 
 	/* ── Press effect ── */
 
-	.pixel-button:active:not(:disabled) {
-		border-bottom-width: var(--border-width);
-		border-right-width: var(--border-width);
-		translate: var(--press-offset) var(--press-offset);
+	.flat-button:active:not(:disabled) {
+		translate: var(--border-width) var(--border-width);
+	}
+
+	.flat-button--shadow:active:not(:disabled) {
+		box-shadow: none;
 	}
 
 	/* ── Disabled state ── */
 
-	.pixel-button:disabled {
+	.flat-button:disabled {
 		opacity: 0.5;
 		pointer-events: none;
 	}

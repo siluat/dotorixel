@@ -58,7 +58,7 @@
 	}
 </script>
 
-<PixelPanel variant="raised">
+<PixelPanel>
 	<div class="color-palette">
 		<div class="current-color">
 			<div class="preview-box" style:background-color={selectedColor}></div>

@@ -19,12 +19,13 @@
 
 <PixelPanel style="padding: var(--space-1) var(--space-3)">
 	<div class="status-bar">
-		<div class="status-left">
+		<div class="status-group">
 			<span class="status-value">{canvasWidth} × {canvasHeight}</span>
 			<span class="separator"></span>
 			<span class="status-value">{zoomPercent}%</span>
 		</div>
-		<div class="status-right">
+		<span class="separator"></span>
+		<div class="status-group">
 			<span class="status-label">Tool:</span>
 			<span class="tool-name">{TOOL_LABELS[activeTool]}</span>
 		</div>
@@ -35,21 +36,15 @@
 	.status-bar {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		gap: var(--space-2);
 		font-family: var(--font-mono);
 		font-size: 11px;
 	}
 
-	.status-left {
+	.status-group {
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-	}
-
-	.status-right {
-		display: flex;
-		align-items: center;
-		gap: var(--space-1);
 	}
 
 	.status-value {

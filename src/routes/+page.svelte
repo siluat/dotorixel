@@ -17,6 +17,7 @@
 	import ColorPalette from '$lib/ui/ColorPalette.svelte';
 	import CanvasSettings from '$lib/ui/CanvasSettings.svelte';
 	import StatusBar from '$lib/ui/StatusBar.svelte';
+	import PixelPanel from '$lib/ui/PixelPanel.svelte';
 
 	let pixelCanvas = $state.raw(createCanvas(16, 16));
 	const viewportSize = { width: 512, height: 512 };
@@ -169,57 +170,61 @@
 		<h1>DOTORIXEL</h1>
 	</header>
 	<div class="editor-area">
-		<div class="canvas-layer">
-			<PixelCanvasView
-				{pixelCanvas}
-				{viewport}
-				{viewportSize}
-				{renderVersion}
-				onDraw={handleDraw}
-				onDrawStart={handleDrawStart}
-				onDrawEnd={handleDrawEnd}
-				onViewportChange={handleViewportChange}
-			/>
-		</div>
-		<div class="panel panel-toolbar">
-			<Toolbar
-				{activeTool}
-				{canUndo}
-				{canRedo}
-				{zoomPercent}
-				showGrid={viewport.showGrid}
-				onToolChange={(tool) => (activeTool = tool)}
-				onUndo={handleUndo}
-				onRedo={handleRedo}
-				onZoomIn={handleZoomIn}
-				onZoomOut={handleZoomOut}
-				onFit={handleFit}
-				onGridToggle={handleGridToggle}
-				onClear={handleClear}
-				onExport={handleExportPng}
-			/>
-		</div>
-		<div class="panel panel-palette">
-			<ColorPalette
-				selectedColor={colorToHex(foregroundColor)}
-				{recentColors}
-				onColorChange={handleColorChange}
-			/>
-		</div>
-		<div class="panel panel-settings">
-			<CanvasSettings
-				canvasWidth={pixelCanvas.width}
-				canvasHeight={pixelCanvas.height}
-				onResize={handleResize}
-			/>
-		</div>
-		<div class="panel panel-status">
-			<StatusBar
-				canvasWidth={pixelCanvas.width}
-				canvasHeight={pixelCanvas.height}
-				{zoomPercent}
-				{activeTool}
-			/>
+		<div class="editor-workspace">
+			<div class="cell-toolbar">
+				<Toolbar
+					{activeTool}
+					{canUndo}
+					{canRedo}
+					{zoomPercent}
+					showGrid={viewport.showGrid}
+					onToolChange={(tool) => (activeTool = tool)}
+					onUndo={handleUndo}
+					onRedo={handleRedo}
+					onZoomIn={handleZoomIn}
+					onZoomOut={handleZoomOut}
+					onFit={handleFit}
+					onGridToggle={handleGridToggle}
+					onClear={handleClear}
+					onExport={handleExportPng}
+				/>
+			</div>
+			<div class="cell-palette">
+				<ColorPalette
+					selectedColor={colorToHex(foregroundColor)}
+					{recentColors}
+					onColorChange={handleColorChange}
+				/>
+			</div>
+			<div class="cell-canvas">
+				<PixelPanel style="padding: 0;">
+					<PixelCanvasView
+						{pixelCanvas}
+						{viewport}
+						{viewportSize}
+						{renderVersion}
+						onDraw={handleDraw}
+						onDrawStart={handleDrawStart}
+						onDrawEnd={handleDrawEnd}
+						onViewportChange={handleViewportChange}
+					/>
+				</PixelPanel>
+			</div>
+			<div class="cell-settings">
+				<CanvasSettings
+					canvasWidth={pixelCanvas.width}
+					canvasHeight={pixelCanvas.height}
+					onResize={handleResize}
+				/>
+			</div>
+			<div class="cell-status">
+				<StatusBar
+					canvasWidth={pixelCanvas.width}
+					canvasHeight={pixelCanvas.height}
+					{zoomPercent}
+					{activeTool}
+				/>
+			</div>
 		</div>
 	</div>
 </div>
@@ -242,97 +247,49 @@
 		font-size: var(--font-size-lg);
 	}
 
-	/* ── Mobile: vertical stack ── */
-
 	.editor-area {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: var(--space-3);
-		padding: var(--space-3);
 		flex: 1;
-		background: var(--color-muted);
-		overflow-y: auto;
-	}
-
-	.canvas-layer {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		order: 1;
+		background: var(--color-muted);
+		overflow: auto;
+		padding: var(--space-4);
 	}
 
-	.panel-toolbar {
-		order: 0;
+	.editor-workspace {
+		display: grid;
+		grid-template-columns: auto auto auto;
+		grid-template-rows: auto auto auto;
+		gap: var(--space-3);
 	}
 
-	.panel-status {
-		order: 2;
+	.cell-toolbar {
+		grid-column: 2;
+		grid-row: 1;
+		justify-self: center;
 	}
 
-	.panel-palette {
-		order: 3;
+	.cell-palette {
+		grid-column: 1;
+		grid-row: 2;
+		align-self: start;
 	}
 
-	.panel-settings {
-		order: 4;
+	.cell-canvas {
+		grid-column: 2;
+		grid-row: 2;
 	}
 
-	/* ── Desktop: floating panels over canvas ── */
+	.cell-settings {
+		grid-column: 3;
+		grid-row: 2;
+		align-self: start;
+	}
 
-	@media (min-width: 1024px) {
-		.editor-area {
-			display: grid;
-			grid-template-columns: auto 1fr auto;
-			grid-template-rows: auto 1fr auto;
-			padding: 0;
-			overflow: hidden;
-		}
-
-		.canvas-layer {
-			grid-column: 1 / -1;
-			grid-row: 1 / -1;
-			order: unset;
-			width: 100%;
-			height: 100%;
-		}
-
-		.panel {
-			z-index: 1;
-			pointer-events: none;
-			padding: var(--space-3);
-		}
-
-		.panel > :global(*) {
-			pointer-events: auto;
-		}
-
-		.panel-toolbar {
-			grid-column: 1 / -1;
-			grid-row: 1;
-			justify-self: center;
-			order: unset;
-		}
-
-		.panel-palette {
-			grid-column: 1;
-			grid-row: 2;
-			align-self: start;
-			order: unset;
-		}
-
-		.panel-settings {
-			grid-column: 3;
-			grid-row: 2;
-			align-self: start;
-			order: unset;
-		}
-
-		.panel-status {
-			grid-column: 1 / -1;
-			grid-row: 3;
-			justify-self: center;
-			order: unset;
-		}
+	.cell-status {
+		grid-column: 2;
+		grid-row: 3;
+		justify-self: center;
 	}
 </style>

@@ -1,42 +1,42 @@
 <script module>
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import PixelButton from './PixelButton.svelte';
+	import BevelButton from './BevelButton.svelte';
 
 	const { Story } = defineMeta({});
 </script>
 
 <Story name="Default">
-	<PixelButton>Default</PixelButton>
+	<BevelButton>Default</BevelButton>
 </Story>
 
 <Story name="Primary">
-	<PixelButton variant="primary">Primary</PixelButton>
+	<BevelButton variant="primary">Primary</BevelButton>
 </Story>
 
 <Story name="Secondary">
-	<PixelButton variant="secondary">Secondary</PixelButton>
+	<BevelButton variant="secondary">Secondary</BevelButton>
 </Story>
 
 <Story name="Active">
 	<div class="button-row">
-		<PixelButton active>Active Default</PixelButton>
-		<PixelButton variant="primary" active>Active Primary</PixelButton>
+		<BevelButton active>Active Default</BevelButton>
+		<BevelButton variant="primary" active>Active Primary</BevelButton>
 	</div>
 </Story>
 
 <Story name="Sizes">
 	<div class="button-row">
-		<PixelButton size="sm">Small</PixelButton>
-		<PixelButton size="md">Medium</PixelButton>
-		<PixelButton size="icon">✎</PixelButton>
+		<BevelButton size="sm">Small</BevelButton>
+		<BevelButton size="md">Medium</BevelButton>
+		<BevelButton size="icon">✎</BevelButton>
 	</div>
 </Story>
 
 <Story name="Disabled">
 	<div class="button-row">
-		<PixelButton disabled>Disabled</PixelButton>
-		<PixelButton variant="primary" disabled>Disabled</PixelButton>
-		<PixelButton variant="secondary" disabled>Disabled</PixelButton>
+		<BevelButton disabled>Disabled</BevelButton>
+		<BevelButton variant="primary" disabled>Disabled</BevelButton>
+		<BevelButton variant="secondary" disabled>Disabled</BevelButton>
 	</div>
 </Story>
 
@@ -44,27 +44,27 @@
 	<div class="variant-grid">
 		<div class="variant-row">
 			<span class="variant-label">default</span>
-			<PixelButton>Default</PixelButton>
-			<PixelButton active>Active</PixelButton>
-			<PixelButton disabled>Disabled</PixelButton>
+			<BevelButton>Default</BevelButton>
+			<BevelButton active>Active</BevelButton>
+			<BevelButton disabled>Disabled</BevelButton>
 		</div>
 		<div class="variant-row">
 			<span class="variant-label">primary</span>
-			<PixelButton variant="primary">Primary</PixelButton>
-			<PixelButton variant="primary" active>Active</PixelButton>
-			<PixelButton variant="primary" disabled>Disabled</PixelButton>
+			<BevelButton variant="primary">Primary</BevelButton>
+			<BevelButton variant="primary" active>Active</BevelButton>
+			<BevelButton variant="primary" disabled>Disabled</BevelButton>
 		</div>
 		<div class="variant-row">
 			<span class="variant-label">secondary</span>
-			<PixelButton variant="secondary">Secondary</PixelButton>
-			<PixelButton variant="secondary" active>Active</PixelButton>
-			<PixelButton variant="secondary" disabled>Disabled</PixelButton>
+			<BevelButton variant="secondary">Secondary</BevelButton>
+			<BevelButton variant="secondary" active>Active</BevelButton>
+			<BevelButton variant="secondary" disabled>Disabled</BevelButton>
 		</div>
 		<div class="variant-row">
 			<span class="variant-label">sizes</span>
-			<PixelButton size="sm">SM</PixelButton>
-			<PixelButton size="md">MD</PixelButton>
-			<PixelButton size="icon">✎</PixelButton>
+			<BevelButton size="sm">SM</BevelButton>
+			<BevelButton size="md">MD</BevelButton>
+			<BevelButton size="icon">✎</BevelButton>
 		</div>
 	</div>
 </Story>

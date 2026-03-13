@@ -42,7 +42,8 @@ export { type HistoryManager, createHistoryManager } from './canvas/history.ts';
 export { exportAsPng, generateExportFilename } from './canvas/export.ts';
 
 export { default as PixelPanel } from './ui/PixelPanel.svelte';
-export { default as PixelButton } from './ui/PixelButton.svelte';
+export { default as BevelButton } from './ui/BevelButton.svelte';
+export { default as FlatButton } from './ui/FlatButton.svelte';
 export { default as ColorSwatch } from './ui/ColorSwatch.svelte';
 export { default as Toolbar } from './ui/Toolbar.svelte';
 export { default as CanvasSettings } from './ui/CanvasSettings.svelte';

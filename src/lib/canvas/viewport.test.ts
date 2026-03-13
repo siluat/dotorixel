@@ -150,8 +150,8 @@ describe('createDefaultViewport', () => {
 		}
 	);
 
-	it('uses larger dimension for pixel size with 64-size canvas', () => {
-		const viewport = createDefaultViewport(64, 64);
+	it('uses larger dimension for pixel size with rectangular canvas', () => {
+		const viewport = createDefaultViewport(32, 64);
 		expect(viewport.pixelSize).toBe(8);
 	});
 });

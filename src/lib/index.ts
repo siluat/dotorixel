@@ -46,3 +46,4 @@ export { default as PixelButton } from './ui/PixelButton.svelte';
 export { default as ColorSwatch } from './ui/ColorSwatch.svelte';
 export { default as Toolbar } from './ui/Toolbar.svelte';
 export { default as CanvasSettings } from './ui/CanvasSettings.svelte';
+export { default as StatusBar } from './ui/StatusBar.svelte';

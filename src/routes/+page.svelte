@@ -169,7 +169,7 @@
 	<header class="app-header">
 		<h1>DOTORIXEL</h1>
 	</header>
-	<div class="editor-area">
+	<main class="editor-area">
 		<div class="editor-workspace">
 			<div class="cell-toolbar">
 				<Toolbar
@@ -226,7 +226,7 @@
 				/>
 			</div>
 		</div>
-	</div>
+	</main>
 </div>
 
 <style>
@@ -250,8 +250,8 @@
 	.editor-area {
 		flex: 1;
 		display: flex;
-		align-items: center;
-		justify-content: center;
+		align-items: flex-start;
+		justify-content: flex-start;
 		background: var(--color-muted);
 		overflow: auto;
 		padding: var(--space-4);
@@ -262,6 +262,7 @@
 		grid-template-columns: auto auto auto;
 		grid-template-rows: auto auto auto;
 		gap: var(--space-3);
+		margin: auto;
 	}
 
 	.cell-toolbar {

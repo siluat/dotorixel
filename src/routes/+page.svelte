@@ -14,6 +14,7 @@
 	import { exportAsPng } from '$lib/canvas/export';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 	import Toolbar from '$lib/ui/Toolbar.svelte';
+	import BevelButton from '$lib/ui/BevelButton.svelte';
 	import ColorPalette from '$lib/ui/ColorPalette.svelte';
 	import CanvasSettings from '$lib/ui/CanvasSettings.svelte';
 	import StatusBar from '$lib/ui/StatusBar.svelte';
@@ -23,7 +24,7 @@
 	const viewportSize = { width: 512, height: 512 };
 
 	let viewport: ViewportConfig = $state(createDefaultViewport(16, 16));
-	let activeTool: ToolType = $state('pencil');
+	let activeTool = $state<ToolType>('pencil');
 	let renderVersion = $state(0);
 	let foregroundColor: Color = $state({ r: 0, g: 0, b: 0, a: 255 });
 	let recentColors: string[] = $state([]);
@@ -161,6 +162,7 @@
 			console.error('PNG export failed:', error);
 		}
 	}
+
 </script>
 
 <svelte:window onkeydown={handleKeyDown} />
@@ -173,6 +175,7 @@
 		<div class="editor-workspace">
 			<div class="cell-toolbar">
 				<Toolbar
+					Button={BevelButton}
 					{activeTool}
 					{canUndo}
 					{canRedo}

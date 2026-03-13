@@ -46,5 +46,7 @@ export { default as BevelButton } from './ui/BevelButton.svelte';
 export { default as FlatButton } from './ui/FlatButton.svelte';
 export { default as ColorSwatch } from './ui/ColorSwatch.svelte';
 export { default as Toolbar } from './ui/Toolbar.svelte';
+export { default as ToolbarLayout } from './ui/ToolbarLayout.svelte';
+export { type ToolbarButtonProps, type ToolbarItem } from './ui/toolbar-types.ts';
 export { default as CanvasSettings } from './ui/CanvasSettings.svelte';
 export { default as StatusBar } from './ui/StatusBar.svelte';

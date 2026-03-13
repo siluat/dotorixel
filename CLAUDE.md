@@ -104,7 +104,7 @@ Design reference: `~/Projects/dotorixel-ui-concept` (v0 prototype, React + Tailw
 
 - [ ] First external contributor → set up CLA
 - [ ] Community forming → add CONTRIBUTING.md, Code of Conduct, issue/PR templates
-- [ ] Menu bar, command palette, or plugin system needed → adopt Action pattern for unified command dispatch (see [`docs/action-pattern-research.md`](docs/action-pattern-research.md))
+- [ ] Menu bar, command palette, or plugin system needed → adopt Action pattern for unified command dispatch (see [`docs/research/action-pattern-research.ko.md`](docs/research/action-pattern-research.ko.md))
 
 ## MVP Technical Decisions
 

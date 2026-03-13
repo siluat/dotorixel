@@ -94,7 +94,7 @@ ToolbarItem discriminated union이 Action의 축소판:
 ### 도입 검토 시점
 
 다음 중 하나가 필요해질 때:
-- **메뉴바** 도입 시: 같은 Action을 toolbar과 menu에서 공유 필요
+- **메뉴바** 도입 시: 같은 Action을 toolbar와 menu에서 공유 필요
 - **키보드 단축키 시스템** 도입 시: 현재 +page.svelte의 keydown 핸들러가 Action과 통합 가능
 - **커맨드 팔레트** 도입 시: 모든 Action을 검색/실행하는 UI
 - **플러그인/확장 시스템** 도입 시: 외부에서 Action을 등록하는 구조

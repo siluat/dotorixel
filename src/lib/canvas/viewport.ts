@@ -1,4 +1,4 @@
-import type { PixelCanvas, CanvasSize, CanvasCoords } from './canvas.ts';
+import type { PixelCanvas, CanvasCoords } from './canvas.ts';
 
 export interface ViewportConfig {
 	readonly pixelSize: number;
@@ -34,13 +34,13 @@ export function screenToCanvas(
 	};
 }
 
-export function getDefaultPixelSize(canvasSize: CanvasSize): number {
-	return Math.floor(TARGET_DISPLAY_SIZE / canvasSize);
+export function getDefaultPixelSize(width: number, height: number): number {
+	return Math.floor(TARGET_DISPLAY_SIZE / Math.max(width, height));
 }
 
-export function createDefaultViewport(canvasSize: CanvasSize): ViewportConfig {
+export function createDefaultViewport(width: number, height: number): ViewportConfig {
 	return {
-		pixelSize: getDefaultPixelSize(canvasSize),
+		pixelSize: getDefaultPixelSize(width, height),
 		showGrid: true,
 		gridColor: '#cccccc',
 		zoom: 1,

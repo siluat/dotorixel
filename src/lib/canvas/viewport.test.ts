@@ -11,7 +11,7 @@ import {
 	nextZoomLevel,
 	prevZoomLevel
 } from './viewport.ts';
-import { createCanvas, type CanvasSize } from './canvas.ts';
+import { createCanvas } from './canvas.ts';
 import type { ViewportConfig } from './viewport.ts';
 
 function makeViewport(overrides: Partial<ViewportConfig> = {}): ViewportConfig {
@@ -31,26 +31,31 @@ describe('getDefaultPixelSize', () => {
 		[8, 64],
 		[16, 32],
 		[32, 16]
-	] as [CanvasSize, number][])('for canvas size %d, returns %d', (size, expected) => {
-		expect(getDefaultPixelSize(size)).toBe(expected);
+	])('for canvas size %d, returns %d', (size, expected) => {
+		expect(getDefaultPixelSize(size, size)).toBe(expected);
+	});
+
+	it('uses the larger dimension for rectangular canvases', () => {
+		expect(getDefaultPixelSize(16, 32)).toBe(16);
+		expect(getDefaultPixelSize(32, 16)).toBe(16);
 	});
 });
 
 describe('getDisplaySize', () => {
 	it('calculates display size from canvas dimensions and pixel size', () => {
-		const canvas = createCanvas(16);
+		const canvas = createCanvas(16, 16);
 		const size = getDisplaySize(canvas, makeViewport());
 		expect(size).toEqual({ width: 512, height: 512 });
 	});
 
 	it('scales correctly with different pixel sizes', () => {
-		const canvas = createCanvas(8);
+		const canvas = createCanvas(8, 8);
 		const size = getDisplaySize(canvas, makeViewport({ pixelSize: 10, showGrid: false }));
 		expect(size).toEqual({ width: 80, height: 80 });
 	});
 
 	it('accounts for zoom in display size', () => {
-		const canvas = createCanvas(16);
+		const canvas = createCanvas(16, 16);
 		const size = getDisplaySize(canvas, makeViewport({ zoom: 2 }));
 		expect(size).toEqual({ width: 1024, height: 1024 });
 	});
@@ -118,32 +123,37 @@ describe('screenToCanvas', () => {
 
 describe('createDefaultViewport', () => {
 	it('creates viewport with correct default pixel size', () => {
-		const viewport = createDefaultViewport(16);
+		const viewport = createDefaultViewport(16, 16);
 		expect(viewport.pixelSize).toBe(32);
 	});
 
 	it('enables grid by default', () => {
-		const viewport = createDefaultViewport(16);
+		const viewport = createDefaultViewport(16, 16);
 		expect(viewport.showGrid).toBe(true);
 	});
 
 	it('initializes zoom and pan defaults', () => {
-		const viewport = createDefaultViewport(16);
+		const viewport = createDefaultViewport(16, 16);
 		expect(viewport.zoom).toBe(1);
 		expect(viewport.panX).toBe(0);
 		expect(viewport.panY).toBe(0);
 	});
 
-	it.each([8, 16, 32] as CanvasSize[])(
+	it.each([8, 16, 32])(
 		'produces ~512px display size for canvas size %d',
 		(size) => {
-			const viewport = createDefaultViewport(size);
-			const canvas = createCanvas(size);
+			const viewport = createDefaultViewport(size, size);
+			const canvas = createCanvas(size, size);
 			const display = getDisplaySize(canvas, viewport);
 			expect(display.width).toBe(512);
 			expect(display.height).toBe(512);
 		}
 	);
+
+	it('uses larger dimension for pixel size with 64-size canvas', () => {
+		const viewport = createDefaultViewport(64, 64);
+		expect(viewport.pixelSize).toBe(8);
+	});
 });
 
 describe('zoomAtPoint', () => {
@@ -194,7 +204,7 @@ describe('pan', () => {
 describe('fitToViewport', () => {
 	it('centers canvas in viewport', () => {
 		const viewport = makeViewport({ pixelSize: 32 });
-		const canvas = createCanvas(16);
+		const canvas = createCanvas(16, 16);
 		const result = fitToViewport(viewport, canvas, { width: 800, height: 600 });
 
 		// fitZoom = min(800/512, 600/512) = min(1.5625, 1.171875) = 1.171875
@@ -209,7 +219,7 @@ describe('fitToViewport', () => {
 
 	it('fits canvas within viewport bounds', () => {
 		const viewport = makeViewport({ pixelSize: 32 });
-		const canvas = createCanvas(16);
+		const canvas = createCanvas(16, 16);
 		const viewportSize = { width: 400, height: 300 };
 		const result = fitToViewport(viewport, canvas, viewportSize);
 

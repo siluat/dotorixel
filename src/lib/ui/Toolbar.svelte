@@ -1,7 +1,8 @@
 <script lang="ts">
+	import type { Component } from 'svelte';
 	import type { ToolType } from '$lib/canvas/tool';
-	import PixelPanel from './PixelPanel.svelte';
-	import BevelButton from './BevelButton.svelte';
+	import type { ToolbarButtonProps, ToolbarItem } from './toolbar-types';
+	import ToolbarLayout from './ToolbarLayout.svelte';
 	import {
 		Pencil,
 		Eraser,
@@ -16,6 +17,7 @@
 	} from 'lucide-svelte';
 
 	interface Props {
+		Button: Component<ToolbarButtonProps>;
 		activeTool: ToolType;
 		canUndo: boolean;
 		canRedo: boolean;
@@ -33,6 +35,7 @@
 	}
 
 	let {
+		Button,
 		activeTool,
 		canUndo,
 		canRedo,
@@ -49,97 +52,40 @@
 		onExport
 	}: Props = $props();
 
-	const ICON_SIZE = 16;
-
-	const tools: { type: ToolType; icon: typeof Pencil; label: string }[] = [
-		{ type: 'pencil', icon: Pencil, label: 'Pencil' },
-		{ type: 'eraser', icon: Eraser, label: 'Eraser' }
-	];
+	const items: ToolbarItem[] = $derived([
+		{
+			kind: 'button',
+			icon: Pencil,
+			label: 'Pencil',
+			active: activeTool === 'pencil',
+			onclick: () => onToolChange('pencil')
+		},
+		{
+			kind: 'button',
+			icon: Eraser,
+			label: 'Eraser',
+			active: activeTool === 'eraser',
+			onclick: () => onToolChange('eraser')
+		},
+		{ kind: 'separator' },
+		{ kind: 'button', icon: Undo2, label: 'Undo', disabled: !canUndo, onclick: onUndo },
+		{ kind: 'button', icon: Redo2, label: 'Redo', disabled: !canRedo, onclick: onRedo },
+		{ kind: 'separator' },
+		{ kind: 'button', icon: ZoomOut, label: 'Zoom Out', onclick: onZoomOut },
+		{ kind: 'label', text: `${zoomPercent}%` },
+		{ kind: 'button', icon: ZoomIn, label: 'Zoom In', onclick: onZoomIn },
+		{ kind: 'button', icon: Maximize2, label: 'Fit to View', onclick: onFit },
+		{
+			kind: 'button',
+			icon: Grid3X3,
+			label: 'Toggle Grid',
+			active: showGrid,
+			onclick: onGridToggle
+		},
+		{ kind: 'separator' },
+		{ kind: 'button', icon: Trash2, label: 'Clear Canvas', onclick: onClear },
+		{ kind: 'button', icon: Download, label: 'Export PNG', onclick: onExport }
+	]);
 </script>
 
-<PixelPanel style="padding: var(--space-2) calc(var(--space-2) + var(--border-width)) calc(var(--space-2) + var(--border-width)) var(--space-2)">
-	<div class="toolbar">
-		<div class="toolbar-group">
-			{#each tools as tool}
-				{@const Icon = tool.icon}
-				<BevelButton
-					size="icon"
-					active={activeTool === tool.type}
-					title={tool.label}
-					onclick={() => onToolChange(tool.type)}
-				>
-					<Icon size={ICON_SIZE} />
-				</BevelButton>
-			{/each}
-		</div>
-
-		<span class="separator"></span>
-
-		<div class="toolbar-group">
-			<BevelButton size="icon" disabled={!canUndo} title="Undo" onclick={onUndo}>
-				<Undo2 size={ICON_SIZE} />
-			</BevelButton>
-			<BevelButton size="icon" disabled={!canRedo} title="Redo" onclick={onRedo}>
-				<Redo2 size={ICON_SIZE} />
-			</BevelButton>
-		</div>
-
-		<span class="separator"></span>
-
-		<div class="toolbar-group">
-			<BevelButton size="icon" title="Zoom Out" onclick={onZoomOut}>
-				<ZoomOut size={ICON_SIZE} />
-			</BevelButton>
-			<span class="zoom-label">{zoomPercent}%</span>
-			<BevelButton size="icon" title="Zoom In" onclick={onZoomIn}>
-				<ZoomIn size={ICON_SIZE} />
-			</BevelButton>
-			<BevelButton size="icon" title="Fit to View" onclick={onFit}>
-				<Maximize2 size={ICON_SIZE} />
-			</BevelButton>
-			<BevelButton size="icon" active={showGrid} title="Toggle Grid" onclick={onGridToggle}>
-				<Grid3X3 size={ICON_SIZE} />
-			</BevelButton>
-		</div>
-
-		<span class="separator"></span>
-
-		<div class="toolbar-group">
-			<BevelButton size="icon" title="Clear Canvas" onclick={onClear}>
-				<Trash2 size={ICON_SIZE} />
-			</BevelButton>
-			<BevelButton size="icon" title="Export PNG" onclick={onExport}>
-				<Download size={ICON_SIZE} />
-			</BevelButton>
-		</div>
-	</div>
-</PixelPanel>
-
-<style>
-	.toolbar {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-	}
-
-	.toolbar-group {
-		display: flex;
-		align-items: center;
-		gap: var(--space-1);
-	}
-
-	.separator {
-		width: var(--border-width);
-		height: var(--space-6);
-		background: var(--color-border);
-		margin: 0 var(--space-2);
-	}
-
-	.zoom-label {
-		font-family: var(--font-mono);
-		font-size: 12px;
-		font-variant-numeric: tabular-nums;
-		min-width: 40px;
-		text-align: center;
-	}
-</style>
+<ToolbarLayout {Button} {items} />

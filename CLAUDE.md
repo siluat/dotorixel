@@ -79,7 +79,7 @@ Design reference: `~/Projects/dotorixel-ui-concept` (v0 prototype, React + Tailw
 - [x] StatusBar component — canvas size, zoom %, current tool display
 - [x] Layout integration — 3-column responsive layout (+page.svelte refactoring)
 - [x] Button style system — split PixelButton into BevelButton (3D border) and FlatButton (uniform border + shadow)
-- [ ] Toolbar button abstraction — decouple Toolbar from specific button component to allow button style swaps without internal changes
+- [x] Toolbar button abstraction — decouple Toolbar from specific button component to allow button style swaps without internal changes
 - [ ] ColorSwatch border/shadow tinting — use color-relative border and shadow tones (matching the swatch color) as in the concept UI
 - [ ] Internationalization (i18n) — Korean/English support
 
@@ -104,6 +104,7 @@ Design reference: `~/Projects/dotorixel-ui-concept` (v0 prototype, React + Tailw
 
 - [ ] First external contributor → set up CLA
 - [ ] Community forming → add CONTRIBUTING.md, Code of Conduct, issue/PR templates
+- [ ] Menu bar, command palette, or plugin system needed → adopt Action pattern for unified command dispatch (see [`docs/action-pattern-research.md`](docs/action-pattern-research.md))
 
 ## MVP Technical Decisions
 

@@ -1,92 +1,55 @@
-<script module>
+<script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import Toolbar from './Toolbar.svelte';
+	import BevelButton from './BevelButton.svelte';
+	import FlatButton from './FlatButton.svelte';
+	import type { ToolType } from '$lib/canvas/tool';
 
 	const { Story } = defineMeta({});
 
 	const noop = () => {};
+
+	const defaults = {
+		Button: BevelButton,
+		activeTool: 'pencil' as ToolType,
+		canUndo: false,
+		canRedo: false,
+		zoomPercent: 100,
+		showGrid: true,
+		onToolChange: noop,
+		onUndo: noop,
+		onRedo: noop,
+		onZoomIn: noop,
+		onZoomOut: noop,
+		onFit: noop,
+		onGridToggle: noop,
+		onClear: noop,
+		onExport: noop
+	};
 </script>
 
 <Story name="Default">
-	<Toolbar
-		activeTool="pencil"
-		canUndo={false}
-		canRedo={false}
-		zoomPercent={100}
-		showGrid={true}
-		onToolChange={noop}
-		onUndo={noop}
-		onRedo={noop}
-		onZoomIn={noop}
-		onZoomOut={noop}
-		onFit={noop}
-		onGridToggle={noop}
-		onClear={noop}
-		onExport={noop}
-	/>
+	<Toolbar {...defaults} />
 </Story>
 
 <Story name="WithHistory">
-	<Toolbar
-		activeTool="pencil"
-		canUndo={true}
-		canRedo={true}
-		zoomPercent={100}
-		showGrid={true}
-		onToolChange={noop}
-		onUndo={noop}
-		onRedo={noop}
-		onZoomIn={noop}
-		onZoomOut={noop}
-		onFit={noop}
-		onGridToggle={noop}
-		onClear={noop}
-		onExport={noop}
-	/>
+	<Toolbar {...defaults} canUndo={true} canRedo={true} />
 </Story>
 
 <Story name="EraserActive">
-	<Toolbar
-		activeTool="eraser"
-		canUndo={true}
-		canRedo={false}
-		zoomPercent={100}
-		showGrid={true}
-		onToolChange={noop}
-		onUndo={noop}
-		onRedo={noop}
-		onZoomIn={noop}
-		onZoomOut={noop}
-		onFit={noop}
-		onGridToggle={noop}
-		onClear={noop}
-		onExport={noop}
-	/>
+	<Toolbar {...defaults} activeTool="eraser" canUndo={true} />
 </Story>
 
 <Story name="ZoomedIn">
-	<Toolbar
-		activeTool="pencil"
-		canUndo={false}
-		canRedo={false}
-		zoomPercent={400}
-		showGrid={false}
-		onToolChange={noop}
-		onUndo={noop}
-		onRedo={noop}
-		onZoomIn={noop}
-		onZoomOut={noop}
-		onFit={noop}
-		onGridToggle={noop}
-		onClear={noop}
-		onExport={noop}
-	/>
+	<Toolbar {...defaults} zoomPercent={400} showGrid={false} />
+</Story>
+
+<Story name="WithFlatButton">
+	<Toolbar {...defaults} Button={FlatButton} />
 </Story>
 
 <script lang="ts">
-	import type { ToolType } from '$lib/canvas/tool';
-
-	let activeTool: ToolType = $state('pencil');
+	let activeTool = $state<ToolType>('pencil');
 	let showGrid = $state(true);
 	let canUndo = $state(false);
 	let canRedo = $state(false);
@@ -95,14 +58,13 @@
 
 <Story name="Interactive">
 	<Toolbar
+		{...defaults}
 		{activeTool}
 		{canUndo}
 		{canRedo}
 		{zoomPercent}
 		{showGrid}
 		onToolChange={(tool) => (activeTool = tool)}
-		onUndo={() => {}}
-		onRedo={() => {}}
 		onZoomIn={() => (zoomPercent = Math.min(zoomPercent * 2, 1600))}
 		onZoomOut={() => (zoomPercent = Math.max(zoomPercent / 2, 25))}
 		onFit={() => (zoomPercent = 100)}
@@ -111,6 +73,5 @@
 			canUndo = true;
 			canRedo = false;
 		}}
-		onExport={() => {}}
 	/>
 </Story>

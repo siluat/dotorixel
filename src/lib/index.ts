@@ -1,11 +1,15 @@
 export { type Color, TRANSPARENT, colorToHex, hexToColor } from './canvas/color.ts';
 
 export {
-	type CanvasSize,
 	type PixelData,
 	type PixelCanvas,
 	createCanvas,
 	createCanvasWithColor,
+	resizeCanvas,
+	isValidCanvasDimension,
+	MIN_CANVAS_DIMENSION,
+	MAX_CANVAS_DIMENSION,
+	CANVAS_PRESETS,
 	getPixel,
 	setPixel,
 	isInsideBounds,
@@ -41,3 +45,4 @@ export { default as PixelPanel } from './ui/PixelPanel.svelte';
 export { default as PixelButton } from './ui/PixelButton.svelte';
 export { default as ColorSwatch } from './ui/ColorSwatch.svelte';
 export { default as Toolbar } from './ui/Toolbar.svelte';
+export { default as CanvasSettings } from './ui/CanvasSettings.svelte';

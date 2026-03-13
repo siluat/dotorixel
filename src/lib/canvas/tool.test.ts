@@ -9,19 +9,19 @@ const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
 describe('applyTool', () => {
 	describe('pencil', () => {
 		it('applies foreground color to the target pixel', () => {
-			const canvas = createCanvas(8);
+			const canvas = createCanvas(8, 8);
 			applyTool(canvas, 3, 4, 'pencil', RED);
 			expect(getPixel(canvas, 3, 4)).toEqual(RED);
 		});
 
 		it('overwrites existing pixel color', () => {
-			const canvas = createCanvasWithColor(8, BLACK);
+			const canvas = createCanvasWithColor(8, 8, BLACK);
 			applyTool(canvas, 0, 0, 'pencil', RED);
 			expect(getPixel(canvas, 0, 0)).toEqual(RED);
 		});
 
 		it('does not affect adjacent pixels', () => {
-			const canvas = createCanvas(8);
+			const canvas = createCanvas(8, 8);
 			applyTool(canvas, 3, 3, 'pencil', RED);
 			expect(getPixel(canvas, 2, 3)).toEqual(TRANSPARENT);
 			expect(getPixel(canvas, 4, 3)).toEqual(TRANSPARENT);
@@ -32,7 +32,7 @@ describe('applyTool', () => {
 
 	describe('eraser', () => {
 		it('sets pixel to TRANSPARENT regardless of foreground color', () => {
-			const canvas = createCanvasWithColor(8, BLACK);
+			const canvas = createCanvasWithColor(8, 8, BLACK);
 			applyTool(canvas, 2, 2, 'eraser', RED);
 			expect(getPixel(canvas, 2, 2)).toEqual(TRANSPARENT);
 		});
@@ -40,7 +40,7 @@ describe('applyTool', () => {
 
 	describe('boundary handling', () => {
 		it('returns false for out-of-bounds coordinates', () => {
-			const canvas = createCanvas(8);
+			const canvas = createCanvas(8, 8);
 			expect(applyTool(canvas, -1, 0, 'pencil', BLACK)).toBe(false);
 			expect(applyTool(canvas, 0, -1, 'pencil', BLACK)).toBe(false);
 			expect(applyTool(canvas, 8, 0, 'pencil', BLACK)).toBe(false);
@@ -48,12 +48,12 @@ describe('applyTool', () => {
 		});
 
 		it('does not throw for out-of-bounds coordinates', () => {
-			const canvas = createCanvas(8);
+			const canvas = createCanvas(8, 8);
 			expect(() => applyTool(canvas, -1, 0, 'pencil', BLACK)).not.toThrow();
 		});
 
 		it('does not modify canvas for out-of-bounds coordinates', () => {
-			const canvas = createCanvas(8);
+			const canvas = createCanvas(8, 8);
 			applyTool(canvas, -1, 0, 'pencil', BLACK);
 			for (let y = 0; y < 8; y++) {
 				for (let x = 0; x < 8; x++) {
@@ -63,7 +63,7 @@ describe('applyTool', () => {
 		});
 
 		it('returns true for valid coordinates', () => {
-			const canvas = createCanvas(8);
+			const canvas = createCanvas(8, 8);
 			expect(applyTool(canvas, 0, 0, 'pencil', BLACK)).toBe(true);
 			expect(applyTool(canvas, 7, 7, 'pencil', BLACK)).toBe(true);
 		});

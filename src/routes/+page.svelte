@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createCanvas, clearCanvas, type CanvasCoords } from '$lib/canvas/canvas';
+	import { createCanvas, clearCanvas, resizeCanvas, type CanvasCoords } from '$lib/canvas/canvas';
 	import {
 		createDefaultViewport,
 		zoomAtPoint,
@@ -15,11 +15,12 @@
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 	import Toolbar from '$lib/ui/Toolbar.svelte';
 	import ColorPalette from '$lib/ui/ColorPalette.svelte';
+	import CanvasSettings from '$lib/ui/CanvasSettings.svelte';
 
-	const pixelCanvas = createCanvas(16);
+	let pixelCanvas = $state.raw(createCanvas(16, 16));
 	const viewportSize = { width: 512, height: 512 };
 
-	let viewport: ViewportConfig = $state(createDefaultViewport(16));
+	let viewport: ViewportConfig = $state(createDefaultViewport(16, 16));
 	let activeTool: ToolType = $state('pencil');
 	let renderVersion = $state(0);
 	let foregroundColor: Color = $state({ r: 0, g: 0, b: 0, a: 255 });
@@ -142,6 +143,15 @@
 		foregroundColor = hexToColor(hex);
 	}
 
+	function handleResize(newWidth: number, newHeight: number): void {
+		if (newWidth === pixelCanvas.width && newHeight === pixelCanvas.height) return;
+		pixelCanvas = resizeCanvas(pixelCanvas, newWidth, newHeight);
+		viewport = createDefaultViewport(newWidth, newHeight);
+		history.clear();
+		historyVersion++;
+		renderVersion++;
+	}
+
 	async function handleExportPng(): Promise<void> {
 		try {
 			await exportAsPng(pixelCanvas);
@@ -175,6 +185,11 @@
 		selectedColor={colorToHex(foregroundColor)}
 		{recentColors}
 		onColorChange={handleColorChange}
+	/>
+	<CanvasSettings
+		canvasWidth={pixelCanvas.width}
+		canvasHeight={pixelCanvas.height}
+		onResize={handleResize}
 	/>
 	<div class="canvas-container">
 		<PixelCanvasView

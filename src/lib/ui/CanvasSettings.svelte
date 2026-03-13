@@ -1,0 +1,181 @@
+<script lang="ts">
+	import { isValidCanvasDimension, CANVAS_PRESETS } from '$lib/canvas/canvas';
+	import PixelPanel from './PixelPanel.svelte';
+	import PixelButton from './PixelButton.svelte';
+
+	interface Props {
+		canvasWidth: number;
+		canvasHeight: number;
+		onResize: (width: number, height: number) => void;
+	}
+
+	let { canvasWidth, canvasHeight, onResize }: Props = $props();
+
+	let customWidth = $state('');
+	let customHeight = $state('');
+
+	$effect.pre(() => {
+		customWidth = String(canvasWidth);
+		customHeight = String(canvasHeight);
+	});
+
+	const isWidthValid = $derived(isValidCanvasDimension(Number(customWidth)));
+	const isHeightValid = $derived(isValidCanvasDimension(Number(customHeight)));
+	const canApply = $derived(isWidthValid && isHeightValid);
+	function isCurrentPreset(size: number): boolean {
+		return canvasWidth === size && canvasHeight === size;
+	}
+
+	function handlePreset(size: number): void {
+		onResize(size, size);
+	}
+
+	function applyCustomSize(): void {
+		if (!canApply) return;
+		onResize(Number(customWidth), Number(customHeight));
+	}
+
+	function handleKeyDown(event: KeyboardEvent): void {
+		if (event.key === 'Enter') {
+			applyCustomSize();
+		}
+	}
+</script>
+
+<PixelPanel variant="raised">
+	<div class="canvas-settings">
+		<span class="section-label">Canvas Size</span>
+		<span class="current-size">Current: {canvasWidth} × {canvasHeight}</span>
+
+		<div class="presets">
+			{#each CANVAS_PRESETS as size}
+				<PixelButton
+					size="sm"
+					variant={isCurrentPreset(size) ? 'primary' : 'default'}
+					onclick={() => handlePreset(size)}
+				>
+					{size}×{size}
+				</PixelButton>
+			{/each}
+		</div>
+
+		<div class="custom-size">
+			<label class="dimension">
+				<span class="dim-label">W</span>
+				<input
+					type="number"
+					class="dim-input"
+					class:dim-input--invalid={!isWidthValid}
+					value={customWidth}
+					min="1"
+					max="128"
+					aria-label="Canvas width"
+					aria-invalid={!isWidthValid}
+					oninput={(e) => (customWidth = (e.currentTarget as HTMLInputElement).value)}
+					onkeydown={handleKeyDown}
+				/>
+			</label>
+			<label class="dimension">
+				<span class="dim-label">H</span>
+				<input
+					type="number"
+					class="dim-input"
+					class:dim-input--invalid={!isHeightValid}
+					value={customHeight}
+					min="1"
+					max="128"
+					aria-label="Canvas height"
+					aria-invalid={!isHeightValid}
+					oninput={(e) => (customHeight = (e.currentTarget as HTMLInputElement).value)}
+					onkeydown={handleKeyDown}
+				/>
+			</label>
+			<PixelButton size="sm" disabled={!canApply} onclick={applyCustomSize}>
+				Apply
+			</PixelButton>
+		</div>
+	</div>
+</PixelPanel>
+
+<style>
+	.canvas-settings {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+		width: fit-content;
+	}
+
+	.section-label {
+		font-family: var(--font-mono);
+		font-size: 11px;
+		color: var(--color-muted-fg);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.current-size {
+		font-family: var(--font-mono);
+		font-size: 13px;
+		color: var(--color-surface-fg);
+	}
+
+	/* ── Presets ── */
+
+	.presets {
+		display: flex;
+		gap: var(--space-2);
+	}
+
+	/* ── Custom size ── */
+
+	.custom-size {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.dimension {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+	}
+
+	.dim-label {
+		font-family: var(--font-mono);
+		font-size: 11px;
+		color: var(--color-muted-fg);
+		text-transform: uppercase;
+	}
+
+	.dim-input {
+		width: 56px;
+		height: 28px;
+		padding: 0 var(--space-2);
+		font-family: var(--font-mono);
+		font-size: 13px;
+		color: var(--color-surface-fg);
+		background: var(--color-input);
+		border: var(--border-width) solid var(--color-border);
+		border-top-color: var(--color-border-shadow);
+		border-left-color: var(--color-border-shadow);
+		border-bottom-color: var(--color-border-highlight);
+		border-right-color: var(--color-border-highlight);
+		-moz-appearance: textfield;
+		appearance: textfield;
+	}
+
+	.dim-input::-webkit-inner-spin-button,
+	.dim-input::-webkit-outer-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+
+	.dim-input:focus {
+		outline: 2px solid var(--color-ring);
+		outline-offset: -1px;
+	}
+
+	.dim-input--invalid {
+		border-color: var(--color-destructive);
+	}
+</style>

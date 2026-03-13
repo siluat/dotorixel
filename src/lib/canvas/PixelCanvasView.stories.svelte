@@ -13,7 +13,7 @@
 	const BLUE: Color = { r: 0, g: 100, b: 255, a: 255 };
 
 	function createCheckerboard() {
-		const canvas = createCanvas(16);
+		const canvas = createCanvas(16, 16);
 		for (let y = 0; y < 16; y++) {
 			for (let x = 0; x < 16; x++) {
 				const isEven = (x + y) % 2 === 0;
@@ -25,16 +25,16 @@
 </script>
 
 <Story name="Empty 16x16" args={{
-	pixelCanvas: createCanvas(16),
-	viewport: createDefaultViewport(16)
+	pixelCanvas: createCanvas(16, 16),
+	viewport: createDefaultViewport(16, 16)
 }} />
 
 <Story name="Checkerboard 16x16" args={{
 	pixelCanvas: createCheckerboard(),
-	viewport: createDefaultViewport(16)
+	viewport: createDefaultViewport(16, 16)
 }} />
 
 <Story name="Filled 8x8" args={{
-	pixelCanvas: createCanvasWithColor(8, RED),
-	viewport: createDefaultViewport(8)
+	pixelCanvas: createCanvasWithColor(8, 8, RED),
+	viewport: createDefaultViewport(8, 8)
 }} />

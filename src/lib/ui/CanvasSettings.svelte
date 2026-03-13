@@ -42,7 +42,7 @@
 	}
 </script>
 
-<PixelPanel variant="raised">
+<PixelPanel>
 	<div class="canvas-settings">
 		<span class="section-label">Canvas Size</span>
 		<span class="current-size">Current: {canvasWidth} × {canvasHeight}</span>

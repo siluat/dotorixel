@@ -16,6 +16,8 @@
 	import Toolbar from '$lib/ui/Toolbar.svelte';
 	import ColorPalette from '$lib/ui/ColorPalette.svelte';
 	import CanvasSettings from '$lib/ui/CanvasSettings.svelte';
+	import StatusBar from '$lib/ui/StatusBar.svelte';
+	import PixelPanel from '$lib/ui/PixelPanel.svelte';
 
 	let pixelCanvas = $state.raw(createCanvas(16, 16));
 	const viewportSize = { width: 512, height: 512 };
@@ -163,58 +165,132 @@
 
 <svelte:window onkeydown={handleKeyDown} />
 
-<main>
-	<h1>DOTORIXEL</h1>
-	<Toolbar
-		{activeTool}
-		{canUndo}
-		{canRedo}
-		{zoomPercent}
-		showGrid={viewport.showGrid}
-		onToolChange={(tool) => (activeTool = tool)}
-		onUndo={handleUndo}
-		onRedo={handleRedo}
-		onZoomIn={handleZoomIn}
-		onZoomOut={handleZoomOut}
-		onFit={handleFit}
-		onGridToggle={handleGridToggle}
-		onClear={handleClear}
-		onExport={handleExportPng}
-	/>
-	<ColorPalette
-		selectedColor={colorToHex(foregroundColor)}
-		{recentColors}
-		onColorChange={handleColorChange}
-	/>
-	<CanvasSettings
-		canvasWidth={pixelCanvas.width}
-		canvasHeight={pixelCanvas.height}
-		onResize={handleResize}
-	/>
-	<div class="canvas-container">
-		<PixelCanvasView
-			{pixelCanvas}
-			{viewport}
-			{viewportSize}
-			{renderVersion}
-			onDraw={handleDraw}
-			onDrawStart={handleDrawStart}
-			onDrawEnd={handleDrawEnd}
-			onViewportChange={handleViewportChange}
-		/>
-	</div>
-</main>
+<div class="app">
+	<header class="app-header">
+		<h1>DOTORIXEL</h1>
+	</header>
+	<main class="editor-area">
+		<div class="editor-workspace">
+			<div class="cell-toolbar">
+				<Toolbar
+					{activeTool}
+					{canUndo}
+					{canRedo}
+					{zoomPercent}
+					showGrid={viewport.showGrid}
+					onToolChange={(tool) => (activeTool = tool)}
+					onUndo={handleUndo}
+					onRedo={handleRedo}
+					onZoomIn={handleZoomIn}
+					onZoomOut={handleZoomOut}
+					onFit={handleFit}
+					onGridToggle={handleGridToggle}
+					onClear={handleClear}
+					onExport={handleExportPng}
+				/>
+			</div>
+			<div class="cell-palette">
+				<ColorPalette
+					selectedColor={colorToHex(foregroundColor)}
+					{recentColors}
+					onColorChange={handleColorChange}
+				/>
+			</div>
+			<div class="cell-canvas">
+				<PixelPanel style="padding: 0;">
+					<PixelCanvasView
+						{pixelCanvas}
+						{viewport}
+						{viewportSize}
+						{renderVersion}
+						onDraw={handleDraw}
+						onDrawStart={handleDrawStart}
+						onDrawEnd={handleDrawEnd}
+						onViewportChange={handleViewportChange}
+					/>
+				</PixelPanel>
+			</div>
+			<div class="cell-settings">
+				<CanvasSettings
+					canvasWidth={pixelCanvas.width}
+					canvasHeight={pixelCanvas.height}
+					onResize={handleResize}
+				/>
+			</div>
+			<div class="cell-status">
+				<StatusBar
+					canvasWidth={pixelCanvas.width}
+					canvasHeight={pixelCanvas.height}
+					{zoomPercent}
+					{activeTool}
+				/>
+			</div>
+		</div>
+	</main>
+</div>
 
 <style>
-	main {
+	.app {
 		display: flex;
 		flex-direction: column;
-		align-items: center;
-		gap: var(--space-4);
-		padding: 2rem;
+		height: 100vh;
 	}
 
-	.canvas-container {
-		border: 1px solid #999;
+	.app-header {
+		padding: var(--space-2) var(--space-4);
+		border-bottom: var(--border-width) solid var(--color-border);
+		background: var(--color-surface);
+	}
+
+	.app-header h1 {
+		margin: 0;
+		font-size: var(--font-size-lg);
+	}
+
+	.editor-area {
+		flex: 1;
+		display: flex;
+		align-items: flex-start;
+		justify-content: flex-start;
+		background: var(--color-muted);
+		overflow: auto;
+		padding: var(--space-4);
+	}
+
+	.editor-workspace {
+		display: grid;
+		grid-template-columns: auto auto auto;
+		grid-template-rows: auto auto auto;
+		gap: var(--space-3);
+		margin: auto;
+	}
+
+	.cell-toolbar {
+		grid-column: 2;
+		grid-row: 1;
+		justify-self: center;
+	}
+
+	.cell-palette {
+		grid-column: 1;
+		grid-row: 2;
+		align-self: start;
+	}
+
+	.cell-canvas {
+		grid-column: 2;
+		grid-row: 2;
+	}
+
+	.cell-settings {
+		grid-column: 3;
+		grid-row: 2;
+		align-self: start;
+	}
+
+	.cell-status {
+		grid-column: 2;
+		grid-row: 3;
+		justify-self: center;
 	}
 </style>

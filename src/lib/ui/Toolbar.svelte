@@ -57,7 +57,7 @@
 	];
 </script>
 
-<PixelPanel variant="raised" style="padding: var(--space-2)">
+<PixelPanel style="padding: var(--space-2)">
 	<div class="toolbar">
 		<div class="toolbar-group">
 			{#each tools as tool}

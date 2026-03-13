@@ -77,7 +77,7 @@ Design reference: `~/Projects/dotorixel-ui-concept` (v0 prototype, React + Tailw
 - [x] ColorPalette component — 36-color palette, current color preview, custom color input, recent colors
 - [x] CanvasSettings component — size presets (8/16/32/64), custom W/H input, resize
 - [x] StatusBar component — canvas size, zoom %, current tool display
-- [ ] Layout integration — 3-column responsive layout (+page.svelte refactoring)
+- [x] Layout integration — 3-column responsive layout (+page.svelte refactoring)
 - [ ] Internationalization (i18n) — Korean/English support
 
 #### Release

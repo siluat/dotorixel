@@ -80,7 +80,7 @@ Design reference: `~/Projects/dotorixel-ui-concept` (v0 prototype, React + Tailw
 - [x] Layout integration — 3-column responsive layout (+page.svelte refactoring)
 - [x] Button style system — split PixelButton into BevelButton (3D border) and FlatButton (uniform border + shadow)
 - [x] Toolbar button abstraction — decouple Toolbar from specific button component to allow button style swaps without internal changes
-- [ ] ColorSwatch border/shadow tinting — use color-relative border and shadow tones (matching the swatch color) as in the concept UI
+- [x] ColorSwatch border/shadow tinting — use color-relative border and shadow tones (matching the swatch color) as in the concept UI
 - [ ] Internationalization (i18n) — Korean/English support
 
 #### Release

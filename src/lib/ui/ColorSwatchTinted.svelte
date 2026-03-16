@@ -15,6 +15,7 @@
 	class:color-swatch--selected={selected}
 	style:--swatch-color={color}
 	title={color}
+	aria-label={color}
 	aria-pressed={selected ? 'true' : undefined}
 	{onclick}
 ></button>
@@ -23,7 +24,7 @@
 	.color-swatch {
 		/* Subtle 3D depth scaled for small color swatches */
 		--depth: calc((var(--border-width) + var(--border-width-thick)) / 2);
-		--border-tint: color-mix(in oklch, var(--swatch-color) 55%, black);
+		--border-tint: color-mix(in oklch, var(--swatch-color) 55%, var(--color-border-shadow));
 
 		padding: 0;
 		cursor: pointer;
@@ -48,7 +49,7 @@
 	/* ── Hover ── */
 
 	.color-swatch:hover {
-		border-color: color-mix(in oklch, var(--swatch-color) 40%, black);
+		border-color: color-mix(in oklch, var(--swatch-color) 40%, var(--color-border-shadow));
 	}
 
 	/* ── Selected ── */

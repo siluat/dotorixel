@@ -15,6 +15,7 @@
 	class:color-swatch--selected={selected}
 	style:background-color={color}
 	title={color}
+	aria-label={color}
 	aria-pressed={selected ? 'true' : undefined}
 	{onclick}
 ></button>

@@ -2,7 +2,7 @@
 	import { isValidHex } from '$lib/canvas/color';
 	import { DEFAULT_PALETTE } from './color-palette-data';
 	import PixelPanel from './PixelPanel.svelte';
-	import ColorSwatch from './ColorSwatch.svelte';
+	import ColorSwatch from './ColorSwatchTinted.svelte';
 
 	interface Props {
 		selectedColor: string;

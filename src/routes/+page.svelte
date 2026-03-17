@@ -3,6 +3,7 @@
 	import {
 		createDefaultViewport,
 		zoomAtPoint,
+		clampPan,
 		fitToViewport,
 		nextZoomLevel,
 		prevZoomLevel,
@@ -45,7 +46,7 @@
 	const zoomPercent = $derived(Math.round(viewport.zoom * 100));
 
 	function handleViewportChange(newViewport: ViewportConfig): void {
-		viewport = newViewport;
+		viewport = clampPan(newViewport, pixelCanvas, viewportSize);
 	}
 
 	function handleDrawStart(): void {
@@ -125,13 +126,21 @@
 	function handleZoomIn(): void {
 		const centerX = viewportSize.width / 2;
 		const centerY = viewportSize.height / 2;
-		viewport = zoomAtPoint(viewport, centerX, centerY, nextZoomLevel(viewport.zoom));
+		viewport = clampPan(
+			zoomAtPoint(viewport, centerX, centerY, nextZoomLevel(viewport.zoom)),
+			pixelCanvas,
+			viewportSize
+		);
 	}
 
 	function handleZoomOut(): void {
 		const centerX = viewportSize.width / 2;
 		const centerY = viewportSize.height / 2;
-		viewport = zoomAtPoint(viewport, centerX, centerY, prevZoomLevel(viewport.zoom));
+		viewport = clampPan(
+			zoomAtPoint(viewport, centerX, centerY, prevZoomLevel(viewport.zoom)),
+			pixelCanvas,
+			viewportSize
+		);
 	}
 
 	function handleFit(): void {

@@ -21,6 +21,8 @@ export const ZOOM_LEVELS = [0.25, 0.5, 1, 2, 4, 8, 16] as const;
 export const MIN_ZOOM = ZOOM_LEVELS[0];
 export const MAX_ZOOM = ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
 
+export const MIN_VISIBLE_MARGIN = 16;
+
 export function clampZoom(zoom: number): number {
 	return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom));
 }
@@ -118,6 +120,41 @@ export function pan(
 		panX: viewport.panX + deltaX,
 		panY: viewport.panY + deltaY
 	};
+}
+
+export function clampPan(
+	viewport: ViewportConfig,
+	canvas: PixelCanvas,
+	viewportSize: ViewportSize
+): ViewportConfig {
+	const scaledPixel = effectivePixelSize(viewport);
+	const margin = Math.max(scaledPixel, MIN_VISIBLE_MARGIN);
+	const canvasDisplayWidth = canvas.width * scaledPixel;
+	const canvasDisplayHeight = canvas.height * scaledPixel;
+
+	// When the canvas fits inside the viewport, keep it fully contained.
+	// When it overflows, allow panning but keep at least margin pixels visible.
+	const minPanX =
+		canvasDisplayWidth <= viewportSize.width ? 0 : margin - canvasDisplayWidth;
+	const maxPanX =
+		canvasDisplayWidth <= viewportSize.width
+			? viewportSize.width - canvasDisplayWidth
+			: viewportSize.width - margin;
+	const minPanY =
+		canvasDisplayHeight <= viewportSize.height ? 0 : margin - canvasDisplayHeight;
+	const maxPanY =
+		canvasDisplayHeight <= viewportSize.height
+			? viewportSize.height - canvasDisplayHeight
+			: viewportSize.height - margin;
+
+	const clampedPanX = Math.min(maxPanX, Math.max(minPanX, viewport.panX));
+	const clampedPanY = Math.min(maxPanY, Math.max(minPanY, viewport.panY));
+
+	if (clampedPanX === viewport.panX && clampedPanY === viewport.panY) {
+		return viewport;
+	}
+
+	return { ...viewport, panX: clampedPanX, panY: clampedPanY };
 }
 
 export function fitToViewport(

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { PixelCanvas, CanvasCoords } from './canvas.ts';
 	import type { ViewportConfig, ViewportSize } from './viewport.ts';
-	import { screenToCanvas, zoomAtPoint, pan, nextZoomLevel, prevZoomLevel } from './viewport.ts';
+	import { screenToCanvas, zoomAtPoint, pan, nextZoomLevel, prevZoomLevel, computePinchZoom } from './viewport.ts';
+	import { createWheelInputClassifier } from './wheel-input.ts';
 	import { renderPixelCanvas } from './renderer.ts';
 
 	type InteractionMode =
@@ -36,6 +37,7 @@
 	let canvasEl: HTMLCanvasElement | undefined = $state();
 	let interaction = $state<InteractionMode>({ type: 'idle' });
 	let isSpaceHeld = $state(false);
+	const classifyWheelInput = createWheelInputClassifier();
 
 	$effect(() => {
 		if (!canvasEl) return;
@@ -54,11 +56,36 @@
 	$effect(() => {
 		if (!canvasEl) return;
 		const handler = (event: WheelEvent) => {
-			if (event.deltaY === 0) return;
+			if (event.deltaX === 0 && event.deltaY === 0) return;
 			event.preventDefault();
+
+			const inputType = classifyWheelInput(
+				event.deltaX,
+				event.deltaY,
+				event.deltaMode,
+				event.ctrlKey
+			);
+
+			if (inputType === 'trackpadPan') {
+				// Negate deltas: WheelEvent positive deltaY means "content scrolls up",
+				// but in a canvas app the viewport should follow the finger direction.
+				onViewportChange?.(pan(viewport, -event.deltaX, -event.deltaY));
+				return;
+			}
+
 			const rect = canvasEl!.getBoundingClientRect();
 			const screenX = event.clientX - rect.left;
 			const screenY = event.clientY - rect.top;
+
+			if (inputType === 'pinchZoom') {
+				const newZoom = computePinchZoom(viewport.zoom, event.deltaY);
+				if (newZoom !== viewport.zoom) {
+					onViewportChange?.(zoomAtPoint(viewport, screenX, screenY, newZoom));
+				}
+				return;
+			}
+
+			// wheelZoom: discrete level stepping (mouse wheel)
 			const isZoomIn = event.deltaY < 0;
 			const newZoom = isZoomIn
 				? nextZoomLevel(viewport.zoom)

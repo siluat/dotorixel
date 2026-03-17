@@ -12,15 +12,38 @@ function renderCheckerboard(
 	viewport: ViewportConfig
 ): void {
 	const scaledPixel = effectivePixelSize(viewport);
-	const checkerSize = Math.max(MIN_CHECKER_SIZE, Math.floor(scaledPixel / 2));
-	const displaySize = getDisplaySize(canvas, viewport);
-	const cols = Math.ceil(displaySize.width / checkerSize);
-	const rows = Math.ceil(displaySize.height / checkerSize);
 
-	for (let row = 0; row < rows; row++) {
-		for (let col = 0; col < cols; col++) {
-			ctx.fillStyle = (col + row) % 2 === 0 ? CHECKER_LIGHT : CHECKER_DARK;
-			ctx.fillRect(col * checkerSize, row * checkerSize, checkerSize, checkerSize);
+	if (scaledPixel < 2 * MIN_CHECKER_SIZE) {
+		// At low zoom, one checker color per art pixel
+		for (let y = 0; y < canvas.height; y++) {
+			for (let x = 0; x < canvas.width; x++) {
+				ctx.fillStyle = (x + y) % 2 === 0 ? CHECKER_LIGHT : CHECKER_DARK;
+				ctx.fillRect(x * scaledPixel, y * scaledPixel, scaledPixel, scaledPixel);
+			}
+		}
+		return;
+	}
+
+	// At higher zoom, 2×2 sub-checkerboard within each art pixel.
+	// Aligned to pixel boundaries so checker edges never cross grid lines.
+	// Every pixel uses the same layout (light at top-left), which produces
+	// a correct global checkerboard because each pixel spans exactly
+	// 2 sub-checker columns and 2 sub-checker rows.
+	const half = Math.ceil(scaledPixel / 2);
+	const rest = scaledPixel - half;
+
+	for (let y = 0; y < canvas.height; y++) {
+		for (let x = 0; x < canvas.width; x++) {
+			const px = x * scaledPixel;
+			const py = y * scaledPixel;
+
+			ctx.fillStyle = CHECKER_LIGHT;
+			ctx.fillRect(px, py, half, half);
+			ctx.fillRect(px + half, py + half, rest, rest);
+
+			ctx.fillStyle = CHECKER_DARK;
+			ctx.fillRect(px + half, py, rest, half);
+			ctx.fillRect(px, py + half, half, rest);
 		}
 	}
 }
@@ -85,7 +108,9 @@ export function renderPixelCanvas(
 	ctx.clearRect(0, 0, viewportSize.width, viewportSize.height);
 
 	ctx.save();
-	ctx.translate(viewport.panX, viewport.panY);
+	// Round to integer physical pixels so that fillRect edges are crisp
+	// and the grid's +0.5 trick produces sharp 1px lines.
+	ctx.translate(Math.round(viewport.panX), Math.round(viewport.panY));
 	renderCheckerboard(ctx, canvas, viewport);
 	renderPixels(ctx, canvas, viewport);
 	renderGrid(ctx, canvas, viewport);

@@ -81,7 +81,9 @@ Design reference: `~/Projects/dotorixel-ui-concept` (v0 prototype, React + Tailw
 - [x] Button style system — split PixelButton into BevelButton (3D border) and FlatButton (uniform border + shadow)
 - [x] Toolbar button abstraction — decouple Toolbar from specific button component to allow button style swaps without internal changes
 - [x] ColorSwatch border/shadow tinting — use color-relative border and shadow tones (matching the swatch color) as in the concept UI
-- [ ] Internationalization (i18n) — Korean/English support
+- [ ] Zoom/scroll input separation — trackpad pinch gesture for zoom, trackpad scroll for canvas pan, mouse wheel for zoom (match standard editor behavior)
+- [ ] Pan boundary clamping — prevent canvas from being panned entirely outside the visible panel area
+- [ ] Cross-platform testing — verify web (Chrome, Firefox, Safari) and Tauri desktop builds
 
 #### Release
 
@@ -95,6 +97,7 @@ Design reference: `~/Projects/dotorixel-ui-concept` (v0 prototype, React + Tailw
 - [ ] Decide project file format (prerequisite — must be decided before v0.2.0 work begins)
 - [ ] Line tool (Bresenham), rectangle/circle, flood fill, eyedropper
 - [ ] Grid visibility toggle
+- [ ] Internationalization (i18n) — Korean/English support
 
 ### v0.3.0: Color System
 

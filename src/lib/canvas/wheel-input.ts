@@ -91,7 +91,7 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 		} else if (isRapid) {
 			rapidEventCount++;
 			slowEventCount = 0;
-		} else if (elapsed >= RAPID_EVENT_THRESHOLD_MS) {
+		} else if (elapsed > RAPID_EVENT_THRESHOLD_MS) {
 			slowEventCount++;
 			rapidEventCount = 1;
 		} else {

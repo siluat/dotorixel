@@ -62,6 +62,15 @@ describe('createWheelInputClassifier', () => {
 		expect(classify(0, 3, 0, false, 2032)).toBe('trackpadPan');
 	});
 
+	it('treats exact threshold boundary (80ms) as neither rapid nor slow', () => {
+		const classify = createWheelInputClassifier();
+		// Two events exactly 80ms apart — boundary is ambiguous, not slow
+		classify(0, -120, 0, false, 2000);
+		classify(0, -120, 0, false, 2080);
+		// slow count should still be 1 (not 2), so no mouse wheel confirmation
+		expect(classify(0, -120, 0, false, 2160)).toBe('trackpadPan');
+	});
+
 	it('maintains trackpadPan during cooldown after rapid events stop', () => {
 		const classify = createWheelInputClassifier();
 		// Build up rapid event detection

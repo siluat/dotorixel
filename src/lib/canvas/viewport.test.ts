@@ -9,7 +9,11 @@ import {
 	pan,
 	fitToViewport,
 	nextZoomLevel,
-	prevZoomLevel
+	prevZoomLevel,
+	clampZoom,
+	computePinchZoom,
+	MIN_ZOOM,
+	MAX_ZOOM
 } from './viewport.ts';
 import { createCanvas } from './canvas.ts';
 import type { ViewportConfig } from './viewport.ts';
@@ -68,6 +72,13 @@ describe('effectivePixelSize', () => {
 
 	it('handles fractional zoom', () => {
 		expect(effectivePixelSize(makeViewport({ pixelSize: 32, zoom: 0.5 }))).toBe(16);
+	});
+
+	it('rounds to integer for continuous zoom values', () => {
+		// 32 * 1.284 = 41.088 → 41
+		expect(effectivePixelSize(makeViewport({ pixelSize: 32, zoom: 1.284 }))).toBe(41);
+		// 32 * 1.3 = 41.6 → 42
+		expect(effectivePixelSize(makeViewport({ pixelSize: 32, zoom: 1.3 }))).toBe(42);
 	});
 });
 
@@ -207,8 +218,8 @@ describe('fitToViewport', () => {
 		const canvas = createCanvas(16, 16);
 		const result = fitToViewport(viewport, canvas, { width: 800, height: 600 });
 
-		// fitZoom = min(800/512, 600/512) = min(1.5625, 1.171875) = 1.171875
-		const eps = 32 * result.zoom;
+		// fitToViewport uses rounded scaledPixel for centering
+		const eps = effectivePixelSize(result);
 		const displayWidth = 16 * eps;
 		const displayHeight = 16 * eps;
 
@@ -260,5 +271,44 @@ describe('prevZoomLevel', () => {
 	it('snaps to previous discrete level from intermediate value', () => {
 		expect(prevZoomLevel(1.5)).toBe(1);
 		expect(prevZoomLevel(3)).toBe(2);
+	});
+});
+
+describe('clampZoom', () => {
+	it('returns value unchanged when within range', () => {
+		expect(clampZoom(1)).toBe(1);
+		expect(clampZoom(4)).toBe(4);
+	});
+
+	it('clamps to MIN_ZOOM when below range', () => {
+		expect(clampZoom(0.01)).toBe(MIN_ZOOM);
+		expect(clampZoom(-1)).toBe(MIN_ZOOM);
+	});
+
+	it('clamps to MAX_ZOOM when above range', () => {
+		expect(clampZoom(100)).toBe(MAX_ZOOM);
+		expect(clampZoom(32)).toBe(MAX_ZOOM);
+	});
+});
+
+describe('computePinchZoom', () => {
+	it('zooms in for negative deltaY', () => {
+		expect(computePinchZoom(1, -100)).toBeGreaterThan(1);
+	});
+
+	it('zooms out for positive deltaY', () => {
+		expect(computePinchZoom(1, 100)).toBeLessThan(1);
+	});
+
+	it('returns current zoom when deltaY is 0', () => {
+		expect(computePinchZoom(4, 0)).toBe(4);
+	});
+
+	it('clamps result to MIN_ZOOM', () => {
+		expect(computePinchZoom(MIN_ZOOM, 10000)).toBe(MIN_ZOOM);
+	});
+
+	it('clamps result to MAX_ZOOM', () => {
+		expect(computePinchZoom(MAX_ZOOM, -10000)).toBe(MAX_ZOOM);
 	});
 });

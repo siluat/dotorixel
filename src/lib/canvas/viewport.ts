@@ -18,8 +18,28 @@ export const TARGET_DISPLAY_SIZE = 512;
 
 export const ZOOM_LEVELS = [0.25, 0.5, 1, 2, 4, 8, 16] as const;
 
+export const MIN_ZOOM = ZOOM_LEVELS[0];
+export const MAX_ZOOM = ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
+
+export function clampZoom(zoom: number): number {
+	return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom));
+}
+
+const PINCH_ZOOM_SENSITIVITY = 0.01;
+
+export function computePinchZoom(currentZoom: number, deltaY: number): number {
+	// Negate deltaY: WheelEvent deltaY > 0 means "scroll down" / "zoom out",
+	// but we need scale > 1 for zoom-in, so invert the sign.
+	const scale = Math.exp(-deltaY * PINCH_ZOOM_SENSITIVITY);
+	return clampZoom(currentZoom * scale);
+}
+
 export function effectivePixelSize(viewport: ViewportConfig): number {
-	return viewport.pixelSize * viewport.zoom;
+	// Round to integer so every coordinate derived from scaledPixel
+	// (pixel positions, grid lines, display size) lands on whole pixels.
+	// Continuous zoom (pinch) produces non-integer values that would
+	// otherwise cause subpixel misalignment across rendering functions.
+	return Math.round(viewport.pixelSize * viewport.zoom);
 }
 
 export function screenToCanvas(
@@ -28,9 +48,10 @@ export function screenToCanvas(
 	viewport: ViewportConfig
 ): CanvasCoords {
 	const scaledPixel = effectivePixelSize(viewport);
+	// Use rounded panX/panY to match the renderer's ctx.translate(Math.round(...)).
 	return {
-		x: Math.floor((screenX - viewport.panX) / scaledPixel),
-		y: Math.floor((screenY - viewport.panY) / scaledPixel)
+		x: Math.floor((screenX - Math.round(viewport.panX)) / scaledPixel),
+		y: Math.floor((screenY - Math.round(viewport.panY)) / scaledPixel)
 	};
 }
 
@@ -67,13 +88,17 @@ export function zoomAtPoint(
 	newZoom: number
 ): ViewportConfig {
 	const oldScaledPixel = effectivePixelSize(viewport);
-	const newScaledPixel = viewport.pixelSize * newZoom;
+	// Must use the same rounding as effectivePixelSize so that pan offset
+	// matches actual rendering positions. Without this, the content drifts
+	// from the cursor anchor during continuous (pinch) zoom.
+	const newScaledPixel = Math.round(viewport.pixelSize * newZoom);
 
 	// Keep the canvas point under the cursor fixed:
 	// screenX = panX + canvasX * scaledPixel  →  canvasX = (screenX - panX) / oldScaledPixel
 	// New panX = screenX - canvasX * newScaledPixel
-	const canvasX = (screenX - viewport.panX) / oldScaledPixel;
-	const canvasY = (screenY - viewport.panY) / oldScaledPixel;
+	// Use rounded panX/panY to match the renderer's ctx.translate(Math.round(...)).
+	const canvasX = (screenX - Math.round(viewport.panX)) / oldScaledPixel;
+	const canvasY = (screenY - Math.round(viewport.panY)) / oldScaledPixel;
 
 	return {
 		...viewport,
@@ -104,7 +129,7 @@ export function fitToViewport(
 		viewportSize.width / (canvas.width * viewport.pixelSize),
 		viewportSize.height / (canvas.height * viewport.pixelSize)
 	);
-	const scaledPixel = viewport.pixelSize * fitZoom;
+	const scaledPixel = Math.round(viewport.pixelSize * fitZoom);
 	const panX = (viewportSize.width - canvas.width * scaledPixel) / 2;
 	const panY = (viewportSize.height - canvas.height * scaledPixel) / 2;
 

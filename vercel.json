@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "curl https://sh.rustup.rs -sSf | sh -s -- -y && source \"$HOME/.cargo/env\" && curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh && bun run build",
+  "outputDirectory": "build",
+  "installCommand": "bun install",
+  "framework": null
+}

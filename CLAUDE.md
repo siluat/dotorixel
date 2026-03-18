@@ -134,7 +134,7 @@ Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md
 Test-purpose deployment for accessing the app from any browser during development.
 
 - [x] Vercel project setup — GitHub integration, auto-deploy on `main` push
-- [ ] Verify deployed build — WASM loading, all features working on `*.vercel.app`
+- [x] Verify deployed build — WASM loading, all features working on `*.vercel.app`
 
 #### Release
 

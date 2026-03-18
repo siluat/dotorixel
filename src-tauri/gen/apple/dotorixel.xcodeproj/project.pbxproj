@@ -1,0 +1,460 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		238FE70087C6DF45FA484DCD /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = 80745B181B1336927C115708 /* main.mm */; };
+		32D8A336EEC63AE6FA045E76 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 24802210233C1B77559B978A /* WebKit.framework */; };
+		668E00B7AFF11A037C3D475B /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E5CFF72C1DB248808583934B /* CoreGraphics.framework */; };
+		7E9FF4BBE280FB4F6C6421CE /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 13AAB106C76EAA92111F28C9 /* MetalKit.framework */; };
+		9C65E6F9CE96A86FBB309945 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 62DCF4198F2A8DB0C0120040 /* Assets.xcassets */; };
+		ABC30A1240148D9C75095FEC /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D469ACF80919DF733B5672D3 /* Security.framework */; };
+		B160B4BB97AE74ABC45DD808 /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 531760358C6704D766D72866 /* libapp.a */; };
+		BB1067E183F03AE5E688F8AF /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 114E7CB60C6BC2D28CA26645 /* Metal.framework */; };
+		BF7C5C3CF1BE855145634A11 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EB6B00D53880A59CA907F57C /* QuartzCore.framework */; };
+		DB4F2995F2D7139551DBF509 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 221717C9568C1DE1130F7BBC /* LaunchScreen.storyboard */; };
+		F3566DB8ED6E463453AEA614 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = F1F5AC1D2DB3DBE2BFB3E02F /* assets */; };
+		F75098F5BAC2BD0E30A455C1 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87564C692EA54D85C52D0BE7 /* UIKit.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		015FC8B9FA1447DE52D8CC2A /* dotorixel_iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = dotorixel_iOS.entitlements; sourceTree = "<group>"; };
+		114E7CB60C6BC2D28CA26645 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		13AAB106C76EAA92111F28C9 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		15065A3F3C571FD56DC630D2 /* dotorixel_iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = dotorixel_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		221717C9568C1DE1130F7BBC /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		24802210233C1B77559B978A /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		254CBCC2F1D41F452B448321 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		37F8E183BF056ACA83C57540 /* main.rs */ = {isa = PBXFileReference; path = main.rs; sourceTree = "<group>"; };
+		531760358C6704D766D72866 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
+		62DCF4198F2A8DB0C0120040 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		80745B181B1336927C115708 /* main.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = main.mm; sourceTree = "<group>"; };
+		87564C692EA54D85C52D0BE7 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
+		C4115520277243B60F3E8A91 /* bindings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bindings.h; sourceTree = "<group>"; };
+		CCE4167D46FEB6B6ABEB1782 /* lib.rs */ = {isa = PBXFileReference; path = lib.rs; sourceTree = "<group>"; };
+		D469ACF80919DF733B5672D3 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		E5CFF72C1DB248808583934B /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		EB6B00D53880A59CA907F57C /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		F1F5AC1D2DB3DBE2BFB3E02F /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		49FFE68DE6CDBC85A0302E28 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B160B4BB97AE74ABC45DD808 /* libapp.a in Frameworks */,
+				668E00B7AFF11A037C3D475B /* CoreGraphics.framework in Frameworks */,
+				BB1067E183F03AE5E688F8AF /* Metal.framework in Frameworks */,
+				7E9FF4BBE280FB4F6C6421CE /* MetalKit.framework in Frameworks */,
+				BF7C5C3CF1BE855145634A11 /* QuartzCore.framework in Frameworks */,
+				ABC30A1240148D9C75095FEC /* Security.framework in Frameworks */,
+				F75098F5BAC2BD0E30A455C1 /* UIKit.framework in Frameworks */,
+				32D8A336EEC63AE6FA045E76 /* WebKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		045EEF8E4F0D810A19AF57F3 /* Externals */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Externals;
+			sourceTree = "<group>";
+		};
+		081A240242D4AF2DB73178C0 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				5DA9D8925FF34506FF2787E3 /* dotorixel */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		38D89F271054F68C5A34B911 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				15065A3F3C571FD56DC630D2 /* dotorixel_iOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		43D1146F38CC3B72DCE9D351 /* dotorixel_iOS */ = {
+			isa = PBXGroup;
+			children = (
+				015FC8B9FA1447DE52D8CC2A /* dotorixel_iOS.entitlements */,
+				254CBCC2F1D41F452B448321 /* Info.plist */,
+			);
+			path = dotorixel_iOS;
+			sourceTree = "<group>";
+		};
+		56F3E08DF56A8DE521680DAE /* bindings */ = {
+			isa = PBXGroup;
+			children = (
+				C4115520277243B60F3E8A91 /* bindings.h */,
+			);
+			path = bindings;
+			sourceTree = "<group>";
+		};
+		5DA9D8925FF34506FF2787E3 /* dotorixel */ = {
+			isa = PBXGroup;
+			children = (
+				80745B181B1336927C115708 /* main.mm */,
+				56F3E08DF56A8DE521680DAE /* bindings */,
+			);
+			path = dotorixel;
+			sourceTree = "<group>";
+		};
+		5E034EBD284A9BED3F8CC8FA = {
+			isa = PBXGroup;
+			children = (
+				F1F5AC1D2DB3DBE2BFB3E02F /* assets */,
+				62DCF4198F2A8DB0C0120040 /* Assets.xcassets */,
+				221717C9568C1DE1130F7BBC /* LaunchScreen.storyboard */,
+				43D1146F38CC3B72DCE9D351 /* dotorixel_iOS */,
+				045EEF8E4F0D810A19AF57F3 /* Externals */,
+				081A240242D4AF2DB73178C0 /* Sources */,
+				70A461B6199A7B8E612329BA /* src */,
+				8C9AC18D60D06FAB3988DE9B /* Frameworks */,
+				38D89F271054F68C5A34B911 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		70A461B6199A7B8E612329BA /* src */ = {
+			isa = PBXGroup;
+			children = (
+				CCE4167D46FEB6B6ABEB1782 /* lib.rs */,
+				37F8E183BF056ACA83C57540 /* main.rs */,
+			);
+			name = src;
+			path = ../../src;
+			sourceTree = "<group>";
+		};
+		8C9AC18D60D06FAB3988DE9B /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				E5CFF72C1DB248808583934B /* CoreGraphics.framework */,
+				531760358C6704D766D72866 /* libapp.a */,
+				114E7CB60C6BC2D28CA26645 /* Metal.framework */,
+				13AAB106C76EAA92111F28C9 /* MetalKit.framework */,
+				EB6B00D53880A59CA907F57C /* QuartzCore.framework */,
+				D469ACF80919DF733B5672D3 /* Security.framework */,
+				87564C692EA54D85C52D0BE7 /* UIKit.framework */,
+				24802210233C1B77559B978A /* WebKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A620C274F5B782801B62BDC0 /* dotorixel_iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F0DB92DA083D90904B159404 /* Build configuration list for PBXNativeTarget "dotorixel_iOS" */;
+			buildPhases = (
+				10382FD034F5A966BE79150C /* Build Rust Code */,
+				50D263EA3409373F427C2FFE /* Sources */,
+				00FCD6D8F7777CAB152DFDBB /* Resources */,
+				49FFE68DE6CDBC85A0302E28 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = dotorixel_iOS;
+			packageProductDependencies = (
+			);
+			productName = dotorixel_iOS;
+			productReference = 15065A3F3C571FD56DC630D2 /* dotorixel_iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		376E61B42ABF413DE1638304 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = A3FCDE028F384ABCF2F1E4F4 /* Build configuration list for PBXProject "dotorixel" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 5E034EBD284A9BED3F8CC8FA;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 38D89F271054F68C5A34B911 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A620C274F5B782801B62BDC0 /* dotorixel_iOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		00FCD6D8F7777CAB152DFDBB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9C65E6F9CE96A86FBB309945 /* Assets.xcassets in Resources */,
+				DB4F2995F2D7139551DBF509 /* LaunchScreen.storyboard in Resources */,
+				F3566DB8ED6E463453AEA614 /* assets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		10382FD034F5A966BE79150C /* Build Rust Code */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build Rust Code";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Externals/x86_64/${CONFIGURATION}/libapp.a",
+				"$(SRCROOT)/Externals/arm64/${CONFIGURATION}/libapp.a",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "bun tauri ios xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths \"${FRAMEWORK_SEARCH_PATHS:?}\" --header-search-paths \"${HEADER_SEARCH_PATHS:?}\" --gcc-preprocessor-definitions \"${GCC_PREPROCESSOR_DEFINITIONS:-}\" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		50D263EA3409373F427C2FFE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				238FE70087C6DF45FA484DCD /* main.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		172BC147FC54F931676E713E /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ARCHS = (
+					arm64,
+				);
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = dotorixel_iOS/dotorixel_iOS.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_BITCODE = NO;
+				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\".\"",
+				);
+				INFOPLIST_FILE = dotorixel_iOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME) $(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME) $(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.dotorixel.editor;
+				PRODUCT_NAME = "DOTORIXEL";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALID_ARCHS = arm64;
+			};
+			name = release;
+		};
+		5FFF01CD2092F48BEAF7C48D /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = release;
+		};
+		8BD0EFAE60CAF38B566136AD /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = debug;
+		};
+		B32AD275107E85341B606820 /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ARCHS = (
+					arm64,
+				);
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = dotorixel_iOS/dotorixel_iOS.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_BITCODE = NO;
+				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\".\"",
+				);
+				INFOPLIST_FILE = dotorixel_iOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME) $(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME) $(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.dotorixel.editor;
+				PRODUCT_NAME = "DOTORIXEL";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALID_ARCHS = arm64;
+			};
+			name = debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A3FCDE028F384ABCF2F1E4F4 /* Build configuration list for PBXProject "dotorixel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8BD0EFAE60CAF38B566136AD /* debug */,
+				5FFF01CD2092F48BEAF7C48D /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+		F0DB92DA083D90904B159404 /* Build configuration list for PBXNativeTarget "dotorixel_iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B32AD275107E85341B606820 /* debug */,
+				172BC147FC54F931676E713E /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 376E61B42ABF413DE1638304 /* Project object */;
+}

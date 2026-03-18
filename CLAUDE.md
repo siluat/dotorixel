@@ -83,7 +83,7 @@ Design reference: `~/Projects/dotorixel-ui-concept` (v0 prototype, React + Tailw
 - [x] ColorSwatch border/shadow tinting — use color-relative border and shadow tones (matching the swatch color) as in the concept UI
 - [x] Zoom/scroll input separation — trackpad pinch gesture for zoom, trackpad scroll for canvas pan, mouse wheel for zoom (match standard editor behavior)
 - [x] Pan boundary clamping — prevent canvas from being panned entirely outside the visible panel area
-- [ ] Cross-platform testing — verify web (Chrome, Firefox, Safari) and Tauri desktop builds
+- [x] Cross-platform testing — verify web (Chrome) and Tauri desktop/iOS simulator builds
 
 #### Release
 

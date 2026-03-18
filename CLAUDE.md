@@ -97,7 +97,7 @@ Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md
 
 **Rust Core Migration** — Migrate core logic from TS to Rust, one module at a time. Each step should keep both web and Tauri builds working. Run existing TS unit tests against WASM bindings after each migration step to verify no regressions.
 
-- [ ] Cargo workspace setup — `crates/core/` with `wasm/` and `src-tauri/` as consumers
+- [x] Cargo workspace setup — `crates/core/` with `wasm/` and `src-tauri/` as consumers
 - [ ] Pixel buffer — RGBA data structure, canvas creation (replaces `src/lib/canvas.ts`)
 - [ ] Coordinate transform — screen↔canvas math (replaces `src/lib/viewport.ts`)
 - [ ] Tools — pencil, eraser (replaces `src/lib/tools.ts`)

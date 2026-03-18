@@ -5,11 +5,7 @@ dist/
 
 # Rust
 target/
-/wasm/Cargo.lock
 pkg/
-
-# Tauri
-src-tauri/target/
 
 # SvelteKit
 .svelte-kit/

@@ -98,11 +98,12 @@ Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md
 **Rust Core Migration** — Migrate core logic from TS to Rust, one module at a time. Each step should keep both web and Tauri builds working. Run existing TS unit tests against WASM bindings after each migration step to verify no regressions.
 
 - [x] Cargo workspace setup — `crates/core/` with `wasm/` and `src-tauri/` as consumers
-- [ ] Pixel buffer — RGBA data structure, canvas creation (replaces `src/lib/canvas.ts`)
+- [x] Color type — Color struct, TRANSPARENT constant (from `src/lib/canvas/color.ts`)
+- [ ] Color utilities — hex conversion, palette helpers (replaces remaining `src/lib/canvas/color.ts`)
+- [ ] Pixel buffer — RGBA data structure, canvas creation (replaces `src/lib/canvas/canvas.ts`)
 - [ ] Coordinate transform — screen↔canvas math (replaces `src/lib/viewport.ts`)
 - [ ] Tools — pencil, eraser (replaces `src/lib/tools.ts`)
 - [ ] History — undo/redo snapshot logic (replaces `src/lib/history.ts`)
-- [ ] Color — color representation and palette data (replaces `src/lib/color.ts`)
 - [ ] WASM bindings — wasm-bindgen interface, Svelte integration verified
 - [ ] PNG export — Rust-side encoding (replaces current Canvas2D `toDataURL` approach)
 

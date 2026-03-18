@@ -211,6 +211,8 @@
 <canvas
 	bind:this={canvasEl}
 	class="pixel-canvas"
+	role="img"
+	aria-label="Pixel art canvas"
 	style:cursor={cursorStyle}
 	onmousedown={handleMouseDown}
 	onmousemove={handleMouseMove}

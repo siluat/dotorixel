@@ -98,11 +98,12 @@ Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md
 **Rust Core Migration** — Migrate core logic from TS to Rust, one module at a time. Each step should keep both web and Tauri builds working. Run existing TS unit tests against WASM bindings after each migration step to verify no regressions.
 
 - [x] Cargo workspace setup — `crates/core/` with `wasm/` and `src-tauri/` as consumers
-- [ ] Pixel buffer — RGBA data structure, canvas creation (replaces `src/lib/canvas.ts`)
+- [x] Color type — Color struct, TRANSPARENT constant (from `src/lib/canvas/color.ts`)
+- [ ] Color utilities — hex conversion, palette helpers (replaces remaining `src/lib/canvas/color.ts`)
+- [ ] Pixel buffer — RGBA data structure, canvas creation (replaces `src/lib/canvas/canvas.ts`)
 - [ ] Coordinate transform — screen↔canvas math (replaces `src/lib/viewport.ts`)
 - [ ] Tools — pencil, eraser (replaces `src/lib/tools.ts`)
 - [ ] History — undo/redo snapshot logic (replaces `src/lib/history.ts`)
-- [ ] Color — color representation and palette data (replaces `src/lib/color.ts`)
 - [ ] WASM bindings — wasm-bindgen interface, Svelte integration verified
 - [ ] PNG export — Rust-side encoding (replaces current Canvas2D `toDataURL` approach)
 
@@ -201,6 +202,16 @@ When a commit or PR completes a roadmap item, update its checkbox in this file (
 - **Booleans read as questions.** `isVisible`, `hasSelection`, `canUndo` — not `visible`, `selection`, `undo`. Exception: component props may follow framework conventions (e.g., `visible` as a prop is fine).
 - **Functions read as actions or answers.** `applyTool()`, `exportAsPng()` for actions. `getCanvasCoords()`, `isInsideBounds()` for queries.
 - **Consistent domain vocabulary.** Use the same term for the same concept everywhere. If "canvas" means the pixel data, don't call it "image" or "bitmap" elsewhere. Document the domain glossary if it grows.
+
+### Rust Migration
+
+When porting TS logic to Rust, write idiomatic Rust — not a line-by-line transliteration of TypeScript. Study how established Rust crates (`image`, `tiny-skia`, `bevy`) solve the same problem and follow community conventions.
+
+- **Associated constants over module-level constants.** `Color::TRANSPARENT`, not `color::TRANSPARENT`. Groups related values under the type for discoverability.
+- **Provide `const fn new()` constructors.** Even when fields are `pub`, a short constructor reduces boilerplate and reads better: `Color::new(255, 0, 0, 255)` vs a 4-line struct literal.
+- **Derive all applicable standard traits.** For value types with integer fields, derive `Hash` alongside `Eq`. For ordered values, derive `Ord`/`PartialOrd`. Add traits proactively when the type clearly supports them — don't wait for a use site.
+- **Use Rust's type system beyond what TS offered.** Enums with data for tool types, newtypes for domain values (`CanvasCoord` vs raw `i32`), `Option`/`Result` instead of sentinel values. If TS used a string union, use a Rust enum.
+- **`impl` blocks for behavior.** Methods belong on the type (`color.to_hex()`), not as free functions (`color_to_hex(color)`), unless the function doesn't have a natural receiver.
 
 ### Architecture
 

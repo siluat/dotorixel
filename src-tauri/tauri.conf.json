@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "DOTORIXEL",
   "version": "0.0.1",
-  "identifier": "com.dotorixel.app",
+  "identifier": "com.dotorixel.editor",
   "build": {
     "frontendDist": "../build",
     "devUrl": "http://localhost:5173",

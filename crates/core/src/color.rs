@@ -32,6 +32,8 @@ impl fmt::Display for ColorParseError {
     }
 }
 
+impl std::error::Error for ColorParseError {}
+
 fn hex_digit_value(byte: u8, position: usize) -> Result<u8, ColorParseError> {
     match byte {
         b'0'..=b'9' => Ok(byte - b'0'),
@@ -313,5 +315,11 @@ mod tests {
             digit: 'g',
         };
         assert_eq!(format!("{err}"), "invalid hex digit 'g' at position 0");
+    }
+
+    #[test]
+    fn error_implements_std_error() {
+        let err = ColorParseError::MissingHash;
+        let _dyn_err: &dyn std::error::Error = &err;
     }
 }

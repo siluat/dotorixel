@@ -1,4 +1,6 @@
+pub mod canvas;
 pub mod color;
+pub use canvas::PixelCanvasError;
 pub use color::ColorParseError;
 
 pub fn core_version() -> &'static str {

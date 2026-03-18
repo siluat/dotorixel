@@ -192,7 +192,7 @@ When a commit or PR completes a roadmap item, update its checkbox in this file (
 ### Code Style
 
 - **Declarative over imperative, when it clarifies.** Prefer data descriptions and transformations over step-by-step mutations when it makes the code easier to understand. When imperative logic is more direct (e.g., canvas rendering, sequential I/O), use it without apology.
-- **Readable code over clever code.** If a function needs a comment to explain *what* it does, rename it. Reserve comments for *why* — non-obvious constraints, trade-offs, or domain context.
+- **Readable code over clever code.** If a function needs an inline comment to explain *what* it does, rename it. Reserve inline comments for *why* — non-obvious constraints, trade-offs, or domain context. Doc comments (`///` in Rust, `/** */` in TS) are different: they describe the public API contract (*what* the function does, its parameters, return value, and error conditions) and should be written for consumers who haven't read the implementation.
 - **Make values self-documenting.** When a value requires domain knowledge to understand, choose the right level of clarification: name the value (`const isMiddleClick = event.button === 1`, `--press-offset: calc(...)`) when it appears in one place, define a shared constant or token when the same value appears in multiple places, or eliminate the magic value through types (`null` instead of `-1` as a sentinel) when the type system can enforce the meaning. For CSS, prefer component-scoped custom properties over comments when a value is derived from design tokens (e.g., `--depth: calc((var(--border-width) + var(--border-width-thick)) / 2)`). Promote to a global token only when reuse across components is confirmed.
 - **Right paradigm for the situation.** Use pure functions for stateless data transformations (coordinate math, color conversion). Use objects with encapsulation when identity and lifecycle matter (history manager, tool state). Don't force one paradigm everywhere.
 
@@ -208,10 +208,11 @@ When a commit or PR completes a roadmap item, update its checkbox in this file (
 When porting TS logic to Rust, write idiomatic Rust — not a line-by-line transliteration of TypeScript. Study how established Rust crates (`image`, `tiny-skia`, `bevy`) solve the same problem and follow community conventions.
 
 - **Associated constants over module-level constants.** `Color::TRANSPARENT`, not `color::TRANSPARENT`. Groups related values under the type for discoverability.
-- **Provide `const fn new()` constructors.** Even when fields are `pub`, a short constructor reduces boilerplate and reads better: `Color::new(255, 0, 0, 255)` vs a 4-line struct literal.
-- **Derive all applicable standard traits.** For value types with integer fields, derive `Hash` alongside `Eq`. For ordered values, derive `Ord`/`PartialOrd`. Add traits proactively when the type clearly supports them — don't wait for a use site.
+- **Provide `const fn new()` constructors when they improve readability.** For types with many fields (3+), a constructor reduces boilerplate: `Color::new(255, 0, 0, 255)` vs a 4-line struct literal. For simple 2-field structs with `pub` fields, the struct literal (`CanvasCoords { x: 3, y: 7 }`) is often clearer because field names are visible at the call site — provide `new()` only when there's a concrete convenience benefit (e.g., const context).
+- **Derive traits when their semantics are unambiguous for the type.** For value types with integer fields, derive `Hash` alongside `Eq`. Only derive `Ord`/`PartialOrd` when the auto-derived field-order comparison is the semantically correct ordering — if field declaration order could mislead (e.g., `CanvasCoords { x, y }` derives column-major order, but the pixel buffer is row-major), omit it until a use site confirms the desired semantics.
 - **Use Rust's type system beyond what TS offered.** Enums with data for tool types, newtypes for domain values (`CanvasCoord` vs raw `i32`), `Option`/`Result` instead of sentinel values. If TS used a string union, use a Rust enum.
 - **`impl` blocks for behavior.** Methods belong on the type (`color.to_hex()`), not as free functions (`color_to_hex(color)`), unless the function doesn't have a natural receiver.
+- **Error types implement `std::error::Error`.** All error enums must implement `Display` and `std::error::Error`. This enables interop with `?` propagation, `Box<dyn Error>`, and error-handling crates — essential for Tauri backend integration.
 
 ### Architecture
 

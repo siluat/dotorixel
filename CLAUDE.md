@@ -51,7 +51,7 @@ Verified Vite + SvelteKit + wasm-pack + Tauri v2 integration. `bun run dev` (web
 
 ## Roadmap
 
-### v0.1.0: Canvas Foundation (MVP)
+### v0.1.0: Canvas Foundation
 
 #### Core (complete)
 
@@ -85,6 +85,47 @@ Design reference: `~/Projects/dotorixel-ui-concept` (v0 prototype, React + Tailw
 - [x] Pan boundary clamping — prevent canvas from being panned entirely outside the visible panel area
 - [x] Cross-platform testing — verify web (Chrome) and Tauri desktop/iOS simulator builds
 
+#### Dual Shell PoC
+
+Verify that a "Shared Rust Core + Platform-Native Shell" architecture works for this project. Not a product feature — a technical validation for the cross-platform learning goal.
+
+Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md`](docs/research/cross-platform-architecture-for-best-experience.en.md)
+
+**Rust Core Migration** — Migrate core logic from TS to Rust, one module at a time. Each step should keep both web and Tauri builds working.
+
+- [ ] Cargo workspace setup — `crates/core/` with `wasm/` and `src-tauri/` as consumers
+- [ ] Pixel buffer — RGBA data structure, canvas creation (replaces `src/lib/canvas.ts`)
+- [ ] Coordinate transform — screen↔canvas math (replaces `src/lib/viewport.ts`)
+- [ ] Tools — pencil, eraser (replaces `src/lib/tools.ts`)
+- [ ] History — undo/redo snapshot logic (replaces `src/lib/history.ts`)
+- [ ] Color — color representation and palette data (replaces `src/lib/color.ts`)
+- [ ] WASM bindings — wasm-bindgen interface, Svelte integration verified
+- [ ] PNG export — Rust-side encoding (replaces current Canvas2D `toDataURL` approach)
+
+**Apple Native Shell** — SwiftUI + Metal app sharing the same Rust core via UniFFI. Targets macOS and iPadOS from a single Xcode project.
+
+- [ ] UniFFI setup — generate Swift bindings from `crates/core/`, verify in Swift playground or test target
+- [ ] Xcode project — Swift Package with macOS + iPadOS targets, Rust library linked
+- [ ] Metal pixel grid renderer — minimal Metal pipeline rendering the pixel buffer
+- [ ] Basic SwiftUI UI — tool selection, color picker, canvas view (Metal surface)
+- [ ] Touch/Pencil input — Apple Pencil drawing on iPadOS, mouse drawing on macOS
+- [ ] Zoom/pan — pinch gesture (iPadOS), scroll/trackpad (macOS), shared viewport transform from core
+- [ ] Undo/redo — connected to core history module, SwiftUI toolbar integration
+
+**Platform Comparison** — Record findings in `docs/comparison/` as each feature is implemented on both shells.
+
+- [ ] Rendering performance — Canvas2D vs Metal FPS at various canvas sizes
+- [ ] Input latency — event-to-pixel-update measurement on both shells
+- [ ] Bundle size — Tauri `.app` vs native `.app`
+- [ ] Implementation effort — per-feature LOC and time comparison
+
+#### Web Deployment
+
+Test-purpose deployment for accessing the app from any browser during development.
+
+- [ ] Vercel project setup — GitHub integration, auto-deploy on `main` push
+- [ ] Verify deployed build — WASM loading, all features working on `*.vercel.app`
+
 #### Release
 
 - [ ] Create CHANGELOG.md (Keep a Changelog format)
@@ -113,10 +154,13 @@ Design reference: `~/Projects/dotorixel-ui-concept` (v0 prototype, React + Tailw
 
 | Area | Decision | Rationale |
 |---|---|---|
-| Rendering | Canvas2D | Sufficient for small canvases (~32x32) |
-| State Management | Svelte store | Editor state managed via Svelte reactivity |
-| Undo/Redo | Snapshot-based | 32x32 RGBA = 4KB/snapshot, negligible memory cost |
-| Coordinate Transform | Screen→Canvas single transform | Based on zoom level and pan offset |
+| Rendering (WebView) | Canvas2D | Sufficient for small canvases (~32x32) |
+| Rendering (Native) | Metal | Shared across macOS and iPadOS |
+| State Management | Svelte store (WebView), SwiftUI @Observable (Native) | Each shell uses its framework's reactivity |
+| Undo/Redo | Snapshot-based (Rust core) | 32x32 RGBA = 4KB/snapshot, shared across shells |
+| Coordinate Transform | Screen→Canvas single transform (Rust core) | Based on zoom level and pan offset, shared across shells |
+| Core Bindings | wasm-bindgen (web), UniFFI (Apple native) | Single Rust core, two binding strategies |
+| Apple Project | Single Xcode project, macOS + iPadOS targets | SwiftUI + Metal shared, platform-specific UI via `#if os()` |
 
 ## Development Guide
 
@@ -184,9 +228,11 @@ When a commit or PR completes a roadmap item, update its checkbox in this file (
 
 ### Styling
 
-- **Vanilla CSS only.** No CSS frameworks (Tailwind, UnoCSS, etc.). Component styles use Svelte `<style>` scoped blocks.
-- **Design tokens as CSS custom properties.** Colors, spacing, fonts defined in a global CSS file and consumed via `var(--token-name)`. Global styles are imported in `.storybook/preview.ts` for Storybook and in the app layout for production.
-- **Component styles are scoped by default.** Use Svelte's built-in `<style>` scoping. Only extract to a shared CSS file when the same styles are genuinely reused across multiple components.
+- **Vanilla CSS only (web).** No CSS frameworks (Tailwind, UnoCSS, etc.). Component styles use Svelte `<style>` scoped blocks.
+- **Design tokens as CSS custom properties (web).** Colors, spacing, fonts defined in a global CSS file and consumed via `var(--token-name)`. Global styles are imported in `.storybook/preview.ts` for Storybook and in the app layout for production.
+- **Component styles are scoped by default (web).** Use Svelte's built-in `<style>` scoping. Only extract to a shared CSS file when the same styles are genuinely reused across multiple components.
+- **Shared visual identity across shells.** Both web and Apple native shells should feel like the same app. Share design tokens (color palette, spacing scale, font sizes) and the pixel art theme (Galmuri font, bevel/inset panel style). On Apple native, use SwiftUI Asset Catalogs for colors and bundle the Galmuri font as a custom font.
+- **Platform-native UI patterns.** Do not replicate web UI pixel-for-pixel in SwiftUI. Use each platform's natural components and layout conventions (e.g., `NavigationSplitView` instead of CSS 3-column layout, native `ColorPicker` where appropriate). The theme ties the shells together; the interaction patterns should feel native to each platform.
 
 ### Testing
 

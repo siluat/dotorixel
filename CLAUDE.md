@@ -91,7 +91,16 @@ Verify that a "Shared Rust Core + Platform-Native Shell" architecture works for 
 
 Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md`](docs/research/cross-platform-architecture-for-best-experience.en.md)
 
-**Rust Core Migration** — Migrate core logic from TS to Rust, one module at a time. Each step should keep both web and Tauri builds working.
+**E2E Test Safety Net** — Add browser-level E2E tests before Rust migration to guarantee web behavior is preserved through the core rewrite.
+
+- [ ] E2E test setup (Playwright or tauri-driver)
+- [ ] Canvas creation — verify grid renders at each preset size
+- [ ] Drawing — pencil draws at correct coordinates, eraser clears pixels
+- [ ] Undo/Redo — draw → undo → verify cleared → redo → verify restored
+- [ ] Zoom/pan + draw — zoom in, pan, draw, verify coordinate accuracy
+- [ ] PNG export — export and verify output is a valid PNG with correct dimensions
+
+**Rust Core Migration** — Migrate core logic from TS to Rust, one module at a time. Each step should keep both web and Tauri builds working. Run E2E tests after each migration step to verify no regressions.
 
 - [ ] Cargo workspace setup — `crates/core/` with `wasm/` and `src-tauri/` as consumers
 - [ ] Pixel buffer — RGBA data structure, canvas creation (replaces `src/lib/canvas.ts`)
@@ -118,6 +127,7 @@ Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md
 - [ ] Input latency — event-to-pixel-update measurement on both shells
 - [ ] Bundle size — Tauri `.app` vs native `.app`
 - [ ] Implementation effort — per-feature LOC and time comparison
+- [ ] Responsive layout — extract SwiftUI size class transitions, adapt to web CSS breakpoints
 
 #### Web Deployment
 
@@ -233,6 +243,7 @@ When a commit or PR completes a roadmap item, update its checkbox in this file (
 - **Component styles are scoped by default (web).** Use Svelte's built-in `<style>` scoping. Only extract to a shared CSS file when the same styles are genuinely reused across multiple components.
 - **Shared visual identity across shells.** Both web and Apple native shells should feel like the same app. Share design tokens (color palette, spacing scale, font sizes) and the pixel art theme (Galmuri font, bevel/inset panel style). On Apple native, use SwiftUI Asset Catalogs for colors and bundle the Galmuri font as a custom font.
 - **Platform-native UI patterns.** Do not replicate web UI pixel-for-pixel in SwiftUI. Use each platform's natural components and layout conventions (e.g., `NavigationSplitView` instead of CSS 3-column layout, native `ColorPicker` where appropriate). The theme ties the shells together; the interaction patterns should feel native to each platform.
+- **Native-first responsive design.** Implement responsive layout on the Apple native shell first, then adapt the same layout transitions to web. SwiftUI's automatic size class handling (sidebar collapse, panel reorganization) serves as the design reference. Extract layout breakpoints and transition rules from the native implementation, then map them to CSS media/container queries on web.
 
 ### Testing
 

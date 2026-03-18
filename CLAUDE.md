@@ -91,16 +91,11 @@ Verify that a "Shared Rust Core + Platform-Native Shell" architecture works for 
 
 Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md`](docs/research/cross-platform-architecture-for-best-experience.en.md)
 
-**E2E Test Safety Net** — Add browser-level E2E tests before Rust migration to guarantee web behavior is preserved through the core rewrite.
+**Migration Safety Net** — Existing TS unit tests (7 files in `src/lib/canvas/`) serve as the behavioral specification. During Rust migration, keep WASM API compatible with TS API so the same tests verify both implementations (import path change only). Browser-level E2E tests (Playwright) will be added minimally at the CI setup stage (Release).
 
-- [ ] E2E test setup (Playwright or tauri-driver)
-- [ ] Canvas creation — verify grid renders at each preset size
-- [ ] Drawing — pencil draws at correct coordinates, eraser clears pixels
-- [ ] Undo/Redo — draw → undo → verify cleared → redo → verify restored
-- [ ] Zoom/pan + draw — zoom in, pan, draw, verify coordinate accuracy
-- [ ] PNG export — export and verify output is a valid PNG with correct dimensions
+- [x] TS unit test coverage for core logic (already in place)
 
-**Rust Core Migration** — Migrate core logic from TS to Rust, one module at a time. Each step should keep both web and Tauri builds working. Run E2E tests after each migration step to verify no regressions.
+**Rust Core Migration** — Migrate core logic from TS to Rust, one module at a time. Each step should keep both web and Tauri builds working. Run existing TS unit tests against WASM bindings after each migration step to verify no regressions.
 
 - [ ] Cargo workspace setup — `crates/core/` with `wasm/` and `src-tauri/` as consumers
 - [ ] Pixel buffer — RGBA data structure, canvas creation (replaces `src/lib/canvas.ts`)
@@ -139,7 +134,7 @@ Test-purpose deployment for accessing the app from any browser during developmen
 #### Release
 
 - [ ] Create CHANGELOG.md (Keep a Changelog format)
-- [ ] Set up CI (GitHub Actions: `tauri build` + Vitest + `tauri-driver` E2E)
+- [ ] Set up CI (GitHub Actions: `tauri build` + Vitest + minimal Playwright E2E + `tauri-driver`)
 - [ ] Git tag v0.1.0
 - [ ] GitHub Release
 

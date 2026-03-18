@@ -99,7 +99,7 @@ Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md
 
 - [x] Cargo workspace setup — `crates/core/` with `wasm/` and `src-tauri/` as consumers
 - [x] Color type — Color struct, TRANSPARENT constant (from `src/lib/canvas/color.ts`)
-- [ ] Color utilities — hex conversion, palette helpers (replaces remaining `src/lib/canvas/color.ts`)
+- [x] Color utilities — hex conversion, palette helpers (replaces remaining `src/lib/canvas/color.ts`)
 - [ ] Pixel buffer — RGBA data structure, canvas creation (replaces `src/lib/canvas/canvas.ts`)
 - [ ] Coordinate transform — screen↔canvas math (replaces `src/lib/viewport.ts`)
 - [ ] Tools — pencil, eraser (replaces `src/lib/tools.ts`)

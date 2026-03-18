@@ -203,6 +203,16 @@ When a commit or PR completes a roadmap item, update its checkbox in this file (
 - **Functions read as actions or answers.** `applyTool()`, `exportAsPng()` for actions. `getCanvasCoords()`, `isInsideBounds()` for queries.
 - **Consistent domain vocabulary.** Use the same term for the same concept everywhere. If "canvas" means the pixel data, don't call it "image" or "bitmap" elsewhere. Document the domain glossary if it grows.
 
+### Rust Migration
+
+When porting TS logic to Rust, write idiomatic Rust — not a line-by-line transliteration of TypeScript. Study how established Rust crates (`image`, `tiny-skia`, `bevy`) solve the same problem and follow community conventions.
+
+- **Associated constants over module-level constants.** `Color::TRANSPARENT`, not `color::TRANSPARENT`. Groups related values under the type for discoverability.
+- **Provide `const fn new()` constructors.** Even when fields are `pub`, a short constructor reduces boilerplate and reads better: `Color::new(255, 0, 0, 255)` vs a 4-line struct literal.
+- **Derive all applicable standard traits.** For value types with integer fields, derive `Hash` alongside `Eq`. For ordered values, derive `Ord`/`PartialOrd`. Add traits proactively when the type clearly supports them — don't wait for a use site.
+- **Use Rust's type system beyond what TS offered.** Enums with data for tool types, newtypes for domain values (`CanvasCoord` vs raw `i32`), `Option`/`Result` instead of sentinel values. If TS used a string union, use a Rust enum.
+- **`impl` blocks for behavior.** Methods belong on the type (`color.to_hex()`), not as free functions (`color_to_hex(color)`), unless the function doesn't have a natural receiver.
+
 ### Architecture
 
 - **Depend on interfaces, not implementations.** Modules (rendering, state management, tool system) should interact through types and contracts, not concrete implementations. This keeps them independently replaceable.

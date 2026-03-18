@@ -1,5 +1,5 @@
 /// RGBA color with 8-bit channels.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -7,12 +7,18 @@ pub struct Color {
     pub a: u8,
 }
 
-pub const TRANSPARENT: Color = Color {
-    r: 0,
-    g: 0,
-    b: 0,
-    a: 0,
-};
+impl Color {
+    pub const TRANSPARENT: Self = Self {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 0,
+    };
+
+    pub const fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
+        Self { r, g, b, a }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -20,20 +26,12 @@ mod tests {
 
     #[test]
     fn transparent_has_all_zero_channels() {
-        assert_eq!(TRANSPARENT.r, 0);
-        assert_eq!(TRANSPARENT.g, 0);
-        assert_eq!(TRANSPARENT.b, 0);
-        assert_eq!(TRANSPARENT.a, 0);
+        assert_eq!(Color::TRANSPARENT, Color::new(0, 0, 0, 0));
     }
 
     #[test]
-    fn color_creation_and_field_access() {
-        let color = Color {
-            r: 255,
-            g: 128,
-            b: 0,
-            a: 255,
-        };
+    fn new_sets_all_channels() {
+        let color = Color::new(255, 128, 0, 255);
         assert_eq!(color.r, 255);
         assert_eq!(color.g, 128);
         assert_eq!(color.b, 0);
@@ -41,38 +39,27 @@ mod tests {
     }
 
     #[test]
-    fn color_is_copy() {
-        let a = Color {
-            r: 10,
-            g: 20,
-            b: 30,
-            a: 40,
-        };
-        let b = a; // Copy
-        assert_eq!(a, b); // `a` is still usable after copy
+    fn copy_semantics() {
+        let a = Color::new(10, 20, 30, 40);
+        let b = a;
+        assert_eq!(a, b);
     }
 
     #[test]
-    fn color_equality() {
-        let a = Color {
-            r: 1,
-            g: 2,
-            b: 3,
-            a: 4,
-        };
-        let b = Color {
-            r: 1,
-            g: 2,
-            b: 3,
-            a: 4,
-        };
-        let c = Color {
-            r: 1,
-            g: 2,
-            b: 3,
-            a: 5,
-        };
+    fn equality() {
+        let a = Color::new(1, 2, 3, 4);
+        let b = Color::new(1, 2, 3, 4);
+        let c = Color::new(1, 2, 3, 5);
         assert_eq!(a, b);
         assert_ne!(a, c);
+    }
+
+    #[test]
+    fn usable_as_hash_key() {
+        use std::collections::HashSet;
+        let mut set = HashSet::new();
+        set.insert(Color::new(255, 0, 0, 255));
+        set.insert(Color::new(255, 0, 0, 255));
+        assert_eq!(set.len(), 1);
     }
 }

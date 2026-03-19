@@ -13,8 +13,8 @@ Follow these steps in order when starting a task.
 
 2. **Check "Currently Working On"**: If not "None", notify the user that a previous task is still in progress and ask whether to continue it or start a new one.
 
-3. **Check "Next Up"**:
-   - 2 or more items → ask the user which task to work on.
+3. **Select task from "Next Up"**:
+   - 2 or more items → use `AskUserQuestion` to let the user choose which task to work on.
    - 1 item → start that task directly.
    - No items → notify the user there are no tasks and stop.
 

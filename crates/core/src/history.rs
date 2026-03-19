@@ -17,6 +17,10 @@ impl HistoryManager {
     pub const DEFAULT_MAX_SNAPSHOTS: usize = 100;
 
     pub fn new(max_snapshots: usize) -> Self {
+        assert!(
+            max_snapshots > 0,
+            "HistoryManager max_snapshots must be > 0"
+        );
         Self {
             undo_stack: VecDeque::new(),
             redo_stack: VecDeque::new(),
@@ -273,6 +277,14 @@ mod tests {
 
         assert!(!history.can_undo());
         assert!(!history.can_redo());
+    }
+
+    // -- constructor validation --
+
+    #[test]
+    #[should_panic(expected = "max_snapshots must be > 0")]
+    fn new_rejects_zero_max_snapshots() {
+        HistoryManager::new(0);
     }
 
     // -- Default trait --

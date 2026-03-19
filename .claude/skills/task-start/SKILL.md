@@ -22,4 +22,6 @@ Follow these steps in order when starting a task.
 
 5. **Draft implementation plan**: Write an implementation plan for the selected task and get user approval via ExitPlanMode.
 
-6. Update "Currently Working On" in `tasks/progress.md` to the selected task.
+6. **Create a work branch**: Create a new branch from `main` for this task.
+
+7. Update "Currently Working On" in `tasks/progress.md` to the selected task.

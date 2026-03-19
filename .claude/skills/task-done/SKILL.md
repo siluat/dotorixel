@@ -47,4 +47,4 @@ Update `tasks/progress.md`:
 
 ### 4. Git commit
 
-Commit implementation code and task record changes together.
+Commit implementation code and task record changes together on the current work branch.

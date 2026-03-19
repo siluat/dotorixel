@@ -5,6 +5,7 @@
 ### Tools — pencil, eraser (Rust core migration)
 
 #### Results
+
 | File | Description |
 |------|-------------|
 | `crates/core/src/tool.rs` | `ToolType` enum (Pencil, Eraser), `apply()` method, `interpolate_pixels()` free function, 16 tests |

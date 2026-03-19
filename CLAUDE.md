@@ -112,6 +112,7 @@ When porting TS logic to Rust, write idiomatic Rust — not a line-by-line trans
 - **Use Rust's type system beyond what TS offered.** Enums with data for tool types, newtypes for domain values (`CanvasCoord` vs raw `i32`), `Option`/`Result` instead of sentinel values. If TS used a string union, use a Rust enum.
 - **`impl` blocks for behavior.** Methods belong on the type (`color.to_hex()`), not as free functions (`color_to_hex(color)`), unless the function doesn't have a natural receiver.
 - **Error types implement `std::error::Error`.** All error enums must implement `Display` and `std::error::Error`. This enables interop with `?` propagation, `Box<dyn Error>`, and error-handling crates — essential for Tauri backend integration.
+- **Doc comments follow std conventions: write when it adds signal, skip when the signature speaks.** Simple getters (`width()`, `pixels()`), trivial predicates (`is_empty()`), and obvious constructors (`new()` with self-evident fields) need no doc comment. Write doc comments when the method has non-obvious side effects (eviction, stack clearing), when the behavior goes beyond what the name and signature convey (e.g., `push_snapshot` clears the redo stack), or when panic/error conditions exist. Don't restate what `Option` or `Result` return types already express.
 
 ### Architecture
 

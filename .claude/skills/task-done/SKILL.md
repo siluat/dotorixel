@@ -41,9 +41,10 @@ Remove the completed item from `tasks/todo.md`.
 Update `tasks/progress.md`:
 - Set "Currently Working On" to "None".
 - Set "Last Completed" to the task just finished.
-- Update "Next Up" with the next items from `tasks/todo.md`.
-  - List as bullet points.
-  - Include all items that can be worked on in parallel (no dependencies between them).
+- Update "Next Up":
+  1. Identify candidate items from `tasks/todo.md`.
+  2. Analyze dependencies between them — only include items that can be worked on in parallel.
+  3. List the independent items as bullet points.
 
 ### 4. Git commit
 

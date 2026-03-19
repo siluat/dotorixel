@@ -1,9 +1,11 @@
 pub mod canvas;
 pub mod color;
+pub mod history;
 pub mod tool;
 pub mod viewport;
 pub use canvas::PixelCanvasError;
 pub use color::ColorParseError;
+pub use history::HistoryManager;
 pub use tool::ToolType;
 pub use viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
 

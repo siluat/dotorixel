@@ -6,8 +6,8 @@ None
 
 ## Last Completed
 
-Tools — pencil, eraser (Rust core migration)
+History — undo/redo snapshot logic (Rust core migration)
 
 ## Next Up
 
-- History — undo/redo snapshot logic (replaces `src/lib/history.ts`)
+- WASM bindings — wasm-bindgen interface, Svelte integration verified

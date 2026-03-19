@@ -10,7 +10,6 @@ Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md
 
 **Migration Safety Net** — Existing TS unit tests (7 files in `src/lib/canvas/`) serve as the behavioral specification. During Rust migration, keep WASM API compatible with TS API so the same tests verify both implementations (import path change only). Browser-level E2E tests (Playwright) will be added minimally at the CI setup stage (Release).
 
-- Tools — pencil, eraser (replaces `src/lib/tools.ts`)
 - History — undo/redo snapshot logic (replaces `src/lib/history.ts`)
 - WASM bindings — wasm-bindgen interface, Svelte integration verified
 - PNG export — Rust-side encoding (replaces current Canvas2D `toDataURL` approach)

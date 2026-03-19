@@ -6,9 +6,8 @@ None
 
 ## Last Completed
 
-Coordinate transform — screen↔canvas math (Rust core) (#31)
+Tools — pencil, eraser (Rust core migration)
 
 ## Next Up
 
-- Tools — pencil, eraser (replaces `src/lib/tools.ts`)
 - History — undo/redo snapshot logic (replaces `src/lib/history.ts`)

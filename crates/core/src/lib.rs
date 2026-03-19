@@ -1,8 +1,10 @@
 pub mod canvas;
 pub mod color;
+pub mod tool;
 pub mod viewport;
 pub use canvas::PixelCanvasError;
 pub use color::ColorParseError;
+pub use tool::ToolType;
 pub use viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
 
 pub fn core_version() -> &'static str {

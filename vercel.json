@@ -3,5 +3,8 @@
   "buildCommand": "rustup target add wasm32-unknown-unknown && cargo install wasm-pack && bun run build",
   "outputDirectory": "build",
   "installCommand": "bun install",
-  "framework": null
+  "framework": null,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

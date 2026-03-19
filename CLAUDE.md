@@ -17,23 +17,6 @@ A 2D pixel art editor. Positioned as a learning-first, cross-platform tool.
 | Testing | Vitest | Unified test runner — pure functions now, component tests later |
 | Component Preview | Storybook 10 | `@storybook/sveltekit`, Svelte CSF v5 |
 
-## Project Structure
-
-MVP starts with a standard Tauri structure + a single WASM crate. No Cargo workspace yet — introduce it when Rust code sharing between WASM and Tauri backend is actually needed.
-
-```text
-dotorixel/
-├── .storybook/         # Storybook config (main.ts, preview.ts)
-├── wasm/               # Rust → WASM (single crate, wasm-pack)
-├── src/                # Svelte frontend (shared by web & Tauri)
-├── src-tauri/          # Tauri v2 config & Rust backend (own Cargo.toml)
-├── package.json
-├── svelte.config.js
-└── vite.config.ts
-```
-
-When Rust core logic grows and needs to be shared between WASM and Tauri backend, migrate to Cargo workspace (`crates/core/`, `crates/backend/`). See [Tauri advanced structure guide](https://tauri.by.simon.hyll.nu/samples/advanced/) for reference.
-
 ## License
 
 AGPL-3.0-or-later. Dual licensing and proprietary premium features are available as the copyright holder.
@@ -43,118 +26,6 @@ AGPL-3.0-or-later. Dual licensing and proprietary premium features are available
 SemVer. Git tags and GitHub Releases start at v0.1.0. CHANGELOG.md follows [Keep a Changelog](https://keepachangelog.com) format.
 
 ## Current Version: v0.1.0 — Canvas Foundation
-
-## Completed Milestones
-
-### Build Pipeline Verification — Done
-Verified Vite + SvelteKit + wasm-pack + Tauri v2 integration. `bun run dev` (web) and `bun run tauri dev` (desktop) both work.
-
-## Roadmap
-
-### v0.1.0: Canvas Foundation
-
-#### Core (complete)
-
-Work order followed dependency chain: data structure → rendering → interaction → state management → export.
-
-- [x] Vitest setup (test environment for pure functions)
-- [x] Canvas creation (8x8, 16x16, 32x32) — pixel data structure + creation logic
-- [x] Pixel grid display — Canvas2D rendering
-- [x] Pencil tool (1px), eraser — first interaction, validates coordinate transform
-- [x] Single color picker
-- [x] Zoom in/out + panning — viewport transform, testable with drawing
-- [x] Undo/Redo (snapshot-based) — requires state-changing operations to exist
-- [x] PNG export
-
-#### UI
-
-Design reference: `~/Projects/dotorixel-ui-concept` (v0 prototype, React + Tailwind). Implement in Svelte + vanilla CSS.
-
-- [x] Storybook setup — component preview environment for UI development
-- [x] Global styles & design tokens — CSS variables (light mode color tokens), pixel font (Galmuri), base reset
-- [x] Primitive components — PixelPanel (default/inset/raised), PixelButton (default/primary/secondary, sm/md/icon), ColorSwatch (sm/md, selected state)
-- [x] Toolbar component — lucide-svelte setup, tool selection, undo/redo, zoom, grid toggle, clear, export
-- [x] ColorPalette component — 36-color palette, current color preview, custom color input, recent colors
-- [x] CanvasSettings component — size presets (8/16/32/64), custom W/H input, resize
-- [x] StatusBar component — canvas size, zoom %, current tool display
-- [x] Layout integration — 3-column responsive layout (+page.svelte refactoring)
-- [x] Button style system — split PixelButton into BevelButton (3D border) and FlatButton (uniform border + shadow)
-- [x] Toolbar button abstraction — decouple Toolbar from specific button component to allow button style swaps without internal changes
-- [x] ColorSwatch border/shadow tinting — use color-relative border and shadow tones (matching the swatch color) as in the concept UI
-- [x] Zoom/scroll input separation — trackpad pinch gesture for zoom, trackpad scroll for canvas pan, mouse wheel for zoom (match standard editor behavior)
-- [x] Pan boundary clamping — prevent canvas from being panned entirely outside the visible panel area
-- [x] Cross-platform testing — verify web (Chrome) and Tauri desktop/iOS simulator builds
-
-#### Dual Shell PoC
-
-Verify that a "Shared Rust Core + Platform-Native Shell" architecture works for this project. Not a product feature — a technical validation for the cross-platform learning goal.
-
-Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md`](docs/research/cross-platform-architecture-for-best-experience.en.md)
-
-**Migration Safety Net** — Existing TS unit tests (7 files in `src/lib/canvas/`) serve as the behavioral specification. During Rust migration, keep WASM API compatible with TS API so the same tests verify both implementations (import path change only). Browser-level E2E tests (Playwright) will be added minimally at the CI setup stage (Release).
-
-- [x] TS unit test coverage for core logic (already in place)
-
-**Rust Core Migration** — Migrate core logic from TS to Rust, one module at a time. Each step should keep both web and Tauri builds working. Run existing TS unit tests against WASM bindings after each migration step to verify no regressions.
-
-- [x] Cargo workspace setup — `crates/core/` with `wasm/` and `src-tauri/` as consumers
-- [x] Color type — Color struct, TRANSPARENT constant (from `src/lib/canvas/color.ts`)
-- [x] Color utilities — hex conversion, palette helpers (replaces remaining `src/lib/canvas/color.ts`)
-- [x] Pixel buffer — RGBA data structure, canvas creation (replaces `src/lib/canvas/canvas.ts`)
-- [x] Coordinate transform — screen↔canvas math (replaces `src/lib/viewport.ts`)
-- [ ] Tools — pencil, eraser (replaces `src/lib/tools.ts`)
-- [ ] History — undo/redo snapshot logic (replaces `src/lib/history.ts`)
-- [ ] WASM bindings — wasm-bindgen interface, Svelte integration verified
-- [ ] PNG export — Rust-side encoding (replaces current Canvas2D `toDataURL` approach)
-
-**Apple Native Shell** — SwiftUI + Metal app sharing the same Rust core via UniFFI. Targets macOS and iPadOS from a single Xcode project.
-
-- [ ] UniFFI setup — generate Swift bindings from `crates/core/`, verify in Swift playground or test target
-- [ ] Xcode project — Swift Package with macOS + iPadOS targets, Rust library linked
-- [ ] Metal pixel grid renderer — minimal Metal pipeline rendering the pixel buffer
-- [ ] Basic SwiftUI UI — tool selection, color picker, canvas view (Metal surface)
-- [ ] Touch/Pencil input — Apple Pencil drawing on iPadOS, mouse drawing on macOS
-- [ ] Zoom/pan — pinch gesture (iPadOS), scroll/trackpad (macOS), shared viewport transform from core
-- [ ] Undo/redo — connected to core history module, SwiftUI toolbar integration
-
-**Platform Comparison** — Record findings in `docs/comparison/` as each feature is implemented on both shells.
-
-- [ ] Rendering performance — Canvas2D vs Metal FPS at various canvas sizes
-- [ ] Input latency — event-to-pixel-update measurement on both shells
-- [ ] Bundle size — Tauri `.app` vs native `.app`
-- [ ] Implementation effort — per-feature LOC and time comparison
-- [ ] Responsive layout — extract SwiftUI size class transitions, adapt to web CSS breakpoints
-
-#### Web Deployment
-
-Test-purpose deployment for accessing the app from any browser during development.
-
-- [x] Vercel project setup — GitHub integration, auto-deploy on `main` push
-- [x] Verify deployed build — WASM loading, all features working on `*.vercel.app`
-
-#### Release
-
-- [ ] Create CHANGELOG.md (Keep a Changelog format)
-- [ ] Set up CI (GitHub Actions: `tauri build` + Vitest + minimal Playwright E2E + `tauri-driver`)
-- [ ] Git tag v0.1.0
-- [ ] GitHub Release
-
-### v0.2.0: Basic Tool Expansion
-
-- [ ] Decide project file format (prerequisite — must be decided before v0.2.0 work begins)
-- [ ] Line tool (Bresenham), rectangle/circle, flood fill, eyedropper
-- [ ] Grid visibility toggle
-- [ ] Internationalization (i18n) — Korean/English support
-
-### v0.3.0: Color System
-
-- [ ] HSV color picker, foreground/background color swap, preset palettes
-
-### Future triggers (not tied to a specific version)
-
-- [ ] First external contributor → set up CLA
-- [ ] Community forming → add CONTRIBUTING.md, Code of Conduct, issue/PR templates
-- [ ] Menu bar, command palette, or plugin system needed → adopt Action pattern for unified command dispatch (see [`docs/research/action-pattern-research.ko.md`](docs/research/action-pattern-research.ko.md))
 
 ## MVP Technical Decisions
 
@@ -167,6 +38,38 @@ Test-purpose deployment for accessing the app from any browser during developmen
 | Coordinate Transform | Screen→Canvas single transform (Rust core) | Based on zoom level and pan offset, shared across shells |
 | Core Bindings | wasm-bindgen (web), UniFFI (Apple native) | Single Rust core, two binding strategies |
 | Apple Project | Single Xcode project, macOS + iPadOS targets | SwiftUI + Metal shared, platform-specific UI via `#if os()` |
+
+## Task Workflow
+
+Implementation tasks are managed through files in the `tasks/` directory.
+
+| File | Purpose |
+|------|---------|
+| [tasks/todo.md](tasks/todo.md) | Full task list (items removed on completion) |
+| [tasks/progress.md](tasks/progress.md) | Currently working on / last completed / next up |
+| [tasks/done.md](tasks/done.md) | Completion log (by date, newest first) |
+
+### Starting a Task
+
+Run the `/task-start` skill.
+
+1. Read `tasks/progress.md` to understand the current state.
+2. If there are 2+ items in "Next Up", ask the user which task to work on.
+3. Enter plan mode to draft an implementation plan and get user approval.
+4. Update "Currently Working On" in `tasks/progress.md`.
+
+### Completing a Task
+
+When a task item is completed, notify the user and suggest using the `/task-done` skill. Running `/task-done` performs the following steps, then creates a git commit.
+
+1. **Update done.md**: Record results, key decisions, and notes in `tasks/done.md`.
+2. **Update todo.md**: Remove the completed item from `tasks/todo.md`.
+3. **Update progress.md**: Set current to "None", update last completed, refresh next up.
+4. **Git commit**: Include implementation code and task records in a single commit.
+
+### Principles
+
+- Work on one task item at a time. Never work on two or more items simultaneously.
 
 ## Development Guide
 
@@ -184,10 +87,6 @@ Test-purpose deployment for accessing the app from any browser during developmen
 - **subject**: lowercase, no period, imperative mood
 - **body**: only when additional context is needed
 - scope: introduce when the project grows enough to need it
-
-### Roadmap Tracking
-
-When a commit or PR completes a roadmap item, update its checkbox in this file (`[ ]` → `[x]`) as part of the same change.
 
 ### Code Style
 

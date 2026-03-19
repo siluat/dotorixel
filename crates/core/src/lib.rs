@@ -1,7 +1,9 @@
 pub mod canvas;
 pub mod color;
+pub mod viewport;
 pub use canvas::PixelCanvasError;
 pub use color::ColorParseError;
+pub use viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
 
 pub fn core_version() -> &'static str {
     env!("CARGO_PKG_VERSION")

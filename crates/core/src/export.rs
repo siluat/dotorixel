@@ -3,7 +3,6 @@ use std::io::Cursor;
 
 use crate::canvas::PixelCanvas;
 
-/// Errors that can occur during export operations.
 #[derive(Debug)]
 pub enum ExportError {
     PngEncode { message: String },
@@ -19,31 +18,34 @@ impl fmt::Display for ExportError {
 
 impl std::error::Error for ExportError {}
 
-/// Encodes a `PixelCanvas` as a PNG image, returning the raw bytes.
-///
-/// The output is an RGBA 8-bit PNG. The pixel data from `canvas.pixels()` is
-/// written directly — it is already in row-major RGBA layout.
-pub fn encode_png(canvas: &PixelCanvas) -> Result<Vec<u8>, ExportError> {
-    let mut buf: Vec<u8> = Vec::new();
-    {
-        let cursor = Cursor::new(&mut buf);
-        let mut encoder = png::Encoder::new(cursor, canvas.width(), canvas.height());
-        encoder.set_color(png::ColorType::Rgba);
-        encoder.set_depth(png::BitDepth::Eight);
+pub trait PngExport {
+    /// Encodes the canvas as an RGBA 8-bit PNG.
+    fn encode_png(&self) -> Result<Vec<u8>, ExportError>;
+}
 
-        let mut writer = encoder
-            .write_header()
-            .map_err(|e| ExportError::PngEncode {
-                message: e.to_string(),
-            })?;
+impl PngExport for PixelCanvas {
+    fn encode_png(&self) -> Result<Vec<u8>, ExportError> {
+        let mut buf: Vec<u8> = Vec::new();
+        {
+            let cursor = Cursor::new(&mut buf);
+            let mut encoder = png::Encoder::new(cursor, self.width(), self.height());
+            encoder.set_color(png::ColorType::Rgba);
+            encoder.set_depth(png::BitDepth::Eight);
 
-        writer
-            .write_image_data(canvas.pixels())
-            .map_err(|e| ExportError::PngEncode {
-                message: e.to_string(),
-            })?;
+            let mut writer = encoder
+                .write_header()
+                .map_err(|e| ExportError::PngEncode {
+                    message: e.to_string(),
+                })?;
+
+            writer
+                .write_image_data(self.pixels())
+                .map_err(|e| ExportError::PngEncode {
+                    message: e.to_string(),
+                })?;
+        }
+        Ok(buf)
     }
-    Ok(buf)
 }
 
 #[cfg(test)]
@@ -56,7 +58,7 @@ mod tests {
     #[test]
     fn png_has_valid_signature() {
         let canvas = PixelCanvas::new(4, 4).unwrap();
-        let bytes = encode_png(&canvas).unwrap();
+        let bytes = canvas.encode_png().unwrap();
         assert_eq!(&bytes[..8], &PNG_SIGNATURE);
     }
 
@@ -66,7 +68,7 @@ mod tests {
         let canvas = PixelCanvas::with_color(4, 4, color).unwrap();
         let original_pixels = canvas.pixels().to_vec();
 
-        let bytes = encode_png(&canvas).unwrap();
+        let bytes = canvas.encode_png().unwrap();
 
         let decoder = png::Decoder::new(Cursor::new(&bytes));
         let mut reader = decoder.read_info().unwrap();
@@ -85,7 +87,7 @@ mod tests {
         let original_pixels = canvas.pixels().to_vec();
         assert!(original_pixels.iter().all(|&b| b == 0));
 
-        let bytes = encode_png(&canvas).unwrap();
+        let bytes = canvas.encode_png().unwrap();
 
         let decoder = png::Decoder::new(Cursor::new(&bytes));
         let mut reader = decoder.read_info().unwrap();
@@ -102,7 +104,7 @@ mod tests {
         let color = Color::new(42, 128, 255, 200);
         let canvas = PixelCanvas::with_color(1, 1, color).unwrap();
 
-        let bytes = encode_png(&canvas).unwrap();
+        let bytes = canvas.encode_png().unwrap();
         assert_eq!(&bytes[..8], &PNG_SIGNATURE);
 
         let decoder = png::Decoder::new(Cursor::new(&bytes));
@@ -119,7 +121,7 @@ mod tests {
         let canvas = PixelCanvas::with_color(8, 4, color).unwrap();
         let original_pixels = canvas.pixels().to_vec();
 
-        let bytes = encode_png(&canvas).unwrap();
+        let bytes = canvas.encode_png().unwrap();
 
         let decoder = png::Decoder::new(Cursor::new(&bytes));
         let mut reader = decoder.read_info().unwrap();

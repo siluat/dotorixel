@@ -26,8 +26,10 @@
 			editor.viewportSize = { width: w, height: h };
 			if (needsInitialFit) {
 				needsInitialFit = false;
-				const dx = (w - 512) / 2;
-				const dy = (h - 512) / 2;
+				// WasmViewport.for_canvas() calculates zoom/pan for a 512×512 reference viewport
+				const defaultViewportSize = 512;
+				const dx = (w - defaultViewportSize) / 2;
+				const dy = (h - defaultViewportSize) / 2;
 				editor.viewportState = {
 					...editor.viewportState,
 					viewport: editor.viewportState.viewport.pan(dx, dy)

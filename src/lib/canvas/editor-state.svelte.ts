@@ -215,6 +215,7 @@ export class EditorState {
 			this.viewportSize.height
 		);
 		this.viewportState = { ...this.viewportState, viewport: clamped };
+		// Resize changes canvas dimensions, invalidating previous pixel-coordinate snapshots
 		this.#history.clear();
 		this.#historyVersion++;
 		this.renderVersion++;

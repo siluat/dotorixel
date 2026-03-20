@@ -2,6 +2,7 @@ use wasm_bindgen::prelude::*;
 
 use dotorixel_core::canvas::PixelCanvas;
 use dotorixel_core::color::Color;
+use dotorixel_core::export::PngExport;
 use dotorixel_core::history::HistoryManager;
 use dotorixel_core::tool::{interpolate_pixels, ToolType};
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
@@ -163,6 +164,12 @@ impl WasmPixelCanvas {
 
     pub fn is_valid_dimension(value: u32) -> bool {
         PixelCanvas::is_valid_dimension(value)
+    }
+
+    pub fn encode_png(&self) -> Result<Vec<u8>, JsError> {
+        self.inner
+            .encode_png()
+            .map_err(|e| JsError::new(&e.to_string()))
     }
 }
 

@@ -8,7 +8,7 @@ import {
 	wasm_interpolate_pixels
 } from '$wasm/dotorixel_wasm';
 import type { CanvasCoords, ViewportSize, ViewportState } from './view-types';
-import type { ToolType } from '$lib/ui/toolbar-types';
+import type { ToolType } from '$lib/ui-pixel/toolbar-types';
 import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
 import { exportAsPng } from './export';
 

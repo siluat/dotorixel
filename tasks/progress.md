@@ -6,11 +6,11 @@ None
 
 ## Last Completed
 
-Pebble UI design exploration
+UI theme migration — Move Pixel UI to `/pixel` page and switch default to Pebble
 
 ## Next Up
 
-- Move existing Pixel-style UI to a separate `/pixel` page
-  - Must complete before switching default UI to Pebble
 - UniFFI setup — generate Swift bindings from `crates/core/`, verify in Swift playground or test target
   - All other Apple Native Shell tasks depend on this
+- Create CHANGELOG.md (Keep a Changelog format)
+  - Independent of other tasks; can proceed in parallel with UniFFI

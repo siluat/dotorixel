@@ -1,8 +1,8 @@
-let initialized = false;
+let initPromise: Promise<void> | null = null;
 
 export async function initWasm(): Promise<void> {
-	if (initialized) return;
-	const { default: init } = await import('$wasm/dotorixel_wasm');
-	await init();
-	initialized = true;
+	if (!initPromise) {
+		initPromise = import('$wasm/dotorixel_wasm').then(({ default: init }) => init());
+	}
+	return initPromise;
 }

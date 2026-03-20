@@ -46,7 +46,7 @@ describe('createWheelInputClassifier', () => {
 		const classify = createWheelInputClassifier();
 		// First event: no device confirmed yet — safe default
 		expect(classify(0, -120, 0, false, 2000)).toBe('trackpadPan');
-		// Second slow event (>80ms apart) confirms mouse wheel
+		// Second slow event (>30ms apart) confirms mouse wheel
 		expect(classify(0, -120, 0, false, 2200)).toBe('wheelZoom');
 		// Subsequent slow events maintain mouse wheel classification
 		expect(classify(0, -120, 0, false, 2400)).toBe('wheelZoom');
@@ -62,13 +62,13 @@ describe('createWheelInputClassifier', () => {
 		expect(classify(0, 3, 0, false, 2032)).toBe('trackpadPan');
 	});
 
-	it('treats exact threshold boundary (80ms) as neither rapid nor slow', () => {
+	it('treats exact threshold boundary (30ms) as neither rapid nor slow', () => {
 		const classify = createWheelInputClassifier();
-		// Two events exactly 80ms apart — boundary is ambiguous, not slow
+		// Two events exactly 30ms apart — boundary is ambiguous, not slow
 		classify(0, -120, 0, false, 2000);
-		classify(0, -120, 0, false, 2080);
+		classify(0, -120, 0, false, 2030);
 		// slow count should still be 1 (not 2), so no mouse wheel confirmation
-		expect(classify(0, -120, 0, false, 2160)).toBe('trackpadPan');
+		expect(classify(0, -120, 0, false, 2060)).toBe('trackpadPan');
 	});
 
 	it('maintains trackpadPan during cooldown after rapid events stop', () => {
@@ -121,14 +121,27 @@ describe('createWheelInputClassifier', () => {
 		expect(classify(0, 4, 0, false, 2450)).toBe('trackpadPan');
 	});
 
-	it('overrides mouse wheel cooldown when rapid events indicate trackpad', () => {
+	it('maintains wheelZoom during fast mouse wheel scrolling after confirmation', () => {
 		const classify = createWheelInputClassifier();
 		// Confirm mouse wheel
 		classify(0, -120, 0, false, 2000);
 		classify(0, -120, 0, false, 2200);
 		expect(classify(0, -120, 0, false, 2400)).toBe('wheelZoom');
-		// Rapid event arrives — trackpad likely (mouse wheels can't fire this fast)
-		expect(classify(0, 4, 0, false, 2430)).toBe('trackpadPan');
+		// Rapid events (fast scrolling) cannot override confirmed mouse wheel
+		expect(classify(0, -120, 0, false, 2420)).toBe('wheelZoom');
+		expect(classify(0, -120, 0, false, 2440)).toBe('wheelZoom');
+	});
+
+	it('switches to trackpad via clear signal after mouse wheel confirmation', () => {
+		const classify = createWheelInputClassifier();
+		// Confirm mouse wheel
+		classify(0, -120, 0, false, 2000);
+		classify(0, -120, 0, false, 2200);
+		expect(classify(0, -120, 0, false, 2400)).toBe('wheelZoom');
+		// Clear trackpad signal (fractional deltaY) overrides mouse wheel
+		expect(classify(0, 3.5, 0, false, 2500)).toBe('trackpadPan');
+		// Subsequent ambiguous events within trackpad cooldown
+		expect(classify(0, 4, 0, false, 2550)).toBe('trackpadPan');
 	});
 
 	it('remembers mouse wheel after long idle', () => {
@@ -149,16 +162,26 @@ describe('createWheelInputClassifier', () => {
 		expect(classify(0, -120, 0, false, 3100)).toBe('wheelZoom');
 	});
 
-	it('switches to trackpad after idle when rapid events arrive', () => {
+	it('maintains wheelZoom after idle even with rapid events', () => {
 		const classify = createWheelInputClassifier();
 		// Confirm mouse wheel
 		classify(0, -120, 0, false, 2000);
 		classify(0, -120, 0, false, 2200);
 		expect(classify(0, -120, 0, false, 2400)).toBe('wheelZoom');
-		// Long idle, then first event: remembered as mouse wheel
+		// Long idle, then rapid events — confirmed mouse wheel persists
 		expect(classify(0, 4, 0, false, 3500)).toBe('wheelZoom');
-		// Rapid event confirms trackpad — overrides remembered device
-		expect(classify(0, 4, 0, false, 3516)).toBe('trackpadPan');
+		expect(classify(0, 4, 0, false, 3516)).toBe('wheelZoom');
+	});
+
+	it('classifies fast mouse wheel scrolling as wheelZoom', () => {
+		const classify = createWheelInputClassifier();
+		// First event: safe default (no prior device info)
+		expect(classify(0, -120, 0, false, 2000)).toBe('trackpadPan');
+		// Second event at 50ms: confirmed (50ms > 30ms threshold = slow)
+		expect(classify(0, -120, 0, false, 2050)).toBe('wheelZoom');
+		// Subsequent fast events remain wheelZoom
+		expect(classify(0, -120, 0, false, 2100)).toBe('wheelZoom');
+		expect(classify(0, -120, 0, false, 2150)).toBe('wheelZoom');
 	});
 
 	it('each instance tracks state independently', () => {

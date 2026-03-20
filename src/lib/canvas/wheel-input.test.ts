@@ -36,16 +36,14 @@ describe('createWheelInputClassifier', () => {
 		expect(classify(0, 10.5, 0, false, 300)).toBe('trackpadPan');
 	});
 
-	it('defaults to trackpadPan for first ambiguous event', () => {
+	it('trusts base classification for first ambiguous event', () => {
 		const classify = createWheelInputClassifier();
-		// No prior events — safe default prevents unwanted zoom jump
-		expect(classify(0, -120, 0, false, 2000)).toBe('trackpadPan');
+		expect(classify(0, -120, 0, false, 2000)).toBe('wheelZoom');
 	});
 
 	it('confirms mouse wheel after two slow events', () => {
 		const classify = createWheelInputClassifier();
-		// First event: no device confirmed yet — safe default
-		expect(classify(0, -120, 0, false, 2000)).toBe('trackpadPan');
+		expect(classify(0, -120, 0, false, 2000)).toBe('wheelZoom');
 		// Second slow event (>30ms apart) confirms mouse wheel
 		expect(classify(0, -120, 0, false, 2200)).toBe('wheelZoom');
 		// Subsequent slow events maintain mouse wheel classification
@@ -54,8 +52,7 @@ describe('createWheelInputClassifier', () => {
 
 	it('detects rapid integer-deltaY events as trackpadPan', () => {
 		const classify = createWheelInputClassifier();
-		// First ambiguous event: safe default
-		expect(classify(0, 4, 0, false, 2000)).toBe('trackpadPan');
+		expect(classify(0, 4, 0, false, 2000)).toBe('wheelZoom');
 		// Second event arrives rapidly — trackpad confirmed
 		expect(classify(0, 4, 0, false, 2016)).toBe('trackpadPan');
 		// Subsequent rapid events continue as trackpadPan
@@ -175,8 +172,7 @@ describe('createWheelInputClassifier', () => {
 
 	it('classifies fast mouse wheel scrolling as wheelZoom', () => {
 		const classify = createWheelInputClassifier();
-		// First event: safe default (no prior device info)
-		expect(classify(0, -120, 0, false, 2000)).toBe('trackpadPan');
+		expect(classify(0, -120, 0, false, 2000)).toBe('wheelZoom');
 		// Second event at 50ms: confirmed (50ms > 30ms threshold = slow)
 		expect(classify(0, -120, 0, false, 2050)).toBe('wheelZoom');
 		// Subsequent fast events remain wheelZoom

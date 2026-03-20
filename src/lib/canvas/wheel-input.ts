@@ -44,6 +44,9 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 	let slowEventCount = 0;
 	let trackpadDetectedUntil = 0;
 	let mouseWheelDetectedUntil = 0;
+	// Persists across idle resets so the classifier remembers
+	// which device was last confirmed during the session.
+	let lastConfirmedDevice: 'trackpad' | 'mouseWheel' | null = null;
 
 	return function classify(
 		deltaX: number,
@@ -62,6 +65,7 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 				// the same gesture are also classified as trackpadPan.
 				trackpadDetectedUntil = now + TRACKPAD_COOLDOWN_MS;
 				mouseWheelDetectedUntil = 0;
+				lastConfirmedDevice = 'trackpad';
 			}
 			lastEventTime = now;
 			rapidEventCount = 1;
@@ -75,6 +79,7 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 			lastEventTime = now;
 			rapidEventCount = 1;
 			slowEventCount = 0;
+			lastConfirmedDevice = 'mouseWheel';
 			return 'wheelZoom';
 		}
 
@@ -102,10 +107,12 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 		if (rapidEventCount >= RAPID_EVENT_MIN_COUNT) {
 			trackpadDetectedUntil = now + TRACKPAD_COOLDOWN_MS;
 			mouseWheelDetectedUntil = 0;
+			lastConfirmedDevice = 'trackpad';
 		}
 
 		if (slowEventCount >= SLOW_EVENT_MIN_COUNT) {
 			mouseWheelDetectedUntil = now + MOUSE_WHEEL_COOLDOWN_MS;
+			lastConfirmedDevice = 'mouseWheel';
 		}
 
 		// Trackpad detection takes priority (more reliable signal).
@@ -120,7 +127,14 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 			return 'wheelZoom';
 		}
 
-		// Neither device confirmed — trackpadPan is the safer default.
+		// Both cooldowns expired — use the last confirmed device to avoid
+		// misclassifying the first event after an idle pause.
+		// Without this, every >1s pause causes one spurious pan for mouse wheel users.
+		if (lastConfirmedDevice === 'mouseWheel' && !isRapid) {
+			return 'wheelZoom';
+		}
+
+		// Neither device ever confirmed — trackpadPan is the safer default.
 		// An unwanted pan is far less disruptive than an unwanted discrete
 		// zoom jump (e.g., 1x → 2x).
 		return 'trackpadPan';

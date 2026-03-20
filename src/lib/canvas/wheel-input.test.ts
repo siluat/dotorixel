@@ -131,15 +131,33 @@ describe('createWheelInputClassifier', () => {
 		expect(classify(0, 4, 0, false, 2430)).toBe('trackpadPan');
 	});
 
-	it('resets detection state after long idle', () => {
+	it('remembers mouse wheel after long idle', () => {
 		const classify = createWheelInputClassifier();
 		// Confirm mouse wheel
 		classify(0, -120, 0, false, 2000);
 		classify(0, -120, 0, false, 2200);
 		expect(classify(0, -120, 0, false, 2400)).toBe('wheelZoom');
-		// Long idle (>1000ms from last event) — state resets
-		expect(classify(0, 4, 0, false, 3500)).toBe('trackpadPan');
-		// Rapid event confirms trackpad
+		// Long idle (>1000ms) — cooldowns expire but lastConfirmedDevice persists
+		expect(classify(0, -120, 0, false, 3500)).toBe('wheelZoom');
+	});
+
+	it('remembers mouse wheel from Firefox deltaMode=1 after long idle', () => {
+		const classify = createWheelInputClassifier();
+		// Firefox line mode is unambiguously mouse wheel
+		classify(0, 3, 1, false, 2000);
+		// Long idle — lastConfirmedDevice persists
+		expect(classify(0, -120, 0, false, 3100)).toBe('wheelZoom');
+	});
+
+	it('switches to trackpad after idle when rapid events arrive', () => {
+		const classify = createWheelInputClassifier();
+		// Confirm mouse wheel
+		classify(0, -120, 0, false, 2000);
+		classify(0, -120, 0, false, 2200);
+		expect(classify(0, -120, 0, false, 2400)).toBe('wheelZoom');
+		// Long idle, then first event: remembered as mouse wheel
+		expect(classify(0, 4, 0, false, 3500)).toBe('wheelZoom');
+		// Rapid event confirms trackpad — overrides remembered device
 		expect(classify(0, 4, 0, false, 3516)).toBe('trackpadPan');
 	});
 

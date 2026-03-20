@@ -1,20 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { createCanvas } from './canvas.ts';
 import { generateExportFilename } from './export.ts';
 
 describe('generateExportFilename', () => {
 	it('includes canvas dimensions in the filename', () => {
-		const canvas = createCanvas(16, 16);
-		expect(generateExportFilename(canvas)).toBe('dotorixel-16x16.png');
+		expect(generateExportFilename({ width: 16, height: 16 })).toBe('dotorixel-16x16.png');
 	});
 
 	it('ends with .png extension', () => {
-		const canvas = createCanvas(8, 8);
-		expect(generateExportFilename(canvas)).toMatch(/\.png$/);
+		expect(generateExportFilename({ width: 8, height: 8 })).toMatch(/\.png$/);
 	});
 
 	it.each([8, 16, 32])('generates correct filename for %dx%d canvas', (size) => {
-		const canvas = createCanvas(size, size);
-		expect(generateExportFilename(canvas)).toBe(`dotorixel-${size}x${size}.png`);
+		expect(generateExportFilename({ width: size, height: size })).toBe(
+			`dotorixel-${size}x${size}.png`
+		);
 	});
 });

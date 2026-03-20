@@ -1,5 +1,7 @@
 import type { Component, ComponentType, Snippet } from 'svelte';
 
+export type ToolType = 'pencil' | 'eraser';
+
 export interface ToolbarButtonProps {
 	size?: 'sm' | 'md' | 'icon';
 	active?: boolean;

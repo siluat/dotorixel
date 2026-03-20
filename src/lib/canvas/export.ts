@@ -1,14 +1,18 @@
-import type { PixelCanvas } from './canvas.ts';
+interface ExportableCanvas {
+	readonly width: number;
+	readonly height: number;
+	pixels(): Uint8Array;
+}
 
-export function generateExportFilename(canvas: PixelCanvas): string {
+export function generateExportFilename(canvas: { width: number; height: number }): string {
 	return `dotorixel-${canvas.width}x${canvas.height}.png`;
 }
 
-export async function exportAsPng(canvas: PixelCanvas, filename?: string): Promise<void> {
+export async function exportAsPng(canvas: ExportableCanvas, filename?: string): Promise<void> {
 	const offscreen = new OffscreenCanvas(canvas.width, canvas.height);
 	const ctx = offscreen.getContext('2d')!;
 	const imageData = new ImageData(
-		new Uint8ClampedArray(canvas.pixels),
+		new Uint8ClampedArray(canvas.pixels()),
 		canvas.width,
 		canvas.height
 	);

@@ -17,7 +17,7 @@ import {
 	MIN_ZOOM,
 	MAX_ZOOM
 } from './viewport.ts';
-import { createCanvas } from './canvas.ts';
+import { createCanvas } from './canvas.legacy.ts';
 import type { ViewportConfig } from './viewport.ts';
 
 function makeViewport(overrides: Partial<ViewportConfig> = {}): ViewportConfig {

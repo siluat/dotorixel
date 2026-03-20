@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ToolType } from '$lib/canvas/tool';
+	import type { ToolType } from './toolbar-types';
 	import PixelPanel from './PixelPanel.svelte';
 
 	interface Props {

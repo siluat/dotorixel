@@ -13,6 +13,7 @@ export default defineConfig({
 	},
 	test: {
 		include: ['src/**/*.test.ts'],
+		exclude: ['src/**/legacy/**'],
 		setupFiles: ['src/lib/wasm/setup.ts']
 	}
 });

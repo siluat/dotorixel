@@ -1,17 +1,16 @@
 <script lang="ts">
-	import { createCanvas, clearCanvas, resizeCanvas, type CanvasCoords } from '$lib/canvas/canvas';
 	import {
-		createDefaultViewport,
-		zoomAtPoint,
-		clampPan,
-		fitToViewport,
-		nextZoomLevel,
-		prevZoomLevel,
-		type ViewportConfig
-	} from '$lib/canvas/viewport';
-	import { applyTool, interpolatePixels, type ToolType } from '$lib/canvas/tool';
+		WasmPixelCanvas,
+		WasmViewport,
+		WasmHistoryManager,
+		WasmColor,
+		WasmToolType,
+		apply_tool,
+		wasm_interpolate_pixels
+	} from '$wasm/dotorixel_wasm';
+	import type { CanvasCoords, ViewportState } from '$lib/canvas/view-types';
+	import type { ToolType } from '$lib/ui/toolbar-types';
 	import { colorToHex, hexToColor, addRecentColor, type Color } from '$lib/canvas/color';
-	import { createHistoryManager } from '$lib/canvas/history';
 	import { exportAsPng } from '$lib/canvas/export';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 	import Toolbar from '$lib/ui/Toolbar.svelte';
@@ -21,37 +20,65 @@
 	import StatusBar from '$lib/ui/StatusBar.svelte';
 	import PixelPanel from '$lib/ui/PixelPanel.svelte';
 
-	let pixelCanvas = $state.raw(createCanvas(16, 16));
+	const WASM_TOOL_MAP = {
+		pencil: WasmToolType.Pencil,
+		eraser: WasmToolType.Eraser
+	} as const;
+
+	let pixelCanvas = $state(new WasmPixelCanvas(16, 16));
 	const viewportSize = { width: 512, height: 512 };
 
-	let viewport: ViewportConfig = $state(createDefaultViewport(16, 16));
+	let viewportState: ViewportState = $state({
+		viewport: WasmViewport.for_canvas(16, 16),
+		showGrid: true,
+		gridColor: '#cccccc'
+	});
 	let activeTool = $state<ToolType>('pencil');
 	let renderVersion = $state(0);
 	let foregroundColor: Color = $state({ r: 0, g: 0, b: 0, a: 255 });
 	let recentColors: string[] = $state([]);
 
-	const history = createHistoryManager();
+	const history = WasmHistoryManager.default_manager();
 	let historyVersion = $state(0);
 	let isDrawing = $state(false);
 
 	const canUndo = $derived.by(() => {
 		void historyVersion;
-		return history.canUndo;
+		return history.can_undo();
 	});
 	const canRedo = $derived.by(() => {
 		void historyVersion;
-		return history.canRedo;
+		return history.can_redo();
 	});
 
-	const zoomPercent = $derived(Math.round(viewport.zoom * 100));
+	const zoomPercent = $derived(Math.round(viewportState.viewport.zoom * 100));
 
-	function handleViewportChange(newViewport: ViewportConfig): void {
-		viewport = clampPan(newViewport, pixelCanvas, viewportSize);
+	let wasmForegroundColor = $derived(
+		new WasmColor(foregroundColor.r, foregroundColor.g, foregroundColor.b, foregroundColor.a)
+	);
+
+	const renderViewport = $derived({
+		pixelSize: viewportState.viewport.pixel_size,
+		zoom: viewportState.viewport.zoom,
+		panX: viewportState.viewport.pan_x,
+		panY: viewportState.viewport.pan_y,
+		showGrid: viewportState.showGrid,
+		gridColor: viewportState.gridColor
+	});
+
+	function handleViewportChange(newViewport: WasmViewport): void {
+		const clamped = newViewport.clamp_pan(
+			pixelCanvas.width,
+			pixelCanvas.height,
+			viewportSize.width,
+			viewportSize.height
+		);
+		viewportState = { ...viewportState, viewport: clamped };
 	}
 
 	function handleDrawStart(): void {
 		isDrawing = true;
-		history.pushSnapshot(pixelCanvas.pixels);
+		history.push_snapshot(pixelCanvas.pixels());
 		historyVersion++;
 		if (activeTool === 'pencil') {
 			recentColors = addRecentColor(recentColors, colorToHex(foregroundColor));
@@ -64,9 +91,9 @@
 
 	function handleUndo(): void {
 		if (isDrawing) return;
-		const snapshot = history.undo(pixelCanvas.pixels);
+		const snapshot = history.undo(pixelCanvas.pixels());
 		if (snapshot) {
-			pixelCanvas.pixels.set(snapshot);
+			pixelCanvas.restore_pixels(snapshot);
 			renderVersion++;
 			historyVersion++;
 		}
@@ -74,18 +101,18 @@
 
 	function handleRedo(): void {
 		if (isDrawing) return;
-		const snapshot = history.redo(pixelCanvas.pixels);
+		const snapshot = history.redo(pixelCanvas.pixels());
 		if (snapshot) {
-			pixelCanvas.pixels.set(snapshot);
+			pixelCanvas.restore_pixels(snapshot);
 			renderVersion++;
 			historyVersion++;
 		}
 	}
 
 	function handleClear(): void {
-		history.pushSnapshot(pixelCanvas.pixels);
+		history.push_snapshot(pixelCanvas.pixels());
 		historyVersion++;
-		clearCanvas(pixelCanvas);
+		pixelCanvas.clear();
 		renderVersion++;
 	}
 
@@ -111,44 +138,53 @@
 	}
 
 	function handleDraw(current: CanvasCoords, previous: CanvasCoords | null): void {
-		const pixels = previous
-			? interpolatePixels(previous.x, previous.y, current.x, current.y)
-			: [current];
+		const wasmTool = WASM_TOOL_MAP[activeTool];
 		let changed = false;
-		for (const p of pixels) {
-			if (applyTool(pixelCanvas, p.x, p.y, activeTool, foregroundColor)) {
+
+		if (previous) {
+			const flat = wasm_interpolate_pixels(previous.x, previous.y, current.x, current.y);
+			for (let i = 0; i < flat.length; i += 2) {
+				if (apply_tool(pixelCanvas, flat[i], flat[i + 1], wasmTool, wasmForegroundColor)) {
+					changed = true;
+				}
+			}
+		} else {
+			if (apply_tool(pixelCanvas, current.x, current.y, wasmTool, wasmForegroundColor)) {
 				changed = true;
 			}
 		}
+
 		if (changed) renderVersion++;
 	}
 
 	function handleZoomIn(): void {
 		const centerX = viewportSize.width / 2;
 		const centerY = viewportSize.height / 2;
-		viewport = clampPan(
-			zoomAtPoint(viewport, centerX, centerY, nextZoomLevel(viewport.zoom)),
-			pixelCanvas,
-			viewportSize
-		);
+		const newZoom = WasmViewport.next_zoom_level(viewportState.viewport.zoom);
+		const zoomed = viewportState.viewport.zoom_at_point(centerX, centerY, newZoom);
+		handleViewportChange(zoomed);
 	}
 
 	function handleZoomOut(): void {
 		const centerX = viewportSize.width / 2;
 		const centerY = viewportSize.height / 2;
-		viewport = clampPan(
-			zoomAtPoint(viewport, centerX, centerY, prevZoomLevel(viewport.zoom)),
-			pixelCanvas,
-			viewportSize
-		);
+		const newZoom = WasmViewport.prev_zoom_level(viewportState.viewport.zoom);
+		const zoomed = viewportState.viewport.zoom_at_point(centerX, centerY, newZoom);
+		handleViewportChange(zoomed);
 	}
 
 	function handleFit(): void {
-		viewport = fitToViewport(viewport, pixelCanvas, viewportSize);
+		const fitted = viewportState.viewport.fit_to_viewport(
+			pixelCanvas.width,
+			pixelCanvas.height,
+			viewportSize.width,
+			viewportSize.height
+		);
+		viewportState = { ...viewportState, viewport: fitted };
 	}
 
 	function handleGridToggle(): void {
-		viewport = { ...viewport, showGrid: !viewport.showGrid };
+		viewportState = { ...viewportState, showGrid: !viewportState.showGrid };
 	}
 
 	function handleColorChange(hex: string): void {
@@ -157,8 +193,11 @@
 
 	function handleResize(newWidth: number, newHeight: number): void {
 		if (newWidth === pixelCanvas.width && newHeight === pixelCanvas.height) return;
-		pixelCanvas = resizeCanvas(pixelCanvas, newWidth, newHeight);
-		viewport = createDefaultViewport(newWidth, newHeight);
+		pixelCanvas = pixelCanvas.resize(newWidth, newHeight);
+		viewportState = {
+			...viewportState,
+			viewport: WasmViewport.for_canvas(newWidth, newHeight)
+		};
 		history.clear();
 		historyVersion++;
 		renderVersion++;
@@ -189,7 +228,7 @@
 					{canUndo}
 					{canRedo}
 					{zoomPercent}
-					showGrid={viewport.showGrid}
+					showGrid={viewportState.showGrid}
 					onToolChange={(tool) => (activeTool = tool)}
 					onUndo={handleUndo}
 					onRedo={handleRedo}
@@ -212,9 +251,10 @@
 				<PixelPanel style="padding: 0;">
 					<PixelCanvasView
 						{pixelCanvas}
-						{viewport}
+						{viewportState}
 						{viewportSize}
 						{renderVersion}
+						{renderViewport}
 						onDraw={handleDraw}
 						onDrawStart={handleDrawStart}
 						onDrawEnd={handleDrawEnd}

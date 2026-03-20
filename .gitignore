@@ -6,6 +6,7 @@ dist/
 # Rust
 target/
 pkg/
+apple/generated/
 
 # SvelteKit
 .svelte-kit/

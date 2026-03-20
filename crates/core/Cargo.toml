@@ -8,3 +8,7 @@ description = "Core logic for the DOTORIXEL pixel art editor"
 
 [dependencies]
 png = "0.17"
+uniffi = { version = "0.31", optional = true }
+
+[features]
+uniffi = ["dep:uniffi"]

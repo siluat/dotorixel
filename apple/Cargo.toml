@@ -1,0 +1,20 @@
+[package]
+name = "dotorixel-apple"
+version = "0.0.1"
+edition = "2024"
+rust-version = "1.85.0"
+license = "AGPL-3.0-or-later"
+description = "UniFFI Swift bindings for the DOTORIXEL pixel art editor"
+
+[lib]
+crate-type = ["cdylib", "staticlib", "lib"]
+name = "dotorixel_apple"
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+
+[dependencies]
+uniffi = { version = "0.31", features = ["cli"] }
+thiserror = "2"
+dotorixel-core = { path = "../crates/core", features = ["uniffi"] }

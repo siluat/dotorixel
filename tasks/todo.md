@@ -14,7 +14,6 @@ Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md
 
 SwiftUI + Metal app sharing the same Rust core via UniFFI. Targets macOS and iPadOS from a single Xcode project.
 
-- UniFFI setup — generate Swift bindings from `crates/core/`, verify in Swift playground or test target
 - Xcode project — Swift Package with macOS + iPadOS targets, Rust library linked
 - Metal pixel grid renderer — minimal Metal pipeline rendering the pixel buffer
 - Basic SwiftUI UI — tool selection, color picker, canvas view (Metal surface)

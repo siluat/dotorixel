@@ -3,6 +3,7 @@ use crate::color::Color;
 
 /// Drawing tool type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
 pub enum ToolType {
     Pencil,
     Eraser,

@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 /// RGBA color with 8-bit channels.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
 pub struct Color {
     pub r: u8,
     pub g: u8,

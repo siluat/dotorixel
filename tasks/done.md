@@ -9,8 +9,8 @@
 | File | Description |
 |------|-------------|
 | `crates/core/Cargo.toml` | Added `png = "0.17"` dependency |
-| `crates/core/src/export.rs` | New module — `ExportError` enum, `encode_png()` function, 5 unit tests |
-| `crates/core/src/lib.rs` | Registered `export` module and re-exported `ExportError` |
+| `crates/core/src/export.rs` | New module — `ExportError` enum, `PngExport` extension trait, 5 unit tests |
+| `crates/core/src/lib.rs` | Registered `export` module and re-exported `ExportError`, `PngExport` |
 | `wasm/src/lib.rs` | Added `encode_png()` method to `WasmPixelCanvas` |
 | `src/lib/canvas/export.ts` | Replaced Canvas2D encoding with WASM `encode_png()` call, async → sync |
 | `src/routes/+page.svelte` | Updated `handleExportPng` from async to sync |
@@ -29,7 +29,7 @@
 | `wasm/src/lib.rs` | Added `restore_pixels` WASM binding |
 | `src/lib/wasm/init.ts` | Async WASM initialization module for SvelteKit layout and Storybook |
 | `src/lib/canvas/renderer.ts` | Decoupled from WASM via `RenderableCanvas` local interface |
-| `src/lib/canvas/export.ts` | Decoupled from WASM via `ExportableCanvas` local interface |
+| `src/lib/canvas/export.ts` | Decoupled from WASM via `PngEncodable` local interface |
 | `src/lib/canvas/view-types.ts` | Co-located shared canvas view types |
 | `src/lib/ui/toolbar-types.ts` | Co-located `ToolType` with toolbar consumer |
 | `src/lib/canvas/PixelCanvasView.svelte` | Migrated to WASM-backed canvas, viewport, history, tool |

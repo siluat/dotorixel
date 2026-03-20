@@ -67,6 +67,11 @@ When a task item is completed, notify the user and suggest using the `/task-done
 3. **Update progress.md**: Set current to "None", update last completed, refresh next up.
 4. **Git commit**: Include implementation code and task records in a single commit.
 
+### Branch Rule
+
+- Task work is always done on a work branch, never directly on `main`.
+- Before writing any implementation code, verify the current branch is not `main`. If it is, create and switch to a work branch first.
+
 ### Principles
 
 - Work on one task item at a time. Never work on two or more items simultaneously.

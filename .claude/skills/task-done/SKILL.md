@@ -48,4 +48,6 @@ Update `tasks/progress.md`:
 
 ### 4. Git commit
 
+**Guard: verify current branch is not `main`.** If on `main`, stop and alert the user — do not commit.
+
 Commit implementation code and task record changes together on the current work branch.

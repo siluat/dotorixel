@@ -32,6 +32,11 @@ Record findings in `docs/comparison/` as each feature is implemented on both she
 - Implementation effort — per-feature LOC and time comparison
 - Responsive layout — extract SwiftUI size class transitions, adapt to web CSS breakpoints
 
+### UI Theme Migration
+
+- Move existing Pixel-style UI to a separate `/pixel` page (mirror the `/pebble` pattern)
+- Switch default UI (`/`) to Pebble theme
+
 ### Release
 
 - Create CHANGELOG.md (Keep a Changelog format)

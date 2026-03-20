@@ -1,0 +1,21 @@
+.pebble-editor {
+	--pebble-bg: #EFECE8;
+	--pebble-panel-bg: rgba(255, 255, 255, 0.93);
+	--pebble-panel-border: #DDD9D4;
+	--pebble-canvas-stroke: #E0DCD7;
+	--pebble-text-primary: #2D2D2D;
+	--pebble-text-secondary: #8A8A8A;
+	--pebble-text-muted: #AAA5A0;
+	--pebble-accent: oklch(0.55 0.15 45);
+	--pebble-accent-dark: oklch(0.45 0.17 45);
+	--pebble-accent-light: oklch(0.85 0.08 50);
+	--pebble-btn-bg: #F5F2EE;
+	--pebble-panel-radius: 20px;
+	--pebble-panel-radius-lg: 28px;
+	--pebble-btn-radius: 12px;
+	--pebble-tool-radius: 10px;
+	--pebble-panel-shadow: 0 2px 16px rgba(0, 0, 0, 0.07);
+	--pebble-btn-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+	--pebble-font-size: 13px;
+	--pebble-edge-gap: 16px;
+}

@@ -56,12 +56,11 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 	): WheelInputType {
 		const baseResult = classifyWheelInput(deltaX, deltaY, deltaMode, ctrlKey);
 
-		// Non-ambiguous results pass through directly.
 		if (baseResult !== 'wheelZoom') {
 			if (baseResult === 'trackpadPan') {
-				// A clear trackpad signal refreshes the cooldown so that
-				// subsequent ambiguous (integer deltaY) events within
-				// the same gesture are also classified as trackpadPan.
+				// Refreshes the cooldown so that subsequent ambiguous
+				// (integer deltaY) events within the same gesture
+				// are also classified as trackpadPan.
 				trackpadDetectedUntil = now + TRACKPAD_COOLDOWN_MS;
 				lastConfirmedDevice = 'trackpad';
 			}
@@ -71,8 +70,6 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 			return baseResult;
 		}
 
-		// deltaMode=1 (Firefox line mode) is unambiguously mouse wheel —
-		// skip time-based detection.
 		if (deltaMode === 1) {
 			lastEventTime = now;
 			rapidEventCount = 1;
@@ -81,8 +78,6 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 			return 'wheelZoom';
 		}
 
-		// Ambiguous case: integer deltaY, deltaX=0, not ctrlKey, pixel deltaMode.
-		// Use event frequency to distinguish trackpad from mouse wheel.
 		const elapsed = now - lastEventTime;
 		lastEventTime = now;
 
@@ -114,12 +109,10 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 			lastConfirmedDevice = 'mouseWheel';
 		}
 
-		// Trackpad detection takes priority (more reliable signal).
 		if (now < trackpadDetectedUntil) {
 			return 'trackpadPan';
 		}
 
-		// Use the last confirmed device when trackpad cooldown is inactive.
 		if (lastConfirmedDevice === 'mouseWheel') {
 			return 'wheelZoom';
 		}

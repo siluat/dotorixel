@@ -78,6 +78,14 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 			return 'wheelZoom';
 		}
 
+		// First ambiguous event — no timing history to override base classification.
+		if (lastEventTime === 0) {
+			lastEventTime = now;
+			rapidEventCount = 1;
+			slowEventCount = 1;
+			return baseResult;
+		}
+
 		const elapsed = now - lastEventTime;
 		lastEventTime = now;
 

@@ -767,6 +767,9 @@ dependencies = [
 [[package]]
 name = "dotorixel-core"
 version = "0.0.1"
+dependencies = [
+ "png",
+]
 
 [[package]]
 name = "dotorixel-wasm"

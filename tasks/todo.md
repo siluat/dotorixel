@@ -10,8 +10,6 @@ Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md
 
 **Migration Safety Net** — Existing TS unit tests (7 files in `src/lib/canvas/`) serve as the behavioral specification. During Rust migration, keep WASM API compatible with TS API so the same tests verify both implementations (import path change only). Browser-level E2E tests (Playwright) will be added minimally at the CI setup stage (Release).
 
-- PNG export — Rust-side encoding (replaces current Canvas2D `toDataURL` approach)
-
 ### Dual Shell PoC — Apple Native Shell
 
 SwiftUI + Metal app sharing the same Rust core via UniFFI. Targets macOS and iPadOS from a single Xcode project.

@@ -203,9 +203,9 @@
 		renderVersion++;
 	}
 
-	async function handleExportPng(): Promise<void> {
+	function handleExportPng(): void {
 		try {
-			await exportAsPng(pixelCanvas);
+			exportAsPng(pixelCanvas);
 		} catch (error) {
 			console.error('PNG export failed:', error);
 		}

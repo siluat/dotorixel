@@ -164,6 +164,11 @@ impl WasmPixelCanvas {
     pub fn is_valid_dimension(value: u32) -> bool {
         PixelCanvas::is_valid_dimension(value)
     }
+
+    pub fn encode_png(&self) -> Result<Vec<u8>, JsError> {
+        dotorixel_core::export::encode_png(&self.inner)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
 }
 
 // ---------------------------------------------------------------------------

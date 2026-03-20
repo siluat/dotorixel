@@ -5,6 +5,7 @@
 ### UniFFI setup — generate Swift bindings from `crates/core/`
 
 #### Results
+
 | File | Description |
 |------|-------------|
 | `apple/Cargo.toml` | New crate for UniFFI Swift bindings (cdylib + staticlib + lib) |

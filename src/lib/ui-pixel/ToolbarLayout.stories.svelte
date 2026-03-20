@@ -39,13 +39,26 @@
 </script>
 
 <Story name="WithBevelButton">
-	<ToolbarLayout Button={BevelButton} items={createSampleItems()} />
+	<div class="pixel-editor pixel-story-bg">
+		<ToolbarLayout Button={BevelButton} items={createSampleItems()} />
+	</div>
 </Story>
 
 <Story name="WithFlatButton">
-	<ToolbarLayout Button={FlatButton} items={createSampleItems()} />
+	<div class="pixel-editor pixel-story-bg">
+		<ToolbarLayout Button={FlatButton} items={createSampleItems()} />
+	</div>
 </Story>
 
 <Story name="EmptyItems">
-	<ToolbarLayout Button={BevelButton} items={[]} />
+	<div class="pixel-editor pixel-story-bg">
+		<ToolbarLayout Button={BevelButton} items={[]} />
+	</div>
 </Story>
+
+<style>
+	.pixel-story-bg {
+		background: oklch(0.96 0.02 75);
+		padding: 16px;
+	}
+</style>

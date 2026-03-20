@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ToolType } from '$lib/ui/toolbar-types';
+	import type { ToolType } from '$lib/canvas/tool-types';
 	import { Pencil, Eraser, ZoomOut, ZoomIn } from 'lucide-svelte';
 	import FloatingPanel from './FloatingPanel.svelte';
 	import PebbleButton from './PebbleButton.svelte';

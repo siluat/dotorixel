@@ -1,6 +1,6 @@
 import type { Component, ComponentType, Snippet } from 'svelte';
 
-export type ToolType = 'pencil' | 'eraser';
+export type { ToolType } from '$lib/canvas/tool-types';
 
 export interface ToolbarButtonProps {
 	size?: 'sm' | 'md' | 'icon';

@@ -10,38 +10,51 @@
 </script>
 
 <Story name="Default">
-	<ColorSwatchFixed color="#ff4500" />
+	<div class="pixel-editor pixel-story-bg">
+		<ColorSwatchFixed color="#ff4500" />
+	</div>
 </Story>
 
 <Story name="Selected">
-	<div class="swatch-row">
-		<ColorSwatchFixed color="#1e90ff" />
-		<ColorSwatchFixed color="#1e90ff" selected />
+	<div class="pixel-editor pixel-story-bg">
+		<div class="swatch-row">
+			<ColorSwatchFixed color="#1e90ff" />
+			<ColorSwatchFixed color="#1e90ff" selected />
+		</div>
 	</div>
 </Story>
 
 <Story name="Sizes">
-	<div class="swatch-row">
-		<div class="size-item">
-			<span class="size-label">sm</span>
-			<ColorSwatchFixed color="#00ff00" size="sm" />
-		</div>
-		<div class="size-item">
-			<span class="size-label">md</span>
-			<ColorSwatchFixed color="#00ff00" size="md" />
+	<div class="pixel-editor pixel-story-bg">
+		<div class="swatch-row">
+			<div class="size-item">
+				<span class="size-label">sm</span>
+				<ColorSwatchFixed color="#00ff00" size="sm" />
+			</div>
+			<div class="size-item">
+				<span class="size-label">md</span>
+				<ColorSwatchFixed color="#00ff00" size="md" />
+			</div>
 		</div>
 	</div>
 </Story>
 
 <Story name="PaletteGrid">
-	<div class="palette-grid">
-		{#each DEFAULT_PALETTE as color, i}
-			<ColorSwatchFixed {color} selected={i === 10} />
-		{/each}
+	<div class="pixel-editor pixel-story-bg">
+		<div class="palette-grid">
+			{#each DEFAULT_PALETTE as color, i}
+				<ColorSwatchFixed {color} selected={i === 10} />
+			{/each}
+		</div>
 	</div>
 </Story>
 
 <style>
+	.pixel-story-bg {
+		background: oklch(0.96 0.02 75);
+		padding: 16px;
+	}
+
 	.swatch-row {
 		display: flex;
 		align-items: center;

@@ -4,6 +4,7 @@ use crate::color::Color;
 
 /// Canvas pixel coordinates.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
 pub struct CanvasCoords {
     pub x: u32,
     pub y: u32,

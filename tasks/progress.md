@@ -6,11 +6,11 @@ None
 
 ## Last Completed
 
-UI theme migration — Move Pixel UI to `/pixel` page and switch default to Pebble
+UniFFI setup — generate Swift bindings from `crates/core/`, verify in Swift playground or test target
 
 ## Next Up
 
-- UniFFI setup — generate Swift bindings from `crates/core/`, verify in Swift playground or test target
+- Xcode project — Swift Package with macOS + iPadOS targets, Rust library linked
   - All other Apple Native Shell tasks depend on this
 - Create CHANGELOG.md (Keep a Changelog format)
-  - Independent of other tasks; can proceed in parallel with UniFFI
+  - Independent of other tasks; can proceed in parallel with Xcode project

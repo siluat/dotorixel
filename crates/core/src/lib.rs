@@ -1,3 +1,6 @@
+#[cfg(feature = "uniffi")]
+uniffi::setup_scaffolding!();
+
 pub mod canvas;
 pub mod color;
 pub mod export;

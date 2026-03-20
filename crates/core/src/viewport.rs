@@ -1,6 +1,7 @@
 /// Screen→canvas conversion result. May contain negative values when
 /// clicking outside canvas bounds. Distinct from `CanvasCoords(u32)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
 pub struct ScreenCanvasCoords {
     pub x: i32,
     pub y: i32,
@@ -14,6 +15,7 @@ impl ScreenCanvasCoords {
 
 /// Display area size in screen pixels.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
 pub struct ViewportSize {
     pub width: f64,
     pub height: f64,

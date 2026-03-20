@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
-	import type { ToolType } from '$lib/canvas/tool';
+	import type { ToolType } from './toolbar-types';
 	import type { ToolbarButtonProps, ToolbarItem } from './toolbar-types';
 	import ToolbarLayout from './ToolbarLayout.svelte';
 	import {

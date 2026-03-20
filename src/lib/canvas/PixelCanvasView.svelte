@@ -1,7 +1,6 @@
 <script lang="ts">
-	import type { PixelCanvas, CanvasCoords } from './canvas.ts';
-	import type { ViewportConfig, ViewportSize } from './viewport.ts';
-	import { screenToCanvas, zoomAtPoint, pan, nextZoomLevel, prevZoomLevel, computePinchZoom } from './viewport.ts';
+	import { type WasmPixelCanvas, WasmViewport } from '$wasm/dotorixel_wasm';
+	import type { CanvasCoords, ViewportSize, ViewportState } from './view-types';
 	import { createWheelInputClassifier } from './wheel-input.ts';
 	import { renderPixelCanvas } from './renderer.ts';
 
@@ -11,22 +10,31 @@
 		| { type: 'panning'; startX: number; startY: number };
 
 	interface Props {
-		pixelCanvas: PixelCanvas;
-		viewport: ViewportConfig;
+		pixelCanvas: WasmPixelCanvas;
+		viewportState: ViewportState;
 		viewportSize?: ViewportSize;
 		renderVersion?: number;
+		renderViewport: {
+			pixelSize: number;
+			zoom: number;
+			panX: number;
+			panY: number;
+			showGrid: boolean;
+			gridColor: string;
+		};
 		onDraw?: (current: CanvasCoords, previous: CanvasCoords | null) => void;
 		onDrawStart?: () => void;
 		onDrawEnd?: () => void;
-		onViewportChange?: (viewport: ViewportConfig) => void;
+		onViewportChange?: (viewport: WasmViewport) => void;
 		toolCursor?: string;
 	}
 
 	let {
 		pixelCanvas,
-		viewport,
+		viewportState,
 		viewportSize = { width: 512, height: 512 },
 		renderVersion = 0,
+		renderViewport,
 		onDraw,
 		onDrawStart,
 		onDrawEnd,
@@ -49,12 +57,13 @@
 		canvasEl.width = viewportSize.width;
 		canvasEl.height = viewportSize.height;
 
-		renderPixelCanvas(ctx, pixelCanvas, viewport, viewportSize);
+		renderPixelCanvas(ctx, pixelCanvas, renderViewport, viewportSize);
 	});
 
 	// Register wheel listener with { passive: false } to allow preventDefault
 	$effect(() => {
 		if (!canvasEl) return;
+		const vp = viewportState.viewport;
 		const handler = (event: WheelEvent) => {
 			if (event.deltaX === 0 && event.deltaY === 0) return;
 			event.preventDefault();
@@ -67,9 +76,7 @@
 			);
 
 			if (inputType === 'trackpadPan') {
-				// Negate deltas: WheelEvent positive deltaY means "content scrolls up",
-				// but in a canvas app the viewport should follow the finger direction.
-				onViewportChange?.(pan(viewport, -event.deltaX, -event.deltaY));
+				onViewportChange?.(vp.pan(-event.deltaX, -event.deltaY));
 				return;
 			}
 
@@ -78,9 +85,9 @@
 			const screenY = event.clientY - rect.top;
 
 			if (inputType === 'pinchZoom') {
-				const newZoom = computePinchZoom(viewport.zoom, event.deltaY);
-				if (newZoom !== viewport.zoom) {
-					onViewportChange?.(zoomAtPoint(viewport, screenX, screenY, newZoom));
+				const newZoom = WasmViewport.compute_pinch_zoom(vp.zoom, event.deltaY);
+				if (newZoom !== vp.zoom) {
+					onViewportChange?.(vp.zoom_at_point(screenX, screenY, newZoom));
 				}
 				return;
 			}
@@ -88,10 +95,10 @@
 			// wheelZoom: discrete level stepping (mouse wheel)
 			const isZoomIn = event.deltaY < 0;
 			const newZoom = isZoomIn
-				? nextZoomLevel(viewport.zoom)
-				: prevZoomLevel(viewport.zoom);
-			if (newZoom !== viewport.zoom) {
-				onViewportChange?.(zoomAtPoint(viewport, screenX, screenY, newZoom));
+				? WasmViewport.next_zoom_level(vp.zoom)
+				: WasmViewport.prev_zoom_level(vp.zoom);
+			if (newZoom !== vp.zoom) {
+				onViewportChange?.(vp.zoom_at_point(screenX, screenY, newZoom));
 			}
 		};
 		canvasEl.addEventListener('wheel', handler, { passive: false });
@@ -104,7 +111,11 @@
 
 	function getCanvasCoords(event: MouseEvent): CanvasCoords {
 		const rect = canvasEl!.getBoundingClientRect();
-		return screenToCanvas(event.clientX - rect.left, event.clientY - rect.top, viewport);
+		const coords = viewportState.viewport.screen_to_canvas(
+			event.clientX - rect.left,
+			event.clientY - rect.top
+		);
+		return { x: coords.x, y: coords.y };
 	}
 
 	function drawAt(coords: CanvasCoords): void {
@@ -153,7 +164,7 @@
 		const deltaY = event.clientY - interaction.startY;
 		interaction.startX = event.clientX;
 		interaction.startY = event.clientY;
-		onViewportChange?.(pan(viewport, deltaX, deltaY));
+		onViewportChange?.(viewportState.viewport.pan(deltaX, deltaY));
 	}
 
 	function handleMouseUp(): void {

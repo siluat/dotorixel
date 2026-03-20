@@ -97,4 +97,25 @@ describe('WasmPixelCanvas', () => {
 		expect(() => canvas.get_pixel(8, 0)).toThrow();
 		expect(() => canvas.set_pixel(0, 8, new WasmColor(0, 0, 0, 255))).toThrow();
 	});
+
+	it('restores pixels from a snapshot', () => {
+		const canvas = new WasmPixelCanvas(2, 2);
+		const red = new WasmColor(255, 0, 0, 255);
+		canvas.set_pixel(0, 0, red);
+		const snapshot = canvas.pixels();
+
+		canvas.clear();
+		expect(canvas.get_pixel(0, 0).a).toBe(0);
+
+		canvas.restore_pixels(snapshot);
+		const pixel = canvas.get_pixel(0, 0);
+		expect(pixel.r).toBe(255);
+		expect(pixel.a).toBe(255);
+	});
+
+	it('throws on restore_pixels with wrong length', () => {
+		const canvas = new WasmPixelCanvas(2, 2);
+		const wrongSize = new Uint8Array(8);
+		expect(() => canvas.restore_pixels(wrongSize)).toThrow();
+	});
 });

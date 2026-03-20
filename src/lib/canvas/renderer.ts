@@ -1,15 +1,35 @@
-import type { PixelCanvas } from './canvas.ts';
-import type { ViewportConfig, ViewportSize } from './viewport.ts';
-import { effectivePixelSize, getDisplaySize } from './viewport.ts';
+interface RenderableCanvas {
+	readonly width: number;
+	readonly height: number;
+	pixels(): Uint8Array;
+}
+
+interface RenderViewport {
+	readonly pixelSize: number;
+	readonly zoom: number;
+	readonly panX: number;
+	readonly panY: number;
+	readonly showGrid: boolean;
+	readonly gridColor: string;
+}
+
+interface RenderViewportSize {
+	readonly width: number;
+	readonly height: number;
+}
 
 const MIN_CHECKER_SIZE = 4;
 const CHECKER_LIGHT = '#ffffff';
 const CHECKER_DARK = '#e0e0e0';
 
+function effectivePixelSize(viewport: RenderViewport): number {
+	return Math.round(viewport.pixelSize * viewport.zoom);
+}
+
 function renderCheckerboard(
 	ctx: CanvasRenderingContext2D,
-	canvas: PixelCanvas,
-	viewport: ViewportConfig
+	canvas: RenderableCanvas,
+	viewport: RenderViewport
 ): void {
 	const scaledPixel = effectivePixelSize(viewport);
 
@@ -50,35 +70,38 @@ function renderCheckerboard(
 
 function renderPixels(
 	ctx: CanvasRenderingContext2D,
-	canvas: PixelCanvas,
-	viewport: ViewportConfig
+	canvas: RenderableCanvas,
+	viewport: RenderViewport
 ): void {
-	const displaySize = getDisplaySize(canvas, viewport);
+	const scaledPixel = effectivePixelSize(viewport);
+	const displayWidth = canvas.width * scaledPixel;
+	const displayHeight = canvas.height * scaledPixel;
 
 	const offscreen = new OffscreenCanvas(canvas.width, canvas.height);
 	const offCtx = offscreen.getContext('2d')!;
 	const imageData = new ImageData(
-		new Uint8ClampedArray(canvas.pixels),
+		new Uint8ClampedArray(canvas.pixels()),
 		canvas.width,
 		canvas.height
 	);
 	offCtx.putImageData(imageData, 0, 0);
 
 	ctx.imageSmoothingEnabled = false;
-	ctx.drawImage(offscreen, 0, 0, displaySize.width, displaySize.height);
+	ctx.drawImage(offscreen, 0, 0, displayWidth, displayHeight);
 }
 
 function renderGrid(
 	ctx: CanvasRenderingContext2D,
-	canvas: PixelCanvas,
-	viewport: ViewportConfig
+	canvas: RenderableCanvas,
+	viewport: RenderViewport
 ): void {
 	if (!viewport.showGrid) return;
 
 	const scaledPixel = effectivePixelSize(viewport);
 	if (scaledPixel < 4) return;
 
-	const displaySize = getDisplaySize(canvas, viewport);
+	const displayWidth = canvas.width * scaledPixel;
+	const displayHeight = canvas.height * scaledPixel;
 
 	ctx.strokeStyle = viewport.gridColor;
 	ctx.lineWidth = 1;
@@ -87,13 +110,13 @@ function renderGrid(
 	for (let x = 1; x < canvas.width; x++) {
 		const px = x * scaledPixel + 0.5;
 		ctx.moveTo(px, 0);
-		ctx.lineTo(px, displaySize.height);
+		ctx.lineTo(px, displayHeight);
 	}
 
 	for (let y = 1; y < canvas.height; y++) {
 		const py = y * scaledPixel + 0.5;
 		ctx.moveTo(0, py);
-		ctx.lineTo(displaySize.width, py);
+		ctx.lineTo(displayWidth, py);
 	}
 
 	ctx.stroke();
@@ -101,9 +124,9 @@ function renderGrid(
 
 export function renderPixelCanvas(
 	ctx: CanvasRenderingContext2D,
-	canvas: PixelCanvas,
-	viewport: ViewportConfig,
-	viewportSize: ViewportSize
+	canvas: RenderableCanvas,
+	viewport: RenderViewport,
+	viewportSize: RenderViewportSize
 ): void {
 	ctx.clearRect(0, 0, viewportSize.width, viewportSize.height);
 

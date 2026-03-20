@@ -27,6 +27,10 @@ pub enum PixelCanvasError {
     InvalidDimension {
         value: u32,
     },
+    InvalidBufferLength {
+        expected: usize,
+        actual: usize,
+    },
 }
 
 impl fmt::Display for PixelCanvasError {
@@ -52,6 +56,12 @@ impl fmt::Display for PixelCanvasError {
                     "Canvas dimension {value} is out of valid range [{}, {}]",
                     PixelCanvas::MIN_DIMENSION,
                     PixelCanvas::MAX_DIMENSION
+                )
+            }
+            Self::InvalidBufferLength { expected, actual } => {
+                write!(
+                    f,
+                    "Buffer length {actual} does not match expected {expected} (width * height * 4)"
                 )
             }
         }
@@ -175,6 +185,21 @@ impl PixelCanvas {
         self.pixels[i + 1] = color.g;
         self.pixels[i + 2] = color.b;
         self.pixels[i + 3] = color.a;
+        Ok(())
+    }
+
+    /// Replaces the entire pixel buffer with the given data.
+    ///
+    /// The slice length must equal `width * height * 4`.
+    pub fn restore_pixels(&mut self, data: &[u8]) -> Result<(), PixelCanvasError> {
+        let expected = (self.width * self.height * 4) as usize;
+        if data.len() != expected {
+            return Err(PixelCanvasError::InvalidBufferLength {
+                expected,
+                actual: data.len(),
+            });
+        }
+        self.pixels.copy_from_slice(data);
         Ok(())
     }
 
@@ -445,6 +470,32 @@ mod tests {
                 assert_eq!(canvas.get_pixel(x, y).unwrap(), Color::TRANSPARENT);
             }
         }
+    }
+
+    // ── restore_pixels ────────────────────────────────────────────
+
+    #[test]
+    fn restore_pixels_replaces_buffer() {
+        let mut canvas = PixelCanvas::new(2, 2).unwrap();
+        let data = vec![255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 128, 128, 128, 255];
+        canvas.restore_pixels(&data).unwrap();
+        assert_eq!(canvas.get_pixel(0, 0).unwrap(), Color::new(255, 0, 0, 255));
+        assert_eq!(canvas.get_pixel(1, 0).unwrap(), Color::new(0, 255, 0, 255));
+        assert_eq!(canvas.get_pixel(0, 1).unwrap(), Color::new(0, 0, 255, 255));
+        assert_eq!(canvas.get_pixel(1, 1).unwrap(), Color::new(128, 128, 128, 255));
+    }
+
+    #[test]
+    fn restore_pixels_rejects_wrong_length() {
+        let mut canvas = PixelCanvas::new(2, 2).unwrap();
+        let short = vec![0u8; 8];
+        assert_eq!(
+            canvas.restore_pixels(&short),
+            Err(PixelCanvasError::InvalidBufferLength {
+                expected: 16,
+                actual: 8
+            })
+        );
     }
 
     // ── resize ──────────────────────────────────────────────────

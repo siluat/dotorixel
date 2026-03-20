@@ -1,7 +1,13 @@
 <script lang="ts">
-	import { isValidCanvasDimension, CANVAS_PRESETS } from '$lib/canvas/canvas';
+	import { WasmPixelCanvas } from '$wasm/dotorixel_wasm';
 	import PixelPanel from './PixelPanel.svelte';
 	import BevelButton from './BevelButton.svelte';
+
+	const CANVAS_PRESETS = Array.from(WasmPixelCanvas.presets());
+
+	function isValidCanvasDimension(value: number): boolean {
+		return Number.isInteger(value) && WasmPixelCanvas.is_valid_dimension(value);
+	}
 
 	interface Props {
 		canvasWidth: number;

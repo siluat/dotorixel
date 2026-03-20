@@ -3,7 +3,7 @@
 	import Toolbar from './Toolbar.svelte';
 	import BevelButton from './BevelButton.svelte';
 	import FlatButton from './FlatButton.svelte';
-	import type { ToolType } from '$lib/canvas/tool';
+	import type { ToolType } from './toolbar-types';
 
 	const { Story } = defineMeta({});
 

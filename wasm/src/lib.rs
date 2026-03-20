@@ -129,6 +129,12 @@ impl WasmPixelCanvas {
         self.inner.is_inside_bounds(x, y)
     }
 
+    pub fn restore_pixels(&mut self, data: &[u8]) -> Result<(), JsError> {
+        self.inner
+            .restore_pixels(data)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
     pub fn clear(&mut self) {
         self.inner.clear();
     }

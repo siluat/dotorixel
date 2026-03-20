@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-PNG export — Rust-side encoding
+Pebble UI design exploration
 
 ## Next Up
 

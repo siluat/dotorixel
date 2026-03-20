@@ -124,7 +124,7 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 			return 'wheelZoom';
 		}
 
-		// Neither device ever confirmed — trackpadPan is the safer default.
+		// Trackpad confirmed or no device ever confirmed — trackpadPan is the safer default.
 		// An unwanted pan is far less disruptive than an unwanted discrete
 		// zoom jump (e.g., 1x → 2x).
 		return 'trackpadPan';

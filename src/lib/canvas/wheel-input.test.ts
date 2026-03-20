@@ -109,15 +109,15 @@ describe('createWheelInputClassifier', () => {
 		expect(classify(0, 4, 0, false, 2080)).toBe('trackpadPan');
 	});
 
-	it('clears mouse wheel cooldown when clear trackpad signal arrives', () => {
+	it('switches from mouse wheel to trackpad on clear signal', () => {
 		const classify = createWheelInputClassifier();
-		// Confirm mouse wheel (cooldown until 2200+300=2500)
+		// Confirm mouse wheel
 		classify(0, -120, 0, false, 2000);
 		classify(0, -120, 0, false, 2200);
-		// Clear trackpad signal (fractional deltaY) cancels mouse wheel cooldown
+		// Clear trackpad signal (fractional deltaY) switches device
 		classify(0, 3.5, 0, false, 2300);
-		// After trackpad cooldown expires (2300+120=2420), mouse wheel cooldown
-		// should NOT be active even though 2500 > 2450
+		// After trackpad cooldown expires (2300+120=2420),
+		// lastConfirmedDevice is 'trackpad' — ambiguous events default to trackpadPan
 		expect(classify(0, 4, 0, false, 2450)).toBe('trackpadPan');
 	});
 

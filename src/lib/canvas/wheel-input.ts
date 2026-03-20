@@ -23,10 +23,9 @@ export function classifyWheelInput(
 const RAPID_EVENT_THRESHOLD_MS = 30;
 const RAPID_EVENT_MIN_COUNT = 2;
 const SLOW_EVENT_MIN_COUNT = 2;
-// After a device is detected, maintain classification briefly
+// After trackpad is detected, maintain classification briefly
 // to cover short pauses within the same gesture.
 const TRACKPAD_COOLDOWN_MS = 120;
-const MOUSE_WHEEL_COOLDOWN_MS = 300;
 // Reset all detection state after a long idle period,
 // so the classifier starts fresh when the user returns.
 const IDLE_TIMEOUT_MS = 1000;
@@ -44,7 +43,6 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 	let rapidEventCount = 0;
 	let slowEventCount = 0;
 	let trackpadDetectedUntil = 0;
-	let mouseWheelDetectedUntil = 0;
 	// Persists across idle resets so the classifier remembers
 	// which device was last confirmed during the session.
 	let lastConfirmedDevice: 'trackpad' | 'mouseWheel' | null = null;
@@ -65,7 +63,6 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 				// subsequent ambiguous (integer deltaY) events within
 				// the same gesture are also classified as trackpadPan.
 				trackpadDetectedUntil = now + TRACKPAD_COOLDOWN_MS;
-				mouseWheelDetectedUntil = 0;
 				lastConfirmedDevice = 'trackpad';
 			}
 			lastEventTime = now;
@@ -110,12 +107,10 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 		// trackpad signal (fractional deltaY or non-zero deltaX) to switch.
 		if (rapidEventCount >= RAPID_EVENT_MIN_COUNT && lastConfirmedDevice !== 'mouseWheel') {
 			trackpadDetectedUntil = now + TRACKPAD_COOLDOWN_MS;
-			mouseWheelDetectedUntil = 0;
 			lastConfirmedDevice = 'trackpad';
 		}
 
 		if (slowEventCount >= SLOW_EVENT_MIN_COUNT) {
-			mouseWheelDetectedUntil = now + MOUSE_WHEEL_COOLDOWN_MS;
 			lastConfirmedDevice = 'mouseWheel';
 		}
 
@@ -124,15 +119,7 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 			return 'trackpadPan';
 		}
 
-		// Mouse wheel confirmed via cooldown — rapid events from fast scrolling
-		// are safe here because the rapid→trackpad override is blocked when
-		// lastConfirmedDevice is 'mouseWheel'.
-		if (now < mouseWheelDetectedUntil) {
-			return 'wheelZoom';
-		}
-
-		// Both cooldowns expired — use the last confirmed device to avoid
-		// misclassifying events after an idle pause or cooldown expiry.
+		// Use the last confirmed device when trackpad cooldown is inactive.
 		if (lastConfirmedDevice === 'mouseWheel') {
 			return 'wheelZoom';
 		}

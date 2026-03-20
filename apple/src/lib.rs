@@ -149,7 +149,7 @@ fn viewport_max_zoom() -> f64 {
 // ---------------------------------------------------------------------------
 
 /// Pixel canvas wrapper with interior mutability for thread-safe FFI access.
-/// See `docs/research/uniffi-mutex-decision.ko.md` for the design rationale.
+/// See `docs/decisions/uniffi-mutex-interior-mutability.ko.md` for the design rationale.
 #[derive(uniffi::Object)]
 pub struct ApplePixelCanvas {
     inner: Mutex<PixelCanvas>,

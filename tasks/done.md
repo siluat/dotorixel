@@ -18,12 +18,12 @@
 | `crates/core/src/tool.rs` | `cfg_attr` Enum derive on `ToolType` |
 | `Cargo.toml` | Added `apple` to workspace members |
 | `.gitignore` | Added `apple/generated/` |
-| `docs/research/uniffi-mutex-decision.ko.md` | Decision record for Mutex interior mutability |
+| `docs/decisions/uniffi-mutex-interior-mutability.{ko,en}.md` | ADR: Mutex interior mutability for UniFFI Object wrappers |
 | `tasks/progress.md` | Task tracking |
 
 #### Key Decisions
 - Feature flag (`cfg_attr`) on core types for Records/Enums; wrapper Objects in `apple/` crate — follows Bitwarden pattern
-- `Mutex<T>` for `ApplePixelCanvas` and `AppleHistoryManager` interior mutability (see `docs/research/uniffi-mutex-decision.ko.md`)
+- `Mutex<T>` for `ApplePixelCanvas` and `AppleHistoryManager` interior mutability (see `docs/decisions/uniffi-mutex-interior-mutability.ko.md`)
 - Unified `AppleError` flat error in apple crate instead of annotating core errors (avoids `usize`/`char` incompatibility)
 - `uniffi_reexport_scaffolding!()` in apple crate for robust multi-crate symbol export
 

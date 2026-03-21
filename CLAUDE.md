@@ -11,7 +11,7 @@ A 2D pixel art editor. Positioned as a learning-first, cross-platform tool.
 | Core Logic | TypeScript | JS-first for MVP. Migrate to Rust when performance demands it |
 | Rust/WASM | wasm-pack | Build pipeline verified. Production use when performance demands it |
 | Desktop | Tauri v2 | Same codebase as web |
-| Package Manager | bun | Also used for script execution |
+| Package Manager | bun | Always `bun run <script>`, never bare `bun <script>` |
 | Build | Vite + wasm-pack | |
 | Web Deployment | Vercel | SPA via adapter-static |
 | Testing | Vitest | Unified test runner — pure functions now, component tests later |
@@ -165,4 +165,8 @@ When porting TS logic to Rust, write idiomatic Rust — not a line-by-line trans
 - **Prioritize regression defense.** Focus test coverage on code paths where bugs would be hard to catch visually — edge cases in coordinate math, boundary conditions in flood fill, undo/redo state consistency.
 - **Don't test the framework.** Don't verify that the UI framework's reactivity or rendering works correctly — that's the framework's job. Do test your own logic that *feeds into* the framework: state derivations, event handlers, computed values.
 - **Guard the dev/prod gap.** Vite dev server (`http://localhost`) and Tauri production build (`tauri://localhost`) have different runtime behaviors — CSP enforcement, asset protocol handling, and WASM loading can all diverge. Unit tests and dev-mode verification alone cannot catch these. CI must include `tauri build` and `tauri-driver` E2E tests against the production artifact to prevent regressions that only surface in the packaged app.
+
+### Maintaining CLAUDE.md
+
+- **Integrate before creating.** When adding a rule, first check if existing content already touches the topic. Prefer strengthening an existing table cell, bullet, or section over adding a new heading. Create a new section only when the rule is standalone and integration would be awkward.
 

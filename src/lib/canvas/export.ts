@@ -10,7 +10,7 @@ export function generateExportFilename(canvas: { width: number; height: number }
 
 export function exportAsPng(canvas: PngEncodable, filename?: string): void {
 	const bytes = canvas.encode_png();
-	const blob = new Blob([bytes], { type: 'image/png' });
+	const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' });
 	const url = URL.createObjectURL(blob);
 
 	const anchor = document.createElement('a');

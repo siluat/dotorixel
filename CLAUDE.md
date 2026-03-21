@@ -92,6 +92,7 @@ When a task item is completed, notify the user and suggest using the `/task-done
 - **subject**: lowercase, no period, imperative mood
 - **body**: only when additional context is needed
 - scope: introduce when the project grows enough to need it
+- **PR title**: follows the same Conventional Commits format — squash merge makes it the final commit message on `main`
 
 ### Code Style
 

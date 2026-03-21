@@ -14,7 +14,6 @@ Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md
 
 SwiftUI + Metal app sharing the same Rust core via UniFFI. Targets macOS and iPadOS from a single Xcode project.
 
-- Basic SwiftUI UI — tool selection, color picker, canvas view (Metal surface)
 - Touch/Pencil input — Apple Pencil drawing on iPadOS, mouse drawing on macOS
 - Zoom/pan — pinch gesture (iPadOS), scroll/trackpad (macOS), shared viewport transform from core
 - Undo/redo — connected to core history module, SwiftUI toolbar integration

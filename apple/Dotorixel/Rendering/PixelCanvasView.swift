@@ -1,8 +1,8 @@
 import SwiftUI
 import MetalKit
 
-/// Default grid line color matching the web renderer's `gridColor: '#cccccc'`.
-private let defaultGridColor = SIMD4<Float>(0.8, 0.8, 0.8, 1.0)
+/// Grid line color matching Pebble UI's `--pebble-canvas-stroke: #E0DCD7`.
+private let defaultGridColor = SIMD4<Float>(0.878, 0.863, 0.843, 1.0)
 
 /// SwiftUI wrapper for the Metal-backed pixel canvas renderer.
 /// Uses `NSViewRepresentable` on macOS, `UIViewRepresentable` on iOS.
@@ -10,6 +10,9 @@ struct PixelCanvasView {
     let pixelCanvas: ApplePixelCanvas
     let viewport: AppleViewport
     let showGrid: Bool
+    /// Observed by SwiftUI to trigger re-renders when canvas pixels change.
+    /// The value itself is unused — only its change matters for the diff.
+    var canvasVersion: Int = 0
 }
 
 // MARK: - Shared helpers

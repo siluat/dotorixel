@@ -1,0 +1,28 @@
+/// Pebble UI preset palette — 2 rows × 9 columns (18 colors).
+/// Matches `pebble-palette-data.ts`.
+enum PebblePalette {
+    static let rows: [[Color]] = [
+        [
+            Color(r: 0x2D, g: 0x2D, b: 0x2D, a: 0xFF), // #2D2D2D
+            Color(r: 0xFF, g: 0xFF, b: 0xFF, a: 0xFF), // #FFFFFF
+            Color(r: 0x8B, g: 0x45, b: 0x13, a: 0xFF), // #8B4513
+            Color(r: 0xA0, g: 0x52, b: 0x2D, a: 0xFF), // #A0522D
+            Color(r: 0xCD, g: 0x85, b: 0x3F, a: 0xFF), // #CD853F
+            Color(r: 0xDE, g: 0xB8, b: 0x87, a: 0xFF), // #DEB887
+            Color(r: 0xFF, g: 0x8A, b: 0x65, a: 0xFF), // #FF8A65
+            Color(r: 0xFF, g: 0xD5, b: 0x4F, a: 0xFF), // #FFD54F
+            Color(r: 0xFF, g: 0xEE, b: 0x58, a: 0xFF), // #FFEE58
+        ],
+        [
+            Color(r: 0x4C, g: 0xAF, b: 0x72, a: 0xFF), // #4CAF72
+            Color(r: 0x1B, g: 0x5E, b: 0x32, a: 0xFF), // #1B5E32
+            Color(r: 0x81, g: 0xC7, b: 0x84, a: 0xFF), // #81C784
+            Color(r: 0x64, g: 0xB5, b: 0xF6, a: 0xFF), // #64B5F6
+            Color(r: 0x1E, g: 0x88, b: 0xE5, a: 0xFF), // #1E88E5
+            Color(r: 0x95, g: 0x75, b: 0xCD, a: 0xFF), // #9575CD
+            Color(r: 0xA1, g: 0x88, b: 0x7F, a: 0xFF), // #A1887F
+            Color(r: 0x90, g: 0xA4, b: 0xAE, a: 0xFF), // #90A4AE
+            Color(r: 0xE0, g: 0xE0, b: 0xE0, a: 0xFF), // #E0E0E0
+        ],
+    ]
+}

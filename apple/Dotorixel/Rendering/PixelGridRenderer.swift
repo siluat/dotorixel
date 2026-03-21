@@ -75,7 +75,8 @@ final class PixelGridRenderer: NSObject, MTKViewDelegate {
         mtkView.enableSetNeedsDisplay = true
 
         // Dark gray background outside the canvas area
-        mtkView.clearColor = MTLClearColor(red: 0.18, green: 0.18, blue: 0.18, alpha: 1.0)
+        // Pebble UI background: #EFECE8
+        mtkView.clearColor = MTLClearColor(red: 0.937, green: 0.925, blue: 0.910, alpha: 1.0)
     }
 
     /// Upload RGBA pixel data to the GPU texture.

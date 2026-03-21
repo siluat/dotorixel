@@ -102,7 +102,6 @@ struct TopControlsRight: View {
             }
             .buttonStyle(PebbleButtonStyle())
             .disabled(true)
-            .opacity(0.4)
 
             // Clear (disabled — future task)
             Button {} label: {
@@ -110,7 +109,6 @@ struct TopControlsRight: View {
             }
             .buttonStyle(PebbleButtonStyle())
             .disabled(true)
-            .opacity(0.4)
         }
     }
 

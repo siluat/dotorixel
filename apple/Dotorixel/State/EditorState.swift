@@ -18,11 +18,27 @@ final class EditorState {
 
     /// Manually incremented to trigger SwiftUI updates when canvas pixels change.
     var canvasVersion: Int = 0
-    var isDrawing: Bool = false
+    private(set) var isDrawing: Bool = false
+
+    /// Incremented on pushSnapshot/undo/redo to trigger `canUndo`/`canRedo` re-evaluation.
+    /// Needed because `@Observable` cannot detect internal state changes in UniFFI objects.
+    private(set) var historyVersion: Int = 0
 
     /// Current viewport dimensions in device pixels. Updated by ContentView on
     /// appear and resize; used by zoom/pan handlers for clamp_pan calculations.
     var viewportSize = ViewportSize(width: 0, height: 0)
+
+    var canUndo: Bool {
+        // Read to register @Observable dependency — actual state lives in UniFFI object
+        _ = historyVersion
+        return historyManager.canUndo()
+    }
+
+    var canRedo: Bool {
+        // Read to register @Observable dependency — actual state lives in UniFFI object
+        _ = historyVersion
+        return historyManager.canRedo()
+    }
 
     var zoomPercent: Int {
         Int(viewport.zoom() * 100)
@@ -35,6 +51,40 @@ final class EditorState {
         self.pixelCanvas = try! ApplePixelCanvas(width: width, height: height)
         self.viewport = AppleViewport.forCanvas(canvasWidth: width, canvasHeight: height)
         self.foregroundColor = Color(r: 0x2D, g: 0x2D, b: 0x2D, a: 0xFF)
+    }
+
+    // MARK: - History
+
+    func handleDrawStart() {
+        isDrawing = true
+        historyManager.pushSnapshot(pixels: pixelCanvas.pixels())
+        historyVersion += 1
+    }
+
+    func handleDrawEnd() {
+        isDrawing = false
+    }
+
+    /// Restores the previous canvas state from the history stack.
+    /// No-ops silently while a drawing stroke is in progress.
+    func handleUndo() {
+        guard !isDrawing else { return }
+        if let restored = historyManager.undo(currentPixels: pixelCanvas.pixels()) {
+            try? pixelCanvas.restorePixels(data: restored)
+            canvasVersion += 1
+            historyVersion += 1
+        }
+    }
+
+    /// Restores the next canvas state from the history stack.
+    /// No-ops silently while a drawing stroke is in progress.
+    func handleRedo() {
+        guard !isDrawing else { return }
+        if let restored = historyManager.redo(currentPixels: pixelCanvas.pixels()) {
+            try? pixelCanvas.restorePixels(data: restored)
+            canvasVersion += 1
+            historyVersion += 1
+        }
     }
 
     // MARK: - Viewport

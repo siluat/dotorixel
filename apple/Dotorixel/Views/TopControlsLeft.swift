@@ -8,21 +8,23 @@ struct TopControlsLeft: View {
     var body: some View {
         FloatingPanel {
             HStack(spacing: 8) {
-                // Undo (disabled — future task)
-                Button {} label: {
+                Button {
+                    editorState.handleUndo()
+                } label: {
                     Image(systemName: "arrow.uturn.backward")
                 }
                 .buttonStyle(PebbleButtonStyle())
-                .disabled(true)
-                .opacity(0.4)
+                .disabled(!editorState.canUndo)
+                .keyboardShortcut("z", modifiers: .command)
 
-                // Redo (disabled — future task)
-                Button {} label: {
+                Button {
+                    editorState.handleRedo()
+                } label: {
                     Image(systemName: "arrow.uturn.forward")
                 }
                 .buttonStyle(PebbleButtonStyle())
-                .disabled(true)
-                .opacity(0.4)
+                .disabled(!editorState.canRedo)
+                .keyboardShortcut("z", modifiers: [.command, .shift])
 
                 // Grid toggle
                 Button {

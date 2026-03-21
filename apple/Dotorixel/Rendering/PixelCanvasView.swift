@@ -158,8 +158,7 @@ extension PixelCanvasView {
 
             isInteracting = true
             lastPixel = nil
-            editorState.isDrawing = true
-            editorState.historyManager.pushSnapshot(pixels: pixelCanvas.pixels())
+            editorState.handleDrawStart()
 
             let devicePoint = convertToDevicePixels(point, in: view)
             let coords = viewport.screenToCanvas(screenX: devicePoint.x, screenY: devicePoint.y)
@@ -205,7 +204,7 @@ extension PixelCanvasView {
         func drawingEnded(in view: InputMTKView) {
             isInteracting = false
             lastPixel = nil
-            editorState?.isDrawing = false
+            editorState?.handleDrawEnd()
         }
 
         // MARK: - macOS zoom/pan

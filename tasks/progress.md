@@ -6,13 +6,13 @@ None
 
 ## Last Completed
 
-Zoom/pan — pinch gesture (iPadOS), scroll/trackpad (macOS), shared viewport transform from core
+Undo/redo — connected to core history module, SwiftUI toolbar integration
 
 ## Next Up
 
-- Undo/redo — connected to core history module, SwiftUI toolbar integration
-  - Last remaining Apple Native Shell feature task; depends on completed drawing + zoom/pan infrastructure.
-- Create CHANGELOG.md (Keep a Changelog format)
-  - Independent; can proceed in parallel with any other task.
 - Rendering performance — Canvas2D vs Metal FPS at various canvas sizes
-  - Both web and Metal renderers now exist; comparison can begin independently.
+  - Both shells are feature-complete; comparison can begin immediately.
+- Create CHANGELOG.md (Keep a Changelog format)
+  - Independent; no blockers.
+- Input latency — event-to-pixel-update measurement on both shells
+  - Independent; both drawing pipelines are complete.

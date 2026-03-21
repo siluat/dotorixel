@@ -4,6 +4,7 @@ import SwiftUI
 /// 40×40 rounded icon button with acorn brown active state.
 struct PebbleButtonStyle: ButtonStyle {
     var isActive: Bool = false
+    @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         let isPressed = configuration.isPressed
@@ -24,5 +25,6 @@ struct PebbleButtonStyle: ButtonStyle {
                 x: 0,
                 y: isActive ? 2 : 1
             )
+            .opacity(isEnabled ? 1.0 : 0.4)
     }
 }

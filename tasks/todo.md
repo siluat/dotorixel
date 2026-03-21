@@ -10,12 +10,6 @@ Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md
 
 **Migration Safety Net** — Existing TS unit tests (7 files in `src/lib/canvas/`) serve as the behavioral specification. During Rust migration, keep WASM API compatible with TS API so the same tests verify both implementations (import path change only). Browser-level E2E tests (Playwright) will be added minimally at the CI setup stage (Release).
 
-### Dual Shell PoC — Apple Native Shell
-
-SwiftUI + Metal app sharing the same Rust core via UniFFI. Targets macOS and iPadOS from a single Xcode project.
-
-- Undo/redo — connected to core history module, SwiftUI toolbar integration
-
 ### Dual Shell PoC — Platform Comparison
 
 Record findings in `docs/comparison/` as each feature is implemented on both shells.

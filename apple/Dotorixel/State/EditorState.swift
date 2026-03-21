@@ -10,6 +10,7 @@ import SwiftUI
 final class EditorState {
     var pixelCanvas: ApplePixelCanvas
     var viewport: AppleViewport
+    let historyManager = AppleHistoryManager.defaultManager()
     var activeTool: ToolType = .pencil
     /// Default foreground color matches Pebble's #2D2D2D.
     var foregroundColor: Color
@@ -17,6 +18,7 @@ final class EditorState {
 
     /// Manually incremented to trigger SwiftUI updates when canvas pixels change.
     var canvasVersion: Int = 0
+    var isDrawing: Bool = false
 
     init(
         width: UInt32 = 16,

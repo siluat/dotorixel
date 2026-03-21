@@ -18,6 +18,7 @@ struct ContentView: View {
                     pixelCanvas: editorState.pixelCanvas,
                     viewport: editorState.viewport,
                     showGrid: editorState.showGrid,
+                    editorState: editorState,
                     canvasVersion: editorState.canvasVersion
                 )
                 .onAppear { fitCanvas(in: geo.size) }

@@ -14,17 +14,17 @@ When a task item is completed, follow these steps in order, then create a git co
 Add a record at the top of `tasks/done.md` (just below `# Done`) using the following format.
 
 ```text
-### Task Title
+## Task Title
 
-#### Results
+### Results
 | File | Description |
 |------|-------------|
 | `file/path` | description |
 
-#### Key Decisions
+### Key Decisions
 - Which option was chosen and why
 
-#### Notes
+### Notes
 - Exceptions, caveats, or anything that may affect follow-up work
 ```
 

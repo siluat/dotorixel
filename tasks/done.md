@@ -1,26 +1,26 @@
 # Done
 
-### Touch drag continuous painting — Mouse Events → Pointer Events migration
+## Touch drag continuous painting — Mouse Events → Pointer Events migration
 
-#### Results
+### Results
 
 | File | Description |
 |------|-------------|
 | `src/lib/canvas/PixelCanvasView.svelte` | Migrated all mouse event handlers to Pointer Events API; added `touch-action: none`, multi-touch guard, `pointercancel` handler |
 | `tasks/todo.md` | Added Code Health section with `svelte-check` errors/warnings found during verification |
 
-#### Key Decisions
+### Key Decisions
 - Pointer Events API over adding separate touch handlers — unified API inherits `MouseEvent`, single handler covers mouse/touch/stylus
 - Multi-touch guard (`if (interaction.type !== 'idle') return`) at `pointerDown` entry — prevents second finger from disrupting active stroke
 - `pointercancel` reuses `handlePointerUp` — keeps interaction state clean when system gestures cancel touch
 
-#### Notes
+### Notes
 - Touch implicit capture means `pointerleave` won't fire during touch drag — drawing ends only on `pointerup`/`pointercancel`
 - Touch-based panning (2-finger pan/zoom) is not yet supported — touch is drawing-only for now
 
-### Metal pixel grid renderer — minimal Metal pipeline rendering the pixel buffer
+## Metal pixel grid renderer — minimal Metal pipeline rendering the pixel buffer
 
-#### Results
+### Results
 
 | File | Description |
 |------|-------------|
@@ -29,18 +29,18 @@
 | `apple/Dotorixel/Rendering/PixelCanvasView.swift` | SwiftUI wrapper — `NSViewRepresentable` (macOS) / `UIViewRepresentable` (iOS) with shared Coordinator |
 | `apple/Dotorixel/ContentView.swift` | Replaced placeholder with 8×8 test canvas (RGB + semi-transparent yellow + white diagonal) |
 
-#### Key Decisions
+### Key Decisions
 - Single fullscreen quad + fragment shader over multi-pass rendering — checkerboard, pixel data, grid all computed per-fragment in one draw call
 - On-demand rendering (`isPaused=true`, `enableSetNeedsDisplay=true`) — pixel art editor doesn't need 60fps, saves battery
 - Viewport size read from `drawableSize` at draw time — avoids first-frame zero-size issue when SwiftUI hasn't laid out the MTKView yet
 
-#### Notes
+### Notes
 - Canvas is positioned at top-left (panOffset 0,0) — centering will come with zoom/pan input task
 - Xcode 26 beta requires separate Metal Toolchain download (`xcodebuild -downloadComponent MetalToolchain`)
 
-### Xcode project — macOS + iPadOS targets, Rust library linked
+## Xcode project — macOS + iPadOS targets, Rust library linked
 
-#### Results
+### Results
 
 | File | Description |
 |------|-------------|
@@ -52,20 +52,20 @@
 | `apple/Dotorixel/Assets.xcassets/` | Minimal asset catalog with AppIcon (empty placeholders) and AccentColor |
 | `.gitignore` | Added `apple/Dotorixel.xcodeproj/` and `apple/build/` |
 
-#### Key Decisions
+### Key Decisions
 - XcodeGen over checked-in `.xcodeproj` — reproducible YAML definition, `.xcodeproj` gitignored
 - Bridging header over Clang modules — two UniFFI headers share `RustBuffer`/`ForeignBytes` types via `UNIFFI_SHARED_H` guard; separate modules would create distinct types causing compile errors
 - Direct static library linking over SPM/XCFramework — sufficient for app target, avoids multi-architecture packaging complexity
 - `GENERATE_INFOPLIST_FILE: YES` — Xcode auto-generates Info.plist, no manual plist management needed
 
-#### Notes
+### Notes
 - `xcodegen generate` must be run from `apple/` directory before opening in Xcode
 - CLI builds require `CODE_SIGN_IDENTITY="-" CODE_SIGNING_ALLOWED=NO` (no development team configured yet)
 - Build script bootstraps Swift bindings if `apple/generated/` is empty
 
-### UniFFI setup — generate Swift bindings from `crates/core/`
+## UniFFI setup — generate Swift bindings from `crates/core/`
 
-#### Results
+### Results
 
 | File | Description |
 |------|-------------|
@@ -83,20 +83,20 @@
 | `docs/decisions/uniffi-mutex-interior-mutability.{ko,en}.md` | ADR: Mutex interior mutability for UniFFI Object wrappers |
 | `tasks/progress.md` | Task tracking |
 
-#### Key Decisions
+### Key Decisions
 - Feature flag (`cfg_attr`) on core types for Records/Enums; wrapper Objects in `apple/` crate — follows Bitwarden pattern
 - `Mutex<T>` for `ApplePixelCanvas` and `AppleHistoryManager` interior mutability (see `docs/decisions/uniffi-mutex-interior-mutability.ko.md`)
 - Unified `AppleError` flat error in apple crate instead of annotating core errors (avoids `usize`/`char` incompatibility)
 - `uniffi_reexport_scaffolding!()` in apple crate for robust multi-crate symbol export
 
-#### Notes
+### Notes
 - Generated Swift files (`apple/generated/`) are gitignored; regenerate with `cargo run -p dotorixel-apple --bin uniffi-bindgen -- generate --library target/debug/libdotorixel_apple.dylib --language swift --out-dir apple/generated`
 - UniFFI Objects don't support associated functions (static methods) — constants/utilities exposed as free functions
 - This does not produce a runnable macOS/iPadOS app; Xcode project integration is the next task
 
-### UI theme migration — Move Pixel UI to `/pixel` page and switch default to Pebble
+## UI theme migration — Move Pixel UI to `/pixel` page and switch default to Pebble
 
-#### Results
+### Results
 
 | File | Description |
 |------|-------------|
@@ -110,17 +110,17 @@
 | `.storybook/preview.ts` | Added `pixel-tokens.css` import |
 | `src/lib/ui-pixel/*.stories.svelte` | `class="pixel-editor pixel-story-bg"` wrapper added to all 12 story files |
 
-#### Key Decisions
+### Key Decisions
 - Universal load redirect (`+page.ts`) — `+page.server.ts` incompatible with `adapter-static` (no runtime server)
 - Directory renamed `ui/` → `ui-pixel/` to mirror `ui-pebble/` structure; autotitle handles Storybook grouping
 - `--font-size-lg: 18px` token added (was referenced but never defined)
 
-#### Notes
+### Notes
 - Dev server restart required after structural changes (new routes, CSS import graph changes) — Vite HMR alone doesn't handle module graph restructuring
 
-### Pebble UI design exploration
+## Pebble UI design exploration
 
-#### Results
+### Results
 
 | File | Description |
 |------|-------------|
@@ -138,19 +138,19 @@
 | `src/routes/pebble/+page.svelte` | Full editor page — full-screen canvas with floating overlay UI |
 | `.storybook/preview.ts` | Added `pebble-tokens.css` import for Storybook |
 
-#### Key Decisions
+### Key Decisions
 - Acorn brown accent (`oklch(0.55 0.15 45)`) reused from existing primary color for brand consistency
 - `EditorState` class extracted to eliminate duplicated state/handler logic between pages
 - Full-screen canvas with `ResizeObserver`-driven viewport sizing (Figma-like infinite canvas pattern)
 - Originally named "Blossom", renamed to "Pebble" to match the rounded panel shapes + warm earth tones
 
-#### Notes
+### Notes
 - Existing `/` page is untouched — `EditorState` can be adopted there later
 - Canvas resize preserves viewport position (`clamp_pan`) instead of resetting (`for_canvas`)
 
-### PNG export — Rust-side encoding
+## PNG export — Rust-side encoding
 
-#### Results
+### Results
 
 | File | Description |
 |------|-------------|
@@ -161,13 +161,13 @@
 | `src/lib/canvas/export.ts` | Replaced Canvas2D encoding with WASM `encode_png()` call, async → sync |
 | `src/routes/+page.svelte` | Updated `handleExportPng` from async to sync |
 
-#### Key Decisions
+### Key Decisions
 - Used `Cursor<&mut Vec<u8>>` to write PNG into memory buffer without file I/O
 - Converted `exportAsPng` from async to sync since Rust encoding is synchronous
 
-### TS→WASM migration — replace TS core imports with WASM bindings in Svelte components
+## TS→WASM migration — replace TS core imports with WASM bindings in Svelte components
 
-#### Results
+### Results
 
 | File | Description |
 |------|-------------|
@@ -187,19 +187,19 @@
 | `src/lib/canvas/legacy/` | Preserved replaced TS modules with migration guide README |
 | `vitest.config.ts` | Excluded legacy folder from test discovery |
 
-#### Key Decisions
+### Key Decisions
 - Decoupled renderer and export from WASM via local interfaces (`RenderableCanvas`, `ExportableCanvas`) — avoids tight coupling to WASM types
 - Co-located shared types with their consumers rather than a central types file
 - Preserved legacy TS modules in `legacy/` folder with README for reference during migration verification
 - Async WASM initialization at layout level — single `init()` call before any component mounts
 
-#### Notes
+### Notes
 - 161 Rust tests + 93 TS tests passing (legacy tests excluded)
 - All core logic (canvas, viewport, history, tool) now executes Rust-compiled WASM
 
-### WASM bindings — wasm-bindgen interface, Svelte integration verified
+## WASM bindings — wasm-bindgen interface, Svelte integration verified
 
-#### Results
+### Results
 
 | File | Description |
 |------|-------------|
@@ -215,7 +215,7 @@
 | `package.json` | Updated `test` script to `bun run wasm:build && vitest run` |
 | `tasks/todo.md` | Added "TS→WASM migration" task between WASM bindings and PNG export |
 
-#### Key Decisions
+### Key Decisions
 - `js-sys` dependency not needed — `Option<Vec<u8>>` auto-converts to `Uint8Array | undefined` in wasm-bindgen 0.2.114
 - Wrapper pattern with `Wasm*` prefix — keeps `dotorixel-core` free of wasm-bindgen dependency, reusable for UniFFI
 - Copy semantics for pixel data — `Vec<u8>` → `Uint8Array` copy (4KB at 32×32), no SharedArrayBuffer complexity
@@ -223,14 +223,14 @@
 - `interpolate_pixels` returns flat `Int32Array` `[x0, y0, x1, y1, ...]` — simpler JS consumption than array of tuples
 - Associated constants exposed as static methods — wasm-bindgen limitation workaround
 
-#### Notes
+### Notes
 - Placeholder functions (`add`, `greet`) removed; `core_version()` retained
 - WASM binary size: 68.64KB (gzip: 28.11KB) including all core logic
 - 231 total tests passing (187 existing TS + 44 new WASM integration)
 
-### History — undo/redo snapshot logic (Rust core migration)
+## History — undo/redo snapshot logic (Rust core migration)
 
-#### Results
+### Results
 
 | File | Description |
 |------|-------------|
@@ -238,23 +238,23 @@
 | `crates/core/src/lib.rs` | Added `pub mod history;` and `pub use history::HistoryManager;` re-export |
 | `CLAUDE.md` | Added doc comment guideline to Rust Migration section |
 
-#### Key Decisions
+### Key Decisions
 - `Vec<u8>` snapshots instead of `PixelCanvas` — keeps history module decoupled from canvas module, matches TS approach
 - `VecDeque<Vec<u8>>` for undo stack — O(1) eviction via `pop_front()` vs `Vec::remove(0)` O(n)
 - `&[u8]` input with `.to_vec()` copy — ownership-based mutation safety, equivalent to TS `.slice()`
 - No error type — all operations are infallible, `undo`/`redo` return `Option<Vec<u8>>`
 - Doc comment guideline added — write when it adds signal (non-obvious side effects), skip when the signature speaks (trivial getters, `Option`/`Result` return semantics)
 
-### Tools — pencil, eraser (Rust core migration)
+## Tools — pencil, eraser (Rust core migration)
 
-#### Results
+### Results
 
 | File | Description |
 |------|-------------|
 | `crates/core/src/tool.rs` | `ToolType` enum (Pencil, Eraser), `apply()` method, `interpolate_pixels()` free function, 16 tests |
 | `crates/core/src/lib.rs` | Added `pub mod tool;` and `pub use tool::ToolType;` re-export |
 
-#### Key Decisions
+### Key Decisions
 - `apply()` is a method on `ToolType` — natural receiver ("pencil applies to canvas"), follows CLAUDE.md "`impl` blocks for behavior" principle
 - `interpolate_pixels()` is a free function — pure coordinate math with no natural type owner
 - Coordinates accepted as `i32` — matches `screen_to_canvas()` output which can be negative; bounds checking handled internally

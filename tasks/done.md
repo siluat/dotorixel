@@ -19,7 +19,7 @@
 - `role="application"` with `svelte-ignore` — semantically correct for custom interactive widget; Svelte's a11y rule is overly strict for this case
 
 ### Notes
-- `prepare` script uses `(svelte-kit sync || echo '') && lefthook install` — parentheses needed because `&&` has higher precedence than `||`
+- `prepare` script uses `(svelte-kit sync || echo '') && lefthook install` — parentheses for clarity (`&&` and `||` have equal precedence in POSIX shell, but most developers expect C-style precedence)
 
 ## Touch drag continuous painting — Mouse Events → Pointer Events migration
 

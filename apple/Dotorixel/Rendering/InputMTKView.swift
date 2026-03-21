@@ -9,6 +9,10 @@ protocol CanvasInputDelegate: AnyObject {
     func drawingBegan(at point: CGPoint, in view: InputMTKView)
     func drawingMoved(to point: CGPoint, in view: InputMTKView)
     func drawingEnded(in view: InputMTKView)
+    #if os(macOS)
+    func scrollWheelChanged(deltaX: CGFloat, deltaY: CGFloat, at point: CGPoint, isPrecise: Bool, in view: InputMTKView)
+    func magnifyChanged(magnification: CGFloat, at point: CGPoint, in view: InputMTKView)
+    #endif
 }
 
 /// MTKView subclass that captures native input events and forwards them
@@ -33,6 +37,26 @@ class InputMTKView: MTKView {
 
     override func mouseUp(with event: NSEvent) {
         inputDelegate?.drawingEnded(in: self)
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        inputDelegate?.scrollWheelChanged(
+            deltaX: event.scrollingDeltaX,
+            deltaY: event.scrollingDeltaY,
+            at: point,
+            isPrecise: event.hasPreciseScrollingDeltas,
+            in: self
+        )
+    }
+
+    override func magnify(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        inputDelegate?.magnifyChanged(
+            magnification: event.magnification,
+            at: point,
+            in: self
+        )
     }
 
     #else

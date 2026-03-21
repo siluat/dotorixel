@@ -94,12 +94,28 @@ extension PixelCanvasView: UIViewRepresentable {
         mtkView.device = device
         mtkView.colorPixelFormat = .bgra8Unorm
         mtkView.inputDelegate = context.coordinator
-        mtkView.isMultipleTouchEnabled = false
+        mtkView.isMultipleTouchEnabled = true
 
         if let renderer = PixelGridRenderer(mtkView: mtkView) {
             context.coordinator.renderer = renderer
             mtkView.delegate = renderer
         }
+
+        let pinch = UIPinchGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handlePinch(_:))
+        )
+        pinch.cancelsTouchesInView = true
+        mtkView.addGestureRecognizer(pinch)
+
+        let pan = UIPanGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handleTwoFingerPan(_:))
+        )
+        pan.minimumNumberOfTouches = 2
+        pan.maximumNumberOfTouches = 2
+        pan.cancelsTouchesInView = true
+        mtkView.addGestureRecognizer(pan)
 
         return mtkView
     }
@@ -129,6 +145,11 @@ extension PixelCanvasView {
 
         private var isInteracting = false
         private var lastPixel: ScreenCanvasCoords?
+
+        #if !os(macOS)
+        /// Tracks cumulative pinch scale for computing per-frame deltas on iPadOS.
+        private var lastPinchScale: CGFloat = 1.0
+        #endif
 
         // MARK: - CanvasInputDelegate
 
@@ -186,6 +207,107 @@ extension PixelCanvasView {
             lastPixel = nil
             editorState?.isDrawing = false
         }
+
+        // MARK: - macOS zoom/pan
+
+        #if os(macOS)
+        func scrollWheelChanged(
+            deltaX: CGFloat, deltaY: CGFloat,
+            at point: CGPoint, isPrecise: Bool,
+            in view: InputMTKView
+        ) {
+            guard let viewport, let editorState else { return }
+
+            if isPrecise {
+                // Trackpad two-finger scroll → pan
+                let scale = view.window?.backingScaleFactor ?? 1.0
+                let panned = viewport.pan(
+                    deltaX: -deltaX * scale,
+                    deltaY: -deltaY * scale
+                )
+                editorState.handleViewportChange(panned)
+            } else {
+                // Mouse wheel → discrete zoom at cursor position
+                guard deltaY != 0 else { return }
+                let devicePoint = convertToDevicePixels(point, in: view)
+                let currentZoom = viewport.zoom()
+                let newZoom = deltaY > 0
+                    ? viewportNextZoomLevel(currentZoom: currentZoom)
+                    : viewportPrevZoomLevel(currentZoom: currentZoom)
+                let zoomed = viewport.zoomAtPoint(
+                    screenX: devicePoint.x, screenY: devicePoint.y, newZoom: newZoom
+                )
+                editorState.handleViewportChange(zoomed)
+            }
+        }
+
+        func magnifyChanged(
+            magnification: CGFloat,
+            at point: CGPoint,
+            in view: InputMTKView
+        ) {
+            guard let viewport, let editorState else { return }
+
+            let devicePoint = convertToDevicePixels(point, in: view)
+            let currentZoom = viewport.zoom()
+            let newZoom = viewportClampZoom(zoom: currentZoom * (1.0 + magnification))
+            let zoomed = viewport.zoomAtPoint(
+                screenX: devicePoint.x, screenY: devicePoint.y, newZoom: newZoom
+            )
+            editorState.handleViewportChange(zoomed)
+        }
+        #endif
+
+        // MARK: - iPadOS gestures
+
+        #if !os(macOS)
+        @objc func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
+            guard let view = recognizer.view as? InputMTKView,
+                  let viewport, let editorState else { return }
+
+            switch recognizer.state {
+            case .began:
+                lastPinchScale = 1.0
+            case .changed:
+                let scaleDelta = recognizer.scale / lastPinchScale
+                lastPinchScale = recognizer.scale
+
+                let center = recognizer.location(in: view)
+                let devicePoint = convertToDevicePixels(center, in: view)
+                let currentZoom = viewport.zoom()
+                let newZoom = viewportClampZoom(zoom: currentZoom * scaleDelta)
+                let zoomed = viewport.zoomAtPoint(
+                    screenX: devicePoint.x, screenY: devicePoint.y, newZoom: newZoom
+                )
+                editorState.handleViewportChange(zoomed)
+            case .ended, .cancelled:
+                lastPinchScale = 1.0
+            default:
+                break
+            }
+        }
+
+        @objc func handleTwoFingerPan(_ recognizer: UIPanGestureRecognizer) {
+            guard let view = recognizer.view as? InputMTKView,
+                  let viewport, let editorState else { return }
+
+            switch recognizer.state {
+            case .changed:
+                let translation = recognizer.translation(in: view)
+                let scale = view.contentScaleFactor
+                let panned = viewport.pan(
+                    deltaX: translation.x * scale,
+                    deltaY: translation.y * scale
+                )
+                editorState.handleViewportChange(panned)
+                recognizer.setTranslation(.zero, in: view)
+            case .ended, .cancelled:
+                break
+            default:
+                break
+            }
+        }
+        #endif
 
         // MARK: - Private
 

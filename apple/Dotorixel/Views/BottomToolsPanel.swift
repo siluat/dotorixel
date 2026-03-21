@@ -26,28 +26,31 @@ struct BottomToolsPanel: View {
 
                 separator
 
-                // Zoom Out (disabled — future task)
-                Button {} label: {
+                // Zoom Out
+                Button {
+                    editorState.handleZoomOut()
+                } label: {
                     Image(systemName: "minus.magnifyingglass")
                 }
                 .buttonStyle(PebbleButtonStyle())
-                .disabled(true)
-                .opacity(0.4)
 
-                // Zoom label
-                Text("100%")
+                // Zoom label — tap to fit canvas
+                Text("\(editorState.zoomPercent)%")
                     .font(.system(size: PebbleTokens.fontSize))
                     .foregroundStyle(PebbleTokens.textSecondary)
                     .frame(minWidth: 44)
                     .monospacedDigit()
+                    .onTapGesture {
+                        editorState.handleFit()
+                    }
 
-                // Zoom In (disabled — future task)
-                Button {} label: {
+                // Zoom In
+                Button {
+                    editorState.handleZoomIn()
+                } label: {
                     Image(systemName: "plus.magnifyingglass")
                 }
                 .buttonStyle(PebbleButtonStyle())
-                .disabled(true)
-                .opacity(0.4)
             }
             .frame(height: 40)
         }

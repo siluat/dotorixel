@@ -109,7 +109,7 @@
 		interaction.type === 'panning' ? 'grabbing' : isSpaceHeld ? 'grab' : toolCursor
 	);
 
-	function getCanvasCoords(event: MouseEvent): CanvasCoords {
+	function getCanvasCoords(event: PointerEvent): CanvasCoords {
 		const rect = canvasEl!.getBoundingClientRect();
 		const coords = viewportState.viewport.screen_to_canvas(
 			event.clientX - rect.left,
@@ -126,7 +126,9 @@
 		onDraw?.(coords, lastPixel);
 	}
 
-	function handleMouseDown(event: MouseEvent): void {
+	function handlePointerDown(event: PointerEvent): void {
+		if (interaction.type !== 'idle') return;
+
 		const isMiddleClick = event.button === 1;
 		const isLeftClick = event.button === 0;
 
@@ -148,12 +150,12 @@
 		drawAt(getCanvasCoords(event));
 	}
 
-	function handleMouseMove(event: MouseEvent): void {
+	function handlePointerMove(event: PointerEvent): void {
 		if (interaction.type !== 'drawing') return;
 		drawAt(getCanvasCoords(event));
 	}
 
-	function handleWindowMouseMove(event: MouseEvent): void {
+	function handleWindowPointerMove(event: PointerEvent): void {
 		if (interaction.type !== 'panning') return;
 		const hasLostMouseUp = event.buttons === 0;
 		if (hasLostMouseUp) {
@@ -167,14 +169,14 @@
 		onViewportChange?.(viewportState.viewport.pan(deltaX, deltaY));
 	}
 
-	function handleMouseUp(): void {
+	function handlePointerUp(): void {
 		if (interaction.type === 'drawing') {
 			onDrawEnd?.();
 		}
 		interaction = { type: 'idle' };
 	}
 
-	function handleMouseLeave(event: MouseEvent): void {
+	function handlePointerLeave(event: PointerEvent): void {
 		if (interaction.type === 'drawing') {
 			drawAt(getCanvasCoords(event));
 			onDrawEnd?.();
@@ -212,8 +214,8 @@
 </script>
 
 <svelte:window
-	onmousemove={handleWindowMouseMove}
-	onmouseup={handleMouseUp}
+	onpointermove={handleWindowPointerMove}
+	onpointerup={handlePointerUp}
 	onkeydown={handleKeyDown}
 	onkeyup={handleKeyUp}
 	onblur={handleWindowBlur}
@@ -225,14 +227,16 @@
 	role="img"
 	aria-label="Pixel art canvas"
 	style:cursor={cursorStyle}
-	onmousedown={handleMouseDown}
-	onmousemove={handleMouseMove}
-	onmouseleave={handleMouseLeave}
+	onpointerdown={handlePointerDown}
+	onpointermove={handlePointerMove}
+	onpointerleave={handlePointerLeave}
+	onpointercancel={handlePointerUp}
 ></canvas>
 
 <style>
 	.pixel-canvas {
 		display: block;
 		image-rendering: pixelated;
+		touch-action: none;
 	}
 </style>

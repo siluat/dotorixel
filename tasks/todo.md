@@ -29,6 +29,16 @@ Record findings in `docs/comparison/` as each feature is implemented on both she
 - Implementation effort — per-feature LOC and time comparison
 - Responsive layout — extract SwiftUI size class transitions, adapt to web CSS breakpoints
 
+### Code Health
+
+- Fix `svelte-check` type errors and warnings
+  - `src/lib/wasm/init.ts`: `Promise<void | InitOutput>` → `Promise<void>` 타입 불일치 (line 5, 7)
+  - `src/lib/canvas/export.ts`: `Uint8Array` → `BlobPart` 타입 불일치 (line 13)
+  - `src/lib/canvas/legacy/canvas.ts`: `./color.ts` 모듈 못 찾음
+  - `src/lib/canvas/legacy/viewport.test.ts`: `./canvas.legacy.ts` 모듈 못 찾음
+  - `src/lib/wasm/setup.ts`: `node:fs`, `node:path` 모듈 및 `process` 타입 미인식
+  - `src/lib/canvas/PixelCanvasView.svelte`: `<canvas>` 요소에 `role="img"` a11y 경고
+
 ### Release
 
 - Create CHANGELOG.md (Keep a Changelog format)

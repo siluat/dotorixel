@@ -157,8 +157,8 @@
 
 	function handleWindowPointerMove(event: PointerEvent): void {
 		if (interaction.type !== 'panning') return;
-		const hasLostMouseUp = event.buttons === 0;
-		if (hasLostMouseUp) {
+		const hasNoButtonsPressed = event.buttons === 0;
+		if (hasNoButtonsPressed) {
 			interaction = { type: 'idle' };
 			return;
 		}

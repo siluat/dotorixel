@@ -54,7 +54,7 @@ struct BottomColorPalette: View {
                 editorState.foregroundColor = Color(resolved: newColor.resolve(in: EnvironmentValues()))
             }
         )
-        return ColorPicker("", selection: binding)
+        return ColorPicker("Foreground color", selection: binding)
             .labelsHidden()
             .frame(width: 32, height: 32)
     }

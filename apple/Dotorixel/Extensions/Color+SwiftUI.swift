@@ -1,6 +1,11 @@
 import SwiftUI
 
 extension Color {
+    /// Uppercase hex string representation, e.g. `#FF8A65`.
+    var hexString: String {
+        String(format: "#%02X%02X%02X", r, g, b)
+    }
+
     /// Converts UniFFI `Color` (sRGB UInt8) to `SwiftUI.Color`.
     var swiftUIColor: SwiftUI.Color {
         SwiftUI.Color(

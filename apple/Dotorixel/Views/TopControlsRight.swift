@@ -7,8 +7,11 @@ struct TopControlsRight: View {
 
     @State private var inputWidth: String = ""
     @State private var inputHeight: String = ""
+    @FocusState private var focusedField: Field?
 
     private let presets: [UInt32] = canvasPresets()
+
+    private enum Field { case width, height }
 
     var body: some View {
         FloatingPanel {
@@ -22,6 +25,12 @@ struct TopControlsRight: View {
         .onAppear {
             inputWidth = String(editorState.pixelCanvas.width())
             inputHeight = String(editorState.pixelCanvas.height())
+        }
+        // Mirrors the web's onblur commit — when either field loses focus,
+        // commit the resize. This also covers iPad's numberPad which has
+        // no Return key to trigger .onSubmit.
+        .onChange(of: focusedField) { _, newValue in
+            if newValue == nil { commitResize() }
         }
     }
 
@@ -54,15 +63,15 @@ struct TopControlsRight: View {
 
     private var sizeInputs: some View {
         HStack(spacing: 4) {
-            sizeInput(text: $inputWidth, title: "Canvas width")
+            sizeInput(text: $inputWidth, field: .width, title: "Canvas width")
             Text("×")
                 .font(.system(size: PebbleTokens.fontSize))
                 .foregroundStyle(PebbleTokens.textMuted)
-            sizeInput(text: $inputHeight, title: "Canvas height")
+            sizeInput(text: $inputHeight, field: .height, title: "Canvas height")
         }
     }
 
-    private func sizeInput(text: Binding<String>, title: String) -> some View {
+    private func sizeInput(text: Binding<String>, field: Field, title: String) -> some View {
         TextField("", text: text)
             .font(.system(size: PebbleTokens.fontSize))
             .foregroundStyle(PebbleTokens.textPrimary)
@@ -75,11 +84,12 @@ struct TopControlsRight: View {
                     .stroke(PebbleTokens.panelBorder, lineWidth: 1)
             )
             .textFieldStyle(.plain)
+            .focused($focusedField, equals: field)
+            .accessibilityLabel(title)
             #if os(iOS)
             .keyboardType(.numberPad)
             #endif
             .onSubmit { commitResize() }
-            .help(title)
     }
 
     // MARK: - Action Buttons

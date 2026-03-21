@@ -35,8 +35,12 @@ struct PebbleSwatch: View {
         if let action {
             Button(action: action) { swatchContent }
                 .buttonStyle(.plain)
+                .accessibilityLabel(color.hexString)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
         } else {
             swatchContent
+                .accessibilityLabel(color.hexString)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
     }
 

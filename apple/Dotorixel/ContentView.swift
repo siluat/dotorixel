@@ -54,6 +54,7 @@ struct ContentView: View {
             width: pointSize.width * displayScale,
             height: pointSize.height * displayScale
         )
+        editorState.viewportSize = deviceSize
         editorState.viewport = editorState.viewport.fitToViewport(
             canvasWidth: editorState.pixelCanvas.width(),
             canvasHeight: editorState.pixelCanvas.height(),

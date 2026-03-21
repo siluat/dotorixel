@@ -14,7 +14,6 @@ Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md
 
 SwiftUI + Metal app sharing the same Rust core via UniFFI. Targets macOS and iPadOS from a single Xcode project.
 
-- Zoom/pan — pinch gesture (iPadOS), scroll/trackpad (macOS), shared viewport transform from core
 - Undo/redo — connected to core history module, SwiftUI toolbar integration
 
 ### Dual Shell PoC — Platform Comparison

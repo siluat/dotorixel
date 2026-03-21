@@ -6,12 +6,12 @@ None
 
 ## Last Completed
 
-Touch/Pencil input — Apple Pencil drawing on iPadOS, mouse drawing on macOS
+Zoom/pan — pinch gesture (iPadOS), scroll/trackpad (macOS), shared viewport transform from core
 
 ## Next Up
 
-- Zoom/pan — pinch gesture (iPadOS), scroll/trackpad (macOS), shared viewport transform from core
-  - Depends on Touch/Pencil input (done). Next in Apple Native Shell sequence; meaningful testing requires drawing input to verify viewport transforms.
+- Undo/redo — connected to core history module, SwiftUI toolbar integration
+  - Last remaining Apple Native Shell feature task; depends on completed drawing + zoom/pan infrastructure.
 - Create CHANGELOG.md (Keep a Changelog format)
   - Independent; can proceed in parallel with any other task.
 - Rendering performance — Canvas2D vs Metal FPS at various canvas sizes

@@ -20,6 +20,14 @@ final class EditorState {
     var canvasVersion: Int = 0
     var isDrawing: Bool = false
 
+    /// Current viewport dimensions in device pixels. Updated by ContentView on
+    /// appear and resize; used by zoom/pan handlers for clamp_pan calculations.
+    var viewportSize = ViewportSize(width: 0, height: 0)
+
+    var zoomPercent: Int {
+        Int(viewport.zoom() * 100)
+    }
+
     init(
         width: UInt32 = 16,
         height: UInt32 = 16
@@ -27,5 +35,48 @@ final class EditorState {
         self.pixelCanvas = try! ApplePixelCanvas(width: width, height: height)
         self.viewport = AppleViewport.forCanvas(canvasWidth: width, canvasHeight: height)
         self.foregroundColor = Color(r: 0x2D, g: 0x2D, b: 0x2D, a: 0xFF)
+    }
+
+    // MARK: - Viewport
+
+    /// Applies clamp_pan and updates the viewport. No canvasVersion bump needed —
+    /// replacing the viewport reference triggers @Observable change detection.
+    func handleViewportChange(_ newViewport: AppleViewport) {
+        viewport = newViewport.clampPan(
+            canvasWidth: pixelCanvas.width(),
+            canvasHeight: pixelCanvas.height(),
+            viewportSize: viewportSize
+        )
+    }
+
+    func handleZoomIn() {
+        let centerX = viewportSize.width / 2
+        let centerY = viewportSize.height / 2
+        let newZoom = viewportNextZoomLevel(currentZoom: viewport.zoom())
+        let zoomed = viewport.zoomAtPoint(screenX: centerX, screenY: centerY, newZoom: newZoom)
+        handleViewportChange(zoomed)
+    }
+
+    func handleZoomOut() {
+        let centerX = viewportSize.width / 2
+        let centerY = viewportSize.height / 2
+        let newZoom = viewportPrevZoomLevel(currentZoom: viewport.zoom())
+        let zoomed = viewport.zoomAtPoint(screenX: centerX, screenY: centerY, newZoom: newZoom)
+        handleViewportChange(zoomed)
+    }
+
+    func handleZoomReset() {
+        let centerX = viewportSize.width / 2
+        let centerY = viewportSize.height / 2
+        let zoomed = viewport.zoomAtPoint(screenX: centerX, screenY: centerY, newZoom: 1.0)
+        handleViewportChange(zoomed)
+    }
+
+    func handleFit() {
+        viewport = viewport.fitToViewport(
+            canvasWidth: pixelCanvas.width(),
+            canvasHeight: pixelCanvas.height(),
+            viewportSize: viewportSize
+        )
     }
 }

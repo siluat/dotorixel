@@ -1,7 +1,5 @@
 # Done
 
-## 2026-03-21
-
 ### Touch drag continuous painting — Mouse Events → Pointer Events migration
 
 #### Results
@@ -19,8 +17,6 @@
 #### Notes
 - Touch implicit capture means `pointerleave` won't fire during touch drag — drawing ends only on `pointerup`/`pointercancel`
 - Touch-based panning (2-finger pan/zoom) is not yet supported — touch is drawing-only for now
-
-## 2026-03-21
 
 ### Metal pixel grid renderer — minimal Metal pipeline rendering the pixel buffer
 
@@ -41,8 +37,6 @@
 #### Notes
 - Canvas is positioned at top-left (panOffset 0,0) — centering will come with zoom/pan input task
 - Xcode 26 beta requires separate Metal Toolchain download (`xcodebuild -downloadComponent MetalToolchain`)
-
-## 2026-03-21
 
 ### Xcode project — macOS + iPadOS targets, Rust library linked
 
@@ -123,8 +117,6 @@
 
 #### Notes
 - Dev server restart required after structural changes (new routes, CSS import graph changes) — Vite HMR alone doesn't handle module graph restructuring
-
-## 2026-03-20
 
 ### Pebble UI design exploration
 
@@ -235,8 +227,6 @@
 - Placeholder functions (`add`, `greet`) removed; `core_version()` retained
 - WASM binary size: 68.64KB (gzip: 28.11KB) including all core logic
 - 231 total tests passing (187 existing TS + 44 new WASM integration)
-
-## 2026-03-19
 
 ### History — undo/redo snapshot logic (Rust core migration)
 

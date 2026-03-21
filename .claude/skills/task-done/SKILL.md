@@ -11,11 +11,9 @@ When a task item is completed, follow these steps in order, then create a git co
 
 ### 1. Update done.md
 
-Add a record at the top of `tasks/done.md` (just below `# Done`) using the following format. Create a new date section if one doesn't exist.
+Add a record at the top of `tasks/done.md` (just below `# Done`) using the following format.
 
 ```text
-## YYYY-MM-DD
-
 ### Task Title
 
 #### Results

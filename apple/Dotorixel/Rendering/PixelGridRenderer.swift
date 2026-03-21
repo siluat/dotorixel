@@ -29,7 +29,7 @@ final class PixelGridRenderer: NSObject, MTKViewDelegate {
         panOffset: .zero,
         effectivePixelSize: 1,
         showGrid: 0,
-        gridColor: SIMD4<Float>(0.8, 0.8, 0.8, 1.0)
+        gridColor: .zero
     )
 
     init?(mtkView: MTKView) {

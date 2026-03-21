@@ -1,6 +1,9 @@
 import SwiftUI
 import MetalKit
 
+/// Default grid line color matching the web renderer's `gridColor: '#cccccc'`.
+private let defaultGridColor = SIMD4<Float>(0.8, 0.8, 0.8, 1.0)
+
 /// SwiftUI wrapper for the Metal-backed pixel canvas renderer.
 /// Uses `NSViewRepresentable` on macOS, `UIViewRepresentable` on iOS.
 struct PixelCanvasView {
@@ -31,7 +34,7 @@ extension PixelCanvasView {
             panY: Float(viewport.panY()),
             effectivePixelSize: eps,
             showGrid: showGrid,
-            gridColor: SIMD4<Float>(0.8, 0.8, 0.8, 1.0) // #cccccc
+            gridColor: defaultGridColor
         )
     }
 
@@ -39,7 +42,6 @@ extension PixelCanvasView {
         let view = MTKView()
         view.device = device
         view.colorPixelFormat = .bgra8Unorm
-        view.clearColor = MTLClearColor(red: 0.18, green: 0.18, blue: 0.18, alpha: 1.0)
         return view
     }
 }

@@ -8,8 +8,7 @@ struct ContentView: View {
         // 8×8 test canvas with sample pixels
         let canvas = try! ApplePixelCanvas(width: 8, height: 8)
 
-        // Red, green, blue in the top-left corner
-        try! canvas.setPixel(x: 0, y: 0, color: Color(r: 255, g: 0, b: 0, a: 255))
+        // Green and blue in the top-left area
         try! canvas.setPixel(x: 1, y: 0, color: Color(r: 0, g: 255, b: 0, a: 255))
         try! canvas.setPixel(x: 2, y: 0, color: Color(r: 0, g: 0, b: 255, a: 255))
 

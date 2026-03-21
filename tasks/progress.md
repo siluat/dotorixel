@@ -6,11 +6,11 @@ None
 
 ## Last Completed
 
-UniFFI setup — generate Swift bindings from `crates/core/`, verify in Swift playground or test target
+Xcode project — macOS + iPadOS targets, Rust library linked
 
 ## Next Up
 
-- Xcode project — Swift Package with macOS + iPadOS targets, Rust library linked
-  - All other Apple Native Shell tasks depend on this
+- Metal pixel grid renderer — minimal Metal pipeline rendering the pixel buffer
+  - First Apple Native Shell feature; depends on Xcode project (done). All subsequent Apple shell tasks (SwiftUI UI, input, zoom/pan, undo/redo) depend on this.
 - Create CHANGELOG.md (Keep a Changelog format)
-  - Independent of other tasks; can proceed in parallel with Xcode project
+  - Independent; can proceed in parallel with Metal renderer

@@ -1,0 +1,31 @@
+name: Dotorixel
+options:
+  bundleIdPrefix: com.dotorixel
+  deploymentTarget:
+    macOS: "14.0"
+    iOS: "17.0"
+
+targets:
+  Dotorixel:
+    type: application
+    supportedDestinations: [macOS, iOS]
+    sources:
+      - path: Dotorixel
+      - path: generated
+        includes:
+          - "*.swift"
+    settings:
+      base:
+        SWIFT_OBJC_BRIDGING_HEADER: $(SRCROOT)/Dotorixel/Dotorixel-Bridging-Header.h
+        HEADER_SEARCH_PATHS: $(SRCROOT)/generated
+        LIBRARY_SEARCH_PATHS: $(SRCROOT)/build/lib
+        OTHER_LDFLAGS: -ldotorixel_apple
+        PRODUCT_BUNDLE_IDENTIFIER: com.dotorixel.app
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: YES
+    preBuildScripts:
+      - name: Build Rust Library
+        script: |
+          "${SRCROOT}/scripts/build-rust.sh"
+        basedOnDependencyAnalysis: false

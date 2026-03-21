@@ -221,10 +221,13 @@
 	onblur={handleWindowBlur}
 />
 
+<!-- role="application" tells screen readers this is a custom interactive widget (pixel art canvas).
+     Svelte flags this because ARIA classifies "application" as a document-structure role, not a widget role. -->
+<!-- svelte-ignore a11y_no_interactive_element_to_noninteractive_role -->
 <canvas
 	bind:this={canvasEl}
 	class="pixel-canvas"
-	role="img"
+	role="application"
 	aria-label="Pixel art canvas"
 	style:cursor={cursorStyle}
 	onpointerdown={handlePointerDown}

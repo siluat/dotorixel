@@ -8,7 +8,7 @@
 		"dev": "bun run wasm:build && vite dev",
 		"build": "bun run wasm:build && vite build",
 		"preview": "vite preview",
-		"prepare": "svelte-kit sync || echo ''",
+		"prepare": "(svelte-kit sync || echo '') && lefthook install",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"tauri": "tauri",
@@ -19,6 +19,7 @@
 		"build-storybook": "storybook build"
 	},
 	"devDependencies": {
+		"@evilmartians/lefthook": "^2.1.4",
 		"@storybook/addon-svelte-csf": "^5.0.11",
 		"@storybook/sveltekit": "^10.2.17",
 		"@sveltejs/adapter-static": "^3.0.10",

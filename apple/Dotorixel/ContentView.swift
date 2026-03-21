@@ -1,45 +1,62 @@
 import SwiftUI
 
+/// Main editor view matching the web's Pebble UI layout.
+///
+/// Full-screen canvas with floating overlay panels:
+/// - Top-left: Undo, Redo, Grid toggle
+/// - Top-right: Canvas size presets, W×H inputs, Export, Clear
+/// - Bottom-center: Tools (Pen/Eraser, Zoom) + Color palette
 struct ContentView: View {
-    private let canvas: ApplePixelCanvas
-    private let viewport: AppleViewport
-
-    init() {
-        // 8×8 test canvas with sample pixels
-        let canvas = try! ApplePixelCanvas(width: 8, height: 8)
-
-        // Green and blue in the top-left area
-        try! canvas.setPixel(x: 1, y: 0, color: Color(r: 0, g: 255, b: 0, a: 255))
-        try! canvas.setPixel(x: 2, y: 0, color: Color(r: 0, g: 0, b: 255, a: 255))
-
-        // Semi-transparent yellow
-        try! canvas.setPixel(x: 3, y: 0, color: Color(r: 255, g: 255, b: 0, a: 128))
-
-        // White diagonal from (0,0) to (7,7)
-        for i: UInt32 in 0..<8 {
-            try! canvas.setPixel(x: i, y: i, color: Color(r: 255, g: 255, b: 255, a: 255))
-        }
-
-        self.canvas = canvas
-        self.viewport = AppleViewport.forCanvas(canvasWidth: 8, canvasHeight: 8)
-    }
+    @State private var editorState = EditorState()
+    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
-        VStack(spacing: 0) {
-            PixelCanvasView(
-                pixelCanvas: canvas,
-                viewport: viewport,
-                showGrid: true
-            )
-
-            HStack {
-                Text("DOTORIXEL")
-                    .font(.caption)
-                Text("Core v\(coreVersion())")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        ZStack {
+            // Full-screen Metal canvas
+            GeometryReader { geo in
+                PixelCanvasView(
+                    pixelCanvas: editorState.pixelCanvas,
+                    viewport: editorState.viewport,
+                    showGrid: editorState.showGrid,
+                    canvasVersion: editorState.canvasVersion
+                )
+                .onAppear { fitCanvas(in: geo.size) }
+                .onChange(of: geo.size) { _, newSize in fitCanvas(in: newSize) }
             }
-            .padding(.vertical, 4)
+
+            // Top-left controls
+            TopControlsLeft(editorState: editorState)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(PebbleTokens.edgeGap)
+
+            // Top-right controls
+            TopControlsRight(editorState: editorState)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .padding(PebbleTokens.edgeGap)
+
+            // Bottom-center: Tools + Color palette
+            HStack(spacing: 10) {
+                BottomToolsPanel(editorState: editorState)
+                BottomColorPalette(editorState: editorState)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .padding(PebbleTokens.edgeGap)
         }
+        .background(PebbleTokens.bg)
+    }
+
+    /// Fits and centers the canvas within the available view area.
+    /// Multiplies by `displayScale` because the Metal renderer uses `drawableSize`
+    /// (device pixels), not SwiftUI points.
+    private func fitCanvas(in pointSize: CGSize) {
+        let deviceSize = ViewportSize(
+            width: pointSize.width * displayScale,
+            height: pointSize.height * displayScale
+        )
+        editorState.viewport = editorState.viewport.fitToViewport(
+            canvasWidth: editorState.pixelCanvas.width(),
+            canvasHeight: editorState.pixelCanvas.height(),
+            viewportSize: deviceSize
+        )
     }
 }

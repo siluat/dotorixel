@@ -6,12 +6,12 @@ None
 
 ## Last Completed
 
-Fix `svelte-check` type errors and warnings
+Basic SwiftUI UI — tool selection, color picker, canvas view
 
 ## Next Up
 
-- Basic SwiftUI UI — tool selection, color picker, canvas view (Metal surface)
-  - Next in Apple Native Shell sequence; depends on Metal renderer (done). No cross-dependencies with other tracks.
+- Touch/Pencil input — Apple Pencil drawing on iPadOS, mouse drawing on macOS
+  - Next in Apple Native Shell sequence; depends on SwiftUI UI (done). Requires input before zoom/pan or undo/redo can be meaningfully tested.
 - Create CHANGELOG.md (Keep a Changelog format)
   - Independent; can proceed in parallel with any other task.
 - Rendering performance — Canvas2D vs Metal FPS at various canvas sizes

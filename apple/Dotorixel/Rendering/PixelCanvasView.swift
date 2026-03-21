@@ -195,7 +195,7 @@ extension PixelCanvasView {
         /// so input coordinates must be scaled the same way before calling `screenToCanvas`.
         private func convertToDevicePixels(_ point: CGPoint, in view: InputMTKView) -> (x: Double, y: Double) {
             #if os(macOS)
-            let scale = view.window?.backingScaleFactor ?? 2.0
+            let scale = view.window?.backingScaleFactor ?? 1.0
             #else
             let scale = view.contentScaleFactor
             #endif

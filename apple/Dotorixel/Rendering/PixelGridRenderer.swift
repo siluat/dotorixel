@@ -44,7 +44,6 @@ final class PixelGridRenderer: NSObject, MTKViewDelegate {
         }
         self.commandQueue = commandQueue
 
-        // Load shaders from the default Metal library
         guard let library = device.makeDefaultLibrary(),
               let vertexFunction = library.makeFunction(name: "vertex_main"),
               let fragmentFunction = library.makeFunction(name: "fragment_main") else {
@@ -56,7 +55,6 @@ final class PixelGridRenderer: NSObject, MTKViewDelegate {
         descriptor.fragmentFunction = fragmentFunction
         descriptor.colorAttachments[0].pixelFormat = mtkView.colorPixelFormat
 
-        // Enable alpha blending for the output
         descriptor.colorAttachments[0].isBlendingEnabled = true
         descriptor.colorAttachments[0].sourceRGBBlendFactor = .sourceAlpha
         descriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha

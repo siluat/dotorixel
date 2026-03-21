@@ -2,12 +2,12 @@
 using namespace metal;
 
 struct Uniforms {
-    float2 canvasSize;         // art pixel dimensions (width, height)
-    float2 viewportSize;       // drawable size in physical pixels
-    float2 panOffset;          // screen-point pan (panX, panY)
-    float  effectivePixelSize; // round(pixelSize * zoom)
-    float  showGrid;           // 1.0 or 0.0
-    float4 gridColor;          // RGBA
+    float2 canvasSize;
+    float2 viewportSize;
+    float2 panOffset;
+    float  effectivePixelSize;
+    float  showGrid;
+    float4 gridColor;
 };
 
 struct VertexOut {
@@ -27,7 +27,6 @@ vertex VertexOut vertex_main(uint vid [[vertex_id]],
     float2 corner = corners[vid];
 
     float2 displaySize = u.canvasSize * u.effectivePixelSize;
-    // Screen-space position: pan offset + corner scaled to display size
     float2 screen = round(u.panOffset) + corner * displaySize;
     // Convert to NDC: x ∈ [-1,1], y ∈ [-1,1] (Metal clip space, Y-up)
     float2 ndc = (screen / u.viewportSize) * 2.0 - 1.0;
@@ -35,7 +34,7 @@ vertex VertexOut vertex_main(uint vid [[vertex_id]],
 
     VertexOut out;
     out.position = float4(ndc, 0.0, 1.0);
-    out.uv = corner; // 0..1 over the canvas
+    out.uv = corner;
     return out;
 }
 
@@ -50,10 +49,7 @@ fragment float4 fragment_main(VertexOut in [[stage_in]],
     float2 uv = in.uv;
     float2 artPixel = floor(uv * u.canvasSize);
 
-    // Clamp to valid range (avoid sampling outside texture)
     artPixel = clamp(artPixel, float2(0), u.canvasSize - 1.0);
-
-    // Normalize to texture coordinates for sampling
     float2 texCoord = (artPixel + 0.5) / u.canvasSize;
     float4 pixelColor = canvasTex.sample(nearestSampler, texCoord);
 
@@ -77,7 +73,6 @@ fragment float4 fragment_main(VertexOut in [[stage_in]],
         checker = isDark ? checkerDark : checkerLight;
     }
 
-    // Blend pixel over checkerboard using pixel alpha
     float4 color = mix(checker, float4(pixelColor.rgb, 1.0), pixelColor.a);
 
     // --- Grid overlay ---

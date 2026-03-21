@@ -6,11 +6,13 @@ None
 
 ## Last Completed
 
-Xcode project — macOS + iPadOS targets, Rust library linked
+Metal pixel grid renderer — minimal Metal pipeline rendering the pixel buffer
 
 ## Next Up
 
-- Metal pixel grid renderer — minimal Metal pipeline rendering the pixel buffer
-  - First Apple Native Shell feature; depends on Xcode project (done). All subsequent Apple shell tasks (SwiftUI UI, input, zoom/pan, undo/redo) depend on this.
+- Basic SwiftUI UI — tool selection, color picker, canvas view (Metal surface)
+  - Next in Apple Native Shell sequence; depends on Metal renderer (done). No cross-dependencies with other tracks.
 - Create CHANGELOG.md (Keep a Changelog format)
-  - Independent; can proceed in parallel with Metal renderer
+  - Independent; can proceed in parallel with any Apple shell task.
+- Rendering performance — Canvas2D vs Metal FPS at various canvas sizes
+  - Both web and Metal renderers now exist; comparison can begin independently.

@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 023 | [Circle/Ellipse tool](records/023-ellipse-tool.md) | 2026-03-23 |
 | 022 | [Pixel page EditorState refactor](records/022-pixel-editor-state-refactor.md) | 2026-03-23 |
 | 021 | [Rectangle tool](records/021-rectangle-tool.md) | 2026-03-23 |
 | 020 | [Line tool (Bresenham line drawing)](records/020-line-tool.md) | 2026-03-22 |

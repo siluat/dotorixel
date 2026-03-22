@@ -6,7 +6,8 @@ import {
 	WasmToolType,
 	apply_tool,
 	wasm_interpolate_pixels,
-	wasm_rectangle_outline
+	wasm_rectangle_outline,
+	wasm_ellipse_outline
 } from '$wasm/dotorixel_wasm';
 import type { CanvasCoords, ViewportSize, ViewportState } from './view-types';
 import type { ToolType } from './tool-types';
@@ -17,7 +18,8 @@ const WASM_TOOL_MAP = {
 	pencil: WasmToolType.Pencil,
 	eraser: WasmToolType.Eraser,
 	line: WasmToolType.Line,
-	rectangle: WasmToolType.Rectangle
+	rectangle: WasmToolType.Rectangle,
+	ellipse: WasmToolType.Ellipse
 } as const;
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
@@ -109,10 +111,10 @@ export class EditorState {
 		this.#isDrawing = true;
 		this.#history.push_snapshot(this.pixelCanvas.pixels());
 		this.#historyVersion++;
-		if (this.activeTool === 'pencil' || this.activeTool === 'line' || this.activeTool === 'rectangle') {
+		if (this.activeTool === 'pencil' || this.activeTool === 'line' || this.activeTool === 'rectangle' || this.activeTool === 'ellipse') {
 			this.recentColors = addRecentColor(this.recentColors, colorToHex(this.foregroundColor));
 		}
-		if (this.activeTool === 'line' || this.activeTool === 'rectangle') {
+		if (this.activeTool === 'line' || this.activeTool === 'rectangle' || this.activeTool === 'ellipse') {
 			this.#previewSnapshot = new Uint8Array(this.pixelCanvas.pixels());
 		}
 	};
@@ -157,6 +159,10 @@ export class EditorState {
 		}
 		if (this.activeTool === 'rectangle') {
 			this.#handleRectangleDraw(current, previous);
+			return;
+		}
+		if (this.activeTool === 'ellipse') {
+			this.#handleEllipseDraw(current, previous);
 			return;
 		}
 
@@ -255,6 +261,45 @@ export class EditorState {
 				flat[i],
 				flat[i + 1],
 				WasmToolType.Rectangle,
+				this.#wasmForegroundColor
+			);
+		}
+		this.renderVersion++;
+	}
+
+	#handleEllipseDraw(current: CanvasCoords, previous: CanvasCoords | null): void {
+		if (previous === null) {
+			this.#shapeStart = current;
+			if (
+				apply_tool(
+					this.pixelCanvas,
+					current.x,
+					current.y,
+					WasmToolType.Ellipse,
+					this.#wasmForegroundColor
+				)
+			) {
+				this.renderVersion++;
+			}
+			return;
+		}
+
+		if (!this.#shapeStart || !this.#previewSnapshot) return;
+
+		this.pixelCanvas.restore_pixels(this.#previewSnapshot);
+
+		const flat = wasm_ellipse_outline(
+			this.#shapeStart.x,
+			this.#shapeStart.y,
+			current.x,
+			current.y
+		);
+		for (let i = 0; i < flat.length; i += 2) {
+			apply_tool(
+				this.pixelCanvas,
+				flat[i],
+				flat[i + 1],
+				WasmToolType.Ellipse,
 				this.#wasmForegroundColor
 			);
 		}

@@ -7,6 +7,7 @@
 		Pencil,
 		Slash,
 		Square,
+		Circle,
 		Eraser,
 		Undo2,
 		Redo2,
@@ -75,6 +76,13 @@
 			label: 'Rectangle',
 			active: activeTool === 'rectangle',
 			onclick: () => onToolChange('rectangle')
+		},
+		{
+			kind: 'button',
+			icon: Circle,
+			label: 'Ellipse',
+			active: activeTool === 'ellipse',
+			onclick: () => onToolChange('ellipse')
 		},
 		{
 			kind: 'button',

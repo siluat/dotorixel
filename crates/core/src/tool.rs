@@ -9,12 +9,13 @@ pub enum ToolType {
     Eraser,
     Line,
     Rectangle,
+    Ellipse,
 }
 
 impl ToolType {
     /// Applies this tool to the canvas at the given coordinates.
     ///
-    /// Pencil, Line, and Rectangle set the pixel to `foreground_color`; Eraser sets it to transparent.
+    /// Pencil, Line, Rectangle, and Ellipse set the pixel to `foreground_color`; Eraser sets it to transparent.
     /// Returns `false` if the coordinates are outside canvas bounds (including
     /// negative values). The canvas is not modified for out-of-bounds coordinates.
     pub fn apply(
@@ -33,7 +34,7 @@ impl ToolType {
             return false;
         }
         let color = match self {
-            ToolType::Pencil | ToolType::Line | ToolType::Rectangle => foreground_color,
+            ToolType::Pencil | ToolType::Line | ToolType::Rectangle | ToolType::Ellipse => foreground_color,
             ToolType::Eraser => Color::TRANSPARENT,
         };
         canvas
@@ -125,6 +126,104 @@ pub fn rectangle_outline(x0: i32, y0: i32, x1: i32, y1: i32) -> Vec<(i32, i32)> 
         for y in (min_y + 1)..max_y {
             points.push((max_x, y));
         }
+    }
+
+    points
+}
+
+/// Computes the pixel coordinates forming the outline of an ellipse inscribed
+/// in the bounding box defined by two opposite corner points.
+///
+/// The corners are normalized so drag direction doesn't matter. Degenerate
+/// cases: a single point returns `vec![(x0, y0)]`; a 1-pixel-tall or
+/// 1-pixel-wide bounding box returns a horizontal or vertical line.
+///
+/// Uses Zingl's Bresenham-style ellipse algorithm with integer arithmetic.
+/// Even-width or even-height bounding boxes (half-pixel center) are handled
+/// naturally via the `height_parity` flag.
+pub fn ellipse_outline(x0: i32, y0: i32, x1: i32, y1: i32) -> Vec<(i32, i32)> {
+    let min_x = x0.min(x1);
+    let max_x = x0.max(x1);
+    let min_y = y0.min(y1);
+    let max_y = y0.max(y1);
+
+    let w = max_x - min_x + 1;
+    let h = max_y - min_y + 1;
+
+    // Degenerate: single point
+    if w == 1 && h == 1 {
+        return vec![(min_x, min_y)];
+    }
+
+    // Degenerate: horizontal line
+    if h == 1 {
+        return (min_x..=max_x).map(|x| (x, min_y)).collect();
+    }
+
+    // Degenerate: vertical line
+    if w == 1 {
+        return (min_y..=max_y).map(|y| (min_x, y)).collect();
+    }
+
+    let mut points = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    let mut add = |px: i32, py: i32| {
+        if seen.insert((px, py)) {
+            points.push((px, py));
+        }
+    };
+
+    let a = (max_x - min_x) as i64;
+    let b = (max_y - min_y) as i64;
+    let height_parity = b & 1;
+
+    // Scanning cursors that narrow from bounding box edges toward center
+    let mut left_x = min_x;
+    let mut right_x = max_x;
+    let mut y_down = min_y + ((b as i32 + 1) / 2);
+    let mut y_up = y_down - height_parity as i32;
+
+    let mut dx = 4 * (1 - a) * b * b;
+    let mut dy = 4 * (height_parity + 1) * a * a;
+    let mut err = dx + dy + height_parity * a * a;
+
+    let a8 = 8 * a * a;
+    let b8 = 8 * b * b;
+
+    loop {
+        add(right_x, y_down);
+        add(left_x, y_down);
+        add(left_x, y_up);
+        add(right_x, y_up);
+
+        let e2 = 2 * err;
+        if e2 <= dy {
+            y_down += 1;
+            y_up -= 1;
+            dy += a8;
+            err += dy;
+        }
+        if e2 >= dx || 2 * err > dy {
+            left_x += 1;
+            right_x -= 1;
+            dx += b8;
+            err += dx;
+        }
+
+        if left_x > right_x {
+            break;
+        }
+    }
+
+    // Finish tips of flat ellipses (when x-scanning converged before
+    // y-scanning reached the bounding box edges)
+    while ((y_down - y_up) as i64) <= b {
+        add(left_x - 1, y_down);
+        add(right_x + 1, y_down);
+        y_down += 1;
+        add(left_x - 1, y_up);
+        add(right_x + 1, y_up);
+        y_up -= 1;
     }
 
     points
@@ -296,6 +395,15 @@ mod tests {
         assert_eq!(canvas.get_pixel(3, 4).unwrap(), RED);
     }
 
+    // ── ToolType::apply — ellipse ──────────────────────────────────
+
+    #[test]
+    fn ellipse_applies_foreground_color() {
+        let mut canvas = PixelCanvas::new(8, 8).unwrap();
+        ToolType::Ellipse.apply(&mut canvas, 3, 4, RED);
+        assert_eq!(canvas.get_pixel(3, 4).unwrap(), RED);
+    }
+
     // ── rectangle_outline ────────────────────────────────────────────
 
     #[test]
@@ -349,6 +457,212 @@ mod tests {
         forward.sort();
         reverse.sort();
         assert_eq!(forward, reverse);
+    }
+
+    // ── ellipse_outline ────────────────────────────────────────────
+
+    #[test]
+    fn ellipse_single_point() {
+        assert_eq!(ellipse_outline(3, 5, 3, 5), vec![(3, 5)]);
+    }
+
+    #[test]
+    fn ellipse_horizontal_line() {
+        let mut points = ellipse_outline(1, 2, 4, 2);
+        points.sort();
+        assert_eq!(points, vec![(1, 2), (2, 2), (3, 2), (4, 2)]);
+    }
+
+    #[test]
+    fn ellipse_vertical_line() {
+        let mut points = ellipse_outline(3, 0, 3, 3);
+        points.sort();
+        assert_eq!(points, vec![(3, 0), (3, 1), (3, 2), (3, 3)]);
+    }
+
+    #[test]
+    fn ellipse_odd_square_5x5() {
+        let points = ellipse_outline(0, 0, 4, 4);
+        let mut sorted = points.clone();
+        sorted.sort();
+        // 5×5 circle: axis endpoints must touch bounding box edges
+        assert!(sorted.contains(&(2, 0)), "top axis endpoint");
+        assert!(sorted.contains(&(2, 4)), "bottom axis endpoint");
+        assert!(sorted.contains(&(0, 2)), "left axis endpoint");
+        assert!(sorted.contains(&(4, 2)), "right axis endpoint");
+    }
+
+    #[test]
+    fn ellipse_even_square_4x4() {
+        let points = ellipse_outline(0, 0, 3, 3);
+        let mut sorted = points.clone();
+        sorted.sort();
+        // 4×4 circle: axis endpoints on bounding box edges
+        assert!(sorted.iter().any(|&(_, y)| y == 0), "touches top edge");
+        assert!(sorted.iter().any(|&(_, y)| y == 3), "touches bottom edge");
+        assert!(sorted.iter().any(|&(x, _)| x == 0), "touches left edge");
+        assert!(sorted.iter().any(|&(x, _)| x == 3), "touches right edge");
+    }
+
+    #[test]
+    fn ellipse_rectangular_7x5() {
+        let points = ellipse_outline(0, 0, 6, 4);
+        let mut sorted = points.clone();
+        sorted.sort();
+        assert!(sorted.contains(&(3, 0)), "top axis endpoint");
+        assert!(sorted.contains(&(3, 4)), "bottom axis endpoint");
+        assert!(sorted.contains(&(0, 2)), "left axis endpoint");
+        assert!(sorted.contains(&(6, 2)), "right axis endpoint");
+    }
+
+    #[test]
+    fn ellipse_2x2() {
+        let mut points = ellipse_outline(0, 0, 1, 1);
+        points.sort();
+        // 2×2: all 4 pixels should be filled
+        assert_eq!(points, vec![(0, 0), (0, 1), (1, 0), (1, 1)]);
+    }
+
+    #[test]
+    fn ellipse_2x3() {
+        let mut points = ellipse_outline(0, 0, 1, 2);
+        points.sort();
+        // 2×3: all 6 pixels form the outline
+        assert_eq!(points, vec![(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2)]);
+    }
+
+    #[test]
+    fn ellipse_3x2() {
+        let mut points = ellipse_outline(0, 0, 2, 1);
+        points.sort();
+        assert_eq!(points, vec![(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]);
+    }
+
+    #[test]
+    fn ellipse_3x3() {
+        let points = ellipse_outline(0, 0, 2, 2);
+        let mut sorted = points.clone();
+        sorted.sort();
+        // 3×3 circle: axis endpoints + corners form the outline
+        assert!(sorted.contains(&(1, 0)), "top");
+        assert!(sorted.contains(&(1, 2)), "bottom");
+        assert!(sorted.contains(&(0, 1)), "left");
+        assert!(sorted.contains(&(2, 1)), "right");
+    }
+
+    #[test]
+    fn ellipse_odd_x_even_mixed() {
+        // 5×4 bounding box
+        let points = ellipse_outline(0, 0, 4, 3);
+        let mut sorted = points.clone();
+        sorted.sort();
+        sorted.dedup();
+        assert_eq!(points.len(), sorted.len(), "no duplicates in odd×even");
+        assert!(sorted.iter().any(|&(_, y)| y == 0), "touches top");
+        assert!(sorted.iter().any(|&(_, y)| y == 3), "touches bottom");
+        assert!(sorted.iter().any(|&(x, _)| x == 0), "touches left");
+        assert!(sorted.iter().any(|&(x, _)| x == 4), "touches right");
+    }
+
+    #[test]
+    fn ellipse_even_x_odd_mixed() {
+        // 4×5 bounding box
+        let points = ellipse_outline(0, 0, 3, 4);
+        let mut sorted = points.clone();
+        sorted.sort();
+        sorted.dedup();
+        assert_eq!(points.len(), sorted.len(), "no duplicates in even×odd");
+        assert!(sorted.iter().any(|&(_, y)| y == 0), "touches top");
+        assert!(sorted.iter().any(|&(_, y)| y == 4), "touches bottom");
+        assert!(sorted.iter().any(|&(x, _)| x == 0), "touches left");
+        assert!(sorted.iter().any(|&(x, _)| x == 3), "touches right");
+    }
+
+    #[test]
+    fn ellipse_no_duplicate_pixels() {
+        for &(x1, y1) in &[(4, 4), (3, 3), (6, 4), (3, 4), (4, 3), (1, 1), (1, 2), (2, 1)] {
+            let points = ellipse_outline(0, 0, x1, y1);
+            let mut sorted = points.clone();
+            sorted.sort();
+            sorted.dedup();
+            assert_eq!(
+                points.len(),
+                sorted.len(),
+                "duplicates in ellipse_outline(0,0,{x1},{y1})"
+            );
+        }
+    }
+
+    #[test]
+    fn ellipse_reverse_coordinates() {
+        let mut forward = ellipse_outline(1, 1, 5, 4);
+        let mut reverse = ellipse_outline(5, 4, 1, 1);
+        forward.sort();
+        reverse.sort();
+        assert_eq!(forward, reverse);
+    }
+
+    #[test]
+    fn ellipse_x_axis_symmetry() {
+        let points = ellipse_outline(0, 0, 6, 4);
+        let mid_y = 2; // center y for 5-pixel height
+        for &(x, y) in &points {
+            let mirror_y = 2 * mid_y - y;
+            assert!(
+                points.contains(&(x, mirror_y)),
+                "({x},{y}) missing mirror ({x},{mirror_y})"
+            );
+        }
+    }
+
+    #[test]
+    fn ellipse_y_axis_symmetry() {
+        let points = ellipse_outline(0, 0, 6, 4);
+        let mid_x = 3; // center x for 7-pixel width
+        for &(x, y) in &points {
+            let mirror_x = 2 * mid_x - x;
+            assert!(
+                points.contains(&(mirror_x, y)),
+                "({x},{y}) missing mirror ({mirror_x},{y})"
+            );
+        }
+    }
+
+    #[test]
+    fn ellipse_inscribed_in_bounding_box() {
+        // Verify axis endpoints lie on the bounding box edges
+        for &(x1, y1) in &[(4, 4), (5, 3), (6, 4), (3, 5), (7, 7)] {
+            let points = ellipse_outline(0, 0, x1, y1);
+            assert!(
+                points.iter().any(|&(_, y)| y == 0),
+                "no point on top edge for (0,0)-({x1},{y1})"
+            );
+            assert!(
+                points.iter().any(|&(_, y)| y == y1),
+                "no point on bottom edge for (0,0)-({x1},{y1})"
+            );
+            assert!(
+                points.iter().any(|&(x, _)| x == 0),
+                "no point on left edge for (0,0)-({x1},{y1})"
+            );
+            assert!(
+                points.iter().any(|&(x, _)| x == x1),
+                "no point on right edge for (0,0)-({x1},{y1})"
+            );
+        }
+    }
+
+    #[test]
+    fn ellipse_all_points_within_bounds() {
+        for &(x1, y1) in &[(4, 4), (3, 3), (6, 4), (1, 1), (2, 2)] {
+            let points = ellipse_outline(0, 0, x1, y1);
+            for &(x, y) in &points {
+                assert!(
+                    x >= 0 && x <= x1 && y >= 0 && y <= y1,
+                    "point ({x},{y}) out of bounds (0,0)-({x1},{y1})"
+                );
+            }
+        }
     }
 
     // ── Snapshot-restore performance guard ─────────────────────────

@@ -1,6 +1,6 @@
 # DOTORIXEL
 
-A pixel art editor you can open in your browser and start drawing right away.
+A pixel art editor you can open anywhere and start drawing right away.
 
 ![Rust](https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white)
 ![Svelte](https://img.shields.io/badge/Svelte-FF3E00?logo=svelte&logoColor=white)

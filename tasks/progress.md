@@ -10,9 +10,9 @@ Rendering performance — Canvas2D vs Metal FPS at various canvas sizes
 
 ## Next Up
 
-- Input latency — event-to-pixel-update measurement on both shells
-  - Both drawing pipelines are complete; can proceed immediately.
-- Bundle size — Tauri `.app` vs native `.app`
+- Line tool (Bresenham), rectangle/circle, flood fill, eyedropper
+  - Core drawing logic already in Rust; extend with new tool types.
+- Grid visibility toggle
   - Independent; no blockers.
-- Create CHANGELOG.md (Keep a Changelog format)
+- HSV color picker
   - Independent; no blockers.

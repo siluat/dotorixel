@@ -1,41 +1,75 @@
 # Todo
 
-## v0.1.0: Canvas Foundation
+## v0.1.0: Usable Editor (Milestone 1)
 
-### Dual Shell PoC — Rust Core Migration
+### Basic Tool Expansion
 
-Migrate core logic from TS to Rust, one module at a time. Each step should keep both web and Tauri builds working. Run existing TS unit tests against WASM bindings after each migration step to verify no regressions.
+- Line tool (Bresenham), rectangle/circle, flood fill, eyedropper
+- Grid visibility toggle
 
-Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md`](../docs/research/cross-platform-architecture-for-best-experience.en.md)
+### Color System
 
-**Migration Safety Net** — Existing TS unit tests (7 files in `src/lib/canvas/`) serve as the behavioral specification. During Rust migration, keep WASM API compatible with TS API so the same tests verify both implementations (import path change only). Browser-level E2E tests (Playwright) will be added minimally at the CI setup stage (Release).
+- HSV color picker
+- Foreground/background color swap
 
-### Dual Shell PoC — Platform Comparison
+### Keyboard Shortcuts
 
-Record findings in `docs/comparison/` as each feature is implemented on both shells.
+- Tool shortcuts (P, E, L, F, I, R, C, G)
+- Modifier keys (Alt=eyedropper, Space=pan, Shift=constrain)
+- Edit shortcuts (Ctrl+Z/Y, X=swap colors)
 
-- Input latency — event-to-pixel-update measurement on both shells
-- Bundle size — Tauri `.app` vs native `.app`
-- Implementation effort — per-feature LOC and time comparison
-- Responsive layout — extract SwiftUI size class transitions, adapt to web CSS breakpoints
+### i18n
+
+- Internationalization — Korean/English as default languages
+
+### Analytics
+
+- Privacy-friendly analytics setup (no cookie banner required)
+  - Candidates: Umami (self-hosted), Plausible
+  - Custom event tracking: tool usage, canvas size selection, session length, export rate, device/platform
+
+### Landing Page
+
+- Minimal landing page (hero section + CTA "Start Drawing" button)
+- Feedback link to Google Form
 
 ### Release
 
 - Create CHANGELOG.md (Keep a Changelog format)
-- Set up CI (GitHub Actions: `tauri build` + Vitest + minimal Playwright E2E + `tauri-driver`)
-- Git tag v0.1.0
-- GitHub Release
+- Set up CI (GitHub Actions: Vitest + wasm-pack build + Playwright E2E)
+- Vercel production deployment
+- Git tag v0.1.0 + GitHub Release
 
-## v0.2.0: Basic Tool Expansion
+## v0.2.0: Editor for Serious Work (Milestone 2)
 
-- Decide project file format (prerequisite — must be decided before v0.2.0 work begins)
-- Line tool (Bresenham), rectangle/circle, flood fill, eyedropper
-- Grid visibility toggle
-- Internationalization (i18n) — Korean/English support
+- Layer system (add/delete/reorder, visibility, opacity)
+- Selection & transform (rect select, move, copy/paste, flip)
+- Project file format (JSON-based) + save/load
+- iPad + Apple Pencil optimization (hover preview, palm rejection)
+- Feature guide page (basic usage instructions)
+- (review) In-editor feedback widget
 
-## v0.3.0: Color System
+## v0.3.0: Animation-Capable Editor (Milestone 3)
 
-- HSV color picker, foreground/background color swap, preset palettes
+- Frame management (add/delete/duplicate/reorder)
+- Per-frame speed, timeline UI
+- Onion skinning
+- Animation preview & GIF/spritesheet export
+- (review) Public roadmap & feature voting system — depends on user base size
+
+## Future milestones (directional hypotheses — redesign based on user feedback)
+
+- v0.4.0: Editor for Game Developers (Milestone 4)
+- v0.5.0: Beyond the Editor (Milestone 5)
+
+## Deferred
+
+- Dual Shell PoC — Platform Comparison (native development deferred)
+  - Input latency — event-to-pixel-update measurement on both shells
+  - Bundle size — Tauri `.app` vs native `.app`
+  - Implementation effort — per-feature LOC and time comparison
+  - Responsive layout — extract SwiftUI size class transitions, adapt to web CSS breakpoints
+- Apple native shell improvements (deferred until web app matures)
 
 ## Future triggers (not tied to a specific version)
 

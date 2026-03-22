@@ -6,6 +6,7 @@
 	import {
 		Pencil,
 		Slash,
+		Square,
 		Eraser,
 		Undo2,
 		Redo2,
@@ -67,6 +68,13 @@
 			label: 'Line',
 			active: activeTool === 'line',
 			onclick: () => onToolChange('line')
+		},
+		{
+			kind: 'button',
+			icon: Square,
+			label: 'Rectangle',
+			active: activeTool === 'rectangle',
+			onclick: () => onToolChange('rectangle')
 		},
 		{
 			kind: 'button',

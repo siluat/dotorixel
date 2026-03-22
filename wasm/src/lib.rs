@@ -4,7 +4,7 @@ use dotorixel_core::canvas::PixelCanvas;
 use dotorixel_core::color::Color;
 use dotorixel_core::export::PngExport;
 use dotorixel_core::history::HistoryManager;
-use dotorixel_core::tool::{interpolate_pixels, ToolType};
+use dotorixel_core::tool::{interpolate_pixels, rectangle_outline, ToolType};
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
 
 // ---------------------------------------------------------------------------
@@ -183,6 +183,7 @@ pub enum WasmToolType {
     Pencil = 0,
     Eraser = 1,
     Line = 2,
+    Rectangle = 3,
 }
 
 impl WasmToolType {
@@ -191,6 +192,7 @@ impl WasmToolType {
             WasmToolType::Pencil => ToolType::Pencil,
             WasmToolType::Eraser => ToolType::Eraser,
             WasmToolType::Line => ToolType::Line,
+            WasmToolType::Rectangle => ToolType::Rectangle,
         }
     }
 }
@@ -214,6 +216,18 @@ pub fn apply_tool(
 #[wasm_bindgen]
 pub fn wasm_interpolate_pixels(x0: i32, y0: i32, x1: i32, y1: i32) -> Vec<i32> {
     let points = interpolate_pixels(x0, y0, x1, y1);
+    let mut flat = Vec::with_capacity(points.len() * 2);
+    for (x, y) in points {
+        flat.push(x);
+        flat.push(y);
+    }
+    flat
+}
+
+/// Returns rectangle outline pixel coordinates as a flat `Vec<i32>`: `[x0, y0, x1, y1, ...]`.
+#[wasm_bindgen]
+pub fn wasm_rectangle_outline(x0: i32, y0: i32, x1: i32, y1: i32) -> Vec<i32> {
+    let points = rectangle_outline(x0, y0, x1, y1);
     let mut flat = Vec::with_capacity(points.len() * 2);
     for (x, y) in points {
         flat.push(x);

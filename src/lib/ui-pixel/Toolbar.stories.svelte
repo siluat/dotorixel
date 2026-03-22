@@ -46,6 +46,12 @@
 	</div>
 </Story>
 
+<Story name="RectangleActive">
+	<div class="pixel-editor pixel-story-bg">
+		<Toolbar {...defaults} activeTool="rectangle" />
+	</div>
+</Story>
+
 <Story name="EraserActive">
 	<div class="pixel-editor pixel-story-bg">
 		<Toolbar {...defaults} activeTool="eraser" canUndo={true} />

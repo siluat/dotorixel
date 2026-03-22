@@ -4,7 +4,6 @@
 
 ### Basic Tool Expansion
 
-- Rectangle tool
 - Circle/ellipse tool
 - Flood fill tool
 - Eyedropper tool

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { ToolType } from '$lib/canvas/tool-types';
-	import { Pencil, Eraser, ZoomOut, ZoomIn } from 'lucide-svelte';
+	import { Pencil, Slash, Eraser, ZoomOut, ZoomIn } from 'lucide-svelte';
 	import FloatingPanel from './FloatingPanel.svelte';
 	import PebbleButton from './PebbleButton.svelte';
 
@@ -24,6 +24,13 @@
 		onclick={() => onToolChange('pencil')}
 	>
 		<Pencil size={18} />
+	</PebbleButton>
+	<PebbleButton
+		title="Line"
+		active={activeTool === 'line'}
+		onclick={() => onToolChange('line')}
+	>
+		<Slash size={18} />
 	</PebbleButton>
 	<PebbleButton
 		title="Eraser"

@@ -5,6 +5,7 @@
 	import ToolbarLayout from './ToolbarLayout.svelte';
 	import {
 		Pencil,
+		Slash,
 		Eraser,
 		Undo2,
 		Redo2,
@@ -59,6 +60,13 @@
 			label: 'Pencil',
 			active: activeTool === 'pencil',
 			onclick: () => onToolChange('pencil')
+		},
+		{
+			kind: 'button',
+			icon: Slash,
+			label: 'Line',
+			active: activeTool === 'line',
+			onclick: () => onToolChange('line')
 		},
 		{
 			kind: 'button',

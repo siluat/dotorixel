@@ -14,6 +14,12 @@
 	</div>
 </Story>
 
+<Story name="LineSelected">
+	<div class="pebble-editor pebble-story-bg">
+		<BottomToolsPanel activeTool="line" zoomPercent={800} onToolChange={noopTool} onZoomIn={noop} onZoomOut={noop} onZoomReset={noop} />
+	</div>
+</Story>
+
 <Story name="EraserSelected">
 	<div class="pebble-editor pebble-story-bg">
 		<BottomToolsPanel activeTool="eraser" zoomPercent={400} onToolChange={noopTool} onZoomIn={noop} onZoomOut={noop} onZoomReset={noop} />

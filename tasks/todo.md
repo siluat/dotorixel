@@ -4,7 +4,6 @@
 
 ### Basic Tool Expansion
 
-- Line tool (Bresenham line drawing)
 - Rectangle tool
 - Circle/ellipse tool
 - Flood fill tool

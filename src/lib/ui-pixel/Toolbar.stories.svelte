@@ -40,6 +40,12 @@
 	</div>
 </Story>
 
+<Story name="LineActive">
+	<div class="pixel-editor pixel-story-bg">
+		<Toolbar {...defaults} activeTool="line" />
+	</div>
+</Story>
+
 <Story name="EraserActive">
 	<div class="pixel-editor pixel-story-bg">
 		<Toolbar {...defaults} activeTool="eraser" canUndo={true} />

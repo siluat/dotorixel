@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 020 | [Line tool (Bresenham line drawing)](records/020-line-tool.md) | 2026-03-22 |
 | 019 | [Remove Tauri from project](records/019-remove-tauri.md) | 2026-03-22 |
 | 018 | [Rendering performance — Canvas2D vs Metal FPS at various canvas sizes](records/018-rendering-performance.md) | 2026-03-22 |
 | 017 | [Undo/redo — connected to core history module, SwiftUI toolbar integration](records/017-undo-redo-apple-native.md) | 2026-03-22 |

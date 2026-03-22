@@ -7,12 +7,13 @@ use crate::color::Color;
 pub enum ToolType {
     Pencil,
     Eraser,
+    Line,
 }
 
 impl ToolType {
     /// Applies this tool to the canvas at the given coordinates.
     ///
-    /// Pencil sets the pixel to `foreground_color`; Eraser sets it to transparent.
+    /// Pencil and Line set the pixel to `foreground_color`; Eraser sets it to transparent.
     /// Returns `false` if the coordinates are outside canvas bounds (including
     /// negative values). The canvas is not modified for out-of-bounds coordinates.
     pub fn apply(
@@ -31,7 +32,7 @@ impl ToolType {
             return false;
         }
         let color = match self {
-            ToolType::Pencil => foreground_color,
+            ToolType::Pencil | ToolType::Line => foreground_color,
             ToolType::Eraser => Color::TRANSPARENT,
         };
         canvas
@@ -215,5 +216,35 @@ mod tests {
         assert_eq!(points[0], (2, 5));
         assert_eq!(*points.last().unwrap(), (2, 1));
         assert_eq!(points.len(), 5);
+    }
+
+    // ── ToolType::apply — line ────────────────────────────────────
+
+    #[test]
+    fn line_applies_foreground_color() {
+        let mut canvas = PixelCanvas::new(8, 8).unwrap();
+        ToolType::Line.apply(&mut canvas, 3, 4, RED);
+        assert_eq!(canvas.get_pixel(3, 4).unwrap(), RED);
+    }
+
+    #[test]
+    fn line_overwrites_existing_color() {
+        let mut canvas = PixelCanvas::with_color(8, 8, BLACK).unwrap();
+        ToolType::Line.apply(&mut canvas, 0, 0, RED);
+        assert_eq!(canvas.get_pixel(0, 0).unwrap(), RED);
+    }
+
+    // ── Snapshot-restore performance guard ─────────────────────────
+
+    #[test]
+    fn max_dimension_within_snapshot_restore_safe_range() {
+        assert!(
+            PixelCanvas::MAX_DIMENSION <= 512,
+            "MAX_DIMENSION is now {} which exceeds the snapshot-restore safe threshold (512). \
+             At this size, per-move buffer copies may cause jank during line/shape tool preview. \
+             Either confirm performance is acceptable and raise this threshold, \
+             or switch to an overlay preview strategy.",
+            PixelCanvas::MAX_DIMENSION
+        );
     }
 }

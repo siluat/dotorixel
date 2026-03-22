@@ -182,6 +182,7 @@ impl WasmPixelCanvas {
 pub enum WasmToolType {
     Pencil = 0,
     Eraser = 1,
+    Line = 2,
 }
 
 impl WasmToolType {
@@ -189,6 +190,7 @@ impl WasmToolType {
         match self {
             WasmToolType::Pencil => ToolType::Pencil,
             WasmToolType::Eraser => ToolType::Eraser,
+            WasmToolType::Line => ToolType::Line,
         }
     }
 }

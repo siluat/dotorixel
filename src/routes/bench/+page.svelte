@@ -104,7 +104,7 @@
 						effectivePixelSize: eps,
 						medianMs: med,
 						p95Ms: percentile95(times),
-						theoreticalFps: Math.round(1000 / med)
+						theoreticalFps: med > 0 ? Math.round(1000 / med) : Infinity
 					}
 				];
 			}
@@ -118,7 +118,8 @@
 		let md = '| Canvas | Zoom | Effective px | Median (ms) | P95 (ms) | Max FPS |\n';
 		md += '|--------|------|-------------|-------------|----------|----------|\n';
 		for (const r of results) {
-			md += `| ${r.canvasSize}\u00d7${r.canvasSize} | ${r.zoom}\u00d7 | ${r.effectivePixelSize} | ${r.medianMs.toFixed(3)} | ${r.p95Ms.toFixed(3)} | ${r.theoreticalFps} |\n`;
+			const fps = r.theoreticalFps === Infinity ? '>10000' : String(r.theoreticalFps);
+			md += `| ${r.canvasSize}\u00d7${r.canvasSize} | ${r.zoom}\u00d7 | ${r.effectivePixelSize} | ${r.medianMs.toFixed(3)} | ${r.p95Ms.toFixed(3)} | ${fps} |\n`;
 		}
 		return md;
 	}
@@ -173,7 +174,7 @@
 						<td>{r.effectivePixelSize}</td>
 						<td>{r.medianMs.toFixed(3)}</td>
 						<td>{r.p95Ms.toFixed(3)}</td>
-						<td>{r.theoreticalFps}</td>
+						<td>{r.theoreticalFps === Infinity ? '>10000' : r.theoreticalFps}</td>
 					</tr>
 				{/each}
 			</tbody>

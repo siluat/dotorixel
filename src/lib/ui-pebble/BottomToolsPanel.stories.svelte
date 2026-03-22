@@ -20,6 +20,12 @@
 	</div>
 </Story>
 
+<Story name="RectangleSelected">
+	<div class="pebble-editor pebble-story-bg">
+		<BottomToolsPanel activeTool="rectangle" zoomPercent={800} onToolChange={noopTool} onZoomIn={noop} onZoomOut={noop} onZoomReset={noop} />
+	</div>
+</Story>
+
 <Story name="EraserSelected">
 	<div class="pebble-editor pebble-story-bg">
 		<BottomToolsPanel activeTool="eraser" zoomPercent={400} onToolChange={noopTool} onZoomIn={noop} onZoomOut={noop} onZoomReset={noop} />

@@ -5,7 +5,8 @@ import {
 	WasmColor,
 	WasmToolType,
 	apply_tool,
-	wasm_interpolate_pixels
+	wasm_interpolate_pixels,
+	wasm_rectangle_outline
 } from '$wasm/dotorixel_wasm';
 import type { CanvasCoords, ViewportSize, ViewportState } from './view-types';
 import type { ToolType } from './tool-types';
@@ -15,7 +16,8 @@ import { exportAsPng } from './export';
 const WASM_TOOL_MAP = {
 	pencil: WasmToolType.Pencil,
 	eraser: WasmToolType.Eraser,
-	line: WasmToolType.Line
+	line: WasmToolType.Line,
+	rectangle: WasmToolType.Rectangle
 } as const;
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
@@ -44,7 +46,7 @@ export class EditorState {
 	#history = WasmHistoryManager.default_manager();
 	#historyVersion = $state(0);
 	#isDrawing = $state(false);
-	#lineStart: CanvasCoords | null = null;
+	#shapeStart: CanvasCoords | null = null;
 	#previewSnapshot: Uint8Array | null = null;
 
 	readonly canUndo = $derived.by(() => {
@@ -107,17 +109,17 @@ export class EditorState {
 		this.#isDrawing = true;
 		this.#history.push_snapshot(this.pixelCanvas.pixels());
 		this.#historyVersion++;
-		if (this.activeTool === 'pencil' || this.activeTool === 'line') {
+		if (this.activeTool === 'pencil' || this.activeTool === 'line' || this.activeTool === 'rectangle') {
 			this.recentColors = addRecentColor(this.recentColors, colorToHex(this.foregroundColor));
 		}
-		if (this.activeTool === 'line') {
+		if (this.activeTool === 'line' || this.activeTool === 'rectangle') {
 			this.#previewSnapshot = new Uint8Array(this.pixelCanvas.pixels());
 		}
 	};
 
 	handleDrawEnd = (): void => {
 		this.#isDrawing = false;
-		this.#lineStart = null;
+		this.#shapeStart = null;
 		this.#previewSnapshot = null;
 	};
 
@@ -153,6 +155,10 @@ export class EditorState {
 			this.#handleLineDraw(current, previous);
 			return;
 		}
+		if (this.activeTool === 'rectangle') {
+			this.#handleRectangleDraw(current, previous);
+			return;
+		}
 
 		const wasmTool = WASM_TOOL_MAP[this.activeTool];
 		let changed = false;
@@ -179,7 +185,7 @@ export class EditorState {
 
 	#handleLineDraw(current: CanvasCoords, previous: CanvasCoords | null): void {
 		if (previous === null) {
-			this.#lineStart = current;
+			this.#shapeStart = current;
 			if (
 				apply_tool(
 					this.pixelCanvas,
@@ -194,13 +200,13 @@ export class EditorState {
 			return;
 		}
 
-		if (!this.#lineStart || !this.#previewSnapshot) return;
+		if (!this.#shapeStart || !this.#previewSnapshot) return;
 
 		this.pixelCanvas.restore_pixels(this.#previewSnapshot);
 
 		const flat = wasm_interpolate_pixels(
-			this.#lineStart.x,
-			this.#lineStart.y,
+			this.#shapeStart.x,
+			this.#shapeStart.y,
 			current.x,
 			current.y
 		);
@@ -210,6 +216,45 @@ export class EditorState {
 				flat[i],
 				flat[i + 1],
 				WasmToolType.Line,
+				this.#wasmForegroundColor
+			);
+		}
+		this.renderVersion++;
+	}
+
+	#handleRectangleDraw(current: CanvasCoords, previous: CanvasCoords | null): void {
+		if (previous === null) {
+			this.#shapeStart = current;
+			if (
+				apply_tool(
+					this.pixelCanvas,
+					current.x,
+					current.y,
+					WasmToolType.Rectangle,
+					this.#wasmForegroundColor
+				)
+			) {
+				this.renderVersion++;
+			}
+			return;
+		}
+
+		if (!this.#shapeStart || !this.#previewSnapshot) return;
+
+		this.pixelCanvas.restore_pixels(this.#previewSnapshot);
+
+		const flat = wasm_rectangle_outline(
+			this.#shapeStart.x,
+			this.#shapeStart.y,
+			current.x,
+			current.y
+		);
+		for (let i = 0; i < flat.length; i += 2) {
+			apply_tool(
+				this.pixelCanvas,
+				flat[i],
+				flat[i + 1],
+				WasmToolType.Rectangle,
 				this.#wasmForegroundColor
 			);
 		}

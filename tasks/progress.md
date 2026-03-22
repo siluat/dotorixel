@@ -6,14 +6,12 @@ None
 
 ## Last Completed
 
-Line tool (Bresenham line drawing)
+Rectangle tool
 
 ## Next Up
 
-- Rectangle tool
-  - Two-point drag interaction now established by Line tool; reuse snapshot-restore pattern. Can start immediately.
 - Circle/ellipse tool
-  - Same two-point drag pattern as Rectangle. Depends on Rectangle only if sharing a common abstraction, otherwise independent.
+  - Same two-point drag + snapshot-restore pattern now shared via `#shapeStart`. Can start immediately.
 - Flood fill tool
   - BFS/DFS algorithm; independent from shape tools. Can start immediately.
 - Eyedropper tool

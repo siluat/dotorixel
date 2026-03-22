@@ -8,12 +8,13 @@ pub enum ToolType {
     Pencil,
     Eraser,
     Line,
+    Rectangle,
 }
 
 impl ToolType {
     /// Applies this tool to the canvas at the given coordinates.
     ///
-    /// Pencil and Line set the pixel to `foreground_color`; Eraser sets it to transparent.
+    /// Pencil, Line, and Rectangle set the pixel to `foreground_color`; Eraser sets it to transparent.
     /// Returns `false` if the coordinates are outside canvas bounds (including
     /// negative values). The canvas is not modified for out-of-bounds coordinates.
     pub fn apply(
@@ -32,7 +33,7 @@ impl ToolType {
             return false;
         }
         let color = match self {
-            ToolType::Pencil | ToolType::Line => foreground_color,
+            ToolType::Pencil | ToolType::Line | ToolType::Rectangle => foreground_color,
             ToolType::Eraser => Color::TRANSPARENT,
         };
         canvas
@@ -71,6 +72,58 @@ pub fn interpolate_pixels(x0: i32, y0: i32, x1: i32, y1: i32) -> Vec<(i32, i32)>
         if e2 <= dx {
             err += dx;
             y += sy;
+        }
+    }
+
+    points
+}
+
+/// Computes the pixel coordinates forming the outline of a rectangle defined
+/// by two opposite corner points.
+///
+/// The corners are normalized so drag direction doesn't matter. Edges are
+/// generated without duplicate pixels at corners:
+/// - Top and bottom edges span the full width.
+/// - Left and right edges span only the interior height.
+///
+/// Degenerate cases: a single point returns `vec![(x0, y0)]`; a 1-pixel-tall
+/// rectangle returns only the top edge; a 1-pixel-wide rectangle returns only
+/// the left edge.
+pub fn rectangle_outline(x0: i32, y0: i32, x1: i32, y1: i32) -> Vec<(i32, i32)> {
+    let min_x = x0.min(x1);
+    let max_x = x0.max(x1);
+    let min_y = y0.min(y1);
+    let max_y = y0.max(y1);
+
+    let w = (max_x - min_x + 1) as usize;
+    let h = (max_y - min_y + 1) as usize;
+
+    // Perimeter pixel count: 2*(w+h) - 4 for w,h >= 2; degenerate cases handled by the
+    // conditional edge generation below.
+    let capacity = if w == 1 || h == 1 { w.max(h) } else { 2 * (w + h) - 4 };
+    let mut points = Vec::with_capacity(capacity);
+
+    // Top edge (full width)
+    for x in min_x..=max_x {
+        points.push((x, min_y));
+    }
+
+    // Bottom edge (full width, skip if height is 1)
+    if max_y > min_y {
+        for x in min_x..=max_x {
+            points.push((x, max_y));
+        }
+    }
+
+    // Left edge (interior only, between top and bottom)
+    for y in (min_y + 1)..max_y {
+        points.push((min_x, y));
+    }
+
+    // Right edge (interior only, skip if width is 1)
+    if max_x > min_x {
+        for y in (min_y + 1)..max_y {
+            points.push((max_x, y));
         }
     }
 
@@ -232,6 +285,70 @@ mod tests {
         let mut canvas = PixelCanvas::with_color(8, 8, BLACK).unwrap();
         ToolType::Line.apply(&mut canvas, 0, 0, RED);
         assert_eq!(canvas.get_pixel(0, 0).unwrap(), RED);
+    }
+
+    // ── ToolType::apply — rectangle ─────────────────────────────────
+
+    #[test]
+    fn rectangle_applies_foreground_color() {
+        let mut canvas = PixelCanvas::new(8, 8).unwrap();
+        ToolType::Rectangle.apply(&mut canvas, 3, 4, RED);
+        assert_eq!(canvas.get_pixel(3, 4).unwrap(), RED);
+    }
+
+    // ── rectangle_outline ────────────────────────────────────────────
+
+    #[test]
+    fn rectangle_single_point() {
+        let points = rectangle_outline(3, 5, 3, 5);
+        assert_eq!(points, vec![(3, 5)]);
+    }
+
+    #[test]
+    fn rectangle_horizontal_line() {
+        let mut points = rectangle_outline(1, 2, 4, 2);
+        points.sort();
+        assert_eq!(points, vec![(1, 2), (2, 2), (3, 2), (4, 2)]);
+    }
+
+    #[test]
+    fn rectangle_vertical_line() {
+        let mut points = rectangle_outline(3, 0, 3, 3);
+        points.sort();
+        assert_eq!(points, vec![(3, 0), (3, 1), (3, 2), (3, 3)]);
+    }
+
+    #[test]
+    fn rectangle_3x3_outline() {
+        let mut points = rectangle_outline(1, 1, 3, 3);
+        points.sort();
+        // 3×3 outline = 8 pixels (interior excluded)
+        assert_eq!(
+            points,
+            vec![
+                (1, 1), (1, 2), (1, 3),
+                (2, 1), (2, 3),
+                (3, 1), (3, 2), (3, 3),
+            ]
+        );
+    }
+
+    #[test]
+    fn rectangle_no_duplicate_pixels() {
+        let points = rectangle_outline(0, 0, 4, 3);
+        let mut sorted = points.clone();
+        sorted.sort();
+        sorted.dedup();
+        assert_eq!(points.len(), sorted.len(), "duplicate pixels found");
+    }
+
+    #[test]
+    fn rectangle_reverse_coordinates() {
+        let mut forward = rectangle_outline(1, 1, 4, 3);
+        let mut reverse = rectangle_outline(4, 3, 1, 1);
+        forward.sort();
+        reverse.sort();
+        assert_eq!(forward, reverse);
     }
 
     // ── Snapshot-restore performance guard ─────────────────────────

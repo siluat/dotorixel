@@ -24,7 +24,8 @@
 	const WASM_TOOL_MAP = {
 		pencil: WasmToolType.Pencil,
 		eraser: WasmToolType.Eraser,
-		line: WasmToolType.Line
+		line: WasmToolType.Line,
+		rectangle: WasmToolType.Rectangle
 	} as const;
 
 	let pixelCanvas = $state(new WasmPixelCanvas(16, 16));

@@ -22,6 +22,14 @@ function drawLine(editor: EditorState, from: CanvasCoords, to: CanvasCoords) {
 	editor.handleDrawEnd();
 }
 
+function drawRectangle(editor: EditorState, from: CanvasCoords, to: CanvasCoords) {
+	editor.activeTool = 'rectangle';
+	editor.handleDrawStart();
+	editor.handleDraw(from, null);
+	editor.handleDraw(to, from);
+	editor.handleDrawEnd();
+}
+
 describe('EditorState — line tool', () => {
 	it('draws a line from start to end', () => {
 		const editor = createEditor();
@@ -86,6 +94,86 @@ describe('EditorState — line tool', () => {
 		expect(editor.recentColors).toEqual([]);
 
 		drawLine(editor, { x: 0, y: 0 }, { x: 1, y: 0 });
+
+		expect(editor.recentColors.length).toBeGreaterThan(0);
+		expect(editor.recentColors).toContain('#000000');
+	});
+});
+
+describe('EditorState — rectangle tool', () => {
+	it('draws a rectangle outline', () => {
+		const editor = createEditor();
+		drawRectangle(editor, { x: 1, y: 1 }, { x: 3, y: 3 });
+
+		// All 8 outline pixels of a 3×3 rectangle should be black
+		expect(getPixel(editor, 1, 1)).toEqual(BLACK);
+		expect(getPixel(editor, 2, 1)).toEqual(BLACK);
+		expect(getPixel(editor, 3, 1)).toEqual(BLACK);
+		expect(getPixel(editor, 1, 2)).toEqual(BLACK);
+		expect(getPixel(editor, 3, 2)).toEqual(BLACK);
+		expect(getPixel(editor, 1, 3)).toEqual(BLACK);
+		expect(getPixel(editor, 2, 3)).toEqual(BLACK);
+		expect(getPixel(editor, 3, 3)).toEqual(BLACK);
+
+		// Interior should remain transparent
+		expect(getPixel(editor, 2, 2)).toEqual(TRANSPARENT);
+	});
+
+	it('does not leave intermediate preview artifacts', () => {
+		const editor = createEditor();
+		editor.activeTool = 'rectangle';
+		editor.handleDrawStart();
+
+		const start: CanvasCoords = { x: 0, y: 0 };
+		editor.handleDraw(start, null);
+
+		// Drag to an intermediate point
+		const mid: CanvasCoords = { x: 4, y: 4 };
+		editor.handleDraw(mid, start);
+
+		// Intermediate preview: outline pixels should be drawn
+		expect(getPixel(editor, 2, 0)).toEqual(BLACK);
+
+		// Move to final position — different from mid
+		const end: CanvasCoords = { x: 2, y: 2 };
+		editor.handleDraw(end, mid);
+
+		// Previous preview should be cleaned up (snapshot-restore)
+		expect(getPixel(editor, 4, 0)).toEqual(TRANSPARENT);
+		expect(getPixel(editor, 0, 4)).toEqual(TRANSPARENT);
+
+		// Final rectangle outline should be present
+		expect(getPixel(editor, 0, 0)).toEqual(BLACK);
+		expect(getPixel(editor, 1, 0)).toEqual(BLACK);
+		expect(getPixel(editor, 2, 0)).toEqual(BLACK);
+		expect(getPixel(editor, 0, 1)).toEqual(BLACK);
+		expect(getPixel(editor, 2, 1)).toEqual(BLACK);
+		expect(getPixel(editor, 0, 2)).toEqual(BLACK);
+		expect(getPixel(editor, 1, 2)).toEqual(BLACK);
+		expect(getPixel(editor, 2, 2)).toEqual(BLACK);
+
+		editor.handleDrawEnd();
+	});
+
+	it('undoes entire rectangle as one operation', () => {
+		const editor = createEditor();
+		drawRectangle(editor, { x: 1, y: 1 }, { x: 3, y: 3 });
+
+		expect(getPixel(editor, 1, 1)).toEqual(BLACK);
+		expect(getPixel(editor, 3, 3)).toEqual(BLACK);
+
+		editor.handleUndo();
+
+		expect(getPixel(editor, 1, 1)).toEqual(TRANSPARENT);
+		expect(getPixel(editor, 3, 3)).toEqual(TRANSPARENT);
+		expect(getPixel(editor, 2, 1)).toEqual(TRANSPARENT);
+	});
+
+	it('updates recentColors when drawing a rectangle', () => {
+		const editor = createEditor();
+		expect(editor.recentColors).toEqual([]);
+
+		drawRectangle(editor, { x: 0, y: 0 }, { x: 2, y: 2 });
 
 		expect(editor.recentColors.length).toBeGreaterThan(0);
 		expect(editor.recentColors).toContain('#000000');

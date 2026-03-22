@@ -9,6 +9,9 @@ import SwiftUI
 struct ContentView: View {
     @State private var editorState = EditorState()
     @Environment(\.displayScale) private var displayScale
+    #if DEBUG
+    @State private var showBenchmark = false
+    #endif
 
     var body: some View {
         ZStack {
@@ -44,6 +47,19 @@ struct ContentView: View {
             .padding(PebbleTokens.edgeGap)
         }
         .background(PebbleTokens.bg)
+        #if DEBUG
+        .sheet(isPresented: $showBenchmark) {
+            RenderBenchmarkView()
+        }
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Button("Benchmark") {
+                    showBenchmark = true
+                }
+                .font(.caption)
+            }
+        }
+        #endif
     }
 
     /// Fits and centers the canvas within the available view area.

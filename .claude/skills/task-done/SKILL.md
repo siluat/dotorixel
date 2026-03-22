@@ -1,5 +1,5 @@
 ---
-description: Complete the current task. Record in done.md, remove from todo.md, update progress.md, and commit.
+description: Complete the current task. Record in done.md, update record file, update todo.md, update progress.md, and commit.
 user_invocable: true
 ---
 
@@ -9,14 +9,13 @@ When a task item is completed, follow these steps in order, then create a git co
 
 ## Steps
 
-### 1. Update done.md
+### 1. Update the record file
 
-Add a record at the top of `tasks/done.md` (just below `# Done`) using the following format.
+Find the record file for the current task in `tasks/records/` (created during `/task-start`). Append a `## Results` section using the following format:
 
 ```text
-## Task Title
+## Results
 
-### Results
 | File | Description |
 |------|-------------|
 | `file/path` | description |
@@ -30,11 +29,19 @@ Add a record at the top of `tasks/done.md` (just below `# Done`) using the follo
 
 - "Results" is required. "Key Decisions" and "Notes" are only included when applicable.
 
-### 2. Update todo.md
+### 2. Update done.md
+
+Add a row at the top of the table in `tasks/done.md` (just below the header row) linking to the record file:
+
+```text
+| NNN | [Task Title](records/NNN-slug.md) | YYYY-MM-DD |
+```
+
+### 3. Update todo.md
 
 Remove the completed item from `tasks/todo.md`.
 
-### 3. Update progress.md
+### 4. Update progress.md
 
 Update `tasks/progress.md`:
 - Set "Currently Working On" to "None".
@@ -44,7 +51,7 @@ Update `tasks/progress.md`:
   2. Analyze dependencies between them — only include items that can be worked on in parallel.
   3. List the independent items as bullet points.
 
-### 4. Git commit
+### 5. Git commit
 
 **Guard: verify current branch is not `main`.** If on `main`, stop and alert the user — do not commit.
 

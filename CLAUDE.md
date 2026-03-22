@@ -42,11 +42,12 @@ SemVer. Git tags and GitHub Releases start at v0.1.0. CHANGELOG.md follows [Keep
 
 Implementation tasks are managed through files in the `tasks/` directory.
 
-| File | Purpose |
+| File / Directory | Purpose |
 |------|---------|
 | [tasks/todo.md](tasks/todo.md) | Full task list (items removed on completion) |
 | [tasks/progress.md](tasks/progress.md) | Currently working on / last completed / next up |
-| [tasks/done.md](tasks/done.md) | Completion log (by date, newest first) |
+| [tasks/done.md](tasks/done.md) | Completion index (table linking to record files) |
+| [tasks/records/](tasks/records/) | One file per task — plan + completion record |
 
 ### Starting a Task
 
@@ -55,16 +56,18 @@ Run the `/task-start` skill.
 1. Read `tasks/progress.md` to understand the current state.
 2. If there are 2+ items in "Next Up", ask the user which task to work on.
 3. Enter plan mode to draft an implementation plan and get user approval.
-4. Update "Currently Working On" in `tasks/progress.md`.
+4. Save the approved plan to `tasks/records/<NNN>-<slug>.md`.
+5. Update "Currently Working On" in `tasks/progress.md`.
 
 ### Completing a Task
 
 When a task item is completed, notify the user and suggest using the `/task-done` skill. Running `/task-done` performs the following steps, then creates a git commit.
 
-1. **Update done.md**: Record results, key decisions, and notes in `tasks/done.md`.
-2. **Update todo.md**: Remove the completed item from `tasks/todo.md`.
-3. **Update progress.md**: Set current to "None", update last completed, refresh next up.
-4. **Git commit**: Include implementation code and task records in a single commit.
+1. **Update record file**: Append results, key decisions, and notes to the task's record file in `tasks/records/`.
+2. **Update done.md**: Add a row to the index table linking to the record file.
+3. **Update todo.md**: Remove the completed item from `tasks/todo.md`.
+4. **Update progress.md**: Set current to "None", update last completed, refresh next up.
+5. **Git commit**: Include implementation code and task records in a single commit.
 
 ### Branch Rule
 

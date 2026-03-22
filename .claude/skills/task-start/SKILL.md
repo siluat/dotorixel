@@ -22,6 +22,16 @@ Follow these steps in order when starting a task.
 
 5. **Draft implementation plan**: Write an implementation plan for the selected task and get user approval via ExitPlanMode.
 
-6. **Create a work branch**: Create a new branch from `main` for this task.
+6. **Save the approved plan**: Determine the next record number by scanning existing files in `tasks/records/` (e.g., if `019-*.md` is the highest, the next is `020`). Write the approved plan to `tasks/records/<NNN>-<slug>.md` where `<slug>` is a kebab-case summary of the task title. Use this format:
 
-7. Update "Currently Working On" in `tasks/progress.md` to the selected task.
+   ```markdown
+   # NNN — Task Title
+
+   ## Plan
+
+   (approved plan content)
+   ```
+
+7. **Create a work branch**: Create a new branch from `main` for this task.
+
+8. Update "Currently Working On" in `tasks/progress.md` to the selected task.

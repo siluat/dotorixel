@@ -4,7 +4,11 @@
 
 ### Basic Tool Expansion
 
-- Line tool (Bresenham), rectangle/circle, flood fill, eyedropper
+- Line tool (Bresenham line drawing)
+- Rectangle tool
+- Circle/ellipse tool
+- Flood fill tool
+- Eyedropper tool
 - Grid visibility toggle
 
 ### Color System
@@ -15,7 +19,9 @@
 ### Keyboard Shortcuts
 
 - Tool shortcuts (P, E, L, F, I, R, C, G)
-- Modifier keys (Alt=eyedropper, Space=pan, Shift=constrain)
+- Modifier key: Alt=eyedropper (temporary tool switch)
+- Modifier key: Space=pan (temporary pan mode)
+- Modifier key: Shift=constrain (constrain drawing)
 - Edit shortcuts (Ctrl+Z/Y, X=swap colors)
 
 ### i18n
@@ -42,8 +48,11 @@
 
 ## v0.2.0: Editor for Serious Work (Milestone 2)
 
-- Layer system (add/delete/reorder, visibility, opacity)
-- Selection & transform (rect select, move, copy/paste, flip)
+- Layer system: basic infrastructure (add/delete/reorder)
+- Layer properties (visibility toggle, opacity control)
+- Selection tool (rectangle select + move)
+- Copy/paste
+- Flip/transform
 - Project file format (JSON-based) + save/load
 - iPad + Apple Pencil optimization (hover preview, palm rejection)
 - Feature guide page (basic usage instructions)
@@ -52,9 +61,11 @@
 ## v0.3.0: Animation-Capable Editor (Milestone 3)
 
 - Frame management (add/delete/duplicate/reorder)
-- Per-frame speed, timeline UI
+- Per-frame speed control
+- Timeline UI
 - Onion skinning
-- Animation preview & GIF/spritesheet export
+- Animation preview (play/pause in editor)
+- GIF/spritesheet export
 - (review) Public roadmap & feature voting system — depends on user base size
 
 ## Future milestones (directional hypotheses — redesign based on user feedback)

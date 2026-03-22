@@ -4,7 +4,6 @@
 
 ### Basic Tool Expansion
 
-- Circle/ellipse tool
 - Flood fill tool
 - Eyedropper tool
 - Grid visibility toggle

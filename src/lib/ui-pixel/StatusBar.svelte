@@ -15,6 +15,7 @@
 		pencil: 'Pencil',
 		line: 'Line',
 		rectangle: 'Rectangle',
+		ellipse: 'Ellipse',
 		eraser: 'Eraser'
 	};
 </script>

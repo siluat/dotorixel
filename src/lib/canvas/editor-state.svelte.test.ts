@@ -30,6 +30,14 @@ function drawRectangle(editor: EditorState, from: CanvasCoords, to: CanvasCoords
 	editor.handleDrawEnd();
 }
 
+function drawEllipse(editor: EditorState, from: CanvasCoords, to: CanvasCoords) {
+	editor.activeTool = 'ellipse';
+	editor.handleDrawStart();
+	editor.handleDraw(from, null);
+	editor.handleDraw(to, from);
+	editor.handleDrawEnd();
+}
+
 describe('EditorState — line tool', () => {
 	it('draws a line from start to end', () => {
 		const editor = createEditor();
@@ -174,6 +182,70 @@ describe('EditorState — rectangle tool', () => {
 		expect(editor.recentColors).toEqual([]);
 
 		drawRectangle(editor, { x: 0, y: 0 }, { x: 2, y: 2 });
+
+		expect(editor.recentColors.length).toBeGreaterThan(0);
+		expect(editor.recentColors).toContain('#000000');
+	});
+});
+
+describe('EditorState — ellipse tool', () => {
+	it('draws an ellipse outline', () => {
+		const editor = createEditor();
+		drawEllipse(editor, { x: 1, y: 1 }, { x: 5, y: 5 });
+
+		// Axis endpoints of a 5×5 circle inscribed in (1,1)-(5,5)
+		expect(getPixel(editor, 3, 1)).toEqual(BLACK); // top
+		expect(getPixel(editor, 3, 5)).toEqual(BLACK); // bottom
+		expect(getPixel(editor, 1, 3)).toEqual(BLACK); // left
+		expect(getPixel(editor, 5, 3)).toEqual(BLACK); // right
+	});
+
+	it('does not leave intermediate preview artifacts', () => {
+		const editor = createEditor();
+		editor.activeTool = 'ellipse';
+		editor.handleDrawStart();
+
+		const start: CanvasCoords = { x: 0, y: 0 };
+		editor.handleDraw(start, null);
+
+		// Drag to intermediate point
+		const mid: CanvasCoords = { x: 6, y: 6 };
+		editor.handleDraw(mid, start);
+
+		// Some intermediate ellipse pixel should be drawn
+		expect(getPixel(editor, 3, 0)).toEqual(BLACK);
+
+		// Move to final position
+		const end: CanvasCoords = { x: 4, y: 4 };
+		editor.handleDraw(end, mid);
+
+		// Previous preview should be cleaned up
+		expect(getPixel(editor, 6, 3)).toEqual(TRANSPARENT);
+
+		// Final ellipse should be present
+		expect(getPixel(editor, 2, 0)).toEqual(BLACK); // top axis
+
+		editor.handleDrawEnd();
+	});
+
+	it('undoes entire ellipse as one operation', () => {
+		const editor = createEditor();
+		drawEllipse(editor, { x: 1, y: 1 }, { x: 5, y: 5 });
+
+		expect(getPixel(editor, 3, 1)).toEqual(BLACK);
+		expect(getPixel(editor, 1, 3)).toEqual(BLACK);
+
+		editor.handleUndo();
+
+		expect(getPixel(editor, 3, 1)).toEqual(TRANSPARENT);
+		expect(getPixel(editor, 1, 3)).toEqual(TRANSPARENT);
+	});
+
+	it('updates recentColors when drawing an ellipse', () => {
+		const editor = createEditor();
+		expect(editor.recentColors).toEqual([]);
+
+		drawEllipse(editor, { x: 0, y: 0 }, { x: 4, y: 4 });
 
 		expect(editor.recentColors.length).toBeGreaterThan(0);
 		expect(editor.recentColors).toContain('#000000');

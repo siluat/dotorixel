@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-Rectangle tool
+Pixel page EditorState refactor
 
 ## Next Up
 

@@ -10,7 +10,6 @@ A 2D pixel art editor. Positioned as a learning-first, cross-platform tool.
 | Canvas Rendering | Canvas2D | MVP scope. WebGL2 later |
 | Core Logic | TypeScript | JS-first for MVP. Migrate to Rust when performance demands it |
 | Rust/WASM | wasm-pack | Build pipeline verified. Production use when performance demands it |
-| Desktop | Tauri v2 | Same codebase as web |
 | Package Manager | bun | Always `bun run <script>`, never bare `bun <script>` |
 | Build | Vite + wasm-pack | |
 | Web Deployment | Vercel | SPA via adapter-static |
@@ -36,7 +35,7 @@ SemVer. Git tags and GitHub Releases start at v0.1.0. CHANGELOG.md follows [Keep
 | State Management | Svelte store (WebView), SwiftUI @Observable (Native) | Each shell uses its framework's reactivity |
 | Undo/Redo | Snapshot-based (Rust core) | 32x32 RGBA = 4KB/snapshot, shared across shells |
 | Coordinate Transform | Screen→Canvas single transform (Rust core) | Based on zoom level and pan offset, shared across shells |
-| Core Bindings | wasm-bindgen (web), UniFFI (Apple native) | Single Rust core, two binding strategies |
+| Core Bindings | wasm-bindgen (web), UniFFI (Apple native) | Single Rust core, platform-specific binding per shell |
 | Apple Project | Single Xcode project, macOS + iPadOS targets | SwiftUI + Metal shared, platform-specific UI via `#if os()` |
 
 ## Task Workflow
@@ -117,7 +116,7 @@ When porting TS logic to Rust, write idiomatic Rust — not a line-by-line trans
 - **Derive traits when their semantics are unambiguous for the type.** For value types with integer fields, derive `Hash` alongside `Eq`. Only derive `Ord`/`PartialOrd` when the auto-derived field-order comparison is the semantically correct ordering — if field declaration order could mislead (e.g., `CanvasCoords { x, y }` derives column-major order, but the pixel buffer is row-major), omit it until a use site confirms the desired semantics.
 - **Use Rust's type system beyond what TS offered.** Enums with data for tool types, newtypes for domain values (`CanvasCoord` vs raw `i32`), `Option`/`Result` instead of sentinel values. If TS used a string union, use a Rust enum.
 - **`impl` blocks for behavior.** Methods belong on the type (`color.to_hex()`), not as free functions (`color_to_hex(color)`), unless the function doesn't have a natural receiver. When adding a method would introduce a reverse dependency on the receiver's module (e.g., `PixelCanvas::encode_png()` would couple canvas to the `png` crate), use an extension trait in the dependent module to preserve method syntax without the coupling (`impl PngExport for PixelCanvas` in the export module). If the trait adds no value (single method, no polymorphism), a free function is also acceptable.
-- **Error types implement `std::error::Error`.** All error enums must implement `Display` and `std::error::Error`. This enables interop with `?` propagation, `Box<dyn Error>`, and error-handling crates — essential for Tauri backend integration.
+- **Error types implement `std::error::Error`.** All error enums must implement `Display` and `std::error::Error`. This enables interop with `?` propagation, `Box<dyn Error>`, and error-handling crates.
 - **Doc comments follow std conventions: write when it adds signal, skip when the signature speaks.** Simple getters (`width()`, `pixels()`), trivial predicates (`is_empty()`), and obvious constructors (`new()` with self-evident fields) need no doc comment. Write doc comments when the method has non-obvious side effects (eviction, stack clearing), when the behavior goes beyond what the name and signature convey (e.g., `push_snapshot` clears the redo stack), or when panic/error conditions exist. Don't restate what `Option` or `Result` return types already express.
 
 ### Architecture
@@ -125,7 +124,7 @@ When porting TS logic to Rust, write idiomatic Rust — not a line-by-line trans
 - **Depend on interfaces, not implementations.** Modules (rendering, state management, tool system) should interact through types and contracts, not concrete implementations. This keeps them independently replaceable.
 - **High cohesion, low coupling.** Group code by what changes together. A tool's logic, its state, and its cursor behavior belong together — not scattered across "utils/", "types/", and "state/" directories.
 - **Right-sized modules.** Single responsibility is valuable, but a module split so finely that understanding one feature requires jumping across 8 files is worse than a slightly larger, self-contained module. Optimize for navigability: a reader should understand a feature by looking at one place.
-- **Core logic is self-contained.** Coordinate transforms, pixel manipulation, tool algorithms, and undo/redo must have no framework dependencies (DOM, Svelte, Tauri APIs) and no hidden side effects (global state, I/O). Stateless transformations should be pure functions; stateful operations may mutate explicitly passed data structures. This is a structural rule — it enables testability, portability across runtimes, and future migration paths.
+- **Core logic is self-contained.** Coordinate transforms, pixel manipulation, tool algorithms, and undo/redo must have no framework dependencies (DOM, Svelte) and no hidden side effects (global state, I/O). Stateless transformations should be pure functions; stateful operations may mutate explicitly passed data structures. This is a structural rule — it enables testability, portability across runtimes, and future migration paths.
 
 ### Error Handling
 
@@ -135,7 +134,7 @@ When porting TS logic to Rust, write idiomatic Rust — not a line-by-line trans
 
 ### Security
 
-- **Least privilege by default.** Start with the most restrictive configuration and expand permissions only when a concrete need arises. Never pre-authorize "just in case." This applies to CSP directives, Tauri capabilities, file system access, and any other permission boundary.
+- **Least privilege by default.** Start with the most restrictive configuration and expand permissions only when a concrete need arises. Never pre-authorize "just in case." This applies to CSP directives, file system access, and any other permission boundary.
 - **Verify each expansion.** When broadening a security policy, confirm the change is necessary by reproducing the specific failure it resolves. Document *why* the permission was added (e.g., as a code comment or commit message).
 
 ### Markdown
@@ -165,7 +164,7 @@ When porting TS logic to Rust, write idiomatic Rust — not a line-by-line trans
 - **Test behaviors, not implementation.** Assert on outcomes, not internal steps. If refactoring the internals breaks a test without changing behavior, the test was too tightly coupled.
 - **Prioritize regression defense.** Focus test coverage on code paths where bugs would be hard to catch visually — edge cases in coordinate math, boundary conditions in flood fill, undo/redo state consistency.
 - **Don't test the framework.** Don't verify that the UI framework's reactivity or rendering works correctly — that's the framework's job. Do test your own logic that *feeds into* the framework: state derivations, event handlers, computed values.
-- **Guard the dev/prod gap.** Vite dev server (`http://localhost`) and Tauri production build (`tauri://localhost`) have different runtime behaviors — CSP enforcement, asset protocol handling, and WASM loading can all diverge. Unit tests and dev-mode verification alone cannot catch these. CI must include `tauri build` and `tauri-driver` E2E tests against the production artifact to prevent regressions that only surface in the packaged app.
+- **Guard the dev/prod gap.** Dev server and production build can have different runtime behaviors — CSP enforcement and WASM loading can diverge. Unit tests and dev-mode verification alone cannot catch these. CI should verify production builds to prevent regressions that only surface in the deployed app.
 
 ### Maintaining CLAUDE.md
 

@@ -8,9 +8,6 @@ export default defineConfig({
 		strictPort: true,
 		fs: {
 			allow: ['wasm/pkg']
-		},
-		watch: {
-			ignored: ['**/src-tauri/**']
 		}
 	}
 });

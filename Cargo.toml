@@ -3,6 +3,5 @@ resolver = "3"
 members = [
     "crates/core",
     "wasm",
-    "src-tauri",
     "apple",
 ]

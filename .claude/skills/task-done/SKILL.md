@@ -1,5 +1,5 @@
 ---
-description: Complete the current task. Record in done.md, update record file, update todo.md, update progress.md, and commit.
+description: Complete the current task. Record in done.md, update record file, update todo.md, update progress.md, update platform-status.md, and commit.
 user_invocable: true
 ---
 
@@ -51,7 +51,16 @@ Update `tasks/progress.md`:
   2. Analyze dependencies between them — only include items that can be worked on in parallel.
   3. List the independent items as bullet points.
 
-### 5. Git commit
+### 5. Update platform-status.md
+
+If the completed task added or changed any feature implementation, update `docs/platform-status.md`:
+
+- Add new rows for newly implemented features.
+- Update status markers (⬜ → 🔧 → ✅) for features that progressed.
+- Update the Notes column if relevant context changed.
+- Only track features where at least one of Core / Web / Apple has an implementation.
+
+### 6. Git commit
 
 **Guard: verify current branch is not `main`.** If on `main`, stop and alert the user — do not commit.
 

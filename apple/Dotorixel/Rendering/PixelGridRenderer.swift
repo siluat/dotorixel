@@ -144,6 +144,49 @@ final class PixelGridRenderer: NSObject, MTKViewDelegate {
         #endif
     }
 
+    #if DEBUG
+    /// Benchmark-only draw that waits for GPU completion and returns timing.
+    /// Uses the same render path as `draw(in:)` for a fair comparison.
+    struct BenchmarkTiming {
+        let cpuMs: Double
+        let gpuMs: Double
+    }
+
+    func benchmarkDraw(in view: MTKView) -> BenchmarkTiming? {
+        let ds = view.drawableSize
+        guard ds.width > 0, ds.height > 0 else { return nil }
+        uniforms.viewportSize = SIMD2<Float>(Float(ds.width), Float(ds.height))
+
+        guard let drawable = view.currentDrawable,
+              let descriptor = view.currentRenderPassDescriptor,
+              let texture = canvasTexture else {
+            return nil
+        }
+
+        guard let commandBuffer = commandQueue.makeCommandBuffer(),
+              let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
+            return nil
+        }
+
+        encoder.setRenderPipelineState(pipelineState)
+        encoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 0)
+        encoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 0)
+        encoder.setFragmentTexture(texture, index: 0)
+        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+        encoder.endEncoding()
+
+        commandBuffer.present(drawable)
+
+        let cpuStart = CFAbsoluteTimeGetCurrent()
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+        let cpuMs = (CFAbsoluteTimeGetCurrent() - cpuStart) * 1000.0
+        let gpuMs = (commandBuffer.gpuEndTime - commandBuffer.gpuStartTime) * 1000.0
+
+        return BenchmarkTiming(cpuMs: cpuMs, gpuMs: gpuMs)
+    }
+    #endif
+
     func draw(in view: MTKView) {
         // Update viewport size from the actual drawable (handles first-frame zero-size)
         let ds = view.drawableSize

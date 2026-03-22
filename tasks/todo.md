@@ -14,7 +14,6 @@ Reference: [`docs/research/cross-platform-architecture-for-best-experience.en.md
 
 Record findings in `docs/comparison/` as each feature is implemented on both shells.
 
-- Rendering performance — Canvas2D vs Metal FPS at various canvas sizes
 - Input latency — event-to-pixel-update measurement on both shells
 - Bundle size — Tauri `.app` vs native `.app`
 - Implementation effort — per-feature LOC and time comparison

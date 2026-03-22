@@ -13,6 +13,7 @@
 
 	const TOOL_LABELS: Record<ToolType, string> = {
 		pencil: 'Pencil',
+		line: 'Line',
 		eraser: 'Eraser'
 	};
 </script>

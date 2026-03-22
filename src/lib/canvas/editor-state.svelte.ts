@@ -14,7 +14,8 @@ import { exportAsPng } from './export';
 
 const WASM_TOOL_MAP = {
 	pencil: WasmToolType.Pencil,
-	eraser: WasmToolType.Eraser
+	eraser: WasmToolType.Eraser,
+	line: WasmToolType.Line
 } as const;
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
@@ -43,6 +44,8 @@ export class EditorState {
 	#history = WasmHistoryManager.default_manager();
 	#historyVersion = $state(0);
 	#isDrawing = $state(false);
+	#lineStart: CanvasCoords | null = null;
+	#previewSnapshot: Uint8Array | null = null;
 
 	readonly canUndo = $derived.by(() => {
 		void this.#historyVersion;
@@ -104,13 +107,18 @@ export class EditorState {
 		this.#isDrawing = true;
 		this.#history.push_snapshot(this.pixelCanvas.pixels());
 		this.#historyVersion++;
-		if (this.activeTool === 'pencil') {
+		if (this.activeTool === 'pencil' || this.activeTool === 'line') {
 			this.recentColors = addRecentColor(this.recentColors, colorToHex(this.foregroundColor));
+		}
+		if (this.activeTool === 'line') {
+			this.#previewSnapshot = new Uint8Array(this.pixelCanvas.pixels());
 		}
 	};
 
 	handleDrawEnd = (): void => {
 		this.#isDrawing = false;
+		this.#lineStart = null;
+		this.#previewSnapshot = null;
 	};
 
 	handleUndo = (): void => {
@@ -141,6 +149,11 @@ export class EditorState {
 	};
 
 	handleDraw = (current: CanvasCoords, previous: CanvasCoords | null): void => {
+		if (this.activeTool === 'line') {
+			this.#handleLineDraw(current, previous);
+			return;
+		}
+
 		const wasmTool = WASM_TOOL_MAP[this.activeTool];
 		let changed = false;
 
@@ -163,6 +176,45 @@ export class EditorState {
 
 		if (changed) this.renderVersion++;
 	};
+
+	#handleLineDraw(current: CanvasCoords, previous: CanvasCoords | null): void {
+		if (previous === null) {
+			this.#lineStart = current;
+			if (
+				apply_tool(
+					this.pixelCanvas,
+					current.x,
+					current.y,
+					WasmToolType.Line,
+					this.#wasmForegroundColor
+				)
+			) {
+				this.renderVersion++;
+			}
+			return;
+		}
+
+		if (!this.#lineStart || !this.#previewSnapshot) return;
+
+		this.pixelCanvas.restore_pixels(this.#previewSnapshot);
+
+		const flat = wasm_interpolate_pixels(
+			this.#lineStart.x,
+			this.#lineStart.y,
+			current.x,
+			current.y
+		);
+		for (let i = 0; i < flat.length; i += 2) {
+			apply_tool(
+				this.pixelCanvas,
+				flat[i],
+				flat[i + 1],
+				WasmToolType.Line,
+				this.#wasmForegroundColor
+			);
+		}
+		this.renderVersion++;
+	}
 
 	handleZoomIn = (): void => {
 		const centerX = this.viewportSize.width / 2;

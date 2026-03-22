@@ -10,6 +10,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Pencil | ✅ | ✅ | ✅ | |
 | Eraser | ✅ | ✅ | ✅ | |
+| Line | ✅ | ✅ | ⬜ | Snapshot-restore preview |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |
 
 ## Canvas

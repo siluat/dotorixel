@@ -6,13 +6,13 @@ None
 
 ## Last Completed
 
-Circle/Ellipse tool
+Flood fill tool
 
 ## Next Up
 
-- Flood fill tool
-  - BFS/DFS algorithm in Rust core; independent from shape tools. Can start immediately.
 - Eyedropper tool
   - Single pixel read; no dependencies. Can start immediately.
 - Grid visibility toggle
   - Independent UI feature; `showGrid` state already exists in EditorState. Can start immediately.
+- Tool Handler strategy pattern refactoring
+  - Depends on having enough tool types to justify the abstraction (6 tools now). Can start immediately.

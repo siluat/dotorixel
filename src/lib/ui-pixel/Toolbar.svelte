@@ -9,6 +9,7 @@
 		Square,
 		Circle,
 		Eraser,
+		PaintBucket,
 		Undo2,
 		Redo2,
 		ZoomOut,
@@ -90,6 +91,13 @@
 			label: 'Eraser',
 			active: activeTool === 'eraser',
 			onclick: () => onToolChange('eraser')
+		},
+		{
+			kind: 'button',
+			icon: PaintBucket,
+			label: 'Flood Fill',
+			active: activeTool === 'floodfill',
+			onclick: () => onToolChange('floodfill')
 		},
 		{ kind: 'separator' },
 		{ kind: 'button', icon: Undo2, label: 'Undo', disabled: !canUndo, onclick: onUndo },

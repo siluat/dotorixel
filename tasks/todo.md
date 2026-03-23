@@ -4,9 +4,12 @@
 
 ### Basic Tool Expansion
 
-- Flood fill tool
 - Eyedropper tool
 - Grid visibility toggle
+
+### Refactoring
+
+- Tool Handler strategy pattern — extract per-tool branching in EditorState.handleDraw() into a ToolHandler interface
 
 ### Color System
 

@@ -14,6 +14,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Rectangle | ✅ | ✅ | ⬜ | Outline only, snapshot-restore preview |
 | Ellipse | ✅ | ✅ | ⬜ | Outline only, snapshot-restore preview |
 | Flood fill | ✅ | ✅ | ⬜ | BFS, 4-connectivity |
+| Eyedropper | — | ✅ | ⬜ | Read-only, skips transparent pixels |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |
 
 ## Canvas

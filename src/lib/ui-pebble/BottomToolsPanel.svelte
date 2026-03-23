@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { ToolType } from '$lib/canvas/tool-types';
-	import { Pencil, Slash, Square, Circle, Eraser, PaintBucket, ZoomOut, ZoomIn } from 'lucide-svelte';
+	import { Pencil, Slash, Square, Circle, Eraser, PaintBucket, Pipette, ZoomOut, ZoomIn } from 'lucide-svelte';
 	import FloatingPanel from './FloatingPanel.svelte';
 	import PebbleButton from './PebbleButton.svelte';
 
@@ -59,6 +59,13 @@
 		onclick={() => onToolChange('floodfill')}
 	>
 		<PaintBucket size={18} />
+	</PebbleButton>
+	<PebbleButton
+		title="Eyedropper"
+		active={activeTool === 'eyedropper'}
+		onclick={() => onToolChange('eyedropper')}
+	>
+		<Pipette size={18} />
 	</PebbleButton>
 
 	<div class="separator"></div>

@@ -2,10 +2,6 @@
 
 ## v0.1.0: Usable Editor (Milestone 1)
 
-### Basic Tool Expansion
-
-- Grid visibility toggle
-
 ### Refactoring
 
 - Tool Handler strategy pattern — extract per-tool branching in EditorState.handleDraw() into a ToolHandler interface

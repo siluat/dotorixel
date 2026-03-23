@@ -7,7 +7,8 @@ import {
 	apply_tool,
 	wasm_interpolate_pixels,
 	wasm_rectangle_outline,
-	wasm_ellipse_outline
+	wasm_ellipse_outline,
+	wasm_flood_fill
 } from '$wasm/dotorixel_wasm';
 import type { CanvasCoords, ViewportSize, ViewportState } from './view-types';
 import type { ToolType } from './tool-types';
@@ -111,7 +112,7 @@ export class EditorState {
 		this.#isDrawing = true;
 		this.#history.push_snapshot(this.pixelCanvas.pixels());
 		this.#historyVersion++;
-		if (this.activeTool === 'pencil' || this.activeTool === 'line' || this.activeTool === 'rectangle' || this.activeTool === 'ellipse') {
+		if (this.activeTool === 'pencil' || this.activeTool === 'line' || this.activeTool === 'rectangle' || this.activeTool === 'ellipse' || this.activeTool === 'floodfill') {
 			this.recentColors = addRecentColor(this.recentColors, colorToHex(this.foregroundColor));
 		}
 		if (this.activeTool === 'line' || this.activeTool === 'rectangle' || this.activeTool === 'ellipse') {
@@ -163,6 +164,13 @@ export class EditorState {
 		}
 		if (this.activeTool === 'ellipse') {
 			this.#handleEllipseDraw(current, previous);
+			return;
+		}
+		if (this.activeTool === 'floodfill') {
+			if (previous !== null) return;
+			if (wasm_flood_fill(this.pixelCanvas, current.x, current.y, this.#wasmForegroundColor)) {
+				this.renderVersion++;
+			}
 			return;
 		}
 

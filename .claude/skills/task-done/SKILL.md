@@ -11,7 +11,12 @@ When a task item is completed, follow these steps in order, then create a git co
 
 ### 1. Update the record file
 
-Find the record file for the current task in `tasks/records/` (created during `/task-start`). Append a `## Results` section using the following format:
+Find the record file for the current task in `tasks/records/`. If the file does not exist (e.g., `/task-start` was interrupted before creating it), create it now:
+
+1. Determine the next record number by scanning existing files in `tasks/records/`.
+2. Create `tasks/records/<NNN>-<slug>.md` with a `# NNN — Task Title` heading and a `## Plan` section summarizing the implementation plan from the current conversation context.
+
+Once the record file exists, append a `## Results` section using the following format:
 
 ```text
 ## Results

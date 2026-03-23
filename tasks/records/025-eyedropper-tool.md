@@ -2,15 +2,7 @@
 
 ## Plan
 
-Add an eyedropper tool that reads a pixel's color from the canvas and sets it as the foreground color. Unlike existing tools (all write to canvas), eyedropper is read-only — no WASM tool operation needed, uses existing `WasmPixelCanvas.get_pixel()`.
-
-1. Add `'eyedropper'` to ToolType union
-2. Guard `handleDrawStart()` to skip undo snapshot for eyedropper
-3. Add eyedropper branch in `handleDraw()` — read pixel, set foregroundColor, update recentColors
-4. Skip transparent pixels (a === 0) to avoid hex/RGBA mismatch
-5. Add Pipette icon button to both Pixel and Pebble toolbars
-6. Add TOOL_LABELS entry for StatusBar
-7. Write tests: color pick, transparent ignore, no undo snapshot, recentColors update
+Add an eyedropper tool that reads a pixel's color from the canvas and sets it as the foreground color. Read-only tool — no WASM tool operation needed, uses existing `WasmPixelCanvas.get_pixel()`. Transparent pixels ignored to avoid hex/RGBA mismatch.
 
 ## Results
 

@@ -251,3 +251,73 @@ describe('EditorState — ellipse tool', () => {
 		expect(editor.recentColors).toContain('#000000');
 	});
 });
+
+describe('EditorState — eyedropper tool', () => {
+	it('picks the color of a painted pixel', () => {
+		const editor = createEditor();
+		const red = { r: 255, g: 0, b: 0, a: 255 };
+		editor.foregroundColor = red;
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 3, y: 3 }, null);
+		editor.handleDrawEnd();
+
+		// Switch to eyedropper and pick the red pixel
+		editor.foregroundColor = BLACK;
+		editor.activeTool = 'eyedropper';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 3, y: 3 }, null);
+		editor.handleDrawEnd();
+
+		expect(editor.foregroundColor).toEqual(red);
+	});
+
+	it('does not change foregroundColor when picking a transparent pixel', () => {
+		const editor = createEditor();
+		editor.activeTool = 'eyedropper';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDrawEnd();
+
+		expect(editor.foregroundColor).toEqual(BLACK);
+	});
+
+	it('does not push an undo snapshot', () => {
+		const editor = createEditor();
+
+		// Paint a pixel first so canUndo becomes true, then undo to reset
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDrawEnd();
+		editor.handleUndo();
+		expect(editor.canUndo).toBe(false);
+
+		// Use eyedropper — should not create an undo entry
+		editor.activeTool = 'eyedropper';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDrawEnd();
+
+		expect(editor.canUndo).toBe(false);
+	});
+
+	it('adds picked color to recentColors', () => {
+		const editor = createEditor();
+		const green = { r: 0, g: 128, b: 0, a: 255 };
+		editor.foregroundColor = green;
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 2, y: 2 }, null);
+		editor.handleDrawEnd();
+
+		editor.recentColors = [];
+		editor.foregroundColor = BLACK;
+		editor.activeTool = 'eyedropper';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 2, y: 2 }, null);
+		editor.handleDrawEnd();
+
+		expect(editor.recentColors).toContain('#008000');
+	});
+});

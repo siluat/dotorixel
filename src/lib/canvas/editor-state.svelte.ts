@@ -110,6 +110,7 @@ export class EditorState {
 
 	handleDrawStart = (): void => {
 		this.#isDrawing = true;
+		if (this.activeTool === 'eyedropper') return;
 		this.#history.push_snapshot(this.pixelCanvas.pixels());
 		this.#historyVersion++;
 		if (this.activeTool === 'pencil' || this.activeTool === 'line' || this.activeTool === 'rectangle' || this.activeTool === 'ellipse' || this.activeTool === 'floodfill') {
@@ -171,6 +172,14 @@ export class EditorState {
 			if (wasm_flood_fill(this.pixelCanvas, current.x, current.y, this.#wasmForegroundColor)) {
 				this.renderVersion++;
 			}
+			return;
+		}
+		if (this.activeTool === 'eyedropper') {
+			if (previous !== null) return;
+			const pixel = this.pixelCanvas.get_pixel(current.x, current.y);
+			if (pixel.a === 0) return;
+			this.foregroundColor = { r: pixel.r, g: pixel.g, b: pixel.b, a: pixel.a };
+			this.recentColors = addRecentColor(this.recentColors, colorToHex(this.foregroundColor));
 			return;
 		}
 

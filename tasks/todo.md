@@ -4,7 +4,6 @@
 
 ### Basic Tool Expansion
 
-- Eyedropper tool
 - Grid visibility toggle
 
 ### Refactoring

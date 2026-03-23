@@ -10,6 +10,7 @@
 		Circle,
 		Eraser,
 		PaintBucket,
+		Pipette,
 		Undo2,
 		Redo2,
 		ZoomOut,
@@ -98,6 +99,13 @@
 			label: 'Flood Fill',
 			active: activeTool === 'floodfill',
 			onclick: () => onToolChange('floodfill')
+		},
+		{
+			kind: 'button',
+			icon: Pipette,
+			label: 'Eyedropper',
+			active: activeTool === 'eyedropper',
+			onclick: () => onToolChange('eyedropper')
 		},
 		{ kind: 'separator' },
 		{ kind: 'button', icon: Undo2, label: 'Undo', disabled: !canUndo, onclick: onUndo },

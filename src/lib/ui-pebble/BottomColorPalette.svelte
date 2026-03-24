@@ -114,6 +114,7 @@
 		color: var(--pebble-text-primary);
 		z-index: 10;
 
+		--picker-border-radius: 4px;
 		--picker-input-border: var(--pebble-panel-border);
 		--picker-input-bg: rgba(0, 0, 0, 0.05);
 		--picker-ring: var(--pebble-accent);

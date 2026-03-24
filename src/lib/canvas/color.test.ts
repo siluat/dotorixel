@@ -159,6 +159,10 @@ describe('hsvToRgb', () => {
 	it('always returns alpha 255', () => {
 		expect(hsvToRgb({ h: 200, s: 0.5, v: 0.8 }).a).toBe(255);
 	});
+
+	it('treats hue 360 the same as hue 0 (red)', () => {
+		expect(hsvToRgb({ h: 360, s: 1, v: 1 })).toEqual({ r: 255, g: 0, b: 0, a: 255 });
+	});
 });
 
 describe('rgbToHsv / hsvToRgb round-trip', () => {

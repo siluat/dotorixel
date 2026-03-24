@@ -16,6 +16,7 @@
 
 	let svCanvas: HTMLCanvasElement | undefined = $state();
 	let hueCanvas: HTMLCanvasElement | undefined = $state();
+	let isHueRendered = false;
 
 	let hsv: HsvColor = $state({ h: 0, s: 1, v: 1 });
 	let isDraggingSv = $state(false);
@@ -41,8 +42,9 @@
 	});
 
 	$effect(() => {
-		if (!hueCanvas) return;
+		if (!hueCanvas || isHueRendered) return;
 		renderHueCanvas(hueCanvas, hueStripWidth, height);
+		isHueRendered = true;
 	});
 
 	function renderSvCanvas(canvas: HTMLCanvasElement, hue: number, w: number, h: number): void {
@@ -194,7 +196,7 @@
 	.sv-area {
 		position: relative;
 		cursor: crosshair;
-		border-radius: 4px;
+		border-radius: var(--picker-border-radius, 0);
 		overflow: hidden;
 	}
 
@@ -218,7 +220,7 @@
 	.hue-strip {
 		position: relative;
 		cursor: pointer;
-		border-radius: 4px;
+		border-radius: var(--picker-border-radius, 0);
 		overflow: hidden;
 	}
 

@@ -6,11 +6,13 @@ None
 
 ## Last Completed
 
-Eyedropper tool
+Tool Handler refactoring
 
 ## Next Up
 
-- Tool Handler strategy pattern refactoring
-  - Now 7 tools with distinct branching patterns (write tools, read-only eyedropper). Refactoring value increasing. Can start immediately.
 - HSV color picker
   - Depends on no other task. Current color input is a basic HTML input; HSV picker is a standalone UI addition.
+- Tool shortcuts (P, E, L, F, I, R, C, G)
+  - Depends on no other task. Purely additive keyboard binding.
+- Foreground/background color swap
+  - Depends on no other task. Adds a second color slot and swap key.

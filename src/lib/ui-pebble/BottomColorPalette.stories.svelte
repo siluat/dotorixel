@@ -4,7 +4,11 @@
 
 	const { Story } = defineMeta({});
 
-	const noop = (/** @type {string} */ _hex) => {};
+	const noop = (_hex: string) => {};
+</script>
+
+<script lang="ts">
+	let interactiveColor = $state('#2D2D2D');
 </script>
 
 <Story name="Default">
@@ -22,6 +26,15 @@
 <Story name="WhiteSelected">
 	<div class="pebble-editor pebble-story-bg">
 		<BottomColorPalette selectedColor="#FFFFFF" onColorChange={noop} />
+	</div>
+</Story>
+
+<Story name="Interactive">
+	<div class="pebble-editor pebble-story-bg">
+		<BottomColorPalette
+			selectedColor={interactiveColor}
+			onColorChange={(c) => (interactiveColor = c)}
+		/>
 	</div>
 </Story>
 

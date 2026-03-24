@@ -43,7 +43,8 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Color model (RGBA) | ✅ | ✅ | ✅ | Hex conversion in Core + Web |
-| Color picker | — | ✅ | ✅ | Native HTML / SwiftUI |
+| HSV conversion | — | ✅ | ⬜ | `rgbToHsv()` / `hsvToRgb()` |
+| Color picker | — | ✅ | ✅ | Web: custom HSV picker, Apple: SwiftUI |
 | Preset palette | — | ✅ | ✅ | 18 Pebble colors |
 | Recent colors | — | ✅ | ⬜ | Last 12 used |
 

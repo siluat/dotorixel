@@ -4,7 +4,6 @@
 
 ### Color System
 
-- HSV color picker
 - Foreground/background color swap
 
 ### Keyboard Shortcuts

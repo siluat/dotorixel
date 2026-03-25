@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { colorToHex, hexToColor, isValidHex, addRecentColor, TRANSPARENT, type Color } from './color.ts';
+import { colorToHex, hexToColor, isValidHex, addRecentColor, rgbToHsv, hsvToRgb, TRANSPARENT, type Color } from './color.ts';
 
 describe('colorToHex', () => {
 	it('converts black to #000000', () => {
@@ -87,6 +87,107 @@ describe('isValidHex', () => {
 	it('rejects hex with extra characters', () => {
 		expect(isValidHex('#ff000000')).toBe(false);
 	});
+});
+
+describe('rgbToHsv', () => {
+	it('converts pure red', () => {
+		expect(rgbToHsv({ r: 255, g: 0, b: 0, a: 255 })).toEqual({ h: 0, s: 1, v: 1 });
+	});
+
+	it('converts pure green', () => {
+		const hsv = rgbToHsv({ r: 0, g: 255, b: 0, a: 255 });
+		expect(hsv).toEqual({ h: 120, s: 1, v: 1 });
+	});
+
+	it('converts pure blue', () => {
+		const hsv = rgbToHsv({ r: 0, g: 0, b: 255, a: 255 });
+		expect(hsv).toEqual({ h: 240, s: 1, v: 1 });
+	});
+
+	it('converts cyan', () => {
+		const hsv = rgbToHsv({ r: 0, g: 255, b: 255, a: 255 });
+		expect(hsv).toEqual({ h: 180, s: 1, v: 1 });
+	});
+
+	it('converts magenta', () => {
+		const hsv = rgbToHsv({ r: 255, g: 0, b: 255, a: 255 });
+		expect(hsv).toEqual({ h: 300, s: 1, v: 1 });
+	});
+
+	it('converts yellow', () => {
+		const hsv = rgbToHsv({ r: 255, g: 255, b: 0, a: 255 });
+		expect(hsv).toEqual({ h: 60, s: 1, v: 1 });
+	});
+
+	it('converts black (hue=0 convention)', () => {
+		expect(rgbToHsv({ r: 0, g: 0, b: 0, a: 255 })).toEqual({ h: 0, s: 0, v: 0 });
+	});
+
+	it('converts white (hue=0 convention)', () => {
+		expect(rgbToHsv({ r: 255, g: 255, b: 255, a: 255 })).toEqual({ h: 0, s: 0, v: 1 });
+	});
+
+	it('converts gray (hue=0 convention)', () => {
+		const hsv = rgbToHsv({ r: 128, g: 128, b: 128, a: 255 });
+		expect(hsv.h).toBe(0);
+		expect(hsv.s).toBe(0);
+		expect(hsv.v).toBeCloseTo(128 / 255, 5);
+	});
+});
+
+describe('hsvToRgb', () => {
+	it('converts pure red', () => {
+		expect(hsvToRgb({ h: 0, s: 1, v: 1 })).toEqual({ r: 255, g: 0, b: 0, a: 255 });
+	});
+
+	it('converts pure green', () => {
+		expect(hsvToRgb({ h: 120, s: 1, v: 1 })).toEqual({ r: 0, g: 255, b: 0, a: 255 });
+	});
+
+	it('converts pure blue', () => {
+		expect(hsvToRgb({ h: 240, s: 1, v: 1 })).toEqual({ r: 0, g: 0, b: 255, a: 255 });
+	});
+
+	it('converts black', () => {
+		expect(hsvToRgb({ h: 0, s: 0, v: 0 })).toEqual({ r: 0, g: 0, b: 0, a: 255 });
+	});
+
+	it('converts white', () => {
+		expect(hsvToRgb({ h: 0, s: 0, v: 1 })).toEqual({ r: 255, g: 255, b: 255, a: 255 });
+	});
+
+	it('always returns alpha 255', () => {
+		expect(hsvToRgb({ h: 200, s: 0.5, v: 0.8 }).a).toBe(255);
+	});
+
+	it('treats hue 360 the same as hue 0 (red)', () => {
+		expect(hsvToRgb({ h: 360, s: 1, v: 1 })).toEqual({ r: 255, g: 0, b: 0, a: 255 });
+	});
+});
+
+describe('rgbToHsv / hsvToRgb round-trip', () => {
+	const colors: Color[] = [
+		{ r: 255, g: 0, b: 0, a: 255 },
+		{ r: 0, g: 255, b: 0, a: 255 },
+		{ r: 0, g: 0, b: 255, a: 255 },
+		{ r: 255, g: 255, b: 0, a: 255 },
+		{ r: 0, g: 255, b: 255, a: 255 },
+		{ r: 255, g: 0, b: 255, a: 255 },
+		{ r: 0, g: 0, b: 0, a: 255 },
+		{ r: 255, g: 255, b: 255, a: 255 },
+		{ r: 128, g: 64, b: 32, a: 255 },
+		{ r: 42, g: 128, b: 200, a: 255 },
+	];
+
+	for (const color of colors) {
+		it(`round-trips rgb(${color.r}, ${color.g}, ${color.b})`, () => {
+			const result = hsvToRgb(rgbToHsv(color));
+			expect(result.r).toBeCloseTo(color.r, 0);
+			expect(result.g).toBeCloseTo(color.g, 0);
+			expect(result.b).toBeCloseTo(color.b, 0);
+			expect(result.a).toBe(255);
+		});
+	}
 });
 
 describe('addRecentColor', () => {

@@ -3,6 +3,7 @@
 	import { DEFAULT_PALETTE } from './color-palette-data';
 	import PixelPanel from './PixelPanel.svelte';
 	import ColorSwatch from './ColorSwatchTinted.svelte';
+	import ColorPickerPopup from '$lib/color-picker/ColorPickerPopup.svelte';
 
 	interface Props {
 		selectedColor: string;
@@ -14,6 +15,19 @@
 
 	let hexInput = $state('');
 	let isHexValid = $state(true);
+	let isPickerOpen = $state(false);
+	let anchorEl: HTMLDivElement | undefined = $state();
+
+	$effect(() => {
+		if (!isPickerOpen) return;
+		function handleOutsidePointerDown(e: PointerEvent): void {
+			if (anchorEl && !anchorEl.contains(e.target as Node)) {
+				isPickerOpen = false;
+			}
+		}
+		document.addEventListener('pointerdown', handleOutsidePointerDown);
+		return () => document.removeEventListener('pointerdown', handleOutsidePointerDown);
+	});
 
 	$effect.pre(() => {
 		hexInput = selectedColor;
@@ -51,11 +65,6 @@
 			commitHexInput();
 		}
 	}
-
-	function handleNativeColorInput(event: Event): void {
-		const input = event.currentTarget as HTMLInputElement;
-		onColorChange(input.value);
-	}
 </script>
 
 <PixelPanel>
@@ -66,13 +75,24 @@
 		</div>
 
 		<div class="color-input">
-			<input
-				type="color"
-				class="native-picker"
-				value={selectedColor}
-				aria-label="Color picker"
-				oninput={handleNativeColorInput}
-			/>
+			<div class="picker-anchor" bind:this={anchorEl}>
+				<button
+					class="picker-button"
+					style:background-color={selectedColor}
+					aria-label="Color picker"
+					onclick={() => (isPickerOpen = !isPickerOpen)}
+				></button>
+
+				{#if isPickerOpen}
+					<div class="picker-popup">
+						<ColorPickerPopup
+							{selectedColor}
+							{onColorChange}
+							onClose={() => (isPickerOpen = false)}
+						/>
+					</div>
+				{/if}
+			</div>
 			<input
 				type="text"
 				class="hex-field"
@@ -157,14 +177,38 @@
 		gap: var(--space-2);
 	}
 
-	.native-picker {
+	.picker-anchor {
+		position: relative;
+	}
+
+	.picker-button {
 		width: 28px;
 		height: 28px;
-		padding: 1px;
+		padding: 0;
 		border: var(--border-width) solid var(--color-border-shadow);
 		background: var(--color-input);
 		cursor: pointer;
 		flex-shrink: 0;
+	}
+
+	.picker-popup {
+		position: absolute;
+		top: calc(100% + 4px);
+		left: 0;
+		background: var(--color-surface);
+		border: var(--border-width) solid var(--color-border);
+		border-top-color: var(--color-border-highlight);
+		border-left-color: var(--color-border-highlight);
+		border-bottom-color: var(--color-border-shadow);
+		border-right-color: var(--color-border-shadow);
+		color: var(--color-surface-fg);
+		font-family: var(--font-mono);
+		z-index: 10;
+
+		--picker-input-border: var(--color-border-shadow);
+		--picker-input-bg: var(--color-input);
+		--picker-ring: var(--color-ring);
+		--picker-error: var(--color-destructive);
 	}
 
 	.hex-field {

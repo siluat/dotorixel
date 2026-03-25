@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 027 | [HSV color picker](records/027-hsv-color-picker.md) | 2026-03-25 |
 | 026 | [Tool Handler refactoring](records/026-tool-handler-refactoring.md) | 2026-03-24 |
 | 025 | [Eyedropper tool](records/025-eyedropper-tool.md) | 2026-03-24 |
 | 024 | [Flood fill tool](records/024-flood-fill-tool.md) | 2026-03-23 |

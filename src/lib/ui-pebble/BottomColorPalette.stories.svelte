@@ -3,8 +3,11 @@
 	import BottomColorPalette from './BottomColorPalette.svelte';
 
 	const { Story } = defineMeta({});
+</script>
 
-	const noop = (/** @type {string} */ _hex) => {};
+<script lang="ts">
+	const noop = (_hex: string) => {};
+	let interactiveColor = $state('#2D2D2D');
 </script>
 
 <Story name="Default">
@@ -22,6 +25,15 @@
 <Story name="WhiteSelected">
 	<div class="pebble-editor pebble-story-bg">
 		<BottomColorPalette selectedColor="#FFFFFF" onColorChange={noop} />
+	</div>
+</Story>
+
+<Story name="Interactive">
+	<div class="pebble-editor pebble-story-bg">
+		<BottomColorPalette
+			selectedColor={interactiveColor}
+			onColorChange={(c) => (interactiveColor = c)}
+		/>
 	</div>
 </Story>
 

@@ -2,6 +2,7 @@
 	import { PEBBLE_PALETTE } from './pebble-palette-data';
 	import FloatingPanel from './FloatingPanel.svelte';
 	import PebbleSwatch from './PebbleSwatch.svelte';
+	import ColorPickerPopup from '$lib/color-picker/ColorPickerPopup.svelte';
 
 	interface Props {
 		selectedColor: string;
@@ -10,7 +11,19 @@
 
 	let { selectedColor, onColorChange }: Props = $props();
 
-	let pickerValue = $derived(selectedColor);
+	let isPickerOpen = $state(false);
+	let anchorEl: HTMLDivElement | undefined = $state();
+
+	$effect(() => {
+		if (!isPickerOpen) return;
+		function handleOutsidePointerDown(e: PointerEvent): void {
+			if (anchorEl && !anchorEl.contains(e.target as Node)) {
+				isPickerOpen = false;
+			}
+		}
+		document.addEventListener('pointerdown', handleOutsidePointerDown);
+		return () => document.removeEventListener('pointerdown', handleOutsidePointerDown);
+	});
 </script>
 
 <FloatingPanel style="height: 68px; border-radius: var(--pebble-panel-radius); padding: 10px 16px;">
@@ -38,13 +51,24 @@
 
 	<div class="separator"></div>
 
-	<input
-		type="color"
-		class="color-picker"
-		value={pickerValue}
-		oninput={(e) => onColorChange(e.currentTarget.value.toUpperCase())}
-		title="Custom color"
-	/>
+	<div class="picker-anchor" bind:this={anchorEl}>
+		<button
+			class="picker-button"
+			style:background-color={selectedColor}
+			title="Custom color"
+			onclick={() => (isPickerOpen = !isPickerOpen)}
+		></button>
+
+		{#if isPickerOpen}
+			<div class="picker-popup">
+				<ColorPickerPopup
+					{selectedColor}
+					{onColorChange}
+					onClose={() => (isPickerOpen = false)}
+				/>
+			</div>
+		{/if}
+	</div>
 </FloatingPanel>
 
 <style>
@@ -66,22 +90,34 @@
 		gap: 8px;
 	}
 
-	.color-picker {
+	.picker-anchor {
+		position: relative;
+	}
+
+	.picker-button {
 		width: 32px;
 		height: 32px;
 		padding: 0;
 		border: 1px solid var(--pebble-panel-border);
 		border-radius: 8px;
-		background: none;
 		cursor: pointer;
 	}
 
-	.color-picker::-webkit-color-swatch-wrapper {
-		padding: 2px;
-	}
+	.picker-popup {
+		position: absolute;
+		bottom: calc(100% + 8px);
+		right: 0;
+		background: var(--pebble-panel-bg);
+		border: 1px solid var(--pebble-panel-border);
+		border-radius: var(--pebble-panel-radius);
+		box-shadow: var(--pebble-panel-shadow);
+		color: var(--pebble-text-primary);
+		z-index: 10;
 
-	.color-picker::-webkit-color-swatch {
-		border: none;
-		border-radius: 5px;
+		--picker-border-radius: 4px;
+		--picker-input-border: var(--pebble-panel-border);
+		--picker-input-bg: rgba(0, 0, 0, 0.05);
+		--picker-ring: var(--pebble-accent);
+		--picker-error: oklch(0.55 0.2 25);
 	}
 </style>

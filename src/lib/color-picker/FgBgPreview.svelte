@@ -8,7 +8,11 @@
 	let { foregroundColor, backgroundColor, onSwapColors }: Props = $props();
 </script>
 
-<div class="fg-bg-preview">
+<div
+	class="fg-bg-preview"
+	role="group"
+	aria-label={`Foreground color ${foregroundColor}, background color ${backgroundColor}`}
+>
 	<div class="swatch swatch-bg checkerboard">
 		<div class="swatch-fill" style:background-color={backgroundColor}></div>
 	</div>

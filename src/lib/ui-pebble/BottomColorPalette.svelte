@@ -56,7 +56,7 @@
 		<button
 			class="picker-button"
 			style:background-color={foregroundColor}
-			title="Custom color"
+			aria-label="Color picker"
 			onclick={() => (isPickerOpen = !isPickerOpen)}
 		></button>
 

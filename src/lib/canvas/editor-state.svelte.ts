@@ -33,6 +33,7 @@ export interface EditorOptions {
 	canvasWidth?: number;
 	canvasHeight?: number;
 	foregroundColor?: Color;
+	backgroundColor?: Color;
 	gridColor?: string;
 }
 
@@ -43,6 +44,7 @@ export class EditorState {
 	activeTool = $state<ToolType>('pencil');
 	renderVersion = $state(0);
 	foregroundColor = $state<Color>({ r: 0, g: 0, b: 0, a: 255 });
+	backgroundColor = $state<Color>({ r: 255, g: 255, b: 255, a: 255 });
 	recentColors = $state<string[]>([]);
 
 	#history = WasmHistoryManager.default_manager();
@@ -84,7 +86,8 @@ export class EditorState {
 		gridColor: this.viewportState.gridColor
 	});
 
-	readonly selectedColorHex = $derived(colorToHex(this.foregroundColor));
+	readonly foregroundColorHex = $derived(colorToHex(this.foregroundColor));
+	readonly backgroundColorHex = $derived(colorToHex(this.backgroundColor));
 
 	constructor(options: EditorOptions = {}) {
 		const cw = options.canvasWidth ?? 16;
@@ -97,6 +100,9 @@ export class EditorState {
 		};
 		if (options.foregroundColor) {
 			this.foregroundColor = options.foregroundColor;
+		}
+		if (options.backgroundColor) {
+			this.backgroundColor = options.backgroundColor;
 		}
 	}
 
@@ -249,6 +255,12 @@ export class EditorState {
 
 	handleColorChange = (hex: string): void => {
 		this.foregroundColor = hexToColor(hex);
+	};
+
+	swapColors = (): void => {
+		const temp = this.foregroundColor;
+		this.foregroundColor = this.backgroundColor;
+		this.backgroundColor = temp;
 	};
 
 	handleResize = (newWidth: number, newHeight: number): void => {

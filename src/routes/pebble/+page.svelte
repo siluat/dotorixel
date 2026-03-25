@@ -85,8 +85,10 @@
 			onZoomReset={editor.handleZoomReset}
 		/>
 		<BottomColorPalette
-			selectedColor={editor.selectedColorHex}
+			foregroundColor={editor.foregroundColorHex}
+			backgroundColor={editor.backgroundColorHex}
 			onColorChange={editor.handleColorChange}
+			onSwapColors={editor.swapColors}
 		/>
 	</div>
 </div>

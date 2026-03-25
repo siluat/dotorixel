@@ -3,13 +3,16 @@
 	import FloatingPanel from './FloatingPanel.svelte';
 	import PebbleSwatch from './PebbleSwatch.svelte';
 	import ColorPickerPopup from '$lib/color-picker/ColorPickerPopup.svelte';
+	import FgBgPreview from '$lib/color-picker/FgBgPreview.svelte';
 
 	interface Props {
-		selectedColor: string;
+		foregroundColor: string;
+		backgroundColor?: string;
 		onColorChange: (hex: string) => void;
+		onSwapColors?: () => void;
 	}
 
-	let { selectedColor, onColorChange }: Props = $props();
+	let { foregroundColor, backgroundColor = '#ffffff', onColorChange, onSwapColors }: Props = $props();
 
 	let isPickerOpen = $state(false);
 	let anchorEl: HTMLDivElement | undefined = $state();
@@ -27,11 +30,9 @@
 </script>
 
 <FloatingPanel style="height: 68px; border-radius: var(--pebble-panel-radius); padding: 10px 16px;">
-	<PebbleSwatch
-		color={selectedColor}
-		selected
-		size="lg"
-	/>
+	<div class="fg-bg-wrapper">
+		<FgBgPreview {foregroundColor} {backgroundColor} {onSwapColors} />
+	</div>
 
 	<div class="separator"></div>
 
@@ -41,7 +42,7 @@
 				{#each row as color}
 					<PebbleSwatch
 						{color}
-						selected={color.toUpperCase() === selectedColor.toUpperCase()}
+						selected={color.toUpperCase() === foregroundColor.toUpperCase()}
 						onclick={() => onColorChange(color)}
 					/>
 				{/each}
@@ -54,15 +55,15 @@
 	<div class="picker-anchor" bind:this={anchorEl}>
 		<button
 			class="picker-button"
-			style:background-color={selectedColor}
-			title="Custom color"
+			style:background-color={foregroundColor}
+			aria-label="Color picker"
 			onclick={() => (isPickerOpen = !isPickerOpen)}
 		></button>
 
 		{#if isPickerOpen}
 			<div class="picker-popup">
 				<ColorPickerPopup
-					{selectedColor}
+					selectedColor={foregroundColor}
 					{onColorChange}
 					onClose={() => (isPickerOpen = false)}
 				/>
@@ -72,6 +73,20 @@
 </FloatingPanel>
 
 <style>
+	.fg-bg-wrapper {
+		--fgbg-size: 44px;
+		--fgbg-swatch-size: 28px;
+		--fgbg-border-color: var(--pebble-panel-border);
+		--fgbg-swatch-radius: 6px;
+		--fgbg-swap-size: 20px;
+		--fgbg-swap-inset: -2px;
+		--fgbg-swap-radius: 50%;
+		--fgbg-swap-bg: var(--pebble-panel-bg);
+		--fgbg-swap-border-width: 1px;
+		--fgbg-swap-color: var(--pebble-text-primary);
+		--fgbg-swap-hover-bg: rgba(0, 0, 0, 0.05);
+	}
+
 	.separator {
 		width: 1px;
 		height: 44px;

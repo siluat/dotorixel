@@ -4,14 +4,17 @@
 	import PixelPanel from './PixelPanel.svelte';
 	import ColorSwatch from './ColorSwatchTinted.svelte';
 	import ColorPickerPopup from '$lib/color-picker/ColorPickerPopup.svelte';
+	import FgBgPreview from '$lib/color-picker/FgBgPreview.svelte';
 
 	interface Props {
-		selectedColor: string;
+		foregroundColor: string;
+		backgroundColor?: string;
 		recentColors?: string[];
 		onColorChange: (color: string) => void;
+		onSwapColors?: () => void;
 	}
 
-	let { selectedColor, recentColors = [], onColorChange }: Props = $props();
+	let { foregroundColor, backgroundColor = '#ffffff', recentColors = [], onColorChange, onSwapColors }: Props = $props();
 
 	let hexInput = $state('');
 	let isHexValid = $state(true);
@@ -30,7 +33,7 @@
 	});
 
 	$effect.pre(() => {
-		hexInput = selectedColor;
+		hexInput = foregroundColor;
 		isHexValid = true;
 	});
 
@@ -51,11 +54,11 @@
 	function commitHexInput(): void {
 		if (isValidHex(hexInput)) {
 			const normalized = hexInput.toLowerCase();
-			if (normalized !== selectedColor.toLowerCase()) {
+			if (normalized !== foregroundColor.toLowerCase()) {
 				onColorChange(normalized);
 			}
 		} else {
-			hexInput = selectedColor;
+			hexInput = foregroundColor;
 			isHexValid = true;
 		}
 	}
@@ -70,15 +73,15 @@
 <PixelPanel>
 	<div class="color-palette">
 		<div class="current-color">
-			<div class="preview-box" style:background-color={selectedColor}></div>
-			<span class="hex-label">{selectedColor}</span>
+			<FgBgPreview {foregroundColor} {backgroundColor} {onSwapColors} />
+			<span class="hex-label">{foregroundColor}</span>
 		</div>
 
 		<div class="color-input">
 			<div class="picker-anchor" bind:this={anchorEl}>
 				<button
 					class="picker-button"
-					style:background-color={selectedColor}
+					style:background-color={foregroundColor}
 					aria-label="Color picker"
 					onclick={() => (isPickerOpen = !isPickerOpen)}
 				></button>
@@ -86,7 +89,7 @@
 				{#if isPickerOpen}
 					<div class="picker-popup">
 						<ColorPickerPopup
-							{selectedColor}
+							selectedColor={foregroundColor}
 							{onColorChange}
 							onClose={() => (isPickerOpen = false)}
 						/>
@@ -112,7 +115,7 @@
 				<ColorSwatch
 					{color}
 					size="sm"
-					selected={color.toLowerCase() === selectedColor.toLowerCase()}
+					selected={color.toLowerCase() === foregroundColor.toLowerCase()}
 					onclick={() => onColorChange(color)}
 				/>
 			{/each}
@@ -126,7 +129,7 @@
 						<ColorSwatch
 							{color}
 							size="sm"
-							selected={color.toLowerCase() === selectedColor.toLowerCase()}
+							selected={color.toLowerCase() === foregroundColor.toLowerCase()}
 							onclick={() => onColorChange(color)}
 						/>
 					{/each}
@@ -147,19 +150,21 @@
 	/* ── Current color preview ── */
 
 	.current-color {
+		--_depth: calc((var(--border-width) + var(--border-width-thick)) / 2);
+
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
-	}
 
-	.preview-box {
-		--depth: calc((var(--border-width) + var(--border-width-thick)) / 2);
-		width: 40px;
-		height: 40px;
-		border: var(--border-width) solid var(--color-border-shadow);
-		border-bottom-width: var(--depth);
-		border-right-width: var(--depth);
-		flex-shrink: 0;
+		--fgbg-size: 50px;
+		--fgbg-swatch-size: 30px;
+		--fgbg-border-color: var(--color-border-shadow);
+		--fgbg-swatch-border-width: var(--border-width) var(--_depth) var(--_depth) var(--border-width);
+		--fgbg-swap-size: 18px;
+		--fgbg-swap-bg: var(--color-surface);
+		--fgbg-swap-border-width: var(--border-width);
+		--fgbg-swap-color: var(--color-surface-fg);
+		--fgbg-swap-hover-bg: var(--color-muted);
 	}
 
 	.hex-label {

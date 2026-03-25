@@ -41,9 +41,11 @@
 			</div>
 			<div class="cell-palette">
 				<ColorPalette
-					selectedColor={editor.selectedColorHex}
+					foregroundColor={editor.foregroundColorHex}
+					backgroundColor={editor.backgroundColorHex}
 					recentColors={editor.recentColors}
 					onColorChange={editor.handleColorChange}
+					onSwapColors={editor.swapColors}
 				/>
 			</div>
 			<div class="cell-canvas">

@@ -47,6 +47,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Color picker | — | ✅ | ✅ | Web: custom HSV picker, Apple: SwiftUI |
 | Preset palette | — | ✅ | ✅ | 18 Pebble colors |
 | Recent colors | — | ✅ | ⬜ | Last 12 used |
+| FG/BG color swap | — | ✅ | ⬜ | Swap button in both Pixel and Pebble UI |
 
 ## Rendering
 

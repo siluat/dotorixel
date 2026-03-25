@@ -6,10 +6,12 @@
 
 	interface Props {
 		selectedColor: string;
+		backgroundColor?: string;
 		onColorChange: (hex: string) => void;
+		onSwapColors?: () => void;
 	}
 
-	let { selectedColor, onColorChange }: Props = $props();
+	let { selectedColor, backgroundColor = '#ffffff', onColorChange, onSwapColors }: Props = $props();
 
 	let isPickerOpen = $state(false);
 	let anchorEl: HTMLDivElement | undefined = $state();
@@ -27,11 +29,25 @@
 </script>
 
 <FloatingPanel style="height: 68px; border-radius: var(--pebble-panel-radius); padding: 10px 16px;">
-	<PebbleSwatch
-		color={selectedColor}
-		selected
-		size="lg"
-	/>
+	<div class="fg-bg-preview">
+		<div class="swatch-bg checkerboard">
+			<div class="swatch-color" style:background-color={backgroundColor}></div>
+		</div>
+		<div class="swatch-fg checkerboard">
+			<div class="swatch-color" style:background-color={selectedColor}></div>
+		</div>
+		{#if onSwapColors}
+			<button
+				class="swap-button"
+				aria-label="Swap foreground and background colors"
+				onclick={onSwapColors}
+			>
+				<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+					<path d="M1 4h8L7 2M11 8H3l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
+			</button>
+		{/if}
+	</div>
 
 	<div class="separator"></div>
 
@@ -72,6 +88,74 @@
 </FloatingPanel>
 
 <style>
+	.fg-bg-preview {
+		position: relative;
+		width: 44px;
+		height: 44px;
+		flex-shrink: 0;
+	}
+
+	.checkerboard {
+		background-image:
+			linear-gradient(45deg, #ccc 25%, transparent 25%),
+			linear-gradient(-45deg, #ccc 25%, transparent 25%),
+			linear-gradient(45deg, transparent 75%, #ccc 75%),
+			linear-gradient(-45deg, transparent 75%, #ccc 75%);
+		background-size: 8px 8px;
+		background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+	}
+
+	.swatch-color {
+		width: 100%;
+		height: 100%;
+	}
+
+	.swatch-fg {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 28px;
+		height: 28px;
+		border-radius: 6px;
+		overflow: hidden;
+		border: 1px solid var(--pebble-panel-border);
+		z-index: 1;
+	}
+
+	.swatch-bg {
+		position: absolute;
+		bottom: 0;
+		right: 0;
+		width: 28px;
+		height: 28px;
+		border-radius: 6px;
+		overflow: hidden;
+		border: 1px solid var(--pebble-panel-border);
+	}
+
+	.swap-button {
+		position: absolute;
+		top: -2px;
+		right: -2px;
+		width: 20px;
+		height: 20px;
+		padding: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--pebble-panel-bg);
+		border: 1px solid var(--pebble-panel-border);
+		border-radius: 50%;
+		color: var(--pebble-text-primary);
+		cursor: pointer;
+		z-index: 2;
+		transition: background 0.12s ease;
+	}
+
+	.swap-button:hover {
+		background: rgba(0, 0, 0, 0.05);
+	}
+
 	.separator {
 		width: 1px;
 		height: 44px;

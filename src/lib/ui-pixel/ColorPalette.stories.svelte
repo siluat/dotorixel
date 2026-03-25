@@ -7,7 +7,7 @@
 
 <Story name="Default">
 	<div class="pixel-editor pixel-story-bg">
-		<ColorPalette selectedColor="#000000" onColorChange={() => {}} />
+		<ColorPalette selectedColor="#000000" backgroundColor="#ffffff" onColorChange={() => {}} />
 	</div>
 </Story>
 
@@ -15,6 +15,7 @@
 	<div class="pixel-editor pixel-story-bg">
 		<ColorPalette
 			selectedColor="#1e90ff"
+			backgroundColor="#ffffff"
 			recentColors={['#ff0000', '#00ff00', '#0000ff', '#ffd700', '#ff69b4']}
 			onColorChange={() => {}}
 		/>
@@ -23,7 +24,7 @@
 
 <Story name="CustomColorSelected">
 	<div class="pixel-editor pixel-story-bg">
-		<ColorPalette selectedColor="#7b3f00" onColorChange={() => {}} />
+		<ColorPalette selectedColor="#7b3f00" backgroundColor="#ffffff" onColorChange={() => {}} />
 	</div>
 </Story>
 
@@ -31,11 +32,18 @@
 	import { addRecentColor } from '$lib/canvas/color';
 
 	let interactiveColor = $state('#ff0000');
+	let interactiveBg = $state('#ffffff');
 	let interactiveRecent: string[] = $state([]);
 
 	function handleInteractiveChange(color: string): void {
 		interactiveRecent = addRecentColor(interactiveRecent, interactiveColor);
 		interactiveColor = color;
+	}
+
+	function handleSwapColors(): void {
+		const temp = interactiveColor;
+		interactiveColor = interactiveBg;
+		interactiveBg = temp;
 	}
 </script>
 
@@ -43,8 +51,10 @@
 	<div class="pixel-editor pixel-story-bg">
 		<ColorPalette
 			selectedColor={interactiveColor}
+			backgroundColor={interactiveBg}
 			recentColors={interactiveRecent}
 			onColorChange={handleInteractiveChange}
+			onSwapColors={handleSwapColors}
 		/>
 	</div>
 </Story>

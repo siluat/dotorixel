@@ -8,23 +8,30 @@
 <script lang="ts">
 	const noop = (_hex: string) => {};
 	let interactiveColor = $state('#2D2D2D');
+	let interactiveBg = $state('#ffffff');
+
+	function handleSwapColors(): void {
+		const temp = interactiveColor;
+		interactiveColor = interactiveBg;
+		interactiveBg = temp;
+	}
 </script>
 
 <Story name="Default">
 	<div class="pebble-editor pebble-story-bg">
-		<BottomColorPalette selectedColor="#2D2D2D" onColorChange={noop} />
+		<BottomColorPalette selectedColor="#2D2D2D" backgroundColor="#ffffff" onColorChange={noop} />
 	</div>
 </Story>
 
 <Story name="PinkSelected">
 	<div class="pebble-editor pebble-story-bg">
-		<BottomColorPalette selectedColor="#E8729A" onColorChange={noop} />
+		<BottomColorPalette selectedColor="#E8729A" backgroundColor="#ffffff" onColorChange={noop} />
 	</div>
 </Story>
 
 <Story name="WhiteSelected">
 	<div class="pebble-editor pebble-story-bg">
-		<BottomColorPalette selectedColor="#FFFFFF" onColorChange={noop} />
+		<BottomColorPalette selectedColor="#FFFFFF" backgroundColor="#2D2D2D" onColorChange={noop} />
 	</div>
 </Story>
 
@@ -32,7 +39,9 @@
 	<div class="pebble-editor pebble-story-bg">
 		<BottomColorPalette
 			selectedColor={interactiveColor}
+			backgroundColor={interactiveBg}
 			onColorChange={(c) => (interactiveColor = c)}
+			onSwapColors={handleSwapColors}
 		/>
 	</div>
 </Story>

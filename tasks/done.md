@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 028 | [Foreground/background color swap](records/028-fg-bg-color-swap.md) | 2026-03-25 |
 | 027 | [HSV color picker](records/027-hsv-color-picker.md) | 2026-03-25 |
 | 026 | [Tool Handler refactoring](records/026-tool-handler-refactoring.md) | 2026-03-24 |
 | 025 | [Eyedropper tool](records/025-eyedropper-tool.md) | 2026-03-24 |

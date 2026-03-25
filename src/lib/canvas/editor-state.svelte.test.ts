@@ -12,6 +12,7 @@ function getPixel(editor: EditorState, x: number, y: number) {
 }
 
 const BLACK = { r: 0, g: 0, b: 0, a: 255 };
+const WHITE = { r: 255, g: 255, b: 255, a: 255 };
 const TRANSPARENT = { r: 0, g: 0, b: 0, a: 0 };
 
 function drawLine(editor: EditorState, from: CanvasCoords, to: CanvasCoords) {
@@ -319,5 +320,41 @@ describe('EditorState — eyedropper tool', () => {
 		editor.handleDrawEnd();
 
 		expect(editor.recentColors).toContain('#008000');
+	});
+});
+
+describe('EditorState — swapColors', () => {
+	it('swaps foreground and background colors', () => {
+		const editor = createEditor();
+		const initialFg = { ...editor.foregroundColor };
+		const initialBg = { ...editor.backgroundColor };
+
+		editor.swapColors();
+
+		expect(editor.foregroundColor).toEqual(initialBg);
+		expect(editor.backgroundColor).toEqual(initialFg);
+	});
+
+	it('defaults backgroundColor to white', () => {
+		const editor = createEditor();
+		expect(editor.backgroundColor).toEqual(WHITE);
+	});
+
+	it('accepts custom backgroundColor via EditorOptions', () => {
+		const customBg = { r: 128, g: 64, b: 32, a: 255 };
+		const editor = new EditorState({ canvasWidth: 8, canvasHeight: 8, backgroundColor: customBg });
+		expect(editor.backgroundColor).toEqual(customBg);
+	});
+
+	it('is idempotent when swapped twice', () => {
+		const editor = createEditor();
+		const originalFg = { ...editor.foregroundColor };
+		const originalBg = { ...editor.backgroundColor };
+
+		editor.swapColors();
+		editor.swapColors();
+
+		expect(editor.foregroundColor).toEqual(originalFg);
+		expect(editor.backgroundColor).toEqual(originalBg);
 	});
 });

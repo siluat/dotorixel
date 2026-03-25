@@ -4,7 +4,7 @@
 
 ### Color System
 
-- Foreground/background color swap
+- Trigger color picker from FG/BG color swatch instead of separate button
 
 ### Keyboard Shortcuts
 
@@ -71,6 +71,10 @@
   - Implementation effort — per-feature LOC and time comparison
   - Responsive layout — extract SwiftUI size class transitions, adapt to web CSS breakpoints
 - Apple native shell improvements (deferred until web app matures)
+
+## Review backlog (not assigned to a milestone)
+
+- FG/BG swap UI improvements
 
 ## Future triggers (not tied to a specific version)
 

@@ -7,11 +7,13 @@
 
 	interface Props {
 		selectedColor: string;
+		backgroundColor?: string;
 		recentColors?: string[];
 		onColorChange: (color: string) => void;
+		onSwapColors?: () => void;
 	}
 
-	let { selectedColor, recentColors = [], onColorChange }: Props = $props();
+	let { selectedColor, backgroundColor = '#ffffff', recentColors = [], onColorChange, onSwapColors }: Props = $props();
 
 	let hexInput = $state('');
 	let isHexValid = $state(true);
@@ -70,7 +72,25 @@
 <PixelPanel>
 	<div class="color-palette">
 		<div class="current-color">
-			<div class="preview-box" style:background-color={selectedColor}></div>
+			<div class="fg-bg-preview">
+				<div class="swatch-bg checkerboard">
+					<div class="swatch-color" style:background-color={backgroundColor}></div>
+				</div>
+				<div class="swatch-fg checkerboard">
+					<div class="swatch-color" style:background-color={selectedColor}></div>
+				</div>
+				{#if onSwapColors}
+					<button
+						class="swap-button"
+						aria-label="Swap foreground and background colors"
+						onclick={onSwapColors}
+					>
+						<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+							<path d="M1 4h8L7 2M11 8H3l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+						</svg>
+					</button>
+				{/if}
+			</div>
 			<span class="hex-label">{selectedColor}</span>
 		</div>
 
@@ -152,14 +172,72 @@
 		gap: var(--space-3);
 	}
 
-	.preview-box {
+	.fg-bg-preview {
+		position: relative;
+		width: 50px;
+		height: 50px;
+		flex-shrink: 0;
+	}
+
+	.checkerboard {
+		background-image:
+			linear-gradient(45deg, #ccc 25%, transparent 25%),
+			linear-gradient(-45deg, #ccc 25%, transparent 25%),
+			linear-gradient(45deg, transparent 75%, #ccc 75%),
+			linear-gradient(-45deg, transparent 75%, #ccc 75%);
+		background-size: 8px 8px;
+		background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+	}
+
+	.swatch-color {
+		width: 100%;
+		height: 100%;
+	}
+
+	.swatch-fg {
 		--depth: calc((var(--border-width) + var(--border-width-thick)) / 2);
-		width: 40px;
-		height: 40px;
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 30px;
+		height: 30px;
 		border: var(--border-width) solid var(--color-border-shadow);
 		border-bottom-width: var(--depth);
 		border-right-width: var(--depth);
-		flex-shrink: 0;
+		z-index: 1;
+	}
+
+	.swatch-bg {
+		--depth: calc((var(--border-width) + var(--border-width-thick)) / 2);
+		position: absolute;
+		bottom: 0;
+		right: 0;
+		width: 30px;
+		height: 30px;
+		border: var(--border-width) solid var(--color-border-shadow);
+		border-bottom-width: var(--depth);
+		border-right-width: var(--depth);
+	}
+
+	.swap-button {
+		position: absolute;
+		top: 0;
+		right: 0;
+		width: 18px;
+		height: 18px;
+		padding: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--color-surface);
+		border: var(--border-width) solid var(--color-border-shadow);
+		color: var(--color-surface-fg);
+		cursor: pointer;
+		z-index: 2;
+	}
+
+	.swap-button:hover {
+		background: var(--color-muted);
 	}
 
 	.hex-label {

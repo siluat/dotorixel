@@ -3,11 +3,10 @@
 	import BottomColorPalette from './BottomColorPalette.svelte';
 
 	const { Story } = defineMeta({});
-
-	const noop = (_hex: string) => {};
 </script>
 
 <script lang="ts">
+	const noop = (_hex: string) => {};
 	let interactiveColor = $state('#2D2D2D');
 </script>
 

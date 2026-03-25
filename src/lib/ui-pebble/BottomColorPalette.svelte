@@ -82,6 +82,7 @@
 		--fgbg-swap-inset: -2px;
 		--fgbg-swap-radius: 50%;
 		--fgbg-swap-bg: var(--pebble-panel-bg);
+		--fgbg-swap-border-width: 1px;
 		--fgbg-swap-color: var(--pebble-text-primary);
 		--fgbg-swap-hover-bg: rgba(0, 0, 0, 0.05);
 	}

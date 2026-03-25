@@ -19,26 +19,26 @@
 
 <Story name="Default">
 	<div class="pebble-editor pebble-story-bg">
-		<BottomColorPalette selectedColor="#2D2D2D" backgroundColor="#ffffff" onColorChange={noop} />
+		<BottomColorPalette foregroundColor="#2D2D2D" backgroundColor="#ffffff" onColorChange={noop} />
 	</div>
 </Story>
 
 <Story name="PinkSelected">
 	<div class="pebble-editor pebble-story-bg">
-		<BottomColorPalette selectedColor="#E8729A" backgroundColor="#ffffff" onColorChange={noop} />
+		<BottomColorPalette foregroundColor="#E8729A" backgroundColor="#ffffff" onColorChange={noop} />
 	</div>
 </Story>
 
 <Story name="WhiteSelected">
 	<div class="pebble-editor pebble-story-bg">
-		<BottomColorPalette selectedColor="#FFFFFF" backgroundColor="#2D2D2D" onColorChange={noop} />
+		<BottomColorPalette foregroundColor="#FFFFFF" backgroundColor="#2D2D2D" onColorChange={noop} />
 	</div>
 </Story>
 
 <Story name="Interactive">
 	<div class="pebble-editor pebble-story-bg">
 		<BottomColorPalette
-			selectedColor={interactiveColor}
+			foregroundColor={interactiveColor}
 			backgroundColor={interactiveBg}
 			onColorChange={(c) => (interactiveColor = c)}
 			onSwapColors={handleSwapColors}

@@ -4,16 +4,17 @@
 	import PixelPanel from './PixelPanel.svelte';
 	import ColorSwatch from './ColorSwatchTinted.svelte';
 	import ColorPickerPopup from '$lib/color-picker/ColorPickerPopup.svelte';
+	import FgBgPreview from '$lib/color-picker/FgBgPreview.svelte';
 
 	interface Props {
-		selectedColor: string;
+		foregroundColor: string;
 		backgroundColor?: string;
 		recentColors?: string[];
 		onColorChange: (color: string) => void;
 		onSwapColors?: () => void;
 	}
 
-	let { selectedColor, backgroundColor = '#ffffff', recentColors = [], onColorChange, onSwapColors }: Props = $props();
+	let { foregroundColor, backgroundColor = '#ffffff', recentColors = [], onColorChange, onSwapColors }: Props = $props();
 
 	let hexInput = $state('');
 	let isHexValid = $state(true);
@@ -32,7 +33,7 @@
 	});
 
 	$effect.pre(() => {
-		hexInput = selectedColor;
+		hexInput = foregroundColor;
 		isHexValid = true;
 	});
 
@@ -53,11 +54,11 @@
 	function commitHexInput(): void {
 		if (isValidHex(hexInput)) {
 			const normalized = hexInput.toLowerCase();
-			if (normalized !== selectedColor.toLowerCase()) {
+			if (normalized !== foregroundColor.toLowerCase()) {
 				onColorChange(normalized);
 			}
 		} else {
-			hexInput = selectedColor;
+			hexInput = foregroundColor;
 			isHexValid = true;
 		}
 	}
@@ -72,33 +73,15 @@
 <PixelPanel>
 	<div class="color-palette">
 		<div class="current-color">
-			<div class="fg-bg-preview">
-				<div class="swatch-bg checkerboard">
-					<div class="swatch-color" style:background-color={backgroundColor}></div>
-				</div>
-				<div class="swatch-fg checkerboard">
-					<div class="swatch-color" style:background-color={selectedColor}></div>
-				</div>
-				{#if onSwapColors}
-					<button
-						class="swap-button"
-						aria-label="Swap foreground and background colors"
-						onclick={onSwapColors}
-					>
-						<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-							<path d="M1 4h8L7 2M11 8H3l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-						</svg>
-					</button>
-				{/if}
-			</div>
-			<span class="hex-label">{selectedColor}</span>
+			<FgBgPreview {foregroundColor} {backgroundColor} {onSwapColors} />
+			<span class="hex-label">{foregroundColor}</span>
 		</div>
 
 		<div class="color-input">
 			<div class="picker-anchor" bind:this={anchorEl}>
 				<button
 					class="picker-button"
-					style:background-color={selectedColor}
+					style:background-color={foregroundColor}
 					aria-label="Color picker"
 					onclick={() => (isPickerOpen = !isPickerOpen)}
 				></button>
@@ -106,7 +89,7 @@
 				{#if isPickerOpen}
 					<div class="picker-popup">
 						<ColorPickerPopup
-							{selectedColor}
+							selectedColor={foregroundColor}
 							{onColorChange}
 							onClose={() => (isPickerOpen = false)}
 						/>
@@ -132,7 +115,7 @@
 				<ColorSwatch
 					{color}
 					size="sm"
-					selected={color.toLowerCase() === selectedColor.toLowerCase()}
+					selected={color.toLowerCase() === foregroundColor.toLowerCase()}
 					onclick={() => onColorChange(color)}
 				/>
 			{/each}
@@ -146,7 +129,7 @@
 						<ColorSwatch
 							{color}
 							size="sm"
-							selected={color.toLowerCase() === selectedColor.toLowerCase()}
+							selected={color.toLowerCase() === foregroundColor.toLowerCase()}
 							onclick={() => onColorChange(color)}
 						/>
 					{/each}
@@ -167,77 +150,21 @@
 	/* ── Current color preview ── */
 
 	.current-color {
+		--_depth: calc((var(--border-width) + var(--border-width-thick)) / 2);
+
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
-	}
 
-	.fg-bg-preview {
-		position: relative;
-		width: 50px;
-		height: 50px;
-		flex-shrink: 0;
-	}
-
-	.checkerboard {
-		background-image:
-			linear-gradient(45deg, #ccc 25%, transparent 25%),
-			linear-gradient(-45deg, #ccc 25%, transparent 25%),
-			linear-gradient(45deg, transparent 75%, #ccc 75%),
-			linear-gradient(-45deg, transparent 75%, #ccc 75%);
-		background-size: 8px 8px;
-		background-position: 0 0, 0 4px, 4px -4px, -4px 0;
-	}
-
-	.swatch-color {
-		width: 100%;
-		height: 100%;
-	}
-
-	.swatch-fg {
-		--depth: calc((var(--border-width) + var(--border-width-thick)) / 2);
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 30px;
-		height: 30px;
-		border: var(--border-width) solid var(--color-border-shadow);
-		border-bottom-width: var(--depth);
-		border-right-width: var(--depth);
-		z-index: 1;
-	}
-
-	.swatch-bg {
-		--depth: calc((var(--border-width) + var(--border-width-thick)) / 2);
-		position: absolute;
-		bottom: 0;
-		right: 0;
-		width: 30px;
-		height: 30px;
-		border: var(--border-width) solid var(--color-border-shadow);
-		border-bottom-width: var(--depth);
-		border-right-width: var(--depth);
-	}
-
-	.swap-button {
-		position: absolute;
-		top: 0;
-		right: 0;
-		width: 18px;
-		height: 18px;
-		padding: 0;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: var(--color-surface);
-		border: var(--border-width) solid var(--color-border-shadow);
-		color: var(--color-surface-fg);
-		cursor: pointer;
-		z-index: 2;
-	}
-
-	.swap-button:hover {
-		background: var(--color-muted);
+		--fgbg-size: 50px;
+		--fgbg-swatch-size: 30px;
+		--fgbg-border-color: var(--color-border-shadow);
+		--fgbg-swatch-border-width: var(--border-width) var(--_depth) var(--_depth) var(--border-width);
+		--fgbg-swap-size: 18px;
+		--fgbg-swap-bg: var(--color-surface);
+		--fgbg-swap-border-width: var(--border-width);
+		--fgbg-swap-color: var(--color-surface-fg);
+		--fgbg-swap-hover-bg: var(--color-muted);
 	}
 
 	.hex-label {

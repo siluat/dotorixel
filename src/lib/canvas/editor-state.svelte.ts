@@ -86,8 +86,8 @@ export class EditorState {
 		gridColor: this.viewportState.gridColor
 	});
 
-	readonly selectedColorHex = $derived(colorToHex(this.foregroundColor));
-	readonly selectedBackgroundColorHex = $derived(colorToHex(this.backgroundColor));
+	readonly foregroundColorHex = $derived(colorToHex(this.foregroundColor));
+	readonly backgroundColorHex = $derived(colorToHex(this.backgroundColor));
 
 	constructor(options: EditorOptions = {}) {
 		const cw = options.canvasWidth ?? 16;

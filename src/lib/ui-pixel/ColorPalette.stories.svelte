@@ -7,14 +7,14 @@
 
 <Story name="Default">
 	<div class="pixel-editor pixel-story-bg">
-		<ColorPalette selectedColor="#000000" backgroundColor="#ffffff" onColorChange={() => {}} />
+		<ColorPalette foregroundColor="#000000" backgroundColor="#ffffff" onColorChange={() => {}} />
 	</div>
 </Story>
 
 <Story name="WithRecentColors">
 	<div class="pixel-editor pixel-story-bg">
 		<ColorPalette
-			selectedColor="#1e90ff"
+			foregroundColor="#1e90ff"
 			backgroundColor="#ffffff"
 			recentColors={['#ff0000', '#00ff00', '#0000ff', '#ffd700', '#ff69b4']}
 			onColorChange={() => {}}
@@ -24,7 +24,7 @@
 
 <Story name="CustomColorSelected">
 	<div class="pixel-editor pixel-story-bg">
-		<ColorPalette selectedColor="#7b3f00" backgroundColor="#ffffff" onColorChange={() => {}} />
+		<ColorPalette foregroundColor="#7b3f00" backgroundColor="#ffffff" onColorChange={() => {}} />
 	</div>
 </Story>
 
@@ -50,7 +50,7 @@
 <Story name="Interactive">
 	<div class="pixel-editor pixel-story-bg">
 		<ColorPalette
-			selectedColor={interactiveColor}
+			foregroundColor={interactiveColor}
 			backgroundColor={interactiveBg}
 			recentColors={interactiveRecent}
 			onColorChange={handleInteractiveChange}

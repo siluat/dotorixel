@@ -54,3 +54,4 @@ Space+Pan functionality was already implemented as local state in `PixelCanvasVi
 | `src/routes/pebble/+page.svelte` | Pass `isSpaceHeld={editor.isSpaceHeld}` prop |
 | `src/routes/pixel/+page.svelte` | Pass `isSpaceHeld={editor.isSpaceHeld}` prop |
 | `src/lib/canvas/editor-state.svelte.test.ts` | Added 6 tests for Space pan mode |
+

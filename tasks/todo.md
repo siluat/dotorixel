@@ -2,10 +2,6 @@
 
 ## v0.1.0: Usable Editor (Milestone 1)
 
-### Keyboard Shortcuts
-
-- On-demand shortcut hint badges (show on key hold, toggle off in settings)
-
 ### i18n
 
 - Internationalization — Korean/English as default languages

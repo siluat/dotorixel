@@ -7,20 +7,26 @@
 	interface Props {
 		activeTool: ToolType;
 		zoomPercent: number;
+		showShortcutHints?: boolean;
 		onToolChange: (tool: ToolType) => void;
 		onZoomIn: () => void;
 		onZoomOut: () => void;
 		onZoomReset: () => void;
 	}
 
-	let { activeTool, zoomPercent, onToolChange, onZoomIn, onZoomOut, onZoomReset }: Props =
+	let { activeTool, zoomPercent, showShortcutHints = false, onToolChange, onZoomIn, onZoomOut, onZoomReset }: Props =
 		$props();
+
+	function hint(key: string): string | undefined {
+		return showShortcutHints ? key : undefined;
+	}
 </script>
 
 <FloatingPanel style="height: 60px; border-radius: var(--pebble-panel-radius-lg); padding: 10px 20px;">
 	<PebbleButton
 		title="Pen (P)"
 		active={activeTool === 'pencil'}
+		shortcutHint={hint('P')}
 		onclick={() => onToolChange('pencil')}
 	>
 		<Pencil size={18} />
@@ -28,6 +34,7 @@
 	<PebbleButton
 		title="Line (L)"
 		active={activeTool === 'line'}
+		shortcutHint={hint('L')}
 		onclick={() => onToolChange('line')}
 	>
 		<Slash size={18} />
@@ -35,6 +42,7 @@
 	<PebbleButton
 		title="Rectangle (R)"
 		active={activeTool === 'rectangle'}
+		shortcutHint={hint('R')}
 		onclick={() => onToolChange('rectangle')}
 	>
 		<Square size={18} />
@@ -42,6 +50,7 @@
 	<PebbleButton
 		title="Ellipse (C)"
 		active={activeTool === 'ellipse'}
+		shortcutHint={hint('C')}
 		onclick={() => onToolChange('ellipse')}
 	>
 		<Circle size={18} />
@@ -49,6 +58,7 @@
 	<PebbleButton
 		title="Eraser (E)"
 		active={activeTool === 'eraser'}
+		shortcutHint={hint('E')}
 		onclick={() => onToolChange('eraser')}
 	>
 		<Eraser size={18} />
@@ -56,6 +66,7 @@
 	<PebbleButton
 		title="Flood Fill (F)"
 		active={activeTool === 'floodfill'}
+		shortcutHint={hint('F')}
 		onclick={() => onToolChange('floodfill')}
 	>
 		<PaintBucket size={18} />
@@ -63,6 +74,7 @@
 	<PebbleButton
 		title="Eyedropper (I)"
 		active={activeTool === 'eyedropper'}
+		shortcutHint={hint('I')}
 		onclick={() => onToolChange('eyedropper')}
 	>
 		<Pipette size={18} />

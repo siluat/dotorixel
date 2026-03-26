@@ -48,6 +48,7 @@
 		canUndo={editor.canUndo}
 		canRedo={editor.canRedo}
 		showGrid={editor.viewportState.showGrid}
+		showShortcutHints={editor.shortcutHintsVisible}
 		onUndo={editor.handleUndo}
 		onRedo={editor.handleRedo}
 		onGridToggle={editor.handleGridToggle}
@@ -80,6 +81,7 @@
 		<BottomToolsPanel
 			activeTool={editor.activeTool}
 			zoomPercent={editor.zoomPercent}
+			showShortcutHints={editor.shortcutHintsVisible}
 			onToolChange={(tool) => (editor.activeTool = tool)}
 			onZoomIn={editor.handleZoomIn}
 			onZoomOut={editor.handleZoomOut}

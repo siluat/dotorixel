@@ -5,11 +5,12 @@
 		active?: boolean;
 		disabled?: boolean;
 		title?: string;
+		shortcutHint?: string;
 		onclick?: (event: MouseEvent) => void;
 		children: Snippet;
 	}
 
-	let { active = false, disabled = false, title, onclick, children }: Props = $props();
+	let { active = false, disabled = false, title, shortcutHint, onclick, children }: Props = $props();
 </script>
 
 <button
@@ -22,10 +23,14 @@
 	{onclick}
 >
 	{@render children()}
+	<span class="shortcut-badge" class:shortcut-badge--visible={shortcutHint} aria-hidden="true">
+		{shortcutHint ?? ''}
+	</span>
 </button>
 
 <style>
 	.pebble-btn {
+		position: relative;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -60,5 +65,30 @@
 	.pebble-btn:disabled {
 		opacity: 0.4;
 		pointer-events: none;
+	}
+
+	.shortcut-badge {
+		--badge-bg: oklch(0.3 0.04 45 / 0.9);
+		position: absolute;
+		top: -6px;
+		right: -6px;
+		min-width: 18px;
+		height: 18px;
+		padding: 0 4px;
+		border-radius: 9px;
+		background: var(--badge-bg);
+		color: #ffffff;
+		font-size: 10px;
+		font-weight: 600;
+		line-height: 18px;
+		text-align: center;
+		white-space: nowrap;
+		pointer-events: none;
+		opacity: 0;
+		transition: opacity 0.15s;
+	}
+
+	.shortcut-badge--visible {
+		opacity: 1;
 	}
 </style>

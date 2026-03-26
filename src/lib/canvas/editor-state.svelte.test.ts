@@ -394,6 +394,16 @@ describe('EditorState — tool shortcuts', () => {
 		expect(editor.activeTool).toBe('pencil');
 	});
 
+	it('ignores shortcuts when Shift is held', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		const initialGrid = editor.viewportState.showGrid;
+		editor.handleKeyDown(keyDown('KeyE', { shiftKey: true }));
+		editor.handleKeyDown(keyDown('KeyG', { shiftKey: true }));
+		expect(editor.activeTool).toBe('pencil');
+		expect(editor.viewportState.showGrid).toBe(initialGrid);
+	});
+
 	it('ignores tool shortcuts while drawing', () => {
 		const editor = createEditor();
 		editor.activeTool = 'pencil';

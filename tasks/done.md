@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 029 | [Trigger color picker from FG/BG swatch](records/029-fg-bg-swatch-color-picker.md) | 2026-03-26 |
 | 028 | [Foreground/background color swap](records/028-fg-bg-color-swap.md) | 2026-03-25 |
 | 027 | [HSV color picker](records/027-hsv-color-picker.md) | 2026-03-25 |
 | 026 | [Tool Handler refactoring](records/026-tool-handler-refactoring.md) | 2026-03-24 |

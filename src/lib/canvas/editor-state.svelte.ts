@@ -253,8 +253,12 @@ export class EditorState {
 		this.viewportState = { ...this.viewportState, showGrid: !this.viewportState.showGrid };
 	};
 
-	handleColorChange = (hex: string): void => {
+	handleForegroundColorChange = (hex: string): void => {
 		this.foregroundColor = hexToColor(hex);
+	};
+
+	handleBackgroundColorChange = (hex: string): void => {
+		this.backgroundColor = hexToColor(hex);
 	};
 
 	swapColors = (): void => {

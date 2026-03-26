@@ -19,19 +19,19 @@
 
 <Story name="Default">
 	<div class="pebble-editor pebble-story-bg">
-		<BottomColorPalette foregroundColor="#2D2D2D" backgroundColor="#ffffff" onColorChange={noop} />
+		<BottomColorPalette foregroundColor="#2D2D2D" backgroundColor="#ffffff" onForegroundColorChange={noop} />
 	</div>
 </Story>
 
 <Story name="PinkSelected">
 	<div class="pebble-editor pebble-story-bg">
-		<BottomColorPalette foregroundColor="#E8729A" backgroundColor="#ffffff" onColorChange={noop} />
+		<BottomColorPalette foregroundColor="#E8729A" backgroundColor="#ffffff" onForegroundColorChange={noop} />
 	</div>
 </Story>
 
 <Story name="WhiteSelected">
 	<div class="pebble-editor pebble-story-bg">
-		<BottomColorPalette foregroundColor="#FFFFFF" backgroundColor="#2D2D2D" onColorChange={noop} />
+		<BottomColorPalette foregroundColor="#FFFFFF" backgroundColor="#2D2D2D" onForegroundColorChange={noop} />
 	</div>
 </Story>
 
@@ -40,7 +40,7 @@
 		<BottomColorPalette
 			foregroundColor={interactiveColor}
 			backgroundColor={interactiveBg}
-			onColorChange={(c) => (interactiveColor = c)}
+			onForegroundColorChange={(c) => (interactiveColor = c)}
 			onSwapColors={handleSwapColors}
 		/>
 	</div>

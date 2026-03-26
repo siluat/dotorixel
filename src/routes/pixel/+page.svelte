@@ -44,7 +44,8 @@
 					foregroundColor={editor.foregroundColorHex}
 					backgroundColor={editor.backgroundColorHex}
 					recentColors={editor.recentColors}
-					onColorChange={editor.handleColorChange}
+					onForegroundColorChange={editor.handleForegroundColorChange}
+					onBackgroundColorChange={editor.handleBackgroundColorChange}
 					onSwapColors={editor.swapColors}
 				/>
 			</div>

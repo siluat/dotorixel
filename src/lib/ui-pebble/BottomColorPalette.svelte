@@ -5,33 +5,56 @@
 	import ColorPickerPopup from '$lib/color-picker/ColorPickerPopup.svelte';
 	import FgBgPreview from '$lib/color-picker/FgBgPreview.svelte';
 
+	type PickerTarget = 'fg' | 'bg';
+
 	interface Props {
 		foregroundColor: string;
 		backgroundColor?: string;
-		onColorChange: (hex: string) => void;
+		onForegroundColorChange: (hex: string) => void;
+		onBackgroundColorChange?: (hex: string) => void;
 		onSwapColors?: () => void;
 	}
 
-	let { foregroundColor, backgroundColor = '#ffffff', onColorChange, onSwapColors }: Props = $props();
+	let { foregroundColor, backgroundColor = '#ffffff', onForegroundColorChange, onBackgroundColorChange, onSwapColors }: Props = $props();
 
-	let isPickerOpen = $state(false);
-	let anchorEl: HTMLDivElement | undefined = $state();
+	let pickerTarget: PickerTarget | null = $state(null);
+	let anchorEl: HTMLElement | undefined = $state();
 
 	$effect(() => {
-		if (!isPickerOpen) return;
+		if (pickerTarget === null) return;
 		function handleOutsidePointerDown(e: PointerEvent): void {
 			if (anchorEl && !anchorEl.contains(e.target as Node)) {
-				isPickerOpen = false;
+				pickerTarget = null;
 			}
 		}
 		document.addEventListener('pointerdown', handleOutsidePointerDown);
 		return () => document.removeEventListener('pointerdown', handleOutsidePointerDown);
 	});
+
+	function togglePicker(target: PickerTarget): void {
+		pickerTarget = pickerTarget === target ? null : target;
+	}
 </script>
 
 <FloatingPanel style="height: 68px; border-radius: var(--pebble-panel-radius); padding: 10px 16px;">
-	<div class="fg-bg-wrapper">
-		<FgBgPreview {foregroundColor} {backgroundColor} {onSwapColors} />
+	<div class="fg-bg-wrapper" bind:this={anchorEl}>
+		<FgBgPreview
+			{foregroundColor}
+			{backgroundColor}
+			{onSwapColors}
+			onForegroundClick={() => togglePicker('fg')}
+			onBackgroundClick={onBackgroundColorChange ? () => togglePicker('bg') : undefined}
+		/>
+
+		{#if pickerTarget !== null}
+			<div class="picker-popup">
+				<ColorPickerPopup
+					selectedColor={pickerTarget === 'fg' ? foregroundColor : backgroundColor}
+					onColorChange={pickerTarget === 'fg' ? onForegroundColorChange : (onBackgroundColorChange ?? onForegroundColorChange)}
+					onClose={() => (pickerTarget = null)}
+				/>
+			</div>
+		{/if}
 	</div>
 
 	<div class="separator"></div>
@@ -43,37 +66,17 @@
 					<PebbleSwatch
 						{color}
 						selected={color.toUpperCase() === foregroundColor.toUpperCase()}
-						onclick={() => onColorChange(color)}
+						onclick={() => onForegroundColorChange(color)}
 					/>
 				{/each}
 			</div>
 		{/each}
 	</div>
-
-	<div class="separator"></div>
-
-	<div class="picker-anchor" bind:this={anchorEl}>
-		<button
-			class="picker-button"
-			style:background-color={foregroundColor}
-			aria-label="Color picker"
-			onclick={() => (isPickerOpen = !isPickerOpen)}
-		></button>
-
-		{#if isPickerOpen}
-			<div class="picker-popup">
-				<ColorPickerPopup
-					selectedColor={foregroundColor}
-					{onColorChange}
-					onClose={() => (isPickerOpen = false)}
-				/>
-			</div>
-		{/if}
-	</div>
 </FloatingPanel>
 
 <style>
 	.fg-bg-wrapper {
+		position: relative;
 		--fgbg-size: 44px;
 		--fgbg-swatch-size: 28px;
 		--fgbg-border-color: var(--pebble-panel-border);
@@ -105,23 +108,10 @@
 		gap: 8px;
 	}
 
-	.picker-anchor {
-		position: relative;
-	}
-
-	.picker-button {
-		width: 32px;
-		height: 32px;
-		padding: 0;
-		border: 1px solid var(--pebble-panel-border);
-		border-radius: 8px;
-		cursor: pointer;
-	}
-
 	.picker-popup {
 		position: absolute;
 		bottom: calc(100% + 8px);
-		right: 0;
+		left: 0;
 		background: var(--pebble-panel-bg);
 		border: 1px solid var(--pebble-panel-border);
 		border-radius: var(--pebble-panel-radius);

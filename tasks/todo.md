@@ -2,10 +2,6 @@
 
 ## v0.1.0: Usable Editor (Milestone 1)
 
-### Color System
-
-- Trigger color picker from FG/BG color swatch instead of separate button
-
 ### Keyboard Shortcuts
 
 - Tool shortcuts (P, E, L, F, I, R, C, G)

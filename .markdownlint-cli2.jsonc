@@ -1,7 +1,7 @@
 {
-  // Start with MD058 only — enable more rules incrementally
   "config": {
     "default": false,
+    "MD040": true,
     "MD058": true
   },
   "ignores": ["node_modules"]

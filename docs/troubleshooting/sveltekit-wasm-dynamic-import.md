@@ -4,7 +4,7 @@
 
 After running `bun run dev`, the browser shows:
 
-```
+```text
 Error: Failed to fetch dynamically imported module: http://localhost:5177/wasm/pkg/dotorixel_wasm.js
 ```
 

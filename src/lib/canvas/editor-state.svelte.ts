@@ -60,6 +60,12 @@ export class EditorState {
 	#isDrawing = $state(false);
 	#toolBeforeModifier = $state<ToolType | null>(null);
 	#isAltHeld = $state(false);
+	#isSpaceHeld = $state(false);
+
+	get isSpaceHeld(): boolean {
+		return this.#isSpaceHeld;
+	}
+
 	#shapeHandlers: Record<ShapeToolType, ShapeHandler> = {
 		line: new ShapeHandler(WasmToolType.Line, wasm_interpolate_pixels),
 		rectangle: new ShapeHandler(WasmToolType.Rectangle, wasm_rectangle_outline),
@@ -318,6 +324,14 @@ export class EditorState {
 			return;
 		}
 
+		if (event.code === 'Space') {
+			event.preventDefault();
+			if (event.repeat) return;
+			if (this.#isDrawing) return;
+			this.#isSpaceHeld = true;
+			return;
+		}
+
 		const isCtrlOrCmd = event.ctrlKey || event.metaKey;
 		const isZKey = event.key.toLowerCase() === 'z';
 		if (isCtrlOrCmd && isZKey && !event.shiftKey) {
@@ -344,6 +358,10 @@ export class EditorState {
 	};
 
 	handleKeyUp = (event: KeyboardEvent): void => {
+		if (event.code === 'Space') {
+			this.#isSpaceHeld = false;
+		}
+
 		if (event.code === 'AltLeft' || event.code === 'AltRight') {
 			this.#isAltHeld = false;
 			if (this.#isDrawing) return;
@@ -356,6 +374,7 @@ export class EditorState {
 
 	handleBlur = (): void => {
 		this.#isAltHeld = false;
+		this.#isSpaceHeld = false;
 		if (this.#toolBeforeModifier !== null) {
 			this.activeTool = this.#toolBeforeModifier;
 			this.#toolBeforeModifier = null;

@@ -3,9 +3,11 @@
 		foregroundColor: string;
 		backgroundColor: string;
 		onSwapColors?: () => void;
+		onForegroundClick?: () => void;
+		onBackgroundClick?: () => void;
 	}
 
-	let { foregroundColor, backgroundColor, onSwapColors }: Props = $props();
+	let { foregroundColor, backgroundColor, onSwapColors, onForegroundClick, onBackgroundClick }: Props = $props();
 </script>
 
 <div
@@ -13,12 +15,32 @@
 	role="group"
 	aria-label={`Foreground color ${foregroundColor}, background color ${backgroundColor}`}
 >
-	<div class="swatch swatch-bg checkerboard">
-		<div class="swatch-fill" style:background-color={backgroundColor}></div>
-	</div>
-	<div class="swatch swatch-fg checkerboard">
-		<div class="swatch-fill" style:background-color={foregroundColor}></div>
-	</div>
+	{#if onBackgroundClick}
+		<button
+			class="swatch swatch-bg checkerboard swatch-bg-button"
+			aria-label="Open background color picker"
+			onclick={onBackgroundClick}
+		>
+			<div class="swatch-fill" style:background-color={backgroundColor}></div>
+		</button>
+	{:else}
+		<div class="swatch swatch-bg checkerboard">
+			<div class="swatch-fill" style:background-color={backgroundColor}></div>
+		</div>
+	{/if}
+	{#if onForegroundClick}
+		<button
+			class="swatch swatch-fg checkerboard swatch-fg-button"
+			aria-label="Open foreground color picker"
+			onclick={onForegroundClick}
+		>
+			<div class="swatch-fill" style:background-color={foregroundColor}></div>
+		</button>
+	{:else}
+		<div class="swatch swatch-fg checkerboard">
+			<div class="swatch-fill" style:background-color={foregroundColor}></div>
+		</div>
+	{/if}
 	{#if onSwapColors}
 		<button
 			class="swap-button"
@@ -70,6 +92,14 @@
 		top: 0;
 		left: 0;
 		z-index: 1;
+	}
+
+	.swatch-fg-button,
+	.swatch-bg-button {
+		background-color: transparent;
+		padding: 0;
+		font: inherit;
+		cursor: pointer;
 	}
 
 	.swatch-bg {

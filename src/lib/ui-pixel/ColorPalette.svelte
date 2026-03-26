@@ -6,26 +6,29 @@
 	import ColorPickerPopup from '$lib/color-picker/ColorPickerPopup.svelte';
 	import FgBgPreview from '$lib/color-picker/FgBgPreview.svelte';
 
+	type PickerTarget = 'fg' | 'bg';
+
 	interface Props {
 		foregroundColor: string;
 		backgroundColor?: string;
 		recentColors?: string[];
-		onColorChange: (color: string) => void;
+		onForegroundColorChange: (color: string) => void;
+		onBackgroundColorChange?: (color: string) => void;
 		onSwapColors?: () => void;
 	}
 
-	let { foregroundColor, backgroundColor = '#ffffff', recentColors = [], onColorChange, onSwapColors }: Props = $props();
+	let { foregroundColor, backgroundColor = '#ffffff', recentColors = [], onForegroundColorChange, onBackgroundColorChange, onSwapColors }: Props = $props();
 
 	let hexInput = $state('');
 	let isHexValid = $state(true);
-	let isPickerOpen = $state(false);
-	let anchorEl: HTMLDivElement | undefined = $state();
+	let pickerTarget: PickerTarget | null = $state(null);
+	let anchorEl: HTMLElement | undefined = $state();
 
 	$effect(() => {
-		if (!isPickerOpen) return;
+		if (pickerTarget === null) return;
 		function handleOutsidePointerDown(e: PointerEvent): void {
 			if (anchorEl && !anchorEl.contains(e.target as Node)) {
-				isPickerOpen = false;
+				pickerTarget = null;
 			}
 		}
 		document.addEventListener('pointerdown', handleOutsidePointerDown);
@@ -55,7 +58,7 @@
 		if (isValidHex(hexInput)) {
 			const normalized = hexInput.toLowerCase();
 			if (normalized !== foregroundColor.toLowerCase()) {
-				onColorChange(normalized);
+				onForegroundColorChange(normalized);
 			}
 		} else {
 			hexInput = foregroundColor;
@@ -68,34 +71,36 @@
 			commitHexInput();
 		}
 	}
+
+	function togglePicker(target: PickerTarget): void {
+		pickerTarget = pickerTarget === target ? null : target;
+	}
 </script>
 
 <PixelPanel>
 	<div class="color-palette">
-		<div class="current-color">
-			<FgBgPreview {foregroundColor} {backgroundColor} {onSwapColors} />
+		<div class="current-color" bind:this={anchorEl}>
+			<FgBgPreview
+				{foregroundColor}
+				{backgroundColor}
+				{onSwapColors}
+				onForegroundClick={() => togglePicker('fg')}
+				onBackgroundClick={onBackgroundColorChange ? () => togglePicker('bg') : undefined}
+			/>
 			<span class="hex-label">{foregroundColor}</span>
+
+			{#if pickerTarget !== null}
+				<div class="picker-popup">
+					<ColorPickerPopup
+						selectedColor={pickerTarget === 'fg' ? foregroundColor : backgroundColor}
+						onColorChange={pickerTarget === 'fg' ? onForegroundColorChange : (onBackgroundColorChange ?? onForegroundColorChange)}
+						onClose={() => (pickerTarget = null)}
+					/>
+				</div>
+			{/if}
 		</div>
 
 		<div class="color-input">
-			<div class="picker-anchor" bind:this={anchorEl}>
-				<button
-					class="picker-button"
-					style:background-color={foregroundColor}
-					aria-label="Color picker"
-					onclick={() => (isPickerOpen = !isPickerOpen)}
-				></button>
-
-				{#if isPickerOpen}
-					<div class="picker-popup">
-						<ColorPickerPopup
-							selectedColor={foregroundColor}
-							{onColorChange}
-							onClose={() => (isPickerOpen = false)}
-						/>
-					</div>
-				{/if}
-			</div>
 			<input
 				type="text"
 				class="hex-field"
@@ -116,7 +121,7 @@
 					{color}
 					size="sm"
 					selected={color.toLowerCase() === foregroundColor.toLowerCase()}
-					onclick={() => onColorChange(color)}
+					onclick={() => onForegroundColorChange(color)}
 				/>
 			{/each}
 		</div>
@@ -130,7 +135,7 @@
 							{color}
 							size="sm"
 							selected={color.toLowerCase() === foregroundColor.toLowerCase()}
-							onclick={() => onColorChange(color)}
+							onclick={() => onForegroundColorChange(color)}
 						/>
 					{/each}
 				</div>
@@ -152,6 +157,7 @@
 	.current-color {
 		--_depth: calc((var(--border-width) + var(--border-width-thick)) / 2);
 
+		position: relative;
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
@@ -180,20 +186,6 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-	}
-
-	.picker-anchor {
-		position: relative;
-	}
-
-	.picker-button {
-		width: 28px;
-		height: 28px;
-		padding: 0;
-		border: var(--border-width) solid var(--color-border-shadow);
-		background: var(--color-input);
-		cursor: pointer;
-		flex-shrink: 0;
 	}
 
 	.picker-popup {

@@ -87,7 +87,8 @@
 		<BottomColorPalette
 			foregroundColor={editor.foregroundColorHex}
 			backgroundColor={editor.backgroundColorHex}
-			onColorChange={editor.handleColorChange}
+			onForegroundColorChange={editor.handleForegroundColorChange}
+			onBackgroundColorChange={editor.handleBackgroundColorChange}
 			onSwapColors={editor.swapColors}
 		/>
 	</div>

@@ -340,6 +340,20 @@ function keyDown(
 	} as unknown as KeyboardEvent;
 }
 
+function keyUp(code: string): KeyboardEvent {
+	return {
+		code,
+		key: '',
+		ctrlKey: false,
+		metaKey: false,
+		altKey: false,
+		shiftKey: false,
+		repeat: false,
+		target: null,
+		preventDefault: () => {}
+	} as unknown as KeyboardEvent;
+}
+
 describe('EditorState — tool shortcuts', () => {
 	it('switches tools via shortcut keys', () => {
 		const editor = createEditor();
@@ -432,6 +446,121 @@ describe('EditorState — tool shortcuts', () => {
 		expect(editor.viewportState.showGrid).toBe(!initial);
 		editor.handleKeyDown(keyDown('KeyG', { repeat: true }));
 		expect(editor.viewportState.showGrid).toBe(!initial);
+	});
+});
+
+describe('EditorState — Alt eyedropper', () => {
+	it('switches to eyedropper on Alt press and restores on release', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+
+		editor.handleKeyDown(keyDown('AltLeft'));
+		expect(editor.activeTool).toBe('eyedropper');
+
+		editor.handleKeyUp(keyUp('AltLeft'));
+		expect(editor.activeTool).toBe('pencil');
+	});
+
+	it('does not set toolBeforeModifier when already using eyedropper', () => {
+		const editor = createEditor();
+		editor.activeTool = 'eyedropper';
+
+		editor.handleKeyDown(keyDown('AltLeft'));
+		// Should stay as eyedropper
+		expect(editor.activeTool).toBe('eyedropper');
+
+		// Release should not change tool (no previous tool saved)
+		editor.handleKeyUp(keyUp('AltLeft'));
+		expect(editor.activeTool).toBe('eyedropper');
+	});
+
+	it('ignores Alt repeat events', () => {
+		const editor = createEditor();
+		editor.activeTool = 'eraser';
+
+		editor.handleKeyDown(keyDown('AltLeft'));
+		expect(editor.activeTool).toBe('eyedropper');
+
+		// Repeat event should not re-save toolBeforeModifier
+		editor.handleKeyDown(keyDown('AltLeft', { repeat: true }));
+		expect(editor.activeTool).toBe('eyedropper');
+
+		editor.handleKeyUp(keyUp('AltLeft'));
+		expect(editor.activeTool).toBe('eraser');
+	});
+
+	it('does not switch tool when Alt is pressed during drawing', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+
+		editor.handleKeyDown(keyDown('AltLeft'));
+		expect(editor.activeTool).toBe('pencil');
+
+		editor.handleDrawEnd();
+	});
+
+	it('defers tool restore when Alt is released during drawing, restores on drawEnd', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+
+		// Alt press → switch to eyedropper
+		editor.handleKeyDown(keyDown('AltLeft'));
+		expect(editor.activeTool).toBe('eyedropper');
+
+		// Start drawing with eyedropper
+		editor.handleDrawStart();
+
+		// Release Alt while drawing → should NOT restore yet
+		editor.handleKeyUp(keyUp('AltLeft'));
+		expect(editor.activeTool).toBe('eyedropper');
+
+		// drawEnd → should restore
+		editor.handleDrawEnd();
+		expect(editor.activeTool).toBe('pencil');
+	});
+
+	it('does not restore on drawEnd when Alt is still held', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+
+		editor.handleKeyDown(keyDown('AltLeft'));
+		expect(editor.activeTool).toBe('eyedropper');
+
+		// Click with eyedropper while Alt held
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDrawEnd();
+
+		// Alt still held → should remain eyedropper
+		expect(editor.activeTool).toBe('eyedropper');
+
+		// Release Alt → now restore
+		editor.handleKeyUp(keyUp('AltLeft'));
+		expect(editor.activeTool).toBe('pencil');
+	});
+
+	it('restores tool on window blur', () => {
+		const editor = createEditor();
+		editor.activeTool = 'line';
+
+		editor.handleKeyDown(keyDown('AltLeft'));
+		expect(editor.activeTool).toBe('eyedropper');
+
+		editor.handleBlur();
+		expect(editor.activeTool).toBe('line');
+	});
+
+	it('works with AltRight as well', () => {
+		const editor = createEditor();
+		editor.activeTool = 'rectangle';
+
+		editor.handleKeyDown(keyDown('AltRight'));
+		expect(editor.activeTool).toBe('eyedropper');
+
+		editor.handleKeyUp(keyUp('AltRight'));
+		expect(editor.activeTool).toBe('rectangle');
 	});
 });
 

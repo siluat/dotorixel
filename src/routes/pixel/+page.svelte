@@ -12,7 +12,7 @@
 	const editor = new EditorState();
 </script>
 
-<svelte:window onkeydown={editor.handleKeyDown} />
+<svelte:window onkeydown={editor.handleKeyDown} onkeyup={editor.handleKeyUp} onblur={editor.handleBlur} />
 
 <div class="pixel-editor">
 	<header class="pixel-header">

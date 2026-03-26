@@ -6,7 +6,6 @@
 
 - On-demand shortcut hint badges (show on key hold, toggle off in settings)
 - Modifier key: Shift=constrain (constrain drawing)
-- Edit shortcuts (Ctrl+Z/Y, X=swap colors)
 
 ### i18n
 

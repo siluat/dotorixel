@@ -334,10 +334,11 @@ export class EditorState {
 
 		const isCtrlOrCmd = event.ctrlKey || event.metaKey;
 		const isZKey = event.key.toLowerCase() === 'z';
+		const isYKey = event.key.toLowerCase() === 'y';
 		if (isCtrlOrCmd && isZKey && !event.shiftKey) {
 			event.preventDefault();
 			this.handleUndo();
-		} else if (isCtrlOrCmd && isZKey && event.shiftKey) {
+		} else if ((isCtrlOrCmd && isZKey && event.shiftKey) || (isCtrlOrCmd && isYKey)) {
 			event.preventDefault();
 			this.handleRedo();
 		}
@@ -347,6 +348,12 @@ export class EditorState {
 		if (event.code === 'KeyG') {
 			if (event.repeat) return;
 			this.handleGridToggle();
+			return;
+		}
+
+		if (event.code === 'KeyX') {
+			if (event.repeat) return;
+			this.swapColors();
 			return;
 		}
 

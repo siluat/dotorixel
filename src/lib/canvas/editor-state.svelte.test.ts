@@ -600,6 +600,87 @@ describe('EditorState — swapColors', () => {
 	});
 });
 
+describe('EditorState — Ctrl+Y redo shortcut', () => {
+	it('redoes via Ctrl+Y', () => {
+		const editor = createEditor();
+		drawLine(editor, { x: 0, y: 0 }, { x: 1, y: 0 });
+		expect(getPixel(editor, 0, 0)).toEqual(BLACK);
+
+		editor.handleKeyDown(keyDown('KeyZ', { key: 'z', ctrlKey: true }));
+		expect(getPixel(editor, 0, 0)).toEqual(TRANSPARENT);
+
+		editor.handleKeyDown(keyDown('KeyY', { key: 'y', ctrlKey: true }));
+		expect(getPixel(editor, 0, 0)).toEqual(BLACK);
+	});
+
+	it('redoes via Cmd+Y on macOS', () => {
+		const editor = createEditor();
+		drawLine(editor, { x: 0, y: 0 }, { x: 1, y: 0 });
+
+		editor.handleKeyDown(keyDown('KeyZ', { key: 'z', metaKey: true }));
+		expect(getPixel(editor, 0, 0)).toEqual(TRANSPARENT);
+
+		editor.handleKeyDown(keyDown('KeyY', { key: 'y', metaKey: true }));
+		expect(getPixel(editor, 0, 0)).toEqual(BLACK);
+	});
+
+	it('produces same result as Ctrl+Shift+Z', () => {
+		const editorA = createEditor();
+		drawLine(editorA, { x: 0, y: 0 }, { x: 1, y: 0 });
+		editorA.handleKeyDown(keyDown('KeyZ', { key: 'z', ctrlKey: true }));
+		editorA.handleKeyDown(keyDown('KeyY', { key: 'y', ctrlKey: true }));
+
+		const editorB = createEditor();
+		drawLine(editorB, { x: 0, y: 0 }, { x: 1, y: 0 });
+		editorB.handleKeyDown(keyDown('KeyZ', { key: 'z', ctrlKey: true }));
+		editorB.handleKeyDown(keyDown('KeyZ', { key: 'z', ctrlKey: true, shiftKey: true }));
+
+		expect(getPixel(editorA, 0, 0)).toEqual(getPixel(editorB, 0, 0));
+		expect(getPixel(editorA, 1, 0)).toEqual(getPixel(editorB, 1, 0));
+	});
+});
+
+describe('EditorState — X swap colors shortcut', () => {
+	it('swaps foreground and background colors via X key', () => {
+		const editor = createEditor();
+		const initialFg = { ...editor.foregroundColor };
+		const initialBg = { ...editor.backgroundColor };
+
+		editor.handleKeyDown(keyDown('KeyX'));
+		expect(editor.foregroundColor).toEqual(initialBg);
+		expect(editor.backgroundColor).toEqual(initialFg);
+	});
+
+	it('ignores repeat events', () => {
+		const editor = createEditor();
+		const initialFg = { ...editor.foregroundColor };
+		const initialBg = { ...editor.backgroundColor };
+
+		editor.handleKeyDown(keyDown('KeyX'));
+		expect(editor.foregroundColor).toEqual(initialBg);
+
+		editor.handleKeyDown(keyDown('KeyX', { repeat: true }));
+		expect(editor.foregroundColor).toEqual(initialBg);
+		expect(editor.backgroundColor).toEqual(initialFg);
+	});
+
+	it('works during drawing', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+
+		const fgBefore = { ...editor.foregroundColor };
+		const bgBefore = { ...editor.backgroundColor };
+
+		editor.handleKeyDown(keyDown('KeyX'));
+		expect(editor.foregroundColor).toEqual(bgBefore);
+		expect(editor.backgroundColor).toEqual(fgBefore);
+
+		editor.handleDrawEnd();
+	});
+});
+
 describe('EditorState — Space pan mode', () => {
 	it('sets isSpaceHeld to true on Space press', () => {
 		const editor = createEditor();

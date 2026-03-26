@@ -101,7 +101,7 @@ Follow existing test patterns to add new describe blocks or cases.
 | File | Description |
 |------|-------------|
 | `src/lib/canvas/editor-state.svelte.ts` | Added Ctrl+Y / Cmd+Y as redo alternative, added X key for swapColors |
-| `src/lib/canvas/editor-state.svelte.test.ts` | Added 7 test cases: 3 for Ctrl+Y redo, 3 for X swap colors shortcut |
+| `src/lib/canvas/editor-state.svelte.test.ts` | Added 6 test cases: 3 for Ctrl+Y redo, 3 for X swap colors shortcut |
 
 ### Key Decisions
 - X key placed after modifier guard but before `#isDrawing` guard, so it works during drawing (matching G key pattern) while Ctrl+X is automatically ignored

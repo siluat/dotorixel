@@ -16,6 +16,16 @@ import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
 import { exportAsPng } from './export';
 import { ShapeHandler } from './shape-handler';
 
+const TOOL_SHORTCUTS: Record<string, ToolType> = {
+	KeyP: 'pencil',
+	KeyE: 'eraser',
+	KeyL: 'line',
+	KeyR: 'rectangle',
+	KeyC: 'ellipse',
+	KeyF: 'floodfill',
+	KeyI: 'eyedropper'
+};
+
 type ShapeToolType = 'line' | 'rectangle' | 'ellipse';
 
 function isShapeTool(tool: ToolType): tool is ShapeToolType {
@@ -23,10 +33,8 @@ function isShapeTool(tool: ToolType): tool is ShapeToolType {
 }
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
-	return (
-		target instanceof HTMLElement &&
-		target.closest('button, input, select, textarea, [contenteditable="true"]') !== null
-	);
+	if (typeof HTMLElement === 'undefined' || !(target instanceof HTMLElement)) return false;
+	return target.closest('button, input, select, textarea, [contenteditable="true"]') !== null;
 }
 
 export interface EditorOptions {
@@ -302,6 +310,20 @@ export class EditorState {
 		} else if (isCtrlOrCmd && isZKey && event.shiftKey) {
 			event.preventDefault();
 			this.handleRedo();
+		}
+
+		if (isCtrlOrCmd || event.altKey || event.shiftKey) return;
+
+		if (event.code === 'KeyG') {
+			if (event.repeat) return;
+			this.handleGridToggle();
+			return;
+		}
+
+		if (this.#isDrawing) return;
+		const tool = TOOL_SHORTCUTS[event.code];
+		if (tool) {
+			this.activeTool = tool;
 		}
 	};
 }

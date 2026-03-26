@@ -23,7 +23,7 @@
 		<PebbleButton title="Redo" disabled={!canRedo} onclick={onRedo}>
 			<Redo2 size={18} />
 		</PebbleButton>
-		<PebbleButton title="Toggle Grid" active={showGrid} onclick={onGridToggle}>
+		<PebbleButton title="Toggle Grid (G)" active={showGrid} onclick={onGridToggle}>
 			<Grid3X3 size={18} />
 		</PebbleButton>
 	</FloatingPanel>

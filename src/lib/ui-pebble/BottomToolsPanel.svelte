@@ -19,49 +19,49 @@
 
 <FloatingPanel style="height: 60px; border-radius: var(--pebble-panel-radius-lg); padding: 10px 20px;">
 	<PebbleButton
-		title="Pen"
+		title="Pen (P)"
 		active={activeTool === 'pencil'}
 		onclick={() => onToolChange('pencil')}
 	>
 		<Pencil size={18} />
 	</PebbleButton>
 	<PebbleButton
-		title="Line"
+		title="Line (L)"
 		active={activeTool === 'line'}
 		onclick={() => onToolChange('line')}
 	>
 		<Slash size={18} />
 	</PebbleButton>
 	<PebbleButton
-		title="Rectangle"
+		title="Rectangle (R)"
 		active={activeTool === 'rectangle'}
 		onclick={() => onToolChange('rectangle')}
 	>
 		<Square size={18} />
 	</PebbleButton>
 	<PebbleButton
-		title="Ellipse"
+		title="Ellipse (C)"
 		active={activeTool === 'ellipse'}
 		onclick={() => onToolChange('ellipse')}
 	>
 		<Circle size={18} />
 	</PebbleButton>
 	<PebbleButton
-		title="Eraser"
+		title="Eraser (E)"
 		active={activeTool === 'eraser'}
 		onclick={() => onToolChange('eraser')}
 	>
 		<Eraser size={18} />
 	</PebbleButton>
 	<PebbleButton
-		title="Flood Fill"
+		title="Flood Fill (F)"
 		active={activeTool === 'floodfill'}
 		onclick={() => onToolChange('floodfill')}
 	>
 		<PaintBucket size={18} />
 	</PebbleButton>
 	<PebbleButton
-		title="Eyedropper"
+		title="Eyedropper (I)"
 		active={activeTool === 'eyedropper'}
 		onclick={() => onToolChange('eyedropper')}
 	>

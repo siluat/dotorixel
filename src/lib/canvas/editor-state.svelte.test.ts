@@ -323,6 +323,118 @@ describe('EditorState — eyedropper tool', () => {
 	});
 });
 
+function keyDown(
+	code: string,
+	options: { key?: string; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean; shiftKey?: boolean; repeat?: boolean } = {}
+): KeyboardEvent {
+	return {
+		code,
+		key: options.key ?? '',
+		ctrlKey: options.ctrlKey ?? false,
+		metaKey: options.metaKey ?? false,
+		altKey: options.altKey ?? false,
+		shiftKey: options.shiftKey ?? false,
+		repeat: options.repeat ?? false,
+		target: null,
+		preventDefault: () => {}
+	} as unknown as KeyboardEvent;
+}
+
+describe('EditorState — tool shortcuts', () => {
+	it('switches tools via shortcut keys', () => {
+		const editor = createEditor();
+		const mappings: [string, string][] = [
+			['KeyP', 'pencil'],
+			['KeyE', 'eraser'],
+			['KeyL', 'line'],
+			['KeyR', 'rectangle'],
+			['KeyC', 'ellipse'],
+			['KeyF', 'floodfill'],
+			['KeyI', 'eyedropper']
+		];
+		for (const [code, tool] of mappings) {
+			editor.handleKeyDown(keyDown(code));
+			expect(editor.activeTool).toBe(tool);
+		}
+	});
+
+	it('toggles grid with G key', () => {
+		const editor = createEditor();
+		const initial = editor.viewportState.showGrid;
+		editor.handleKeyDown(keyDown('KeyG'));
+		expect(editor.viewportState.showGrid).toBe(!initial);
+		editor.handleKeyDown(keyDown('KeyG'));
+		expect(editor.viewportState.showGrid).toBe(initial);
+	});
+
+	it('works regardless of IME input language', () => {
+		const editor = createEditor();
+		editor.handleKeyDown(keyDown('KeyE', { key: 'ㄷ' }));
+		expect(editor.activeTool).toBe('eraser');
+	});
+
+	it('ignores shortcuts when Ctrl is held', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleKeyDown(keyDown('KeyE', { ctrlKey: true }));
+		expect(editor.activeTool).toBe('pencil');
+	});
+
+	it('ignores shortcuts when Meta is held', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleKeyDown(keyDown('KeyE', { metaKey: true }));
+		expect(editor.activeTool).toBe('pencil');
+	});
+
+	it('ignores shortcuts when Alt is held', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleKeyDown(keyDown('KeyE', { altKey: true }));
+		expect(editor.activeTool).toBe('pencil');
+	});
+
+	it('ignores shortcuts when Shift is held', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		const initialGrid = editor.viewportState.showGrid;
+		editor.handleKeyDown(keyDown('KeyE', { shiftKey: true }));
+		editor.handleKeyDown(keyDown('KeyG', { shiftKey: true }));
+		expect(editor.activeTool).toBe('pencil');
+		expect(editor.viewportState.showGrid).toBe(initialGrid);
+	});
+
+	it('ignores tool shortcuts while drawing', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleKeyDown(keyDown('KeyE'));
+		expect(editor.activeTool).toBe('pencil');
+		editor.handleDrawEnd();
+	});
+
+	it('allows grid toggle while drawing', () => {
+		const editor = createEditor();
+		const initial = editor.viewportState.showGrid;
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleKeyDown(keyDown('KeyG'));
+		expect(editor.viewportState.showGrid).toBe(!initial);
+		editor.handleDrawEnd();
+	});
+
+	it('ignores G key repeat events', () => {
+		const editor = createEditor();
+		const initial = editor.viewportState.showGrid;
+		editor.handleKeyDown(keyDown('KeyG'));
+		expect(editor.viewportState.showGrid).toBe(!initial);
+		editor.handleKeyDown(keyDown('KeyG', { repeat: true }));
+		expect(editor.viewportState.showGrid).toBe(!initial);
+	});
+});
+
 describe('EditorState — swapColors', () => {
 	it('swaps foreground and background colors', () => {
 		const editor = createEditor();

@@ -63,6 +63,7 @@ export class EditorState {
 	#isAltHeld = $state(false);
 	#isSpaceHeld = $state(false);
 	#isShiftHeld = $state(false);
+	#shortcutHintsVisible = $state(false);
 	#lastShapeDrawCurrent: CanvasCoords | null = null;
 
 	get isSpaceHeld(): boolean {
@@ -71,6 +72,10 @@ export class EditorState {
 
 	get isShiftHeld(): boolean {
 		return this.#isShiftHeld;
+	}
+
+	get shortcutHintsVisible(): boolean {
+		return this.#shortcutHintsVisible;
 	}
 
 	#shapeHandlers: Record<ShapeToolType, ShapeHandler> = {
@@ -140,6 +145,7 @@ export class EditorState {
 	};
 
 	handleDrawStart = (): void => {
+		if (this.#shortcutHintsVisible) return;
 		this.#isDrawing = true;
 		this.#lastShapeDrawCurrent = null;
 		if (this.activeTool === 'eyedropper') return;
@@ -193,6 +199,7 @@ export class EditorState {
 	};
 
 	handleDraw = (current: CanvasCoords, previous: CanvasCoords | null): void => {
+		if (this.#shortcutHintsVisible) return;
 		if (isShapeTool(this.activeTool)) {
 			this.#lastShapeDrawCurrent = current;
 			if (
@@ -325,6 +332,14 @@ export class EditorState {
 	handleKeyDown = (event: KeyboardEvent): void => {
 		if (isInteractiveTarget(event.target)) return;
 
+		if (event.code === 'Slash') {
+			event.preventDefault();
+			if (event.repeat) return;
+			if (this.#isDrawing) return;
+			this.#shortcutHintsVisible = true;
+			return;
+		}
+
 		if (event.code === 'AltLeft' || event.code === 'AltRight') {
 			if (event.repeat) return;
 			this.#isAltHeld = true;
@@ -385,6 +400,11 @@ export class EditorState {
 	};
 
 	handleKeyUp = (event: KeyboardEvent): void => {
+		if (event.code === 'Slash') {
+			this.#shortcutHintsVisible = false;
+			return;
+		}
+
 		if (event.code === 'Space') {
 			this.#isSpaceHeld = false;
 		}
@@ -410,6 +430,7 @@ export class EditorState {
 		this.#isAltHeld = false;
 		this.#isSpaceHeld = false;
 		this.#isShiftHeld = false;
+		this.#shortcutHintsVisible = false;
 		if (this.#toolBeforeModifier !== null) {
 			this.activeTool = this.#toolBeforeModifier;
 			this.#toolBeforeModifier = null;

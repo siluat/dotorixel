@@ -23,6 +23,7 @@
 					active={item.active}
 					disabled={item.disabled}
 					title={item.label}
+					shortcutHint={item.shortcutHint}
 					onclick={item.onclick}
 				>
 					<Icon size={ICON_SIZE} />

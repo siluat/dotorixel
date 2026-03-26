@@ -934,3 +934,67 @@ describe('EditorState — Shift constrain', () => {
 		expect(editor.isShiftHeld).toBe(false);
 	});
 });
+
+describe('EditorState — shortcut hints (/ key)', () => {
+	it('sets shortcutHintsVisible to true on / press', () => {
+		const editor = createEditor();
+		expect(editor.shortcutHintsVisible).toBe(false);
+
+		editor.handleKeyDown(keyDown('Slash'));
+		expect(editor.shortcutHintsVisible).toBe(true);
+	});
+
+	it('resets shortcutHintsVisible to false on / release', () => {
+		const editor = createEditor();
+		editor.handleKeyDown(keyDown('Slash'));
+		expect(editor.shortcutHintsVisible).toBe(true);
+
+		editor.handleKeyUp(keyUp('Slash'));
+		expect(editor.shortcutHintsVisible).toBe(false);
+	});
+
+	it('ignores / repeat events', () => {
+		const editor = createEditor();
+		editor.handleKeyDown(keyDown('Slash'));
+		expect(editor.shortcutHintsVisible).toBe(true);
+
+		// Repeat should not cause issues
+		editor.handleKeyDown(keyDown('Slash', { repeat: true }));
+		expect(editor.shortcutHintsVisible).toBe(true);
+	});
+
+	it('does not show hints while drawing', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+
+		editor.handleKeyDown(keyDown('Slash'));
+		expect(editor.shortcutHintsVisible).toBe(false);
+
+		editor.handleDrawEnd();
+	});
+
+	it('blocks drawing while hints are visible', () => {
+		const editor = createEditor();
+		editor.handleKeyDown(keyDown('Slash'));
+		expect(editor.shortcutHintsVisible).toBe(true);
+
+		// Attempt to draw — should be blocked
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDrawEnd();
+
+		// Pixel should remain transparent (no drawing occurred)
+		expect(getPixel(editor, 0, 0)).toEqual(TRANSPARENT);
+	});
+
+	it('resets shortcutHintsVisible on window blur', () => {
+		const editor = createEditor();
+		editor.handleKeyDown(keyDown('Slash'));
+		expect(editor.shortcutHintsVisible).toBe(true);
+
+		editor.handleBlur();
+		expect(editor.shortcutHintsVisible).toBe(false);
+	});
+});

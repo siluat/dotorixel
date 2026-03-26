@@ -7,6 +7,7 @@ export interface ToolbarButtonProps {
 	active?: boolean;
 	disabled?: boolean;
 	title?: string;
+	shortcutHint?: string;
 	onclick?: (event: MouseEvent) => void;
 	children: Snippet;
 }
@@ -22,6 +23,7 @@ export type ToolbarItem =
 			onclick?: () => void;
 			disabled?: boolean;
 			active?: boolean;
+			shortcutHint?: string;
 	  }
 	| { kind: 'separator' }
 	| { kind: 'label'; text: string };

@@ -7,6 +7,7 @@
 		active?: boolean;
 		disabled?: boolean;
 		title?: string;
+		shortcutHint?: string;
 		onclick?: (event: MouseEvent) => void;
 		children: Snippet;
 	}
@@ -17,6 +18,7 @@
 		active = false,
 		disabled = false,
 		title,
+		shortcutHint,
 		onclick,
 		children
 	}: Props = $props();
@@ -32,11 +34,15 @@
 	{onclick}
 >
 	{@render children()}
+	<span class="shortcut-badge" class:shortcut-badge--visible={shortcutHint} aria-hidden="true">
+		{shortcutHint ?? ''}
+	</span>
 </button>
 
 <style>
 	.bevel-button {
 		--press-offset: calc(var(--border-width-thick) - var(--border-width));
+		position: relative;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -148,5 +154,31 @@
 	.bevel-button:disabled {
 		opacity: 0.5;
 		pointer-events: none;
+	}
+
+	.shortcut-badge {
+		position: absolute;
+		top: -6px;
+		right: -6px;
+		min-width: 16px;
+		height: 16px;
+		padding: 0 3px;
+		border-radius: 0;
+		background: var(--color-primary, #5c4a32);
+		color: var(--color-primary-fg, #ffffff);
+		font-family: var(--font-mono);
+		font-size: 9px;
+		font-weight: 700;
+		line-height: 16px;
+		text-align: center;
+		text-transform: uppercase;
+		white-space: nowrap;
+		pointer-events: none;
+		opacity: 0;
+		transition: opacity 0.15s;
+	}
+
+	.shortcut-badge--visible {
+		opacity: 1;
 	}
 </style>

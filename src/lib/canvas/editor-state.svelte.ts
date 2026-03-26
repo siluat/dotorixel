@@ -17,13 +17,13 @@ import { exportAsPng } from './export';
 import { ShapeHandler } from './shape-handler';
 
 const TOOL_SHORTCUTS: Record<string, ToolType> = {
-	p: 'pencil',
-	e: 'eraser',
-	l: 'line',
-	r: 'rectangle',
-	c: 'ellipse',
-	f: 'floodfill',
-	i: 'eyedropper'
+	KeyP: 'pencil',
+	KeyE: 'eraser',
+	KeyL: 'line',
+	KeyR: 'rectangle',
+	KeyC: 'ellipse',
+	KeyF: 'floodfill',
+	KeyI: 'eyedropper'
 };
 
 type ShapeToolType = 'line' | 'rectangle' | 'ellipse';
@@ -314,15 +314,14 @@ export class EditorState {
 
 		if (isCtrlOrCmd || event.altKey || event.shiftKey) return;
 
-		const key = event.key.toLowerCase();
-		if (key === 'g') {
+		if (event.code === 'KeyG') {
 			if (event.repeat) return;
 			this.handleGridToggle();
 			return;
 		}
 
 		if (this.#isDrawing) return;
-		const tool = TOOL_SHORTCUTS[key];
+		const tool = TOOL_SHORTCUTS[event.code];
 		if (tool) {
 			this.activeTool = tool;
 		}

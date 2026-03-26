@@ -324,11 +324,12 @@ describe('EditorState — eyedropper tool', () => {
 });
 
 function keyDown(
-	key: string,
-	options: { ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean; shiftKey?: boolean; repeat?: boolean } = {}
+	code: string,
+	options: { key?: string; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean; shiftKey?: boolean; repeat?: boolean } = {}
 ): KeyboardEvent {
 	return {
-		key,
+		code,
+		key: options.key ?? '',
 		ctrlKey: options.ctrlKey ?? false,
 		metaKey: options.metaKey ?? false,
 		altKey: options.altKey ?? false,
@@ -343,16 +344,16 @@ describe('EditorState — tool shortcuts', () => {
 	it('switches tools via shortcut keys', () => {
 		const editor = createEditor();
 		const mappings: [string, string][] = [
-			['p', 'pencil'],
-			['e', 'eraser'],
-			['l', 'line'],
-			['r', 'rectangle'],
-			['c', 'ellipse'],
-			['f', 'floodfill'],
-			['i', 'eyedropper']
+			['KeyP', 'pencil'],
+			['KeyE', 'eraser'],
+			['KeyL', 'line'],
+			['KeyR', 'rectangle'],
+			['KeyC', 'ellipse'],
+			['KeyF', 'floodfill'],
+			['KeyI', 'eyedropper']
 		];
-		for (const [key, tool] of mappings) {
-			editor.handleKeyDown(keyDown(key));
+		for (const [code, tool] of mappings) {
+			editor.handleKeyDown(keyDown(code));
 			expect(editor.activeTool).toBe(tool);
 		}
 	});
@@ -360,36 +361,36 @@ describe('EditorState — tool shortcuts', () => {
 	it('toggles grid with G key', () => {
 		const editor = createEditor();
 		const initial = editor.viewportState.showGrid;
-		editor.handleKeyDown(keyDown('g'));
+		editor.handleKeyDown(keyDown('KeyG'));
 		expect(editor.viewportState.showGrid).toBe(!initial);
-		editor.handleKeyDown(keyDown('g'));
+		editor.handleKeyDown(keyDown('KeyG'));
 		expect(editor.viewportState.showGrid).toBe(initial);
 	});
 
-	it('works with uppercase keys (CapsLock)', () => {
+	it('works regardless of IME input language', () => {
 		const editor = createEditor();
-		editor.handleKeyDown(keyDown('E'));
+		editor.handleKeyDown(keyDown('KeyE', { key: 'ㄷ' }));
 		expect(editor.activeTool).toBe('eraser');
 	});
 
 	it('ignores shortcuts when Ctrl is held', () => {
 		const editor = createEditor();
 		editor.activeTool = 'pencil';
-		editor.handleKeyDown(keyDown('e', { ctrlKey: true }));
+		editor.handleKeyDown(keyDown('KeyE', { ctrlKey: true }));
 		expect(editor.activeTool).toBe('pencil');
 	});
 
 	it('ignores shortcuts when Meta is held', () => {
 		const editor = createEditor();
 		editor.activeTool = 'pencil';
-		editor.handleKeyDown(keyDown('e', { metaKey: true }));
+		editor.handleKeyDown(keyDown('KeyE', { metaKey: true }));
 		expect(editor.activeTool).toBe('pencil');
 	});
 
 	it('ignores shortcuts when Alt is held', () => {
 		const editor = createEditor();
 		editor.activeTool = 'pencil';
-		editor.handleKeyDown(keyDown('e', { altKey: true }));
+		editor.handleKeyDown(keyDown('KeyE', { altKey: true }));
 		expect(editor.activeTool).toBe('pencil');
 	});
 
@@ -398,7 +399,7 @@ describe('EditorState — tool shortcuts', () => {
 		editor.activeTool = 'pencil';
 		editor.handleDrawStart();
 		editor.handleDraw({ x: 0, y: 0 }, null);
-		editor.handleKeyDown(keyDown('e'));
+		editor.handleKeyDown(keyDown('KeyE'));
 		expect(editor.activeTool).toBe('pencil');
 		editor.handleDrawEnd();
 	});
@@ -409,7 +410,7 @@ describe('EditorState — tool shortcuts', () => {
 		editor.activeTool = 'pencil';
 		editor.handleDrawStart();
 		editor.handleDraw({ x: 0, y: 0 }, null);
-		editor.handleKeyDown(keyDown('g'));
+		editor.handleKeyDown(keyDown('KeyG'));
 		expect(editor.viewportState.showGrid).toBe(!initial);
 		editor.handleDrawEnd();
 	});
@@ -417,9 +418,9 @@ describe('EditorState — tool shortcuts', () => {
 	it('ignores G key repeat events', () => {
 		const editor = createEditor();
 		const initial = editor.viewportState.showGrid;
-		editor.handleKeyDown(keyDown('g'));
+		editor.handleKeyDown(keyDown('KeyG'));
 		expect(editor.viewportState.showGrid).toBe(!initial);
-		editor.handleKeyDown(keyDown('g', { repeat: true }));
+		editor.handleKeyDown(keyDown('KeyG', { repeat: true }));
 		expect(editor.viewportState.showGrid).toBe(!initial);
 	});
 });

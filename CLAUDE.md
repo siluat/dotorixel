@@ -143,7 +143,6 @@ When porting TS logic to Rust, write idiomatic Rust — not a line-by-line trans
 ### Markdown
 
 - **Fenced code blocks must have a language tag.** Use `typescript`, `rust`, `bash`, `text`, etc. Never leave a bare ` ``` `.
-- **Tables must be surrounded by blank lines.** Always add a blank line before and after a Markdown table. Without this, some renderers fail to parse the table correctly.
 
 ### Stories
 

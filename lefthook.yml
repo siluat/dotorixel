@@ -2,3 +2,6 @@ pre-commit:
   commands:
     check:
       run: bun run check
+    markdownlint:
+      glob: "*.md"
+      run: bunx markdownlint-cli2 {staged_files}

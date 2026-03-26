@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 034 | [Modifier key: Shift=constrain](records/034-shift-constrain.md) | 2026-03-26 |
 | 033 | [Edit shortcuts (Ctrl+Z/Y, X=swap colors)](records/033-edit-shortcuts.md) | 2026-03-26 |
 | 032 | [Modifier key: Space=pan](records/032-space-pan-mode.md) | 2026-03-26 |
 | 031 | [Alt key temporary eyedropper](records/031-alt-eyedropper.md) | 2026-03-26 |

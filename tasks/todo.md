@@ -5,7 +5,6 @@
 ### Keyboard Shortcuts
 
 - On-demand shortcut hint badges (show on key hold, toggle off in settings)
-- Modifier key: Shift=constrain (constrain drawing)
 
 ### i18n
 

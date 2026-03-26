@@ -752,3 +752,185 @@ describe('EditorState — Space pan mode', () => {
 		expect(editor.activeTool).toBe('eraser');
 	});
 });
+
+describe('EditorState — Shift constrain', () => {
+	it('constrains line to horizontal when Shift is held', () => {
+		const editor = createEditor();
+		editor.activeTool = 'line';
+
+		editor.handleKeyDown(keyDown('ShiftLeft'));
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDraw({ x: 5, y: 1 }, { x: 0, y: 0 });
+		editor.handleDrawEnd();
+		editor.handleKeyUp(keyUp('ShiftLeft'));
+
+		// Horizontal snap: y stays at 0
+		expect(getPixel(editor, 3, 0)).toEqual(BLACK);
+		expect(getPixel(editor, 0, 1)).toEqual(TRANSPARENT);
+	});
+
+	it('constrains line to vertical when Shift is held', () => {
+		const editor = createEditor();
+		editor.activeTool = 'line';
+
+		editor.handleKeyDown(keyDown('ShiftLeft'));
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDraw({ x: 1, y: 5 }, { x: 0, y: 0 });
+		editor.handleDrawEnd();
+		editor.handleKeyUp(keyUp('ShiftLeft'));
+
+		// Vertical snap: x stays at 0
+		expect(getPixel(editor, 0, 3)).toEqual(BLACK);
+		expect(getPixel(editor, 1, 0)).toEqual(TRANSPARENT);
+	});
+
+	it('constrains line to 45° diagonal when Shift is held', () => {
+		const editor = createEditor();
+		editor.activeTool = 'line';
+
+		editor.handleKeyDown(keyDown('ShiftLeft'));
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDraw({ x: 4, y: 3 }, { x: 0, y: 0 });
+		editor.handleDrawEnd();
+		editor.handleKeyUp(keyUp('ShiftLeft'));
+
+		// 45° snap: (0,0)→(4,4)
+		expect(getPixel(editor, 2, 2)).toEqual(BLACK);
+		expect(getPixel(editor, 4, 4)).toEqual(BLACK);
+	});
+
+	it('draws unconstrained line without Shift', () => {
+		const editor = createEditor();
+		drawLine(editor, { x: 0, y: 0 }, { x: 3, y: 1 });
+
+		// Diagonal line, not snapped
+		expect(getPixel(editor, 3, 1)).toEqual(BLACK);
+	});
+
+	it('constrains rectangle to square when Shift is held', () => {
+		const editor = createEditor();
+		editor.activeTool = 'rectangle';
+
+		editor.handleKeyDown(keyDown('ShiftLeft'));
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDraw({ x: 3, y: 2 }, { x: 0, y: 0 });
+		editor.handleDrawEnd();
+		editor.handleKeyUp(keyUp('ShiftLeft'));
+
+		// Constrained to 4×4 square (0,0)→(3,3)
+		expect(getPixel(editor, 3, 3)).toEqual(BLACK);
+		expect(getPixel(editor, 0, 3)).toEqual(BLACK);
+	});
+
+	it('constrains ellipse to circle when Shift is held', () => {
+		const editor = createEditor();
+		editor.activeTool = 'ellipse';
+
+		editor.handleKeyDown(keyDown('ShiftLeft'));
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDraw({ x: 6, y: 4 }, { x: 0, y: 0 });
+		editor.handleDrawEnd();
+		editor.handleKeyUp(keyUp('ShiftLeft'));
+
+		// Constrained to square bounding box (0,0)→(6,6) → circle
+		expect(getPixel(editor, 3, 0)).toEqual(BLACK); // top
+		expect(getPixel(editor, 3, 6)).toEqual(BLACK); // bottom
+		expect(getPixel(editor, 0, 3)).toEqual(BLACK); // left
+		expect(getPixel(editor, 6, 3)).toEqual(BLACK); // right
+	});
+
+	it('ignores Shift repeat events', () => {
+		const editor = createEditor();
+		editor.handleKeyDown(keyDown('ShiftLeft'));
+		expect(editor.isShiftHeld).toBe(true);
+
+		// Repeat should not cause issues
+		editor.handleKeyDown(keyDown('ShiftLeft', { repeat: true }));
+		expect(editor.isShiftHeld).toBe(true);
+
+		editor.handleKeyUp(keyUp('ShiftLeft'));
+		expect(editor.isShiftHeld).toBe(false);
+	});
+
+	it('resets isShiftHeld on window blur', () => {
+		const editor = createEditor();
+		editor.handleKeyDown(keyDown('ShiftLeft'));
+		expect(editor.isShiftHeld).toBe(true);
+
+		editor.handleBlur();
+		expect(editor.isShiftHeld).toBe(false);
+	});
+
+	it('updates preview immediately when Shift is toggled during drawing', () => {
+		const editor = createEditor();
+		editor.activeTool = 'line';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDraw({ x: 5, y: 1 }, { x: 0, y: 0 });
+
+		// Without Shift: line goes to (5,1)
+		expect(getPixel(editor, 5, 1)).toEqual(BLACK);
+
+		// Press Shift mid-draw → should re-render constrained
+		editor.handleKeyDown(keyDown('ShiftLeft'));
+
+		// Now line should be horizontal: (0,0)→(5,0)
+		expect(getPixel(editor, 5, 0)).toEqual(BLACK);
+		expect(getPixel(editor, 5, 1)).toEqual(TRANSPARENT);
+
+		// Release Shift → back to unconstrained
+		editor.handleKeyUp(keyUp('ShiftLeft'));
+		expect(getPixel(editor, 5, 1)).toEqual(BLACK);
+
+		editor.handleDrawEnd();
+	});
+
+	it('does not affect pencil tool', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+
+		editor.handleKeyDown(keyDown('ShiftLeft'));
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 3, y: 5 }, null);
+		editor.handleDrawEnd();
+		editor.handleKeyUp(keyUp('ShiftLeft'));
+
+		// Pencil draws at exact coordinates regardless of Shift
+		expect(getPixel(editor, 3, 5)).toEqual(BLACK);
+	});
+
+	it('does not affect eraser tool', () => {
+		const editor = createEditor();
+
+		// Paint a pixel first
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 3, y: 3 }, null);
+		editor.handleDrawEnd();
+		expect(getPixel(editor, 3, 3)).toEqual(BLACK);
+
+		// Erase with Shift held
+		editor.activeTool = 'eraser';
+		editor.handleKeyDown(keyDown('ShiftLeft'));
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 3, y: 3 }, null);
+		editor.handleDrawEnd();
+		editor.handleKeyUp(keyUp('ShiftLeft'));
+
+		expect(getPixel(editor, 3, 3)).toEqual(TRANSPARENT);
+	});
+
+	it('works with ShiftRight as well', () => {
+		const editor = createEditor();
+		editor.handleKeyDown(keyDown('ShiftRight'));
+		expect(editor.isShiftHeld).toBe(true);
+
+		editor.handleKeyUp(keyUp('ShiftRight'));
+		expect(editor.isShiftHeld).toBe(false);
+	});
+});

@@ -15,6 +15,7 @@ import type { ToolType } from './tool-types';
 import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
 import { exportAsPng } from './export';
 import { ShapeHandler } from './shape-handler';
+import { constrainLine, constrainSquare } from './constrain';
 
 const TOOL_SHORTCUTS: Record<string, ToolType> = {
 	KeyP: 'pencil',
@@ -61,15 +62,21 @@ export class EditorState {
 	#toolBeforeModifier = $state<ToolType | null>(null);
 	#isAltHeld = $state(false);
 	#isSpaceHeld = $state(false);
+	#isShiftHeld = $state(false);
+	#lastShapeDrawCurrent: CanvasCoords | null = null;
 
 	get isSpaceHeld(): boolean {
 		return this.#isSpaceHeld;
 	}
 
+	get isShiftHeld(): boolean {
+		return this.#isShiftHeld;
+	}
+
 	#shapeHandlers: Record<ShapeToolType, ShapeHandler> = {
-		line: new ShapeHandler(WasmToolType.Line, wasm_interpolate_pixels),
-		rectangle: new ShapeHandler(WasmToolType.Rectangle, wasm_rectangle_outline),
-		ellipse: new ShapeHandler(WasmToolType.Ellipse, wasm_ellipse_outline)
+		line: new ShapeHandler(WasmToolType.Line, wasm_interpolate_pixels, constrainLine),
+		rectangle: new ShapeHandler(WasmToolType.Rectangle, wasm_rectangle_outline, constrainSquare),
+		ellipse: new ShapeHandler(WasmToolType.Ellipse, wasm_ellipse_outline, constrainSquare)
 	};
 
 	readonly canUndo = $derived.by(() => {
@@ -134,6 +141,7 @@ export class EditorState {
 
 	handleDrawStart = (): void => {
 		this.#isDrawing = true;
+		this.#lastShapeDrawCurrent = null;
 		if (this.activeTool === 'eyedropper') return;
 		this.#history.push_snapshot(this.pixelCanvas.pixels());
 		this.#historyVersion++;
@@ -147,6 +155,7 @@ export class EditorState {
 
 	handleDrawEnd = (): void => {
 		this.#isDrawing = false;
+		this.#lastShapeDrawCurrent = null;
 		if (isShapeTool(this.activeTool)) {
 			this.#shapeHandlers[this.activeTool].reset();
 		}
@@ -185,12 +194,14 @@ export class EditorState {
 
 	handleDraw = (current: CanvasCoords, previous: CanvasCoords | null): void => {
 		if (isShapeTool(this.activeTool)) {
+			this.#lastShapeDrawCurrent = current;
 			if (
 				this.#shapeHandlers[this.activeTool].draw(
 					this.pixelCanvas,
 					current,
 					previous,
-					this.#wasmForegroundColor
+					this.#wasmForegroundColor,
+					this.#isShiftHeld
 				)
 			) {
 				this.renderVersion++;
@@ -332,6 +343,15 @@ export class EditorState {
 			return;
 		}
 
+		if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
+			if (event.repeat) return;
+			this.#isShiftHeld = true;
+			if (this.#isDrawing && isShapeTool(this.activeTool) && this.#lastShapeDrawCurrent) {
+				this.handleDraw(this.#lastShapeDrawCurrent, this.#lastShapeDrawCurrent);
+			}
+			return;
+		}
+
 		const isCtrlOrCmd = event.ctrlKey || event.metaKey;
 		const isZKey = event.key.toLowerCase() === 'z';
 		const isYKey = event.key.toLowerCase() === 'y';
@@ -369,6 +389,13 @@ export class EditorState {
 			this.#isSpaceHeld = false;
 		}
 
+		if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
+			this.#isShiftHeld = false;
+			if (this.#isDrawing && isShapeTool(this.activeTool) && this.#lastShapeDrawCurrent) {
+				this.handleDraw(this.#lastShapeDrawCurrent, this.#lastShapeDrawCurrent);
+			}
+		}
+
 		if (event.code === 'AltLeft' || event.code === 'AltRight') {
 			this.#isAltHeld = false;
 			if (this.#isDrawing) return;
@@ -382,6 +409,7 @@ export class EditorState {
 	handleBlur = (): void => {
 		this.#isAltHeld = false;
 		this.#isSpaceHeld = false;
+		this.#isShiftHeld = false;
 		if (this.#toolBeforeModifier !== null) {
 			this.activeTool = this.#toolBeforeModifier;
 			this.#toolBeforeModifier = null;

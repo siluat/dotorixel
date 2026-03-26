@@ -323,6 +323,107 @@ describe('EditorState — eyedropper tool', () => {
 	});
 });
 
+function keyDown(
+	key: string,
+	options: { ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean; shiftKey?: boolean; repeat?: boolean } = {}
+): KeyboardEvent {
+	return {
+		key,
+		ctrlKey: options.ctrlKey ?? false,
+		metaKey: options.metaKey ?? false,
+		altKey: options.altKey ?? false,
+		shiftKey: options.shiftKey ?? false,
+		repeat: options.repeat ?? false,
+		target: null,
+		preventDefault: () => {}
+	} as unknown as KeyboardEvent;
+}
+
+describe('EditorState — tool shortcuts', () => {
+	it('switches tools via shortcut keys', () => {
+		const editor = createEditor();
+		const mappings: [string, string][] = [
+			['p', 'pencil'],
+			['e', 'eraser'],
+			['l', 'line'],
+			['r', 'rectangle'],
+			['c', 'ellipse'],
+			['f', 'floodfill'],
+			['i', 'eyedropper']
+		];
+		for (const [key, tool] of mappings) {
+			editor.handleKeyDown(keyDown(key));
+			expect(editor.activeTool).toBe(tool);
+		}
+	});
+
+	it('toggles grid with G key', () => {
+		const editor = createEditor();
+		const initial = editor.viewportState.showGrid;
+		editor.handleKeyDown(keyDown('g'));
+		expect(editor.viewportState.showGrid).toBe(!initial);
+		editor.handleKeyDown(keyDown('g'));
+		expect(editor.viewportState.showGrid).toBe(initial);
+	});
+
+	it('works with uppercase keys (CapsLock)', () => {
+		const editor = createEditor();
+		editor.handleKeyDown(keyDown('E'));
+		expect(editor.activeTool).toBe('eraser');
+	});
+
+	it('ignores shortcuts when Ctrl is held', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleKeyDown(keyDown('e', { ctrlKey: true }));
+		expect(editor.activeTool).toBe('pencil');
+	});
+
+	it('ignores shortcuts when Meta is held', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleKeyDown(keyDown('e', { metaKey: true }));
+		expect(editor.activeTool).toBe('pencil');
+	});
+
+	it('ignores shortcuts when Alt is held', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleKeyDown(keyDown('e', { altKey: true }));
+		expect(editor.activeTool).toBe('pencil');
+	});
+
+	it('ignores tool shortcuts while drawing', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleKeyDown(keyDown('e'));
+		expect(editor.activeTool).toBe('pencil');
+		editor.handleDrawEnd();
+	});
+
+	it('allows grid toggle while drawing', () => {
+		const editor = createEditor();
+		const initial = editor.viewportState.showGrid;
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleKeyDown(keyDown('g'));
+		expect(editor.viewportState.showGrid).toBe(!initial);
+		editor.handleDrawEnd();
+	});
+
+	it('ignores G key repeat events', () => {
+		const editor = createEditor();
+		const initial = editor.viewportState.showGrid;
+		editor.handleKeyDown(keyDown('g'));
+		expect(editor.viewportState.showGrid).toBe(!initial);
+		editor.handleKeyDown(keyDown('g', { repeat: true }));
+		expect(editor.viewportState.showGrid).toBe(!initial);
+	});
+});
+
 describe('EditorState — swapColors', () => {
 	it('swaps foreground and background colors', () => {
 		const editor = createEditor();

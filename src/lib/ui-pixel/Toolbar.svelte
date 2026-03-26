@@ -61,49 +61,49 @@
 		{
 			kind: 'button',
 			icon: Pencil,
-			label: 'Pencil',
+			label: 'Pencil (P)',
 			active: activeTool === 'pencil',
 			onclick: () => onToolChange('pencil')
 		},
 		{
 			kind: 'button',
 			icon: Slash,
-			label: 'Line',
+			label: 'Line (L)',
 			active: activeTool === 'line',
 			onclick: () => onToolChange('line')
 		},
 		{
 			kind: 'button',
 			icon: Square,
-			label: 'Rectangle',
+			label: 'Rectangle (R)',
 			active: activeTool === 'rectangle',
 			onclick: () => onToolChange('rectangle')
 		},
 		{
 			kind: 'button',
 			icon: Circle,
-			label: 'Ellipse',
+			label: 'Ellipse (C)',
 			active: activeTool === 'ellipse',
 			onclick: () => onToolChange('ellipse')
 		},
 		{
 			kind: 'button',
 			icon: Eraser,
-			label: 'Eraser',
+			label: 'Eraser (E)',
 			active: activeTool === 'eraser',
 			onclick: () => onToolChange('eraser')
 		},
 		{
 			kind: 'button',
 			icon: PaintBucket,
-			label: 'Flood Fill',
+			label: 'Flood Fill (F)',
 			active: activeTool === 'floodfill',
 			onclick: () => onToolChange('floodfill')
 		},
 		{
 			kind: 'button',
 			icon: Pipette,
-			label: 'Eyedropper',
+			label: 'Eyedropper (I)',
 			active: activeTool === 'eyedropper',
 			onclick: () => onToolChange('eyedropper')
 		},
@@ -118,7 +118,7 @@
 		{
 			kind: 'button',
 			icon: Grid3X3,
-			label: 'Toggle Grid',
+			label: 'Toggle Grid (G)',
 			active: showGrid,
 			onclick: onGridToggle
 		},

@@ -4,7 +4,7 @@
 
 ### Keyboard Shortcuts
 
-- Tool shortcuts (P, E, L, F, I, R, C, G)
+- On-demand shortcut hint badges (show on key hold, toggle off in settings)
 - Modifier key: Alt=eyedropper (temporary tool switch)
 - Modifier key: Space=pan (temporary pan mode)
 - Modifier key: Shift=constrain (constrain drawing)

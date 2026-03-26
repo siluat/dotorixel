@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 032 | [Modifier key: Space=pan](records/032-space-pan-mode.md) | 2026-03-26 |
 | 031 | [Alt key temporary eyedropper](records/031-alt-eyedropper.md) | 2026-03-26 |
 | 030 | [Tool shortcuts (P, E, L, F, I, R, C, G)](records/030-tool-shortcuts.md) | 2026-03-26 |
 | 029 | [Trigger color picker from FG/BG swatch](records/029-fg-bg-swatch-color-picker.md) | 2026-03-26 |

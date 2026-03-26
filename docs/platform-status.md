@@ -70,7 +70,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Mouse / trackpad | — | ✅ | ✅ | |
 | Touch | — | ✅ | ✅ | Pointer Events / UITouch |
 | Apple Pencil | — | — | ✅ | |
-| Keyboard shortcuts | — | ✅ | ✅ | Web: tool switch + grid toggle + undo/redo + Alt eyedropper; Apple: undo/redo only |
+| Keyboard shortcuts | — | ✅ | ✅ | Web: tool switch + grid toggle + undo/redo + Alt eyedropper + Space pan; Apple: undo/redo only |
 
 ## UI
 

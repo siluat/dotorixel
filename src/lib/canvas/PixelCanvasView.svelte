@@ -27,6 +27,7 @@
 		onDrawEnd?: () => void;
 		onViewportChange?: (viewport: WasmViewport) => void;
 		toolCursor?: string;
+		isSpaceHeld?: boolean;
 	}
 
 	let {
@@ -39,12 +40,12 @@
 		onDrawStart,
 		onDrawEnd,
 		onViewportChange,
-		toolCursor = 'crosshair'
+		toolCursor = 'crosshair',
+		isSpaceHeld = false
 	}: Props = $props();
 
 	let canvasEl: HTMLCanvasElement | undefined = $state();
 	let interaction = $state<InteractionMode>({ type: 'idle' });
-	let isSpaceHeld = $state(false);
 	const classifyWheelInput = createWheelInputClassifier();
 
 	$effect(() => {
@@ -184,40 +185,17 @@
 		}
 	}
 
-	function isInteractiveTarget(target: EventTarget | null): boolean {
-		return (
-			target instanceof HTMLElement &&
-			target.closest('button, input, select, textarea, [contenteditable="true"]') !== null
-		);
-	}
-
-	function handleKeyDown(event: KeyboardEvent): void {
-		if (event.code === 'Space' && !event.repeat && !isInteractiveTarget(event.target)) {
-			event.preventDefault();
-			isSpaceHeld = true;
-		}
-	}
-
-	function handleKeyUp(event: KeyboardEvent): void {
-		if (event.code === 'Space') {
-			isSpaceHeld = false;
-		}
-	}
-
 	function handleWindowBlur(): void {
 		if (interaction.type === 'drawing') {
 			onDrawEnd?.();
 		}
 		interaction = { type: 'idle' };
-		isSpaceHeld = false;
 	}
 </script>
 
 <svelte:window
 	onpointermove={handleWindowPointerMove}
 	onpointerup={handlePointerUp}
-	onkeydown={handleKeyDown}
-	onkeyup={handleKeyUp}
 	onblur={handleWindowBlur}
 />
 

@@ -72,6 +72,7 @@
 			onDrawStart={editor.handleDrawStart}
 			onDrawEnd={editor.handleDrawEnd}
 			onViewportChange={editor.handleViewportChange}
+			isSpaceHeld={editor.isSpaceHeld}
 		/>
 	</div>
 

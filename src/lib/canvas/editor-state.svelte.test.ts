@@ -599,3 +599,75 @@ describe('EditorState — swapColors', () => {
 		expect(editor.backgroundColor).toEqual(originalBg);
 	});
 });
+
+describe('EditorState — Space pan mode', () => {
+	it('sets isSpaceHeld to true on Space press', () => {
+		const editor = createEditor();
+		expect(editor.isSpaceHeld).toBe(false);
+
+		editor.handleKeyDown(keyDown('Space'));
+		expect(editor.isSpaceHeld).toBe(true);
+	});
+
+	it('resets isSpaceHeld to false on Space release', () => {
+		const editor = createEditor();
+		editor.handleKeyDown(keyDown('Space'));
+		expect(editor.isSpaceHeld).toBe(true);
+
+		editor.handleKeyUp(keyUp('Space'));
+		expect(editor.isSpaceHeld).toBe(false);
+	});
+
+	it('ignores Space repeat events', () => {
+		const editor = createEditor();
+		editor.handleKeyDown(keyDown('Space'));
+		expect(editor.isSpaceHeld).toBe(true);
+
+		// Release to reset, then verify repeat doesn't re-enable
+		editor.handleKeyUp(keyUp('Space'));
+		expect(editor.isSpaceHeld).toBe(false);
+
+		// First press enables
+		editor.handleKeyDown(keyDown('Space'));
+		expect(editor.isSpaceHeld).toBe(true);
+
+		// Repeat should not cause issues (still true)
+		editor.handleKeyDown(keyDown('Space', { repeat: true }));
+		expect(editor.isSpaceHeld).toBe(true);
+	});
+
+	it('ignores Space when drawing', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+
+		editor.handleKeyDown(keyDown('Space'));
+		expect(editor.isSpaceHeld).toBe(false);
+
+		editor.handleDrawEnd();
+	});
+
+	it('resets isSpaceHeld on window blur', () => {
+		const editor = createEditor();
+		editor.handleKeyDown(keyDown('Space'));
+		expect(editor.isSpaceHeld).toBe(true);
+
+		editor.handleBlur();
+		expect(editor.isSpaceHeld).toBe(false);
+	});
+
+	it('allows tool shortcuts after Space release', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+
+		editor.handleKeyDown(keyDown('Space'));
+		expect(editor.isSpaceHeld).toBe(true);
+
+		editor.handleKeyUp(keyUp('Space'));
+		expect(editor.isSpaceHeld).toBe(false);
+
+		editor.handleKeyDown(keyDown('KeyE'));
+		expect(editor.activeTool).toBe('eraser');
+	});
+});

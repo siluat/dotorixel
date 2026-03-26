@@ -41,7 +41,7 @@
 	});
 </script>
 
-<svelte:window onkeydown={editor.handleKeyDown} />
+<svelte:window onkeydown={editor.handleKeyDown} onkeyup={editor.handleKeyUp} onblur={editor.handleBlur} />
 
 <div class="pebble-editor">
 	<TopControlsLeft

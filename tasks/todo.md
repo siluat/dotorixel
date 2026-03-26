@@ -5,7 +5,6 @@
 ### Keyboard Shortcuts
 
 - On-demand shortcut hint badges (show on key hold, toggle off in settings)
-- Modifier key: Alt=eyedropper (temporary tool switch)
 - Modifier key: Space=pan (temporary pan mode)
 - Modifier key: Shift=constrain (constrain drawing)
 - Edit shortcuts (Ctrl+Z/Y, X=swap colors)
@@ -71,6 +70,7 @@
 ## Review backlog (not assigned to a milestone)
 
 - FG/BG swap UI improvements
+- Tool-specific mouse cursor (eyedropper, crosshair, etc.) — toolCursor prop infrastructure exists but is not wired up
 
 ## Future triggers (not tied to a specific version)
 

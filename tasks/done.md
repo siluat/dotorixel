@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 031 | [Alt key temporary eyedropper](records/031-alt-eyedropper.md) | 2026-03-26 |
 | 030 | [Tool shortcuts (P, E, L, F, I, R, C, G)](records/030-tool-shortcuts.md) | 2026-03-26 |
 | 029 | [Trigger color picker from FG/BG swatch](records/029-fg-bg-swatch-color-picker.md) | 2026-03-26 |
 | 028 | [Foreground/background color swap](records/028-fg-bg-color-swap.md) | 2026-03-25 |

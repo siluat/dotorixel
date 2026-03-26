@@ -58,6 +58,8 @@ export class EditorState {
 	#history = WasmHistoryManager.default_manager();
 	#historyVersion = $state(0);
 	#isDrawing = $state(false);
+	#toolBeforeModifier = $state<ToolType | null>(null);
+	#isAltHeld = $state(false);
 	#shapeHandlers: Record<ShapeToolType, ShapeHandler> = {
 		line: new ShapeHandler(WasmToolType.Line, wasm_interpolate_pixels),
 		rectangle: new ShapeHandler(WasmToolType.Rectangle, wasm_rectangle_outline),
@@ -141,6 +143,10 @@ export class EditorState {
 		this.#isDrawing = false;
 		if (isShapeTool(this.activeTool)) {
 			this.#shapeHandlers[this.activeTool].reset();
+		}
+		if (this.#toolBeforeModifier !== null && !this.#isAltHeld) {
+			this.activeTool = this.#toolBeforeModifier;
+			this.#toolBeforeModifier = null;
 		}
 	};
 
@@ -302,6 +308,16 @@ export class EditorState {
 	handleKeyDown = (event: KeyboardEvent): void => {
 		if (isInteractiveTarget(event.target)) return;
 
+		if (event.code === 'AltLeft' || event.code === 'AltRight') {
+			if (event.repeat) return;
+			this.#isAltHeld = true;
+			if (this.#isDrawing) return;
+			if (this.activeTool === 'eyedropper') return;
+			this.#toolBeforeModifier = this.activeTool;
+			this.activeTool = 'eyedropper';
+			return;
+		}
+
 		const isCtrlOrCmd = event.ctrlKey || event.metaKey;
 		const isZKey = event.key.toLowerCase() === 'z';
 		if (isCtrlOrCmd && isZKey && !event.shiftKey) {
@@ -324,6 +340,25 @@ export class EditorState {
 		const tool = TOOL_SHORTCUTS[event.code];
 		if (tool) {
 			this.activeTool = tool;
+		}
+	};
+
+	handleKeyUp = (event: KeyboardEvent): void => {
+		if (event.code === 'AltLeft' || event.code === 'AltRight') {
+			this.#isAltHeld = false;
+			if (this.#isDrawing) return;
+			if (this.#toolBeforeModifier !== null) {
+				this.activeTool = this.#toolBeforeModifier;
+				this.#toolBeforeModifier = null;
+			}
+		}
+	};
+
+	handleBlur = (): void => {
+		this.#isAltHeld = false;
+		if (this.#toolBeforeModifier !== null) {
+			this.activeTool = this.#toolBeforeModifier;
+			this.#toolBeforeModifier = null;
 		}
 	};
 }

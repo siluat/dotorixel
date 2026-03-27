@@ -16,6 +16,9 @@ apple/build/
 .svelte-kit/
 /build
 
+# Paraglide (generated)
+src/lib/paraglide/
+
 # OS
 .DS_Store
 Thumbs.db

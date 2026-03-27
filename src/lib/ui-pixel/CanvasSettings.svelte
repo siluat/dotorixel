@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { WasmPixelCanvas } from '$wasm/dotorixel_wasm';
+	import * as m from '$lib/paraglide/messages';
 	import PixelPanel from './PixelPanel.svelte';
 	import BevelButton from './BevelButton.svelte';
 
@@ -50,8 +51,8 @@
 
 <PixelPanel>
 	<div class="canvas-settings">
-		<span class="section-label">Canvas Size</span>
-		<span class="current-size">Current: {canvasWidth} × {canvasHeight}</span>
+		<span class="section-label">{m.canvas_size()}</span>
+		<span class="current-size">{m.canvas_current()} {canvasWidth} × {canvasHeight}</span>
 
 		<div class="presets">
 			{#each CANVAS_PRESETS as size}
@@ -67,7 +68,7 @@
 
 		<div class="custom-size">
 			<label class="dimension">
-				<span class="dim-label">W</span>
+				<span class="dim-label">{m.label_widthAbbr()}</span>
 				<input
 					type="number"
 					class="dim-input"
@@ -75,14 +76,14 @@
 					value={customWidth}
 					min="1"
 					max="128"
-					aria-label="Canvas width"
+					aria-label={m.canvas_width()}
 					aria-invalid={!isWidthValid}
 					oninput={(e) => (customWidth = (e.currentTarget as HTMLInputElement).value)}
 					onkeydown={handleKeyDown}
 				/>
 			</label>
 			<label class="dimension">
-				<span class="dim-label">H</span>
+				<span class="dim-label">{m.label_heightAbbr()}</span>
 				<input
 					type="number"
 					class="dim-input"
@@ -90,14 +91,14 @@
 					value={customHeight}
 					min="1"
 					max="128"
-					aria-label="Canvas height"
+					aria-label={m.canvas_height()}
 					aria-invalid={!isHeightValid}
 					oninput={(e) => (customHeight = (e.currentTarget as HTMLInputElement).value)}
 					onkeydown={handleKeyDown}
 				/>
 			</label>
 			<BevelButton size="sm" disabled={!canApply} onclick={applyCustomSize}>
-				Apply
+				{m.label_apply()}
 			</BevelButton>
 		</div>
 	</div>

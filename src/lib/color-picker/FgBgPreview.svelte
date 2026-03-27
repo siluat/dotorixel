@@ -1,4 +1,6 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages';
+
 	interface Props {
 		foregroundColor: string;
 		backgroundColor: string;
@@ -13,12 +15,12 @@
 <div
 	class="fg-bg-preview"
 	role="group"
-	aria-label={`Foreground color ${foregroundColor}, background color ${backgroundColor}`}
+	aria-label={m.aria_fgBgGroup({ fg: foregroundColor, bg: backgroundColor })}
 >
 	{#if onBackgroundClick}
 		<button
 			class="swatch swatch-bg checkerboard swatch-bg-button"
-			aria-label="Open background color picker"
+			aria-label={m.color_background()}
 			onclick={onBackgroundClick}
 		>
 			<div class="swatch-fill" style:background-color={backgroundColor}></div>
@@ -31,7 +33,7 @@
 	{#if onForegroundClick}
 		<button
 			class="swatch swatch-fg checkerboard swatch-fg-button"
-			aria-label="Open foreground color picker"
+			aria-label={m.color_foreground()}
 			onclick={onForegroundClick}
 		>
 			<div class="swatch-fill" style:background-color={foregroundColor}></div>
@@ -44,7 +46,7 @@
 	{#if onSwapColors}
 		<button
 			class="swap-button"
-			aria-label="Swap foreground and background colors"
+			aria-label={m.color_swap()}
 			onclick={onSwapColors}
 		>
 			<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">

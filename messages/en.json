@@ -1,0 +1,42 @@
+{
+	"tool_pencil": "Pencil",
+	"tool_line": "Line",
+	"tool_rectangle": "Rectangle",
+	"tool_ellipse": "Ellipse",
+	"tool_eraser": "Eraser",
+	"tool_floodfill": "Flood Fill",
+	"tool_eyedropper": "Eyedropper",
+
+	"action_undo": "Undo",
+	"action_redo": "Redo",
+	"action_toggleGrid": "Toggle Grid",
+	"action_exportPng": "Export PNG",
+	"action_clearCanvas": "Clear Canvas",
+	"action_zoomIn": "Zoom In",
+	"action_zoomOut": "Zoom Out",
+	"action_resetZoom": "Reset zoom to 100%",
+	"action_fitToView": "Fit to View",
+
+	"canvas_width": "Canvas width",
+	"canvas_height": "Canvas height",
+	"canvas_size": "Canvas Size",
+	"canvas_current": "Current:",
+
+	"color_recent": "Recent",
+	"color_hexCode": "Hex color code",
+	"color_picker": "Color picker",
+	"color_foreground": "Open foreground color picker",
+	"color_background": "Open background color picker",
+	"color_swap": "Swap foreground and background colors",
+	"color_hue": "Hue",
+	"color_saturationBrightness": "Saturation and brightness",
+
+	"aria_pixelCanvas": "Pixel art canvas",
+	"aria_saturationValue": "Saturation {s}%, Brightness {v}%",
+	"aria_fgBgGroup": "Foreground color {fg}, background color {bg}",
+
+	"label_tool": "Tool:",
+	"label_widthAbbr": "W",
+	"label_heightAbbr": "H",
+	"label_apply": "Apply"
+}

@@ -15,6 +15,7 @@ A 2D pixel art editor. Positioned as a learning-first, cross-platform tool.
 | Web Deployment | Vercel | SPA via adapter-static |
 | Testing | Vitest | Unified test runner — pure functions now, component tests later |
 | Component Preview | Storybook 10 | `@storybook/sveltekit`, Svelte CSF v5 |
+| i18n | Paraglide.js | Compile-time, URL path routing (`/en/`, `/ko/`, `/ja/`) |
 
 ## License
 
@@ -37,6 +38,7 @@ SemVer. Git tags and GitHub Releases start at v0.1.0. CHANGELOG.md follows [Keep
 | Coordinate Transform | Screen→Canvas single transform (Rust core) | Based on zoom level and pan offset, shared across shells |
 | Core Bindings | wasm-bindgen (web), UniFFI (Apple native) | Single Rust core, platform-specific binding per shell |
 | Apple Project | Single Xcode project, macOS + iPadOS targets | SwiftUI + Metal shared, platform-specific UI via `#if os()` |
+| i18n | Paraglide.js (compile-time) + URL path routing (`/en/`, `/ko/`, `/ja/`) | Svelte official CLI integration; URL routing needed for future landing/help pages SEO; compile-time = tree-shakable, no runtime overhead |
 
 ## Task Workflow
 

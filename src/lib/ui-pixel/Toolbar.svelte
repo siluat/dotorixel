@@ -4,6 +4,7 @@
 	import type { ToolbarButtonProps, ToolbarItem } from './toolbar-types';
 	import ToolbarLayout from './ToolbarLayout.svelte';
 	import { formatShortcut } from '$lib/canvas/shortcut-display';
+	import * as m from '$lib/paraglide/messages';
 	import {
 		Pencil,
 		Slash,
@@ -72,7 +73,7 @@
 		{
 			kind: 'button',
 			icon: Pencil,
-			label: 'Pencil (P)',
+			label: `${m.tool_pencil()} (P)`,
 			active: activeTool === 'pencil',
 			shortcutHint: hint('P'),
 			onclick: () => onToolChange('pencil')
@@ -80,7 +81,7 @@
 		{
 			kind: 'button',
 			icon: Slash,
-			label: 'Line (L)',
+			label: `${m.tool_line()} (L)`,
 			active: activeTool === 'line',
 			shortcutHint: hint('L'),
 			onclick: () => onToolChange('line')
@@ -88,7 +89,7 @@
 		{
 			kind: 'button',
 			icon: Square,
-			label: 'Rectangle (R)',
+			label: `${m.tool_rectangle()} (R)`,
 			active: activeTool === 'rectangle',
 			shortcutHint: hint('R'),
 			onclick: () => onToolChange('rectangle')
@@ -96,7 +97,7 @@
 		{
 			kind: 'button',
 			icon: Circle,
-			label: 'Ellipse (C)',
+			label: `${m.tool_ellipse()} (C)`,
 			active: activeTool === 'ellipse',
 			shortcutHint: hint('C'),
 			onclick: () => onToolChange('ellipse')
@@ -104,7 +105,7 @@
 		{
 			kind: 'button',
 			icon: Eraser,
-			label: 'Eraser (E)',
+			label: `${m.tool_eraser()} (E)`,
 			active: activeTool === 'eraser',
 			shortcutHint: hint('E'),
 			onclick: () => onToolChange('eraser')
@@ -112,7 +113,7 @@
 		{
 			kind: 'button',
 			icon: PaintBucket,
-			label: 'Flood Fill (F)',
+			label: `${m.tool_floodfill()} (F)`,
 			active: activeTool === 'floodfill',
 			shortcutHint: hint('F'),
 			onclick: () => onToolChange('floodfill')
@@ -120,30 +121,30 @@
 		{
 			kind: 'button',
 			icon: Pipette,
-			label: 'Eyedropper (I)',
+			label: `${m.tool_eyedropper()} (I)`,
 			active: activeTool === 'eyedropper',
 			shortcutHint: hint('I'),
 			onclick: () => onToolChange('eyedropper')
 		},
 		{ kind: 'separator' },
-		{ kind: 'button', icon: Undo2, label: 'Undo', disabled: !canUndo, shortcutHint: hintCtrl('Z'), onclick: onUndo },
-		{ kind: 'button', icon: Redo2, label: 'Redo', disabled: !canRedo, shortcutHint: hintCtrl('Y'), onclick: onRedo },
+		{ kind: 'button', icon: Undo2, label: m.action_undo(), disabled: !canUndo, shortcutHint: hintCtrl('Z'), onclick: onUndo },
+		{ kind: 'button', icon: Redo2, label: m.action_redo(), disabled: !canRedo, shortcutHint: hintCtrl('Y'), onclick: onRedo },
 		{ kind: 'separator' },
-		{ kind: 'button', icon: ZoomOut, label: 'Zoom Out', onclick: onZoomOut },
+		{ kind: 'button', icon: ZoomOut, label: m.action_zoomOut(), onclick: onZoomOut },
 		{ kind: 'label', text: `${zoomPercent}%` },
-		{ kind: 'button', icon: ZoomIn, label: 'Zoom In', onclick: onZoomIn },
-		{ kind: 'button', icon: Maximize2, label: 'Fit to View', onclick: onFit },
+		{ kind: 'button', icon: ZoomIn, label: m.action_zoomIn(), onclick: onZoomIn },
+		{ kind: 'button', icon: Maximize2, label: m.action_fitToView(), onclick: onFit },
 		{
 			kind: 'button',
 			icon: Grid3X3,
-			label: 'Toggle Grid (G)',
+			label: `${m.action_toggleGrid()} (G)`,
 			active: showGrid,
 			shortcutHint: hint('G'),
 			onclick: onGridToggle
 		},
 		{ kind: 'separator' },
-		{ kind: 'button', icon: Trash2, label: 'Clear Canvas', onclick: onClear },
-		{ kind: 'button', icon: Download, label: 'Export PNG', onclick: onExport }
+		{ kind: 'button', icon: Trash2, label: m.action_clearCanvas(), onclick: onClear },
+		{ kind: 'button', icon: Download, label: m.action_exportPng(), onclick: onExport }
 	]);
 </script>
 

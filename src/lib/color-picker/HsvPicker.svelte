@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { hexToColor, colorToHex, rgbToHsv, hsvToRgb, type HsvColor } from '$lib/canvas/color';
+	import * as m from '$lib/paraglide/messages';
 
 	interface Props {
 		selectedColor: string;
@@ -147,9 +148,9 @@
 		style:width="{svWidth}px"
 		style:height="{height}px"
 		role="slider"
-		aria-label="Saturation and brightness"
+		aria-label={m.color_saturationBrightness()}
 		aria-valuenow={Math.round(hsv.s * 100)}
-		aria-valuetext="Saturation {Math.round(hsv.s * 100)}%, Brightness {Math.round(hsv.v * 100)}%"
+		aria-valuetext={m.aria_saturationValue({ s: Math.round(hsv.s * 100), v: Math.round(hsv.v * 100) })}
 		tabindex="0"
 		onpointerdown={handleSvPointerDown}
 		onpointermove={handleSvPointerMove}
@@ -168,7 +169,7 @@
 		style:width="{hueStripWidth}px"
 		style:height="{height}px"
 		role="slider"
-		aria-label="Hue"
+		aria-label={m.color_hue()}
 		aria-valuemin={0}
 		aria-valuemax={360}
 		aria-valuenow={Math.round(hsv.h)}

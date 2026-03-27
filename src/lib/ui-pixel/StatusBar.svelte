@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ToolType } from './toolbar-types';
+	import * as m from '$lib/paraglide/messages';
 	import PixelPanel from './PixelPanel.svelte';
 
 	interface Props {
@@ -11,14 +12,14 @@
 
 	let { canvasWidth, canvasHeight, zoomPercent, activeTool }: Props = $props();
 
-	const TOOL_LABELS: Record<ToolType, string> = {
-		pencil: 'Pencil',
-		line: 'Line',
-		rectangle: 'Rectangle',
-		ellipse: 'Ellipse',
-		eraser: 'Eraser',
-		floodfill: 'Flood Fill',
-		eyedropper: 'Eyedropper'
+	const TOOL_MESSAGE: Record<ToolType, () => string> = {
+		pencil: m.tool_pencil,
+		line: m.tool_line,
+		rectangle: m.tool_rectangle,
+		ellipse: m.tool_ellipse,
+		eraser: m.tool_eraser,
+		floodfill: m.tool_floodfill,
+		eyedropper: m.tool_eyedropper
 	};
 </script>
 
@@ -31,8 +32,8 @@
 		</div>
 		<span class="separator"></span>
 		<div class="status-group">
-			<span class="status-label">Tool:</span>
-			<span class="tool-name">{TOOL_LABELS[activeTool]}</span>
+			<span class="status-label">{m.label_tool()}</span>
+			<span class="tool-name">{TOOL_MESSAGE[activeTool]()}</span>
 		</div>
 	</div>
 </PixelPanel>

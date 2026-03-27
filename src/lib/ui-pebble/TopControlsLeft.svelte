@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Undo2, Redo2, Grid3X3 } from 'lucide-svelte';
 	import { formatShortcut } from '$lib/canvas/shortcut-display';
+	import * as m from '$lib/paraglide/messages';
 	import FloatingPanel from './FloatingPanel.svelte';
 	import PebbleButton from './PebbleButton.svelte';
 
@@ -19,13 +20,13 @@
 
 <div class="top-controls-left">
 	<FloatingPanel>
-		<PebbleButton title="Undo" disabled={!canUndo} shortcutHint={showShortcutHints ? formatShortcut('Z', { ctrl: true }) : undefined} onclick={onUndo}>
+		<PebbleButton title={m.action_undo()} disabled={!canUndo} shortcutHint={showShortcutHints ? formatShortcut('Z', { ctrl: true }) : undefined} onclick={onUndo}>
 			<Undo2 size={18} />
 		</PebbleButton>
-		<PebbleButton title="Redo" disabled={!canRedo} shortcutHint={showShortcutHints ? formatShortcut('Y', { ctrl: true }) : undefined} onclick={onRedo}>
+		<PebbleButton title={m.action_redo()} disabled={!canRedo} shortcutHint={showShortcutHints ? formatShortcut('Y', { ctrl: true }) : undefined} onclick={onRedo}>
 			<Redo2 size={18} />
 		</PebbleButton>
-		<PebbleButton title="Toggle Grid (G)" active={showGrid} shortcutHint={showShortcutHints ? 'G' : undefined} onclick={onGridToggle}>
+		<PebbleButton title={`${m.action_toggleGrid()} (G)`} active={showGrid} shortcutHint={showShortcutHints ? 'G' : undefined} onclick={onGridToggle}>
 			<Grid3X3 size={18} />
 		</PebbleButton>
 	</FloatingPanel>

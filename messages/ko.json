@@ -1,0 +1,42 @@
+{
+	"tool_pencil": "연필",
+	"tool_line": "직선",
+	"tool_rectangle": "사각형",
+	"tool_ellipse": "타원",
+	"tool_eraser": "지우개",
+	"tool_floodfill": "채우기",
+	"tool_eyedropper": "스포이트",
+
+	"action_undo": "실행 취소",
+	"action_redo": "다시 실행",
+	"action_toggleGrid": "격자 전환",
+	"action_exportPng": "PNG 내보내기",
+	"action_clearCanvas": "캔버스 지우기",
+	"action_zoomIn": "확대",
+	"action_zoomOut": "축소",
+	"action_resetZoom": "100%로 초기화",
+	"action_fitToView": "화면에 맞추기",
+
+	"canvas_width": "캔버스 너비",
+	"canvas_height": "캔버스 높이",
+	"canvas_size": "캔버스 크기",
+	"canvas_current": "현재:",
+
+	"color_recent": "최근 색상",
+	"color_hexCode": "HEX 색상 코드",
+	"color_picker": "색상 선택기",
+	"color_foreground": "전경색 선택기 열기",
+	"color_background": "배경색 선택기 열기",
+	"color_swap": "전경색과 배경색 교환",
+	"color_hue": "색상",
+	"color_saturationBrightness": "채도와 명도",
+
+	"aria_pixelCanvas": "픽셀 아트 캔버스",
+	"aria_saturationValue": "채도 {s}%, 명도 {v}%",
+	"aria_fgBgGroup": "전경색 {fg}, 배경색 {bg}",
+
+	"label_tool": "도구:",
+	"label_widthAbbr": "W",
+	"label_heightAbbr": "H",
+	"label_apply": "적용"
+}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { WasmPixelCanvas } from '$wasm/dotorixel_wasm';
 	import { Download, Trash2 } from 'lucide-svelte';
+	import * as m from '$lib/paraglide/messages';
 	import FloatingPanel from './FloatingPanel.svelte';
 	import PebbleButton from './PebbleButton.svelte';
 
@@ -66,7 +67,7 @@
 				onkeydown={handleKeyDown}
 				min="1"
 				max="256"
-				title="Canvas width"
+				title={m.canvas_width()}
 			/>
 			<span class="size-separator">&times;</span>
 			<input
@@ -77,13 +78,13 @@
 				onkeydown={handleKeyDown}
 				min="1"
 				max="256"
-				title="Canvas height"
+				title={m.canvas_height()}
 			/>
 		</div>
-		<PebbleButton title="Export PNG" onclick={onExport}>
+		<PebbleButton title={m.action_exportPng()} onclick={onExport}>
 			<Download size={18} />
 		</PebbleButton>
-		<PebbleButton title="Clear Canvas" onclick={onClear}>
+		<PebbleButton title={m.action_clearCanvas()} onclick={onClear}>
 			<Trash2 size={18} />
 		</PebbleButton>
 	</FloatingPanel>

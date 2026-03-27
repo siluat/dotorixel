@@ -72,6 +72,12 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Apple Pencil | — | — | ✅ | |
 | Keyboard shortcuts | — | ✅ | ✅ | Web: tool switch + grid toggle + undo/redo (Ctrl+Z/Y) + Alt eyedropper + Space pan + X swap colors + Shift constrain + `/` shortcut hints; Apple: undo/redo only |
 
+## i18n
+
+| Feature | Core | Web | Apple | Notes |
+|---------|------|-----|-------|-------|
+| Internationalization | — | ✅ | ⬜ | Paraglide.js, URL path routing (`/en/`, `/ko/`, `/ja/`) |
+
 ## UI
 
 | Feature | Core | Web | Apple | Notes |

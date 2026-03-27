@@ -6,12 +6,10 @@ None
 
 ## Last Completed
 
-On-demand shortcut hint badges
+Internationalization (Paraglide.js + URL path routing)
 
 ## Next Up
 
-- Internationalization — Korean/English as default languages
-  - No dependencies on other todo items. Can proceed independently.
 - Minimal landing page (hero section + CTA "Start Drawing" button)
   - No dependencies. Can proceed independently.
 - Privacy-friendly analytics setup

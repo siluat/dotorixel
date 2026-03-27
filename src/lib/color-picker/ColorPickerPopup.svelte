@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { isValidHex } from '$lib/canvas/color';
+	import * as m from '$lib/paraglide/messages';
 	import HsvPicker from './HsvPicker.svelte';
 
 	interface Props {
@@ -59,7 +60,7 @@
 <div
 	class="color-picker-popup"
 	role="dialog"
-	aria-label="Color picker"
+	aria-label={m.color_picker()}
 	tabindex="-1"
 	onkeydown={handleKeyDown}
 >
@@ -73,7 +74,7 @@
 			class:hex-input--invalid={!isHexValid}
 			value={hexInput}
 			maxlength="7"
-			aria-label="Hex color code"
+			aria-label={m.color_hexCode()}
 			aria-invalid={!isHexValid}
 			oninput={handleHexInput}
 			onblur={commitHexInput}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { type WasmPixelCanvas, WasmViewport } from '$wasm/dotorixel_wasm';
 	import type { CanvasCoords, ViewportSize, ViewportState } from './view-types';
+	import * as m from '$lib/paraglide/messages';
 	import { createWheelInputClassifier } from './wheel-input.ts';
 	import { renderPixelCanvas } from './renderer.ts';
 
@@ -206,7 +207,7 @@
 	bind:this={canvasEl}
 	class="pixel-canvas"
 	role="application"
-	aria-label="Pixel art canvas"
+	aria-label={m.aria_pixelCanvas()}
 	style:cursor={cursorStyle}
 	onpointerdown={handlePointerDown}
 	onpointermove={handlePointerMove}

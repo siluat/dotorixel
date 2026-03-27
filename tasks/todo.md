@@ -2,10 +2,6 @@
 
 ## v0.1.0: Usable Editor (Milestone 1)
 
-### i18n
-
-- Internationalization — Korean/English as default languages
-
 ### Analytics
 
 - Privacy-friendly analytics setup (no cookie banner required)

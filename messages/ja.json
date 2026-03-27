@@ -1,0 +1,42 @@
+{
+	"tool_pencil": "鉛筆",
+	"tool_line": "直線",
+	"tool_rectangle": "四角形",
+	"tool_ellipse": "楕円",
+	"tool_eraser": "消しゴム",
+	"tool_floodfill": "塗りつぶし",
+	"tool_eyedropper": "スポイト",
+
+	"action_undo": "元に戻す",
+	"action_redo": "やり直す",
+	"action_toggleGrid": "グリッド切替",
+	"action_exportPng": "PNG書き出し",
+	"action_clearCanvas": "キャンバスをクリア",
+	"action_zoomIn": "拡大",
+	"action_zoomOut": "縮小",
+	"action_resetZoom": "100%にリセット",
+	"action_fitToView": "画面に合わせる",
+
+	"canvas_width": "キャンバス幅",
+	"canvas_height": "キャンバス高さ",
+	"canvas_size": "キャンバスサイズ",
+	"canvas_current": "現在:",
+
+	"color_recent": "最近の色",
+	"color_hexCode": "HEXカラーコード",
+	"color_picker": "カラーピッカー",
+	"color_foreground": "前景色ピッカーを開く",
+	"color_background": "背景色ピッカーを開く",
+	"color_swap": "前景色と背景色を入れ替え",
+	"color_hue": "色相",
+	"color_saturationBrightness": "彩度と明度",
+
+	"aria_pixelCanvas": "ピクセルアートキャンバス",
+	"aria_saturationValue": "彩度 {s}%、明度 {v}%",
+	"aria_fgBgGroup": "前景色 {fg}、背景色 {bg}",
+
+	"label_tool": "ツール:",
+	"label_widthAbbr": "W",
+	"label_heightAbbr": "H",
+	"label_apply": "適用"
+}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { isValidHex } from '$lib/canvas/color';
+	import * as m from '$lib/paraglide/messages';
 	import { DEFAULT_PALETTE } from './color-palette-data';
 	import PixelPanel from './PixelPanel.svelte';
 	import ColorSwatch from './ColorSwatchTinted.svelte';
@@ -107,7 +108,7 @@
 				class:hex-field--invalid={!isHexValid}
 				value={hexInput}
 				maxlength="7"
-				aria-label="Hex color code"
+				aria-label={m.color_hexCode()}
 				aria-invalid={!isHexValid}
 				oninput={handleHexInput}
 				onblur={commitHexInput}
@@ -128,7 +129,7 @@
 
 		{#if recentColors.length > 0}
 			<div class="recent-colors">
-				<span class="section-label">Recent</span>
+				<span class="section-label">{m.color_recent()}</span>
 				<div class="recent-list">
 					{#each recentColors as color}
 						<ColorSwatch

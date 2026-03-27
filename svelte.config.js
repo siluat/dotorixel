@@ -7,6 +7,9 @@ const config = {
 		adapter: adapter({ fallback: 'index.html' }),
 		alias: {
 			$wasm: 'wasm/pkg'
+		},
+		paths: {
+			relative: false
 		}
 	}
 };

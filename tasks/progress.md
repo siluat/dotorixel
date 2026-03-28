@@ -6,14 +6,14 @@ None
 
 ## Last Completed
 
-Minimal landing page (hero section + CTA)
+Privacy-friendly analytics setup
 
 ## Next Up
 
-- Feedback link to Google Form
-  - No dependencies. Can proceed independently.
-- Privacy-friendly analytics setup
-  - No dependencies. Can proceed independently.
 - Create CHANGELOG.md (Keep a Changelog format)
   - No dependencies. Can proceed independently.
+- Set up CI (GitHub Actions: Vitest + wasm-pack build + Playwright E2E)
+  - No dependencies. Can proceed independently.
+- Vercel production deployment
+  - No hard dependency, but CI setup improves confidence. Can proceed independently.
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { EditorState } from '$lib/canvas/editor-state.svelte';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 	import Toolbar from '$lib/ui-pixel/Toolbar.svelte';
@@ -7,9 +8,35 @@
 	import CanvasSettings from '$lib/ui-pixel/CanvasSettings.svelte';
 	import StatusBar from '$lib/ui-pixel/StatusBar.svelte';
 	import PixelPanel from '$lib/ui-pixel/PixelPanel.svelte';
+	import {
+		trackEditorOpen,
+		trackToolUsage,
+		trackExport,
+		trackCanvasSize,
+		trackSessionEnd
+	} from '$lib/analytics/events';
 	import '$lib/ui-pixel/pixel-tokens.css';
 
 	const editor = new EditorState();
+
+	// Analytics: track editor open and session duration
+	onMount(() => {
+		trackEditorOpen('pixel');
+		const sessionStart = Date.now();
+		return () => {
+			trackSessionEnd((Date.now() - sessionStart) / 1000);
+		};
+	});
+
+	// Analytics: track tool changes (skip initial value)
+	let prevTool: string | undefined;
+	$effect(() => {
+		const tool = editor.activeTool;
+		if (prevTool !== undefined && prevTool !== tool) {
+			trackToolUsage(tool);
+		}
+		prevTool = tool;
+	});
 </script>
 
 <svelte:window onkeydown={editor.handleKeyDown} onkeyup={editor.handleKeyUp} onblur={editor.handleBlur} />
@@ -37,7 +64,10 @@
 					onFit={editor.handleFit}
 					onGridToggle={editor.handleGridToggle}
 					onClear={editor.handleClear}
-					onExport={editor.handleExportPng}
+					onExport={() => {
+						editor.handleExportPng();
+						trackExport(editor.pixelCanvas.width, editor.pixelCanvas.height);
+					}}
 				/>
 			</div>
 			<div class="cell-palette">
@@ -70,7 +100,10 @@
 				<CanvasSettings
 					canvasWidth={editor.pixelCanvas.width}
 					canvasHeight={editor.pixelCanvas.height}
-					onResize={editor.handleResize}
+					onResize={(w, h) => {
+						editor.handleResize(w, h);
+						trackCanvasSize(w, h);
+					}}
 				/>
 			</div>
 			<div class="cell-status">

@@ -2,16 +2,6 @@
 
 ## v0.1.0: Usable Editor (Milestone 1)
 
-### Analytics
-
-- Privacy-friendly analytics setup (no cookie banner required)
-  - Candidates: Umami (self-hosted), Plausible
-  - Custom event tracking: tool usage, canvas size selection, session length, export rate, device/platform
-
-### Landing Page
-
-- Feedback link to Google Form
-
 ### Release
 
 - Create CHANGELOG.md (Keep a Changelog format)
@@ -39,6 +29,7 @@
 - Onion skinning
 - Animation preview (play/pause in editor)
 - GIF/spritesheet export
+- Feedback link to Google Form
 - (review) Public roadmap & feature voting system — depends on user base size
 
 ## Future milestones (directional hypotheses — redesign based on user feedback)

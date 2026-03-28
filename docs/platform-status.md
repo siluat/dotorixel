@@ -78,6 +78,14 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Internationalization | — | ✅ | ⬜ | Paraglide.js, URL path routing (`/en/`, `/ko/`, `/ja/`) |
 
+## Analytics
+
+| Feature | Core | Web | Apple | Notes |
+|---------|------|-----|-------|-------|
+| Page view tracking | — | ✅ | — | Umami Cloud, auto SPA tracking |
+| Custom event tracking | — | ✅ | — | Tool usage, canvas resize, export, session duration |
+| CSP headers | — | ✅ | — | Vercel response headers |
+
 ## UI
 
 | Feature | Core | Web | Apple | Notes |

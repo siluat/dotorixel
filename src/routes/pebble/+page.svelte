@@ -1,10 +1,18 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { EditorState } from '$lib/canvas/editor-state.svelte';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 	import TopControlsLeft from '$lib/ui-pebble/TopControlsLeft.svelte';
 	import TopControlsRight from '$lib/ui-pebble/TopControlsRight.svelte';
 	import BottomToolsPanel from '$lib/ui-pebble/BottomToolsPanel.svelte';
 	import BottomColorPalette from '$lib/ui-pebble/BottomColorPalette.svelte';
+	import {
+		trackEditorOpen,
+		trackToolUsage,
+		trackExport,
+		trackCanvasSize,
+		trackSessionEnd
+	} from '$lib/analytics/events';
 	import '$lib/ui-pebble/pebble-tokens.css';
 
 	const editor = new EditorState({
@@ -14,6 +22,25 @@
 
 	let canvasContainerEl: HTMLDivElement | undefined = $state();
 	let needsInitialFit = true;
+
+	// Analytics: track editor open and session duration
+	onMount(() => {
+		trackEditorOpen('pebble');
+		const sessionStart = Date.now();
+		return () => {
+			trackSessionEnd((Date.now() - sessionStart) / 1000);
+		};
+	});
+
+	// Analytics: track tool changes (skip initial value)
+	let prevTool: string | undefined;
+	$effect(() => {
+		const tool = editor.activeTool;
+		if (prevTool !== undefined && prevTool !== tool) {
+			trackToolUsage(tool);
+		}
+		prevTool = tool;
+	});
 
 	$effect(() => {
 		if (!canvasContainerEl) return;
@@ -57,8 +84,14 @@
 	<TopControlsRight
 		canvasWidth={editor.pixelCanvas.width}
 		canvasHeight={editor.pixelCanvas.height}
-		onResize={editor.handleResize}
-		onExport={editor.handleExportPng}
+		onResize={(w, h) => {
+			editor.handleResize(w, h);
+			trackCanvasSize(w, h);
+		}}
+		onExport={() => {
+			editor.handleExportPng();
+			trackExport(editor.pixelCanvas.width, editor.pixelCanvas.height);
+		}}
 		onClear={editor.handleClear}
 	/>
 

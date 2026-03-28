@@ -16,8 +16,8 @@
 		script.async = true;
 		script.src = config.src;
 		script.dataset.websiteId = config.websiteId;
+		script.onload = () => initUmami();
 		document.head.appendChild(script);
-		initUmami();
 		return () => {
 			document.head.removeChild(script);
 		};

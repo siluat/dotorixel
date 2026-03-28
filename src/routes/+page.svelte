@@ -35,8 +35,8 @@
 		flex-direction: column;
 		align-items: center;
 		min-height: 100dvh;
-		background-color: #efece8;
-		color: #2d2d2d;
+		background-color: var(--pebble-bg);
+		color: var(--pebble-text-primary);
 		font-family: 'Galmuri11', system-ui, sans-serif;
 	}
 
@@ -49,21 +49,21 @@
 	}
 
 	.lang-nav a {
-		color: #8a8a8a;
+		color: var(--pebble-text-secondary);
 		text-decoration: none;
 	}
 
 	.lang-nav a:hover {
-		color: #2d2d2d;
+		color: var(--pebble-text-primary);
 	}
 
 	.lang-nav strong {
 		font-family: 'Galmuri14', monospace;
-		color: #2d2d2d;
+		color: var(--pebble-text-primary);
 	}
 
 	.separator {
-		color: #aaa5a0;
+		color: var(--pebble-text-muted);
 	}
 
 	.hero {
@@ -83,18 +83,18 @@
 		font-weight: 800;
 		letter-spacing: 2px;
 		margin: 0;
-		color: oklch(0.45 0.17 45);
+		color: var(--pebble-accent-dark);
 	}
 
 	.tagline {
 		font-size: 20px;
-		color: #8a8a8a;
+		color: var(--pebble-text-secondary);
 		margin: 0;
 	}
 
 	.description {
 		font-size: 16px;
-		color: #8a8a8a;
+		color: var(--pebble-text-secondary);
 		margin: 0 0 24px;
 		max-width: 400px;
 	}
@@ -102,18 +102,17 @@
 	.cta {
 		display: inline-block;
 		padding: 14px 36px;
-		background-color: oklch(0.55 0.15 45);
+		background-color: var(--pebble-accent);
 		color: white;
 		font-family: 'Galmuri14', monospace;
 		font-size: 16px;
 		font-weight: 700;
 		text-decoration: none;
 		border-radius: 12px;
-		box-shadow: 0 2px 16px rgba(0, 0, 0, 0.07);
 		transition: background-color 0.15s;
 	}
 
 	.cta:hover {
-		background-color: oklch(0.45 0.17 45);
+		background-color: var(--pebble-accent-dark);
 	}
 </style>

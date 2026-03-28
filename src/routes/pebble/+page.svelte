@@ -136,6 +136,7 @@
 		width: 100%;
 		height: 100vh;
 		background: var(--pebble-bg);
+		font-family: var(--pebble-font-family);
 		overflow: hidden;
 	}
 

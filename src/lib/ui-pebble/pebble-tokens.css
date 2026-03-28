@@ -16,6 +16,8 @@
 	--pebble-tool-radius: 10px;
 	--pebble-panel-shadow: 0 2px 16px rgba(0, 0, 0, 0.07);
 	--pebble-btn-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+	--pebble-font-family: 'Galmuri11', system-ui, sans-serif;
+	--pebble-font-mono: 'GalmuriMono11', monospace;
 	--pebble-font-size: 13px;
 	--pebble-edge-gap: 16px;
 }

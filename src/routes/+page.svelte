@@ -37,7 +37,7 @@
 		min-height: 100dvh;
 		background-color: #efece8;
 		color: #2d2d2d;
-		font-family: system-ui, sans-serif;
+		font-family: 'Galmuri11', system-ui, sans-serif;
 	}
 
 	.lang-nav {
@@ -57,6 +57,11 @@
 		color: #2d2d2d;
 	}
 
+	.lang-nav strong {
+		font-family: 'Galmuri14', monospace;
+		color: #2d2d2d;
+	}
+
 	.separator {
 		color: #aaa5a0;
 	}
@@ -73,6 +78,7 @@
 	}
 
 	.app-name {
+		font-family: 'GalmuriMono11', monospace;
 		font-size: 48px;
 		font-weight: 800;
 		letter-spacing: 2px;
@@ -98,8 +104,9 @@
 		padding: 14px 36px;
 		background-color: oklch(0.55 0.15 45);
 		color: white;
+		font-family: 'Galmuri14', monospace;
 		font-size: 16px;
-		font-weight: 600;
+		font-weight: 700;
 		text-decoration: none;
 		border-radius: 12px;
 		box-shadow: 0 2px 16px rgba(0, 0, 0, 0.07);

@@ -6,12 +6,14 @@ None
 
 ## Last Completed
 
-Internationalization (Paraglide.js + URL path routing)
+Minimal landing page (hero section + CTA)
 
 ## Next Up
 
-- Minimal landing page (hero section + CTA "Start Drawing" button)
+- Feedback link to Google Form
   - No dependencies. Can proceed independently.
 - Privacy-friendly analytics setup
+  - No dependencies. Can proceed independently.
+- Create CHANGELOG.md (Keep a Changelog format)
   - No dependencies. Can proceed independently.
 

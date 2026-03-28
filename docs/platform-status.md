@@ -83,3 +83,4 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Pebble UI theme | — | ✅ | ✅ | Floating panels, earth tones |
+| Landing page | — | ✅ | — | Hero section + CTA, i18n, language nav |

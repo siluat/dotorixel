@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 037 | [Minimal landing page (hero section + CTA)](records/037-landing-page.md) | 2026-03-28 |
 | 036 | [Internationalization (Paraglide.js + URL path routing)](records/036-i18n-paraglide.md) | 2026-03-27 |
 | 035 | [On-demand shortcut hint badges](records/035-shortcut-hint-badges.md) | 2026-03-26 |
 | 034 | [Modifier key: Shift=constrain](records/034-shift-constrain.md) | 2026-03-26 |

@@ -14,12 +14,14 @@
 		"test": "bun run wasm:build && vitest run",
 		"test:watch": "bun run wasm:build && vitest",
 		"test:coverage": "bun run wasm:build && vitest run --coverage",
+		"test:e2e": "bun run wasm:build && playwright test",
 		"storybook": "storybook dev -p 6006",
 		"build-storybook": "storybook build"
 	},
 	"devDependencies": {
 		"@evilmartians/lefthook": "^2.1.4",
 		"@inlang/paraglide-js": "^2.15.1",
+		"@playwright/test": "^1.58.2",
 		"@storybook/addon-svelte-csf": "^5.0.11",
 		"@storybook/sveltekit": "^10.2.17",
 		"@sveltejs/adapter-static": "^3.0.10",

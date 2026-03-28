@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages';
-	import { getLocale, locales, baseLocale, localizeHref } from '$lib/paraglide/runtime';
+	import { getLocale, locales, localizeHref } from '$lib/paraglide/runtime';
 
 	const localeLabels: Record<string, string> = {
 		en: 'English',

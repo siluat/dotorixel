@@ -55,7 +55,7 @@ Keys:
 ### Key Decisions
 
 - **Paraglide `preferredLanguage` strategy instead of manual redirect**: The original plan used `navigator.language` in `+page.ts` load function with `redirect()`. This caused an infinite redirect loop because `window.location.href` is not updated during SvelteKit client-side navigation, so `getLocale()` kept returning the base locale. Replaced with Paraglide's built-in `preferredLanguage` strategy which handles browser language detection at the framework level.
-- **`data-sveltekit-reload` on language links**: SvelteKit's client-side navigation doesn't trigger Paraglide's locale re-detection from the URL. Language switch links require a full page reload.
+- **`data-sveltekit-reload` on language links**: SvelteKit's client-side navigation doesn't trigger Paraglide's locale re-detection from the URL. Language switch links require a full-page reload.
 - **Playwright E2E tests added**: Language navigation behavior (click → URL change → content update) cannot be verified with unit tests. Added `@playwright/test` and 9 E2E tests.
 
 ### Notes

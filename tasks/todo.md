@@ -10,7 +10,6 @@
 
 ### Landing Page
 
-- Minimal landing page (hero section + CTA "Start Drawing" button)
 - Feedback link to Google Form
 
 ### Release

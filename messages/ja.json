@@ -38,5 +38,9 @@
 	"label_tool": "ツール:",
 	"label_widthAbbr": "W",
 	"label_heightAbbr": "H",
-	"label_apply": "適用"
+	"label_apply": "適用",
+
+	"landing_tagline": "ピクセルアートエディター",
+	"landing_description": "ブラウザですぐにピクセルアートを描けます。",
+	"landing_cta": "描き始める"
 }

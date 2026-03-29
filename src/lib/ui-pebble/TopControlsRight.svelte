@@ -61,6 +61,7 @@
 		<div class="size-inputs">
 			<input
 				type="number"
+				inputmode="numeric"
 				class="size-input"
 				bind:value={inputWidth}
 				onblur={handleResizeCommit}
@@ -72,6 +73,7 @@
 			<span class="size-separator">&times;</span>
 			<input
 				type="number"
+				inputmode="numeric"
 				class="size-input"
 				bind:value={inputHeight}
 				onblur={handleResizeCommit}

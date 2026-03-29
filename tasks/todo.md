@@ -2,10 +2,16 @@
 
 ## Milestone 1: Usable Editor
 
-### Release
+### Touch & Mobile
 
-- Create CHANGELOG.md (Keep a Changelog format)
-- Vercel production deployment
+> Analysis: [touch-mobile-analysis.en.md](../docs/research/touch-mobile-analysis.en.md)
+
+- Number input mobile optimization (inputmode attributes)
+- Touch target sizing — 44px minimum (buttons, swatches, preset buttons)
+- Touch pinch-zoom and two-finger pan (multi-touch canvas navigation)
+- Safe area and virtual keyboard handling (notch, home indicator, keyboard push)
+- Responsive layout for small screens (media queries, panel collapse)
+- iOS Safari export fix (Blob URL fallback)
 
 ## Milestone 2: Editor for Serious Work
 
@@ -15,7 +21,8 @@
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load
-- iPad + Apple Pencil optimization (hover preview, palm rejection)
+- Apple Pencil: hover preview + palm rejection
+- Touch modifier alternatives (Shift-constrain, Alt-eyedropper UI for touchscreen)
 - Feature guide page (basic usage instructions)
 - (review) In-editor feedback widget
 
@@ -41,7 +48,6 @@
   - Input latency — event-to-pixel-update measurement on both shells
   - Bundle size — Tauri `.app` vs native `.app`
   - Implementation effort — per-feature LOC and time comparison
-  - Responsive layout — extract SwiftUI size class transitions, adapt to web CSS breakpoints
 - Apple native shell improvements (deferred until web app matures)
 
 ## Review backlog (not assigned to a milestone)

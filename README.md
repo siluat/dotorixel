@@ -9,6 +9,8 @@ A pixel art editor you can open anywhere and start drawing right away.
 
 ## Roadmap
 
+> Currently working on: **Milestone 1 — Usable Editor**
+
 ### Milestone 1 — Usable Editor
 
 The foundation: enough tools and polish to create real pixel art.
@@ -16,8 +18,9 @@ The foundation: enough tools and polish to create real pixel art.
 - Drawing tools — line, rectangle, circle, flood fill, eyedropper
 - HSV color picker with foreground/background swap
 - Keyboard shortcuts for tools and editing
-- i18n (Korean / English)
+- i18n (Korean / English / Japanese)
 - Landing page and analytics
+- Touch & mobile support
 
 ### Milestone 2 — Editor for Serious Work
 
@@ -26,7 +29,8 @@ Layer support, selection, and project persistence for larger projects.
 - Layer system (add/delete/reorder, visibility, opacity)
 - Selection & transform (rect select, move, copy/paste, flip)
 - Project file format (JSON-based save/load)
-- iPad + Apple Pencil optimization
+- Apple Pencil: hover preview + palm rejection
+- Touch modifier alternatives
 
 ### Milestone 3 — Animation-Capable Editor
 

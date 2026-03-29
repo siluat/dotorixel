@@ -10,8 +10,8 @@ Privacy-friendly analytics setup
 
 ## Next Up
 
-- Create CHANGELOG.md (Keep a Changelog format)
-  - No dependencies. Can proceed independently.
-- Vercel production deployment
-  - No dependencies. Can proceed independently.
+- Number input mobile optimization (inputmode attributes)
+  - Trivial fix. No dependencies. Quick win before larger touch tasks.
+- Touch target sizing — 44px minimum (buttons, swatches, preset buttons)
+  - CSS-focused. No dependencies. Immediate UX improvement on touch devices.
 

@@ -84,7 +84,7 @@ Separating Action metadata from visual representation:
 
 ## DOTORIXEL Applicability
 
-### Current State (v0.1.0)
+### Current State (Milestone 1)
 
 The ToolbarItem discriminated union is a miniature Action:
 - `kind: 'button'` includes icon, label, onclick, disabled, active

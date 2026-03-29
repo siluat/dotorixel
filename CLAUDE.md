@@ -21,12 +21,6 @@ A 2D pixel art editor. Positioned as a learning-first, cross-platform tool.
 
 AGPL-3.0-or-later. Dual licensing and proprietary premium features are available as the copyright holder.
 
-## Versioning
-
-SemVer. Git tags and GitHub Releases start at v0.1.0. CHANGELOG.md follows [Keep a Changelog](https://keepachangelog.com) format.
-
-## Current Version: v0.1.0 — Canvas Foundation
-
 ## MVP Technical Decisions
 
 | Area | Decision | Rationale |

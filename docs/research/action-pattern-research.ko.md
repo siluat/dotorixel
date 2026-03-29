@@ -84,7 +84,7 @@ Action 메타데이터를 시각적 표현과 분리:
 
 ## DOTORIXEL Applicability
 
-### 현재 (v0.1.0)
+### 현재 (Milestone 1)
 
 ToolbarItem discriminated union이 Action의 축소판:
 - `kind: 'button'`이 icon, label, onclick, disabled, active를 포함

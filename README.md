@@ -9,7 +9,7 @@ A pixel art editor you can open anywhere and start drawing right away.
 
 ## Roadmap
 
-### v0.1.0 — Usable Editor
+### Milestone 1 — Usable Editor
 
 The foundation: enough tools and polish to create real pixel art.
 
@@ -19,7 +19,7 @@ The foundation: enough tools and polish to create real pixel art.
 - i18n (Korean / English)
 - Landing page and analytics
 
-### v0.2.0 — Editor for Serious Work
+### Milestone 2 — Editor for Serious Work
 
 Layer support, selection, and project persistence for larger projects.
 
@@ -28,7 +28,7 @@ Layer support, selection, and project persistence for larger projects.
 - Project file format (JSON-based save/load)
 - iPad + Apple Pencil optimization
 
-### v0.3.0 — Animation-Capable Editor
+### Milestone 3 — Animation-Capable Editor
 
 Frame-by-frame animation workflow.
 

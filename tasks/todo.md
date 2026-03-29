@@ -1,15 +1,13 @@
 # Todo
 
-## v0.1.0: Usable Editor (Milestone 1)
+## Milestone 1: Usable Editor
 
 ### Release
 
 - Create CHANGELOG.md (Keep a Changelog format)
-- Set up CI (GitHub Actions: Vitest + wasm-pack build + Playwright E2E)
 - Vercel production deployment
-- Git tag v0.1.0 + GitHub Release
 
-## v0.2.0: Editor for Serious Work (Milestone 2)
+## Milestone 2: Editor for Serious Work
 
 - Layer system: basic infrastructure (add/delete/reorder)
 - Layer properties (visibility toggle, opacity control)
@@ -21,7 +19,7 @@
 - Feature guide page (basic usage instructions)
 - (review) In-editor feedback widget
 
-## v0.3.0: Animation-Capable Editor (Milestone 3)
+## Milestone 3: Animation-Capable Editor
 
 - Frame management (add/delete/duplicate/reorder)
 - Per-frame speed control
@@ -34,8 +32,8 @@
 
 ## Future milestones (directional hypotheses — redesign based on user feedback)
 
-- v0.4.0: Editor for Game Developers (Milestone 4)
-- v0.5.0: Beyond the Editor (Milestone 5)
+- Editor for Game Developers (Milestone 4)
+- Beyond the Editor (Milestone 5)
 
 ## Deferred
 
@@ -51,7 +49,7 @@
 - FG/BG swap UI improvements
 - Tool-specific mouse cursor (eyedropper, crosshair, etc.) — toolCursor prop infrastructure exists but is not wired up
 
-## Future triggers (not tied to a specific version)
+## Future triggers
 
 - First external contributor → set up CLA
 - Community forming → add CONTRIBUTING.md, Code of Conduct, issue/PR templates

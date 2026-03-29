@@ -71,6 +71,7 @@
 				<span class="dim-label">{m.label_widthAbbr()}</span>
 				<input
 					type="number"
+					inputmode="numeric"
 					class="dim-input"
 					class:dim-input--invalid={!isWidthValid}
 					value={customWidth}
@@ -86,6 +87,7 @@
 				<span class="dim-label">{m.label_heightAbbr()}</span>
 				<input
 					type="number"
+					inputmode="numeric"
 					class="dim-input"
 					class:dim-input--invalid={!isHeightValid}
 					value={customHeight}

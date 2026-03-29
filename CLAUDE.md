@@ -92,6 +92,10 @@ When a task item is completed, notify the user and suggest using the `/task-done
 - scope: introduce when the project grows enough to need it
 - **PR title**: follows the same Conventional Commits format — squash merge makes it the final commit message on `main`
 
+### Markdown
+
+- **Fenced code blocks must have a language specifier.** Use ` ```text ` for plain text, diagrams, or sequences. The pre-commit markdownlint hook enforces this (MD040).
+
 ### Code Style
 
 - **Declarative over imperative, when it clarifies.** Prefer data descriptions and transformations over step-by-step mutations when it makes the code easier to understand. When imperative logic is more direct (e.g., canvas rendering, sequential I/O), use it without apology.

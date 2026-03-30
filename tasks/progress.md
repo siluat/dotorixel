@@ -6,11 +6,11 @@ None
 
 ## Last Completed
 
-Screen inventory and breakpoint matrix definition
+Design system finalization (tokens, components, patterns)
 
 ## Next Up
 
-- Design system finalization (tokens, components, patterns)
-  - Now unblocked by screen inventory completion. Addresses the 5 design token gaps identified in `docs/screen-inventory.md` §6. Prerequisite for all subsequent M2 design and implementation work.
+- Editor UI design — current features (desktop, iPad, mobile)
+  - Now unblocked by design system finalization. Uses the `--ds-*` token system and Design System Reference sheet as the visual foundation. Covers desktop (1440), iPad (1024), and mobile (390) layouts.
 - iOS Safari export fix (Blob URL fallback)
   - Independent of design work. Can be worked on in parallel with design tasks.

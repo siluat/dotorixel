@@ -6,13 +6,13 @@ None
 
 ## Last Completed
 
-Editor UI design — layer/animation expansion
+Validate against references (Aseprite, Pixquare)
 
 ## Next Up
 
-- Validate against references (Aseprite, Pixquare)
-  - Compare completed editor designs against reference apps for usability/feature parity.
 - Design system application (token and component refactoring)
   - Apply `--ds-*` tokens and component patterns from design system spec to implementation code.
+- Editor layout restructure (including responsive)
+  - Implement responsive breakpoint system from design specs into web codebase.
 - iOS Safari export fix (Blob URL fallback)
-  - Independent of design work. Can be worked on in parallel with design tasks.
+  - Independent of design/layout work. Can be worked on in parallel.

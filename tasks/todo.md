@@ -2,10 +2,6 @@
 
 ## Milestone 2: Production UI
 
-### Design
-
-- Validate against references (Aseprite, Pixquare)
-
 ### Implementation
 
 - Design system application (token and component refactoring)

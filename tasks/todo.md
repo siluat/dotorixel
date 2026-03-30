@@ -4,8 +4,6 @@
 
 ### Design
 
-- Editor UI design — current features (desktop, iPad, mobile)
-- Editor UI design — layer/animation expansion
 - Validate against references (Aseprite, Pixquare)
 
 ### Implementation

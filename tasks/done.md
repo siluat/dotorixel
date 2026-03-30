@@ -2,6 +2,8 @@
 
 | # | Task | Date |
 |---|------|------|
+| 043 | [Editor UI design — layer/animation expansion](records/043-editor-ui-design-layer-animation.md) | 2026-03-31 |
+| 042 | [Editor UI design — current features](records/042-editor-ui-design-current-features.md) | 2026-03-31 |
 | 041 | [Design system finalization](records/041-design-system-finalization.md) | 2026-03-30 |
 | 040 | [Screen inventory and breakpoint matrix definition](records/040-screen-inventory-breakpoint-matrix.md) | 2026-03-30 |
 | 039 | [Number input mobile optimization](records/039-number-input-mobile-optimization.md) | 2026-03-29 |

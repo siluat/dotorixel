@@ -6,11 +6,13 @@ None
 
 ## Last Completed
 
-Design system finalization (tokens, components, patterns)
+Editor UI design — layer/animation expansion
 
 ## Next Up
 
-- Editor UI design — current features (desktop, iPad, mobile)
-  - Now unblocked by design system finalization. Uses the `--ds-*` token system and Design System Reference sheet as the visual foundation. Covers desktop (1440), iPad (1024), and mobile (390) layouts.
+- Validate against references (Aseprite, Pixquare)
+  - Compare completed editor designs against reference apps for usability/feature parity.
+- Design system application (token and component refactoring)
+  - Apply `--ds-*` tokens and component patterns from design system spec to implementation code.
 - iOS Safari export fix (Blob URL fallback)
   - Independent of design work. Can be worked on in parallel with design tasks.

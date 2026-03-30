@@ -1,18 +1,25 @@
 # Todo
 
-## Milestone 1: Usable Editor
+## Milestone 2: Production UI
 
-### Touch & Mobile
+### Design
 
-> Analysis: [touch-mobile-analysis.en.md](../docs/research/touch-mobile-analysis.en.md)
+- Screen inventory and breakpoint matrix definition
+- Design system finalization (tokens, components, patterns)
+- Editor UI design — current features (desktop, iPad, mobile)
+- Editor UI design — layer/animation expansion
+- Validate against references (Aseprite, Pixquare)
 
+### Implementation
+
+- Design system application (token and component refactoring)
+- Editor layout restructure (including responsive)
 - Touch target sizing — 44px minimum (buttons, swatches, preset buttons)
 - Touch pinch-zoom and two-finger pan (multi-touch canvas navigation)
 - Safe area and virtual keyboard handling (notch, home indicator, keyboard push)
-- Responsive layout for small screens (media queries, panel collapse)
 - iOS Safari export fix (Blob URL fallback)
 
-## Milestone 2: Editor for Serious Work
+## Milestone 3: Editor for Serious Work
 
 - Layer system: basic infrastructure (add/delete/reorder)
 - Layer properties (visibility toggle, opacity control)
@@ -25,7 +32,7 @@
 - Feature guide page (basic usage instructions)
 - (review) In-editor feedback widget
 
-## Milestone 3: Animation-Capable Editor
+## Milestone 4: Animation-Capable Editor
 
 - Frame management (add/delete/duplicate/reorder)
 - Per-frame speed control
@@ -38,8 +45,8 @@
 
 ## Future milestones (directional hypotheses — redesign based on user feedback)
 
-- Editor for Game Developers (Milestone 4)
-- Beyond the Editor (Milestone 5)
+- Editor for Game Developers (Milestone 5)
+- Beyond the Editor (Milestone 6)
 
 ## Deferred
 

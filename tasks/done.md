@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 040 | [Screen inventory and breakpoint matrix definition](records/040-screen-inventory-breakpoint-matrix.md) | 2026-03-30 |
 | 039 | [Number input mobile optimization](records/039-number-input-mobile-optimization.md) | 2026-03-29 |
 | 038 | [Privacy-friendly analytics setup](records/038-privacy-friendly-analytics.md) | 2026-03-28 |
 | 037 | [Minimal landing page (hero section + CTA)](records/037-landing-page.md) | 2026-03-28 |

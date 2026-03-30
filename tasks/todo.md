@@ -4,7 +4,6 @@
 
 ### Design
 
-- Screen inventory and breakpoint matrix definition
 - Design system finalization (tokens, components, patterns)
 - Editor UI design — current features (desktop, iPad, mobile)
 - Editor UI design — layer/animation expansion

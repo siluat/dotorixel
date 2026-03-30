@@ -264,12 +264,12 @@ Reference values — not used as CSS variables in media queries, but documented 
 
 ### Migration Strategy
 
+Steps 1–4 apply to the Pebble editor only. The Pixel editor (`/pixel`) retains `--color-*` tokens as-is — it is legacy and not being actively developed.
+
 1. **Add** new `--ds-*` tokens alongside existing ones (no breakage).
 2. **Alias** old tokens to new ones: `--pebble-panel-bg: var(--ds-bg-elevated)`.
 3. **Migrate** components one by one from old to new tokens.
-4. **Remove** old tokens after all references are updated.
-
-The Pixel editor (`/pixel`) will keep `--color-*` tokens since it's legacy and not being actively developed. Only the Pebble editor migrates.
+4. **Remove** old Pebble tokens after all references are updated.
 
 ## 9. Pen File Cross-Reference
 

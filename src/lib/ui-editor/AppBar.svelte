@@ -168,6 +168,8 @@
 	.zoom-label {
 		display: flex;
 		align-items: center;
+		justify-content: center;
+		min-width: var(--ds-touch-target-min);
 		min-height: var(--ds-touch-target-min);
 		border: none;
 		background: none;

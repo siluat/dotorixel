@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 048 | [Touch pinch-zoom and two-finger pan](records/048-touch-pinch-zoom-two-finger-pan.md) | 2026-04-01 |
 | 047 | [Touch target sizing — 44px minimum](records/047-touch-target-sizing.md) | 2026-04-01 |
 | 046 | [Editor layout restructure](records/046-editor-layout-restructure.md) | 2026-04-01 |
 | 045 | [Design system application](records/045-design-system-application.md) | 2026-03-31 |

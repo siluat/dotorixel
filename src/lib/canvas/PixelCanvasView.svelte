@@ -5,10 +5,19 @@
 	import { createWheelInputClassifier } from './wheel-input.ts';
 	import { renderPixelCanvas } from './renderer.ts';
 
+	const MIN_PINCH_DISTANCE = 10;
+
 	type InteractionMode =
 		| { readonly type: 'idle' }
 		| { type: 'drawing'; lastPixel: CanvasCoords | null }
-		| { type: 'panning'; startX: number; startY: number };
+		| { type: 'panning'; startX: number; startY: number }
+		| {
+				type: 'pinching';
+				initialViewport: WasmViewport;
+				initialDistance: number;
+				initialMidX: number;
+				initialMidY: number;
+			};
 
 	interface Props {
 		pixelCanvas: WasmPixelCanvas;
@@ -48,6 +57,7 @@
 	let canvasEl: HTMLCanvasElement | undefined = $state();
 	let interaction = $state<InteractionMode>({ type: 'idle' });
 	const classifyWheelInput = createWheelInputClassifier();
+	const activePointers = new Map<number, { x: number; y: number }>();
 
 	$effect(() => {
 		if (!canvasEl) return;
@@ -120,6 +130,49 @@
 		return { x: coords.x, y: coords.y };
 	}
 
+	function pointerDistance(a: { x: number; y: number }, b: { x: number; y: number }): number {
+		const dx = a.x - b.x;
+		const dy = a.y - b.y;
+		return Math.sqrt(dx * dx + dy * dy);
+	}
+
+	function pointerMidpoint(
+		a: { x: number; y: number },
+		b: { x: number; y: number }
+	): { x: number; y: number } {
+		return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+	}
+
+	function getTwoPointersLocal(): [{ x: number; y: number }, { x: number; y: number }] | null {
+		if (activePointers.size < 2) return null;
+		const rect = canvasEl!.getBoundingClientRect();
+		const iter = activePointers.values();
+		const a = iter.next().value!;
+		const b = iter.next().value!;
+		return [
+			{ x: a.x - rect.left, y: a.y - rect.top },
+			{ x: b.x - rect.left, y: b.y - rect.top }
+		];
+	}
+
+	function tryEnterPinching(): boolean {
+		if (interaction.type === 'pinching') return true;
+		const points = getTwoPointersLocal();
+		if (!points) return false;
+		const [a, b] = points;
+		const distance = pointerDistance(a, b);
+		if (distance < MIN_PINCH_DISTANCE) return false;
+		const mid = pointerMidpoint(a, b);
+		interaction = {
+			type: 'pinching',
+			initialViewport: viewportState.viewport,
+			initialDistance: distance,
+			initialMidX: mid.x,
+			initialMidY: mid.y
+		};
+		return true;
+	}
+
 	function drawAt(coords: CanvasCoords): void {
 		if (interaction.type !== 'drawing') return;
 		const lastPixel = interaction.lastPixel;
@@ -129,6 +182,17 @@
 	}
 
 	function handlePointerDown(event: PointerEvent): void {
+		activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+		if (activePointers.size >= 2) {
+			if (interaction.type === 'drawing') {
+				onDrawEnd?.();
+				interaction = { type: 'idle' };
+			}
+			tryEnterPinching();
+			return;
+		}
+
 		if (interaction.type !== 'idle') return;
 
 		const isMiddleClick = event.button === 1;
@@ -158,20 +222,61 @@
 	}
 
 	function handleWindowPointerMove(event: PointerEvent): void {
-		if (interaction.type !== 'panning') return;
-		const hasNoButtonsPressed = event.buttons === 0;
-		if (hasNoButtonsPressed) {
+		if (activePointers.has(event.pointerId)) {
+			activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+		}
+
+		// Deferred pinch entry: 2 pointers down but not yet pinching
+		if (activePointers.size >= 2 && interaction.type !== 'pinching') {
+			if (tryEnterPinching()) return;
+		}
+
+		if (interaction.type === 'pinching') {
+			const points = getTwoPointersLocal();
+			if (!points) return;
+			const [a, b] = points;
+
+			const currentDistance = pointerDistance(a, b);
+			const currentMid = pointerMidpoint(a, b);
+
+			const newZoom = WasmViewport.clamp_zoom(
+				interaction.initialViewport.zoom * (currentDistance / interaction.initialDistance)
+			);
+			const zoomed = interaction.initialViewport.zoom_at_point(
+				interaction.initialMidX,
+				interaction.initialMidY,
+				newZoom
+			);
+			const panned = zoomed.pan(
+				currentMid.x - interaction.initialMidX,
+				currentMid.y - interaction.initialMidY
+			);
+			onViewportChange?.(panned);
+			return;
+		}
+
+		if (interaction.type === 'panning') {
+			const hasNoButtonsPressed = event.buttons === 0;
+			if (hasNoButtonsPressed) {
+				interaction = { type: 'idle' };
+				return;
+			}
+			const deltaX = event.clientX - interaction.startX;
+			const deltaY = event.clientY - interaction.startY;
+			interaction.startX = event.clientX;
+			interaction.startY = event.clientY;
+			onViewportChange?.(viewportState.viewport.pan(deltaX, deltaY));
+		}
+	}
+
+	function handlePointerUp(event: PointerEvent): void {
+		activePointers.delete(event.pointerId);
+
+		if (interaction.type === 'pinching') {
 			interaction = { type: 'idle' };
 			return;
 		}
-		const deltaX = event.clientX - interaction.startX;
-		const deltaY = event.clientY - interaction.startY;
-		interaction.startX = event.clientX;
-		interaction.startY = event.clientY;
-		onViewportChange?.(viewportState.viewport.pan(deltaX, deltaY));
-	}
 
-	function handlePointerUp(): void {
 		if (interaction.type === 'drawing') {
 			onDrawEnd?.();
 		}
@@ -179,6 +284,8 @@
 	}
 
 	function handlePointerLeave(event: PointerEvent): void {
+		if (interaction.type === 'pinching') return;
+
 		if (interaction.type === 'drawing') {
 			drawAt(getCanvasCoords(event));
 			onDrawEnd?.();
@@ -187,6 +294,7 @@
 	}
 
 	function handleWindowBlur(): void {
+		activePointers.clear();
 		if (interaction.type === 'drawing') {
 			onDrawEnd?.();
 		}

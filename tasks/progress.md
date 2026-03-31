@@ -6,9 +6,9 @@ None
 
 ## Last Completed
 
-Touch target sizing — 44px minimum (buttons, swatches, preset buttons)
+Touch pinch-zoom and two-finger pan (multi-touch canvas navigation)
 
 ## Next Up
 
-- Touch pinch-zoom and two-finger pan (multi-touch canvas navigation)
-  - Depends on touch target sizing (now complete). Adds multi-touch gestures to the canvas area.
+- Safe area and virtual keyboard handling (notch, home indicator, keyboard push)
+  - Last remaining M2 item. Independent of other tasks — viewport-fit, safe-area-inset, inputmode attributes.

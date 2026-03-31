@@ -6,7 +6,6 @@
 
 - Touch pinch-zoom and two-finger pan (multi-touch canvas navigation)
 - Safe area and virtual keyboard handling (notch, home indicator, keyboard push)
-- iOS Safari export fix (Blob URL fallback)
 
 ## Milestone 3: Editor for Serious Work
 

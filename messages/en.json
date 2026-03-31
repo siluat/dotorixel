@@ -40,6 +40,20 @@
 	"label_heightAbbr": "H",
 	"label_apply": "Apply",
 
+	"tab_draw": "DRAW",
+	"tab_colors": "COLORS",
+	"tab_settings": "SETTINGS",
+
+	"section_canvas": "Canvas",
+	"section_color": "Color",
+	"section_hsv": "HSV",
+	"section_palette": "Palette",
+	"section_actions": "Actions",
+	"section_display": "Display",
+
+	"label_export": "Export",
+	"label_showGrid": "Show Grid",
+
 	"landing_tagline": "Pixel Art Editor",
 	"landing_description": "Create pixel art right in your browser.",
 	"landing_cta": "Start Drawing"

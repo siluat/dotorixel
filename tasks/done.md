@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 046 | [Editor layout restructure](records/046-editor-layout-restructure.md) | 2026-04-01 |
 | 045 | [Design system application](records/045-design-system-application.md) | 2026-03-31 |
 | 044 | Validate against references (Aseprite, Pixquare) | 2026-03-31 |
 | 043 | [Editor UI design — layer/animation expansion](records/043-editor-ui-design-layer-animation.md) | 2026-03-31 |

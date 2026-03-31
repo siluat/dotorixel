@@ -6,12 +6,13 @@ None
 
 ## Last Completed
 
-Design system application (token and component refactoring)
+Editor layout restructure (including responsive)
 
 ## Next Up
 
-- Editor layout restructure (including responsive)
-  - Builds on `--ds-*` tokens. Transition floating panels → docked panel layout per pencil design. Touch target sizing, safe area handling, and touch gestures depend on this.
+- Touch target sizing — 44px minimum (buttons, swatches, preset buttons)
+  - Builds on the new docked/tab layout components. All interactive elements need 44px minimum hit areas on compact/medium tiers.
+- Eraser uses background color instead of transparent
+  - Independent of layout/touch work. Rust core → WASM → EditorState change.
 - iOS Safari export fix (Blob URL fallback)
-  - Independent of design/layout work. Can be worked on in parallel.
-
+  - Independent of other M2 tasks.

@@ -40,6 +40,20 @@
 	"label_heightAbbr": "H",
 	"label_apply": "適用",
 
+	"tab_draw": "描画",
+	"tab_colors": "カラー",
+	"tab_settings": "設定",
+
+	"section_canvas": "キャンバス",
+	"section_color": "カラー",
+	"section_hsv": "HSV",
+	"section_palette": "パレット",
+	"section_actions": "操作",
+	"section_display": "表示",
+
+	"label_export": "書き出し",
+	"label_showGrid": "グリッド表示",
+
 	"landing_tagline": "ピクセルアートエディター",
 	"landing_description": "ブラウザですぐにピクセルアートを描けます。",
 	"landing_cta": "描き始める"

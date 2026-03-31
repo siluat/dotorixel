@@ -107,6 +107,7 @@
 	}
 
 	.swatch {
+		position: relative;
 		width: 26px;
 		height: 26px;
 		border-radius: 4px;
@@ -114,6 +115,16 @@
 		cursor: pointer;
 		padding: 0;
 		flex-shrink: 0;
+	}
+
+	.swatch::after {
+		content: '';
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		min-width: var(--ds-touch-target-min);
+		min-height: var(--ds-touch-target-min);
 	}
 
 	@media (min-width: 600px) {

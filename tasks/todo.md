@@ -4,7 +4,6 @@
 
 ### Implementation
 
-- Touch target sizing — 44px minimum (buttons, swatches, preset buttons)
 - Touch pinch-zoom and two-finger pan (multi-touch canvas navigation)
 - Safe area and virtual keyboard handling (notch, home indicator, keyboard push)
 - Eraser uses background color instead of transparent — requires Rust core `ToolType::apply` change, WASM binding update, and EditorState wiring

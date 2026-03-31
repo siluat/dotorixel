@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 047 | [Touch target sizing — 44px minimum](records/047-touch-target-sizing.md) | 2026-04-01 |
 | 046 | [Editor layout restructure](records/046-editor-layout-restructure.md) | 2026-04-01 |
 | 045 | [Design system application](records/045-design-system-application.md) | 2026-03-31 |
 | 044 | Validate against references (Aseprite, Pixquare) | 2026-03-31 |

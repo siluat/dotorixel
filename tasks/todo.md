@@ -4,7 +4,6 @@
 
 ### Implementation
 
-- Design system application (token and component refactoring)
 - Editor layout restructure (including responsive)
 - Touch target sizing — 44px minimum (buttons, swatches, preset buttons)
 - Touch pinch-zoom and two-finger pan (multi-touch canvas navigation)

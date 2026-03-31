@@ -90,5 +90,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Pebble UI theme | — | ✅ | ✅ | Floating panels, earth tones |
-| Landing page | — | ✅ | — | Hero section + CTA, i18n, language nav |
+| Design token system | — | ✅ | ⬜ | `--ds-*` tokens, light + dark theme definitions |
+| Pebble UI theme | — | ✅ | ✅ | Floating panels, earth tones (legacy) |
+| Editor UI theme | — | 🔧 | ⬜ | `--ds-*` tokens applied, floating panel layout (docked layout pending) |
+| Landing page | — | ✅ | — | Hero section + CTA, i18n, `--ds-*` tokens |

@@ -55,12 +55,12 @@ test.describe('CTA button', () => {
 	test('CTA links to editor from /', async ({ page }) => {
 		await page.goto('/');
 		const cta = page.locator('.cta');
-		await expect(cta).toHaveAttribute('href', /\/pebble/);
+		await expect(cta).toHaveAttribute('href', /\/editor/);
 	});
 
 	test('CTA links to editor from /ko/', async ({ page }) => {
 		await page.goto('/ko/');
 		const cta = page.locator('.cta');
-		await expect(cta).toHaveAttribute('href', /\/ko\/pebble/);
+		await expect(cta).toHaveAttribute('href', /\/ko\/editor/);
 	});
 });

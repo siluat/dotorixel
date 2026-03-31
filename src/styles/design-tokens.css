@@ -1,0 +1,104 @@
+/* ── Design Tokens ─────────────────────────────
+   Source of truth: docs/design-system.md
+   Design source: pencil-dotorixel.pen (Pencil.dev)
+   ────────────────────────────────────────────── */
+
+:root {
+	/* ── Surface Colors ── */
+	--ds-bg-base: #FDFBF8;
+	--ds-bg-surface: #F5F1EB;
+	--ds-bg-elevated: #FFFFFF;
+	--ds-bg-hover: #EDE8DF;
+	--ds-bg-active: #E5DED4;
+
+	/* ── Text Colors ── */
+	--ds-text-primary: #2D210F;
+	--ds-text-secondary: #7B6D59;
+	--ds-text-tertiary: #A19383;
+
+	/* ── Border Colors ── */
+	--ds-border: #D8CFC2;
+	--ds-border-subtle: #ECE5D9;
+
+	/* ── Accent Colors ── */
+	--ds-accent: #B07A30;
+	--ds-accent-subtle: #B07A3018;
+	--ds-accent-text: #8D6226;
+
+	/* ── Status Colors ── */
+	--ds-danger: #EF4444;
+	--ds-success: #22C55E;
+	--ds-warning: #F59E0B;
+
+	/* ── Editor-Specific Colors ── */
+	--ds-canvas-bg: #F0ECE5;
+	--ds-pixel-grid: #D8CFC240;
+
+	/* ── Typography ── */
+	--ds-font-heading: 'Galmuri14', monospace;
+	--ds-font-body: 'Galmuri11', system-ui, sans-serif;
+	--ds-font-mono: 'GalmuriMono11', monospace;
+	--ds-font-size-xs: 10px;
+	--ds-font-size-sm: 11px;
+	--ds-font-size-md: 13px;
+	--ds-font-size-lg: 16px;
+	--ds-font-size-xl: 18px;
+
+	/* ── Spacing Scale ── */
+	--ds-space-1: 2px;
+	--ds-space-2: 4px;
+	--ds-space-3: 8px;
+	--ds-space-4: 12px;
+	--ds-space-5: 16px;
+	--ds-space-6: 24px;
+	--ds-space-7: 32px;
+	--ds-space-8: 48px;
+
+	/* ── Border Radius ── */
+	--ds-radius-sm: 6px;
+	--ds-radius-md: 12px;
+	--ds-radius-lg: 20px;
+	--ds-radius-xl: 28px;
+	--ds-radius-full: 9999px;
+
+	/* ── Shadows ── */
+	--ds-shadow-sm: 0 1px 6px rgba(0, 0, 0, 0.06);
+	--ds-shadow-md: 0 2px 16px rgba(0, 0, 0, 0.07);
+	--ds-shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.10);
+
+	/* ── Border Width ── */
+	--ds-border-width: 1px;
+	--ds-border-width-thick: 2px;
+
+	/* ── Breakpoints (reference only, not for var() in media queries) ── */
+	--ds-bp-medium: 600px;
+	--ds-bp-wide: 1024px;
+	--ds-bp-x-wide: 1440px;
+}
+
+:root[data-theme="dark"] {
+	/* ── Surface Colors ── */
+	--ds-bg-base: #0F0D0A;
+	--ds-bg-surface: #191510;
+	--ds-bg-elevated: #231D16;
+	--ds-bg-hover: #2D261D;
+	--ds-bg-active: #372E24;
+
+	/* ── Text Colors ── */
+	--ds-text-primary: #F2EDE5;
+	--ds-text-secondary: #A39282;
+	--ds-text-tertiary: #706050;
+
+	/* ── Border Colors ── */
+	--ds-border: #3D3428;
+	--ds-border-subtle: #2B2420;
+
+	/* ── Accent Colors ── */
+	--ds-accent: #C4873C;
+	--ds-accent-subtle: #C4873C20;
+	--ds-accent-text: #DCA35A;
+
+	/* ── Editor-Specific Colors ── */
+	--ds-canvas-bg: #1C1810;
+	--ds-pixel-grid: #3D342840;
+}

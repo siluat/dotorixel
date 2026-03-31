@@ -17,7 +17,7 @@ export function trackExport(width: number, height: number): void {
 }
 
 /** Fired once when the editor page first loads, sending device info */
-export function trackEditorOpen(editor: 'pebble' | 'pixel'): void {
+export function trackEditorOpen(editor: 'editor' | 'pebble' | 'pixel'): void {
 	trackEvent('editor-open', {
 		editor,
 		locale: getLocale(),

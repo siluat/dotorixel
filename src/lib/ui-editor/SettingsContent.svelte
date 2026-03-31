@@ -116,6 +116,7 @@
 				onclick={onGridToggle}
 				role="switch"
 				aria-checked={showGrid}
+				aria-label={m.label_showGrid()}
 			>
 				<span class="toggle-thumb"></span>
 			</button>

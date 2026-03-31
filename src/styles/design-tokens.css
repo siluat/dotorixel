@@ -54,6 +54,9 @@
 	--ds-space-7: 32px;
 	--ds-space-8: 48px;
 
+	/* ── Touch Target ── */
+	--ds-touch-target-min: 44px;
+
 	/* ── Border Radius ── */
 	--ds-radius-sm: 6px;
 	--ds-radius-md: 12px;

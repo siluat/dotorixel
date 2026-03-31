@@ -108,8 +108,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 36px;
-		height: 36px;
+		width: var(--ds-touch-target-min);
+		height: var(--ds-touch-target-min);
 		border: none;
 		background: none;
 		color: var(--ds-text-tertiary);

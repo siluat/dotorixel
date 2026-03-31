@@ -25,12 +25,23 @@
 
 <style>
 	.editor-swatch {
+		position: relative;
 		padding: 0;
 		border: none;
 		border-radius: var(--ds-radius-sm);
 		background-color: var(--swatch-color);
 		cursor: pointer;
 		transition: transform 0.12s ease;
+	}
+
+	.editor-swatch::after {
+		content: '';
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		min-width: var(--ds-touch-target-min);
+		min-height: var(--ds-touch-target-min);
 	}
 
 	.editor-swatch--sm {

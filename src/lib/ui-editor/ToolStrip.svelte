@@ -75,7 +75,8 @@
 		align-items: center;
 		justify-content: space-around;
 		height: 48px;
-		padding: 0 8px;
+		/* 8 buttons × 44px = 352px; 4px padding keeps total ≤ 360px (narrowest common viewport) */
+		padding: 0 4px;
 		background: var(--ds-bg-surface);
 		border-top: 1px solid var(--ds-border-subtle);
 		flex-shrink: 0;
@@ -92,8 +93,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 40px;
-		height: 40px;
+		width: var(--ds-touch-target-min);
+		height: var(--ds-touch-target-min);
 		border: none;
 		background: none;
 		border-radius: 8px;
@@ -103,11 +104,6 @@
 	}
 
 	@media (min-width: 600px) {
-		.tool-btn {
-			width: 44px;
-			height: 44px;
-		}
-
 		.tool-btn :global(svg) {
 			width: 20px;
 			height: 20px;
@@ -127,21 +123,14 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 40px;
-		height: 40px;
+		width: var(--ds-touch-target-min);
+		height: var(--ds-touch-target-min);
 		border: none;
 		background: none;
 		border-radius: 8px;
 		color: var(--ds-text-tertiary);
 		cursor: pointer;
 		padding: 0;
-	}
-
-	@media (min-width: 600px) {
-		.action-btn {
-			width: 44px;
-			height: 44px;
-		}
 	}
 
 	.action-btn:hover:not(:disabled) {

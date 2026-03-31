@@ -47,7 +47,7 @@
 				<button class="zoom-btn" onclick={onZoomOut} aria-label={m.action_zoomOut()}>
 					<Minus size={14} />
 				</button>
-				<button class="zoom-label" onclick={onZoomReset}>
+				<button class="zoom-label" onclick={onZoomReset} aria-label={m.action_resetZoom()}>
 					{zoomPercent}%
 				</button>
 				<button class="zoom-btn" onclick={onZoomIn} aria-label={m.action_zoomIn()}>

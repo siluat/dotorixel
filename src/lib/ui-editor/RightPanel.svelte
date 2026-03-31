@@ -111,6 +111,9 @@
 				title={m.canvas_height()}
 			/>
 		</div>
+		<button class="clear-btn" onclick={onClear}>
+			{m.action_clearCanvas()}
+		</button>
 	</section>
 
 	<hr class="divider" />
@@ -260,6 +263,22 @@
 	.size-input::-webkit-outer-spin-button {
 		-webkit-appearance: none;
 		margin: 0;
+	}
+
+	.clear-btn {
+		width: 100%;
+		height: 28px;
+		border: 1px solid var(--ds-border);
+		border-radius: 4px;
+		background: none;
+		color: var(--ds-text-secondary);
+		font-family: var(--ds-font-body);
+		font-size: var(--ds-font-size-sm);
+		cursor: pointer;
+	}
+
+	.clear-btn:hover {
+		background: var(--ds-bg-hover);
 	}
 
 	.size-x {

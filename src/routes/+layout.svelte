@@ -2,6 +2,7 @@
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { isAnalyticsEnabled, getUmamiConfig, initUmami } from '$lib/analytics/umami';
 	import '../styles/global.css';
+	import '../styles/design-tokens.css';
 
 	let { children } = $props();
 

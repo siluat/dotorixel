@@ -25,7 +25,7 @@
 		<h1 class="app-name">DOTORIXEL</h1>
 		<p class="tagline">{m.landing_tagline()}</p>
 		<p class="description">{m.landing_description()}</p>
-		<a class="cta" href={localizeHref('/pebble')}>{m.landing_cta()}</a>
+		<a class="cta" href={localizeHref('/editor')}>{m.landing_cta()}</a>
 	</main>
 </div>
 
@@ -35,9 +35,9 @@
 		flex-direction: column;
 		align-items: center;
 		min-height: 100dvh;
-		background-color: var(--pebble-bg);
-		color: var(--pebble-text-primary);
-		font-family: 'Galmuri11', system-ui, sans-serif;
+		background-color: var(--ds-bg-base);
+		color: var(--ds-text-primary);
+		font-family: var(--ds-font-body);
 	}
 
 	.lang-nav {
@@ -49,21 +49,21 @@
 	}
 
 	.lang-nav a {
-		color: var(--pebble-text-secondary);
+		color: var(--ds-text-secondary);
 		text-decoration: none;
 	}
 
 	.lang-nav a:hover {
-		color: var(--pebble-text-primary);
+		color: var(--ds-text-primary);
 	}
 
 	.lang-nav strong {
-		font-family: 'Galmuri14', monospace;
-		color: var(--pebble-text-primary);
+		font-family: var(--ds-font-heading);
+		color: var(--ds-text-primary);
 	}
 
 	.separator {
-		color: var(--pebble-text-muted);
+		color: var(--ds-text-tertiary);
 	}
 
 	.hero {
@@ -78,23 +78,23 @@
 	}
 
 	.app-name {
-		font-family: 'GalmuriMono11', monospace;
+		font-family: var(--ds-font-mono);
 		font-size: 48px;
 		font-weight: 800;
 		letter-spacing: 2px;
 		margin: 0;
-		color: var(--pebble-accent-dark);
+		color: var(--ds-accent-text);
 	}
 
 	.tagline {
 		font-size: 20px;
-		color: var(--pebble-text-secondary);
+		color: var(--ds-text-secondary);
 		margin: 0;
 	}
 
 	.description {
 		font-size: 16px;
-		color: var(--pebble-text-secondary);
+		color: var(--ds-text-secondary);
 		margin: 0 0 24px;
 		max-width: 400px;
 	}
@@ -102,17 +102,17 @@
 	.cta {
 		display: inline-block;
 		padding: 14px 36px;
-		background-color: var(--pebble-accent);
+		background-color: var(--ds-accent);
 		color: white;
-		font-family: 'Galmuri14', monospace;
+		font-family: var(--ds-font-heading);
 		font-size: 16px;
 		font-weight: 700;
 		text-decoration: none;
-		border-radius: 12px;
+		border-radius: var(--ds-radius-md);
 		transition: background-color 0.15s;
 	}
 
 	.cta:hover {
-		background-color: var(--pebble-accent-dark);
+		background-color: color-mix(in oklch, var(--ds-accent) 85%, black);
 	}
 </style>

@@ -6,7 +6,6 @@
 
 - Touch pinch-zoom and two-finger pan (multi-touch canvas navigation)
 - Safe area and virtual keyboard handling (notch, home indicator, keyboard push)
-- Eraser uses background color instead of transparent — requires Rust core `ToolType::apply` change, WASM binding update, and EditorState wiring
 - iOS Safari export fix (Blob URL fallback)
 
 ## Milestone 3: Editor for Serious Work
@@ -18,6 +17,7 @@
 - Flip/transform
 - Project file format (JSON-based) + save/load
 - Apple Pencil: hover preview + palm rejection
+- Right-click draws with background color (mouse input) — Rust core `ToolType::apply` adds `background_color` param, WASM/frontend wiring, eraser unchanged
 - Touch modifier alternatives (Shift-constrain, Alt-eyedropper UI for touchscreen)
 - Feature guide page (basic usage instructions)
 - (review) In-editor feedback widget

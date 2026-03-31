@@ -15757,11 +15757,11 @@
                           "id": "fDoDM",
                           "name": "p1",
                           "height": 28,
-                          "fill": "$--bg-elevated",
-                          "cornerRadius": 4,
+                          "fill": "$--bg-hover",
+                          "cornerRadius": 8,
                           "stroke": {
                             "align": "inside",
-                            "thickness": 1,
+                            "thickness": 0,
                             "fill": "$--border"
                           },
                           "padding": [
@@ -15789,7 +15789,7 @@
                           "name": "p2",
                           "height": 28,
                           "fill": "$--accent",
-                          "cornerRadius": 4,
+                          "cornerRadius": 8,
                           "padding": [
                             0,
                             8
@@ -15814,11 +15814,11 @@
                           "id": "dIjVy",
                           "name": "p3",
                           "height": 28,
-                          "fill": "$--bg-elevated",
-                          "cornerRadius": 4,
+                          "fill": "$--bg-hover",
+                          "cornerRadius": 8,
                           "stroke": {
                             "align": "inside",
-                            "thickness": 1,
+                            "thickness": 0,
                             "fill": "$--border"
                           },
                           "padding": [
@@ -15845,11 +15845,11 @@
                           "id": "14viq",
                           "name": "p4",
                           "height": 28,
-                          "fill": "$--bg-elevated",
-                          "cornerRadius": 4,
+                          "fill": "$--bg-hover",
+                          "cornerRadius": 8,
                           "stroke": {
                             "align": "inside",
-                            "thickness": 1,
+                            "thickness": 0,
                             "fill": "$--border"
                           },
                           "padding": [
@@ -16084,6 +16084,173 @@
                           "fontWeight": "normal"
                         }
                       ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "SCglU",
+                      "name": "hsvLabel",
+                      "fill": "$--text-secondary",
+                      "content": "HSV",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "PGMYv",
+                      "name": "hsvArea",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "bVeKc",
+                          "name": "svSquare",
+                          "width": "fill_container",
+                          "height": 140,
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 0,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#FFFFFF",
+                                "position": 0
+                              },
+                              {
+                                "color": "#B07A30",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "cornerRadius": 6,
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 6,
+                              "id": "0I2Kg",
+                              "x": 0,
+                              "y": 0,
+                              "name": "svOverlay",
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "rotation": 90,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "#00000000",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "#000000",
+                                    "position": 1
+                                  }
+                                ]
+                              },
+                              "width": 188,
+                              "height": 140
+                            },
+                            {
+                              "type": "ellipse",
+                              "id": "NReh4",
+                              "x": 80,
+                              "y": 40,
+                              "name": "svCursor",
+                              "width": 14,
+                              "height": 14,
+                              "stroke": {
+                                "align": "outside",
+                                "thickness": 2,
+                                "fill": "#FFFFFF"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "ATf2a",
+                          "name": "hueStrip",
+                          "width": 20,
+                          "height": 140,
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 180,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#FF0000",
+                                "position": 0
+                              },
+                              {
+                                "color": "#FFFF00",
+                                "position": 0.17
+                              },
+                              {
+                                "color": "#00FF00",
+                                "position": 0.33
+                              },
+                              {
+                                "color": "#00FFFF",
+                                "position": 0.5
+                              },
+                              {
+                                "color": "#0000FF",
+                                "position": 0.67
+                              },
+                              {
+                                "color": "#FF00FF",
+                                "position": 0.83
+                              },
+                              {
+                                "color": "#FF0000",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "cornerRadius": 6,
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 3,
+                              "id": "HA90M",
+                              "x": 0,
+                              "y": 34,
+                              "name": "hueCursor",
+                              "width": 20,
+                              "height": 6,
+                              "stroke": {
+                                "align": "inside",
+                                "thickness": 2,
+                                "fill": "#FFFFFF"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "bfV46",
+                      "name": "paletteLabel",
+                      "fill": "$--text-secondary",
+                      "content": "Palette",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "600"
                     },
                     {
                       "type": "frame",
@@ -17049,11 +17216,11 @@
                           "id": "EcHfO",
                           "name": "p1",
                           "height": 28,
-                          "fill": "$--bg-elevated",
-                          "cornerRadius": 4,
+                          "fill": "$--bg-hover",
+                          "cornerRadius": 8,
                           "stroke": {
                             "align": "inside",
-                            "thickness": 1,
+                            "thickness": 0,
                             "fill": "$--border"
                           },
                           "padding": [
@@ -17081,7 +17248,7 @@
                           "name": "p2",
                           "height": 28,
                           "fill": "$--accent",
-                          "cornerRadius": 4,
+                          "cornerRadius": 8,
                           "padding": [
                             0,
                             8
@@ -17106,11 +17273,11 @@
                           "id": "KdxRJ",
                           "name": "p3",
                           "height": 28,
-                          "fill": "$--bg-elevated",
-                          "cornerRadius": 4,
+                          "fill": "$--bg-hover",
+                          "cornerRadius": 8,
                           "stroke": {
                             "align": "inside",
-                            "thickness": 1,
+                            "thickness": 0,
                             "fill": "$--border"
                           },
                           "padding": [
@@ -17137,11 +17304,11 @@
                           "id": "1AVZQ",
                           "name": "p4",
                           "height": 28,
-                          "fill": "$--bg-elevated",
-                          "cornerRadius": 4,
+                          "fill": "$--bg-hover",
+                          "cornerRadius": 8,
                           "stroke": {
                             "align": "inside",
-                            "thickness": 1,
+                            "thickness": 0,
                             "fill": "$--border"
                           },
                           "padding": [
@@ -17376,6 +17543,173 @@
                           "fontWeight": "normal"
                         }
                       ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "KNt1L",
+                      "name": "hsvLabel",
+                      "fill": "$--text-secondary",
+                      "content": "HSV",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "GKTgZ",
+                      "name": "hsvArea",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Uv0ba",
+                          "name": "svSquare",
+                          "width": "fill_container",
+                          "height": 140,
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 0,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#FFFFFF",
+                                "position": 0
+                              },
+                              {
+                                "color": "#B07A30",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "cornerRadius": 6,
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 6,
+                              "id": "mc9MX",
+                              "x": 0,
+                              "y": 0,
+                              "name": "svOverlay",
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "rotation": 90,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "#00000000",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "#000000",
+                                    "position": 1
+                                  }
+                                ]
+                              },
+                              "width": 188,
+                              "height": 140
+                            },
+                            {
+                              "type": "ellipse",
+                              "id": "HbAfn",
+                              "x": 80,
+                              "y": 40,
+                              "name": "svCursor",
+                              "width": 14,
+                              "height": 14,
+                              "stroke": {
+                                "align": "outside",
+                                "thickness": 2,
+                                "fill": "#FFFFFF"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "s65ry",
+                          "name": "hueStrip",
+                          "width": 20,
+                          "height": 140,
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 180,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#FF0000",
+                                "position": 0
+                              },
+                              {
+                                "color": "#FFFF00",
+                                "position": 0.17
+                              },
+                              {
+                                "color": "#00FF00",
+                                "position": 0.33
+                              },
+                              {
+                                "color": "#00FFFF",
+                                "position": 0.5
+                              },
+                              {
+                                "color": "#0000FF",
+                                "position": 0.67
+                              },
+                              {
+                                "color": "#FF00FF",
+                                "position": 0.83
+                              },
+                              {
+                                "color": "#FF0000",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "cornerRadius": 6,
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 3,
+                              "id": "hlqwD",
+                              "x": 0,
+                              "y": 34,
+                              "name": "hueCursor",
+                              "width": 20,
+                              "height": 6,
+                              "stroke": {
+                                "align": "inside",
+                                "thickness": 2,
+                                "fill": "#FFFFFF"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "WC835",
+                      "name": "paletteLabel",
+                      "fill": "$--text-secondary",
+                      "content": "Palette",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "600"
                     },
                     {
                       "type": "frame",
@@ -18341,11 +18675,11 @@
                           "id": "4CJWE",
                           "name": "p1",
                           "height": 28,
-                          "fill": "$--bg-elevated",
-                          "cornerRadius": 4,
+                          "fill": "$--bg-hover",
+                          "cornerRadius": 8,
                           "stroke": {
                             "align": "inside",
-                            "thickness": 1,
+                            "thickness": 0,
                             "fill": "$--border"
                           },
                           "padding": [
@@ -18373,7 +18707,7 @@
                           "name": "p2",
                           "height": 28,
                           "fill": "$--accent",
-                          "cornerRadius": 4,
+                          "cornerRadius": 8,
                           "padding": [
                             0,
                             8
@@ -18398,11 +18732,11 @@
                           "id": "Mjji8",
                           "name": "p3",
                           "height": 28,
-                          "fill": "$--bg-elevated",
-                          "cornerRadius": 4,
+                          "fill": "$--bg-hover",
+                          "cornerRadius": 8,
                           "stroke": {
                             "align": "inside",
-                            "thickness": 1,
+                            "thickness": 0,
                             "fill": "$--border"
                           },
                           "padding": [
@@ -18429,11 +18763,11 @@
                           "id": "ejkBg",
                           "name": "p4",
                           "height": 28,
-                          "fill": "$--bg-elevated",
-                          "cornerRadius": 4,
+                          "fill": "$--bg-hover",
+                          "cornerRadius": 8,
                           "stroke": {
                             "align": "inside",
-                            "thickness": 1,
+                            "thickness": 0,
                             "fill": "$--border"
                           },
                           "padding": [
@@ -18668,6 +19002,173 @@
                           "fontWeight": "normal"
                         }
                       ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "O7SZu",
+                      "name": "hsvLabel",
+                      "fill": "$--text-secondary",
+                      "content": "HSV",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "6Awiu",
+                      "name": "hsvArea",
+                      "width": "fill_container",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "DzIxX",
+                          "name": "svSquare",
+                          "width": "fill_container",
+                          "height": 120,
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 0,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#FFFFFF",
+                                "position": 0
+                              },
+                              {
+                                "color": "#B07A30",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "cornerRadius": 6,
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 6,
+                              "id": "tgzhn",
+                              "x": 0,
+                              "y": 0,
+                              "name": "svOverlay",
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "rotation": 90,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "#00000000",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "#000000",
+                                    "position": 1
+                                  }
+                                ]
+                              },
+                              "width": 154,
+                              "height": 120
+                            },
+                            {
+                              "type": "ellipse",
+                              "id": "vL1AV",
+                              "x": 60,
+                              "y": 35,
+                              "name": "svCursor",
+                              "width": 12,
+                              "height": 12,
+                              "stroke": {
+                                "align": "outside",
+                                "thickness": 2,
+                                "fill": "#FFFFFF"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "n2Mt3",
+                          "name": "hueStrip",
+                          "width": 16,
+                          "height": 120,
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 180,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#FF0000",
+                                "position": 0
+                              },
+                              {
+                                "color": "#FFFF00",
+                                "position": 0.17
+                              },
+                              {
+                                "color": "#00FF00",
+                                "position": 0.33
+                              },
+                              {
+                                "color": "#00FFFF",
+                                "position": 0.5
+                              },
+                              {
+                                "color": "#0000FF",
+                                "position": 0.67
+                              },
+                              {
+                                "color": "#FF00FF",
+                                "position": 0.83
+                              },
+                              {
+                                "color": "#FF0000",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "cornerRadius": 6,
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 3,
+                              "id": "guHqO",
+                              "x": 0,
+                              "y": 28,
+                              "name": "hueCursor",
+                              "width": 16,
+                              "height": 6,
+                              "stroke": {
+                                "align": "inside",
+                                "thickness": 2,
+                                "fill": "#FFFFFF"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "rMmmj",
+                      "name": "paletteLabel",
+                      "fill": "$--text-secondary",
+                      "content": "Palette",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "600"
                     },
                     {
                       "type": "frame",
@@ -20357,6 +20858,20 @@
             },
             {
               "type": "rectangle",
+              "cornerRadius": 6,
+              "id": "QIg9L",
+              "name": "cbBg",
+              "fill": "#FFFFFF",
+              "width": 32,
+              "height": 32,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$--border"
+              }
+            },
+            {
+              "type": "rectangle",
               "id": "5vna6",
               "name": "cbSep",
               "fill": "$--border-subtle",
@@ -21138,6 +21653,52 @@
                   ]
                 }
               ]
+            },
+            {
+              "type": "text",
+              "id": "v0tl9",
+              "name": "recentLabel",
+              "fill": "$--text-secondary",
+              "content": "Recent",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "cgCFS",
+              "name": "recentRow",
+              "width": "fill_container",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "EnXJJ",
+                  "name": "rc1",
+                  "fill": "#2D210F",
+                  "width": 32,
+                  "height": 32
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "2cUlx",
+                  "name": "rc2",
+                  "fill": "#EF4444",
+                  "width": 32,
+                  "height": 32
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "BIRAD",
+                  "name": "rc3",
+                  "fill": "#3B82F6",
+                  "width": 32,
+                  "height": 32
+                }
+              ]
             }
           ]
         },
@@ -21430,11 +21991,11 @@
                       "name": "sp1",
                       "width": "fill_container",
                       "height": 44,
-                      "fill": "$--bg-elevated",
+                      "fill": "$--bg-hover",
                       "cornerRadius": 8,
                       "stroke": {
                         "align": "inside",
-                        "thickness": 1,
+                        "thickness": 0,
                         "fill": "$--border"
                       },
                       "justifyContent": "center",
@@ -21458,11 +22019,11 @@
                       "name": "sp2",
                       "width": "fill_container",
                       "height": 44,
-                      "fill": "$--bg-elevated",
+                      "fill": "$--bg-hover",
                       "cornerRadius": 8,
                       "stroke": {
                         "align": "inside",
-                        "thickness": 1,
+                        "thickness": 0,
                         "fill": "$--border"
                       },
                       "justifyContent": "center",
@@ -21509,11 +22070,11 @@
                       "name": "sp4",
                       "width": "fill_container",
                       "height": 44,
-                      "fill": "$--bg-elevated",
+                      "fill": "$--bg-hover",
                       "cornerRadius": 8,
                       "stroke": {
                         "align": "inside",
-                        "thickness": 1,
+                        "thickness": 0,
                         "fill": "$--border"
                       },
                       "justifyContent": "center",
@@ -21546,11 +22107,11 @@
                       "name": "sp5",
                       "width": "fill_container",
                       "height": 44,
-                      "fill": "$--bg-elevated",
+                      "fill": "$--bg-hover",
                       "cornerRadius": 8,
                       "stroke": {
                         "align": "inside",
-                        "thickness": 1,
+                        "thickness": 0,
                         "fill": "$--border"
                       },
                       "justifyContent": "center",
@@ -21574,11 +22135,11 @@
                       "name": "sp6",
                       "width": "fill_container",
                       "height": 44,
-                      "fill": "$--bg-elevated",
+                      "fill": "$--bg-hover",
                       "cornerRadius": 8,
                       "stroke": {
                         "align": "inside",
-                        "thickness": 1,
+                        "thickness": 0,
                         "fill": "$--border"
                       },
                       "justifyContent": "center",
@@ -22731,11 +23292,11 @@
                               "id": "m8Zya",
                               "name": "p1",
                               "height": 28,
-                              "fill": "$--bg-elevated",
-                              "cornerRadius": 4,
+                              "fill": "$--bg-hover",
+                              "cornerRadius": 8,
                               "stroke": {
                                 "align": "inside",
-                                "thickness": 1,
+                                "thickness": 0,
                                 "fill": "$--border"
                               },
                               "padding": [
@@ -22763,7 +23324,7 @@
                               "name": "p2",
                               "height": 28,
                               "fill": "$--accent",
-                              "cornerRadius": 4,
+                              "cornerRadius": 8,
                               "padding": [
                                 0,
                                 8
@@ -22788,11 +23349,11 @@
                               "id": "fuJES",
                               "name": "p3",
                               "height": 28,
-                              "fill": "$--bg-elevated",
-                              "cornerRadius": 4,
+                              "fill": "$--bg-hover",
+                              "cornerRadius": 8,
                               "stroke": {
                                 "align": "inside",
-                                "thickness": 1,
+                                "thickness": 0,
                                 "fill": "$--border"
                               },
                               "padding": [
@@ -22819,11 +23380,11 @@
                               "id": "JGswI",
                               "name": "p4",
                               "height": 28,
-                              "fill": "$--bg-elevated",
-                              "cornerRadius": 4,
+                              "fill": "$--bg-hover",
+                              "cornerRadius": 8,
                               "stroke": {
                                 "align": "inside",
-                                "thickness": 1,
+                                "thickness": 0,
                                 "fill": "$--border"
                               },
                               "padding": [
@@ -23058,6 +23619,173 @@
                               "fontWeight": "normal"
                             }
                           ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "yMt1T",
+                          "name": "hsvLabel",
+                          "fill": "$--text-secondary",
+                          "content": "HSV",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "gBTV6",
+                          "name": "hsvArea",
+                          "width": "fill_container",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "JNLAa",
+                              "name": "svSquare",
+                              "width": "fill_container",
+                              "height": 140,
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "rotation": 0,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "#FFFFFF",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "#B07A30",
+                                    "position": 1
+                                  }
+                                ]
+                              },
+                              "cornerRadius": 6,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "cornerRadius": 6,
+                                  "id": "O5zva",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "svOverlay",
+                                  "fill": {
+                                    "type": "gradient",
+                                    "gradientType": "linear",
+                                    "enabled": true,
+                                    "rotation": 90,
+                                    "size": {
+                                      "height": 1
+                                    },
+                                    "colors": [
+                                      {
+                                        "color": "#00000000",
+                                        "position": 0
+                                      },
+                                      {
+                                        "color": "#000000",
+                                        "position": 1
+                                      }
+                                    ]
+                                  },
+                                  "width": 188,
+                                  "height": 140
+                                },
+                                {
+                                  "type": "ellipse",
+                                  "id": "pSqiP",
+                                  "x": 80,
+                                  "y": 40,
+                                  "name": "svCursor",
+                                  "width": 14,
+                                  "height": 14,
+                                  "stroke": {
+                                    "align": "outside",
+                                    "thickness": 2,
+                                    "fill": "#FFFFFF"
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "sm2xw",
+                              "name": "hueStrip",
+                              "width": 20,
+                              "height": 140,
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "rotation": 180,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "#FF0000",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "#FFFF00",
+                                    "position": 0.17
+                                  },
+                                  {
+                                    "color": "#00FF00",
+                                    "position": 0.33
+                                  },
+                                  {
+                                    "color": "#00FFFF",
+                                    "position": 0.5
+                                  },
+                                  {
+                                    "color": "#0000FF",
+                                    "position": 0.67
+                                  },
+                                  {
+                                    "color": "#FF00FF",
+                                    "position": 0.83
+                                  },
+                                  {
+                                    "color": "#FF0000",
+                                    "position": 1
+                                  }
+                                ]
+                              },
+                              "cornerRadius": 6,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "cornerRadius": 3,
+                                  "id": "xm3vj",
+                                  "x": 0,
+                                  "y": 34,
+                                  "name": "hueCursor",
+                                  "width": 20,
+                                  "height": 6,
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#FFFFFF"
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "mPat7",
+                          "name": "paletteLabel",
+                          "fill": "$--text-secondary",
+                          "content": "Palette",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "600"
                         },
                         {
                           "type": "frame",
@@ -24776,11 +25504,11 @@
                               "id": "lQTTj",
                               "name": "p1",
                               "height": 28,
-                              "fill": "$--bg-elevated",
-                              "cornerRadius": 4,
+                              "fill": "$--bg-hover",
+                              "cornerRadius": 8,
                               "stroke": {
                                 "align": "inside",
-                                "thickness": 1,
+                                "thickness": 0,
                                 "fill": "$--border"
                               },
                               "padding": [
@@ -24808,7 +25536,7 @@
                               "name": "p2",
                               "height": 28,
                               "fill": "$--accent",
-                              "cornerRadius": 4,
+                              "cornerRadius": 8,
                               "padding": [
                                 0,
                                 8
@@ -24833,11 +25561,11 @@
                               "id": "4wVPv",
                               "name": "p3",
                               "height": 28,
-                              "fill": "$--bg-elevated",
-                              "cornerRadius": 4,
+                              "fill": "$--bg-hover",
+                              "cornerRadius": 8,
                               "stroke": {
                                 "align": "inside",
-                                "thickness": 1,
+                                "thickness": 0,
                                 "fill": "$--border"
                               },
                               "padding": [
@@ -24864,11 +25592,11 @@
                               "id": "0Jktf",
                               "name": "p4",
                               "height": 28,
-                              "fill": "$--bg-elevated",
-                              "cornerRadius": 4,
+                              "fill": "$--bg-hover",
+                              "cornerRadius": 8,
                               "stroke": {
                                 "align": "inside",
-                                "thickness": 1,
+                                "thickness": 0,
                                 "fill": "$--border"
                               },
                               "padding": [
@@ -25103,6 +25831,173 @@
                               "fontWeight": "normal"
                             }
                           ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "iLPWt",
+                          "name": "hsvLabel",
+                          "fill": "$--text-secondary",
+                          "content": "HSV",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "YVgP3",
+                          "name": "hsvArea",
+                          "width": "fill_container",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "Ldnrt",
+                              "name": "svSquare",
+                              "width": "fill_container",
+                              "height": 140,
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "rotation": 0,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "#FFFFFF",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "#B07A30",
+                                    "position": 1
+                                  }
+                                ]
+                              },
+                              "cornerRadius": 6,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "cornerRadius": 6,
+                                  "id": "B4agL",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "svOverlay",
+                                  "fill": {
+                                    "type": "gradient",
+                                    "gradientType": "linear",
+                                    "enabled": true,
+                                    "rotation": 90,
+                                    "size": {
+                                      "height": 1
+                                    },
+                                    "colors": [
+                                      {
+                                        "color": "#00000000",
+                                        "position": 0
+                                      },
+                                      {
+                                        "color": "#000000",
+                                        "position": 1
+                                      }
+                                    ]
+                                  },
+                                  "width": 188,
+                                  "height": 140
+                                },
+                                {
+                                  "type": "ellipse",
+                                  "id": "QvmBt",
+                                  "x": 80,
+                                  "y": 40,
+                                  "name": "svCursor",
+                                  "width": 14,
+                                  "height": 14,
+                                  "stroke": {
+                                    "align": "outside",
+                                    "thickness": 2,
+                                    "fill": "#FFFFFF"
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "BYoZE",
+                              "name": "hueStrip",
+                              "width": 20,
+                              "height": 140,
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "rotation": 180,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "#FF0000",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "#FFFF00",
+                                    "position": 0.17
+                                  },
+                                  {
+                                    "color": "#00FF00",
+                                    "position": 0.33
+                                  },
+                                  {
+                                    "color": "#00FFFF",
+                                    "position": 0.5
+                                  },
+                                  {
+                                    "color": "#0000FF",
+                                    "position": 0.67
+                                  },
+                                  {
+                                    "color": "#FF00FF",
+                                    "position": 0.83
+                                  },
+                                  {
+                                    "color": "#FF0000",
+                                    "position": 1
+                                  }
+                                ]
+                              },
+                              "cornerRadius": 6,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "cornerRadius": 3,
+                                  "id": "HEGV4",
+                                  "x": 0,
+                                  "y": 34,
+                                  "name": "hueCursor",
+                                  "width": 20,
+                                  "height": 6,
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#FFFFFF"
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "tgPQK",
+                          "name": "paletteLabel",
+                          "fill": "$--text-secondary",
+                          "content": "Palette",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "600"
                         },
                         {
                           "type": "frame",
@@ -26820,11 +27715,11 @@
                               "id": "7dnWL",
                               "name": "p1",
                               "height": 28,
-                              "fill": "$--bg-elevated",
-                              "cornerRadius": 4,
+                              "fill": "$--bg-hover",
+                              "cornerRadius": 8,
                               "stroke": {
                                 "align": "inside",
-                                "thickness": 1,
+                                "thickness": 0,
                                 "fill": "$--border"
                               },
                               "padding": [
@@ -26852,7 +27747,7 @@
                               "name": "p2",
                               "height": 28,
                               "fill": "$--accent",
-                              "cornerRadius": 4,
+                              "cornerRadius": 8,
                               "padding": [
                                 0,
                                 8
@@ -26877,11 +27772,11 @@
                               "id": "ZiCr8",
                               "name": "p3",
                               "height": 28,
-                              "fill": "$--bg-elevated",
-                              "cornerRadius": 4,
+                              "fill": "$--bg-hover",
+                              "cornerRadius": 8,
                               "stroke": {
                                 "align": "inside",
-                                "thickness": 1,
+                                "thickness": 0,
                                 "fill": "$--border"
                               },
                               "padding": [
@@ -26908,11 +27803,11 @@
                               "id": "EZbjC",
                               "name": "p4",
                               "height": 28,
-                              "fill": "$--bg-elevated",
-                              "cornerRadius": 4,
+                              "fill": "$--bg-hover",
+                              "cornerRadius": 8,
                               "stroke": {
                                 "align": "inside",
-                                "thickness": 1,
+                                "thickness": 0,
                                 "fill": "$--border"
                               },
                               "padding": [
@@ -27147,6 +28042,173 @@
                               "fontWeight": "normal"
                             }
                           ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "RcFl5",
+                          "name": "hsvLabel",
+                          "fill": "$--text-secondary",
+                          "content": "HSV",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "TSons",
+                          "name": "hsvArea",
+                          "width": "fill_container",
+                          "gap": 6,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "Uhckw",
+                              "name": "svSquare",
+                              "width": "fill_container",
+                              "height": 120,
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "rotation": 0,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "#FFFFFF",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "#B07A30",
+                                    "position": 1
+                                  }
+                                ]
+                              },
+                              "cornerRadius": 6,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "cornerRadius": 6,
+                                  "id": "lyFI2",
+                                  "x": 0,
+                                  "y": 0,
+                                  "name": "svOverlay",
+                                  "fill": {
+                                    "type": "gradient",
+                                    "gradientType": "linear",
+                                    "enabled": true,
+                                    "rotation": 90,
+                                    "size": {
+                                      "height": 1
+                                    },
+                                    "colors": [
+                                      {
+                                        "color": "#00000000",
+                                        "position": 0
+                                      },
+                                      {
+                                        "color": "#000000",
+                                        "position": 1
+                                      }
+                                    ]
+                                  },
+                                  "width": 154,
+                                  "height": 120
+                                },
+                                {
+                                  "type": "ellipse",
+                                  "id": "zWLMc",
+                                  "x": 60,
+                                  "y": 35,
+                                  "name": "svCursor",
+                                  "width": 12,
+                                  "height": 12,
+                                  "stroke": {
+                                    "align": "outside",
+                                    "thickness": 2,
+                                    "fill": "#FFFFFF"
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "7zhrW",
+                              "name": "hueStrip",
+                              "width": 16,
+                              "height": 120,
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "rotation": 180,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "#FF0000",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "#FFFF00",
+                                    "position": 0.17
+                                  },
+                                  {
+                                    "color": "#00FF00",
+                                    "position": 0.33
+                                  },
+                                  {
+                                    "color": "#00FFFF",
+                                    "position": 0.5
+                                  },
+                                  {
+                                    "color": "#0000FF",
+                                    "position": 0.67
+                                  },
+                                  {
+                                    "color": "#FF00FF",
+                                    "position": 0.83
+                                  },
+                                  {
+                                    "color": "#FF0000",
+                                    "position": 1
+                                  }
+                                ]
+                              },
+                              "cornerRadius": 6,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "cornerRadius": 3,
+                                  "id": "0SrLV",
+                                  "x": 0,
+                                  "y": 28,
+                                  "name": "hueCursor",
+                                  "width": 16,
+                                  "height": 6,
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#FFFFFF"
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "kQyND",
+                          "name": "paletteLabel",
+                          "fill": "$--text-secondary",
+                          "content": "Palette",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "600"
                         },
                         {
                           "type": "frame",

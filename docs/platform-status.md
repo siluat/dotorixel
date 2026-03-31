@@ -22,7 +22,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Create / resize | ✅ | ✅ | ✅ | 1–256px, presets available |
-| Clear | ✅ | ⬜ | ⬜ | Core API ready, no UI |
+| Clear | ✅ | ✅ | ⬜ | RightPanel (docked) + Settings tab (mobile) |
 
 ## History
 
@@ -92,5 +92,6 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Design token system | — | ✅ | ⬜ | `--ds-*` tokens, light + dark theme definitions |
 | Pebble UI theme | — | ✅ | ✅ | Floating panels, earth tones (legacy) |
-| Editor UI theme | — | 🔧 | ⬜ | `--ds-*` tokens applied, floating panel layout (docked layout pending) |
+| Editor UI theme | — | ✅ | ⬜ | `--ds-*` tokens, docked panel (≥1024px) + tab navigation (<1024px) |
+| Responsive layout | — | ✅ | ⬜ | 4 breakpoints: compact/medium/wide/x-wide via matchMedia + CSS Grid/Flex |
 | Landing page | — | ✅ | — | Hero section + CTA, i18n, `--ds-*` tokens |

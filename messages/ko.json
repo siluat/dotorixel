@@ -40,6 +40,20 @@
 	"label_heightAbbr": "H",
 	"label_apply": "적용",
 
+	"tab_draw": "그리기",
+	"tab_colors": "색상",
+	"tab_settings": "설정",
+
+	"section_canvas": "캔버스",
+	"section_color": "색상",
+	"section_hsv": "HSV",
+	"section_palette": "팔레트",
+	"section_actions": "작업",
+	"section_display": "화면",
+
+	"label_export": "내보내기",
+	"label_showGrid": "격자 표시",
+
 	"landing_tagline": "픽셀 아트 에디터",
 	"landing_description": "브라우저에서 바로 픽셀 아트를 그려보세요.",
 	"landing_cta": "그리기 시작"

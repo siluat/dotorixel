@@ -4,10 +4,10 @@
 
 ### Implementation
 
-- Editor layout restructure (including responsive)
 - Touch target sizing — 44px minimum (buttons, swatches, preset buttons)
 - Touch pinch-zoom and two-finger pan (multi-touch canvas navigation)
 - Safe area and virtual keyboard handling (notch, home indicator, keyboard push)
+- Eraser uses background color instead of transparent — requires Rust core `ToolType::apply` change, WASM binding update, and EditorState wiring
 - iOS Safari export fix (Blob URL fallback)
 
 ## Milestone 3: Editor for Serious Work
@@ -51,6 +51,7 @@
 
 - FG/BG swap UI improvements
 - Tool-specific mouse cursor (eyedropper, crosshair, etc.) — toolCursor prop infrastructure exists but is not wired up
+- Dark mode toggle UI — design tokens support dark theme (`data-theme="dark"`), no UI to switch yet
 
 ## Future triggers
 

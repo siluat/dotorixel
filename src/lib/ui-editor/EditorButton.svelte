@@ -5,12 +5,13 @@
 		active?: boolean;
 		disabled?: boolean;
 		title?: string;
+		ariaLabel?: string;
 		shortcutHint?: string;
 		onclick?: (event: MouseEvent) => void;
 		children: Snippet;
 	}
 
-	let { active = false, disabled = false, title, shortcutHint, onclick, children }: Props = $props();
+	let { active = false, disabled = false, title, ariaLabel, shortcutHint, onclick, children }: Props = $props();
 </script>
 
 <button
@@ -18,6 +19,7 @@
 	class="editor-btn"
 	class:editor-btn--active={active}
 	aria-pressed={active ? 'true' : undefined}
+	aria-label={ariaLabel ?? title}
 	{disabled}
 	{title}
 	{onclick}

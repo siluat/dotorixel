@@ -6,6 +6,7 @@
 	import EditorButton from './EditorButton.svelte';
 
 	const CANVAS_PRESETS = Array.from(WasmPixelCanvas.presets());
+	const MAX_DIMENSION = WasmPixelCanvas.max_dimension();
 
 	interface Props {
 		canvasWidth: number;
@@ -26,8 +27,8 @@
 	});
 
 	function handleResizeCommit(): void {
-		const w = Math.max(1, Math.min(256, inputWidth));
-		const h = Math.max(1, Math.min(256, inputHeight));
+		const w = Math.max(1, Math.min(MAX_DIMENSION, inputWidth));
+		const h = Math.max(1, Math.min(MAX_DIMENSION, inputHeight));
 		if (w !== canvasWidth || h !== canvasHeight) {
 			onResize(w, h);
 		}
@@ -67,7 +68,7 @@
 				onblur={handleResizeCommit}
 				onkeydown={handleKeyDown}
 				min="1"
-				max="256"
+				max={MAX_DIMENSION}
 				title={m.canvas_width()}
 			/>
 			<span class="size-separator">&times;</span>
@@ -79,7 +80,7 @@
 				onblur={handleResizeCommit}
 				onkeydown={handleKeyDown}
 				min="1"
-				max="256"
+				max={MAX_DIMENSION}
 				title={m.canvas_height()}
 			/>
 		</div>

@@ -53,6 +53,19 @@
 
 	"label_export": "書き出し",
 	"label_showGrid": "グリッド表示",
+	"label_anchor": "アンカー",
+
+	"validation_dimensionRange": "{min}から{max}の間で入力してください",
+
+	"anchor_topLeft": "左上",
+	"anchor_topCenter": "中央上",
+	"anchor_topRight": "右上",
+	"anchor_middleLeft": "左中央",
+	"anchor_center": "中央",
+	"anchor_middleRight": "右中央",
+	"anchor_bottomLeft": "左下",
+	"anchor_bottomCenter": "中央下",
+	"anchor_bottomRight": "右下",
 
 	"landing_tagline": "ピクセルアートエディター",
 	"landing_description": "ブラウザですぐにピクセルアートを描けます。",

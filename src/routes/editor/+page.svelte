@@ -124,11 +124,13 @@
 			recentColors={editor.recentColors}
 			canvasWidth={editor.pixelCanvas.width}
 			canvasHeight={editor.pixelCanvas.height}
+			resizeAnchor={editor.resizeAnchor}
 			onForegroundColorChange={editor.handleForegroundColorChange}
 			onBackgroundColorChange={editor.handleBackgroundColorChange}
 			onSwapColors={editor.swapColors}
 			onResize={handleResize}
 			onClear={editor.handleClear}
+			onAnchorChange={(anchor) => (editor.resizeAnchor = anchor)}
 		/>
 
 		<StatusBar
@@ -179,10 +181,12 @@
 					canvasWidth={editor.pixelCanvas.width}
 					canvasHeight={editor.pixelCanvas.height}
 					showGrid={editor.viewportState.showGrid}
+					resizeAnchor={editor.resizeAnchor}
 					onResize={handleResize}
 					onExport={handleExport}
 					onClear={editor.handleClear}
 					onGridToggle={editor.handleGridToggle}
+					onAnchorChange={(anchor) => (editor.resizeAnchor = anchor)}
 				/>
 			{/if}
 		</div>

@@ -20,13 +20,7 @@ impl ToolType {
     /// Pencil, Line, Rectangle, and Ellipse set the pixel to `foreground_color`; Eraser sets it to transparent.
     /// Returns `false` if the coordinates are outside canvas bounds (including
     /// negative values). The canvas is not modified for out-of-bounds coordinates.
-    pub fn apply(
-        &self,
-        canvas: &mut PixelCanvas,
-        x: i32,
-        y: i32,
-        foreground_color: Color,
-    ) -> bool {
+    pub fn apply(&self, canvas: &mut PixelCanvas, x: i32, y: i32, foreground_color: Color) -> bool {
         if x < 0 || y < 0 {
             return false;
         }
@@ -36,7 +30,9 @@ impl ToolType {
             return false;
         }
         let color = match self {
-            ToolType::Pencil | ToolType::Line | ToolType::Rectangle | ToolType::Ellipse => foreground_color,
+            ToolType::Pencil | ToolType::Line | ToolType::Rectangle | ToolType::Ellipse => {
+                foreground_color
+            }
             ToolType::Eraser => Color::TRANSPARENT,
         };
         canvas
@@ -103,7 +99,11 @@ pub fn rectangle_outline(x0: i32, y0: i32, x1: i32, y1: i32) -> Vec<(i32, i32)> 
 
     // Perimeter pixel count: 2*(w+h) - 4 for w,h >= 2; degenerate cases handled by the
     // conditional edge generation below.
-    let capacity = if w == 1 || h == 1 { w.max(h) } else { 2 * (w + h) - 4 };
+    let capacity = if w == 1 || h == 1 {
+        w.max(h)
+    } else {
+        2 * (w + h) - 4
+    };
     let mut points = Vec::with_capacity(capacity);
 
     // Top edge (full width)
@@ -237,12 +237,7 @@ pub fn ellipse_outline(x0: i32, y0: i32, x1: i32, y1: i32) -> Vec<(i32, i32)> {
 /// Returns `false` without modifying the canvas when:
 /// - The start coordinates are negative or outside canvas bounds.
 /// - The pixel at the start coordinates already has `fill_color`.
-pub fn flood_fill(
-    canvas: &mut PixelCanvas,
-    start_x: i32,
-    start_y: i32,
-    fill_color: Color,
-) -> bool {
+pub fn flood_fill(canvas: &mut PixelCanvas, start_x: i32, start_y: i32, fill_color: Color) -> bool {
     if start_x < 0 || start_y < 0 {
         return false;
     }
@@ -252,9 +247,7 @@ pub fn flood_fill(
         return false;
     }
 
-    let target_color = canvas
-        .get_pixel(ux, uy)
-        .expect("bounds already validated");
+    let target_color = canvas.get_pixel(ux, uy).expect("bounds already validated");
     if target_color == fill_color {
         return false;
     }
@@ -506,9 +499,14 @@ mod tests {
         assert_eq!(
             points,
             vec![
-                (1, 1), (1, 2), (1, 3),
-                (2, 1), (2, 3),
-                (3, 1), (3, 2), (3, 3),
+                (1, 1),
+                (1, 2),
+                (1, 3),
+                (2, 1),
+                (2, 3),
+                (3, 1),
+                (3, 2),
+                (3, 3),
             ]
         );
     }
@@ -652,7 +650,16 @@ mod tests {
 
     #[test]
     fn ellipse_no_duplicate_pixels() {
-        for &(x1, y1) in &[(4, 4), (3, 3), (6, 4), (3, 4), (4, 3), (1, 1), (1, 2), (2, 1)] {
+        for &(x1, y1) in &[
+            (4, 4),
+            (3, 3),
+            (6, 4),
+            (3, 4),
+            (4, 3),
+            (1, 1),
+            (1, 2),
+            (2, 1),
+        ] {
             let points = ellipse_outline(0, 0, x1, y1);
             let mut sorted = points.clone();
             sorted.sort();
@@ -786,7 +793,11 @@ mod tests {
         // Fill starting at (0,0) — should only fill (0,0), not (1,1)
         assert!(flood_fill(&mut canvas, 0, 0, Color::new(0, 255, 0, 255)));
         assert_eq!(canvas.get_pixel(0, 0).unwrap(), Color::new(0, 255, 0, 255));
-        assert_eq!(canvas.get_pixel(1, 1).unwrap(), RED, "diagonal should not be filled");
+        assert_eq!(
+            canvas.get_pixel(1, 1).unwrap(),
+            RED,
+            "diagonal should not be filled"
+        );
     }
 
     #[test]

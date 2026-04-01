@@ -22,7 +22,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Create / resize | ✅ | ✅ | ✅ | 1–256px, presets available |
+| Create / resize | ✅ | ✅ | ✅ | 1–256px, presets available, 9-position anchor selector (Web) |
 | Clear | ✅ | ✅ | ⬜ | RightPanel (docked) + Settings tab (mobile) |
 
 ## History

@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 057 | [Canvas resize UX improvements](records/057-canvas-resize-ux.md) | 2026-04-02 |
 | 056 | [Design: canvas resize UX](records/056-design-canvas-resize-ux.md) | 2026-04-02 |
 | 055 | [Right-click draws with background color](records/055-right-click-background-color.md) | 2026-04-02 |
 | 054 | [Fix scrollbar on UI text selection](records/054-fix-scrollbar-text-selection.md) | 2026-04-02 |

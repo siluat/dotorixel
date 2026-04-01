@@ -32400,8 +32400,8 @@
     {
       "type": "frame",
       "id": "mbovM",
-      "x": 0,
-      "y": 5748,
+      "x": -430,
+      "y": 5731,
       "name": "Canvas Resize UX",
       "theme": {
         "mode": "light"
@@ -33413,14 +33413,40 @@
                               ]
                             },
                             {
-                              "type": "text",
-                              "id": "uzAFs",
-                              "name": "htB",
-                              "fill": "#B0503A",
-                              "content": "Must be between 1 and 128",
-                              "fontFamily": "Inter",
-                              "fontSize": 12,
-                              "fontWeight": "normal"
+                              "type": "frame",
+                              "id": "wb2xA",
+                              "name": "mAlertBar",
+                              "width": "fill_container",
+                              "fill": "#B0503A14",
+                              "cornerRadius": 8,
+                              "gap": 8,
+                              "padding": [
+                                10,
+                                12
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "rp4Wx",
+                                  "name": "mAlertIcon",
+                                  "width": 14,
+                                  "height": 14,
+                                  "iconFontName": "triangle-alert",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "#B0503A"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "SvcBh",
+                                  "name": "mAlertText",
+                                  "fill": "#B0503A",
+                                  "content": "Must be between 1 and 128",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
                             }
                           ]
                         }
@@ -33565,14 +33591,40 @@
                               ]
                             },
                             {
-                              "type": "text",
-                              "id": "QlyEZ",
-                              "name": "dhtB",
-                              "fill": "#B0503A",
-                              "content": "Must be between 1 and 128",
-                              "fontFamily": "Inter",
-                              "fontSize": 10,
-                              "fontWeight": "normal"
+                              "type": "frame",
+                              "id": "i5smL",
+                              "name": "dAlertBar",
+                              "width": "fill_container",
+                              "fill": "#B0503A14",
+                              "cornerRadius": 4,
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                8
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon_font",
+                                  "id": "7lHyj",
+                                  "name": "dAlertIcon",
+                                  "width": 12,
+                                  "height": 12,
+                                  "iconFontName": "triangle-alert",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "#B0503A"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "BC1H6",
+                                  "name": "dAlertText",
+                                  "fill": "#B0503A",
+                                  "content": "Must be between 1 and 128",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 10,
+                                  "fontWeight": "normal"
+                                }
+                              ]
                             }
                           ]
                         }
@@ -33841,13 +33893,40 @@
                       ]
                     },
                     {
-                      "type": "text",
-                      "id": "ix2G3",
-                      "fill": "#B0503A",
-                      "content": "Must be between 1 and 128",
-                      "fontFamily": "Inter",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
+                      "type": "frame",
+                      "id": "pvMmT",
+                      "name": "pvAlertBar",
+                      "width": "fill_container",
+                      "fill": "#B0503A14",
+                      "cornerRadius": 8,
+                      "gap": 8,
+                      "padding": [
+                        10,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "KuEYv",
+                          "name": "pvAlertIcon",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "triangle-alert",
+                          "iconFontFamily": "lucide",
+                          "fill": "#B0503A"
+                        },
+                        {
+                          "type": "text",
+                          "id": "LgleZ",
+                          "name": "pvAlertText",
+                          "fill": "#B0503A",
+                          "content": "Must be between 1 and 128",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     },
                     {
                       "type": "text",

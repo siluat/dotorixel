@@ -227,10 +227,7 @@ mod tests {
 
     #[test]
     fn from_hex_missing_hash() {
-        assert_eq!(
-            Color::from_hex("ff0000"),
-            Err(ColorParseError::MissingHash)
-        );
+        assert_eq!(Color::from_hex("ff0000"), Err(ColorParseError::MissingHash));
     }
 
     #[test]

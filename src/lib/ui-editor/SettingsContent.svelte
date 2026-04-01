@@ -2,36 +2,63 @@
 	import { WasmPixelCanvas } from '$wasm/dotorixel_wasm';
 	import { Download, Trash2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
+	import type { ResizeAnchor } from '$lib/canvas/view-types';
+	import ValidationAlert from './ValidationAlert.svelte';
+	import AnchorSelector from './AnchorSelector.svelte';
 
 	const CANVAS_PRESETS = Array.from(WasmPixelCanvas.presets());
+	const MIN_DIMENSION = WasmPixelCanvas.min_dimension();
 	const MAX_DIMENSION = WasmPixelCanvas.max_dimension();
 
 	interface Props {
 		canvasWidth: number;
 		canvasHeight: number;
 		showGrid: boolean;
+		resizeAnchor: ResizeAnchor;
 		onResize: (width: number, height: number) => void;
 		onExport: () => void;
 		onClear: () => void;
 		onGridToggle: () => void;
+		onAnchorChange: (anchor: ResizeAnchor) => void;
 	}
 
-	let { canvasWidth, canvasHeight, showGrid, onResize, onExport, onClear, onGridToggle }: Props =
-		$props();
+	let {
+		canvasWidth,
+		canvasHeight,
+		showGrid,
+		resizeAnchor,
+		onResize,
+		onExport,
+		onClear,
+		onGridToggle,
+		onAnchorChange
+	}: Props = $props();
 
 	let inputWidth = $state(0);
 	let inputHeight = $state(0);
+	let showValidation = $state(false);
 
 	$effect(() => {
 		inputWidth = canvasWidth;
 		inputHeight = canvasHeight;
+		showValidation = false;
 	});
 
+	function isValidDimension(value: number): boolean {
+		return Number.isInteger(value) && WasmPixelCanvas.is_valid_dimension(value);
+	}
+
+	let isWidthValid = $derived(isValidDimension(inputWidth));
+	let isHeightValid = $derived(isValidDimension(inputHeight));
+
 	function handleResizeCommit(): void {
-		const w = Math.max(1, Math.min(MAX_DIMENSION, inputWidth));
-		const h = Math.max(1, Math.min(MAX_DIMENSION, inputHeight));
-		if (w !== canvasWidth || h !== canvasHeight) {
-			onResize(w, h);
+		if (!isWidthValid || !isHeightValid) {
+			showValidation = true;
+			return;
+		}
+		showValidation = false;
+		if (inputWidth !== canvasWidth || inputHeight !== canvasHeight) {
+			onResize(inputWidth, inputHeight);
 		}
 	}
 
@@ -65,11 +92,13 @@
 					type="number"
 					inputmode="numeric"
 					class="size-input"
+					class:size-input--error={showValidation && !isWidthValid}
 					bind:value={inputWidth}
 					onblur={handleResizeCommit}
 					onkeydown={handleKeyDown}
 					min="1"
 					max={MAX_DIMENSION}
+					aria-invalid={showValidation && !isWidthValid}
 					title={m.canvas_width()}
 				/>
 			</div>
@@ -81,15 +110,21 @@
 					type="number"
 					inputmode="numeric"
 					class="size-input"
+					class:size-input--error={showValidation && !isHeightValid}
 					bind:value={inputHeight}
 					onblur={handleResizeCommit}
 					onkeydown={handleKeyDown}
 					min="1"
 					max={MAX_DIMENSION}
+					aria-invalid={showValidation && !isHeightValid}
 					title={m.canvas_height()}
 				/>
 			</div>
 		</div>
+		{#if showValidation}
+			<ValidationAlert message={m.validation_dimensionRange({ min: String(MIN_DIMENSION), max: String(MAX_DIMENSION) })} />
+		{/if}
+		<AnchorSelector selected={resizeAnchor} onSelect={onAnchorChange} />
 	</section>
 
 	<!-- Actions Section -->
@@ -126,6 +161,8 @@
 
 <style>
 	.settings-content {
+		--_error-color: #B0503A;
+
 		display: flex;
 		flex-direction: column;
 		gap: 24px;
@@ -214,6 +251,14 @@
 		border-color: var(--ds-accent);
 		border-width: 2px;
 		padding: 0 11px;
+	}
+
+	.size-input--error {
+		border-color: var(--_error-color);
+	}
+
+	.size-input--error:focus {
+		border-color: var(--_error-color);
 	}
 
 	.size-input::-webkit-inner-spin-button,

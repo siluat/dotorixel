@@ -2,11 +2,15 @@
 	import { WasmPixelCanvas } from '$wasm/dotorixel_wasm';
 	import { ArrowLeftRight } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
+	import type { ResizeAnchor } from '$lib/canvas/view-types';
 	import HsvPicker from '$lib/color-picker/HsvPicker.svelte';
 	import EditorSwatch from './EditorSwatch.svelte';
+	import ValidationAlert from './ValidationAlert.svelte';
+	import AnchorSelector from './AnchorSelector.svelte';
 	import { EDITOR_PALETTE } from './editor-palette-data';
 
 	const CANVAS_PRESETS = Array.from(WasmPixelCanvas.presets());
+	const MIN_DIMENSION = WasmPixelCanvas.min_dimension();
 	const MAX_DIMENSION = WasmPixelCanvas.max_dimension();
 
 	interface Props {
@@ -15,11 +19,13 @@
 		recentColors: string[];
 		canvasWidth: number;
 		canvasHeight: number;
+		resizeAnchor: ResizeAnchor;
 		onForegroundColorChange: (hex: string) => void;
 		onBackgroundColorChange: (hex: string) => void;
 		onSwapColors: () => void;
 		onResize: (width: number, height: number) => void;
 		onClear: () => void;
+		onAnchorChange: (anchor: ResizeAnchor) => void;
 	}
 
 	let {
@@ -28,21 +34,25 @@
 		recentColors,
 		canvasWidth,
 		canvasHeight,
+		resizeAnchor,
 		onForegroundColorChange,
 		onBackgroundColorChange,
 		onSwapColors,
 		onResize,
-		onClear
+		onClear,
+		onAnchorChange
 	}: Props = $props();
 
 	let inputWidth = $state(0);
 	let inputHeight = $state(0);
+	let showValidation = $state(false);
 	let colorSectionEl: HTMLElement | undefined = $state();
 	let pickerWidth = $state(200);
 
 	$effect(() => {
 		inputWidth = canvasWidth;
 		inputHeight = canvasHeight;
+		showValidation = false;
 	});
 
 	$effect(() => {
@@ -56,11 +66,21 @@
 		return () => ro.disconnect();
 	});
 
+	function isValidDimension(value: number): boolean {
+		return Number.isInteger(value) && WasmPixelCanvas.is_valid_dimension(value);
+	}
+
+	let isWidthValid = $derived(isValidDimension(inputWidth));
+	let isHeightValid = $derived(isValidDimension(inputHeight));
+
 	function handleResizeCommit(): void {
-		const w = Math.max(1, Math.min(MAX_DIMENSION, inputWidth));
-		const h = Math.max(1, Math.min(MAX_DIMENSION, inputHeight));
-		if (w !== canvasWidth || h !== canvasHeight) {
-			onResize(w, h);
+		if (!isWidthValid || !isHeightValid) {
+			showValidation = true;
+			return;
+		}
+		showValidation = false;
+		if (inputWidth !== canvasWidth || inputHeight !== canvasHeight) {
+			onResize(inputWidth, inputHeight);
 		}
 	}
 
@@ -91,11 +111,13 @@
 				type="number"
 				inputmode="numeric"
 				class="size-input"
+				class:size-input--error={showValidation && !isWidthValid}
 				bind:value={inputWidth}
 				onblur={handleResizeCommit}
 				onkeydown={handleKeyDown}
 				min="1"
 				max={MAX_DIMENSION}
+				aria-invalid={showValidation && !isWidthValid}
 				title={m.canvas_width()}
 			/>
 			<span class="size-x">&times;</span>
@@ -103,14 +125,20 @@
 				type="number"
 				inputmode="numeric"
 				class="size-input"
+				class:size-input--error={showValidation && !isHeightValid}
 				bind:value={inputHeight}
 				onblur={handleResizeCommit}
 				onkeydown={handleKeyDown}
 				min="1"
 				max={MAX_DIMENSION}
+				aria-invalid={showValidation && !isHeightValid}
 				title={m.canvas_height()}
 			/>
 		</div>
+		{#if showValidation}
+			<ValidationAlert message={m.validation_dimensionRange({ min: String(MIN_DIMENSION), max: String(MAX_DIMENSION) })} />
+		{/if}
+		<AnchorSelector selected={resizeAnchor} onSelect={onAnchorChange} />
 		<button class="clear-btn" onclick={onClear}>
 			{m.action_clearCanvas()}
 		</button>
@@ -174,6 +202,8 @@
 
 <style>
 	.right-panel {
+		--_error-color: #B0503A;
+
 		display: flex;
 		flex-direction: column;
 		gap: 16px;
@@ -257,6 +287,14 @@
 		border-color: var(--ds-accent);
 		border-width: 2px;
 		padding: 0 7px;
+	}
+
+	.size-input--error {
+		border-color: var(--_error-color);
+	}
+
+	.size-input--error:focus {
+		border-color: var(--_error-color);
 	}
 
 	.size-input::-webkit-inner-spin-button,

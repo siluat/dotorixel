@@ -4,18 +4,31 @@ import {
 	WasmHistoryManager,
 	WasmColor,
 	WasmToolType,
+	WasmResizeAnchor,
 	apply_tool,
 	wasm_interpolate_pixels,
 	wasm_rectangle_outline,
 	wasm_ellipse_outline,
 	wasm_flood_fill
 } from '$wasm/dotorixel_wasm';
-import type { CanvasCoords, ViewportSize, ViewportState } from './view-types';
+import type { CanvasCoords, ResizeAnchor, ViewportSize, ViewportState } from './view-types';
 import type { ToolType } from './tool-types';
 import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
 import { exportAsPng } from './export';
 import { ShapeHandler } from './shape-handler';
 import { constrainLine, constrainSquare } from './constrain';
+
+const RESIZE_ANCHOR_MAP: Record<ResizeAnchor, WasmResizeAnchor> = {
+	'top-left': WasmResizeAnchor.TopLeft,
+	'top-center': WasmResizeAnchor.TopCenter,
+	'top-right': WasmResizeAnchor.TopRight,
+	'middle-left': WasmResizeAnchor.MiddleLeft,
+	center: WasmResizeAnchor.Center,
+	'middle-right': WasmResizeAnchor.MiddleRight,
+	'bottom-left': WasmResizeAnchor.BottomLeft,
+	'bottom-center': WasmResizeAnchor.BottomCenter,
+	'bottom-right': WasmResizeAnchor.BottomRight
+};
 
 const TOOL_SHORTCUTS: Record<string, ToolType> = {
 	KeyP: 'pencil',
@@ -55,6 +68,7 @@ export class EditorState {
 	foregroundColor = $state<Color>({ r: 0, g: 0, b: 0, a: 255 });
 	backgroundColor = $state<Color>({ r: 255, g: 255, b: 255, a: 255 });
 	recentColors = $state<string[]>([]);
+	resizeAnchor = $state<ResizeAnchor>('top-left');
 
 	#history = WasmHistoryManager.default_manager();
 	#historyVersion = $state(0);
@@ -330,7 +344,11 @@ export class EditorState {
 
 	handleResize = (newWidth: number, newHeight: number): void => {
 		if (newWidth === this.pixelCanvas.width && newHeight === this.pixelCanvas.height) return;
-		this.pixelCanvas = this.pixelCanvas.resize(newWidth, newHeight);
+		this.pixelCanvas = this.pixelCanvas.resize_with_anchor(
+			newWidth,
+			newHeight,
+			RESIZE_ANCHOR_MAP[this.resizeAnchor]
+		);
 		const clamped = this.viewportState.viewport.clamp_pan(
 			newWidth,
 			newHeight,

@@ -1,5 +1,16 @@
 import type { WasmViewport } from '$wasm/dotorixel_wasm';
 
+export type ResizeAnchor =
+	| 'top-left'
+	| 'top-center'
+	| 'top-right'
+	| 'middle-left'
+	| 'center'
+	| 'middle-right'
+	| 'bottom-left'
+	| 'bottom-center'
+	| 'bottom-right';
+
 export interface CanvasCoords {
 	readonly x: number;
 	readonly y: number;

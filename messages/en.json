@@ -53,6 +53,19 @@
 
 	"label_export": "Export",
 	"label_showGrid": "Show Grid",
+	"label_anchor": "Anchor",
+
+	"validation_dimensionRange": "Must be between {min} and {max}",
+
+	"anchor_topLeft": "Top left",
+	"anchor_topCenter": "Top center",
+	"anchor_topRight": "Top right",
+	"anchor_middleLeft": "Middle left",
+	"anchor_center": "Center",
+	"anchor_middleRight": "Middle right",
+	"anchor_bottomLeft": "Bottom left",
+	"anchor_bottomCenter": "Bottom center",
+	"anchor_bottomRight": "Bottom right",
 
 	"landing_tagline": "Pixel Art Editor",
 	"landing_description": "Create pixel art right in your browser.",

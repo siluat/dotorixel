@@ -7,7 +7,7 @@ pub mod export;
 pub mod history;
 pub mod tool;
 pub mod viewport;
-pub use canvas::PixelCanvasError;
+pub use canvas::{PixelCanvasError, ResizeAnchor};
 pub use color::ColorParseError;
 pub use export::{ExportError, PngExport};
 pub use history::HistoryManager;

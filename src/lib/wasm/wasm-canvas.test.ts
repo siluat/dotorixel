@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { WasmPixelCanvas, WasmColor } from '$wasm/dotorixel_wasm';
+import { WasmPixelCanvas, WasmColor, WasmResizeAnchor } from '$wasm/dotorixel_wasm';
 
 describe('WasmPixelCanvas', () => {
 	it('creates a canvas with given dimensions', () => {
@@ -75,10 +75,10 @@ describe('WasmPixelCanvas', () => {
 
 	it('exposes dimension constants', () => {
 		expect(WasmPixelCanvas.min_dimension()).toBe(1);
-		expect(WasmPixelCanvas.max_dimension()).toBe(128);
+		expect(WasmPixelCanvas.max_dimension()).toBe(256);
 		expect(WasmPixelCanvas.is_valid_dimension(32)).toBe(true);
 		expect(WasmPixelCanvas.is_valid_dimension(0)).toBe(false);
-		expect(WasmPixelCanvas.is_valid_dimension(129)).toBe(false);
+		expect(WasmPixelCanvas.is_valid_dimension(257)).toBe(false);
 	});
 
 	it('returns presets as a typed array', () => {
@@ -89,7 +89,7 @@ describe('WasmPixelCanvas', () => {
 
 	it('throws on invalid dimensions', () => {
 		expect(() => new WasmPixelCanvas(0, 10)).toThrow();
-		expect(() => new WasmPixelCanvas(10, 200)).toThrow();
+		expect(() => new WasmPixelCanvas(10, 257)).toThrow();
 	});
 
 	it('throws on out-of-bounds pixel access', () => {
@@ -117,5 +117,32 @@ describe('WasmPixelCanvas', () => {
 		const canvas = new WasmPixelCanvas(2, 2);
 		const wrongSize = new Uint8Array(8);
 		expect(() => canvas.restore_pixels(wrongSize)).toThrow();
+	});
+
+	it('resizes with center anchor placing content in the middle', () => {
+		const red = new WasmColor(255, 0, 0, 255);
+		const canvas = WasmPixelCanvas.with_color(4, 4, red);
+		const resized = canvas.resize_with_anchor(8, 8, WasmResizeAnchor.Center);
+
+		expect(resized.width).toBe(8);
+		expect(resized.height).toBe(8);
+
+		// Center anchor: offset = (8-4)*1/2 = 2, so RED at (2,2)-(5,5)
+		const centerPixel = resized.get_pixel(3, 3);
+		expect(centerPixel.r).toBe(255);
+		expect(centerPixel.a).toBe(255);
+
+		// Corner should be transparent
+		const cornerPixel = resized.get_pixel(0, 0);
+		expect(cornerPixel.a).toBe(0);
+	});
+
+	it('resizes with top-left anchor matching legacy resize', () => {
+		const red = new WasmColor(255, 0, 0, 255);
+		const canvas = WasmPixelCanvas.with_color(4, 4, red);
+		const legacy = canvas.resize(8, 8);
+		const anchored = canvas.resize_with_anchor(8, 8, WasmResizeAnchor.TopLeft);
+
+		expect(legacy.pixels()).toEqual(anchored.pixels());
 	});
 });

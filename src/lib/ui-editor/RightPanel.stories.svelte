@@ -3,6 +3,8 @@
 	import RightPanel from './RightPanel.svelte';
 
 	const { Story } = defineMeta({});
+
+	const noop = () => {};
 </script>
 
 <Story name="Default">
@@ -13,11 +15,13 @@
 			recentColors={['#2D210F', '#EF4444', '#3B82F6']}
 			canvasWidth={32}
 			canvasHeight={32}
-			onForegroundColorChange={() => {}}
-			onBackgroundColorChange={() => {}}
-			onSwapColors={() => {}}
-			onResize={() => {}}
-			onClear={() => {}}
+			resizeAnchor="top-left"
+			onForegroundColorChange={noop}
+			onBackgroundColorChange={noop}
+			onSwapColors={noop}
+			onResize={noop}
+			onClear={noop}
+			onAnchorChange={noop}
 		/>
 	</div>
 </Story>
@@ -30,11 +34,13 @@
 			recentColors={[]}
 			canvasWidth={16}
 			canvasHeight={16}
-			onForegroundColorChange={() => {}}
-			onBackgroundColorChange={() => {}}
-			onSwapColors={() => {}}
-			onResize={() => {}}
-			onClear={() => {}}
+			resizeAnchor="center"
+			onForegroundColorChange={noop}
+			onBackgroundColorChange={noop}
+			onSwapColors={noop}
+			onResize={noop}
+			onClear={noop}
+			onAnchorChange={noop}
 		/>
 	</div>
 </Story>

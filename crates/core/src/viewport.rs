@@ -185,7 +185,10 @@ impl Viewport {
         let (min_pan_y, max_pan_y) = if canvas_display_height <= viewport_size.height {
             (0.0, viewport_size.height - canvas_display_height)
         } else {
-            (margin - canvas_display_height, viewport_size.height - margin)
+            (
+                margin - canvas_display_height,
+                viewport_size.height - margin,
+            )
         };
 
         Self {
@@ -262,41 +265,71 @@ mod tests {
     fn display_size_from_canvas_dimensions_and_pixel_size() {
         let vp = default_test_viewport();
         let size = vp.display_size(16, 16);
-        assert_eq!(size, ViewportSize { width: 512.0, height: 512.0 });
+        assert_eq!(
+            size,
+            ViewportSize {
+                width: 512.0,
+                height: 512.0
+            }
+        );
     }
 
     #[test]
     fn display_size_with_different_pixel_size() {
         let vp = make_viewport(10, 1.0, 0.0, 0.0);
         let size = vp.display_size(8, 8);
-        assert_eq!(size, ViewportSize { width: 80.0, height: 80.0 });
+        assert_eq!(
+            size,
+            ViewportSize {
+                width: 80.0,
+                height: 80.0
+            }
+        );
     }
 
     #[test]
     fn display_size_accounts_for_zoom() {
         let vp = make_viewport(32, 2.0, 0.0, 0.0);
         let size = vp.display_size(16, 16);
-        assert_eq!(size, ViewportSize { width: 1024.0, height: 1024.0 });
+        assert_eq!(
+            size,
+            ViewportSize {
+                width: 1024.0,
+                height: 1024.0
+            }
+        );
     }
 
     // ── effective_pixel_size ────────────────────────────────────
 
     #[test]
     fn effective_pixel_size_basic() {
-        assert_eq!(make_viewport(32, 2.0, 0.0, 0.0).effective_pixel_size(), 64.0);
+        assert_eq!(
+            make_viewport(32, 2.0, 0.0, 0.0).effective_pixel_size(),
+            64.0
+        );
     }
 
     #[test]
     fn effective_pixel_size_fractional_zoom() {
-        assert_eq!(make_viewport(32, 0.5, 0.0, 0.0).effective_pixel_size(), 16.0);
+        assert_eq!(
+            make_viewport(32, 0.5, 0.0, 0.0).effective_pixel_size(),
+            16.0
+        );
     }
 
     #[test]
     fn effective_pixel_size_rounds_for_continuous_zoom() {
         // 32 * 1.284 = 41.088 → 41
-        assert_eq!(make_viewport(32, 1.284, 0.0, 0.0).effective_pixel_size(), 41.0);
+        assert_eq!(
+            make_viewport(32, 1.284, 0.0, 0.0).effective_pixel_size(),
+            41.0
+        );
         // 32 * 1.3 = 41.6 → 42
-        assert_eq!(make_viewport(32, 1.3, 0.0, 0.0).effective_pixel_size(), 42.0);
+        assert_eq!(
+            make_viewport(32, 1.3, 0.0, 0.0).effective_pixel_size(),
+            42.0
+        );
     }
 
     // ── screen_to_canvas ────────────────────────────────────────
@@ -311,50 +344,83 @@ mod tests {
     fn screen_to_canvas_within_pixel() {
         let vp = default_test_viewport();
         assert_eq!(vp.screen_to_canvas(1.0, 1.0), ScreenCanvasCoords::new(0, 0));
-        assert_eq!(vp.screen_to_canvas(31.0, 31.0), ScreenCanvasCoords::new(0, 0));
+        assert_eq!(
+            vp.screen_to_canvas(31.0, 31.0),
+            ScreenCanvasCoords::new(0, 0)
+        );
     }
 
     #[test]
     fn screen_to_canvas_pixel_boundary() {
         let vp = default_test_viewport();
-        assert_eq!(vp.screen_to_canvas(32.0, 0.0), ScreenCanvasCoords::new(1, 0));
-        assert_eq!(vp.screen_to_canvas(0.0, 32.0), ScreenCanvasCoords::new(0, 1));
+        assert_eq!(
+            vp.screen_to_canvas(32.0, 0.0),
+            ScreenCanvasCoords::new(1, 0)
+        );
+        assert_eq!(
+            vp.screen_to_canvas(0.0, 32.0),
+            ScreenCanvasCoords::new(0, 1)
+        );
     }
 
     #[test]
     fn screen_to_canvas_different_pixel_size() {
         let vp = make_viewport(10, 1.0, 0.0, 0.0);
-        assert_eq!(vp.screen_to_canvas(25.0, 15.0), ScreenCanvasCoords::new(2, 1));
+        assert_eq!(
+            vp.screen_to_canvas(25.0, 15.0),
+            ScreenCanvasCoords::new(2, 1)
+        );
     }
 
     #[test]
     fn screen_to_canvas_floors_fractional_coordinates() {
         let vp = default_test_viewport();
-        assert_eq!(vp.screen_to_canvas(33.7, 65.9), ScreenCanvasCoords::new(1, 2));
+        assert_eq!(
+            vp.screen_to_canvas(33.7, 65.9),
+            ScreenCanvasCoords::new(1, 2)
+        );
     }
 
     #[test]
     fn screen_to_canvas_accounts_for_zoom() {
         let vp = make_viewport(32, 2.0, 0.0, 0.0);
         // effective_pixel_size = 64
-        assert_eq!(vp.screen_to_canvas(64.0, 0.0), ScreenCanvasCoords::new(1, 0));
-        assert_eq!(vp.screen_to_canvas(63.0, 0.0), ScreenCanvasCoords::new(0, 0));
+        assert_eq!(
+            vp.screen_to_canvas(64.0, 0.0),
+            ScreenCanvasCoords::new(1, 0)
+        );
+        assert_eq!(
+            vp.screen_to_canvas(63.0, 0.0),
+            ScreenCanvasCoords::new(0, 0)
+        );
     }
 
     #[test]
     fn screen_to_canvas_accounts_for_pan() {
         let vp = make_viewport(32, 1.0, 100.0, 50.0);
-        assert_eq!(vp.screen_to_canvas(100.0, 50.0), ScreenCanvasCoords::new(0, 0));
-        assert_eq!(vp.screen_to_canvas(132.0, 50.0), ScreenCanvasCoords::new(1, 0));
+        assert_eq!(
+            vp.screen_to_canvas(100.0, 50.0),
+            ScreenCanvasCoords::new(0, 0)
+        );
+        assert_eq!(
+            vp.screen_to_canvas(132.0, 50.0),
+            ScreenCanvasCoords::new(1, 0)
+        );
     }
 
     #[test]
     fn screen_to_canvas_zoom_and_pan_combined() {
         let vp = make_viewport(32, 2.0, 50.0, 50.0);
         // eps = 64, (50 - 50) / 64 = 0
-        assert_eq!(vp.screen_to_canvas(50.0, 50.0), ScreenCanvasCoords::new(0, 0));
+        assert_eq!(
+            vp.screen_to_canvas(50.0, 50.0),
+            ScreenCanvasCoords::new(0, 0)
+        );
         // (114 - 50) / 64 = 1
-        assert_eq!(vp.screen_to_canvas(114.0, 50.0), ScreenCanvasCoords::new(1, 0));
+        assert_eq!(
+            vp.screen_to_canvas(114.0, 50.0),
+            ScreenCanvasCoords::new(1, 0)
+        );
     }
 
     // ── for_canvas ──────────────────────────────────────────────
@@ -444,7 +510,10 @@ mod tests {
     // X bounds: 0 ≤ panX ≤ 800-512 = 288
     // Y bounds: 0 ≤ panY ≤ 600-512 = 88
 
-    const VP_SIZE: ViewportSize = ViewportSize { width: 800.0, height: 600.0 };
+    const VP_SIZE: ViewportSize = ViewportSize {
+        width: 800.0,
+        height: 600.0,
+    };
 
     #[test]
     fn clamp_pan_unchanged_when_within_bounds() {
@@ -564,8 +633,15 @@ mod tests {
     #[test]
     fn fit_to_viewport_centers_canvas() {
         let vp = default_test_viewport();
-        let result =
-            vp.fit_to_viewport(16, 16, ViewportSize { width: 800.0, height: 600.0 }, f64::INFINITY);
+        let result = vp.fit_to_viewport(
+            16,
+            16,
+            ViewportSize {
+                width: 800.0,
+                height: 600.0,
+            },
+            f64::INFINITY,
+        );
 
         let eps = result.effective_pixel_size();
         let display_width = 16.0 * eps;
@@ -581,7 +657,10 @@ mod tests {
     #[test]
     fn fit_to_viewport_fits_canvas_within_bounds() {
         let vp = default_test_viewport();
-        let viewport_size = ViewportSize { width: 400.0, height: 300.0 };
+        let viewport_size = ViewportSize {
+            width: 400.0,
+            height: 300.0,
+        };
         let result = vp.fit_to_viewport(16, 16, viewport_size, f64::INFINITY);
 
         let eps = 32.0 * result.zoom;
@@ -592,7 +671,10 @@ mod tests {
     #[test]
     fn fit_to_viewport_does_not_enlarge_when_max_zoom_capped() {
         let vp = default_test_viewport(); // pixel_size=32, 16×16 → display 512×512
-        let viewport_size = ViewportSize { width: 800.0, height: 600.0 };
+        let viewport_size = ViewportSize {
+            width: 800.0,
+            height: 600.0,
+        };
         let result = vp.fit_to_viewport(16, 16, viewport_size, 1.0);
 
         assert!(result.zoom <= 1.0);
@@ -604,7 +686,10 @@ mod tests {
     #[test]
     fn fit_to_viewport_shrinks_regardless_of_max_zoom() {
         let vp = default_test_viewport(); // pixel_size=32, 16×16 → display 512×512
-        let viewport_size = ViewportSize { width: 400.0, height: 300.0 };
+        let viewport_size = ViewportSize {
+            width: 400.0,
+            height: 300.0,
+        };
         let result = vp.fit_to_viewport(16, 16, viewport_size, 1.0);
 
         // Should still shrink to fit the smaller viewport
@@ -693,11 +778,17 @@ mod tests {
 
     #[test]
     fn compute_pinch_zoom_clamps_to_min() {
-        assert_eq!(Viewport::compute_pinch_zoom(Viewport::MIN_ZOOM, 10000.0), Viewport::MIN_ZOOM);
+        assert_eq!(
+            Viewport::compute_pinch_zoom(Viewport::MIN_ZOOM, 10000.0),
+            Viewport::MIN_ZOOM
+        );
     }
 
     #[test]
     fn compute_pinch_zoom_clamps_to_max() {
-        assert_eq!(Viewport::compute_pinch_zoom(Viewport::MAX_ZOOM, -10000.0), Viewport::MAX_ZOOM);
+        assert_eq!(
+            Viewport::compute_pinch_zoom(Viewport::MAX_ZOOM, -10000.0),
+            Viewport::MAX_ZOOM
+        );
     }
 }

@@ -1,10 +1,12 @@
 use wasm_bindgen::prelude::*;
 
-use dotorixel_core::canvas::PixelCanvas;
+use dotorixel_core::canvas::{PixelCanvas, ResizeAnchor};
 use dotorixel_core::color::Color;
 use dotorixel_core::export::PngExport;
 use dotorixel_core::history::HistoryManager;
-use dotorixel_core::tool::{ellipse_outline, flood_fill, interpolate_pixels, rectangle_outline, ToolType};
+use dotorixel_core::tool::{
+    ToolType, ellipse_outline, flood_fill, interpolate_pixels, rectangle_outline,
+};
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
 
 // ---------------------------------------------------------------------------
@@ -148,6 +150,19 @@ impl WasmPixelCanvas {
         Ok(WasmPixelCanvas { inner: canvas })
     }
 
+    pub fn resize_with_anchor(
+        &self,
+        new_width: u32,
+        new_height: u32,
+        anchor: WasmResizeAnchor,
+    ) -> Result<WasmPixelCanvas, JsError> {
+        let canvas = self
+            .inner
+            .resize_with_anchor(new_width, new_height, anchor.to_core())
+            .map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(WasmPixelCanvas { inner: canvas })
+    }
+
     // --- Constants as static methods ---
 
     pub fn min_dimension() -> u32 {
@@ -170,6 +185,40 @@ impl WasmPixelCanvas {
         self.inner
             .encode_png()
             .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// WasmResizeAnchor
+// ---------------------------------------------------------------------------
+
+#[wasm_bindgen]
+#[derive(Debug, Clone, Copy)]
+pub enum WasmResizeAnchor {
+    TopLeft = 0,
+    TopCenter = 1,
+    TopRight = 2,
+    MiddleLeft = 3,
+    Center = 4,
+    MiddleRight = 5,
+    BottomLeft = 6,
+    BottomCenter = 7,
+    BottomRight = 8,
+}
+
+impl WasmResizeAnchor {
+    fn to_core(self) -> ResizeAnchor {
+        match self {
+            WasmResizeAnchor::TopLeft => ResizeAnchor::TopLeft,
+            WasmResizeAnchor::TopCenter => ResizeAnchor::TopCenter,
+            WasmResizeAnchor::TopRight => ResizeAnchor::TopRight,
+            WasmResizeAnchor::MiddleLeft => ResizeAnchor::MiddleLeft,
+            WasmResizeAnchor::Center => ResizeAnchor::Center,
+            WasmResizeAnchor::MiddleRight => ResizeAnchor::MiddleRight,
+            WasmResizeAnchor::BottomLeft => ResizeAnchor::BottomLeft,
+            WasmResizeAnchor::BottomCenter => ResizeAnchor::BottomCenter,
+            WasmResizeAnchor::BottomRight => ResizeAnchor::BottomRight,
+        }
     }
 }
 
@@ -418,12 +467,7 @@ impl WasmViewport {
         }
     }
 
-    pub fn zoom_at_point(
-        &self,
-        screen_x: f64,
-        screen_y: f64,
-        new_zoom: f64,
-    ) -> WasmViewport {
+    pub fn zoom_at_point(&self, screen_x: f64, screen_y: f64, new_zoom: f64) -> WasmViewport {
         WasmViewport {
             inner: self.inner.zoom_at_point(screen_x, screen_y, new_zoom),
         }

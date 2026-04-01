@@ -53,6 +53,19 @@
 
 	"label_export": "내보내기",
 	"label_showGrid": "격자 표시",
+	"label_anchor": "기준점",
+
+	"validation_dimensionRange": "{min}에서 {max} 사이여야 합니다",
+
+	"anchor_topLeft": "왼쪽 위",
+	"anchor_topCenter": "가운데 위",
+	"anchor_topRight": "오른쪽 위",
+	"anchor_middleLeft": "왼쪽 가운데",
+	"anchor_center": "가운데",
+	"anchor_middleRight": "오른쪽 가운데",
+	"anchor_bottomLeft": "왼쪽 아래",
+	"anchor_bottomCenter": "가운데 아래",
+	"anchor_bottomRight": "오른쪽 아래",
 
 	"landing_tagline": "픽셀 아트 에디터",
 	"landing_description": "브라우저에서 바로 픽셀 아트를 그려보세요.",

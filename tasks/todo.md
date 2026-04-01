@@ -10,7 +10,6 @@
 
 ### Canvas resize UX
 
-- Canvas resize UX improvements (validation alert for out-of-range input + anchor direction selector)
 - Undo/Redo support for canvas resize
 
 ### Keyboard & toolbar UX

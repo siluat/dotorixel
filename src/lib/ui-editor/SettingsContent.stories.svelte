@@ -3,6 +3,8 @@
 	import SettingsContent from './SettingsContent.svelte';
 
 	const { Story } = defineMeta({});
+
+	const noop = () => {};
 </script>
 
 <Story name="Default">
@@ -11,10 +13,12 @@
 			canvasWidth={32}
 			canvasHeight={32}
 			showGrid={true}
-			onResize={() => {}}
-			onExport={() => {}}
-			onClear={() => {}}
-			onGridToggle={() => {}}
+			resizeAnchor="top-left"
+			onResize={noop}
+			onExport={noop}
+			onClear={noop}
+			onGridToggle={noop}
+			onAnchorChange={noop}
 		/>
 	</div>
 </Story>
@@ -25,10 +29,12 @@
 			canvasWidth={128}
 			canvasHeight={64}
 			showGrid={false}
-			onResize={() => {}}
-			onExport={() => {}}
-			onClear={() => {}}
-			onGridToggle={() => {}}
+			resizeAnchor="center"
+			onResize={noop}
+			onExport={noop}
+			onClear={noop}
+			onGridToggle={noop}
+			onAnchorChange={noop}
 		/>
 	</div>
 </Story>

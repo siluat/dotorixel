@@ -2,6 +2,56 @@ use std::fmt;
 
 use crate::color::Color;
 
+/// Anchor position for canvas resize operations.
+///
+/// Determines where existing pixel content is placed within the resized canvas.
+/// For example, `Center` places existing content in the middle of the new canvas,
+/// adding (or removing) equal space on all sides.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
+pub enum ResizeAnchor {
+    #[default]
+    TopLeft,
+    TopCenter,
+    TopRight,
+    MiddleLeft,
+    Center,
+    MiddleRight,
+    BottomLeft,
+    BottomCenter,
+    BottomRight,
+}
+
+impl ResizeAnchor {
+    /// Returns the (x, y) pixel offset for placing source content in the destination canvas.
+    ///
+    /// Uses integer factors (0, 1, 2) divided by 2 to avoid floating point.
+    /// For odd deltas, integer division truncates toward zero — this is standard
+    /// pixel editor behavior (matches Aseprite).
+    fn content_offset(
+        self,
+        old_width: u32,
+        old_height: u32,
+        new_width: u32,
+        new_height: u32,
+    ) -> (i32, i32) {
+        let dw = new_width as i32 - old_width as i32;
+        let dh = new_height as i32 - old_height as i32;
+        let (fx, fy) = match self {
+            Self::TopLeft => (0, 0),
+            Self::TopCenter => (1, 0),
+            Self::TopRight => (2, 0),
+            Self::MiddleLeft => (0, 1),
+            Self::Center => (1, 1),
+            Self::MiddleRight => (2, 1),
+            Self::BottomLeft => (0, 2),
+            Self::BottomCenter => (1, 2),
+            Self::BottomRight => (2, 2),
+        };
+        (dw * fx / 2, dh * fy / 2)
+    }
+}
+
 /// Canvas pixel coordinates.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
@@ -81,7 +131,7 @@ pub struct PixelCanvas {
 
 impl PixelCanvas {
     pub const MIN_DIMENSION: u32 = 1;
-    pub const MAX_DIMENSION: u32 = 128;
+    pub const MAX_DIMENSION: u32 = 256;
     pub const PRESETS: &[u32] = &[8, 16, 32, 64];
 
     /// Returns `true` if the given value is a valid canvas dimension.
@@ -211,15 +261,43 @@ impl PixelCanvas {
 
     /// Returns a new canvas with the given dimensions, copying overlapping
     /// pixel data from the original. The source canvas is not modified.
+    /// Content is anchored to the top-left corner.
     pub fn resize(&self, new_width: u32, new_height: u32) -> Result<Self, PixelCanvasError> {
+        self.resize_with_anchor(new_width, new_height, ResizeAnchor::TopLeft)
+    }
+
+    /// Returns a new canvas with the given dimensions, placing existing content
+    /// according to the specified anchor position.
+    pub fn resize_with_anchor(
+        &self,
+        new_width: u32,
+        new_height: u32,
+        anchor: ResizeAnchor,
+    ) -> Result<Self, PixelCanvasError> {
         let mut dest = Self::new(new_width, new_height)?;
-        let copy_width = self.width.min(new_width) as usize;
-        let copy_height = self.height.min(new_height) as usize;
-        for y in 0..copy_height {
-            let src_offset = y * self.width as usize * 4;
-            let dest_offset = y * new_width as usize * 4;
-            dest.pixels[dest_offset..dest_offset + copy_width * 4]
-                .copy_from_slice(&self.pixels[src_offset..src_offset + copy_width * 4]);
+        let (offset_x, offset_y) =
+            anchor.content_offset(self.width, self.height, new_width, new_height);
+
+        for src_y in 0..self.height {
+            let dest_y = src_y as i32 + offset_y;
+            if dest_y < 0 || dest_y >= new_height as i32 {
+                continue;
+            }
+
+            // Determine the overlapping x range for row-level bulk copy
+            let src_x_start = 0.max(-offset_x) as u32;
+            let src_x_end = self.width.min((new_width as i32 - offset_x) as u32);
+            if src_x_start >= src_x_end {
+                continue;
+            }
+
+            let dest_x_start = (src_x_start as i32 + offset_x) as u32;
+            let copy_len = (src_x_end - src_x_start) as usize * 4;
+
+            let src_offset = self.pixel_index(src_x_start, src_y);
+            let dest_offset = (dest_y as u32 * new_width + dest_x_start) as usize * 4;
+            dest.pixels[dest_offset..dest_offset + copy_len]
+                .copy_from_slice(&self.pixels[src_offset..src_offset + copy_len]);
         }
         Ok(dest)
     }
@@ -288,16 +366,16 @@ mod tests {
     #[test]
     fn new_rejects_width_above_max() {
         assert_eq!(
-            PixelCanvas::new(129, 8),
-            Err(PixelCanvasError::InvalidDimension { value: 129 })
+            PixelCanvas::new(257, 8),
+            Err(PixelCanvasError::InvalidDimension { value: 257 })
         );
     }
 
     #[test]
     fn new_rejects_height_above_max() {
         assert_eq!(
-            PixelCanvas::new(8, 129),
-            Err(PixelCanvasError::InvalidDimension { value: 129 })
+            PixelCanvas::new(8, 257),
+            Err(PixelCanvasError::InvalidDimension { value: 257 })
         );
     }
 
@@ -449,7 +527,7 @@ mod tests {
 
     #[test]
     fn is_valid_dimension_accepts_valid_values() {
-        for value in [1, 8, 64, 128] {
+        for value in [1, 8, 64, 256] {
             assert!(PixelCanvas::is_valid_dimension(value));
         }
     }
@@ -457,7 +535,7 @@ mod tests {
     #[test]
     fn is_valid_dimension_rejects_invalid_values() {
         assert!(!PixelCanvas::is_valid_dimension(0));
-        assert!(!PixelCanvas::is_valid_dimension(129));
+        assert!(!PixelCanvas::is_valid_dimension(257));
     }
 
     // ── clear ───────────────────────────────────────────────────
@@ -478,12 +556,17 @@ mod tests {
     #[test]
     fn restore_pixels_replaces_buffer() {
         let mut canvas = PixelCanvas::new(2, 2).unwrap();
-        let data = vec![255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 128, 128, 128, 255];
+        let data = vec![
+            255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 128, 128, 128, 255,
+        ];
         canvas.restore_pixels(&data).unwrap();
         assert_eq!(canvas.get_pixel(0, 0).unwrap(), Color::new(255, 0, 0, 255));
         assert_eq!(canvas.get_pixel(1, 0).unwrap(), Color::new(0, 255, 0, 255));
         assert_eq!(canvas.get_pixel(0, 1).unwrap(), Color::new(0, 0, 255, 255));
-        assert_eq!(canvas.get_pixel(1, 1).unwrap(), Color::new(128, 128, 128, 255));
+        assert_eq!(
+            canvas.get_pixel(1, 1).unwrap(),
+            Color::new(128, 128, 128, 255)
+        );
     }
 
     #[test]
@@ -586,8 +669,8 @@ mod tests {
             Err(PixelCanvasError::InvalidDimension { value: 0 })
         );
         assert_eq!(
-            source.resize(8, 129),
-            Err(PixelCanvasError::InvalidDimension { value: 129 })
+            source.resize(8, 257),
+            Err(PixelCanvasError::InvalidDimension { value: 257 })
         );
     }
 
@@ -613,7 +696,7 @@ mod tests {
         let err = PixelCanvasError::InvalidDimension { value: 0 };
         assert_eq!(
             err.to_string(),
-            "Canvas dimension 0 is out of valid range [1, 128]"
+            "Canvas dimension 0 is out of valid range [1, 256]"
         );
     }
 
@@ -621,6 +704,147 @@ mod tests {
     fn error_implements_std_error() {
         let err = PixelCanvasError::InvalidDimension { value: 0 };
         let _dyn_err: &dyn std::error::Error = &err;
+    }
+
+    // ── resize_with_anchor ────────────────────────────────────
+
+    #[test]
+    fn resize_with_anchor_top_left_matches_legacy_resize() {
+        let source = PixelCanvas::with_color(4, 4, RED).unwrap();
+        let legacy = source.resize(8, 8).unwrap();
+        let anchored = source
+            .resize_with_anchor(8, 8, ResizeAnchor::TopLeft)
+            .unwrap();
+        assert_eq!(legacy.pixels(), anchored.pixels());
+    }
+
+    #[test]
+    fn resize_with_anchor_center_expanding() {
+        let source = PixelCanvas::with_color(4, 4, RED).unwrap();
+        let result = source
+            .resize_with_anchor(8, 8, ResizeAnchor::Center)
+            .unwrap();
+        // 4→8 = delta 4, offset = 4*1/2 = 2
+        // RED should be at (2,2) to (5,5)
+        for y in 0..8 {
+            for x in 0..8 {
+                let expected = if (2..6).contains(&x) && (2..6).contains(&y) {
+                    RED
+                } else {
+                    Color::TRANSPARENT
+                };
+                assert_eq!(result.get_pixel(x, y).unwrap(), expected, "at ({x}, {y})");
+            }
+        }
+    }
+
+    #[test]
+    fn resize_with_anchor_bottom_right_expanding() {
+        let source = PixelCanvas::with_color(4, 4, RED).unwrap();
+        let result = source
+            .resize_with_anchor(8, 8, ResizeAnchor::BottomRight)
+            .unwrap();
+        // 4→8 = delta 4, offset = 4*2/2 = 4
+        // RED should be at (4,4) to (7,7)
+        for y in 0..8 {
+            for x in 0..8 {
+                let expected = if x >= 4 && y >= 4 {
+                    RED
+                } else {
+                    Color::TRANSPARENT
+                };
+                assert_eq!(result.get_pixel(x, y).unwrap(), expected, "at ({x}, {y})");
+            }
+        }
+    }
+
+    #[test]
+    fn resize_with_anchor_center_shrinking() {
+        // 8x8 canvas, mark center 4x4 as RED
+        let mut source = PixelCanvas::new(8, 8).unwrap();
+        for y in 2..6 {
+            for x in 2..6 {
+                source.set_pixel(x, y, RED).unwrap();
+            }
+        }
+        let result = source
+            .resize_with_anchor(4, 4, ResizeAnchor::Center)
+            .unwrap();
+        // 8→4 = delta -4, offset = -4*1/2 = -2
+        // Source pixels at (2,2)-(5,5) map to dest (0,0)-(3,3)
+        for y in 0..4 {
+            for x in 0..4 {
+                assert_eq!(result.get_pixel(x, y).unwrap(), RED, "at ({x}, {y})");
+            }
+        }
+    }
+
+    #[test]
+    fn resize_with_anchor_top_right_shrinking() {
+        // 8x8 RED canvas, shrink to 4x4 with TopRight anchor
+        let source = PixelCanvas::with_color(8, 8, RED).unwrap();
+        let result = source
+            .resize_with_anchor(4, 4, ResizeAnchor::TopRight)
+            .unwrap();
+        // 8→4 = delta -4, x offset = -4*2/2 = -4, y offset = 0
+        // Clips 4 columns from left, 4 rows from bottom
+        // Source pixels at (4,0)-(7,3) map to dest (0,0)-(3,3)
+        for y in 0..4 {
+            for x in 0..4 {
+                assert_eq!(result.get_pixel(x, y).unwrap(), RED, "at ({x}, {y})");
+            }
+        }
+    }
+
+    #[test]
+    fn resize_with_anchor_asymmetric() {
+        // 4x4 RED → 7x5, Center anchor
+        let source = PixelCanvas::with_color(4, 4, RED).unwrap();
+        let result = source
+            .resize_with_anchor(7, 5, ResizeAnchor::Center)
+            .unwrap();
+        // x: 7-4=3, offset=3*1/2=1 (truncated), so RED at x [1..5)
+        // y: 5-4=1, offset=1*1/2=0 (truncated), so RED at y [0..4)
+        for y in 0..5 {
+            for x in 0..7 {
+                let expected = if (1..5).contains(&x) && y < 4 {
+                    RED
+                } else {
+                    Color::TRANSPARENT
+                };
+                assert_eq!(result.get_pixel(x, y).unwrap(), expected, "at ({x}, {y})");
+            }
+        }
+    }
+
+    #[test]
+    fn resize_with_anchor_1x1_center_expand() {
+        let source = PixelCanvas::with_color(1, 1, RED).unwrap();
+        let result = source
+            .resize_with_anchor(5, 5, ResizeAnchor::Center)
+            .unwrap();
+        // 1→5 = delta 4, offset = 4*1/2 = 2
+        assert_eq!(result.get_pixel(2, 2).unwrap(), RED);
+        assert_eq!(result.get_pixel(0, 0).unwrap(), Color::TRANSPARENT);
+        assert_eq!(result.get_pixel(4, 4).unwrap(), Color::TRANSPARENT);
+    }
+
+    #[test]
+    fn resize_with_anchor_default_is_top_left() {
+        assert_eq!(ResizeAnchor::default(), ResizeAnchor::TopLeft);
+    }
+
+    #[test]
+    fn resize_with_anchor_rejects_invalid_dimensions() {
+        let source = PixelCanvas::new(8, 8).unwrap();
+        assert_eq!(
+            source.resize_with_anchor(0, 8, ResizeAnchor::Center),
+            Err(PixelCanvasError::InvalidDimension { value: 0 })
+        );
+        assert_eq!(
+            source.resize_with_anchor(8, 257, ResizeAnchor::Center),
+            Err(PixelCanvasError::InvalidDimension { value: 257 })
+        );
     }
 
     // ── CanvasCoords ────────────────────────────────────────────

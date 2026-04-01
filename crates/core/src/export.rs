@@ -32,11 +32,9 @@ impl PngExport for PixelCanvas {
             encoder.set_color(png::ColorType::Rgba);
             encoder.set_depth(png::BitDepth::Eight);
 
-            let mut writer = encoder
-                .write_header()
-                .map_err(|e| ExportError::PngEncode {
-                    message: e.to_string(),
-                })?;
+            let mut writer = encoder.write_header().map_err(|e| ExportError::PngEncode {
+                message: e.to_string(),
+            })?;
 
             writer
                 .write_image_data(self.pixels())

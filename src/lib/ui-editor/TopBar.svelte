@@ -76,7 +76,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 var(--ds-space-5);
+		padding: env(safe-area-inset-top, 0px) var(--ds-space-5) 0;
 		background: var(--ds-bg-surface);
 		border-bottom: 1px solid var(--ds-border-subtle);
 	}

@@ -39,13 +39,15 @@
 	.tab-bar {
 		display: flex;
 		justify-content: center;
-		padding: 8px 16px 20px 16px;
+		padding: 8px 16px;
+		padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
 		flex-shrink: 0;
 	}
 
 	@media (min-width: 600px) {
 		.tab-bar {
 			padding: 8px 16px;
+			padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
 		}
 	}
 

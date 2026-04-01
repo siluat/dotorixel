@@ -4,11 +4,7 @@
 	import * as m from '$lib/paraglide/messages';
 	import { createWheelInputClassifier } from './wheel-input.ts';
 	import { renderPixelCanvas } from './renderer.ts';
-
-	type InteractionMode =
-		| { readonly type: 'idle' }
-		| { type: 'drawing'; lastPixel: CanvasCoords | null }
-		| { type: 'panning'; startX: number; startY: number };
+	import { createCanvasInteraction } from './canvas-interaction.svelte';
 
 	interface Props {
 		pixelCanvas: WasmPixelCanvas;
@@ -46,8 +42,24 @@
 	}: Props = $props();
 
 	let canvasEl: HTMLCanvasElement | undefined = $state();
-	let interaction = $state<InteractionMode>({ type: 'idle' });
 	const classifyWheelInput = createWheelInputClassifier();
+
+	const canvasInteraction = createCanvasInteraction(
+		{
+			screenToCanvas: (x, y) => {
+				const coords = viewportState.viewport.screen_to_canvas(x, y);
+				return { x: coords.x, y: coords.y };
+			},
+			getViewport: () => viewportState.viewport,
+			isSpaceHeld: () => isSpaceHeld
+		},
+		{
+			onDrawStart: () => onDrawStart?.(),
+			onDraw: (c, p) => onDraw?.(c, p),
+			onDrawEnd: () => onDrawEnd?.(),
+			onViewportChange: (vp) => onViewportChange?.(vp)
+		}
+	);
 
 	$effect(() => {
 		if (!canvasEl) return;
@@ -108,89 +120,46 @@
 	});
 
 	const cursorStyle = $derived(
-		interaction.type === 'panning' ? 'grabbing' : isSpaceHeld ? 'grab' : toolCursor
+		canvasInteraction.interactionType === 'panning'
+			? 'grabbing'
+			: isSpaceHeld
+				? 'grab'
+				: toolCursor
 	);
 
-	function getCanvasCoords(event: PointerEvent): CanvasCoords {
+	function toLocal(event: PointerEvent): { x: number; y: number } {
 		const rect = canvasEl!.getBoundingClientRect();
-		const coords = viewportState.viewport.screen_to_canvas(
-			event.clientX - rect.left,
-			event.clientY - rect.top
-		);
-		return { x: coords.x, y: coords.y };
-	}
-
-	function drawAt(coords: CanvasCoords): void {
-		if (interaction.type !== 'drawing') return;
-		const lastPixel = interaction.lastPixel;
-		if (lastPixel && coords.x === lastPixel.x && coords.y === lastPixel.y) return;
-		interaction.lastPixel = coords;
-		onDraw?.(coords, lastPixel);
+		return { x: event.clientX - rect.left, y: event.clientY - rect.top };
 	}
 
 	function handlePointerDown(event: PointerEvent): void {
-		if (interaction.type !== 'idle') return;
-
-		const isMiddleClick = event.button === 1;
-		const isLeftClick = event.button === 0;
-
-		if (isMiddleClick) {
-			event.preventDefault();
-			interaction = { type: 'panning', startX: event.clientX, startY: event.clientY };
-			return;
-		}
-
-		if (!isLeftClick) return;
-
-		if (isSpaceHeld) {
-			interaction = { type: 'panning', startX: event.clientX, startY: event.clientY };
-			return;
-		}
-
-		interaction = { type: 'drawing', lastPixel: null };
-		onDrawStart?.();
-		drawAt(getCanvasCoords(event));
+		if (event.button === 1) event.preventDefault();
+		const { x, y } = toLocal(event);
+		canvasInteraction.pointerDown(x, y, event.button);
 	}
 
 	function handlePointerMove(event: PointerEvent): void {
-		if (interaction.type !== 'drawing') return;
-		drawAt(getCanvasCoords(event));
+		const { x, y } = toLocal(event);
+		canvasInteraction.pointerMove(x, y);
 	}
 
 	function handleWindowPointerMove(event: PointerEvent): void {
-		if (interaction.type !== 'panning') return;
-		const hasNoButtonsPressed = event.buttons === 0;
-		if (hasNoButtonsPressed) {
-			interaction = { type: 'idle' };
-			return;
-		}
-		const deltaX = event.clientX - interaction.startX;
-		const deltaY = event.clientY - interaction.startY;
-		interaction.startX = event.clientX;
-		interaction.startY = event.clientY;
-		onViewportChange?.(viewportState.viewport.pan(deltaX, deltaY));
+		if (!canvasEl) return;
+		const { x, y } = toLocal(event);
+		canvasInteraction.windowPointerMove(x, y, event.buttons);
 	}
 
 	function handlePointerUp(): void {
-		if (interaction.type === 'drawing') {
-			onDrawEnd?.();
-		}
-		interaction = { type: 'idle' };
+		canvasInteraction.pointerUp();
 	}
 
 	function handlePointerLeave(event: PointerEvent): void {
-		if (interaction.type === 'drawing') {
-			drawAt(getCanvasCoords(event));
-			onDrawEnd?.();
-			interaction = { type: 'idle' };
-		}
+		const { x, y } = toLocal(event);
+		canvasInteraction.pointerLeave(x, y);
 	}
 
 	function handleWindowBlur(): void {
-		if (interaction.type === 'drawing') {
-			onDrawEnd?.();
-		}
-		interaction = { type: 'idle' };
+		canvasInteraction.blur();
 	}
 </script>
 

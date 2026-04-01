@@ -179,15 +179,26 @@ describe('pinching', () => {
 		expect(interaction.interactionType).toBe('pinching');
 	});
 
-	it('cancels committed drawing when second pointer arrives', () => {
+	it('cancels drawing when second touch pointer arrives', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+		interaction.pointerMove(60, 60);
+
+		interaction.pointerDown(2, 200, 200, 'touch', 0);
+
+		expect(callbacks.onDrawEnd).toHaveBeenCalledOnce();
+		expect(interaction.interactionType).toBe('pinching');
+	});
+
+	it('mouse drawing continues when touch pointer arrives', () => {
 		const { interaction, callbacks } = setup();
 		interaction.pointerDown(1, 50, 50, 'mouse', 0);
 		expect(callbacks.onDrawStart).toHaveBeenCalledOnce();
 
 		interaction.pointerDown(2, 200, 200, 'touch', 0);
 
-		expect(callbacks.onDrawEnd).toHaveBeenCalledOnce();
-		expect(interaction.interactionType).toBe('pinching');
+		expect(callbacks.onDrawEnd).not.toHaveBeenCalled();
+		expect(interaction.interactionType).toBe('drawing');
 	});
 
 	it('window pointer move during pinch calls onViewportChange', () => {

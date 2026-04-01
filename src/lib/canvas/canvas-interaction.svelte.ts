@@ -45,7 +45,7 @@ export function createCanvasInteraction(
 	callbacks: CanvasInteractionCallbacks
 ): CanvasInteraction {
 	let interaction = $state<InteractionMode>({ type: 'idle' });
-	const activePointers = new Map<number, { x: number; y: number }>();
+	const activePointers = new Map<number, { x: number; y: number; pointerType: string }>();
 
 	function drawAt(coords: CanvasCoords): void {
 		if (interaction.type !== 'drawing') return;
@@ -68,15 +68,20 @@ export function createCanvasInteraction(
 		return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 	}
 
-	function getTwoPointers(): [{ x: number; y: number }, { x: number; y: number }] | null {
-		if (activePointers.size < 2) return null;
-		const iter = activePointers.values();
-		return [iter.next().value!, iter.next().value!];
+	function getTwoTouchPointers(): [{ x: number; y: number }, { x: number; y: number }] | null {
+		const touches: { x: number; y: number }[] = [];
+		for (const p of activePointers.values()) {
+			if (p.pointerType === 'touch') {
+				touches.push(p);
+				if (touches.length === 2) return [touches[0], touches[1]];
+			}
+		}
+		return null;
 	}
 
 	function tryEnterPinching(): boolean {
 		if (interaction.type === 'pinching') return true;
-		const points = getTwoPointers();
+		const points = getTwoTouchPointers();
 		if (!points) return false;
 		const [a, b] = points;
 		const distance = pointerDistance(a, b);
@@ -107,9 +112,9 @@ export function createCanvasInteraction(
 			pointerType: string,
 			button: number
 		): void {
-			activePointers.set(id, { x, y });
+			activePointers.set(id, { x, y, pointerType });
 
-			if (activePointers.size >= 2) {
+			if (getTwoTouchPointers() !== null) {
 				if (interaction.type === 'drawing') {
 					if (interaction.pendingCoords === null) {
 						callbacks.onDrawEnd();
@@ -159,16 +164,18 @@ export function createCanvasInteraction(
 
 		windowPointerMove(id: number, x: number, y: number, buttons: number): void {
 			if (activePointers.has(id)) {
-				activePointers.set(id, { x, y });
+				const p = activePointers.get(id)!;
+				p.x = x;
+				p.y = y;
 			}
 
-			// Deferred pinch entry: 2 pointers down but not yet pinching
-			if (activePointers.size >= 2 && interaction.type !== 'pinching') {
+			// Deferred pinch entry: 2 touch pointers down but not yet pinching
+			if (getTwoTouchPointers() !== null && interaction.type !== 'pinching') {
 				if (tryEnterPinching()) return;
 			}
 
 			if (interaction.type === 'pinching') {
-				const points = getTwoPointers();
+				const points = getTwoTouchPointers();
 				if (!points) return;
 				const [a, b] = points;
 

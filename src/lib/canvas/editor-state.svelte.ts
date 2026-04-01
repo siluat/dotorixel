@@ -35,7 +35,7 @@ function isShapeTool(tool: ToolType): tool is ShapeToolType {
 
 function isTextInputTarget(target: EventTarget | null): boolean {
 	if (typeof HTMLElement === 'undefined' || !(target instanceof HTMLElement)) return false;
-	return target.closest('input, select, textarea, [contenteditable="true"]') !== null;
+	return target.closest('input, select, textarea, [contenteditable]:not([contenteditable="false"])') !== null;
 }
 
 export interface EditorOptions {

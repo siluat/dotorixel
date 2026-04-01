@@ -10,7 +10,6 @@
 
 ### Canvas resize UX
 
-- Design: canvas resize UX — anchor direction selector component + validation alert UI (.pen)
 - Canvas resize UX improvements (validation alert for out-of-range input + anchor direction selector)
 - Undo/Redo support for canvas resize
 

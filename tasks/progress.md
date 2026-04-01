@@ -6,12 +6,12 @@ None
 
 ## Last Completed
 
-Right-click draws with background color
+Design: canvas resize UX — anchor direction selector component + validation alert UI (.pen)
 
 ## Next Up
 
-- Design: canvas resize UX (.pen)
-  - M2 design task. Independent, gates canvas resize implementation.
+- Canvas resize UX improvements (validation alert for out-of-range input + anchor direction selector)
+  - M2 canvas feature. Now unblocked by the completed design task.
 - Review keyboard shortcut assignments
   - M2 keyboard UX. Independent, gates tooltip implementation.
 - Eyedropper via Option+click (desktop) / long-press (touch devices)

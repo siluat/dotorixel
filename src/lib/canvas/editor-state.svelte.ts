@@ -33,9 +33,9 @@ function isShapeTool(tool: ToolType): tool is ShapeToolType {
 	return tool === 'line' || tool === 'rectangle' || tool === 'ellipse';
 }
 
-function isInteractiveTarget(target: EventTarget | null): boolean {
+function isTextInputTarget(target: EventTarget | null): boolean {
 	if (typeof HTMLElement === 'undefined' || !(target instanceof HTMLElement)) return false;
-	return target.closest('button, input, select, textarea, [contenteditable="true"]') !== null;
+	return target.closest('input, select, textarea, [contenteditable="true"]') !== null;
 }
 
 export interface EditorOptions {
@@ -331,7 +331,7 @@ export class EditorState {
 	};
 
 	handleKeyDown = (event: KeyboardEvent): void => {
-		if (isInteractiveTarget(event.target)) return;
+		if (isTextInputTarget(event.target)) return;
 
 		if (event.code === 'Slash') {
 			event.preventDefault();

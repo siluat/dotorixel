@@ -4,7 +4,6 @@
 
 ### Usability fixes
 
-- Fix keyboard shortcuts not working after clicking action buttons (focus issue)
 - Fix scrollbar appearing on UI text selection
 
 ### Core tool additions

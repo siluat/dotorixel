@@ -61,7 +61,7 @@
 			editor.viewportSize = { width: w, height: h };
 			if (needsInitialFit) {
 				needsInitialFit = false;
-				editor.handleFit();
+				editor.handleFit(1.0);
 			}
 		});
 		ro.observe(canvasContainerEl);

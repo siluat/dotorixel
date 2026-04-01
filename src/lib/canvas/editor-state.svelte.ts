@@ -277,12 +277,13 @@ export class EditorState {
 		this.handleViewportChange(zoomed);
 	};
 
-	handleFit = (): void => {
+	handleFit = (maxZoom: number = Infinity): void => {
 		const fitted = this.viewportState.viewport.fit_to_viewport(
 			this.pixelCanvas.width,
 			this.pixelCanvas.height,
 			this.viewportSize.width,
-			this.viewportSize.height
+			this.viewportSize.height,
+			maxZoom
 		);
 		this.viewportState = { ...this.viewportState, viewport: fitted };
 	};

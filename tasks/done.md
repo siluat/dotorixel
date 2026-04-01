@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 052 | [Fix initial canvas auto-zoom](records/052-fix-initial-canvas-auto-zoom.md) | 2026-04-02 |
 | 051 | [Safe area and virtual keyboard handling](records/051-safe-area-virtual-keyboard.md) | 2026-04-01 |
 | 050 | [Touch pinch-zoom and two-finger pan (rework)](records/050-touch-pinch-zoom-rework.md) | 2026-04-01 |
 | 049 | [Extract canvas interaction state machine](records/049-extract-canvas-interaction.md) | 2026-04-01 |

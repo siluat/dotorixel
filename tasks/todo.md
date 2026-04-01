@@ -4,7 +4,6 @@
 
 ### Usability fixes
 
-- Fix initial canvas auto-zoom (only shrink-to-fit, not enlarge)
 - Fix keyboard shortcuts not working after clicking action buttons (focus issue)
 - Fix scrollbar appearing on UI text selection
 

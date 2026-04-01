@@ -457,6 +457,7 @@ impl WasmViewport {
         canvas_height: u32,
         viewport_width: f64,
         viewport_height: f64,
+        max_zoom: f64,
     ) -> WasmViewport {
         let vs = ViewportSize {
             width: viewport_width,
@@ -465,7 +466,7 @@ impl WasmViewport {
         WasmViewport {
             inner: self
                 .inner
-                .fit_to_viewport(canvas_width, canvas_height, vs),
+                .fit_to_viewport(canvas_width, canvas_height, vs, max_zoom),
         }
     }
 

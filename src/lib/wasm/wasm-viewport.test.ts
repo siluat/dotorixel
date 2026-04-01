@@ -66,7 +66,7 @@ describe('WasmViewport', () => {
 
 	it('fits canvas to viewport', () => {
 		const vp = new WasmViewport(16, 1.0, 100.0, 100.0);
-		const fitted = vp.fit_to_viewport(32, 32, 800.0, 600.0);
+		const fitted = vp.fit_to_viewport(32, 32, 800.0, 600.0, Infinity);
 		expect(fitted.zoom).toBeGreaterThan(0);
 	});
 

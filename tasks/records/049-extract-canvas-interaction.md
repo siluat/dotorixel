@@ -134,4 +134,4 @@ Edge cases:
 
 ### Notes
 
-- PR #81 (`feat/touch-pinch-zoom-pan`) will be superseded by a new PR after this refactoring merges. The pinch-zoom feature + first-pixel bug fix will be implemented using the extracted module. See `project_pinch_zoom_bug.md` in memory for the bug fix approach.
+- PR #81 (`feat/touch-pinch-zoom-pan`) will be superseded by a new PR after this refactoring merges. The pinch-zoom feature + first-pixel bug fix will be implemented using the extracted module. The fix approach: defer first pixel for touch input via `pendingCoords` — store coords on touch pointerdown without calling onDrawStart/onDraw, commit on first pointermove or pointerup (tap), discard on 2nd pointer (pinch).

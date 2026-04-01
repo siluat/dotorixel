@@ -90,9 +90,46 @@ describe('drawing', () => {
 		expect(interaction.interactionType).toBe('idle');
 	});
 
-	it('right click does not start drawing', () => {
+	it('right click starts drawing', () => {
 		const { interaction, callbacks } = setup();
 		interaction.pointerDown(1, 50, 50, 'mouse', 2);
+
+		expect(callbacks.onDrawStart).toHaveBeenCalledOnce();
+		expect(callbacks.onDrawStart).toHaveBeenCalledWith(2);
+		expect(callbacks.onDraw).toHaveBeenCalledOnce();
+		expect(interaction.interactionType).toBe('drawing');
+	});
+
+	it('left click passes button 0 to onDrawStart', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'mouse', 0);
+
+		expect(callbacks.onDrawStart).toHaveBeenCalledWith(0);
+	});
+
+	it('right click drawing continues with pointer move', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 0, 0, 'mouse', 2);
+
+		interaction.pointerMove(32, 0);
+
+		expect(callbacks.onDraw).toHaveBeenCalledTimes(2);
+		expect(callbacks.onDraw).toHaveBeenLastCalledWith({ x: 1, y: 0 }, { x: 0, y: 0 });
+	});
+
+	it('right click drawing ends on pointer up', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'mouse', 2);
+
+		interaction.pointerUp(1, 50, 50);
+
+		expect(callbacks.onDrawEnd).toHaveBeenCalledOnce();
+		expect(interaction.interactionType).toBe('idle');
+	});
+
+	it('button 3 does not start drawing', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'mouse', 3);
 
 		expect(callbacks.onDrawStart).not.toHaveBeenCalled();
 		expect(interaction.interactionType).toBe('idle');
@@ -129,6 +166,14 @@ describe('panning', () => {
 		const { interaction, setSpaceHeld } = setup();
 		setSpaceHeld(true);
 		interaction.pointerDown(1, 100, 100, 'mouse', 0);
+
+		expect(interaction.interactionType).toBe('panning');
+	});
+
+	it('space + right click starts panning', () => {
+		const { interaction, setSpaceHeld } = setup();
+		setSpaceHeld(true);
+		interaction.pointerDown(1, 100, 100, 'mouse', 2);
 
 		expect(interaction.interactionType).toBe('panning');
 	});
@@ -299,6 +344,7 @@ describe('touch deferral', () => {
 		interaction.pointerUp(1, 50, 50);
 
 		expect(callbacks.onDrawStart).toHaveBeenCalledOnce();
+		expect(callbacks.onDrawStart).toHaveBeenCalledWith(0);
 		expect(callbacks.onDraw).toHaveBeenCalledOnce();
 		expect(callbacks.onDrawEnd).toHaveBeenCalledOnce();
 	});

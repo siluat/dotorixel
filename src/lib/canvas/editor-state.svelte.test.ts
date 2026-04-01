@@ -18,7 +18,7 @@ const TRANSPARENT = { r: 0, g: 0, b: 0, a: 0 };
 
 function drawLine(editor: EditorState, from: CanvasCoords, to: CanvasCoords) {
 	editor.activeTool = 'line';
-	editor.handleDrawStart();
+	editor.handleDrawStart(0);
 	editor.handleDraw(from, null);
 	editor.handleDraw(to, from);
 	editor.handleDrawEnd();
@@ -26,7 +26,7 @@ function drawLine(editor: EditorState, from: CanvasCoords, to: CanvasCoords) {
 
 function drawRectangle(editor: EditorState, from: CanvasCoords, to: CanvasCoords) {
 	editor.activeTool = 'rectangle';
-	editor.handleDrawStart();
+	editor.handleDrawStart(0);
 	editor.handleDraw(from, null);
 	editor.handleDraw(to, from);
 	editor.handleDrawEnd();
@@ -34,7 +34,7 @@ function drawRectangle(editor: EditorState, from: CanvasCoords, to: CanvasCoords
 
 function drawEllipse(editor: EditorState, from: CanvasCoords, to: CanvasCoords) {
 	editor.activeTool = 'ellipse';
-	editor.handleDrawStart();
+	editor.handleDrawStart(0);
 	editor.handleDraw(from, null);
 	editor.handleDraw(to, from);
 	editor.handleDrawEnd();
@@ -54,7 +54,7 @@ describe('EditorState — line tool', () => {
 	it('does not leave intermediate preview artifacts', () => {
 		const editor = createEditor();
 		editor.activeTool = 'line';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 
 		const start: CanvasCoords = { x: 0, y: 0 };
 		editor.handleDraw(start, null);
@@ -132,7 +132,7 @@ describe('EditorState — rectangle tool', () => {
 	it('does not leave intermediate preview artifacts', () => {
 		const editor = createEditor();
 		editor.activeTool = 'rectangle';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 
 		const start: CanvasCoords = { x: 0, y: 0 };
 		editor.handleDraw(start, null);
@@ -205,7 +205,7 @@ describe('EditorState — ellipse tool', () => {
 	it('does not leave intermediate preview artifacts', () => {
 		const editor = createEditor();
 		editor.activeTool = 'ellipse';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 
 		const start: CanvasCoords = { x: 0, y: 0 };
 		editor.handleDraw(start, null);
@@ -260,14 +260,14 @@ describe('EditorState — eyedropper tool', () => {
 		const red = { r: 255, g: 0, b: 0, a: 255 };
 		editor.foregroundColor = red;
 		editor.activeTool = 'pencil';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 3, y: 3 }, null);
 		editor.handleDrawEnd();
 
 		// Switch to eyedropper and pick the red pixel
 		editor.foregroundColor = BLACK;
 		editor.activeTool = 'eyedropper';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 3, y: 3 }, null);
 		editor.handleDrawEnd();
 
@@ -277,7 +277,7 @@ describe('EditorState — eyedropper tool', () => {
 	it('does not change foregroundColor when picking a transparent pixel', () => {
 		const editor = createEditor();
 		editor.activeTool = 'eyedropper';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 		editor.handleDrawEnd();
 
@@ -289,7 +289,7 @@ describe('EditorState — eyedropper tool', () => {
 
 		// Paint a pixel first so canUndo becomes true, then undo to reset
 		editor.activeTool = 'pencil';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 		editor.handleDrawEnd();
 		editor.handleUndo();
@@ -297,7 +297,7 @@ describe('EditorState — eyedropper tool', () => {
 
 		// Use eyedropper — should not create an undo entry
 		editor.activeTool = 'eyedropper';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 		editor.handleDrawEnd();
 
@@ -309,14 +309,14 @@ describe('EditorState — eyedropper tool', () => {
 		const green = { r: 0, g: 128, b: 0, a: 255 };
 		editor.foregroundColor = green;
 		editor.activeTool = 'pencil';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 2, y: 2 }, null);
 		editor.handleDrawEnd();
 
 		editor.recentColors = [];
 		editor.foregroundColor = BLACK;
 		editor.activeTool = 'eyedropper';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 2, y: 2 }, null);
 		editor.handleDrawEnd();
 
@@ -430,7 +430,7 @@ describe('EditorState — tool shortcuts', () => {
 	it('ignores tool shortcuts while drawing', () => {
 		const editor = createEditor();
 		editor.activeTool = 'pencil';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 		editor.handleKeyDown(keyDown('KeyE'));
 		expect(editor.activeTool).toBe('pencil');
@@ -441,7 +441,7 @@ describe('EditorState — tool shortcuts', () => {
 		const editor = createEditor();
 		const initial = editor.viewportState.showGrid;
 		editor.activeTool = 'pencil';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 		editor.handleKeyDown(keyDown('KeyG'));
 		expect(editor.viewportState.showGrid).toBe(!initial);
@@ -472,7 +472,7 @@ describe('EditorState — shortcuts with focused elements', () => {
 		const editor = createEditor();
 		const button = document.createElement('button');
 		editor.activeTool = 'pencil';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 		editor.handleDrawEnd();
 
@@ -545,7 +545,7 @@ describe('EditorState — Alt eyedropper', () => {
 	it('does not switch tool when Alt is pressed during drawing', () => {
 		const editor = createEditor();
 		editor.activeTool = 'pencil';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 
 		editor.handleKeyDown(keyDown('AltLeft'));
@@ -563,7 +563,7 @@ describe('EditorState — Alt eyedropper', () => {
 		expect(editor.activeTool).toBe('eyedropper');
 
 		// Start drawing with eyedropper
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 
 		// Release Alt while drawing → should NOT restore yet
 		editor.handleKeyUp(keyUp('AltLeft'));
@@ -582,7 +582,7 @@ describe('EditorState — Alt eyedropper', () => {
 		expect(editor.activeTool).toBe('eyedropper');
 
 		// Click with eyedropper while Alt held
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 		editor.handleDrawEnd();
 
@@ -720,7 +720,7 @@ describe('EditorState — X swap colors shortcut', () => {
 	it('works during drawing', () => {
 		const editor = createEditor();
 		editor.activeTool = 'pencil';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 
 		const fgBefore = { ...editor.foregroundColor };
@@ -773,7 +773,7 @@ describe('EditorState — Space pan mode', () => {
 	it('ignores Space when drawing', () => {
 		const editor = createEditor();
 		editor.activeTool = 'pencil';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 
 		editor.handleKeyDown(keyDown('Space'));
@@ -812,7 +812,7 @@ describe('EditorState — Shift constrain', () => {
 		editor.activeTool = 'line';
 
 		editor.handleKeyDown(keyDown('ShiftLeft'));
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 		editor.handleDraw({ x: 5, y: 1 }, { x: 0, y: 0 });
 		editor.handleDrawEnd();
@@ -828,7 +828,7 @@ describe('EditorState — Shift constrain', () => {
 		editor.activeTool = 'line';
 
 		editor.handleKeyDown(keyDown('ShiftLeft'));
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 		editor.handleDraw({ x: 1, y: 5 }, { x: 0, y: 0 });
 		editor.handleDrawEnd();
@@ -844,7 +844,7 @@ describe('EditorState — Shift constrain', () => {
 		editor.activeTool = 'line';
 
 		editor.handleKeyDown(keyDown('ShiftLeft'));
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 		editor.handleDraw({ x: 4, y: 3 }, { x: 0, y: 0 });
 		editor.handleDrawEnd();
@@ -868,7 +868,7 @@ describe('EditorState — Shift constrain', () => {
 		editor.activeTool = 'rectangle';
 
 		editor.handleKeyDown(keyDown('ShiftLeft'));
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 		editor.handleDraw({ x: 3, y: 2 }, { x: 0, y: 0 });
 		editor.handleDrawEnd();
@@ -884,7 +884,7 @@ describe('EditorState — Shift constrain', () => {
 		editor.activeTool = 'ellipse';
 
 		editor.handleKeyDown(keyDown('ShiftLeft'));
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 		editor.handleDraw({ x: 6, y: 4 }, { x: 0, y: 0 });
 		editor.handleDrawEnd();
@@ -922,7 +922,7 @@ describe('EditorState — Shift constrain', () => {
 	it('updates preview immediately when Shift is toggled during drawing', () => {
 		const editor = createEditor();
 		editor.activeTool = 'line';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 		editor.handleDraw({ x: 5, y: 1 }, { x: 0, y: 0 });
 
@@ -948,7 +948,7 @@ describe('EditorState — Shift constrain', () => {
 		editor.activeTool = 'pencil';
 
 		editor.handleKeyDown(keyDown('ShiftLeft'));
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 3, y: 5 }, null);
 		editor.handleDrawEnd();
 		editor.handleKeyUp(keyUp('ShiftLeft'));
@@ -962,7 +962,7 @@ describe('EditorState — Shift constrain', () => {
 
 		// Paint a pixel first
 		editor.activeTool = 'pencil';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 3, y: 3 }, null);
 		editor.handleDrawEnd();
 		expect(getPixel(editor, 3, 3)).toEqual(BLACK);
@@ -970,7 +970,7 @@ describe('EditorState — Shift constrain', () => {
 		// Erase with Shift held
 		editor.activeTool = 'eraser';
 		editor.handleKeyDown(keyDown('ShiftLeft'));
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 3, y: 3 }, null);
 		editor.handleDrawEnd();
 		editor.handleKeyUp(keyUp('ShiftLeft'));
@@ -1019,7 +1019,7 @@ describe('EditorState — shortcut hints (/ key)', () => {
 	it('does not show hints while drawing', () => {
 		const editor = createEditor();
 		editor.activeTool = 'pencil';
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 
 		editor.handleKeyDown(keyDown('Slash'));
@@ -1034,7 +1034,7 @@ describe('EditorState — shortcut hints (/ key)', () => {
 		expect(editor.shortcutHintsVisible).toBe(true);
 
 		// Attempt to draw — should be blocked
-		editor.handleDrawStart();
+		editor.handleDrawStart(0);
 		editor.handleDraw({ x: 0, y: 0 }, null);
 		editor.handleDrawEnd();
 
@@ -1049,5 +1049,125 @@ describe('EditorState — shortcut hints (/ key)', () => {
 
 		editor.handleBlur();
 		expect(editor.shortcutHintsVisible).toBe(false);
+	});
+});
+
+describe('EditorState — right-click draws with background color', () => {
+	it('pencil right-click draws with background color', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(2);
+		editor.handleDraw({ x: 3, y: 3 }, null);
+		editor.handleDrawEnd();
+
+		expect(getPixel(editor, 3, 3)).toEqual(WHITE);
+	});
+
+	it('pencil left-click still draws with foreground color', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(0);
+		editor.handleDraw({ x: 3, y: 3 }, null);
+		editor.handleDrawEnd();
+
+		expect(getPixel(editor, 3, 3)).toEqual(BLACK);
+	});
+
+	it('eraser is unchanged on right-click', () => {
+		const editor = createEditor();
+		// Paint a pixel first
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(0);
+		editor.handleDraw({ x: 2, y: 2 }, null);
+		editor.handleDrawEnd();
+		expect(getPixel(editor, 2, 2)).toEqual(BLACK);
+
+		// Right-click eraser should still erase to transparent
+		editor.activeTool = 'eraser';
+		editor.handleDrawStart(2);
+		editor.handleDraw({ x: 2, y: 2 }, null);
+		editor.handleDrawEnd();
+
+		expect(getPixel(editor, 2, 2)).toEqual(TRANSPARENT);
+	});
+
+	it('flood fill right-click uses background color', () => {
+		const editor = createEditor();
+		editor.activeTool = 'floodfill';
+		editor.handleDrawStart(2);
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDrawEnd();
+
+		expect(getPixel(editor, 0, 0)).toEqual(WHITE);
+		expect(getPixel(editor, 7, 7)).toEqual(WHITE);
+	});
+
+	it('line right-click draws with background color', () => {
+		const editor = createEditor();
+		editor.activeTool = 'line';
+		editor.handleDrawStart(2);
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDraw({ x: 3, y: 0 }, { x: 0, y: 0 });
+		editor.handleDrawEnd();
+
+		expect(getPixel(editor, 0, 0)).toEqual(WHITE);
+		expect(getPixel(editor, 1, 0)).toEqual(WHITE);
+		expect(getPixel(editor, 2, 0)).toEqual(WHITE);
+		expect(getPixel(editor, 3, 0)).toEqual(WHITE);
+	});
+
+	it('rectangle right-click draws with background color', () => {
+		const editor = createEditor();
+		editor.activeTool = 'rectangle';
+		editor.handleDrawStart(2);
+		editor.handleDraw({ x: 1, y: 1 }, null);
+		editor.handleDraw({ x: 3, y: 3 }, { x: 1, y: 1 });
+		editor.handleDrawEnd();
+
+		expect(getPixel(editor, 1, 1)).toEqual(WHITE);
+		expect(getPixel(editor, 3, 3)).toEqual(WHITE);
+	});
+
+	it('ellipse right-click draws with background color', () => {
+		const editor = createEditor();
+		editor.activeTool = 'ellipse';
+		editor.handleDrawStart(2);
+		editor.handleDraw({ x: 1, y: 1 }, null);
+		editor.handleDraw({ x: 5, y: 5 }, { x: 1, y: 1 });
+		editor.handleDrawEnd();
+
+		expect(getPixel(editor, 3, 1)).toEqual(WHITE); // top
+		expect(getPixel(editor, 1, 3)).toEqual(WHITE); // left
+	});
+
+	it('eyedropper right-click sets background color', () => {
+		const editor = createEditor();
+		const red = { r: 255, g: 0, b: 0, a: 255 };
+		editor.foregroundColor = red;
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(0);
+		editor.handleDraw({ x: 3, y: 3 }, null);
+		editor.handleDrawEnd();
+
+		// Right-click eyedropper should set backgroundColor
+		editor.foregroundColor = BLACK;
+		editor.activeTool = 'eyedropper';
+		editor.handleDrawStart(2);
+		editor.handleDraw({ x: 3, y: 3 }, null);
+		editor.handleDrawEnd();
+
+		expect(editor.backgroundColor).toEqual(red);
+		expect(editor.foregroundColor).toEqual(BLACK);
+	});
+
+	it('right-click adds background color to recentColors', () => {
+		const editor = createEditor();
+		editor.recentColors = [];
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(2);
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDrawEnd();
+
+		expect(editor.recentColors).toContain('#ffffff');
 	});
 });

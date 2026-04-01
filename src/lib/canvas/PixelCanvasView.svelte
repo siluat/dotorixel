@@ -20,7 +20,7 @@
 			gridColor: string;
 		};
 		onDraw?: (current: CanvasCoords, previous: CanvasCoords | null) => void;
-		onDrawStart?: () => void;
+		onDrawStart?: (button: number) => void;
 		onDrawEnd?: () => void;
 		onViewportChange?: (viewport: WasmViewport) => void;
 		toolCursor?: string;
@@ -54,7 +54,7 @@
 			isSpaceHeld: () => isSpaceHeld
 		},
 		{
-			onDrawStart: () => onDrawStart?.(),
+			onDrawStart: (button) => onDrawStart?.(button),
 			onDraw: (c, p) => onDraw?.(c, p),
 			onDrawEnd: () => onDrawEnd?.(),
 			onViewportChange: (vp) => onViewportChange?.(vp)
@@ -133,7 +133,7 @@
 	}
 
 	function handlePointerDown(event: PointerEvent): void {
-		if (event.button === 1) event.preventDefault();
+		if (event.button === 1 || event.button === 2) event.preventDefault();
 		const { x, y } = toLocal(event);
 		canvasInteraction.pointerDown(event.pointerId, x, y, event.pointerType, event.button);
 	}
@@ -184,6 +184,7 @@
 	onpointermove={handlePointerMove}
 	onpointerleave={handlePointerLeave}
 	onpointercancel={handlePointerUp}
+	oncontextmenu={(e) => e.preventDefault()}
 ></canvas>
 
 <style>

@@ -7,7 +7,7 @@ export type InteractionType = 'idle' | 'drawing' | 'panning' | 'pinching';
 
 type InteractionMode =
 	| { readonly type: 'idle' }
-	| { type: 'drawing'; lastPixel: CanvasCoords | null; pendingCoords: CanvasCoords | null }
+	| { type: 'drawing'; lastPixel: CanvasCoords | null; pendingCoords: CanvasCoords | null; button: number }
 	| { type: 'panning'; startX: number; startY: number }
 	| {
 			type: 'pinching';
@@ -24,7 +24,7 @@ export interface CanvasInteractionOptions {
 }
 
 export interface CanvasInteractionCallbacks {
-	onDrawStart: () => void;
+	onDrawStart: (button: number) => void;
 	onDraw: (current: CanvasCoords, previous: CanvasCoords | null) => void;
 	onDrawEnd: () => void;
 	onViewportChange: (viewport: WasmViewport) => void;
@@ -99,7 +99,7 @@ export function createCanvasInteraction(
 
 	function commitPending(): void {
 		if (interaction.type !== 'drawing' || interaction.pendingCoords === null) return;
-		callbacks.onDrawStart();
+		callbacks.onDrawStart(interaction.button);
 		drawAt(interaction.pendingCoords);
 		interaction.pendingCoords = null;
 	}
@@ -128,14 +128,14 @@ export function createCanvasInteraction(
 			if (interaction.type !== 'idle') return;
 
 			const isMiddleClick = button === 1;
-			const isLeftClick = button === 0;
+			const isDrawButton = button === 0 || button === 2;
 
 			if (isMiddleClick) {
 				interaction = { type: 'panning', startX: x, startY: y };
 				return;
 			}
 
-			if (!isLeftClick) return;
+			if (!isDrawButton) return;
 
 			if (options.isSpaceHeld()) {
 				interaction = { type: 'panning', startX: x, startY: y };
@@ -146,13 +146,14 @@ export function createCanvasInteraction(
 				interaction = {
 					type: 'drawing',
 					lastPixel: null,
-					pendingCoords: options.screenToCanvas(x, y)
+					pendingCoords: options.screenToCanvas(x, y),
+					button
 				};
 				return;
 			}
 
-			interaction = { type: 'drawing', lastPixel: null, pendingCoords: null };
-			callbacks.onDrawStart();
+			interaction = { type: 'drawing', lastPixel: null, pendingCoords: null, button };
+			callbacks.onDrawStart(button);
 			drawAt(options.screenToCanvas(x, y));
 		},
 
@@ -222,7 +223,7 @@ export function createCanvasInteraction(
 			if (interaction.type === 'drawing') {
 				if (interaction.pendingCoords !== null) {
 					// Touch tap: commit the deferred pixel
-					callbacks.onDrawStart();
+					callbacks.onDrawStart(interaction.button);
 					drawAt(options.screenToCanvas(x, y));
 				}
 				callbacks.onDrawEnd();

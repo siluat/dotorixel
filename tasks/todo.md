@@ -4,7 +4,6 @@
 
 ### Core tool additions
 
-- Right-click draws with background color — Rust core `ToolType::apply` adds `background_color` param, WASM/frontend wiring, eraser unchanged
 - Eyedropper via Option+click (desktop) / long-press (touch devices)
 - Move tool (drag to reposition canvas content)
 - Sync: move tool icon added to toolbar across Editor frames (.pen)

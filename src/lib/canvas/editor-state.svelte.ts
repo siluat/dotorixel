@@ -59,6 +59,8 @@ export class EditorState {
 	#history = WasmHistoryManager.default_manager();
 	#historyVersion = $state(0);
 	#isDrawing = $state(false);
+	#drawButton = 0;
+	#activeDrawColor: WasmColor | null = null;
 	#toolBeforeModifier = $state<ToolType | null>(null);
 	#isAltHeld = $state(false);
 	#isSpaceHeld = $state(false);
@@ -105,6 +107,15 @@ export class EditorState {
 		)
 	);
 
+	readonly #wasmBackgroundColor = $derived(
+		new WasmColor(
+			this.backgroundColor.r,
+			this.backgroundColor.g,
+			this.backgroundColor.b,
+			this.backgroundColor.a
+		)
+	);
+
 	readonly renderViewport = $derived({
 		pixelSize: this.viewportState.viewport.pixel_size,
 		zoom: this.viewportState.viewport.zoom,
@@ -144,15 +155,21 @@ export class EditorState {
 		this.viewportState = { ...this.viewportState, viewport: clamped };
 	};
 
-	handleDrawStart = (): void => {
+	handleDrawStart = (button: number): void => {
 		if (this.#shortcutHintsVisible) return;
 		this.#isDrawing = true;
+		this.#drawButton = button;
 		this.#lastShapeDrawCurrent = null;
+
+		const isRightClick = button === 2;
+		this.#activeDrawColor = isRightClick ? this.#wasmBackgroundColor : this.#wasmForegroundColor;
+
 		if (this.activeTool === 'eyedropper') return;
 		this.#history.push_snapshot(this.pixelCanvas.pixels());
 		this.#historyVersion++;
 		if (this.activeTool !== 'eraser') {
-			this.recentColors = addRecentColor(this.recentColors, colorToHex(this.foregroundColor));
+			const activeColor = isRightClick ? this.backgroundColor : this.foregroundColor;
+			this.recentColors = addRecentColor(this.recentColors, colorToHex(activeColor));
 		}
 		if (isShapeTool(this.activeTool)) {
 			this.#shapeHandlers[this.activeTool].captureSnapshot(this.pixelCanvas);
@@ -161,6 +178,8 @@ export class EditorState {
 
 	handleDrawEnd = (): void => {
 		this.#isDrawing = false;
+		this.#drawButton = 0;
+		this.#activeDrawColor = null;
 		this.#lastShapeDrawCurrent = null;
 		if (isShapeTool(this.activeTool)) {
 			this.#shapeHandlers[this.activeTool].reset();
@@ -200,6 +219,7 @@ export class EditorState {
 
 	handleDraw = (current: CanvasCoords, previous: CanvasCoords | null): void => {
 		if (this.#shortcutHintsVisible) return;
+		const drawColor = this.#activeDrawColor!;
 		if (isShapeTool(this.activeTool)) {
 			this.#lastShapeDrawCurrent = current;
 			if (
@@ -207,7 +227,7 @@ export class EditorState {
 					this.pixelCanvas,
 					current,
 					previous,
-					this.#wasmForegroundColor,
+					drawColor,
 					this.#isShiftHeld
 				)
 			) {
@@ -217,7 +237,7 @@ export class EditorState {
 		}
 		if (this.activeTool === 'floodfill') {
 			if (previous !== null) return;
-			if (wasm_flood_fill(this.pixelCanvas, current.x, current.y, this.#wasmForegroundColor)) {
+			if (wasm_flood_fill(this.pixelCanvas, current.x, current.y, drawColor)) {
 				this.renderVersion++;
 			}
 			return;
@@ -226,8 +246,14 @@ export class EditorState {
 			if (previous !== null) return;
 			const pixel = this.pixelCanvas.get_pixel(current.x, current.y);
 			if (pixel.a === 0) return;
-			this.foregroundColor = { r: pixel.r, g: pixel.g, b: pixel.b, a: pixel.a };
-			this.recentColors = addRecentColor(this.recentColors, colorToHex(this.foregroundColor));
+			const pickedColor = { r: pixel.r, g: pixel.g, b: pixel.b, a: pixel.a };
+			const isRightClick = this.#drawButton === 2;
+			if (isRightClick) {
+				this.backgroundColor = pickedColor;
+			} else {
+				this.foregroundColor = pickedColor;
+			}
+			this.recentColors = addRecentColor(this.recentColors, colorToHex(pickedColor));
 			return;
 		}
 
@@ -237,16 +263,12 @@ export class EditorState {
 		if (previous) {
 			const flat = wasm_interpolate_pixels(previous.x, previous.y, current.x, current.y);
 			for (let i = 0; i < flat.length; i += 2) {
-				if (
-					apply_tool(this.pixelCanvas, flat[i], flat[i + 1], wasmTool, this.#wasmForegroundColor)
-				) {
+				if (apply_tool(this.pixelCanvas, flat[i], flat[i + 1], wasmTool, drawColor)) {
 					changed = true;
 				}
 			}
 		} else {
-			if (
-				apply_tool(this.pixelCanvas, current.x, current.y, wasmTool, this.#wasmForegroundColor)
-			) {
+			if (apply_tool(this.pixelCanvas, current.x, current.y, wasmTool, drawColor)) {
 				changed = true;
 			}
 		}

@@ -15,6 +15,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Ellipse | ✅ | ✅ | ⬜ | Outline only, snapshot-restore preview |
 | Flood fill | ✅ | ✅ | ⬜ | BFS, 4-connectivity |
 | Eyedropper | — | ✅ | ⬜ | Read-only, skips transparent pixels |
+| Right-click background color | — | ✅ | ⬜ | All tools draw with BG color on right-click; eraser unchanged |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |
 
 ## Canvas

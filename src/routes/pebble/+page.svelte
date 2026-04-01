@@ -138,6 +138,7 @@
 		background: var(--pebble-bg);
 		font-family: var(--pebble-font-family);
 		overflow: hidden;
+		padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
 	}
 
 	.pebble-canvas-area {

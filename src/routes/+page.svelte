@@ -38,10 +38,12 @@
 		background-color: var(--ds-bg-base);
 		color: var(--ds-text-primary);
 		font-family: var(--ds-font-body);
+		padding-left: env(safe-area-inset-left, 0px);
+		padding-right: env(safe-area-inset-right, 0px);
 	}
 
 	.lang-nav {
-		padding: 24px;
+		padding: calc(24px + env(safe-area-inset-top, 0px)) 24px 24px;
 		font-size: 14px;
 		display: flex;
 		gap: 8px;

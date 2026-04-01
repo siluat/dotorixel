@@ -61,13 +61,7 @@
 			editor.viewportSize = { width: w, height: h };
 			if (needsInitialFit) {
 				needsInitialFit = false;
-				const defaultViewportSize = 512;
-				const dx = (w - defaultViewportSize) / 2;
-				const dy = (h - defaultViewportSize) / 2;
-				editor.viewportState = {
-					...editor.viewportState,
-					viewport: editor.viewportState.viewport.pan(dx, dy)
-				};
+				editor.handleFit();
 			}
 		});
 		ro.observe(canvasContainerEl);
@@ -228,18 +222,18 @@
 		font-family: var(--ds-font-body);
 		overflow: hidden;
 		grid-template:
-			'topbar  topbar  topbar'  44px
+			'topbar  topbar  topbar'  calc(44px + env(safe-area-inset-top, 0px))
 			'toolbar canvas  panel'   1fr
-			'status  status  status'  28px
+			'status  status  status'  calc(28px + env(safe-area-inset-bottom, 0px))
 			/ 44px   1fr     200px;
 	}
 
 	@media (min-width: 1440px) {
 		.editor-docked {
 			grid-template:
-				'topbar  topbar  topbar'  48px
+				'topbar  topbar  topbar'  calc(48px + env(safe-area-inset-top, 0px))
 				'toolbar canvas  panel'   1fr
-				'status  status  status'  28px
+				'status  status  status'  calc(28px + env(safe-area-inset-bottom, 0px))
 				/ 48px   1fr     240px;
 		}
 	}
@@ -276,6 +270,8 @@
 		background: var(--ds-bg-base);
 		font-family: var(--ds-font-body);
 		overflow: hidden;
+		padding-left: env(safe-area-inset-left, 0px);
+		padding-right: env(safe-area-inset-right, 0px);
 	}
 
 	.editor-tabs .content-area {

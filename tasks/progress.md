@@ -6,9 +6,13 @@ None
 
 ## Last Completed
 
-Touch pinch-zoom and two-finger pan (rework)
+Safe area and virtual keyboard handling (notch, home indicator, keyboard push)
 
 ## Next Up
 
-- Safe area and virtual keyboard handling (notch, home indicator, keyboard push)
-  - Last remaining M2 item. Independent of other tasks.
+- Layer system: basic infrastructure (add/delete/reorder)
+  - Core M3 foundation. Layer properties, copy/paste, and flip/transform depend on this.
+- Right-click draws with background color (mouse input)
+  - Independent. Touches Rust core `ToolType::apply` — can be done in parallel with layer work.
+- Touch modifier alternatives (Shift-constrain, Alt-eyedropper UI for touchscreen)
+  - Independent UI feature. No dependency on other M3 tasks.

@@ -1,11 +1,5 @@
 # Todo
 
-## Milestone 2: Production UI
-
-### Implementation
-
-- Safe area and virtual keyboard handling (notch, home indicator, keyboard push)
-
 ## Milestone 3: Editor for Serious Work
 
 - Layer system: basic infrastructure (add/delete/reorder)

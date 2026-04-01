@@ -32,7 +32,7 @@
 		display: flex;
 		align-items: center;
 		gap: var(--ds-space-5);
-		padding: 0 var(--ds-space-4);
+		padding: 0 var(--ds-space-4) env(safe-area-inset-bottom, 0px);
 		background: var(--ds-bg-surface);
 		border-top: 1px solid var(--ds-border-subtle);
 	}

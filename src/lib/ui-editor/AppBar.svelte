@@ -81,7 +81,7 @@
 		align-items: center;
 		justify-content: space-between;
 		height: 44px;
-		padding: 0 16px;
+		padding: env(safe-area-inset-top, 0px) 16px 0;
 		background: var(--ds-bg-surface);
 		border-bottom: 1px solid var(--ds-border-subtle);
 		flex-shrink: 0;

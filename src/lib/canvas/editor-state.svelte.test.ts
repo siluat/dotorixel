@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { EditorState } from './editor-state.svelte';
 import type { CanvasCoords } from './view-types';
@@ -325,7 +326,15 @@ describe('EditorState — eyedropper tool', () => {
 
 function keyDown(
 	code: string,
-	options: { key?: string; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean; shiftKey?: boolean; repeat?: boolean } = {}
+	options: {
+		key?: string;
+		ctrlKey?: boolean;
+		metaKey?: boolean;
+		altKey?: boolean;
+		shiftKey?: boolean;
+		repeat?: boolean;
+		target?: EventTarget | null;
+	} = {}
 ): KeyboardEvent {
 	return {
 		code,
@@ -335,7 +344,7 @@ function keyDown(
 		altKey: options.altKey ?? false,
 		shiftKey: options.shiftKey ?? false,
 		repeat: options.repeat ?? false,
-		target: null,
+		target: options.target ?? null,
 		preventDefault: () => {}
 	} as unknown as KeyboardEvent;
 }
@@ -446,6 +455,50 @@ describe('EditorState — tool shortcuts', () => {
 		expect(editor.viewportState.showGrid).toBe(!initial);
 		editor.handleKeyDown(keyDown('KeyG', { repeat: true }));
 		expect(editor.viewportState.showGrid).toBe(!initial);
+	});
+});
+
+describe('EditorState — shortcuts with focused elements', () => {
+	it('allows tool shortcuts when a button is focused', () => {
+		const editor = createEditor();
+		const button = document.createElement('button');
+		editor.activeTool = 'pencil';
+
+		editor.handleKeyDown(keyDown('KeyE', { target: button }));
+		expect(editor.activeTool).toBe('eraser');
+	});
+
+	it('allows undo/redo when a button is focused', () => {
+		const editor = createEditor();
+		const button = document.createElement('button');
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart();
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDrawEnd();
+
+		editor.handleKeyDown(keyDown('KeyZ', { key: 'z', ctrlKey: true, target: button }));
+		expect(editor.canRedo).toBe(true);
+
+		editor.handleKeyDown(keyDown('KeyY', { key: 'y', ctrlKey: true, target: button }));
+		expect(editor.canRedo).toBe(false);
+	});
+
+	it('blocks shortcuts when an input is focused', () => {
+		const editor = createEditor();
+		const input = document.createElement('input');
+		editor.activeTool = 'pencil';
+
+		editor.handleKeyDown(keyDown('KeyE', { target: input }));
+		expect(editor.activeTool).toBe('pencil');
+	});
+
+	it('blocks shortcuts when a textarea is focused', () => {
+		const editor = createEditor();
+		const textarea = document.createElement('textarea');
+		editor.activeTool = 'pencil';
+
+		editor.handleKeyDown(keyDown('KeyE', { target: textarea }));
+		expect(editor.activeTool).toBe('pencil');
 	});
 });
 

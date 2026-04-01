@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 054 | [Fix scrollbar on UI text selection](records/054-fix-scrollbar-text-selection.md) | 2026-04-02 |
 | 053 | [Fix keyboard shortcuts after button click](records/053-fix-shortcut-focus.md) | 2026-04-02 |
 | 052 | [Fix initial canvas auto-zoom](records/052-fix-initial-canvas-auto-zoom.md) | 2026-04-02 |
 | 051 | [Safe area and virtual keyboard handling](records/051-safe-area-virtual-keyboard.md) | 2026-04-01 |

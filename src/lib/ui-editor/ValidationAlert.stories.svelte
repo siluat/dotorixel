@@ -8,7 +8,7 @@
 <Story name="Default">
 	<div class="editor-story-bg">
 		<div class="story-container">
-			<ValidationAlert message="Must be between 1 and 128" />
+			<ValidationAlert message="Must be between 1 and 256" />
 		</div>
 	</div>
 </Story>
@@ -16,7 +16,7 @@
 <Story name="LongMessage">
 	<div class="editor-story-bg">
 		<div class="story-container">
-			<ValidationAlert message="The value you entered exceeds the maximum allowed canvas dimension of 128 pixels" />
+			<ValidationAlert message="The value you entered exceeds the maximum allowed canvas dimension of 256 pixels" />
 		</div>
 	</div>
 </Story>

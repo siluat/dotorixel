@@ -135,7 +135,7 @@
 	function handlePointerDown(event: PointerEvent): void {
 		if (event.button === 1) event.preventDefault();
 		const { x, y } = toLocal(event);
-		canvasInteraction.pointerDown(x, y, event.button);
+		canvasInteraction.pointerDown(event.pointerId, x, y, event.pointerType, event.button);
 	}
 
 	function handlePointerMove(event: PointerEvent): void {
@@ -146,11 +146,13 @@
 	function handleWindowPointerMove(event: PointerEvent): void {
 		if (!canvasEl) return;
 		const { x, y } = toLocal(event);
-		canvasInteraction.windowPointerMove(x, y, event.buttons);
+		canvasInteraction.windowPointerMove(event.pointerId, x, y, event.buttons);
 	}
 
-	function handlePointerUp(): void {
-		canvasInteraction.pointerUp();
+	function handlePointerUp(event: PointerEvent): void {
+		if (!canvasEl) return;
+		const { x, y } = toLocal(event);
+		canvasInteraction.pointerUp(event.pointerId, x, y);
 	}
 
 	function handlePointerLeave(event: PointerEvent): void {

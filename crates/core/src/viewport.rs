@@ -196,15 +196,19 @@ impl Viewport {
     }
 
     /// Returns a viewport that fits and centers the canvas within
-    /// the given viewport size.
+    /// the given viewport size. The `max_zoom` parameter caps the zoom
+    /// level — pass `1.0` to prevent enlarging beyond the default pixel
+    /// size, or `f64::INFINITY` for unconstrained fitting.
     pub fn fit_to_viewport(
         &self,
         canvas_width: u32,
         canvas_height: u32,
         viewport_size: ViewportSize,
+        max_zoom: f64,
     ) -> Self {
         let fit_zoom = (viewport_size.width / (canvas_width as f64 * self.pixel_size as f64))
-            .min(viewport_size.height / (canvas_height as f64 * self.pixel_size as f64));
+            .min(viewport_size.height / (canvas_height as f64 * self.pixel_size as f64))
+            .min(max_zoom);
         let scaled_pixel = (self.pixel_size as f64 * fit_zoom).round();
         let pan_x = (viewport_size.width - canvas_width as f64 * scaled_pixel) / 2.0;
         let pan_y = (viewport_size.height - canvas_height as f64 * scaled_pixel) / 2.0;
@@ -560,7 +564,8 @@ mod tests {
     #[test]
     fn fit_to_viewport_centers_canvas() {
         let vp = default_test_viewport();
-        let result = vp.fit_to_viewport(16, 16, ViewportSize { width: 800.0, height: 600.0 });
+        let result =
+            vp.fit_to_viewport(16, 16, ViewportSize { width: 800.0, height: 600.0 }, f64::INFINITY);
 
         let eps = result.effective_pixel_size();
         let display_width = 16.0 * eps;
@@ -577,8 +582,33 @@ mod tests {
     fn fit_to_viewport_fits_canvas_within_bounds() {
         let vp = default_test_viewport();
         let viewport_size = ViewportSize { width: 400.0, height: 300.0 };
-        let result = vp.fit_to_viewport(16, 16, viewport_size);
+        let result = vp.fit_to_viewport(16, 16, viewport_size, f64::INFINITY);
 
+        let eps = 32.0 * result.zoom;
+        assert!(16.0 * eps <= viewport_size.width);
+        assert!(16.0 * eps <= viewport_size.height);
+    }
+
+    #[test]
+    fn fit_to_viewport_does_not_enlarge_when_max_zoom_capped() {
+        let vp = default_test_viewport(); // pixel_size=32, 16×16 → display 512×512
+        let viewport_size = ViewportSize { width: 800.0, height: 600.0 };
+        let result = vp.fit_to_viewport(16, 16, viewport_size, 1.0);
+
+        assert!(result.zoom <= 1.0);
+        // Canvas should be centered at default size (512×512)
+        let eps = result.effective_pixel_size();
+        assert_eq!(eps, 32.0);
+    }
+
+    #[test]
+    fn fit_to_viewport_shrinks_regardless_of_max_zoom() {
+        let vp = default_test_viewport(); // pixel_size=32, 16×16 → display 512×512
+        let viewport_size = ViewportSize { width: 400.0, height: 300.0 };
+        let result = vp.fit_to_viewport(16, 16, viewport_size, 1.0);
+
+        // Should still shrink to fit the smaller viewport
+        assert!(result.zoom < 1.0);
         let eps = 32.0 * result.zoom;
         assert!(16.0 * eps <= viewport_size.width);
         assert!(16.0 * eps <= viewport_size.height);

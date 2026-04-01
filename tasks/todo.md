@@ -2,10 +2,6 @@
 
 ## Milestone 2: Production UIUX
 
-### Usability fixes
-
-- Fix scrollbar appearing on UI text selection
-
 ### Core tool additions
 
 - Right-click draws with background color — Rust core `ToolType::apply` adds `background_color` param, WASM/frontend wiring, eraser unchanged

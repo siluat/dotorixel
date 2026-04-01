@@ -221,6 +221,7 @@
 		background: var(--ds-bg-base);
 		font-family: var(--ds-font-body);
 		overflow: hidden;
+		user-select: none;
 		grid-template:
 			'topbar  topbar  topbar'  calc(44px + env(safe-area-inset-top, 0px))
 			'toolbar canvas  panel'   1fr
@@ -270,6 +271,7 @@
 		background: var(--ds-bg-base);
 		font-family: var(--ds-font-body);
 		overflow: hidden;
+		user-select: none;
 		padding-left: env(safe-area-inset-left, 0px);
 		padding-right: env(safe-area-inset-right, 0px);
 	}

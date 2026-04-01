@@ -286,4 +286,9 @@
 		position: absolute;
 		inset: 0;
 	}
+
+	.editor-docked :global(input),
+	.editor-tabs :global(input) {
+		user-select: text;
+	}
 </style>

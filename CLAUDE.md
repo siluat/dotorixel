@@ -69,6 +69,7 @@ When a task item is completed, notify the user and suggest using the `/task-done
 
 - Task work is always done on a work branch, never directly on `main`.
 - Before writing any implementation code, verify the current branch is not `main`. If it is, create and switch to a work branch first.
+- **Exception — .pen-only tasks**: Tasks that only modify `.pen` files (Design/Sync tasks) do not require a work branch or PR. Commit directly to `main`.
 
 ### Principles
 

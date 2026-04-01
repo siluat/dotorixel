@@ -1,5 +1,54 @@
 # Todo
 
+## Milestone 2: Production UIUX
+
+### Usability fixes
+
+- Fix initial canvas auto-zoom (only shrink-to-fit, not enlarge)
+- Fix keyboard shortcuts not working after clicking action buttons (focus issue)
+- Fix scrollbar appearing on UI text selection
+
+### Core tool additions
+
+- Right-click draws with background color — Rust core `ToolType::apply` adds `background_color` param, WASM/frontend wiring, eraser unchanged
+- Eyedropper via Option+click (desktop) / long-press (touch devices)
+- Move tool (drag to reposition canvas content)
+- Sync: move tool icon added to toolbar across Editor frames (.pen)
+
+### Canvas resize UX
+
+- Design: canvas resize UX — anchor direction selector component + validation alert UI (.pen)
+- Canvas resize UX improvements (validation alert for out-of-range input + anchor direction selector)
+- Undo/Redo support for canvas resize
+
+### Keyboard & toolbar UX
+
+- Review keyboard shortcut assignments (align with Aseprite and other established editors)
+- Toolbar tool tooltip on hover (tool name + shortcut key) — after shortcut review
+- Sync: toolbar tooltip reflected in Editor frames (.pen)
+- Sliding active indicator animation (toolbar tool selection + tab bar navigation)
+- Sync: sliding indicator style updated in toolbar + tab bar across Editor frames (.pen)
+
+### Multi-image workflow
+
+- Design: tab system UI — multi-image tabs across all breakpoints (.pen)
+- Tab system (work on multiple images simultaneously)
+- Session persistence (restore work after refresh/revisit)
+- Design: saved work browser — list/modal UI for reopening past work (.pen)
+- Reopen past work (browse and restore from saved work list)
+
+### Export & sharing
+
+- SVG export
+- Sync: export UI format options updated in Editor frames (.pen)
+- Design: share artwork dialog — URL 공유 다이얼로그 UI (.pen)
+- Share artwork via URL
+
+### Landing page
+
+- Design: landing page improvements (.pen)
+- Landing page UI improvements
+
 ## Milestone 3: Editor for Serious Work
 
 - Layer system: basic infrastructure (add/delete/reorder)
@@ -9,7 +58,6 @@
 - Flip/transform
 - Project file format (JSON-based) + save/load
 - Apple Pencil: hover preview + palm rejection
-- Right-click draws with background color (mouse input) — Rust core `ToolType::apply` adds `background_color` param, WASM/frontend wiring, eraser unchanged
 - Touch modifier alternatives (Shift-constrain, Alt-eyedropper UI for touchscreen)
 - Feature guide page (basic usage instructions)
 - (review) In-editor feedback widget

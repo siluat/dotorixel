@@ -35,5 +35,6 @@ Follow these steps in order when starting a task.
    **Verify**: confirm the file exists by reading it back before proceeding.
 
 7. **Create a work branch**: Create a new branch from `main` for this task.
+   - **Exception — .pen-only tasks**: If the task only modifies `.pen` files (Design/Sync tasks), skip branch creation and work directly on `main`.
 
 8. Update "Currently Working On" in `tasks/progress.md` to the selected task.

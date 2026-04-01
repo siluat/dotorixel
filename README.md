@@ -9,7 +9,7 @@ A pixel art editor you can open anywhere and start drawing right away.
 
 ## Roadmap
 
-> Currently working on: **Milestone 2 — Production UI**
+> Currently working on: **Milestone 2 — Production UIUX**
 
 ### Milestone 1 — Usable Editor ✓
 
@@ -21,13 +21,14 @@ The foundation: enough tools and polish to create real pixel art.
 - i18n (Korean / English / Japanese)
 - Landing page and analytics
 
-### Milestone 2 — Production UI
+### Milestone 2 — Production UIUX
 
 Overhaul the UI from prototype-level to production quality. Design for all platforms (desktop, iPad, mobile) and plan ahead for layers and animation.
 
 - UI design with Pencil.dev (screen inventory, design system, responsive layouts)
 - Design system application (token and component refactoring)
 - Touch & mobile support (touch targets, pinch-zoom, safe area, responsive layout)
+- Usability fixes and UX enhancements from post-development testing
 
 ### Milestone 3 — Editor for Serious Work
 

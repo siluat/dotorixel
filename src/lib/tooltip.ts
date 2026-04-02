@@ -198,6 +198,8 @@ export const tooltip: Action<HTMLElement, TooltipParam> = (node, param) => {
 				positionTooltip(tooltipEl, rect, currentPlacement);
 				tooltipEl.offsetHeight;
 				tooltipEl.classList.add('visible');
+			} else if (tooltipEl && !currentText) {
+				hide();
 			}
 		},
 		destroy() {

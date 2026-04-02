@@ -51,7 +51,7 @@ The current history system stores snapshots as raw pixel byte buffers (`Vec<u8>`
 
 ### Key Decisions
 
-- `Snapshot` uses public fields (no constructor) — struct literal is clearer at 3 fields per CLAUDE.md convention
+- `Snapshot` uses public fields (no constructor) — field names visible at call site, `pixels.to_vec()` explicit in context
 - `from_pixels` added to `PixelCanvas` instead of `restore_snapshot` — avoids canvas→history module coupling
 - `#applySnapshot` uses structural type parameter — decoupled from concrete `WasmSnapshot`
 - Apple: compile compatibility only — full resize undo UX deferred to separate task

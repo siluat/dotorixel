@@ -78,6 +78,7 @@
 - FG/BG swap UI improvements
 - Tool-specific mouse cursor (eyedropper, crosshair, etc.) — toolCursor prop infrastructure exists but is not wired up
 - Dark mode toggle UI — design tokens support dark theme (`data-theme="dark"`), no UI to switch yet
+- Document error conditions on `PixelCanvas` public API — `new`, `with_color`, `from_pixels`, `restore_pixels` all return `Result` but only document partial constraints; add `Err` variant descriptions per Rust API Guidelines C-FAILURE
 
 ## Future triggers
 

@@ -70,9 +70,7 @@ final class EditorState {
     func handleUndo() {
         guard !isDrawing else { return }
         if let snapshot = historyManager.undo(currentWidth: pixelCanvas.width(), currentHeight: pixelCanvas.height(), currentPixels: pixelCanvas.pixels()) {
-            try? pixelCanvas.restorePixels(data: snapshot.pixels)
-            canvasVersion += 1
-            historyVersion += 1
+            applySnapshot(snapshot)
         }
     }
 
@@ -81,9 +79,21 @@ final class EditorState {
     func handleRedo() {
         guard !isDrawing else { return }
         if let snapshot = historyManager.redo(currentWidth: pixelCanvas.width(), currentHeight: pixelCanvas.height(), currentPixels: pixelCanvas.pixels()) {
-            try? pixelCanvas.restorePixels(data: snapshot.pixels)
+            applySnapshot(snapshot)
+        }
+    }
+
+    private func applySnapshot(_ snapshot: Snapshot) {
+        guard snapshot.width == pixelCanvas.width(), snapshot.height == pixelCanvas.height() else {
+            assertionFailure("Cross-dimension undo/redo not yet implemented on Apple")
+            return
+        }
+        do {
+            try pixelCanvas.restorePixels(data: snapshot.pixels)
             canvasVersion += 1
             historyVersion += 1
+        } catch {
+            assertionFailure("Failed to apply snapshot: \(error)")
         }
     }
 

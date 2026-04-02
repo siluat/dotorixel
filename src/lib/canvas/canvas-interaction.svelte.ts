@@ -2,6 +2,7 @@ import { WasmViewport } from '$wasm/dotorixel_wasm';
 import type { CanvasCoords } from './view-types';
 
 const MIN_PINCH_DISTANCE = 10;
+const LONG_PRESS_DELAY = 400;
 
 export type InteractionType = 'idle' | 'drawing' | 'panning' | 'pinching';
 
@@ -28,6 +29,7 @@ export interface CanvasInteractionCallbacks {
 	onDraw: (current: CanvasCoords, previous: CanvasCoords | null) => void;
 	onDrawEnd: () => void;
 	onViewportChange: (viewport: WasmViewport) => void;
+	onLongPress: (coords: CanvasCoords, button: number) => boolean;
 }
 
 export interface CanvasInteraction {
@@ -46,6 +48,26 @@ export function createCanvasInteraction(
 ): CanvasInteraction {
 	let interaction = $state<InteractionMode>({ type: 'idle' });
 	const activePointers = new Map<number, { x: number; y: number; pointerType: string }>();
+	let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function startLongPressTimer(coords: CanvasCoords, button: number): void {
+		clearLongPressTimer();
+		longPressTimer = setTimeout(() => {
+			longPressTimer = null;
+			if (interaction.type === 'drawing' && interaction.pendingCoords !== null) {
+				if (callbacks.onLongPress(coords, button)) {
+					interaction = { type: 'idle' };
+				}
+			}
+		}, LONG_PRESS_DELAY);
+	}
+
+	function clearLongPressTimer(): void {
+		if (longPressTimer !== null) {
+			clearTimeout(longPressTimer);
+			longPressTimer = null;
+		}
+	}
 
 	function drawAt(coords: CanvasCoords): void {
 		if (interaction.type !== 'drawing') return;
@@ -115,6 +137,7 @@ export function createCanvasInteraction(
 			activePointers.set(id, { x, y, pointerType });
 
 			if (getTwoTouchPointers() !== null) {
+				clearLongPressTimer();
 				if (interaction.type === 'drawing') {
 					if (interaction.pendingCoords === null) {
 						callbacks.onDrawEnd();
@@ -143,12 +166,14 @@ export function createCanvasInteraction(
 			}
 
 			if (pointerType === 'touch') {
+				const pendingCoords = options.screenToCanvas(x, y);
 				interaction = {
 					type: 'drawing',
 					lastPixel: null,
-					pendingCoords: options.screenToCanvas(x, y),
+					pendingCoords,
 					button
 				};
+				startLongPressTimer(pendingCoords, button);
 				return;
 			}
 
@@ -159,6 +184,7 @@ export function createCanvasInteraction(
 
 		pointerMove(x: number, y: number): void {
 			if (interaction.type !== 'drawing') return;
+			clearLongPressTimer();
 			commitPending();
 			drawAt(options.screenToCanvas(x, y));
 		},
@@ -213,6 +239,7 @@ export function createCanvasInteraction(
 		},
 
 		pointerUp(id: number, x: number, y: number): void {
+			clearLongPressTimer();
 			activePointers.delete(id);
 
 			if (interaction.type === 'pinching') {
@@ -232,6 +259,7 @@ export function createCanvasInteraction(
 		},
 
 		pointerLeave(x: number, y: number): void {
+			clearLongPressTimer();
 			if (interaction.type === 'pinching') return;
 
 			if (interaction.type === 'drawing') {
@@ -247,6 +275,7 @@ export function createCanvasInteraction(
 		},
 
 		blur(): void {
+			clearLongPressTimer();
 			activePointers.clear();
 			if (interaction.type === 'drawing' && interaction.pendingCoords === null) {
 				callbacks.onDrawEnd();

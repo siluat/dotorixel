@@ -23,6 +23,7 @@
 		onDrawStart?: (button: number) => void;
 		onDrawEnd?: () => void;
 		onViewportChange?: (viewport: WasmViewport) => void;
+		onLongPress?: (coords: CanvasCoords, button: number) => boolean;
 		toolCursor?: string;
 		isSpaceHeld?: boolean;
 	}
@@ -37,6 +38,7 @@
 		onDrawStart,
 		onDrawEnd,
 		onViewportChange,
+		onLongPress,
 		toolCursor = 'crosshair',
 		isSpaceHeld = false
 	}: Props = $props();
@@ -57,7 +59,8 @@
 			onDrawStart: (button) => onDrawStart?.(button),
 			onDraw: (c, p) => onDraw?.(c, p),
 			onDrawEnd: () => onDrawEnd?.(),
-			onViewportChange: (vp) => onViewportChange?.(vp)
+			onViewportChange: (vp) => onViewportChange?.(vp),
+			onLongPress: (coords, button) => onLongPress?.(coords, button) ?? false
 		}
 	);
 

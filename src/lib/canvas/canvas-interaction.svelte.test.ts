@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { WasmViewport } from '$wasm/dotorixel_wasm';
 import {
 	createCanvasInteraction,
@@ -15,6 +15,7 @@ function setup(overrides?: {
 		onDraw: vi.fn(),
 		onDrawEnd: vi.fn(),
 		onViewportChange: vi.fn(),
+		onLongPress: vi.fn(() => true),
 		...overrides?.callbacks
 	};
 	let spaceHeld = false;
@@ -423,5 +424,115 @@ describe('edge cases', () => {
 		expect(callbacks.onDraw).not.toHaveBeenCalled();
 		expect(callbacks.onDrawEnd).not.toHaveBeenCalled();
 		expect(interaction.interactionType).toBe('idle');
+	});
+});
+
+// ── Long-press (touch eyedropper) ────────────────────────────
+
+describe('long-press', () => {
+	beforeEach(() => vi.useFakeTimers());
+	afterEach(() => vi.useRealTimers());
+
+	it('fires onLongPress after delay with no movement', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+
+		vi.advanceTimersByTime(400);
+
+		expect(callbacks.onLongPress).toHaveBeenCalledOnce();
+		expect(interaction.interactionType).toBe('idle');
+	});
+
+	it('keeps drawing state when onLongPress returns false', () => {
+		const { interaction, callbacks } = setup({
+			callbacks: { onLongPress: vi.fn(() => false) }
+		});
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+
+		vi.advanceTimersByTime(400);
+
+		expect(callbacks.onLongPress).toHaveBeenCalledOnce();
+		expect(interaction.interactionType).toBe('drawing');
+	});
+
+	it('does not fire before delay completes', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+
+		vi.advanceTimersByTime(300);
+
+		expect(callbacks.onLongPress).not.toHaveBeenCalled();
+		expect(interaction.interactionType).toBe('drawing');
+	});
+
+	it('cancelled by pointer move (drag)', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 0, 0, 'touch', 0);
+		interaction.pointerMove(32, 0);
+
+		vi.advanceTimersByTime(400);
+
+		expect(callbacks.onLongPress).not.toHaveBeenCalled();
+		expect(callbacks.onDrawStart).toHaveBeenCalledOnce();
+	});
+
+	it('cancelled by pointer up (tap)', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+		interaction.pointerUp(1, 50, 50);
+
+		vi.advanceTimersByTime(400);
+
+		expect(callbacks.onLongPress).not.toHaveBeenCalled();
+		expect(callbacks.onDrawStart).toHaveBeenCalledOnce();
+		expect(callbacks.onDrawEnd).toHaveBeenCalledOnce();
+	});
+
+	it('cancelled by second touch (pinch)', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+		interaction.pointerDown(2, 200, 200, 'touch', 0);
+
+		vi.advanceTimersByTime(400);
+
+		expect(callbacks.onLongPress).not.toHaveBeenCalled();
+	});
+
+	it('cancelled by pointer leave', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+		interaction.pointerLeave(50, 50);
+
+		vi.advanceTimersByTime(400);
+
+		expect(callbacks.onLongPress).not.toHaveBeenCalled();
+	});
+
+	it('cancelled by blur', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+		interaction.blur();
+
+		vi.advanceTimersByTime(400);
+
+		expect(callbacks.onLongPress).not.toHaveBeenCalled();
+	});
+
+	it('does not fire for mouse pointer', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'mouse', 0);
+
+		vi.advanceTimersByTime(400);
+
+		expect(callbacks.onLongPress).not.toHaveBeenCalled();
+	});
+
+	it('does not fire for pen/stylus pointer', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'pen', 0);
+
+		vi.advanceTimersByTime(400);
+
+		expect(callbacks.onLongPress).not.toHaveBeenCalled();
 	});
 });

@@ -17,23 +17,6 @@ A 2D pixel art editor. Positioned as a learning-first, cross-platform tool.
 | Component Preview | Storybook 10 | `@storybook/sveltekit`, Svelte CSF v5 |
 | i18n | Paraglide.js | Compile-time, URL path routing (`/en/`, `/ko/`, `/ja/`) |
 
-## License
-
-AGPL-3.0-or-later. Dual licensing and proprietary premium features are available as the copyright holder.
-
-## MVP Technical Decisions
-
-| Area | Decision | Rationale |
-|---|---|---|
-| Rendering (WebView) | Canvas2D | Sufficient for small canvases (~32x32) |
-| Rendering (Native) | Metal | Shared across macOS and iPadOS |
-| State Management | Svelte store (WebView), SwiftUI @Observable (Native) | Each shell uses its framework's reactivity |
-| Undo/Redo | Snapshot-based (Rust core) | 32x32 RGBA = 4KB/snapshot, shared across shells |
-| Coordinate Transform | Screen→Canvas single transform (Rust core) | Based on zoom level and pan offset, shared across shells |
-| Core Bindings | wasm-bindgen (web), UniFFI (Apple native) | Single Rust core, platform-specific binding per shell |
-| Apple Project | Single Xcode project, macOS + iPadOS targets | SwiftUI + Metal shared, platform-specific UI via `#if os()` |
-| i18n | Paraglide.js (compile-time) + URL path routing (`/en/`, `/ko/`, `/ja/`) | Svelte official CLI integration; URL routing needed for future landing/help pages SEO; compile-time = tree-shakable, no runtime overhead |
-
 ## Task Workflow
 
 Implementation tasks are managed through files in the `tasks/` directory.

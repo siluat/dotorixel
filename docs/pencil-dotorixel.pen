@@ -15728,6 +15728,65 @@
                       "height": 12
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "x6euF",
+                  "x": 8,
+                  "y": 8,
+                  "name": "tooltipOverlay",
+                  "fill": "#2D210F",
+                  "cornerRadius": 6,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#00000000"
+                  },
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "zurbc",
+                      "name": "tipLightName",
+                      "fill": "#FDFBF8",
+                      "content": "Pencil",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "3qEuT",
+                      "name": "tipBadge",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#4A3D2A",
+                      "cornerRadius": 4,
+                      "padding": [
+                        0,
+                        5
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "LXLjV",
+                          "name": "tipLightKey",
+                          "fill": "#D8CFC2",
+                          "content": "P",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
                 }
               ]
             },
@@ -17321,6 +17380,65 @@
                       "fill": "#2D210F",
                       "width": 12,
                       "height": 12
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "aPD61",
+                  "x": 8,
+                  "y": 8,
+                  "name": "tooltipOverlay",
+                  "fill": "#2D210F",
+                  "cornerRadius": 6,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#5C4A32"
+                  },
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "45wJp",
+                      "name": "tipDarkName",
+                      "fill": "#FDFBF8",
+                      "content": "Pencil",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "03HRl",
+                      "name": "tipBadge",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#4A3D2A",
+                      "cornerRadius": 4,
+                      "padding": [
+                        0,
+                        5
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "F30MU",
+                          "name": "tipDarkKey",
+                          "fill": "#D8CFC2",
+                          "content": "P",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "600"
+                        }
+                      ]
                     }
                   ]
                 }

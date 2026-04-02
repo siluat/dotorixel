@@ -1,6 +1,6 @@
 ---
-model: sonnet
-effort: low
+# model: sonnet  # blocked by anthropics/claude-code#34912
+# effort: low
 ---
 
 Create a git commit. Follow the commit message convention in CLAUDE.md.

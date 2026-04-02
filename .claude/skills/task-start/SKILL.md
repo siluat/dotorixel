@@ -1,6 +1,8 @@
 ---
 description: Start a task. Read progress.md, select the next task, and transition to working state.
 user_invocable: true
+model: opus
+effort: high
 ---
 
 # /task-start

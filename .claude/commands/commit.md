@@ -1,3 +1,8 @@
+---
+model: sonnet
+effort: low
+---
+
 Create a git commit. Follow the commit message convention in CLAUDE.md.
 
 1. Run `git status` and `git diff --staged` to understand the current changes.

@@ -1,6 +1,8 @@
 ---
 description: Complete the current task. Record in done.md, update record file, update todo.md, update progress.md, update platform-status.md, and commit.
 user_invocable: true
+model: sonnet
+effort: medium
 ---
 
 # /task-done

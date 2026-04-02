@@ -89,3 +89,4 @@ Same dark tooltip in both modes. Accent-toned border (`#5C4A32`) in dark mode fo
 - `LeftToolbar`, `ToolStrip`, `TopBar` use inline `<button>` elements (not `EditorButton`), so tooltip was applied directly to these components in addition to the shared button components.
 - Dark mode toggle UI doesn't exist yet — the `:root[data-theme="dark"]` border rule is dormant until implemented.
 - Grid toggle `(G)` and color swap `(X)` shortcuts remain hardcoded — they are action shortcuts, not tool shortcuts. Can be unified if an action shortcut map is needed later.
+- Sync task "toolbar tooltip reflected in Editor frames (.pen)" merged into this task. Tooltip overlay added to Editor — Desktop Light and Editor — Desktop Dark frames.

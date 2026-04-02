@@ -90,17 +90,17 @@
 		{
 			kind: 'button',
 			icon: Square,
-			label: `${m.tool_rectangle()} (R)`,
+			label: `${m.tool_rectangle()} (U)`,
 			active: activeTool === 'rectangle',
-			shortcutHint: hint('R'),
+			shortcutHint: hint('U'),
 			onclick: () => onToolChange('rectangle')
 		},
 		{
 			kind: 'button',
 			icon: Circle,
-			label: `${m.tool_ellipse()} (C)`,
+			label: `${m.tool_ellipse()} (O)`,
 			active: activeTool === 'ellipse',
-			shortcutHint: hint('C'),
+			shortcutHint: hint('O'),
 			onclick: () => onToolChange('ellipse')
 		},
 		{
@@ -130,9 +130,9 @@
 		{
 			kind: 'button',
 			icon: Move,
-			label: `${m.tool_move()} (M)`,
+			label: `${m.tool_move()} (V)`,
 			active: activeTool === 'move',
-			shortcutHint: hint('M'),
+			shortcutHint: hint('V'),
 			onclick: () => onToolChange('move')
 		},
 		{ kind: 'separator' },

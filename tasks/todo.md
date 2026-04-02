@@ -2,10 +2,6 @@
 
 ## Milestone 2: Production UIUX
 
-### Core tool additions
-
-- Eyedropper via Option+click (desktop) / long-press (touch devices)
-
 ### Keyboard & toolbar UX
 
 - Review keyboard shortcut assignments (align with Aseprite and other established editors)

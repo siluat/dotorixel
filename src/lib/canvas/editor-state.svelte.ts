@@ -215,6 +215,22 @@ export class EditorState {
 		}
 	};
 
+	handleLongPress = (coords: CanvasCoords, button: number): boolean => {
+		if (this.activeTool === 'eyedropper') return false;
+		const pixel = this.pixelCanvas.get_pixel(coords.x, coords.y);
+		if (pixel.a !== 0) {
+			const pickedColor = { r: pixel.r, g: pixel.g, b: pixel.b, a: pixel.a };
+			const isRightClick = button === 2;
+			if (isRightClick) {
+				this.backgroundColor = pickedColor;
+			} else {
+				this.foregroundColor = pickedColor;
+			}
+			this.recentColors = addRecentColor(this.recentColors, colorToHex(pickedColor));
+		}
+		return true;
+	};
+
 	handleUndo = (): void => {
 		if (this.#isDrawing) return;
 		const snapshot = this.#history.undo(this.pixelCanvas.width, this.pixelCanvas.height, this.pixelCanvas.pixels());

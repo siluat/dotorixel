@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 061 | [Eyedropper via long-press (touch devices)](records/061-long-press-eyedropper.md) | 2026-04-02 |
 | 060 | [Sync: move tool icon to Editor frames](records/060-sync-move-tool-icon.md) | 2026-04-02 |
 | 059 | [Move tool (drag to reposition canvas content)](records/059-move-tool.md) | 2026-04-02 |
 | 058 | [Undo/Redo support for canvas resize](records/058-resize-undo-redo.md) | 2026-04-02 |

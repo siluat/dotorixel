@@ -1377,3 +1377,96 @@ describe('EditorState — move tool', () => {
 		expect(getPixel(editor, 3, 3)).toEqual(BLACK);
 	});
 });
+
+describe('EditorState — long-press eyedropper', () => {
+	it('picks foreground color on long-press (button 0)', () => {
+		const editor = createEditor();
+		const red = { r: 255, g: 0, b: 0, a: 255 };
+		editor.foregroundColor = red;
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(0);
+		editor.handleDraw({ x: 3, y: 3 }, null);
+		editor.handleDrawEnd();
+
+		editor.foregroundColor = BLACK;
+		const result = editor.handleLongPress({ x: 3, y: 3 }, 0);
+
+		expect(editor.foregroundColor).toEqual(red);
+		expect(result).toBe(true);
+	});
+
+	it('picks background color on long-press (button 2)', () => {
+		const editor = createEditor();
+		const red = { r: 255, g: 0, b: 0, a: 255 };
+		editor.foregroundColor = red;
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(0);
+		editor.handleDraw({ x: 3, y: 3 }, null);
+		editor.handleDrawEnd();
+
+		const result = editor.handleLongPress({ x: 3, y: 3 }, 2);
+
+		expect(editor.backgroundColor).toEqual(red);
+		expect(result).toBe(true);
+	});
+
+	it('returns true without changing color on transparent pixel', () => {
+		const editor = createEditor();
+		const result = editor.handleLongPress({ x: 0, y: 0 }, 0);
+
+		expect(editor.foregroundColor).toEqual(BLACK);
+		expect(result).toBe(true);
+	});
+
+	it('adds picked color to recentColors', () => {
+		const editor = createEditor();
+		const green = { r: 0, g: 128, b: 0, a: 255 };
+		editor.foregroundColor = green;
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(0);
+		editor.handleDraw({ x: 2, y: 2 }, null);
+		editor.handleDrawEnd();
+
+		editor.recentColors = [];
+		editor.handleLongPress({ x: 2, y: 2 }, 0);
+
+		expect(editor.recentColors).toContain('#008000');
+	});
+
+	it('preserves current tool', () => {
+		const editor = createEditor();
+		editor.foregroundColor = WHITE;
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(0);
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDrawEnd();
+
+		editor.activeTool = 'line';
+		editor.handleLongPress({ x: 0, y: 0 }, 0);
+
+		expect(editor.activeTool).toBe('line');
+	});
+
+	it('returns false when eyedropper is already active', () => {
+		const editor = createEditor();
+		editor.activeTool = 'eyedropper';
+
+		const result = editor.handleLongPress({ x: 0, y: 0 }, 0);
+
+		expect(result).toBe(false);
+	});
+
+	it('does not create an undo snapshot', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(0);
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDrawEnd();
+		editor.handleUndo();
+		expect(editor.canUndo).toBe(false);
+
+		editor.handleLongPress({ x: 0, y: 0 }, 0);
+
+		expect(editor.canUndo).toBe(false);
+	});
+});

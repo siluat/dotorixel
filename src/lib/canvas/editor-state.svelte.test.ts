@@ -1171,3 +1171,112 @@ describe('EditorState — right-click draws with background color', () => {
 		expect(editor.recentColors).toContain('#ffffff');
 	});
 });
+
+describe('EditorState — resize undo/redo', () => {
+	it('undoes resize and restores original dimensions', () => {
+		const editor = createEditor(); // 8×8
+		editor.handleResize(16, 16);
+		expect(editor.pixelCanvas.width).toBe(16);
+		expect(editor.pixelCanvas.height).toBe(16);
+
+		editor.handleUndo();
+		expect(editor.pixelCanvas.width).toBe(8);
+		expect(editor.pixelCanvas.height).toBe(8);
+	});
+
+	it('redoes resize after undo', () => {
+		const editor = createEditor();
+		editor.handleResize(16, 16);
+		editor.handleUndo();
+		expect(editor.pixelCanvas.width).toBe(8);
+
+		editor.handleRedo();
+		expect(editor.pixelCanvas.width).toBe(16);
+		expect(editor.pixelCanvas.height).toBe(16);
+	});
+
+	it('preserves pixel data across resize undo', () => {
+		const editor = createEditor(); // 8×8
+		// Draw a pixel
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(0);
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDrawEnd();
+		expect(getPixel(editor, 0, 0)).toEqual(BLACK);
+
+		// Resize to 16×16
+		editor.handleResize(16, 16);
+		expect(editor.pixelCanvas.width).toBe(16);
+
+		// Undo resize — pixel should still be there at original dimensions
+		editor.handleUndo();
+		expect(editor.pixelCanvas.width).toBe(8);
+		expect(getPixel(editor, 0, 0)).toEqual(BLACK);
+	});
+
+	it('undoes draw-resize-draw chain correctly', () => {
+		const editor = createEditor(); // 8×8
+		// Draw at (0,0)
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(0);
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDrawEnd();
+
+		// Resize to 16×16
+		editor.handleResize(16, 16);
+
+		// Draw at (10,10) — only valid on 16×16 canvas
+		editor.handleDrawStart(0);
+		editor.handleDraw({ x: 10, y: 10 }, null);
+		editor.handleDrawEnd();
+		expect(getPixel(editor, 10, 10)).toEqual(BLACK);
+
+		// Undo draw at (10,10) — still 16×16
+		editor.handleUndo();
+		expect(editor.pixelCanvas.width).toBe(16);
+		expect(getPixel(editor, 10, 10)).toEqual(TRANSPARENT);
+
+		// Undo resize — back to 8×8 with pixel at (0,0)
+		editor.handleUndo();
+		expect(editor.pixelCanvas.width).toBe(8);
+		expect(getPixel(editor, 0, 0)).toEqual(BLACK);
+
+		// Undo draw at (0,0) — empty 8×8
+		editor.handleUndo();
+		expect(getPixel(editor, 0, 0)).toEqual(TRANSPARENT);
+	});
+
+	it('undoes multiple resizes independently', () => {
+		const editor = createEditor(); // 8×8
+		editor.handleResize(16, 16);
+		editor.handleResize(32, 32);
+		expect(editor.pixelCanvas.width).toBe(32);
+
+		editor.handleUndo();
+		expect(editor.pixelCanvas.width).toBe(16);
+
+		editor.handleUndo();
+		expect(editor.pixelCanvas.width).toBe(8);
+	});
+
+	it('resize with same dimensions is a no-op for history', () => {
+		const editor = createEditor(); // 8×8
+		editor.handleResize(8, 8);
+		expect(editor.canUndo).toBe(false);
+	});
+
+	it('resize clears redo stack', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(0);
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDrawEnd();
+
+		editor.handleUndo();
+		expect(editor.canRedo).toBe(true);
+
+		// Resize should clear redo (via push_snapshot)
+		editor.handleResize(16, 16);
+		expect(editor.canRedo).toBe(false);
+	});
+});

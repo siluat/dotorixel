@@ -8,10 +8,6 @@
 - Move tool (drag to reposition canvas content)
 - Sync: move tool icon added to toolbar across Editor frames (.pen)
 
-### Canvas resize UX
-
-- Undo/Redo support for canvas resize
-
 ### Keyboard & toolbar UX
 
 - Review keyboard shortcut assignments (align with Aseprite and other established editors)

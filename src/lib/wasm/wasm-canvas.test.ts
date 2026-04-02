@@ -145,4 +145,20 @@ describe('WasmPixelCanvas', () => {
 
 		expect(legacy.pixels()).toEqual(anchored.pixels());
 	});
+
+	it('creates canvas from raw pixel data via from_pixels', () => {
+		const pixels = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 0, 0, 0, 0]);
+		const canvas = WasmPixelCanvas.from_pixels(2, 2, pixels);
+		expect(canvas.width).toBe(2);
+		expect(canvas.height).toBe(2);
+		const p = canvas.get_pixel(0, 0);
+		expect(p.r).toBe(255);
+		expect(p.g).toBe(0);
+		expect(p.b).toBe(0);
+	});
+
+	it('from_pixels rejects mismatched buffer length', () => {
+		const short = new Uint8Array([0, 0, 0, 0]);
+		expect(() => WasmPixelCanvas.from_pixels(2, 2, short)).toThrow();
+	});
 });

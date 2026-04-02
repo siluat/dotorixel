@@ -97,5 +97,6 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Editor UI theme | — | ✅ | ⬜ | `--ds-*` tokens, docked panel (≥1024px) + tab navigation (<1024px) |
 | Responsive layout | — | ✅ | ⬜ | 4 breakpoints: compact/medium/wide/x-wide via matchMedia + CSS Grid/Flex |
 | Toolbar tooltip | — | ✅ | ⬜ | Custom styled tooltip on hover (tool name + shortcut badge), Svelte action, GeistPixel-Square font |
+| Tab bar slide indicator | — | ✅ | ⬜ | ease-in-out-cubic 180ms, pure CSS `--active-index` |
 | Landing page | — | ✅ | — | Hero section + CTA, i18n, `--ds-*` tokens |
 | Safe area handling | — | ✅ | ⬜ | `viewport-fit=cover` + `env(safe-area-inset-*)` on all routes |

@@ -11,6 +11,9 @@
 
 	let { activeTab, onTabChange }: Props = $props();
 
+	const tabIds: MobileTab[] = ['draw', 'colors', 'settings'];
+	let activeIndex = $derived(tabIds.indexOf(activeTab));
+
 	const tabs: { id: MobileTab; label: () => string; icon: typeof Pencil }[] = [
 		{ id: 'draw', label: m.tab_draw, icon: Pencil },
 		{ id: 'colors', label: m.tab_colors, icon: Palette },
@@ -19,7 +22,8 @@
 </script>
 
 <nav class="tab-bar">
-	<div class="pill">
+	<div class="pill" style:--active-index={activeIndex}>
+		<div class="slide-indicator"></div>
 		{#each tabs as tab}
 			<button
 				class="tab-item"
@@ -52,6 +56,7 @@
 	}
 
 	.pill {
+		position: relative;
 		display: flex;
 		width: 100%;
 		height: 62px;
@@ -61,7 +66,29 @@
 		border-radius: 36px;
 	}
 
+	.slide-indicator {
+		position: absolute;
+		top: 4px;
+		bottom: 4px;
+		left: 4px;
+		width: calc((100% - 8px) / 3);
+		border-radius: 26px;
+		background: var(--ds-accent);
+		transform: translateX(calc(var(--active-index) * 100%));
+		transition: transform 180ms cubic-bezier(0.645, 0.045, 0.355, 1);
+		will-change: transform;
+		pointer-events: none;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.slide-indicator {
+			transition: none;
+		}
+	}
+
 	.tab-item {
+		position: relative;
+		z-index: 1;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -81,7 +108,6 @@
 	}
 
 	.tab-item.active {
-		background: var(--ds-accent);
 		color: #ffffff;
 	}
 

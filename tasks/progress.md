@@ -6,10 +6,14 @@ None
 
 ## Last Completed
 
-Toolbar tool tooltip on hover (tool name + shortcut key)
+Sliding active indicator animation (tab bar navigation)
 
 ## Next Up
 
-- Sliding active indicator animation (toolbar tool selection + tab bar navigation)
-  - M2 keyboard & toolbar UX. Purely visual enhancement. Independent.
+- Sync: sliding indicator style updated in tab bar across Editor frames (.pen)
+  - M2 keyboard & toolbar UX. .pen-only task — depends on tab bar indicator (done).
+- Design: tab system UI — multi-image tabs across all breakpoints (.pen)
+  - M2 multi-image workflow. .pen-only, independent. Prerequisite for tab system code.
+- SVG export
+  - M2 export & sharing. Independent code task.
 

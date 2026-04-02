@@ -13,6 +13,8 @@
 	} from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { ToolType } from '$lib/canvas/tool-types';
+	import { TOOL_SHORTCUT_KEYS } from '$lib/canvas/shortcut-display';
+	import { tooltip } from '$lib/tooltip';
 
 	interface Props {
 		activeTool: ToolType;
@@ -45,6 +47,7 @@
 			onclick={() => onToolChange(tool.type)}
 			aria-label={tool.label()}
 			aria-pressed={activeTool === tool.type}
+			use:tooltip={`${tool.label()} (${TOOL_SHORTCUT_KEYS[tool.type]})`}
 		>
 			<tool.icon size={18} />
 		</button>
@@ -56,6 +59,7 @@
 		onclick={onUndo}
 		disabled={!canUndo}
 		aria-label={m.action_undo()}
+		use:tooltip={m.action_undo()}
 	>
 		<Undo2 size={16} />
 	</button>
@@ -66,6 +70,7 @@
 		onclick={onRedo}
 		disabled={!canRedo}
 		aria-label={m.action_redo()}
+		use:tooltip={m.action_redo()}
 	>
 		<Redo2 size={16} />
 	</button>

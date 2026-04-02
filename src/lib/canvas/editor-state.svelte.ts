@@ -18,6 +18,7 @@ import { exportAsPng } from './export';
 import { ShapeHandler } from './shape-handler';
 import { constrainLine, constrainSquare } from './constrain';
 import { shiftPixels } from './shift-pixels';
+import { TOOL_SHORTCUT_KEYS } from './shortcut-display';
 
 const RESIZE_ANCHOR_MAP: Record<ResizeAnchor, WasmResizeAnchor> = {
 	'top-left': WasmResizeAnchor.TopLeft,
@@ -31,16 +32,10 @@ const RESIZE_ANCHOR_MAP: Record<ResizeAnchor, WasmResizeAnchor> = {
 	'bottom-right': WasmResizeAnchor.BottomRight
 };
 
-const TOOL_SHORTCUTS: Record<string, ToolType> = {
-	KeyP: 'pencil',
-	KeyE: 'eraser',
-	KeyL: 'line',
-	KeyU: 'rectangle',
-	KeyO: 'ellipse',
-	KeyF: 'floodfill',
-	KeyI: 'eyedropper',
-	KeyV: 'move'
-};
+// Derived from TOOL_SHORTCUT_KEYS: maps KeyboardEvent.code → ToolType
+const TOOL_SHORTCUTS: Record<string, ToolType> = Object.fromEntries(
+	Object.entries(TOOL_SHORTCUT_KEYS).map(([tool, key]) => [`Key${key}`, tool])
+) as Record<string, ToolType>;
 
 type ShapeToolType = 'line' | 'rectangle' | 'ellipse';
 

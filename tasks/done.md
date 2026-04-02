@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 064 | [Toolbar tool tooltip on hover](records/064-toolbar-tooltip.md) | 2026-04-02 |
 | 063 | [Review keyboard shortcut assignments](records/063-keyboard-shortcut-review.md) | 2026-04-02 |
 | 062 | [Move tool mouse cursor](records/062-move-tool-cursor.md) | 2026-04-02 |
 | 061 | [Eyedropper via long-press (touch devices)](records/061-long-press-eyedropper.md) | 2026-04-02 |

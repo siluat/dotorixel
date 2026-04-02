@@ -2,6 +2,8 @@
 	import type { ToolType } from '$lib/canvas/tool-types';
 	import { Pencil, Slash, Square, Circle, Eraser, PaintBucket, Pipette, Move, ZoomOut, ZoomIn } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
+	import { TOOL_SHORTCUT_KEYS } from '$lib/canvas/shortcut-display';
+	import { tooltip } from '$lib/tooltip';
 	import FloatingPanel from './FloatingPanel.svelte';
 	import EditorButton from './EditorButton.svelte';
 
@@ -25,65 +27,65 @@
 
 <FloatingPanel style="height: 60px; border-radius: var(--ds-radius-xl); padding: 10px 20px;">
 	<EditorButton
-		title={`${m.tool_pencil()} (P)`}
+		title={`${m.tool_pencil()} (${TOOL_SHORTCUT_KEYS.pencil})`}
 		active={activeTool === 'pencil'}
-		shortcutHint={hint('P')}
+		shortcutHint={hint(TOOL_SHORTCUT_KEYS.pencil)}
 		onclick={() => onToolChange('pencil')}
 	>
 		<Pencil size={18} />
 	</EditorButton>
 	<EditorButton
-		title={`${m.tool_line()} (L)`}
+		title={`${m.tool_line()} (${TOOL_SHORTCUT_KEYS.line})`}
 		active={activeTool === 'line'}
-		shortcutHint={hint('L')}
+		shortcutHint={hint(TOOL_SHORTCUT_KEYS.line)}
 		onclick={() => onToolChange('line')}
 	>
 		<Slash size={18} />
 	</EditorButton>
 	<EditorButton
-		title={`${m.tool_rectangle()} (U)`}
+		title={`${m.tool_rectangle()} (${TOOL_SHORTCUT_KEYS.rectangle})`}
 		active={activeTool === 'rectangle'}
-		shortcutHint={hint('U')}
+		shortcutHint={hint(TOOL_SHORTCUT_KEYS.rectangle)}
 		onclick={() => onToolChange('rectangle')}
 	>
 		<Square size={18} />
 	</EditorButton>
 	<EditorButton
-		title={`${m.tool_ellipse()} (O)`}
+		title={`${m.tool_ellipse()} (${TOOL_SHORTCUT_KEYS.ellipse})`}
 		active={activeTool === 'ellipse'}
-		shortcutHint={hint('O')}
+		shortcutHint={hint(TOOL_SHORTCUT_KEYS.ellipse)}
 		onclick={() => onToolChange('ellipse')}
 	>
 		<Circle size={18} />
 	</EditorButton>
 	<EditorButton
-		title={`${m.tool_eraser()} (E)`}
+		title={`${m.tool_eraser()} (${TOOL_SHORTCUT_KEYS.eraser})`}
 		active={activeTool === 'eraser'}
-		shortcutHint={hint('E')}
+		shortcutHint={hint(TOOL_SHORTCUT_KEYS.eraser)}
 		onclick={() => onToolChange('eraser')}
 	>
 		<Eraser size={18} />
 	</EditorButton>
 	<EditorButton
-		title={`${m.tool_floodfill()} (F)`}
+		title={`${m.tool_floodfill()} (${TOOL_SHORTCUT_KEYS.floodfill})`}
 		active={activeTool === 'floodfill'}
-		shortcutHint={hint('F')}
+		shortcutHint={hint(TOOL_SHORTCUT_KEYS.floodfill)}
 		onclick={() => onToolChange('floodfill')}
 	>
 		<PaintBucket size={18} />
 	</EditorButton>
 	<EditorButton
-		title={`${m.tool_eyedropper()} (I)`}
+		title={`${m.tool_eyedropper()} (${TOOL_SHORTCUT_KEYS.eyedropper})`}
 		active={activeTool === 'eyedropper'}
-		shortcutHint={hint('I')}
+		shortcutHint={hint(TOOL_SHORTCUT_KEYS.eyedropper)}
 		onclick={() => onToolChange('eyedropper')}
 	>
 		<Pipette size={18} />
 	</EditorButton>
 	<EditorButton
-		title={`${m.tool_move()} (V)`}
+		title={`${m.tool_move()} (${TOOL_SHORTCUT_KEYS.move})`}
 		active={activeTool === 'move'}
-		shortcutHint={hint('V')}
+		shortcutHint={hint(TOOL_SHORTCUT_KEYS.move)}
 		onclick={() => onToolChange('move')}
 	>
 		<Move size={18} />
@@ -94,7 +96,7 @@
 	<EditorButton title={m.action_zoomOut()} onclick={onZoomOut}>
 		<ZoomOut size={18} />
 	</EditorButton>
-	<button type="button" class="zoom-label" title={m.action_resetZoom()} onclick={onZoomReset}>{zoomPercent}%</button>
+	<button type="button" class="zoom-label" use:tooltip={m.action_resetZoom()} aria-label={m.action_resetZoom()} onclick={onZoomReset}>{zoomPercent}%</button>
 	<EditorButton title={m.action_zoomIn()} onclick={onZoomIn}>
 		<ZoomIn size={18} />
 	</EditorButton>

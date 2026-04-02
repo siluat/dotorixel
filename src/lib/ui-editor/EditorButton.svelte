@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { tooltip } from '$lib/tooltip';
 
 	interface Props {
 		active?: boolean;
@@ -21,7 +22,7 @@
 	aria-pressed={active ? 'true' : undefined}
 	aria-label={ariaLabel ?? title}
 	{disabled}
-	{title}
+	use:tooltip={title}
 	{onclick}
 >
 	{@render children()}

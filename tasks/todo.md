@@ -5,7 +5,6 @@
 ### Core tool additions
 
 - Eyedropper via Option+click (desktop) / long-press (touch devices)
-- Sync: move tool icon added to toolbar across Editor frames (.pen)
 
 ### Keyboard & toolbar UX
 

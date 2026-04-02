@@ -15488,6 +15488,28 @@
                   ]
                 },
                 {
+                  "type": "frame",
+                  "id": "cgQuB",
+                  "name": "moveBtn",
+                  "width": 36,
+                  "height": 36,
+                  "cornerRadius": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "bMfQh",
+                      "name": "moveIcon",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "move",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--text-secondary"
+                    }
+                  ]
+                },
+                {
                   "type": "rectangle",
                   "id": "DqFC8",
                   "name": "toolSep",
@@ -17061,6 +17083,28 @@
                   ]
                 },
                 {
+                  "type": "frame",
+                  "id": "0JOzJ",
+                  "name": "moveBtn",
+                  "width": 36,
+                  "height": 36,
+                  "cornerRadius": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "n6YuZ",
+                      "name": "moveIcon",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "move",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--text-secondary"
+                    }
+                  ]
+                },
+                {
                   "type": "rectangle",
                   "id": "RuPSR",
                   "name": "toolSep",
@@ -18628,6 +18672,28 @@
                       "width": 18,
                       "height": 18,
                       "iconFontName": "pipette",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--text-secondary"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ElE9a",
+                  "name": "moveBtn",
+                  "width": 36,
+                  "height": 36,
+                  "cornerRadius": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "UQSZ0",
+                      "name": "moveIcon",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "move",
                       "iconFontFamily": "lucide",
                       "fill": "$--text-secondary"
                     }
@@ -20347,6 +20413,28 @@
               ]
             },
             {
+              "type": "frame",
+              "id": "xRpUP",
+              "name": "ts8",
+              "width": 44,
+              "height": 44,
+              "cornerRadius": 8,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "NZXQX",
+                  "name": "ts8i",
+                  "width": 20,
+                  "height": 20,
+                  "iconFontName": "move",
+                  "iconFontFamily": "lucide",
+                  "fill": "$--text-secondary"
+                }
+              ]
+            },
+            {
               "type": "rectangle",
               "id": "5GVkO",
               "name": "tsSep",
@@ -21141,6 +21229,28 @@
                   "width": 18,
                   "height": 18,
                   "iconFontName": "pipette",
+                  "iconFontFamily": "lucide",
+                  "fill": "$--text-secondary"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "eehPF",
+              "name": "ts8",
+              "width": 40,
+              "height": 40,
+              "cornerRadius": 8,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "rtV1a",
+                  "name": "ts8i",
+                  "width": 18,
+                  "height": 18,
+                  "iconFontName": "move",
                   "iconFontFamily": "lucide",
                   "fill": "$--text-secondary"
                 }
@@ -23479,6 +23589,28 @@
                       ]
                     },
                     {
+                      "type": "frame",
+                      "id": "qnbTR",
+                      "name": "moveBtn",
+                      "width": 36,
+                      "height": 36,
+                      "cornerRadius": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "PJph0",
+                          "name": "moveIcon",
+                          "width": 18,
+                          "height": 18,
+                          "iconFontName": "move",
+                          "iconFontFamily": "lucide",
+                          "fill": "$--text-secondary"
+                        }
+                      ]
+                    },
+                    {
                       "type": "rectangle",
                       "id": "cCNI7",
                       "name": "toolSep",
@@ -25805,6 +25937,28 @@
                       ]
                     },
                     {
+                      "type": "frame",
+                      "id": "ewCZU",
+                      "name": "moveBtn",
+                      "width": 36,
+                      "height": 36,
+                      "cornerRadius": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "v1a99",
+                          "name": "moveIcon",
+                          "width": 18,
+                          "height": 18,
+                          "iconFontName": "move",
+                          "iconFontFamily": "lucide",
+                          "fill": "$--text-secondary"
+                        }
+                      ]
+                    },
+                    {
                       "type": "rectangle",
                       "id": "Wo0a9",
                       "name": "toolSep",
@@ -28124,6 +28278,28 @@
                           "width": 18,
                           "height": 18,
                           "iconFontName": "pipette",
+                          "iconFontFamily": "lucide",
+                          "fill": "$--text-secondary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ZQScn",
+                      "name": "moveBtn",
+                      "width": 36,
+                      "height": 36,
+                      "cornerRadius": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "RR6z3",
+                          "name": "moveIcon",
+                          "width": 18,
+                          "height": 18,
+                          "iconFontName": "move",
                           "iconFontFamily": "lucide",
                           "fill": "$--text-secondary"
                         }

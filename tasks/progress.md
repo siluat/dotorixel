@@ -6,12 +6,10 @@ None
 
 ## Last Completed
 
-Move tool (drag to reposition canvas content)
+Sync: move tool icon added to toolbar across Editor frames (.pen)
 
 ## Next Up
 
-- Sync: move tool icon added to toolbar across Editor frames (.pen)
-  - .pen-only design sync. Independent — no code dependency.
 - Eyedropper via Option+click (desktop) / long-press (touch devices)
   - M2 core tool addition. Independent — no dependency on other tools.
 - Review keyboard shortcut assignments

@@ -371,11 +371,11 @@ describe('EditorState — tool shortcuts', () => {
 			['KeyP', 'pencil'],
 			['KeyE', 'eraser'],
 			['KeyL', 'line'],
-			['KeyR', 'rectangle'],
-			['KeyC', 'ellipse'],
+			['KeyU', 'rectangle'],
+			['KeyO', 'ellipse'],
 			['KeyF', 'floodfill'],
 			['KeyI', 'eyedropper'],
-			['KeyM', 'move']
+			['KeyV', 'move']
 		];
 		for (const [code, tool] of mappings) {
 			editor.handleKeyDown(keyDown(code));

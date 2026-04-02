@@ -6,12 +6,12 @@ None
 
 ## Last Completed
 
-Move tool mouse cursor
+Review keyboard shortcut assignments
 
 ## Next Up
 
-- Review keyboard shortcut assignments
-  - M2 keyboard UX. Independent, gates tooltip implementation.
+- Toolbar tool tooltip on hover (tool name + shortcut key)
+  - M2 keyboard UX. Was gated by shortcut review (now complete). Independent.
 - Sliding active indicator animation (toolbar tool selection + tab bar navigation)
   - M2 keyboard & toolbar UX. Independent — purely visual enhancement.
 

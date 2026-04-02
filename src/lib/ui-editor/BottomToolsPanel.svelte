@@ -41,17 +41,17 @@
 		<Slash size={18} />
 	</EditorButton>
 	<EditorButton
-		title={`${m.tool_rectangle()} (R)`}
+		title={`${m.tool_rectangle()} (U)`}
 		active={activeTool === 'rectangle'}
-		shortcutHint={hint('R')}
+		shortcutHint={hint('U')}
 		onclick={() => onToolChange('rectangle')}
 	>
 		<Square size={18} />
 	</EditorButton>
 	<EditorButton
-		title={`${m.tool_ellipse()} (C)`}
+		title={`${m.tool_ellipse()} (O)`}
 		active={activeTool === 'ellipse'}
-		shortcutHint={hint('C')}
+		shortcutHint={hint('O')}
 		onclick={() => onToolChange('ellipse')}
 	>
 		<Circle size={18} />
@@ -81,9 +81,9 @@
 		<Pipette size={18} />
 	</EditorButton>
 	<EditorButton
-		title={`${m.tool_move()} (M)`}
+		title={`${m.tool_move()} (V)`}
 		active={activeTool === 'move'}
-		shortcutHint={hint('M')}
+		shortcutHint={hint('V')}
 		onclick={() => onToolChange('move')}
 	>
 		<Move size={18} />

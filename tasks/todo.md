@@ -4,8 +4,7 @@
 
 ### Keyboard & toolbar UX
 
-- Review keyboard shortcut assignments (align with Aseprite and other established editors)
-- Toolbar tool tooltip on hover (tool name + shortcut key) — after shortcut review
+- Toolbar tool tooltip on hover (tool name + shortcut key)
 - Sync: toolbar tooltip reflected in Editor frames (.pen)
 - Sliding active indicator animation (toolbar tool selection + tab bar navigation)
 - Sync: sliding indicator style updated in toolbar + tab bar across Editor frames (.pen)

@@ -35,11 +35,11 @@ const TOOL_SHORTCUTS: Record<string, ToolType> = {
 	KeyP: 'pencil',
 	KeyE: 'eraser',
 	KeyL: 'line',
-	KeyR: 'rectangle',
-	KeyC: 'ellipse',
+	KeyU: 'rectangle',
+	KeyO: 'ellipse',
 	KeyF: 'floodfill',
 	KeyI: 'eyedropper',
-	KeyM: 'move'
+	KeyV: 'move'
 };
 
 type ShapeToolType = 'line' | 'rectangle' | 'ellipse';

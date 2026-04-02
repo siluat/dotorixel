@@ -93,6 +93,7 @@
 						onDrawEnd={editor.handleDrawEnd}
 						onViewportChange={editor.handleViewportChange}
 						onLongPress={editor.handleLongPress}
+						toolCursor={editor.toolCursor}
 						isSpaceHeld={editor.isSpaceHeld}
 					/>
 				</PixelPanel>

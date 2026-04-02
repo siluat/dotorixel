@@ -12,7 +12,7 @@ import {
 	wasm_flood_fill
 } from '$wasm/dotorixel_wasm';
 import type { CanvasCoords, ResizeAnchor, ViewportSize, ViewportState } from './view-types';
-import type { ToolType } from './tool-types';
+import { TOOL_CURSORS, type ToolType } from './tool-types';
 import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
 import { exportAsPng } from './export';
 import { ShapeHandler } from './shape-handler';
@@ -142,6 +142,8 @@ export class EditorState {
 		showGrid: this.viewportState.showGrid,
 		gridColor: this.viewportState.gridColor
 	});
+
+	readonly toolCursor = $derived(TOOL_CURSORS[this.activeTool]);
 
 	readonly foregroundColorHex = $derived(colorToHex(this.foregroundColor));
 	readonly backgroundColorHex = $derived(colorToHex(this.backgroundColor));

@@ -179,7 +179,7 @@ export class EditorState {
 		this.#activeDrawColor = isRightClick ? this.#wasmBackgroundColor : this.#wasmForegroundColor;
 
 		if (this.activeTool === 'eyedropper') return;
-		this.#history.push_snapshot(this.pixelCanvas.pixels());
+		this.#history.push_snapshot(this.pixelCanvas.width, this.pixelCanvas.height, this.pixelCanvas.pixels());
 		this.#historyVersion++;
 		if (this.activeTool !== 'eraser') {
 			const activeColor = isRightClick ? this.backgroundColor : this.foregroundColor;
@@ -206,26 +206,37 @@ export class EditorState {
 
 	handleUndo = (): void => {
 		if (this.#isDrawing) return;
-		const snapshot = this.#history.undo(this.pixelCanvas.pixels());
-		if (snapshot) {
-			this.pixelCanvas.restore_pixels(snapshot);
-			this.renderVersion++;
-			this.#historyVersion++;
-		}
+		const snapshot = this.#history.undo(this.pixelCanvas.width, this.pixelCanvas.height, this.pixelCanvas.pixels());
+		if (snapshot) this.#applySnapshot(snapshot);
 	};
 
 	handleRedo = (): void => {
 		if (this.#isDrawing) return;
-		const snapshot = this.#history.redo(this.pixelCanvas.pixels());
-		if (snapshot) {
-			this.pixelCanvas.restore_pixels(snapshot);
-			this.renderVersion++;
-			this.#historyVersion++;
-		}
+		const snapshot = this.#history.redo(this.pixelCanvas.width, this.pixelCanvas.height, this.pixelCanvas.pixels());
+		if (snapshot) this.#applySnapshot(snapshot);
 	};
 
+	#applySnapshot(snapshot: { width: number; height: number; pixels(): Uint8Array }): void {
+		const hasDimensionsChanged =
+			snapshot.width !== this.pixelCanvas.width || snapshot.height !== this.pixelCanvas.height;
+		if (hasDimensionsChanged) {
+			this.pixelCanvas = WasmPixelCanvas.from_pixels(snapshot.width, snapshot.height, snapshot.pixels());
+			const clamped = this.viewportState.viewport.clamp_pan(
+				snapshot.width,
+				snapshot.height,
+				this.viewportSize.width,
+				this.viewportSize.height
+			);
+			this.viewportState = { ...this.viewportState, viewport: clamped };
+		} else {
+			this.pixelCanvas.restore_pixels(snapshot.pixels());
+		}
+		this.renderVersion++;
+		this.#historyVersion++;
+	}
+
 	handleClear = (): void => {
-		this.#history.push_snapshot(this.pixelCanvas.pixels());
+		this.#history.push_snapshot(this.pixelCanvas.width, this.pixelCanvas.height, this.pixelCanvas.pixels());
 		this.#historyVersion++;
 		this.pixelCanvas.clear();
 		this.renderVersion++;
@@ -344,6 +355,8 @@ export class EditorState {
 
 	handleResize = (newWidth: number, newHeight: number): void => {
 		if (newWidth === this.pixelCanvas.width && newHeight === this.pixelCanvas.height) return;
+		this.#history.push_snapshot(this.pixelCanvas.width, this.pixelCanvas.height, this.pixelCanvas.pixels());
+		this.#historyVersion++;
 		this.pixelCanvas = this.pixelCanvas.resize_with_anchor(
 			newWidth,
 			newHeight,
@@ -356,9 +369,6 @@ export class EditorState {
 			this.viewportSize.height
 		);
 		this.viewportState = { ...this.viewportState, viewport: clamped };
-		// Resize changes canvas dimensions, invalidating previous pixel-coordinate snapshots
-		this.#history.clear();
-		this.#historyVersion++;
 		this.renderVersion++;
 	};
 

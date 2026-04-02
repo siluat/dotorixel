@@ -3,7 +3,7 @@ use wasm_bindgen::prelude::*;
 use dotorixel_core::canvas::{PixelCanvas, ResizeAnchor};
 use dotorixel_core::color::Color;
 use dotorixel_core::export::PngExport;
-use dotorixel_core::history::HistoryManager;
+use dotorixel_core::history::{HistoryManager, Snapshot};
 use dotorixel_core::tool::{
     ToolType, ellipse_outline, flood_fill, interpolate_pixels, rectangle_outline,
 };
@@ -95,6 +95,16 @@ impl WasmPixelCanvas {
         color: &WasmColor,
     ) -> Result<WasmPixelCanvas, JsError> {
         let canvas = PixelCanvas::with_color(width, height, color.inner)
+            .map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(WasmPixelCanvas { inner: canvas })
+    }
+
+    pub fn from_pixels(
+        width: u32,
+        height: u32,
+        pixels: &[u8],
+    ) -> Result<WasmPixelCanvas, JsError> {
+        let canvas = PixelCanvas::from_pixels(width, height, pixels.to_vec())
             .map_err(|e| JsError::new(&e.to_string()))?;
         Ok(WasmPixelCanvas { inner: canvas })
     }
@@ -306,6 +316,32 @@ pub fn wasm_flood_fill(canvas: &mut WasmPixelCanvas, x: i32, y: i32, color: &Was
 }
 
 // ---------------------------------------------------------------------------
+// WasmSnapshot
+// ---------------------------------------------------------------------------
+
+#[wasm_bindgen]
+pub struct WasmSnapshot {
+    inner: Snapshot,
+}
+
+#[wasm_bindgen]
+impl WasmSnapshot {
+    #[wasm_bindgen(getter)]
+    pub fn width(&self) -> u32 {
+        self.inner.width
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn height(&self) -> u32 {
+        self.inner.height
+    }
+
+    pub fn pixels(&self) -> Vec<u8> {
+        self.inner.pixels.clone()
+    }
+}
+
+// ---------------------------------------------------------------------------
 // WasmHistoryManager
 // ---------------------------------------------------------------------------
 
@@ -337,16 +373,30 @@ impl WasmHistoryManager {
         self.inner.can_redo()
     }
 
-    pub fn push_snapshot(&mut self, pixels: &[u8]) {
-        self.inner.push_snapshot(pixels);
+    pub fn push_snapshot(&mut self, width: u32, height: u32, pixels: &[u8]) {
+        self.inner.push_snapshot(width, height, pixels);
     }
 
-    pub fn undo(&mut self, current_pixels: &[u8]) -> Option<Vec<u8>> {
-        self.inner.undo(current_pixels)
+    pub fn undo(
+        &mut self,
+        current_width: u32,
+        current_height: u32,
+        current_pixels: &[u8],
+    ) -> Option<WasmSnapshot> {
+        self.inner
+            .undo(current_width, current_height, current_pixels)
+            .map(|s| WasmSnapshot { inner: s })
     }
 
-    pub fn redo(&mut self, current_pixels: &[u8]) -> Option<Vec<u8>> {
-        self.inner.redo(current_pixels)
+    pub fn redo(
+        &mut self,
+        current_width: u32,
+        current_height: u32,
+        current_pixels: &[u8],
+    ) -> Option<WasmSnapshot> {
+        self.inner
+            .redo(current_width, current_height, current_pixels)
+            .map(|s| WasmSnapshot { inner: s })
     }
 
     pub fn clear(&mut self) {

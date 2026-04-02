@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use dotorixel_core::canvas::PixelCanvas;
 use dotorixel_core::export::PngExport;
-use dotorixel_core::history::HistoryManager;
+use dotorixel_core::history::{HistoryManager, Snapshot};
 use dotorixel_core::tool::interpolate_pixels;
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
 
@@ -256,16 +256,16 @@ impl AppleHistoryManager {
         self.inner.lock().unwrap().can_redo()
     }
 
-    fn push_snapshot(&self, pixels: Vec<u8>) {
-        self.inner.lock().unwrap().push_snapshot(&pixels);
+    fn push_snapshot(&self, width: u32, height: u32, pixels: Vec<u8>) {
+        self.inner.lock().unwrap().push_snapshot(width, height, &pixels);
     }
 
-    fn undo(&self, current_pixels: Vec<u8>) -> Option<Vec<u8>> {
-        self.inner.lock().unwrap().undo(&current_pixels)
+    fn undo(&self, current_width: u32, current_height: u32, current_pixels: Vec<u8>) -> Option<Snapshot> {
+        self.inner.lock().unwrap().undo(current_width, current_height, &current_pixels)
     }
 
-    fn redo(&self, current_pixels: Vec<u8>) -> Option<Vec<u8>> {
-        self.inner.lock().unwrap().redo(&current_pixels)
+    fn redo(&self, current_width: u32, current_height: u32, current_pixels: Vec<u8>) -> Option<Snapshot> {
+        self.inner.lock().unwrap().redo(current_width, current_height, &current_pixels)
     }
 
     fn clear(&self) {

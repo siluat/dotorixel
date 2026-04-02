@@ -10,7 +10,7 @@ pub mod viewport;
 pub use canvas::{PixelCanvasError, ResizeAnchor};
 pub use color::ColorParseError;
 pub use export::{ExportError, PngExport};
-pub use history::HistoryManager;
+pub use history::{HistoryManager, Snapshot};
 pub use tool::ToolType;
 pub use viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
 

@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 058 | [Undo/Redo support for canvas resize](records/058-resize-undo-redo.md) | 2026-04-02 |
 | 057 | [Canvas resize UX improvements](records/057-canvas-resize-ux.md) | 2026-04-02 |
 | 056 | [Design: canvas resize UX](records/056-design-canvas-resize-ux.md) | 2026-04-02 |
 | 055 | [Right-click draws with background color](records/055-right-click-background-color.md) | 2026-04-02 |

@@ -160,6 +160,25 @@ impl PixelCanvas {
         })
     }
 
+    /// Creates a canvas from raw RGBA pixel data with the given dimensions.
+    ///
+    /// The buffer length must equal `width * height * 4`.
+    pub fn from_pixels(width: u32, height: u32, pixels: Vec<u8>) -> Result<Self, PixelCanvasError> {
+        Self::validate_dimensions(width, height)?;
+        let expected = (width * height * 4) as usize;
+        if pixels.len() != expected {
+            return Err(PixelCanvasError::InvalidBufferLength {
+                expected,
+                actual: pixels.len(),
+            });
+        }
+        Ok(Self {
+            width,
+            height,
+            pixels,
+        })
+    }
+
     /// Creates a canvas filled with the given color.
     pub fn with_color(width: u32, height: u32, color: Color) -> Result<Self, PixelCanvasError> {
         Self::validate_dimensions(width, height)?;
@@ -549,6 +568,41 @@ mod tests {
                 assert_eq!(canvas.get_pixel(x, y).unwrap(), Color::TRANSPARENT);
             }
         }
+    }
+
+    // ── from_pixels ───────────────────────────────────────────────
+
+    #[test]
+    fn from_pixels_creates_canvas_with_given_data() {
+        let pixels = vec![255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 0, 0, 0, 0];
+        let canvas = PixelCanvas::from_pixels(2, 2, pixels).unwrap();
+        assert_eq!(canvas.width(), 2);
+        assert_eq!(canvas.height(), 2);
+        assert_eq!(canvas.get_pixel(0, 0).unwrap(), Color::new(255, 0, 0, 255));
+        assert_eq!(canvas.get_pixel(1, 0).unwrap(), Color::new(0, 255, 0, 255));
+    }
+
+    #[test]
+    fn from_pixels_rejects_wrong_buffer_length() {
+        assert_eq!(
+            PixelCanvas::from_pixels(2, 2, vec![0u8; 8]),
+            Err(PixelCanvasError::InvalidBufferLength {
+                expected: 16,
+                actual: 8,
+            })
+        );
+    }
+
+    #[test]
+    fn from_pixels_rejects_invalid_dimensions() {
+        assert!(matches!(
+            PixelCanvas::from_pixels(0, 1, vec![]),
+            Err(PixelCanvasError::InvalidDimension { value: 0 })
+        ));
+        assert!(matches!(
+            PixelCanvas::from_pixels(1, 257, vec![0u8; 4]),
+            Err(PixelCanvasError::InvalidDimension { value: 257 })
+        ));
     }
 
     // ── restore_pixels ────────────────────────────────────────────

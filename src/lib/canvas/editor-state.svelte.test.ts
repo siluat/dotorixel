@@ -373,7 +373,8 @@ describe('EditorState — tool shortcuts', () => {
 			['KeyR', 'rectangle'],
 			['KeyC', 'ellipse'],
 			['KeyF', 'floodfill'],
-			['KeyI', 'eyedropper']
+			['KeyI', 'eyedropper'],
+			['KeyM', 'move']
 		];
 		for (const [code, tool] of mappings) {
 			editor.handleKeyDown(keyDown(code));
@@ -1278,5 +1279,101 @@ describe('EditorState — resize undo/redo', () => {
 		// Resize should clear redo (via push_snapshot)
 		editor.handleResize(16, 16);
 		expect(editor.canRedo).toBe(false);
+	});
+});
+
+function drawMove(editor: EditorState, from: CanvasCoords, to: CanvasCoords) {
+	editor.activeTool = 'move';
+	editor.handleDrawStart(0);
+	editor.handleDraw(from, null);
+	editor.handleDraw(to, from);
+	editor.handleDrawEnd();
+}
+
+describe('EditorState — move tool', () => {
+	it('shifts canvas content to new position', () => {
+		const editor = createEditor(); // 8×8
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(0);
+		editor.handleDraw({ x: 0, y: 0 }, null);
+		editor.handleDrawEnd();
+		expect(getPixel(editor, 0, 0)).toEqual(BLACK);
+
+		drawMove(editor, { x: 0, y: 0 }, { x: 2, y: 3 });
+
+		expect(getPixel(editor, 2, 3)).toEqual(BLACK);
+		expect(getPixel(editor, 0, 0)).toEqual(TRANSPARENT);
+	});
+
+	it('clips pixels shifted off canvas', () => {
+		const editor = createEditor(); // 8×8
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(0);
+		editor.handleDraw({ x: 7, y: 7 }, null);
+		editor.handleDrawEnd();
+
+		drawMove(editor, { x: 0, y: 0 }, { x: 1, y: 0 });
+
+		// Pixel at (7,7) shifted to (8,7) — off canvas
+		expect(getPixel(editor, 7, 7)).toEqual(TRANSPARENT);
+	});
+
+	it('fills vacated areas with transparent', () => {
+		const editor = createEditor(); // 8×8
+		// Fill entire top row
+		editor.activeTool = 'pencil';
+		for (let x = 0; x < 8; x++) {
+			editor.handleDrawStart(0);
+			editor.handleDraw({ x, y: 0 }, null);
+			editor.handleDrawEnd();
+		}
+
+		drawMove(editor, { x: 0, y: 0 }, { x: 0, y: 1 });
+
+		// Top row should be transparent
+		for (let x = 0; x < 8; x++) {
+			expect(getPixel(editor, x, 0)).toEqual(TRANSPARENT);
+		}
+		// Second row should have the moved pixels
+		for (let x = 0; x < 8; x++) {
+			expect(getPixel(editor, x, 1)).toEqual(BLACK);
+		}
+	});
+
+	it('undoes entire move as one operation', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(0);
+		editor.handleDraw({ x: 1, y: 1 }, null);
+		editor.handleDrawEnd();
+
+		drawMove(editor, { x: 0, y: 0 }, { x: 3, y: 3 });
+		expect(getPixel(editor, 4, 4)).toEqual(BLACK);
+		expect(getPixel(editor, 1, 1)).toEqual(TRANSPARENT);
+
+		editor.handleUndo();
+		expect(getPixel(editor, 1, 1)).toEqual(BLACK);
+		expect(getPixel(editor, 4, 4)).toEqual(TRANSPARENT);
+	});
+
+	it('does not update recentColors', () => {
+		const editor = createEditor();
+		const colorsBefore = [...editor.recentColors];
+
+		drawMove(editor, { x: 0, y: 0 }, { x: 1, y: 1 });
+
+		expect(editor.recentColors).toEqual(colorsBefore);
+	});
+
+	it('zero-delta move leaves pixels unchanged', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+		editor.handleDrawStart(0);
+		editor.handleDraw({ x: 3, y: 3 }, null);
+		editor.handleDrawEnd();
+
+		drawMove(editor, { x: 3, y: 3 }, { x: 3, y: 3 });
+
+		expect(getPixel(editor, 3, 3)).toEqual(BLACK);
 	});
 });

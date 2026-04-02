@@ -6,6 +6,7 @@
 	"tool_eraser": "消しゴム",
 	"tool_floodfill": "塗りつぶし",
 	"tool_eyedropper": "スポイト",
+	"tool_move": "移動",
 
 	"action_undo": "元に戻す",
 	"action_redo": "やり直す",

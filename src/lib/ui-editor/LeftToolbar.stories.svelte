@@ -30,3 +30,16 @@
 		/>
 	</div>
 </Story>
+
+<Story name="MoveActive">
+	<div style="height: 600px;">
+		<LeftToolbar
+			activeTool="move"
+			canUndo={false}
+			canRedo={false}
+			onToolChange={() => {}}
+			onUndo={() => {}}
+			onRedo={() => {}}
+		/>
+	</div>
+</Story>

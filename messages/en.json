@@ -6,6 +6,7 @@
 	"tool_eraser": "Eraser",
 	"tool_floodfill": "Flood Fill",
 	"tool_eyedropper": "Eyedropper",
+	"tool_move": "Move",
 
 	"action_undo": "Undo",
 	"action_redo": "Redo",

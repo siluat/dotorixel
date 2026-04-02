@@ -7,6 +7,7 @@
 		Eraser,
 		PaintBucket,
 		Pipette,
+		Move,
 		Undo2,
 		Redo2
 	} from 'lucide-svelte';
@@ -31,7 +32,8 @@
 		{ type: 'ellipse', icon: Circle, label: m.tool_ellipse },
 		{ type: 'eraser', icon: Eraser, label: m.tool_eraser },
 		{ type: 'floodfill', icon: PaintBucket, label: m.tool_floodfill },
-		{ type: 'eyedropper', icon: Pipette, label: m.tool_eyedropper }
+		{ type: 'eyedropper', icon: Pipette, label: m.tool_eyedropper },
+		{ type: 'move', icon: Move, label: m.tool_move }
 	];
 </script>
 

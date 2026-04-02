@@ -7,6 +7,7 @@
 		Download
 	} from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
+	import { tooltip } from '$lib/tooltip';
 
 	interface Props {
 		zoomPercent: number;
@@ -40,16 +41,16 @@
 
 	<div class="actions">
 		<div class="zoom-controls">
-			<button class="zoom-btn" onclick={onZoomOut} aria-label={m.action_zoomOut()}>
+			<button class="zoom-btn" onclick={onZoomOut} aria-label={m.action_zoomOut()} use:tooltip={m.action_zoomOut()}>
 				<Minus size={14} />
 			</button>
-			<button class="zoom-label" onclick={onZoomReset} aria-label={m.action_resetZoom()}>
+			<button class="zoom-label" onclick={onZoomReset} aria-label={m.action_resetZoom()} use:tooltip={m.action_resetZoom()}>
 				{zoomPercent}%
 			</button>
-			<button class="zoom-btn" onclick={onZoomIn} aria-label={m.action_zoomIn()}>
+			<button class="zoom-btn" onclick={onZoomIn} aria-label={m.action_zoomIn()} use:tooltip={m.action_zoomIn()}>
 				<Plus size={14} />
 			</button>
-			<button class="zoom-btn" onclick={onFit} aria-label={m.action_fitToView()}>
+			<button class="zoom-btn" onclick={onFit} aria-label={m.action_fitToView()} use:tooltip={m.action_fitToView()}>
 				<Maximize2 size={14} />
 			</button>
 		</div>
@@ -60,11 +61,12 @@
 			onclick={onGridToggle}
 			aria-label={m.action_toggleGrid()}
 			aria-pressed={showGrid}
+			use:tooltip={`${m.action_toggleGrid()} (G)`}
 		>
 			<Grid3X3 size={16} />
 		</button>
 
-		<button class="export-btn" onclick={onExport} aria-label={m.action_exportPng()}>
+		<button class="export-btn" onclick={onExport} aria-label={m.action_exportPng()} use:tooltip={m.action_exportPng()}>
 			<Download size={14} />
 			<span>{m.label_export()}</span>
 		</button>

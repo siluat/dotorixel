@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { tooltip } from '$lib/tooltip';
 
 	interface Props {
 		active?: boolean;
@@ -19,7 +20,8 @@
 	class:pebble-btn--active={active}
 	aria-pressed={active ? 'true' : undefined}
 	{disabled}
-	{title}
+	aria-label={title}
+	use:tooltip={title}
 	{onclick}
 >
 	{@render children()}

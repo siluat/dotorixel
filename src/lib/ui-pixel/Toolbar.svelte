@@ -3,7 +3,7 @@
 	import type { ToolType } from './toolbar-types';
 	import type { ToolbarButtonProps, ToolbarItem } from './toolbar-types';
 	import ToolbarLayout from './ToolbarLayout.svelte';
-	import { formatShortcut } from '$lib/canvas/shortcut-display';
+	import { formatShortcut, TOOL_SHORTCUT_KEYS } from '$lib/canvas/shortcut-display';
 	import * as m from '$lib/paraglide/messages';
 	import {
 		Pencil,
@@ -74,65 +74,65 @@
 		{
 			kind: 'button',
 			icon: Pencil,
-			label: `${m.tool_pencil()} (P)`,
+			label: `${m.tool_pencil()} (${TOOL_SHORTCUT_KEYS.pencil})`,
 			active: activeTool === 'pencil',
-			shortcutHint: hint('P'),
+			shortcutHint: hint(TOOL_SHORTCUT_KEYS.pencil),
 			onclick: () => onToolChange('pencil')
 		},
 		{
 			kind: 'button',
 			icon: Slash,
-			label: `${m.tool_line()} (L)`,
+			label: `${m.tool_line()} (${TOOL_SHORTCUT_KEYS.line})`,
 			active: activeTool === 'line',
-			shortcutHint: hint('L'),
+			shortcutHint: hint(TOOL_SHORTCUT_KEYS.line),
 			onclick: () => onToolChange('line')
 		},
 		{
 			kind: 'button',
 			icon: Square,
-			label: `${m.tool_rectangle()} (U)`,
+			label: `${m.tool_rectangle()} (${TOOL_SHORTCUT_KEYS.rectangle})`,
 			active: activeTool === 'rectangle',
-			shortcutHint: hint('U'),
+			shortcutHint: hint(TOOL_SHORTCUT_KEYS.rectangle),
 			onclick: () => onToolChange('rectangle')
 		},
 		{
 			kind: 'button',
 			icon: Circle,
-			label: `${m.tool_ellipse()} (O)`,
+			label: `${m.tool_ellipse()} (${TOOL_SHORTCUT_KEYS.ellipse})`,
 			active: activeTool === 'ellipse',
-			shortcutHint: hint('O'),
+			shortcutHint: hint(TOOL_SHORTCUT_KEYS.ellipse),
 			onclick: () => onToolChange('ellipse')
 		},
 		{
 			kind: 'button',
 			icon: Eraser,
-			label: `${m.tool_eraser()} (E)`,
+			label: `${m.tool_eraser()} (${TOOL_SHORTCUT_KEYS.eraser})`,
 			active: activeTool === 'eraser',
-			shortcutHint: hint('E'),
+			shortcutHint: hint(TOOL_SHORTCUT_KEYS.eraser),
 			onclick: () => onToolChange('eraser')
 		},
 		{
 			kind: 'button',
 			icon: PaintBucket,
-			label: `${m.tool_floodfill()} (F)`,
+			label: `${m.tool_floodfill()} (${TOOL_SHORTCUT_KEYS.floodfill})`,
 			active: activeTool === 'floodfill',
-			shortcutHint: hint('F'),
+			shortcutHint: hint(TOOL_SHORTCUT_KEYS.floodfill),
 			onclick: () => onToolChange('floodfill')
 		},
 		{
 			kind: 'button',
 			icon: Pipette,
-			label: `${m.tool_eyedropper()} (I)`,
+			label: `${m.tool_eyedropper()} (${TOOL_SHORTCUT_KEYS.eyedropper})`,
 			active: activeTool === 'eyedropper',
-			shortcutHint: hint('I'),
+			shortcutHint: hint(TOOL_SHORTCUT_KEYS.eyedropper),
 			onclick: () => onToolChange('eyedropper')
 		},
 		{
 			kind: 'button',
 			icon: Move,
-			label: `${m.tool_move()} (V)`,
+			label: `${m.tool_move()} (${TOOL_SHORTCUT_KEYS.move})`,
 			active: activeTool === 'move',
-			shortcutHint: hint('V'),
+			shortcutHint: hint(TOOL_SHORTCUT_KEYS.move),
 			onclick: () => onToolChange('move')
 		},
 		{ kind: 'separator' },

@@ -4,8 +4,7 @@
 
 ### Keyboard & toolbar UX
 
-- Sliding active indicator animation (toolbar tool selection + tab bar navigation)
-- Sync: sliding indicator style updated in toolbar + tab bar across Editor frames (.pen)
+- Sync: sliding indicator style updated in tab bar across Editor frames (.pen)
 
 ### Multi-image workflow
 

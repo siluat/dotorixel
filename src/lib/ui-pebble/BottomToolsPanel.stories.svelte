@@ -32,6 +32,12 @@
 	</div>
 </Story>
 
+<Story name="MoveSelected">
+	<div class="pebble-editor pebble-story-bg">
+		<BottomToolsPanel activeTool="move" zoomPercent={800} onToolChange={noopTool} onZoomIn={noop} onZoomOut={noop} onZoomReset={noop} />
+	</div>
+</Story>
+
 <Story name="ZoomLevels">
 	<div class="pebble-editor pebble-story-bg">
 		<div class="zoom-stack">

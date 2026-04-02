@@ -6,6 +6,7 @@
 	"tool_eraser": "지우개",
 	"tool_floodfill": "채우기",
 	"tool_eyedropper": "스포이트",
+	"tool_move": "이동",
 
 	"action_undo": "실행 취소",
 	"action_redo": "다시 실행",

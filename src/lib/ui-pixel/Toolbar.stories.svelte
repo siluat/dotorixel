@@ -58,6 +58,12 @@
 	</div>
 </Story>
 
+<Story name="MoveActive">
+	<div class="pixel-editor pixel-story-bg">
+		<Toolbar {...defaults} activeTool="move" />
+	</div>
+</Story>
+
 <Story name="ZoomedIn">
 	<div class="pixel-editor pixel-story-bg">
 		<Toolbar {...defaults} zoomPercent={400} showGrid={false} />

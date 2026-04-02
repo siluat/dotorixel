@@ -19,7 +19,8 @@
 		ellipse: m.tool_ellipse,
 		eraser: m.tool_eraser,
 		floodfill: m.tool_floodfill,
-		eyedropper: m.tool_eyedropper
+		eyedropper: m.tool_eyedropper,
+		move: m.tool_move
 	};
 </script>
 

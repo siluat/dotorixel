@@ -13,6 +13,7 @@
 		Eraser,
 		PaintBucket,
 		Pipette,
+		Move,
 		Undo2,
 		Redo2,
 		ZoomOut,
@@ -125,6 +126,14 @@
 			active: activeTool === 'eyedropper',
 			shortcutHint: hint('I'),
 			onclick: () => onToolChange('eyedropper')
+		},
+		{
+			kind: 'button',
+			icon: Move,
+			label: `${m.tool_move()} (M)`,
+			active: activeTool === 'move',
+			shortcutHint: hint('M'),
+			onclick: () => onToolChange('move')
 		},
 		{ kind: 'separator' },
 		{ kind: 'button', icon: Undo2, label: m.action_undo(), disabled: !canUndo, shortcutHint: hintCtrl('Z'), onclick: onUndo },

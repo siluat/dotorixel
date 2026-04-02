@@ -7,6 +7,7 @@
 		Eraser,
 		PaintBucket,
 		Pipette,
+		Move,
 		Undo2,
 		Redo2
 	} from 'lucide-svelte';
@@ -31,7 +32,8 @@
 		{ type: 'ellipse', icon: Circle, label: m.tool_ellipse },
 		{ type: 'eraser', icon: Eraser, label: m.tool_eraser },
 		{ type: 'floodfill', icon: PaintBucket, label: m.tool_floodfill },
-		{ type: 'eyedropper', icon: Pipette, label: m.tool_eyedropper }
+		{ type: 'eyedropper', icon: Pipette, label: m.tool_eyedropper },
+		{ type: 'move', icon: Move, label: m.tool_move }
 	];
 </script>
 
@@ -75,7 +77,7 @@
 		align-items: center;
 		justify-content: space-around;
 		height: 48px;
-		/* 8 buttons × 44px = 352px; 4px padding keeps total ≤ 360px (narrowest common viewport) */
+		/* 9 buttons × 44px = 396px; fits 375px+ viewports, may overflow 360px (iPhone SE) */
 		padding: 0 4px;
 		background: var(--ds-bg-surface);
 		border-top: 1px solid var(--ds-border-subtle);

@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 059 | [Move tool (drag to reposition canvas content)](records/059-move-tool.md) | 2026-04-02 |
 | 058 | [Undo/Redo support for canvas resize](records/058-resize-undo-redo.md) | 2026-04-02 |
 | 057 | [Canvas resize UX improvements](records/057-canvas-resize-ux.md) | 2026-04-02 |
 | 056 | [Design: canvas resize UX](records/056-design-canvas-resize-ux.md) | 2026-04-02 |

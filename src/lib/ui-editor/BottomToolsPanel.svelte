@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { ToolType } from '$lib/canvas/tool-types';
-	import { Pencil, Slash, Square, Circle, Eraser, PaintBucket, Pipette, ZoomOut, ZoomIn } from 'lucide-svelte';
+	import { Pencil, Slash, Square, Circle, Eraser, PaintBucket, Pipette, Move, ZoomOut, ZoomIn } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import FloatingPanel from './FloatingPanel.svelte';
 	import EditorButton from './EditorButton.svelte';
@@ -79,6 +79,14 @@
 		onclick={() => onToolChange('eyedropper')}
 	>
 		<Pipette size={18} />
+	</EditorButton>
+	<EditorButton
+		title={`${m.tool_move()} (M)`}
+		active={activeTool === 'move'}
+		shortcutHint={hint('M')}
+		onclick={() => onToolChange('move')}
+	>
+		<Move size={18} />
 	</EditorButton>
 
 	<div class="separator"></div>

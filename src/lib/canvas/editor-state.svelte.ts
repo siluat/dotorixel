@@ -17,6 +17,7 @@ import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
 import { exportAsPng } from './export';
 import { ShapeHandler } from './shape-handler';
 import { constrainLine, constrainSquare } from './constrain';
+import { shiftPixels } from './shift-pixels';
 
 const RESIZE_ANCHOR_MAP: Record<ResizeAnchor, WasmResizeAnchor> = {
 	'top-left': WasmResizeAnchor.TopLeft,
@@ -37,7 +38,8 @@ const TOOL_SHORTCUTS: Record<string, ToolType> = {
 	KeyR: 'rectangle',
 	KeyC: 'ellipse',
 	KeyF: 'floodfill',
-	KeyI: 'eyedropper'
+	KeyI: 'eyedropper',
+	KeyM: 'move'
 };
 
 type ShapeToolType = 'line' | 'rectangle' | 'ellipse';
@@ -81,6 +83,8 @@ export class EditorState {
 	#isShiftHeld = $state(false);
 	#shortcutHintsVisible = $state(false);
 	#lastShapeDrawCurrent: CanvasCoords | null = null;
+	#moveStart: CanvasCoords | null = null;
+	#moveSnapshot: Uint8Array | null = null;
 
 	get isSpaceHeld(): boolean {
 		return this.#isSpaceHeld;
@@ -181,12 +185,15 @@ export class EditorState {
 		if (this.activeTool === 'eyedropper') return;
 		this.#history.push_snapshot(this.pixelCanvas.width, this.pixelCanvas.height, this.pixelCanvas.pixels());
 		this.#historyVersion++;
-		if (this.activeTool !== 'eraser') {
+		if (this.activeTool !== 'eraser' && this.activeTool !== 'move') {
 			const activeColor = isRightClick ? this.backgroundColor : this.foregroundColor;
 			this.recentColors = addRecentColor(this.recentColors, colorToHex(activeColor));
 		}
 		if (isShapeTool(this.activeTool)) {
 			this.#shapeHandlers[this.activeTool].captureSnapshot(this.pixelCanvas);
+		}
+		if (this.activeTool === 'move') {
+			this.#moveSnapshot = new Uint8Array(this.pixelCanvas.pixels());
 		}
 	};
 
@@ -197,6 +204,10 @@ export class EditorState {
 		this.#lastShapeDrawCurrent = null;
 		if (isShapeTool(this.activeTool)) {
 			this.#shapeHandlers[this.activeTool].reset();
+		}
+		if (this.activeTool === 'move') {
+			this.#moveStart = null;
+			this.#moveSnapshot = null;
 		}
 		if (this.#toolBeforeModifier !== null && !this.#isAltHeld) {
 			this.activeTool = this.#toolBeforeModifier;
@@ -258,6 +269,25 @@ export class EditorState {
 			) {
 				this.renderVersion++;
 			}
+			return;
+		}
+		if (this.activeTool === 'move') {
+			if (previous === null) {
+				this.#moveStart = current;
+				return;
+			}
+			if (!this.#moveStart || !this.#moveSnapshot) return;
+			const dx = current.x - this.#moveStart.x;
+			const dy = current.y - this.#moveStart.y;
+			const shifted = shiftPixels(
+				this.#moveSnapshot,
+				this.pixelCanvas.width,
+				this.pixelCanvas.height,
+				dx,
+				dy
+			);
+			this.pixelCanvas.restore_pixels(shifted);
+			this.renderVersion++;
 			return;
 		}
 		if (this.activeTool === 'floodfill') {

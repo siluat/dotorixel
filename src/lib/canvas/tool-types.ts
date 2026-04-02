@@ -1,1 +1,1 @@
-export type ToolType = 'pencil' | 'eraser' | 'line' | 'rectangle' | 'ellipse' | 'floodfill' | 'eyedropper';
+export type ToolType = 'pencil' | 'eraser' | 'line' | 'rectangle' | 'ellipse' | 'floodfill' | 'eyedropper' | 'move';

@@ -5,12 +5,12 @@
 ### Core tool additions
 
 - Eyedropper via Option+click (desktop) / long-press (touch devices)
-- Move tool (drag to reposition canvas content)
 - Sync: move tool icon added to toolbar across Editor frames (.pen)
 
 ### Keyboard & toolbar UX
 
 - Review keyboard shortcut assignments (align with Aseprite and other established editors)
+- Tool-specific mouse cursor (eyedropper, crosshair, etc.) — toolCursor prop infrastructure exists but is not wired up
 - Toolbar tool tooltip on hover (tool name + shortcut key) — after shortcut review
 - Sync: toolbar tooltip reflected in Editor frames (.pen)
 - Sliding active indicator animation (toolbar tool selection + tab bar navigation)
@@ -76,7 +76,6 @@
 ## Review backlog (not assigned to a milestone)
 
 - FG/BG swap UI improvements
-- Tool-specific mouse cursor (eyedropper, crosshair, etc.) — toolCursor prop infrastructure exists but is not wired up
 - Dark mode toggle UI — design tokens support dark theme (`data-theme="dark"`), no UI to switch yet
 - Document error conditions on `PixelCanvas` public API — `new`, `with_color`, `from_pixels`, `restore_pixels` all return `Result` but only document partial constraints; add `Err` variant descriptions per Rust API Guidelines C-FAILURE
 

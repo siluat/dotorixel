@@ -78,11 +78,11 @@ impl HistoryManager {
         current_height: u32,
         current_pixels: &[u8],
     ) -> Option<Snapshot> {
-        let snapshot = self.undo_stack.pop_back()?;
         debug_assert_eq!(
             current_pixels.len(),
             (current_width as usize) * (current_height as usize) * 4,
         );
+        let snapshot = self.undo_stack.pop_back()?;
         self.redo_stack.push_back(Snapshot {
             width: current_width,
             height: current_height,
@@ -99,11 +99,11 @@ impl HistoryManager {
         current_height: u32,
         current_pixels: &[u8],
     ) -> Option<Snapshot> {
-        let snapshot = self.redo_stack.pop_back()?;
         debug_assert_eq!(
             current_pixels.len(),
             (current_width as usize) * (current_height as usize) * 4,
         );
+        let snapshot = self.redo_stack.pop_back()?;
         self.undo_stack.push_back(Snapshot {
             width: current_width,
             height: current_height,

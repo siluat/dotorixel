@@ -2,10 +2,6 @@
 
 ## Milestone 2: Production UIUX
 
-### Keyboard & toolbar UX
-
-- Sync: sliding indicator style updated in tab bar across Editor frames (.pen)
-
 ### Multi-image workflow
 
 - Design: tab system UI — multi-image tabs across all breakpoints (.pen)

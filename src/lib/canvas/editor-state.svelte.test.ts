@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { EditorState } from './editor-state.svelte';
+import { TOOL_CURSORS, type ToolType } from './tool-types';
 import type { CanvasCoords } from './view-types';
 
 function createEditor() {
@@ -1468,5 +1469,27 @@ describe('EditorState — long-press eyedropper', () => {
 		editor.handleLongPress({ x: 0, y: 0 }, 0);
 
 		expect(editor.canUndo).toBe(false);
+	});
+});
+
+describe('toolCursor', () => {
+	it('defaults to crosshair for pencil tool', () => {
+		const editor = createEditor();
+		expect(editor.toolCursor).toBe('crosshair');
+	});
+
+	it('returns move cursor for move tool', () => {
+		const editor = createEditor();
+		editor.activeTool = 'move';
+		expect(editor.toolCursor).toBe('move');
+	});
+
+	it('has a cursor mapped for every tool type', () => {
+		const allTools: ToolType[] = [
+			'pencil', 'eraser', 'line', 'rectangle', 'ellipse', 'floodfill', 'eyedropper', 'move'
+		];
+		for (const tool of allTools) {
+			expect(TOOL_CURSORS[tool]).toBeTruthy();
+		}
 	});
 });

@@ -5,7 +5,6 @@
 ### Keyboard & toolbar UX
 
 - Review keyboard shortcut assignments (align with Aseprite and other established editors)
-- Tool-specific mouse cursor (eyedropper, crosshair, etc.) — toolCursor prop infrastructure exists but is not wired up
 - Toolbar tool tooltip on hover (tool name + shortcut key) — after shortcut review
 - Sync: toolbar tooltip reflected in Editor frames (.pen)
 - Sliding active indicator animation (toolbar tool selection + tab bar navigation)

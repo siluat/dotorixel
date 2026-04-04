@@ -235,6 +235,7 @@ export class EditorState {
 		if (this.activeTool === 'move') {
 			this.#moveSnapshot = new Uint8Array(this.pixelCanvas.pixels());
 		}
+		this.#tools[this.activeTool].onDrawStart(this.#buildContext());
 	};
 
 	handleDrawEnd = (): void => {
@@ -311,80 +312,8 @@ export class EditorState {
 
 	handleDraw = (current: CanvasCoords, previous: CanvasCoords | null): void => {
 		if (this.#shortcutHintsVisible) return;
-		const drawColor = this.#activeDrawColor!;
-		if (isShapeTool(this.activeTool)) {
-			this.#lastShapeDrawCurrent = current;
-			if (
-				this.#shapeHandlers[this.activeTool].draw(
-					this.pixelCanvas,
-					current,
-					previous,
-					drawColor,
-					this.#isShiftHeld
-				)
-			) {
-				this.renderVersion++;
-			}
-			return;
-		}
-		if (this.activeTool === 'move') {
-			if (previous === null) {
-				this.#moveStart = current;
-				return;
-			}
-			if (!this.#moveStart || !this.#moveSnapshot) return;
-			const dx = current.x - this.#moveStart.x;
-			const dy = current.y - this.#moveStart.y;
-			const shifted = shiftPixels(
-				this.#moveSnapshot,
-				this.pixelCanvas.width,
-				this.pixelCanvas.height,
-				dx,
-				dy
-			);
-			this.pixelCanvas.restore_pixels(shifted);
-			this.renderVersion++;
-			return;
-		}
-		if (this.activeTool === 'floodfill') {
-			if (previous !== null) return;
-			if (wasm_flood_fill(this.pixelCanvas, current.x, current.y, drawColor)) {
-				this.renderVersion++;
-			}
-			return;
-		}
-		if (this.activeTool === 'eyedropper') {
-			if (previous !== null) return;
-			const pixel = this.pixelCanvas.get_pixel(current.x, current.y);
-			if (pixel.a === 0) return;
-			const pickedColor = { r: pixel.r, g: pixel.g, b: pixel.b, a: pixel.a };
-			const isRightClick = this.#drawButton === 2;
-			if (isRightClick) {
-				this.backgroundColor = pickedColor;
-			} else {
-				this.foregroundColor = pickedColor;
-			}
-			this.recentColors = addRecentColor(this.recentColors, colorToHex(pickedColor));
-			return;
-		}
-
-		const wasmTool = this.activeTool === 'pencil' ? WasmToolType.Pencil : WasmToolType.Eraser;
-		let changed = false;
-
-		if (previous) {
-			const flat = wasm_interpolate_pixels(previous.x, previous.y, current.x, current.y);
-			for (let i = 0; i < flat.length; i += 2) {
-				if (apply_tool(this.pixelCanvas, flat[i], flat[i + 1], wasmTool, drawColor)) {
-					changed = true;
-				}
-			}
-		} else {
-			if (apply_tool(this.pixelCanvas, current.x, current.y, wasmTool, drawColor)) {
-				changed = true;
-			}
-		}
-
-		if (changed) this.renderVersion++;
+		this.#lastDrawCurrent = current;
+		this.#applyDrawResult(this.#tools[this.activeTool].onDraw(this.#buildContext(), current, previous));
 	};
 
 	handleZoomIn = (): void => {
@@ -498,8 +427,8 @@ export class EditorState {
 		if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
 			if (event.repeat) return;
 			this.#isShiftHeld = true;
-			if (this.#isDrawing && isShapeTool(this.activeTool) && this.#lastShapeDrawCurrent) {
-				this.handleDraw(this.#lastShapeDrawCurrent, this.#lastShapeDrawCurrent);
+			if (this.#isDrawing && isShapeTool(this.activeTool) && this.#lastDrawCurrent) {
+				this.handleDraw(this.#lastDrawCurrent, this.#lastDrawCurrent);
 			}
 			return;
 		}
@@ -548,8 +477,8 @@ export class EditorState {
 
 		if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
 			this.#isShiftHeld = false;
-			if (this.#isDrawing && isShapeTool(this.activeTool) && this.#lastShapeDrawCurrent) {
-				this.handleDraw(this.#lastShapeDrawCurrent, this.#lastShapeDrawCurrent);
+			if (this.#isDrawing && isShapeTool(this.activeTool) && this.#lastDrawCurrent) {
+				this.handleDraw(this.#lastDrawCurrent, this.#lastDrawCurrent);
 			}
 		}
 

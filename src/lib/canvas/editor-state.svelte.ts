@@ -19,6 +19,12 @@ import { ShapeHandler } from './shape-handler';
 import { constrainLine, constrainSquare } from './constrain';
 import { shiftPixels } from './shift-pixels';
 import { TOOL_SHORTCUT_KEYS } from './shortcut-display';
+import type { DrawTool, DrawResult, ToolContext } from './draw-tool';
+import { pencilTool, eraserTool } from './tools/pencil-tool';
+import { floodfillTool } from './tools/floodfill-tool';
+import { eyedropperTool } from './tools/eyedropper-tool';
+import { createMoveTool } from './tools/move-tool';
+import { createShapeTool } from './tools/shape-tool';
 
 const RESIZE_ANCHOR_MAP: Record<ResizeAnchor, WasmResizeAnchor> = {
 	'top-left': WasmResizeAnchor.TopLeft,
@@ -142,6 +148,43 @@ export class EditorState {
 
 	readonly foregroundColorHex = $derived(colorToHex(this.foregroundColor));
 	readonly backgroundColorHex = $derived(colorToHex(this.backgroundColor));
+
+	readonly #tools: Record<ToolType, DrawTool> = {
+		pencil: pencilTool,
+		eraser: eraserTool,
+		line: createShapeTool(WasmToolType.Line, wasm_interpolate_pixels, constrainLine),
+		rectangle: createShapeTool(WasmToolType.Rectangle, wasm_rectangle_outline, constrainSquare),
+		ellipse: createShapeTool(WasmToolType.Ellipse, wasm_ellipse_outline, constrainSquare),
+		floodfill: floodfillTool,
+		eyedropper: eyedropperTool,
+		move: createMoveTool()
+	};
+	#lastDrawCurrent: CanvasCoords | null = null;
+
+	#buildContext(): ToolContext {
+		return {
+			canvas: this.pixelCanvas,
+			drawColor: this.#activeDrawColor!,
+			drawButton: this.#drawButton,
+			isShiftHeld: () => this.#isShiftHeld,
+			foregroundColor: this.foregroundColor,
+			backgroundColor: this.backgroundColor
+		};
+	}
+
+	#applyDrawResult(result: DrawResult): void {
+		if (result.canvasChanged) this.renderVersion++;
+		if (result.colorPick) {
+			if (result.colorPick.target === 'foreground') {
+				this.foregroundColor = result.colorPick.color;
+			} else {
+				this.backgroundColor = result.colorPick.color;
+			}
+		}
+		if (result.addRecentColor) {
+			this.recentColors = addRecentColor(this.recentColors, result.addRecentColor);
+		}
+	}
 
 	constructor(options: EditorOptions = {}) {
 		const cw = options.canvasWidth ?? 16;

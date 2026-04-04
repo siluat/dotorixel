@@ -404,8 +404,11 @@ export class EditorState {
 		if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
 			if (event.repeat) return;
 			this.#isShiftHeld = true;
-			if (this.#isDrawing && isShapeTool(this.activeTool) && this.#lastDrawCurrent) {
-				this.handleDraw(this.#lastDrawCurrent, this.#lastDrawCurrent);
+			if (this.#isDrawing && this.#lastDrawCurrent) {
+				const tool = this.#tools[this.activeTool];
+				if (tool.onModifierChange) {
+					this.#applyDrawResult(tool.onModifierChange(this.#buildContext(), this.#lastDrawCurrent));
+				}
 			}
 			return;
 		}
@@ -454,8 +457,11 @@ export class EditorState {
 
 		if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
 			this.#isShiftHeld = false;
-			if (this.#isDrawing && isShapeTool(this.activeTool) && this.#lastDrawCurrent) {
-				this.handleDraw(this.#lastDrawCurrent, this.#lastDrawCurrent);
+			if (this.#isDrawing && this.#lastDrawCurrent) {
+				const tool = this.#tools[this.activeTool];
+				if (tool.onModifierChange) {
+					this.#applyDrawResult(tool.onModifierChange(this.#buildContext(), this.#lastDrawCurrent));
+				}
 			}
 		}
 

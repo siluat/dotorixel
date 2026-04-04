@@ -4,7 +4,6 @@
 
 ### Multi-image workflow
 
-- Design: tab system UI — multi-image tabs across all breakpoints (.pen)
 - Tab system (work on multiple images simultaneously)
 - Session persistence (restore work after refresh/revisit)
 - Design: saved work browser — list/modal UI for reopening past work (.pen)

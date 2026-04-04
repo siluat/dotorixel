@@ -5,19 +5,15 @@ import {
 	WasmColor,
 	WasmToolType,
 	WasmResizeAnchor,
-	apply_tool,
 	wasm_interpolate_pixels,
 	wasm_rectangle_outline,
-	wasm_ellipse_outline,
-	wasm_flood_fill
+	wasm_ellipse_outline
 } from '$wasm/dotorixel_wasm';
 import type { CanvasCoords, ResizeAnchor, ViewportSize, ViewportState } from './view-types';
 import { TOOL_CURSORS, type ToolType } from './tool-types';
 import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
 import { exportAsPng } from './export';
-import { ShapeHandler } from './shape-handler';
 import { constrainLine, constrainSquare } from './constrain';
-import { shiftPixels } from './shift-pixels';
 import { TOOL_SHORTCUT_KEYS } from './shortcut-display';
 import type { DrawTool, DrawResult, ToolContext } from './draw-tool';
 import { pencilTool, eraserTool } from './tools/pencil-tool';
@@ -42,12 +38,6 @@ const RESIZE_ANCHOR_MAP: Record<ResizeAnchor, WasmResizeAnchor> = {
 const TOOL_SHORTCUTS: Record<string, ToolType> = Object.fromEntries(
 	Object.entries(TOOL_SHORTCUT_KEYS).map(([tool, key]) => [`Key${key}`, tool])
 ) as Record<string, ToolType>;
-
-type ShapeToolType = 'line' | 'rectangle' | 'ellipse';
-
-function isShapeTool(tool: ToolType): tool is ShapeToolType {
-	return tool === 'line' || tool === 'rectangle' || tool === 'ellipse';
-}
 
 function isTextInputTarget(target: EventTarget | null): boolean {
 	if (typeof HTMLElement === 'undefined' || !(target instanceof HTMLElement)) return false;

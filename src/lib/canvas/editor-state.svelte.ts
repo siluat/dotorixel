@@ -83,9 +83,6 @@ export class EditorState {
 	#isSpaceHeld = $state(false);
 	#isShiftHeld = $state(false);
 	#shortcutHintsVisible = $state(false);
-	#lastShapeDrawCurrent: CanvasCoords | null = null;
-	#moveStart: CanvasCoords | null = null;
-	#moveSnapshot: Uint8Array | null = null;
 
 	get isSpaceHeld(): boolean {
 		return this.#isSpaceHeld;
@@ -98,12 +95,6 @@ export class EditorState {
 	get shortcutHintsVisible(): boolean {
 		return this.#shortcutHintsVisible;
 	}
-
-	#shapeHandlers: Record<ShapeToolType, ShapeHandler> = {
-		line: new ShapeHandler(WasmToolType.Line, wasm_interpolate_pixels, constrainLine),
-		rectangle: new ShapeHandler(WasmToolType.Rectangle, wasm_rectangle_outline, constrainSquare),
-		ellipse: new ShapeHandler(WasmToolType.Ellipse, wasm_ellipse_outline, constrainSquare)
-	};
 
 	readonly canUndo = $derived.by(() => {
 		void this.#historyVersion;
@@ -231,17 +222,11 @@ export class EditorState {
 	};
 
 	handleDrawEnd = (): void => {
+		this.#tools[this.activeTool].onDrawEnd(this.#buildContext());
 		this.#isDrawing = false;
 		this.#drawButton = 0;
 		this.#activeDrawColor = null;
-		this.#lastShapeDrawCurrent = null;
-		if (isShapeTool(this.activeTool)) {
-			this.#shapeHandlers[this.activeTool].reset();
-		}
-		if (this.activeTool === 'move') {
-			this.#moveStart = null;
-			this.#moveSnapshot = null;
-		}
+		this.#lastDrawCurrent = null;
 		if (this.#toolBeforeModifier !== null && !this.#isAltHeld) {
 			this.activeTool = this.#toolBeforeModifier;
 			this.#toolBeforeModifier = null;

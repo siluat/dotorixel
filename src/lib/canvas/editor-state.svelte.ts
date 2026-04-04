@@ -217,25 +217,17 @@ export class EditorState {
 		if (this.#shortcutHintsVisible) return;
 		this.#isDrawing = true;
 		this.#drawButton = button;
-		this.#lastShapeDrawCurrent = null;
+		this.#lastDrawCurrent = null;
 
 		const isRightClick = button === 2;
 		this.#activeDrawColor = isRightClick ? this.#wasmBackgroundColor : this.#wasmForegroundColor;
 
-		if (this.activeTool === 'eyedropper') return;
-		this.#history.push_snapshot(this.pixelCanvas.width, this.pixelCanvas.height, this.pixelCanvas.pixels());
-		this.#historyVersion++;
-		if (this.activeTool !== 'eraser' && this.activeTool !== 'move') {
-			const activeColor = isRightClick ? this.backgroundColor : this.foregroundColor;
-			this.recentColors = addRecentColor(this.recentColors, colorToHex(activeColor));
+		const tool = this.#tools[this.activeTool];
+		if (tool.capturesHistory) {
+			this.#history.push_snapshot(this.pixelCanvas.width, this.pixelCanvas.height, this.pixelCanvas.pixels());
+			this.#historyVersion++;
 		}
-		if (isShapeTool(this.activeTool)) {
-			this.#shapeHandlers[this.activeTool].captureSnapshot(this.pixelCanvas);
-		}
-		if (this.activeTool === 'move') {
-			this.#moveSnapshot = new Uint8Array(this.pixelCanvas.pixels());
-		}
-		this.#tools[this.activeTool].onDrawStart(this.#buildContext());
+		this.#applyDrawResult(tool.onDrawStart(this.#buildContext()));
 	};
 
 	handleDrawEnd = (): void => {

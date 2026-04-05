@@ -4,7 +4,7 @@
 
 ### Multi-image workflow
 
-- Tab system (work on multiple images simultaneously)
+- Tab system (work on multiple images simultaneously) — [PRD](../issues/002-tab-system.md)
 - Session persistence (restore work after refresh/revisit)
 - Design: saved work browser — list/modal UI for reopening past work (.pen)
 - Reopen past work (browse and restore from saved work list)

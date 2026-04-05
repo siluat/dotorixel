@@ -43,6 +43,8 @@ export interface EditorOptions {
 	gridColor?: string;
 	shared?: SharedState;
 	name?: string;
+	pixelCanvas?: WasmPixelCanvas;
+	viewportState?: ViewportState;
 }
 
 export class EditorState {
@@ -185,14 +187,27 @@ export class EditorState {
 	constructor(options: EditorOptions = {}) {
 		this.shared = options.shared ?? new SharedState();
 		this.name = options.name ?? '';
-		const cw = options.canvasWidth ?? 16;
-		const ch = options.canvasHeight ?? 16;
-		this.pixelCanvas = new WasmPixelCanvas(cw, ch);
-		this.viewportState = {
-			viewport: WasmViewport.for_canvas(cw, ch),
-			showGrid: true,
-			gridColor: options.gridColor ?? '#cccccc'
-		};
+
+		if (options.pixelCanvas) {
+			this.pixelCanvas = options.pixelCanvas;
+		} else {
+			const cw = options.canvasWidth ?? 16;
+			const ch = options.canvasHeight ?? 16;
+			this.pixelCanvas = new WasmPixelCanvas(cw, ch);
+		}
+
+		if (options.viewportState) {
+			this.viewportState = options.viewportState;
+		} else {
+			const cw = this.pixelCanvas.width;
+			const ch = this.pixelCanvas.height;
+			this.viewportState = {
+				viewport: WasmViewport.for_canvas(cw, ch),
+				showGrid: true,
+				gridColor: options.gridColor ?? '#cccccc'
+			};
+		}
+
 		if (options.foregroundColor) {
 			this.shared.foregroundColor = options.foregroundColor;
 		}

@@ -15,6 +15,8 @@
 	import TabStrip from '$lib/ui-editor/TabStrip.svelte';
 	import ColorsContent from '$lib/ui-editor/ColorsContent.svelte';
 	import SettingsContent from '$lib/ui-editor/SettingsContent.svelte';
+	import { SessionStorage } from '$lib/session/session-storage';
+	import { SessionPersistence } from '$lib/session/session-persistence';
 	import {
 		trackEditorOpen,
 		trackToolUsage,
@@ -25,16 +27,19 @@
 
 	type MobileTab = 'draw' | 'colors' | 'settings';
 
-	const workspace = new Workspace({
-		foregroundColor: { r: 45, g: 45, b: 45, a: 255 },
-		gridColor: '#ECE5D9'
-	});
+	let workspace = $state(
+		new Workspace({
+			foregroundColor: { r: 45, g: 45, b: 45, a: 255 },
+			gridColor: '#ECE5D9'
+		})
+	);
 	const editor = $derived(workspace.activeEditor);
 
 	const layout = createLayoutMode();
 	let activeTab: MobileTab = $state('draw');
 	let canvasContainerEl: HTMLDivElement | undefined = $state();
 	const fittedEditors = new WeakSet<EditorState>();
+	let sessionPersistence: SessionPersistence | undefined;
 
 	function initEditorViewport(ed: EditorState, width: number, height: number) {
 		ed.viewportSize = { width, height };
@@ -44,11 +49,42 @@
 		}
 	}
 
+	function saveSession() {
+		sessionPersistence?.save(workspace);
+	}
+
+	function handleVisibilityChange() {
+		if (document.visibilityState === 'hidden') saveSession();
+	}
+
 	onMount(() => {
 		trackEditorOpen('editor');
 		const sessionStart = Date.now();
+
+		SessionStorage.open()
+			.then((storage) => {
+				sessionPersistence = new SessionPersistence(storage);
+				return sessionPersistence.restore();
+			})
+			.then((init) => {
+				if (init) {
+					workspace = new Workspace({ gridColor: '#ECE5D9', init });
+					for (const tab of workspace.tabs) {
+						fittedEditors.add(tab);
+					}
+				}
+			})
+			.catch(() => {
+				// IndexedDB may be unavailable (private browsing, quota exceeded) or
+				// data may be corrupted — silently keep the default workspace so the
+				// editor always opens, even if persistence is broken.
+			});
+
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+
 		return () => {
 			trackSessionEnd((Date.now() - sessionStart) / 1000);
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
 		};
 	});
 
@@ -99,7 +135,7 @@
 	}
 </script>
 
-<svelte:window onkeydown={editor.handleKeyDown} onkeyup={editor.handleKeyUp} onblur={editor.handleBlur} />
+<svelte:window onkeydown={editor.handleKeyDown} onkeyup={editor.handleKeyUp} onblur={editor.handleBlur} onbeforeunload={saveSession} />
 
 {#if layout.isDocked}
 	<div class="editor-docked">

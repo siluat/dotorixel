@@ -97,6 +97,9 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 			if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
 				if (event.repeat) return;
 				isShiftHeld = true;
+				if (host.isDrawing()) {
+					host.notifyModifierChange();
+				}
 				return;
 			}
 
@@ -155,6 +158,9 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 
 			if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
 				isShiftHeld = false;
+				if (host.isDrawing()) {
+					host.notifyModifierChange();
+				}
 				return;
 			}
 		},

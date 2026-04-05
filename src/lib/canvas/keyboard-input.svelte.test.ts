@@ -532,3 +532,33 @@ describe('Alt eyedropper', () => {
 		expect(host.setActiveTool).toHaveBeenCalledWith('rectangle');
 	});
 });
+
+// ── Mid-stroke modifier change ───────────────────────────────
+
+describe('mid-stroke modifier change', () => {
+	it('calls notifyModifierChange when Shift pressed during drawing', () => {
+		const host = createHost({ isDrawing: vi.fn(() => true) });
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('ShiftLeft'));
+		expect(host.notifyModifierChange).toHaveBeenCalledOnce();
+	});
+
+	it('calls notifyModifierChange when Shift released during drawing', () => {
+		const host = createHost({ isDrawing: vi.fn(() => true) });
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('ShiftLeft'));
+		kb.handleKeyUp(keyUp('ShiftLeft'));
+		expect(host.notifyModifierChange).toHaveBeenCalledTimes(2);
+	});
+
+	it('does not call notifyModifierChange when not drawing', () => {
+		const host = createHost({ isDrawing: vi.fn(() => false) });
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('ShiftLeft'));
+		kb.handleKeyUp(keyUp('ShiftLeft'));
+		expect(host.notifyModifierChange).not.toHaveBeenCalled();
+	});
+});

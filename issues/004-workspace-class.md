@@ -1,6 +1,6 @@
 ---
 title: Workspace class — add/close/switch tabs
-status: open
+status: done
 created: 2026-04-05
 parent: 002-tab-system.md
 ---
@@ -35,3 +35,15 @@ See parent PRD sections: "Workspace responsibilities", "Tab closure behavior", "
 - User story 8 — prevent closing the last tab
 - User story 9 — predictable tab activation after closure
 - User story 16 — app starts with one default tab
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/workspace.svelte.ts` | Workspace class — tab array, active index, name counter, add/close/switch methods |
+| `src/lib/canvas/workspace.svelte.test.ts` | 9 unit tests covering all acceptance criteria |
+| `src/lib/canvas/editor-state.svelte.ts` | Added `name` property to EditorOptions and EditorState |
+
+### Key Decisions
+- Tab name stored on EditorState (via `name` option) rather than managed separately in Workspace — simpler, each tab naturally owns its name
+- `name` defaults to empty string for backward compatibility with existing standalone EditorState usage in pages

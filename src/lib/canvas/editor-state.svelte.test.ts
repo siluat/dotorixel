@@ -993,29 +993,29 @@ describe('EditorState — Shift constrain', () => {
 describe('EditorState — shortcut hints (/ key)', () => {
 	it('sets shortcutHintsVisible to true on / press', () => {
 		const editor = createEditor();
-		expect(editor.shortcutHintsVisible).toBe(false);
+		expect(editor.isShortcutHintsVisible).toBe(false);
 
 		editor.handleKeyDown(keyDown('Slash'));
-		expect(editor.shortcutHintsVisible).toBe(true);
+		expect(editor.isShortcutHintsVisible).toBe(true);
 	});
 
 	it('resets shortcutHintsVisible to false on / release', () => {
 		const editor = createEditor();
 		editor.handleKeyDown(keyDown('Slash'));
-		expect(editor.shortcutHintsVisible).toBe(true);
+		expect(editor.isShortcutHintsVisible).toBe(true);
 
 		editor.handleKeyUp(keyUp('Slash'));
-		expect(editor.shortcutHintsVisible).toBe(false);
+		expect(editor.isShortcutHintsVisible).toBe(false);
 	});
 
 	it('ignores / repeat events', () => {
 		const editor = createEditor();
 		editor.handleKeyDown(keyDown('Slash'));
-		expect(editor.shortcutHintsVisible).toBe(true);
+		expect(editor.isShortcutHintsVisible).toBe(true);
 
 		// Repeat should not cause issues
 		editor.handleKeyDown(keyDown('Slash', { repeat: true }));
-		expect(editor.shortcutHintsVisible).toBe(true);
+		expect(editor.isShortcutHintsVisible).toBe(true);
 	});
 
 	it('does not show hints while drawing', () => {
@@ -1025,7 +1025,7 @@ describe('EditorState — shortcut hints (/ key)', () => {
 		editor.handleDraw({ x: 0, y: 0 }, null);
 
 		editor.handleKeyDown(keyDown('Slash'));
-		expect(editor.shortcutHintsVisible).toBe(false);
+		expect(editor.isShortcutHintsVisible).toBe(false);
 
 		editor.handleDrawEnd();
 	});
@@ -1033,7 +1033,7 @@ describe('EditorState — shortcut hints (/ key)', () => {
 	it('blocks drawing while hints are visible', () => {
 		const editor = createEditor();
 		editor.handleKeyDown(keyDown('Slash'));
-		expect(editor.shortcutHintsVisible).toBe(true);
+		expect(editor.isShortcutHintsVisible).toBe(true);
 
 		// Attempt to draw — should be blocked
 		editor.handleDrawStart(0);
@@ -1047,10 +1047,10 @@ describe('EditorState — shortcut hints (/ key)', () => {
 	it('resets shortcutHintsVisible on window blur', () => {
 		const editor = createEditor();
 		editor.handleKeyDown(keyDown('Slash'));
-		expect(editor.shortcutHintsVisible).toBe(true);
+		expect(editor.isShortcutHintsVisible).toBe(true);
 
 		editor.handleBlur();
-		expect(editor.shortcutHintsVisible).toBe(false);
+		expect(editor.isShortcutHintsVisible).toBe(false);
 	});
 });
 

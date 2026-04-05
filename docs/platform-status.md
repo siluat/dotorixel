@@ -92,7 +92,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Tab management (Workspace) | — | 🔧 | ⬜ | Model layer done; UI wiring and TabStrip pending |
+| Tab management (Workspace) | — | 🔧 | ⬜ | Model + page wiring done; TabStrip UI pending |
 
 ## UI
 

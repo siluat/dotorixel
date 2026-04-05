@@ -98,4 +98,26 @@ describe('Workspace', () => {
 
 		expect(workspace.tabs[1].activeTool).toBe('eraser');
 	});
+
+	it('forwards initial foregroundColor to activeEditor', () => {
+		const customColor = { r: 45, g: 45, b: 45, a: 255 };
+
+		const workspace = new Workspace({ foregroundColor: customColor });
+
+		expect(workspace.activeEditor.foregroundColor).toEqual(customColor);
+	});
+
+	it('forwards gridColor to initial tab', () => {
+		const workspace = new Workspace({ gridColor: '#ECE5D9' });
+
+		expect(workspace.activeEditor.viewportState.gridColor).toBe('#ECE5D9');
+	});
+
+	it('new tabs also receive the configured gridColor', () => {
+		const workspace = new Workspace({ gridColor: '#ECE5D9' });
+
+		workspace.addTab();
+
+		expect(workspace.tabs[1].viewportState.gridColor).toBe('#ECE5D9');
+	});
 });

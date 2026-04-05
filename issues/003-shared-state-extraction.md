@@ -13,13 +13,13 @@ See parent PRD sections: "Architecture: Workspace + SharedState pattern", "Edito
 
 ## Acceptance criteria
 
-- [ ] SharedState class exists with `activeTool`, `foregroundColor`, `backgroundColor`, `recentColors` as reactive state
-- [ ] EditorState constructor accepts an optional SharedState reference (creates a default one if not provided, preserving backward compatibility)
-- [ ] EditorState delegates tool and color access through `this.shared.*`
-- [ ] All existing EditorState tests pass without modification (or with minimal adaptation to the new constructor signature)
-- [ ] Integration tests verify: two EditorState instances sharing the same SharedState see the same `activeTool`, `foregroundColor`, `backgroundColor`, and `recentColors`
-- [ ] Integration tests verify: independent state (canvas pixels, history, viewport) does not leak between instances sharing a SharedState
-- [ ] App runs identically to before — no visible behavior change
+- [x] SharedState class exists with `activeTool`, `foregroundColor`, `backgroundColor`, `recentColors` as reactive state
+- [x] EditorState constructor accepts an optional SharedState reference (creates a default one if not provided, preserving backward compatibility)
+- [x] EditorState delegates tool and color access through `this.shared.*`
+- [x] All existing EditorState tests pass without modification (or with minimal adaptation to the new constructor signature)
+- [x] Integration tests verify: two EditorState instances sharing the same SharedState see the same `activeTool`, `foregroundColor`, `backgroundColor`, and `recentColors`
+- [x] Integration tests verify: independent state (canvas pixels, history, viewport) does not leak between instances sharing a SharedState
+- [x] App runs identically to before — no visible behavior change
 
 ## Blocked by
 

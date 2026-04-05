@@ -49,6 +49,14 @@
 		}
 	}
 
+	function saveSession() {
+		sessionPersistence?.save(workspace);
+	}
+
+	function handleVisibilityChange() {
+		if (document.visibilityState === 'hidden') saveSession();
+	}
+
 	onMount(() => {
 		trackEditorOpen('editor');
 		const sessionStart = Date.now();
@@ -72,14 +80,13 @@
 				// editor always opens, even if persistence is broken.
 			});
 
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+
 		return () => {
 			trackSessionEnd((Date.now() - sessionStart) / 1000);
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
 		};
 	});
-
-	function handleBeforeUnload() {
-		sessionPersistence?.save(workspace);
-	}
 
 	let prevTool: string | undefined;
 	$effect(() => {
@@ -128,7 +135,7 @@
 	}
 </script>
 
-<svelte:window onkeydown={editor.handleKeyDown} onkeyup={editor.handleKeyUp} onblur={editor.handleBlur} onbeforeunload={handleBeforeUnload} />
+<svelte:window onkeydown={editor.handleKeyDown} onkeyup={editor.handleKeyUp} onblur={editor.handleBlur} onbeforeunload={saveSession} />
 
 {#if layout.isDocked}
 	<div class="editor-docked">

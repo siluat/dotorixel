@@ -46,15 +46,65 @@ export interface KeyboardInput {
 	consumePendingToolRestore(): ToolType | null;
 }
 
-export function createKeyboardInput(_host: KeyboardInputHost): KeyboardInput {
+function isTextInputTarget(target: EventTarget | null): boolean {
+	if (typeof HTMLElement === 'undefined' || !(target instanceof HTMLElement)) return false;
+	return target.closest('input, select, textarea, [contenteditable]:not([contenteditable="false"])') !== null;
+}
+
+export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 	let isSpaceHeld = $state(false);
 	let isShiftHeld = $state(false);
 	let shortcutHintsVisible = $state(false);
 
 	return {
-		handleKeyDown(_event: KeyboardEvent): void {},
-		handleKeyUp(_event: KeyboardEvent): void {},
-		handleBlur(): void {},
+		handleKeyDown(event: KeyboardEvent): void {
+			if (isTextInputTarget(event.target)) return;
+
+			if (event.code === 'Slash') {
+				event.preventDefault();
+				if (event.repeat) return;
+				if (host.isDrawing()) return;
+				shortcutHintsVisible = true;
+				return;
+			}
+
+			if (event.code === 'Space') {
+				event.preventDefault();
+				if (event.repeat) return;
+				if (host.isDrawing()) return;
+				isSpaceHeld = true;
+				return;
+			}
+
+			if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
+				if (event.repeat) return;
+				isShiftHeld = true;
+				return;
+			}
+		},
+
+		handleKeyUp(event: KeyboardEvent): void {
+			if (event.code === 'Slash') {
+				shortcutHintsVisible = false;
+				return;
+			}
+
+			if (event.code === 'Space') {
+				isSpaceHeld = false;
+				return;
+			}
+
+			if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
+				isShiftHeld = false;
+				return;
+			}
+		},
+
+		handleBlur(): void {
+			isSpaceHeld = false;
+			isShiftHeld = false;
+			shortcutHintsVisible = false;
+		},
 
 		get isSpaceHeld(): boolean {
 			return isSpaceHeld;

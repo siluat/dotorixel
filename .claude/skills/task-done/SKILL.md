@@ -52,7 +52,9 @@ Remove the completed item from `tasks/todo.md`.
 ### 4. Update progress.md
 
 Update `tasks/progress.md`:
-- Set "Currently Working On" to "None".
+- **"Currently Working On"**:
+  - If the completed task has a `parent` PRD (check issue frontmatter) and sibling sub-issues remain open: keep "Currently Working On" as the parent PRD title with a link (e.g., `Tab system — multi-image workflow ([PRD](../issues/002-tab-system.md))`).
+  - Otherwise: set to "None".
 - Set "Last Completed" to the task just finished.
 - Update "Next Up":
   1. Identify candidate items from `tasks/todo.md`.

@@ -88,6 +88,12 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Custom event tracking | — | ✅ | — | Tool usage, canvas resize, export, session duration |
 | CSP headers | — | ✅ | — | Vercel response headers |
 
+## Multi-image Workflow
+
+| Feature | Core | Web | Apple | Notes |
+|---------|------|-----|-------|-------|
+| Tab management (Workspace) | — | 🔧 | ⬜ | Model layer done; UI wiring and TabStrip pending |
+
 ## UI
 
 | Feature | Core | Web | Apple | Notes |

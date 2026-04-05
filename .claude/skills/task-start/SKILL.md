@@ -44,6 +44,8 @@ Invoke the `/prd-to-issues` skill for this item. Stop after issues are created.
 5. **Create a work branch**: Create a new branch from `main` for this task.
    - **Exception — .pen-only tasks**: If the task only modifies `.pen` files (Design/Sync tasks), skip branch creation and work directly on `main`.
 
-6. Update "Currently Working On" in `tasks/progress.md` to the selected task.
+6. Update "Currently Working On" in `tasks/progress.md`:
+   - If the task has a `parent` PRD (check issue frontmatter): set to the parent PRD title with a link (e.g., `Tab system — multi-image workflow ([PRD](../issues/002-tab-system.md))`). If already set to this PRD, leave unchanged.
+   - Otherwise: set to the selected task title.
 
 7. **Begin TDD**: Invoke the `/tdd` skill to start implementation.

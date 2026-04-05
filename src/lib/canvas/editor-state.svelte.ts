@@ -42,10 +42,12 @@ export interface EditorOptions {
 	backgroundColor?: Color;
 	gridColor?: string;
 	shared?: SharedState;
+	name?: string;
 }
 
 export class EditorState {
 	readonly shared: SharedState;
+	readonly name: string;
 	pixelCanvas = $state<WasmPixelCanvas>(null!);
 	viewportSize = $state<ViewportSize>({ width: 512, height: 512 });
 	viewportState = $state<ViewportState>(null!);
@@ -182,6 +184,7 @@ export class EditorState {
 
 	constructor(options: EditorOptions = {}) {
 		this.shared = options.shared ?? new SharedState();
+		this.name = options.name ?? '';
 		const cw = options.canvasWidth ?? 16;
 		const ch = options.canvasHeight ?? 16;
 		this.pixelCanvas = new WasmPixelCanvas(cw, ch);

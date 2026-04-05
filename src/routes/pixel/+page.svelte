@@ -55,7 +55,7 @@
 					canRedo={editor.canRedo}
 					zoomPercent={editor.zoomPercent}
 					showGrid={editor.viewportState.showGrid}
-					showShortcutHints={editor.shortcutHintsVisible}
+					showShortcutHints={editor.isShortcutHintsVisible}
 					onToolChange={(tool) => (editor.activeTool = tool)}
 					onUndo={editor.handleUndo}
 					onRedo={editor.handleRedo}

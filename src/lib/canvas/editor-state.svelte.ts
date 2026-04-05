@@ -14,8 +14,8 @@ import { TOOL_CURSORS, type ToolType } from './tool-types';
 import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
 import { exportAsPng } from './export';
 import { constrainLine, constrainSquare } from './constrain';
-import { TOOL_SHORTCUT_KEYS } from './shortcut-display';
 import type { DrawTool, DrawResult, ToolContext } from './draw-tool';
+import { createKeyboardInput, type KeyboardInput } from './keyboard-input.svelte';
 import { pencilTool, eraserTool } from './tools/pencil-tool';
 import { floodfillTool } from './tools/floodfill-tool';
 import { eyedropperTool } from './tools/eyedropper-tool';
@@ -33,16 +33,6 @@ const RESIZE_ANCHOR_MAP: Record<ResizeAnchor, WasmResizeAnchor> = {
 	'bottom-center': WasmResizeAnchor.BottomCenter,
 	'bottom-right': WasmResizeAnchor.BottomRight
 };
-
-// Derived from TOOL_SHORTCUT_KEYS: maps KeyboardEvent.code → ToolType
-const TOOL_SHORTCUTS: Record<string, ToolType> = Object.fromEntries(
-	Object.entries(TOOL_SHORTCUT_KEYS).map(([tool, key]) => [`Key${key}`, tool])
-) as Record<string, ToolType>;
-
-function isTextInputTarget(target: EventTarget | null): boolean {
-	if (typeof HTMLElement === 'undefined' || !(target instanceof HTMLElement)) return false;
-	return target.closest('input, select, textarea, [contenteditable]:not([contenteditable="false"])') !== null;
-}
 
 export interface EditorOptions {
 	canvasWidth?: number;
@@ -68,22 +58,18 @@ export class EditorState {
 	#isDrawing = $state(false);
 	#drawButton = 0;
 	#activeDrawColor: WasmColor | null = null;
-	#toolBeforeModifier = $state<ToolType | null>(null);
-	#isAltHeld = $state(false);
-	#isSpaceHeld = $state(false);
-	#isShiftHeld = $state(false);
-	#shortcutHintsVisible = $state(false);
+	#keyboard: KeyboardInput = null!;
 
 	get isSpaceHeld(): boolean {
-		return this.#isSpaceHeld;
+		return this.#keyboard.isSpaceHeld;
 	}
 
 	get isShiftHeld(): boolean {
-		return this.#isShiftHeld;
+		return this.#keyboard.isShiftHeld;
 	}
 
-	get shortcutHintsVisible(): boolean {
-		return this.#shortcutHintsVisible;
+	get isShortcutHintsVisible(): boolean {
+		return this.#keyboard.isShortcutHintsVisible;
 	}
 
 	readonly canUndo = $derived.by(() => {
@@ -147,7 +133,7 @@ export class EditorState {
 			canvas: this.pixelCanvas,
 			drawColor: this.#activeDrawColor!,
 			drawButton: this.#drawButton,
-			isShiftHeld: () => this.#isShiftHeld,
+			isShiftHeld: () => this.#keyboard.isShiftHeld,
 			foregroundColor: this.foregroundColor,
 			backgroundColor: this.backgroundColor
 		};
@@ -182,6 +168,27 @@ export class EditorState {
 		if (options.backgroundColor) {
 			this.backgroundColor = options.backgroundColor;
 		}
+		this.#keyboard = createKeyboardInput({
+			isDrawing: () => this.#isDrawing,
+			getActiveTool: () => this.activeTool,
+			setActiveTool: (tool) => {
+				this.activeTool = tool;
+			},
+			undo: () => this.handleUndo(),
+			redo: () => this.handleRedo(),
+			toggleGrid: () => this.handleGridToggle(),
+			swapColors: () => this.swapColors(),
+			notifyModifierChange: () => {
+				if (this.#isDrawing && this.#lastDrawCurrent) {
+					const tool = this.#tools[this.activeTool];
+					if (tool.onModifierChange) {
+						this.#applyDrawResult(
+							tool.onModifierChange(this.#buildContext(), this.#lastDrawCurrent)
+						);
+					}
+				}
+			}
+		});
 	}
 
 	handleViewportChange = (newViewport: WasmViewport): void => {
@@ -195,7 +202,7 @@ export class EditorState {
 	};
 
 	handleDrawStart = (button: number): void => {
-		if (this.#shortcutHintsVisible) return;
+		if (this.#keyboard.isShortcutHintsVisible) return;
 		this.#isDrawing = true;
 		this.#drawButton = button;
 		this.#lastDrawCurrent = null;
@@ -217,9 +224,9 @@ export class EditorState {
 		this.#drawButton = 0;
 		this.#activeDrawColor = null;
 		this.#lastDrawCurrent = null;
-		if (this.#toolBeforeModifier !== null && !this.#isAltHeld) {
-			this.activeTool = this.#toolBeforeModifier;
-			this.#toolBeforeModifier = null;
+		const restored = this.#keyboard.consumePendingToolRestore();
+		if (restored !== null) {
+			this.activeTool = restored;
 		}
 	};
 
@@ -278,7 +285,7 @@ export class EditorState {
 	};
 
 	handleDraw = (current: CanvasCoords, previous: CanvasCoords | null): void => {
-		if (this.#shortcutHintsVisible) return;
+		if (this.#keyboard.isShortcutHintsVisible) return;
 		this.#lastDrawCurrent = current;
 		this.#applyDrawResult(this.#tools[this.activeTool].onDraw(this.#buildContext(), current, previous));
 	};
@@ -363,116 +370,14 @@ export class EditorState {
 	};
 
 	handleKeyDown = (event: KeyboardEvent): void => {
-		if (isTextInputTarget(event.target)) return;
-
-		if (event.code === 'Slash') {
-			event.preventDefault();
-			if (event.repeat) return;
-			if (this.#isDrawing) return;
-			this.#shortcutHintsVisible = true;
-			return;
-		}
-
-		if (event.code === 'AltLeft' || event.code === 'AltRight') {
-			if (event.repeat) return;
-			this.#isAltHeld = true;
-			if (this.#isDrawing) return;
-			if (this.activeTool === 'eyedropper') return;
-			this.#toolBeforeModifier = this.activeTool;
-			this.activeTool = 'eyedropper';
-			return;
-		}
-
-		if (event.code === 'Space') {
-			event.preventDefault();
-			if (event.repeat) return;
-			if (this.#isDrawing) return;
-			this.#isSpaceHeld = true;
-			return;
-		}
-
-		if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
-			if (event.repeat) return;
-			this.#isShiftHeld = true;
-			if (this.#isDrawing && this.#lastDrawCurrent) {
-				const tool = this.#tools[this.activeTool];
-				if (tool.onModifierChange) {
-					this.#applyDrawResult(tool.onModifierChange(this.#buildContext(), this.#lastDrawCurrent));
-				}
-			}
-			return;
-		}
-
-		const isCtrlOrCmd = event.ctrlKey || event.metaKey;
-		const isZKey = event.key.toLowerCase() === 'z';
-		const isYKey = event.key.toLowerCase() === 'y';
-		if (isCtrlOrCmd && isZKey && !event.shiftKey) {
-			event.preventDefault();
-			this.handleUndo();
-		} else if ((isCtrlOrCmd && isZKey && event.shiftKey) || (isCtrlOrCmd && isYKey)) {
-			event.preventDefault();
-			this.handleRedo();
-		}
-
-		if (isCtrlOrCmd || event.altKey || event.shiftKey) return;
-
-		if (event.code === 'KeyG') {
-			if (event.repeat) return;
-			this.handleGridToggle();
-			return;
-		}
-
-		if (event.code === 'KeyX') {
-			if (event.repeat) return;
-			this.swapColors();
-			return;
-		}
-
-		if (this.#isDrawing) return;
-		const tool = TOOL_SHORTCUTS[event.code];
-		if (tool) {
-			this.activeTool = tool;
-		}
+		this.#keyboard.handleKeyDown(event);
 	};
 
 	handleKeyUp = (event: KeyboardEvent): void => {
-		if (event.code === 'Slash') {
-			this.#shortcutHintsVisible = false;
-			return;
-		}
-
-		if (event.code === 'Space') {
-			this.#isSpaceHeld = false;
-		}
-
-		if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
-			this.#isShiftHeld = false;
-			if (this.#isDrawing && this.#lastDrawCurrent) {
-				const tool = this.#tools[this.activeTool];
-				if (tool.onModifierChange) {
-					this.#applyDrawResult(tool.onModifierChange(this.#buildContext(), this.#lastDrawCurrent));
-				}
-			}
-		}
-
-		if (event.code === 'AltLeft' || event.code === 'AltRight') {
-			this.#isAltHeld = false;
-			if (this.#isDrawing) return;
-			if (this.#toolBeforeModifier !== null) {
-				this.activeTool = this.#toolBeforeModifier;
-				this.#toolBeforeModifier = null;
-			}
-		}
+		this.#keyboard.handleKeyUp(event);
 	};
 
 	handleBlur = (): void => {
-		this.#isAltHeld = false;
-		this.#isSpaceHeld = false;
-		this.#isShiftHeld = false;
-		this.#shortcutHintsVisible = false;
-		if (this.#toolBeforeModifier !== null) {
-			this.activeTool = this.#toolBeforeModifier;
-			this.#toolBeforeModifier = null;
-		}
+		this.#keyboard.handleBlur();
 	};
 }

@@ -37,7 +37,7 @@ export interface KeyboardInput {
 	/** Whether Shift is currently held (consumed by ToolContext.isShiftHeld). */
 	readonly isShiftHeld: boolean;
 	/** Whether the shortcut hint overlay is visible. */
-	readonly shortcutHintsVisible: boolean;
+	readonly isShortcutHintsVisible: boolean;
 
 	/**
 	 * Called by EditorState.handleDrawEnd to restore a temporary tool switch.
@@ -182,7 +182,7 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 		get isShiftHeld(): boolean {
 			return isShiftHeld;
 		},
-		get shortcutHintsVisible(): boolean {
+		get isShortcutHintsVisible(): boolean {
 			return shortcutHintsVisible;
 		},
 

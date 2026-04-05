@@ -145,22 +145,22 @@ describe('Shift modifier', () => {
 // ── Shortcut hints (/ key) ───────────────────────────────────
 
 describe('shortcut hints (/ key)', () => {
-	it('sets shortcutHintsVisible on press, clears on release', () => {
+	it('sets isShortcutHintsVisible on press, clears on release', () => {
 		const kb = createKeyboardInput(createHost());
-		expect(kb.shortcutHintsVisible).toBe(false);
+		expect(kb.isShortcutHintsVisible).toBe(false);
 
 		kb.handleKeyDown(keyDown('Slash'));
-		expect(kb.shortcutHintsVisible).toBe(true);
+		expect(kb.isShortcutHintsVisible).toBe(true);
 
 		kb.handleKeyUp(keyUp('Slash'));
-		expect(kb.shortcutHintsVisible).toBe(false);
+		expect(kb.isShortcutHintsVisible).toBe(false);
 	});
 
 	it('ignores repeat events', () => {
 		const kb = createKeyboardInput(createHost());
 		kb.handleKeyDown(keyDown('Slash'));
 		kb.handleKeyDown(keyDown('Slash', { repeat: true }));
-		expect(kb.shortcutHintsVisible).toBe(true);
+		expect(kb.isShortcutHintsVisible).toBe(true);
 	});
 
 	it('does not show hints while drawing', () => {
@@ -168,14 +168,14 @@ describe('shortcut hints (/ key)', () => {
 		const kb = createKeyboardInput(host);
 
 		kb.handleKeyDown(keyDown('Slash'));
-		expect(kb.shortcutHintsVisible).toBe(false);
+		expect(kb.isShortcutHintsVisible).toBe(false);
 	});
 
 	it('resets on blur', () => {
 		const kb = createKeyboardInput(createHost());
 		kb.handleKeyDown(keyDown('Slash'));
 		kb.handleBlur();
-		expect(kb.shortcutHintsVisible).toBe(false);
+		expect(kb.isShortcutHintsVisible).toBe(false);
 	});
 
 	it('calls preventDefault', () => {

@@ -1,0 +1,22 @@
+import { wasm_flood_fill } from '$wasm/dotorixel_wasm';
+import { colorToHex } from '../color';
+import { EMPTY_RESULT, type DrawTool, type DrawResult, type ToolContext } from '../draw-tool';
+import type { CanvasCoords } from '../view-types';
+
+/** Fills connected same-color pixels on initial click. Ignores drag events. */
+export const floodfillTool: DrawTool = {
+	capturesHistory: true,
+
+	onDrawStart(ctx: ToolContext): DrawResult {
+		const isRightClick = ctx.drawButton === 2;
+		const activeColor = isRightClick ? ctx.backgroundColor : ctx.foregroundColor;
+		return { canvasChanged: false, addRecentColor: colorToHex(activeColor) };
+	},
+
+	onDraw(ctx: ToolContext, current: CanvasCoords, previous: CanvasCoords | null): DrawResult {
+		if (previous !== null) return EMPTY_RESULT;
+		return { canvasChanged: wasm_flood_fill(ctx.canvas, current.x, current.y, ctx.drawColor) };
+	},
+
+	onDrawEnd(): void {}
+};

@@ -1,6 +1,6 @@
 ---
 title: TabStrip component — visual tab management
-status: open
+status: done
 created: 2026-04-05
 parent: 002-tab-system.md
 ---
@@ -40,3 +40,21 @@ See parent PRD sections: "Tab strip UI", "Tab closure behavior", "New image defa
 - User story 13 — "+" button affordance
 - User story 14 — close "x" button on each tab
 - User story 15 — active tab visually distinct
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/ui-editor/TabStrip.svelte` | TabStrip component — tab switching, close, new tab, auto-scroll, responsive heights |
+| `src/lib/ui-editor/TabStrip.stories.svelte` | Storybook stories: SingleTab, MultipleTabs, ManyTabs (overflow) |
+| `src/routes/editor/+page.svelte` | Layout integration (docked + tab) and viewport initialization fix for new tabs |
+
+### Key Decisions
+- Storybook-driven development instead of unit-test TDD — TabStrip is a pure presentation component delegating to Workspace; no independent business logic to unit-test
+- Props interface (`tabs`, `activeTabIndex`, callbacks) instead of passing `Workspace` directly — follows existing component pattern (TopBar, ToolStrip)
+- `WeakSet<EditorState>` replaces `needsInitialFit` boolean to track per-editor viewport initialization — necessary for multi-tab support
+
+### Notes
+- Fixed viewport initialization bug: new tabs were not getting `handleFit` called because `ResizeObserver` only fires on size change, not on tab switch. Split into two effects (tab switch + resize) with `WeakSet` tracking
+- Tab strip uses `border-bottom: 2px solid transparent` on all tabs with `var(--ds-accent)` on active — standard tab indicator pattern
+- Asymmetric tab padding (left > right) compensates for close button width to achieve visual balance

@@ -1,5 +1,5 @@
 ---
-description: Complete the current task. Record in done.md, update record file, update todo.md, update progress.md, update platform-status.md, and commit.
+description: Complete the current task. Update issue file, done.md, todo.md, progress.md, platform-status.md, and commit.
 user_invocable: true
 # model: sonnet  # blocked by anthropics/claude-code#34912
 # effort: medium
@@ -7,18 +7,17 @@ user_invocable: true
 
 # /task-done
 
-When a task item is completed, follow these steps in order, then create a git commit. This ensures implementation code and task records are included in the same commit.
+When a task item is completed, follow these steps in order, then create a git commit. This ensures implementation code and task updates are included in the same commit.
 
 ## Steps
 
-### 1. Update the record file
+### 1. Update the issue file
 
-Find the record file for the current task in `tasks/records/`. If the file does not exist (e.g., `/task-start` was interrupted before creating it), create it now:
+Find the issue file for the current task in `issues/`.
 
-1. Determine the next record number by scanning existing files in `tasks/records/`.
-2. Create `tasks/records/<NNN>-<slug>.md` with a `# NNN — Task Title` heading and a `## Plan` section containing the original implementation plan verbatim from the current conversation context. Do not summarize or paraphrase — copy the approved plan as-is.
+**a) Set status to done**: Update the frontmatter `status: open` → `status: done`.
 
-Once the record file exists, append a `## Results` section using the following format:
+**b) Append Results**: Add a `## Results` section using the following format:
 
 ```text
 ## Results
@@ -36,12 +35,14 @@ Once the record file exists, append a `## Results` section using the following f
 
 - "Results" is required. "Key Decisions" and "Notes" are only included when applicable.
 
+**c) Check parent PRD completion**: If the issue has a `parent` field in its frontmatter, check whether all sibling sub-issues (other issue files with the same `parent`) now have `status: done`. If so, update the parent PRD issue file's `status` to `done` as well.
+
 ### 2. Update done.md
 
-Add a row at the top of the table in `tasks/done.md` (just below the header row) linking to the record file:
+Add a row at the top of the table in `tasks/done.md` (just below the header row) linking to the issue file. Use the issue file number as the `#` column:
 
 ```text
-| NNN | [Task Title](records/NNN-slug.md) | YYYY-MM-DD |
+| NNN | [Task Title](../issues/NNN-slug.md) | YYYY-MM-DD |
 ```
 
 ### 3. Update todo.md
@@ -72,4 +73,4 @@ If the completed task added or changed any feature implementation, update `docs/
 **Guard: verify current branch is not `main`.** If on `main`, stop and alert the user — do not commit.
 - **Exception — .pen-only tasks**: If the task only modified `.pen` files (Design/Sync tasks), committing on `main` is allowed. No PR is needed.
 
-Commit changes and task record updates together.
+Commit changes and task updates together.

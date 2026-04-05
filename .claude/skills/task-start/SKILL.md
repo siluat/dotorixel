@@ -20,23 +20,30 @@ Follow these steps in order when starting a task.
    - 1 item → start that task directly.
    - No items → notify the user there are no tasks and stop.
 
-4. **Enter plan mode**: Call EnterPlanMode to switch to plan mode.
+4. **Classify the selected item** by checking its entry in `tasks/todo.md`:
+   - **Sub-issue**: The item links to an issue file (e.g., `[003 — ...](../issues/003-*.md)`). → Go to **Path C**.
+   - **PRD exists, no sub-issues**: The item or its parent has a `[PRD]` link, but no indented sub-issue items exist below it yet. → Go to **Path B**.
+   - **No PRD**: The item is plain text with no PRD link and no issue file link. → Go to **Path A**.
 
-5. **Draft implementation plan**: Write an implementation plan for the selected task and get user approval via ExitPlanMode. Note: the plan mode file in `.claude/plans/` is a temporary working artifact — it is NOT the project record.
+---
 
-6. **Create the record file** (this is a separate action from step 5 — do not skip): After ExitPlanMode, determine the next record number by scanning existing files in `tasks/records/` (e.g., if `019-*.md` is the highest, the next is `020`). Use the Write tool to create `tasks/records/<NNN>-<slug>.md` with the approved plan content:
+## Path A — No PRD
 
-   ```markdown
-   # NNN — Task Title
+The item needs a PRD before implementation can begin.
 
-   ## Plan
+Invoke the `/write-a-prd` skill for this item. Stop after the PRD is created.
 
-   (approved plan content)
-   ```
+## Path B — PRD exists, needs sub-issues
 
-   **Verify**: confirm the file exists by reading it back before proceeding.
+The item has a PRD but hasn't been broken into implementable sub-issues yet.
 
-7. **Create a work branch**: Create a new branch from `main` for this task.
+Invoke the `/prd-to-issues` skill for this item. Stop after issues are created.
+
+## Path C — Sub-issue (implementation)
+
+5. **Create a work branch**: Create a new branch from `main` for this task.
    - **Exception — .pen-only tasks**: If the task only modifies `.pen` files (Design/Sync tasks), skip branch creation and work directly on `main`.
 
-8. Update "Currently Working On" in `tasks/progress.md` to the selected task.
+6. Update "Currently Working On" in `tasks/progress.md` to the selected task.
+
+7. **Begin TDD**: Invoke the `/tdd` skill to start implementation.

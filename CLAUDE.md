@@ -25,8 +25,7 @@ Implementation tasks are managed through files in the `tasks/` directory.
 |------|---------|
 | [tasks/todo.md](tasks/todo.md) | Full task list (items removed on completion) |
 | [tasks/progress.md](tasks/progress.md) | Currently working on / last completed / next up |
-| [tasks/done.md](tasks/done.md) | Completion index (table linking to record files) |
-| [tasks/records/](tasks/records/) | One file per task — plan + completion record |
+| [tasks/done.md](tasks/done.md) | Completion log |
 
 ### Starting a Task
 
@@ -34,19 +33,17 @@ Run the `/task-start` skill.
 
 1. Read `tasks/progress.md` to understand the current state.
 2. If there are 2+ items in "Next Up", ask the user which task to work on.
-3. Enter plan mode to draft an implementation plan and get user approval.
-4. Save the approved plan to `tasks/records/<NNN>-<slug>.md`.
-5. Update "Currently Working On" in `tasks/progress.md`.
+3. Classify the item and route to the appropriate skill (write-a-prd / prd-to-issues / tdd).
 
 ### Completing a Task
 
 When a task item is completed, notify the user and suggest using the `/task-done` skill. Running `/task-done` performs the following steps, then creates a git commit.
 
-1. **Update record file**: Append results, key decisions, and notes to the task's record file in `tasks/records/`.
-2. **Update done.md**: Add a row to the index table linking to the record file.
+1. **Update issue file**: Append results, key decisions, and notes to the task's issue file in `issues/`.
+2. **Update done.md**: Add a row to the completion log.
 3. **Update todo.md**: Remove the completed item from `tasks/todo.md`.
 4. **Update progress.md**: Set current to "None", update last completed, refresh next up.
-5. **Git commit**: Include implementation code and task records in a single commit.
+5. **Git commit**: Include implementation code and task updates in a single commit.
 
 ### Branch Rule
 

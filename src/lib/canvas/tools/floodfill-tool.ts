@@ -3,6 +3,7 @@ import { colorToHex } from '../color';
 import { EMPTY_RESULT, type DrawTool, type DrawResult, type ToolContext } from '../draw-tool';
 import type { CanvasCoords } from '../view-types';
 
+/** Fills connected same-color pixels on initial click. Ignores drag events. */
 export const floodfillTool: DrawTool = {
 	capturesHistory: true,
 

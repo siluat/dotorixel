@@ -40,5 +40,7 @@ function createFreehandTool(wasmTool: WasmToolType, addsRecentColor: boolean): D
 	};
 }
 
+/** Freehand drawing tool that paints pixels with the active color. */
 export const pencilTool: DrawTool = createFreehandTool(WasmToolType.Pencil, true);
+/** Freehand tool that erases pixels to transparent. Does not add to recent colors. */
 export const eraserTool: DrawTool = createFreehandTool(WasmToolType.Eraser, false);

@@ -12,10 +12,9 @@ import { constrainLine, constrainSquare } from '../constrain';
 import type { ToolContext } from '../draw-tool';
 import type { Color } from '../color';
 
-const BLACK_COLOR: Color = { r: 0, g: 0, b: 0, a: 255 };
-const WHITE_COLOR: Color = { r: 255, g: 255, b: 255, a: 255 };
-const BLACK = { r: 0, g: 0, b: 0, a: 255 };
-const TRANSPARENT = { r: 0, g: 0, b: 0, a: 0 };
+const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
+const WHITE: Color = { r: 255, g: 255, b: 255, a: 255 };
+const TRANSPARENT: Color = { r: 0, g: 0, b: 0, a: 0 };
 
 function createContext(overrides: Partial<ToolContext> = {}): ToolContext {
 	return {
@@ -23,8 +22,8 @@ function createContext(overrides: Partial<ToolContext> = {}): ToolContext {
 		drawColor: overrides.drawColor ?? new WasmColor(0, 0, 0, 255),
 		drawButton: overrides.drawButton ?? 0,
 		isShiftHeld: overrides.isShiftHeld ?? (() => false),
-		foregroundColor: overrides.foregroundColor ?? BLACK_COLOR,
-		backgroundColor: overrides.backgroundColor ?? WHITE_COLOR,
+		foregroundColor: overrides.foregroundColor ?? BLACK,
+		backgroundColor: overrides.backgroundColor ?? WHITE,
 	};
 }
 

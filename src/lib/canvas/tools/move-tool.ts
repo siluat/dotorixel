@@ -2,6 +2,7 @@ import { shiftPixels } from '../shift-pixels';
 import { EMPTY_RESULT, type DrawTool, type DrawResult, type ToolContext } from '../draw-tool';
 import type { CanvasCoords } from '../view-types';
 
+/** Creates a move tool that shifts all canvas pixels by drag delta from the initial click point. */
 export function createMoveTool(): DrawTool {
 	let moveStart: CanvasCoords | null = null;
 	let moveSnapshot: Uint8Array | null = null;

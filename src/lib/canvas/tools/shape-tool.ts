@@ -6,6 +6,11 @@ import type { CanvasCoords } from '../view-types';
 type ShapePixelsFn = (x0: number, y0: number, x1: number, y1: number) => Int32Array;
 type ConstrainFn = (start: CanvasCoords, end: CanvasCoords) => CanvasCoords;
 
+/**
+ * Creates a shape tool with snapshot-restore live preview.
+ * Restores the canvas to its pre-stroke state before each preview redraw,
+ * and supports shift-constrained drawing via `onModifierChange`.
+ */
 export function createShapeTool(
 	wasmTool: WasmToolType,
 	generatePixels: ShapePixelsFn,
@@ -13,7 +18,6 @@ export function createShapeTool(
 ): DrawTool {
 	let shapeStart: CanvasCoords | null = null;
 	let previewSnapshot: Uint8Array | null = null;
-	let lastCurrent: CanvasCoords | null = null;
 
 	function drawShape(ctx: ToolContext, current: CanvasCoords): DrawResult {
 		if (!shapeStart || !previewSnapshot) return EMPTY_RESULT;
@@ -34,15 +38,12 @@ export function createShapeTool(
 		onDrawStart(ctx: ToolContext): DrawResult {
 			previewSnapshot = new Uint8Array(ctx.canvas.pixels());
 			shapeStart = null;
-			lastCurrent = null;
 			const isRightClick = ctx.drawButton === 2;
 			const activeColor = isRightClick ? ctx.backgroundColor : ctx.foregroundColor;
 			return { canvasChanged: false, addRecentColor: colorToHex(activeColor) };
 		},
 
 		onDraw(ctx: ToolContext, current: CanvasCoords, previous: CanvasCoords | null): DrawResult {
-			lastCurrent = current;
-
 			if (previous === null) {
 				shapeStart = current;
 				const changed = apply_tool(ctx.canvas, current.x, current.y, wasmTool, ctx.drawColor);
@@ -55,11 +56,9 @@ export function createShapeTool(
 		onDrawEnd(): void {
 			shapeStart = null;
 			previewSnapshot = null;
-			lastCurrent = null;
 		},
 
 		onModifierChange(ctx: ToolContext, current: CanvasCoords): DrawResult {
-			lastCurrent = current;
 			return drawShape(ctx, current);
 		}
 	};

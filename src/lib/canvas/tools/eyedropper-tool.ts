@@ -2,6 +2,7 @@ import { colorToHex } from '../color';
 import { EMPTY_RESULT, type DrawTool, type DrawResult, type ToolContext } from '../draw-tool';
 import type { CanvasCoords } from '../view-types';
 
+/** Samples a pixel color on first click. Does not modify the canvas or capture history. */
 export const eyedropperTool: DrawTool = {
 	capturesHistory: false,
 

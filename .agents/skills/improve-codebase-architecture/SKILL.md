@@ -75,11 +75,11 @@ After comparing, give your own recommendation: which design you think is stronge
 
 Create a refactor RFC as a markdown file in the `issues/` directory at the project root.
 
-1. Determine the next issue number from existing files in `issues/` (three-digit zero-padded: `001`, `002`, `003`, …).
+1. Determine the next issue number by scanning existing files in `issues/` (three-digit zero-padded: `001`, `002`, `003`, …).
 2. Create `issues/NNN-<slug>.md` using the template in [REFERENCE.md](REFERENCE.md), including frontmatter with `status: open`.
-3. Add the new issue to `issues/INDEX.md` (create the index file if it doesn't exist). The index lists open issues only — one line per issue linking to the file.
+3. Link the issue file in `tasks/todo.md`: if the corresponding task item already exists, append a link (e.g., `— [RFC](../issues/NNN-<slug>.md)`). If no matching item exists, add a new item with the link.
 4. Share the file path with the user.
 
 ### Issue lifecycle
 
-When an issue is completed, update its frontmatter `status` to `done` and remove its line from `issues/INDEX.md`. The issue file itself remains in `issues/` as a permanent record.
+When an issue is completed, update its frontmatter `status` to `done`. The issue file remains in `issues/` as a permanent record.

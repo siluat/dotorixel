@@ -1,4 +1,5 @@
 import type { ToolType } from './tool-types';
+import { TOOL_SHORTCUT_KEYS } from './shortcut-display';
 
 /**
  * Callbacks that the keyboard module needs from its owner.
@@ -51,6 +52,11 @@ function isTextInputTarget(target: EventTarget | null): boolean {
 	return target.closest('input, select, textarea, [contenteditable]:not([contenteditable="false"])') !== null;
 }
 
+// Derived from TOOL_SHORTCUT_KEYS: maps KeyboardEvent.code → ToolType
+const TOOL_SHORTCUTS: Record<string, ToolType> = Object.fromEntries(
+	Object.entries(TOOL_SHORTCUT_KEYS).map(([tool, key]) => [`Key${key}`, tool])
+) as Record<string, ToolType>;
+
 export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 	let isSpaceHeld = $state(false);
 	let isShiftHeld = $state(false);
@@ -80,6 +86,37 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 				if (event.repeat) return;
 				isShiftHeld = true;
 				return;
+			}
+
+			const isCtrlOrCmd = event.ctrlKey || event.metaKey;
+			const isZKey = event.key.toLowerCase() === 'z';
+			const isYKey = event.key.toLowerCase() === 'y';
+			if (isCtrlOrCmd && isZKey && !event.shiftKey) {
+				event.preventDefault();
+				host.undo();
+			} else if ((isCtrlOrCmd && isZKey && event.shiftKey) || (isCtrlOrCmd && isYKey)) {
+				event.preventDefault();
+				host.redo();
+			}
+
+			if (isCtrlOrCmd || event.altKey || event.shiftKey) return;
+
+			if (event.code === 'KeyG') {
+				if (event.repeat) return;
+				host.toggleGrid();
+				return;
+			}
+
+			if (event.code === 'KeyX') {
+				if (event.repeat) return;
+				host.swapColors();
+				return;
+			}
+
+			if (host.isDrawing()) return;
+			const tool = TOOL_SHORTCUTS[event.code];
+			if (tool) {
+				host.setActiveTool(tool);
 			}
 		},
 

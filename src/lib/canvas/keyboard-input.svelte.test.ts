@@ -233,3 +233,174 @@ describe('text input filtering', () => {
 		document.body.removeChild(button);
 	});
 });
+
+// ── Tool shortcuts ───────────────────────────────────────────
+
+describe('tool shortcuts', () => {
+	it('switches tools via shortcut keys', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		const mappings: [string, string][] = [
+			['KeyP', 'pencil'],
+			['KeyE', 'eraser'],
+			['KeyL', 'line'],
+			['KeyU', 'rectangle'],
+			['KeyO', 'ellipse'],
+			['KeyF', 'floodfill'],
+			['KeyI', 'eyedropper'],
+			['KeyV', 'move']
+		];
+		for (const [code, tool] of mappings) {
+			kb.handleKeyDown(keyDown(code));
+			expect(host.setActiveTool).toHaveBeenCalledWith(tool);
+		}
+	});
+
+	it('works regardless of IME input language (matches by code, not key)', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyE', { key: 'ㄷ' }));
+		expect(host.setActiveTool).toHaveBeenCalledWith('eraser');
+	});
+
+	it('ignores tool shortcuts while drawing', () => {
+		const host = createHost({ isDrawing: vi.fn(() => true) });
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('KeyE'));
+		expect(host.setActiveTool).not.toHaveBeenCalled();
+	});
+
+	it('ignores shortcuts when Ctrl is held', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyE', { ctrlKey: true }));
+		expect(host.setActiveTool).not.toHaveBeenCalled();
+	});
+
+	it('ignores shortcuts when Meta is held', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyE', { metaKey: true }));
+		expect(host.setActiveTool).not.toHaveBeenCalled();
+	});
+
+	it('ignores shortcuts when Alt is held', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyE', { altKey: true }));
+		expect(host.setActiveTool).not.toHaveBeenCalled();
+	});
+
+	it('ignores shortcuts when Shift is held', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyE', { shiftKey: true }));
+		expect(host.setActiveTool).not.toHaveBeenCalled();
+	});
+});
+
+// ── Grid toggle ──────────────────────────────────────────────
+
+describe('grid toggle (G key)', () => {
+	it('calls toggleGrid', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyG'));
+		expect(host.toggleGrid).toHaveBeenCalledOnce();
+	});
+
+	it('ignores repeat events', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyG'));
+		kb.handleKeyDown(keyDown('KeyG', { repeat: true }));
+		expect(host.toggleGrid).toHaveBeenCalledOnce();
+	});
+
+	it('allows toggle while drawing', () => {
+		const host = createHost({ isDrawing: vi.fn(() => true) });
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyG'));
+		expect(host.toggleGrid).toHaveBeenCalledOnce();
+	});
+
+	it('ignores when modifiers held', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyG', { shiftKey: true }));
+		expect(host.toggleGrid).not.toHaveBeenCalled();
+	});
+});
+
+// ── Swap colors (X key) ─────────────────────────────────────
+
+describe('swap colors (X key)', () => {
+	it('calls swapColors', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyX'));
+		expect(host.swapColors).toHaveBeenCalledOnce();
+	});
+
+	it('ignores repeat events', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyX'));
+		kb.handleKeyDown(keyDown('KeyX', { repeat: true }));
+		expect(host.swapColors).toHaveBeenCalledOnce();
+	});
+
+	it('allows swap while drawing', () => {
+		const host = createHost({ isDrawing: vi.fn(() => true) });
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyX'));
+		expect(host.swapColors).toHaveBeenCalledOnce();
+	});
+});
+
+// ── Undo/Redo shortcuts ─────────────────────────────────────
+
+describe('undo/redo shortcuts', () => {
+	it('calls undo on Ctrl+Z', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyZ', { key: 'z', ctrlKey: true }));
+		expect(host.undo).toHaveBeenCalledOnce();
+	});
+
+	it('calls redo on Ctrl+Shift+Z', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyZ', { key: 'z', ctrlKey: true, shiftKey: true }));
+		expect(host.redo).toHaveBeenCalledOnce();
+	});
+
+	it('calls redo on Ctrl+Y', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyY', { key: 'y', ctrlKey: true }));
+		expect(host.redo).toHaveBeenCalledOnce();
+	});
+
+	it('calls undo on Cmd+Z (macOS)', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyZ', { key: 'z', metaKey: true }));
+		expect(host.undo).toHaveBeenCalledOnce();
+	});
+
+	it('calls redo on Cmd+Y (macOS)', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		kb.handleKeyDown(keyDown('KeyY', { key: 'y', metaKey: true }));
+		expect(host.redo).toHaveBeenCalledOnce();
+	});
+
+	it('calls preventDefault for undo/redo', () => {
+		const kb = createKeyboardInput(createHost());
+		const event = keyDown('KeyZ', { key: 'z', ctrlKey: true });
+		kb.handleKeyDown(event);
+		expect(event.preventDefault).toHaveBeenCalled();
+	});
+});

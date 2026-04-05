@@ -38,7 +38,7 @@ Present the proposed breakdown as a numbered list. For each slice, show:
 - **Title**: short descriptive name
 - **Type**: HITL / AFK
 - **Blocked by**: which other slices (if any) must complete first
-- **User stories covered**: which user stories from the PRD this addresses
+- **Scenarios covered**: which scenarios from the PRD this addresses
 
 Ask the user:
 
@@ -84,12 +84,12 @@ A concise description of this vertical slice. Describe the end-to-end behavior, 
 
 Or "None — can start immediately" if no blockers.
 
-## User stories addressed
+## Scenarios addressed
 
 Reference by number from the parent PRD:
 
-- User story 3
-- User story 7
+- Scenario 3
+- Scenario 7
 
 </issue-template>
 

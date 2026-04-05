@@ -1,6 +1,6 @@
 ---
 title: SharedState extraction + EditorState accepts shared reference
-status: open
+status: done
 created: 2026-04-05
 parent: 002-tab-system.md
 ---
@@ -29,3 +29,15 @@ None — can start immediately.
 
 - User story 5 — drawing tool and colors stay the same when switching tabs
 - User story 17 — recent colors shared across all tabs
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/shared-state.svelte.ts` | New SharedState class with reactive `activeTool`, `foregroundColor`, `backgroundColor`, `recentColors` |
+| `src/lib/canvas/editor-state.svelte.ts` | EditorState delegates shared fields via getter/setter to `this.shared`; constructor accepts optional `SharedState` |
+| `src/lib/canvas/shared-state.svelte.test.ts` | SharedState defaults, delegation, two-editor sharing, and independent state isolation tests |
+
+### Key Decisions
+- Used getter/setter delegation instead of removing the public properties — preserves EditorState's existing API so no consumer code changes are needed
+- SharedState uses `$state` runes directly — Svelte 5's dependency tracking follows getter reads through to the underlying `$state`, preserving the reactive chain for `$derived` properties like `foregroundColorHex` and `toolCursor`

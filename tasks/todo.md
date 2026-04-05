@@ -5,7 +5,6 @@
 ### Multi-image workflow
 
 - Tab system (work on multiple images simultaneously) — [PRD](../issues/002-tab-system.md)
-  - [003 — SharedState extraction + EditorState accepts shared reference](../issues/003-shared-state-extraction.md)
   - [004 — Workspace class — add/close/switch tabs](../issues/004-workspace-class.md)
   - [005 — Wire Workspace into +page.svelte — active tab swap](../issues/005-wire-workspace-to-page.md)
   - [006 — TabStrip component — visual tab management](../issues/006-tab-strip-component.md)

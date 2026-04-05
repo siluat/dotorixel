@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 003 | [SharedState extraction + EditorState accepts shared reference](../issues/003-shared-state-extraction.md) | 2026-04-05 |
 | 066 | [Design: tab system UI — multi-image tabs](records/066-tab-system-ui-design.md) | 2026-04-04 |
 | 065 | [Sliding active indicator (tab bar navigation)](records/065-sliding-active-indicator.md) | 2026-04-03 |
 | 064 | [Toolbar tool tooltip on hover](records/064-toolbar-tooltip.md) | 2026-04-02 |

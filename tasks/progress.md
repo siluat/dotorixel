@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None
+Tab system — multi-image workflow ([PRD](../issues/002-tab-system.md))
 
 ## Last Completed
 

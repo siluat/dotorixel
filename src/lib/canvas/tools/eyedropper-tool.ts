@@ -15,11 +15,12 @@ export const eyedropperTool: DrawTool = {
 		const pixel = ctx.canvas.get_pixel(current.x, current.y);
 		if (pixel.a === 0) return EMPTY_RESULT;
 
+		const isRightClick = ctx.drawButton === 2;
 		const color = { r: pixel.r, g: pixel.g, b: pixel.b, a: pixel.a };
 		return {
 			canvasChanged: false,
 			colorPick: {
-				target: ctx.drawButton === 2 ? 'background' : 'foreground',
+				target: isRightClick ? 'background' : 'foreground',
 				color
 			},
 			addRecentColor: colorToHex(color)

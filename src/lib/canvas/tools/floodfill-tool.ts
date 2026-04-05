@@ -7,7 +7,8 @@ export const floodfillTool: DrawTool = {
 	capturesHistory: true,
 
 	onDrawStart(ctx: ToolContext): DrawResult {
-		const activeColor = ctx.drawButton === 2 ? ctx.backgroundColor : ctx.foregroundColor;
+		const isRightClick = ctx.drawButton === 2;
+		const activeColor = isRightClick ? ctx.backgroundColor : ctx.foregroundColor;
 		return { canvasChanged: false, addRecentColor: colorToHex(activeColor) };
 	},
 

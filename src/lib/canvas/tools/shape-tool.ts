@@ -35,7 +35,8 @@ export function createShapeTool(
 			previewSnapshot = new Uint8Array(ctx.canvas.pixels());
 			shapeStart = null;
 			lastCurrent = null;
-			const activeColor = ctx.drawButton === 2 ? ctx.backgroundColor : ctx.foregroundColor;
+			const isRightClick = ctx.drawButton === 2;
+			const activeColor = isRightClick ? ctx.backgroundColor : ctx.foregroundColor;
 			return { canvasChanged: false, addRecentColor: colorToHex(activeColor) };
 		},
 

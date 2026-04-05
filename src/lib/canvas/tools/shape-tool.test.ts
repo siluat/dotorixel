@@ -17,14 +17,12 @@ const WHITE_COLOR: Color = { r: 255, g: 255, b: 255, a: 255 };
 const BLACK = { r: 0, g: 0, b: 0, a: 255 };
 const TRANSPARENT = { r: 0, g: 0, b: 0, a: 0 };
 
-let shiftHeld = false;
-
 function createContext(overrides: Partial<ToolContext> = {}): ToolContext {
 	return {
 		canvas: overrides.canvas ?? new WasmPixelCanvas(8, 8),
 		drawColor: overrides.drawColor ?? new WasmColor(0, 0, 0, 255),
 		drawButton: overrides.drawButton ?? 0,
-		isShiftHeld: overrides.isShiftHeld ?? (() => shiftHeld),
+		isShiftHeld: overrides.isShiftHeld ?? (() => false),
 		foregroundColor: overrides.foregroundColor ?? BLACK_COLOR,
 		backgroundColor: overrides.backgroundColor ?? WHITE_COLOR,
 	};
@@ -71,14 +69,12 @@ describe('ShapeTool — line', () => {
 	});
 
 	it('constrains to horizontal when shift is held', () => {
-		shiftHeld = true;
 		const tool = createLineTool();
-		const ctx = createContext();
+		const ctx = createContext({ isShiftHeld: () => true });
 		tool.onDrawStart(ctx);
 		tool.onDraw(ctx, { x: 0, y: 0 }, null);
 		tool.onDraw(ctx, { x: 5, y: 1 }, { x: 0, y: 0 });
 		tool.onDrawEnd(ctx);
-		shiftHeld = false;
 
 		expect(getPixel(ctx.canvas, 3, 0)).toEqual(BLACK);
 		expect(getPixel(ctx.canvas, 0, 1)).toEqual(TRANSPARENT);
@@ -139,23 +135,23 @@ describe('ShapeTool — onModifierChange', () => {
 		createShapeTool(WasmToolType.Line, wasm_interpolate_pixels, constrainLine);
 
 	it('redraws with constraint when shift is toggled mid-stroke', () => {
+		const canvas = new WasmPixelCanvas(8, 8);
 		const tool = createLineTool();
-		const ctx = createContext();
+		const ctx = createContext({ canvas });
 		tool.onDrawStart(ctx);
 		tool.onDraw(ctx, { x: 0, y: 0 }, null);
 		tool.onDraw(ctx, { x: 5, y: 1 }, { x: 0, y: 0 });
 
 		// Without shift: line goes to (5,1)
-		expect(getPixel(ctx.canvas, 5, 1)).toEqual(BLACK);
+		expect(getPixel(canvas, 5, 1)).toEqual(BLACK);
 
 		// Toggle shift on → constrain to horizontal
-		shiftHeld = true;
-		const result = tool.onModifierChange!(ctx, { x: 5, y: 1 });
-		shiftHeld = false;
+		const shiftCtx = createContext({ canvas, isShiftHeld: () => true });
+		const result = tool.onModifierChange!(shiftCtx, { x: 5, y: 1 });
 
 		expect(result.canvasChanged).toBe(true);
-		expect(getPixel(ctx.canvas, 5, 0)).toEqual(BLACK);
-		expect(getPixel(ctx.canvas, 5, 1)).toEqual(TRANSPARENT);
+		expect(getPixel(canvas, 5, 0)).toEqual(BLACK);
+		expect(getPixel(canvas, 5, 1)).toEqual(TRANSPARENT);
 
 		tool.onDrawEnd(ctx);
 	});

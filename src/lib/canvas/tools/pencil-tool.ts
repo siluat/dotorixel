@@ -13,7 +13,8 @@ function createFreehandTool(wasmTool: WasmToolType, addsRecentColor: boolean): D
 
 		onDrawStart(ctx: ToolContext): DrawResult {
 			if (!addsRecentColor) return EMPTY_RESULT;
-			const activeColor = ctx.drawButton === 2 ? ctx.backgroundColor : ctx.foregroundColor;
+			const isRightClick = ctx.drawButton === 2;
+			const activeColor = isRightClick ? ctx.backgroundColor : ctx.foregroundColor;
 			return { canvasChanged: false, addRecentColor: colorToHex(activeColor) };
 		},
 

@@ -53,7 +53,7 @@ A numbered list of concrete scenarios that describe observable behavior. Each sc
 3. The user attempts to undo with an empty history → nothing happens, no error shown
 </scenario-example>
 
-Cover the primary flows first, then edge cases and error states. Prioritize scenarios that would be hard to catch visually or that clarify ambiguous behavior. Don't aim for exhaustive enumeration — focus on scenarios that carry implementation or testing signal.
+Cover all distinct aspects of the feature (breadth), but for each aspect, list only the scenarios that carry non-obvious implementation or testing signal (depth). Trivial variations of an already-clear behavior can be omitted.
 
 ## Implementation Decisions
 

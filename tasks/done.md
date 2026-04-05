@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 008 | [Single-tab session save & restore](../issues/008-single-tab-session-save-restore.md) | 2026-04-06 |
 | 006 | [TabStrip component — visual tab management](../issues/006-tab-strip-component.md) | 2026-04-06 |
 | 005 | [Wire Workspace into +page.svelte — active tab swap](../issues/005-wire-workspace-to-page.md) | 2026-04-06 |
 | 004 | [Workspace class — add/close/switch tabs](../issues/004-workspace-class.md) | 2026-04-06 |

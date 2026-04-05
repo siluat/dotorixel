@@ -21,9 +21,9 @@ Check with the user that these modules match their expectations. Check with the 
 
 **File creation steps:**
 
-- Determine the next issue number by reading `issues/INDEX.md` and incrementing the highest existing number (zero-padded to 3 digits).
+- Determine the next issue number by reading `issues/INDEX.md` and incrementing the highest existing number (zero-padded to 3 digits). If no issue rows exist yet, start at `001`.
 - Create the file as `issues/<NNN>-<slug>.md` where `<slug>` is a short kebab-case summary.
-- Add a row to the table in `issues/INDEX.md`: `| <NNN> | [<title>](issues/<NNN>-<slug>.md) |`
+- Add a row to the table in `issues/INDEX.md`: `| <NNN> | [<title>](<NNN>-<slug>.md) |`
 
 <prd-template>
 

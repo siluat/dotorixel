@@ -157,6 +157,7 @@
 		justify-content: center;
 		width: 28px;
 		height: 28px;
+		margin-left: var(--ds-space-2);
 		border: none;
 		background: none;
 		color: var(--ds-text-tertiary);

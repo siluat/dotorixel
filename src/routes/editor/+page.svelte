@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Workspace } from '$lib/canvas/workspace.svelte';
+	import type { EditorState } from '$lib/canvas/editor-state.svelte';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 	import { createLayoutMode } from '$lib/ui-editor/layout-mode.svelte';
 	import TopBar from '$lib/ui-editor/TopBar.svelte';
@@ -11,6 +12,7 @@
 	import ToolStrip from '$lib/ui-editor/ToolStrip.svelte';
 	import ColorBar from '$lib/ui-editor/ColorBar.svelte';
 	import TabBar from '$lib/ui-editor/TabBar.svelte';
+	import TabStrip from '$lib/ui-editor/TabStrip.svelte';
 	import ColorsContent from '$lib/ui-editor/ColorsContent.svelte';
 	import SettingsContent from '$lib/ui-editor/SettingsContent.svelte';
 	import {
@@ -32,7 +34,15 @@
 	const layout = createLayoutMode();
 	let activeTab: MobileTab = $state('draw');
 	let canvasContainerEl: HTMLDivElement | undefined = $state();
-	let needsInitialFit = true;
+	const fittedEditors = new WeakSet<EditorState>();
+
+	function initEditorViewport(ed: EditorState, width: number, height: number) {
+		ed.viewportSize = { width, height };
+		if (!fittedEditors.has(ed)) {
+			fittedEditors.add(ed);
+			ed.handleFit(1.0);
+		}
+	}
 
 	onMount(() => {
 		trackEditorOpen('editor');
@@ -51,6 +61,19 @@
 		prevTool = tool;
 	});
 
+	// Sync viewport size when active tab changes
+	$effect(() => {
+		const currentEditor = editor;
+		if (!canvasContainerEl) return;
+		const rect = canvasContainerEl.getBoundingClientRect();
+		const w = Math.round(rect.width);
+		const h = Math.round(rect.height);
+		if (w > 0 && h > 0) {
+			initEditorViewport(currentEditor, w, h);
+		}
+	});
+
+	// Track container size changes
 	$effect(() => {
 		if (!canvasContainerEl) return;
 		const ro = new ResizeObserver((entries) => {
@@ -59,11 +82,7 @@
 			const { width, height } = entry.contentRect;
 			const w = Math.round(width);
 			const h = Math.round(height);
-			editor.viewportSize = { width: w, height: h };
-			if (needsInitialFit) {
-				needsInitialFit = false;
-				editor.handleFit(1.0);
-			}
+			initEditorViewport(editor, w, h);
 		});
 		ro.observe(canvasContainerEl);
 		return () => ro.disconnect();
@@ -93,6 +112,14 @@
 			onFit={editor.handleFit}
 			onGridToggle={editor.handleGridToggle}
 			onExport={handleExport}
+		/>
+
+		<TabStrip
+			tabs={workspace.tabs}
+			activeTabIndex={workspace.activeTabIndex}
+			onTabClick={(i) => workspace.setActiveTab(i)}
+			onTabClose={(i) => workspace.closeTab(i)}
+			onNewTab={() => workspace.addTab()}
 		/>
 
 		<LeftToolbar
@@ -153,6 +180,14 @@
 			onZoomIn={editor.handleZoomIn}
 			onZoomOut={editor.handleZoomOut}
 			onZoomReset={editor.handleZoomReset}
+		/>
+
+		<TabStrip
+			tabs={workspace.tabs}
+			activeTabIndex={workspace.activeTabIndex}
+			onTabClick={(i) => workspace.setActiveTab(i)}
+			onTabClose={(i) => workspace.closeTab(i)}
+			onNewTab={() => workspace.addTab()}
 		/>
 
 		<div class="content-area">
@@ -232,24 +267,30 @@
 		overflow: hidden;
 		user-select: none;
 		grid-template:
-			'topbar  topbar  topbar'  calc(44px + env(safe-area-inset-top, 0px))
-			'toolbar canvas  panel'   1fr
-			'status  status  status'  calc(28px + env(safe-area-inset-bottom, 0px))
-			/ 44px   1fr     200px;
+			'topbar   topbar   topbar'   calc(44px + env(safe-area-inset-top, 0px))
+			'tabstrip tabstrip tabstrip'  36px
+			'toolbar  canvas   panel'     1fr
+			'status   status   status'    calc(28px + env(safe-area-inset-bottom, 0px))
+			/ 44px    1fr      200px;
 	}
 
 	@media (min-width: 1440px) {
 		.editor-docked {
 			grid-template:
-				'topbar  topbar  topbar'  calc(48px + env(safe-area-inset-top, 0px))
-				'toolbar canvas  panel'   1fr
-				'status  status  status'  calc(28px + env(safe-area-inset-bottom, 0px))
-				/ 48px   1fr     240px;
+				'topbar   topbar   topbar'   calc(48px + env(safe-area-inset-top, 0px))
+				'tabstrip tabstrip tabstrip'  36px
+				'toolbar  canvas   panel'     1fr
+				'status   status   status'    calc(28px + env(safe-area-inset-bottom, 0px))
+				/ 48px    1fr      240px;
 		}
 	}
 
 	.editor-docked > :global(.top-bar) {
 		grid-area: topbar;
+	}
+
+	.editor-docked > :global(.tab-strip) {
+		grid-area: tabstrip;
 	}
 
 	.editor-docked > :global(.left-toolbar) {

@@ -1,6 +1,6 @@
 ---
 title: Tab system — multi-image workflow
-status: open
+status: done
 created: 2026-04-05
 ---
 

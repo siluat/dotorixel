@@ -1,6 +1,6 @@
 ---
 title: Wire Workspace into +page.svelte — active tab swap
-status: open
+status: done
 created: 2026-04-05
 parent: 002-tab-system.md
 ---
@@ -30,3 +30,11 @@ See parent PRD sections: "State flow", "Initial app state".
 - User story 5 — tool and colors shared via SharedState
 - User story 6 — undo/redo independent per tab (each EditorState holds independent history)
 - User story 16 — app starts with one default tab
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/workspace.svelte.ts` | Added `WorkspaceOptions` interface; constructor forwards `foregroundColor` to SharedState and `gridColor` to each tab |
+| `src/lib/canvas/workspace.svelte.test.ts` | 3 new tests: initial foregroundColor forwarding, gridColor forwarding, gridColor applied to new tabs |
+| `src/routes/editor/+page.svelte` | Replaced `new EditorState(...)` with `new Workspace(...)` + `$derived(workspace.activeEditor)` |

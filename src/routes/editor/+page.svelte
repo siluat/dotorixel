@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { EditorState } from '$lib/canvas/editor-state.svelte';
+	import { Workspace } from '$lib/canvas/workspace.svelte';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 	import { createLayoutMode } from '$lib/ui-editor/layout-mode.svelte';
 	import TopBar from '$lib/ui-editor/TopBar.svelte';
@@ -23,10 +23,11 @@
 
 	type MobileTab = 'draw' | 'colors' | 'settings';
 
-	const editor = new EditorState({
+	const workspace = new Workspace({
 		foregroundColor: { r: 45, g: 45, b: 45, a: 255 },
 		gridColor: '#ECE5D9'
 	});
+	const editor = $derived(workspace.activeEditor);
 
 	const layout = createLayoutMode();
 	let activeTab: MobileTab = $state('draw');

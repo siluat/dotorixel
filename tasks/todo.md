@@ -4,7 +4,10 @@
 
 ### Multi-image workflow
 
-- Session persistence (restore work after refresh/revisit)
+- Session persistence (restore work after refresh/revisit) — [PRD](../issues/007-session-persistence.md)
+  - [008 — Single-tab session save & restore](../issues/008-single-tab-session-save-restore.md)
+  - [009 — Multi-tab session persistence](../issues/009-multi-tab-session-persistence.md)
+  - [010 — Debounced auto-save with dirty tracking](../issues/010-debounced-auto-save.md)
 - Design: saved work browser — list/modal UI for reopening past work (.pen)
 - Reopen past work (browse and restore from saved work list)
 

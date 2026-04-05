@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi } from 'vitest';
 import { createKeyboardInput, type KeyboardInputHost } from './keyboard-input.svelte';
+import type { ToolType } from './tool-types';
 
 function createHost(overrides?: Partial<KeyboardInputHost>): KeyboardInputHost {
 	return {
@@ -402,5 +403,132 @@ describe('undo/redo shortcuts', () => {
 		const event = keyDown('KeyZ', { key: 'z', ctrlKey: true });
 		kb.handleKeyDown(event);
 		expect(event.preventDefault).toHaveBeenCalled();
+	});
+});
+
+// ── Alt eyedropper (temporary tool switch) ───────────────────
+
+describe('Alt eyedropper', () => {
+	it('switches to eyedropper on Alt press and restores on release', () => {
+		const host = createHost({ getActiveTool: vi.fn(() => 'pencil' as const) });
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('AltLeft'));
+		expect(host.setActiveTool).toHaveBeenCalledWith('eyedropper');
+
+		kb.handleKeyUp(keyUp('AltLeft'));
+		expect(host.setActiveTool).toHaveBeenCalledWith('pencil');
+	});
+
+	it('does not switch when already using eyedropper', () => {
+		const host = createHost({ getActiveTool: vi.fn(() => 'eyedropper' as const) });
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('AltLeft'));
+		expect(host.setActiveTool).not.toHaveBeenCalled();
+
+		kb.handleKeyUp(keyUp('AltLeft'));
+		expect(host.setActiveTool).not.toHaveBeenCalled();
+	});
+
+	it('ignores Alt repeat events', () => {
+		let currentTool: string = 'eraser';
+		const host = createHost({
+			getActiveTool: vi.fn(() => currentTool as ToolType),
+			setActiveTool: vi.fn((tool: ToolType) => { currentTool = tool; })
+		});
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('AltLeft'));
+		expect(host.setActiveTool).toHaveBeenCalledWith('eyedropper');
+
+		// Repeat should not re-save toolBeforeModifier
+		kb.handleKeyDown(keyDown('AltLeft', { repeat: true }));
+
+		kb.handleKeyUp(keyUp('AltLeft'));
+		expect(host.setActiveTool).toHaveBeenCalledWith('eraser');
+	});
+
+	it('does not switch tool when Alt pressed during drawing', () => {
+		const host = createHost({ isDrawing: vi.fn(() => true) });
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('AltLeft'));
+		expect(host.setActiveTool).not.toHaveBeenCalled();
+	});
+
+	it('defers tool restore when Alt released during drawing', () => {
+		let drawing = false;
+		const host = createHost({
+			getActiveTool: vi.fn(() => 'pencil' as const),
+			isDrawing: vi.fn(() => drawing)
+		});
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('AltLeft'));
+		expect(host.setActiveTool).toHaveBeenCalledWith('eyedropper');
+
+		// Start drawing, then release Alt
+		drawing = true;
+		kb.handleKeyUp(keyUp('AltLeft'));
+		// Should NOT restore yet — deferred
+		expect(host.setActiveTool).toHaveBeenCalledTimes(1);
+
+		// consumePendingToolRestore returns the saved tool
+		const restored = kb.consumePendingToolRestore();
+		expect(restored).toBe('pencil');
+	});
+
+	it('consumePendingToolRestore returns null when Alt is still held', () => {
+		let drawing = false;
+		const host = createHost({
+			getActiveTool: vi.fn(() => 'pencil' as const),
+			isDrawing: vi.fn(() => drawing)
+		});
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('AltLeft'));
+		drawing = true;
+		// Alt still held, drawing ends
+		const restored = kb.consumePendingToolRestore();
+		expect(restored).toBe(null);
+	});
+
+	it('consumePendingToolRestore consumes state — second call returns null', () => {
+		let drawing = false;
+		const host = createHost({
+			getActiveTool: vi.fn(() => 'pencil' as const),
+			isDrawing: vi.fn(() => drawing)
+		});
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('AltLeft'));
+		drawing = true;
+		kb.handleKeyUp(keyUp('AltLeft'));
+
+		expect(kb.consumePendingToolRestore()).toBe('pencil');
+		expect(kb.consumePendingToolRestore()).toBe(null);
+	});
+
+	it('restores tool on window blur', () => {
+		const host = createHost({ getActiveTool: vi.fn(() => 'line' as const) });
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('AltLeft'));
+		expect(host.setActiveTool).toHaveBeenCalledWith('eyedropper');
+
+		kb.handleBlur();
+		expect(host.setActiveTool).toHaveBeenCalledWith('line');
+	});
+
+	it('works with AltRight', () => {
+		const host = createHost({ getActiveTool: vi.fn(() => 'rectangle' as const) });
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('AltRight'));
+		expect(host.setActiveTool).toHaveBeenCalledWith('eyedropper');
+
+		kb.handleKeyUp(keyUp('AltRight'));
+		expect(host.setActiveTool).toHaveBeenCalledWith('rectangle');
 	});
 });

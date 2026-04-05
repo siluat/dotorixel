@@ -60,7 +60,9 @@ const TOOL_SHORTCUTS: Record<string, ToolType> = Object.fromEntries(
 export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 	let isSpaceHeld = $state(false);
 	let isShiftHeld = $state(false);
+	let isAltHeld = false;
 	let shortcutHintsVisible = $state(false);
+	let toolBeforeModifier: ToolType | null = null;
 
 	return {
 		handleKeyDown(event: KeyboardEvent): void {
@@ -71,6 +73,16 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 				if (event.repeat) return;
 				if (host.isDrawing()) return;
 				shortcutHintsVisible = true;
+				return;
+			}
+
+			if (event.code === 'AltLeft' || event.code === 'AltRight') {
+				if (event.repeat) return;
+				isAltHeld = true;
+				if (host.isDrawing()) return;
+				if (host.getActiveTool() === 'eyedropper') return;
+				toolBeforeModifier = host.getActiveTool();
+				host.setActiveTool('eyedropper');
 				return;
 			}
 
@@ -126,6 +138,16 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 				return;
 			}
 
+			if (event.code === 'AltLeft' || event.code === 'AltRight') {
+				isAltHeld = false;
+				if (host.isDrawing()) return;
+				if (toolBeforeModifier !== null) {
+					host.setActiveTool(toolBeforeModifier);
+					toolBeforeModifier = null;
+				}
+				return;
+			}
+
 			if (event.code === 'Space') {
 				isSpaceHeld = false;
 				return;
@@ -138,9 +160,14 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 		},
 
 		handleBlur(): void {
+			isAltHeld = false;
 			isSpaceHeld = false;
 			isShiftHeld = false;
 			shortcutHintsVisible = false;
+			if (toolBeforeModifier !== null) {
+				host.setActiveTool(toolBeforeModifier);
+				toolBeforeModifier = null;
+			}
 		},
 
 		get isSpaceHeld(): boolean {
@@ -154,6 +181,11 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 		},
 
 		consumePendingToolRestore(): ToolType | null {
+			if (toolBeforeModifier !== null && !isAltHeld) {
+				const tool = toolBeforeModifier;
+				toolBeforeModifier = null;
+				return tool;
+			}
 			return null;
 		}
 	};

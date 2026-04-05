@@ -19,6 +19,38 @@
 		const activeEl = scrollContainer.children[idx] as HTMLElement | undefined;
 		activeEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
 	});
+
+	function focusTab(index: number) {
+		onTabClick(index);
+		(scrollContainer?.children[index] as HTMLElement)?.focus();
+	}
+
+	function handleTabKeydown(e: KeyboardEvent, index: number) {
+		let target: number | null = null;
+		switch (e.key) {
+			case 'ArrowRight':
+				target = (index + 1) % tabs.length;
+				break;
+			case 'ArrowLeft':
+				target = (index - 1 + tabs.length) % tabs.length;
+				break;
+			case 'Home':
+				target = 0;
+				break;
+			case 'End':
+				target = tabs.length - 1;
+				break;
+			case 'Enter':
+			case ' ':
+				e.preventDefault();
+				onTabClick(index);
+				return;
+			default:
+				return;
+		}
+		e.preventDefault();
+		focusTab(target);
+	}
 </script>
 
 <div class="tab-strip" role="tablist">
@@ -31,17 +63,13 @@
 				tabindex={index === activeTabIndex ? 0 : -1}
 				aria-selected={index === activeTabIndex}
 				onclick={() => onTabClick(index)}
-				onkeydown={(e) => {
-					if (e.key === 'Enter' || e.key === ' ') {
-						e.preventDefault();
-						onTabClick(index);
-					}
-				}}
+				onkeydown={(e) => handleTabKeydown(e, index)}
 			>
 				<span class="tab-name">{tab.name}</span>
 				<button
 					class="close-btn"
 					aria-label="Close {tab.name}"
+					tabindex={-1}
 					onclick={(e) => {
 						e.stopPropagation();
 						onTabClose(index);
@@ -149,6 +177,11 @@
 	.close-btn:hover {
 		color: var(--ds-text-secondary);
 		background: var(--ds-bg-active);
+	}
+
+	.close-btn:focus-visible {
+		outline: 2px solid var(--ds-accent);
+		outline-offset: -2px;
 	}
 
 	.new-tab-btn {

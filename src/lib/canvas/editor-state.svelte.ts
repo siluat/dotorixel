@@ -12,6 +12,7 @@ import {
 import type { CanvasCoords, ResizeAnchor, ViewportSize, ViewportState } from './view-types';
 import { TOOL_CURSORS, type ToolType } from './tool-types';
 import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
+import { SharedState } from './shared-state.svelte';
 import { exportAsPng } from './export';
 import { constrainLine, constrainSquare } from './constrain';
 import type { DrawTool, DrawResult, ToolContext } from './draw-tool';
@@ -40,18 +41,44 @@ export interface EditorOptions {
 	foregroundColor?: Color;
 	backgroundColor?: Color;
 	gridColor?: string;
+	shared?: SharedState;
 }
 
 export class EditorState {
+	readonly shared: SharedState;
 	pixelCanvas = $state<WasmPixelCanvas>(null!);
 	viewportSize = $state<ViewportSize>({ width: 512, height: 512 });
 	viewportState = $state<ViewportState>(null!);
-	activeTool = $state<ToolType>('pencil');
 	renderVersion = $state(0);
-	foregroundColor = $state<Color>({ r: 0, g: 0, b: 0, a: 255 });
-	backgroundColor = $state<Color>({ r: 255, g: 255, b: 255, a: 255 });
-	recentColors = $state<string[]>([]);
 	resizeAnchor = $state<ResizeAnchor>('top-left');
+
+	get activeTool(): ToolType {
+		return this.shared.activeTool;
+	}
+	set activeTool(value: ToolType) {
+		this.shared.activeTool = value;
+	}
+
+	get foregroundColor(): Color {
+		return this.shared.foregroundColor;
+	}
+	set foregroundColor(value: Color) {
+		this.shared.foregroundColor = value;
+	}
+
+	get backgroundColor(): Color {
+		return this.shared.backgroundColor;
+	}
+	set backgroundColor(value: Color) {
+		this.shared.backgroundColor = value;
+	}
+
+	get recentColors(): string[] {
+		return this.shared.recentColors;
+	}
+	set recentColors(value: string[]) {
+		this.shared.recentColors = value;
+	}
 
 	#history = WasmHistoryManager.default_manager();
 	#historyVersion = $state(0);
@@ -154,6 +181,7 @@ export class EditorState {
 	}
 
 	constructor(options: EditorOptions = {}) {
+		this.shared = options.shared ?? new SharedState();
 		const cw = options.canvasWidth ?? 16;
 		const ch = options.canvasHeight ?? 16;
 		this.pixelCanvas = new WasmPixelCanvas(cw, ch);
@@ -163,10 +191,10 @@ export class EditorState {
 			gridColor: options.gridColor ?? '#cccccc'
 		};
 		if (options.foregroundColor) {
-			this.foregroundColor = options.foregroundColor;
+			this.shared.foregroundColor = options.foregroundColor;
 		}
 		if (options.backgroundColor) {
-			this.backgroundColor = options.backgroundColor;
+			this.shared.backgroundColor = options.backgroundColor;
 		}
 		this.#keyboard = createKeyboardInput({
 			isDrawing: () => this.#isDrawing,

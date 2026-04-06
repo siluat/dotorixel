@@ -3,28 +3,15 @@ import {
 	apply_tool,
 	wasm_interpolate_pixels
 } from '$wasm/dotorixel_wasm';
-import { colorToHex } from '../color';
-import {
-	CANVAS_CHANGED,
-	NO_EFFECTS,
-	type DrawTool,
-	type ToolContext,
-	type ToolEffects
-} from '../draw-tool';
+import type { ContinuousTool, ToolContext } from '../draw-tool';
 import type { CanvasCoords } from '../view-types';
 
-function createFreehandTool(wasmTool: WasmToolType, addsRecentColor: boolean): DrawTool {
+function createFreehandTool(wasmTool: WasmToolType, addsActiveColor: boolean): ContinuousTool {
 	return {
-		capturesHistory: true,
+		kind: 'continuous',
+		addsActiveColor,
 
-		onDrawStart(ctx: ToolContext): ToolEffects {
-			if (!addsRecentColor) return NO_EFFECTS;
-			const isRightClick = ctx.drawButton === 2;
-			const activeColor = isRightClick ? ctx.backgroundColor : ctx.foregroundColor;
-			return [{ type: 'addRecentColor', hex: colorToHex(activeColor) }];
-		},
-
-		onDraw(ctx: ToolContext, current: CanvasCoords, previous: CanvasCoords | null): ToolEffects {
+		apply(ctx: ToolContext, current: CanvasCoords, previous: CanvasCoords | null): boolean {
 			const { canvas, drawColor } = ctx;
 			let changed = false;
 
@@ -39,14 +26,12 @@ function createFreehandTool(wasmTool: WasmToolType, addsRecentColor: boolean): D
 				changed = apply_tool(canvas, current.x, current.y, wasmTool, drawColor);
 			}
 
-			return changed ? CANVAS_CHANGED : NO_EFFECTS;
-		},
-
-		onDrawEnd(): void {}
+			return changed;
+		}
 	};
 }
 
 /** Freehand drawing tool that paints pixels with the active color. */
-export const pencilTool: DrawTool = createFreehandTool(WasmToolType.Pencil, true);
+export const pencilTool: ContinuousTool = createFreehandTool(WasmToolType.Pencil, true);
 /** Freehand tool that erases pixels to transparent. Does not add to recent colors. */
-export const eraserTool: DrawTool = createFreehandTool(WasmToolType.Eraser, false);
+export const eraserTool: ContinuousTool = createFreehandTool(WasmToolType.Eraser, false);

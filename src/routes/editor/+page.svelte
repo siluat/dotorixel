@@ -15,9 +15,7 @@
 	import TabStrip from '$lib/ui-editor/TabStrip.svelte';
 	import ColorsContent from '$lib/ui-editor/ColorsContent.svelte';
 	import SettingsContent from '$lib/ui-editor/SettingsContent.svelte';
-	import { SessionStorage } from '$lib/session/session-storage';
-	import { SessionPersistence } from '$lib/session/session-persistence';
-	import { AutoSave } from '$lib/session/auto-save';
+	import { openSession, type SessionHandle } from '$lib/session/session';
 	import {
 		trackEditorOpen,
 		trackToolUsage,
@@ -40,7 +38,7 @@
 	let activeTab: MobileTab = $state('draw');
 	let canvasContainerEl: HTMLDivElement | undefined = $state();
 	const fittedEditors = new WeakSet<EditorState>();
-	let autoSave: AutoSave | undefined;
+	let session: SessionHandle | undefined;
 
 	function initEditorViewport(ed: EditorState, width: number, height: number) {
 		ed.viewportSize = { width, height };
@@ -51,7 +49,7 @@
 	}
 
 	function flushSession() {
-		autoSave?.flush();
+		session?.flush();
 	}
 
 	function handleVisibilityChange() {
@@ -60,44 +58,33 @@
 
 	function handleAddTab() {
 		workspace.addTab();
-		autoSave?.markDirty(workspace.activeEditor.documentId);
+		session?.markDirty(workspace.activeEditor.documentId);
 	}
 
 	function handleCloseTab(index: number) {
 		const removedDocId = workspace.tabs[index].documentId;
 		workspace.closeTab(index);
-		autoSave?.notifyTabRemoved(removedDocId);
+		session?.notifyTabClosed(removedDocId);
 	}
 
 	onMount(() => {
 		trackEditorOpen('editor');
 		const sessionStart = Date.now();
 
-		SessionStorage.open()
-			.then((storage) => {
-				const persistence = new SessionPersistence(storage);
-				return persistence.restore().then((init) => ({ persistence, init }));
-			})
-			.then(({ persistence, init }) => {
-				if (init) {
-					workspace = new Workspace({ gridColor: '#ECE5D9', init });
-					for (const tab of workspace.tabs) {
-						fittedEditors.add(tab);
-					}
-				}
-				autoSave = new AutoSave(persistence, workspace);
-			})
-			.catch(() => {
-				// IndexedDB may be unavailable (private browsing, quota exceeded) or
-				// data may be corrupted — silently keep the default workspace so the
-				// editor always opens, even if persistence is broken.
-			});
+		openSession({ gridColor: '#ECE5D9' }).then((result) => {
+			workspace = result.workspace;
+			session = result.session;
+			for (const tab of workspace.tabs) {
+				fittedEditors.add(tab);
+			}
+		});
 
 		document.addEventListener('visibilitychange', handleVisibilityChange);
 
 		return () => {
 			trackSessionEnd((Date.now() - sessionStart) / 1000);
-			void autoSave?.flush();
+			void session?.flush();
+			session?.dispose();
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
 		};
 	});
@@ -118,7 +105,7 @@
 		const version = currentEditor.renderVersion;
 		const lastSeen = lastSeenVersions.get(currentEditor);
 		if (lastSeen !== undefined && lastSeen !== version) {
-			autoSave?.markDirty(currentEditor.documentId);
+			session?.markDirty(currentEditor.documentId);
 		}
 		lastSeenVersions.set(currentEditor, version);
 	});

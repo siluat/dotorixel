@@ -6,11 +6,11 @@ Layout transition: floating panels to docked layout ([PRD](../issues/014-apple-n
 
 ## Last Completed
 
-021 — Unify tool effect dispatch
+016 — Apple native: LeftToolbar
 
 ## Next Up
 
-- 016 — LeftToolbar (Apple Native)
+- 017 — TopBar (Apple Native)
   - Next docked layout sub-issue. Depends on 015 (done).
 - SVG export
   - M2 export & sharing. Independent, no prerequisites.

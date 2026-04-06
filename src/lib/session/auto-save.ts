@@ -53,7 +53,17 @@ export class AutoSave {
 		this.#dirty = false;
 		const dirtyDocIds = this.#dirtyDocIds.size > 0 ? new Set(this.#dirtyDocIds) : undefined;
 		this.#dirtyDocIds.clear();
-		await this.#persistence.save(this.#workspace, dirtyDocIds);
+		try {
+			await this.#persistence.save(this.#workspace, dirtyDocIds);
+		} catch (error) {
+			this.#dirty = true;
+			if (dirtyDocIds) {
+				for (const id of dirtyDocIds) {
+					this.#dirtyDocIds.add(id);
+				}
+			}
+			throw error;
+		}
 	}
 
 	dispose(): void {

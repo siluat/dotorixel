@@ -97,7 +97,7 @@
 
 		return () => {
 			trackSessionEnd((Date.now() - sessionStart) / 1000);
-			autoSave?.dispose();
+			void autoSave?.flush();
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
 		};
 	});

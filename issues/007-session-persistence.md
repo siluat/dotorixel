@@ -1,6 +1,6 @@
 ---
 title: Session persistence — restore work after refresh/revisit
-status: open
+status: done
 created: 2026-04-06
 ---
 

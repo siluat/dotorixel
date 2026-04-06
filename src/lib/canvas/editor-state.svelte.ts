@@ -43,6 +43,7 @@ export interface EditorOptions {
 	gridColor?: string;
 	shared?: SharedState;
 	name?: string;
+	documentId?: string;
 	pixelCanvas?: WasmPixelCanvas;
 	viewportState?: ViewportState;
 }
@@ -50,6 +51,7 @@ export interface EditorOptions {
 export class EditorState {
 	readonly shared: SharedState;
 	readonly name: string;
+	readonly documentId: string;
 	pixelCanvas = $state<WasmPixelCanvas>(null!);
 	viewportSize = $state<ViewportSize>({ width: 512, height: 512 });
 	viewportState = $state<ViewportState>(null!);
@@ -187,6 +189,7 @@ export class EditorState {
 	constructor(options: EditorOptions = {}) {
 		this.shared = options.shared ?? new SharedState();
 		this.name = options.name ?? '';
+		this.documentId = options.documentId ?? `doc-${crypto.randomUUID()}`;
 
 		if (options.pixelCanvas) {
 			this.pixelCanvas = options.pixelCanvas;

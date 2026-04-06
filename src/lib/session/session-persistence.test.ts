@@ -152,7 +152,7 @@ describe('SessionPersistence', () => {
 		expect(restored!.tabs[1].name).toBe('Untitled 3');
 	});
 
-	it('cleans up previous document records on re-save', async () => {
+	it('re-save uses stable document IDs and overwrites in place', async () => {
 		const workspace = new Workspace({ gridColor: '#ECE5D9' });
 		workspace.addTab();
 
@@ -162,20 +162,42 @@ describe('SessionPersistence', () => {
 		const firstSaveDocIds = ws1!.tabOrder;
 		expect(firstSaveDocIds).toHaveLength(2);
 
-		// Second save: same 2 tabs, but new doc IDs
+		// Second save: same 2 tabs with stable IDs
 		await persistence.save(workspace);
 		const ws2 = await storage.getWorkspace();
 		const secondSaveDocIds = ws2!.tabOrder;
 
-		// Old documents should be deleted
-		for (const oldId of firstSaveDocIds) {
-			const doc = await storage.getDocument(oldId);
-			expect(doc).toBeUndefined();
-		}
-		// New documents should exist
-		for (const newId of secondSaveDocIds) {
-			const doc = await storage.getDocument(newId);
+		// Same document IDs used across saves
+		expect(secondSaveDocIds).toEqual(firstSaveDocIds);
+
+		// Documents still exist (overwritten, not re-created)
+		for (const id of secondSaveDocIds) {
+			const doc = await storage.getDocument(id);
 			expect(doc).toBeDefined();
+		}
+	});
+
+	it('deletes documents for removed tabs on re-save', async () => {
+		const workspace = new Workspace({ gridColor: '#ECE5D9' });
+		workspace.addTab();
+		workspace.addTab(); // 3 tabs
+
+		await persistence.save(workspace);
+		const removedDocId = workspace.tabs[1].documentId;
+
+		// Close the middle tab
+		workspace.closeTab(1);
+		await persistence.save(workspace);
+
+		// Removed tab's document is deleted
+		const doc = await storage.getDocument(removedDocId);
+		expect(doc).toBeUndefined();
+
+		// Remaining tabs' documents still exist
+		const ws = await storage.getWorkspace();
+		expect(ws!.tabOrder).toHaveLength(2);
+		for (const id of ws!.tabOrder) {
+			expect(await storage.getDocument(id)).toBeDefined();
 		}
 	});
 

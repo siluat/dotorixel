@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 012 | [Deepen session persistence pipeline](../issues/012-deepen-session-persistence.md) | 2026-04-06 |
 | 011 | [Extract CanvasSizeControl component](../issues/011-canvas-size-control.md) | 2026-04-06 |
 | 010 | [Debounced auto-save with dirty tracking](../issues/010-debounced-auto-save.md) | 2026-04-06 |
 | 009 | [Multi-tab session persistence](../issues/009-multi-tab-session-persistence.md) | 2026-04-06 |

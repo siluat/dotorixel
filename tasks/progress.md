@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-011 — Extract CanvasSizeControl component
+012 — Deepen session persistence pipeline into a single deep module
 
 ## Next Up
 

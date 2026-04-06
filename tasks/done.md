@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 022 | [Deepen tool system — discriminated union](../issues/022-deepen-tool-system.md) | 2026-04-07 |
 | 016 | [Apple native: LeftToolbar](../issues/016-apple-left-toolbar.md) | 2026-04-06 |
 | 021 | [Unify tool effect dispatch](../issues/021-unify-tool-effect-dispatch.md) | 2026-04-06 |
 | 015 | [Apple native: design tokens + layout skeleton](../issues/015-apple-layout-skeleton.md) | 2026-04-06 |

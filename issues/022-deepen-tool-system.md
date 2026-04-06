@@ -1,6 +1,6 @@
 ---
 title: Deepen tool system — discriminated union with category-managed lifecycle
-status: open
+status: done
 created: 2026-04-06
 ---
 
@@ -330,3 +330,29 @@ New tests should follow this exact pattern.
 - **EditorState ↔ ToolRunner ↔ KeyboardInput circular dependency.** The `connectModifiers()` late-binding pattern remains. This is a separate architectural improvement (candidate #1 from the architecture exploration).
 - **Rendering pipeline changes.** No changes to how `renderVersion` or canvas rendering works.
 - **WASM binding layer.** Tools continue to import WASM functions directly.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/draw-tool.ts` | Replaced single DrawTool interface with 4-category discriminated union |
+| `src/lib/canvas/tools/pencil-tool.ts` | Converted to ContinuousTool; apply() returns boolean |
+| `src/lib/canvas/tools/eyedropper-tool.ts` | Converted to OneShotTool; execute() called once per click |
+| `src/lib/canvas/tools/floodfill-tool.ts` | Converted to OneShotTool with addsActiveColor flag |
+| `src/lib/canvas/tools/shape-tool.ts` | Converted to ShapePreviewTool; closure state eliminated |
+| `src/lib/canvas/tools/move-tool.ts` | Converted to DragTransformTool; plain object, no factory |
+| `src/lib/canvas/tool-runner.svelte.ts` | switch(tool.kind) dispatch; owns stroke state, addsActiveColor auto-emission |
+| `src/lib/canvas/tool-runner.svelte.test.ts` | Added 8 boundary tests (eraser, addsActiveColor, oneShot guard) |
+
+### Key Decisions
+
+- Atomic migration (no adapter pattern) — the 94 existing ToolRunner + EditorState tests served as the safety net
+- Per-tool test files deleted (37 tests) — behaviors already covered by ToolRunner/EditorState boundary tests; 8 new tests added for gaps
+- Shape/drag tools return void, not ToolEffects — ToolRunner emits canvasChanged unconditionally
+- dragTransform does not get ToolRunner-managed restore_pixels — the tool owns the full transform including pixel write
+
+### Notes
+
+- `ToolContext.isShiftHeld` callback remains unused by shape tools but was kept to avoid scope creep
+- Net code reduction: 269 lines removed across the system
+- Test count: 455 → 426 (37 deleted, 8 added) with equivalent coverage

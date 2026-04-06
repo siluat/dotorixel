@@ -69,10 +69,6 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
   - Bundle size — Tauri `.app` vs native `.app`
   - Implementation effort — per-feature LOC and time comparison
 
-## Architecture
-
-- Deepen tool system — discriminated union with category-managed lifecycle — [Plan](../issues/022-deepen-tool-system.md)
-
 ## Review backlog (not assigned to a milestone)
 
 - FG/BG swap UI improvements

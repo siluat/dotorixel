@@ -53,6 +53,7 @@ export class Workspace {
 			const editor = new EditorState({
 				shared: this.shared,
 				name: tab.name,
+				documentId: tab.id,
 				pixelCanvas,
 				viewportState: {
 					viewport,

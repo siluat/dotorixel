@@ -1,6 +1,6 @@
 ---
 title: Debounced auto-save with dirty tracking
-status: open
+status: done
 created: 2026-04-06
 parent: 007-session-persistence.md
 ---
@@ -15,14 +15,32 @@ The last-write-wins behavior for multiple browser tabs (PRD scenario 7) is a nat
 
 ## Acceptance criteria
 
-- [ ] Dirty flag set when canvas changes (draw, resize, clear) or workspace structure changes (tab add/close/reorder)
-- [ ] Debounce timer flushes dirty data to IndexedDB after 3–5 seconds of no new changes
-- [ ] Only dirty documents are written — unchanged tabs are skipped
-- [ ] `beforeunload` triggers immediate save (flushes pending dirty data)
-- [ ] `visibilitychange` (hidden) triggers immediate save for mobile Safari coverage
-- [ ] Multiple rapid changes within the debounce window result in a single write
-- [ ] Dirty tracking tested: flag set on change, cleared after save
-- [ ] Debounce behavior tested: rapid changes batched, timer reset on new change
+- [x] Dirty flag set when canvas changes (draw, resize, clear) or workspace structure changes (tab add/close/reorder)
+- [x] Debounce timer flushes dirty data to IndexedDB after 3–5 seconds of no new changes
+- [x] Only dirty documents are written — unchanged tabs are skipped
+- [x] `beforeunload` triggers immediate save (flushes pending dirty data)
+- [x] `visibilitychange` (hidden) triggers immediate save for mobile Safari coverage
+- [x] Multiple rapid changes within the debounce window result in a single write
+- [x] Dirty tracking tested: flag set on change, cleared after save
+- [x] Debounce behavior tested: rapid changes batched, timer reset on new change
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/session/auto-save.ts` | AutoSave class — debounce timer, per-document dirty tracking, flush for safety nets |
+| `src/lib/session/auto-save.test.ts` | 7 behavior tests covering debounce, batching, flush, selective save, cleanup |
+| `src/lib/session/session-persistence.ts` | Switched to stable document IDs; added optional `dirtyDocIds` for selective writes |
+| `src/lib/session/session-persistence.test.ts` | Updated cleanup test to match stable ID semantics; added removed-tab cleanup test |
+| `src/lib/canvas/editor-state.svelte.ts` | Added `documentId` field (auto-generated UUID, preserved on restore) |
+| `src/lib/canvas/workspace.svelte.ts` | Passes restored `documentId` through to EditorState |
+| `src/routes/editor/+page.svelte` | Integrated AutoSave; `$effect` watches `renderVersion` per editor for dirty detection |
+
+### Key Decisions
+
+- Stable document IDs instead of regenerating UUIDs on every save — enables per-document selective writes via IndexedDB `put()` upsert
+- Canvas change detection via `$effect` watching `renderVersion` with a per-editor `Map` to avoid false positives on tab switches
+- `flush()` tracks in-flight save promises (`#pendingSave`) to properly synchronize with async saves triggered by debounce timers
 
 ## Blocked by
 

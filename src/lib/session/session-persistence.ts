@@ -19,27 +19,30 @@ export class SessionPersistence {
 		this.#storage = storage;
 	}
 
-	async save(workspace: Workspace): Promise<void> {
+	async save(workspace: Workspace, dirtyDocIds?: Set<string>): Promise<void> {
 		const oldWs = await this.#storage.getWorkspace();
-		const oldDocIds = oldWs?.tabOrder ?? [];
+		const oldDocIds = new Set(oldWs?.tabOrder ?? []);
 
 		const now = new Date();
 		const tabOrder: string[] = [];
 		const viewports: Record<string, ViewportRecord> = {};
 
 		for (const editor of workspace.tabs) {
-			const docId = `doc-${crypto.randomUUID()}`;
+			const docId = editor.documentId;
 			tabOrder.push(docId);
 
-			await this.#storage.putDocument({
-				id: docId,
-				name: editor.name,
-				width: editor.pixelCanvas.width,
-				height: editor.pixelCanvas.height,
-				pixels: editor.pixelCanvas.pixels(),
-				createdAt: now,
-				updatedAt: now
-			});
+			const shouldWrite = !dirtyDocIds || dirtyDocIds.has(docId);
+			if (shouldWrite) {
+				await this.#storage.putDocument({
+					id: docId,
+					name: editor.name,
+					width: editor.pixelCanvas.width,
+					height: editor.pixelCanvas.height,
+					pixels: editor.pixelCanvas.pixels(),
+					createdAt: now,
+					updatedAt: now
+				});
+			}
 
 			viewports[docId] = {
 				pixelSize: editor.viewportState.viewport.pixel_size,
@@ -65,8 +68,12 @@ export class SessionPersistence {
 			viewports
 		});
 
+		// Delete documents that are no longer in the tab list
+		const currentDocIds = new Set(tabOrder);
 		for (const oldId of oldDocIds) {
-			await this.#storage.deleteDocument(oldId);
+			if (!currentDocIds.has(oldId)) {
+				await this.#storage.deleteDocument(oldId);
+			}
 		}
 	}
 

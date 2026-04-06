@@ -17,6 +17,7 @@
 	import SettingsContent from '$lib/ui-editor/SettingsContent.svelte';
 	import { SessionStorage } from '$lib/session/session-storage';
 	import { SessionPersistence } from '$lib/session/session-persistence';
+	import { AutoSave } from '$lib/session/auto-save';
 	import {
 		trackEditorOpen,
 		trackToolUsage,
@@ -39,7 +40,7 @@
 	let activeTab: MobileTab = $state('draw');
 	let canvasContainerEl: HTMLDivElement | undefined = $state();
 	const fittedEditors = new WeakSet<EditorState>();
-	let sessionPersistence: SessionPersistence | undefined;
+	let autoSave: AutoSave | undefined;
 
 	function initEditorViewport(ed: EditorState, width: number, height: number) {
 		ed.viewportSize = { width, height };
@@ -49,12 +50,23 @@
 		}
 	}
 
-	function saveSession() {
-		sessionPersistence?.save(workspace);
+	function flushSession() {
+		autoSave?.flush();
 	}
 
 	function handleVisibilityChange() {
-		if (document.visibilityState === 'hidden') saveSession();
+		if (document.visibilityState === 'hidden') flushSession();
+	}
+
+	function handleAddTab() {
+		workspace.addTab();
+		autoSave?.markDirty(workspace.activeEditor.documentId);
+	}
+
+	function handleCloseTab(index: number) {
+		const removedDocId = workspace.tabs[index].documentId;
+		workspace.closeTab(index);
+		autoSave?.notifyTabRemoved(removedDocId);
 	}
 
 	onMount(() => {
@@ -63,16 +75,17 @@
 
 		SessionStorage.open()
 			.then((storage) => {
-				sessionPersistence = new SessionPersistence(storage);
-				return sessionPersistence.restore();
+				const persistence = new SessionPersistence(storage);
+				return persistence.restore().then((init) => ({ persistence, init }));
 			})
-			.then((init) => {
+			.then(({ persistence, init }) => {
 				if (init) {
 					workspace = new Workspace({ gridColor: '#ECE5D9', init });
 					for (const tab of workspace.tabs) {
 						fittedEditors.add(tab);
 					}
 				}
+				autoSave = new AutoSave(persistence, workspace);
 			})
 			.catch(() => {
 				// IndexedDB may be unavailable (private browsing, quota exceeded) or
@@ -84,6 +97,7 @@
 
 		return () => {
 			trackSessionEnd((Date.now() - sessionStart) / 1000);
+			autoSave?.dispose();
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
 		};
 	});
@@ -95,6 +109,18 @@
 			trackToolUsage(tool);
 		}
 		prevTool = tool;
+	});
+
+	// Auto-save: track canvas changes per editor
+	const lastSeenVersions = new Map<EditorState, number>();
+	$effect(() => {
+		const currentEditor = editor;
+		const version = currentEditor.renderVersion;
+		const lastSeen = lastSeenVersions.get(currentEditor);
+		if (lastSeen !== undefined && lastSeen !== version) {
+			autoSave?.markDirty(currentEditor.documentId);
+		}
+		lastSeenVersions.set(currentEditor, version);
 	});
 
 	// Sync viewport size when active tab changes
@@ -135,7 +161,7 @@
 	}
 </script>
 
-<svelte:window onkeydown={editor.handleKeyDown} onkeyup={editor.handleKeyUp} onblur={editor.handleBlur} onbeforeunload={saveSession} />
+<svelte:window onkeydown={editor.handleKeyDown} onkeyup={editor.handleKeyUp} onblur={editor.handleBlur} onbeforeunload={flushSession} />
 
 {#if layout.isDocked}
 	<div class="editor-docked">
@@ -154,8 +180,8 @@
 			tabs={workspace.tabs}
 			activeTabIndex={workspace.activeTabIndex}
 			onTabClick={(i) => workspace.setActiveTab(i)}
-			onTabClose={(i) => workspace.closeTab(i)}
-			onNewTab={() => workspace.addTab()}
+			onTabClose={handleCloseTab}
+			onNewTab={handleAddTab}
 		/>
 
 		<LeftToolbar
@@ -222,8 +248,8 @@
 			tabs={workspace.tabs}
 			activeTabIndex={workspace.activeTabIndex}
 			onTabClick={(i) => workspace.setActiveTab(i)}
-			onTabClose={(i) => workspace.closeTab(i)}
-			onNewTab={() => workspace.addTab()}
+			onTabClose={handleCloseTab}
+			onNewTab={handleAddTab}
 		/>
 
 		<div class="content-area">

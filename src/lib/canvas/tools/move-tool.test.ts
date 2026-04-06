@@ -1,8 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { WasmPixelCanvas, WasmColor, WasmToolType, apply_tool } from '$wasm/dotorixel_wasm';
 import { createMoveTool } from './move-tool';
-import type { ToolContext } from '../draw-tool';
+import type { ToolContext, ToolEffects } from '../draw-tool';
 import type { Color } from '../color';
+
+function hasEffect(effects: ToolEffects, type: string): boolean {
+	return effects.some((e) => e.type === type);
+}
 
 const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
 const WHITE: Color = { r: 255, g: 255, b: 255, a: 255 };
@@ -58,33 +62,33 @@ describe('MoveTool', () => {
 		expect(getPixel(canvas, 7, 7)).toEqual(TRANSPARENT);
 	});
 
-	it('returns canvasChanged: false on first draw (sets start)', () => {
+	it('returns no canvasChanged on first draw (sets start)', () => {
 		const tool = createMoveTool();
 		const ctx = createContext();
 		tool.onDrawStart(ctx);
-		const result = tool.onDraw(ctx, { x: 3, y: 3 }, null);
+		const effects = tool.onDraw(ctx, { x: 3, y: 3 }, null);
 
-		expect(result.canvasChanged).toBe(false);
+		expect(hasEffect(effects, 'canvasChanged')).toBe(false);
 		tool.onDrawEnd(ctx);
 	});
 
-	it('returns canvasChanged: true on subsequent draws', () => {
+	it('returns canvasChanged on subsequent draws', () => {
 		const tool = createMoveTool();
 		const ctx = createContext();
 		tool.onDrawStart(ctx);
 		tool.onDraw(ctx, { x: 0, y: 0 }, null);
-		const result = tool.onDraw(ctx, { x: 1, y: 1 }, { x: 0, y: 0 });
+		const effects = tool.onDraw(ctx, { x: 1, y: 1 }, { x: 0, y: 0 });
 		tool.onDrawEnd(ctx);
 
-		expect(result.canvasChanged).toBe(true);
+		expect(hasEffect(effects, 'canvasChanged')).toBe(true);
 	});
 
 	it('does not return addRecentColor', () => {
 		const tool = createMoveTool();
 		const ctx = createContext();
-		const result = tool.onDrawStart(ctx);
+		const effects = tool.onDrawStart(ctx);
 
-		expect(result.addRecentColor).toBeUndefined();
+		expect(hasEffect(effects, 'addRecentColor')).toBe(false);
 		tool.onDrawEnd(ctx);
 	});
 

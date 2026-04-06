@@ -1,8 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { WasmPixelCanvas, WasmColor } from '$wasm/dotorixel_wasm';
 import { pencilTool, eraserTool } from './pencil-tool';
-import type { ToolContext } from '../draw-tool';
+import type { ToolContext, ToolEffects } from '../draw-tool';
 import type { Color } from '../color';
+
+function hasEffect(effects: ToolEffects, type: string): boolean {
+	return effects.some((e) => e.type === type);
+}
+
+function findEffect<T extends ToolEffects[number]['type']>(
+	effects: ToolEffects,
+	type: T
+): Extract<ToolEffects[number], { type: T }> | undefined {
+	return effects.find((e) => e.type === type) as Extract<ToolEffects[number], { type: T }> | undefined;
+}
 
 const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
 const WHITE: Color = { r: 255, g: 255, b: 255, a: 255 };
@@ -28,10 +39,10 @@ describe('PencilTool', () => {
 	it('draws a single pixel', () => {
 		const ctx = createContext();
 		pencilTool.onDrawStart(ctx);
-		const result = pencilTool.onDraw(ctx, { x: 3, y: 3 }, null);
+		const effects = pencilTool.onDraw(ctx, { x: 3, y: 3 }, null);
 		pencilTool.onDrawEnd(ctx);
 
-		expect(result.canvasChanged).toBe(true);
+		expect(hasEffect(effects, 'canvasChanged')).toBe(true);
 		expect(getPixel(ctx.canvas, 3, 3)).toEqual(BLACK);
 	});
 
@@ -59,16 +70,16 @@ describe('PencilTool', () => {
 
 	it('returns addRecentColor on drawStart', () => {
 		const ctx = createContext();
-		const result = pencilTool.onDrawStart(ctx);
+		const effects = pencilTool.onDrawStart(ctx);
 
-		expect(result.addRecentColor).toBe('#000000');
+		expect(findEffect(effects, 'addRecentColor')?.hex).toBe('#000000');
 	});
 
 	it('returns background color hex on right-click drawStart', () => {
 		const ctx = createContext({ drawButton: 2 });
-		const result = pencilTool.onDrawStart(ctx);
+		const effects = pencilTool.onDrawStart(ctx);
 
-		expect(result.addRecentColor).toBe('#ffffff');
+		expect(findEffect(effects, 'addRecentColor')?.hex).toBe('#ffffff');
 	});
 
 	it('capturesHistory is true', () => {
@@ -95,9 +106,9 @@ describe('EraserTool', () => {
 
 	it('does not return addRecentColor on drawStart', () => {
 		const ctx = createContext();
-		const result = eraserTool.onDrawStart(ctx);
+		const effects = eraserTool.onDrawStart(ctx);
 
-		expect(result.addRecentColor).toBeUndefined();
+		expect(hasEffect(effects, 'addRecentColor')).toBe(false);
 	});
 
 	it('capturesHistory is true', () => {

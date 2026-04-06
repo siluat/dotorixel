@@ -9,7 +9,7 @@ import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
 import { SharedState } from './shared-state.svelte';
 import { exportAsPng } from './export';
 import { createKeyboardInput, type KeyboardInput } from './keyboard-input.svelte';
-import { createToolRunner, type ToolRunner, type ToolEffects } from './tool-runner.svelte';
+import { createToolRunner, type ToolRunner, type EditorEffects } from './tool-runner.svelte';
 
 function assertNever(x: never): never {
 	throw new Error(`Unhandled effect type: ${(x as { type: string }).type}`);
@@ -113,7 +113,7 @@ export class EditorState {
 	readonly foregroundColorHex = $derived(colorToHex(this.foregroundColor));
 	readonly backgroundColorHex = $derived(colorToHex(this.backgroundColor));
 
-	#applyEffects(effects: ToolEffects): void {
+	#applyEffects(effects: EditorEffects): void {
 		for (const effect of effects) {
 			switch (effect.type) {
 				case 'canvasChanged':

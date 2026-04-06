@@ -33,27 +33,18 @@ export interface ToolContext {
 	readonly backgroundColor: Color;
 }
 
-/** What a tool reports back to EditorState after a draw call. */
-export interface DrawResult {
-	readonly canvasChanged: boolean;
-	readonly colorPick?: { readonly target: 'foreground' | 'background'; readonly color: Color };
-	readonly addRecentColor?: string;
-}
-
-export const EMPTY_RESULT: DrawResult = { canvasChanged: false };
-
 /** Lifecycle interface for drawing tools. */
 export interface DrawTool {
 	/** Whether EditorState should push a history snapshot before this tool's stroke begins. */
 	readonly capturesHistory: boolean;
 
-	onDrawStart(context: ToolContext): DrawResult;
-	onDraw(context: ToolContext, current: CanvasCoords, previous: CanvasCoords | null): DrawResult;
+	onDrawStart(context: ToolContext): ToolEffects;
+	onDraw(context: ToolContext, current: CanvasCoords, previous: CanvasCoords | null): ToolEffects;
 	onDrawEnd(context: ToolContext): void;
 
 	/**
 	 * Called when a modifier key (Shift) changes mid-stroke.
 	 * Shape tools use this to redraw with/without constraints.
 	 */
-	onModifierChange?(context: ToolContext, current: CanvasCoords): DrawResult;
+	onModifierChange?(context: ToolContext, current: CanvasCoords): ToolEffects;
 }

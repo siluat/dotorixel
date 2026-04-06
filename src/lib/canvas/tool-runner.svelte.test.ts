@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { WasmPixelCanvas, WasmColor } from '$wasm/dotorixel_wasm';
-import { createToolRunner, type ToolRunnerHost, type ToolEffects } from './tool-runner.svelte';
+import { createToolRunner, type ToolRunnerHost, type EditorEffects } from './tool-runner.svelte';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
 
@@ -45,7 +45,7 @@ function getPixel(canvas: WasmPixelCanvas, x: number, y: number) {
 	return { r: p.r, g: p.g, b: p.b, a: p.a };
 }
 
-function hasEffect(effects: ToolEffects, type: string): boolean {
+function hasEffect(effects: EditorEffects, type: string): boolean {
 	return effects.some((e) => e.type === type);
 }
 

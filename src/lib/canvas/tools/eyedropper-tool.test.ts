@@ -1,8 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { WasmPixelCanvas, WasmColor, WasmToolType, apply_tool } from '$wasm/dotorixel_wasm';
 import { eyedropperTool } from './eyedropper-tool';
-import type { ToolContext } from '../draw-tool';
+import type { ToolContext, ToolEffects } from '../draw-tool';
 import type { Color } from '../color';
+
+function hasEffect(effects: ToolEffects, type: string): boolean {
+	return effects.some((e) => e.type === type);
+}
+
+function findEffect<T extends ToolEffects[number]['type']>(
+	effects: ToolEffects,
+	type: T
+): Extract<ToolEffects[number], { type: T }> | undefined {
+	return effects.find((e) => e.type === type) as Extract<ToolEffects[number], { type: T }> | undefined;
+}
 
 const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
 const WHITE: Color = { r: 255, g: 255, b: 255, a: 255 };
@@ -29,10 +40,12 @@ describe('EyedropperTool', () => {
 
 		const ctx = createContext({ canvas });
 		eyedropperTool.onDrawStart(ctx);
-		const result = eyedropperTool.onDraw(ctx, { x: 3, y: 3 }, null);
+		const effects = eyedropperTool.onDraw(ctx, { x: 3, y: 3 }, null);
 		eyedropperTool.onDrawEnd(ctx);
 
-		expect(result.colorPick).toEqual({
+		const colorPick = effects.find((e) => e.type === 'colorPick');
+		expect(colorPick).toEqual({
+			type: 'colorPick',
 			target: 'foreground',
 			color: { r: 255, g: 0, b: 0, a: 255 }
 		});
@@ -41,10 +54,10 @@ describe('EyedropperTool', () => {
 	it('returns no colorPick for transparent pixels', () => {
 		const ctx = createContext();
 		eyedropperTool.onDrawStart(ctx);
-		const result = eyedropperTool.onDraw(ctx, { x: 0, y: 0 }, null);
+		const effects = eyedropperTool.onDraw(ctx, { x: 0, y: 0 }, null);
 		eyedropperTool.onDrawEnd(ctx);
 
-		expect(result.colorPick).toBeUndefined();
+		expect(hasEffect(effects, 'colorPick')).toBe(false);
 	});
 
 	it('targets background slot on right-click', () => {
@@ -53,10 +66,10 @@ describe('EyedropperTool', () => {
 
 		const ctx = createContext({ canvas, drawButton: 2 });
 		eyedropperTool.onDrawStart(ctx);
-		const result = eyedropperTool.onDraw(ctx, { x: 2, y: 2 }, null);
+		const effects = eyedropperTool.onDraw(ctx, { x: 2, y: 2 }, null);
 		eyedropperTool.onDrawEnd(ctx);
 
-		expect(result.colorPick?.target).toBe('background');
+		expect(findEffect(effects, 'colorPick')?.target).toBe('background');
 	});
 
 	it('returns addRecentColor with hex of picked color', () => {
@@ -65,10 +78,10 @@ describe('EyedropperTool', () => {
 
 		const ctx = createContext({ canvas });
 		eyedropperTool.onDrawStart(ctx);
-		const result = eyedropperTool.onDraw(ctx, { x: 1, y: 1 }, null);
+		const effects = eyedropperTool.onDraw(ctx, { x: 1, y: 1 }, null);
 		eyedropperTool.onDrawEnd(ctx);
 
-		expect(result.addRecentColor).toBe('#008000');
+		expect(findEffect(effects, 'addRecentColor')?.hex).toBe('#008000');
 	});
 
 	it('ignores subsequent draws (previous !== null)', () => {
@@ -78,32 +91,32 @@ describe('EyedropperTool', () => {
 		const ctx = createContext({ canvas });
 		eyedropperTool.onDrawStart(ctx);
 		eyedropperTool.onDraw(ctx, { x: 0, y: 0 }, null);
-		const result = eyedropperTool.onDraw(ctx, { x: 0, y: 0 }, { x: 0, y: 0 });
+		const effects = eyedropperTool.onDraw(ctx, { x: 0, y: 0 }, { x: 0, y: 0 });
 		eyedropperTool.onDrawEnd(ctx);
 
-		expect(result.colorPick).toBeUndefined();
+		expect(hasEffect(effects, 'colorPick')).toBe(false);
 	});
 
 	it('does not return addRecentColor on drawStart', () => {
 		const ctx = createContext();
-		const result = eyedropperTool.onDrawStart(ctx);
+		const effects = eyedropperTool.onDrawStart(ctx);
 
-		expect(result.addRecentColor).toBeUndefined();
+		expect(hasEffect(effects, 'addRecentColor')).toBe(false);
 	});
 
 	it('capturesHistory is false', () => {
 		expect(eyedropperTool.capturesHistory).toBe(false);
 	});
 
-	it('canvasChanged is always false', () => {
+	it('canvasChanged is never emitted', () => {
 		const canvas = new WasmPixelCanvas(8, 8);
 		paintPixel(canvas, 0, 0, new WasmColor(255, 0, 0, 255));
 
 		const ctx = createContext({ canvas });
 		eyedropperTool.onDrawStart(ctx);
-		const result = eyedropperTool.onDraw(ctx, { x: 0, y: 0 }, null);
+		const effects = eyedropperTool.onDraw(ctx, { x: 0, y: 0 }, null);
 		eyedropperTool.onDrawEnd(ctx);
 
-		expect(result.canvasChanged).toBe(false);
+		expect(hasEffect(effects, 'canvasChanged')).toBe(false);
 	});
 });

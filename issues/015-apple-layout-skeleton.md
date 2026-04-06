@@ -1,6 +1,6 @@
 ---
 title: "Apple native: design tokens + layout skeleton"
-status: open
+status: done
 created: 2026-04-06
 parent: 014-apple-native-docked-layout.md
 ---
@@ -39,3 +39,30 @@ None — can start immediately.
 - Scenario 1: User opens app on Mac → sees docked layout
 - Scenario 2: User opens app on iPad landscape → sees docked layout
 - Scenario 10: User resizes Mac window → canvas area flexes, panels stay fixed
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Style/DesignTokens.swift` | Replaced PebbleTokens with DesignTokens matching web design-tokens.css |
+| `apple/Dotorixel/Style/ToolButtonStyle.swift` | 44×44pt button style for toolbar (active state with accent color) |
+| `apple/Dotorixel/Style/IconButtonStyle.swift` | Subtle icon button style for TopBar |
+| `apple/Dotorixel/Views/TopBar.swift` | Top bar placeholder (44pt height, border bottom) |
+| `apple/Dotorixel/Views/LeftToolbar.swift` | Left toolbar placeholder (44pt width, border right) |
+| `apple/Dotorixel/Views/RightPanel.swift` | Right panel placeholder (220pt width, border left) |
+| `apple/Dotorixel/Views/StatusBar.swift` | Status bar placeholder (28pt height, border top) |
+| `apple/Dotorixel/ContentView.swift` | ZStack floating panels → VStack+HStack docked layout |
+| `apple/Dotorixel/Rendering/PixelGridRenderer.swift` | Metal clear color updated to DesignTokens.bgBase |
+| `apple/DotorixelTests/DesignTokensTests.swift` | 11 tests: color values match web, sizing matches PRD |
+| `apple/project.yml` | Added test target, scheme, ad-hoc signing |
+| `apple/src/lib.rs` | Fixed fit_to_viewport missing max_zoom parameter |
+
+### Key Decisions
+- Test target configured as hosted test (bundle inside app) to access DesignTokens symbols
+- Metal clear color resolves from DesignTokens.bgBase at runtime instead of hardcoded RGB values
+- StatusBar height set to 28pt (compact info bar; TopBar at 44pt for controls)
+
+### Notes
+- Pebble UI files deleted (7 files): FloatingPanel, PebbleButtonStyle, TopControlsLeft/Right, BottomToolsPanel, BottomColorPalette, PebbleSwatch
+- `fit_to_viewport` in lib.rs had a pre-existing build error (missing 4th parameter); fixed by passing `f64::INFINITY`
+- UniFFI `Color` type conflicts with `SwiftUI.Color` — explicit `SwiftUI.Color` disambiguation needed in several files

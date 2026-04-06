@@ -1,4 +1,5 @@
 import MetalKit
+import SwiftUI
 
 /// Uniforms shared between Swift and Metal shader.
 /// 48 bytes, naturally aligned — must match `Uniforms` in Shaders.metal exactly.
@@ -74,9 +75,11 @@ final class PixelGridRenderer: NSObject, MTKViewDelegate {
         mtkView.isPaused = true
         mtkView.enableSetNeedsDisplay = true
 
-        // Dark gray background outside the canvas area
-        // Pebble UI background: #EFECE8
-        mtkView.clearColor = MTLClearColor(red: 0.937, green: 0.925, blue: 0.910, alpha: 1.0)
+        let bgBase = DesignTokens.bgBase.resolve(in: .init())
+        mtkView.clearColor = MTLClearColor(
+            red: Double(bgBase.red), green: Double(bgBase.green),
+            blue: Double(bgBase.blue), alpha: 1.0
+        )
     }
 
     /// Upload RGBA pixel data to the GPU texture.

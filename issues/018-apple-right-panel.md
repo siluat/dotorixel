@@ -1,0 +1,42 @@
+---
+title: "Apple native: RightPanel"
+status: open
+created: 2026-04-06
+parent: 014-apple-native-docked-layout.md
+---
+
+## What to build
+
+Implement the RightPanel with two sections, replacing the placeholder from the layout skeleton.
+
+**Canvas section** (top):
+- Canvas size presets (same preset buttons as current TopControlsRight)
+- Width/height text inputs
+- Clear button (disabled — enabling is a separate Phase 1 task)
+
+**Color section** (below divider):
+- Foreground color swatch
+- Palette grid (existing DefaultPalette data, 2 rows x 9 columns)
+- SwiftUI ColorPicker
+
+The panel scrolls vertically if content exceeds available height. Existing logic from the former TopControlsRight (preset selection, size input commit) and BottomColorPalette (palette selection, ColorPicker binding) is reimplemented in the new context.
+
+## Acceptance criteria
+
+- [ ] RightPanel displays Canvas section and Color section separated by a divider
+- [ ] Canvas size presets update canvas dimensions on tap
+- [ ] Width/height text inputs commit on blur or Return
+- [ ] Clear button is visible but disabled
+- [ ] Foreground swatch shows the current drawing color
+- [ ] Palette grid colors are selectable and update the foreground color
+- [ ] SwiftUI ColorPicker updates the foreground color
+- [ ] Panel scrolls if content overflows vertically
+
+## Blocked by
+
+- [015 — Design tokens + layout skeleton](015-apple-layout-skeleton.md)
+
+## Scenarios addressed
+
+- Scenario 5: User adjusts canvas size via presets or text input → canvas resizes
+- Scenario 6: User picks a color from palette or ColorPicker → foreground color updates

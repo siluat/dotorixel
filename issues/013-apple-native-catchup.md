@@ -69,10 +69,7 @@ Quick wins (no layout dependency — can be done alongside or immediately after)
 - Enable PNG export (button exists, currently disabled)
 - Shift-constrain for shape tools (macOS keyboard modifier, no UI needed)
 
-**Design decision required** — two approaches for native layout:
-
-- **Option A: Mirror web layout** — same structure (TopBar, LeftToolbar, RightPanel) adapted to SwiftUI. Maximizes cross-platform consistency. Larger rewrite of current native UI.
-- **Option B: Platform-native layout** — follow Apple HIG conventions (NavigationSplitView, inspector panels). Better platform fit but doubles design maintenance.
+**Design decision (2026-04-06)** — **Hybrid: web layout as reference, SwiftUI-native controls.** Use the web's docked structure (TopBar, LeftToolbar, RightPanel, StatusBar) as the layout reference, but implement with SwiftUI-native controls and conventions. No separate .pen design files for native — the web design serves as the single source of truth, adapted to platform idioms during implementation. Rationale: 1-person team, small token set, avoids 2-shell design maintenance cost while keeping platform-native feel.
 
 **Outcome**: Native has the structural foundation for all subsequent features.
 

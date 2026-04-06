@@ -1,17 +1,11 @@
 <script lang="ts">
-	import { WasmPixelCanvas } from '$wasm/dotorixel_wasm';
 	import { ArrowLeftRight } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { ResizeAnchor } from '$lib/canvas/view-types';
 	import HsvPicker from '$lib/color-picker/HsvPicker.svelte';
 	import EditorSwatch from './EditorSwatch.svelte';
-	import ValidationAlert from './ValidationAlert.svelte';
-	import AnchorSelector from './AnchorSelector.svelte';
+	import CanvasSizeControl from './CanvasSizeControl.svelte';
 	import { EDITOR_PALETTE } from './editor-palette-data';
-
-	const CANVAS_PRESETS = Array.from(WasmPixelCanvas.presets());
-	const MIN_DIMENSION = WasmPixelCanvas.min_dimension();
-	const MAX_DIMENSION = WasmPixelCanvas.max_dimension();
 
 	interface Props {
 		foregroundColor: string;
@@ -43,17 +37,8 @@
 		onAnchorChange
 	}: Props = $props();
 
-	let inputWidth = $state(0);
-	let inputHeight = $state(0);
-	let showValidation = $state(false);
 	let colorSectionEl: HTMLElement | undefined = $state();
 	let pickerWidth = $state(200);
-
-	$effect(() => {
-		inputWidth = canvasWidth;
-		inputHeight = canvasHeight;
-		showValidation = false;
-	});
 
 	$effect(() => {
 		if (!colorSectionEl) return;
@@ -65,80 +50,19 @@
 		ro.observe(colorSectionEl);
 		return () => ro.disconnect();
 	});
-
-	function isValidDimension(value: number): boolean {
-		return Number.isInteger(value) && WasmPixelCanvas.is_valid_dimension(value);
-	}
-
-	let isWidthValid = $derived(isValidDimension(inputWidth));
-	let isHeightValid = $derived(isValidDimension(inputHeight));
-
-	function handleResizeCommit(): void {
-		if (!isWidthValid || !isHeightValid) {
-			showValidation = true;
-			return;
-		}
-		showValidation = false;
-		if (inputWidth !== canvasWidth || inputHeight !== canvasHeight) {
-			onResize(inputWidth, inputHeight);
-		}
-	}
-
-	function handleKeyDown(event: KeyboardEvent): void {
-		if (event.key === 'Enter') {
-			handleResizeCommit();
-		}
-	}
 </script>
 
 <aside class="right-panel">
 	<!-- Canvas Section -->
 	<section class="panel-section">
 		<h3 class="section-title">{m.section_canvas()}</h3>
-		<div class="preset-row">
-			{#each CANVAS_PRESETS as size}
-				<button
-					class="preset-btn"
-					class:active={canvasWidth === size && canvasHeight === size}
-					onclick={() => onResize(size, size)}
-				>
-					{size}
-				</button>
-			{/each}
-		</div>
-		<div class="size-row">
-			<input
-				type="number"
-				inputmode="numeric"
-				class="size-input"
-				class:size-input--error={showValidation && !isWidthValid}
-				bind:value={inputWidth}
-				onblur={handleResizeCommit}
-				onkeydown={handleKeyDown}
-				min="1"
-				max={MAX_DIMENSION}
-				aria-invalid={showValidation && !isWidthValid}
-				title={m.canvas_width()}
-			/>
-			<span class="size-x">&times;</span>
-			<input
-				type="number"
-				inputmode="numeric"
-				class="size-input"
-				class:size-input--error={showValidation && !isHeightValid}
-				bind:value={inputHeight}
-				onblur={handleResizeCommit}
-				onkeydown={handleKeyDown}
-				min="1"
-				max={MAX_DIMENSION}
-				aria-invalid={showValidation && !isHeightValid}
-				title={m.canvas_height()}
-			/>
-		</div>
-		{#if showValidation}
-			<ValidationAlert message={m.validation_dimensionRange({ min: String(MIN_DIMENSION), max: String(MAX_DIMENSION) })} />
-		{/if}
-		<AnchorSelector selected={resizeAnchor} onSelect={onAnchorChange} />
+		<CanvasSizeControl
+			{canvasWidth}
+			{canvasHeight}
+			{resizeAnchor}
+			{onResize}
+			{onAnchorChange}
+		/>
 		<button class="clear-btn" onclick={onClear}>
 			{m.action_clearCanvas()}
 		</button>
@@ -202,8 +126,6 @@
 
 <style>
 	.right-panel {
-		--_error-color: #B0503A;
-
 		display: flex;
 		flex-direction: column;
 		gap: 16px;
@@ -234,75 +156,6 @@
 		color: var(--ds-text-secondary);
 	}
 
-	/* Canvas presets */
-	.preset-row {
-		display: flex;
-		gap: 4px;
-	}
-
-	.preset-btn {
-		flex: 1;
-		height: 28px;
-		border: none;
-		border-radius: 8px;
-		background: var(--ds-bg-hover);
-		color: var(--ds-text-primary);
-		font-family: var(--ds-font-body);
-		font-size: var(--ds-font-size-sm);
-		cursor: pointer;
-		padding: 0;
-	}
-
-	.preset-btn:hover {
-		background: var(--ds-bg-active);
-	}
-
-	.preset-btn.active {
-		background: var(--ds-accent);
-		color: #ffffff;
-	}
-
-	/* Size inputs */
-	.size-row {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-
-	.size-input {
-		flex: 1;
-		height: 28px;
-		padding: 0 8px;
-		border: 1px solid var(--ds-border);
-		border-radius: 4px;
-		background: var(--ds-bg-elevated);
-		color: var(--ds-text-primary);
-		font-family: var(--ds-font-body);
-		font-size: var(--ds-font-size-sm);
-		text-align: center;
-		outline: none;
-	}
-
-	.size-input:focus {
-		border-color: var(--ds-accent);
-		border-width: 2px;
-		padding: 0 7px;
-	}
-
-	.size-input--error {
-		border-color: var(--_error-color);
-	}
-
-	.size-input--error:focus {
-		border-color: var(--_error-color);
-	}
-
-	.size-input::-webkit-inner-spin-button,
-	.size-input::-webkit-outer-spin-button {
-		-webkit-appearance: none;
-		margin: 0;
-	}
-
 	.clear-btn {
 		width: 100%;
 		height: 28px;
@@ -317,11 +170,6 @@
 
 	.clear-btn:hover {
 		background: var(--ds-bg-hover);
-	}
-
-	.size-x {
-		color: var(--ds-text-tertiary);
-		font-size: var(--ds-font-size-sm);
 	}
 
 	/* Divider */

@@ -16,6 +16,7 @@ export default defineConfig({
 		})
 	],
 	resolve: {
+		conditions: ['browser'],
 		alias: {
 			$lib: path.resolve(__dirname, './src/lib'),
 			$wasm: path.resolve(__dirname, './wasm/pkg')

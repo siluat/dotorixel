@@ -1,14 +1,8 @@
 <script lang="ts">
-	import { WasmPixelCanvas } from '$wasm/dotorixel_wasm';
 	import { Download, Trash2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { ResizeAnchor } from '$lib/canvas/view-types';
-	import ValidationAlert from './ValidationAlert.svelte';
-	import AnchorSelector from './AnchorSelector.svelte';
-
-	const CANVAS_PRESETS = Array.from(WasmPixelCanvas.presets());
-	const MIN_DIMENSION = WasmPixelCanvas.min_dimension();
-	const MAX_DIMENSION = WasmPixelCanvas.max_dimension();
+	import CanvasSizeControl from './CanvasSizeControl.svelte';
 
 	interface Props {
 		canvasWidth: number;
@@ -33,98 +27,20 @@
 		onGridToggle,
 		onAnchorChange
 	}: Props = $props();
-
-	let inputWidth = $state(0);
-	let inputHeight = $state(0);
-	let showValidation = $state(false);
-
-	$effect(() => {
-		inputWidth = canvasWidth;
-		inputHeight = canvasHeight;
-		showValidation = false;
-	});
-
-	function isValidDimension(value: number): boolean {
-		return Number.isInteger(value) && WasmPixelCanvas.is_valid_dimension(value);
-	}
-
-	let isWidthValid = $derived(isValidDimension(inputWidth));
-	let isHeightValid = $derived(isValidDimension(inputHeight));
-
-	function handleResizeCommit(): void {
-		if (!isWidthValid || !isHeightValid) {
-			showValidation = true;
-			return;
-		}
-		showValidation = false;
-		if (inputWidth !== canvasWidth || inputHeight !== canvasHeight) {
-			onResize(inputWidth, inputHeight);
-		}
-	}
-
-	function handleKeyDown(event: KeyboardEvent): void {
-		if (event.key === 'Enter') {
-			handleResizeCommit();
-		}
-	}
 </script>
 
 <div class="settings-content">
 	<!-- Canvas Size Section -->
 	<section class="section">
 		<h3 class="section-title">{m.canvas_size()}</h3>
-		<div class="preset-grid">
-			{#each CANVAS_PRESETS as size}
-				<button
-					class="preset-btn"
-					class:active={canvasWidth === size && canvasHeight === size}
-					onclick={() => onResize(size, size)}
-				>
-					{size} &times; {size}
-				</button>
-			{/each}
-		</div>
-		<div class="size-row">
-			<div class="size-field">
-				<label class="size-label" for="settings-width">W</label>
-				<input
-					id="settings-width"
-					type="number"
-					inputmode="numeric"
-					class="size-input"
-					class:size-input--error={showValidation && !isWidthValid}
-					bind:value={inputWidth}
-					onblur={handleResizeCommit}
-					onkeydown={handleKeyDown}
-					min="1"
-					max={MAX_DIMENSION}
-					aria-invalid={showValidation && !isWidthValid}
-					title={m.canvas_width()}
-				/>
-			</div>
-			<span class="size-x">&times;</span>
-			<div class="size-field">
-				<label class="size-label" for="settings-height">H</label>
-				<input
-					id="settings-height"
-					type="number"
-					inputmode="numeric"
-					class="size-input"
-					class:size-input--error={showValidation && !isHeightValid}
-					bind:value={inputHeight}
-					onblur={handleResizeCommit}
-					onkeydown={handleKeyDown}
-					min="1"
-					max={MAX_DIMENSION}
-					aria-invalid={showValidation && !isHeightValid}
-					title={m.canvas_height()}
-				/>
-			</div>
-		</div>
-		{#if showValidation}
-			<ValidationAlert message={m.validation_dimensionRange({ min: String(MIN_DIMENSION), max: String(MAX_DIMENSION) })} />
-		{/if}
-		<AnchorSelector selected={resizeAnchor} onSelect={onAnchorChange} />
+		<CanvasSizeControl
+			{canvasWidth}
+			{canvasHeight}
+			{resizeAnchor}
+			{onResize}
+			{onAnchorChange}
+			variant="touch"
+		/>
 	</section>
 
 	<!-- Actions Section -->
@@ -161,8 +77,6 @@
 
 <style>
 	.settings-content {
-		--_error-color: #B0503A;
-
 		display: flex;
 		flex-direction: column;
 		gap: 24px;
@@ -183,93 +97,6 @@
 		font-size: 14px;
 		font-weight: 600;
 		color: var(--ds-text-primary);
-	}
-
-	/* Presets */
-	.preset-grid {
-		display: flex;
-		gap: 8px;
-	}
-
-	.preset-btn {
-		flex: 1;
-		height: 44px;
-		border: none;
-		border-radius: 8px;
-		background: var(--ds-bg-hover);
-		color: var(--ds-text-primary);
-		font-family: var(--ds-font-body);
-		font-size: 13px;
-		cursor: pointer;
-		padding: 0;
-	}
-
-	.preset-btn:hover {
-		background: var(--ds-bg-active);
-	}
-
-	.preset-btn.active {
-		background: var(--ds-accent);
-		color: #ffffff;
-	}
-
-	/* Size inputs */
-	.size-row {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-
-	.size-field {
-		display: flex;
-		align-items: center;
-		flex: 1;
-		gap: 8px;
-	}
-
-	.size-label {
-		font-family: var(--ds-font-body);
-		font-size: 13px;
-		color: var(--ds-text-tertiary);
-	}
-
-	.size-input {
-		flex: 1;
-		height: 44px;
-		padding: 0 12px;
-		border: 1px solid var(--ds-border);
-		border-radius: 8px;
-		background: var(--ds-bg-elevated);
-		color: var(--ds-text-primary);
-		font-family: var(--ds-font-body);
-		font-size: 13px;
-		text-align: center;
-		outline: none;
-	}
-
-	.size-input:focus {
-		border-color: var(--ds-accent);
-		border-width: 2px;
-		padding: 0 11px;
-	}
-
-	.size-input--error {
-		border-color: var(--_error-color);
-	}
-
-	.size-input--error:focus {
-		border-color: var(--_error-color);
-	}
-
-	.size-input::-webkit-inner-spin-button,
-	.size-input::-webkit-outer-spin-button {
-		-webkit-appearance: none;
-		margin: 0;
-	}
-
-	.size-x {
-		color: var(--ds-text-tertiary);
-		font-size: 14px;
 	}
 
 	/* Actions */

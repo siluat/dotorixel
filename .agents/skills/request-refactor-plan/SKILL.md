@@ -19,11 +19,22 @@ This skill will be invoked when the user wants to create a refactor request. You
 
 7. Break the implementation into a plan of tiny commits. Remember Martin Fowler's advice to "make each refactoring step as small as possible, so that you can always see the program working."
 
-8. Create a refactor plan as a markdown file in the `issues/` directory at the project root.
+8. Write the refactor plan to an issue file in `issues/`.
 
+   First, check for an uncommitted RFC file: run `git status` and look for untracked or modified files in `issues/` that use the RFC template structure (contain sections like "Proposed Interface" or "Dependency Strategy"). An uncommitted RFC means it was just created in the current session — likely by a preceding `improve-codebase-architecture` workflow.
+
+   **If an uncommitted RFC exists**, update it in place:
+   1. Preserve the RFC's architectural context (Problem, Proposed Interface sections).
+   2. Replace "Implementation Recommendations" with the detailed "Commits" section.
+   3. Replace "Testing Strategy" with the detailed "Testing Decisions" section.
+   4. Merge "Dependency Strategy" into a new "Decision Document" section, adding implementation decisions from the interview.
+   5. Add "Out of Scope" section.
+   6. Update the `tasks/todo.md` link if the label changed.
+
+   **Otherwise**, create a new issue file:
    1. Determine the next issue number by scanning existing files in `issues/` (three-digit zero-padded: `001`, `002`, `003`, …).
    2. Create `issues/NNN-<slug>.md` using the template below, including frontmatter with `status: open`.
-   3. Link the issue file in `tasks/todo.md`: if the corresponding task item already exists, append a link (e.g., `— [RFC](../issues/NNN-<slug>.md)`). If no matching item exists, add a new item with the link.
+   3. Link the issue file in `tasks/todo.md`: if the corresponding task item already exists, append a link (e.g., `— [Plan](../issues/NNN-<slug>.md)`). If no matching item exists, add a new item with the link.
    4. Share the file path with the user.
 
 ### Issue lifecycle

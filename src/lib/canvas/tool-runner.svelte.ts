@@ -9,12 +9,13 @@ import {
 } from '$wasm/dotorixel_wasm';
 import type { CanvasCoords } from './view-types';
 import type { Color } from './color';
+import { colorToHex } from './color';
 import type { SharedState } from './shared-state.svelte';
 import { CANVAS_CHANGED, NO_EFFECTS, type DrawTool, type ToolContext, type ToolEffect } from './draw-tool';
 import { pencilTool, eraserTool } from './tools/pencil-tool';
 import { floodfillTool } from './tools/floodfill-tool';
 import { eyedropperTool } from './tools/eyedropper-tool';
-import { createMoveTool } from './tools/move-tool';
+import { moveTool } from './tools/move-tool';
 import { createShapeTool } from './tools/shape-tool';
 import { constrainLine, constrainSquare } from './constrain';
 import type { ToolType } from './tool-types';
@@ -71,7 +72,7 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 		ellipse: createShapeTool(WasmToolType.Ellipse, wasm_ellipse_outline, constrainSquare),
 		floodfill: floodfillTool,
 		eyedropper: eyedropperTool,
-		move: createMoveTool()
+		move: moveTool
 	};
 
 	// ── History ─────────────────────────────────────────────────────
@@ -82,6 +83,10 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 	let isDrawing = $state(false);
 	let drawButton = 0;
 	let activeDrawColor: WasmColor | null = null;
+
+	// ── Stroke state (owned by ToolRunner, not by tools) ────────────
+	let strokeSnapshot: Uint8Array | null = null;
+	let strokeAnchor: CanvasCoords | null = null;
 	let lastDrawCurrent: CanvasCoords | null = null;
 
 	// ── Modifier provider (wired via connectModifiers) ──────────────
@@ -169,30 +174,89 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 		drawStart(button: number): EditorEffects {
 			isDrawing = true;
 			drawButton = button;
+			strokeSnapshot = null;
+			strokeAnchor = null;
 			lastDrawCurrent = null;
 
 			const isRightClick = button === 2;
 			activeDrawColor = isRightClick ? wasmBackgroundColor : wasmForegroundColor;
 
 			const tool = tools[shared.activeTool];
-			if (tool.capturesHistory) {
+			const effects: ToolEffect[] = [];
+
+			// History: push snapshot based on category policy
+			if (tool.kind === 'oneShot') {
+				if (tool.capturesHistory) pushHistorySnapshot();
+			} else {
 				pushHistorySnapshot();
 			}
-			return tool.onDrawStart(buildContext());
+
+			// Recent color: declarative flag (dragTransform has no addsActiveColor)
+			if (tool.kind !== 'dragTransform' && tool.addsActiveColor) {
+				const color = drawButton === 2 ? host.backgroundColor : host.foregroundColor;
+				effects.push({ type: 'addRecentColor', hex: colorToHex(color) });
+			}
+
+			// Snapshot: capture for preview/transform categories
+			if (tool.kind === 'shapePreview' || tool.kind === 'dragTransform') {
+				strokeSnapshot = new Uint8Array(host.pixelCanvas.pixels());
+			}
+
+			return effects;
 		},
 
 		draw(current: CanvasCoords, previous: CanvasCoords | null): EditorEffects {
 			if (!isDrawing) return NO_EFFECTS;
 			lastDrawCurrent = current;
-			return tools[shared.activeTool].onDraw(buildContext(), current, previous);
+
+			const tool = tools[shared.activeTool];
+			const ctx = buildContext();
+
+			switch (tool.kind) {
+				case 'continuous': {
+					const changed = tool.apply(ctx, current, previous);
+					return changed ? CANVAS_CHANGED : NO_EFFECTS;
+				}
+
+				case 'oneShot': {
+					if (strokeAnchor !== null) return NO_EFFECTS;
+					strokeAnchor = current;
+					return tool.execute(ctx, current);
+				}
+
+				case 'shapePreview': {
+					if (previous === null) {
+						strokeAnchor = current;
+						tool.onAnchor(ctx, current);
+						return CANVAS_CHANGED;
+					}
+					if (!strokeAnchor || !strokeSnapshot) return NO_EFFECTS;
+					host.pixelCanvas.restore_pixels(strokeSnapshot);
+					const isShiftHeld = shiftHeldProvider?.() ?? false;
+					const end = isShiftHeld ? tool.constrainFn(strokeAnchor, current) : current;
+					tool.onPreview(ctx, strokeAnchor, end);
+					return CANVAS_CHANGED;
+				}
+
+				case 'dragTransform': {
+					if (previous === null) {
+						strokeAnchor = current;
+						return NO_EFFECTS;
+					}
+					if (!strokeAnchor || !strokeSnapshot) return NO_EFFECTS;
+					tool.applyTransform(ctx, strokeSnapshot, strokeAnchor, current);
+					return CANVAS_CHANGED;
+				}
+			}
 		},
 
 		drawEnd(): EditorEffects {
 			if (!isDrawing) return NO_EFFECTS;
-			tools[shared.activeTool].onDrawEnd(buildContext());
 			isDrawing = false;
 			drawButton = 0;
 			activeDrawColor = null;
+			strokeSnapshot = null;
+			strokeAnchor = null;
 			lastDrawCurrent = null;
 			return NO_EFFECTS;
 		},
@@ -200,8 +264,15 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 		modifierChanged(): EditorEffects {
 			if (!isDrawing || !lastDrawCurrent) return NO_EFFECTS;
 			const tool = tools[shared.activeTool];
-			if (!tool.onModifierChange) return NO_EFFECTS;
-			return tool.onModifierChange(buildContext(), lastDrawCurrent);
+			if (tool.kind !== 'shapePreview') return NO_EFFECTS;
+			if (!strokeAnchor || !strokeSnapshot) return NO_EFFECTS;
+
+			const ctx = buildContext();
+			host.pixelCanvas.restore_pixels(strokeSnapshot);
+			const isShiftHeld = shiftHeldProvider?.() ?? false;
+			const end = isShiftHeld ? tool.constrainFn(strokeAnchor, lastDrawCurrent) : lastDrawCurrent;
+			tool.onPreview(ctx, strokeAnchor, end);
+			return CANVAS_CHANGED;
 		},
 
 		undo(): EditorEffects {

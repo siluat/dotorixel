@@ -192,6 +192,112 @@ describe('ToolRunner — move tool', () => {
 	});
 });
 
+describe('ToolRunner — eraser tool', () => {
+	it('erases pixels to transparent', () => {
+		const canvas = new WasmPixelCanvas(8, 8);
+		const { runner, shared } = createRunner(canvas);
+
+		// Paint a pixel with pencil
+		shared.activeTool = 'pencil';
+		runner.drawStart(0);
+		runner.draw({ x: 3, y: 3 }, null);
+		runner.drawEnd();
+		expect(getPixel(canvas, 3, 3)).toEqual(BLACK);
+
+		// Erase it
+		shared.activeTool = 'eraser';
+		runner.drawStart(0);
+		runner.draw({ x: 3, y: 3 }, null);
+		runner.drawEnd();
+
+		expect(getPixel(canvas, 3, 3)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+	});
+
+	it('does not produce addRecentColor effect', () => {
+		const { runner, shared } = createRunner();
+		shared.activeTool = 'eraser';
+		const startEffects = runner.drawStart(0);
+		expect(hasEffect(startEffects, 'addRecentColor')).toBe(false);
+		runner.draw({ x: 0, y: 0 }, null);
+		runner.drawEnd();
+	});
+});
+
+// ── addsActiveColor flag ──────────────────────────────────────────
+
+describe('ToolRunner — addsActiveColor', () => {
+	it('pencil emits addRecentColor with foreground hex on left-click', () => {
+		const { runner } = createRunner();
+		const effects = runner.drawStart(0);
+		const recentColor = effects.find((e) => e.type === 'addRecentColor');
+		expect(recentColor).toEqual({ type: 'addRecentColor', hex: '#000000' });
+		runner.draw({ x: 0, y: 0 }, null);
+		runner.drawEnd();
+	});
+
+	it('pencil emits addRecentColor with background hex on right-click', () => {
+		const { runner } = createRunner();
+		const effects = runner.drawStart(2);
+		const recentColor = effects.find((e) => e.type === 'addRecentColor');
+		expect(recentColor).toEqual({ type: 'addRecentColor', hex: '#ffffff' });
+		runner.draw({ x: 0, y: 0 }, null);
+		runner.drawEnd();
+	});
+
+	it('eyedropper does not emit addRecentColor on drawStart', () => {
+		const { runner, shared } = createRunner();
+		shared.activeTool = 'eyedropper';
+		const effects = runner.drawStart(0);
+		expect(hasEffect(effects, 'addRecentColor')).toBe(false);
+		runner.draw({ x: 0, y: 0 }, null);
+		runner.drawEnd();
+	});
+
+	it('floodfill emits addRecentColor on drawStart', () => {
+		const { runner, shared } = createRunner();
+		shared.activeTool = 'floodfill';
+		const effects = runner.drawStart(0);
+		expect(hasEffect(effects, 'addRecentColor')).toBe(true);
+		runner.draw({ x: 0, y: 0 }, null);
+		runner.drawEnd();
+	});
+
+	it('line tool emits addRecentColor on drawStart', () => {
+		const { runner, shared } = createRunner();
+		shared.activeTool = 'line';
+		const effects = runner.drawStart(0);
+		expect(hasEffect(effects, 'addRecentColor')).toBe(true);
+		runner.draw({ x: 0, y: 0 }, null);
+		runner.drawEnd();
+	});
+});
+
+// ── OneShot guard ─────────────────────────────────────────────────
+
+describe('ToolRunner — oneShot guard', () => {
+	it('eyedropper ignores second draw within same stroke', () => {
+		const canvas = new WasmPixelCanvas(8, 8);
+		const { runner, shared } = createRunner(canvas);
+
+		// Paint pixels with different approach: use floodfill to fill canvas with black
+		shared.activeTool = 'floodfill';
+		runner.drawStart(0);
+		runner.draw({ x: 0, y: 0 }, null);
+		runner.drawEnd();
+
+		// Eyedropper: first draw picks color, second is no-op
+		shared.activeTool = 'eyedropper';
+		runner.drawStart(0);
+		const firstDraw = runner.draw({ x: 0, y: 0 }, null);
+		expect(hasEffect(firstDraw, 'colorPick')).toBe(true);
+
+		const secondDraw = runner.draw({ x: 1, y: 1 }, { x: 0, y: 0 });
+		expect(secondDraw).toEqual([]);
+
+		runner.drawEnd();
+	});
+});
+
 // ── Right-click uses background color ───────────────────────────────
 
 describe('ToolRunner — right-click', () => {

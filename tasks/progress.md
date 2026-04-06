@@ -2,11 +2,11 @@
 
 ## Currently Working On
 
-Layout transition: floating panels to docked layout ([PRD](../issues/014-apple-native-docked-layout.md))
+None
 
 ## Last Completed
 
-016 — Apple native: LeftToolbar
+022 — Deepen tool system — discriminated union
 
 ## Next Up
 

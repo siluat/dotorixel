@@ -37,8 +37,9 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Playwright
+# Testing
 test-results/
+coverage/
 
 # Storybook
 storybook-static/

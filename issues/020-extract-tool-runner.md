@@ -107,7 +107,7 @@ handleDrawEnd = (): void => {
         else this.backgroundColor = effect.color;
         break;
       case 'addRecentColor':
-        this.recentColors = addRecentColor(this.recentColors, effect.addRecentColor);
+        this.recentColors = addRecentColor(this.recentColors, effect.hex);
         break;
     }
   }

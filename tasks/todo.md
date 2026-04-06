@@ -48,16 +48,26 @@
 - Editor for Game Developers (Milestone 5)
 - Beyond the Editor (Milestone 6)
 
+## Apple Native: Phase 1 — [RFC](../issues/013-apple-native-catchup.md)
+
+Phase 1 modernizes the native layout from Pebble UI to the web's docked structure.
+
+- Layout transition: floating panels to docked layout (TopBar, LeftToolbar, RightPanel, StatusBar)
+- Responsive tiers: iPad compact / iPad regular / Mac
+- Enable clear canvas (existing disabled button)
+- Enable PNG export (existing disabled button)
+- Shift-constrain for shape tools (macOS keyboard modifier)
+
 ## Deferred
 
 - Dual Shell PoC — Platform Comparison (native development deferred)
   - Input latency — event-to-pixel-update measurement on both shells
   - Bundle size — Tauri `.app` vs native `.app`
   - Implementation effort — per-feature LOC and time comparison
-- Apple native shell improvements (deferred until web app matures)
 
 ## Review backlog (not assigned to a milestone)
 
+- Deepen session persistence pipeline into a single deep module — [Plan](../issues/012-deepen-session-persistence.md)
 - FG/BG swap UI improvements
 - Dark mode toggle UI — design tokens support dark theme (`data-theme="dark"`), no UI to switch yet
 - Document error conditions on `PixelCanvas` public API — `new`, `with_color`, `from_pixels`, `restore_pixels` all return `Result` but only document partial constraints; add `Err` variant descriptions per Rust API Guidelines C-FAILURE

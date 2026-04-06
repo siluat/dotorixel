@@ -1,8 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { WasmPixelCanvas, WasmColor, WasmToolType, apply_tool } from '$wasm/dotorixel_wasm';
 import { floodfillTool } from './floodfill-tool';
-import type { ToolContext } from '../draw-tool';
+import type { ToolContext, ToolEffects } from '../draw-tool';
 import type { Color } from '../color';
+
+function hasEffect(effects: ToolEffects, type: string): boolean {
+	return effects.some((e) => e.type === type);
+}
+
+function findEffect<T extends ToolEffects[number]['type']>(
+	effects: ToolEffects,
+	type: T
+): Extract<ToolEffects[number], { type: T }> | undefined {
+	return effects.find((e) => e.type === type) as Extract<ToolEffects[number], { type: T }> | undefined;
+}
 
 const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
 const WHITE: Color = { r: 255, g: 255, b: 255, a: 255 };
@@ -27,10 +38,10 @@ describe('FloodfillTool', () => {
 	it('fills a transparent area with the draw color', () => {
 		const ctx = createContext();
 		floodfillTool.onDrawStart(ctx);
-		const result = floodfillTool.onDraw(ctx, { x: 0, y: 0 }, null);
+		const effects = floodfillTool.onDraw(ctx, { x: 0, y: 0 }, null);
 		floodfillTool.onDrawEnd(ctx);
 
-		expect(result.canvasChanged).toBe(true);
+		expect(hasEffect(effects, 'canvasChanged')).toBe(true);
 		expect(getPixel(ctx.canvas, 0, 0)).toEqual({ r: 255, g: 0, b: 0, a: 255 });
 		expect(getPixel(ctx.canvas, 7, 7)).toEqual({ r: 255, g: 0, b: 0, a: 255 });
 	});
@@ -39,10 +50,10 @@ describe('FloodfillTool', () => {
 		const ctx = createContext();
 		floodfillTool.onDrawStart(ctx);
 		floodfillTool.onDraw(ctx, { x: 0, y: 0 }, null);
-		const result = floodfillTool.onDraw(ctx, { x: 1, y: 1 }, { x: 0, y: 0 });
+		const effects = floodfillTool.onDraw(ctx, { x: 1, y: 1 }, { x: 0, y: 0 });
 		floodfillTool.onDrawEnd(ctx);
 
-		expect(result.canvasChanged).toBe(false);
+		expect(hasEffect(effects, 'canvasChanged')).toBe(false);
 	});
 
 	it('fills only the connected region', () => {
@@ -66,9 +77,9 @@ describe('FloodfillTool', () => {
 
 	it('returns addRecentColor on drawStart', () => {
 		const ctx = createContext();
-		const result = floodfillTool.onDrawStart(ctx);
+		const effects = floodfillTool.onDrawStart(ctx);
 
-		expect(result.addRecentColor).toBe('#000000');
+		expect(findEffect(effects, 'addRecentColor')?.hex).toBe('#000000');
 	});
 
 	it('capturesHistory is true', () => {

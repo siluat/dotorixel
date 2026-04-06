@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 021 | [Unify tool effect dispatch](../issues/021-unify-tool-effect-dispatch.md) | 2026-04-06 |
 | 015 | [Apple native: design tokens + layout skeleton](../issues/015-apple-layout-skeleton.md) | 2026-04-06 |
 | 020 | [Extract ToolRunner from EditorState](../issues/020-extract-tool-runner.md) | 2026-04-06 |
 | 012 | [Deepen session persistence pipeline](../issues/012-deepen-session-persistence.md) | 2026-04-06 |

@@ -10,7 +10,7 @@ import {
 import type { CanvasCoords } from './view-types';
 import type { Color } from './color';
 import type { SharedState } from './shared-state.svelte';
-import type { DrawResult, DrawTool, ToolContext } from './draw-tool';
+import { CANVAS_CHANGED, NO_EFFECTS, type DrawTool, type ToolContext, type ToolEffect } from './draw-tool';
 import { pencilTool, eraserTool } from './tools/pencil-tool';
 import { floodfillTool } from './tools/floodfill-tool';
 import { eyedropperTool } from './tools/eyedropper-tool';
@@ -19,15 +19,16 @@ import { createShapeTool } from './tools/shape-tool';
 import { constrainLine, constrainSquare } from './constrain';
 import type { ToolType } from './tool-types';
 
-// ── ToolEffect: what ToolRunner reports back to its caller ──────────
+// ── Effects: ToolRunner adds RunnerEffect on top of tool-produced ToolEffect ──
 
-export type ToolEffect =
-	| { readonly type: 'canvasChanged' }
-	| { readonly type: 'canvasReplaced'; readonly canvas: WasmPixelCanvas }
-	| { readonly type: 'colorPick'; readonly target: 'foreground' | 'background'; readonly color: Color }
-	| { readonly type: 'addRecentColor'; readonly hex: string };
+/** Effects that only ToolRunner can produce (undo/redo infrastructure). */
+export type RunnerEffect =
+	| { readonly type: 'canvasReplaced'; readonly canvas: WasmPixelCanvas };
 
-export type ToolEffects = readonly ToolEffect[];
+/** Union of all effects EditorState must handle. */
+export type EditorEffect = ToolEffect | RunnerEffect;
+
+export type EditorEffects = readonly EditorEffect[];
 
 // ── ToolRunnerHost: read-only queries ToolRunner needs from EditorState ──
 
@@ -44,14 +45,14 @@ export interface ToolRunner {
 	readonly canUndo: boolean;
 	readonly canRedo: boolean;
 
-	drawStart(button: number): ToolEffects;
-	draw(current: CanvasCoords, previous: CanvasCoords | null): ToolEffects;
-	drawEnd(): ToolEffects;
-	modifierChanged(): ToolEffects;
+	drawStart(button: number): EditorEffects;
+	draw(current: CanvasCoords, previous: CanvasCoords | null): EditorEffects;
+	drawEnd(): EditorEffects;
+	modifierChanged(): EditorEffects;
 
-	undo(): ToolEffects;
-	redo(): ToolEffects;
-	clear(): ToolEffects;
+	undo(): EditorEffects;
+	redo(): EditorEffects;
+	clear(): EditorEffects;
 	pushSnapshot(): void;
 
 	/** Wire isShiftHeld after KeyboardInput is created to break circular dependency. */
@@ -59,8 +60,6 @@ export interface ToolRunner {
 }
 
 // ── Factory ─────────────────────────────────────────────────────────
-
-const EMPTY_EFFECTS: ToolEffects = [];
 
 export function createToolRunner(host: ToolRunnerHost, shared: SharedState): ToolRunner {
 	// ── Tool registry ───────────────────────────────────────────────
@@ -131,21 +130,13 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 		};
 	}
 
-	function translateResult(result: DrawResult): ToolEffects {
-		const effects: ToolEffect[] = [];
-		if (result.canvasChanged) effects.push({ type: 'canvasChanged' });
-		if (result.colorPick) effects.push({ type: 'colorPick', target: result.colorPick.target, color: result.colorPick.color });
-		if (result.addRecentColor) effects.push({ type: 'addRecentColor', hex: result.addRecentColor });
-		return effects;
-	}
-
 	function pushHistorySnapshot(): void {
 		const canvas = host.pixelCanvas;
 		history.push_snapshot(canvas.width, canvas.height, canvas.pixels());
 		historyVersion++;
 	}
 
-	function applySnapshot(snapshot: { width: number; height: number; pixels(): Uint8Array }): ToolEffects {
+	function applySnapshot(snapshot: { width: number; height: number; pixels(): Uint8Array }): EditorEffects {
 		const canvas = host.pixelCanvas;
 		const hasDimensionsChanged =
 			snapshot.width !== canvas.width || snapshot.height !== canvas.height;
@@ -156,7 +147,7 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 		} else {
 			canvas.restore_pixels(snapshot.pixels());
 			historyVersion++;
-			return [{ type: 'canvasChanged' }];
+			return CANVAS_CHANGED;
 		}
 	}
 
@@ -175,7 +166,7 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 			return canRedo;
 		},
 
-		drawStart(button: number): ToolEffects {
+		drawStart(button: number): EditorEffects {
 			isDrawing = true;
 			drawButton = button;
 			lastDrawCurrent = null;
@@ -187,52 +178,52 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 			if (tool.capturesHistory) {
 				pushHistorySnapshot();
 			}
-			return translateResult(tool.onDrawStart(buildContext()));
+			return tool.onDrawStart(buildContext());
 		},
 
-		draw(current: CanvasCoords, previous: CanvasCoords | null): ToolEffects {
-			if (!isDrawing) return EMPTY_EFFECTS;
+		draw(current: CanvasCoords, previous: CanvasCoords | null): EditorEffects {
+			if (!isDrawing) return NO_EFFECTS;
 			lastDrawCurrent = current;
-			return translateResult(tools[shared.activeTool].onDraw(buildContext(), current, previous));
+			return tools[shared.activeTool].onDraw(buildContext(), current, previous);
 		},
 
-		drawEnd(): ToolEffects {
-			if (!isDrawing) return EMPTY_EFFECTS;
+		drawEnd(): EditorEffects {
+			if (!isDrawing) return NO_EFFECTS;
 			tools[shared.activeTool].onDrawEnd(buildContext());
 			isDrawing = false;
 			drawButton = 0;
 			activeDrawColor = null;
 			lastDrawCurrent = null;
-			return EMPTY_EFFECTS;
+			return NO_EFFECTS;
 		},
 
-		modifierChanged(): ToolEffects {
-			if (!isDrawing || !lastDrawCurrent) return EMPTY_EFFECTS;
+		modifierChanged(): EditorEffects {
+			if (!isDrawing || !lastDrawCurrent) return NO_EFFECTS;
 			const tool = tools[shared.activeTool];
-			if (!tool.onModifierChange) return EMPTY_EFFECTS;
-			return translateResult(tool.onModifierChange(buildContext(), lastDrawCurrent));
+			if (!tool.onModifierChange) return NO_EFFECTS;
+			return tool.onModifierChange(buildContext(), lastDrawCurrent);
 		},
 
-		undo(): ToolEffects {
-			if (isDrawing) return EMPTY_EFFECTS;
+		undo(): EditorEffects {
+			if (isDrawing) return NO_EFFECTS;
 			const canvas = host.pixelCanvas;
 			const snapshot = history.undo(canvas.width, canvas.height, canvas.pixels());
-			if (!snapshot) return EMPTY_EFFECTS;
+			if (!snapshot) return NO_EFFECTS;
 			return applySnapshot(snapshot);
 		},
 
-		redo(): ToolEffects {
-			if (isDrawing) return EMPTY_EFFECTS;
+		redo(): EditorEffects {
+			if (isDrawing) return NO_EFFECTS;
 			const canvas = host.pixelCanvas;
 			const snapshot = history.redo(canvas.width, canvas.height, canvas.pixels());
-			if (!snapshot) return EMPTY_EFFECTS;
+			if (!snapshot) return NO_EFFECTS;
 			return applySnapshot(snapshot);
 		},
 
-		clear(): ToolEffects {
+		clear(): EditorEffects {
 			pushHistorySnapshot();
 			host.pixelCanvas.clear();
-			return [{ type: 'canvasChanged' }];
+			return CANVAS_CHANGED;
 		},
 
 		pushSnapshot(): void {

@@ -9,8 +9,12 @@ import {
 } from '$wasm/dotorixel_wasm';
 import { createShapeTool } from './shape-tool';
 import { constrainLine, constrainSquare } from '../constrain';
-import type { ToolContext } from '../draw-tool';
+import type { ToolContext, ToolEffects } from '../draw-tool';
 import type { Color } from '../color';
+
+function hasEffect(effects: ToolEffects, type: string): boolean {
+	return effects.some((e) => e.type === type);
+}
 
 const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
 const WHITE: Color = { r: 255, g: 255, b: 255, a: 255 };
@@ -82,9 +86,10 @@ describe('ShapeTool — line', () => {
 	it('returns addRecentColor on drawStart', () => {
 		const tool = createLineTool();
 		const ctx = createContext();
-		const result = tool.onDrawStart(ctx);
+		const effects = tool.onDrawStart(ctx);
 
-		expect(result.addRecentColor).toBe('#000000');
+		const recentColor = effects.find((e) => e.type === 'addRecentColor');
+		expect(recentColor && 'hex' in recentColor ? recentColor.hex : undefined).toBe('#000000');
 	});
 });
 
@@ -146,9 +151,9 @@ describe('ShapeTool — onModifierChange', () => {
 
 		// Toggle shift on → constrain to horizontal
 		const shiftCtx = createContext({ canvas, isShiftHeld: () => true });
-		const result = tool.onModifierChange!(shiftCtx, { x: 5, y: 1 });
+		const effects = tool.onModifierChange!(shiftCtx, { x: 5, y: 1 });
 
-		expect(result.canvasChanged).toBe(true);
+		expect(hasEffect(effects, 'canvasChanged')).toBe(true);
 		expect(getPixel(canvas, 5, 0)).toEqual(BLACK);
 		expect(getPixel(canvas, 5, 1)).toEqual(TRANSPARENT);
 

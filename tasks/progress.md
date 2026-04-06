@@ -6,7 +6,7 @@ Layout transition: floating panels to docked layout ([PRD](../issues/014-apple-n
 
 ## Last Completed
 
-015 — Apple native: design tokens + layout skeleton
+021 — Unify tool effect dispatch
 
 ## Next Up
 

@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-012 — Deepen session persistence pipeline into a single deep module
+020 — Extract ToolRunner from EditorState
 
 ## Next Up
 

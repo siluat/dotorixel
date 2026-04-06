@@ -71,7 +71,7 @@ export interface ShapePreviewTool {
 /** Snapshot-restore with cumulative drag delta. (move) */
 export interface DragTransformTool {
 	readonly kind: 'dragTransform';
-	/** Applies the transform. ToolRunner restores the snapshot before calling, then emits canvasChanged. */
+	/** Applies the transform using the snapshot. ToolRunner emits canvasChanged after this call. */
 	applyTransform(
 		ctx: ToolContext,
 		snapshot: Uint8Array,

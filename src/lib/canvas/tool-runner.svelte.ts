@@ -156,11 +156,6 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 		}
 	}
 
-	function activeColor(): Color {
-		const isRightClick = drawButton === 2;
-		return isRightClick ? host.backgroundColor : host.foregroundColor;
-	}
-
 	// ── Public interface ────────────────────────────────────────────
 
 	return {
@@ -196,9 +191,10 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 				pushHistorySnapshot();
 			}
 
-			// Recent color: declarative flag
-			if ('addsActiveColor' in tool && tool.addsActiveColor) {
-				effects.push({ type: 'addRecentColor', hex: colorToHex(activeColor()) });
+			// Recent color: declarative flag (dragTransform has no addsActiveColor)
+			if (tool.kind !== 'dragTransform' && tool.addsActiveColor) {
+				const color = drawButton === 2 ? host.backgroundColor : host.foregroundColor;
+				effects.push({ type: 'addRecentColor', hex: colorToHex(color) });
 			}
 
 			// Snapshot: capture for preview/transform categories
@@ -248,7 +244,6 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 						return NO_EFFECTS;
 					}
 					if (!strokeAnchor || !strokeSnapshot) return NO_EFFECTS;
-					host.pixelCanvas.restore_pixels(strokeSnapshot);
 					tool.applyTransform(ctx, strokeSnapshot, strokeAnchor, current);
 					return CANVAS_CHANGED;
 				}

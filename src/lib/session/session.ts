@@ -32,8 +32,9 @@ export async function openSession(defaults: {
 	gridColor?: string;
 	debounceMs?: number;
 }): Promise<{ workspace: Workspace; session: SessionHandle }> {
+	let storage: SessionStorage | undefined;
 	try {
-		const storage = await SessionStorage.open();
+		storage = await SessionStorage.open();
 		const persistence = new SessionPersistence(storage);
 		const init = await persistence.restore();
 
@@ -51,12 +52,13 @@ export async function openSession(defaults: {
 			flush: () => autoSave.flush(),
 			dispose: () => {
 				autoSave.dispose();
-				storage.close();
+				storage!.close();
 			}
 		};
 
 		return { workspace, session };
 	} catch (error) {
+		storage?.close();
 		console.warn('Session persistence unavailable, starting with a fresh workspace:', error);
 		const workspace = new Workspace({
 			foregroundColor: defaults.foregroundColor,

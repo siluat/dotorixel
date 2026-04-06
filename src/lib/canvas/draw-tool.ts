@@ -2,6 +2,24 @@ import type { WasmPixelCanvas, WasmColor } from '$wasm/dotorixel_wasm';
 import type { CanvasCoords } from './view-types';
 import type { Color } from './color';
 
+// ── ToolEffect: what drawing tools report back ────────────────────
+
+/** Effects that drawing tools can produce. */
+export type ToolEffect =
+	| { readonly type: 'canvasChanged' }
+	| { readonly type: 'colorPick'; readonly target: 'foreground' | 'background'; readonly color: Color }
+	| { readonly type: 'addRecentColor'; readonly hex: string };
+
+export type ToolEffects = readonly ToolEffect[];
+
+/** Pre-allocated constant for the most common return: canvas pixels changed. */
+export const CANVAS_CHANGED: ToolEffects = [{ type: 'canvasChanged' }];
+
+/** Pre-allocated constant for no-op returns. */
+export const NO_EFFECTS: ToolEffects = [];
+
+// ── ToolContext ───────────────────────────────────────────────────
+
 /** Read-only snapshot of editor state that tools need during a draw stroke. */
 export interface ToolContext {
 	readonly canvas: WasmPixelCanvas;

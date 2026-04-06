@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 011 | [Extract CanvasSizeControl component](../issues/011-canvas-size-control.md) | 2026-04-06 |
 | 010 | [Debounced auto-save with dirty tracking](../issues/010-debounced-auto-save.md) | 2026-04-06 |
 | 009 | [Multi-tab session persistence](../issues/009-multi-tab-session-persistence.md) | 2026-04-06 |
 | 008 | [Single-tab session save & restore](../issues/008-single-tab-session-save-restore.md) | 2026-04-06 |

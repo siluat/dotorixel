@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-010 — Debounced auto-save with dirty tracking
+011 — Extract CanvasSizeControl component
 
 ## Next Up
 

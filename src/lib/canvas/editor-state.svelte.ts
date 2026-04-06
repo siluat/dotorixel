@@ -11,6 +11,10 @@ import { exportAsPng } from './export';
 import { createKeyboardInput, type KeyboardInput } from './keyboard-input.svelte';
 import { createToolRunner, type ToolRunner, type ToolEffects } from './tool-runner.svelte';
 
+function assertNever(x: never): never {
+	throw new Error(`Unhandled effect type: ${(x as { type: string }).type}`);
+}
+
 const RESIZE_ANCHOR_MAP: Record<ResizeAnchor, WasmResizeAnchor> = {
 	'top-left': WasmResizeAnchor.TopLeft,
 	'top-center': WasmResizeAnchor.TopCenter,
@@ -138,6 +142,8 @@ export class EditorState {
 				case 'addRecentColor':
 					this.recentColors = addRecentColor(this.recentColors, effect.hex);
 					break;
+				default:
+					assertNever(effect);
 			}
 		}
 	}

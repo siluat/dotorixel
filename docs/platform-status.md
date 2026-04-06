@@ -93,7 +93,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Tab management (Workspace) | — | ✅ | ⬜ | Workspace model, page wiring, TabStrip UI complete |
-| Session persistence | — | 🔧 | ⬜ | Single-tab save/restore via IndexedDB; multi-tab + auto-save pending |
+| Session persistence | — | 🔧 | ⬜ | Multi-tab save/restore via IndexedDB; auto-save pending |
 
 ## UI
 

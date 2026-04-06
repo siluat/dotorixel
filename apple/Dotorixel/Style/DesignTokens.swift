@@ -1,38 +1,61 @@
 import SwiftUI
 
-/// Design tokens matching the web editor's `pebble-tokens.css`.
-enum PebbleTokens {
-    // MARK: - Colors
+/// Design tokens matching the web editor's `design-tokens.css`.
+/// Light theme only — dark mode is out of scope for this task.
+enum DesignTokens {
+    // MARK: - Surface Colors
 
-    /// Editor background — #EFECE8
-    static let bg = SwiftUI.Color(red: 0.937, green: 0.925, blue: 0.910)
-    /// Panel background — rgba(255,255,255,0.93)
-    static let panelBg = SwiftUI.Color.white.opacity(0.93)
-    /// Panel border — #DDD9D4
-    static let panelBorder = SwiftUI.Color(red: 0.867, green: 0.851, blue: 0.831)
-    /// Primary text — #2D2D2D
-    static let textPrimary = SwiftUI.Color(red: 0.176, green: 0.176, blue: 0.176)
-    /// Secondary text — #8A8A8A
-    static let textSecondary = SwiftUI.Color(red: 0.541, green: 0.541, blue: 0.541)
-    /// Muted text — #AAA5A0
-    static let textMuted = SwiftUI.Color(red: 0.667, green: 0.647, blue: 0.627)
+    /// --ds-bg-base: #FDFBF8
+    static let bgBase = SwiftUI.Color(red: 0xFD / 255.0, green: 0xFB / 255.0, blue: 0xF8 / 255.0)
+    /// --ds-bg-surface: #F5F1EB
+    static let bgSurface = SwiftUI.Color(red: 0xF5 / 255.0, green: 0xF1 / 255.0, blue: 0xEB / 255.0)
+    /// --ds-bg-elevated: #FFFFFF
+    static let bgElevated = SwiftUI.Color.white
+    /// --ds-bg-hover: #EDE8DF
+    static let bgHover = SwiftUI.Color(red: 0xED / 255.0, green: 0xE8 / 255.0, blue: 0xDF / 255.0)
+    /// --ds-bg-active: #E5DED4
+    static let bgActive = SwiftUI.Color(red: 0xE5 / 255.0, green: 0xDE / 255.0, blue: 0xD4 / 255.0)
 
-    /// Accent (acorn brown) — oklch(0.55 0.15 45)
-    static let accent = SwiftUI.Color(red: 0.639, green: 0.357, blue: 0.161)
-    /// Accent dark — oklch(0.45 0.17 45)
-    static let accentDark = SwiftUI.Color(red: 0.510, green: 0.255, blue: 0.078)
-    /// Button background — #F5F2EE
-    static let btnBg = SwiftUI.Color(red: 0.961, green: 0.949, blue: 0.933)
-    /// Button hover background — #EDEAE5
-    static let btnBgHover = SwiftUI.Color(red: 0.929, green: 0.918, blue: 0.898)
+    // MARK: - Text Colors
+
+    /// --ds-text-primary: #2D210F
+    static let textPrimary = SwiftUI.Color(red: 0x2D / 255.0, green: 0x21 / 255.0, blue: 0x0F / 255.0)
+    /// --ds-text-secondary: #7B6D59
+    static let textSecondary = SwiftUI.Color(red: 0x7B / 255.0, green: 0x6D / 255.0, blue: 0x59 / 255.0)
+    /// --ds-text-tertiary: #A19383
+    static let textTertiary = SwiftUI.Color(red: 0xA1 / 255.0, green: 0x93 / 255.0, blue: 0x83 / 255.0)
+
+    // MARK: - Border Colors
+
+    /// --ds-border: #D8CFC2
+    static let border = SwiftUI.Color(red: 0xD8 / 255.0, green: 0xCF / 255.0, blue: 0xC2 / 255.0)
+    /// --ds-border-subtle: #ECE5D9
+    static let borderSubtle = SwiftUI.Color(red: 0xEC / 255.0, green: 0xE5 / 255.0, blue: 0xD9 / 255.0)
+
+    // MARK: - Accent Colors
+
+    /// --ds-accent: #B07A30
+    static let accent = SwiftUI.Color(red: 0xB0 / 255.0, green: 0x7A / 255.0, blue: 0x30 / 255.0)
+    /// --ds-accent-text: #8D6226
+    static let accentText = SwiftUI.Color(red: 0x8D / 255.0, green: 0x62 / 255.0, blue: 0x26 / 255.0)
+
+    // MARK: - Editor-Specific Colors
+
+    /// --ds-canvas-bg: #F0ECE5
+    static let canvasBg = SwiftUI.Color(red: 0xF0 / 255.0, green: 0xEC / 255.0, blue: 0xE5 / 255.0)
 
     // MARK: - Sizing
 
-    static let panelRadius: CGFloat = 20
-    static let panelRadiusLg: CGFloat = 28
-    static let btnRadius: CGFloat = 12
-    static let btnSize: CGFloat = 40
-    static let edgeGap: CGFloat = 16
+    /// Apple HIG touch target minimum
+    static let btnSize: CGFloat = 44
+    /// --ds-radius-md: 12px
+    static let radiusMd: CGFloat = 12
+    /// --ds-font-size-md: 13px
     static let fontSize: CGFloat = 13
+    /// Icon size within buttons
     static let iconSize: CGFloat = 18
+    /// Left toolbar fixed width (PRD spec)
+    static let leftToolbarWidth: CGFloat = 44
+    /// Right panel fixed width (PRD spec)
+    static let rightPanelWidth: CGFloat = 220
 }

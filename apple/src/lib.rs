@@ -372,7 +372,7 @@ impl AppleViewport {
         Arc::new(AppleViewport {
             inner: self
                 .inner
-                .fit_to_viewport(canvas_width, canvas_height, viewport_size),
+                .fit_to_viewport(canvas_width, canvas_height, viewport_size, f64::INFINITY),
         })
     }
 }

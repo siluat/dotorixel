@@ -1,11 +1,13 @@
 import SwiftUI
 
-/// Main editor view matching the web's Pebble UI layout.
+/// Main editor view using a docked layout matching the web editor's structure.
 ///
-/// Full-screen canvas with floating overlay panels:
-/// - Top-left: Undo, Redo, Grid toggle
-/// - Top-right: Canvas size presets, W×H inputs, Export, Clear
-/// - Bottom-center: Tools (Pen/Eraser, Zoom) + Color palette
+/// VStack + HStack layout with four named regions:
+/// - TopBar (top, full width)
+/// - LeftToolbar (left, fixed width)
+/// - Canvas area (center, fills remaining space)
+/// - RightPanel (right, fixed width)
+/// - StatusBar (bottom, full width)
 struct ContentView: View {
     @State private var editorState = EditorState()
     @Environment(\.displayScale) private var displayScale
@@ -14,39 +16,30 @@ struct ContentView: View {
     #endif
 
     var body: some View {
-        ZStack {
-            // Full-screen Metal canvas
-            GeometryReader { geo in
-                PixelCanvasView(
-                    pixelCanvas: editorState.pixelCanvas,
-                    viewport: editorState.viewport,
-                    showGrid: editorState.showGrid,
-                    editorState: editorState,
-                    canvasVersion: editorState.canvasVersion
-                )
-                .onAppear { fitCanvas(in: geo.size) }
-                .onChange(of: geo.size) { _, newSize in fitCanvas(in: newSize) }
+        VStack(spacing: 0) {
+            TopBar(editorState: editorState)
+
+            HStack(spacing: 0) {
+                LeftToolbar(editorState: editorState)
+
+                GeometryReader { geo in
+                    PixelCanvasView(
+                        pixelCanvas: editorState.pixelCanvas,
+                        viewport: editorState.viewport,
+                        showGrid: editorState.showGrid,
+                        editorState: editorState,
+                        canvasVersion: editorState.canvasVersion
+                    )
+                    .onAppear { fitCanvas(in: geo.size) }
+                    .onChange(of: geo.size) { _, newSize in fitCanvas(in: newSize) }
+                }
+
+                RightPanel(editorState: editorState)
             }
 
-            // Top-left controls
-            TopControlsLeft(editorState: editorState)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(PebbleTokens.edgeGap)
-
-            // Top-right controls
-            TopControlsRight(editorState: editorState)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .padding(PebbleTokens.edgeGap)
-
-            // Bottom-center: Tools + Color palette
-            HStack(spacing: 10) {
-                BottomToolsPanel(editorState: editorState)
-                BottomColorPalette(editorState: editorState)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-            .padding(PebbleTokens.edgeGap)
+            StatusBar(editorState: editorState)
         }
-        .background(PebbleTokens.bg)
+        .background(DesignTokens.bgBase)
         #if DEBUG
         .sheet(isPresented: $showBenchmark) {
             RenderBenchmarkView()

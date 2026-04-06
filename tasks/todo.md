@@ -70,10 +70,6 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
   - Bundle size — Tauri `.app` vs native `.app`
   - Implementation effort — per-feature LOC and time comparison
 
-## Architecture
-
-- Extract ToolRunner from EditorState — [Plan](../issues/020-extract-tool-runner.md)
-
 ## Review backlog (not assigned to a milestone)
 
 - FG/BG swap UI improvements

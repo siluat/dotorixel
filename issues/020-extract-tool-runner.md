@@ -1,6 +1,6 @@
 ---
 title: Extract ToolRunner from EditorState to deepen tool dispatch and history management
-status: open
+status: done
 created: 2026-04-06
 ---
 
@@ -280,3 +280,24 @@ Tests verify **observable behavior through the public interface** — returned `
 - **handleLongPress** — stays in EditorState, independent of tool dispatch lifecycle
 - **New tool additions** — this refactor extracts existing tools, does not add new ones
 - **WASM abstraction layer** — deferred to architecture candidate #2
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/tool-runner.svelte.ts` | ToolRunner module — types, interfaces, and createToolRunner factory |
+| `src/lib/canvas/editor-state.svelte.ts` | Migrated to delegate draw/history to ToolRunner (432 → 361 lines) |
+| `src/lib/canvas/tool-runner.svelte.test.ts` | 22 boundary tests for ToolRunner public interface |
+
+### Key Decisions
+
+- ToolEffects return values (not callbacks) for side-effect communication — enables assertion in tests
+- `connectModifiers` 3-step init to break ToolRunner ↔ KeyboardInput circular dependency without `null!`
+- `canvasReplaced` effect carries a new `WasmPixelCanvas` for dimension-changing undo/redo
+- `.svelte.ts` file format for `canUndo`/`canRedo` reactivity — Svelte decoupling deferred to candidate #3
+
+### Notes
+
+- EditorState public API unchanged — all 42 existing tests pass without modification
+- `handleLongPress` remains in EditorState (independent of tool dispatch lifecycle)
+- `DrawTool`, `ToolContext`, `DrawResult` interfaces unchanged — individual tool files not modified

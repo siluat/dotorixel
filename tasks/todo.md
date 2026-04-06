@@ -54,7 +54,6 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 
 - Layout transition: floating panels to docked layout (TopBar, LeftToolbar, RightPanel, StatusBar) — [PRD](../issues/014-apple-native-docked-layout.md)
 
-  - [016 — LeftToolbar](../issues/016-apple-left-toolbar.md)
   - [017 — TopBar](../issues/017-apple-top-bar.md)
   - [018 — RightPanel](../issues/018-apple-right-panel.md)
   - [019 — StatusBar](../issues/019-apple-status-bar.md)

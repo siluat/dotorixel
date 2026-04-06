@@ -64,6 +64,16 @@ struct DesignTokensColorTests {
         assertColorMatchesHex(DesignTokens.accentText, hex: 0x8D6226)
     }
 
+    @Test("Accent subtle is accent at ~9% opacity (matches web #B07A3018)")
+    func accentSubtle() {
+        let resolved = DesignTokens.accentSubtle.resolve(in: .init())
+        let tolerance: Float = 0.01
+        #expect(abs(resolved.red - Float(0xB0) / 255.0) < tolerance)
+        #expect(abs(resolved.green - Float(0x7A) / 255.0) < tolerance)
+        #expect(abs(resolved.blue - Float(0x30) / 255.0) < tolerance)
+        #expect(abs(resolved.opacity - Float(0x18) / 255.0) < tolerance)
+    }
+
     @Test("Canvas colors")
     func canvasColors() {
         assertColorMatchesHex(DesignTokens.canvasBg, hex: 0xF0ECE5)
@@ -90,6 +100,11 @@ struct DesignTokensSizingTests {
         #expect(DesignTokens.rightPanelWidth == 220)
     }
 
+    @Test("Small border radius matches web --ds-radius-sm: 6px")
+    func radiusSm() {
+        #expect(DesignTokens.radiusSm == 6)
+    }
+
     @Test("Border radius matches web --ds-radius-md: 12px")
     func radiusMd() {
         #expect(DesignTokens.radiusMd == 12)
@@ -103,5 +118,10 @@ struct DesignTokensSizingTests {
     @Test("Icon size is 18pt")
     func iconSize() {
         #expect(DesignTokens.iconSize == 18)
+    }
+
+    @Test("Disabled opacity matches web .action-btn:disabled opacity: 0.4")
+    func disabledOpacity() {
+        #expect(DesignTokens.disabledOpacity == 0.4)
     }
 }

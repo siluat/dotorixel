@@ -36,6 +36,8 @@ enum DesignTokens {
 
     /// --ds-accent: #B07A30
     static let accent = SwiftUI.Color(red: 0xB0 / 255.0, green: 0x7A / 255.0, blue: 0x30 / 255.0)
+    /// --ds-accent-subtle: #B07A3018 (accent at ~9% opacity, active tool background)
+    static let accentSubtle = SwiftUI.Color(red: 0xB0 / 255.0, green: 0x7A / 255.0, blue: 0x30 / 255.0, opacity: 0x18 / 255.0)
     /// --ds-accent-text: #8D6226
     static let accentText = SwiftUI.Color(red: 0x8D / 255.0, green: 0x62 / 255.0, blue: 0x26 / 255.0)
 
@@ -48,6 +50,8 @@ enum DesignTokens {
 
     /// Apple HIG touch target minimum
     static let btnSize: CGFloat = 44
+    /// --ds-radius-sm: 6px
+    static let radiusSm: CGFloat = 6
     /// --ds-radius-md: 12px
     static let radiusMd: CGFloat = 12
     /// --ds-font-size-md: 13px
@@ -58,4 +62,6 @@ enum DesignTokens {
     static let leftToolbarWidth: CGFloat = 44
     /// Right panel fixed width (PRD spec)
     static let rightPanelWidth: CGFloat = 220
+    /// Opacity for disabled controls (matches web .action-btn:disabled)
+    static let disabledOpacity: Double = 0.4
 }

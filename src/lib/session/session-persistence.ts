@@ -1,5 +1,5 @@
 import type { SessionStorage } from './session-storage';
-import type { DocumentRecord, WorkspaceRecord } from './session-storage-types';
+import type { ViewportRecord, WorkspaceRecord } from './session-storage-types';
 import type { WorkspaceInit, TabInit, ViewportInit } from './workspace-init-types';
 import type { Workspace } from '$lib/canvas/workspace.svelte';
 
@@ -23,49 +23,50 @@ export class SessionPersistence {
 		const oldWs = await this.#storage.getWorkspace();
 		const oldDocIds = oldWs?.tabOrder ?? [];
 
-		const editor = workspace.activeEditor;
-		const docId = `doc-${Date.now()}`;
 		const now = new Date();
+		const tabOrder: string[] = [];
+		const viewports: Record<string, ViewportRecord> = {};
 
-		const doc: DocumentRecord = {
-			id: docId,
-			name: editor.name,
-			width: editor.pixelCanvas.width,
-			height: editor.pixelCanvas.height,
-			pixels: editor.pixelCanvas.pixels(),
-			createdAt: now,
-			updatedAt: now
-		};
+		for (const editor of workspace.tabs) {
+			const docId = `doc-${crypto.randomUUID()}`;
+			tabOrder.push(docId);
 
-		const ws: WorkspaceRecord = {
+			await this.#storage.putDocument({
+				id: docId,
+				name: editor.name,
+				width: editor.pixelCanvas.width,
+				height: editor.pixelCanvas.height,
+				pixels: editor.pixelCanvas.pixels(),
+				createdAt: now,
+				updatedAt: now
+			});
+
+			viewports[docId] = {
+				pixelSize: editor.viewportState.viewport.pixel_size,
+				zoom: editor.viewportState.viewport.zoom,
+				panX: editor.viewportState.viewport.pan_x,
+				panY: editor.viewportState.viewport.pan_y,
+				showGrid: editor.viewportState.showGrid,
+				gridColor: editor.viewportState.gridColor
+			};
+		}
+
+		const active = workspace.activeEditor;
+		await this.#storage.putWorkspace({
 			id: 'current',
-			tabOrder: [docId],
-			activeTabIndex: 0,
+			tabOrder,
+			activeTabIndex: workspace.activeTabIndex,
 			sharedState: {
-				activeTool: editor.activeTool,
-				foregroundColor: { ...editor.foregroundColor },
-				backgroundColor: { ...editor.backgroundColor },
-				recentColors: [...editor.recentColors]
+				activeTool: active.activeTool,
+				foregroundColor: { ...active.foregroundColor },
+				backgroundColor: { ...active.backgroundColor },
+				recentColors: [...active.recentColors]
 			},
-			viewports: {
-				[docId]: {
-					pixelSize: editor.viewportState.viewport.pixel_size,
-					zoom: editor.viewportState.viewport.zoom,
-					panX: editor.viewportState.viewport.pan_x,
-					panY: editor.viewportState.viewport.pan_y,
-					showGrid: editor.viewportState.showGrid,
-					gridColor: editor.viewportState.gridColor
-				}
-			}
-		};
-
-		await this.#storage.putDocument(doc);
-		await this.#storage.putWorkspace(ws);
+			viewports
+		});
 
 		for (const oldId of oldDocIds) {
-			if (oldId !== docId) {
-				await this.#storage.deleteDocument(oldId);
-			}
+			await this.#storage.deleteDocument(oldId);
 		}
 	}
 

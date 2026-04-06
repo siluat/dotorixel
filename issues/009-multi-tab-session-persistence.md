@@ -1,6 +1,6 @@
 ---
 title: Multi-tab session persistence
-status: open
+status: done
 created: 2026-04-06
 parent: 007-session-persistence.md
 ---
@@ -28,3 +28,18 @@ The SessionStorage `documents` store already supports multiple records (from iss
 ## Scenarios addressed
 
 - Scenario 2: 3 tabs open → close browser → all 3 restored with names, order, and active tab
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/session/session-persistence.ts` | `save()` iterates all `workspace.tabs` instead of only `activeEditor`; ID generation changed to `crypto.randomUUID()` |
+| `src/lib/session/session-persistence.test.ts` | 4 new multi-tab tests added, 1 single-tab-only test replaced |
+
+### Key Decisions
+- No type or interface changes needed — `WorkspaceRecord`, `WorkspaceInit`, and `restore()` already supported multiple tabs from issue 008
+- Switched doc ID generation from `Date.now()` to `crypto.randomUUID()` to prevent ID collision when saves occur within the same millisecond
+
+### Notes
+- `restore()` was not modified — it already iterated `tabOrder` for multiple documents
+- Cleanup logic simplified: since UUIDs are unique, old doc IDs are unconditionally deleted without checking against new IDs

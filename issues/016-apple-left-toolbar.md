@@ -22,12 +22,12 @@ All state is already in EditorState (`activeTool`, `canUndo`, `canRedo`). No sta
 
 ## Acceptance criteria
 
-- [ ] ToolButtonStyle implemented with active/inactive/disabled visual states
-- [ ] LeftToolbar displays pencil, eraser, separator, undo, redo
-- [ ] Tapping pencil/eraser switches the active tool and updates button states
-- [ ] Undo/redo buttons reflect EditorState history availability
-- [ ] Tapping undo/redo performs the expected canvas operation
-- [ ] Buttons meet 44pt minimum touch target
+- [x] ToolButtonStyle implemented with active/inactive/disabled visual states
+- [x] LeftToolbar displays pencil, eraser, separator, undo, redo
+- [x] Tapping pencil/eraser switches the active tool and updates button states
+- [x] Undo/redo buttons reflect EditorState history availability
+- [x] Tapping undo/redo performs the expected canvas operation
+- [x] Buttons meet 44pt minimum touch target
 
 ## Blocked by
 

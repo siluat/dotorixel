@@ -1,4 +1,4 @@
-import type { WasmPixelCanvas, WasmColor } from '$wasm/dotorixel_wasm';
+import type { PixelCanvas } from './pixel-canvas';
 import type { CanvasCoords } from './view-types';
 import type { Color } from './color';
 
@@ -22,9 +22,9 @@ export const NO_EFFECTS: ToolEffects = [];
 
 /** Read-only snapshot of editor state that tools need during a draw stroke. */
 export interface ToolContext {
-	readonly canvas: WasmPixelCanvas;
+	readonly canvas: PixelCanvas;
 	/** Pre-resolved draw color (left click = foreground, right click = background). */
-	readonly drawColor: WasmColor;
+	readonly drawColor: Color;
 	/** 0 = left click, 2 = right click. */
 	readonly drawButton: number;
 	/** Live read of shift key state — function so shape tools get the current value mid-stroke. */

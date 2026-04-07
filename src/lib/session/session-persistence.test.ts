@@ -5,6 +5,12 @@ import { SessionPersistence } from './session-persistence';
 import { SessionStorage } from './session-storage';
 import { Workspace } from '$lib/canvas/workspace.svelte';
 import { WasmPixelCanvas, WasmColor, WasmViewport } from '$wasm/dotorixel_wasm';
+import type { PixelCanvas } from '$lib/canvas/pixel-canvas';
+
+function wasmCanvas(canvas: PixelCanvas): WasmPixelCanvas {
+	if (canvas instanceof WasmPixelCanvas) return canvas;
+	throw new Error('Expected WasmPixelCanvas');
+}
 
 describe('SessionPersistence', () => {
 	let storage: SessionStorage;
@@ -27,7 +33,7 @@ describe('SessionPersistence', () => {
 		});
 		// Draw a red pixel at (0,0)
 		const red = new WasmColor(255, 0, 0, 255);
-		workspace.activeEditor.pixelCanvas.set_pixel(0, 0, red);
+		wasmCanvas(workspace.activeEditor.pixelCanvas).set_pixel(0, 0, red);
 		workspace.activeEditor.activeTool = 'line';
 
 		await persistence.save(workspace);
@@ -60,12 +66,12 @@ describe('SessionPersistence', () => {
 		const workspace = new Workspace({ gridColor: '#ECE5D9' });
 		// Tab 0: "Untitled 1" — draw red pixel at (0,0)
 		const red = new WasmColor(255, 0, 0, 255);
-		workspace.activeEditor.pixelCanvas.set_pixel(0, 0, red);
+		wasmCanvas(workspace.activeEditor.pixelCanvas).set_pixel(0, 0, red);
 
 		// Tab 1: "Untitled 2" — draw blue pixel at (1,0)
 		workspace.addTab();
 		const blue = new WasmColor(0, 0, 255, 255);
-		workspace.activeEditor.pixelCanvas.set_pixel(1, 0, blue);
+		wasmCanvas(workspace.activeEditor.pixelCanvas).set_pixel(1, 0, blue);
 
 		// Active tab is 1 (the newly added tab)
 		await persistence.save(workspace);

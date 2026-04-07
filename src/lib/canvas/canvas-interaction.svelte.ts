@@ -1,4 +1,5 @@
-import { WasmViewport } from '$wasm/dotorixel_wasm';
+import type { Viewport } from './viewport';
+import { viewportOps } from './wasm-backend';
 import type { CanvasCoords } from './view-types';
 
 const MIN_PINCH_DISTANCE = 10;
@@ -12,7 +13,7 @@ type InteractionMode =
 	| { type: 'panning'; startX: number; startY: number }
 	| {
 			type: 'pinching';
-			initialViewport: WasmViewport;
+			initialViewport: Viewport;
 			initialDistance: number;
 			initialMidX: number;
 			initialMidY: number;
@@ -20,7 +21,7 @@ type InteractionMode =
 
 export interface CanvasInteractionOptions {
 	screenToCanvas: (localX: number, localY: number) => CanvasCoords;
-	getViewport: () => WasmViewport;
+	getViewport: () => Viewport;
 	isSpaceHeld: () => boolean;
 }
 
@@ -28,7 +29,7 @@ export interface CanvasInteractionCallbacks {
 	onDrawStart: (button: number) => void;
 	onDraw: (current: CanvasCoords, previous: CanvasCoords | null) => void;
 	onDrawEnd: () => void;
-	onViewportChange: (viewport: WasmViewport) => void;
+	onViewportChange: (viewport: Viewport) => void;
 	onLongPress: (coords: CanvasCoords, button: number) => boolean;
 }
 
@@ -209,7 +210,7 @@ export function createCanvasInteraction(
 				const currentDistance = pointerDistance(a, b);
 				const currentMid = pointerMidpoint(a, b);
 
-				const newZoom = WasmViewport.clamp_zoom(
+				const newZoom = viewportOps.clampZoom(
 					interaction.initialViewport.zoom * (currentDistance / interaction.initialDistance)
 				);
 				const zoomed = interaction.initialViewport.zoom_at_point(

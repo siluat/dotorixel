@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { type WasmPixelCanvas, WasmViewport } from '$wasm/dotorixel_wasm';
+	import type { PixelCanvas } from './pixel-canvas';
+	import type { Viewport } from './viewport';
+	import { viewportOps } from './wasm-backend';
 	import type { CanvasCoords, ViewportSize, ViewportState } from './view-types';
 	import * as m from '$lib/paraglide/messages';
 	import { createWheelInputClassifier } from './wheel-input.ts';
@@ -7,7 +9,7 @@
 	import { createCanvasInteraction } from './canvas-interaction.svelte';
 
 	interface Props {
-		pixelCanvas: WasmPixelCanvas;
+		pixelCanvas: PixelCanvas;
 		viewportState: ViewportState;
 		viewportSize?: ViewportSize;
 		renderVersion?: number;
@@ -22,7 +24,7 @@
 		onDraw?: (current: CanvasCoords, previous: CanvasCoords | null) => void;
 		onDrawStart?: (button: number) => void;
 		onDrawEnd?: () => void;
-		onViewportChange?: (viewport: WasmViewport) => void;
+		onViewportChange?: (viewport: Viewport) => void;
 		onLongPress?: (coords: CanvasCoords, button: number) => boolean;
 		toolCursor?: string;
 		isSpaceHeld?: boolean;
@@ -102,7 +104,7 @@
 			const screenY = event.clientY - rect.top;
 
 			if (inputType === 'pinchZoom') {
-				const newZoom = WasmViewport.compute_pinch_zoom(vp.zoom, event.deltaY);
+				const newZoom = viewportOps.computePinchZoom(vp.zoom, event.deltaY);
 				if (newZoom !== vp.zoom) {
 					onViewportChange?.(vp.zoom_at_point(screenX, screenY, newZoom));
 				}
@@ -112,8 +114,8 @@
 			// wheelZoom: discrete level stepping (mouse wheel)
 			const isZoomIn = event.deltaY < 0;
 			const newZoom = isZoomIn
-				? WasmViewport.next_zoom_level(vp.zoom)
-				: WasmViewport.prev_zoom_level(vp.zoom);
+				? viewportOps.nextZoomLevel(vp.zoom)
+				: viewportOps.prevZoomLevel(vp.zoom);
 			if (newZoom !== vp.zoom) {
 				onViewportChange?.(vp.zoom_at_point(screenX, screenY, newZoom));
 			}

@@ -1,8 +1,6 @@
-import {
-	WasmPixelCanvas,
-	WasmViewport,
-	WasmResizeAnchor
-} from '$wasm/dotorixel_wasm';
+import type { PixelCanvas } from './pixel-canvas';
+import type { Viewport } from './viewport';
+import { canvasFactory, viewportFactory, viewportOps } from './wasm-backend';
 import { extractViewportData, type CanvasCoords, type ResizeAnchor, type ViewportSize, type ViewportState } from './view-types';
 import { TOOL_CURSORS, type ToolType } from './tool-types';
 import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
@@ -15,18 +13,6 @@ function assertNever(x: never): never {
 	throw new Error(`Unhandled effect type: ${(x as { type: string }).type}`);
 }
 
-const RESIZE_ANCHOR_MAP: Record<ResizeAnchor, WasmResizeAnchor> = {
-	'top-left': WasmResizeAnchor.TopLeft,
-	'top-center': WasmResizeAnchor.TopCenter,
-	'top-right': WasmResizeAnchor.TopRight,
-	'middle-left': WasmResizeAnchor.MiddleLeft,
-	center: WasmResizeAnchor.Center,
-	'middle-right': WasmResizeAnchor.MiddleRight,
-	'bottom-left': WasmResizeAnchor.BottomLeft,
-	'bottom-center': WasmResizeAnchor.BottomCenter,
-	'bottom-right': WasmResizeAnchor.BottomRight
-};
-
 export interface EditorOptions {
 	canvasWidth?: number;
 	canvasHeight?: number;
@@ -36,7 +22,7 @@ export interface EditorOptions {
 	shared?: SharedState;
 	name?: string;
 	documentId?: string;
-	pixelCanvas?: WasmPixelCanvas;
+	pixelCanvas?: PixelCanvas;
 	viewportState?: ViewportState;
 }
 
@@ -44,7 +30,7 @@ export class EditorState {
 	readonly shared: SharedState;
 	readonly name: string;
 	readonly documentId: string;
-	pixelCanvas = $state<WasmPixelCanvas>(null!);
+	pixelCanvas = $state<PixelCanvas>(null!);
 	viewportSize = $state<ViewportSize>({ width: 512, height: 512 });
 	viewportState = $state<ViewportState>(null!);
 	renderVersion = $state(0);
@@ -151,7 +137,7 @@ export class EditorState {
 		} else {
 			const cw = options.canvasWidth ?? 16;
 			const ch = options.canvasHeight ?? 16;
-			this.pixelCanvas = new WasmPixelCanvas(cw, ch);
+			this.pixelCanvas = canvasFactory.create(cw, ch);
 		}
 
 		if (options.viewportState) {
@@ -160,7 +146,7 @@ export class EditorState {
 			const cw = this.pixelCanvas.width;
 			const ch = this.pixelCanvas.height;
 			this.viewportState = {
-				viewport: WasmViewport.for_canvas(cw, ch),
+				viewport: viewportFactory.forCanvas(cw, ch),
 				showGrid: true,
 				gridColor: options.gridColor ?? '#cccccc'
 			};
@@ -212,7 +198,7 @@ export class EditorState {
 		});
 	}
 
-	handleViewportChange = (newViewport: WasmViewport): void => {
+	handleViewportChange = (newViewport: Viewport): void => {
 		const clamped = newViewport.clamp_pan(
 			this.pixelCanvas.width,
 			this.pixelCanvas.height,
@@ -271,7 +257,7 @@ export class EditorState {
 	handleZoomIn = (): void => {
 		const centerX = this.viewportSize.width / 2;
 		const centerY = this.viewportSize.height / 2;
-		const newZoom = WasmViewport.next_zoom_level(this.viewportState.viewport.zoom);
+		const newZoom = viewportOps.nextZoomLevel(this.viewportState.viewport.zoom);
 		const zoomed = this.viewportState.viewport.zoom_at_point(centerX, centerY, newZoom);
 		this.handleViewportChange(zoomed);
 	};
@@ -279,7 +265,7 @@ export class EditorState {
 	handleZoomOut = (): void => {
 		const centerX = this.viewportSize.width / 2;
 		const centerY = this.viewportSize.height / 2;
-		const newZoom = WasmViewport.prev_zoom_level(this.viewportState.viewport.zoom);
+		const newZoom = viewportOps.prevZoomLevel(this.viewportState.viewport.zoom);
 		const zoomed = this.viewportState.viewport.zoom_at_point(centerX, centerY, newZoom);
 		this.handleViewportChange(zoomed);
 	};
@@ -323,10 +309,11 @@ export class EditorState {
 	handleResize = (newWidth: number, newHeight: number): void => {
 		if (newWidth === this.pixelCanvas.width && newHeight === this.pixelCanvas.height) return;
 		this.#toolRunner.pushSnapshot();
-		this.pixelCanvas = this.pixelCanvas.resize_with_anchor(
+		this.pixelCanvas = canvasFactory.resizeWithAnchor(
+			this.pixelCanvas,
 			newWidth,
 			newHeight,
-			RESIZE_ANCHOR_MAP[this.resizeAnchor]
+			this.resizeAnchor
 		);
 		const clamped = this.viewportState.viewport.clamp_pan(
 			newWidth,

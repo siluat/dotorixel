@@ -1,30 +1,23 @@
-import {
-	WasmPixelCanvas,
-	WasmHistoryManager,
-	WasmColor,
-	WasmToolType,
-	wasm_interpolate_pixels,
-	wasm_rectangle_outline,
-	wasm_ellipse_outline
-} from '$wasm/dotorixel_wasm';
+import type { PixelCanvas } from './pixel-canvas';
 import type { CanvasCoords } from './view-types';
 import type { Color } from './color';
 import { colorToHex } from './color';
 import type { SharedState } from './shared-state.svelte';
 import { CANVAS_CHANGED, NO_EFFECTS, type DrawTool, type ToolContext, type ToolEffect } from './draw-tool';
-import { pencilTool, eraserTool } from './tools/pencil-tool';
-import { floodfillTool } from './tools/floodfill-tool';
+import { createPencilTool, createEraserTool } from './tools/pencil-tool';
+import { createFloodfillTool } from './tools/floodfill-tool';
 import { eyedropperTool } from './tools/eyedropper-tool';
 import { moveTool } from './tools/move-tool';
 import { createShapeTool } from './tools/shape-tool';
 import { constrainLine, constrainSquare } from './constrain';
 import type { ToolType } from './tool-types';
+import { createDrawingOps, canvasFactory, createHistoryManager } from './wasm-backend';
 
 // ── Effects: ToolRunner adds RunnerEffect on top of tool-produced ToolEffect ──
 
 /** Effects that only ToolRunner can produce (undo/redo infrastructure). */
 export type RunnerEffect =
-	| { readonly type: 'canvasReplaced'; readonly canvas: WasmPixelCanvas };
+	| { readonly type: 'canvasReplaced'; readonly canvas: PixelCanvas };
 
 /** Union of all effects EditorState must handle. */
 export type EditorEffect = ToolEffect | RunnerEffect;
@@ -34,7 +27,7 @@ export type EditorEffects = readonly EditorEffect[];
 // ── ToolRunnerHost: read-only queries ToolRunner needs from EditorState ──
 
 export interface ToolRunnerHost {
-	readonly pixelCanvas: WasmPixelCanvas;
+	readonly pixelCanvas: PixelCanvas;
 	readonly foregroundColor: Color;
 	readonly backgroundColor: Color;
 }
@@ -63,26 +56,29 @@ export interface ToolRunner {
 // ── Factory ─────────────────────────────────────────────────────────
 
 export function createToolRunner(host: ToolRunnerHost, shared: SharedState): ToolRunner {
+	// ── DrawingOps (bound to current canvas) ────────────────────────
+	const ops = createDrawingOps(() => host.pixelCanvas);
+
 	// ── Tool registry ───────────────────────────────────────────────
 	const tools: Record<ToolType, DrawTool> = {
-		pencil: pencilTool,
-		eraser: eraserTool,
-		line: createShapeTool(WasmToolType.Line, wasm_interpolate_pixels, constrainLine),
-		rectangle: createShapeTool(WasmToolType.Rectangle, wasm_rectangle_outline, constrainSquare),
-		ellipse: createShapeTool(WasmToolType.Ellipse, wasm_ellipse_outline, constrainSquare),
-		floodfill: floodfillTool,
+		pencil: createPencilTool(ops),
+		eraser: createEraserTool(ops),
+		line: createShapeTool(ops, 'line', ops.interpolatePixels, constrainLine),
+		rectangle: createShapeTool(ops, 'rectangle', ops.rectangleOutline, constrainSquare),
+		ellipse: createShapeTool(ops, 'ellipse', ops.ellipseOutline, constrainSquare),
+		floodfill: createFloodfillTool(ops),
 		eyedropper: eyedropperTool,
 		move: moveTool
 	};
 
 	// ── History ─────────────────────────────────────────────────────
-	const history = WasmHistoryManager.default_manager();
+	const history = createHistoryManager();
 	let historyVersion = $state(0);
 
 	// ── Draw state ──────────────────────────────────────────────────
 	let isDrawing = $state(false);
 	let drawButton = 0;
-	let activeDrawColor: WasmColor | null = null;
+	let activeDrawColor: Color | null = null;
 
 	// ── Stroke state (owned by ToolRunner, not by tools) ────────────
 	let strokeSnapshot: Uint8Array | null = null;
@@ -91,25 +87,6 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 
 	// ── Modifier provider (wired via connectModifiers) ──────────────
 	let shiftHeldProvider: (() => boolean) | null = null;
-
-	// ── Derived WASM colors ─────────────────────────────────────────
-	const wasmForegroundColor = $derived(
-		new WasmColor(
-			host.foregroundColor.r,
-			host.foregroundColor.g,
-			host.foregroundColor.b,
-			host.foregroundColor.a
-		)
-	);
-
-	const wasmBackgroundColor = $derived(
-		new WasmColor(
-			host.backgroundColor.r,
-			host.backgroundColor.g,
-			host.backgroundColor.b,
-			host.backgroundColor.a
-		)
-	);
 
 	// ── Derived reactive properties ─────────────────────────────────
 	const canUndo = $derived.by(() => {
@@ -146,7 +123,7 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 		const hasDimensionsChanged =
 			snapshot.width !== canvas.width || snapshot.height !== canvas.height;
 		if (hasDimensionsChanged) {
-			const newCanvas = WasmPixelCanvas.from_pixels(snapshot.width, snapshot.height, snapshot.pixels());
+			const newCanvas = canvasFactory.fromPixels(snapshot.width, snapshot.height, snapshot.pixels());
 			historyVersion++;
 			return [{ type: 'canvasReplaced', canvas: newCanvas }];
 		} else {
@@ -179,7 +156,7 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 			lastDrawCurrent = null;
 
 			const isRightClick = button === 2;
-			activeDrawColor = isRightClick ? wasmBackgroundColor : wasmForegroundColor;
+			activeDrawColor = isRightClick ? host.backgroundColor : host.foregroundColor;
 
 			const tool = tools[shared.activeTool];
 			const effects: ToolEffect[] = [];

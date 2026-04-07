@@ -110,6 +110,11 @@ struct DesignTokensSizingTests {
         #expect(DesignTokens.radiusMd == 12)
     }
 
+    @Test("Small font size matches web --ds-font-size-sm: 11px")
+    func fontSizeSm() {
+        #expect(DesignTokens.fontSizeSm == 11)
+    }
+
     @Test("Font size matches web --ds-font-size-md: 13px")
     func fontSize() {
         #expect(DesignTokens.fontSize == 13)

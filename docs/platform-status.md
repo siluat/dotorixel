@@ -101,7 +101,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Design token system | — | ✅ | ✅ | `--ds-*` tokens (web), `DesignTokens` enum (Apple), light theme |
 | Pebble UI theme | — | ✅ | ⬜ | Floating panels, earth tones (web legacy; Apple removed) |
-| Editor UI theme | — | ✅ | 🔧 | `--ds-*` tokens, docked layout skeleton (Apple); LeftToolbar implemented, other panels are placeholders |
+| Editor UI theme | — | ✅ | 🔧 | `--ds-*` tokens, docked layout skeleton (Apple); TopBar + LeftToolbar implemented, RightPanel + StatusBar are placeholders |
 | Responsive layout | — | ✅ | ⬜ | 4 breakpoints: compact/medium/wide/x-wide via matchMedia + CSS Grid/Flex |
 | Toolbar tooltip | — | ✅ | ⬜ | Custom styled tooltip on hover (tool name + shortcut badge), Svelte action, GeistPixel-Square font |
 | Tab bar slide indicator | — | ✅ | ⬜ | ease-in-out-cubic 180ms, pure CSS `--active-index` |

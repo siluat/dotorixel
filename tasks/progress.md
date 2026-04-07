@@ -6,11 +6,11 @@ None
 
 ## Last Completed
 
-023 — Unify viewport serialization — single type + centralized conversion
+017 — Apple native: TopBar
 
 ## Next Up
 
-- 017 — TopBar (Apple Native)
+- 018 — RightPanel (Apple Native)
   - Next docked layout sub-issue. Depends on 015 (done).
 - SVG export
   - M2 export & sharing. Independent, no prerequisites.

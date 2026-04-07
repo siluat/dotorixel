@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 024 | [WASM facade layer — structural typing + DrawingOps injection](../issues/024-wasm-facade-layer.md) | 2026-04-08 |
 | 017 | [Apple native: TopBar](../issues/017-apple-top-bar.md) | 2026-04-07 |
 | 023 | [Unify viewport serialization — single type + centralized conversion](../issues/023-viewport-data-unification.md) | 2026-04-07 |
 | 022 | [Deepen tool system — discriminated union](../issues/022-deepen-tool-system.md) | 2026-04-07 |

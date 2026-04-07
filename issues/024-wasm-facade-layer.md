@@ -1,6 +1,6 @@
 ---
 title: Introduce WASM facade layer — structural typing + DrawingOps injection
-status: open
+status: done
 created: 2026-04-07
 ---
 
@@ -297,3 +297,30 @@ All existing test files continue to import WASM directly and run with WASM setup
 `PixelCanvasView.stories.svelte` uses `WasmPixelCanvas`, `WasmColor`, and `WasmViewport` directly for data setup. Migrating to facade factories is a separate follow-up.
 
 ### Both follow-up items are tracked in `tasks/todo.md` under Milestone 2 → Architecture follow-up.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/pixel-canvas.ts` | PixelCanvas, Snapshot interfaces |
+| `src/lib/canvas/viewport.ts` | Viewport interface |
+| `src/lib/canvas/history.ts` | HistoryManager interface |
+| `src/lib/canvas/drawing-ops.ts` | DrawingOps, DrawingToolType |
+| `src/lib/canvas/canvas-factory.ts` | CanvasFactory interface |
+| `src/lib/canvas/canvas-constraints.ts` | CanvasConstraints interface |
+| `src/lib/canvas/viewport-factory.ts` | ViewportFactory interface |
+| `src/lib/canvas/viewport-ops.ts` | ViewportOps interface |
+| `src/lib/canvas/wasm-backend.ts` | WASM adapter — sole production WASM import |
+| `src/lib/canvas/wasm-sync.test.ts` | Compile-time structural compatibility guard |
+
+### Key Decisions
+
+- Factory/Ops split: "Factory" reserved for instance creation, "Ops"/"Constraints" for pure functions and constants — avoids misleading naming
+- `instanceof` type guard in `resolveWasmCanvas` instead of `as` cast — runtime-verified type narrowing within the adapter
+- `ToolRunnerHost` and `RunnerEffect` migrated together with EditorState (not in the tool system commit) due to type boundary dependency
+- Session test files received minimal `wasmCanvas()` helper to handle `set_pixel` calls after `pixelCanvas` type changed to `PixelCanvas`
+
+### Notes
+
+- `$wasm/dotorixel_wasm` now appears in exactly 1 production file (`wasm-backend.ts`) + `wasm/setup.ts` (initialization) + story/test files
+- `PixelCanvasView.stories.svelte` still imports WASM directly — tracked as follow-up in todo.md

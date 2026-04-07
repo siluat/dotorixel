@@ -27,7 +27,11 @@ struct TopBar: View {
             HStack(spacing: 12) {
                 // MARK: Zoom controls group
                 HStack(spacing: 0) {
-                    zoomButton(systemName: "minus", action: editorState.handleZoomOut)
+                    zoomButton(
+                        systemName: "minus",
+                        accessibilityLabel: "Zoom out",
+                        action: editorState.handleZoomOut
+                    )
 
                     Button {
                         editorState.handleZoomReset()
@@ -38,10 +42,17 @@ struct TopBar: View {
                             .padding(.horizontal, 4)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Reset zoom")
+                    .accessibilityValue("\(editorState.zoomPercent)%")
 
-                    zoomButton(systemName: "plus", action: editorState.handleZoomIn)
+                    zoomButton(
+                        systemName: "plus",
+                        accessibilityLabel: "Zoom in",
+                        action: editorState.handleZoomIn
+                    )
                     zoomButton(
                         systemName: "arrow.up.left.and.arrow.down.right",
+                        accessibilityLabel: "Fit to view",
                         action: editorState.handleFit
                     )
                 }
@@ -70,7 +81,11 @@ struct TopBar: View {
 
     // MARK: - Zoom button
 
-    private func zoomButton(systemName: String, action: @escaping () -> Void) -> some View {
+    private func zoomButton(
+        systemName: String,
+        accessibilityLabel: LocalizedStringKey,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: smallIconSize))
@@ -78,6 +93,7 @@ struct TopBar: View {
                 .foregroundStyle(DesignTokens.textSecondary)
                 .contentShape(Rectangle())
         }
+        .accessibilityLabel(accessibilityLabel)
         .buttonStyle(ZoomButtonStyle(cornerRadius: radiusXs))
     }
 
@@ -95,6 +111,8 @@ struct TopBar: View {
                 )
                 .contentShape(Rectangle())
         }
+        .accessibilityLabel("Toggle grid")
+        .accessibilityValue(editorState.showGrid ? "On" : "Off")
         .buttonStyle(GridToggleButtonStyle())
     }
 

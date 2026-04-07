@@ -19,13 +19,13 @@ Zoom state and grid toggle are already in EditorState (`zoomPercent`, `showGrid`
 
 ## Acceptance criteria
 
-- [ ] IconButtonStyle implemented with hover/press visual states
-- [ ] TopBar displays logo, zoom controls, grid toggle, and Export button
-- [ ] Zoom −/+ buttons adjust canvas zoom level
-- [ ] Zoom percentage label shows current zoom level
-- [ ] Fit-to-view button fits canvas to the available area
-- [ ] Grid toggle button toggles pixel grid visibility
-- [ ] Export button is visible but disabled
+- IconButtonStyle implemented with hover/press visual states
+- TopBar displays logo, zoom controls, grid toggle, and Export button
+- Zoom −/+ buttons adjust canvas zoom level
+- Zoom percentage label shows current zoom level
+- Fit-to-view button fits canvas to the available area
+- Grid toggle button toggles pixel grid visibility
+- Export button is visible but disabled
 
 ## Blocked by
 

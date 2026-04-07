@@ -1,4 +1,4 @@
-import { type WasmToolType, apply_tool } from '$wasm/dotorixel_wasm';
+import type { DrawingOps, DrawingToolType } from '../drawing-ops';
 import type { ShapePreviewTool, ToolContext } from '../draw-tool';
 import type { CanvasCoords } from '../view-types';
 
@@ -10,7 +10,8 @@ type ConstrainFn = (start: CanvasCoords, end: CanvasCoords) => CanvasCoords;
  * ToolRunner captures and restores the canvas snapshot; the tool only stamps pixels.
  */
 export function createShapeTool(
-	wasmTool: WasmToolType,
+	ops: DrawingOps,
+	toolType: DrawingToolType,
 	generatePixels: ShapePixelsFn,
 	constrainFn: ConstrainFn
 ): ShapePreviewTool {
@@ -20,13 +21,13 @@ export function createShapeTool(
 		constrainFn,
 
 		onAnchor(ctx: ToolContext, start: CanvasCoords): void {
-			apply_tool(ctx.canvas, start.x, start.y, wasmTool, ctx.drawColor);
+			ops.applyTool(start.x, start.y, toolType, ctx.drawColor);
 		},
 
 		onPreview(ctx: ToolContext, start: CanvasCoords, end: CanvasCoords): void {
 			const flat = generatePixels(start.x, start.y, end.x, end.y);
 			for (let i = 0; i < flat.length; i += 2) {
-				apply_tool(ctx.canvas, flat[i], flat[i + 1], wasmTool, ctx.drawColor);
+				ops.applyTool(flat[i], flat[i + 1], toolType, ctx.drawColor);
 			}
 		}
 	};

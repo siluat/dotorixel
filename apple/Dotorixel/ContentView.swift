@@ -16,6 +16,12 @@ struct ContentView: View {
     #endif
 
     var body: some View {
+        // Read @Observable properties at ContentView scope so SwiftUI tracks
+        // them outside GeometryReader — ensures updateNSView fires on change.
+        let viewport = editorState.viewport
+        let showGrid = editorState.showGrid
+        let canvasVersion = editorState.canvasVersion
+
         VStack(spacing: 0) {
             TopBar(editorState: editorState)
 
@@ -25,10 +31,10 @@ struct ContentView: View {
                 GeometryReader { geo in
                     PixelCanvasView(
                         pixelCanvas: editorState.pixelCanvas,
-                        viewport: editorState.viewport,
-                        showGrid: editorState.showGrid,
+                        viewport: viewport,
+                        showGrid: showGrid,
                         editorState: editorState,
-                        canvasVersion: editorState.canvasVersion
+                        canvasVersion: canvasVersion
                     )
                     .onAppear { fitCanvas(in: geo.size) }
                     .onChange(of: geo.size) { _, newSize in fitCanvas(in: newSize) }

@@ -54,6 +54,8 @@ enum DesignTokens {
     static let radiusSm: CGFloat = 6
     /// --ds-radius-md: 12px
     static let radiusMd: CGFloat = 12
+    /// --ds-font-size-sm: 11px
+    static let fontSizeSm: CGFloat = 11
     /// --ds-font-size-md: 13px
     static let fontSize: CGFloat = 13
     /// Icon size within buttons

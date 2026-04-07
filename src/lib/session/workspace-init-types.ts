@@ -1,14 +1,6 @@
 import type { ToolType } from '$lib/canvas/tool-types';
 import type { Color } from '$lib/canvas/color';
-
-export interface ViewportInit {
-	pixelSize: number;
-	zoom: number;
-	panX: number;
-	panY: number;
-	showGrid: boolean;
-	gridColor: string;
-}
+import type { ViewportData } from '$lib/canvas/view-types';
 
 export interface SharedStateInit {
 	activeTool: ToolType;
@@ -23,7 +15,7 @@ export interface TabInit {
 	width: number;
 	height: number;
 	pixels: Uint8Array;
-	viewport: ViewportInit;
+	viewport: ViewportData;
 }
 
 export interface WorkspaceInit {

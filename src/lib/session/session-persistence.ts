@@ -1,9 +1,10 @@
 import type { SessionStorage } from './session-storage';
-import type { ViewportRecord, WorkspaceRecord } from './session-storage-types';
-import type { WorkspaceInit, TabInit, ViewportInit } from './workspace-init-types';
+import type { WorkspaceRecord } from './session-storage-types';
+import type { WorkspaceInit, TabInit } from './workspace-init-types';
 import type { Workspace } from '$lib/canvas/workspace.svelte';
+import { extractViewportData, type ViewportData } from '$lib/canvas/view-types';
 
-const DEFAULT_VIEWPORT: ViewportInit = {
+const DEFAULT_VIEWPORT: ViewportData = {
 	pixelSize: 32,
 	zoom: 1.0,
 	panX: 0,
@@ -25,7 +26,7 @@ export class SessionPersistence {
 
 		const now = new Date();
 		const tabOrder: string[] = [];
-		const viewports: Record<string, ViewportRecord> = {};
+		const viewports: Record<string, ViewportData> = {};
 
 		for (const editor of workspace.tabs) {
 			const docId = editor.documentId;
@@ -44,14 +45,7 @@ export class SessionPersistence {
 				});
 			}
 
-			viewports[docId] = {
-				pixelSize: editor.viewportState.viewport.pixel_size,
-				zoom: editor.viewportState.viewport.zoom,
-				panX: editor.viewportState.viewport.pan_x,
-				panY: editor.viewportState.viewport.pan_y,
-				showGrid: editor.viewportState.showGrid,
-				gridColor: editor.viewportState.gridColor
-			};
+			viewports[docId] = extractViewportData(editor.viewportState);
 		}
 
 		const active = workspace.activeEditor;

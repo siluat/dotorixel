@@ -1,5 +1,6 @@
 import type { ToolType } from '$lib/canvas/tool-types';
 import type { Color } from '$lib/canvas/color';
+import type { ViewportData } from '$lib/canvas/view-types';
 
 export interface DocumentRecord {
 	id: string;
@@ -9,15 +10,6 @@ export interface DocumentRecord {
 	pixels: Uint8Array;
 	createdAt: Date;
 	updatedAt: Date;
-}
-
-export interface ViewportRecord {
-	pixelSize: number;
-	zoom: number;
-	panX: number;
-	panY: number;
-	showGrid: boolean;
-	gridColor: string;
 }
 
 export interface SharedStateRecord {
@@ -32,5 +24,5 @@ export interface WorkspaceRecord {
 	tabOrder: string[];
 	activeTabIndex: number;
 	sharedState: SharedStateRecord;
-	viewports: Record<string, ViewportRecord>;
+	viewports: Record<string, ViewportData>;
 }

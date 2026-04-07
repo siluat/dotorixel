@@ -2,7 +2,8 @@ import { EditorState } from './editor-state.svelte';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
 import type { WorkspaceInit } from '$lib/session/workspace-init-types';
-import { WasmPixelCanvas, WasmViewport } from '$wasm/dotorixel_wasm';
+import { WasmPixelCanvas } from '$wasm/dotorixel_wasm';
+import { restoreViewportState } from './view-types';
 
 export interface WorkspaceOptions {
 	foregroundColor?: Color;
@@ -44,22 +45,12 @@ export class Workspace {
 
 		for (const tab of init.tabs) {
 			const pixelCanvas = WasmPixelCanvas.from_pixels(tab.width, tab.height, tab.pixels);
-			const viewport = new WasmViewport(
-				tab.viewport.pixelSize,
-				tab.viewport.zoom,
-				tab.viewport.panX,
-				tab.viewport.panY
-			);
 			const editor = new EditorState({
 				shared: this.shared,
 				name: tab.name,
 				documentId: tab.id,
 				pixelCanvas,
-				viewportState: {
-					viewport,
-					showGrid: tab.viewport.showGrid,
-					gridColor: tab.viewport.gridColor
-				}
+				viewportState: restoreViewportState(tab.viewport)
 			});
 			this.tabs.push(editor);
 		}

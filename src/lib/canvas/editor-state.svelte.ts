@@ -3,7 +3,7 @@ import {
 	WasmViewport,
 	WasmResizeAnchor
 } from '$wasm/dotorixel_wasm';
-import type { CanvasCoords, ResizeAnchor, ViewportSize, ViewportState } from './view-types';
+import { extractViewportData, type CanvasCoords, type ResizeAnchor, type ViewportSize, type ViewportState } from './view-types';
 import { TOOL_CURSORS, type ToolType } from './tool-types';
 import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
 import { SharedState } from './shared-state.svelte';
@@ -99,14 +99,7 @@ export class EditorState {
 
 	readonly zoomPercent = $derived(Math.round(this.viewportState.viewport.zoom * 100));
 
-	readonly renderViewport = $derived({
-		pixelSize: this.viewportState.viewport.pixel_size,
-		zoom: this.viewportState.viewport.zoom,
-		panX: this.viewportState.viewport.pan_x,
-		panY: this.viewportState.viewport.pan_y,
-		showGrid: this.viewportState.showGrid,
-		gridColor: this.viewportState.gridColor
-	});
+	readonly renderViewport = $derived(extractViewportData(this.viewportState));
 
 	readonly toolCursor = $derived(TOOL_CURSORS[this.activeTool]);
 

@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-022 — Deepen tool system — discriminated union
+023 — Unify viewport serialization — single type + centralized conversion
 
 ## Next Up
 

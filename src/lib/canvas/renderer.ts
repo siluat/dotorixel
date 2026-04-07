@@ -1,35 +1,23 @@
+import type { ViewportData, ViewportSize } from './view-types';
+
 interface RenderableCanvas {
 	readonly width: number;
 	readonly height: number;
 	pixels(): Uint8Array;
 }
 
-interface RenderViewport {
-	readonly pixelSize: number;
-	readonly zoom: number;
-	readonly panX: number;
-	readonly panY: number;
-	readonly showGrid: boolean;
-	readonly gridColor: string;
-}
-
-interface RenderViewportSize {
-	readonly width: number;
-	readonly height: number;
-}
-
 const MIN_CHECKER_SIZE = 4;
 const CHECKER_LIGHT = '#ffffff';
 const CHECKER_DARK = '#e0e0e0';
 
-function effectivePixelSize(viewport: RenderViewport): number {
+function effectivePixelSize(viewport: ViewportData): number {
 	return Math.round(viewport.pixelSize * viewport.zoom);
 }
 
 function renderCheckerboard(
 	ctx: CanvasRenderingContext2D,
 	canvas: RenderableCanvas,
-	viewport: RenderViewport
+	viewport: ViewportData
 ): void {
 	const scaledPixel = effectivePixelSize(viewport);
 
@@ -71,7 +59,7 @@ function renderCheckerboard(
 function renderPixels(
 	ctx: CanvasRenderingContext2D,
 	canvas: RenderableCanvas,
-	viewport: RenderViewport
+	viewport: ViewportData
 ): void {
 	const scaledPixel = effectivePixelSize(viewport);
 	const displayWidth = canvas.width * scaledPixel;
@@ -93,7 +81,7 @@ function renderPixels(
 function renderGrid(
 	ctx: CanvasRenderingContext2D,
 	canvas: RenderableCanvas,
-	viewport: RenderViewport
+	viewport: ViewportData
 ): void {
 	if (!viewport.showGrid) return;
 
@@ -125,8 +113,8 @@ function renderGrid(
 export function renderPixelCanvas(
 	ctx: CanvasRenderingContext2D,
 	canvas: RenderableCanvas,
-	viewport: RenderViewport,
-	viewportSize: RenderViewportSize
+	viewport: ViewportData,
+	viewportSize: ViewportSize
 ): void {
 	ctx.clearRect(0, 0, viewportSize.width, viewportSize.height);
 

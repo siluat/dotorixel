@@ -3,7 +3,13 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { openSession } from './session';
 import { SessionStorage } from './session-storage';
-import { WasmColor, WasmViewport } from '$wasm/dotorixel_wasm';
+import { WasmPixelCanvas, WasmColor, WasmViewport } from '$wasm/dotorixel_wasm';
+import type { PixelCanvas } from '$lib/canvas/pixel-canvas';
+
+function wasmCanvas(canvas: PixelCanvas): WasmPixelCanvas {
+	if (canvas instanceof WasmPixelCanvas) return canvas;
+	throw new Error('Expected WasmPixelCanvas');
+}
 
 describe('openSession', () => {
 	afterEach(() => {
@@ -23,7 +29,7 @@ describe('openSession', () => {
 		const { workspace, session } = await openSession({ gridColor: '#ECE5D9' });
 
 		const red = new WasmColor(255, 0, 0, 255);
-		workspace.activeEditor.pixelCanvas.set_pixel(0, 0, red);
+		wasmCanvas(workspace.activeEditor.pixelCanvas).set_pixel(0, 0, red);
 		session.markDirty(workspace.activeEditor.documentId);
 		await session.flush();
 		session.dispose();
@@ -46,7 +52,7 @@ describe('openSession', () => {
 
 		// Tab 0: draw red pixel, zoom to 3x
 		const red = new WasmColor(255, 0, 0, 255);
-		workspace.activeEditor.pixelCanvas.set_pixel(0, 0, red);
+		wasmCanvas(workspace.activeEditor.pixelCanvas).set_pixel(0, 0, red);
 		workspace.activeEditor.viewportState = {
 			viewport: new WasmViewport(32, 3.0, 100, -50),
 			showGrid: false,
@@ -57,7 +63,7 @@ describe('openSession', () => {
 		// Tab 1: draw blue pixel
 		workspace.addTab();
 		const blue = new WasmColor(0, 0, 255, 255);
-		workspace.activeEditor.pixelCanvas.set_pixel(1, 0, blue);
+		wasmCanvas(workspace.activeEditor.pixelCanvas).set_pixel(1, 0, blue);
 		session.markDirty(workspace.activeEditor.documentId);
 
 		await session.flush();

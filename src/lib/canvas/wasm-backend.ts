@@ -18,6 +18,7 @@ import {
 	wasm_ellipse_outline,
 	wasm_flood_fill
 } from '$wasm/dotorixel_wasm';
+import type { PixelCanvas } from './pixel-canvas';
 import type { CanvasFactory } from './canvas-factory';
 import type { CanvasConstraints } from './canvas-constraints';
 import type { ViewportFactory } from './viewport-factory';
@@ -100,16 +101,21 @@ export const viewportOps: ViewportOps = {
 
 // ── DrawingOps ──────────────────────────────────────────────────────
 
+function resolveWasmCanvas(canvas: PixelCanvas): WasmPixelCanvas {
+	if (canvas instanceof WasmPixelCanvas) return canvas;
+	throw new Error('Canvas was not created by canvasFactory');
+}
+
 /**
  * Creates a DrawingOps instance bound to a canvas getter.
  * The getter is called on every drawing operation, so it always operates
  * on the current canvas (which may be replaced by undo/redo).
  */
-export function createDrawingOps(getCanvas: () => WasmPixelCanvas): DrawingOps {
+export function createDrawingOps(getCanvas: () => PixelCanvas): DrawingOps {
 	return {
 		applyTool(x, y, tool, color) {
 			return apply_tool(
-				getCanvas(),
+				resolveWasmCanvas(getCanvas()),
 				x,
 				y,
 				TOOL_MAP[tool],
@@ -118,7 +124,7 @@ export function createDrawingOps(getCanvas: () => WasmPixelCanvas): DrawingOps {
 		},
 		floodFill(x, y, color) {
 			return wasm_flood_fill(
-				getCanvas(),
+				resolveWasmCanvas(getCanvas()),
 				x,
 				y,
 				new WasmColor(color.r, color.g, color.b, color.a)

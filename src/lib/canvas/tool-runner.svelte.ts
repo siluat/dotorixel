@@ -1,4 +1,4 @@
-import { WasmPixelCanvas } from '$wasm/dotorixel_wasm';
+import type { PixelCanvas } from './pixel-canvas';
 import type { CanvasCoords } from './view-types';
 import type { Color } from './color';
 import { colorToHex } from './color';
@@ -11,13 +11,13 @@ import { moveTool } from './tools/move-tool';
 import { createShapeTool } from './tools/shape-tool';
 import { constrainLine, constrainSquare } from './constrain';
 import type { ToolType } from './tool-types';
-import { createDrawingOps, createHistoryManager } from './wasm-backend';
+import { createDrawingOps, canvasFactory, createHistoryManager } from './wasm-backend';
 
 // ── Effects: ToolRunner adds RunnerEffect on top of tool-produced ToolEffect ──
 
 /** Effects that only ToolRunner can produce (undo/redo infrastructure). */
 export type RunnerEffect =
-	| { readonly type: 'canvasReplaced'; readonly canvas: WasmPixelCanvas };
+	| { readonly type: 'canvasReplaced'; readonly canvas: PixelCanvas };
 
 /** Union of all effects EditorState must handle. */
 export type EditorEffect = ToolEffect | RunnerEffect;
@@ -25,10 +25,9 @@ export type EditorEffect = ToolEffect | RunnerEffect;
 export type EditorEffects = readonly EditorEffect[];
 
 // ── ToolRunnerHost: read-only queries ToolRunner needs from EditorState ──
-// pixelCanvas remains WasmPixelCanvas until EditorState migrates (commit 4).
 
 export interface ToolRunnerHost {
-	readonly pixelCanvas: WasmPixelCanvas;
+	readonly pixelCanvas: PixelCanvas;
 	readonly foregroundColor: Color;
 	readonly backgroundColor: Color;
 }
@@ -124,7 +123,7 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 		const hasDimensionsChanged =
 			snapshot.width !== canvas.width || snapshot.height !== canvas.height;
 		if (hasDimensionsChanged) {
-			const newCanvas = WasmPixelCanvas.from_pixels(snapshot.width, snapshot.height, snapshot.pixels());
+			const newCanvas = canvasFactory.fromPixels(snapshot.width, snapshot.height, snapshot.pixels());
 			historyVersion++;
 			return [{ type: 'canvasReplaced', canvas: newCanvas }];
 		} else {

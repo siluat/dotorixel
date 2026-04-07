@@ -27,6 +27,7 @@
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load
+- (review) Evaluate serde-wasm-bindgen + tsify for WASM↔TS serialization — revisit when project file format requires multi-type Rust↔JSON↔TS conversion
 - Apple Pencil: hover preview + palm rejection
 - Touch modifier alternatives (Shift-constrain, Alt-eyedropper UI for touchscreen)
 - Feature guide page (basic usage instructions)

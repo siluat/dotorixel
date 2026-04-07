@@ -74,9 +74,9 @@ A concise description of this vertical slice. Describe the end-to-end behavior, 
 
 ## Acceptance criteria
 
-- [ ] Criterion 1
-- [ ] Criterion 2
-- [ ] Criterion 3
+- Criterion 1
+- Criterion 2
+- Criterion 3
 
 ## Blocked by
 

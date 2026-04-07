@@ -19,7 +19,9 @@ import {
 	wasm_flood_fill
 } from '$wasm/dotorixel_wasm';
 import type { CanvasFactory } from './canvas-factory';
+import type { CanvasConstraints } from './canvas-constraints';
 import type { ViewportFactory } from './viewport-factory';
+import type { ViewportOps } from './viewport-ops';
 import type { HistoryManager } from './history';
 import type { DrawingOps, DrawingToolType } from './drawing-ops';
 import type { ResizeAnchor } from './view-types';
@@ -60,7 +62,10 @@ export const canvasFactory: CanvasFactory = {
 			canvas.pixels()
 		);
 		return wasmCanvas.resize_with_anchor(newWidth, newHeight, ANCHOR_MAP[anchor]);
-	},
+	}
+};
+
+export const canvasConstraints: CanvasConstraints = {
 	get minDimension() {
 		return WasmPixelCanvas.min_dimension();
 	},
@@ -75,7 +80,10 @@ export const canvasFactory: CanvasFactory = {
 
 export const viewportFactory: ViewportFactory = {
 	create: (ps, z, px, py) => new WasmViewport(ps, z, px, py),
-	forCanvas: (cw, ch) => WasmViewport.for_canvas(cw, ch),
+	forCanvas: (cw, ch) => WasmViewport.for_canvas(cw, ch)
+};
+
+export const viewportOps: ViewportOps = {
 	clampZoom: (z) => WasmViewport.clamp_zoom(z),
 	computePinchZoom: (cz, dy) => WasmViewport.compute_pinch_zoom(cz, dy),
 	nextZoomLevel: (cz) => WasmViewport.next_zoom_level(cz),

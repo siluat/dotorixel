@@ -1,8 +1,6 @@
-import {
-	WasmPixelCanvas,
-	WasmViewport,
-	WasmResizeAnchor
-} from '$wasm/dotorixel_wasm';
+import { WasmPixelCanvas, WasmResizeAnchor } from '$wasm/dotorixel_wasm';
+import type { Viewport } from './viewport';
+import { viewportFactory, viewportOps } from './wasm-backend';
 import { extractViewportData, type CanvasCoords, type ResizeAnchor, type ViewportSize, type ViewportState } from './view-types';
 import { TOOL_CURSORS, type ToolType } from './tool-types';
 import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
@@ -160,7 +158,7 @@ export class EditorState {
 			const cw = this.pixelCanvas.width;
 			const ch = this.pixelCanvas.height;
 			this.viewportState = {
-				viewport: WasmViewport.for_canvas(cw, ch),
+				viewport: viewportFactory.forCanvas(cw, ch),
 				showGrid: true,
 				gridColor: options.gridColor ?? '#cccccc'
 			};
@@ -212,7 +210,7 @@ export class EditorState {
 		});
 	}
 
-	handleViewportChange = (newViewport: WasmViewport): void => {
+	handleViewportChange = (newViewport: Viewport): void => {
 		const clamped = newViewport.clamp_pan(
 			this.pixelCanvas.width,
 			this.pixelCanvas.height,
@@ -271,7 +269,7 @@ export class EditorState {
 	handleZoomIn = (): void => {
 		const centerX = this.viewportSize.width / 2;
 		const centerY = this.viewportSize.height / 2;
-		const newZoom = WasmViewport.next_zoom_level(this.viewportState.viewport.zoom);
+		const newZoom = viewportOps.nextZoomLevel(this.viewportState.viewport.zoom);
 		const zoomed = this.viewportState.viewport.zoom_at_point(centerX, centerY, newZoom);
 		this.handleViewportChange(zoomed);
 	};
@@ -279,7 +277,7 @@ export class EditorState {
 	handleZoomOut = (): void => {
 		const centerX = this.viewportSize.width / 2;
 		const centerY = this.viewportSize.height / 2;
-		const newZoom = WasmViewport.prev_zoom_level(this.viewportState.viewport.zoom);
+		const newZoom = viewportOps.prevZoomLevel(this.viewportState.viewport.zoom);
 		const zoomed = this.viewportState.viewport.zoom_at_point(centerX, centerY, newZoom);
 		this.handleViewportChange(zoomed);
 	};

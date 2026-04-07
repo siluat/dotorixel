@@ -1,4 +1,5 @@
-import { WasmViewport } from '$wasm/dotorixel_wasm';
+import type { Viewport } from './viewport';
+import { viewportFactory } from './wasm-backend';
 
 export type ResizeAnchor =
 	| 'top-left'
@@ -22,7 +23,7 @@ export interface ViewportSize {
 }
 
 export interface ViewportState {
-	readonly viewport: WasmViewport;
+	readonly viewport: Viewport;
 	readonly showGrid: boolean;
 	readonly gridColor: string;
 }
@@ -54,7 +55,7 @@ export function extractViewportData(state: ViewportState): ViewportData {
 
 export function restoreViewportState(data: ViewportData): ViewportState {
 	return {
-		viewport: new WasmViewport(data.pixelSize, data.zoom, data.panX, data.panY),
+		viewport: viewportFactory.create(data.pixelSize, data.zoom, data.panX, data.panY),
 		showGrid: data.showGrid,
 		gridColor: data.gridColor
 	};

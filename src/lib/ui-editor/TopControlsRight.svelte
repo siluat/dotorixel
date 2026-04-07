@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { WasmPixelCanvas } from '$wasm/dotorixel_wasm';
+	import { canvasConstraints } from '$lib/canvas/wasm-backend';
 	import { Download, Trash2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import FloatingPanel from './FloatingPanel.svelte';
 	import EditorButton from './EditorButton.svelte';
 
-	const CANVAS_PRESETS = Array.from(WasmPixelCanvas.presets());
-	const MAX_DIMENSION = WasmPixelCanvas.max_dimension();
+	const CANVAS_PRESETS = canvasConstraints.presets();
+	const MAX_DIMENSION = canvasConstraints.maxDimension;
 
 	interface Props {
 		canvasWidth: number;

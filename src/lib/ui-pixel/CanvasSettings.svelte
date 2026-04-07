@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { WasmPixelCanvas } from '$wasm/dotorixel_wasm';
+	import { canvasConstraints } from '$lib/canvas/wasm-backend';
 	import * as m from '$lib/paraglide/messages';
 	import PixelPanel from './PixelPanel.svelte';
 	import BevelButton from './BevelButton.svelte';
 
-	const CANVAS_PRESETS = Array.from(WasmPixelCanvas.presets());
+	const CANVAS_PRESETS = canvasConstraints.presets();
 
 	function isValidCanvasDimension(value: number): boolean {
-		return Number.isInteger(value) && WasmPixelCanvas.is_valid_dimension(value);
+		return Number.isInteger(value) && canvasConstraints.isValidDimension(value);
 	}
 
 	interface Props {

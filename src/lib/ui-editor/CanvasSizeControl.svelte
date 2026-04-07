@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { WasmPixelCanvas } from '$wasm/dotorixel_wasm';
+	import { canvasConstraints } from '$lib/canvas/wasm-backend';
 	import * as m from '$lib/paraglide/messages';
 	import type { ResizeAnchor } from '$lib/canvas/view-types';
 	import ValidationAlert from './ValidationAlert.svelte';
 	import AnchorSelector from './AnchorSelector.svelte';
 
-	const CANVAS_PRESETS = Array.from(WasmPixelCanvas.presets());
-	const MIN_DIMENSION = WasmPixelCanvas.min_dimension();
-	const MAX_DIMENSION = WasmPixelCanvas.max_dimension();
+	const CANVAS_PRESETS = canvasConstraints.presets();
+	const MIN_DIMENSION = canvasConstraints.minDimension;
+	const MAX_DIMENSION = canvasConstraints.maxDimension;
 
 	interface Props {
 		canvasWidth: number;
@@ -38,7 +38,7 @@
 	});
 
 	function isValidDimension(value: number): boolean {
-		return Number.isInteger(value) && WasmPixelCanvas.is_valid_dimension(value);
+		return Number.isInteger(value) && canvasConstraints.isValidDimension(value);
 	}
 
 	let isWidthValid = $derived(isValidDimension(inputWidth));

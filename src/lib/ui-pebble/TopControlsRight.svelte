@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { WasmPixelCanvas } from '$wasm/dotorixel_wasm';
+	import { canvasConstraints } from '$lib/canvas/wasm-backend';
 	import { Download, Trash2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import FloatingPanel from './FloatingPanel.svelte';
 	import PebbleButton from './PebbleButton.svelte';
 
-	const CANVAS_PRESETS = Array.from(WasmPixelCanvas.presets());
+	const CANVAS_PRESETS = canvasConstraints.presets();
 
 	interface Props {
 		canvasWidth: number;

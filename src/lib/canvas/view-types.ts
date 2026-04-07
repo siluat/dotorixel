@@ -41,7 +41,6 @@ export interface ViewportData {
 	readonly gridColor: string;
 }
 
-/** Flatten a ViewportState (WASM class + grid fields) into a plain object. */
 export function extractViewportData(state: ViewportState): ViewportData {
 	return {
 		pixelSize: state.viewport.pixel_size,
@@ -53,7 +52,6 @@ export function extractViewportData(state: ViewportState): ViewportData {
 	};
 }
 
-/** Reconstruct a ViewportState from a plain ViewportData object. */
 export function restoreViewportState(data: ViewportData): ViewportState {
 	return {
 		viewport: new WasmViewport(data.pixelSize, data.zoom, data.panX, data.panY),

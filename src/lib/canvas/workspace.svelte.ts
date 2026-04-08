@@ -1,15 +1,14 @@
 import { EditorState } from './editor-state.svelte';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
-import type { ToolType } from './tool-types';
-import type { WorkspaceInit } from '$lib/session/workspace-init-types';
+import { isValidToolType } from './tool-types';
 import type { WorkspaceSnapshot, TabSnapshot } from './workspace-snapshot';
 import { canvasFactory } from './wasm-backend';
 
 export interface WorkspaceOptions {
 	foregroundColor?: Color;
 	gridColor?: string;
-	init?: WorkspaceInit;
+	restored?: WorkspaceSnapshot;
 }
 
 const UNTITLED_PATTERN = /^Untitled (\d+)$/;
@@ -28,8 +27,8 @@ export class Workspace {
 		this.shared = new SharedState();
 		this.#gridColor = options.gridColor;
 
-		if (options.init) {
-			this.#initFromSaved(options.init);
+		if (options.restored) {
+			this.#hydrate(options.restored);
 		} else {
 			if (options.foregroundColor) {
 				this.shared.foregroundColor = options.foregroundColor;
@@ -38,13 +37,14 @@ export class Workspace {
 		}
 	}
 
-	#initFromSaved(init: WorkspaceInit) {
-		this.shared.activeTool = init.sharedState.activeTool as ToolType;
-		this.shared.foregroundColor = init.sharedState.foregroundColor;
-		this.shared.backgroundColor = init.sharedState.backgroundColor;
-		this.shared.recentColors = init.sharedState.recentColors;
+	#hydrate(snapshot: WorkspaceSnapshot) {
+		const tool = snapshot.sharedState.activeTool;
+		this.shared.activeTool = isValidToolType(tool) ? tool : 'pencil';
+		this.shared.foregroundColor = snapshot.sharedState.foregroundColor;
+		this.shared.backgroundColor = snapshot.sharedState.backgroundColor;
+		this.shared.recentColors = [...snapshot.sharedState.recentColors];
 
-		for (const tab of init.tabs) {
+		for (const tab of snapshot.tabs) {
 			const pixelCanvas = canvasFactory.fromPixels(tab.width, tab.height, tab.pixels);
 			const editor = new EditorState({
 				shared: this.shared,
@@ -56,7 +56,7 @@ export class Workspace {
 			this.tabs.push(editor);
 		}
 
-		this.activeTabIndex = init.activeTabIndex;
+		this.activeTabIndex = snapshot.activeTabIndex;
 	}
 
 	addTab() {

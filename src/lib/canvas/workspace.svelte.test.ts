@@ -1,7 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { Workspace } from './workspace.svelte';
-import type { WorkspaceInit } from '$lib/session/workspace-init-types';
 import type { WorkspaceSnapshot } from './workspace-snapshot';
 
 describe('Workspace', () => {
@@ -124,7 +123,7 @@ describe('Workspace', () => {
 
 	it('initializes from saved data with correct tab name and canvas', () => {
 		const pixels = new Uint8Array([255, 0, 0, 255]);
-		const init: WorkspaceInit = {
+		const restored: WorkspaceSnapshot = {
 			tabs: [
 				{
 					id: 'doc-1',
@@ -144,7 +143,7 @@ describe('Workspace', () => {
 			}
 		};
 
-		const workspace = new Workspace({ init });
+		const workspace = new Workspace({ restored });
 
 		expect(workspace.tabs).toHaveLength(1);
 		expect(workspace.activeEditor.name).toBe('My Sprite');
@@ -154,7 +153,7 @@ describe('Workspace', () => {
 	});
 
 	it('initializes from saved data with correct shared state', () => {
-		const init: WorkspaceInit = {
+		const restored: WorkspaceSnapshot = {
 			tabs: [
 				{
 					id: 'doc-1',
@@ -174,7 +173,7 @@ describe('Workspace', () => {
 			}
 		};
 
-		const workspace = new Workspace({ init });
+		const workspace = new Workspace({ restored });
 
 		expect(workspace.activeEditor.activeTool).toBe('line');
 		expect(workspace.activeEditor.foregroundColor).toEqual({ r: 100, g: 50, b: 25, a: 255 });
@@ -183,7 +182,7 @@ describe('Workspace', () => {
 	});
 
 	it('new tabs after restore do not duplicate restored tab names', () => {
-		const init: WorkspaceInit = {
+		const restored: WorkspaceSnapshot = {
 			tabs: [
 				{
 					id: 'doc-1',
@@ -203,7 +202,7 @@ describe('Workspace', () => {
 			}
 		};
 
-		const workspace = new Workspace({ init });
+		const workspace = new Workspace({ restored });
 		workspace.addTab();
 
 		expect(workspace.tabs[1].name).toBe('Untitled 1');

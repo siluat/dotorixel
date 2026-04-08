@@ -6,7 +6,7 @@
  * keeping the mapping in SessionPersistence straightforward.
  */
 export interface WorkspaceSnapshot {
-	readonly tabs: TabSnapshot[];
+	readonly tabs: readonly TabSnapshot[];
 	readonly activeTabIndex: number;
 	readonly sharedState: {
 		readonly activeTool: string;

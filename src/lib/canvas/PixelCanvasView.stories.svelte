@@ -1,9 +1,8 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import PixelCanvasView from './PixelCanvasView.svelte';
-	import type { ViewportState } from './viewport';
 	import type { Color } from './color';
-	import { canvasFactory, viewportFactory } from './wasm-backend';
+	import { canvasFactory, viewportOps } from './wasm-backend';
 
 	const { Story } = defineMeta({
 		component: PixelCanvasView
@@ -12,29 +11,10 @@
 	const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
 	const BLUE: Color = { r: 0, g: 100, b: 255, a: 255 };
 
-	function makeViewportState(width: number, height: number): ViewportState {
-		return {
-			viewport: viewportFactory.forCanvas(width, height),
-			showGrid: true,
-			gridColor: '#cccccc'
-		};
-	}
-
-	function makeRenderViewport(vs: ViewportState) {
-		return {
-			pixelSize: vs.viewport.pixel_size,
-			zoom: vs.viewport.zoom,
-			panX: vs.viewport.pan_x,
-			panY: vs.viewport.pan_y,
-			showGrid: vs.showGrid,
-			gridColor: vs.gridColor
-		};
-	}
-
 	function createEmpty() {
 		const pixelCanvas = canvasFactory.create(16, 16);
-		const viewportState = makeViewportState(16, 16);
-		return { pixelCanvas, viewportState, renderViewport: makeRenderViewport(viewportState) };
+		const viewport = viewportOps.forCanvas(16, 16);
+		return { pixelCanvas, viewport };
 	}
 
 	function createCheckerboard() {
@@ -52,14 +32,14 @@
 			}
 		}
 		const pixelCanvas = canvasFactory.fromPixels(width, height, pixels);
-		const viewportState = makeViewportState(width, height);
-		return { pixelCanvas, viewportState, renderViewport: makeRenderViewport(viewportState) };
+		const viewport = viewportOps.forCanvas(width, height);
+		return { pixelCanvas, viewport };
 	}
 
 	function createFilled() {
 		const pixelCanvas = canvasFactory.withColor(8, 8, RED);
-		const viewportState = makeViewportState(8, 8);
-		return { pixelCanvas, viewportState, renderViewport: makeRenderViewport(viewportState) };
+		const viewport = viewportOps.forCanvas(8, 8);
+		return { pixelCanvas, viewport };
 	}
 </script>
 

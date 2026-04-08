@@ -3,8 +3,8 @@ export { type Color, TRANSPARENT, colorToHex, hexToColor } from './canvas/color.
 export { type CanvasCoords } from './canvas/canvas-types.ts';
 
 export {
-	type ViewportSize,
-	type ViewportState
+	type ViewportData,
+	type ViewportSize
 } from './canvas/viewport.ts';
 
 export { type ToolType } from './canvas/tool-types.ts';

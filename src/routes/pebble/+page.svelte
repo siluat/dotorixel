@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { EditorState } from '$lib/canvas/editor-state.svelte';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
+	import { viewportOps } from '$lib/canvas/wasm-backend';
 	import TopControlsLeft from '$lib/ui-pebble/TopControlsLeft.svelte';
 	import TopControlsRight from '$lib/ui-pebble/TopControlsRight.svelte';
 	import BottomToolsPanel from '$lib/ui-pebble/BottomToolsPanel.svelte';
@@ -53,14 +54,11 @@
 			editor.viewportSize = { width: w, height: h };
 			if (needsInitialFit) {
 				needsInitialFit = false;
-				// WasmViewport.for_canvas() calculates zoom/pan for a 512×512 reference viewport
+				// viewportOps.forCanvas() calculates zoom/pan for a 512×512 reference viewport
 				const defaultViewportSize = 512;
 				const dx = (w - defaultViewportSize) / 2;
 				const dy = (h - defaultViewportSize) / 2;
-				editor.viewportState = {
-					...editor.viewportState,
-					viewport: editor.viewportState.viewport.pan(dx, dy)
-				};
+				editor.viewport = viewportOps.pan(editor.viewport, dx, dy);
 			}
 		});
 		ro.observe(canvasContainerEl);
@@ -74,7 +72,7 @@
 	<TopControlsLeft
 		canUndo={editor.canUndo}
 		canRedo={editor.canRedo}
-		showGrid={editor.viewportState.showGrid}
+		showGrid={editor.viewport.showGrid}
 		showShortcutHints={editor.isShortcutHintsVisible}
 		onUndo={editor.handleUndo}
 		onRedo={editor.handleRedo}
@@ -98,10 +96,9 @@
 	<div class="pebble-canvas-area" bind:this={canvasContainerEl}>
 		<PixelCanvasView
 			pixelCanvas={editor.pixelCanvas}
-			viewportState={editor.viewportState}
+			viewport={editor.viewport}
 			viewportSize={editor.viewportSize}
 			renderVersion={editor.renderVersion}
-			renderViewport={editor.renderViewport}
 			onDraw={editor.handleDraw}
 			onDrawStart={editor.handleDrawStart}
 			onDrawEnd={editor.handleDrawEnd}

@@ -1,9 +1,7 @@
 import type { PixelCanvas } from './pixel-canvas';
-import type { Viewport } from './viewport';
-import { canvasFactory, viewportFactory, viewportOps } from './wasm-backend';
-import type { CanvasCoords } from './canvas-types';
-import type { ResizeAnchor } from './canvas-types';
-import { extractViewportData, type ViewportSize, type ViewportState } from './viewport';
+import { canvasFactory, viewportOps } from './wasm-backend';
+import type { CanvasCoords, ResizeAnchor } from './canvas-types';
+import type { ViewportData, ViewportSize } from './viewport';
 import { TOOL_CURSORS, type ToolType } from './tool-types';
 import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
 import { SharedState } from './shared-state.svelte';
@@ -25,7 +23,7 @@ export interface EditorOptions {
 	name?: string;
 	documentId?: string;
 	pixelCanvas?: PixelCanvas;
-	viewportState?: ViewportState;
+	viewport?: ViewportData;
 }
 
 export class EditorState {
@@ -34,7 +32,7 @@ export class EditorState {
 	readonly documentId: string;
 	pixelCanvas = $state<PixelCanvas>(null!);
 	viewportSize = $state<ViewportSize>({ width: 512, height: 512 });
-	viewportState = $state<ViewportState>(null!);
+	viewport = $state<ViewportData>(null!);
 	renderVersion = $state(0);
 	resizeAnchor = $state<ResizeAnchor>('top-left');
 
@@ -85,9 +83,7 @@ export class EditorState {
 
 	readonly canRedo = $derived.by(() => this.#toolRunner.canRedo);
 
-	readonly zoomPercent = $derived(Math.round(this.viewportState.viewport.zoom * 100));
-
-	readonly renderViewport = $derived(extractViewportData(this.viewportState));
+	readonly zoomPercent = $derived(Math.round(this.viewport.zoom * 100));
 
 	readonly toolCursor = $derived(TOOL_CURSORS[this.activeTool]);
 
@@ -102,15 +98,13 @@ export class EditorState {
 					break;
 				case 'canvasReplaced':
 					this.pixelCanvas = effect.canvas;
-					this.viewportState = {
-						...this.viewportState,
-						viewport: this.viewportState.viewport.clamp_pan(
-							effect.canvas.width,
-							effect.canvas.height,
-							this.viewportSize.width,
-							this.viewportSize.height
-						)
-					};
+					this.viewport = viewportOps.clampPan(
+						this.viewport,
+						effect.canvas.width,
+						effect.canvas.height,
+						this.viewportSize.width,
+						this.viewportSize.height
+					);
 					this.renderVersion++;
 					break;
 				case 'colorPick':
@@ -142,16 +136,13 @@ export class EditorState {
 			this.pixelCanvas = canvasFactory.create(cw, ch);
 		}
 
-		if (options.viewportState) {
-			this.viewportState = options.viewportState;
+		if (options.viewport) {
+			this.viewport = options.viewport;
 		} else {
 			const cw = this.pixelCanvas.width;
 			const ch = this.pixelCanvas.height;
-			this.viewportState = {
-				viewport: viewportFactory.forCanvas(cw, ch),
-				showGrid: true,
-				gridColor: options.gridColor ?? '#cccccc'
-			};
+			const vd = viewportOps.forCanvas(cw, ch);
+			this.viewport = options.gridColor ? { ...vd, gridColor: options.gridColor } : vd;
 		}
 
 		if (options.foregroundColor) {
@@ -199,14 +190,14 @@ export class EditorState {
 		keyboardRef = this.#keyboard;
 	}
 
-	handleViewportChange = (newViewport: Viewport): void => {
-		const clamped = newViewport.clamp_pan(
+	handleViewportChange = (newViewport: ViewportData): void => {
+		this.viewport = viewportOps.clampPan(
+			newViewport,
 			this.pixelCanvas.width,
 			this.pixelCanvas.height,
 			this.viewportSize.width,
 			this.viewportSize.height
 		);
-		this.viewportState = { ...this.viewportState, viewport: clamped };
 	};
 
 	handleDrawStart = (button: number): void => {
@@ -258,39 +249,39 @@ export class EditorState {
 	handleZoomIn = (): void => {
 		const centerX = this.viewportSize.width / 2;
 		const centerY = this.viewportSize.height / 2;
-		const newZoom = viewportOps.nextZoomLevel(this.viewportState.viewport.zoom);
-		const zoomed = this.viewportState.viewport.zoom_at_point(centerX, centerY, newZoom);
+		const newZoom = viewportOps.nextZoomLevel(this.viewport.zoom);
+		const zoomed = viewportOps.zoomAtPoint(this.viewport, centerX, centerY, newZoom);
 		this.handleViewportChange(zoomed);
 	};
 
 	handleZoomOut = (): void => {
 		const centerX = this.viewportSize.width / 2;
 		const centerY = this.viewportSize.height / 2;
-		const newZoom = viewportOps.prevZoomLevel(this.viewportState.viewport.zoom);
-		const zoomed = this.viewportState.viewport.zoom_at_point(centerX, centerY, newZoom);
+		const newZoom = viewportOps.prevZoomLevel(this.viewport.zoom);
+		const zoomed = viewportOps.zoomAtPoint(this.viewport, centerX, centerY, newZoom);
 		this.handleViewportChange(zoomed);
 	};
 
 	handleZoomReset = (): void => {
 		const centerX = this.viewportSize.width / 2;
 		const centerY = this.viewportSize.height / 2;
-		const zoomed = this.viewportState.viewport.zoom_at_point(centerX, centerY, 1.0);
+		const zoomed = viewportOps.zoomAtPoint(this.viewport, centerX, centerY, 1.0);
 		this.handleViewportChange(zoomed);
 	};
 
 	handleFit = (maxZoom: number = Infinity): void => {
-		const fitted = this.viewportState.viewport.fit_to_viewport(
+		this.viewport = viewportOps.fitToViewport(
+			this.viewport,
 			this.pixelCanvas.width,
 			this.pixelCanvas.height,
 			this.viewportSize.width,
 			this.viewportSize.height,
 			maxZoom
 		);
-		this.viewportState = { ...this.viewportState, viewport: fitted };
 	};
 
 	handleGridToggle = (): void => {
-		this.viewportState = { ...this.viewportState, showGrid: !this.viewportState.showGrid };
+		this.viewport = { ...this.viewport, showGrid: !this.viewport.showGrid };
 	};
 
 	handleForegroundColorChange = (hex: string): void => {
@@ -316,13 +307,13 @@ export class EditorState {
 			newHeight,
 			this.resizeAnchor
 		);
-		const clamped = this.viewportState.viewport.clamp_pan(
+		this.viewport = viewportOps.clampPan(
+			this.viewport,
 			newWidth,
 			newHeight,
 			this.viewportSize.width,
 			this.viewportSize.height
 		);
-		this.viewportState = { ...this.viewportState, viewport: clamped };
 		this.renderVersion++;
 	};
 

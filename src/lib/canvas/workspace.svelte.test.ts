@@ -211,7 +211,7 @@ describe('Workspace', () => {
 	it('forwards gridColor to initial tab', () => {
 		const workspace = new Workspace({ gridColor: '#ECE5D9' });
 
-		expect(workspace.activeEditor.viewportState.gridColor).toBe('#ECE5D9');
+		expect(workspace.activeEditor.viewport.gridColor).toBe('#ECE5D9');
 	});
 
 	it('new tabs also receive the configured gridColor', () => {
@@ -219,6 +219,6 @@ describe('Workspace', () => {
 
 		workspace.addTab();
 
-		expect(workspace.tabs[1].viewportState.gridColor).toBe('#ECE5D9');
+		expect(workspace.tabs[1].viewport.gridColor).toBe('#ECE5D9');
 	});
 });

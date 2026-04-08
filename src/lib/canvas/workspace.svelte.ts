@@ -2,8 +2,7 @@ import { EditorState } from './editor-state.svelte';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
 import type { WorkspaceInit } from '$lib/session/workspace-init-types';
-import { canvasFactory, viewportFactory } from './wasm-backend';
-import { restoreViewportState } from './viewport';
+import { canvasFactory } from './wasm-backend';
 
 export interface WorkspaceOptions {
 	foregroundColor?: Color;
@@ -50,7 +49,7 @@ export class Workspace {
 				name: tab.name,
 				documentId: tab.id,
 				pixelCanvas,
-				viewportState: restoreViewportState(tab.viewport, viewportFactory)
+				viewport: tab.viewport
 			});
 			this.tabs.push(editor);
 		}

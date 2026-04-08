@@ -1,4 +1,4 @@
-import type { Viewport } from './viewport';
+import type { ViewportData } from './viewport';
 import { viewportOps } from './wasm-backend';
 import type { CanvasCoords } from './canvas-types';
 
@@ -13,7 +13,7 @@ type InteractionMode =
 	| { type: 'panning'; startX: number; startY: number }
 	| {
 			type: 'pinching';
-			initialViewport: Viewport;
+			initialViewport: ViewportData;
 			initialDistance: number;
 			initialMidX: number;
 			initialMidY: number;
@@ -21,7 +21,7 @@ type InteractionMode =
 
 export interface CanvasInteractionOptions {
 	screenToCanvas: (localX: number, localY: number) => CanvasCoords;
-	getViewport: () => Viewport;
+	getViewport: () => ViewportData;
 	isSpaceHeld: () => boolean;
 }
 
@@ -29,7 +29,7 @@ export interface CanvasInteractionCallbacks {
 	onDrawStart: (button: number) => void;
 	onDraw: (current: CanvasCoords, previous: CanvasCoords | null) => void;
 	onDrawEnd: () => void;
-	onViewportChange: (viewport: Viewport) => void;
+	onViewportChange: (viewport: ViewportData) => void;
 	onLongPress: (coords: CanvasCoords, button: number) => boolean;
 }
 
@@ -213,12 +213,14 @@ export function createCanvasInteraction(
 				const newZoom = viewportOps.clampZoom(
 					interaction.initialViewport.zoom * (currentDistance / interaction.initialDistance)
 				);
-				const zoomed = interaction.initialViewport.zoom_at_point(
+				const zoomed = viewportOps.zoomAtPoint(
+					interaction.initialViewport,
 					interaction.initialMidX,
 					interaction.initialMidY,
 					newZoom
 				);
-				const panned = zoomed.pan(
+				const panned = viewportOps.pan(
+					zoomed,
 					currentMid.x - interaction.initialMidX,
 					currentMid.y - interaction.initialMidY
 				);
@@ -235,7 +237,7 @@ export function createCanvasInteraction(
 				const deltaY = y - interaction.startY;
 				interaction.startX = x;
 				interaction.startY = y;
-				callbacks.onViewportChange(options.getViewport().pan(deltaX, deltaY));
+				callbacks.onViewportChange(viewportOps.pan(options.getViewport(), deltaX, deltaY));
 			}
 		},
 

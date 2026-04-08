@@ -1,9 +1,8 @@
 <script lang="ts">
 	import type { PixelCanvas } from './pixel-canvas';
-	import type { Viewport } from './viewport';
 	import { viewportOps } from './wasm-backend';
 	import type { CanvasCoords } from './canvas-types';
-	import type { ViewportSize, ViewportState } from './viewport';
+	import type { ViewportData, ViewportSize } from './viewport';
 	import * as m from '$lib/paraglide/messages';
 	import { createWheelInputClassifier } from './wheel-input.ts';
 	import { renderPixelCanvas } from './renderer.ts';
@@ -11,21 +10,13 @@
 
 	interface Props {
 		pixelCanvas: PixelCanvas;
-		viewportState: ViewportState;
+		viewport: ViewportData;
 		viewportSize?: ViewportSize;
 		renderVersion?: number;
-		renderViewport: {
-			pixelSize: number;
-			zoom: number;
-			panX: number;
-			panY: number;
-			showGrid: boolean;
-			gridColor: string;
-		};
 		onDraw?: (current: CanvasCoords, previous: CanvasCoords | null) => void;
 		onDrawStart?: (button: number) => void;
 		onDrawEnd?: () => void;
-		onViewportChange?: (viewport: Viewport) => void;
+		onViewportChange?: (viewport: ViewportData) => void;
 		onLongPress?: (coords: CanvasCoords, button: number) => boolean;
 		toolCursor?: string;
 		isSpaceHeld?: boolean;
@@ -33,10 +24,9 @@
 
 	let {
 		pixelCanvas,
-		viewportState,
+		viewport,
 		viewportSize = { width: 512, height: 512 },
 		renderVersion = 0,
-		renderViewport,
 		onDraw,
 		onDrawStart,
 		onDrawEnd,
@@ -51,11 +41,8 @@
 
 	const canvasInteraction = createCanvasInteraction(
 		{
-			screenToCanvas: (x, y) => {
-				const coords = viewportState.viewport.screen_to_canvas(x, y);
-				return { x: coords.x, y: coords.y };
-			},
-			getViewport: () => viewportState.viewport,
+			screenToCanvas: (x, y) => viewportOps.screenToCanvas(viewport, x, y),
+			getViewport: () => viewport,
 			isSpaceHeld: () => isSpaceHeld
 		},
 		{
@@ -77,13 +64,13 @@
 		canvasEl.width = viewportSize.width;
 		canvasEl.height = viewportSize.height;
 
-		renderPixelCanvas(ctx, pixelCanvas, renderViewport, viewportSize);
+		renderPixelCanvas(ctx, pixelCanvas, viewport, viewportSize);
 	});
 
 	// Register wheel listener with { passive: false } to allow preventDefault
 	$effect(() => {
 		if (!canvasEl) return;
-		const vp = viewportState.viewport;
+		const vp = viewport;
 		const handler = (event: WheelEvent) => {
 			if (event.deltaX === 0 && event.deltaY === 0) return;
 			event.preventDefault();
@@ -96,7 +83,7 @@
 			);
 
 			if (inputType === 'trackpadPan') {
-				onViewportChange?.(vp.pan(-event.deltaX, -event.deltaY));
+				onViewportChange?.(viewportOps.pan(vp, -event.deltaX, -event.deltaY));
 				return;
 			}
 
@@ -107,7 +94,7 @@
 			if (inputType === 'pinchZoom') {
 				const newZoom = viewportOps.computePinchZoom(vp.zoom, event.deltaY);
 				if (newZoom !== vp.zoom) {
-					onViewportChange?.(vp.zoom_at_point(screenX, screenY, newZoom));
+					onViewportChange?.(viewportOps.zoomAtPoint(vp, screenX, screenY, newZoom));
 				}
 				return;
 			}
@@ -118,7 +105,7 @@
 				? viewportOps.nextZoomLevel(vp.zoom)
 				: viewportOps.prevZoomLevel(vp.zoom);
 			if (newZoom !== vp.zoom) {
-				onViewportChange?.(vp.zoom_at_point(screenX, screenY, newZoom));
+				onViewportChange?.(viewportOps.zoomAtPoint(vp, screenX, screenY, newZoom));
 			}
 		};
 		canvasEl.addEventListener('wheel', handler, { passive: false });

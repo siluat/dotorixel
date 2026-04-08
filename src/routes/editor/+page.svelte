@@ -154,7 +154,7 @@
 	<div class="editor-docked">
 		<TopBar
 			zoomPercent={editor.zoomPercent}
-			showGrid={editor.viewportState.showGrid}
+			showGrid={editor.viewport.showGrid}
 			onZoomIn={editor.handleZoomIn}
 			onZoomOut={editor.handleZoomOut}
 			onZoomReset={editor.handleZoomReset}
@@ -183,10 +183,9 @@
 		<div class="canvas-area" bind:this={canvasContainerEl}>
 			<PixelCanvasView
 				pixelCanvas={editor.pixelCanvas}
-				viewportState={editor.viewportState}
+				viewport={editor.viewport}
 				viewportSize={editor.viewportSize}
 				renderVersion={editor.renderVersion}
-				renderViewport={editor.renderViewport}
 				onDraw={editor.handleDraw}
 				onDrawStart={editor.handleDrawStart}
 				onDrawEnd={editor.handleDrawEnd}
@@ -222,7 +221,7 @@
 	<div class="editor-tabs">
 		<AppBar
 			activeTab={activeTab}
-			showGrid={editor.viewportState.showGrid}
+			showGrid={editor.viewport.showGrid}
 			zoomPercent={editor.zoomPercent}
 			onGridToggle={editor.handleGridToggle}
 			onExport={handleExport}
@@ -244,10 +243,9 @@
 				<div class="canvas-area" bind:this={canvasContainerEl}>
 					<PixelCanvasView
 						pixelCanvas={editor.pixelCanvas}
-						viewportState={editor.viewportState}
+						viewport={editor.viewport}
 						viewportSize={editor.viewportSize}
 						renderVersion={editor.renderVersion}
-						renderViewport={editor.renderViewport}
 						onDraw={editor.handleDraw}
 						onDrawStart={editor.handleDrawStart}
 						onDrawEnd={editor.handleDrawEnd}
@@ -269,7 +267,7 @@
 				<SettingsContent
 					canvasWidth={editor.pixelCanvas.width}
 					canvasHeight={editor.pixelCanvas.height}
-					showGrid={editor.viewportState.showGrid}
+					showGrid={editor.viewport.showGrid}
 					resizeAnchor={editor.resizeAnchor}
 					onResize={handleResize}
 					onExport={handleExport}

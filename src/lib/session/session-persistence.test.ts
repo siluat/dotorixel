@@ -6,7 +6,7 @@ import { SessionStorage } from './session-storage';
 import { Workspace } from '$lib/canvas/workspace.svelte';
 import type { PixelCanvas } from '$lib/canvas/pixel-canvas';
 import type { Color } from '$lib/canvas/color';
-import { viewportFactory } from '$lib/canvas/wasm-backend';
+import type { ViewportData } from '$lib/canvas/viewport';
 
 function setPixel(canvas: PixelCanvas, x: number, y: number, color: Color) {
 	const pixels = canvas.pixels();
@@ -116,19 +116,17 @@ describe('SessionPersistence', () => {
 	it('preserves per-tab viewport state', async () => {
 		const workspace = new Workspace({ gridColor: '#ECE5D9' });
 		// Tab 0: zoom in, pan right, grid off
-		workspace.tabs[0].viewportState = {
-			viewport: viewportFactory.create(32, 3.0, 100, 0),
-			showGrid: false,
-			gridColor: '#ECE5D9'
-		};
+		workspace.tabs[0].viewport = {
+			pixelSize: 32, zoom: 3.0, panX: 100, panY: 0,
+			showGrid: false, gridColor: '#ECE5D9'
+		} satisfies ViewportData;
 
 		// Tab 1: different viewport
 		workspace.addTab();
-		workspace.tabs[1].viewportState = {
-			viewport: viewportFactory.create(32, 0.5, 0, -50),
-			showGrid: true,
-			gridColor: '#aaaaaa'
-		};
+		workspace.tabs[1].viewport = {
+			pixelSize: 32, zoom: 0.5, panX: 0, panY: -50,
+			showGrid: true, gridColor: '#aaaaaa'
+		} satisfies ViewportData;
 
 		await persistence.save(workspace);
 		const restored = await persistence.restore();

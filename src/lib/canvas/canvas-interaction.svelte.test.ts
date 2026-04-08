@@ -4,7 +4,7 @@ import {
 	type CanvasInteractionOptions,
 	type CanvasInteractionCallbacks
 } from './canvas-interaction.svelte';
-import { viewportFactory } from './wasm-backend';
+import { viewportOps } from './wasm-backend';
 
 function setup(overrides?: {
 	options?: Partial<CanvasInteractionOptions>;
@@ -19,12 +19,9 @@ function setup(overrides?: {
 		...overrides?.callbacks
 	};
 	let spaceHeld = false;
-	const viewport = viewportFactory.forCanvas(16, 16); // pixel_size=32
+	const viewport = viewportOps.forCanvas(16, 16); // pixel_size=32
 	const options: CanvasInteractionOptions = {
-		screenToCanvas: (x, y) => {
-			const coords = viewport.screen_to_canvas(x, y);
-			return { x: coords.x, y: coords.y };
-		},
+		screenToCanvas: (x, y) => viewportOps.screenToCanvas(viewport, x, y),
 		getViewport: () => viewport,
 		isSpaceHeld: () => spaceHeld,
 		...overrides?.options

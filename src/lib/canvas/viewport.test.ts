@@ -28,11 +28,14 @@ describe('ViewportOps camera transforms', () => {
 		expect(coords.y).toBeLessThan(0);
 	});
 
-	it('zoomAtPoint changes zoom and adjusts pan', () => {
+	it('zoomAtPoint changes zoom and preserves anchor point', () => {
+		const before = viewportOps.screenToCanvas(defaultVd, 100, 100);
 		const zoomed = viewportOps.zoomAtPoint(defaultVd, 100, 100, 2.0);
+		const after = viewportOps.screenToCanvas(zoomed, 100, 100);
 
 		expect(zoomed.zoom).toBe(2.0);
 		expect(zoomed.pixelSize).toBe(defaultVd.pixelSize);
+		expect(after).toEqual(before);
 	});
 
 	it('zoomAtPoint preserves grid settings', () => {
@@ -73,10 +76,13 @@ describe('ViewportOps camera transforms', () => {
 		expect(clamped.panY).toBe(0);
 	});
 
-	it('fitToViewport produces valid zoom', () => {
-		const fitted = viewportOps.fitToViewport(defaultVd, 16, 16, 800, 600, Infinity);
+	it('fitToViewport fits canvas within viewport', () => {
+		// Use a 512×512 viewport where 16×16 canvas (pixelSize=32) fits exactly at zoom=1.0
+		const fitted = viewportOps.fitToViewport(defaultVd, 16, 16, 512, 512, Infinity);
+		const displaySize = viewportOps.displaySize(fitted, 16, 16);
 
-		expect(fitted.zoom).toBeGreaterThan(0);
+		expect(displaySize.width).toBeLessThanOrEqual(512);
+		expect(displaySize.height).toBeLessThanOrEqual(512);
 	});
 
 	it('fitToViewport respects maxZoom', () => {

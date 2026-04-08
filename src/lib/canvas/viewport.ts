@@ -23,7 +23,7 @@ export interface ViewportData {
  * Implemented by the WASM adapter; consumers import the singleton from wasm-backend.
  */
 export interface ViewportOps {
-	// Camera transforms (each returns a new ViewportData)
+	// Camera queries and transforms
 	screenToCanvas(vd: ViewportData, screenX: number, screenY: number): CanvasCoords;
 	zoomAtPoint(
 		vd: ViewportData,

@@ -12,6 +12,7 @@
 	"action_redo": "다시 실행",
 	"action_toggleGrid": "격자 전환",
 	"action_exportPng": "PNG 내보내기",
+	"action_exportFormat": "{format} 내보내기",
 	"action_clearCanvas": "캔버스 지우기",
 	"action_zoomIn": "확대",
 	"action_zoomOut": "축소",
@@ -53,6 +54,8 @@
 	"section_display": "화면",
 
 	"label_export": "내보내기",
+	"label_format": "형식",
+	"label_filename": "파일 이름",
 	"label_showGrid": "격자 표시",
 	"label_anchor": "기준점",
 

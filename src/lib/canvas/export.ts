@@ -22,8 +22,12 @@ export const availableFormats: ExportFormat[] = [
 	{ id: 'png', label: 'PNG', extension: 'png', exportFn: exportAsPng }
 ];
 
+export function generateDefaultStem(canvas: { width: number; height: number }): string {
+	return `dotorixel-${canvas.width}x${canvas.height}`;
+}
+
 export function generateExportFilename(canvas: { width: number; height: number }): string {
-	return `dotorixel-${canvas.width}x${canvas.height}.png`;
+	return `${generateDefaultStem(canvas)}.png`;
 }
 
 export function stripKnownExtension(input: string, knownExtensions: string[]): string {
@@ -39,7 +43,7 @@ export function buildExportFilename(
 	extension: string,
 	canvas: { width: number; height: number }
 ): string {
-	const effectiveStem = stem.trim() || `dotorixel-${canvas.width}x${canvas.height}`;
+	const effectiveStem = stem.trim() || generateDefaultStem(canvas);
 	return `${effectiveStem}.${extension}`;
 }
 

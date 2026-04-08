@@ -13,7 +13,7 @@ A 2D pixel art editor. Positioned as a learning-first, cross-platform tool.
 | Package Manager | bun | Always `bun run <script>`, never bare `bun <script>` |
 | Build | Vite + wasm-pack | |
 | Web Deployment | Vercel | SPA via adapter-static |
-| Testing | Vitest | Unified test runner — pure functions now, component tests later |
+| Testing | Vitest + happy-dom | Unified test runner — pure functions now, component tests later |
 | Component Preview | Storybook 10 | `@storybook/sveltekit`, Svelte CSF v5 |
 | i18n | Paraglide.js | Compile-time, URL path routing (`/en/`, `/ko/`, `/ja/`) |
 

@@ -12,6 +12,7 @@
 	"action_redo": "Redo",
 	"action_toggleGrid": "Toggle Grid",
 	"action_exportPng": "Export PNG",
+	"action_exportFormat": "Export {format}",
 	"action_clearCanvas": "Clear Canvas",
 	"action_zoomIn": "Zoom In",
 	"action_zoomOut": "Zoom Out",
@@ -53,6 +54,8 @@
 	"section_display": "Display",
 
 	"label_export": "Export",
+	"label_format": "Format",
+	"label_filename": "Filename",
 	"label_showGrid": "Show Grid",
 	"label_anchor": "Anchor",
 

@@ -222,4 +222,4 @@ Tests should verify observable behavior at the module boundary — "given this i
 
 ### Notes
 - `src/lib/index.ts` barrel file was an initially missed consumer — caught by pre-commit `svelte-check`
-- Test count increased from 433 to 449 (16 new ViewportOps boundary tests + 1 mock factory test, 3 existing tests migrated)
+- Test count increased from 433 to 449 (16 new tests, 3 existing tests migrated)

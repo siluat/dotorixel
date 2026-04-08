@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-026 — Consolidate viewport module
+027 — Deepen ToolRunner — StrokeLifecycle pattern
 
 ## Next Up
 

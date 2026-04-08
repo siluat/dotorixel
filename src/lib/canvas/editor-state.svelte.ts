@@ -161,10 +161,12 @@ export class EditorState {
 			this.shared.backgroundColor = options.backgroundColor;
 		}
 
-		// Step 1: Create ToolRunner (no isShiftHeld yet)
+		// Step 1: Create ToolRunner (getShiftHeld via lazy ref)
 		const self = this;
-		this.#toolRunner = createToolRunner(
-			{
+		let keyboardRef: KeyboardInput | null = null;
+
+		this.#toolRunner = createToolRunner({
+			host: {
 				get pixelCanvas() {
 					return self.pixelCanvas;
 				},
@@ -175,10 +177,11 @@ export class EditorState {
 					return self.backgroundColor;
 				}
 			},
-			this.shared
-		);
+			shared: this.shared,
+			getShiftHeld: () => keyboardRef?.isShiftHeld ?? false
+		});
 
-		// Step 2: Create KeyboardInput (references toolRunner.isDrawing)
+		// Step 2: Create KeyboardInput (toolRunner is initialized — callbacks are safe)
 		this.#keyboard = createKeyboardInput({
 			isDrawing: () => this.#toolRunner.isDrawing,
 			getActiveTool: () => this.activeTool,
@@ -193,11 +196,7 @@ export class EditorState {
 				this.#applyEffects(this.#toolRunner.modifierChanged());
 			}
 		});
-
-		// Step 3: Wire isShiftHeld to ToolRunner
-		this.#toolRunner.connectModifiers({
-			isShiftHeld: () => this.#keyboard.isShiftHeld
-		});
+		keyboardRef = this.#keyboard;
 	}
 
 	handleViewportChange = (newViewport: Viewport): void => {

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
-import { createToolRunner, type ToolRunnerHost, type EditorEffects } from './tool-runner.svelte';
+import { createToolRunner, type ToolRunnerHost, type ToolRunnerDeps, type EditorEffects } from './tool-runner.svelte';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
 import type { PixelCanvas } from './pixel-canvas';
@@ -36,8 +36,7 @@ function createHost(canvas?: PixelCanvas, fg?: Color, bg?: Color): ToolRunnerHos
 function createRunner(canvas?: PixelCanvas, fg?: Color, bg?: Color) {
 	const host = createHost(canvas, fg, bg);
 	const shared = new SharedState();
-	const runner = createToolRunner(host, shared);
-	runner.connectModifiers({ isShiftHeld: () => false });
+	const runner = createToolRunner({ host, shared, getShiftHeld: () => false });
 	return { host, shared, runner };
 }
 
@@ -84,8 +83,7 @@ describe('ToolRunner — eyedropper tool', () => {
 		const host = { pixelCanvas: canvas, foregroundColor: RED, backgroundColor: WHITE } as ToolRunnerHost;
 		// Use a separate runner with red foreground
 		const shared2 = new SharedState();
-		const runner2 = createToolRunner(host, shared2);
-		runner2.connectModifiers({ isShiftHeld: () => false });
+		const runner2 = createToolRunner({ host, shared: shared2, getShiftHeld: () => false });
 		runner2.drawStart(0);
 		runner2.draw({ x: 2, y: 2 }, null);
 		runner2.drawEnd();
@@ -404,8 +402,7 @@ describe('ToolRunner — canvasReplaced', () => {
 			}
 		};
 		const shared = new SharedState();
-		const runner = createToolRunner(host, shared);
-		runner.connectModifiers({ isShiftHeld: () => false });
+		const runner = createToolRunner({ host, shared, getShiftHeld: () => false });
 
 		// Push snapshot of 8x8, then simulate resize by swapping the canvas
 		runner.pushSnapshot();
@@ -460,17 +457,16 @@ describe('ToolRunner — guards', () => {
 	});
 });
 
-// ── connectModifiers ────────────────────────────────────────────────
+// ── Shift constraint ────────────────────────────────────────────────
 
-describe('ToolRunner — connectModifiers', () => {
+describe('ToolRunner — shift constraint', () => {
 	it('propagates isShiftHeld to shape tool constraint', () => {
 		const canvas = canvasFactory.create(8, 8);
 		const host = createHost(canvas);
 		const shared = new SharedState();
 		shared.activeTool = 'line';
-		const runner = createToolRunner(host, shared);
 		let shiftHeld = false;
-		runner.connectModifiers({ isShiftHeld: () => shiftHeld });
+		const runner = createToolRunner({ host, shared, getShiftHeld: () => shiftHeld });
 
 		shiftHeld = true;
 		runner.drawStart(0);
@@ -488,9 +484,8 @@ describe('ToolRunner — connectModifiers', () => {
 		const host = createHost(canvas);
 		const shared = new SharedState();
 		shared.activeTool = 'line';
-		const runner = createToolRunner(host, shared);
 		let shiftHeld = false;
-		runner.connectModifiers({ isShiftHeld: () => shiftHeld });
+		const runner = createToolRunner({ host, shared, getShiftHeld: () => shiftHeld });
 
 		runner.drawStart(0);
 		runner.draw({ x: 0, y: 0 }, null);

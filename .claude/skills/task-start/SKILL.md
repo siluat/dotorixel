@@ -13,7 +13,9 @@ Follow these steps in order when starting a task.
 
 1. Read `tasks/progress.md` to understand the current state.
 
-2. **Check "Currently Working On"**: If not "None", notify the user that a previous task is still in progress and ask whether to continue it or start a new one.
+2. **Check "Currently Working On"**: If not "None":
+   - **In-progress PRD**: If the current item is a PRD (has a `[PRD]` link), look up its remaining sub-issues in `tasks/todo.md` and present those as the task selection options. Apply the same selection logic as Step 3 (2+ → ask, 1 → start directly, 0 → notify complete and stop). Then skip to Step 4.
+   - **Other task**: Notify the user that a previous task is still in progress and ask whether to continue it or start a new one.
 
 3. **Select task from "Next Up"**:
    - 2 or more items → use `AskUserQuestion` to let the user choose which task to work on.

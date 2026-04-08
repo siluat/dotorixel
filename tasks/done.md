@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 035 | [SVG web export](../issues/035-svg-web-export.md) | 2026-04-09 |
 | 038 | [Mobile ExportBottomSheet](../issues/038-export-bottom-sheet-mobile.md) | 2026-04-09 |
 | 037 | [Desktop ExportPopover](../issues/037-export-popover-desktop.md) | 2026-04-09 |
 | 036 | [Export logic foundation](../issues/036-export-logic-foundation.md) | 2026-04-09 |

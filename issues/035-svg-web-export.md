@@ -1,6 +1,6 @@
 ---
 title: SVG web export — TypeScript download + Export UI integration
-status: open
+status: done
 created: 2026-04-09
 parent: 031-svg-export.md
 ---
@@ -31,3 +31,11 @@ From parent PRD [031](031-svg-export.md):
 
 - Scenario 1: User exports → SVG file downloaded (end-to-end through UI)
 - Scenario 2: Exported SVG renders crisply (guaranteed by 034's encoding)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/pixel-canvas.ts` | Added `encode_svg(): string` to `PixelCanvas` interface |
+| `src/lib/canvas/export.ts` | Added `SvgEncodable` interface, `isSvgEncodable` type guard, `exportAsSvg()` function, SVG entry in `availableFormats` |
+| `src/lib/canvas/export.test.ts` | Added test verifying SVG entry in `availableFormats` |

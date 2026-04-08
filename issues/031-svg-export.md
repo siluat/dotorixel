@@ -1,6 +1,6 @@
 ---
 title: SVG export
-status: open
+status: done
 created: 2026-04-08
 ---
 

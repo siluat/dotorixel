@@ -9,8 +9,6 @@
 
 ### Export & sharing
 
-- SVG export — [PRD](../issues/031-svg-export.md)
-  - [035 — SVG web export](../issues/035-svg-web-export.md)
 - Design: share artwork dialog — URL 공유 다이얼로그 UI (.pen)
 - Share artwork via URL
 

@@ -64,7 +64,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | PNG | ✅ | ✅ | 🔧 | Apple: core ready, UI disabled |
-| SVG | ✅ | ⬜ | ⬜ | Core encoder + WASM binding done; web download pending |
+| SVG | ✅ | ✅ | ⬜ | Apple: core ready, UI not wired |
 | Export UI — desktop | — | ✅ | ⬜ | Popover: format selector, filename input, confirmation |
 | Export UI — mobile | — | ✅ | — | Bottom sheet (vaul-svelte); format selector, filename input, export button |
 

@@ -12,6 +12,7 @@
 	"action_redo": "やり直す",
 	"action_toggleGrid": "グリッド切替",
 	"action_exportPng": "PNG書き出し",
+	"action_exportFormat": "{format}書き出し",
 	"action_clearCanvas": "キャンバスをクリア",
 	"action_zoomIn": "拡大",
 	"action_zoomOut": "縮小",
@@ -53,6 +54,8 @@
 	"section_display": "表示",
 
 	"label_export": "書き出し",
+	"label_format": "フォーマット",
+	"label_filename": "ファイル名",
 	"label_showGrid": "グリッド表示",
 	"label_anchor": "アンカー",
 

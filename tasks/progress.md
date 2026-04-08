@@ -7,16 +7,14 @@
 
 ## Last Completed
 
-036 — Export logic foundation
+037 — Desktop ExportPopover
 
 ## Next Up
 
-- 037 — Desktop ExportPopover
-  - 036 done. Can start immediately. Desktop end-to-end export UI.
 - 038 — Mobile ExportBottomSheet
-  - 036 done. Can start immediately. Mobile end-to-end export UI.
+  - 037 done. Can start immediately. Mobile end-to-end export UI.
 - 035 — SVG web export
-  - Depends on 037 (Export UI must exist). Blocked.
+  - 037 done (Export UI exists). Can start immediately. Wires SVG encoder into format registry.
 - 018 — RightPanel (Apple Native)
   - Independent. Can start immediately.
 - Design: saved work browser (.pen)

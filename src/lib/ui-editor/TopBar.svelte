@@ -8,28 +8,40 @@
 	} from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { tooltip } from '$lib/tooltip';
+	import ExportPopover from './ExportPopover.svelte';
+	import type { ExportFormat } from '$lib/canvas/export';
 
 	interface Props {
 		zoomPercent: number;
 		showGrid: boolean;
+		isExportOpen: boolean;
+		canvasWidth: number;
+		canvasHeight: number;
 		onZoomIn: () => void;
 		onZoomOut: () => void;
 		onZoomReset: () => void;
 		onFit: () => void;
 		onGridToggle: () => void;
-		onExport: () => void;
+		onExportToggle: () => void;
+		onExportConfirm: (format: ExportFormat, filenameStem: string) => void;
 	}
 
 	let {
 		zoomPercent,
 		showGrid,
+		isExportOpen,
+		canvasWidth,
+		canvasHeight,
 		onZoomIn,
 		onZoomOut,
 		onZoomReset,
 		onFit,
 		onGridToggle,
-		onExport
+		onExportToggle,
+		onExportConfirm
 	}: Props = $props();
+
+	let exportBtnEl = $state<HTMLButtonElement>();
 </script>
 
 <header class="top-bar">
@@ -66,10 +78,30 @@
 			<Grid3X3 size={16} />
 		</button>
 
-		<button class="export-btn" onclick={onExport} aria-label={m.action_exportPng()} use:tooltip={m.action_exportPng()}>
-			<Download size={14} />
-			<span>{m.label_export()}</span>
-		</button>
+		<div class="export-wrapper">
+			<button
+				bind:this={exportBtnEl}
+				class="export-btn"
+				class:export-btn--active={isExportOpen}
+				onclick={onExportToggle}
+				aria-label={m.label_export()}
+				aria-expanded={isExportOpen}
+				use:tooltip={m.label_export()}
+			>
+				<Download size={14} />
+				<span>{m.label_export()}</span>
+			</button>
+
+			{#if isExportOpen}
+				<ExportPopover
+					{canvasWidth}
+					{canvasHeight}
+					onExport={onExportConfirm}
+					onClose={onExportToggle}
+					excludeElements={exportBtnEl ? [exportBtnEl] : []}
+				/>
+			{/if}
+		</div>
 	</div>
 </header>
 
@@ -173,6 +205,10 @@
 		color: var(--ds-accent);
 	}
 
+	.export-wrapper {
+		position: relative;
+	}
+
 	.export-btn {
 		display: flex;
 		align-items: center;
@@ -191,5 +227,13 @@
 
 	.export-btn:hover {
 		background: color-mix(in srgb, var(--ds-accent) 85%, black);
+	}
+
+	.export-btn--active {
+		background: #8a5d20;
+	}
+
+	.export-btn--active:hover {
+		background: #8a5d20;
 	}
 </style>

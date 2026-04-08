@@ -23,6 +23,12 @@
 		trackCanvasSize,
 		trackSessionEnd
 	} from '$lib/analytics/events';
+	import {
+		availableFormats,
+		stripKnownExtension,
+		buildExportFilename,
+		type ExportFormat
+	} from '$lib/canvas/export';
 
 	type MobileTab = 'draw' | 'colors' | 'settings';
 
@@ -146,6 +152,15 @@
 		editor.handleExportPng();
 		trackExport(editor.pixelCanvas.width, editor.pixelCanvas.height, 'png');
 	}
+
+	function handleExportConfirm(format: ExportFormat, filenameStem: string) {
+		const knownExtensions = availableFormats.map((f) => f.extension);
+		const cleanStem = stripKnownExtension(filenameStem, knownExtensions);
+		const filename = buildExportFilename(cleanStem, format.extension, editor.pixelCanvas);
+		format.exportFn(editor.pixelCanvas, filename);
+		trackExport(editor.pixelCanvas.width, editor.pixelCanvas.height, format.id);
+		editor.isExportUIOpen = false;
+	}
 </script>
 
 <svelte:window onkeydown={editor.handleKeyDown} onkeyup={editor.handleKeyUp} onblur={editor.handleBlur} onbeforeunload={flushSession} />
@@ -155,12 +170,16 @@
 		<TopBar
 			zoomPercent={editor.zoomPercent}
 			showGrid={editor.viewport.showGrid}
+			isExportOpen={editor.isExportUIOpen}
+			canvasWidth={editor.pixelCanvas.width}
+			canvasHeight={editor.pixelCanvas.height}
 			onZoomIn={editor.handleZoomIn}
 			onZoomOut={editor.handleZoomOut}
 			onZoomReset={editor.handleZoomReset}
 			onFit={editor.handleFit}
 			onGridToggle={editor.handleGridToggle}
-			onExport={handleExport}
+			onExportToggle={editor.toggleExportUI}
+			onExportConfirm={handleExportConfirm}
 		/>
 
 		<TabStrip

@@ -84,7 +84,7 @@
 				title={m.canvas_height()}
 			/>
 		</div>
-		<EditorButton title={m.action_exportPng()} onclick={onExport}>
+		<EditorButton title={m.label_export()} onclick={onExport}>
 			<Download size={18} />
 		</EditorButton>
 		<EditorButton title={m.action_clearCanvas()} onclick={onClear}>

@@ -2,11 +2,6 @@
 
 ## Milestone 2: Production UIUX
 
-### Architecture follow-up
-
-- Migrate consumer tests to facade test doubles (depends on 024)
-- Migrate story files to facade factories (depends on 024)
-
 ### Multi-image workflow
 
 - Design: saved work browser — list/modal UI for reopening past work (.pen)

@@ -1,16 +1,17 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
-import { WasmPixelCanvas, WasmColor } from '$wasm/dotorixel_wasm';
 import { createToolRunner, type ToolRunnerHost, type EditorEffects } from './tool-runner.svelte';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
+import type { PixelCanvas } from './pixel-canvas';
+import { canvasFactory } from './wasm-backend';
 
 const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
 const WHITE: Color = { r: 255, g: 255, b: 255, a: 255 };
 const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
 
-function createHost(canvas?: WasmPixelCanvas, fg?: Color, bg?: Color): ToolRunnerHost {
-	const pixelCanvas = canvas ?? new WasmPixelCanvas(8, 8);
+function createHost(canvas?: PixelCanvas, fg?: Color, bg?: Color): ToolRunnerHost {
+	const pixelCanvas = canvas ?? canvasFactory.create(8, 8);
 	let foregroundColor = fg ?? BLACK;
 	let backgroundColor = bg ?? WHITE;
 	return {
@@ -32,7 +33,7 @@ function createHost(canvas?: WasmPixelCanvas, fg?: Color, bg?: Color): ToolRunne
 	} as ToolRunnerHost;
 }
 
-function createRunner(canvas?: WasmPixelCanvas, fg?: Color, bg?: Color) {
+function createRunner(canvas?: PixelCanvas, fg?: Color, bg?: Color) {
 	const host = createHost(canvas, fg, bg);
 	const shared = new SharedState();
 	const runner = createToolRunner(host, shared);
@@ -40,7 +41,7 @@ function createRunner(canvas?: WasmPixelCanvas, fg?: Color, bg?: Color) {
 	return { host, shared, runner };
 }
 
-function getPixel(canvas: WasmPixelCanvas, x: number, y: number) {
+function getPixel(canvas: PixelCanvas, x: number, y: number) {
 	const p = canvas.get_pixel(x, y);
 	return { r: p.r, g: p.g, b: p.b, a: p.a };
 }
@@ -64,7 +65,7 @@ describe('ToolRunner — pencil tool', () => {
 	});
 
 	it('draws a pixel on the canvas', () => {
-		const canvas = new WasmPixelCanvas(8, 8);
+		const canvas = canvasFactory.create(8, 8);
 		const { runner } = createRunner(canvas);
 		runner.drawStart(0);
 		runner.draw({ x: 3, y: 3 }, null);
@@ -76,7 +77,7 @@ describe('ToolRunner — pencil tool', () => {
 
 describe('ToolRunner — eyedropper tool', () => {
 	it('produces colorPick effect, no canvasChanged', () => {
-		const canvas = new WasmPixelCanvas(8, 8);
+		const canvas = canvasFactory.create(8, 8);
 		// Paint a red pixel first
 		const { runner, shared } = createRunner(canvas);
 		shared.activeTool = 'pencil';
@@ -115,7 +116,7 @@ describe('ToolRunner — eyedropper tool', () => {
 
 describe('ToolRunner — floodfill tool', () => {
 	it('fills on first draw, ignores subsequent drags', () => {
-		const canvas = new WasmPixelCanvas(4, 4);
+		const canvas = canvasFactory.create(4, 4);
 		const { runner, shared } = createRunner(canvas);
 		shared.activeTool = 'floodfill';
 
@@ -132,7 +133,7 @@ describe('ToolRunner — floodfill tool', () => {
 
 describe('ToolRunner — shape tool', () => {
 	it('draws a line and produces correct effects', () => {
-		const canvas = new WasmPixelCanvas(8, 8);
+		const canvas = canvasFactory.create(8, 8);
 		const { runner, shared } = createRunner(canvas);
 		shared.activeTool = 'line';
 
@@ -148,7 +149,7 @@ describe('ToolRunner — shape tool', () => {
 	});
 
 	it('cleans up preview artifacts on drawEnd', () => {
-		const canvas = new WasmPixelCanvas(8, 8);
+		const canvas = canvasFactory.create(8, 8);
 		const { runner, shared } = createRunner(canvas);
 		shared.activeTool = 'line';
 
@@ -169,7 +170,7 @@ describe('ToolRunner — shape tool', () => {
 
 describe('ToolRunner — move tool', () => {
 	it('shifts canvas content and produces canvasChanged', () => {
-		const canvas = new WasmPixelCanvas(8, 8);
+		const canvas = canvasFactory.create(8, 8);
 		const { runner, shared } = createRunner(canvas);
 
 		// Paint a pixel with pencil
@@ -194,7 +195,7 @@ describe('ToolRunner — move tool', () => {
 
 describe('ToolRunner — eraser tool', () => {
 	it('erases pixels to transparent', () => {
-		const canvas = new WasmPixelCanvas(8, 8);
+		const canvas = canvasFactory.create(8, 8);
 		const { runner, shared } = createRunner(canvas);
 
 		// Paint a pixel with pencil
@@ -276,7 +277,7 @@ describe('ToolRunner — addsActiveColor', () => {
 
 describe('ToolRunner — oneShot guard', () => {
 	it('eyedropper ignores second draw within same stroke', () => {
-		const canvas = new WasmPixelCanvas(8, 8);
+		const canvas = canvasFactory.create(8, 8);
 		const { runner, shared } = createRunner(canvas);
 
 		// Paint pixels with different approach: use floodfill to fill canvas with black
@@ -302,7 +303,7 @@ describe('ToolRunner — oneShot guard', () => {
 
 describe('ToolRunner — right-click', () => {
 	it('uses background color for pencil on right-click', () => {
-		const canvas = new WasmPixelCanvas(8, 8);
+		const canvas = canvasFactory.create(8, 8);
 		const { runner } = createRunner(canvas);
 
 		runner.drawStart(2);
@@ -347,7 +348,7 @@ describe('ToolRunner — history', () => {
 	});
 
 	it('undo restores previous canvas state', () => {
-		const canvas = new WasmPixelCanvas(8, 8);
+		const canvas = canvasFactory.create(8, 8);
 		const { runner } = createRunner(canvas);
 
 		runner.drawStart(0);
@@ -360,7 +361,7 @@ describe('ToolRunner — history', () => {
 	});
 
 	it('clear pushes snapshot and returns canvasChanged', () => {
-		const canvas = new WasmPixelCanvas(8, 8);
+		const canvas = canvasFactory.create(8, 8);
 		const { runner } = createRunner(canvas);
 
 		runner.drawStart(0);
@@ -377,7 +378,7 @@ describe('ToolRunner — history', () => {
 	});
 
 	it('pushSnapshot makes canUndo true', () => {
-		const canvas = new WasmPixelCanvas(8, 8);
+		const canvas = canvasFactory.create(8, 8);
 		const { runner } = createRunner(canvas);
 
 		expect(runner.canUndo).toBe(false);
@@ -390,7 +391,7 @@ describe('ToolRunner — history', () => {
 
 describe('ToolRunner — canvasReplaced', () => {
 	it('returns canvasReplaced on undo when dimensions changed', () => {
-		let currentCanvas = new WasmPixelCanvas(8, 8);
+		let currentCanvas = canvasFactory.create(8, 8);
 		const host: ToolRunnerHost = {
 			get pixelCanvas() {
 				return currentCanvas;
@@ -408,7 +409,7 @@ describe('ToolRunner — canvasReplaced', () => {
 
 		// Push snapshot of 8x8, then simulate resize by swapping the canvas
 		runner.pushSnapshot();
-		currentCanvas = new WasmPixelCanvas(16, 16);
+		currentCanvas = canvasFactory.create(16, 16);
 
 		const effects = runner.undo();
 		const replaced = effects.find((e) => e.type === 'canvasReplaced');
@@ -463,7 +464,7 @@ describe('ToolRunner — guards', () => {
 
 describe('ToolRunner — connectModifiers', () => {
 	it('propagates isShiftHeld to shape tool constraint', () => {
-		const canvas = new WasmPixelCanvas(8, 8);
+		const canvas = canvasFactory.create(8, 8);
 		const host = createHost(canvas);
 		const shared = new SharedState();
 		shared.activeTool = 'line';
@@ -483,7 +484,7 @@ describe('ToolRunner — connectModifiers', () => {
 	});
 
 	it('responds to shift toggle mid-stroke via modifierChanged', () => {
-		const canvas = new WasmPixelCanvas(8, 8);
+		const canvas = canvasFactory.create(8, 8);
 		const host = createHost(canvas);
 		const shared = new SharedState();
 		shared.activeTool = 'line';

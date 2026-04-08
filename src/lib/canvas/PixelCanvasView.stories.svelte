@@ -1,19 +1,20 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import PixelCanvasView from './PixelCanvasView.svelte';
-	import { WasmPixelCanvas, WasmColor, WasmViewport } from '$wasm/dotorixel_wasm';
 	import type { ViewportState } from './view-types';
+	import type { Color } from './color';
+	import { canvasFactory, viewportFactory } from './wasm-backend';
 
 	const { Story } = defineMeta({
 		component: PixelCanvasView
 	});
 
-	const RED = new WasmColor(255, 0, 0, 255);
-	const BLUE = new WasmColor(0, 100, 255, 255);
+	const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
+	const BLUE: Color = { r: 0, g: 100, b: 255, a: 255 };
 
 	function makeViewportState(width: number, height: number): ViewportState {
 		return {
-			viewport: WasmViewport.for_canvas(width, height),
+			viewport: viewportFactory.forCanvas(width, height),
 			showGrid: true,
 			gridColor: '#cccccc'
 		};
@@ -31,25 +32,32 @@
 	}
 
 	function createEmpty() {
-		const pixelCanvas = new WasmPixelCanvas(16, 16);
+		const pixelCanvas = canvasFactory.create(16, 16);
 		const viewportState = makeViewportState(16, 16);
 		return { pixelCanvas, viewportState, renderViewport: makeRenderViewport(viewportState) };
 	}
 
 	function createCheckerboard() {
-		const pixelCanvas = new WasmPixelCanvas(16, 16);
-		for (let y = 0; y < 16; y++) {
-			for (let x = 0; x < 16; x++) {
-				const isEven = (x + y) % 2 === 0;
-				pixelCanvas.set_pixel(x, y, isEven ? RED : BLUE);
+		const width = 16;
+		const height = 16;
+		const pixels = new Uint8Array(width * height * 4);
+		for (let y = 0; y < height; y++) {
+			for (let x = 0; x < width; x++) {
+				const idx = (y * width + x) * 4;
+				const color = (x + y) % 2 === 0 ? RED : BLUE;
+				pixels[idx] = color.r;
+				pixels[idx + 1] = color.g;
+				pixels[idx + 2] = color.b;
+				pixels[idx + 3] = color.a;
 			}
 		}
-		const viewportState = makeViewportState(16, 16);
+		const pixelCanvas = canvasFactory.fromPixels(width, height, pixels);
+		const viewportState = makeViewportState(width, height);
 		return { pixelCanvas, viewportState, renderViewport: makeRenderViewport(viewportState) };
 	}
 
 	function createFilled() {
-		const pixelCanvas = WasmPixelCanvas.with_color(8, 8, RED);
+		const pixelCanvas = canvasFactory.withColor(8, 8, RED);
 		const viewportState = makeViewportState(8, 8);
 		return { pixelCanvas, viewportState, renderViewport: makeRenderViewport(viewportState) };
 	}

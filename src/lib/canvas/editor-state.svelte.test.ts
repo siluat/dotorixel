@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { EditorState } from './editor-state.svelte';
-import { TOOL_CURSORS, type ToolType } from './tool-types';
+import { TOOL_CURSORS, type ToolType } from './tool-registry';
 import type { CanvasCoords } from './canvas-types';
 
 function createEditor() {

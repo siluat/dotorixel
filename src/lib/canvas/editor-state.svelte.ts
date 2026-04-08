@@ -2,7 +2,7 @@ import type { PixelCanvas } from './pixel-canvas';
 import { canvasFactory, viewportOps } from './wasm-backend';
 import type { CanvasCoords, ResizeAnchor } from './canvas-types';
 import type { ViewportData, ViewportSize } from './viewport';
-import { TOOL_CURSORS, type ToolType } from './tool-types';
+import { TOOL_CURSORS, type ToolType } from './tool-registry';
 import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
 import { SharedState } from './shared-state.svelte';
 import { exportAsPng } from './export';

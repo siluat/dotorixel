@@ -7,7 +7,7 @@ export {
 	type ViewportSize
 } from './canvas/viewport.ts';
 
-export { type ToolType } from './canvas/tool-types.ts';
+export { type ToolType } from './canvas/tool-registry.ts';
 
 export { renderPixelCanvas } from './canvas/renderer.ts';
 

@@ -1,5 +1,9 @@
 import type { CanvasCoords } from './canvas-types';
-import type { ViewportSize } from './view-types';
+
+export interface ViewportSize {
+	readonly width: number;
+	readonly height: number;
+}
 
 /**
  * Immutable camera state — zoom, pan, coordinate mapping.
@@ -50,4 +54,35 @@ export interface ViewportOps {
 export interface ViewportFactory {
 	create(pixelSize: number, zoom: number, panX: number, panY: number): Viewport;
 	forCanvas(canvasWidth: number, canvasHeight: number): Viewport;
+}
+
+export interface ViewportState {
+	readonly viewport: Viewport;
+	readonly showGrid: boolean;
+	readonly gridColor: string;
+}
+
+/**
+ * Plain-object representation of full viewport state.
+ * Replaces ViewportRecord, ViewportInit, and RenderViewport —
+ * the single serializable shape for persistence, rendering, and restore.
+ */
+export interface ViewportData {
+	readonly pixelSize: number;
+	readonly zoom: number;
+	readonly panX: number;
+	readonly panY: number;
+	readonly showGrid: boolean;
+	readonly gridColor: string;
+}
+
+export function extractViewportData(state: ViewportState): ViewportData {
+	return {
+		pixelSize: state.viewport.pixel_size,
+		zoom: state.viewport.zoom,
+		panX: state.viewport.pan_x,
+		panY: state.viewport.pan_y,
+		showGrid: state.showGrid,
+		gridColor: state.gridColor
+	};
 }

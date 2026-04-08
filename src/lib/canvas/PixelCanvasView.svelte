@@ -3,7 +3,7 @@
 	import type { Viewport } from './viewport';
 	import { viewportOps } from './wasm-backend';
 	import type { CanvasCoords } from './canvas-types';
-	import type { ViewportSize, ViewportState } from './view-types';
+	import type { ViewportSize, ViewportState } from './viewport';
 	import * as m from '$lib/paraglide/messages';
 	import { createWheelInputClassifier } from './wheel-input.ts';
 	import { renderPixelCanvas } from './renderer.ts';

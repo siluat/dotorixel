@@ -5,7 +5,7 @@ export { type CanvasCoords } from './canvas/canvas-types.ts';
 export {
 	type ViewportSize,
 	type ViewportState
-} from './canvas/view-types.ts';
+} from './canvas/viewport.ts';
 
 export { type ToolType } from './canvas/tool-types.ts';
 

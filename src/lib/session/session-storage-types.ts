@@ -1,6 +1,6 @@
 import type { ToolType } from '$lib/canvas/tool-types';
 import type { Color } from '$lib/canvas/color';
-import type { ViewportData } from '$lib/canvas/view-types';
+import type { ViewportData } from '$lib/canvas/viewport';
 
 export interface DocumentRecord {
 	id: string;

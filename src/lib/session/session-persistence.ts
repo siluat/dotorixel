@@ -2,7 +2,7 @@ import type { SessionStorage } from './session-storage';
 import type { WorkspaceRecord } from './session-storage-types';
 import type { WorkspaceInit, TabInit } from './workspace-init-types';
 import type { Workspace } from '$lib/canvas/workspace.svelte';
-import { extractViewportData, type ViewportData } from '$lib/canvas/view-types';
+import { extractViewportData, type ViewportData } from '$lib/canvas/viewport';
 
 const DEFAULT_VIEWPORT: ViewportData = {
 	pixelSize: 32,

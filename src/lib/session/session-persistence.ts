@@ -2,7 +2,7 @@ import type { SessionStorage } from './session-storage';
 import type { WorkspaceRecord } from './session-storage-types';
 import type { WorkspaceInit, TabInit } from './workspace-init-types';
 import type { Workspace } from '$lib/canvas/workspace.svelte';
-import { extractViewportData, type ViewportData } from '$lib/canvas/viewport';
+import type { ViewportData } from '$lib/canvas/viewport';
 
 const DEFAULT_VIEWPORT: ViewportData = {
 	pixelSize: 32,
@@ -45,7 +45,7 @@ export class SessionPersistence {
 				});
 			}
 
-			viewports[docId] = extractViewportData(editor.viewportState);
+			viewports[docId] = { ...editor.viewport };
 		}
 
 		const active = workspace.activeEditor;

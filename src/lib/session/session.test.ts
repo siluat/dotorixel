@@ -5,7 +5,7 @@ import { openSession } from './session';
 import { SessionStorage } from './session-storage';
 import type { PixelCanvas } from '$lib/canvas/pixel-canvas';
 import type { Color } from '$lib/canvas/color';
-import { viewportFactory } from '$lib/canvas/wasm-backend';
+import type { ViewportData } from '$lib/canvas/viewport';
 
 function setPixel(canvas: PixelCanvas, x: number, y: number, color: Color) {
 	const pixels = canvas.pixels();
@@ -57,11 +57,10 @@ describe('openSession', () => {
 
 		// Tab 0: draw red pixel, zoom to 3x
 		setPixel(workspace.activeEditor.pixelCanvas, 0, 0, { r: 255, g: 0, b: 0, a: 255 });
-		workspace.activeEditor.viewportState = {
-			viewport: viewportFactory.create(32, 3.0, 100, -50),
-			showGrid: false,
-			gridColor: '#ECE5D9'
-		};
+		workspace.activeEditor.viewport = {
+			pixelSize: 32, zoom: 3.0, panX: 100, panY: -50,
+			showGrid: false, gridColor: '#ECE5D9'
+		} satisfies ViewportData;
 		session.markDirty(workspace.activeEditor.documentId);
 
 		// Tab 1: draw blue pixel
@@ -81,9 +80,9 @@ describe('openSession', () => {
 		// Tab 0: pixel + viewport preserved
 		const px0 = restored.tabs[0].pixelCanvas.pixels();
 		expect(px0[0]).toBe(255); // R
-		expect(restored.tabs[0].viewportState.viewport.zoom).toBe(3.0);
-		expect(restored.tabs[0].viewportState.viewport.pan_x).toBe(100);
-		expect(restored.tabs[0].viewportState.showGrid).toBe(false);
+		expect(restored.tabs[0].viewport.zoom).toBe(3.0);
+		expect(restored.tabs[0].viewport.panX).toBe(100);
+		expect(restored.tabs[0].viewport.showGrid).toBe(false);
 
 		// Tab 1: pixel preserved
 		const px1 = restored.tabs[1].pixelCanvas.pixels();

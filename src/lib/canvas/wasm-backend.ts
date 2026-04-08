@@ -21,7 +21,7 @@ import {
 import type { PixelCanvas } from './pixel-canvas';
 import type { CanvasFactory } from './canvas-factory';
 import type { CanvasConstraints } from './canvas-constraints';
-import type { ViewportFactory, ViewportOps } from './viewport';
+import type { ViewportData, ViewportOps } from './viewport';
 import type { HistoryManager } from './history';
 import type { DrawingOps, DrawingToolType } from './drawing-ops';
 import type { ResizeAnchor } from './canvas-types';
@@ -76,14 +76,69 @@ export const canvasConstraints: CanvasConstraints = {
 	presets: () => Array.from(WasmPixelCanvas.presets())
 };
 
-// ── ViewportFactory ─────────────────────────────────────────────────
+// ── ViewportOps ────────────────────────────────────────────────────
 
-export const viewportFactory: ViewportFactory = {
-	create: (ps, z, px, py) => new WasmViewport(ps, z, px, py),
-	forCanvas: (cw, ch) => WasmViewport.for_canvas(cw, ch)
-};
+const DEFAULT_SHOW_GRID = true;
+const DEFAULT_GRID_COLOR = '#cccccc';
+
+function toWasm(vd: ViewportData): WasmViewport {
+	return new WasmViewport(vd.pixelSize, vd.zoom, vd.panX, vd.panY);
+}
 
 export const viewportOps: ViewportOps = {
+	// Camera transforms
+	screenToCanvas(vd, screenX, screenY) {
+		const coords = toWasm(vd).screen_to_canvas(screenX, screenY);
+		return { x: coords.x, y: coords.y };
+	},
+	zoomAtPoint(vd, screenX, screenY, newZoom) {
+		const result = toWasm(vd).zoom_at_point(screenX, screenY, newZoom);
+		return { ...vd, zoom: result.zoom, panX: result.pan_x, panY: result.pan_y };
+	},
+	pan(vd, deltaX, deltaY) {
+		const result = toWasm(vd).pan(deltaX, deltaY);
+		return { ...vd, panX: result.pan_x, panY: result.pan_y };
+	},
+	clampPan(vd, canvasWidth, canvasHeight, viewportWidth, viewportHeight) {
+		const result = toWasm(vd).clamp_pan(canvasWidth, canvasHeight, viewportWidth, viewportHeight);
+		return { ...vd, panX: result.pan_x, panY: result.pan_y };
+	},
+	fitToViewport(vd, canvasWidth, canvasHeight, viewportWidth, viewportHeight, maxZoom) {
+		const result = toWasm(vd).fit_to_viewport(
+			canvasWidth,
+			canvasHeight,
+			viewportWidth,
+			viewportHeight,
+			maxZoom
+		);
+		return {
+			...vd,
+			pixelSize: result.pixel_size,
+			zoom: result.zoom,
+			panX: result.pan_x,
+			panY: result.pan_y
+		};
+	},
+	effectivePixelSize(vd) {
+		return toWasm(vd).effective_pixel_size();
+	},
+	displaySize(vd, canvasWidth, canvasHeight) {
+		const size = toWasm(vd).display_size(canvasWidth, canvasHeight);
+		return { width: size.width, height: size.height };
+	},
+	forCanvas(canvasWidth, canvasHeight) {
+		const wasm = WasmViewport.for_canvas(canvasWidth, canvasHeight);
+		return {
+			pixelSize: wasm.pixel_size,
+			zoom: wasm.zoom,
+			panX: wasm.pan_x,
+			panY: wasm.pan_y,
+			showGrid: DEFAULT_SHOW_GRID,
+			gridColor: DEFAULT_GRID_COLOR
+		};
+	},
+
+	// Zoom arithmetic
 	clampZoom: (z) => WasmViewport.clamp_zoom(z),
 	computePinchZoom: (cz, dy) => WasmViewport.compute_pinch_zoom(cz, dy),
 	nextZoomLevel: (cz) => WasmViewport.next_zoom_level(cz),

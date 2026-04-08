@@ -1,12 +1,10 @@
 import { describe, it, expectTypeOf } from 'vitest';
 import type {
 	WasmPixelCanvas,
-	WasmViewport,
 	WasmHistoryManager,
 	WasmSnapshot
 } from '$wasm/dotorixel_wasm';
 import type { PixelCanvas, Snapshot } from './pixel-canvas';
-import type { Viewport } from './viewport';
 import type { HistoryManager } from './history';
 
 /**
@@ -19,10 +17,6 @@ import type { HistoryManager } from './history';
 describe('WASM structural compatibility', () => {
 	it('WasmPixelCanvas satisfies PixelCanvas', () => {
 		expectTypeOf<WasmPixelCanvas>().toMatchTypeOf<PixelCanvas>();
-	});
-
-	it('WasmViewport satisfies Viewport', () => {
-		expectTypeOf<WasmViewport>().toMatchTypeOf<Viewport>();
 	});
 
 	it('WasmHistoryManager satisfies HistoryManager', () => {

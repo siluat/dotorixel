@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-028 — Absorb single-consumer utility modules into their callers
+029 — Viewport data-only — eliminate Viewport interface from public API
 
 ## Next Up
 
@@ -16,3 +16,4 @@ None
   - M2 export & sharing. Independent, no prerequisites.
 - Design: saved work browser (.pen)
   - Design prerequisite for "Reopen past work". Can run in parallel with implementation tasks.
+

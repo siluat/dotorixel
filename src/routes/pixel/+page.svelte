@@ -54,7 +54,7 @@
 					canUndo={editor.canUndo}
 					canRedo={editor.canRedo}
 					zoomPercent={editor.zoomPercent}
-					showGrid={editor.viewportState.showGrid}
+					showGrid={editor.viewport.showGrid}
 					showShortcutHints={editor.isShortcutHintsVisible}
 					onToolChange={(tool) => (editor.activeTool = tool)}
 					onUndo={editor.handleUndo}
@@ -84,10 +84,9 @@
 				<PixelPanel style="padding: 0;">
 					<PixelCanvasView
 						pixelCanvas={editor.pixelCanvas}
-						viewportState={editor.viewportState}
+						viewport={editor.viewport}
 						viewportSize={editor.viewportSize}
 						renderVersion={editor.renderVersion}
-						renderViewport={editor.renderViewport}
 						onDraw={editor.handleDraw}
 						onDrawStart={editor.handleDrawStart}
 						onDrawEnd={editor.handleDrawEnd}

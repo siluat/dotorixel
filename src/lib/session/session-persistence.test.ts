@@ -1,21 +1,39 @@
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { SessionPersistence } from './session-persistence';
+import { SessionPersistence, type PersistableWorkspace } from './session-persistence';
 import { SessionStorage } from './session-storage';
-import { Workspace } from '$lib/canvas/workspace.svelte';
-import type { PixelCanvas } from '$lib/canvas/pixel-canvas';
-import type { Color } from '$lib/canvas/color';
-import type { ViewportData } from '$lib/canvas/viewport';
 
-function setPixel(canvas: PixelCanvas, x: number, y: number, color: Color) {
-	const pixels = canvas.pixels();
-	const idx = (y * canvas.width + x) * 4;
-	pixels[idx] = color.r;
-	pixels[idx + 1] = color.g;
-	pixels[idx + 2] = color.b;
-	pixels[idx + 3] = color.a;
-	canvas.restore_pixels(pixels);
+function makeTab(overrides: Partial<PersistableWorkspace['tabs'][number]> = {}) {
+	return {
+		id: 'doc-1',
+		name: 'Untitled 1',
+		width: 16,
+		height: 16,
+		pixels: new Uint8Array(16 * 16 * 4),
+		viewport: {
+			pixelSize: 32, zoom: 1.0, panX: 0, panY: 0,
+			showGrid: true, gridColor: '#cccccc'
+		},
+		...overrides
+	};
+}
+
+function makeSnapshot(
+	overrides: Partial<PersistableWorkspace> = {},
+	tabs?: PersistableWorkspace['tabs']
+): PersistableWorkspace {
+	return {
+		tabs: tabs ?? [makeTab()],
+		activeTabIndex: 0,
+		sharedState: {
+			activeTool: 'pencil',
+			foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
+			backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+			recentColors: []
+		},
+		...overrides
+	};
 }
 
 describe('SessionPersistence', () => {
@@ -33,15 +51,19 @@ describe('SessionPersistence', () => {
 	});
 
 	it('round-trips a single-tab workspace through save and restore', async () => {
-		const workspace = new Workspace({
-			foregroundColor: { r: 200, g: 50, b: 30, a: 255 },
-			gridColor: '#ECE5D9'
-		});
-		// Draw a red pixel at (0,0)
-		setPixel(workspace.activeEditor.pixelCanvas, 0, 0, { r: 255, g: 0, b: 0, a: 255 });
-		workspace.activeEditor.activeTool = 'line';
+		const redPixels = new Uint8Array(16 * 16 * 4);
+		redPixels[0] = 255; redPixels[3] = 255; // red pixel at (0,0)
 
-		await persistence.save(workspace);
+		const snapshot = makeSnapshot({
+			sharedState: {
+				activeTool: 'line',
+				foregroundColor: { r: 200, g: 50, b: 30, a: 255 },
+				backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+				recentColors: []
+			}
+		}, [makeTab({ pixels: redPixels })]);
+
+		await persistence.save(snapshot);
 		const restored = await persistence.restore();
 
 		expect(restored).not.toBeNull();
@@ -49,12 +71,11 @@ describe('SessionPersistence', () => {
 		expect(restored!.tabs[0].name).toBe('Untitled 1');
 		expect(restored!.tabs[0].width).toBe(16);
 		expect(restored!.tabs[0].height).toBe(16);
-		// Verify pixel data includes the red pixel we drew
-		const pixels = restored!.tabs[0].pixels;
-		expect(pixels[0]).toBe(255); // R
-		expect(pixels[1]).toBe(0);   // G
-		expect(pixels[2]).toBe(0);   // B
-		expect(pixels[3]).toBe(255); // A
+		// Verify pixel data includes the red pixel
+		expect(restored!.tabs[0].pixels[0]).toBe(255); // R
+		expect(restored!.tabs[0].pixels[1]).toBe(0);   // G
+		expect(restored!.tabs[0].pixels[2]).toBe(0);   // B
+		expect(restored!.tabs[0].pixels[3]).toBe(255); // A
 		// Verify shared state
 		expect(restored!.sharedState.activeTool).toBe('line');
 		expect(restored!.sharedState.foregroundColor).toEqual({ r: 200, g: 50, b: 30, a: 255 });
@@ -68,43 +89,41 @@ describe('SessionPersistence', () => {
 	});
 
 	it('round-trips all tabs with correct names, pixel data, and order', async () => {
-		const workspace = new Workspace({ gridColor: '#ECE5D9' });
-		// Tab 0: "Untitled 1" — draw red pixel at (0,0)
-		setPixel(workspace.activeEditor.pixelCanvas, 0, 0, { r: 255, g: 0, b: 0, a: 255 });
+		const redPixels = new Uint8Array(16 * 16 * 4);
+		redPixels[0] = 255; redPixels[3] = 255;
 
-		// Tab 1: "Untitled 2" — draw blue pixel at (1,0)
-		workspace.addTab();
-		setPixel(workspace.activeEditor.pixelCanvas, 1, 0, { r: 0, g: 0, b: 255, a: 255 });
+		const bluePixels = new Uint8Array(16 * 16 * 4);
+		bluePixels[4] = 0; bluePixels[5] = 0; bluePixels[6] = 255; bluePixels[7] = 255;
 
-		// Active tab is 1 (the newly added tab)
-		await persistence.save(workspace);
+		const snapshot = makeSnapshot({ activeTabIndex: 1 }, [
+			makeTab({ id: 'doc-1', name: 'Untitled 1', pixels: redPixels }),
+			makeTab({ id: 'doc-2', name: 'Untitled 2', pixels: bluePixels })
+		]);
+
+		await persistence.save(snapshot);
 		const restored = await persistence.restore();
 
 		expect(restored).not.toBeNull();
 		expect(restored!.tabs).toHaveLength(2);
-		// Tab order preserved
 		expect(restored!.tabs[0].name).toBe('Untitled 1');
 		expect(restored!.tabs[1].name).toBe('Untitled 2');
-		// Tab 0 pixel data: red at (0,0)
-		const px0 = restored!.tabs[0].pixels;
-		expect(px0[0]).toBe(255); // R
-		expect(px0[1]).toBe(0);   // G
-		expect(px0[2]).toBe(0);   // B
-		// Tab 1 pixel data: blue at (1,0)
-		const px1 = restored!.tabs[1].pixels;
-		expect(px1[4]).toBe(0);   // R
-		expect(px1[5]).toBe(0);   // G
-		expect(px1[6]).toBe(255); // B
+		// Tab 0: red at (0,0)
+		expect(restored!.tabs[0].pixels[0]).toBe(255);
+		expect(restored!.tabs[0].pixels[1]).toBe(0);
+		// Tab 1: blue at (1,0)
+		expect(restored!.tabs[1].pixels[4]).toBe(0);
+		expect(restored!.tabs[1].pixels[5]).toBe(0);
+		expect(restored!.tabs[1].pixels[6]).toBe(255);
 	});
 
 	it('preserves activeTabIndex when middle tab is active', async () => {
-		const workspace = new Workspace({ gridColor: '#ECE5D9' });
-		workspace.addTab(); // Tab 1
-		workspace.addTab(); // Tab 2
-		// 3 tabs total, tab 2 is active. Switch to middle tab.
-		workspace.setActiveTab(1);
+		const snapshot = makeSnapshot({ activeTabIndex: 1 }, [
+			makeTab({ id: 'doc-1', name: 'Untitled 1' }),
+			makeTab({ id: 'doc-2', name: 'Untitled 2' }),
+			makeTab({ id: 'doc-3', name: 'Untitled 3' })
+		]);
 
-		await persistence.save(workspace);
+		await persistence.save(snapshot);
 		const restored = await persistence.restore();
 
 		expect(restored).not.toBeNull();
@@ -114,43 +133,43 @@ describe('SessionPersistence', () => {
 	});
 
 	it('preserves per-tab viewport state', async () => {
-		const workspace = new Workspace({ gridColor: '#ECE5D9' });
-		// Tab 0: zoom in, pan right, grid off
-		workspace.tabs[0].viewport = {
-			pixelSize: 32, zoom: 3.0, panX: 100, panY: 0,
-			showGrid: false, gridColor: '#ECE5D9'
-		} satisfies ViewportData;
+		const snapshot = makeSnapshot({}, [
+			makeTab({
+				id: 'doc-1',
+				viewport: {
+					pixelSize: 32, zoom: 3.0, panX: 100, panY: 0,
+					showGrid: false, gridColor: '#ECE5D9'
+				}
+			}),
+			makeTab({
+				id: 'doc-2',
+				viewport: {
+					pixelSize: 32, zoom: 0.5, panX: 0, panY: -50,
+					showGrid: true, gridColor: '#aaaaaa'
+				}
+			})
+		]);
 
-		// Tab 1: different viewport
-		workspace.addTab();
-		workspace.tabs[1].viewport = {
-			pixelSize: 32, zoom: 0.5, panX: 0, panY: -50,
-			showGrid: true, gridColor: '#aaaaaa'
-		} satisfies ViewportData;
-
-		await persistence.save(workspace);
+		await persistence.save(snapshot);
 		const restored = await persistence.restore();
 
 		expect(restored).not.toBeNull();
-		// Tab 0 viewport
 		expect(restored!.tabs[0].viewport.zoom).toBe(3.0);
 		expect(restored!.tabs[0].viewport.panX).toBe(100);
 		expect(restored!.tabs[0].viewport.showGrid).toBe(false);
-		// Tab 1 viewport
 		expect(restored!.tabs[1].viewport.zoom).toBe(0.5);
 		expect(restored!.tabs[1].viewport.panY).toBe(-50);
 		expect(restored!.tabs[1].viewport.gridColor).toBe('#aaaaaa');
 	});
 
 	it('excludes closed tab from save and restore', async () => {
-		const workspace = new Workspace({ gridColor: '#ECE5D9' });
-		workspace.addTab(); // Tab 1: "Untitled 2"
-		workspace.addTab(); // Tab 2: "Untitled 3"
+		// Save only 2 tabs (simulating that middle tab was already closed)
+		const snapshot = makeSnapshot({}, [
+			makeTab({ id: 'doc-1', name: 'Untitled 1' }),
+			makeTab({ id: 'doc-3', name: 'Untitled 3' })
+		]);
 
-		// Close middle tab
-		workspace.closeTab(1);
-
-		await persistence.save(workspace);
+		await persistence.save(snapshot);
 		const restored = await persistence.restore();
 
 		expect(restored).not.toBeNull();
@@ -160,45 +179,45 @@ describe('SessionPersistence', () => {
 	});
 
 	it('re-save uses stable document IDs and overwrites in place', async () => {
-		const workspace = new Workspace({ gridColor: '#ECE5D9' });
-		workspace.addTab();
+		const snapshot = makeSnapshot({}, [
+			makeTab({ id: 'doc-1' }),
+			makeTab({ id: 'doc-2' })
+		]);
 
-		// First save: 2 tabs
-		await persistence.save(workspace);
+		// First save
+		await persistence.save(snapshot);
 		const ws1 = await storage.getWorkspace();
-		const firstSaveDocIds = ws1!.tabOrder;
-		expect(firstSaveDocIds).toHaveLength(2);
+		expect(ws1!.tabOrder).toHaveLength(2);
 
-		// Second save: same 2 tabs with stable IDs
-		await persistence.save(workspace);
+		// Second save with same IDs
+		await persistence.save(snapshot);
 		const ws2 = await storage.getWorkspace();
-		const secondSaveDocIds = ws2!.tabOrder;
 
-		// Same document IDs used across saves
-		expect(secondSaveDocIds).toEqual(firstSaveDocIds);
-
-		// Documents still exist (overwritten, not re-created)
-		for (const id of secondSaveDocIds) {
-			const doc = await storage.getDocument(id);
-			expect(doc).toBeDefined();
+		expect(ws2!.tabOrder).toEqual(ws1!.tabOrder);
+		for (const id of ws2!.tabOrder) {
+			expect(await storage.getDocument(id)).toBeDefined();
 		}
 	});
 
 	it('deletes documents for removed tabs on re-save', async () => {
-		const workspace = new Workspace({ gridColor: '#ECE5D9' });
-		workspace.addTab();
-		workspace.addTab(); // 3 tabs
+		const threeTabSnapshot = makeSnapshot({}, [
+			makeTab({ id: 'doc-1' }),
+			makeTab({ id: 'doc-2' }),
+			makeTab({ id: 'doc-3' })
+		]);
 
-		await persistence.save(workspace);
-		const removedDocId = workspace.tabs[1].documentId;
+		await persistence.save(threeTabSnapshot);
 
-		// Close the middle tab
-		workspace.closeTab(1);
-		await persistence.save(workspace);
+		// Re-save with middle tab removed
+		const twoTabSnapshot = makeSnapshot({}, [
+			makeTab({ id: 'doc-1' }),
+			makeTab({ id: 'doc-3' })
+		]);
+
+		await persistence.save(twoTabSnapshot);
 
 		// Removed tab's document is deleted
-		const doc = await storage.getDocument(removedDocId);
-		expect(doc).toBeUndefined();
+		expect(await storage.getDocument('doc-2')).toBeUndefined();
 
 		// Remaining tabs' documents still exist
 		const ws = await storage.getWorkspace();
@@ -240,7 +259,6 @@ describe('SessionPersistence', () => {
 	});
 
 	it('returns null when workspace references a missing document', async () => {
-		// Write a workspace record that points to a non-existent document
 		await storage.putWorkspace({
 			id: 'current',
 			tabOrder: ['non-existent-doc'],

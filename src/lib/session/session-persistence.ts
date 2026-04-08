@@ -1,17 +1,42 @@
 import type { SessionStorage } from './session-storage';
-import type { WorkspaceRecord } from './session-storage-types';
-import type { WorkspaceInit, TabInit } from './workspace-init-types';
-import type { Workspace } from '$lib/canvas/workspace.svelte';
-import type { ViewportData } from '$lib/canvas/viewport';
 
-const DEFAULT_VIEWPORT: ViewportData = {
+const DEFAULT_VIEWPORT = {
 	pixelSize: 32,
 	zoom: 1.0,
 	panX: 0,
 	panY: 0,
 	showGrid: true,
 	gridColor: '#cccccc'
-};
+} as const;
+
+/**
+ * Session's own persistence contract. Structurally compatible with
+ * canvas's WorkspaceSnapshot — session never imports that type by name.
+ */
+export interface PersistableWorkspace {
+	readonly tabs: ReadonlyArray<{
+		readonly id: string;
+		readonly name: string;
+		readonly width: number;
+		readonly height: number;
+		readonly pixels: Uint8Array;
+		readonly viewport: {
+			readonly pixelSize: number;
+			readonly zoom: number;
+			readonly panX: number;
+			readonly panY: number;
+			readonly showGrid: boolean;
+			readonly gridColor: string;
+		};
+	}>;
+	readonly activeTabIndex: number;
+	readonly sharedState: {
+		readonly activeTool: string;
+		readonly foregroundColor: { r: number; g: number; b: number; a: number };
+		readonly backgroundColor: { r: number; g: number; b: number; a: number };
+		readonly recentColors: string[];
+	};
+}
 
 export class SessionPersistence {
 	#storage: SessionStorage;
@@ -20,44 +45,42 @@ export class SessionPersistence {
 		this.#storage = storage;
 	}
 
-	async save(workspace: Workspace, dirtyDocIds?: Set<string>): Promise<void> {
+	async save(snapshot: PersistableWorkspace, dirtyDocIds?: Set<string>): Promise<void> {
 		const oldWs = await this.#storage.getWorkspace();
 		const oldDocIds = new Set(oldWs?.tabOrder ?? []);
 
 		const now = new Date();
 		const tabOrder: string[] = [];
-		const viewports: Record<string, ViewportData> = {};
+		const viewports: Record<string, PersistableWorkspace['tabs'][number]['viewport']> = {};
 
-		for (const editor of workspace.tabs) {
-			const docId = editor.documentId;
-			tabOrder.push(docId);
+		for (const tab of snapshot.tabs) {
+			tabOrder.push(tab.id);
 
-			const shouldWrite = !dirtyDocIds || dirtyDocIds.has(docId);
+			const shouldWrite = !dirtyDocIds || dirtyDocIds.has(tab.id);
 			if (shouldWrite) {
 				await this.#storage.putDocument({
-					id: docId,
-					name: editor.name,
-					width: editor.pixelCanvas.width,
-					height: editor.pixelCanvas.height,
-					pixels: editor.pixelCanvas.pixels(),
+					id: tab.id,
+					name: tab.name,
+					width: tab.width,
+					height: tab.height,
+					pixels: tab.pixels,
 					createdAt: now,
 					updatedAt: now
 				});
 			}
 
-			viewports[docId] = { ...editor.viewport };
+			viewports[tab.id] = { ...tab.viewport };
 		}
 
-		const active = workspace.activeEditor;
 		await this.#storage.putWorkspace({
 			id: 'current',
 			tabOrder,
-			activeTabIndex: workspace.activeTabIndex,
+			activeTabIndex: snapshot.activeTabIndex,
 			sharedState: {
-				activeTool: active.activeTool,
-				foregroundColor: { ...active.foregroundColor },
-				backgroundColor: { ...active.backgroundColor },
-				recentColors: [...active.recentColors]
+				activeTool: snapshot.sharedState.activeTool,
+				foregroundColor: { ...snapshot.sharedState.foregroundColor },
+				backgroundColor: { ...snapshot.sharedState.backgroundColor },
+				recentColors: [...snapshot.sharedState.recentColors]
 			},
 			viewports
 		});
@@ -71,12 +94,12 @@ export class SessionPersistence {
 		}
 	}
 
-	async restore(): Promise<WorkspaceInit | null> {
+	async restore(): Promise<PersistableWorkspace | null> {
 		try {
 			const ws = await this.#storage.getWorkspace();
 			if (!ws) return null;
 
-			const tabs: TabInit[] = [];
+			const tabs: PersistableWorkspace['tabs'][number][] = [];
 			for (const docId of ws.tabOrder) {
 				const doc = await this.#storage.getDocument(docId);
 				if (!doc) return null;

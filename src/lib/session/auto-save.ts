@@ -54,7 +54,7 @@ export class AutoSave {
 		const dirtyDocIds = this.#dirtyDocIds.size > 0 ? new Set(this.#dirtyDocIds) : undefined;
 		this.#dirtyDocIds.clear();
 		try {
-			await this.#persistence.save(this.#workspace, dirtyDocIds);
+			await this.#persistence.save(this.#workspace.toSnapshot(), dirtyDocIds);
 		} catch (error) {
 			this.#dirty = true;
 			if (dirtyDocIds) {

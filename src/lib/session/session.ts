@@ -1,5 +1,6 @@
 import type { Color } from '$lib/canvas/color';
 import { Workspace } from '$lib/canvas/workspace.svelte';
+import type { WorkspaceInit } from './workspace-init-types';
 import { SessionStorage } from './session-storage';
 import { SessionPersistence } from './session-persistence';
 import { AutoSave } from './auto-save';
@@ -36,12 +37,12 @@ export async function openSession(defaults: {
 	try {
 		storage = await SessionStorage.open();
 		const persistence = new SessionPersistence(storage);
-		const init = await persistence.restore();
+		const restored = await persistence.restore();
 
 		const workspace = new Workspace({
 			foregroundColor: defaults.foregroundColor,
 			gridColor: defaults.gridColor ?? '#cccccc',
-			init: init ?? undefined
+			init: (restored ?? undefined) as WorkspaceInit | undefined
 		});
 
 		const autoSave = new AutoSave(persistence, workspace, defaults.debounceMs);

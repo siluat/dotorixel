@@ -7,6 +7,10 @@ interface PngEncodable extends ExportableCanvas {
 	encode_png(): Uint8Array;
 }
 
+function isPngEncodable(canvas: ExportableCanvas): canvas is PngEncodable {
+	return 'encode_png' in canvas;
+}
+
 export interface ExportFormat {
 	id: string;
 	label: string;
@@ -15,12 +19,7 @@ export interface ExportFormat {
 }
 
 export const availableFormats: ExportFormat[] = [
-	{
-		id: 'png',
-		label: 'PNG',
-		extension: 'png',
-		exportFn: (canvas, filename) => exportAsPng(canvas as PngEncodable, filename)
-	}
+	{ id: 'png', label: 'PNG', extension: 'png', exportFn: exportAsPng }
 ];
 
 export function generateExportFilename(canvas: { width: number; height: number }): string {
@@ -44,7 +43,8 @@ export function buildExportFilename(
 	return `${effectiveStem}.${extension}`;
 }
 
-export function exportAsPng(canvas: PngEncodable, filename?: string): void {
+export function exportAsPng(canvas: ExportableCanvas, filename?: string): void {
+	if (!isPngEncodable(canvas)) return;
 	const bytes = canvas.encode_png();
 	const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' });
 	const url = URL.createObjectURL(blob);

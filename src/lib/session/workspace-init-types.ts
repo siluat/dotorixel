@@ -1,11 +1,7 @@
-import type { ToolType } from '$lib/canvas/tool-types';
-import type { Color } from '$lib/canvas/color';
-import type { ViewportData } from '$lib/canvas/viewport';
-
 export interface SharedStateInit {
-	activeTool: ToolType;
-	foregroundColor: Color;
-	backgroundColor: Color;
+	activeTool: string;
+	foregroundColor: { r: number; g: number; b: number; a: number };
+	backgroundColor: { r: number; g: number; b: number; a: number };
 	recentColors: string[];
 }
 
@@ -15,7 +11,14 @@ export interface TabInit {
 	width: number;
 	height: number;
 	pixels: Uint8Array;
-	viewport: ViewportData;
+	viewport: {
+		pixelSize: number;
+		zoom: number;
+		panX: number;
+		panY: number;
+		showGrid: boolean;
+		gridColor: string;
+	};
 }
 
 export interface WorkspaceInit {

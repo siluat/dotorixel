@@ -1,6 +1,7 @@
 import { EditorState } from './editor-state.svelte';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
+import type { ToolType } from './tool-types';
 import type { WorkspaceInit } from '$lib/session/workspace-init-types';
 import type { WorkspaceSnapshot, TabSnapshot } from './workspace-snapshot';
 import { canvasFactory } from './wasm-backend';
@@ -38,7 +39,7 @@ export class Workspace {
 	}
 
 	#initFromSaved(init: WorkspaceInit) {
-		this.shared.activeTool = init.sharedState.activeTool;
+		this.shared.activeTool = init.sharedState.activeTool as ToolType;
 		this.shared.foregroundColor = init.sharedState.foregroundColor;
 		this.shared.backgroundColor = init.sharedState.backgroundColor;
 		this.shared.recentColors = init.sharedState.recentColors;

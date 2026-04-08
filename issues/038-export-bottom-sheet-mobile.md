@@ -1,6 +1,6 @@
 ---
 title: Mobile ExportBottomSheet — end-to-end mobile export UI
-status: open
+status: done
 created: 2026-04-09
 parent: 033-export-ui-web.md
 ---
@@ -33,3 +33,19 @@ From parent PRD [033](033-export-ui-web.md):
 - Scenario 9: Mobile tap → bottom sheet slides up
 - Scenario 10: Swipe down → closes
 - Scenario 11: Tap overlay → closes
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `package.json` / `bun.lock` | Added `vaul-svelte@0.3.2` dependency |
+| `src/lib/ui-editor/ExportBottomSheet.svelte` | New component — vaul-svelte Drawer with format selector, filename input, and export button |
+| `src/routes/editor/+page.svelte` | Wired ExportBottomSheet in tabbed layout; AppBar/SettingsContent now toggle export UI |
+| `src/lib/ui-editor/AppBar.svelte` | Export button aria-label changed from `action_exportPng` to `label_export` |
+| `src/lib/ui-editor/SettingsContent.svelte` | Export button label changed from `action_exportPng` to `label_export` |
+
+### Key Decisions
+
+- **CSS `@keyframes` for open animation**: vaul-svelte's `data-vaul-drawer-visible` CSS transition does not work because bits-ui creates and removes elements via `{#if $open}` — the initial paint never occurs. Keyframe animations fire on element insertion regardless.
+- **Local `drawerOpen` state decoupled from parent `open` prop**: `bind:open` on bits-ui's `DialogPrimitive.Root` immediately removes elements when `open` becomes false, cutting close animation short. The local state delays DOM removal by `CLOSE_ANIMATION_MS` (500ms) for user-gesture closes, allowing vaul-svelte's inline transition to play.
+- **Parent-initiated close is instant (no animation)**: When the export confirm handler sets `open=false`, the drawer closes immediately. User attention is on the download, so the missing animation is not noticeable.

@@ -55,7 +55,7 @@
 				</button>
 			</div>
 
-			<button class="action-btn" onclick={onExport} aria-label={m.action_exportPng()}>
+			<button class="action-btn" onclick={onExport} aria-label={m.label_export()}>
 				<Download size={18} />
 			</button>
 			<button

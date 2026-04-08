@@ -1,6 +1,6 @@
 ---
 title: Export UI — format selector and filename input (web)
-status: open
+status: done
 created: 2026-04-09
 ---
 

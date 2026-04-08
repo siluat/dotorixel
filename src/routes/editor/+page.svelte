@@ -15,6 +15,7 @@
 	import TabStrip from '$lib/ui-editor/TabStrip.svelte';
 	import ColorsContent from '$lib/ui-editor/ColorsContent.svelte';
 	import SettingsContent from '$lib/ui-editor/SettingsContent.svelte';
+	import ExportBottomSheet from '$lib/ui-editor/ExportBottomSheet.svelte';
 	import { openSession, type SessionHandle } from '$lib/session/session';
 	import {
 		trackEditorOpen,
@@ -148,11 +149,6 @@
 		trackCanvasSize(w, h);
 	}
 
-	function handleExport() {
-		editor.handleExportPng();
-		trackExport(editor.pixelCanvas.width, editor.pixelCanvas.height, 'png');
-	}
-
 	function handleExportConfirm(format: ExportFormat, filenameStem: string) {
 		const knownExtensions = availableFormats.map((f) => f.extension);
 		const cleanStem = stripKnownExtension(filenameStem.trim(), knownExtensions);
@@ -243,7 +239,7 @@
 			showGrid={editor.viewport.showGrid}
 			zoomPercent={editor.zoomPercent}
 			onGridToggle={editor.handleGridToggle}
-			onExport={handleExport}
+			onExport={editor.toggleExportUI}
 			onZoomIn={editor.handleZoomIn}
 			onZoomOut={editor.handleZoomOut}
 			onZoomReset={editor.handleZoomReset}
@@ -289,7 +285,7 @@
 					showGrid={editor.viewport.showGrid}
 					resizeAnchor={editor.resizeAnchor}
 					onResize={handleResize}
-					onExport={handleExport}
+					onExport={editor.toggleExportUI}
 					onClear={editor.handleClear}
 					onGridToggle={editor.handleGridToggle}
 					onAnchorChange={(anchor) => (editor.resizeAnchor = anchor)}
@@ -317,6 +313,14 @@
 		<TabBar
 			activeTab={activeTab}
 			onTabChange={(tab) => (activeTab = tab)}
+		/>
+
+		<ExportBottomSheet
+			open={editor.isExportUIOpen}
+			canvasWidth={editor.pixelCanvas.width}
+			canvasHeight={editor.pixelCanvas.height}
+			onOpenChange={(isOpen) => (editor.isExportUIOpen = isOpen)}
+			onExport={handleExportConfirm}
 		/>
 	</div>
 {/if}

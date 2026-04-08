@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { extractViewportData, restoreViewportState, type ViewportData } from './view-types';
+import { extractViewportData, restoreViewportState, type ViewportData } from './viewport';
+import { viewportFactory } from './wasm-backend';
 
 describe('ViewportData conversion', () => {
 	const sampleData: ViewportData = {
@@ -12,14 +13,14 @@ describe('ViewportData conversion', () => {
 	};
 
 	it('round-trips all fields through extract → restore → extract', () => {
-		const state = restoreViewportState(sampleData);
+		const state = restoreViewportState(sampleData, viewportFactory);
 		const result = extractViewportData(state);
 
 		expect(result).toEqual(sampleData);
 	});
 
 	it('restoreViewportState produces a valid ViewportState', () => {
-		const state = restoreViewportState(sampleData);
+		const state = restoreViewportState(sampleData, viewportFactory);
 
 		expect(state.viewport.pixel_size).toBe(24);
 		expect(state.viewport.zoom).toBe(2.5);
@@ -30,14 +31,17 @@ describe('ViewportData conversion', () => {
 	});
 
 	it('extractViewportData reads all fields from ViewportState', () => {
-		const state = restoreViewportState({
-			pixelSize: 32,
-			zoom: 1.0,
-			panX: 0,
-			panY: 0,
-			showGrid: true,
-			gridColor: '#cccccc'
-		});
+		const state = restoreViewportState(
+			{
+				pixelSize: 32,
+				zoom: 1.0,
+				panX: 0,
+				panY: 0,
+				showGrid: true,
+				gridColor: '#cccccc'
+			},
+			viewportFactory
+		);
 		const data = extractViewportData(state);
 
 		expect(data.pixelSize).toBe(32);

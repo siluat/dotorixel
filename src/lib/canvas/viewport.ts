@@ -86,3 +86,18 @@ export function extractViewportData(state: ViewportState): ViewportData {
 		gridColor: state.gridColor
 	};
 }
+
+/**
+ * Reconstructs a ViewportState from serialized data.
+ * Requires a ViewportFactory so this module has no WASM dependency.
+ */
+export function restoreViewportState(
+	data: ViewportData,
+	factory: ViewportFactory
+): ViewportState {
+	return {
+		viewport: factory.create(data.pixelSize, data.zoom, data.panX, data.panY),
+		showGrid: data.showGrid,
+		gridColor: data.gridColor
+	};
+}

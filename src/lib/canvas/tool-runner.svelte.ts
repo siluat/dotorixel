@@ -14,52 +14,9 @@ import {
 	type ToolContext,
 	type ToolEffect
 } from './draw-tool';
-import { createPencilTool, createEraserTool } from './tools/pencil-tool';
-import { createFloodfillTool } from './tools/floodfill-tool';
-import { eyedropperTool } from './tools/eyedropper-tool';
-import { moveTool } from './tools/move-tool';
-import { createShapeTool } from './tools/shape-tool';
-import type { ToolType } from './tool-types';
+import type { ToolType } from './tool-registry';
+import { createAllTools } from './tool-registry';
 import { createDrawingOps, canvasFactory, createHistoryManager } from './wasm-backend';
-
-// ── Constrain helpers (co-located: single consumer) ────────────────
-
-/** Snaps `end` to the nearest 45° multiple direction from `start` (8-directional). */
-export function constrainLine(start: CanvasCoords, end: CanvasCoords): CanvasCoords {
-	const dx = end.x - start.x;
-	const dy = end.y - start.y;
-	const absDx = Math.abs(dx);
-	const absDy = Math.abs(dy);
-
-	// Horizontal: angle close to 0° or 180°
-	if (absDy * 2 <= absDx) {
-		return { x: end.x, y: start.y };
-	}
-
-	// Vertical: angle close to 90° or 270°
-	if (absDx * 2 <= absDy) {
-		return { x: start.x, y: end.y };
-	}
-
-	// 45° diagonal: force |dx| = |dy| = max(|dx|, |dy|)
-	const dist = Math.max(absDx, absDy);
-	return {
-		x: start.x + dist * Math.sign(dx),
-		y: start.y + dist * Math.sign(dy)
-	};
-}
-
-/** Forces the bounding box defined by `start` and `end` into a square. */
-export function constrainSquare(start: CanvasCoords, end: CanvasCoords): CanvasCoords {
-	const dx = end.x - start.x;
-	const dy = end.y - start.y;
-	const side = Math.max(Math.abs(dx), Math.abs(dy));
-
-	return {
-		x: start.x + side * (dx >= 0 ? 1 : -1),
-		y: start.y + side * (dy >= 0 ? 1 : -1)
-	};
-}
 
 // ── Effects: ToolRunner adds RunnerEffect on top of tool-produced ToolEffect ──
 
@@ -112,17 +69,8 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 	// ── DrawingOps (bound to current canvas) ────────────────────────
 	const ops = createDrawingOps(() => host.pixelCanvas);
 
-	// ── Tool registry ───────────────────────────────────────────────
-	const tools: Record<ToolType, DrawTool> = {
-		pencil: createPencilTool(ops),
-		eraser: createEraserTool(ops),
-		line: createShapeTool(ops, 'line', ops.interpolatePixels, constrainLine),
-		rectangle: createShapeTool(ops, 'rectangle', ops.rectangleOutline, constrainSquare),
-		ellipse: createShapeTool(ops, 'ellipse', ops.ellipseOutline, constrainSquare),
-		floodfill: createFloodfillTool(ops),
-		eyedropper: eyedropperTool,
-		move: moveTool
-	};
+	// ── Tool instances ──────────────────────────────────────────────
+	const tools = createAllTools(ops);
 
 	// ── History ─────────────────────────────────────────────────────
 	const history = createHistoryManager();

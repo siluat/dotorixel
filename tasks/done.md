@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 030 | [Decouple session persistence from canvas domain types](../issues/030-decouple-session-canvas.md) | 2026-04-08 |
 | 029 | [Viewport data-only — eliminate Viewport interface from public API](../issues/029-viewport-data-only.md) | 2026-04-08 |
 | 028 | [Absorb single-consumer utility modules into their callers](../issues/028-absorb-thin-utilities.md) | 2026-04-08 |
 | 027 | [Deepen ToolRunner — StrokeLifecycle pattern](../issues/027-deepen-tool-runner.md) | 2026-04-08 |

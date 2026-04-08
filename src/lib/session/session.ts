@@ -36,15 +36,15 @@ export async function openSession(defaults: {
 	try {
 		storage = await SessionStorage.open();
 		const persistence = new SessionPersistence(storage);
-		const init = await persistence.restore();
+		const restored = await persistence.restore();
 
 		const workspace = new Workspace({
 			foregroundColor: defaults.foregroundColor,
 			gridColor: defaults.gridColor ?? '#cccccc',
-			init: init ?? undefined
+			restored: restored ?? undefined
 		});
 
-		const autoSave = new AutoSave(persistence, workspace, defaults.debounceMs);
+		const autoSave = new AutoSave(persistence, () => workspace.toSnapshot(), defaults.debounceMs);
 
 		const session: SessionHandle = {
 			markDirty: (docId) => autoSave.markDirty(docId),

@@ -9,8 +9,6 @@
 
 ### Export & sharing
 
-- Export UI (format selector + filename input) — [PRD](../issues/033-export-ui-web.md)
-  - [038 — Mobile ExportBottomSheet](../issues/038-export-bottom-sheet-mobile.md)
 - SVG export — [PRD](../issues/031-svg-export.md)
   - [035 — SVG web export](../issues/035-svg-web-export.md)
 - Design: share artwork dialog — URL 공유 다이얼로그 UI (.pen)

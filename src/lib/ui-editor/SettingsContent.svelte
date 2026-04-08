@@ -48,7 +48,7 @@
 		<h3 class="section-title">{m.section_actions()}</h3>
 		<button class="action-btn primary" onclick={onExport}>
 			<Download size={18} />
-			<span>{m.action_exportPng()}</span>
+			<span>{m.label_export()}</span>
 		</button>
 		<button class="action-btn outline" onclick={onClear}>
 			<Trash2 size={18} />

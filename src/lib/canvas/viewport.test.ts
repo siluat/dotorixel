@@ -78,6 +78,105 @@ describe('ViewportData conversion', () => {
 	});
 });
 
+describe('ViewportOps camera transforms', () => {
+	const defaultVd = viewportOps.forCanvas(16, 16);
+
+	it('forCanvas returns ViewportData with expected defaults', () => {
+		expect(defaultVd.pixelSize).toBeGreaterThan(0);
+		expect(defaultVd.zoom).toBe(1.0);
+		expect(defaultVd.panX).toBe(0);
+		expect(defaultVd.panY).toBe(0);
+		expect(defaultVd.showGrid).toBe(true);
+		expect(defaultVd.gridColor).toBe('#cccccc');
+	});
+
+	it('screenToCanvas maps origin correctly at default viewport', () => {
+		const coords = viewportOps.screenToCanvas(defaultVd, 0, 0);
+
+		expect(coords.x).toBe(0);
+		expect(coords.y).toBe(0);
+	});
+
+	it('screenToCanvas produces negative coords for off-canvas positions', () => {
+		const vd = { ...defaultVd, panX: 32, panY: 32 };
+		const coords = viewportOps.screenToCanvas(vd, 0, 0);
+
+		expect(coords.x).toBeLessThan(0);
+		expect(coords.y).toBeLessThan(0);
+	});
+
+	it('zoomAtPoint changes zoom and adjusts pan', () => {
+		const zoomed = viewportOps.zoomAtPoint(defaultVd, 100, 100, 2.0);
+
+		expect(zoomed.zoom).toBe(2.0);
+		expect(zoomed.pixelSize).toBe(defaultVd.pixelSize);
+	});
+
+	it('zoomAtPoint preserves grid settings', () => {
+		const vd = { ...defaultVd, showGrid: false, gridColor: '#aabbcc' };
+		const zoomed = viewportOps.zoomAtPoint(vd, 50, 50, 3.0);
+
+		expect(zoomed.showGrid).toBe(false);
+		expect(zoomed.gridColor).toBe('#aabbcc');
+	});
+
+	it('pan applies delta', () => {
+		const panned = viewportOps.pan(defaultVd, 10, -5);
+
+		expect(panned.panX).toBe(10);
+		expect(panned.panY).toBe(-5);
+	});
+
+	it('pan preserves grid settings', () => {
+		const vd = { ...defaultVd, showGrid: false, gridColor: '#112233' };
+		const panned = viewportOps.pan(vd, 1, 1);
+
+		expect(panned.showGrid).toBe(false);
+		expect(panned.gridColor).toBe('#112233');
+	});
+
+	it('clampPan constrains extreme offsets', () => {
+		const extreme = { ...defaultVd, panX: 10000, panY: 10000 };
+		const clamped = viewportOps.clampPan(extreme, 16, 16, 512, 512);
+
+		expect(clamped.panX).toBeLessThan(10000);
+		expect(clamped.panY).toBeLessThan(10000);
+	});
+
+	it('clampPan preserves zero pan at default', () => {
+		const clamped = viewportOps.clampPan(defaultVd, 16, 16, 512, 512);
+
+		expect(clamped.panX).toBe(0);
+		expect(clamped.panY).toBe(0);
+	});
+
+	it('fitToViewport produces valid zoom', () => {
+		const fitted = viewportOps.fitToViewport(defaultVd, 16, 16, 800, 600, Infinity);
+
+		expect(fitted.zoom).toBeGreaterThan(0);
+	});
+
+	it('fitToViewport respects maxZoom', () => {
+		const fitted = viewportOps.fitToViewport(defaultVd, 8, 8, 800, 600, 2.0);
+
+		expect(fitted.zoom).toBeLessThanOrEqual(2.0);
+	});
+
+	it('effectivePixelSize computes pixelSize * zoom', () => {
+		const vd = { ...defaultVd, pixelSize: 16, zoom: 2.0 };
+
+		expect(viewportOps.effectivePixelSize(vd)).toBe(32);
+	});
+
+	it('displaySize computes canvas display dimensions', () => {
+		const vd = { ...defaultVd, pixelSize: 16, zoom: 1.0 };
+		const size = viewportOps.displaySize(vd, 32, 32);
+
+		expect(size.width).toBe(32 * 16);
+		expect(size.height).toBe(32 * 16);
+	});
+});
+
 describe('ViewportOps zoom math', () => {
 	it('zoomLevels returns levels in ascending order', () => {
 		const levels = viewportOps.zoomLevels();

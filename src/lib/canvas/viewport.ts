@@ -38,8 +38,44 @@ export interface Viewport {
 	): Viewport;
 }
 
-/** Zoom arithmetic and viewport constants. Pure functions — no Viewport instances created. */
+/**
+ * All viewport operations — camera transforms + zoom arithmetic.
+ * Implemented by the WASM adapter; consumers import the singleton from wasm-backend.
+ */
 export interface ViewportOps {
+	// Camera transforms (each returns a new ViewportData)
+	screenToCanvas(vd: ViewportData, screenX: number, screenY: number): CanvasCoords;
+	zoomAtPoint(
+		vd: ViewportData,
+		screenX: number,
+		screenY: number,
+		newZoom: number
+	): ViewportData;
+	pan(vd: ViewportData, deltaX: number, deltaY: number): ViewportData;
+	clampPan(
+		vd: ViewportData,
+		canvasWidth: number,
+		canvasHeight: number,
+		viewportWidth: number,
+		viewportHeight: number
+	): ViewportData;
+	fitToViewport(
+		vd: ViewportData,
+		canvasWidth: number,
+		canvasHeight: number,
+		viewportWidth: number,
+		viewportHeight: number,
+		maxZoom: number
+	): ViewportData;
+	effectivePixelSize(vd: ViewportData): number;
+	displaySize(
+		vd: ViewportData,
+		canvasWidth: number,
+		canvasHeight: number
+	): ViewportSize;
+	forCanvas(canvasWidth: number, canvasHeight: number): ViewportData;
+
+	// Zoom arithmetic
 	clampZoom(zoom: number): number;
 	computePinchZoom(currentZoom: number, deltaY: number): number;
 	nextZoomLevel(currentZoom: number): number;

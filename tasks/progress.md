@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-029 — Viewport data-only — eliminate Viewport interface from public API
+030 — Decouple session persistence from canvas domain types
 
 ## Next Up
 

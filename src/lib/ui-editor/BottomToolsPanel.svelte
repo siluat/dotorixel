@@ -1,8 +1,7 @@
 <script lang="ts">
-	import type { ToolType } from '$lib/canvas/tool-types';
-	import { Pencil, Slash, Square, Circle, Eraser, PaintBucket, Pipette, Move, ZoomOut, ZoomIn } from 'lucide-svelte';
+	import { ZoomOut, ZoomIn } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
-	import { TOOL_SHORTCUT_KEYS } from '$lib/canvas/shortcut-display';
+	import { TOOL_ENTRIES, type ToolType } from '$lib/ui-editor/tool-ui';
 	import { tooltip } from '$lib/tooltip';
 	import FloatingPanel from './FloatingPanel.svelte';
 	import EditorButton from './EditorButton.svelte';
@@ -26,70 +25,16 @@
 </script>
 
 <FloatingPanel style="height: 60px; border-radius: var(--ds-radius-xl); padding: 10px 20px;">
-	<EditorButton
-		title={`${m.tool_pencil()} (${TOOL_SHORTCUT_KEYS.pencil})`}
-		active={activeTool === 'pencil'}
-		shortcutHint={hint(TOOL_SHORTCUT_KEYS.pencil)}
-		onclick={() => onToolChange('pencil')}
-	>
-		<Pencil size={18} />
-	</EditorButton>
-	<EditorButton
-		title={`${m.tool_line()} (${TOOL_SHORTCUT_KEYS.line})`}
-		active={activeTool === 'line'}
-		shortcutHint={hint(TOOL_SHORTCUT_KEYS.line)}
-		onclick={() => onToolChange('line')}
-	>
-		<Slash size={18} />
-	</EditorButton>
-	<EditorButton
-		title={`${m.tool_rectangle()} (${TOOL_SHORTCUT_KEYS.rectangle})`}
-		active={activeTool === 'rectangle'}
-		shortcutHint={hint(TOOL_SHORTCUT_KEYS.rectangle)}
-		onclick={() => onToolChange('rectangle')}
-	>
-		<Square size={18} />
-	</EditorButton>
-	<EditorButton
-		title={`${m.tool_ellipse()} (${TOOL_SHORTCUT_KEYS.ellipse})`}
-		active={activeTool === 'ellipse'}
-		shortcutHint={hint(TOOL_SHORTCUT_KEYS.ellipse)}
-		onclick={() => onToolChange('ellipse')}
-	>
-		<Circle size={18} />
-	</EditorButton>
-	<EditorButton
-		title={`${m.tool_eraser()} (${TOOL_SHORTCUT_KEYS.eraser})`}
-		active={activeTool === 'eraser'}
-		shortcutHint={hint(TOOL_SHORTCUT_KEYS.eraser)}
-		onclick={() => onToolChange('eraser')}
-	>
-		<Eraser size={18} />
-	</EditorButton>
-	<EditorButton
-		title={`${m.tool_floodfill()} (${TOOL_SHORTCUT_KEYS.floodfill})`}
-		active={activeTool === 'floodfill'}
-		shortcutHint={hint(TOOL_SHORTCUT_KEYS.floodfill)}
-		onclick={() => onToolChange('floodfill')}
-	>
-		<PaintBucket size={18} />
-	</EditorButton>
-	<EditorButton
-		title={`${m.tool_eyedropper()} (${TOOL_SHORTCUT_KEYS.eyedropper})`}
-		active={activeTool === 'eyedropper'}
-		shortcutHint={hint(TOOL_SHORTCUT_KEYS.eyedropper)}
-		onclick={() => onToolChange('eyedropper')}
-	>
-		<Pipette size={18} />
-	</EditorButton>
-	<EditorButton
-		title={`${m.tool_move()} (${TOOL_SHORTCUT_KEYS.move})`}
-		active={activeTool === 'move'}
-		shortcutHint={hint(TOOL_SHORTCUT_KEYS.move)}
-		onclick={() => onToolChange('move')}
-	>
-		<Move size={18} />
-	</EditorButton>
+	{#each TOOL_ENTRIES as tool}
+		<EditorButton
+			title={`${tool.label()} (${tool.shortcutKey})`}
+			active={activeTool === tool.type}
+			shortcutHint={hint(tool.shortcutKey)}
+			onclick={() => onToolChange(tool.type)}
+		>
+			<tool.icon size={18} />
+		</EditorButton>
+	{/each}
 
 	<div class="separator"></div>
 

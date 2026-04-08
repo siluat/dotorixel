@@ -64,6 +64,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | PNG | ✅ | ✅ | 🔧 | Apple: core ready, UI disabled |
+| SVG | ✅ | ⬜ | ⬜ | Core encoder + WASM binding done; web download + UI pending |
 
 ## Input
 

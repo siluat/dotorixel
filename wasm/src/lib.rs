@@ -2,7 +2,7 @@ use wasm_bindgen::prelude::*;
 
 use dotorixel_core::canvas::{PixelCanvas, ResizeAnchor};
 use dotorixel_core::color::Color;
-use dotorixel_core::export::PngExport;
+use dotorixel_core::export::{PngExport, SvgExport};
 use dotorixel_core::history::{HistoryManager, Snapshot};
 use dotorixel_core::tool::{
     ToolType, ellipse_outline, flood_fill, interpolate_pixels, rectangle_outline,
@@ -194,6 +194,12 @@ impl WasmPixelCanvas {
     pub fn encode_png(&self) -> Result<Vec<u8>, JsError> {
         self.inner
             .encode_png()
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn encode_svg(&self) -> Result<String, JsError> {
+        self.inner
+            .encode_svg()
             .map_err(|e| JsError::new(&e.to_string()))
     }
 }

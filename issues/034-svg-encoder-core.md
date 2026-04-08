@@ -1,6 +1,6 @@
 ---
 title: SVG encoder — Rust core + WASM binding
-status: open
+status: done
 created: 2026-04-09
 parent: 031-svg-export.md
 ---
@@ -36,3 +36,16 @@ From parent PRD [031](031-svg-export.md):
 - Scenario 4: Semi-transparent pixels → fill-opacity
 - Scenario 5: 1x1 canvas → single rect
 - Scenario 6: All-transparent canvas → empty SVG with root element only
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/export.rs` | `SvgExport` trait + `PixelCanvas` impl + 7 tests |
+| `crates/core/src/lib.rs` | Re-export `SvgExport` |
+| `wasm/src/lib.rs` | `WasmPixelCanvas.encode_svg()` WASM binding |
+
+### Key Decisions
+
+- Used `get_pixel()` public API instead of raw byte indexing to avoid coupling to RGBA byte layout
+- Returns `Result<String, ExportError>` for API consistency with `PngExport`, even though current implementation is infallible

@@ -11,7 +11,6 @@
 
 - Export UI (format selector + filename input) — [PRD](../issues/033-export-ui-web.md)
 - SVG export — [PRD](../issues/031-svg-export.md)
-  - [034 — SVG encoder core](../issues/034-svg-encoder-core.md)
   - [035 — SVG web export](../issues/035-svg-web-export.md)
 - Design: share artwork dialog — URL 공유 다이얼로그 UI (.pen)
 - Share artwork via URL

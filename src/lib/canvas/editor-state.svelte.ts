@@ -1,7 +1,8 @@
 import type { PixelCanvas } from './pixel-canvas';
 import type { Viewport } from './viewport';
 import { canvasFactory, viewportFactory, viewportOps } from './wasm-backend';
-import { extractViewportData, type CanvasCoords, type ResizeAnchor, type ViewportSize, type ViewportState } from './view-types';
+import type { CanvasCoords } from './canvas-types';
+import { extractViewportData, type ResizeAnchor, type ViewportSize, type ViewportState } from './view-types';
 import { TOOL_CURSORS, type ToolType } from './tool-types';
 import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
 import { SharedState } from './shared-state.svelte';

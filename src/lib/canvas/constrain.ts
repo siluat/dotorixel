@@ -1,4 +1,4 @@
-import type { CanvasCoords } from './view-types';
+import type { CanvasCoords } from './canvas-types';
 
 /** Snaps `end` to the nearest 45° multiple direction from `start` (8-directional). */
 export function constrainLine(start: CanvasCoords, end: CanvasCoords): CanvasCoords {

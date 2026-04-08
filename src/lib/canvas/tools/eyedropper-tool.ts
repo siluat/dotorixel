@@ -1,6 +1,6 @@
 import { colorToHex } from '../color';
 import { NO_EFFECTS, type OneShotTool, type ToolContext, type ToolEffects } from '../draw-tool';
-import type { CanvasCoords } from '../view-types';
+import type { CanvasCoords } from '../canvas-types';
 
 /** Samples a pixel color on click. Does not modify the canvas or capture history. */
 export const eyedropperTool: OneShotTool = {

@@ -1,6 +1,6 @@
 import { shiftPixels } from '../shift-pixels';
 import type { DragTransformTool, ToolContext } from '../draw-tool';
-import type { CanvasCoords } from '../view-types';
+import type { CanvasCoords } from '../canvas-types';
 
 /** Shifts all canvas pixels by drag delta from the initial click point. */
 export const moveTool: DragTransformTool = {

@@ -21,6 +21,7 @@ Follow these steps in order when starting a task.
    - No items → notify the user there are no tasks and stop.
 
 4. **Classify the selected item** by checking its entry in `tasks/todo.md`:
+   - **Design task**: The item has a "Design:" prefix or "(.pen)" marker. → Go to **Path D**.
    - **Sub-issue**: The item links to an issue file (e.g., `[003 — ...](../issues/003-*.md)`). → Go to **Path C**.
    - **PRD exists, no sub-issues**: The item or its parent has a `[PRD]` link, but no indented sub-issue items exist below it yet. → Go to **Path B**.
    - **No PRD**: The item is plain text with no PRD link and no issue file link. → Go to **Path A**.
@@ -49,3 +50,11 @@ Invoke the `/prd-to-issues` skill for this item. Stop after issues are created.
    - Otherwise: set to the selected task title.
 
 7. **Begin TDD**: Invoke the `/tdd` skill to start implementation.
+
+## Path D — Design task
+
+The item is a UI design task that produces `.pen` file(s).
+
+5. Update "Currently Working On" in `tasks/progress.md` to the design task title.
+
+6. **Begin UI design**: Invoke the `/ui-design` skill.

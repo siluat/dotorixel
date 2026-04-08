@@ -73,6 +73,6 @@ If the completed task added or changed any feature implementation, update `docs/
 ### 6. Git commit
 
 **Guard: verify current branch is not `main`.** If on `main`, stop and alert the user — do not commit.
-- **Exception — .pen-only tasks**: If the task only modified `.pen` files (Design/Sync tasks), committing on `main` is allowed. No PR is needed.
+- **Exception — .pen-only tasks**: If the task only modified `.pen` files (Design/Sync tasks), committing on `main` is allowed. No PR is needed. After committing, push to remote.
 
 Commit changes and task updates together.

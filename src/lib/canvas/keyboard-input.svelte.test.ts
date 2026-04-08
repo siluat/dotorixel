@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi } from 'vitest';
 import { createKeyboardInput, type KeyboardInputHost } from './keyboard-input.svelte';
-import type { ToolType } from './tool-types';
+import type { ToolType } from './tool-registry';
 
 function createHost(overrides?: Partial<KeyboardInputHost>): KeyboardInputHost {
 	return {

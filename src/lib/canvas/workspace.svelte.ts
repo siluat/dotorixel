@@ -1,7 +1,7 @@
 import { EditorState } from './editor-state.svelte';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
-import { isValidToolType } from './tool-types';
+import { isValidToolType } from './tool-registry';
 import type { WorkspaceSnapshot, TabSnapshot } from './workspace-snapshot';
 import { canvasFactory } from './wasm-backend';
 

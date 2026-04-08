@@ -1,5 +1,4 @@
-import type { ToolType } from './tool-types';
-import { TOOL_SHORTCUT_KEYS } from './shortcut-display';
+import { TOOL_SHORTCUTS, type ToolType } from './tool-registry';
 
 /**
  * Callbacks that the keyboard module needs from its owner.
@@ -51,11 +50,6 @@ function isTextInputTarget(target: EventTarget | null): boolean {
 	if (typeof HTMLElement === 'undefined' || !(target instanceof HTMLElement)) return false;
 	return target.closest('input, select, textarea, [contenteditable]:not([contenteditable="false"])') !== null;
 }
-
-// Derived from TOOL_SHORTCUT_KEYS: maps KeyboardEvent.code → ToolType
-const TOOL_SHORTCUTS: Record<string, ToolType> = Object.fromEntries(
-	Object.entries(TOOL_SHORTCUT_KEYS).map(([tool, key]) => [`Key${key}`, tool])
-) as Record<string, ToolType>;
 
 export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 	let isSpaceHeld = $state(false);

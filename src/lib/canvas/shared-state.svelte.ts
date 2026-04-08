@@ -1,4 +1,4 @@
-import type { ToolType } from './tool-types';
+import type { ToolType } from './tool-registry';
 import type { Color } from './color';
 
 export class SharedState {

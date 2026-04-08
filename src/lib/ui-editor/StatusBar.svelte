@@ -1,6 +1,5 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import type { ToolType } from '$lib/canvas/tool-types';
+	import { TOOL_ENTRIES, type ToolType } from '$lib/ui-editor/tool-ui';
 
 	interface Props {
 		canvasWidth: number;
@@ -10,22 +9,13 @@
 
 	let { canvasWidth, canvasHeight, activeTool }: Props = $props();
 
-	const toolMessages: Record<ToolType, () => string> = {
-		pencil: m.tool_pencil,
-		line: m.tool_line,
-		rectangle: m.tool_rectangle,
-		ellipse: m.tool_ellipse,
-		eraser: m.tool_eraser,
-		floodfill: m.tool_floodfill,
-		eyedropper: m.tool_eyedropper,
-		move: m.tool_move
-	};
+	const activeLabel = $derived(TOOL_ENTRIES.find((t) => t.type === activeTool)?.label() ?? '');
 </script>
 
 <footer class="status-bar">
 	<span class="status-size">{canvasWidth} &times; {canvasHeight}</span>
 	<div class="status-spacer"></div>
-	<span class="status-tool">{toolMessages[activeTool]()}</span>
+	<span class="status-tool">{activeLabel}</span>
 </footer>
 
 <style>

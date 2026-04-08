@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { shiftPixels } from './shift-pixels';
+import { shiftPixels } from './move-tool';
 
 function createBuffer(width: number, height: number, fill?: number[]): Uint8Array {
 	const buf = new Uint8Array(width * height * 4);

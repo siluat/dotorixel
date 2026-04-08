@@ -69,10 +69,6 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
   - Bundle size — Tauri `.app` vs native `.app`
   - Implementation effort — per-feature LOC and time comparison
 
-## Architecture
-
-- Consolidate viewport module — [RFC](../issues/026-consolidate-viewport-module.md)
-
 ## Review backlog (not assigned to a milestone)
 
 - FG/BG swap UI improvements

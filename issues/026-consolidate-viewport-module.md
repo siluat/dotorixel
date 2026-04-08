@@ -1,6 +1,6 @@
 ---
 title: Consolidate viewport module — merge 4 thin files into one deep module
-status: open
+status: done
 created: 2026-04-08
 ---
 
@@ -203,3 +203,23 @@ Tests should verify observable behavior at the module boundary — "given this i
 - **New viewport features**: No new zoom levels, animated transitions, or multi-viewport support.
 - **UI component testing**: UI components that consume viewport types (PixelCanvasView, AnchorSelector, etc.) receive import path changes only — no new component tests.
 - **wasm-sync.test.ts updates**: This file imports `Viewport` from `./viewport`, which is unchanged — no migration needed.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/canvas-types.ts` | New leaf module — `CanvasCoords` + `ResizeAnchor` |
+| `src/lib/canvas/viewport.ts` | Consolidated module — all viewport interfaces, types, and serialization |
+| `src/lib/canvas/viewport.test.ts` | Migrated + 16 new ViewportOps zoom math tests |
+| `src/lib/canvas/viewport-ops.ts` | Deleted — merged into viewport.ts |
+| `src/lib/canvas/viewport-factory.ts` | Deleted — merged into viewport.ts |
+| `src/lib/canvas/view-types.ts` | Deleted — split between viewport.ts and canvas-types.ts |
+
+### Key Decisions
+- `ViewportFactory` interface retained over bare callback — enables typed mock factories and keeps `wasm-backend.ts` type annotation
+- `restoreViewportState` takes `ViewportFactory` parameter to structurally eliminate circular dependency
+- Re-export shim strategy for safe incremental migration (7 commits, each green)
+
+### Notes
+- `src/lib/index.ts` barrel file was an initially missed consumer — caught by pre-commit `svelte-check`
+- Test count increased from 433 to 449 (16 new ViewportOps boundary tests + 1 mock factory test, 3 existing tests migrated)

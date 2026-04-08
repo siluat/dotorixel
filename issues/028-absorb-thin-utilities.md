@@ -62,22 +62,22 @@ Verification: run all tests — both `shift-pixels.test.ts` (unchanged) and `too
 
 ### Commit 4: Relocate shift-pixels tests and delete shift-pixels files
 
-Create `tools/move-tool.test.ts` with the 8 test cases from `shift-pixels.test.ts` under a `describe('shiftPixels')` block. Include the helper functions (`createBuffer`, `setPixel`, `getPixel`) in the new test file. Update imports to reference `move-tool` instead of `shift-pixels`. Delete `shift-pixels.ts` and `shift-pixels.test.ts`.
+Create `tools/move-tool.test.ts` with the 9 test cases from `shift-pixels.test.ts` under a `describe('shiftPixels')` block. Include the helper functions (`createBuffer`, `setPixel`, `getPixel`) in the new test file. Update imports to reference `move-tool` instead of `shift-pixels`. Delete `shift-pixels.ts` and `shift-pixels.test.ts`.
 
-Verification: run all tests — the 8 shiftPixels cases now live in `tools/move-tool.test.ts` and pass.
+Verification: run all tests — the 9 shiftPixels cases now live in `tools/move-tool.test.ts` and pass.
 
 ## Decision Document
 
-- **Export vs. private**: Functions remain exported from their new locations. The co-location benefit (reduced file count, related code together) is the primary gain. Access restriction is not a goal — these are pure functions whose unit tests (15 + 8 = 23 cases) cover edge cases that the 2 integration tests in tool-runner don't fully cover (8-directional snapping, all clipping variants).
+- **Export vs. private**: Functions remain exported from their new locations. The co-location benefit (reduced file count, related code together) is the primary gain. Access restriction is not a goal — these are pure functions whose unit tests (15 + 9 = 24 cases) cover edge cases that the 2 integration tests in tool-runner don't fully cover (8-directional snapping, all clipping variants).
 - **Dependency strategy**: In-process — pure computation with no I/O or external dependencies. Direct merge into consumers.
 - **No re-exports**: Consumers import directly from the new location. No backward-compatible re-exports from old paths.
 - **Re-extraction trigger**: If a second consumer appears in the future, extract back to a shared module. One consumer = co-located; two consumers = shared.
 
 ## Testing Decisions
 
-- **Preserve, don't rewrite.** The existing 23 test cases are moved verbatim — only import paths change. No new test logic is needed.
+- **Preserve, don't rewrite.** The existing 24 test cases are moved verbatim — only import paths change. No new test logic is needed.
 - **Constrain tests** (15 cases) move into `tool-runner.svelte.test.ts` as separate `describe` blocks. This file already contains integration tests for shift constraint behavior (2 cases), which remain untouched.
-- **Shift-pixels tests** (8 cases) move into a new `tools/move-tool.test.ts`. This file is new because no `move-tool.test.ts` exists yet.
+- **Shift-pixels tests** (9 cases) move into a new `tools/move-tool.test.ts`. This file is new because no `move-tool.test.ts` exists yet.
 - **Good test criteria**: Each test asserts on a single pure-function input/output pair. These are algorithmic edge cases (diagonal snapping, off-canvas clipping) that serve as regression defense per the project's testing guidelines.
 - **Prior art**: The test style matches existing pure-function tests in the codebase (e.g., `color.test.ts`, `canvas-constraints.test.ts`).
 

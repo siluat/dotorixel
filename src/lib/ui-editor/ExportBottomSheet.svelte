@@ -61,9 +61,9 @@
 			drawerOpen = true;
 			onOpenChange(true);
 		} else {
-			selectedFormatId = availableFormats[0].id;
-			filenameStem = '';
 			setTimeout(() => {
+				selectedFormatId = availableFormats[0].id;
+				filenameStem = '';
 				drawerOpen = false;
 				onOpenChange(false);
 			}, CLOSE_ANIMATION_MS);

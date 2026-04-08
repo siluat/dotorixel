@@ -149,11 +149,6 @@
 		trackCanvasSize(w, h);
 	}
 
-	function handleExport() {
-		editor.handleExportPng();
-		trackExport(editor.pixelCanvas.width, editor.pixelCanvas.height, 'png');
-	}
-
 	function handleExportConfirm(format: ExportFormat, filenameStem: string) {
 		const knownExtensions = availableFormats.map((f) => f.extension);
 		const cleanStem = stripKnownExtension(filenameStem.trim(), knownExtensions);

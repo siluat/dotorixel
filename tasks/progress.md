@@ -7,19 +7,17 @@
 
 ## Last Completed
 
-034 — SVG encoder core
+036 — Export logic foundation
 
 ## Next Up
 
-- 036 — Export logic foundation
-  - First sub-issue of 033. No blockers. Can start immediately.
 - 037 — Desktop ExportPopover
-  - Depends on 036. Desktop end-to-end export UI.
+  - 036 done. Can start immediately. Desktop end-to-end export UI.
 - 038 — Mobile ExportBottomSheet
-  - Depends on 036. Mobile end-to-end export UI.
+  - 036 done. Can start immediately. Mobile end-to-end export UI.
 - 035 — SVG web export
-  - Depends on 036+037 (Export UI). Wire SVG encoder into format registry.
+  - Depends on 037 (Export UI must exist). Blocked.
 - 018 — RightPanel (Apple Native)
-  - Next docked layout sub-issue. Depends on 015 (done). Independent.
+  - Independent. Can start immediately.
 - Design: saved work browser (.pen)
   - M2 multi-image workflow. Independent.

@@ -35,6 +35,7 @@ export class EditorState {
 	viewport = $state<ViewportData>(null!);
 	renderVersion = $state(0);
 	resizeAnchor = $state<ResizeAnchor>('top-left');
+	isExportUIOpen = $state(false);
 
 	get activeTool(): ToolType {
 		return this.shared.activeTool;
@@ -315,6 +316,10 @@ export class EditorState {
 			this.viewportSize.height
 		);
 		this.renderVersion++;
+	};
+
+	toggleExportUI = (): void => {
+		this.isExportUIOpen = !this.isExportUIOpen;
 	};
 
 	handleExportPng = (): void => {

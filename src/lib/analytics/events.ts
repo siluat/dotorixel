@@ -11,9 +11,9 @@ export function trackCanvasSize(width: number, height: number): void {
 	trackEvent('canvas-resize', { width, height, locale: getLocale() });
 }
 
-/** Fired when the user exports a PNG */
-export function trackExport(width: number, height: number): void {
-	trackEvent('export-png', { width, height, locale: getLocale() });
+/** Fired when the user exports artwork in any format */
+export function trackExport(width: number, height: number, format: string): void {
+	trackEvent('export', { width, height, format, locale: getLocale() });
 }
 
 /** Fired once when the editor page first loads, sending device info */

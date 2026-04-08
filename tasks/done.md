@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 036 | [Export logic foundation](../issues/036-export-logic-foundation.md) | 2026-04-09 |
 | 034 | [SVG encoder core](../issues/034-svg-encoder-core.md) | 2026-04-09 |
 | 032 | [Design: Export UI — format selector and filename input](../issues/032-export-ui.md) | 2026-04-09 |
 | 030 | [Decouple session persistence from canvas domain types](../issues/030-decouple-session-canvas.md) | 2026-04-08 |

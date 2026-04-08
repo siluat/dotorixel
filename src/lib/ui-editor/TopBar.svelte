@@ -81,6 +81,9 @@
 		padding: env(safe-area-inset-top, 0px) var(--ds-space-5) 0;
 		background: var(--ds-bg-surface);
 		border-bottom: 1px solid var(--ds-border-subtle);
+		-webkit-touch-callout: none;
+		-webkit-user-select: none;
+		user-select: none;
 	}
 
 	.logo-link {

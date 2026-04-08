@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { WasmViewport } from '$wasm/dotorixel_wasm';
 import {
 	createCanvasInteraction,
 	type CanvasInteractionOptions,
 	type CanvasInteractionCallbacks
 } from './canvas-interaction.svelte';
+import { viewportFactory } from './wasm-backend';
 
 function setup(overrides?: {
 	options?: Partial<CanvasInteractionOptions>;
@@ -19,7 +19,7 @@ function setup(overrides?: {
 		...overrides?.callbacks
 	};
 	let spaceHeld = false;
-	const viewport = WasmViewport.for_canvas(16, 16); // pixel_size=32
+	const viewport = viewportFactory.forCanvas(16, 16); // pixel_size=32
 	const options: CanvasInteractionOptions = {
 		screenToCanvas: (x, y) => {
 			const coords = viewport.screen_to_canvas(x, y);

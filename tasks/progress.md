@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None
+025 — Migrate consumer tests and story files to facade factories ([Plan](../issues/025-migrate-consumer-imports-to-facade.md))
 
 ## Last Completed
 
@@ -12,8 +12,6 @@ None
 
 - 018 — RightPanel (Apple Native)
   - Next docked layout sub-issue. Depends on 015 (done).
-- Migrate consumer tests to facade test doubles (depends on 024, now done)
-  - Enables testing core logic without WASM. Independent.
 - SVG export
   - M2 export & sharing. Independent, no prerequisites.
 - Design: saved work browser (.pen)

@@ -10,10 +10,10 @@ None
 
 ## Next Up
 
+- Export UI (format selector + filename input)
+  - M2 export & sharing. Prerequisite for SVG export. PRD ready.
+- SVG export
+  - M2 export & sharing. Depends on Export UI. PRD ready.
 - 018 — RightPanel (Apple Native)
   - Next docked layout sub-issue. Depends on 015 (done).
-- SVG export
-  - M2 export & sharing. Independent, no prerequisites.
-- Design: saved work browser (.pen)
-  - Design prerequisite for "Reopen past work". Can run in parallel with implementation tasks.
 

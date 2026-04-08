@@ -9,8 +9,8 @@
 
 ### Export & sharing
 
-- SVG export
-- Sync: export UI format options updated in Editor frames (.pen)
+- Export UI (format selector + filename input) — [PRD](../issues/032-export-ui.md)
+- SVG export — [PRD](../issues/031-svg-export.md)
 - Design: share artwork dialog — URL 공유 다이얼로그 UI (.pen)
 - Share artwork via URL
 

@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { Workspace } from './workspace.svelte';
 import type { WorkspaceInit } from '$lib/session/workspace-init-types';
+import type { WorkspaceSnapshot } from './workspace-snapshot';
 
 describe('Workspace', () => {
 	it('initializes with a single "Untitled 1" tab', () => {
@@ -220,5 +221,62 @@ describe('Workspace', () => {
 		workspace.addTab();
 
 		expect(workspace.tabs[1].viewport.gridColor).toBe('#ECE5D9');
+	});
+
+	describe('toSnapshot', () => {
+		it('captures a single-tab workspace', () => {
+			const workspace = new Workspace({
+				foregroundColor: { r: 200, g: 50, b: 30, a: 255 },
+				gridColor: '#ECE5D9'
+			});
+			workspace.activeEditor.activeTool = 'line';
+
+			const snapshot: WorkspaceSnapshot = workspace.toSnapshot();
+
+			expect(snapshot.tabs).toHaveLength(1);
+			expect(snapshot.activeTabIndex).toBe(0);
+			expect(snapshot.tabs[0].id).toBe(workspace.tabs[0].documentId);
+			expect(snapshot.tabs[0].name).toBe('Untitled 1');
+			expect(snapshot.tabs[0].width).toBe(16);
+			expect(snapshot.tabs[0].height).toBe(16);
+			expect(snapshot.sharedState.activeTool).toBe('line');
+			expect(snapshot.sharedState.foregroundColor).toEqual({ r: 200, g: 50, b: 30, a: 255 });
+		});
+
+		it('captures a multi-tab workspace with correct active index', () => {
+			const workspace = new Workspace({ gridColor: '#ECE5D9' });
+			workspace.addTab();
+			workspace.setActiveTab(0);
+
+			const snapshot = workspace.toSnapshot();
+
+			expect(snapshot.tabs).toHaveLength(2);
+			expect(snapshot.activeTabIndex).toBe(0);
+			expect(snapshot.tabs[0].name).toBe('Untitled 1');
+			expect(snapshot.tabs[1].name).toBe('Untitled 2');
+		});
+
+		it('captures per-tab viewport state', () => {
+			const workspace = new Workspace({ gridColor: '#ECE5D9' });
+			workspace.activeEditor.viewport = {
+				pixelSize: 32, zoom: 3.0, panX: 100, panY: -50,
+				showGrid: false, gridColor: '#ECE5D9'
+			};
+
+			const snapshot = workspace.toSnapshot();
+
+			expect(snapshot.tabs[0].viewport.zoom).toBe(3.0);
+			expect(snapshot.tabs[0].viewport.panX).toBe(100);
+			expect(snapshot.tabs[0].viewport.showGrid).toBe(false);
+		});
+
+		it('returns a copy — mutating the snapshot does not affect the workspace', () => {
+			const workspace = new Workspace({ gridColor: '#ECE5D9' });
+
+			const snapshot = workspace.toSnapshot();
+			snapshot.sharedState.recentColors.push('#ff0000');
+
+			expect(workspace.activeEditor.recentColors).toEqual([]);
+		});
 	});
 });

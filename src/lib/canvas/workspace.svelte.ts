@@ -2,6 +2,7 @@ import { EditorState } from './editor-state.svelte';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
 import type { WorkspaceInit } from '$lib/session/workspace-init-types';
+import type { WorkspaceSnapshot, TabSnapshot } from './workspace-snapshot';
 import { canvasFactory } from './wasm-backend';
 
 export interface WorkspaceOptions {
@@ -91,5 +92,27 @@ export class Workspace {
 
 	setActiveTab(index: number) {
 		this.activeTabIndex = index;
+	}
+
+	/** Extract a persistence-ready snapshot. No reactive state escapes. */
+	toSnapshot(): WorkspaceSnapshot {
+		const active = this.activeEditor;
+		return {
+			tabs: this.tabs.map((editor): TabSnapshot => ({
+				id: editor.documentId,
+				name: editor.name,
+				width: editor.pixelCanvas.width,
+				height: editor.pixelCanvas.height,
+				pixels: editor.pixelCanvas.pixels(),
+				viewport: { ...editor.viewport }
+			})),
+			activeTabIndex: this.activeTabIndex,
+			sharedState: {
+				activeTool: active.activeTool,
+				foregroundColor: { ...active.foregroundColor },
+				backgroundColor: { ...active.backgroundColor },
+				recentColors: [...active.recentColors]
+			}
+		};
 	}
 }

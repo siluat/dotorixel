@@ -74,4 +74,12 @@ describe('availableFormats', () => {
 		expect(png!.extension).toBe('png');
 		expect(png!.exportFn).toBeTypeOf('function');
 	});
+
+	it('contains an SVG entry with required fields', () => {
+		const svg = availableFormats.find((f) => f.id === 'svg');
+		expect(svg).toBeDefined();
+		expect(svg!.label).toBe('SVG');
+		expect(svg!.extension).toBe('svg');
+		expect(svg!.exportFn).toBeTypeOf('function');
+	});
 });

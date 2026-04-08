@@ -11,6 +11,14 @@ function isPngEncodable(canvas: ExportableCanvas): canvas is PngEncodable {
 	return 'encode_png' in canvas;
 }
 
+interface SvgEncodable extends ExportableCanvas {
+	encode_svg(): string;
+}
+
+function isSvgEncodable(canvas: ExportableCanvas): canvas is SvgEncodable {
+	return 'encode_svg' in canvas;
+}
+
 export interface ExportFormat {
 	id: string;
 	label: string;
@@ -19,7 +27,8 @@ export interface ExportFormat {
 }
 
 export const availableFormats: ExportFormat[] = [
-	{ id: 'png', label: 'PNG', extension: 'png', exportFn: exportAsPng }
+	{ id: 'png', label: 'PNG', extension: 'png', exportFn: exportAsPng },
+	{ id: 'svg', label: 'SVG', extension: 'svg', exportFn: exportAsSvg }
 ];
 
 export function generateDefaultStem(canvas: { width: number; height: number }): string {
@@ -60,5 +69,19 @@ export function exportAsPng(canvas: ExportableCanvas, filename?: string): void {
 
 	// Defer revocation so the browser can start the download before the URL is invalidated.
 	// Immediate revocation after click() can silently cancel downloads in Firefox.
+	setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+export function exportAsSvg(canvas: ExportableCanvas, filename?: string): void {
+	if (!isSvgEncodable(canvas)) return;
+	const svg = canvas.encode_svg();
+	const blob = new Blob([svg], { type: 'image/svg+xml' });
+	const url = URL.createObjectURL(blob);
+
+	const anchor = document.createElement('a');
+	anchor.href = url;
+	anchor.download = filename ?? `${generateDefaultStem(canvas)}.svg`;
+	anchor.click();
+
 	setTimeout(() => URL.revokeObjectURL(url), 0);
 }

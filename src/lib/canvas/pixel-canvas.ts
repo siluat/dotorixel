@@ -16,6 +16,7 @@ export interface PixelCanvas {
 	is_inside_bounds(x: number, y: number): boolean;
 	clear(): void;
 	encode_png(): Uint8Array;
+	encode_svg(): string;
 	resize(new_width: number, new_height: number): PixelCanvas;
 }
 

@@ -6,7 +6,7 @@
 
 ## Last Completed
 
-035 — SVG web export
+039 — Consolidate tool registration into a unified ToolRegistry
 
 ## Next Up
 

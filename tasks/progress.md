@@ -11,10 +11,14 @@
 
 ## Next Up
 
+- 036 — Export logic foundation
+  - First sub-issue of 033. No blockers. Can start immediately.
+- 037 — Desktop ExportPopover
+  - Depends on 036. Desktop end-to-end export UI.
+- 038 — Mobile ExportBottomSheet
+  - Depends on 036. Mobile end-to-end export UI.
 - 035 — SVG web export
-  - Next sub-issue of 031. Depends on 034 (done). Can start immediately.
-- Export UI (033) — needs prd-to-issues
-  - PRD done. Sub-issue 분할 후 구현 가능. Independent of SVG work.
+  - Depends on 036+037 (Export UI). Wire SVG encoder into format registry.
 - 018 — RightPanel (Apple Native)
   - Next docked layout sub-issue. Depends on 015 (done). Independent.
 - Design: saved work browser (.pen)

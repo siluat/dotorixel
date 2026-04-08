@@ -2,11 +2,11 @@
 
 ## Currently Working On
 
-025 — Migrate consumer tests and story files to facade factories ([Plan](../issues/025-migrate-consumer-imports-to-facade.md))
+None
 
 ## Last Completed
 
-024 — WASM facade layer — structural typing + DrawingOps injection
+025 — Migrate consumer tests and story files to facade factories
 
 ## Next Up
 

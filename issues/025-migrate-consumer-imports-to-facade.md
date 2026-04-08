@@ -1,6 +1,6 @@
 ---
 title: Migrate consumer tests and story files to facade factories
-status: open
+status: done
 created: 2026-04-08
 ---
 
@@ -126,3 +126,19 @@ Tests still require WASM initialization via `setup.ts`. This is acceptable — t
 ### `wasm/*.test.ts` and `wasm-sync.test.ts`
 
 These files test the WASM layer itself. Direct WASM imports are correct and intentional.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/tool-runner.svelte.test.ts` | `WasmPixelCanvas` → `canvasFactory.create()`, `PixelCanvas` type, unused `WasmColor` removed |
+| `src/lib/canvas/canvas-interaction.svelte.test.ts` | `WasmViewport.for_canvas()` → `viewportFactory.forCanvas()` |
+| `src/lib/session/session-persistence.test.ts` | `wasmCanvas()` helper removed, `setPixel()` helper via `restore_pixels`, `viewportFactory.create()` |
+| `src/lib/session/session.test.ts` | Same pattern as session-persistence |
+| `src/lib/canvas/PixelCanvasView.stories.svelte` | `WasmColor` → plain `Color`, checkerboard via `fromPixels`, `canvasFactory`/`viewportFactory` |
+
+### Key Decisions
+
+- 024's "test doubles follow-up" was re-evaluated and rejected: WASM initialization has never caused test brittleness in practice. Simple facade factory import cleanup achieves architectural consistency without the complexity of DI refactoring and fake implementations.
+- `set_pixel` replacement in session tests uses `restore_pixels` with a local helper — a test-only pattern not used in production (where all pixel mutations go through `DrawingOps`).
+- Two todo.md items ("consumer tests" + "story files") merged into one task since the scope is small and the changes are uniform.

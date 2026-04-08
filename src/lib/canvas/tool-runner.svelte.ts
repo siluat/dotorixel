@@ -48,14 +48,19 @@ export interface ToolRunner {
 	redo(): EditorEffects;
 	clear(): EditorEffects;
 	pushSnapshot(): void;
-
-	/** Wire isShiftHeld after KeyboardInput is created to break circular dependency. */
-	connectModifiers(modifiers: { isShiftHeld(): boolean }): void;
 }
 
 // ── Factory ─────────────────────────────────────────────────────────
 
-export function createToolRunner(host: ToolRunnerHost, shared: SharedState): ToolRunner {
+export interface ToolRunnerDeps {
+	readonly host: ToolRunnerHost;
+	readonly shared: SharedState;
+	readonly getShiftHeld: () => boolean;
+}
+
+export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
+	const { host, shared, getShiftHeld } = deps;
+
 	// ── DrawingOps (bound to current canvas) ────────────────────────
 	const ops = createDrawingOps(() => host.pixelCanvas);
 
@@ -85,9 +90,6 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 	let strokeAnchor: CanvasCoords | null = null;
 	let lastDrawCurrent: CanvasCoords | null = null;
 
-	// ── Modifier provider (wired via connectModifiers) ──────────────
-	let shiftHeldProvider: (() => boolean) | null = null;
-
 	// ── Derived reactive properties ─────────────────────────────────
 	const canUndo = $derived.by(() => {
 		void historyVersion;
@@ -106,7 +108,7 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 			canvas: host.pixelCanvas,
 			drawColor: activeDrawColor!,
 			drawButton,
-			isShiftHeld: () => shiftHeldProvider?.() ?? false,
+			isShiftHeld: getShiftHeld,
 			foregroundColor: host.foregroundColor,
 			backgroundColor: host.backgroundColor
 		};
@@ -209,8 +211,7 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 					}
 					if (!strokeAnchor || !strokeSnapshot) return NO_EFFECTS;
 					host.pixelCanvas.restore_pixels(strokeSnapshot);
-					const isShiftHeld = shiftHeldProvider?.() ?? false;
-					const end = isShiftHeld ? tool.constrainFn(strokeAnchor, current) : current;
+					const end = getShiftHeld() ? tool.constrainFn(strokeAnchor, current) : current;
 					tool.onPreview(ctx, strokeAnchor, end);
 					return CANVAS_CHANGED;
 				}
@@ -246,8 +247,7 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 
 			const ctx = buildContext();
 			host.pixelCanvas.restore_pixels(strokeSnapshot);
-			const isShiftHeld = shiftHeldProvider?.() ?? false;
-			const end = isShiftHeld ? tool.constrainFn(strokeAnchor, lastDrawCurrent) : lastDrawCurrent;
+			const end = getShiftHeld() ? tool.constrainFn(strokeAnchor, lastDrawCurrent) : lastDrawCurrent;
 			tool.onPreview(ctx, strokeAnchor, end);
 			return CANVAS_CHANGED;
 		},
@@ -276,10 +276,6 @@ export function createToolRunner(host: ToolRunnerHost, shared: SharedState): Too
 
 		pushSnapshot(): void {
 			pushHistorySnapshot();
-		},
-
-		connectModifiers(modifiers: { isShiftHeld(): boolean }): void {
-			shiftHeldProvider = modifiers.isShiftHeld;
 		}
 	};
 }

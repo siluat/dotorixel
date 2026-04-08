@@ -1,6 +1,6 @@
 ---
 title: Export logic foundation — format registry, filename processing, analytics
-status: open
+status: done
 created: 2026-04-09
 parent: 033-export-ui-web.md
 ---
@@ -35,3 +35,24 @@ From parent PRD [033](033-export-ui-web.md):
 - Scenario 4: Filename with known extension → stripped
 - Scenario 12: Reopen → filename empty with placeholder (state reset logic)
 - Scenario 13: Only implemented formats shown (registry driven)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/export.ts` | Added `ExportableCanvas`, `ExportFormat`, `availableFormats`, `stripKnownExtension`, `buildExportFilename` |
+| `src/lib/canvas/export.test.ts` | Tests for format registry, filename processing, extension stripping |
+| `src/lib/canvas/editor-state.svelte.ts` | Added `isExportUIOpen` boolean and `toggleExportUI` method |
+| `src/lib/canvas/editor-state.svelte.test.ts` | Tests for `isExportUIOpen` toggle behavior |
+| `src/lib/analytics/events.ts` | Updated `trackExport(width, height, format)` with event name `'export'` |
+| `src/lib/analytics/events.test.ts` | Test for new `trackExport` signature |
+| `src/routes/editor/+page.svelte` | Updated `trackExport` call site to pass `'png'` format |
+
+### Key Decisions
+
+- `ExportFormat.exportFn` uses `ExportableCanvas` (width/height only) instead of `PngEncodable`, so the registry type is format-agnostic. Each export function internally uses its format-specific interface.
+- Named the boolean `isExportUIOpen` (not `exportUIOpen`) to follow the project's `is`-prefix convention for booleans.
+
+### Notes
+
+- `generateExportFilename` is kept for backward compatibility — `exportAsPng` still uses it as a fallback when called without a filename. It becomes redundant once Export UI (037/038) is in place.

@@ -1136,3 +1136,23 @@ describe('toolCursor', () => {
 		}
 	});
 });
+
+describe('EditorState — isExportUIOpen', () => {
+	it('defaults to false', () => {
+		const editor = createEditor();
+		expect(editor.isExportUIOpen).toBe(false);
+	});
+
+	it('toggles from false to true', () => {
+		const editor = createEditor();
+		editor.toggleExportUI();
+		expect(editor.isExportUIOpen).toBe(true);
+	});
+
+	it('toggles back to false', () => {
+		const editor = createEditor();
+		editor.toggleExportUI();
+		editor.toggleExportUI();
+		expect(editor.isExportUIOpen).toBe(false);
+	});
+});

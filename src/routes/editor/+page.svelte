@@ -144,7 +144,7 @@
 
 	function handleExport() {
 		editor.handleExportPng();
-		trackExport(editor.pixelCanvas.width, editor.pixelCanvas.height);
+		trackExport(editor.pixelCanvas.width, editor.pixelCanvas.height, 'png');
 	}
 </script>
 

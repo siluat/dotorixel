@@ -216,7 +216,7 @@ Restructure ToolRunner's public methods:
 - `modifierChanged()`: guard on `!isDrawing || !activeLifecycle`. Return `activeLifecycle.modifierChanged(buildContext())`.
 - `drawEnd()`: guard on `!isDrawing || !activeLifecycle`. Call `activeLifecycle.end()`. Reset `activeLifecycle = null`, `isDrawing = false`, `drawButton = 0`, `activeDrawColor = null`. Return NO_EFFECTS.
 
-No test file changes — all 26 existing tests verify behavior through the unchanged public API.
+No test file changes — all 30 existing tests verify behavior through the unchanged public API.
 
 ## Testing Decisions
 
@@ -231,7 +231,7 @@ Test external behavior through the public interface, not internal structure. Str
 
 ### What existing tests already cover
 
-The 26 ToolRunner tests verify all category-specific behaviors that lifecycle factories will encapsulate:
+The 30 ToolRunner tests verify all category-specific behaviors that lifecycle factories will encapsulate:
 
 - Pencil: canvasChanged + addRecentColor effects, pixel painting
 - Eyedropper: colorPick effect, no canvasChanged, no history push

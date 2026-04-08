@@ -155,7 +155,7 @@
 
 	function handleExportConfirm(format: ExportFormat, filenameStem: string) {
 		const knownExtensions = availableFormats.map((f) => f.extension);
-		const cleanStem = stripKnownExtension(filenameStem, knownExtensions);
+		const cleanStem = stripKnownExtension(filenameStem.trim(), knownExtensions);
 		const filename = buildExportFilename(cleanStem, format.extension, editor.pixelCanvas);
 		format.exportFn(editor.pixelCanvas, filename);
 		trackExport(editor.pixelCanvas.width, editor.pixelCanvas.height, format.id);

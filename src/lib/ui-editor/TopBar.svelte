@@ -230,10 +230,11 @@
 	}
 
 	.export-btn--active {
-		background: #8a5d20;
+		--export-btn-active-bg: #8a5d20;
+		background: var(--export-btn-active-bg);
 	}
 
 	.export-btn--active:hover {
-		background: #8a5d20;
+		background: var(--export-btn-active-bg);
 	}
 </style>

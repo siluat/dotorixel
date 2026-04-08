@@ -1,21 +1,7 @@
 import type { Viewport } from './viewport';
 import { viewportFactory } from './wasm-backend';
 
-export type ResizeAnchor =
-	| 'top-left'
-	| 'top-center'
-	| 'top-right'
-	| 'middle-left'
-	| 'center'
-	| 'middle-right'
-	| 'bottom-left'
-	| 'bottom-center'
-	| 'bottom-right';
-
-export interface CanvasCoords {
-	readonly x: number;
-	readonly y: number;
-}
+export type { CanvasCoords, ResizeAnchor } from './canvas-types';
 
 export interface ViewportSize {
 	readonly width: number;

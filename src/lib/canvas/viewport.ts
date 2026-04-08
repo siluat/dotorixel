@@ -1,4 +1,5 @@
-import type { CanvasCoords, ViewportSize } from './view-types';
+import type { CanvasCoords } from './canvas-types';
+import type { ViewportSize } from './view-types';
 
 /**
  * Immutable camera state — zoom, pan, coordinate mapping.

@@ -12,7 +12,7 @@ export interface WorkspaceSnapshot {
 		readonly activeTool: string;
 		readonly foregroundColor: { r: number; g: number; b: number; a: number };
 		readonly backgroundColor: { r: number; g: number; b: number; a: number };
-		readonly recentColors: string[];
+		readonly recentColors: readonly string[];
 	};
 }
 

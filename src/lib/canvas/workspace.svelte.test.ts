@@ -269,13 +269,12 @@ describe('Workspace', () => {
 			expect(snapshot.tabs[0].viewport.showGrid).toBe(false);
 		});
 
-		it('returns a copy — mutating the snapshot does not affect the workspace', () => {
+		it('returns a copy — snapshot arrays are independent from workspace state', () => {
 			const workspace = new Workspace({ gridColor: '#ECE5D9' });
 
 			const snapshot = workspace.toSnapshot();
-			snapshot.sharedState.recentColors.push('#ff0000');
 
-			expect(workspace.activeEditor.recentColors).toEqual([]);
+			expect(snapshot.sharedState.recentColors).not.toBe(workspace.activeEditor.recentColors);
 		});
 	});
 });

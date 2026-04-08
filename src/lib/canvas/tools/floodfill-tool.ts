@@ -1,6 +1,6 @@
 import type { DrawingOps } from '../drawing-ops';
 import { CANVAS_CHANGED, NO_EFFECTS, type OneShotTool, type ToolContext, type ToolEffects } from '../draw-tool';
-import type { CanvasCoords } from '../view-types';
+import type { CanvasCoords } from '../canvas-types';
 
 /** Creates a flood fill tool that fills connected same-color pixels on click. */
 export function createFloodfillTool(ops: DrawingOps): OneShotTool {

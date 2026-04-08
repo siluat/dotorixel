@@ -1,6 +1,6 @@
 import type { DrawingOps, DrawingToolType } from '../drawing-ops';
 import type { ContinuousTool, ToolContext } from '../draw-tool';
-import type { CanvasCoords } from '../view-types';
+import type { CanvasCoords } from '../canvas-types';
 
 function createFreehandTool(
 	ops: DrawingOps,

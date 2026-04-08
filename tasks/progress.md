@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-025 — Migrate consumer tests and story files to facade factories
+026 — Consolidate viewport module
 
 ## Next Up
 

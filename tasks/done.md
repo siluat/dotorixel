@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 026 | [Consolidate viewport module](../issues/026-consolidate-viewport-module.md) | 2026-04-08 |
 | 025 | [Migrate consumer tests and story files to facade factories](../issues/025-migrate-consumer-imports-to-facade.md) | 2026-04-08 |
 | 024 | [WASM facade layer — structural typing + DrawingOps injection](../issues/024-wasm-facade-layer.md) | 2026-04-08 |
 | 017 | [Apple native: TopBar](../issues/017-apple-top-bar.md) | 2026-04-07 |

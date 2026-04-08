@@ -21,11 +21,10 @@ import {
 import type { PixelCanvas } from './pixel-canvas';
 import type { CanvasFactory } from './canvas-factory';
 import type { CanvasConstraints } from './canvas-constraints';
-import type { ViewportFactory } from './viewport-factory';
-import type { ViewportOps } from './viewport-ops';
+import type { ViewportFactory, ViewportOps } from './viewport';
 import type { HistoryManager } from './history';
 import type { DrawingOps, DrawingToolType } from './drawing-ops';
-import type { ResizeAnchor } from './view-types';
+import type { ResizeAnchor } from './canvas-types';
 
 // ── Internal mappings ───────────────────────────────────────────────
 

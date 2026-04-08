@@ -1,5 +1,5 @@
 import type { PixelCanvas } from './pixel-canvas';
-import type { CanvasCoords } from './view-types';
+import type { CanvasCoords } from './canvas-types';
 import type { Color } from './color';
 
 // ── ToolEffect: what drawing tools report back ────────────────────

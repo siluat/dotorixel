@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import PixelCanvasView from './PixelCanvasView.svelte';
-	import type { ViewportState } from './view-types';
+	import type { ViewportState } from './viewport';
 	import type { Color } from './color';
 	import { canvasFactory, viewportFactory } from './wasm-backend';
 

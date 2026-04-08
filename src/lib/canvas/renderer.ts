@@ -1,4 +1,4 @@
-import type { ViewportData, ViewportSize } from './view-types';
+import type { ViewportData, ViewportSize } from './viewport';
 
 interface RenderableCanvas {
 	readonly width: number;

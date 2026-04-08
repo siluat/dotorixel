@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-027 — Deepen ToolRunner — StrokeLifecycle pattern
+028 — Absorb single-consumer utility modules into their callers
 
 ## Next Up
 

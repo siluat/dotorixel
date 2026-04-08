@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 028 | [Absorb single-consumer utility modules into their callers](../issues/028-absorb-thin-utilities.md) | 2026-04-08 |
 | 027 | [Deepen ToolRunner — StrokeLifecycle pattern](../issues/027-deepen-tool-runner.md) | 2026-04-08 |
 | 026 | [Consolidate viewport module](../issues/026-consolidate-viewport-module.md) | 2026-04-08 |
 | 025 | [Migrate consumer tests and story files to facade factories](../issues/025-migrate-consumer-imports-to-facade.md) | 2026-04-08 |

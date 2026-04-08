@@ -21,7 +21,7 @@ import {
 import type { PixelCanvas } from './pixel-canvas';
 import type { CanvasFactory } from './canvas-factory';
 import type { CanvasConstraints } from './canvas-constraints';
-import type { ViewportData, ViewportFactory, ViewportOps } from './viewport';
+import type { ViewportData, ViewportOps } from './viewport';
 import type { HistoryManager } from './history';
 import type { DrawingOps, DrawingToolType } from './drawing-ops';
 import type { ResizeAnchor } from './canvas-types';
@@ -76,12 +76,7 @@ export const canvasConstraints: CanvasConstraints = {
 	presets: () => Array.from(WasmPixelCanvas.presets())
 };
 
-// ── ViewportFactory ─────────────────────────────────────────────────
-
-export const viewportFactory: ViewportFactory = {
-	create: (ps, z, px, py) => new WasmViewport(ps, z, px, py),
-	forCanvas: (cw, ch) => WasmViewport.for_canvas(cw, ch)
-};
+// ── ViewportOps ────────────────────────────────────────────────────
 
 const DEFAULT_SHOW_GRID = true;
 const DEFAULT_GRID_COLOR = '#cccccc';

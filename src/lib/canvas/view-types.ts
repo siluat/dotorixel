@@ -1,8 +1,6 @@
 import type { Viewport } from './viewport';
 import { viewportFactory } from './wasm-backend';
 
-export type { CanvasCoords, ResizeAnchor } from './canvas-types';
-
 export interface ViewportSize {
 	readonly width: number;
 	readonly height: number;

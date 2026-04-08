@@ -1,7 +1,8 @@
 export { type Color, TRANSPARENT, colorToHex, hexToColor } from './canvas/color.ts';
 
+export { type CanvasCoords } from './canvas/canvas-types.ts';
+
 export {
-	type CanvasCoords,
 	type ViewportSize,
 	type ViewportState
 } from './canvas/view-types.ts';

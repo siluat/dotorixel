@@ -1,6 +1,6 @@
 import type { Color } from './color';
 import type { PixelCanvas } from './pixel-canvas';
-import type { ResizeAnchor } from './view-types';
+import type { ResizeAnchor } from './canvas-types';
 
 /** Creates and transforms PixelCanvas instances. */
 export interface CanvasFactory {

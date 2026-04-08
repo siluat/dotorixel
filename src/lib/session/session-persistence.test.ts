@@ -4,12 +4,18 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SessionPersistence } from './session-persistence';
 import { SessionStorage } from './session-storage';
 import { Workspace } from '$lib/canvas/workspace.svelte';
-import { WasmPixelCanvas, WasmColor, WasmViewport } from '$wasm/dotorixel_wasm';
 import type { PixelCanvas } from '$lib/canvas/pixel-canvas';
+import type { Color } from '$lib/canvas/color';
+import { viewportFactory } from '$lib/canvas/wasm-backend';
 
-function wasmCanvas(canvas: PixelCanvas): WasmPixelCanvas {
-	if (canvas instanceof WasmPixelCanvas) return canvas;
-	throw new Error('Expected WasmPixelCanvas');
+function setPixel(canvas: PixelCanvas, x: number, y: number, color: Color) {
+	const pixels = canvas.pixels();
+	const idx = (y * canvas.width + x) * 4;
+	pixels[idx] = color.r;
+	pixels[idx + 1] = color.g;
+	pixels[idx + 2] = color.b;
+	pixels[idx + 3] = color.a;
+	canvas.restore_pixels(pixels);
 }
 
 describe('SessionPersistence', () => {
@@ -32,8 +38,7 @@ describe('SessionPersistence', () => {
 			gridColor: '#ECE5D9'
 		});
 		// Draw a red pixel at (0,0)
-		const red = new WasmColor(255, 0, 0, 255);
-		wasmCanvas(workspace.activeEditor.pixelCanvas).set_pixel(0, 0, red);
+		setPixel(workspace.activeEditor.pixelCanvas, 0, 0, { r: 255, g: 0, b: 0, a: 255 });
 		workspace.activeEditor.activeTool = 'line';
 
 		await persistence.save(workspace);
@@ -65,13 +70,11 @@ describe('SessionPersistence', () => {
 	it('round-trips all tabs with correct names, pixel data, and order', async () => {
 		const workspace = new Workspace({ gridColor: '#ECE5D9' });
 		// Tab 0: "Untitled 1" — draw red pixel at (0,0)
-		const red = new WasmColor(255, 0, 0, 255);
-		wasmCanvas(workspace.activeEditor.pixelCanvas).set_pixel(0, 0, red);
+		setPixel(workspace.activeEditor.pixelCanvas, 0, 0, { r: 255, g: 0, b: 0, a: 255 });
 
 		// Tab 1: "Untitled 2" — draw blue pixel at (1,0)
 		workspace.addTab();
-		const blue = new WasmColor(0, 0, 255, 255);
-		wasmCanvas(workspace.activeEditor.pixelCanvas).set_pixel(1, 0, blue);
+		setPixel(workspace.activeEditor.pixelCanvas, 1, 0, { r: 0, g: 0, b: 255, a: 255 });
 
 		// Active tab is 1 (the newly added tab)
 		await persistence.save(workspace);
@@ -114,7 +117,7 @@ describe('SessionPersistence', () => {
 		const workspace = new Workspace({ gridColor: '#ECE5D9' });
 		// Tab 0: zoom in, pan right, grid off
 		workspace.tabs[0].viewportState = {
-			viewport: new WasmViewport(32, 3.0, 100, 0),
+			viewport: viewportFactory.create(32, 3.0, 100, 0),
 			showGrid: false,
 			gridColor: '#ECE5D9'
 		};
@@ -122,7 +125,7 @@ describe('SessionPersistence', () => {
 		// Tab 1: different viewport
 		workspace.addTab();
 		workspace.tabs[1].viewportState = {
-			viewport: new WasmViewport(32, 0.5, 0, -50),
+			viewport: viewportFactory.create(32, 0.5, 0, -50),
 			showGrid: true,
 			gridColor: '#aaaaaa'
 		};

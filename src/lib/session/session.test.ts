@@ -3,12 +3,18 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { openSession } from './session';
 import { SessionStorage } from './session-storage';
-import { WasmPixelCanvas, WasmColor, WasmViewport } from '$wasm/dotorixel_wasm';
 import type { PixelCanvas } from '$lib/canvas/pixel-canvas';
+import type { Color } from '$lib/canvas/color';
+import { viewportFactory } from '$lib/canvas/wasm-backend';
 
-function wasmCanvas(canvas: PixelCanvas): WasmPixelCanvas {
-	if (canvas instanceof WasmPixelCanvas) return canvas;
-	throw new Error('Expected WasmPixelCanvas');
+function setPixel(canvas: PixelCanvas, x: number, y: number, color: Color) {
+	const pixels = canvas.pixels();
+	const idx = (y * canvas.width + x) * 4;
+	pixels[idx] = color.r;
+	pixels[idx + 1] = color.g;
+	pixels[idx + 2] = color.b;
+	pixels[idx + 3] = color.a;
+	canvas.restore_pixels(pixels);
 }
 
 describe('openSession', () => {
@@ -28,8 +34,7 @@ describe('openSession', () => {
 	it('preserves pixel data across save and restore', async () => {
 		const { workspace, session } = await openSession({ gridColor: '#ECE5D9' });
 
-		const red = new WasmColor(255, 0, 0, 255);
-		wasmCanvas(workspace.activeEditor.pixelCanvas).set_pixel(0, 0, red);
+		setPixel(workspace.activeEditor.pixelCanvas, 0, 0, { r: 255, g: 0, b: 0, a: 255 });
 		session.markDirty(workspace.activeEditor.documentId);
 		await session.flush();
 		session.dispose();
@@ -51,10 +56,9 @@ describe('openSession', () => {
 		const { workspace, session } = await openSession({ gridColor: '#ECE5D9' });
 
 		// Tab 0: draw red pixel, zoom to 3x
-		const red = new WasmColor(255, 0, 0, 255);
-		wasmCanvas(workspace.activeEditor.pixelCanvas).set_pixel(0, 0, red);
+		setPixel(workspace.activeEditor.pixelCanvas, 0, 0, { r: 255, g: 0, b: 0, a: 255 });
 		workspace.activeEditor.viewportState = {
-			viewport: new WasmViewport(32, 3.0, 100, -50),
+			viewport: viewportFactory.create(32, 3.0, 100, -50),
 			showGrid: false,
 			gridColor: '#ECE5D9'
 		};
@@ -62,8 +66,7 @@ describe('openSession', () => {
 
 		// Tab 1: draw blue pixel
 		workspace.addTab();
-		const blue = new WasmColor(0, 0, 255, 255);
-		wasmCanvas(workspace.activeEditor.pixelCanvas).set_pixel(1, 0, blue);
+		setPixel(workspace.activeEditor.pixelCanvas, 1, 0, { r: 0, g: 0, b: 255, a: 255 });
 		session.markDirty(workspace.activeEditor.documentId);
 
 		await session.flush();

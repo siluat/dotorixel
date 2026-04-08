@@ -7,11 +7,6 @@
 - Design: saved work browser — list/modal UI for reopening past work (.pen)
 - Reopen past work (browse and restore from saved work list)
 
-### Export & sharing
-
-- Design: share artwork dialog — URL 공유 다이얼로그 UI (.pen)
-- Share artwork via URL
-
 ### Landing page
 
 - Design: landing page improvements (.pen)
@@ -69,6 +64,8 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 
 ## Review backlog (not assigned to a milestone)
 
+- Design: share artwork dialog — URL sharing dialog UI (.pen)
+- Share artwork via URL
 - FG/BG swap UI improvements
 - Dark mode toggle UI — design tokens support dark theme (`data-theme="dark"`), no UI to switch yet
 - Document error conditions on `PixelCanvas` public API — `new`, `with_color`, `from_pixels`, `restore_pixels` all return `Result` but only document partial constraints; add `Err` variant descriptions per Rust API Guidelines C-FAILURE

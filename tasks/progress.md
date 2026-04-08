@@ -14,5 +14,3 @@
   - Independent. Can start immediately.
 - Design: saved work browser (.pen)
   - M2 multi-image workflow. Independent.
-- Design: share artwork dialog (.pen)
-  - M2 export & sharing. Independent.

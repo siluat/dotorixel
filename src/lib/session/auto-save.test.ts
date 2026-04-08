@@ -2,21 +2,54 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { AutoSave } from './auto-save';
-import { SessionPersistence } from './session-persistence';
+import { SessionPersistence, type PersistableWorkspace } from './session-persistence';
 import { SessionStorage } from './session-storage';
-import { Workspace } from '$lib/canvas/workspace.svelte';
+
+function makeTab(
+	overrides: Partial<PersistableWorkspace['tabs'][number]> = {}
+): PersistableWorkspace['tabs'][number] {
+	return {
+		id: 'doc-1',
+		name: 'Untitled 1',
+		width: 16,
+		height: 16,
+		pixels: new Uint8Array(16 * 16 * 4),
+		viewport: {
+			pixelSize: 32, zoom: 1.0, panX: 0, panY: 0,
+			showGrid: true, gridColor: '#cccccc'
+		},
+		...overrides
+	};
+}
+
+function makeSnapshot(
+	overrides: Partial<PersistableWorkspace> = {},
+	tabs?: PersistableWorkspace['tabs'][number][]
+): PersistableWorkspace {
+	return {
+		tabs: tabs ?? [makeTab()],
+		activeTabIndex: 0,
+		sharedState: {
+			activeTool: 'pencil',
+			foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
+			backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+			recentColors: []
+		},
+		...overrides
+	};
+}
 
 describe('AutoSave', () => {
 	let storage: SessionStorage;
 	let persistence: SessionPersistence;
-	let workspace: Workspace;
+	let currentSnapshot: PersistableWorkspace;
 	let autoSave: AutoSave;
 
 	beforeEach(async () => {
 		storage = await SessionStorage.open();
 		persistence = new SessionPersistence(storage);
-		workspace = new Workspace({ gridColor: '#ECE5D9' });
-		autoSave = new AutoSave(persistence, workspace, 3000);
+		currentSnapshot = makeSnapshot();
+		autoSave = new AutoSave(persistence, () => currentSnapshot, 3000);
 		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 	});
 
@@ -75,43 +108,47 @@ describe('AutoSave', () => {
 	});
 
 	it('only writes dirty documents to IndexedDB', async () => {
-		workspace.addTab(); // 2 tabs
+		currentSnapshot = makeSnapshot({}, [
+			makeTab({ id: 'doc-1' }),
+			makeTab({ id: 'doc-2' })
+		]);
 
 		// Initial full save — mark both documents dirty
-		for (const tab of workspace.tabs) {
-			autoSave.markDirty(tab.documentId);
-		}
+		autoSave.markDirty('doc-1');
+		autoSave.markDirty('doc-2');
 		await autoSave.flush();
 
 		const putSpy = vi.spyOn(storage, 'putDocument');
 
 		// Mark only the second tab as dirty
-		autoSave.markDirty(workspace.tabs[1].documentId);
+		autoSave.markDirty('doc-2');
 		await autoSave.flush();
 
 		// Only the dirty document was written
 		expect(putSpy).toHaveBeenCalledTimes(1);
-		expect(putSpy.mock.calls[0][0]).toHaveProperty('id', workspace.tabs[1].documentId);
+		expect(putSpy.mock.calls[0][0]).toHaveProperty('id', 'doc-2');
 	});
 
 	it('deletes closed tab documents from IndexedDB on save', async () => {
-		workspace.addTab(); // 2 tabs
+		currentSnapshot = makeSnapshot({}, [
+			makeTab({ id: 'doc-1' }),
+			makeTab({ id: 'doc-2' })
+		]);
 
 		// Initial full save
-		for (const tab of workspace.tabs) {
-			autoSave.markDirty(tab.documentId);
-		}
+		autoSave.markDirty('doc-1');
+		autoSave.markDirty('doc-2');
 		await autoSave.flush();
 
-		const removedDocId = workspace.tabs[1].documentId;
-
-		// Close tab and notify auto-save
-		workspace.closeTab(1);
-		autoSave.notifyTabRemoved(removedDocId);
+		// Simulate closing tab: update snapshot and notify
+		currentSnapshot = makeSnapshot({}, [
+			makeTab({ id: 'doc-1' })
+		]);
+		autoSave.notifyTabRemoved('doc-2');
 		await autoSave.flush();
 
 		// Removed document is deleted from IndexedDB
-		expect(await storage.getDocument(removedDocId)).toBeUndefined();
+		expect(await storage.getDocument('doc-2')).toBeUndefined();
 		// Remaining document still exists
 		const ws = await storage.getWorkspace();
 		expect(ws!.tabOrder).toHaveLength(1);

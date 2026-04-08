@@ -45,7 +45,7 @@ export async function openSession(defaults: {
 			init: (restored ?? undefined) as WorkspaceInit | undefined
 		});
 
-		const autoSave = new AutoSave(persistence, workspace, defaults.debounceMs);
+		const autoSave = new AutoSave(persistence, () => workspace.toSnapshot(), defaults.debounceMs);
 
 		const session: SessionHandle = {
 			markDirty: (docId) => autoSave.markDirty(docId),

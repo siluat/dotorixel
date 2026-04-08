@@ -1,18 +1,21 @@
-import type { SessionPersistence } from './session-persistence';
-import type { Workspace } from '$lib/canvas/workspace.svelte';
+import type { SessionPersistence, PersistableWorkspace } from './session-persistence';
 
 export class AutoSave {
 	#persistence: SessionPersistence;
-	#workspace: Workspace;
+	#getSnapshot: () => PersistableWorkspace;
 	#debounceMs: number;
 	#dirty = false;
 	#dirtyDocIds = new Set<string>();
 	#timer: ReturnType<typeof setTimeout> | null = null;
 	#pendingSave: Promise<void> | null = null;
 
-	constructor(persistence: SessionPersistence, workspace: Workspace, debounceMs = 3000) {
+	constructor(
+		persistence: SessionPersistence,
+		getSnapshot: () => PersistableWorkspace,
+		debounceMs = 3000
+	) {
 		this.#persistence = persistence;
-		this.#workspace = workspace;
+		this.#getSnapshot = getSnapshot;
 		this.#debounceMs = debounceMs;
 	}
 
@@ -54,7 +57,7 @@ export class AutoSave {
 		const dirtyDocIds = this.#dirtyDocIds.size > 0 ? new Set(this.#dirtyDocIds) : undefined;
 		this.#dirtyDocIds.clear();
 		try {
-			await this.#persistence.save(this.#workspace.toSnapshot(), dirtyDocIds);
+			await this.#persistence.save(this.#getSnapshot(), dirtyDocIds);
 		} catch (error) {
 			this.#dirty = true;
 			if (dirtyDocIds) {

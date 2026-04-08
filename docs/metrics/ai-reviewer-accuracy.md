@@ -4,11 +4,11 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 ## Running Totals
 
-| Reviewer | Total | Accept | Reject | Accept % |
-|----------|-------|--------|--------|----------|
-| greptile-apps[bot] | 4 | 3 | 1 | 75% |
-| cubic-dev-ai[bot] | 3 | 1 | 2 | 33% |
-| coderabbitai[bot] | 3 | 1 | 2 | 33% |
+| Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
+|----------|-------|--------|--------|------|----------|--------|
+| greptile-apps[bot] | 4 | 3 | 1 | 1 | 75% | 75% |
+| cubic-dev-ai[bot] | 4 | 2 | 2 | 0 | 50% | 100% |
+| coderabbitai[bot] | 5 | 2 | 3 | 0 | 40% | 100% |
 
 ## Log
 
@@ -24,3 +24,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #132 | greptile-apps[bot] | Accept | Unused handleExport function — dead code |
 | #132 | cubic-dev-ai[bot] | Accept | Form reset timing during close animation (duplicate of greptile) |
 | #132 | coderabbitai[bot] | Reject | vaul-svelte Svelte 5 incompatibility — works correctly, tests pass |
+| #134 | coderabbitai[bot] | Reject | "constrain tests" wording in RFC — function-name-derived modifier, clear in context |
+| #134 | coderabbitai[bot] | Accept | isValidToolType uses `in` operator accepting prototype keys — regression from Set.has() |
+| #134 | cubic-dev-ai[bot] | Accept | isValidToolType uses `in` operator (duplicate of coderabbit finding) |
+| #134 | greptile-apps[bot] | Miss | Did not flag isValidToolType prototype key regression |

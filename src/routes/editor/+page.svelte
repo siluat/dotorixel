@@ -392,6 +392,8 @@
 
 	.editor-docked :global(input),
 	.editor-tabs :global(input) {
+		-webkit-touch-callout: default;
+		-webkit-user-select: text;
 		user-select: text;
 	}
 </style>

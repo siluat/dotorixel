@@ -7,17 +7,15 @@
 
 ## Last Completed
 
-032 — Design: Export UI — format selector and filename input
+034 — SVG encoder core
 
 ## Next Up
 
-- 034 — SVG encoder core
-  - First sub-issue of 031. No blockers, can start immediately.
+- 035 — SVG web export
+  - Next sub-issue of 031. Depends on 034 (done). Can start immediately.
 - Export UI (033) — needs prd-to-issues
-  - PRD done. Sub-issue 분할 후 구현 가능.
+  - PRD done. Sub-issue 분할 후 구현 가능. Independent of SVG work.
 - 018 — RightPanel (Apple Native)
-  - Next docked layout sub-issue. Depends on 015 (done).
+  - Next docked layout sub-issue. Depends on 015 (done). Independent.
 - Design: saved work browser (.pen)
   - M2 multi-image workflow. Independent.
-
-

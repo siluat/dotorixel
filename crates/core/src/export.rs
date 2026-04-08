@@ -1,4 +1,5 @@
 use std::fmt;
+use std::fmt::Write as _;
 use std::io::Cursor;
 
 use crate::canvas::PixelCanvas;
@@ -17,6 +18,53 @@ impl fmt::Display for ExportError {
 }
 
 impl std::error::Error for ExportError {}
+
+pub trait SvgExport {
+    /// Encodes each non-transparent pixel as an SVG `<rect>` element.
+    /// The root `<svg>` uses `viewBox` only (no fixed width/height) with `shape-rendering="crispEdges"`.
+    fn encode_svg(&self) -> Result<String, ExportError>;
+}
+
+impl SvgExport for PixelCanvas {
+    fn encode_svg(&self) -> Result<String, ExportError> {
+        let mut svg = String::new();
+        write!(
+            svg,
+            r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {} {}" shape-rendering="crispEdges">"#,
+            self.width(),
+            self.height()
+        )
+        .unwrap();
+
+        for y in 0..self.height() {
+            for x in 0..self.width() {
+                let color = self.get_pixel(x, y).unwrap();
+                if color.a == 0 {
+                    continue;
+                }
+                if color.a < 255 {
+                    let opacity = color.a as f64 / 255.0;
+                    write!(
+                        svg,
+                        r##"<rect x="{x}" y="{y}" width="1" height="1" fill="{}" fill-opacity="{opacity:.3}"/>"##,
+                        color.to_hex()
+                    )
+                    .unwrap();
+                } else {
+                    write!(
+                        svg,
+                        r##"<rect x="{x}" y="{y}" width="1" height="1" fill="{}"/>"##,
+                        color.to_hex()
+                    )
+                    .unwrap();
+                }
+            }
+        }
+
+        svg.push_str("</svg>");
+        Ok(svg)
+    }
+}
 
 pub trait PngExport {
     /// Encodes the canvas as an RGBA 8-bit PNG.
@@ -111,6 +159,94 @@ mod tests {
         reader.next_frame(&mut decoded).unwrap();
 
         assert_eq!(&decoded[..4], &[42, 128, 255, 200]);
+    }
+
+    #[test]
+    fn svg_opaque_pixel_produces_rect() {
+        let mut canvas = PixelCanvas::new(2, 2).unwrap();
+        canvas
+            .set_pixel(1, 0, Color::new(255, 0, 0, 255))
+            .unwrap();
+
+        let svg = canvas.encode_svg().unwrap();
+
+        assert!(svg.contains(r##"<rect x="1" y="0" width="1" height="1" fill="#ff0000"/>"##));
+    }
+
+    #[test]
+    fn svg_non_square_canvas_viewbox() {
+        let color = Color::new(10, 20, 30, 255);
+        let canvas = PixelCanvas::with_color(8, 3, color).unwrap();
+
+        let svg = canvas.encode_svg().unwrap();
+
+        assert!(svg.contains(r#"viewBox="0 0 8 3""#));
+        assert_eq!(svg.matches("<rect").count(), 24); // 8 * 3
+    }
+
+    #[test]
+    fn svg_all_transparent_canvas_has_no_rects() {
+        let canvas = PixelCanvas::new(4, 4).unwrap();
+
+        let svg = canvas.encode_svg().unwrap();
+
+        assert_eq!(svg.matches("<rect").count(), 0);
+        // Should still have a valid SVG root
+        assert!(svg.starts_with("<svg "));
+        assert!(svg.ends_with("</svg>"));
+    }
+
+    #[test]
+    fn svg_single_pixel_canvas() {
+        let canvas = PixelCanvas::with_color(1, 1, Color::new(0, 255, 0, 255)).unwrap();
+
+        let svg = canvas.encode_svg().unwrap();
+
+        assert!(svg.contains(r#"viewBox="0 0 1 1""#));
+        assert_eq!(svg.matches("<rect").count(), 1);
+        assert!(svg.contains(r##"<rect x="0" y="0" width="1" height="1" fill="#00ff00"/>"##));
+    }
+
+    #[test]
+    fn svg_root_has_correct_attributes() {
+        let canvas = PixelCanvas::new(16, 16).unwrap();
+
+        let svg = canvas.encode_svg().unwrap();
+
+        assert!(svg.starts_with("<svg "));
+        assert!(svg.contains(r#"xmlns="http://www.w3.org/2000/svg""#));
+        assert!(svg.contains(r#"viewBox="0 0 16 16""#));
+        assert!(svg.contains(r#"shape-rendering="crispEdges""#));
+        assert!(!svg.contains("width="));
+        assert!(!svg.contains("height="));
+        assert!(svg.ends_with("</svg>"));
+    }
+
+    #[test]
+    fn svg_semi_transparent_pixel_has_fill_opacity() {
+        let mut canvas = PixelCanvas::new(1, 1).unwrap();
+        // alpha 128 → opacity 128/255 ≈ 0.502
+        canvas
+            .set_pixel(0, 0, Color::new(255, 0, 0, 128))
+            .unwrap();
+
+        let svg = canvas.encode_svg().unwrap();
+
+        assert!(svg.contains(r#"fill-opacity="0.502""#));
+    }
+
+    #[test]
+    fn svg_transparent_pixels_omitted() {
+        let mut canvas = PixelCanvas::new(2, 2).unwrap();
+        // Only set one pixel; the other three remain transparent
+        canvas
+            .set_pixel(0, 0, Color::new(0, 0, 255, 255))
+            .unwrap();
+
+        let svg = canvas.encode_svg().unwrap();
+
+        // Exactly one rect for the opaque pixel
+        assert_eq!(svg.matches("<rect").count(), 1);
     }
 
     #[test]

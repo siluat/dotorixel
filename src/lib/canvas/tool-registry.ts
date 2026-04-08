@@ -108,5 +108,5 @@ export const TOOL_SHORTCUTS: Record<string, ToolType> = Object.fromEntries(
 
 /** Validates a string as a registered ToolType. */
 export function isValidToolType(value: string): value is ToolType {
-	return value in TOOL_DEFS;
+	return Object.hasOwn(TOOL_DEFS, value);
 }

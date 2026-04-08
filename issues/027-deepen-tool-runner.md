@@ -226,7 +226,7 @@ Test external behavior through the public interface, not internal structure. Str
 
 ### Existing tests (update, not delete)
 
-- **`tool-runner.svelte.test.ts`** (26 tests, 513 LOC): update only in Commit 1 (factory helper and connectModifiers test setup). All assertions remain identical — they verify the same EditorEffects returns and canvas pixel states. No changes needed in Commit 2.
+- **`tool-runner.svelte.test.ts`** (30 tests, 513 LOC): update only in Commit 1 (factory helper and connectModifiers test setup). All assertions remain identical — they verify the same EditorEffects returns and canvas pixel states. No changes needed in Commit 2.
 - **`editor-state.svelte.test.ts`** (85 tests, 1138 LOC): no changes expected. EditorState's public API is unchanged; its constructor internals change but tests don't inspect construction.
 
 ### What existing tests already cover

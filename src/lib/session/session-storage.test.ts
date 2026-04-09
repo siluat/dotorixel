@@ -24,11 +24,13 @@ describe('SessionStorage', () => {
 
 		it('deletes a document', async () => {
 			const doc: DocumentRecord = {
+				schemaVersion: 2,
 				id: 'doc-del',
 				name: 'To delete',
 				width: 1,
 				height: 1,
 				pixels: new Uint8Array([0, 0, 0, 255]),
+				saved: false,
 				createdAt: new Date(),
 				updatedAt: new Date()
 			};
@@ -40,14 +42,35 @@ describe('SessionStorage', () => {
 			expect(result).toBeUndefined();
 		});
 
+		it('stores and retrieves the saved field', async () => {
+			const doc: DocumentRecord = {
+				schemaVersion: 2,
+				id: 'doc-saved',
+				name: 'Saved doc',
+				width: 1,
+				height: 1,
+				pixels: new Uint8Array([0, 0, 0, 255]),
+				saved: true,
+				createdAt: new Date(),
+				updatedAt: new Date()
+			};
+			await storage.putDocument(doc);
+			const retrieved = await storage.getDocument('doc-saved');
+
+			expect(retrieved).toBeDefined();
+			expect(retrieved!.saved).toBe(true);
+		});
+
 		it('stores and retrieves a document with pixel data', async () => {
 			const pixels = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]);
 			const doc: DocumentRecord = {
+				schemaVersion: 2,
 				id: 'doc-1',
 				name: 'Untitled 1',
 				width: 2,
 				height: 1,
 				pixels,
+				saved: false,
 				createdAt: new Date('2026-04-06T00:00:00Z'),
 				updatedAt: new Date('2026-04-06T00:00:00Z')
 			};

@@ -230,11 +230,13 @@ describe('SessionPersistence', () => {
 	it('clamps activeTabIndex when saved value exceeds tab count', async () => {
 		// Simulate corrupted data: activeTabIndex beyond the tab count
 		const doc = {
+			schemaVersion: 2 as const,
 			id: 'doc-1',
 			name: 'Tab',
 			width: 1,
 			height: 1,
 			pixels: new Uint8Array([0, 0, 0, 255]),
+			saved: false,
 			createdAt: new Date(),
 			updatedAt: new Date()
 		};

@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { X } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { SavedDocumentSummary } from '$lib/session/session-storage-types';
 	import SavedWorkCardGrid from './SavedWorkCardGrid.svelte';
+	import { createModal } from '$lib/ui/modal.svelte';
 
 	interface Props {
 		documents: SavedDocumentSummary[];
@@ -13,35 +13,29 @@
 	}
 
 	let { documents, onSelect, onDelete, onClose }: Props = $props();
-	let modalEl = $state<HTMLDivElement>();
 	let cardGrid = $state<SavedWorkCardGrid>();
 
-	onMount(() => {
-		const originalOverflow = document.body.style.overflow;
-		document.body.style.overflow = 'hidden';
-		modalEl?.focus();
-		return () => {
-			document.body.style.overflow = originalOverflow;
-		};
+	const modal = createModal({
+		onClose: () => onClose(),
+		focusTrap: false,
+		escapeGuard: () => cardGrid?.handleEscape() ?? false
 	});
 
-	function handleKeyDown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
-			if (cardGrid?.handleEscape()) return;
-			onClose();
-		}
+	function autoFocus(node: HTMLElement) {
+		node.focus();
 	}
 </script>
 
-<svelte:window onkeydown={handleKeyDown} />
+<svelte:window onkeydown={modal.handleKeyDown} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="browser-backdrop" onmousedown={onClose}>
+<div class="browser-backdrop" onmousedown={modal.handleBackdropClick}>
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="browser-modal"
-		bind:this={modalEl}
+		bind:this={modal.containerEl}
 		onmousedown={(e) => e.stopPropagation()}
+		use:autoFocus
 		role="dialog"
 		aria-labelledby="browser-title"
 		tabindex="-1"

@@ -1,6 +1,5 @@
-import type { PixelCanvas } from './pixel-canvas';
+import type { PixelCanvas, CanvasCoords, ResizeAnchor } from './canvas-model';
 import { canvasFactory, viewportOps } from './wasm-backend';
-import type { CanvasCoords, ResizeAnchor } from './canvas-types';
 import type { ViewportData, ViewportSize } from './viewport';
 import { TOOL_CURSORS, type ToolType } from './tool-registry';
 import { colorToHex, hexToColor, addRecentColor, type Color } from './color';

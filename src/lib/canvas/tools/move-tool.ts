@@ -1,5 +1,5 @@
 import type { DragTransformTool, ToolContext } from '../draw-tool';
-import type { CanvasCoords } from '../canvas-types';
+import type { CanvasCoords } from '../canvas-model';
 
 /**
  * Shifts pixel data by (dx, dy) within the same canvas dimensions.

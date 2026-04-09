@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Download, Trash2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
-	import type { ResizeAnchor } from '$lib/canvas/canvas-types';
+	import type { ResizeAnchor } from '$lib/canvas/canvas-model';
 	import CanvasSizeControl from './CanvasSizeControl.svelte';
 
 	interface Props {

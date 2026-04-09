@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-047 — Consolidate modal/overlay behavior into deep modules
+048 — Consolidate shallow canvas modules into canvas-model.ts / adapter-types.ts
 
 ## Next Up
 

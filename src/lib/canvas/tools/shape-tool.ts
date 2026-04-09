@@ -1,6 +1,6 @@
 import type { DrawingOps, DrawingToolType } from '../drawing-ops';
 import type { ShapePreviewTool, ToolContext } from '../draw-tool';
-import type { CanvasCoords } from '../canvas-types';
+import type { CanvasCoords } from '../canvas-model';
 
 type ShapePixelsFn = (x0: number, y0: number, x1: number, y1: number) => Int32Array;
 type ConstrainFn = (start: CanvasCoords, end: CanvasCoords) => CanvasCoords;

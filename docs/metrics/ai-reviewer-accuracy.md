@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 15 | 13 | 2 | 14 | 87% | 48% |
-| cubic-dev-ai[bot] | 12 | 9 | 3 | 16 | 75% | 36% |
-| coderabbitai[bot] | 27 | 17 | 10 | 9 | 63% | 65% |
+| greptile-apps[bot] | 16 | 14 | 2 | 14 | 88% | 50% |
+| cubic-dev-ai[bot] | 12 | 9 | 3 | 17 | 75% | 35% |
+| coderabbitai[bot] | 27 | 17 | 10 | 10 | 63% | 63% |
 
 ## Log
 
@@ -107,3 +107,6 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #139 | cubic-dev-ai[bot] | Miss | Did not flag Tab double handling |
 | #139 | cubic-dev-ai[bot] | Miss | Did not flag disabled/hidden selector |
 | #139 | coderabbitai[bot] | Reject | isTabbable function for hidden/inert/aria-hidden — scenarios don't occur in codebase |
+| #140 | greptile-apps[bot] | Accept | Merge duplicate canvas-model imports in draw-tool.ts and tool-runner.svelte.ts |
+| #140 | cubic-dev-ai[bot] | Miss | Did not flag duplicate canvas-model imports |
+| #140 | coderabbitai[bot] | Miss | Did not flag duplicate canvas-model imports |

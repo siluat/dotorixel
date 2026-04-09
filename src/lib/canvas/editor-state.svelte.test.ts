@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { EditorState } from './editor-state.svelte';
 import { TOOL_CURSORS, type ToolType } from './tool-registry';
-import type { CanvasCoords } from './canvas-types';
+import type { CanvasCoords } from './canvas-model';
 
 function createEditor() {
 	return new EditorState({ canvasWidth: 8, canvasHeight: 8 });

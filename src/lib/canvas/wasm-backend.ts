@@ -18,13 +18,10 @@ import {
 	wasm_ellipse_outline,
 	wasm_flood_fill
 } from '$wasm/dotorixel_wasm';
-import type { PixelCanvas } from './pixel-canvas';
-import type { CanvasFactory } from './canvas-factory';
-import type { CanvasConstraints } from './canvas-constraints';
+import type { PixelCanvas, ResizeAnchor } from './canvas-model';
+import type { CanvasFactory, CanvasConstraints, HistoryManager } from './adapter-types';
 import type { ViewportData, ViewportOps } from './viewport';
-import type { HistoryManager } from './history';
 import type { DrawingOps, DrawingToolType } from './drawing-ops';
-import type { ResizeAnchor } from './canvas-types';
 
 // ── Internal mappings ───────────────────────────────────────────────
 

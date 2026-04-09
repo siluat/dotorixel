@@ -1,7 +1,6 @@
 <script lang="ts">
-	import type { PixelCanvas } from './pixel-canvas';
+	import type { PixelCanvas, CanvasCoords } from './canvas-model';
 	import { viewportOps } from './wasm-backend';
-	import type { CanvasCoords } from './canvas-types';
 	import type { ViewportData, ViewportSize } from './viewport';
 	import * as m from '$lib/paraglide/messages';
 	import { createWheelInputClassifier } from './wheel-input.ts';

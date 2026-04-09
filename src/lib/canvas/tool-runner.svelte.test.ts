@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { createToolRunner, type ToolRunnerHost, type ToolRunnerDeps, type EditorEffects } from './tool-runner.svelte';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
-import type { PixelCanvas } from './pixel-canvas';
+import type { PixelCanvas } from './canvas-model';
 import { canvasFactory } from './wasm-backend';
 
 const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };

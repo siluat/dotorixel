@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ResizeAnchor } from '$lib/canvas/canvas-types';
+	import type { ResizeAnchor } from '$lib/canvas/canvas-model';
 	import * as m from '$lib/paraglide/messages';
 
 	interface Props {

@@ -3,7 +3,7 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { openSession } from './session';
 import { SessionStorage } from './session-storage';
-import type { PixelCanvas } from '$lib/canvas/pixel-canvas';
+import type { PixelCanvas } from '$lib/canvas/canvas-model';
 import type { Color } from '$lib/canvas/color';
 import type { ViewportData } from '$lib/canvas/viewport';
 

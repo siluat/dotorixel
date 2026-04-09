@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { ArrowLeftRight } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
-	import type { ResizeAnchor } from '$lib/canvas/canvas-types';
+	import type { ResizeAnchor } from '$lib/canvas/canvas-model';
 	import HsvPicker from '$lib/color-picker/HsvPicker.svelte';
 	import EditorSwatch from './EditorSwatch.svelte';
 	import CanvasSizeControl from './CanvasSizeControl.svelte';

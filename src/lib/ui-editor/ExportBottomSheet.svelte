@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Drawer } from 'vaul-svelte';
 	import { Download, ChevronDown } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import {
@@ -7,6 +6,7 @@
 		generateDefaultStem,
 		type ExportFormat
 	} from '$lib/canvas/export';
+	import BottomSheet from '$lib/ui/BottomSheet.svelte';
 
 	interface Props {
 		open: boolean;
@@ -24,25 +24,14 @@
 		onExport
 	}: Props = $props();
 
-	// Local open state decoupled from parent prop.
-	// Opening syncs immediately; closing is delayed so
-	// vaul-svelte can finish its slide-down animation
-	// before bits-ui removes the element from the DOM.
-	let drawerOpen = $state(false);
-	const CLOSE_ANIMATION_MS = 500;
-
-	$effect(() => {
-		if (open) {
-			drawerOpen = true;
-		} else if (drawerOpen) {
-			drawerOpen = false;
-			selectedFormatId = availableFormats[0].id;
-			filenameStem = '';
-		}
-	});
-
 	let selectedFormatId = $state(availableFormats[0].id);
 	let filenameStem = $state('');
+
+	function handleClose() {
+		selectedFormatId = availableFormats[0].id;
+		filenameStem = '';
+		onOpenChange(false);
+	}
 
 	const selectedFormat = $derived(
 		availableFormats.find((f) => f.id === selectedFormatId) ?? availableFormats[0]
@@ -55,98 +44,55 @@
 	function handleExport() {
 		onExport(selectedFormat, filenameStem);
 	}
-
-	function handleOpenChange(isOpen: boolean) {
-		if (isOpen) {
-			drawerOpen = true;
-			onOpenChange(true);
-		} else {
-			setTimeout(() => {
-				selectedFormatId = availableFormats[0].id;
-				filenameStem = '';
-				drawerOpen = false;
-				onOpenChange(false);
-			}, CLOSE_ANIMATION_MS);
-		}
-	}
 </script>
 
-<Drawer.Root open={drawerOpen} onOpenChange={handleOpenChange}>
-	<Drawer.Portal>
-		<Drawer.Overlay class="export-sheet-overlay" />
-		<Drawer.Content class="export-sheet-content">
-			<div class="drag-handle"></div>
-			<Drawer.Title class="export-sheet-title">{m.label_export()}</Drawer.Title>
+<BottomSheet {open} onclose={handleClose}>
+	<div class="export-sheet">
+		<div class="drag-handle"></div>
+		<h2 class="export-sheet-title">{m.label_export()}</h2>
 
-			<div class="export-sheet-body">
-				<div class="field">
-					<label class="field-label" for="export-format-mobile">{m.label_format()}</label>
-					<div class="select-wrapper">
-						<select id="export-format-mobile" class="format-select" bind:value={selectedFormatId}>
-							{#each availableFormats as format}
-								<option value={format.id}>{format.label}</option>
-							{/each}
-						</select>
-						<ChevronDown size={14} class="select-chevron" />
-					</div>
+		<div class="export-sheet-body">
+			<div class="field">
+				<label class="field-label" for="export-format-mobile">{m.label_format()}</label>
+				<div class="select-wrapper">
+					<select id="export-format-mobile" class="format-select" bind:value={selectedFormatId}>
+						{#each availableFormats as format}
+							<option value={format.id}>{format.label}</option>
+						{/each}
+					</select>
+					<ChevronDown size={14} class="select-chevron" />
 				</div>
-
-				<div class="field">
-					<label class="field-label" for="export-filename-mobile">{m.label_filename()}</label>
-					<input
-						id="export-filename-mobile"
-						type="text"
-						class="filename-input"
-						placeholder={defaultStem}
-						bind:value={filenameStem}
-					/>
-				</div>
-
-				<button class="export-confirm-btn" onclick={handleExport}>
-					<Download size={16} />
-					<span>{m.action_exportFormat({ format: selectedFormat.label })}</span>
-				</button>
 			</div>
-		</Drawer.Content>
-	</Drawer.Portal>
-</Drawer.Root>
+
+			<div class="field">
+				<label class="field-label" for="export-filename-mobile">{m.label_filename()}</label>
+				<input
+					id="export-filename-mobile"
+					type="text"
+					class="filename-input"
+					placeholder={defaultStem}
+					bind:value={filenameStem}
+				/>
+			</div>
+
+			<button class="export-confirm-btn" onclick={handleExport}>
+				<Download size={16} />
+				<span>{m.action_exportFormat({ format: selectedFormat.label })}</span>
+			</button>
+		</div>
+	</div>
+</BottomSheet>
 
 <style>
-	:global(.export-sheet-overlay) {
-		position: fixed;
-		inset: 0;
-		background: rgba(0, 0, 0, 0.4);
-		z-index: 200;
-		animation: sheet-fade-in 0.5s cubic-bezier(0.32, 0.72, 0, 1);
-	}
-
-	:global(.export-sheet-content) {
-		position: fixed;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		z-index: 201;
+	.export-sheet {
 		display: flex;
 		flex-direction: column;
 		background: var(--ds-bg-elevated);
 		border-radius: 16px 16px 0 0;
 		padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
-		animation: sheet-slide-up 0.5s cubic-bezier(0.32, 0.72, 0, 1);
 	}
 
-	@keyframes sheet-slide-up {
-		from {
-			transform: translate3d(0, 100%, 0);
-		}
-	}
-
-	@keyframes sheet-fade-in {
-		from {
-			opacity: 0;
-		}
-	}
-
-	:global(.export-sheet-title) {
+	.export-sheet-title {
 		margin: 0;
 		padding: 0 20px;
 		font-family: var(--ds-font-body);

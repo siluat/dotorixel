@@ -4,6 +4,7 @@
 	import * as m from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import type { SavedDocumentSummary } from '$lib/session/session-storage-types';
+	import { trapFocus } from '$lib/ui/trap-focus';
 
 	interface Props {
 		documents: SavedDocumentSummary[];
@@ -37,24 +38,7 @@
 			event.stopPropagation();
 		} else if (event.key === 'Tab' && deleteDialogEl) {
 			trapFocus(event, deleteDialogEl);
-		}
-	}
-
-	function trapFocus(event: KeyboardEvent, container: HTMLElement) {
-		const focusable = [...container.querySelectorAll<HTMLElement>(
-			'button:not([disabled])'
-		)];
-		if (focusable.length === 0) return;
-
-		const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
-		event.preventDefault();
-
-		if (event.shiftKey) {
-			const prev = currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1;
-			focusable[prev].focus();
-		} else {
-			const next = currentIndex >= focusable.length - 1 ? 0 : currentIndex + 1;
-			focusable[next].focus();
+			event.stopPropagation();
 		}
 	}
 

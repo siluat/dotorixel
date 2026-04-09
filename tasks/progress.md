@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-046 — Landing page design improvements
+047 — Consolidate modal/overlay behavior into deep modules
 
 ## Next Up
 

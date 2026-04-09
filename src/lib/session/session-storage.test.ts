@@ -117,7 +117,11 @@ describe('SessionStorage', () => {
 		it('upgrades V1 documents to V2 on DB open', async () => {
 			// Close the V2 DB opened by beforeEach
 			storage.close();
-			indexedDB.deleteDatabase('dotorixel');
+			await new Promise<void>((resolve, reject) => {
+				const request = indexedDB.deleteDatabase('dotorixel');
+				request.onsuccess = () => resolve();
+				request.onerror = () => reject(request.error);
+			});
 
 			// Create a V1 database with a document
 			const v1Db = await openDB('dotorixel', 1, {
@@ -140,13 +144,20 @@ describe('SessionStorage', () => {
 
 			// Re-open with SessionStorage — triggers V1→V2 migration
 			storage = await SessionStorage.open();
-			const doc = await storage.getDocument('old-doc');
 
-			expect(doc).toBeDefined();
-			expect(doc!.schemaVersion).toBe(2);
-			expect(doc!.saved).toBe(true);
-			expect(doc!.name).toBe('Pre-migration');
-			expect(doc!.createdAt).toEqual(new Date('2026-02-01'));
+			// Verify migration wrote to the raw store (not just read-time normalization)
+			const rawDb = await openDB('dotorixel', 2);
+			const stored = await rawDb.get('documents', 'old-doc');
+			rawDb.close();
+
+			expect(stored).toBeDefined();
+			expect(stored).toMatchObject({
+				id: 'old-doc',
+				name: 'Pre-migration',
+				schemaVersion: 2,
+				saved: true
+			});
+			expect(stored!.createdAt).toEqual(new Date('2026-02-01'));
 		});
 	});
 

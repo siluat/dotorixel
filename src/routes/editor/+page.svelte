@@ -69,8 +69,8 @@
 	}
 
 	async function handleCloseTab(index: number) {
-		await session?.flush();
 		const removedDocId = workspace.tabs[index].documentId;
+		await session?.flush();
 		workspace.closeTab(index);
 		session?.notifyTabClosed(removedDocId);
 	}

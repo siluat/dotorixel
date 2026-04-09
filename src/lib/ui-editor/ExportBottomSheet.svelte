@@ -7,6 +7,7 @@
 		generateDefaultStem,
 		type ExportFormat
 	} from '$lib/canvas/export';
+	import { createDrawerState } from '$lib/ui/drawer-state.svelte';
 
 	interface Props {
 		open: boolean;
@@ -24,25 +25,17 @@
 		onExport
 	}: Props = $props();
 
-	// Local open state decoupled from parent prop.
-	// Opening syncs immediately; closing is delayed so
-	// vaul-svelte can finish its slide-down animation
-	// before bits-ui removes the element from the DOM.
-	let drawerOpen = $state(false);
-	const CLOSE_ANIMATION_MS = 500;
+	let selectedFormatId = $state(availableFormats[0].id);
+	let filenameStem = $state('');
 
-	$effect(() => {
-		if (open) {
-			drawerOpen = true;
-		} else if (drawerOpen) {
-			drawerOpen = false;
+	const drawer = createDrawerState({
+		open: () => open,
+		onClose: () => onOpenChange(false),
+		onReset: () => {
 			selectedFormatId = availableFormats[0].id;
 			filenameStem = '';
 		}
 	});
-
-	let selectedFormatId = $state(availableFormats[0].id);
-	let filenameStem = $state('');
 
 	const selectedFormat = $derived(
 		availableFormats.find((f) => f.id === selectedFormatId) ?? availableFormats[0]
@@ -55,23 +48,9 @@
 	function handleExport() {
 		onExport(selectedFormat, filenameStem);
 	}
-
-	function handleOpenChange(isOpen: boolean) {
-		if (isOpen) {
-			drawerOpen = true;
-			onOpenChange(true);
-		} else {
-			setTimeout(() => {
-				selectedFormatId = availableFormats[0].id;
-				filenameStem = '';
-				drawerOpen = false;
-				onOpenChange(false);
-			}, CLOSE_ANIMATION_MS);
-		}
-	}
 </script>
 
-<Drawer.Root open={drawerOpen} onOpenChange={handleOpenChange}>
+<Drawer.Root open={drawer.drawerOpen} onOpenChange={drawer.handleOpenChange}>
 	<Drawer.Portal>
 		<Drawer.Overlay class="export-sheet-overlay" />
 		<Drawer.Content class="export-sheet-content">

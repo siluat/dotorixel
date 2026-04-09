@@ -4,7 +4,6 @@
 
 ### Multi-image workflow
 
-- Design: saved work browser — list/modal UI for reopening past work (.pen)
 - Reopen past work (browse and restore from saved work list)
 
 ### Landing page

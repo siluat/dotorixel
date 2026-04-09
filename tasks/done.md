@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 040 | [Saved work browser — UI design](../issues/040-saved-work-browser-design.md) | 2026-04-09 |
 | 039 | [Consolidate tool registration into a unified ToolRegistry](../issues/039-consolidate-tool-registry.md) | 2026-04-09 |
 | 035 | [SVG web export](../issues/035-svg-web-export.md) | 2026-04-09 |
 | 038 | [Mobile ExportBottomSheet](../issues/038-export-bottom-sheet-mobile.md) | 2026-04-09 |

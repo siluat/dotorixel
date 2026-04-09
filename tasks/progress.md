@@ -6,11 +6,11 @@
 
 ## Last Completed
 
-039 — Consolidate tool registration into a unified ToolRegistry
+040 — Saved work browser — UI design
 
 ## Next Up
 
 - 018 — RightPanel (Apple Native)
   - Independent. Can start immediately.
-- Design: saved work browser (.pen)
-  - M2 multi-image workflow. Independent.
+- Design: landing page improvements (.pen)
+  - M2 landing page. Independent.

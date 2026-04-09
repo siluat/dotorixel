@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 9 | 7 | 2 | 11 | 78% | 39% |
-| cubic-dev-ai[bot] | 11 | 8 | 3 | 8 | 73% | 50% |
-| coderabbitai[bot] | 18 | 11 | 7 | 5 | 61% | 69% |
+| greptile-apps[bot] | 11 | 9 | 2 | 12 | 82% | 43% |
+| cubic-dev-ai[bot] | 12 | 9 | 3 | 10 | 75% | 47% |
+| coderabbitai[bot] | 21 | 13 | 8 | 6 | 62% | 68% |
 
 ## Log
 
@@ -76,3 +76,13 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #137 | coderabbitai[bot] | Miss | Did not flag async delete failure in confirmDelete |
 | #137 | coderabbitai[bot] | Reject | Claimed running totals mismatch — totals are correct, bot miscounted |
 | #137 | coderabbitai[bot] | Reject | ResizeObserver for thumbnails — edge case, modal is fixed 640px width |
+| #138 | greptile-apps[bot] | Accept | Race condition — stale close timer fires after sheet re-opened |
+| #138 | greptile-apps[bot] | Accept | Accent color shifts from export to browse button via :first-of-type |
+| #138 | greptile-apps[bot] | Miss | Did not flag ResizeObserver for responsive thumbnail redraw |
+| #138 | cubic-dev-ai[bot] | Accept | Race condition — stale close timer (duplicate of greptile) |
+| #138 | cubic-dev-ai[bot] | Miss | Did not flag ResizeObserver for responsive thumbnail redraw |
+| #138 | cubic-dev-ai[bot] | Miss | Did not flag accent color :first-of-type regression |
+| #138 | coderabbitai[bot] | Accept | Race condition — stale close timer (duplicate of greptile) |
+| #138 | coderabbitai[bot] | Reject | Immediate drawerOpen=false — breaks close animation, pattern matches ExportBottomSheet |
+| #138 | coderabbitai[bot] | Accept | ResizeObserver for thumbnails — now valid with responsive 2/3 column grid |
+| #138 | coderabbitai[bot] | Miss | Did not flag accent color :first-of-type regression |

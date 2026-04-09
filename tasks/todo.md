@@ -4,9 +4,6 @@
 
 ### Multi-image workflow
 
-- Reopen past work (browse and restore from saved work list) — [PRD](../issues/041-reopen-past-work.md)
-  - [045 — Saved work browser (mobile)](../issues/045-saved-work-browser-mobile.md)
-
 ### Landing page
 
 - Design: landing page improvements (.pen)

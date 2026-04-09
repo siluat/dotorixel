@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 8 | 6 | 2 | 9 | 75% | 40% |
-| cubic-dev-ai[bot] | 11 | 8 | 3 | 5 | 73% | 62% |
-| coderabbitai[bot] | 14 | 9 | 5 | 4 | 64% | 69% |
+| greptile-apps[bot] | 8 | 6 | 2 | 11 | 75% | 35% |
+| cubic-dev-ai[bot] | 11 | 8 | 3 | 7 | 73% | 53% |
+| coderabbitai[bot] | 16 | 11 | 5 | 4 | 69% | 73% |
 
 ## Log
 
@@ -65,3 +65,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #137 | coderabbitai[bot] | Accept | Missing aria-expanded on TopBar browse button |
 | #137 | coderabbitai[bot] | Miss | Did not flag missing initial focus on dialog open |
 | #137 | coderabbitai[bot] | Miss | Did not flag :focus-visible on keyboard-focusable cards |
+| #137 | coderabbitai[bot] | Accept | Stacked modal AT — move focus into alertdialog, hide parent from AT |
+| #137 | coderabbitai[bot] | Accept | Nested interactive elements — card role="button" containing button |
+| #137 | greptile-apps[bot] | Miss | Did not flag stacked modal AT issue |
+| #137 | greptile-apps[bot] | Miss | Did not flag nested interactive elements in card |
+| #137 | cubic-dev-ai[bot] | Miss | Did not flag stacked modal AT issue |
+| #137 | cubic-dev-ai[bot] | Miss | Did not flag nested interactive elements in card |

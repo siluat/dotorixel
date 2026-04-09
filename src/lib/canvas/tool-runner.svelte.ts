@@ -1,5 +1,4 @@
-import type { PixelCanvas } from './canvas-model';
-import type { CanvasCoords } from './canvas-model';
+import type { PixelCanvas, CanvasCoords } from './canvas-model';
 import type { Color } from './color';
 import { colorToHex } from './color';
 import type { SharedState } from './shared-state.svelte';

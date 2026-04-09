@@ -63,30 +63,33 @@ describe('createDrawerState', () => {
 		cleanup();
 	});
 
-	it('onClose fires immediately on user-initiated close', () => {
+	it('onClose fires after the delay, not immediately', () => {
 		const { drawer, onClose, cleanup } = setup();
 		drawer.handleOpenChange(true);
 		drawer.handleOpenChange(false);
 
+		expect(onClose).not.toHaveBeenCalled();
+		vi.advanceTimersByTime(500);
 		expect(onClose).toHaveBeenCalledOnce();
 
 		cleanup();
 	});
 
-	it('onReset fires after the delay, not immediately', () => {
-		const { drawer, onReset, cleanup } = setup();
+	it('onReset fires after the delay alongside onClose', () => {
+		const { drawer, onReset, onClose, cleanup } = setup();
 		drawer.handleOpenChange(true);
 		drawer.handleOpenChange(false);
 
 		expect(onReset).not.toHaveBeenCalled();
 		vi.advanceTimersByTime(500);
 		expect(onReset).toHaveBeenCalledOnce();
+		expect(onClose).toHaveBeenCalledOnce();
 
 		cleanup();
 	});
 
 	it('rapid open-close-open clears the pending close timeout', () => {
-		const { drawer, onClose, onReset, cleanup } = setup();
+		const { drawer, onClose, cleanup } = setup();
 		drawer.handleOpenChange(true);
 		drawer.handleOpenChange(false);
 
@@ -94,33 +97,13 @@ describe('createDrawerState', () => {
 		drawer.handleOpenChange(true);
 
 		vi.advanceTimersByTime(500);
+		expect(onClose).not.toHaveBeenCalled();
 		expect(drawer.drawerOpen).toBe(true);
-		expect(onReset).not.toHaveBeenCalled();
 
 		cleanup();
 	});
 
-	it('reopen via parent while close animation is pending works', () => {
-		const { drawer, setOpen, onReset, cleanup } = setup();
-		setOpen(true);
-
-		drawer.handleOpenChange(false);
-		vi.advanceTimersByTime(200);
-
-		// Parent reacted to onClose, then user clicks button again
-		setOpen(false);
-		setOpen(true);
-
-		expect(drawer.drawerOpen).toBe(true);
-
-		vi.advanceTimersByTime(500);
-		expect(drawer.drawerOpen).toBe(true);
-		expect(onReset).not.toHaveBeenCalled();
-
-		cleanup();
-	});
-
-	it('parent-initiated close without user swipe closes immediately', () => {
+	it('parent-initiated close is immediate without delay', () => {
 		const { drawer, setOpen, onClose, onReset, cleanup } = setup();
 		setOpen(true);
 		expect(drawer.drawerOpen).toBe(true);
@@ -135,7 +118,7 @@ describe('createDrawerState', () => {
 	});
 
 	it('respects custom animationMs', () => {
-		const { drawer, cleanup } = setup(200);
+		const { drawer, onClose, cleanup } = setup(200);
 		drawer.handleOpenChange(true);
 		drawer.handleOpenChange(false);
 
@@ -144,6 +127,7 @@ describe('createDrawerState', () => {
 
 		vi.advanceTimersByTime(1);
 		expect(drawer.drawerOpen).toBe(false);
+		expect(onClose).toHaveBeenCalledOnce();
 
 		cleanup();
 	});

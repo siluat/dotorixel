@@ -39,13 +39,16 @@ export function createDrawerState(options: DrawerStateOptions): DrawerState {
 		if (open()) {
 			clearPendingClose();
 			drawerOpen = true;
-		} else {
-			clearPendingClose();
+		} else if (pendingClose === undefined) {
 			if (untrack(() => drawerOpen)) {
 				drawerOpen = false;
 				onReset?.();
 			}
 		}
+	});
+
+	// Clear pending timeout on component destroy
+	$effect(() => {
 		return () => clearPendingClose();
 	});
 
@@ -54,11 +57,11 @@ export function createDrawerState(options: DrawerStateOptions): DrawerState {
 		if (isOpen) {
 			drawerOpen = true;
 		} else {
+			onClose();
 			pendingClose = setTimeout(() => {
 				pendingClose = undefined;
 				drawerOpen = false;
 				onReset?.();
-				onClose();
 			}, animationMs);
 		}
 	}

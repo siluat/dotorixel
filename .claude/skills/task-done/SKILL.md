@@ -57,8 +57,8 @@ Update `tasks/progress.md`:
   - Otherwise: set to "None".
 - Set "Last Completed" to the task just finished.
 - Update "Next Up":
-  1. Identify candidate items from `tasks/todo.md`.
-  2. Analyze dependencies between them — only include items that can be worked on in parallel.
+  1. Enumerate **every** uncompleted item in `tasks/todo.md` across all sections and milestones.
+  2. Filter by dependency readiness — only keep items that can start now.
   3. List the independent items as bullet points.
 
 ### 5. Update platform-status.md

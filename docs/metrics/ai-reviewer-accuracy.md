@@ -7,7 +7,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 5 | 3 | 2 | 4 | 60% | 43% |
-| cubic-dev-ai[bot] | 6 | 4 | 2 | 1 | 67% | 80% |
+| cubic-dev-ai[bot] | 7 | 4 | 3 | 1 | 57% | 80% |
 | coderabbitai[bot] | 10 | 5 | 5 | 0 | 50% | 100% |
 
 ## Log
@@ -40,3 +40,4 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #135 | greptile-apps[bot] | Miss | Did not flag migration test raw DB assertion |
 | #135 | greptile-apps[bot] | Miss | Did not flag await deleteDatabase race condition |
 | #135 | greptile-apps[bot] | Miss | Did not flag stale index after async flush |
+| #135 | cubic-dev-ai[bot] | Reject | Claimed greptile running totals mismatch — totals are correct |

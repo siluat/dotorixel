@@ -58,6 +58,7 @@ export class SessionPersistence {
 
 			const shouldWrite = !dirtyDocIds || dirtyDocIds.has(tab.id);
 			if (shouldWrite) {
+				const existing = await this.#storage.getDocument(tab.id);
 				await this.#storage.putDocument({
 					schemaVersion: 2,
 					id: tab.id,
@@ -65,8 +66,8 @@ export class SessionPersistence {
 					width: tab.width,
 					height: tab.height,
 					pixels: tab.pixels,
-					saved: false,
-					createdAt: now,
+					saved: existing?.saved ?? false,
+					createdAt: existing?.createdAt ?? now,
 					updatedAt: now
 				});
 			}

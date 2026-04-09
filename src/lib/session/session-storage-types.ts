@@ -12,6 +12,11 @@ export interface DocumentSchemaV1 {
 /** Schema V2 — added schemaVersion discriminant and saved flag */
 export interface DocumentSchemaV2 extends DocumentSchemaV1 {
 	schemaVersion: 2;
+	/**
+	 * Whether the user explicitly chose to keep this document.
+	 * New documents start as `false`. Set to `true` by the save dialog
+	 * when the user closes a tab and chooses to save.
+	 */
 	saved: boolean;
 }
 

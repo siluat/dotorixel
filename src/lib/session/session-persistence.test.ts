@@ -209,6 +209,21 @@ describe('SessionPersistence', () => {
 		expect(doc!.saved).toBe(false);
 	});
 
+	it('preserves saved=true on re-save', async () => {
+		const snapshot = makeSnapshot({}, [makeTab({ id: 'doc-1' })]);
+		await persistence.save(snapshot);
+
+		// Externally mark the document as saved (simulates save dialog)
+		const doc = await storage.getDocument('doc-1');
+		await storage.putDocument({ ...doc!, saved: true });
+
+		// Re-save the same snapshot
+		await persistence.save(snapshot);
+		const afterResave = await storage.getDocument('doc-1');
+
+		expect(afterResave!.saved).toBe(true);
+	});
+
 	it('deletes documents for removed tabs on re-save', async () => {
 		const threeTabSnapshot = makeSnapshot({}, [
 			makeTab({ id: 'doc-1' }),

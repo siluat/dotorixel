@@ -22,7 +22,7 @@
 	function handleKeyDown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
 			onCancel();
-		} else if (event.key === 'Enter') {
+		} else if (event.key === 'Enter' && (event.target as HTMLElement).tagName !== 'BUTTON') {
 			onSave(name);
 		} else if (event.key === 'Tab') {
 			trapFocus(event);

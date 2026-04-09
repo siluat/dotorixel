@@ -109,10 +109,11 @@
 		if (saveDialogTabIndex === null) return;
 		const tab = workspace.tabs[saveDialogTabIndex];
 		const docId = tab.documentId;
-		workspace.closeTab(saveDialogTabIndex);
+		const closeIndex = saveDialogTabIndex;
+		saveDialogTabIndex = null;
+		workspace.closeTab(closeIndex);
 		session?.notifyTabClosed(docId);
 		await session?.deleteDocument(docId);
-		saveDialogTabIndex = null;
 	}
 
 	function handleSaveDialogCancel() {

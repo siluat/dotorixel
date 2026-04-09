@@ -73,5 +73,11 @@
 
 	"landing_tagline": "ピクセルアートエディター",
 	"landing_description": "ブラウザですぐにピクセルアートを描けます。",
-	"landing_cta": "描き始める"
+	"landing_cta": "描き始める",
+
+	"save_dialog_title": "作品を保存しますか？",
+	"save_dialog_name_label": "名前",
+	"save_dialog_save": "保存",
+	"save_dialog_delete": "削除",
+	"save_dialog_cancel": "キャンセル"
 }

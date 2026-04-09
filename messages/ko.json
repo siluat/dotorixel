@@ -73,5 +73,11 @@
 
 	"landing_tagline": "픽셀 아트 에디터",
 	"landing_description": "브라우저에서 바로 픽셀 아트를 그려보세요.",
-	"landing_cta": "그리기 시작"
+	"landing_cta": "그리기 시작",
+
+	"save_dialog_title": "작업을 저장하시겠어요?",
+	"save_dialog_name_label": "이름",
+	"save_dialog_save": "저장",
+	"save_dialog_delete": "삭제",
+	"save_dialog_cancel": "취소"
 }

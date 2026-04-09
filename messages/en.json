@@ -73,5 +73,11 @@
 
 	"landing_tagline": "Pixel Art Editor",
 	"landing_description": "Create pixel art right in your browser.",
-	"landing_cta": "Start Drawing"
+	"landing_cta": "Start Drawing",
+
+	"save_dialog_title": "Save your work?",
+	"save_dialog_name_label": "Name",
+	"save_dialog_save": "Save",
+	"save_dialog_delete": "Delete",
+	"save_dialog_cancel": "Cancel"
 }

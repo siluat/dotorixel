@@ -16,7 +16,9 @@
 	import ColorsContent from '$lib/ui-editor/ColorsContent.svelte';
 	import SettingsContent from '$lib/ui-editor/SettingsContent.svelte';
 	import ExportBottomSheet from '$lib/ui-editor/ExportBottomSheet.svelte';
+	import SaveDialog from '$lib/ui-editor/SaveDialog.svelte';
 	import { openSession, type SessionHandle } from '$lib/session/session';
+	import { isBlankCanvas } from '$lib/canvas/blank-detection';
 	import {
 		trackEditorOpen,
 		trackToolUsage,
@@ -46,6 +48,7 @@
 	let canvasContainerEl: HTMLDivElement | undefined = $state();
 	const fittedEditors = new WeakSet<EditorState>();
 	let session: SessionHandle | undefined;
+	let saveDialogTabIndex: number | null = $state(null);
 
 	function initEditorViewport(ed: EditorState, width: number, height: number) {
 		ed.viewportSize = { width, height };
@@ -68,11 +71,62 @@
 		session?.markDirty(workspace.activeEditor.documentId);
 	}
 
-	async function handleCloseTab(index: number) {
+	async function closeTabImmediately(index: number) {
 		const removedDocId = workspace.tabs[index].documentId;
 		await session?.flush();
 		workspace.closeTab(index);
 		session?.notifyTabClosed(removedDocId);
+	}
+
+	async function handleCloseTab(index: number) {
+		const tab = workspace.tabs[index];
+		const isSaved = await session?.isDocumentSaved(tab.documentId) ?? false;
+
+		if (isSaved) {
+			await closeTabImmediately(index);
+			return;
+		}
+
+		if (isBlankCanvas(tab.pixelCanvas.pixels())) {
+			await closeTabImmediately(index);
+			return;
+		}
+
+		saveDialogTabIndex = index;
+	}
+
+	async function handleSaveDialogSave(name: string) {
+		if (saveDialogTabIndex === null) return;
+		const tab = workspace.tabs[saveDialogTabIndex];
+		await session?.flush();
+		await session?.saveDocumentAs(tab.documentId, name);
+		workspace.closeTab(saveDialogTabIndex);
+		session?.notifyTabClosed(tab.documentId);
+		saveDialogTabIndex = null;
+	}
+
+	async function handleSaveDialogDelete() {
+		if (saveDialogTabIndex === null) return;
+		const tab = workspace.tabs[saveDialogTabIndex];
+		const docId = tab.documentId;
+		workspace.closeTab(saveDialogTabIndex);
+		session?.notifyTabClosed(docId);
+		await session?.deleteDocument(docId);
+		saveDialogTabIndex = null;
+	}
+
+	function handleSaveDialogCancel() {
+		saveDialogTabIndex = null;
+	}
+
+	function handleEditorKeyDown(event: KeyboardEvent) {
+		if (saveDialogTabIndex !== null) return;
+		editor.handleKeyDown(event);
+	}
+
+	function handleEditorKeyUp(event: KeyboardEvent) {
+		if (saveDialogTabIndex !== null) return;
+		editor.handleKeyUp(event);
 	}
 
 	onMount(() => {
@@ -160,7 +214,7 @@
 	}
 </script>
 
-<svelte:window onkeydown={editor.handleKeyDown} onkeyup={editor.handleKeyUp} onblur={editor.handleBlur} onbeforeunload={flushSession} />
+<svelte:window onkeydown={handleEditorKeyDown} onkeyup={handleEditorKeyUp} onblur={editor.handleBlur} onbeforeunload={flushSession} />
 
 {#if layout.isDocked}
 	<div class="editor-docked">
@@ -324,6 +378,15 @@
 			onExport={handleExportConfirm}
 		/>
 	</div>
+{/if}
+
+{#if saveDialogTabIndex !== null}
+	<SaveDialog
+		documentName={workspace.tabs[saveDialogTabIndex].name}
+		onSave={handleSaveDialogSave}
+		onDelete={handleSaveDialogDelete}
+		onCancel={handleSaveDialogCancel}
+	/>
 {/if}
 
 <style>

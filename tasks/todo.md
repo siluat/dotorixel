@@ -58,10 +58,6 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
   - Bundle size — Tauri `.app` vs native `.app`
   - Implementation effort — per-feature LOC and time comparison
 
-## Architecture
-
-- Consolidate modal/overlay behavior into deep modules — [RFC](../issues/047-deepen-modal-overlay.md)
-
 ## Review backlog (not assigned to a milestone)
 
 - Design: share artwork dialog — URL sharing dialog UI (.pen)

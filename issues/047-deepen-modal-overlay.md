@@ -1,6 +1,6 @@
 ---
 title: Consolidate modal/overlay behavior into deep modules
-status: open
+status: done
 created: 2026-04-09
 ---
 
@@ -211,3 +211,29 @@ Replace the local `trapFocus` function with an import from `$lib/ui/trap-focus`.
 - **Refactoring `SavedWorkCardGrid`'s delete confirmation into a separate component** — it remains an internal concern of `SavedWorkCardGrid`
 - **Adding new modal types or patterns** — this refactoring consolidates existing behavior, it does not add new capabilities
 - **Keyboard handling in `+page.svelte`** — the page-level modal-open keyboard suppression (`if (saveDialogTabIndex !== null) return`) is a separate concern from the modal behavior modules
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/ui/BottomSheet.svelte` | Custom bottom sheet component replacing vaul-svelte |
+| `src/lib/ui/modal.svelte.ts` | createModal utility for dialog scroll lock, focus trap, ESC, backdrop |
+| `src/lib/ui/modal.svelte.test.ts` | 9 tests for createModal |
+| `src/lib/ui/trap-focus.ts` | Shared focus trapping utility |
+| `src/lib/ui/trap-focus.test.ts` | 7 tests for trapFocus |
+| `src/lib/ui-editor/ExportBottomSheet.svelte` | Migrated to BottomSheet |
+| `src/lib/ui-editor/SavedWorkBrowserSheet.svelte` | Migrated to BottomSheet |
+| `src/lib/ui-editor/SaveDialog.svelte` | Migrated to createModal |
+| `src/lib/ui-editor/SavedWorkBrowser.svelte` | Migrated to createModal |
+| `src/lib/ui-editor/SavedWorkCardGrid.svelte` | Migrated to shared trapFocus |
+
+### Key Decisions
+
+- Replaced vaul-svelte entirely with a custom BottomSheet component. vaul-svelte 0.3.2 (Svelte 4) required a 500ms close delay workaround due to bits-ui DOM timing issues. The 1.0.0-next.7 prerelease had missing dependency declarations and test compatibility issues. Direct implementation with CSS transitions + pointer events resolved all animation and rapid open/close issues.
+- createDrawerState was created then removed. The delay-based state sync it provided was a workaround for vaul-svelte's limitations, not a genuine architectural need.
+
+### Notes
+
+- The BottomSheet component uses vaul's tuned animation values: `cubic-bezier(0.32, 0.72, 0, 1)` easing, 500ms duration, 0.4 velocity threshold for swipe-to-close.
+- Upward drag dampening was omitted for simplicity — the sheet only allows downward drag. Can be added later if needed.
+

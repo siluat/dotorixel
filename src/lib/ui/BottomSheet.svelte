@@ -149,6 +149,7 @@
 		onpointerdown={handlePointerDown}
 		role="dialog"
 		aria-modal="true"
+		tabindex="-1"
 	>
 		{@render children()}
 	</div>

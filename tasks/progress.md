@@ -6,13 +6,13 @@ None
 
 ## Last Completed
 
-045 — Saved work browser (mobile)
+046 — Landing page design improvements
 
 ## Next Up
 
+- Landing page UI improvements
+  - Design done (046). Can start immediately.
 - 018 — RightPanel (Apple Native)
   - Independent. Can start immediately.
-- Design: landing page improvements (.pen)
-  - M2 landing page. Independent.
 - 019 — StatusBar (Apple Native)
   - Same PRD as 018. Can start independently.

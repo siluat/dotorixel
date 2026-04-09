@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 046 | [Landing page design improvements](../issues/046-landing-page-design.md) | 2026-04-09 |
 | 045 | [Saved work browser (mobile)](../issues/045-saved-work-browser-mobile.md) | 2026-04-09 |
 | 044 | [Saved work browser (desktop)](../issues/044-saved-work-browser-desktop.md) | 2026-04-09 |
 | 043 | [Save dialog on tab close](../issues/043-save-dialog-tab-close.md) | 2026-04-09 |

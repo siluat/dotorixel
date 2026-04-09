@@ -6,7 +6,6 @@
 
 ### Landing page
 
-- Design: landing page improvements (.pen)
 - Landing page UI improvements
 
 ## Milestone 3: Editor for Serious Work

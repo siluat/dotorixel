@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 6 | 4 | 2 | 6 | 67% | 40% |
-| cubic-dev-ai[bot] | 9 | 6 | 3 | 2 | 67% | 75% |
-| coderabbitai[bot] | 11 | 6 | 5 | 2 | 55% | 75% |
+| greptile-apps[bot] | 8 | 6 | 2 | 9 | 75% | 40% |
+| cubic-dev-ai[bot] | 11 | 8 | 3 | 5 | 73% | 62% |
+| coderabbitai[bot] | 14 | 9 | 5 | 4 | 64% | 69% |
 
 ## Log
 
@@ -50,3 +50,18 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #136 | coderabbitai[bot] | Accept | Clear saveDialogTabIndex before closeTab in save path (consistency with delete) |
 | #136 | greptile-apps[bot] | Miss | Did not flag stale index in save path |
 | #136 | cubic-dev-ai[bot] | Miss | Did not flag stale index in save path |
+| #137 | greptile-apps[bot] | Accept | Missing initial focus on dialog open |
+| #137 | greptile-apps[bot] | Accept | No :focus-visible style on keyboard-focusable cards |
+| #137 | greptile-apps[bot] | Miss | Did not flag async onDelete promise discard |
+| #137 | greptile-apps[bot] | Miss | Did not flag hardcoded "Close" aria-label |
+| #137 | greptile-apps[bot] | Miss | Did not flag missing aria-expanded on TopBar browse button |
+| #137 | cubic-dev-ai[bot] | Accept | :focus-visible on cards (duplicate of greptile) |
+| #137 | cubic-dev-ai[bot] | Accept | Async onDelete promise discard (duplicate of coderabbit) |
+| #137 | cubic-dev-ai[bot] | Miss | Did not flag missing initial focus on dialog open |
+| #137 | cubic-dev-ai[bot] | Miss | Did not flag hardcoded "Close" aria-label |
+| #137 | cubic-dev-ai[bot] | Miss | Did not flag missing aria-expanded on TopBar browse button |
+| #137 | coderabbitai[bot] | Accept | Async onDelete callback — promise discard on IndexedDB failure |
+| #137 | coderabbitai[bot] | Accept | Hardcoded "Close" aria-label — i18n inconsistency |
+| #137 | coderabbitai[bot] | Accept | Missing aria-expanded on TopBar browse button |
+| #137 | coderabbitai[bot] | Miss | Did not flag missing initial focus on dialog open |
+| #137 | coderabbitai[bot] | Miss | Did not flag :focus-visible on keyboard-focusable cards |

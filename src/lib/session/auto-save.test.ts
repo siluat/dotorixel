@@ -1,13 +1,14 @@
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import type { WorkspaceSnapshot, TabSnapshot } from '$lib/canvas/workspace-snapshot';
 import { AutoSave } from './auto-save';
-import { SessionPersistence, type PersistableWorkspace } from './session-persistence';
+import { SessionPersistence } from './session-persistence';
 import { SessionStorage } from './session-storage';
 
 function makeTab(
-	overrides: Partial<PersistableWorkspace['tabs'][number]> = {}
-): PersistableWorkspace['tabs'][number] {
+	overrides: Partial<TabSnapshot> = {}
+): TabSnapshot {
 	return {
 		id: 'doc-1',
 		name: 'Untitled 1',
@@ -23,9 +24,9 @@ function makeTab(
 }
 
 function makeSnapshot(
-	overrides: Partial<PersistableWorkspace> = {},
-	tabs?: PersistableWorkspace['tabs'][number][]
-): PersistableWorkspace {
+	overrides: Partial<WorkspaceSnapshot> = {},
+	tabs?: TabSnapshot[]
+): WorkspaceSnapshot {
 	return {
 		tabs: tabs ?? [makeTab()],
 		activeTabIndex: 0,
@@ -42,7 +43,7 @@ function makeSnapshot(
 describe('AutoSave', () => {
 	let storage: SessionStorage;
 	let persistence: SessionPersistence;
-	let currentSnapshot: PersistableWorkspace;
+	let currentSnapshot: WorkspaceSnapshot;
 	let autoSave: AutoSave;
 
 	beforeEach(async () => {

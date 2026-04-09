@@ -1,3 +1,4 @@
+import type { WorkspaceSnapshot, TabSnapshot } from '$lib/canvas/workspace-snapshot';
 import type { SessionStorage } from './session-storage';
 import type { SavedDocumentSummary } from './session-storage-types';
 
@@ -10,35 +11,6 @@ const DEFAULT_VIEWPORT = {
 	gridColor: '#cccccc'
 } as const;
 
-/**
- * Session's own persistence contract. Structurally compatible with
- * canvas's WorkspaceSnapshot — session never imports that type by name.
- */
-export interface PersistableWorkspace {
-	readonly tabs: ReadonlyArray<{
-		readonly id: string;
-		readonly name: string;
-		readonly width: number;
-		readonly height: number;
-		readonly pixels: Uint8Array;
-		readonly viewport: {
-			readonly pixelSize: number;
-			readonly zoom: number;
-			readonly panX: number;
-			readonly panY: number;
-			readonly showGrid: boolean;
-			readonly gridColor: string;
-		};
-	}>;
-	readonly activeTabIndex: number;
-	readonly sharedState: {
-		readonly activeTool: string;
-		readonly foregroundColor: { r: number; g: number; b: number; a: number };
-		readonly backgroundColor: { r: number; g: number; b: number; a: number };
-		readonly recentColors: readonly string[];
-	};
-}
-
 export class SessionPersistence {
 	#storage: SessionStorage;
 
@@ -46,13 +18,13 @@ export class SessionPersistence {
 		this.#storage = storage;
 	}
 
-	async save(snapshot: PersistableWorkspace, dirtyDocIds?: Set<string>): Promise<void> {
+	async save(snapshot: WorkspaceSnapshot, dirtyDocIds?: Set<string>): Promise<void> {
 		const oldWs = await this.#storage.getWorkspace();
 		const oldDocIds = new Set(oldWs?.tabOrder ?? []);
 
 		const now = new Date();
 		const tabOrder: string[] = [];
-		const viewports: Record<string, PersistableWorkspace['tabs'][number]['viewport']> = {};
+		const viewports: Record<string, TabSnapshot['viewport']> = {};
 
 		for (const tab of snapshot.tabs) {
 			tabOrder.push(tab.id);
@@ -120,12 +92,12 @@ export class SessionPersistence {
 		await this.#storage.deleteDocument(id);
 	}
 
-	async restore(): Promise<PersistableWorkspace | null> {
+	async restore(): Promise<WorkspaceSnapshot | null> {
 		try {
 			const ws = await this.#storage.getWorkspace();
 			if (!ws) return null;
 
-			const tabs: PersistableWorkspace['tabs'][number][] = [];
+			const tabs: TabSnapshot[] = [];
 			for (const docId of ws.tabOrder) {
 				const doc = await this.#storage.getDocument(docId);
 				if (!doc) return null;

@@ -224,6 +224,25 @@ describe('SessionPersistence', () => {
 		expect(afterResave!.saved).toBe(true);
 	});
 
+	it('preserves saved=true document after tab removal', async () => {
+		const snapshot = makeSnapshot({}, [
+			makeTab({ id: 'doc-1' }),
+			makeTab({ id: 'doc-2' })
+		]);
+		await persistence.save(snapshot);
+
+		// Mark doc-2 as saved
+		const doc2 = await storage.getDocument('doc-2');
+		await storage.putDocument({ ...doc2!, saved: true });
+
+		// Re-save with doc-2 tab removed
+		const oneTabSnapshot = makeSnapshot({}, [makeTab({ id: 'doc-1' })]);
+		await persistence.save(oneTabSnapshot);
+
+		// doc-2 should still exist because saved=true
+		expect(await storage.getDocument('doc-2')).toBeDefined();
+	});
+
 	it('deletes documents for removed tabs on re-save', async () => {
 		const threeTabSnapshot = makeSnapshot({}, [
 			makeTab({ id: 'doc-1' }),

@@ -88,11 +88,14 @@ export class SessionPersistence {
 			viewports
 		});
 
-		// Delete documents that are no longer in the tab list
+		// Delete unsaved documents that are no longer in any tab
 		const currentDocIds = new Set(tabOrder);
 		for (const oldId of oldDocIds) {
 			if (!currentDocIds.has(oldId)) {
-				await this.#storage.deleteDocument(oldId);
+				const doc = await this.#storage.getDocument(oldId);
+				if (doc && !doc.saved) {
+					await this.#storage.deleteDocument(oldId);
+				}
 			}
 		}
 	}

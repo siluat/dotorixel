@@ -6,12 +6,14 @@
 
 ## Last Completed
 
-041 — Reopen past work PRD + sub-issue breakdown
+042 — Document persistence foundation
 
 ## Next Up
 
-- 042 — Document persistence foundation
-  - First sub-issue of Reopen past work PRD. No blockers.
+- 043 — Save dialog on tab close
+  - Unblocked by 042. Next sub-issue of Reopen past work PRD.
+- 044 — Saved work browser (desktop)
+  - Unblocked by 042. Independent from 043.
 - 018 — RightPanel (Apple Native)
   - Independent. Can start immediately.
 - Design: landing page improvements (.pen)

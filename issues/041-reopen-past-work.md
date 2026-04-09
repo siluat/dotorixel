@@ -1,6 +1,6 @@
 ---
 title: Reopen past work — browse and restore from saved work list
-status: open
+status: done
 created: 2026-04-09
 ---
 

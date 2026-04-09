@@ -18,6 +18,7 @@
 	import ExportBottomSheet from '$lib/ui-editor/ExportBottomSheet.svelte';
 	import SaveDialog from '$lib/ui-editor/SaveDialog.svelte';
 	import SavedWorkBrowser from '$lib/ui-editor/SavedWorkBrowser.svelte';
+	import SavedWorkBrowserSheet from '$lib/ui-editor/SavedWorkBrowserSheet.svelte';
 	import { openSession, type SessionHandle } from '$lib/session/session';
 	import type { SavedDocumentSummary } from '$lib/session/session-storage-types';
 	import { isBlankCanvas } from '$lib/canvas/blank-detection';
@@ -331,6 +332,7 @@
 			onZoomIn={editor.handleZoomIn}
 			onZoomOut={editor.handleZoomOut}
 			onZoomReset={editor.handleZoomReset}
+			onBrowseSavedWork={handleBrowseSavedWork}
 		/>
 
 		<TabStrip
@@ -410,10 +412,18 @@
 			onOpenChange={(isOpen) => (editor.isExportUIOpen = isOpen)}
 			onExport={handleExportConfirm}
 		/>
+
+		<SavedWorkBrowserSheet
+			open={browserDocuments !== null}
+			documents={browserDocuments ?? []}
+			onSelect={handleBrowserSelect}
+			onDelete={handleBrowserDelete}
+			onClose={handleBrowserClose}
+		/>
 	</div>
 {/if}
 
-{#if browserDocuments !== null}
+{#if layout.isDocked && browserDocuments !== null}
 	<SavedWorkBrowser
 		documents={browserDocuments}
 		onSelect={handleBrowserSelect}

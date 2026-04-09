@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Download, Grid3X3, Minus, Plus } from 'lucide-svelte';
+	import { Download, FolderOpen, Grid3X3, Minus, Plus } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 
 	type MobileTab = 'draw' | 'colors' | 'settings';
@@ -13,6 +13,7 @@
 		onZoomIn: () => void;
 		onZoomOut: () => void;
 		onZoomReset: () => void;
+		onBrowseSavedWork?: () => void;
 	}
 
 	let {
@@ -23,7 +24,8 @@
 		onExport,
 		onZoomIn,
 		onZoomOut,
-		onZoomReset
+		onZoomReset,
+		onBrowseSavedWork
 	}: Props = $props();
 
 	const tabTitles: Record<MobileTab, (() => string) | null> = {
@@ -55,6 +57,11 @@
 				</button>
 			</div>
 
+			{#if onBrowseSavedWork}
+				<button class="action-btn" onclick={onBrowseSavedWork} aria-label={m.browser_title()}>
+					<FolderOpen size={18} />
+				</button>
+			{/if}
 			<button class="action-btn" onclick={onExport} aria-label={m.label_export()}>
 				<Download size={18} />
 			</button>

@@ -1,6 +1,6 @@
 ---
 title: Saved work browser — mobile
-status: open
+status: done
 created: 2026-04-09
 parent: 041-reopen-past-work.md
 ---
@@ -36,3 +36,22 @@ Design reference: `docs/pencil-dotorixel.pen` frame `3PXRt` (issue 040).
 - Scenario 8: Open document as new tab (mobile variant)
 - Scenario 10: Delete document (mobile variant)
 - Scenario 11: Empty state (mobile variant)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/ui-editor/SavedWorkCardGrid.svelte` | Extracted shared card grid content (thumbnails, delete confirmation, empty state) |
+| `src/lib/ui-editor/SavedWorkCardGrid.svelte.test.ts` | Card grid tests: render, select, delete confirmation, empty state |
+| `src/lib/ui-editor/SavedWorkBrowserSheet.svelte` | Mobile bottom sheet wrapping SavedWorkCardGrid (vaul-svelte) |
+| `src/lib/ui-editor/SavedWorkBrowserSheet.svelte.test.ts` | Bottom sheet tests: render with documents, empty state |
+| `src/lib/ui-editor/SavedWorkBrowser.svelte` | Refactored to use SavedWorkCardGrid |
+| `src/lib/ui-editor/AppBar.svelte` | Added optional `onBrowseSavedWork` prop with FolderOpen trigger button |
+| `src/lib/ui-editor/AppBar.svelte.test.ts` | AppBar tests: button render, click callback |
+| `src/routes/editor/+page.svelte` | Wired mobile sheet + AppBar trigger; layout-aware rendering |
+
+### Key Decisions
+- Extracted `SavedWorkCardGrid` as shared component instead of duplicating card grid logic between desktop modal and mobile bottom sheet.
+- Delete dialog keyboard events (Escape, Tab) handled at the backdrop element with `stopPropagation()`, preventing vaul-svelte from closing the bottom sheet when the delete dialog is open.
+- Focus restoration after delete dialog dismiss: saves the triggering card button reference and restores focus via `tick()`, ensuring vaul-svelte can receive subsequent Escape events.
+- Responsive grid: 2 columns on mobile (< 600px), 3 columns on iPad+ (≥ 600px).

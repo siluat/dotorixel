@@ -68,7 +68,8 @@
 		session?.markDirty(workspace.activeEditor.documentId);
 	}
 
-	function handleCloseTab(index: number) {
+	async function handleCloseTab(index: number) {
+		await session?.flush();
 		const removedDocId = workspace.tabs[index].documentId;
 		workspace.closeTab(index);
 		session?.notifyTabClosed(removedDocId);

@@ -42,6 +42,6 @@
 	"dependencies": {
 		"idb": "^8.0.3",
 		"lucide-svelte": "^0.577.0",
-		"vaul-svelte": "^0.3.2"
+		"vaul-svelte": "1.0.0-next.7"
 	}
 }

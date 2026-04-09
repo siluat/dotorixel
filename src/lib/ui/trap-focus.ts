@@ -1,4 +1,5 @@
-const FOCUSABLE_SELECTOR = 'input, button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE_SELECTOR =
+	'input, select, textarea, button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * Traps focus within a container element on Tab/Shift+Tab keydown events.

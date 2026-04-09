@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { X, ImageIcon, Trash2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
@@ -41,7 +41,7 @@
 
 	function trapFocus(event: KeyboardEvent, container: HTMLElement) {
 		const focusable = [...container.querySelectorAll<HTMLElement>(
-			'button:not([disabled]), [role="button"][tabindex="0"]'
+			'button:not([disabled])'
 		)];
 		if (focusable.length === 0) return;
 
@@ -57,9 +57,11 @@
 		}
 	}
 
-	function requestDelete(event: MouseEvent, doc: SavedDocumentSummary) {
+	async function requestDelete(event: MouseEvent, doc: SavedDocumentSummary) {
 		event.stopPropagation();
 		deleteTarget = { id: doc.id, name: doc.name };
+		await tick();
+		deleteDialogEl?.querySelector<HTMLButtonElement>('.btn-cancel')?.focus();
 	}
 
 	async function confirmDelete() {
@@ -141,7 +143,8 @@
 		onmousedown={(e) => e.stopPropagation()}
 		role="dialog"
 		aria-labelledby="browser-title"
-		aria-modal="true"
+		aria-modal={deleteTarget ? undefined : true}
+		aria-hidden={deleteTarget ? true : undefined}
 		tabindex="-1"
 	>
 		<div class="browser-header">
@@ -161,23 +164,18 @@
 			{:else}
 				<div class="card-grid">
 				{#each documents as doc (doc.id)}
-					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div
-						class="card"
-						onclick={() => onSelect(doc)}
-						onkeydown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); onSelect(doc); } }}
-						role="button"
-						tabindex="0"
-					>
-						<canvas
-							class="card-thumb"
-							use:thumbnail={{ width: doc.width, height: doc.height, pixels: doc.pixels }}
-						></canvas>
-						<div class="card-info">
+					<div class="card">
+						<button class="card-open" onclick={() => onSelect(doc)}>
+							<canvas
+								class="card-thumb"
+								use:thumbnail={{ width: doc.width, height: doc.height, pixels: doc.pixels }}
+							></canvas>
 							<div class="card-text">
 								<span class="card-name">{doc.name}</span>
 								<span class="card-meta">{doc.width} × {doc.height} · {formatRelativeTime(doc.updatedAt)}</span>
 							</div>
+						</button>
+						<div class="card-actions">
 							<button
 								class="card-delete"
 								onclick={(e) => requestDelete(e, doc)}
@@ -329,18 +327,25 @@
 		border: 1px solid var(--ds-border-subtle);
 		border-radius: 8px;
 		overflow: hidden;
-		cursor: pointer;
 		background: var(--ds-bg-elevated);
-		padding: 0;
-		text-align: left;
 	}
 
-	.card:hover,
-	.card:focus-visible {
+	.card:has(.card-open:hover),
+	.card:has(.card-open:focus-visible) {
 		border-color: var(--ds-accent);
 	}
 
-	.card:focus-visible {
+	.card-open {
+		display: flex;
+		flex-direction: column;
+		border: none;
+		background: none;
+		padding: 0;
+		cursor: pointer;
+		text-align: left;
+	}
+
+	.card-open:focus-visible {
 		outline: none;
 	}
 
@@ -350,19 +355,18 @@
 		display: block;
 	}
 
-	.card-info {
-		display: flex;
-		align-items: flex-start;
-		gap: 4px;
-		padding: 8px 10px;
-	}
-
 	.card-text {
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
-		flex: 1;
+		padding: 8px 10px;
 		min-width: 0;
+	}
+
+	.card-actions {
+		display: flex;
+		justify-content: flex-end;
+		padding: 0 10px 8px;
 	}
 
 	.card-name {

@@ -199,6 +199,87 @@ describe('SessionPersistence', () => {
 		}
 	});
 
+	it('saves new documents with saved=false', async () => {
+		const snapshot = makeSnapshot({}, [makeTab({ id: 'doc-new' })]);
+
+		await persistence.save(snapshot);
+		const doc = await storage.getDocument('doc-new');
+
+		expect(doc).toBeDefined();
+		expect(doc!.saved).toBe(false);
+	});
+
+	it('preserves saved=true on re-save', async () => {
+		const snapshot = makeSnapshot({}, [makeTab({ id: 'doc-1' })]);
+		await persistence.save(snapshot);
+
+		// Externally mark the document as saved (simulates save dialog)
+		const doc = await storage.getDocument('doc-1');
+		await storage.putDocument({ ...doc!, saved: true });
+
+		// Re-save the same snapshot
+		await persistence.save(snapshot);
+		const afterResave = await storage.getDocument('doc-1');
+
+		expect(afterResave!.saved).toBe(true);
+	});
+
+	it('preserves saved=true document after tab removal', async () => {
+		const snapshot = makeSnapshot({}, [
+			makeTab({ id: 'doc-1' }),
+			makeTab({ id: 'doc-2' })
+		]);
+		await persistence.save(snapshot);
+
+		// Mark doc-2 as saved
+		const doc2 = await storage.getDocument('doc-2');
+		await storage.putDocument({ ...doc2!, saved: true });
+
+		// Re-save with doc-2 tab removed
+		const oneTabSnapshot = makeSnapshot({}, [makeTab({ id: 'doc-1' })]);
+		await persistence.save(oneTabSnapshot);
+
+		// doc-2 should still exist because saved=true
+		expect(await storage.getDocument('doc-2')).toBeDefined();
+	});
+
+	it('preserves createdAt on re-save', async () => {
+		const snapshot = makeSnapshot({}, [makeTab({ id: 'doc-1' })]);
+		await persistence.save(snapshot);
+
+		const afterFirstSave = await storage.getDocument('doc-1');
+		const originalCreatedAt = afterFirstSave!.createdAt;
+
+		// Wait a tick to ensure Date.now() advances
+		await new Promise((r) => setTimeout(r, 10));
+
+		// Re-save the same snapshot
+		await persistence.save(snapshot);
+		const afterResave = await storage.getDocument('doc-1');
+
+		expect(afterResave!.createdAt).toEqual(originalCreatedAt);
+		expect(afterResave!.updatedAt.getTime()).toBeGreaterThan(originalCreatedAt.getTime());
+	});
+
+	it('deletes unsaved document after tab removal', async () => {
+		const snapshot = makeSnapshot({}, [
+			makeTab({ id: 'doc-1' }),
+			makeTab({ id: 'doc-unsaved' })
+		]);
+		await persistence.save(snapshot);
+
+		// Verify doc-unsaved has saved=false (default for new docs)
+		const doc = await storage.getDocument('doc-unsaved');
+		expect(doc!.saved).toBe(false);
+
+		// Re-save with doc-unsaved tab removed
+		const oneTabSnapshot = makeSnapshot({}, [makeTab({ id: 'doc-1' })]);
+		await persistence.save(oneTabSnapshot);
+
+		// Unsaved document should be deleted
+		expect(await storage.getDocument('doc-unsaved')).toBeUndefined();
+	});
+
 	it('deletes documents for removed tabs on re-save', async () => {
 		const threeTabSnapshot = makeSnapshot({}, [
 			makeTab({ id: 'doc-1' }),
@@ -230,11 +311,13 @@ describe('SessionPersistence', () => {
 	it('clamps activeTabIndex when saved value exceeds tab count', async () => {
 		// Simulate corrupted data: activeTabIndex beyond the tab count
 		const doc = {
+			schemaVersion: 2 as const,
 			id: 'doc-1',
 			name: 'Tab',
 			width: 1,
 			height: 1,
 			pixels: new Uint8Array([0, 0, 0, 255]),
+			saved: false,
 			createdAt: new Date(),
 			updatedAt: new Date()
 		};

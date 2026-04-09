@@ -1,7 +1,9 @@
 import 'fake-indexeddb/auto';
+import { openDB } from 'idb';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SessionStorage } from './session-storage';
-import type { DocumentRecord, WorkspaceRecord } from './session-storage-types';
+import { migrateDocumentToV2 } from './session-storage-types';
+import type { DocumentRecord, DocumentSchemaV1, WorkspaceRecord } from './session-storage-types';
 
 describe('SessionStorage', () => {
 	let storage: SessionStorage;
@@ -24,11 +26,13 @@ describe('SessionStorage', () => {
 
 		it('deletes a document', async () => {
 			const doc: DocumentRecord = {
+				schemaVersion: 2,
 				id: 'doc-del',
 				name: 'To delete',
 				width: 1,
 				height: 1,
 				pixels: new Uint8Array([0, 0, 0, 255]),
+				saved: false,
 				createdAt: new Date(),
 				updatedAt: new Date()
 			};
@@ -43,11 +47,13 @@ describe('SessionStorage', () => {
 		it('stores and retrieves a document with pixel data', async () => {
 			const pixels = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]);
 			const doc: DocumentRecord = {
+				schemaVersion: 2,
 				id: 'doc-1',
 				name: 'Untitled 1',
 				width: 2,
 				height: 1,
 				pixels,
+				saved: false,
 				createdAt: new Date('2026-04-06T00:00:00Z'),
 				updatedAt: new Date('2026-04-06T00:00:00Z')
 			};
@@ -62,6 +68,96 @@ describe('SessionStorage', () => {
 			expect(retrieved!.height).toBe(1);
 			expect(retrieved!.pixels).toEqual(pixels);
 			expect(retrieved!.createdAt).toEqual(new Date('2026-04-06T00:00:00Z'));
+		});
+
+		it('round-trips saved and schemaVersion fields', async () => {
+			const doc: DocumentRecord = {
+				schemaVersion: 2,
+				id: 'doc-v2',
+				name: 'Versioned',
+				width: 1,
+				height: 1,
+				pixels: new Uint8Array([0, 0, 0, 255]),
+				saved: true,
+				createdAt: new Date(),
+				updatedAt: new Date()
+			};
+			await storage.putDocument(doc);
+			const retrieved = await storage.getDocument('doc-v2');
+
+			expect(retrieved).toBeDefined();
+			expect(retrieved!.schemaVersion).toBe(2);
+			expect(retrieved!.saved).toBe(true);
+		});
+
+		it('normalizes a V1 document on read', async () => {
+			// Write a V1-shaped document directly (no schemaVersion, no saved)
+			const rawDb = await openDB('dotorixel', 2);
+			await rawDb.put('documents', {
+				id: 'doc-v1',
+				name: 'Old doc',
+				width: 4,
+				height: 4,
+				pixels: new Uint8Array(4 * 4 * 4),
+				createdAt: new Date('2026-01-01'),
+				updatedAt: new Date('2026-01-01')
+			});
+			rawDb.close();
+
+			const retrieved = await storage.getDocument('doc-v1');
+
+			expect(retrieved).toBeDefined();
+			expect(retrieved!.schemaVersion).toBe(2);
+			expect(retrieved!.saved).toBe(true);
+			expect(retrieved!.name).toBe('Old doc');
+		});
+	});
+
+	describe('schema migration', () => {
+		it('upgrades V1 documents to V2 on DB open', async () => {
+			// Close the V2 DB opened by beforeEach
+			storage.close();
+			await new Promise<void>((resolve, reject) => {
+				const request = indexedDB.deleteDatabase('dotorixel');
+				request.onsuccess = () => resolve();
+				request.onerror = () => reject(request.error);
+			});
+
+			// Create a V1 database with a document
+			const v1Db = await openDB('dotorixel', 1, {
+				upgrade(db) {
+					const store = db.createObjectStore('documents', { keyPath: 'id' });
+					store.createIndex('updatedAt', 'updatedAt');
+					db.createObjectStore('workspace', { keyPath: 'id' });
+				}
+			});
+			await v1Db.put('documents', {
+				id: 'old-doc',
+				name: 'Pre-migration',
+				width: 16,
+				height: 16,
+				pixels: new Uint8Array(16 * 16 * 4),
+				createdAt: new Date('2026-02-01'),
+				updatedAt: new Date('2026-02-15')
+			});
+			v1Db.close();
+
+			// Re-open with SessionStorage — triggers V1→V2 migration
+			storage = await SessionStorage.open();
+
+			// Verify migration wrote to the raw store (not just read-time normalization)
+			const rawDb = await openDB('dotorixel', 2);
+			const stored = await rawDb.get('documents', 'old-doc');
+			rawDb.close();
+
+			expect(stored).toBeDefined();
+			expect(stored).toMatchObject({
+				id: 'old-doc',
+				name: 'Pre-migration',
+				schemaVersion: 2,
+				saved: true
+			});
+			expect(stored!.createdAt).toEqual(new Date('2026-02-01'));
 		});
 	});
 
@@ -108,5 +204,28 @@ describe('SessionStorage', () => {
 			expect(retrieved!.viewports['doc-1'].panX).toBe(100);
 			expect(retrieved!.viewports['doc-1'].showGrid).toBe(false);
 		});
+	});
+});
+
+describe('migrateDocumentToV2', () => {
+	it('adds schemaVersion and saved to a V1 document', () => {
+		const v1: DocumentSchemaV1 = {
+			id: 'doc-1',
+			name: 'Test',
+			width: 8,
+			height: 8,
+			pixels: new Uint8Array(8 * 8 * 4),
+			createdAt: new Date('2026-03-01'),
+			updatedAt: new Date('2026-03-15')
+		};
+
+		const v2 = migrateDocumentToV2(v1);
+
+		expect(v2.schemaVersion).toBe(2);
+		expect(v2.saved).toBe(true);
+		expect(v2.id).toBe('doc-1');
+		expect(v2.name).toBe('Test');
+		expect(v2.createdAt).toEqual(new Date('2026-03-01'));
+		expect(v2.updatedAt).toEqual(new Date('2026-03-15'));
 	});
 });

@@ -58,13 +58,16 @@ export class SessionPersistence {
 
 			const shouldWrite = !dirtyDocIds || dirtyDocIds.has(tab.id);
 			if (shouldWrite) {
+				const existing = await this.#storage.getDocument(tab.id);
 				await this.#storage.putDocument({
+					schemaVersion: 2,
 					id: tab.id,
 					name: tab.name,
 					width: tab.width,
 					height: tab.height,
 					pixels: tab.pixels,
-					createdAt: now,
+					saved: existing?.saved ?? false,
+					createdAt: existing?.createdAt ?? now,
 					updatedAt: now
 				});
 			}
@@ -85,11 +88,14 @@ export class SessionPersistence {
 			viewports
 		});
 
-		// Delete documents that are no longer in the tab list
+		// Delete unsaved documents that are no longer in any tab
 		const currentDocIds = new Set(tabOrder);
 		for (const oldId of oldDocIds) {
 			if (!currentDocIds.has(oldId)) {
-				await this.#storage.deleteDocument(oldId);
+				const doc = await this.#storage.getDocument(oldId);
+				if (doc && !doc.saved) {
+					await this.#storage.deleteDocument(oldId);
+				}
 			}
 		}
 	}

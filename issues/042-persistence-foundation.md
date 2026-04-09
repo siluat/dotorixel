@@ -1,6 +1,6 @@
 ---
 title: Document persistence foundation
-status: open
+status: done
 created: 2026-04-09
 parent: 041-reopen-past-work.md
 ---
@@ -36,3 +36,19 @@ None — can start immediately.
 
 - Scenario 9: Reopened saved document closes with auto-save flush, no dialog
 - Scenario 12: Existing user upgrades — schema migration preserves data
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/session/session-storage-types.ts` | Versioned schema types (V1, V2), StoredDocument union, migrateDocumentToV2 |
+| `src/lib/session/session-storage.ts` | Schema v1→v2 migration, read-time normalization in getDocument |
+| `src/lib/session/session-storage.test.ts` | Migration, normalization, round-trip, and pure function tests |
+| `src/lib/session/session-persistence.ts` | Preserve saved/createdAt on re-save, conditional orphan deletion |
+| `src/lib/session/session-persistence.test.ts` | saved preservation, unsaved deletion, createdAt preservation |
+| `src/routes/editor/+page.svelte` | Flush auto-save before closing a tab |
+
+### Key Decisions
+- Introduced `schemaVersion` discriminant field on documents for storage-agnostic version identification, anticipating future server DB migration
+- Used `StoredDocument = V1 | V2` union with TypeScript `in` narrowing instead of type assertions — no `as` in the codebase
+- Read-time normalization in `getDocument()` as defense-in-depth alongside upgrade handler migration

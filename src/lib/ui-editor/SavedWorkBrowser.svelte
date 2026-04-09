@@ -8,7 +8,7 @@
 	interface Props {
 		documents: SavedDocumentSummary[];
 		onSelect: (doc: SavedDocumentSummary) => void;
-		onDelete: (id: string) => void;
+		onDelete: (id: string) => void | Promise<void>;
 		onClose: () => void;
 	}
 
@@ -20,6 +20,7 @@
 	onMount(() => {
 		const originalOverflow = document.body.style.overflow;
 		document.body.style.overflow = 'hidden';
+		modalEl?.focus();
 		return () => {
 			document.body.style.overflow = originalOverflow;
 		};
@@ -61,11 +62,10 @@
 		deleteTarget = { id: doc.id, name: doc.name };
 	}
 
-	function confirmDelete() {
-		if (deleteTarget) {
-			onDelete(deleteTarget.id);
-			deleteTarget = null;
-		}
+	async function confirmDelete() {
+		if (!deleteTarget) return;
+		await onDelete(deleteTarget.id);
+		deleteTarget = null;
 	}
 
 	function formatRelativeTime(date: Date): string {
@@ -146,7 +146,7 @@
 	>
 		<div class="browser-header">
 			<h2 id="browser-title" class="title">{m.browser_title()}</h2>
-			<button class="close-btn" onclick={onClose} aria-label="Close">
+			<button class="close-btn" onclick={onClose} aria-label={m.action_close()}>
 				<X size={16} />
 			</button>
 		</div>
@@ -335,8 +335,13 @@
 		text-align: left;
 	}
 
-	.card:hover {
+	.card:hover,
+	.card:focus-visible {
 		border-color: var(--ds-accent);
+	}
+
+	.card:focus-visible {
+		outline: none;
 	}
 
 	.card-thumb {

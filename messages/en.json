@@ -89,5 +89,6 @@
 	"browser_delete_confirm": "Delete",
 	"browser_cancel": "Cancel",
 	"label_savedWorks": "Saved Works",
+	"action_close": "Close",
 	"aria_deleteDocument": "Delete {name}"
 }

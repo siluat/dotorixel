@@ -113,6 +113,8 @@
 			class:active={isBrowserOpen}
 			onclick={onBrowseSavedWork}
 			aria-label={m.label_savedWorks()}
+			aria-haspopup="dialog"
+			aria-expanded={isBrowserOpen}
 			use:tooltip={m.label_savedWorks()}
 		>
 			<FolderOpen size={16} />

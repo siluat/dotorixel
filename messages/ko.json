@@ -89,5 +89,6 @@
 	"browser_delete_confirm": "삭제",
 	"browser_cancel": "취소",
 	"label_savedWorks": "저장된 작업",
+	"action_close": "닫기",
 	"aria_deleteDocument": "{name} 삭제"
 }

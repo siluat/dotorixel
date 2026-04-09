@@ -89,5 +89,6 @@
 	"browser_delete_confirm": "削除",
 	"browser_cancel": "キャンセル",
 	"label_savedWorks": "保存した作品",
+	"action_close": "閉じる",
 	"aria_deleteDocument": "{name}を削除"
 }

@@ -16,6 +16,7 @@
 
 	let drawerOpen = $state(false);
 	const CLOSE_ANIMATION_MS = 500;
+	let pendingClose: ReturnType<typeof setTimeout> | undefined;
 
 	$effect(() => {
 		if (open) {
@@ -26,10 +27,15 @@
 	});
 
 	function handleOpenChange(isOpen: boolean) {
+		if (pendingClose) {
+			clearTimeout(pendingClose);
+			pendingClose = undefined;
+		}
 		if (isOpen) {
 			drawerOpen = true;
 		} else {
-			setTimeout(() => {
+			pendingClose = setTimeout(() => {
+				pendingClose = undefined;
 				drawerOpen = false;
 				onClose();
 			}, CLOSE_ANIMATION_MS);

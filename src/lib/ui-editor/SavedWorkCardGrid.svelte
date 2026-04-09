@@ -98,10 +98,20 @@
 	}
 
 	function thumbnail(canvas: HTMLCanvasElement, doc: { width: number; height: number; pixels: Uint8Array }) {
-		renderThumbnail(canvas, doc);
+		let currentDoc = doc;
+		const redraw = () => renderThumbnail(canvas, currentDoc);
+		redraw();
+
+		const ro = new ResizeObserver(redraw);
+		ro.observe(canvas);
+
 		return {
 			update(newDoc: typeof doc) {
-				renderThumbnail(canvas, newDoc);
+				currentDoc = newDoc;
+				redraw();
+			},
+			destroy() {
+				ro.disconnect();
 			}
 		};
 	}

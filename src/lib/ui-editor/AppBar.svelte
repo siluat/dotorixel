@@ -62,7 +62,7 @@
 					<FolderOpen size={18} />
 				</button>
 			{/if}
-			<button class="action-btn" onclick={onExport} aria-label={m.label_export()}>
+			<button class="action-btn action-btn--accent" onclick={onExport} aria-label={m.label_export()}>
 				<Download size={18} />
 			</button>
 			<button
@@ -202,7 +202,7 @@
 		color: var(--ds-text-secondary);
 	}
 
-	.action-btn:first-of-type {
+	.action-btn--accent {
 		color: var(--ds-accent);
 	}
 

@@ -66,8 +66,13 @@
 
 	async function confirmDelete() {
 		if (!deleteTarget) return;
-		await onDelete(deleteTarget.id);
+		const id = deleteTarget.id;
 		deleteTarget = null;
+		try {
+			await onDelete(id);
+		} catch (err) {
+			console.error('Failed to delete document:', err);
+		}
 	}
 
 	function formatRelativeTime(date: Date): string {

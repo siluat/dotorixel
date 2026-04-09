@@ -4,7 +4,11 @@
 
 ### Multi-image workflow
 
-- Reopen past work (browse and restore from saved work list)
+- Reopen past work (browse and restore from saved work list) — [PRD](../issues/041-reopen-past-work.md)
+  - [042 — Document persistence foundation](../issues/042-persistence-foundation.md)
+  - [043 — Save dialog on tab close](../issues/043-save-dialog-tab-close.md)
+  - [044 — Saved work browser (desktop)](../issues/044-saved-work-browser-desktop.md)
+  - [045 — Saved work browser (mobile)](../issues/045-saved-work-browser-mobile.md)
 
 ### Landing page
 
@@ -68,6 +72,8 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 - FG/BG swap UI improvements
 - Dark mode toggle UI — design tokens support dark theme (`data-theme="dark"`), no UI to switch yet
 - Document error conditions on `PixelCanvas` public API — `new`, `with_color`, `from_pixels`, `restore_pixels` all return `Result` but only document partial constraints; add `Err` variant descriptions per Rust API Guidelines C-FAILURE
+- IndexedDB quota exceeded error handling — auto-save silently fails when storage is full; show user-facing notification with actionable guidance
+- Document rename — allow renaming documents from tab and saved work browser
 
 ## Future triggers
 

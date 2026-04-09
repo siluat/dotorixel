@@ -74,5 +74,6 @@ If the completed task added or changed any feature implementation, update `docs/
 
 **Guard: verify current branch is not `main`.** If on `main`, stop and alert the user — do not commit.
 - **Exception — .pen-only tasks**: If the task only modified `.pen` files (Design/Sync tasks), committing on `main` is allowed. No PR is needed. After committing, push to remote.
+- **Exception — planning-only tasks**: If the task only created/modified issue files (`issues/`) and task tracking files (`tasks/`), with no implementation code, committing on `main` is allowed. No PR is needed. After committing, push to remote.
 
 Commit changes and task updates together.

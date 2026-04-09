@@ -243,6 +243,24 @@ describe('SessionPersistence', () => {
 		expect(await storage.getDocument('doc-2')).toBeDefined();
 	});
 
+	it('preserves createdAt on re-save', async () => {
+		const snapshot = makeSnapshot({}, [makeTab({ id: 'doc-1' })]);
+		await persistence.save(snapshot);
+
+		const afterFirstSave = await storage.getDocument('doc-1');
+		const originalCreatedAt = afterFirstSave!.createdAt;
+
+		// Wait a tick to ensure Date.now() advances
+		await new Promise((r) => setTimeout(r, 10));
+
+		// Re-save the same snapshot
+		await persistence.save(snapshot);
+		const afterResave = await storage.getDocument('doc-1');
+
+		expect(afterResave!.createdAt).toEqual(originalCreatedAt);
+		expect(afterResave!.updatedAt.getTime()).toBeGreaterThan(originalCreatedAt.getTime());
+	});
+
 	it('deletes unsaved document after tab removal', async () => {
 		const snapshot = makeSnapshot({}, [
 			makeTab({ id: 'doc-1' }),

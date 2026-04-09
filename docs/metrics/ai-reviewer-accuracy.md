@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 8 | 6 | 2 | 11 | 75% | 35% |
-| cubic-dev-ai[bot] | 11 | 8 | 3 | 7 | 73% | 53% |
-| coderabbitai[bot] | 16 | 11 | 5 | 4 | 69% | 73% |
+| greptile-apps[bot] | 9 | 7 | 2 | 11 | 78% | 39% |
+| cubic-dev-ai[bot] | 11 | 8 | 3 | 8 | 73% | 50% |
+| coderabbitai[bot] | 16 | 11 | 5 | 5 | 69% | 69% |
 
 ## Log
 
@@ -71,3 +71,6 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #137 | greptile-apps[bot] | Miss | Did not flag nested interactive elements in card |
 | #137 | cubic-dev-ai[bot] | Miss | Did not flag stacked modal AT issue |
 | #137 | cubic-dev-ai[bot] | Miss | Did not flag nested interactive elements in card |
+| #137 | greptile-apps[bot] | Accept | Async delete promise discard — dialog stuck on failure |
+| #137 | cubic-dev-ai[bot] | Miss | Did not flag async delete failure in confirmDelete |
+| #137 | coderabbitai[bot] | Miss | Did not flag async delete failure in confirmDelete |

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import * as m from '$lib/paraglide/messages';
+	import { createModal } from '$lib/ui/modal.svelte';
 
 	interface Props {
 		documentName: string;
@@ -14,14 +14,7 @@
 	// svelte-ignore state_referenced_locally — intentional one-time copy for user editing
 	let name = $state(documentName);
 
-	onMount(() => {
-		const originalOverflow = document.body.style.overflow;
-		document.body.style.overflow = 'hidden';
-		return () => {
-			document.body.style.overflow = originalOverflow;
-		};
-	});
-	let dialogEl: HTMLDivElement;
+	const modal = createModal({ onClose: onCancel });
 
 	function focusAndSelect(node: HTMLInputElement) {
 		node.focus();
@@ -29,29 +22,10 @@
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
-			onCancel();
-		} else if (event.key === 'Enter' && (event.target as HTMLElement).tagName !== 'BUTTON') {
+		if (event.key === 'Enter' && (event.target as HTMLElement).tagName !== 'BUTTON') {
 			onSave(name);
-		} else if (event.key === 'Tab') {
-			trapFocus(event);
-		}
-	}
-
-	function trapFocus(event: KeyboardEvent) {
-		const focusable = [...dialogEl.querySelectorAll<HTMLElement>(
-			'input, button:not([disabled])'
-		)];
-		const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
-
-		event.preventDefault();
-
-		if (event.shiftKey) {
-			const prev = currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1;
-			focusable[prev].focus();
 		} else {
-			const next = currentIndex >= focusable.length - 1 ? 0 : currentIndex + 1;
-			focusable[next].focus();
+			modal.handleKeyDown(event);
 		}
 	}
 </script>
@@ -60,12 +34,12 @@
 
 <div
 	class="save-dialog-backdrop"
-	onmousedown={onCancel}
+	onmousedown={modal.handleBackdropClick}
 	role="presentation"
 >
 	<div
 		class="save-dialog"
-		bind:this={dialogEl}
+		bind:this={modal.containerEl}
 		onmousedown={(e) => e.stopPropagation()}
 		role="dialog"
 		aria-labelledby="save-dialog-title"

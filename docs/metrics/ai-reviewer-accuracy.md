@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 11 | 9 | 2 | 12 | 82% | 43% |
-| cubic-dev-ai[bot] | 12 | 9 | 3 | 10 | 75% | 47% |
-| coderabbitai[bot] | 21 | 13 | 8 | 6 | 62% | 68% |
+| greptile-apps[bot] | 15 | 13 | 2 | 14 | 87% | 48% |
+| cubic-dev-ai[bot] | 12 | 9 | 3 | 16 | 75% | 36% |
+| coderabbitai[bot] | 26 | 17 | 9 | 9 | 65% | 65% |
 
 ## Log
 
@@ -86,3 +86,23 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #138 | coderabbitai[bot] | Reject | Immediate drawerOpen=false — breaks close animation, pattern matches ExportBottomSheet |
 | #138 | coderabbitai[bot] | Accept | ResizeObserver for thumbnails — now valid with responsive 2/3 column grid |
 | #138 | coderabbitai[bot] | Miss | Did not flag accent color :first-of-type regression |
+| #139 | greptile-apps[bot] | Accept | Missing pointercancel handler leaks drag state on iOS |
+| #139 | greptile-apps[bot] | Accept | a[href] omitted from focusable selector |
+| #139 | greptile-apps[bot] | Accept | Scroll lock never restored on component unmount |
+| #139 | greptile-apps[bot] | Accept | Tab key handled twice when delete dialog inside BottomSheet |
+| #139 | greptile-apps[bot] | Miss | Did not flag window listener leak on unmount |
+| #139 | greptile-apps[bot] | Miss | Did not flag disabled/hidden form controls in selector |
+| #139 | coderabbitai[bot] | Accept | Remove unused vaul-svelte dependency (already addressed) |
+| #139 | coderabbitai[bot] | Accept | Window event listeners not cleaned on unmount during drag |
+| #139 | coderabbitai[bot] | Accept | disabled/hidden form controls in focusable selector |
+| #139 | coderabbitai[bot] | Accept | Capture and restore original body overflow value |
+| #139 | coderabbitai[bot] | Reject | Test container cleanup — happy-dom resets DOM between files |
+| #139 | coderabbitai[bot] | Miss | Did not flag pointercancel handler for iOS |
+| #139 | coderabbitai[bot] | Miss | Did not flag a[href] in focusable selector |
+| #139 | coderabbitai[bot] | Miss | Did not flag Tab double handling in delete dialog |
+| #139 | cubic-dev-ai[bot] | Miss | Did not flag pointercancel handler |
+| #139 | cubic-dev-ai[bot] | Miss | Did not flag a[href] selector |
+| #139 | cubic-dev-ai[bot] | Miss | Did not flag scroll lock unmount |
+| #139 | cubic-dev-ai[bot] | Miss | Did not flag window listener unmount |
+| #139 | cubic-dev-ai[bot] | Miss | Did not flag Tab double handling |
+| #139 | cubic-dev-ai[bot] | Miss | Did not flag disabled/hidden selector |

@@ -1,6 +1,6 @@
 import type { DrawTool } from './draw-tool';
 import type { DrawingOps } from './drawing-ops';
-import type { CanvasCoords } from './canvas-types';
+import type { CanvasCoords } from './canvas-model';
 import { createPencilTool, createEraserTool } from './tools/pencil-tool';
 import { createFloodfillTool } from './tools/floodfill-tool';
 import { eyedropperTool } from './tools/eyedropper-tool';

@@ -4,8 +4,8 @@ import type {
 	WasmHistoryManager,
 	WasmSnapshot
 } from '$wasm/dotorixel_wasm';
-import type { PixelCanvas, Snapshot } from './pixel-canvas';
-import type { HistoryManager } from './history';
+import type { PixelCanvas } from './canvas-model';
+import type { Snapshot, HistoryManager } from './adapter-types';
 
 /**
  * Compile-time structural compatibility checks.

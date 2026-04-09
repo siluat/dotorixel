@@ -1,6 +1,6 @@
 import type { ViewportData } from './viewport';
 import { viewportOps } from './wasm-backend';
-import type { CanvasCoords } from './canvas-types';
+import type { CanvasCoords } from './canvas-model';
 
 const MIN_PINCH_DISTANCE = 10;
 const LONG_PRESS_DELAY = 400;

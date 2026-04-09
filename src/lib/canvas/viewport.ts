@@ -1,4 +1,4 @@
-import type { CanvasCoords } from './canvas-types';
+import type { CanvasCoords } from './canvas-model';
 
 export interface ViewportSize {
 	readonly width: number;

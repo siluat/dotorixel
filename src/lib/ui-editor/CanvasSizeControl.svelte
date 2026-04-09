@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { canvasConstraints } from '$lib/canvas/wasm-backend';
 	import * as m from '$lib/paraglide/messages';
-	import type { ResizeAnchor } from '$lib/canvas/canvas-types';
+	import type { ResizeAnchor } from '$lib/canvas/canvas-model';
 	import ValidationAlert from './ValidationAlert.svelte';
 	import AnchorSelector from './AnchorSelector.svelte';
 

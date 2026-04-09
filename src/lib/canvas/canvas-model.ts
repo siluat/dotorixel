@@ -1,5 +1,23 @@
 import type { Color } from './color';
 
+/** Discrete pixel position on the art canvas. */
+export interface CanvasCoords {
+	readonly x: number;
+	readonly y: number;
+}
+
+/** Anchor point for canvas resize operations. */
+export type ResizeAnchor =
+	| 'top-left'
+	| 'top-center'
+	| 'top-right'
+	| 'middle-left'
+	| 'center'
+	| 'middle-right'
+	| 'bottom-left'
+	| 'bottom-center'
+	| 'bottom-right';
+
 /**
  * 2D raster canvas: read pixel data, bounds checking, and serialization.
  *
@@ -18,11 +36,4 @@ export interface PixelCanvas {
 	encode_png(): Uint8Array;
 	encode_svg(): string;
 	resize(new_width: number, new_height: number): PixelCanvas;
-}
-
-/** Immutable pixel snapshot returned by undo/redo. */
-export interface Snapshot {
-	readonly width: number;
-	readonly height: number;
-	pixels(): Uint8Array;
 }

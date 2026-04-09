@@ -12,6 +12,12 @@ export interface SessionHandle {
 	notifyTabClosed(documentId: string): void;
 	/** Immediately persist all pending changes. No-ops when nothing is dirty. */
 	flush(): Promise<void>;
+	/** Check whether a document has been explicitly saved by the user. */
+	isDocumentSaved(documentId: string): Promise<boolean>;
+	/** Mark a document as saved with a new name. */
+	saveDocumentAs(documentId: string, name: string): Promise<void>;
+	/** Remove a document from persistent storage immediately. */
+	deleteDocument(documentId: string): Promise<void>;
 	/** Tear down timers and close the storage connection. */
 	dispose(): void;
 }
@@ -20,6 +26,9 @@ const NO_OP_SESSION: SessionHandle = {
 	markDirty() {},
 	notifyTabClosed() {},
 	async flush() {},
+	async isDocumentSaved() { return false; },
+	async saveDocumentAs() {},
+	async deleteDocument() {},
 	dispose() {}
 };
 
@@ -50,6 +59,9 @@ export async function openSession(defaults: {
 			markDirty: (docId) => autoSave.markDirty(docId),
 			notifyTabClosed: (docId) => autoSave.notifyTabRemoved(docId),
 			flush: () => autoSave.flush(),
+			isDocumentSaved: (docId) => persistence.isDocumentSaved(docId),
+			saveDocumentAs: (docId, name) => persistence.saveDocumentAs(docId, name),
+			deleteDocument: (docId) => persistence.deleteDocument(docId),
 			dispose: () => {
 				autoSave.dispose();
 				storage!.close();

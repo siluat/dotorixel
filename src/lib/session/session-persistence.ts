@@ -100,6 +100,21 @@ export class SessionPersistence {
 		}
 	}
 
+	async isDocumentSaved(id: string): Promise<boolean> {
+		const doc = await this.#storage.getDocument(id);
+		return doc?.saved ?? false;
+	}
+
+	async saveDocumentAs(id: string, name: string): Promise<void> {
+		const doc = await this.#storage.getDocument(id);
+		if (!doc) return;
+		await this.#storage.putDocument({ ...doc, saved: true, name });
+	}
+
+	async deleteDocument(id: string): Promise<void> {
+		await this.#storage.deleteDocument(id);
+	}
+
 	async restore(): Promise<PersistableWorkspace | null> {
 		try {
 			const ws = await this.#storage.getWorkspace();

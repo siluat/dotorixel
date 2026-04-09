@@ -5,7 +5,6 @@
 ### Multi-image workflow
 
 - Reopen past work (browse and restore from saved work list) — [PRD](../issues/041-reopen-past-work.md)
-  - [043 — Save dialog on tab close](../issues/043-save-dialog-tab-close.md)
   - [044 — Saved work browser (desktop)](../issues/044-saved-work-browser-desktop.md)
   - [045 — Saved work browser (mobile)](../issues/045-saved-work-browser-mobile.md)
 

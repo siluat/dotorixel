@@ -341,6 +341,35 @@ describe('SessionPersistence', () => {
 		expect(restored!.activeTabIndex).toBe(0);
 	});
 
+	it('isDocumentSaved returns false for a new document', async () => {
+		const snapshot = makeSnapshot({}, [makeTab({ id: 'doc-new' })]);
+		await persistence.save(snapshot);
+
+		expect(await persistence.isDocumentSaved('doc-new')).toBe(false);
+	});
+
+	it('saveDocumentAs sets saved=true and updates name', async () => {
+		const snapshot = makeSnapshot({}, [makeTab({ id: 'doc-1', name: 'Untitled 1' })]);
+		await persistence.save(snapshot);
+
+		await persistence.saveDocumentAs('doc-1', 'My Artwork');
+
+		const doc = await storage.getDocument('doc-1');
+		expect(doc!.saved).toBe(true);
+		expect(doc!.name).toBe('My Artwork');
+		expect(await persistence.isDocumentSaved('doc-1')).toBe(true);
+	});
+
+	it('deleteDocument removes document from IndexedDB', async () => {
+		const snapshot = makeSnapshot({}, [makeTab({ id: 'doc-1' })]);
+		await persistence.save(snapshot);
+		expect(await storage.getDocument('doc-1')).toBeDefined();
+
+		await persistence.deleteDocument('doc-1');
+
+		expect(await storage.getDocument('doc-1')).toBeUndefined();
+	});
+
 	it('returns null when workspace references a missing document', async () => {
 		await storage.putWorkspace({
 			id: 'current',

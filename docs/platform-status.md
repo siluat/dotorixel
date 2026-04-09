@@ -97,6 +97,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Tab management (Workspace) | — | ✅ | ⬜ | Workspace model, page wiring, TabStrip UI complete |
 | Session persistence | — | ✅ | ⬜ | Multi-tab save/restore via IndexedDB; debounced auto-save with per-document dirty tracking; versioned document schema (V1/V2) with `saved` flag — saved documents survive tab close |
+| Save dialog on tab close | — | ✅ | ⬜ | Blank canvas detection, save/delete/cancel modal, focus trap, keyboard accessible |
 
 ## UI
 

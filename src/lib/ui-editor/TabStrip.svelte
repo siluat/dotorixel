@@ -26,6 +26,11 @@
 	}
 
 	function handleTabKeydown(e: KeyboardEvent, index: number) {
+		if ((e.key === 'Enter' || e.key === ' ') &&
+			(e.target as HTMLElement).closest('.close-btn')) {
+			return;
+		}
+
 		let target: number | null = null;
 		switch (e.key) {
 			case 'ArrowRight':
@@ -69,7 +74,7 @@
 				<button
 					class="close-btn"
 					aria-label="Close {tab.name}"
-					tabindex={-1}
+					tabindex={index === activeTabIndex ? 0 : -1}
 					onclick={(e) => {
 						e.stopPropagation();
 						onTabClose(index);

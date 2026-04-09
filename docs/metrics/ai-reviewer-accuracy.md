@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 5 | 3 | 2 | 4 | 60% | 43% |
-| cubic-dev-ai[bot] | 7 | 4 | 3 | 1 | 57% | 80% |
-| coderabbitai[bot] | 10 | 5 | 5 | 0 | 50% | 100% |
+| greptile-apps[bot] | 6 | 4 | 2 | 6 | 67% | 40% |
+| cubic-dev-ai[bot] | 9 | 6 | 3 | 2 | 67% | 75% |
+| coderabbitai[bot] | 11 | 6 | 5 | 2 | 55% | 75% |
 
 ## Log
 
@@ -41,3 +41,12 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #135 | greptile-apps[bot] | Miss | Did not flag await deleteDatabase race condition |
 | #135 | greptile-apps[bot] | Miss | Did not flag stale index after async flush |
 | #135 | cubic-dev-ai[bot] | Reject | Claimed greptile running totals mismatch — totals are correct |
+| #136 | greptile-apps[bot] | Accept | Enter on Delete/Cancel triggers concurrent save race |
+| #136 | cubic-dev-ai[bot] | Accept | Stale saveDialogTabIndex after closeTab during await |
+| #136 | cubic-dev-ai[bot] | Accept | Enter-to-save not restricted to input (duplicate of greptile) |
+| #136 | greptile-apps[bot] | Miss | Did not flag stale saveDialogTabIndex after closeTab |
+| #136 | coderabbitai[bot] | Miss | Did not flag Enter-key concurrent save race |
+| #136 | coderabbitai[bot] | Miss | Did not flag stale saveDialogTabIndex after closeTab |
+| #136 | coderabbitai[bot] | Accept | Clear saveDialogTabIndex before closeTab in save path (consistency with delete) |
+| #136 | greptile-apps[bot] | Miss | Did not flag stale index in save path |
+| #136 | cubic-dev-ai[bot] | Miss | Did not flag stale index in save path |

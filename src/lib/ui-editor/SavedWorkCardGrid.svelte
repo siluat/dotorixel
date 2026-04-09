@@ -38,6 +38,7 @@
 			event.stopPropagation();
 		} else if (event.key === 'Tab' && deleteDialogEl) {
 			trapFocus(event, deleteDialogEl);
+			event.stopPropagation();
 		}
 	}
 

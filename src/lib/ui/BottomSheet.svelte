@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import type { Snippet } from 'svelte';
 	import { untrack } from 'svelte';
 	import { trapFocus } from './trap-focus';
@@ -29,12 +30,14 @@
 	let dragStartY = 0;
 	let dragStartTime = 0;
 	let dragDeltaY = $state(0);
+	let savedOverflow = '';
 
 	$effect(() => {
 		if (open) {
 			const wasVisible = untrack(() => visible);
 			if (!wasVisible) {
 				visible = true;
+				savedOverflow = document.body.style.overflow;
 				document.body.style.overflow = 'hidden';
 				requestAnimationFrame(() => {
 					requestAnimationFrame(() => {
@@ -58,9 +61,22 @@
 		if (e.propertyName === 'transform' && !open && !isDragging) {
 			visible = false;
 			dragDeltaY = 0;
-			document.body.style.overflow = '';
+			document.body.style.overflow = savedOverflow;
 		}
 	}
+
+	function removeWindowListeners() {
+		window.removeEventListener('pointermove', handlePointerMove);
+		window.removeEventListener('pointerup', handlePointerUp);
+		window.removeEventListener('pointercancel', handlePointerCancel);
+	}
+
+	onDestroy(() => {
+		removeWindowListeners();
+		if (visible) {
+			document.body.style.overflow = savedOverflow;
+		}
+	});
 
 	function handleKeyDown(e: KeyboardEvent) {
 		if (!visible) return;
@@ -75,6 +91,7 @@
 		dragStartTime = Date.now();
 		window.addEventListener('pointermove', handlePointerMove);
 		window.addEventListener('pointerup', handlePointerUp);
+		window.addEventListener('pointercancel', handlePointerCancel);
 	}
 
 	function handlePointerMove(e: PointerEvent) {
@@ -95,8 +112,7 @@
 	}
 
 	function handlePointerUp() {
-		window.removeEventListener('pointermove', handlePointerMove);
-		window.removeEventListener('pointerup', handlePointerUp);
+		removeWindowListeners();
 
 		if (!isDragging) {
 			tracking = false;
@@ -117,6 +133,14 @@
 		} else {
 			overlayOpacity = 1;
 		}
+	}
+
+	function handlePointerCancel() {
+		removeWindowListeners();
+		isDragging = false;
+		tracking = false;
+		dragDeltaY = 0;
+		overlayOpacity = 1;
 	}
 
 	const contentTransform = $derived(

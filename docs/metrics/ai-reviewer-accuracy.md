@@ -8,7 +8,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 9 | 7 | 2 | 11 | 78% | 39% |
 | cubic-dev-ai[bot] | 11 | 8 | 3 | 8 | 73% | 50% |
-| coderabbitai[bot] | 16 | 11 | 5 | 5 | 69% | 69% |
+| coderabbitai[bot] | 18 | 11 | 7 | 5 | 61% | 69% |
 
 ## Log
 
@@ -74,3 +74,5 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #137 | greptile-apps[bot] | Accept | Async delete promise discard — dialog stuck on failure |
 | #137 | cubic-dev-ai[bot] | Miss | Did not flag async delete failure in confirmDelete |
 | #137 | coderabbitai[bot] | Miss | Did not flag async delete failure in confirmDelete |
+| #137 | coderabbitai[bot] | Reject | Claimed running totals mismatch — totals are correct, bot miscounted |
+| #137 | coderabbitai[bot] | Reject | ResizeObserver for thumbnails — edge case, modal is fixed 640px width |

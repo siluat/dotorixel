@@ -97,12 +97,14 @@
 
 	async function handleSaveDialogSave(name: string) {
 		if (saveDialogTabIndex === null) return;
-		const tab = workspace.tabs[saveDialogTabIndex];
+		const closeIndex = saveDialogTabIndex;
+		const tab = workspace.tabs[closeIndex];
+		const docId = tab.documentId;
 		await session?.flush();
-		await session?.saveDocumentAs(tab.documentId, name);
-		workspace.closeTab(saveDialogTabIndex);
-		session?.notifyTabClosed(tab.documentId);
+		await session?.saveDocumentAs(docId, name);
 		saveDialogTabIndex = null;
+		workspace.closeTab(closeIndex);
+		session?.notifyTabClosed(docId);
 	}
 
 	async function handleSaveDialogDelete() {

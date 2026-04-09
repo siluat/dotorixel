@@ -3,6 +3,7 @@
 	import * as m from '$lib/paraglide/messages';
 	import type { SavedDocumentSummary } from '$lib/session/session-storage-types';
 	import SavedWorkCardGrid from './SavedWorkCardGrid.svelte';
+	import { createDrawerState } from '$lib/ui/drawer-state.svelte';
 
 	interface Props {
 		open: boolean;
@@ -14,36 +15,13 @@
 
 	let { open, documents, onSelect, onDelete, onClose }: Props = $props();
 
-	let drawerOpen = $state(false);
-	const CLOSE_ANIMATION_MS = 500;
-	let pendingClose: ReturnType<typeof setTimeout> | undefined;
-
-	$effect(() => {
-		if (open) {
-			drawerOpen = true;
-		} else if (drawerOpen) {
-			drawerOpen = false;
-		}
+	const drawer = createDrawerState({
+		open: () => open,
+		onClose: () => onClose()
 	});
-
-	function handleOpenChange(isOpen: boolean) {
-		if (pendingClose) {
-			clearTimeout(pendingClose);
-			pendingClose = undefined;
-		}
-		if (isOpen) {
-			drawerOpen = true;
-		} else {
-			pendingClose = setTimeout(() => {
-				pendingClose = undefined;
-				drawerOpen = false;
-				onClose();
-			}, CLOSE_ANIMATION_MS);
-		}
-	}
 </script>
 
-<Drawer.Root open={drawerOpen} onOpenChange={handleOpenChange}>
+<Drawer.Root open={drawer.drawerOpen} onOpenChange={drawer.handleOpenChange}>
 	<Drawer.Portal>
 		<Drawer.Overlay class="browser-sheet-overlay" />
 		<Drawer.Content class="browser-sheet-content">

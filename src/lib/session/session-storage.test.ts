@@ -161,6 +161,81 @@ describe('SessionStorage', () => {
 		});
 	});
 
+	describe('getAllSavedDocuments', () => {
+		it('returns only saved documents, sorted by updatedAt descending', async () => {
+			const savedOld: DocumentRecord = {
+				schemaVersion: 2,
+				id: 'saved-old',
+				name: 'Old saved',
+				width: 8,
+				height: 8,
+				pixels: new Uint8Array(8 * 8 * 4),
+				saved: true,
+				createdAt: new Date('2026-04-01'),
+				updatedAt: new Date('2026-04-01')
+			};
+			const savedNew: DocumentRecord = {
+				schemaVersion: 2,
+				id: 'saved-new',
+				name: 'New saved',
+				width: 16,
+				height: 16,
+				pixels: new Uint8Array(16 * 16 * 4),
+				saved: true,
+				createdAt: new Date('2026-04-05'),
+				updatedAt: new Date('2026-04-05')
+			};
+			const unsaved: DocumentRecord = {
+				schemaVersion: 2,
+				id: 'unsaved',
+				name: 'Untitled 1',
+				width: 4,
+				height: 4,
+				pixels: new Uint8Array(4 * 4 * 4),
+				saved: false,
+				createdAt: new Date('2026-04-03'),
+				updatedAt: new Date('2026-04-03')
+			};
+
+			await storage.putDocument(savedOld);
+			await storage.putDocument(unsaved);
+			await storage.putDocument(savedNew);
+
+			const result = await storage.getAllSavedDocuments();
+
+			expect(result).toHaveLength(2);
+			expect(result[0].id).toBe('saved-new');
+			expect(result[1].id).toBe('saved-old');
+			expect(result[0]).toEqual({
+				id: 'saved-new',
+				name: 'New saved',
+				width: 16,
+				height: 16,
+				pixels: savedNew.pixels,
+				updatedAt: new Date('2026-04-05')
+			});
+		});
+
+		it('returns empty array when no saved documents exist', async () => {
+			const unsaved: DocumentRecord = {
+				schemaVersion: 2,
+				id: 'unsaved',
+				name: 'Untitled 1',
+				width: 4,
+				height: 4,
+				pixels: new Uint8Array(4 * 4 * 4),
+				saved: false,
+				createdAt: new Date(),
+				updatedAt: new Date()
+			};
+			await storage.putDocument(unsaved);
+
+			const result = await storage.getAllSavedDocuments();
+
+			expect(result).toEqual([]);
+		});
+	});
+
 	describe('workspace CRUD', () => {
 		it('returns undefined for a non-existent workspace', async () => {
 			const result = await storage.getWorkspace();

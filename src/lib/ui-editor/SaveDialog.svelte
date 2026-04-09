@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import * as m from '$lib/paraglide/messages';
 
 	interface Props {
@@ -12,6 +13,14 @@
 
 	// svelte-ignore state_referenced_locally — intentional one-time copy for user editing
 	let name = $state(documentName);
+
+	onMount(() => {
+		const originalOverflow = document.body.style.overflow;
+		document.body.style.overflow = 'hidden';
+		return () => {
+			document.body.style.overflow = originalOverflow;
+		};
+	});
 	let dialogEl: HTMLDivElement;
 
 	function focusAndSelect(node: HTMLInputElement) {

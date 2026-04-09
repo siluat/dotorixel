@@ -17,7 +17,9 @@
 	import SettingsContent from '$lib/ui-editor/SettingsContent.svelte';
 	import ExportBottomSheet from '$lib/ui-editor/ExportBottomSheet.svelte';
 	import SaveDialog from '$lib/ui-editor/SaveDialog.svelte';
+	import SavedWorkBrowser from '$lib/ui-editor/SavedWorkBrowser.svelte';
 	import { openSession, type SessionHandle } from '$lib/session/session';
+	import type { SavedDocumentSummary } from '$lib/session/session-storage-types';
 	import { isBlankCanvas } from '$lib/canvas/blank-detection';
 	import {
 		trackEditorOpen,
@@ -49,6 +51,7 @@
 	const fittedEditors = new WeakSet<EditorState>();
 	let session: SessionHandle | undefined;
 	let saveDialogTabIndex: number | null = $state(null);
+	let browserDocuments: SavedDocumentSummary[] | null = $state(null);
 
 	function initEditorViewport(ed: EditorState, width: number, height: number) {
 		ed.viewportSize = { width, height };
@@ -122,13 +125,38 @@
 		saveDialogTabIndex = null;
 	}
 
+	async function handleBrowseSavedWork() {
+		if (!session) return;
+		await session.flush();
+		const openIds = new Set(workspace.tabs.map((t) => t.documentId));
+		const docs = await session.getAllSavedDocuments();
+		browserDocuments = docs.filter((d) => !openIds.has(d.id));
+	}
+
+	function handleBrowserSelect(doc: SavedDocumentSummary) {
+		workspace.openDocument(doc);
+		session?.markDirty(workspace.activeEditor.documentId);
+		browserDocuments = null;
+	}
+
+	async function handleBrowserDelete(id: string) {
+		await session?.deleteDocument(id);
+		if (browserDocuments) {
+			browserDocuments = browserDocuments.filter((d) => d.id !== id);
+		}
+	}
+
+	function handleBrowserClose() {
+		browserDocuments = null;
+	}
+
 	function handleEditorKeyDown(event: KeyboardEvent) {
-		if (saveDialogTabIndex !== null) return;
+		if (saveDialogTabIndex !== null || browserDocuments !== null) return;
 		editor.handleKeyDown(event);
 	}
 
 	function handleEditorKeyUp(event: KeyboardEvent) {
-		if (saveDialogTabIndex !== null) return;
+		if (saveDialogTabIndex !== null || browserDocuments !== null) return;
 		editor.handleKeyUp(event);
 	}
 
@@ -234,6 +262,8 @@
 			onGridToggle={editor.handleGridToggle}
 			onExportToggle={editor.toggleExportUI}
 			onExportConfirm={handleExportConfirm}
+			onBrowseSavedWork={handleBrowseSavedWork}
+			isBrowserOpen={browserDocuments !== null}
 		/>
 
 		<TabStrip
@@ -381,6 +411,15 @@
 			onExport={handleExportConfirm}
 		/>
 	</div>
+{/if}
+
+{#if browserDocuments !== null}
+	<SavedWorkBrowser
+		documents={browserDocuments}
+		onSelect={handleBrowserSelect}
+		onDelete={handleBrowserDelete}
+		onClose={handleBrowserClose}
+	/>
 {/if}
 
 {#if saveDialogTabIndex !== null}

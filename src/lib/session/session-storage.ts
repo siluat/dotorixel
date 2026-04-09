@@ -1,5 +1,10 @@
 import { openDB, type IDBPDatabase } from 'idb';
-import type { DocumentRecord, StoredDocument, WorkspaceRecord } from './session-storage-types';
+import type {
+	DocumentRecord,
+	SavedDocumentSummary,
+	StoredDocument,
+	WorkspaceRecord
+} from './session-storage-types';
 import { migrateDocumentToV2 } from './session-storage-types';
 
 interface DotorixelDB {
@@ -58,6 +63,26 @@ export class SessionStorage {
 
 	async putDocument(doc: DocumentRecord): Promise<void> {
 		await this.#db.put('documents', doc);
+	}
+
+	/** Returns saved documents sorted by most recently modified first. */
+	async getAllSavedDocuments(): Promise<SavedDocumentSummary[]> {
+		const all = await this.#db.getAllFromIndex('documents', 'updatedAt');
+		const saved: SavedDocumentSummary[] = [];
+		for (const doc of all) {
+			const record = 'schemaVersion' in doc ? doc : migrateDocumentToV2(doc);
+			if (!record.saved) continue;
+			saved.push({
+				id: record.id,
+				name: record.name,
+				width: record.width,
+				height: record.height,
+				pixels: record.pixels,
+				updatedAt: record.updatedAt
+			});
+		}
+		saved.reverse();
+		return saved;
 	}
 
 	async deleteDocument(id: string): Promise<void> {

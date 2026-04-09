@@ -37,6 +37,7 @@
 	/* ── Typography ── */
 	--ds-font-heading: 'Galmuri14', monospace;
 	--ds-font-body: 'Galmuri11', system-ui, sans-serif;
+	--ds-font-body-sm: 'Galmuri9', system-ui, sans-serif;
 	--ds-font-mono: 'GalmuriMono11', monospace;
 	--ds-font-size-xs: 10px;
 	--ds-font-size-sm: 11px;

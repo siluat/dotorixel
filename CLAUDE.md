@@ -91,6 +91,18 @@ When a task item is completed, notify the user and suggest using the `/task-done
 - **Functions read as actions or answers.** `applyTool()`, `exportAsPng()` for actions. `getCanvasCoords()`, `isInsideBounds()` for queries.
 - **Consistent domain vocabulary.** Use the same term for the same concept everywhere. If "canvas" means the pixel data, don't call it "image" or "bitmap" elsewhere. Document the domain glossary if it grows.
 
+### Core Placement
+
+When deciding whether to implement logic in the Rust core (shared via WASM + UniFFI) or natively per shell, evaluate these criteria:
+
+- **Cross-platform need.** Is this logic used by multiple shells (web, Apple native)? If only one shell uses it, implement in that shell's native language.
+- **Complexity and bug surface.** Complex algorithms with subtle edge cases (flood fill, undo/redo state machine, pixel manipulation) benefit most from a single authoritative implementation. Simple arithmetic with clear formulas carries low duplication risk.
+- **Change frequency.** Logic that changes often multiplies synchronization cost across implementations. Stable logic that rarely changes has low synchronization cost regardless of placement.
+- **Binding friction.** FFI boundaries (WASM bridge, UniFFI wrapping) add build complexity, type synchronization overhead, and debugging friction. Weigh this cost against the duplication cost of separate implementations.
+- **Platform divergence.** If platforms may need different behavior in the future (e.g., touch-specific gestures, platform-specific UX conventions), a shared core becomes a constraint rather than an asset.
+
+**Rule of thumb:** Rust core earns its keep when multiple shells share the same complex, frequently-changing logic. When the logic is simple, stable, and the binding overhead is disproportionate, native implementation is acceptable even if the logic is shared.
+
 ### Rust Migration
 
 When porting TS logic to Rust, write idiomatic Rust — not a line-by-line transliteration of TypeScript. Study how established Rust crates (`image`, `tiny-skia`, `bevy`) solve the same problem and follow community conventions.

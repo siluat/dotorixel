@@ -26,6 +26,16 @@ export type StoredDocument = DocumentSchemaV1 | DocumentSchemaV2;
 /** App-facing document type — always the latest version */
 export type DocumentRecord = DocumentSchemaV2;
 
+/** Lightweight summary for browsing saved documents (excludes schemaVersion, saved, createdAt) */
+export interface SavedDocumentSummary {
+	id: string;
+	name: string;
+	width: number;
+	height: number;
+	pixels: Uint8Array;
+	updatedAt: Date;
+}
+
 export function migrateDocumentToV2(doc: DocumentSchemaV1): DocumentSchemaV2 {
 	return { ...doc, schemaVersion: 2, saved: true };
 }

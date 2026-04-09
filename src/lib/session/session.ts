@@ -3,6 +3,7 @@ import { Workspace } from '$lib/canvas/workspace.svelte';
 import { SessionStorage } from './session-storage';
 import { SessionPersistence } from './session-persistence';
 import { AutoSave } from './auto-save';
+import type { SavedDocumentSummary } from './session-storage-types';
 
 /** Handle for controlling session persistence (auto-save, flush, cleanup). */
 export interface SessionHandle {
@@ -18,6 +19,8 @@ export interface SessionHandle {
 	saveDocumentAs(documentId: string, name: string): Promise<void>;
 	/** Remove a document from persistent storage immediately. */
 	deleteDocument(documentId: string): Promise<void>;
+	/** Return all explicitly saved documents, sorted by most recently modified. */
+	getAllSavedDocuments(): Promise<SavedDocumentSummary[]>;
 	/** Tear down timers and close the storage connection. */
 	dispose(): void;
 }
@@ -29,6 +32,7 @@ const NO_OP_SESSION: SessionHandle = {
 	async isDocumentSaved() { return false; },
 	async saveDocumentAs() {},
 	async deleteDocument() {},
+	async getAllSavedDocuments() { return []; },
 	dispose() {}
 };
 
@@ -62,6 +66,7 @@ export async function openSession(defaults: {
 			isDocumentSaved: (docId) => persistence.isDocumentSaved(docId),
 			saveDocumentAs: (docId, name) => persistence.saveDocumentAs(docId, name),
 			deleteDocument: (docId) => persistence.deleteDocument(docId),
+			getAllSavedDocuments: () => persistence.getAllSavedDocuments(),
 			dispose: () => {
 				autoSave.dispose();
 				storage!.close();

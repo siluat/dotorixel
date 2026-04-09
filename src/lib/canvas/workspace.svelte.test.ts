@@ -222,6 +222,29 @@ describe('Workspace', () => {
 		expect(workspace.tabs[1].viewport.gridColor).toBe('#ECE5D9');
 	});
 
+	describe('openDocument', () => {
+		it('creates a tab from saved data and activates it', () => {
+			const workspace = new Workspace();
+			const pixels = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]);
+
+			workspace.openDocument({
+				id: 'saved-doc',
+				name: 'My Art',
+				width: 2,
+				height: 1,
+				pixels
+			});
+
+			expect(workspace.tabs).toHaveLength(2);
+			expect(workspace.activeTabIndex).toBe(1);
+			expect(workspace.activeEditor.name).toBe('My Art');
+			expect(workspace.activeEditor.documentId).toBe('saved-doc');
+			expect(workspace.activeEditor.pixelCanvas.width).toBe(2);
+			expect(workspace.activeEditor.pixelCanvas.height).toBe(1);
+			expect(workspace.activeEditor.pixelCanvas.pixels()).toEqual(pixels);
+		});
+	});
+
 	describe('toSnapshot', () => {
 		it('captures a single-tab workspace', () => {
 			const workspace = new Workspace({

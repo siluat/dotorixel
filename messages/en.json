@@ -79,5 +79,15 @@
 	"save_dialog_name_label": "Name",
 	"save_dialog_save": "Save",
 	"save_dialog_delete": "Delete",
-	"save_dialog_cancel": "Cancel"
+	"save_dialog_cancel": "Cancel",
+
+	"browser_title": "My Works",
+	"browser_empty_title": "No saved works yet",
+	"browser_empty_desc": "Your work is saved automatically as you draw.",
+	"browser_delete_title": "Delete \"{name}\"?",
+	"browser_delete_message": "This action cannot be undone. The saved work will be permanently removed.",
+	"browser_delete_confirm": "Delete",
+	"browser_cancel": "Cancel",
+	"label_savedWorks": "Saved Works",
+	"aria_deleteDocument": "Delete {name}"
 }

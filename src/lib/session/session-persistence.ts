@@ -1,4 +1,5 @@
 import type { SessionStorage } from './session-storage';
+import type { SavedDocumentSummary } from './session-storage-types';
 
 const DEFAULT_VIEWPORT = {
 	pixelSize: 32,
@@ -109,6 +110,10 @@ export class SessionPersistence {
 		const doc = await this.#storage.getDocument(id);
 		if (!doc) return;
 		await this.#storage.putDocument({ ...doc, saved: true, name });
+	}
+
+	async getAllSavedDocuments(): Promise<SavedDocumentSummary[]> {
+		return this.#storage.getAllSavedDocuments();
 	}
 
 	async deleteDocument(id: string): Promise<void> {

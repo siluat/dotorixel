@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 044 | [Saved work browser (desktop)](../issues/044-saved-work-browser-desktop.md) | 2026-04-09 |
 | 043 | [Save dialog on tab close](../issues/043-save-dialog-tab-close.md) | 2026-04-09 |
 | 042 | [Document persistence foundation](../issues/042-persistence-foundation.md) | 2026-04-09 |
 | 040 | [Saved work browser — UI design](../issues/040-saved-work-browser-design.md) | 2026-04-09 |

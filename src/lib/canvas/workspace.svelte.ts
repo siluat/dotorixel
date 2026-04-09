@@ -79,6 +79,19 @@ export class Workspace {
 		return `Untitled ${nextNumber}`;
 	}
 
+	openDocument(doc: { id: string; name: string; width: number; height: number; pixels: Uint8Array }) {
+		const pixelCanvas = canvasFactory.fromPixels(doc.width, doc.height, doc.pixels);
+		const editor = new EditorState({
+			shared: this.shared,
+			name: doc.name,
+			documentId: doc.id,
+			pixelCanvas,
+			gridColor: this.#gridColor
+		});
+		this.tabs.push(editor);
+		this.activeTabIndex = this.tabs.length - 1;
+	}
+
 	closeTab(index: number) {
 		if (this.tabs.length <= 1) return;
 

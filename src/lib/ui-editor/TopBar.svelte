@@ -4,7 +4,8 @@
 		Plus,
 		Maximize2,
 		Grid3X3,
-		Download
+		Download,
+		FolderOpen
 	} from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { tooltip } from '$lib/tooltip';
@@ -24,6 +25,8 @@
 		onGridToggle: () => void;
 		onExportToggle: () => void;
 		onExportConfirm: (format: ExportFormat, filenameStem: string) => void;
+		onBrowseSavedWork: () => void;
+		isBrowserOpen?: boolean;
 	}
 
 	let {
@@ -38,7 +41,9 @@
 		onFit,
 		onGridToggle,
 		onExportToggle,
-		onExportConfirm
+		onExportConfirm,
+		onBrowseSavedWork,
+		isBrowserOpen = false
 	}: Props = $props();
 
 	let exportBtnEl = $state<HTMLButtonElement>();
@@ -102,6 +107,16 @@
 				/>
 			{/if}
 		</div>
+
+		<button
+			class="icon-btn"
+			class:active={isBrowserOpen}
+			onclick={onBrowseSavedWork}
+			aria-label={m.label_savedWorks()}
+			use:tooltip={m.label_savedWorks()}
+		>
+			<FolderOpen size={16} />
+		</button>
 	</div>
 </header>
 

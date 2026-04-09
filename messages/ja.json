@@ -79,5 +79,15 @@
 	"save_dialog_name_label": "名前",
 	"save_dialog_save": "保存",
 	"save_dialog_delete": "削除",
-	"save_dialog_cancel": "キャンセル"
+	"save_dialog_cancel": "キャンセル",
+
+	"browser_title": "マイワークス",
+	"browser_empty_title": "保存された作品はまだありません",
+	"browser_empty_desc": "描くと自動的に保存されます。",
+	"browser_delete_title": "「{name}」を削除しますか？",
+	"browser_delete_message": "この操作は元に戻せません。保存された作品は完全に削除されます。",
+	"browser_delete_confirm": "削除",
+	"browser_cancel": "キャンセル",
+	"label_savedWorks": "保存した作品",
+	"aria_deleteDocument": "{name}を削除"
 }

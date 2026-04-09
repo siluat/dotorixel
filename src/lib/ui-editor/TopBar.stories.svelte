@@ -19,6 +19,7 @@
 		onGridToggle={() => {}}
 		onExportToggle={() => {}}
 		onExportConfirm={() => {}}
+		onBrowseSavedWork={() => {}}
 	/>
 </Story>
 
@@ -36,5 +37,6 @@
 		onGridToggle={() => {}}
 		onExportToggle={() => {}}
 		onExportConfirm={() => {}}
+		onBrowseSavedWork={() => {}}
 	/>
 </Story>

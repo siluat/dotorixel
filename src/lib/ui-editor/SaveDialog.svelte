@@ -14,7 +14,7 @@
 	// svelte-ignore state_referenced_locally — intentional one-time copy for user editing
 	let name = $state(documentName);
 
-	const modal = createModal({ onClose: onCancel });
+	const modal = createModal({ onClose: () => onCancel() });
 
 	function focusAndSelect(node: HTMLInputElement) {
 		node.focus();

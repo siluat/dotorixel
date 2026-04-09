@@ -8,7 +8,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 15 | 13 | 2 | 14 | 87% | 48% |
 | cubic-dev-ai[bot] | 12 | 9 | 3 | 16 | 75% | 36% |
-| coderabbitai[bot] | 26 | 17 | 9 | 9 | 65% | 65% |
+| coderabbitai[bot] | 27 | 17 | 10 | 9 | 63% | 65% |
 
 ## Log
 
@@ -106,3 +106,4 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #139 | cubic-dev-ai[bot] | Miss | Did not flag window listener unmount |
 | #139 | cubic-dev-ai[bot] | Miss | Did not flag Tab double handling |
 | #139 | cubic-dev-ai[bot] | Miss | Did not flag disabled/hidden selector |
+| #139 | coderabbitai[bot] | Reject | isTabbable function for hidden/inert/aria-hidden — scenarios don't occur in codebase |

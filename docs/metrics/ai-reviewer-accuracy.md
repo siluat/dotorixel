@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 6 | 4 | 2 | 5 | 67% | 44% |
-| cubic-dev-ai[bot] | 9 | 6 | 3 | 1 | 67% | 86% |
-| coderabbitai[bot] | 10 | 5 | 5 | 2 | 50% | 71% |
+| greptile-apps[bot] | 6 | 4 | 2 | 6 | 67% | 40% |
+| cubic-dev-ai[bot] | 9 | 6 | 3 | 2 | 67% | 75% |
+| coderabbitai[bot] | 11 | 6 | 5 | 2 | 55% | 75% |
 
 ## Log
 
@@ -47,3 +47,6 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #136 | greptile-apps[bot] | Miss | Did not flag stale saveDialogTabIndex after closeTab |
 | #136 | coderabbitai[bot] | Miss | Did not flag Enter-key concurrent save race |
 | #136 | coderabbitai[bot] | Miss | Did not flag stale saveDialogTabIndex after closeTab |
+| #136 | coderabbitai[bot] | Accept | Clear saveDialogTabIndex before closeTab in save path (consistency with delete) |
+| #136 | greptile-apps[bot] | Miss | Did not flag stale index in save path |
+| #136 | cubic-dev-ai[bot] | Miss | Did not flag stale index in save path |

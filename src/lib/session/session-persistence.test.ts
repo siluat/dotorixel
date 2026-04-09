@@ -243,6 +243,25 @@ describe('SessionPersistence', () => {
 		expect(await storage.getDocument('doc-2')).toBeDefined();
 	});
 
+	it('deletes unsaved document after tab removal', async () => {
+		const snapshot = makeSnapshot({}, [
+			makeTab({ id: 'doc-1' }),
+			makeTab({ id: 'doc-unsaved' })
+		]);
+		await persistence.save(snapshot);
+
+		// Verify doc-unsaved has saved=false (default for new docs)
+		const doc = await storage.getDocument('doc-unsaved');
+		expect(doc!.saved).toBe(false);
+
+		// Re-save with doc-unsaved tab removed
+		const oneTabSnapshot = makeSnapshot({}, [makeTab({ id: 'doc-1' })]);
+		await persistence.save(oneTabSnapshot);
+
+		// Unsaved document should be deleted
+		expect(await storage.getDocument('doc-unsaved')).toBeUndefined();
+	});
+
 	it('deletes documents for removed tabs on re-save', async () => {
 		const threeTabSnapshot = makeSnapshot({}, [
 			makeTab({ id: 'doc-1' }),

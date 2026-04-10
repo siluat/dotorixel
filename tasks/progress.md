@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-048 — Consolidate shallow canvas modules into canvas-model.ts / adapter-types.ts
+049 — Unify duplicated workspace snapshot types
 
 ## Next Up
 

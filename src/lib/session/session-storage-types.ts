@@ -47,17 +47,19 @@ export interface SharedStateRecord {
 	recentColors: string[];
 }
 
+export interface ViewportRecord {
+	pixelSize: number;
+	zoom: number;
+	panX: number;
+	panY: number;
+	showGrid: boolean;
+	gridColor: string;
+}
+
 export interface WorkspaceRecord {
 	id: string;
 	tabOrder: string[];
 	activeTabIndex: number;
 	sharedState: SharedStateRecord;
-	viewports: Record<string, {
-		pixelSize: number;
-		zoom: number;
-		panX: number;
-		panY: number;
-		showGrid: boolean;
-		gridColor: string;
-	}>;
+	viewports: Record<string, ViewportRecord>;
 }

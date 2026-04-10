@@ -1,8 +1,9 @@
-import type { SessionPersistence, PersistableWorkspace } from './session-persistence';
+import type { WorkspaceSnapshot } from '$lib/canvas/workspace-snapshot';
+import type { SessionPersistence } from './session-persistence';
 
 export class AutoSave {
 	#persistence: SessionPersistence;
-	#getSnapshot: () => PersistableWorkspace;
+	#getSnapshot: () => WorkspaceSnapshot;
 	#debounceMs: number;
 	#dirty = false;
 	#dirtyDocIds = new Set<string>();
@@ -11,7 +12,7 @@ export class AutoSave {
 
 	constructor(
 		persistence: SessionPersistence,
-		getSnapshot: () => PersistableWorkspace,
+		getSnapshot: () => WorkspaceSnapshot,
 		debounceMs = 3000
 	) {
 		this.#persistence = persistence;

@@ -1,10 +1,11 @@
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { SessionPersistence, type PersistableWorkspace } from './session-persistence';
+import type { WorkspaceSnapshot, TabSnapshot } from '$lib/canvas/workspace-snapshot';
+import { SessionPersistence } from './session-persistence';
 import { SessionStorage } from './session-storage';
 
-function makeTab(overrides: Partial<PersistableWorkspace['tabs'][number]> = {}) {
+function makeTab(overrides: Partial<TabSnapshot> = {}) {
 	return {
 		id: 'doc-1',
 		name: 'Untitled 1',
@@ -20,9 +21,9 @@ function makeTab(overrides: Partial<PersistableWorkspace['tabs'][number]> = {}) 
 }
 
 function makeSnapshot(
-	overrides: Partial<PersistableWorkspace> = {},
-	tabs?: PersistableWorkspace['tabs']
-): PersistableWorkspace {
+	overrides: Partial<WorkspaceSnapshot> = {},
+	tabs?: readonly TabSnapshot[]
+): WorkspaceSnapshot {
 	return {
 		tabs: tabs ?? [makeTab()],
 		activeTabIndex: 0,

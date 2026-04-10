@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 049 | [Unify duplicated workspace snapshot types](../issues/049-unify-workspace-snapshot-types.md) | 2026-04-10 |
 | 048 | [Consolidate shallow canvas modules into canvas-model.ts / adapter-types.ts](../issues/048-consolidate-shallow-canvas-modules.md) | 2026-04-10 |
 | 047 | [Consolidate modal/overlay behavior into deep modules](../issues/047-deepen-modal-overlay.md) | 2026-04-10 |
 | 046 | [Landing page design improvements](../issues/046-landing-page-design.md) | 2026-04-09 |

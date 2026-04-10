@@ -1,0 +1,15 @@
+---
+globs: crates/**/*.rs, wasm/**/*.rs, apple/**/*.rs
+---
+
+# Rust Conventions
+
+Idiomatic Rust patterns for this project. When porting TS logic to Rust, write idiomatic Rust — not a line-by-line transliteration of TypeScript. Study how established Rust crates (`image`, `tiny-skia`, `bevy`) solve the same problem and follow community conventions.
+
+- **Associated constants over module-level constants.** `Color::TRANSPARENT`, not `color::TRANSPARENT`. Groups related values under the type for discoverability.
+- **Provide `const fn new()` constructors when they improve readability.** For types with many fields (3+), a constructor reduces boilerplate: `Color::new(255, 0, 0, 255)` vs a 4-line struct literal. For simple 2-field structs with `pub` fields, the struct literal (`CanvasCoords { x: 3, y: 7 }`) is often clearer because field names are visible at the call site — provide `new()` only when there's a concrete convenience benefit (e.g., const context).
+- **Derive traits when their semantics are unambiguous for the type.** For value types with integer fields, derive `Hash` alongside `Eq`. Only derive `Ord`/`PartialOrd` when the auto-derived field-order comparison is the semantically correct ordering — if field declaration order could mislead (e.g., `CanvasCoords { x, y }` derives column-major order, but the pixel buffer is row-major), omit it until a use site confirms the desired semantics.
+- **Use Rust's type system beyond what TS offered.** Enums with data for tool types, newtypes for domain values (`CanvasCoord` vs raw `i32`), `Option`/`Result` instead of sentinel values. If TS used a string union, use a Rust enum.
+- **`impl` blocks for behavior.** Methods belong on the type (`color.to_hex()`), not as free functions (`color_to_hex(color)`), unless the function doesn't have a natural receiver. When adding a method would introduce a reverse dependency on the receiver's module (e.g., `PixelCanvas::encode_png()` would couple canvas to the `png` crate), use an extension trait in the dependent module to preserve method syntax without the coupling (`impl PngExport for PixelCanvas` in the export module). If the trait adds no value (single method, no polymorphism), a free function is also acceptable.
+- **Error types implement `std::error::Error`.** All error enums must implement `Display` and `std::error::Error`. This enables interop with `?` propagation, `Box<dyn Error>`, and error-handling crates.
+- **Doc comments follow std conventions: write when it adds signal, skip when the signature speaks.** Simple getters (`width()`, `pixels()`), trivial predicates (`is_empty()`), and obvious constructors (`new()` with self-evident fields) need no doc comment. Write doc comments when the method has non-obvious side effects (eviction, stack clearing), when the behavior goes beyond what the name and signature convey (e.g., `push_snapshot` clears the redo stack), or when panic/error conditions exist. Don't restate what `Option` or `Result` return types already express.

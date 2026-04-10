@@ -54,13 +54,16 @@ Frame-by-frame animation workflow.
 | | Component | Technology |
 |---|-----------|------------|
 | Shared | Core Logic | Rust |
+| | Testing | cargo test |
 | Web | Bindings | wasm-bindgen |
-| | UI | TypeScript + Svelte (SvelteKit, adapter-static) |
+| | UI | TypeScript + Svelte 5 (SvelteKit, adapter-static) |
 | | Rendering | Canvas2D |
+| | Testing | Vitest + Playwright (E2E) |
 | | Deployment | Vercel |
 | Apple | Bindings | UniFFI |
 | | UI | SwiftUI (macOS + iPadOS) |
 | | Rendering | Metal |
+| | Testing | XCTest |
 
 ## Prerequisites
 

@@ -1,21 +1,62 @@
 # DOTORIXEL
 
-A 2D pixel art editor. Positioned as a learning-first, cross-platform tool.
+A pixel art editor.
+
+## Project Stage
+
+Past MVP — the core drawing experience (four tool categories, history, session persistence, i18n, multi-tab workspace) is functional and validated. Current focus is **robustness and clarity on that foundation**: deepening shallow modules, tightening contracts between them, expanding regression-defense tests, and incrementally building features.
+
+This means architectural refactors are justified on their own merit, not only when piggybacking on feature work. "Premature abstraction" is still avoided — build what's needed now and leave seams for future extension, rather than pre-building infrastructure for hypothetical needs.
+
+## Future Directions
+
+DOTORIXEL's long-term direction is not yet fixed. The possibilities below are being **considered** as paths the project may evolve toward — they are not committed plans. They exist here so that architectural decisions can keep doors open rather than inadvertently closing them.
+
+- **Learning aid for pixel art beginners**: An interactive learning environment for pixel art drawing fundamentals, evolving the editor into a tool for newcomers.
+- **Indie game dev tool**: Efficiency-focused workflow for solo and small-team game developers.
+  - Integration with AI and established game dev tools
+  - Solving real pain points in game asset production
+- **Casual hobby tool**: Coloring-book-style experiences and similar low-commitment play patterns.
+  - iPad + Apple Pencil ergonomics as a priority
+
+Several investments serve every direction and should be treated as high-priority regardless: reliable canvas drawing, solid color management, robust history, durable file persistence, and cross-platform feature parity. Other investments serve multiple directions at once — for example, palette management (all three), iPad + Apple Pencil support (casual + learning), and solid export/file formats (game dev + casual portfolio sharing) — and should be preferred over single-direction investments when cost is proportional.
+
+When a decision has long-term architectural consequences — extension points, data schema shape, platform-specific feature placement — prefer options that keep multiple of these directions viable over committing early to one.
 
 ## Tech Stack
 
-| Component | Technology | Notes |
+### Shared Core (`crates/core/`)
+
+| Concern | Technology | Notes |
 |---|---|---|
-| UI | TypeScript + Svelte | SvelteKit (adapter-static) |
-| Canvas Rendering | Canvas2D | MVP scope. WebGL2 later |
-| Core Logic | TypeScript | JS-first for MVP. Migrate to Rust when performance demands it |
-| Rust/WASM | wasm-pack | Build pipeline verified. Production use when performance demands it |
+| Language | Rust | Placement follows Core Placement criteria |
+| Build | Cargo | Workspace: `crates/core`, `wasm`, `apple` binding crates |
+| Testing | `cargo test` | Inline unit tests across core modules |
+
+### Web Shell (`src/`)
+
+| Concern | Technology | Notes |
+|---|---|---|
+| UI | TypeScript + Svelte 5 | SvelteKit (adapter-static) |
+| Rendering | Canvas2D | WebGL2 later when rendering performance demands it |
+| Rust Bindings | wasm-bindgen | Built via `wasm-pack` from `wasm/` crate |
+| Build | Vite | |
 | Package Manager | bun | Always `bun run <script>`, never bare `bun <script>` |
-| Build | Vite + wasm-pack | |
-| Web Deployment | Vercel | SPA via adapter-static |
-| Testing | Vitest + happy-dom | Unified test runner — pure functions now, component tests later |
+| Unit & Component Testing | Vitest + happy-dom | `@testing-library/svelte` for components |
+| E2E Testing | Playwright | `e2e/` directory |
 | Component Preview | Storybook 10 | `@storybook/sveltekit`, Svelte CSF v5 |
 | i18n | Paraglide.js | Compile-time, URL path routing (`/en/`, `/ko/`, `/ja/`) |
+| Deployment | Vercel | SPA |
+
+### Apple Shell (`apple/Dotorixel/`)
+
+| Concern | Technology | Notes |
+|---|---|---|
+| UI | SwiftUI | macOS + iPadOS |
+| Rendering | Metal | |
+| Rust Bindings | UniFFI | `apple/` crate → `apple/generated/*.swift` |
+| Build | Xcode | Project generated via XcodeGen |
+| Testing | XCTest | `apple/DotorixelTests/` |
 
 ## Task Workflow
 
@@ -103,18 +144,6 @@ When deciding whether to implement logic in the Rust core (shared via WASM + Uni
 
 **Rule of thumb:** Rust core earns its keep when multiple shells share the same complex, frequently-changing logic. When the logic is simple, stable, and the binding overhead is disproportionate, native implementation is acceptable even if the logic is shared.
 
-### Rust Migration
-
-When porting TS logic to Rust, write idiomatic Rust — not a line-by-line transliteration of TypeScript. Study how established Rust crates (`image`, `tiny-skia`, `bevy`) solve the same problem and follow community conventions.
-
-- **Associated constants over module-level constants.** `Color::TRANSPARENT`, not `color::TRANSPARENT`. Groups related values under the type for discoverability.
-- **Provide `const fn new()` constructors when they improve readability.** For types with many fields (3+), a constructor reduces boilerplate: `Color::new(255, 0, 0, 255)` vs a 4-line struct literal. For simple 2-field structs with `pub` fields, the struct literal (`CanvasCoords { x: 3, y: 7 }`) is often clearer because field names are visible at the call site — provide `new()` only when there's a concrete convenience benefit (e.g., const context).
-- **Derive traits when their semantics are unambiguous for the type.** For value types with integer fields, derive `Hash` alongside `Eq`. Only derive `Ord`/`PartialOrd` when the auto-derived field-order comparison is the semantically correct ordering — if field declaration order could mislead (e.g., `CanvasCoords { x, y }` derives column-major order, but the pixel buffer is row-major), omit it until a use site confirms the desired semantics.
-- **Use Rust's type system beyond what TS offered.** Enums with data for tool types, newtypes for domain values (`CanvasCoord` vs raw `i32`), `Option`/`Result` instead of sentinel values. If TS used a string union, use a Rust enum.
-- **`impl` blocks for behavior.** Methods belong on the type (`color.to_hex()`), not as free functions (`color_to_hex(color)`), unless the function doesn't have a natural receiver. When adding a method would introduce a reverse dependency on the receiver's module (e.g., `PixelCanvas::encode_png()` would couple canvas to the `png` crate), use an extension trait in the dependent module to preserve method syntax without the coupling (`impl PngExport for PixelCanvas` in the export module). If the trait adds no value (single method, no polymorphism), a free function is also acceptable.
-- **Error types implement `std::error::Error`.** All error enums must implement `Display` and `std::error::Error`. This enables interop with `?` propagation, `Box<dyn Error>`, and error-handling crates.
-- **Doc comments follow std conventions: write when it adds signal, skip when the signature speaks.** Simple getters (`width()`, `pixels()`), trivial predicates (`is_empty()`), and obvious constructors (`new()` with self-evident fields) need no doc comment. Write doc comments when the method has non-obvious side effects (eviction, stack clearing), when the behavior goes beyond what the name and signature convey (e.g., `push_snapshot` clears the redo stack), or when panic/error conditions exist. Don't restate what `Option` or `Result` return types already express.
-
 ### Architecture
 
 - **Depend on interfaces, not implementations.** Modules (rendering, state management, tool system) should interact through types and contracts, not concrete implementations. This keeps them independently replaceable.
@@ -132,30 +161,6 @@ When porting TS logic to Rust, write idiomatic Rust — not a line-by-line trans
 
 - **Least privilege by default.** Start with the most restrictive configuration and expand permissions only when a concrete need arises. Never pre-authorize "just in case." This applies to CSP directives, file system access, and any other permission boundary.
 - **Verify each expansion.** When broadening a security policy, confirm the change is necessary by reproducing the specific failure it resolves. Document *why* the permission was added (e.g., as a code comment or commit message).
-
-### Stories
-
-- **Co-locate with the component.** Story files live next to their component: `Component.stories.svelte` beside `Component.svelte`. This follows the "group code by what changes together" architecture principle.
-- **Svelte CSF v5 format.** Use `defineMeta` in `<script module>` and the destructured `Story` component. No CSF3 (JS object) format.
-- **Let autotitle handle hierarchy.** Omit the `title` property — Storybook generates sidebar hierarchy from the file path automatically. Only set `title` when the desired hierarchy differs from the physical location.
-- **Reuse pure data factory functions for story data.** Prefer `createCanvas()`, `createCanvasWithColor()` etc. over manually constructing test data. Only use deterministic, side-effect-free functions — mock anything that involves I/O, global state, or randomness.
-
-### Styling
-
-- **Vanilla CSS only (web).** No CSS frameworks (Tailwind, UnoCSS, etc.). Component styles use Svelte `<style>` scoped blocks.
-- **Design tokens as CSS custom properties (web).** Colors, spacing, fonts defined in a global CSS file and consumed via `var(--token-name)`. Global styles are imported in `.storybook/preview.ts` for Storybook and in the app layout for production.
-- **Component styles are scoped by default (web).** Use Svelte's built-in `<style>` scoping. Only extract to a shared CSS file when the same styles are genuinely reused across multiple components.
-- **Shared visual identity across shells.** Both web and Apple native shells should feel like the same app. Share design tokens (color palette, spacing scale, sizing) and the Pebble UI theme (warm earth tones, rounded floating panels, acorn brown accent). On Apple native, define shared color tokens as static `SwiftUI.Color` properties in a tokens enum, mirroring the web's CSS custom properties.
-- **Visual parity across platforms.** The Pebble UI layout (full-screen canvas with floating overlay panels) translates naturally to SwiftUI. Match the web's panel positions, component structure, and visual styling. Use native controls where they provide equivalent or better functionality (e.g., SwiftUI `ColorPicker` instead of HTML color input).
-- **Native-first responsive design.** Implement responsive layout on the Apple native shell first, then adapt the same layout transitions to web. SwiftUI's automatic size class handling (sidebar collapse, panel reorganization) serves as the design reference. Extract layout breakpoints and transition rules from the native implementation, then map them to CSS media/container queries on web.
-
-### Testing
-
-- **Tests are specifications.** Each test should read as a behavioral description of its subject. A reader unfamiliar with the implementation should understand what the module does just by reading its tests.
-- **Test behaviors, not implementation.** Assert on outcomes, not internal steps. If refactoring the internals breaks a test without changing behavior, the test was too tightly coupled.
-- **Prioritize regression defense.** Focus test coverage on code paths where bugs would be hard to catch visually — edge cases in coordinate math, boundary conditions in flood fill, undo/redo state consistency.
-- **Don't test the framework.** Don't verify that the UI framework's reactivity or rendering works correctly — that's the framework's job. Do test your own logic that *feeds into* the framework: state derivations, event handlers, computed values.
-- **Guard the dev/prod gap.** Dev server and production build can have different runtime behaviors — CSP enforcement and WASM loading can diverge. Unit tests and dev-mode verification alone cannot catch these. CI should verify production builds to prevent regressions that only surface in the deployed app.
 
 ### Maintaining CLAUDE.md
 

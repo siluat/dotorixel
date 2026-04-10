@@ -1,5 +1,8 @@
 ---
-globs: **/*.test.ts, **/*.svelte.test.ts, e2e/**/*.ts
+paths:
+  - "**/*.test.ts"
+  - "**/*.svelte.test.ts"
+  - "e2e/**/*.ts"
 ---
 
 # Testing Conventions

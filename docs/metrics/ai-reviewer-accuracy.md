@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 16 | 14 | 2 | 14 | 88% | 50% |
-| cubic-dev-ai[bot] | 12 | 9 | 3 | 17 | 75% | 35% |
-| coderabbitai[bot] | 27 | 17 | 10 | 10 | 63% | 63% |
+| greptile-apps[bot] | 17 | 15 | 2 | 15 | 88% | 50% |
+| cubic-dev-ai[bot] | 13 | 10 | 3 | 18 | 77% | 36% |
+| coderabbitai[bot] | 29 | 18 | 11 | 11 | 62% | 62% |
 
 ## Log
 
@@ -110,3 +110,10 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #140 | greptile-apps[bot] | Accept | Merge duplicate canvas-model imports in draw-tool.ts and tool-runner.svelte.ts |
 | #140 | cubic-dev-ai[bot] | Miss | Did not flag duplicate canvas-model imports |
 | #140 | coderabbitai[bot] | Miss | Did not flag duplicate canvas-model imports |
+| #142 | greptile-apps[bot] | Accept | "Floating Panel" appears in both deprecated list and recommended component patterns — ambiguous |
+| #142 | greptile-apps[bot] | Miss | Did not flag `globs:` non-standard frontmatter format |
+| #142 | cubic-dev-ai[bot] | Accept | `globs:` frontmatter non-standard — switch to `paths:` + YAML list (duplicate of coderabbit finding) |
+| #142 | cubic-dev-ai[bot] | Miss | Did not flag "Floating Panel" naming ambiguity |
+| #142 | coderabbitai[bot] | Accept | Use `paths:` + YAML list per Anthropic docs, not `globs:` comma-separated |
+| #142 | coderabbitai[bot] | Reject | Tagline "A pixel art editor." too minimal — user-intentional simplification, Future Directions covers positioning |
+| #142 | coderabbitai[bot] | Miss | Did not flag "Floating Panel" naming ambiguity |

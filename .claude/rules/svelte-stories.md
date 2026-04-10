@@ -1,5 +1,6 @@
 ---
-globs: **/*.stories.svelte
+paths:
+  - "**/*.stories.svelte"
 ---
 
 # Svelte Stories Conventions

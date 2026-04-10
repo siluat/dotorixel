@@ -1,5 +1,8 @@
 ---
-globs: crates/**/*.rs, wasm/**/*.rs, apple/**/*.rs
+paths:
+  - "crates/**/*.rs"
+  - "wasm/**/*.rs"
+  - "apple/**/*.rs"
 ---
 
 # Rust Conventions

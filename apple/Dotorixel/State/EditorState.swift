@@ -84,16 +84,65 @@ final class EditorState {
     }
 
     private func applySnapshot(_ snapshot: Snapshot) {
-        guard snapshot.width == pixelCanvas.width(), snapshot.height == pixelCanvas.height() else {
-            assertionFailure("Cross-dimension undo/redo not yet implemented on Apple")
-            return
-        }
         do {
-            try pixelCanvas.restorePixels(data: snapshot.pixels)
+            if snapshot.width == pixelCanvas.width(), snapshot.height == pixelCanvas.height() {
+                try pixelCanvas.restorePixels(data: snapshot.pixels)
+            } else {
+                let restored = try ApplePixelCanvas(width: snapshot.width, height: snapshot.height)
+                try restored.restorePixels(data: snapshot.pixels)
+                pixelCanvas = restored
+                viewport = viewport.fitToViewport(
+                    canvasWidth: snapshot.width,
+                    canvasHeight: snapshot.height,
+                    viewportSize: viewportSize
+                )
+            }
             canvasVersion += 1
             historyVersion += 1
         } catch {
             assertionFailure("Failed to apply snapshot: \(error)")
+        }
+    }
+
+    // MARK: - Color
+
+    /// Updates the foreground drawing color.
+    func handleSelectColor(_ color: Color) {
+        foregroundColor = color
+    }
+
+    /// Updates the foreground drawing color from a SwiftUI ColorPicker selection.
+    func handleSelectSwiftUIColor(_ swiftUIColor: SwiftUI.Color) {
+        let resolved = swiftUIColor.resolve(in: .init())
+        foregroundColor = Color(resolved: resolved)
+    }
+
+    // MARK: - Canvas Resize
+
+    /// Resizes the canvas to new dimensions.
+    /// Pushes a snapshot for undo, replaces the canvas, and refits the viewport.
+    func handleResize(width: UInt32, height: UInt32) {
+        guard canvasIsValidDimension(value: width),
+              canvasIsValidDimension(value: height) else { return }
+        guard width != pixelCanvas.width() || height != pixelCanvas.height() else { return }
+
+        historyManager.pushSnapshot(
+            width: pixelCanvas.width(),
+            height: pixelCanvas.height(),
+            pixels: pixelCanvas.pixels()
+        )
+        historyVersion += 1
+
+        do {
+            pixelCanvas = try pixelCanvas.resize(newWidth: width, newHeight: height)
+            canvasVersion += 1
+            viewport = viewport.fitToViewport(
+                canvasWidth: width,
+                canvasHeight: height,
+                viewportSize: viewportSize
+            )
+        } catch {
+            assertionFailure("Canvas resize failed: \(error)")
         }
     }
 

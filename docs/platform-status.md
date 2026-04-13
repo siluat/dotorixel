@@ -23,14 +23,14 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Create / resize | ✅ | ✅ | ✅ | 1–256px, presets available, 9-position anchor selector (Web) |
-| Clear | ✅ | ✅ | ⬜ | RightPanel (docked) + Settings tab (mobile) |
+| Create / resize | ✅ | ✅ | ✅ | 1–256px, presets available, 9-position anchor selector (Web), top-left anchor (Apple) |
+| Clear | ✅ | ✅ | ⬜ | RightPanel (docked) + Settings tab (mobile); Apple: button visible but disabled |
 
 ## History
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Undo / redo | ✅ | ✅ | ✅ | Snapshot-based, dimension-aware (resize undoable on Web) |
+| Undo / redo | ✅ | ✅ | ✅ | Snapshot-based, dimension-aware (resize undoable on Web + Apple) |
 
 ## Viewport
 
@@ -107,7 +107,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Design token system | — | ✅ | ✅ | `--ds-*` tokens (web), `DesignTokens` enum (Apple), light theme |
 | Pebble UI theme | — | ✅ | ⬜ | Floating panels, earth tones (web legacy; Apple removed) |
-| Editor UI theme | — | ✅ | 🔧 | `--ds-*` tokens, docked layout skeleton (Apple); TopBar + LeftToolbar implemented, RightPanel + StatusBar are placeholders |
+| Editor UI theme | — | ✅ | 🔧 | `--ds-*` tokens, docked layout skeleton (Apple); TopBar + LeftToolbar + RightPanel implemented, StatusBar is placeholder |
 | Responsive layout | — | ✅ | ⬜ | 4 breakpoints: compact/medium/wide/x-wide via matchMedia + CSS Grid/Flex |
 | Toolbar tooltip | — | ✅ | ⬜ | Custom styled tooltip on hover (tool name + shortcut badge), Svelte action, GeistPixel-Square font |
 | Tab bar slide indicator | — | ✅ | ⬜ | ease-in-out-cubic 180ms, pure CSS `--active-index` |

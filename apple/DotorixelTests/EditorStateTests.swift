@@ -15,7 +15,7 @@ struct EditorStateResizeTests {
         #expect(state.pixelCanvas.height() == 32)
     }
 
-    @Test("Resize pushes history snapshot — undo restores original size")
+    @Test("Resize pushes history snapshot — undo and redo restore sizes")
     func resizePushesHistory() {
         let state = EditorState(width: 16, height: 16)
 
@@ -25,6 +25,11 @@ struct EditorStateResizeTests {
         state.handleUndo()
         #expect(state.pixelCanvas.width() == 16)
         #expect(state.pixelCanvas.height() == 16)
+
+        #expect(state.canRedo)
+        state.handleRedo()
+        #expect(state.pixelCanvas.width() == 32)
+        #expect(state.pixelCanvas.height() == 32)
     }
 
     @Test("Invalid dimension is rejected — canvas unchanged")
@@ -73,6 +78,7 @@ struct EditorStateColorTests {
         state.handleSelectSwiftUIColor(swiftUIBlue)
 
         #expect(state.foregroundColor.r == 0x00)
+        #expect(state.foregroundColor.g == 0x00)
         #expect(state.foregroundColor.b == 0xFF)
         #expect(state.foregroundColor.a == 0xFF)
     }

@@ -126,15 +126,17 @@ final class EditorState {
               canvasIsValidDimension(value: height) else { return }
         guard width != pixelCanvas.width() || height != pixelCanvas.height() else { return }
 
-        historyManager.pushSnapshot(
-            width: pixelCanvas.width(),
-            height: pixelCanvas.height(),
-            pixels: pixelCanvas.pixels()
-        )
-        historyVersion += 1
-
         do {
+            let previousWidth = pixelCanvas.width()
+            let previousHeight = pixelCanvas.height()
+            let previousPixels = pixelCanvas.pixels()
             pixelCanvas = try pixelCanvas.resize(newWidth: width, newHeight: height)
+            historyManager.pushSnapshot(
+                width: previousWidth,
+                height: previousHeight,
+                pixels: previousPixels
+            )
+            historyVersion += 1
             canvasVersion += 1
             viewport = viewport.fitToViewport(
                 canvasWidth: width,

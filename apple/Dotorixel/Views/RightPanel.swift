@@ -157,6 +157,9 @@ struct RightPanel: View {
                                 )
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(color.hexString)
+                        .accessibilityValue(isSelectedColor(color) ? "Selected" : "Not selected")
+                        .accessibilityAddTraits(isSelectedColor(color) ? .isSelected : [])
                     }
                 }
             }
@@ -167,6 +170,7 @@ struct RightPanel: View {
         editorState.foregroundColor.r == color.r
             && editorState.foregroundColor.g == color.g
             && editorState.foregroundColor.b == color.b
+            && editorState.foregroundColor.a == color.a
     }
 
     private var colorPicker: some View {
@@ -228,6 +232,7 @@ private struct DimensionField: View {
                 .onChange(of: isFocused) { _, focused in
                     if !focused { commitValue() }
                 }
+                .accessibilityLabel(label == "W" ? "Width" : "Height")
         }
         .onAppear { text = "\(value)" }
         .onChange(of: value) { _, newValue in

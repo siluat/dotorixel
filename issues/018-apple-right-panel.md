@@ -23,14 +23,14 @@ The panel scrolls vertically if content exceeds available height. Existing logic
 
 ## Acceptance criteria
 
-- [ ] RightPanel displays Canvas section and Color section separated by a divider
-- [ ] Canvas size presets update canvas dimensions on tap
-- [ ] Width/height text inputs commit on blur or Return
-- [ ] Clear button is visible but disabled
-- [ ] Foreground swatch shows the current drawing color
-- [ ] Palette grid colors are selectable and update the foreground color
-- [ ] SwiftUI ColorPicker updates the foreground color
-- [ ] Panel scrolls if content overflows vertically
+- [x] RightPanel displays Canvas section and Color section separated by a divider
+- [x] Canvas size presets update canvas dimensions on tap
+- [x] Width/height text inputs commit on blur or Return
+- [x] Clear button is visible but disabled
+- [x] Foreground swatch shows the current drawing color
+- [x] Palette grid colors are selectable and update the foreground color
+- [x] SwiftUI ColorPicker updates the foreground color
+- [x] Panel scrolls if content overflows vertically
 
 ## Blocked by
 

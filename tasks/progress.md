@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-049 — Unify duplicated workspace snapshot types
+050 — Encapsulate flood_fill as a PixelCanvas method
 
 ## Next Up
 

@@ -5,7 +5,7 @@ use dotorixel_core::color::Color;
 use dotorixel_core::export::{PngExport, SvgExport};
 use dotorixel_core::history::{HistoryManager, Snapshot};
 use dotorixel_core::tool::{
-    ToolType, ellipse_outline, flood_fill, interpolate_pixels, rectangle_outline,
+    ToolType, ellipse_outline, interpolate_pixels, rectangle_outline,
 };
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
 
@@ -318,7 +318,10 @@ pub fn wasm_ellipse_outline(x0: i32, y0: i32, x1: i32, y1: i32) -> Vec<i32> {
 /// Fills all pixels connected to `(x, y)` with the given color using 4-connectivity.
 #[wasm_bindgen]
 pub fn wasm_flood_fill(canvas: &mut WasmPixelCanvas, x: i32, y: i32, color: &WasmColor) -> bool {
-    flood_fill(&mut canvas.inner, x, y, color.inner)
+    if x < 0 || y < 0 {
+        return false;
+    }
+    canvas.inner.flood_fill(x as u32, y as u32, color.inner)
 }
 
 // ---------------------------------------------------------------------------

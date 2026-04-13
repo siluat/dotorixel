@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::fmt;
 
 use crate::color::Color;
@@ -276,6 +277,61 @@ impl PixelCanvas {
     /// Fills all pixels with transparent black.
     pub fn clear(&mut self) {
         self.pixels.fill(0);
+    }
+
+    /// Fills all pixels connected to `(start_x, start_y)` with `fill_color`
+    /// using 4-connectivity (up, down, left, right).
+    ///
+    /// Returns `true` if any pixels were changed, `false` when the start
+    /// coordinates are outside canvas bounds or the pixel already has
+    /// `fill_color`.
+    pub fn flood_fill(&mut self, start_x: u32, start_y: u32, fill_color: Color) -> bool {
+        if !self.is_inside_bounds(start_x, start_y) {
+            return false;
+        }
+
+        let target_color = self.get_pixel(start_x, start_y).expect("bounds already validated");
+        if target_color == fill_color {
+            return false;
+        }
+
+        let w = self.width as usize;
+        let h = self.height as usize;
+        let mut visited = vec![false; w * h];
+
+        let mut queue = VecDeque::new();
+        queue.push_back((start_x, start_y));
+        visited[start_y as usize * w + start_x as usize] = true;
+
+        while let Some((cx, cy)) = queue.pop_front() {
+            self.set_pixel(cx, cy, fill_color)
+                .expect("bounds already validated");
+
+            const DIRS: [(i32, i32); 4] = [(0, -1), (0, 1), (-1, 0), (1, 0)];
+            for (dx, dy) in DIRS {
+                let nx = cx as i32 + dx;
+                let ny = cy as i32 + dy;
+                if nx < 0 || ny < 0 {
+                    continue;
+                }
+                let nux = nx as u32;
+                let nuy = ny as u32;
+                if !self.is_inside_bounds(nux, nuy) {
+                    continue;
+                }
+                let idx = nuy as usize * w + nux as usize;
+                if visited[idx] {
+                    continue;
+                }
+                let pixel_color = self.get_pixel(nux, nuy).expect("bounds already validated");
+                if pixel_color == target_color {
+                    visited[idx] = true;
+                    queue.push_back((nux, nuy));
+                }
+            }
+        }
+
+        true
     }
 
     /// Returns a new canvas with the given dimensions, copying overlapping
@@ -921,5 +977,66 @@ mod tests {
         let a = CanvasCoords::new(5, 10);
         let b = a;
         assert_eq!(a, b);
+    }
+
+    // ── flood_fill ─────────────────────────────────────────────
+
+    const BLACK: Color = Color::new(0, 0, 0, 255);
+
+    #[test]
+    fn flood_fill_single_pixel() {
+        let mut canvas = PixelCanvas::new(4, 4).unwrap();
+        canvas.set_pixel(1, 1, RED).unwrap();
+        assert!(canvas.flood_fill(1, 1, BLACK));
+        assert_eq!(canvas.get_pixel(1, 1).unwrap(), BLACK);
+        assert_eq!(canvas.get_pixel(0, 1).unwrap(), Color::TRANSPARENT);
+    }
+
+    #[test]
+    fn flood_fill_entire_canvas() {
+        let mut canvas = PixelCanvas::new(4, 4).unwrap();
+        assert!(canvas.flood_fill(0, 0, RED));
+        for y in 0..4 {
+            for x in 0..4 {
+                assert_eq!(canvas.get_pixel(x, y).unwrap(), RED);
+            }
+        }
+    }
+
+    #[test]
+    fn flood_fill_respects_4_connectivity() {
+        let mut canvas = PixelCanvas::with_color(4, 4, BLACK).unwrap();
+        canvas.set_pixel(0, 0, RED).unwrap();
+        canvas.set_pixel(1, 1, RED).unwrap();
+        let green = Color::new(0, 255, 0, 255);
+        assert!(canvas.flood_fill(0, 0, green));
+        assert_eq!(canvas.get_pixel(0, 0).unwrap(), green);
+        assert_eq!(canvas.get_pixel(1, 1).unwrap(), RED, "diagonal should not be filled");
+    }
+
+    #[test]
+    fn flood_fill_stops_at_boundary() {
+        let mut canvas = PixelCanvas::new(4, 4).unwrap();
+        for y in 0..4 {
+            canvas.set_pixel(2, y, RED).unwrap();
+        }
+        assert!(canvas.flood_fill(0, 0, BLACK));
+        assert_eq!(canvas.get_pixel(0, 0).unwrap(), BLACK);
+        assert_eq!(canvas.get_pixel(1, 3).unwrap(), BLACK);
+        assert_eq!(canvas.get_pixel(2, 0).unwrap(), RED);
+        assert_eq!(canvas.get_pixel(3, 0).unwrap(), Color::TRANSPARENT);
+    }
+
+    #[test]
+    fn flood_fill_same_color_is_noop() {
+        let mut canvas = PixelCanvas::with_color(4, 4, RED).unwrap();
+        assert!(!canvas.flood_fill(0, 0, RED));
+    }
+
+    #[test]
+    fn flood_fill_out_of_bounds_returns_false() {
+        let mut canvas = PixelCanvas::new(4, 4).unwrap();
+        assert!(!canvas.flood_fill(4, 0, RED));
+        assert!(!canvas.flood_fill(0, 4, RED));
     }
 }

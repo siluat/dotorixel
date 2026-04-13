@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-050 — Encapsulate flood_fill as a PixelCanvas method
+E2E test coverage for editor workflows (6 test suites, 33 tests)
 
 ## Next Up
 

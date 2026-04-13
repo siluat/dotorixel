@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| — | E2E test coverage for editor workflows (6 test suites, 33 tests) | 2026-04-13 |
 | 050 | [Encapsulate flood_fill as a PixelCanvas method](../issues/050-encapsulate-flood-fill.md) | 2026-04-13 |
 | 049 | [Unify duplicated workspace snapshot types](../issues/049-unify-workspace-snapshot-types.md) | 2026-04-10 |
 | 048 | [Consolidate shallow canvas modules into canvas-model.ts / adapter-types.ts](../issues/048-consolidate-shallow-canvas-modules.md) | 2026-04-10 |

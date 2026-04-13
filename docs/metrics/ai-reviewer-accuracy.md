@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 17 | 15 | 2 | 15 | 88% | 50% |
-| cubic-dev-ai[bot] | 13 | 10 | 3 | 18 | 77% | 36% |
-| coderabbitai[bot] | 29 | 18 | 11 | 11 | 62% | 62% |
+| greptile-apps[bot] | 21 | 17 | 4 | 17 | 81% | 50% |
+| cubic-dev-ai[bot] | 16 | 13 | 3 | 20 | 81% | 39% |
+| coderabbitai[bot] | 33 | 21 | 12 | 13 | 64% | 62% |
 
 ## Log
 
@@ -117,3 +117,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #142 | coderabbitai[bot] | Accept | Use `paths:` + YAML list per Anthropic docs, not `globs:` comma-separated |
 | #142 | coderabbitai[bot] | Reject | Tagline "A pixel art editor." too minimal — user-intentional simplification, Future Directions covers positioning |
 | #142 | coderabbitai[bot] | Miss | Did not flag "Floating Panel" naming ambiguity |
+| #144 | greptile-apps[bot] | Accept | Weak canvas size assertion — `toContainText('24')` passes for partial resize |
+| #144 | greptile-apps[bot] | Accept | Stale comment says "change color via palette" but code switches tools |
+| #144 | greptile-apps[bot] | Reject | Hardcoded y=10 scan row — art area always starts below row 10 in current renderer |
+| #144 | greptile-apps[bot] | Reject | Duplicate smoke test overlap — drawing.test adds status-size/tool checks |
+| #144 | greptile-apps[bot] | Miss | Did not flag multi-step redo pixel verification gap |
+| #144 | greptile-apps[bot] | Miss | Did not flag scanX clamp and boundary validation |
+| #144 | cubic-dev-ai[bot] | Accept | Multi-step redo test lacks pixel verification after redo |
+| #144 | cubic-dev-ai[bot] | Accept | Weak canvas size assertion — `toContainText('24')` (duplicate of greptile) |
+| #144 | cubic-dev-ai[bot] | Accept | Weak preset size assertion — `toContainText('32')` misses one-axis failures |
+| #144 | cubic-dev-ai[bot] | Miss | Did not flag stale comment in history test |
+| #144 | cubic-dev-ai[bot] | Miss | Did not flag scanX clamp and boundary validation |
+| #144 | coderabbitai[bot] | Accept | scanX not clamped to canvas bounds, artRight/artBottom not validated |
+| #144 | coderabbitai[bot] | Accept | Multi-step redo test lacks canRedo and pixel verification (duplicate of cubic) |
+| #144 | coderabbitai[bot] | Accept | Stale comment in history test (duplicate of greptile) |
+| #144 | coderabbitai[bot] | Reject | Extract save dialog setup helper — 3 tests is acceptable repetition per project guidelines |
+| #144 | coderabbitai[bot] | Miss | Did not flag weak canvas size assertions (32×32, 24×24) |
+| #144 | coderabbitai[bot] | Miss | Did not flag weak preset size assertion (32) |

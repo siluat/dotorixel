@@ -66,7 +66,7 @@ test.describe('Canvas settings', () => {
 		const preset32 = page.locator('.preset-btn', { hasText: '32' });
 		await preset32.click();
 
-		await expect(statusSize).toContainText('32');
+		await expect(statusSize).toContainText('32 \u00D7 32');
 	});
 
 	test('canvas size changes via custom input', async ({ editorPage }) => {
@@ -82,6 +82,6 @@ test.describe('Canvas settings', () => {
 		await heightInput.fill('24');
 		await heightInput.press('Enter');
 
-		await expect(statusSize).toContainText('24');
+		await expect(statusSize).toContainText('24 \u00D7 24');
 	});
 });

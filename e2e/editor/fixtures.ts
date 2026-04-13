@@ -28,7 +28,7 @@ function findArtCenter(): { canvasX: number; canvasY: number; cssX: number; cssY
 	for (let x = canvas.width - 1; x >= 0; x--) {
 		if (ctx.getImageData(x, 10, 1, 1).data[3] > 0) { artRight = x; break; }
 	}
-	const scanX = artLeft >= 0 ? artLeft + 5 : 5;
+	const scanX = artLeft >= 0 ? Math.min(artLeft + 5, canvas.width - 1) : Math.min(5, canvas.width - 1);
 	let artTop = -1;
 	for (let y = 0; y < canvas.height; y++) {
 		if (ctx.getImageData(scanX, y, 1, 1).data[3] > 0) { artTop = y; break; }
@@ -38,7 +38,7 @@ function findArtCenter(): { canvasX: number; canvasY: number; cssX: number; cssY
 		if (ctx.getImageData(scanX, y, 1, 1).data[3] > 0) { artBottom = y; break; }
 	}
 
-	if (artLeft < 0 || artTop < 0) throw new Error('Art canvas area not found');
+	if (artLeft < 0 || artRight < 0 || artTop < 0 || artBottom < 0) throw new Error('Art canvas area not found');
 
 	// Find the effective pixel size by detecting the first color transition
 	// along the top row of the art area. The checkerboard alternates per art pixel:

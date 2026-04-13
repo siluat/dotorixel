@@ -67,18 +67,20 @@ test.describe('History (Undo/Redo)', () => {
 
 		const original = await canvas.readPixelAtCenter();
 
-		// Draw 3 strokes (pencil, then change color via palette for visible difference)
+		// Draw 3 strokes: pencil, eraser, pencil
 		await canvas.clickCanvas();
 		await tools.selectTool('Eraser');
 		await canvas.clickCanvas();
 		await tools.selectTool('Pencil');
 		await canvas.clickCanvas();
+		const afterAllDraws = await canvas.readPixelAtCenter();
 
 		// Undo all 3
 		await history.undo();
 		await history.undo();
 		await history.undo();
 		expect(await history.canUndo()).toBe(false);
+		expect(await history.canRedo()).toBe(true);
 
 		const afterAllUndo = await canvas.readPixelAtCenter();
 		expect(canvas.pixelEquals(original, afterAllUndo)).toBe(true);
@@ -88,5 +90,7 @@ test.describe('History (Undo/Redo)', () => {
 		await history.redo();
 		await history.redo();
 		expect(await history.canRedo()).toBe(false);
+		const afterAllRedo = await canvas.readPixelAtCenter();
+		expect(canvas.pixelEquals(afterAllDraws, afterAllRedo)).toBe(true);
 	});
 });

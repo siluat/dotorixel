@@ -83,6 +83,14 @@
 	"landing_feature_autosave_title": "자동 저장",
 	"landing_feature_autosave_desc": "작업물이 브라우저에 저장되어 언제든 이어서 작업할 수 있습니다.",
 
+	"landing_section_roadmap": "로드맵",
+	"landing_roadmap_layers_title": "레이어 & 애니메이션",
+	"landing_roadmap_layers_desc": "레이어 관리, 프레임 편집, 타임라인, 어니언 스킨.",
+	"landing_roadmap_integrations_title": "통합",
+	"landing_roadmap_integrations_desc": "AI 도구, 게임 엔진, 커맨드라인 워크플로우와 연결합니다.",
+	"landing_roadmap_offline_title": "오프라인 앱",
+	"landing_roadmap_offline_desc": "인터넷 없이 동작하는 네이티브 앱.",
+
 	"save_dialog_title": "작업을 저장하시겠어요?",
 	"save_dialog_name_label": "이름",
 	"save_dialog_save": "저장",

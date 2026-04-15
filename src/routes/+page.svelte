@@ -123,6 +123,86 @@
 			</article>
 		</div>
 	</section>
+
+	<section class="roadmap">
+		<h2 class="section-title">{m.landing_section_roadmap()}</h2>
+		<div class="card-grid">
+			<article class="card">
+				<div class="card-icon">
+					<svg
+						viewBox="0 0 24 24"
+						width="22"
+						height="22"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path
+							d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"
+						/>
+						<path
+							d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"
+						/>
+						<path
+							d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"
+						/>
+					</svg>
+				</div>
+				<h3 class="card-title">{m.landing_roadmap_layers_title()}</h3>
+				<p class="card-desc">{m.landing_roadmap_layers_desc()}</p>
+			</article>
+			<article class="card">
+				<div class="card-icon">
+					<svg
+						viewBox="0 0 24 24"
+						width="22"
+						height="22"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path d="M12 22v-5" />
+						<path d="M9 8V2" />
+						<path d="M15 8V2" />
+						<path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z" />
+					</svg>
+				</div>
+				<h3 class="card-title">{m.landing_roadmap_integrations_title()}</h3>
+				<p class="card-desc">{m.landing_roadmap_integrations_desc()}</p>
+			</article>
+			<article class="card">
+				<div class="card-icon">
+					<svg
+						viewBox="0 0 24 24"
+						width="22"
+						height="22"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path d="M12 20h.01" />
+						<path d="M8.5 16.429a5 5 0 0 1 7 0" />
+						<path d="M5 12.859a10 10 0 0 1 5.17-2.69" />
+						<path d="M19 12.859a10 10 0 0 0-2.007-1.523" />
+						<path d="M2 8.82a15 15 0 0 1 4.177-2.643" />
+						<path d="M22 8.82a15 15 0 0 0-11.288-3.764" />
+						<path d="m2 2 20 20" />
+					</svg>
+				</div>
+				<h3 class="card-title">{m.landing_roadmap_offline_title()}</h3>
+				<p class="card-desc">{m.landing_roadmap_offline_desc()}</p>
+			</article>
+		</div>
+	</section>
 </div>
 
 <style>
@@ -230,7 +310,8 @@
 		background-color: color-mix(in oklch, var(--ds-accent) 85%, black);
 	}
 
-	.features {
+	.features,
+	.roadmap {
 		width: 100%;
 		max-width: 1200px;
 		padding: 0 24px 60px;
@@ -292,7 +373,8 @@
 	}
 
 	@media (min-width: 600px) {
-		.features {
+		.features,
+		.roadmap {
 			padding: 0 120px 100px;
 			gap: 40px;
 		}

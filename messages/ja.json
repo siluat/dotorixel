@@ -83,6 +83,14 @@
 	"landing_feature_autosave_title": "自動保存",
 	"landing_feature_autosave_desc": "作業はブラウザに保存され、いつでも続きから描けます。",
 
+	"landing_section_roadmap": "ロードマップ",
+	"landing_roadmap_layers_title": "レイヤーとアニメーション",
+	"landing_roadmap_layers_desc": "レイヤー管理、フレーム編集、タイムライン、オニオンスキン。",
+	"landing_roadmap_integrations_title": "連携",
+	"landing_roadmap_integrations_desc": "AIツール、ゲームエンジン、コマンドラインワークフローと連携。",
+	"landing_roadmap_offline_title": "オフラインアプリ",
+	"landing_roadmap_offline_desc": "インターネット接続なしで動作するネイティブアプリ。",
+
 	"save_dialog_title": "作品を保存しますか？",
 	"save_dialog_name_label": "名前",
 	"save_dialog_save": "保存",

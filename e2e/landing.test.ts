@@ -84,3 +84,13 @@ test.describe('Features section', () => {
 		await expect(page.getByRole('heading', { name: 'Auto-Save', level: 3 })).toBeVisible();
 	});
 });
+
+test.describe('Roadmap section', () => {
+	test('renders section title and three roadmap cards', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.getByRole('heading', { name: 'Roadmap', level: 2 })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Layers & Animation', level: 3 })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Integrations', level: 3 })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Offline App', level: 3 })).toBeVisible();
+	});
+});

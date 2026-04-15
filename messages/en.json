@@ -83,6 +83,14 @@
 	"landing_feature_autosave_title": "Auto-Save",
 	"landing_feature_autosave_desc": "Your work is saved in the browser. Continue anytime.",
 
+	"landing_section_roadmap": "Roadmap",
+	"landing_roadmap_layers_title": "Layers & Animation",
+	"landing_roadmap_layers_desc": "Layer management, frame editing, timeline, and onion skinning.",
+	"landing_roadmap_integrations_title": "Integrations",
+	"landing_roadmap_integrations_desc": "Connect with AI tools, game engines, and command-line workflows.",
+	"landing_roadmap_offline_title": "Offline App",
+	"landing_roadmap_offline_desc": "A native app that works without an internet connection.",
+
 	"save_dialog_title": "Save your work?",
 	"save_dialog_name_label": "Name",
 	"save_dialog_save": "Save",

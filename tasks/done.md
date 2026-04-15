@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 051 | [Landing page UI — hero, features, roadmap (web)](../issues/051-landing-page-ui.md) | 2026-04-15 |
 | — | E2E test coverage for editor workflows (6 test suites, 33 tests) | 2026-04-13 |
 | 050 | [Encapsulate flood_fill as a PixelCanvas method](../issues/050-encapsulate-flood-fill.md) | 2026-04-13 |
 | 049 | [Unify duplicated workspace snapshot types](../issues/049-unify-workspace-snapshot-types.md) | 2026-04-10 |

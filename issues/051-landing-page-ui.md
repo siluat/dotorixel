@@ -1,6 +1,6 @@
 ---
 title: Landing page UI — hero, features, roadmap (web)
-status: open
+status: done
 created: 2026-04-15
 ---
 
@@ -149,3 +149,33 @@ The page is fully translated for EN/KO/JA and adapts between a mobile and deskto
 - **Image regeneration**: When the real editor UI changes significantly, the mockup images need re-export. This is a known manual step — documented inline in a code comment near the `<picture>` tag.
 - **Max-width container**: The design's 1440px frame width with ~120px horizontal padding implies a ~1200px content band. Implemented via a `max-width: 1200px; margin-inline: auto` wrapper on content sections. Adjust if visual review suggests otherwise.
 - **No deep module emerges from this work**. This is primarily a presentation-layer page implementation; the test of the work is visual correctness and locale coverage, not algorithmic isolation. Noted honestly per the PRD template's expectation that we consider deep modules.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/routes/+page.svelte` | Full landing page rewrite: nav with GitHub icon, Hero with editor mockup, Features (3 cards), Roadmap (3 cards); scoped styles with `--ds-*` tokens; responsive `<picture>` swap + layout shift at 600px. |
+| `messages/en.json` | Added 15 `landing_*` keys (section titles, 3 feature card title/desc pairs, 3 roadmap card title/desc pairs, mockup alt). |
+| `messages/ko.json` | Korean translations for the 15 new keys. |
+| `messages/ja.json` | Japanese translations for the 15 new keys. |
+| `static/landing/editor-desktop.webp` | Desktop editor preview (2x WEBP, 465 KB) exported from `.pen` node `pUHZw`. |
+| `static/landing/editor-mobile.webp` | Mobile editor preview (2x WEBP, 69 KB) exported from `.pen` node `sZisd`. |
+| `e2e/landing.test.ts` | +6 tests: GitHub link, Features section, Roadmap section, editor mockup, `/ko/` and `/ja/` localized section titles. 15 tests total, all passing. |
+| `docs/pencil-dotorixel.pen` | Hero description text in desktop and mobile frames trimmed to match shipped copy (single sentence). |
+| `CLAUDE.md` | Added `design` conventional-commits type for `.pen`-only commits; mixed commits still classify by implementation change. |
+
+### Key Decisions
+
+- **Single-file implementation** (no `FeatureCard` component extraction): cards are rendered inline; a shared abstraction with one consumer would be premature per CLAUDE.md.
+- **Responsive images via `<picture>` + `<source media=...>`** over `srcset`/`sizes`: breakpoint-based image swap is explicit and matches the 600px layout shift already enforced in CSS.
+- **Single 600px breakpoint**: design 046 defines exactly two layout states (mobile / desktop). No intermediate tier was synthesized.
+- **Hero description reconciled to shorter copy**: the shipped implementation used a single-sentence description; the `.pen` source was updated to match rather than adding a second sentence to the page.
+- **Editor mockup image carries its own border + rounded corners**: CSS border/border-radius on `.editor-mockup` was removed to prevent double-outline layering on top of the baked-in image frame.
+- **Introduced `design:` commit type**: future commits that only touch `.pen` files now use `design:` instead of `chore:` or `docs:`, and the project commit-convention rule was updated accordingly.
+- **Locale E2E coverage targets section titles** rather than every card title/description: Paraglide's compile-time key validation already prevents typos; the spot-check guards against wiring regressions without brittle per-string assertions.
+
+### Notes
+
+- Pencil MCP re-serialization produces large whole-file diffs when `.pen` content strings change (101 insertions / 232 deletions for a two-node text edit). This is an accepted artifact of the tooling.
+- Dark-mode mockup variant is deferred to the dark-mode toggle task — the current `.webp` assets are light-only.
+- Mockup images must be re-exported from the `.pen` source when the real editor UI changes significantly; no automation is in place.

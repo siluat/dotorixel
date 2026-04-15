@@ -101,6 +101,14 @@ test.describe('Editor mockup', () => {
 		const mockup = page.locator('.editor-mockup');
 		await expect(mockup).toBeVisible();
 		await expect(mockup).toHaveAttribute('alt', /DOTORIXEL/i);
+		await expect
+			.poll(async () =>
+				mockup.evaluate((img) => {
+					const image = img as HTMLImageElement;
+					return image.complete && image.naturalWidth > 0;
+				}),
+			)
+			.toBe(true);
 	});
 });
 

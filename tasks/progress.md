@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None
+Landing page UI — hero, features, roadmap (web) ([PRD](../issues/051-landing-page-ui.md))
 
 ## Last Completed
 

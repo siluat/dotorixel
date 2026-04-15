@@ -6,7 +6,7 @@
 
 ### Landing page
 
-- Landing page UI improvements
+- Landing page UI improvements — [PRD](../issues/051-landing-page-ui.md)
 
 ## Milestone 3: Editor for Serious Work
 

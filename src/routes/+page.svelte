@@ -330,17 +330,11 @@
 		width: 100%;
 		max-width: 960px;
 		height: auto;
-		border-radius: 10px;
-		border: 1px solid var(--ds-border-subtle);
 	}
 
 	@media (min-width: 600px) {
 		.mockup {
 			padding: 0 120px 80px;
-		}
-
-		.editor-mockup {
-			border-radius: 12px;
 		}
 	}
 

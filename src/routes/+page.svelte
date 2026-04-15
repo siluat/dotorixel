@@ -51,6 +51,78 @@
 		<p class="description">{m.landing_description()}</p>
 		<a class="cta" href={localizeHref('/editor')}>{m.landing_cta()}</a>
 	</main>
+
+	<section class="features">
+		<h2 class="section-title">{m.landing_section_features()}</h2>
+		<div class="card-grid">
+			<article class="card">
+				<div class="card-icon">
+					<svg
+						viewBox="0 0 24 24"
+						width="22"
+						height="22"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<circle cx="12" cy="12" r="10" />
+						<path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+						<path d="M2 12h20" />
+					</svg>
+				</div>
+				<h3 class="card-title">{m.landing_feature_browser_title()}</h3>
+				<p class="card-desc">{m.landing_feature_browser_desc()}</p>
+			</article>
+			<article class="card">
+				<div class="card-icon">
+					<svg
+						viewBox="0 0 24 24"
+						width="22"
+						height="22"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path
+							d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
+						/>
+						<path d="m15 5 4 4" />
+					</svg>
+				</div>
+				<h3 class="card-title">{m.landing_feature_tools_title()}</h3>
+				<p class="card-desc">{m.landing_feature_tools_desc()}</p>
+			</article>
+			<article class="card">
+				<div class="card-icon">
+					<svg
+						viewBox="0 0 24 24"
+						width="22"
+						height="22"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path
+							d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"
+						/>
+						<path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" />
+						<path d="M7 3v4a1 1 0 0 0 1 1h7" />
+					</svg>
+				</div>
+				<h3 class="card-title">{m.landing_feature_autosave_title()}</h3>
+				<p class="card-desc">{m.landing_feature_autosave_desc()}</p>
+			</article>
+		</div>
+	</section>
 </div>
 
 <style>
@@ -104,14 +176,19 @@
 	}
 
 	.hero {
-		flex: 1;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
 		text-align: center;
-		padding: 0 24px;
+		padding: 48px 24px 64px;
 		gap: 8px;
+	}
+
+	@media (min-width: 600px) {
+		.hero {
+			padding: 96px 24px 96px;
+		}
 	}
 
 	.app-name {
@@ -151,5 +228,100 @@
 
 	.cta:hover {
 		background-color: color-mix(in oklch, var(--ds-accent) 85%, black);
+	}
+
+	.features {
+		width: 100%;
+		max-width: 1200px;
+		padding: 0 24px 60px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 24px;
+	}
+
+	.section-title {
+		font-family: var(--ds-font-heading);
+		font-size: 22px;
+		font-weight: 700;
+		margin: 0;
+		color: var(--ds-text-primary);
+		text-align: center;
+	}
+
+	.card-grid {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 16px;
+		width: 100%;
+	}
+
+	.card {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		padding: 24px;
+		background-color: var(--ds-bg-surface);
+		border-radius: var(--ds-radius-md);
+	}
+
+	.card-icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		border-radius: var(--ds-radius-full);
+		background-color: var(--ds-accent-subtle);
+		color: var(--ds-accent);
+	}
+
+	.card-title {
+		font-family: var(--ds-font-heading);
+		font-size: 16px;
+		font-weight: 600;
+		margin: 0;
+		color: var(--ds-text-primary);
+	}
+
+	.card-desc {
+		font-size: 13px;
+		line-height: 1.5;
+		margin: 0;
+		color: var(--ds-text-secondary);
+	}
+
+	@media (min-width: 600px) {
+		.features {
+			padding: 0 120px 100px;
+			gap: 40px;
+		}
+
+		.section-title {
+			font-size: 28px;
+		}
+
+		.card-grid {
+			grid-template-columns: repeat(3, 1fr);
+			gap: 24px;
+		}
+
+		.card {
+			gap: 16px;
+			padding: 32px;
+		}
+
+		.card-icon {
+			width: 44px;
+			height: 44px;
+		}
+
+		.card-title {
+			font-size: 18px;
+		}
+
+		.card-desc {
+			font-size: 14px;
+		}
 	}
 </style>

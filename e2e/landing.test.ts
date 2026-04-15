@@ -74,3 +74,13 @@ test.describe('GitHub link', () => {
 		await expect(gh).toHaveAttribute('rel', 'noopener noreferrer');
 	});
 });
+
+test.describe('Features section', () => {
+	test('renders section title and three feature cards', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.getByRole('heading', { name: 'Features', level: 2 })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Browser-Based', level: 3 })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Drawing Tools', level: 3 })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Auto-Save', level: 3 })).toBeVisible();
+	});
+});

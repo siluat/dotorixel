@@ -75,6 +75,14 @@
 	"landing_description": "Create pixel art right in your browser.",
 	"landing_cta": "Start Drawing",
 
+	"landing_section_features": "Features",
+	"landing_feature_browser_title": "Browser-Based",
+	"landing_feature_browser_desc": "No installation needed. Open and start drawing right away.",
+	"landing_feature_tools_title": "Drawing Tools",
+	"landing_feature_tools_desc": "Pencil, shapes, fill, and eyedropper for pixel art basics.",
+	"landing_feature_autosave_title": "Auto-Save",
+	"landing_feature_autosave_desc": "Your work is saved in the browser. Continue anytime.",
+
 	"save_dialog_title": "Save your work?",
 	"save_dialog_name_label": "Name",
 	"save_dialog_save": "Save",

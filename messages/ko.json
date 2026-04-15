@@ -75,6 +75,14 @@
 	"landing_description": "브라우저에서 바로 픽셀 아트를 그려보세요.",
 	"landing_cta": "그리기 시작",
 
+	"landing_section_features": "기능",
+	"landing_feature_browser_title": "브라우저 기반",
+	"landing_feature_browser_desc": "설치할 필요 없이 바로 그리기를 시작하세요.",
+	"landing_feature_tools_title": "그리기 도구",
+	"landing_feature_tools_desc": "픽셀 아트 기본기를 위한 연필, 도형, 채우기, 스포이트.",
+	"landing_feature_autosave_title": "자동 저장",
+	"landing_feature_autosave_desc": "작업물이 브라우저에 저장되어 언제든 이어서 작업할 수 있습니다.",
+
 	"save_dialog_title": "작업을 저장하시겠어요?",
 	"save_dialog_name_label": "이름",
 	"save_dialog_save": "저장",

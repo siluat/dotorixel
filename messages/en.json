@@ -74,6 +74,23 @@
 	"landing_tagline": "Pixel Art Editor",
 	"landing_description": "Create pixel art right in your browser.",
 	"landing_cta": "Start Drawing",
+	"landing_mockup_alt": "DOTORIXEL editor preview",
+
+	"landing_section_features": "Features",
+	"landing_feature_browser_title": "Browser-Based",
+	"landing_feature_browser_desc": "No installation needed. Open and start drawing right away.",
+	"landing_feature_tools_title": "Drawing Tools",
+	"landing_feature_tools_desc": "Pencil, shapes, fill, and eyedropper for pixel art basics.",
+	"landing_feature_autosave_title": "Auto-Save",
+	"landing_feature_autosave_desc": "Your work is saved in the browser. Continue anytime.",
+
+	"landing_section_roadmap": "Roadmap",
+	"landing_roadmap_layers_title": "Layers & Animation",
+	"landing_roadmap_layers_desc": "Layer management, frame editing, timeline, and onion skinning.",
+	"landing_roadmap_integrations_title": "Integrations",
+	"landing_roadmap_integrations_desc": "Connect with AI tools, game engines, and command-line workflows.",
+	"landing_roadmap_offline_title": "Offline App",
+	"landing_roadmap_offline_desc": "A native app that works without an internet connection.",
 
 	"save_dialog_title": "Save your work?",
 	"save_dialog_name_label": "Name",

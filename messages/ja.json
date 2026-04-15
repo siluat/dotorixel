@@ -74,6 +74,23 @@
 	"landing_tagline": "ピクセルアートエディター",
 	"landing_description": "ブラウザですぐにピクセルアートを描けます。",
 	"landing_cta": "描き始める",
+	"landing_mockup_alt": "DOTORIXEL エディタープレビュー",
+
+	"landing_section_features": "機能",
+	"landing_feature_browser_title": "ブラウザで動作",
+	"landing_feature_browser_desc": "インストール不要。開いてすぐに描き始められます。",
+	"landing_feature_tools_title": "描画ツール",
+	"landing_feature_tools_desc": "ピクセルアートの基本を支える鉛筆、図形、塗りつぶし、スポイト。",
+	"landing_feature_autosave_title": "自動保存",
+	"landing_feature_autosave_desc": "作業はブラウザに保存され、いつでも続きから描けます。",
+
+	"landing_section_roadmap": "ロードマップ",
+	"landing_roadmap_layers_title": "レイヤーとアニメーション",
+	"landing_roadmap_layers_desc": "レイヤー管理、フレーム編集、タイムライン、オニオンスキン。",
+	"landing_roadmap_integrations_title": "連携",
+	"landing_roadmap_integrations_desc": "AIツール、ゲームエンジン、コマンドラインワークフローと連携。",
+	"landing_roadmap_offline_title": "オフラインアプリ",
+	"landing_roadmap_offline_desc": "インターネット接続なしで動作するネイティブアプリ。",
 
 	"save_dialog_title": "作品を保存しますか？",
 	"save_dialog_name_label": "名前",

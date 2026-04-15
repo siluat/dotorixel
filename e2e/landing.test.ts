@@ -64,3 +64,64 @@ test.describe('CTA button', () => {
 		await expect(cta).toHaveAttribute('href', /\/ko\/editor/);
 	});
 });
+
+test.describe('GitHub link', () => {
+	test('nav GitHub link points to repo and opens in new tab', async ({ page }) => {
+		await page.goto('/');
+		const gh = page.getByRole('link', { name: 'GitHub repository' });
+		await expect(gh).toHaveAttribute('href', 'https://github.com/siluat/dotorixel');
+		await expect(gh).toHaveAttribute('target', '_blank');
+		await expect(gh).toHaveAttribute('rel', 'noopener noreferrer');
+	});
+});
+
+test.describe('Features section', () => {
+	test('renders section title and three feature cards', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.getByRole('heading', { name: 'Features', level: 2 })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Browser-Based', level: 3 })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Drawing Tools', level: 3 })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Auto-Save', level: 3 })).toBeVisible();
+	});
+});
+
+test.describe('Roadmap section', () => {
+	test('renders section title and three roadmap cards', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.getByRole('heading', { name: 'Roadmap', level: 2 })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Layers & Animation', level: 3 })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Integrations', level: 3 })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Offline App', level: 3 })).toBeVisible();
+	});
+});
+
+test.describe('Editor mockup', () => {
+	test('renders editor preview image', async ({ page }) => {
+		await page.goto('/');
+		const mockup = page.locator('.editor-mockup');
+		await expect(mockup).toBeVisible();
+		await expect(mockup).toHaveAttribute('alt', /DOTORIXEL/i);
+		await expect
+			.poll(async () =>
+				mockup.evaluate((img) => {
+					const image = img as HTMLImageElement;
+					return image.complete && image.naturalWidth > 0;
+				}),
+			)
+			.toBe(true);
+	});
+});
+
+test.describe('Localized sections', () => {
+	test('/ko/ renders Features and Roadmap titles in Korean', async ({ page }) => {
+		await page.goto('/ko/');
+		await expect(page.getByRole('heading', { name: '기능', level: 2 })).toBeVisible();
+		await expect(page.getByRole('heading', { name: '로드맵', level: 2 })).toBeVisible();
+	});
+
+	test('/ja/ renders Features and Roadmap titles in Japanese', async ({ page }) => {
+		await page.goto('/ja/');
+		await expect(page.getByRole('heading', { name: '機能', level: 2 })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'ロードマップ', level: 2 })).toBeVisible();
+	});
+});

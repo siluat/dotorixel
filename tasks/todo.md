@@ -4,10 +4,6 @@
 
 ### Multi-image workflow
 
-### Landing page
-
-- Landing page UI improvements
-
 ## Milestone 3: Editor for Serious Work
 
 - Layer system: basic infrastructure (add/delete/reorder)

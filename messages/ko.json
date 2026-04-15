@@ -74,6 +74,23 @@
 	"landing_tagline": "픽셀 아트 에디터",
 	"landing_description": "브라우저에서 바로 픽셀 아트를 그려보세요.",
 	"landing_cta": "그리기 시작",
+	"landing_mockup_alt": "DOTORIXEL 에디터 미리보기",
+
+	"landing_section_features": "기능",
+	"landing_feature_browser_title": "브라우저 기반",
+	"landing_feature_browser_desc": "설치할 필요 없이 바로 그리기를 시작하세요.",
+	"landing_feature_tools_title": "그리기 도구",
+	"landing_feature_tools_desc": "픽셀 아트 기본기를 위한 연필, 도형, 채우기, 스포이트.",
+	"landing_feature_autosave_title": "자동 저장",
+	"landing_feature_autosave_desc": "작업물이 브라우저에 저장되어 언제든 이어서 작업할 수 있습니다.",
+
+	"landing_section_roadmap": "로드맵",
+	"landing_roadmap_layers_title": "레이어 & 애니메이션",
+	"landing_roadmap_layers_desc": "레이어 관리, 프레임 편집, 타임라인, 어니언 스킨.",
+	"landing_roadmap_integrations_title": "통합",
+	"landing_roadmap_integrations_desc": "AI 도구, 게임 엔진, 커맨드라인 워크플로우와 연결합니다.",
+	"landing_roadmap_offline_title": "오프라인 앱",
+	"landing_roadmap_offline_desc": "인터넷 없이 동작하는 네이티브 앱.",
 
 	"save_dialog_title": "작업을 저장하시겠어요?",
 	"save_dialog_name_label": "이름",

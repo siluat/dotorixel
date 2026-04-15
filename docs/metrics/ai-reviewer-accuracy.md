@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 21 | 17 | 4 | 17 | 81% | 50% |
-| cubic-dev-ai[bot] | 16 | 13 | 3 | 20 | 81% | 39% |
-| coderabbitai[bot] | 33 | 21 | 12 | 13 | 64% | 62% |
+| greptile-apps[bot] | 23 | 19 | 4 | 18 | 83% | 51% |
+| cubic-dev-ai[bot] | 17 | 14 | 3 | 22 | 82% | 39% |
+| coderabbitai[bot] | 36 | 23 | 13 | 14 | 64% | 62% |
 
 ## Log
 
@@ -134,3 +134,13 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #144 | coderabbitai[bot] | Reject | Extract save dialog setup helper — 3 tests is acceptable repetition per project guidelines |
 | #144 | coderabbitai[bot] | Miss | Did not flag weak canvas size assertions (32×32, 24×24) |
 | #144 | coderabbitai[bot] | Miss | Did not flag weak preset size assertion (32) |
+| #146 | coderabbitai[bot] | Accept | `curl \| sh` wasm-pack installer — replace with pinned `cargo install --locked` |
+| #146 | coderabbitai[bot] | Accept | `bun install --frozen-lockfile` for deterministic CI |
+| #146 | coderabbitai[bot] | Reject | Pin `ubuntu-latest` and `rust-toolchain@stable` (nitpick) — low-risk for current scope |
+| #146 | coderabbitai[bot] | Miss | Did not flag missing dependency caching |
+| #146 | greptile-apps[bot] | Accept | `curl \| sh` wasm-pack installer (duplicate of coderabbit) |
+| #146 | greptile-apps[bot] | Accept | Missing dependency caching for cargo, wasm/target, Playwright |
+| #146 | greptile-apps[bot] | Miss | Did not flag `bun install --frozen-lockfile` |
+| #146 | cubic-dev-ai[bot] | Accept | `curl \| sh` wasm-pack installer (duplicate of coderabbit) |
+| #146 | cubic-dev-ai[bot] | Miss | Did not flag `bun install --frozen-lockfile` |
+| #146 | cubic-dev-ai[bot] | Miss | Did not flag missing dependency caching |

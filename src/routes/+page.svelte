@@ -52,6 +52,13 @@
 		<a class="cta" href={localizeHref('/editor')}>{m.landing_cta()}</a>
 	</main>
 
+	<section class="mockup">
+		<picture>
+			<source srcset="/landing/editor-desktop.webp" media="(min-width: 600px)" />
+			<img class="editor-mockup" src="/landing/editor-mobile.webp" alt={m.landing_mockup_alt()} />
+		</picture>
+	</section>
+
 	<section class="features">
 		<h2 class="section-title">{m.landing_section_features()}</h2>
 		<div class="card-grid">
@@ -308,6 +315,33 @@
 
 	.cta:hover {
 		background-color: color-mix(in oklch, var(--ds-accent) 85%, black);
+	}
+
+	.mockup {
+		width: 100%;
+		max-width: 1200px;
+		padding: 0 24px 40px;
+		display: flex;
+		justify-content: center;
+	}
+
+	.editor-mockup {
+		display: block;
+		width: 100%;
+		max-width: 960px;
+		height: auto;
+		border-radius: 10px;
+		border: 1px solid var(--ds-border-subtle);
+	}
+
+	@media (min-width: 600px) {
+		.mockup {
+			padding: 0 120px 80px;
+		}
+
+		.editor-mockup {
+			border-radius: 12px;
+		}
 	}
 
 	.features,

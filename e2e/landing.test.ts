@@ -94,3 +94,12 @@ test.describe('Roadmap section', () => {
 		await expect(page.getByRole('heading', { name: 'Offline App', level: 3 })).toBeVisible();
 	});
 });
+
+test.describe('Editor mockup', () => {
+	test('renders editor preview image', async ({ page }) => {
+		await page.goto('/');
+		const mockup = page.locator('.editor-mockup');
+		await expect(mockup).toBeVisible();
+		await expect(mockup).toHaveAttribute('alt', /DOTORIXEL/i);
+	});
+});

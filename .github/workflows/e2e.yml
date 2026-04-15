@@ -24,7 +24,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            wasm/target
+            target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - uses: actions/cache@v4

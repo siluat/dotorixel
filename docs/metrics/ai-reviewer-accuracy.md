@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 24 | 20 | 4 | 18 | 83% | 53% |
-| cubic-dev-ai[bot] | 17 | 14 | 3 | 23 | 82% | 38% |
-| coderabbitai[bot] | 36 | 23 | 13 | 15 | 64% | 61% |
+| greptile-apps[bot] | 25 | 20 | 5 | 20 | 80% | 50% |
+| cubic-dev-ai[bot] | 19 | 15 | 4 | 24 | 79% | 38% |
+| coderabbitai[bot] | 38 | 24 | 14 | 16 | 63% | 60% |
 
 ## Log
 
@@ -147,3 +147,12 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #146 | greptile-apps[bot] | Accept | `wasm/target` cache path wrong — workspace target is at repo root |
 | #146 | coderabbitai[bot] | Miss | Did not flag `wasm/target` workspace path error |
 | #146 | cubic-dev-ai[bot] | Miss | Did not flag `wasm/target` workspace path error |
+| #148 | coderabbitai[bot] | Accept | Landing row "responsive at 600px" understates 600/1024 breakpoints |
+| #148 | coderabbitai[bot] | Reject | Deeper per-locale E2E assertions (H3, alt) — couples tests to copy; Paraglide compile-time prevents key miss |
+| #148 | cubic-dev-ai[bot] | Accept | Editor mockup test only checks visibility, not asset load (`naturalWidth > 0`) |
+| #148 | cubic-dev-ai[bot] | Reject | Claimed mockup should be decorative (`alt=""`) — image is informative, team provides translated alt |
+| #148 | greptile-apps[bot] | Reject | `color: white` in `.cta` — literal appears in 15+ places across codebase, no `--ds-text-on-accent` token exists |
+| #148 | greptile-apps[bot] | Miss | Did not flag platform-status landing row wording inaccuracy |
+| #148 | greptile-apps[bot] | Miss | Did not flag editor mockup asset-load verification gap |
+| #148 | cubic-dev-ai[bot] | Miss | Did not flag platform-status landing row wording inaccuracy |
+| #148 | coderabbitai[bot] | Miss | Did not flag editor mockup asset-load verification gap |

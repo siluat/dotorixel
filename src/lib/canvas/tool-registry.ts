@@ -52,23 +52,28 @@ export function constrainSquare(start: CanvasCoords, end: CanvasCoords): CanvasC
 export interface ToolDef {
 	readonly cursor: string;
 	readonly shortcutKey: string;
-	/** Creates the DrawTool instance. Called once when DrawingOps becomes available. */
-	readonly create: (ops: DrawingOps) => DrawTool;
+	/**
+	 * Either a built DrawTool instance (singleton) or a factory that closes over
+	 * DrawingOps. `createAllTools` resolves both shapes uniformly at editor startup.
+	 */
+	readonly tool: DrawTool | ((ops: DrawingOps) => DrawTool);
 }
+
+// ── Registry ───────────────────────────────────────────────────────
 
 /**
  * Single source of truth for all tool definitions.
  * Keys determine ToolType union and toolbar display order.
  */
 const TOOL_DEFS = {
-	pencil: { cursor: 'crosshair', shortcutKey: 'P', create: (ops: DrawingOps) => createPencilTool(ops) },
-	eraser: { cursor: 'crosshair', shortcutKey: 'E', create: (ops: DrawingOps) => createEraserTool(ops) },
-	line: { cursor: 'crosshair', shortcutKey: 'L', create: (ops: DrawingOps) => createShapeTool(ops, 'line', ops.interpolatePixels, constrainLine) },
-	rectangle: { cursor: 'crosshair', shortcutKey: 'U', create: (ops: DrawingOps) => createShapeTool(ops, 'rectangle', ops.rectangleOutline, constrainSquare) },
-	ellipse: { cursor: 'crosshair', shortcutKey: 'O', create: (ops: DrawingOps) => createShapeTool(ops, 'ellipse', ops.ellipseOutline, constrainSquare) },
-	floodfill: { cursor: 'crosshair', shortcutKey: 'F', create: (ops: DrawingOps) => createFloodfillTool(ops) },
-	eyedropper: { cursor: 'crosshair', shortcutKey: 'I', create: (_ops: DrawingOps) => eyedropperTool },
-	move: { cursor: 'move', shortcutKey: 'V', create: (_ops: DrawingOps) => moveTool },
+	pencil:     { cursor: 'crosshair', shortcutKey: 'P', tool: createPencilTool },
+	eraser:     { cursor: 'crosshair', shortcutKey: 'E', tool: createEraserTool },
+	line:       { cursor: 'crosshair', shortcutKey: 'L', tool: (ops) => createShapeTool(ops, 'line',      ops.interpolatePixels, constrainLine) },
+	rectangle:  { cursor: 'crosshair', shortcutKey: 'U', tool: (ops) => createShapeTool(ops, 'rectangle', ops.rectangleOutline,  constrainSquare) },
+	ellipse:    { cursor: 'crosshair', shortcutKey: 'O', tool: (ops) => createShapeTool(ops, 'ellipse',   ops.ellipseOutline,    constrainSquare) },
+	floodfill:  { cursor: 'crosshair', shortcutKey: 'F', tool: createFloodfillTool },
+	eyedropper: { cursor: 'crosshair', shortcutKey: 'I', tool: eyedropperTool },
+	move:       { cursor: 'move',      shortcutKey: 'V', tool: moveTool }
 } as const satisfies Record<string, ToolDef>;
 
 // ── Derived exports ────────────────────────────────────────────────
@@ -87,7 +92,10 @@ export function getToolDef(type: ToolType): ToolDef {
 /** Instantiate all DrawTool instances. Called once at editor startup. */
 export function createAllTools(ops: DrawingOps): Record<ToolType, DrawTool> {
 	return Object.fromEntries(
-		TOOL_TYPES.map((type) => [type, TOOL_DEFS[type].create(ops)])
+		TOOL_TYPES.map((type) => {
+			const t: ToolDef['tool'] = TOOL_DEFS[type].tool;
+			return [type, typeof t === 'function' ? t(ops) : t];
+		})
 	) as Record<ToolType, DrawTool>;
 }
 

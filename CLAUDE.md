@@ -108,7 +108,8 @@ When a task item is completed, notify the user and suggest using the `/task-done
 <optional body>
 ```
 
-- **type**: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`
+- **type**: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `design`
+  - Use `design` for commits that only change design spec files (`.pen`). When a commit mixes `.pen` changes with implementation, classify by the implementation change (e.g., `feat`).
 - **subject**: lowercase, no period, imperative mood
 - **body**: only when additional context is needed
 - scope: introduce when the project grows enough to need it

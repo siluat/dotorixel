@@ -226,11 +226,29 @@
 	}
 
 	.lang-nav {
+		width: 100%;
+		max-width: 1200px;
+		box-sizing: border-box;
 		padding: calc(24px + env(safe-area-inset-top, 0px)) 24px 24px;
 		font-size: 14px;
 		display: flex;
+		justify-content: flex-end;
 		gap: 8px;
 		align-items: center;
+	}
+
+	@media (min-width: 600px) {
+		.lang-nav {
+			padding-left: 48px;
+			padding-right: 48px;
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.lang-nav {
+			padding-left: 120px;
+			padding-right: 120px;
+		}
 	}
 
 	.lang-nav a {
@@ -256,6 +274,14 @@
 		align-items: center;
 		color: var(--ds-text-tertiary);
 		margin-left: 8px;
+	}
+
+	.github-link svg {
+		/* Flex centering aligns geometric centers, but text's optical center
+		   sits above its line-box center (descenders pull the bbox down).
+		   Nudge the icon up so it lines up with the visual midline of the
+		   adjacent language text. */
+		transform: translateY(-1px);
 	}
 
 	.github-link:hover {
@@ -334,6 +360,12 @@
 
 	@media (min-width: 600px) {
 		.mockup {
+			padding: 0 48px 80px;
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.mockup {
 			padding: 0 120px 80px;
 		}
 	}
@@ -403,8 +435,8 @@
 	@media (min-width: 600px) {
 		.features,
 		.roadmap {
-			padding: 0 120px 100px;
-			gap: 40px;
+			padding: 0 48px 80px;
+			gap: 32px;
 		}
 
 		.section-title {
@@ -412,8 +444,8 @@
 		}
 
 		.card-grid {
-			grid-template-columns: repeat(3, 1fr);
-			gap: 24px;
+			max-width: 560px;
+			gap: 20px;
 		}
 
 		.card {
@@ -432,6 +464,20 @@
 
 		.card-desc {
 			font-size: 14px;
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.features,
+		.roadmap {
+			padding: 0 120px 100px;
+			gap: 40px;
+		}
+
+		.card-grid {
+			grid-template-columns: repeat(3, 1fr);
+			max-width: none;
+			gap: 24px;
 		}
 	}
 </style>

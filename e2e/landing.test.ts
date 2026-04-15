@@ -64,3 +64,13 @@ test.describe('CTA button', () => {
 		await expect(cta).toHaveAttribute('href', /\/ko\/editor/);
 	});
 });
+
+test.describe('GitHub link', () => {
+	test('nav GitHub link points to repo and opens in new tab', async ({ page }) => {
+		await page.goto('/');
+		const gh = page.getByRole('link', { name: 'GitHub repository' });
+		await expect(gh).toHaveAttribute('href', 'https://github.com/siluat/dotorixel');
+		await expect(gh).toHaveAttribute('target', '_blank');
+		await expect(gh).toHaveAttribute('rel', 'noopener noreferrer');
+	});
+});

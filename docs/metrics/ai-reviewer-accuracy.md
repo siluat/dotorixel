@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 23 | 19 | 4 | 18 | 83% | 51% |
-| cubic-dev-ai[bot] | 17 | 14 | 3 | 22 | 82% | 39% |
-| coderabbitai[bot] | 36 | 23 | 13 | 14 | 64% | 62% |
+| greptile-apps[bot] | 24 | 20 | 4 | 18 | 83% | 53% |
+| cubic-dev-ai[bot] | 17 | 14 | 3 | 23 | 82% | 38% |
+| coderabbitai[bot] | 36 | 23 | 13 | 15 | 64% | 61% |
 
 ## Log
 
@@ -144,3 +144,6 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #146 | cubic-dev-ai[bot] | Accept | `curl \| sh` wasm-pack installer (duplicate of coderabbit) |
 | #146 | cubic-dev-ai[bot] | Miss | Did not flag `bun install --frozen-lockfile` |
 | #146 | cubic-dev-ai[bot] | Miss | Did not flag missing dependency caching |
+| #146 | greptile-apps[bot] | Accept | `wasm/target` cache path wrong — workspace target is at repo root |
+| #146 | coderabbitai[bot] | Miss | Did not flag `wasm/target` workspace path error |
+| #146 | cubic-dev-ai[bot] | Miss | Did not flag `wasm/target` workspace path error |

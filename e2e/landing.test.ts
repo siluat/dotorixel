@@ -103,3 +103,17 @@ test.describe('Editor mockup', () => {
 		await expect(mockup).toHaveAttribute('alt', /DOTORIXEL/i);
 	});
 });
+
+test.describe('Localized sections', () => {
+	test('/ko/ renders Features and Roadmap titles in Korean', async ({ page }) => {
+		await page.goto('/ko/');
+		await expect(page.getByRole('heading', { name: '기능', level: 2 })).toBeVisible();
+		await expect(page.getByRole('heading', { name: '로드맵', level: 2 })).toBeVisible();
+	});
+
+	test('/ja/ renders Features and Roadmap titles in Japanese', async ({ page }) => {
+		await page.goto('/ja/');
+		await expect(page.getByRole('heading', { name: '機能', level: 2 })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'ロードマップ', level: 2 })).toBeVisible();
+	});
+});

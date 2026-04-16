@@ -182,3 +182,33 @@ test.describe('Explicit locale choice persists', () => {
 		await context.close();
 	});
 });
+
+test.describe('Locale persistence guard (non-primary clicks)', () => {
+	// Regression defense: when a user middle-clicks or modifier-clicks the
+	// language selector, the browser opens the link in a new tab/window — a
+	// preview gesture, not a locale commitment. `onclick` still fires, so the
+	// handler must skip persistence; otherwise the next `/` visit auto-detects
+	// the previewed locale even though the user never switched.
+	//
+	// Paraglide's localStorage strategy writes the resolved locale during
+	// hydration (so localStorage often contains `'en'` after load), which is
+	// unrelated to our click guard. The assertion therefore targets the exact
+	// regression: the Korean-link click must not persist `'ko'`.
+	test('middle-click on 한국어 does not persist ko', async ({ page }) => {
+		await page.goto('/');
+		await page
+			.getByRole('link', { name: '한국어' })
+			.dispatchEvent('click', { button: 1 });
+		const stored = await page.evaluate(() => localStorage.getItem('PARAGLIDE_LOCALE'));
+		expect(stored).not.toBe('ko');
+	});
+
+	test('modifier-key click on 한국어 does not persist ko', async ({ page }) => {
+		await page.goto('/');
+		await page
+			.getByRole('link', { name: '한국어' })
+			.dispatchEvent('click', { button: 0, metaKey: true });
+		const stored = await page.evaluate(() => localStorage.getItem('PARAGLIDE_LOCALE'));
+		expect(stored).not.toBe('ko');
+	});
+});

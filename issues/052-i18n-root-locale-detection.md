@@ -37,7 +37,7 @@ Adopt Paraglide's recommended SPA configuration using the `routeStrategies` opti
 
 ## Key Scenarios
 
-1. Korean-preference browser visits `/` for the first time → landing renders in Korean; URL reflects the localized path (`/ko/`) after Paraglide's `setLocale`-driven navigation settles.
+1. Korean-preference browser visits `/` for the first time → landing renders in Korean; URL stays `/` (auto-detection is silent — no navigation, `preferredLanguage` resolves the locale at render time because the `url` strategy is excluded on `/`).
 2. User opens a shared link `/ko/editor` → editor opens in Korean regardless of browser preference (URL wins over `preferredLanguage`, localStorage is empty on first visit).
 3. Korean-preference user at `/ko/` clicks the "English" link → `setLocale('en')` persists `en` to localStorage and navigates to `/`. No bounce back to `/ko/` because localStorage now wins.
 4. User returns next session with the same browser but a new tab → localStorage yields the previously chosen locale immediately; `preferredLanguage` is skipped.

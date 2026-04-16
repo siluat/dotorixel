@@ -15,6 +15,20 @@
 			localStorage.setItem(localStorageKey, locale);
 		}
 	}
+
+	// Gate `persistLocale` on same-tab clicks only. Middle-click and modifier-key
+	// clicks (Cmd/Ctrl/Shift/Alt) open the link in a new tab or window — the user
+	// is previewing the locale, not committing. Writing to localStorage there would
+	// flip auto-detection on their next `/` visit even though they never switched.
+	function opensInSameTab(event: MouseEvent): boolean {
+		return (
+			event.button === 0 &&
+			!event.metaKey &&
+			!event.ctrlKey &&
+			!event.shiftKey &&
+			!event.altKey
+		);
+	}
 </script>
 
 <div class="landing">
@@ -27,7 +41,9 @@
 				<a
 					href={localizeHref('/', { locale })}
 					data-sveltekit-reload
-					onclick={() => persistLocale(locale)}
+					onclick={(e) => {
+						if (opensInSameTab(e)) persistLocale(locale);
+					}}
 				>{localeLabels[locale]}</a>
 			{/if}
 		{/each}

@@ -1,12 +1,20 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages';
-	import { getLocale, locales, localizeHref } from '$lib/paraglide/runtime';
+	import { getLocale, locales, localizeHref, localStorageKey } from '$lib/paraglide/runtime';
 
 	const localeLabels: Record<string, string> = {
 		en: 'English',
 		ko: '한국어',
 		ja: '日本語',
 	};
+
+	// Persist the user's explicit locale choice so it wins over `preferredLanguage`
+	// on subsequent visits. Paraglide's localStorage strategy reads the same key.
+	function persistLocale(locale: string) {
+		if (typeof localStorage !== 'undefined') {
+			localStorage.setItem(localStorageKey, locale);
+		}
+	}
 </script>
 
 <div class="landing">
@@ -16,7 +24,11 @@
 			{#if locale === getLocale()}
 				<strong>{localeLabels[locale]}</strong>
 			{:else}
-				<a href={localizeHref('/', { locale })} data-sveltekit-reload>{localeLabels[locale]}</a>
+				<a
+					href={localizeHref('/', { locale })}
+					data-sveltekit-reload
+					onclick={() => persistLocale(locale)}
+				>{localeLabels[locale]}</a>
 			{/if}
 		{/each}
 		<a

@@ -81,7 +81,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Internationalization | — | ✅ | ⬜ | Paraglide.js, URL path routing (`/en/`, `/ko/`, `/ja/`) |
+| Internationalization | — | ✅ | ⬜ | Paraglide.js, URL path routing (`/ko/`, `/ja/`; root `/` for EN); root auto-detects browser language, explicit choice persists via localStorage |
 
 ## Analytics
 

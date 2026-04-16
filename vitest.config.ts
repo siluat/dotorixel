@@ -12,7 +12,14 @@ export default defineConfig({
 		paraglideVitePlugin({
 			project: './project.inlang',
 			outdir: './src/lib/paraglide',
-			strategy: ['url', 'preferredLanguage', 'baseLocale']
+			// Must mirror vite.config.ts — see issues/052-i18n-root-locale-detection.md.
+			strategy: ['localStorage', 'url', 'preferredLanguage', 'baseLocale'],
+			routeStrategies: [
+				{
+					match: '/',
+					strategy: ['localStorage', 'preferredLanguage', 'baseLocale']
+				}
+			]
 		})
 	],
 	resolve: {

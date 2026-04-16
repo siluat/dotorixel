@@ -1,12 +1,34 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages';
-	import { getLocale, locales, localizeHref } from '$lib/paraglide/runtime';
+	import { getLocale, locales, localizeHref, localStorageKey } from '$lib/paraglide/runtime';
 
 	const localeLabels: Record<string, string> = {
 		en: 'English',
 		ko: '한국어',
 		ja: '日本語',
 	};
+
+	// Persist the user's explicit locale choice so it wins over `preferredLanguage`
+	// on subsequent visits. Paraglide's localStorage strategy reads the same key.
+	function persistLocale(locale: string) {
+		if (typeof localStorage !== 'undefined') {
+			localStorage.setItem(localStorageKey, locale);
+		}
+	}
+
+	// Gate `persistLocale` on same-tab clicks only. Middle-click and modifier-key
+	// clicks (Cmd/Ctrl/Shift/Alt) open the link in a new tab or window — the user
+	// is previewing the locale, not committing. Writing to localStorage there would
+	// flip auto-detection on their next `/` visit even though they never switched.
+	function opensInSameTab(event: MouseEvent): boolean {
+		return (
+			event.button === 0 &&
+			!event.metaKey &&
+			!event.ctrlKey &&
+			!event.shiftKey &&
+			!event.altKey
+		);
+	}
 </script>
 
 <div class="landing">
@@ -16,7 +38,13 @@
 			{#if locale === getLocale()}
 				<strong>{localeLabels[locale]}</strong>
 			{:else}
-				<a href={localizeHref('/', { locale })} data-sveltekit-reload>{localeLabels[locale]}</a>
+				<a
+					href={localizeHref('/', { locale })}
+					data-sveltekit-reload
+					onclick={(e) => {
+						if (opensInSameTab(e)) persistLocale(locale);
+					}}
+				>{localeLabels[locale]}</a>
 			{/if}
 		{/each}
 		<a

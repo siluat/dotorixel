@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
 
+// Pin the default browser locale for tests below so that existing assertions
+// remain stable regardless of the host OS language. Tests that exercise
+// browser-preference behavior create their own context explicitly.
+test.use({ locale: 'en-US' });
+
 test.describe('Landing page', () => {
 	test('/ shows English landing page', async ({ page }) => {
 		await page.goto('/');
@@ -123,5 +128,87 @@ test.describe('Localized sections', () => {
 		await page.goto('/ja/');
 		await expect(page.getByRole('heading', { name: '機能', level: 2 })).toBeVisible();
 		await expect(page.getByRole('heading', { name: 'ロードマップ', level: 2 })).toBeVisible();
+	});
+});
+
+test.describe('Auto locale detection on root', () => {
+	test('Korean browser preference renders / in Korean', async ({ browser }) => {
+		const context = await browser.newContext({ locale: 'ko-KR' });
+		const page = await context.newPage();
+		await page.goto('/');
+		await expect(page.locator('.tagline')).toHaveText('픽셀 아트 에디터');
+		await context.close();
+	});
+
+	test('Japanese browser preference renders / in Japanese', async ({ browser }) => {
+		const context = await browser.newContext({ locale: 'ja-JP' });
+		const page = await context.newPage();
+		await page.goto('/');
+		await expect(page.locator('.tagline')).toHaveText('ピクセルアートエディター');
+		await context.close();
+	});
+
+	test('explicit /ja/ URL wins over Korean browser preference', async ({ browser }) => {
+		const context = await browser.newContext({ locale: 'ko-KR' });
+		const page = await context.newPage();
+		await page.goto('/ja/');
+		await expect(page.locator('.tagline')).toHaveText('ピクセルアートエディター');
+		await context.close();
+	});
+});
+
+test.describe('Explicit locale choice persists', () => {
+	test('clicking English from / persists en; subsequent visits stay English despite Korean preference', async ({ browser }) => {
+		const context = await browser.newContext({ locale: 'ko-KR' });
+		const page = await context.newPage();
+
+		// First visit: auto-detected Korean.
+		await page.goto('/');
+		await expect(page.locator('.tagline')).toHaveText('픽셀 아트 에디터');
+
+		// User explicitly picks English.
+		await page.getByRole('link', { name: 'English' }).click();
+		await page.waitForURL('**/');
+		await expect(page.locator('.tagline')).toHaveText('Pixel Art Editor');
+
+		// localStorage records the choice under Paraglide's key.
+		const stored = await page.evaluate(() => localStorage.getItem('PARAGLIDE_LOCALE'));
+		expect(stored).toBe('en');
+
+		// Re-visit root: localStorage wins over preferredLanguage.
+		await page.goto('/');
+		await expect(page.locator('.tagline')).toHaveText('Pixel Art Editor');
+
+		await context.close();
+	});
+});
+
+test.describe('Locale persistence guard (non-primary clicks)', () => {
+	// Regression defense: when a user middle-clicks or modifier-clicks the
+	// language selector, the browser opens the link in a new tab/window — a
+	// preview gesture, not a locale commitment. `onclick` still fires, so the
+	// handler must skip persistence; otherwise the next `/` visit auto-detects
+	// the previewed locale even though the user never switched.
+	//
+	// Paraglide's localStorage strategy writes the resolved locale during
+	// hydration (so localStorage often contains `'en'` after load), which is
+	// unrelated to our click guard. The assertion therefore targets the exact
+	// regression: the Korean-link click must not persist `'ko'`.
+	test('middle-click on 한국어 does not persist ko', async ({ page }) => {
+		await page.goto('/');
+		await page
+			.getByRole('link', { name: '한국어' })
+			.dispatchEvent('click', { button: 1 });
+		const stored = await page.evaluate(() => localStorage.getItem('PARAGLIDE_LOCALE'));
+		expect(stored).not.toBe('ko');
+	});
+
+	test('modifier-key click on 한국어 does not persist ko', async ({ page }) => {
+		await page.goto('/');
+		await page
+			.getByRole('link', { name: '한국어' })
+			.dispatchEvent('click', { button: 0, metaKey: true });
+		const stored = await page.evaluate(() => localStorage.getItem('PARAGLIDE_LOCALE'));
+		expect(stored).not.toBe('ko');
 	});
 });

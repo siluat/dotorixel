@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 25 | 20 | 5 | 20 | 80% | 50% |
-| cubic-dev-ai[bot] | 19 | 15 | 4 | 24 | 79% | 38% |
-| coderabbitai[bot] | 38 | 24 | 14 | 16 | 63% | 60% |
+| greptile-apps[bot] | 26 | 21 | 5 | 21 | 81% | 50% |
+| cubic-dev-ai[bot] | 20 | 16 | 4 | 25 | 80% | 39% |
+| coderabbitai[bot] | 39 | 25 | 14 | 17 | 64% | 60% |
 
 ## Log
 
@@ -156,3 +156,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #148 | greptile-apps[bot] | Miss | Did not flag editor mockup asset-load verification gap |
 | #148 | cubic-dev-ai[bot] | Miss | Did not flag platform-status landing row wording inaccuracy |
 | #148 | coderabbitai[bot] | Miss | Did not flag editor mockup asset-load verification gap |
+| #149 | greptile-apps[bot] | Accept | `onclick` writes locale on middle-click / modifier-click — should guard non-primary clicks |
+| #149 | coderabbitai[bot] | Accept | Scenario #1 says URL becomes `/ko/` but `routeStrategies` keeps URL at `/` |
+| #149 | cubic-dev-ai[bot] | Accept | Scenario #1 URL inconsistency (duplicate of coderabbit) |
+| #149 | greptile-apps[bot] | Miss | Did not flag Scenario #1 URL inconsistency |
+| #149 | coderabbitai[bot] | Miss | Did not flag middle-click localStorage write on language selector |
+| #149 | cubic-dev-ai[bot] | Miss | Did not flag middle-click localStorage write on language selector |

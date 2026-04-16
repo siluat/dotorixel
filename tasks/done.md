@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 052 | [Fix automatic locale detection for root URL visitors](../issues/052-i18n-root-locale-detection.md) | 2026-04-16 |
 | 051 | [Landing page UI — hero, features, roadmap (web)](../issues/051-landing-page-ui.md) | 2026-04-15 |
 | — | E2E test coverage for editor workflows (6 test suites, 33 tests) | 2026-04-13 |
 | 050 | [Encapsulate flood_fill as a PixelCanvas method](../issues/050-encapsulate-flood-fill.md) | 2026-04-13 |

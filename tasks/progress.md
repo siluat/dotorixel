@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-Landing page UI — hero, features, roadmap (web) ([PRD](../issues/051-landing-page-ui.md))
+Fix automatic locale detection for root URL visitors ([issue](../issues/052-i18n-root-locale-detection.md))
 
 ## Next Up
 

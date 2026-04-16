@@ -194,21 +194,39 @@ test.describe('Locale persistence guard (non-primary clicks)', () => {
 	// hydration (so localStorage often contains `'en'` after load), which is
 	// unrelated to our click guard. The assertion therefore targets the exact
 	// regression: the Korean-link click must not persist `'ko'`.
+	// A synthetic primary-button click on an anchor still triggers the browser's
+	// default navigation, which races the follow-up `page.evaluate` — on slower
+	// CI runners the context is destroyed before the read lands. Dispatching the
+	// event and reading `localStorage` inside a single `evaluate` keeps both
+	// steps in one synchronous browser turn, before any navigation task runs.
 	test('middle-click on 한국어 does not persist ko', async ({ page }) => {
 		await page.goto('/');
-		await page
+		const stored = await page
 			.getByRole('link', { name: '한국어' })
-			.dispatchEvent('click', { button: 1 });
-		const stored = await page.evaluate(() => localStorage.getItem('PARAGLIDE_LOCALE'));
+			.evaluate((el) => {
+				el.dispatchEvent(
+					new MouseEvent('click', { button: 1, bubbles: true, cancelable: true }),
+				);
+				return localStorage.getItem('PARAGLIDE_LOCALE');
+			});
 		expect(stored).not.toBe('ko');
 	});
 
 	test('modifier-key click on 한국어 does not persist ko', async ({ page }) => {
 		await page.goto('/');
-		await page
+		const stored = await page
 			.getByRole('link', { name: '한국어' })
-			.dispatchEvent('click', { button: 0, metaKey: true });
-		const stored = await page.evaluate(() => localStorage.getItem('PARAGLIDE_LOCALE'));
+			.evaluate((el) => {
+				el.dispatchEvent(
+					new MouseEvent('click', {
+						button: 0,
+						metaKey: true,
+						bubbles: true,
+						cancelable: true,
+					}),
+				);
+				return localStorage.getItem('PARAGLIDE_LOCALE');
+			});
 		expect(stored).not.toBe('ko');
 	});
 });

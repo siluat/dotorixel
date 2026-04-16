@@ -2,7 +2,13 @@
 
 ## Milestone 2: Production UIUX
 
-- Color picker loupe — magnify area around pointer (mouse + touch) during color sampling for pixel-level precision
+- Color picker loupe — magnify area around pointer (mouse + touch) during color sampling for pixel-level precision — [PRD](../issues/063-color-picker-loupe.md)
+
+  - [064 — design spec](../issues/064-color-picker-loupe-design.md) (HITL)
+  - [065 — drag-and-commit eyedropper + basic loupe](../issues/065-color-picker-loupe-drag-commit.md)
+  - [066 — out-of-canvas + transparent rendering](../issues/066-color-picker-loupe-edge-rendering.md)
+  - [067 — quadrant flip positioning](../issues/067-color-picker-loupe-positioning.md)
+  - [068 — long-press touch entry](../issues/068-color-picker-loupe-long-press.md)
 - Pixel-perfect drawing — remove double-pixels at stroke joints
 
 ## Milestone 3: Editor for Serious Work

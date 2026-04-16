@@ -2,11 +2,24 @@
 
 ## Milestone 2: Production UIUX
 
-### Multi-image workflow
+- Color picker loupe — magnify area around pointer (mouse + touch) during color sampling for pixel-level precision
+- Pixel-perfect drawing — remove double-pixels at stroke joints
 
 ## Milestone 3: Editor for Serious Work
 
+- Floating reference image windows (import from Files/Photos, reposition/minimize, color sampling) — inspired by Pixquare — [PRD](../issues/053-floating-reference-window.md)
+
+  - [054 — UI design spec](../issues/054-reference-images-design.md) (HITL)
+  - [055 — gallery foundation](../issues/055-reference-images-gallery-foundation.md)
+  - [056 — display on canvas + close](../issues/056-reference-images-display-close.md)
+  - [057 — move + resize](../issues/057-reference-images-move-resize.md)
+  - [058 — minimize (window-shade)](../issues/058-reference-images-minimize.md)
+  - [059 — z-order + cascade](../issues/059-reference-images-z-order-cascade.md)
+  - [060 — Eyedropper sampling](../issues/060-reference-images-eyedropper-sampling.md)
+  - [061 — long-press sampling](../issues/061-reference-images-long-press-sampling.md)
+  - [062 — drag-drop import](../issues/062-reference-images-drag-drop-import.md)
 - Layer system: basic infrastructure (add/delete/reorder)
+- Reference Layer type (import image as non-editable layer, rasterize, restore original size) — rides on layer system
 - Layer properties (visibility toggle, opacity control)
 - Selection tool (rectangle select + move)
 - Copy/paste
@@ -56,6 +69,8 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 
 ## Review backlog (not assigned to a milestone)
 
+- Reference image window polish — opacity slider, lock toggle, flip H/V, rotate (deferred from Milestone 3 MVP)
+- Reference image import — clipboard paste support (Ctrl/Cmd+V), deferred from Milestone 3 MVP
 - Design: share artwork dialog — URL sharing dialog UI (.pen)
 - Share artwork via URL
 - FG/BG swap UI improvements
@@ -63,6 +78,8 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 - Document error conditions on `PixelCanvas` public API — `new`, `with_color`, `from_pixels`, `restore_pixels` all return `Result` but only document partial constraints; add `Err` variant descriptions per Rust API Guidelines C-FAILURE
 - IndexedDB quota exceeded error handling — auto-save silently fails when storage is full; show user-facing notification with actionable guidance
 - Document rename — allow renaming documents from tab and saved work browser
+- Canvas resize via border drag — drag canvas edges to change canvas dimensions
+- Timelapse recording — capture drawing process for playback/export
 
 ## Future triggers
 

@@ -10,6 +10,10 @@ Fix automatic locale detection for root URL visitors ([issue](../issues/052-i18n
 
 ## Next Up
 
+- Color picker loupe (Milestone 2)
+  - Needs PRD. Run /write-a-prd to start.
+- Pixel-perfect drawing (Milestone 2)
+  - Needs PRD. Run /write-a-prd to start.
 - 018 — RightPanel (Apple Native)
   - Independent. Can start immediately.
 - 019 — StatusBar (Apple Native)

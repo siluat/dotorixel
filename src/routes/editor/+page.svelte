@@ -297,6 +297,7 @@
 				onLongPress={editor.handleLongPress}
 				toolCursor={editor.toolCursor}
 				isSpaceHeld={editor.isSpaceHeld}
+				samplingSession={editor.samplingSession}
 			/>
 		</div>
 
@@ -358,6 +359,7 @@
 						onLongPress={editor.handleLongPress}
 						toolCursor={editor.toolCursor}
 						isSpaceHeld={editor.isSpaceHeld}
+						samplingSession={editor.samplingSession}
 					/>
 				</div>
 			{:else if activeTab === 'colors'}

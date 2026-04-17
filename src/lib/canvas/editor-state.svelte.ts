@@ -6,6 +6,7 @@ import { colorToHex, hexToColor, addRecentColor, type Color } from './color';
 import { SharedState } from './shared-state.svelte';
 import { exportAsPng } from './export';
 import { createKeyboardInput, type KeyboardInput } from './keyboard-input.svelte';
+import { createSamplingSession, type SamplingSession } from './sampling-session.svelte';
 import { createToolRunner, type ToolRunner, type EditorEffects } from './tool-runner.svelte';
 
 function assertNever(x: never): never {
@@ -29,6 +30,7 @@ export class EditorState {
 	readonly shared: SharedState;
 	readonly name: string;
 	readonly documentId: string;
+	readonly samplingSession: SamplingSession;
 	pixelCanvas = $state<PixelCanvas>(null!);
 	viewportSize = $state<ViewportSize>({ width: 512, height: 512 });
 	viewport = $state<ViewportData>(null!);
@@ -156,6 +158,8 @@ export class EditorState {
 		const self = this;
 		let keyboardRef: KeyboardInput | null = null;
 
+		this.samplingSession = createSamplingSession(() => self.pixelCanvas);
+
 		this.#toolRunner = createToolRunner({
 			host: {
 				get pixelCanvas() {
@@ -169,7 +173,8 @@ export class EditorState {
 				}
 			},
 			shared: this.shared,
-			getShiftHeld: () => keyboardRef?.isShiftHeld ?? false
+			getShiftHeld: () => keyboardRef?.isShiftHeld ?? false,
+			samplingSession: this.samplingSession
 		});
 
 		// Step 2: Create KeyboardInput (toolRunner is initialized — callbacks are safe)

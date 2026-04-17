@@ -1,6 +1,6 @@
 ---
 title: Color picker loupe — drag-and-commit eyedropper + basic loupe
-status: open
+status: done
 created: 2026-04-16
 parent: 063-color-picker-loupe.md
 ---
@@ -43,3 +43,34 @@ See parent PRD §"Implementation Decisions" → "Modules — New" / "Modules —
 - Scenario 4
 - Scenario 12 (default behavior — loupe appears regardless of canvas zoom; no suppression code needed)
 - Scenario 13 (default behavior — only `liveSample` tool kind opens the session)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/draw-tool.ts` | Added `LiveSampleTool` kind to the `DrawTool` discriminated union. |
+| `src/lib/canvas/sample-grid.ts` + `.test.ts` | New pure function returning an N×N row-major flat array of RGBA values around a target pixel; clamps to canvas bounds at edges. |
+| `src/lib/canvas/sampling-session.svelte.ts` + `.test.ts` | New session controller with `start`/`update`/`commit`/`cancel`; owns `isActive`/`grid`/`centerColor`/`targetPixel`/`commitTarget`. Shared `reset()` helper called by both `commit()` and `cancel()` so `isActive` always returns to false after a session ends. |
+| `src/lib/canvas/tool-runner.svelte.ts` + `.test.ts` | Added `liveSampleLifecycle` factory mirroring existing four lifecycles; deferred `start` until first `draw` so the session gets its initial target pixel. |
+| `src/lib/canvas/tools/eyedropper-tool.ts` | Converted from `OneShotTool` to `LiveSampleTool`; prior `applyTo` transparent-skip logic migrated into `sampling-session.commit()`. |
+| `src/lib/canvas/editor-state.svelte.ts` | Exposes `samplingSession` on the editor facade for `tool-runner` and `PixelCanvasView`. |
+| `src/lib/canvas/PixelCanvasView.svelte` | Renders the Loupe overlay when `samplingSession.isActive`; tracks viewport-relative `screenPointer` on every pointer event. |
+| `src/lib/ui-editor/Loupe.svelte` + `.svelte.test.ts` | New overlay component. Plain props (`grid`/`centerColor`/`screenPointer`); 9×9 grid with gap-as-gridline technique; center cell highlighted by a white-inside + black-outside double ring; hex chip shows uppercase hex (or em-dash for transparent / out-of-canvas). `--cell-size` and `--pointer-offset` component-scoped tokens. |
+| `src/routes/editor/+page.svelte` | Passes `samplingSession={editor.samplingSession}` into both docked-layout and tabs-layout `<PixelCanvasView>` instances. |
+| `e2e/editor/drawing.test.ts` | Added Playwright test: eyedropper drag from pixel A to pixel B commits the color at the drag endpoint (B), not the starting pixel (A); loupe visible mid-drag, torn down on release. |
+| `.claude/launch.json` | Added `dev-preview` config on port 5174 so the Claude Preview MCP can run a second Vite instance without conflicting with the developer's own `bun run dev`. |
+
+### Key Decisions
+
+- **`LiveSampleTool` as a new tool kind** rather than overloading `OneShotTool` — keeps the discriminated union exhaustive and lets `tool-runner`'s `switch(tool.kind)` keep serving as a compile-time completeness check.
+- **`Loupe.svelte` takes plain props (not the session object)** — makes component tests trivial (no session mock), keeps the overlay reusable if a different source ever feeds it a 9×9 grid.
+- **`sampling-session` stays in the web shell, not Rust core** — single-shell use today and `get_pixel` is already called N² times, so FFI overhead would exceed the dedup benefit. Revisit when the Apple shell needs its own loupe.
+- **`commit()` resets via a shared `reset()` helper** (added in-slice after the first user-reported bug). Loupe visibility depends only on `samplingSession.isActive`; both success and no-op commit paths must clear it to prevent a stale grid resurfacing on the next idle pointer move.
+- **`Loupe` derives `centerIndex` from `grid.length`** rather than importing a shared constant — removes the 9×9 assumption from the component so a future configurable grid size doesn't need a coordinated change.
+
+### Notes
+
+- **Loupe can clip at viewport edges** in this slice (fixed upper-right quadrant offset). Quadrant-flip positioning is [issue 067](067-color-picker-loupe-positioning.md)'s responsibility.
+- **Transparent and out-of-canvas cells render with the surface tone** — dedicated checkerboard/hatch styling is deferred to [issue 066](066-color-picker-loupe-edge-rendering.md).
+- **Long-press touch entry** is deferred to [issue 068](068-color-picker-loupe-long-press.md); the `sampling-session` controller was already designed to be shared between the two entry points.
+- **Parent PRD ([063](063-color-picker-loupe.md)) remains open** — sibling slices 066/067/068 still to complete.

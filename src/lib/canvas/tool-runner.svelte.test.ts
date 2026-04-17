@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { createToolRunner, type ToolRunnerHost, type ToolRunnerDeps, type EditorEffects } from './tool-runner.svelte';
+import { createSamplingSession } from './sampling-session.svelte';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
 import type { PixelCanvas } from './canvas-model';
@@ -36,8 +37,9 @@ function createHost(canvas?: PixelCanvas, fg?: Color, bg?: Color): ToolRunnerHos
 function createRunner(canvas?: PixelCanvas, fg?: Color, bg?: Color) {
 	const host = createHost(canvas, fg, bg);
 	const shared = new SharedState();
-	const runner = createToolRunner({ host, shared, getShiftHeld: () => false });
-	return { host, shared, runner };
+	const samplingSession = createSamplingSession(() => host.pixelCanvas);
+	const runner = createToolRunner({ host, shared, getShiftHeld: () => false, samplingSession });
+	return { host, shared, runner, samplingSession };
 }
 
 function getPixel(canvas: PixelCanvas, x: number, y: number) {
@@ -75,29 +77,54 @@ describe('ToolRunner — pencil tool', () => {
 });
 
 describe('ToolRunner — eyedropper tool', () => {
-	it('produces colorPick effect, no canvasChanged', () => {
+	it('commits colorPick on drawEnd, not mid-stroke', () => {
 		const canvas = canvasFactory.create(8, 8);
-		// Paint a red pixel first
-		const { runner, shared } = createRunner(canvas);
-		shared.activeTool = 'pencil';
+		// Paint a red pixel at (2,2) using a separate runner with red foreground
 		const host = { pixelCanvas: canvas, foregroundColor: RED, backgroundColor: WHITE } as ToolRunnerHost;
-		// Use a separate runner with red foreground
 		const shared2 = new SharedState();
-		const runner2 = createToolRunner({ host, shared: shared2, getShiftHeld: () => false });
+		const samplingSession2 = createSamplingSession(() => host.pixelCanvas);
+		const runner2 = createToolRunner({ host, shared: shared2, getShiftHeld: () => false, samplingSession: samplingSession2 });
 		runner2.drawStart(0);
 		runner2.draw({ x: 2, y: 2 }, null);
 		runner2.drawEnd();
 		expect(getPixel(canvas, 2, 2)).toEqual(RED);
 
-		// Now use eyedropper
+		// Eyedropper: no colorPick mid-stroke; commit happens on drawEnd.
+		const { runner, shared } = createRunner(canvas);
 		shared.activeTool = 'eyedropper';
 		runner.drawStart(0);
-		const effects = runner.draw({ x: 2, y: 2 }, null);
-		runner.drawEnd();
+		const drawEffects = runner.draw({ x: 2, y: 2 }, null);
+		expect(hasEffect(drawEffects, 'colorPick')).toBe(false);
 
-		expect(hasEffect(effects, 'colorPick')).toBe(true);
-		expect(hasEffect(effects, 'canvasChanged')).toBe(false);
-		const colorPickEffect = effects.find((e) => e.type === 'colorPick');
+		const endEffects = runner.drawEnd();
+		expect(hasEffect(endEffects, 'colorPick')).toBe(true);
+		expect(hasEffect(endEffects, 'canvasChanged')).toBe(false);
+		const colorPickEffect = endEffects.find((e) => e.type === 'colorPick');
+		expect(colorPickEffect).toEqual({ type: 'colorPick', target: 'foreground', color: RED });
+	});
+
+	it('commits the color at the final drag position, not the starting one', () => {
+		const canvas = canvasFactory.create(8, 8);
+		// Fill the canvas with red at (5,5) using pencil with red foreground
+		const redHost = { pixelCanvas: canvas, foregroundColor: RED, backgroundColor: WHITE } as ToolRunnerHost;
+		const redShared = new SharedState();
+		const redSession = createSamplingSession(() => redHost.pixelCanvas);
+		const redRunner = createToolRunner({ host: redHost, shared: redShared, getShiftHeld: () => false, samplingSession: redSession });
+		redRunner.drawStart(0);
+		redRunner.draw({ x: 5, y: 5 }, null);
+		redRunner.drawEnd();
+		expect(getPixel(canvas, 5, 5)).toEqual(RED);
+		// (0,0) remains transparent
+
+		// Eyedropper drag: start on transparent (0,0), end on red (5,5). Commit should be RED.
+		const { runner, shared } = createRunner(canvas);
+		shared.activeTool = 'eyedropper';
+		runner.drawStart(0);
+		runner.draw({ x: 0, y: 0 }, null);
+		runner.draw({ x: 5, y: 5 }, { x: 0, y: 0 });
+		const endEffects = runner.drawEnd();
+
+		const colorPickEffect = endEffects.find((e) => e.type === 'colorPick');
 		expect(colorPickEffect).toEqual({ type: 'colorPick', target: 'foreground', color: RED });
 	});
 
@@ -271,32 +298,6 @@ describe('ToolRunner — addsActiveColor', () => {
 	});
 });
 
-// ── OneShot guard ─────────────────────────────────────────────────
-
-describe('ToolRunner — oneShot guard', () => {
-	it('eyedropper ignores second draw within same stroke', () => {
-		const canvas = canvasFactory.create(8, 8);
-		const { runner, shared } = createRunner(canvas);
-
-		// Paint pixels with different approach: use floodfill to fill canvas with black
-		shared.activeTool = 'floodfill';
-		runner.drawStart(0);
-		runner.draw({ x: 0, y: 0 }, null);
-		runner.drawEnd();
-
-		// Eyedropper: first draw picks color, second is no-op
-		shared.activeTool = 'eyedropper';
-		runner.drawStart(0);
-		const firstDraw = runner.draw({ x: 0, y: 0 }, null);
-		expect(hasEffect(firstDraw, 'colorPick')).toBe(true);
-
-		const secondDraw = runner.draw({ x: 1, y: 1 }, { x: 0, y: 0 });
-		expect(secondDraw).toEqual([]);
-
-		runner.drawEnd();
-	});
-});
-
 // ── Right-click uses background color ───────────────────────────────
 
 describe('ToolRunner — right-click', () => {
@@ -402,7 +403,8 @@ describe('ToolRunner — canvasReplaced', () => {
 			}
 		};
 		const shared = new SharedState();
-		const runner = createToolRunner({ host, shared, getShiftHeld: () => false });
+		const samplingSession = createSamplingSession(() => host.pixelCanvas);
+		const runner = createToolRunner({ host, shared, getShiftHeld: () => false, samplingSession });
 
 		// Push snapshot of 8x8, then simulate resize by swapping the canvas
 		runner.pushSnapshot();
@@ -466,7 +468,8 @@ describe('ToolRunner — shift constraint', () => {
 		const shared = new SharedState();
 		shared.activeTool = 'line';
 		let shiftHeld = false;
-		const runner = createToolRunner({ host, shared, getShiftHeld: () => shiftHeld });
+		const samplingSession = createSamplingSession(() => host.pixelCanvas);
+		const runner = createToolRunner({ host, shared, getShiftHeld: () => shiftHeld, samplingSession });
 
 		shiftHeld = true;
 		runner.drawStart(0);
@@ -485,7 +488,8 @@ describe('ToolRunner — shift constraint', () => {
 		const shared = new SharedState();
 		shared.activeTool = 'line';
 		let shiftHeld = false;
-		const runner = createToolRunner({ host, shared, getShiftHeld: () => shiftHeld });
+		const samplingSession = createSamplingSession(() => host.pixelCanvas);
+		const runner = createToolRunner({ host, shared, getShiftHeld: () => shiftHeld, samplingSession });
 
 		runner.drawStart(0);
 		runner.draw({ x: 0, y: 0 }, null);

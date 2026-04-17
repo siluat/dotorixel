@@ -4,7 +4,6 @@
 
 - Color picker loupe — magnify area around pointer (mouse + touch) during color sampling for pixel-level precision — [PRD](../issues/063-color-picker-loupe.md)
 
-  - [065 — drag-and-commit eyedropper + basic loupe](../issues/065-color-picker-loupe-drag-commit.md)
   - [066 — out-of-canvas + transparent rendering](../issues/066-color-picker-loupe-edge-rendering.md)
   - [067 — quadrant flip positioning](../issues/067-color-picker-loupe-positioning.md)
   - [068 — long-press touch entry](../issues/068-color-picker-loupe-long-press.md)

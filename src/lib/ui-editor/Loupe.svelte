@@ -3,33 +3,39 @@
 	import { colorToHex } from '$lib/canvas/color';
 
 	interface Props {
-		/** 9×9 row-major grid of sampled colors (81 entries). */
-		grid: readonly Color[];
-		/** Color at the sample target; `null` when the target is out of canvas. */
-		centerColor: Color | null;
+		/**
+		 * 9×9 row-major grid of sampled colors (81 entries). Cells whose
+		 * canvas coordinates fall outside the canvas are `null`; transparent
+		 * pixels are a `Color` with `a === 0`.
+		 */
+		grid: readonly (Color | null)[];
 		/** Pointer position in viewport coordinates; `null` hides the loupe. */
 		screenPointer: { x: number; y: number } | null;
 	}
 
-	let { grid, centerColor, screenPointer }: Props = $props();
+	let { grid, screenPointer }: Props = $props();
 
 	const centerIndex = $derived((grid.length - 1) / 2);
+	// The chip reflects the CURRENT center cell, not the session's preserved
+	// last-opaque color. This keeps the em-dash + patterned swatch honest when
+	// a drag drifts onto null/transparent pixels.
+	const centerCell = $derived<Color | null>(grid[centerIndex] ?? null);
 	const EM_DASH = '—';
 
 	// The authoritative "commit eligible" check lives in sampling-session;
 	// `alpha > 0` is a sufficient UI approximation for the hex chip.
 	const canonicalHex = $derived(
-		centerColor && centerColor.a > 0 ? colorToHex(centerColor) : null
+		centerCell && centerCell.a > 0 ? colorToHex(centerCell) : null
 	);
 	const displayHex = $derived(canonicalHex ? canonicalHex.toUpperCase() : null);
 
 	/**
 	 * Dedicated checkerboard/hatch styling for transparent (a=0) and
-	 * out-of-canvas cells lands in issue 066. This tracer slice falls back
-	 * to the surface tone so the cell still holds its grid position.
+	 * out-of-canvas cells lands in slices E/F. For now both states fall
+	 * back to the surface tone so each cell still holds its grid position.
 	 */
-	function cellFill(color: Color): string {
-		if (color.a === 0) return 'var(--ds-bg-surface)';
+	function cellFill(color: Color | null): string {
+		if (color === null || color.a === 0) return 'var(--ds-bg-surface)';
 		return `rgb(${color.r}, ${color.g}, ${color.b})`;
 	}
 </script>
@@ -47,16 +53,17 @@
 				<div
 					class="cell"
 					class:cell--center={i === centerIndex}
+					class:cell--out-of-canvas={color === null}
+					class:cell--transparent={color !== null && color.a === 0}
 					style:background-color={cellFill(color)}
 				></div>
 			{/each}
 		</div>
 		<div class="chip" data-testid="loupe-hex-chip">
-			<!-- swatch--empty is a hook for issue 066 (checkerboard/hatch fill for
-			     transparent and out-of-canvas center pixels). -->
 			<div
 				class="swatch"
-				class:swatch--empty={canonicalHex === null}
+				class:swatch--out-of-canvas={centerCell === null}
+				class:swatch--transparent={centerCell !== null && centerCell.a === 0}
 				style:background-color={canonicalHex ?? 'var(--ds-bg-surface)'}
 			></div>
 			<span class="hex" class:hex--muted={displayHex === null} data-testid="loupe-hex-text">
@@ -107,6 +114,31 @@
 		height: var(--cell-size);
 	}
 
+	/* Out-of-canvas cells: diagonal hatch (45°) over surface tone so the
+	   user can tell "no pixel here" from "transparent pixel". */
+	.cell--out-of-canvas {
+		background-color: var(--ds-bg-surface);
+		background-image: repeating-linear-gradient(
+			45deg,
+			var(--ds-text-tertiary) 0 2px,
+			transparent 2px 6px
+		);
+	}
+
+	/* Transparent pixels: 2×2 checkerboard of 12px sub-cells (half of cell
+	   size). Literals #FFFFFF / #E0E0E0 match the canvas renderer's checker
+	   so the transparency signal is consistent across the app. */
+	.cell--transparent {
+		background-color: #ffffff;
+		background-image:
+			linear-gradient(45deg, #e0e0e0 25%, transparent 25%, transparent 75%, #e0e0e0 75%),
+			linear-gradient(45deg, #e0e0e0 25%, transparent 25%, transparent 75%, #e0e0e0 75%);
+		background-size: var(--cell-size) var(--cell-size);
+		background-position:
+			0 0,
+			calc(var(--cell-size) / 2) calc(var(--cell-size) / 2);
+	}
+
 	/* White inner + black outer ring. Uses literal #000/#FFF (not theme tokens)
 	   so contrast holds against any sampled cell color. */
 	.cell--center {
@@ -144,11 +176,34 @@
 	}
 
 	.swatch {
-		width: 16px;
-		height: 16px;
+		--swatch-size: 16px;
+		width: var(--swatch-size);
+		height: var(--swatch-size);
 		border-radius: 3px;
 		border: 1px solid var(--ds-border);
 		box-sizing: border-box;
+	}
+
+	/* Swatch patterns mirror the corresponding cell patterns so the chip
+	   tells the user which kind of "no color" state the center is in. */
+	.swatch--out-of-canvas {
+		background-color: var(--ds-bg-surface);
+		background-image: repeating-linear-gradient(
+			45deg,
+			var(--ds-text-tertiary) 0 1px,
+			transparent 1px 3px
+		);
+	}
+
+	.swatch--transparent {
+		background-color: #ffffff;
+		background-image:
+			linear-gradient(45deg, #e0e0e0 25%, transparent 25%, transparent 75%, #e0e0e0 75%),
+			linear-gradient(45deg, #e0e0e0 25%, transparent 25%, transparent 75%, #e0e0e0 75%);
+		background-size: var(--swatch-size) var(--swatch-size);
+		background-position:
+			0 0,
+			calc(var(--swatch-size) / 2) calc(var(--swatch-size) / 2);
 	}
 
 	.hex {

@@ -29,7 +29,7 @@ describe('sampleGrid', () => {
 		}
 	});
 
-	it('clamps to edge pixels when the grid extends beyond the canvas', () => {
+	it('returns null for cells whose coordinates fall outside the canvas', () => {
 		// 2×2 canvas; unique color per pixel.
 		const TL: Color = { r: 10, g: 0, b: 0, a: 255 };
 		const TR: Color = { r: 20, g: 0, b: 0, a: 255 };
@@ -37,17 +37,19 @@ describe('sampleGrid', () => {
 		const BR: Color = { r: 40, g: 0, b: 0, a: 255 };
 		const canvas = canvasFactory.fromPixels(2, 2, encodePixels([TL, TR, BL, BR]));
 
-		// 3×3 grid centered at (0, 0) — out-of-canvas cells clamp to the nearest edge.
+		// 3×3 grid centered at (0, 0). The five cells whose canvas coords
+		// fall outside [0, 2) × [0, 2) return null; the in-bounds cells
+		// return the corresponding pixel color.
 		const grid = sampleGrid(canvas, { x: 0, y: 0 }, 3);
 
 		// Expected row-major:
-		//   (-1,-1)→TL  (0,-1)→TL  (1,-1)→TR
-		//   (-1, 0)→TL  (0, 0)→TL  (1, 0)→TR
-		//   (-1, 1)→BL  (0, 1)→BL  (1, 1)→BR
+		//   (-1,-1)→null  (0,-1)→null  (1,-1)→null
+		//   (-1, 0)→null  (0, 0)→TL    (1, 0)→TR
+		//   (-1, 1)→null  (0, 1)→BL    (1, 1)→BR
 		expect(grid).toEqual([
-			TL, TL, TR,
-			TL, TL, TR,
-			BL, BL, BR
+			null, null, null,
+			null, TL,   TR,
+			null, BL,   BR
 		]);
 	});
 

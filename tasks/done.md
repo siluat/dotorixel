@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 066 | [Color picker loupe — out-of-canvas + transparent rendering](../issues/066-color-picker-loupe-edge-rendering.md) | 2026-04-17 |
 | 065 | [Color picker loupe — drag-and-commit eyedropper + basic loupe](../issues/065-color-picker-loupe-drag-commit.md) | 2026-04-17 |
 | 064 | [Color picker loupe — design spec](../issues/064-color-picker-loupe-design.md) | 2026-04-17 |
 | 052 | [Fix automatic locale detection for root URL visitors](../issues/052-i18n-root-locale-detection.md) | 2026-04-16 |

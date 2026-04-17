@@ -3,16 +3,20 @@
 ## Currently Working On
 
 Color picker loupe ([PRD](../issues/063-color-picker-loupe.md))
-- Design spec landed ([064](../issues/064-color-picker-loupe-design.md)). Next pickable: [065 — drag-and-commit eyedropper + basic loupe](../issues/065-color-picker-loupe-drag-commit.md); 065 unblocks 066/067/068 in parallel.
+- Tracer slice landed ([065](../issues/065-color-picker-loupe-drag-commit.md)). 066/067/068 now pickable in parallel.
 
 ## Last Completed
 
-Color picker loupe — design spec ([issue](../issues/064-color-picker-loupe-design.md))
+Color picker loupe — drag-and-commit eyedropper + basic loupe ([issue](../issues/065-color-picker-loupe-drag-commit.md))
 
 ## Next Up
 
-- [065 — drag-and-commit eyedropper + basic loupe](../issues/065-color-picker-loupe-drag-commit.md)
-  - Unblocked by 064. Tracer-bullet slice that establishes the loupe end-to-end.
+- [066 — out-of-canvas + transparent rendering](../issues/066-color-picker-loupe-edge-rendering.md)
+  - Unblocked by 065. Checkerboard/hatch for transparent and OoC loupe cells.
+- [067 — quadrant flip positioning](../issues/067-color-picker-loupe-positioning.md)
+  - Unblocked by 065. Prevents loupe from clipping at viewport edges.
+- [068 — long-press touch entry](../issues/068-color-picker-loupe-long-press.md)
+  - Unblocked by 065. 400ms long-press opens the sampling session on touch.
 - Pixel-perfect drawing (Milestone 2)
   - Needs PRD. Run /write-a-prd to start.
 - 018 — RightPanel (Apple Native)

@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 065 | [Color picker loupe — drag-and-commit eyedropper + basic loupe](../issues/065-color-picker-loupe-drag-commit.md) | 2026-04-17 |
 | 064 | [Color picker loupe — design spec](../issues/064-color-picker-loupe-design.md) | 2026-04-17 |
 | 052 | [Fix automatic locale detection for root URL visitors](../issues/052-i18n-root-locale-detection.md) | 2026-04-16 |
 | 051 | [Landing page UI — hero, features, roadmap (web)](../issues/051-landing-page-ui.md) | 2026-04-15 |

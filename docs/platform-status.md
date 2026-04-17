@@ -14,7 +14,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Rectangle | ✅ | ✅ | ⬜ | Outline only, snapshot-restore preview |
 | Ellipse | ✅ | ✅ | ⬜ | Outline only, snapshot-restore preview |
 | Flood fill | ✅ | ✅ | ⬜ | BFS, 4-connectivity |
-| Eyedropper | — | ✅ | ⬜ | Read-only, skips transparent pixels |
+| Eyedropper | — | ✅ | ⬜ | Drag-and-commit with live 9×9 loupe; releases to FG (left-click) or BG (right-click); skips transparent pixels |
 | Move | — | ✅ | ⬜ | Drag to reposition canvas content, snapshot-restore preview, `move` cursor |
 | Right-click background color | — | ✅ | ⬜ | All tools draw with BG color on right-click; eraser unchanged |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |
@@ -50,6 +50,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Preset palette | — | ✅ | ✅ | 18 Pebble colors |
 | Recent colors | — | ✅ | ⬜ | Last 12 used |
 | FG/BG color swap | — | ✅ | ⬜ | Swap button + per-swatch color picker |
+| Color loupe overlay | — | 🔧 | ⬜ | 9×9 magnifier + hex chip during eyedropper drag (fixed upper-right offset). Edge rendering (066), quadrant flip (067), long-press touch entry (068) pending |
 
 ## Rendering
 

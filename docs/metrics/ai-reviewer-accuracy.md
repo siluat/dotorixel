@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 28 | 23 | 5 | 22 | 82% | 51% |
-| cubic-dev-ai[bot] | 20 | 16 | 4 | 28 | 80% | 36% |
-| coderabbitai[bot] | 42 | 26 | 16 | 19 | 62% | 58% |
+| greptile-apps[bot] | 30 | 25 | 5 | 24 | 83% | 51% |
+| cubic-dev-ai[bot] | 23 | 19 | 4 | 29 | 83% | 40% |
+| coderabbitai[bot] | 43 | 27 | 16 | 22 | 63% | 55% |
 
 ## Log
 
@@ -173,3 +173,15 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #151 | cubic-dev-ai[bot] | Miss | Did not flag hardcoded `repeat(9, ...)` invariant |
 | #151 | cubic-dev-ai[bot] | Miss | Did not flag `swatch--empty` without CSS rule |
 | #151 | cubic-dev-ai[bot] | Miss | Did not flag commitTarget first-draw scoping |
+| #152 | greptile-apps[bot] | Accept | Inline `style:background-color` overrides `.cell--transparent` #FFFFFF base on cells and swatch |
+| #152 | greptile-apps[bot] | Accept | Stale JSDoc on `cellFill` referring to "slices E/F" (duplicate of coderabbit) |
+| #152 | greptile-apps[bot] | Miss | Did not flag E2E `.first()` palette-swatch default collision |
+| #152 | greptile-apps[bot] | Miss | Did not flag test-count off-by-one in issue 066 Results (4 vs 5) |
+| #152 | coderabbitai[bot] | Accept | Stale JSDoc on `cellFill` referring to "slices E/F" |
+| #152 | coderabbitai[bot] | Miss | Did not flag inline style override on transparent/out-of-canvas cells |
+| #152 | coderabbitai[bot] | Miss | Did not flag E2E `.first()` palette-swatch default collision |
+| #152 | coderabbitai[bot] | Miss | Did not flag test-count off-by-one in issue 066 Results |
+| #152 | cubic-dev-ai[bot] | Accept | Inline style overrides checkerboard base on transparent cells (duplicate of greptile) |
+| #152 | cubic-dev-ai[bot] | Accept | E2E `.first()` palette-swatch default collision — add colorAHex + assertion |
+| #152 | cubic-dev-ai[bot] | Accept | Test-count off-by-one in issue 066 Results (4 vs 5) |
+| #152 | cubic-dev-ai[bot] | Miss | Did not flag stale JSDoc on `cellFill` |

@@ -7,9 +7,27 @@ const LONG_PRESS_DELAY = 400;
 
 export type InteractionType = 'idle' | 'drawing' | 'panning' | 'pinching';
 
+/**
+ * The W3C Pointer Events `pointerType` values we care about. The spec also
+ * allows an empty string for unknown devices; `normalizePointerType` collapses
+ * that (and any other unexpected value) to `'mouse'` at the boundary so the
+ * rest of the app can rely on a closed union.
+ */
+export type PointerType = 'mouse' | 'pen' | 'touch';
+
+export function normalizePointerType(raw: string): PointerType {
+	return raw === 'pen' || raw === 'touch' ? raw : 'mouse';
+}
+
 type InteractionMode =
 	| { readonly type: 'idle' }
-	| { type: 'drawing'; lastPixel: CanvasCoords | null; pendingCoords: CanvasCoords | null; button: number }
+	| {
+			type: 'drawing';
+			lastPixel: CanvasCoords | null;
+			pendingCoords: CanvasCoords | null;
+			button: number;
+			pointerType: PointerType;
+		}
 	| { type: 'panning'; startX: number; startY: number }
 	| {
 			type: 'pinching';
@@ -26,7 +44,11 @@ export interface CanvasInteractionOptions {
 }
 
 export interface CanvasInteractionCallbacks {
-	onDrawStart: (button: number) => void;
+	/**
+	 * `pointerType` is plumbed through so downstream tools (e.g. eyedropper
+	 * loupe) can pick the right offset preset for the current input source.
+	 */
+	onDrawStart: (button: number, pointerType: PointerType) => void;
 	onDraw: (current: CanvasCoords, previous: CanvasCoords | null) => void;
 	onDrawEnd: () => void;
 	onViewportChange: (viewport: ViewportData) => void;
@@ -34,7 +56,7 @@ export interface CanvasInteractionCallbacks {
 }
 
 export interface CanvasInteraction {
-	pointerDown(id: number, x: number, y: number, pointerType: string, button: number): void;
+	pointerDown(id: number, x: number, y: number, pointerType: PointerType, button: number): void;
 	pointerMove(x: number, y: number): void;
 	windowPointerMove(id: number, x: number, y: number, buttons: number): void;
 	pointerUp(id: number, x: number, y: number): void;
@@ -48,7 +70,7 @@ export function createCanvasInteraction(
 	callbacks: CanvasInteractionCallbacks
 ): CanvasInteraction {
 	let interaction = $state<InteractionMode>({ type: 'idle' });
-	const activePointers = new Map<number, { x: number; y: number; pointerType: string }>();
+	const activePointers = new Map<number, { x: number; y: number; pointerType: PointerType }>();
 	let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
 	function startLongPressTimer(coords: CanvasCoords, button: number): void {
@@ -122,7 +144,7 @@ export function createCanvasInteraction(
 
 	function commitPending(): void {
 		if (interaction.type !== 'drawing' || interaction.pendingCoords === null) return;
-		callbacks.onDrawStart(interaction.button);
+		callbacks.onDrawStart(interaction.button, interaction.pointerType);
 		drawAt(interaction.pendingCoords);
 		interaction.pendingCoords = null;
 	}
@@ -132,7 +154,7 @@ export function createCanvasInteraction(
 			id: number,
 			x: number,
 			y: number,
-			pointerType: string,
+			pointerType: PointerType,
 			button: number
 		): void {
 			activePointers.set(id, { x, y, pointerType });
@@ -172,14 +194,21 @@ export function createCanvasInteraction(
 					type: 'drawing',
 					lastPixel: null,
 					pendingCoords,
-					button
+					button,
+					pointerType
 				};
 				startLongPressTimer(pendingCoords, button);
 				return;
 			}
 
-			interaction = { type: 'drawing', lastPixel: null, pendingCoords: null, button };
-			callbacks.onDrawStart(button);
+			interaction = {
+				type: 'drawing',
+				lastPixel: null,
+				pendingCoords: null,
+				button,
+				pointerType
+			};
+			callbacks.onDrawStart(button, pointerType);
 			drawAt(options.screenToCanvas(x, y));
 		},
 
@@ -253,7 +282,7 @@ export function createCanvasInteraction(
 			if (interaction.type === 'drawing') {
 				if (interaction.pendingCoords !== null) {
 					// Touch tap: commit the deferred pixel
-					callbacks.onDrawStart(interaction.button);
+					callbacks.onDrawStart(interaction.button, interaction.pointerType);
 					drawAt(options.screenToCanvas(x, y));
 				}
 				callbacks.onDrawEnd();

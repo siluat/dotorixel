@@ -16,7 +16,9 @@ import {
 } from './draw-tool';
 import type { ToolType } from './tool-registry';
 import { createAllTools } from './tool-registry';
+import type { PointerType } from './canvas-interaction.svelte';
 import type { SamplingSession } from './sampling-session.svelte';
+import type { LoupeInputSource } from './loupe-position';
 import { createDrawingOps, canvasFactory, createHistoryManager } from './wasm-backend';
 
 // ── Effects: ToolRunner adds RunnerEffect on top of tool-produced ToolEffect ──
@@ -45,7 +47,11 @@ export interface ToolRunner {
 	readonly canUndo: boolean;
 	readonly canRedo: boolean;
 
-	drawStart(button: number): EditorEffects;
+	/**
+	 * The runner maps `pen` → `mouse` for the loupe `inputSource` because pens
+	 * share the mouse offset preset.
+	 */
+	drawStart(button: number, pointerType: PointerType): EditorEffects;
 	draw(current: CanvasCoords, previous: CanvasCoords | null): EditorEffects;
 	drawEnd(): EditorEffects;
 	modifierChanged(): EditorEffects;
@@ -83,6 +89,7 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 	let isDrawing = $state(false);
 	let drawButton = 0;
 	let activeDrawColor: Color | null = null;
+	let activeInputSource: LoupeInputSource = 'mouse';
 	let activeLifecycle: StrokeLifecycle | null = null;
 
 	// ── Derived reactive properties ─────────────────────────────────
@@ -266,7 +273,11 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 			draw(ctx, current) {
 				if (!started) {
 					const commitTarget = ctx.drawButton === 2 ? 'background' : 'foreground';
-					samplingSession.start({ targetPixel: current, commitTarget });
+					samplingSession.start({
+						targetPixel: current,
+						commitTarget,
+						inputSource: activeInputSource
+					});
 					started = true;
 				} else {
 					samplingSession.update(current);
@@ -314,10 +325,13 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 			return canRedo;
 		},
 
-		drawStart(button: number): EditorEffects {
+		drawStart(button: number, pointerType: PointerType): EditorEffects {
 			isDrawing = true;
 			drawButton = button;
 			activeDrawColor = button === 2 ? host.backgroundColor : host.foregroundColor;
+			// `pen` shares the mouse offset preset; only `touch` uses the
+			// larger touch offset to clear finger occlusion.
+			activeInputSource = pointerType === 'touch' ? 'touch' : 'mouse';
 			activeLifecycle = resolveLifecycle(tools[shared.activeTool], pushHistorySnapshot);
 			return activeLifecycle.start(buildContext());
 		},
@@ -334,6 +348,7 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 			isDrawing = false;
 			drawButton = 0;
 			activeDrawColor = null;
+			activeInputSource = 'mouse';
 			return endEffects;
 		},
 

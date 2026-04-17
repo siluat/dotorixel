@@ -3,16 +3,14 @@
 ## Currently Working On
 
 Color picker loupe ([PRD](../issues/063-color-picker-loupe.md))
-- 065 + 066 landed. 067/068 remaining.
+- 065 + 066 + 067 landed. 068 remaining.
 
 ## Last Completed
 
-Color picker loupe — out-of-canvas + transparent rendering ([issue](../issues/066-color-picker-loupe-edge-rendering.md))
+Color picker loupe — quadrant flip positioning ([issue](../issues/067-color-picker-loupe-positioning.md))
 
 ## Next Up
 
-- [067 — quadrant flip positioning](../issues/067-color-picker-loupe-positioning.md)
-  - Unblocked by 065. Prevents loupe from clipping at viewport edges.
 - [068 — long-press touch entry](../issues/068-color-picker-loupe-long-press.md)
   - Unblocked by 065. 400ms long-press opens the sampling session on touch.
 - Pixel-perfect drawing (Milestone 2)

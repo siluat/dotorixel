@@ -93,7 +93,7 @@ describe('drawing', () => {
 		interaction.pointerDown(1, 50, 50, 'mouse', 2);
 
 		expect(callbacks.onDrawStart).toHaveBeenCalledOnce();
-		expect(callbacks.onDrawStart).toHaveBeenCalledWith(2);
+		expect(callbacks.onDrawStart).toHaveBeenCalledWith(2, 'mouse');
 		expect(callbacks.onDraw).toHaveBeenCalledOnce();
 		expect(interaction.interactionType).toBe('drawing');
 	});
@@ -102,7 +102,7 @@ describe('drawing', () => {
 		const { interaction, callbacks } = setup();
 		interaction.pointerDown(1, 50, 50, 'mouse', 0);
 
-		expect(callbacks.onDrawStart).toHaveBeenCalledWith(0);
+		expect(callbacks.onDrawStart).toHaveBeenCalledWith(0, 'mouse');
 	});
 
 	it('right click drawing continues with pointer move', () => {
@@ -342,7 +342,7 @@ describe('touch deferral', () => {
 		interaction.pointerUp(1, 50, 50);
 
 		expect(callbacks.onDrawStart).toHaveBeenCalledOnce();
-		expect(callbacks.onDrawStart).toHaveBeenCalledWith(0);
+		expect(callbacks.onDrawStart).toHaveBeenCalledWith(0, 'touch');
 		expect(callbacks.onDraw).toHaveBeenCalledOnce();
 		expect(callbacks.onDrawEnd).toHaveBeenCalledOnce();
 	});
@@ -353,6 +353,42 @@ describe('touch deferral', () => {
 
 		expect(callbacks.onDrawStart).toHaveBeenCalledOnce();
 		expect(callbacks.onDraw).toHaveBeenCalledOnce();
+	});
+});
+
+// ── pointerType plumbing ──────────────────────────────────────
+
+describe('pointerType plumbing', () => {
+	it('passes "mouse" as second arg to onDrawStart for mouse pointerDown', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'mouse', 0);
+
+		expect(callbacks.onDrawStart).toHaveBeenCalledWith(0, 'mouse');
+	});
+
+	it('passes "pen" as second arg to onDrawStart for pen pointerDown', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'pen', 0);
+
+		expect(callbacks.onDrawStart).toHaveBeenCalledWith(0, 'pen');
+	});
+
+	it('passes "touch" as second arg to onDrawStart on deferred commit (pointerMove after touch down)', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 0, 0, 'touch', 0);
+
+		interaction.pointerMove(32, 0);
+
+		expect(callbacks.onDrawStart).toHaveBeenCalledWith(0, 'touch');
+	});
+
+	it('passes "touch" as second arg to onDrawStart on touch tap (pointerDown + pointerUp)', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+
+		interaction.pointerUp(1, 50, 50);
+
+		expect(callbacks.onDrawStart).toHaveBeenCalledWith(0, 'touch');
 	});
 });
 

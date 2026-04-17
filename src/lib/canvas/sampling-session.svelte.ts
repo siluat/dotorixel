@@ -2,6 +2,7 @@ import type { PixelCanvas, CanvasCoords } from './canvas-model';
 import type { Color } from './color';
 import { colorToHex } from './color';
 import { NO_EFFECTS, type ToolEffects } from './draw-tool';
+import type { LoupeInputSource } from './loupe-position';
 import { sampleGrid } from './sample-grid';
 
 /** Odd-sized grid around the target pixel. 9 matches the design spec. */
@@ -16,6 +17,8 @@ function isValidOpaque(cell: Color | null): cell is Color {
 export interface SamplingSessionStartParams {
 	readonly targetPixel: CanvasCoords;
 	readonly commitTarget: 'foreground' | 'background';
+	/** Determines which loupe position offset (mouse vs touch) the overlay applies. */
+	readonly inputSource: LoupeInputSource;
 }
 
 /**
@@ -28,6 +31,8 @@ export interface SamplingSession {
 	readonly isActive: boolean;
 	readonly grid: readonly (Color | null)[];
 	readonly centerColor: Color | null;
+	/** The input source recorded at session start; `null` while no session is active. */
+	readonly inputSource: LoupeInputSource | null;
 	start(params: SamplingSessionStartParams): void;
 	update(targetPixel: CanvasCoords): void;
 	/**
@@ -45,6 +50,7 @@ export function createSamplingSession(getCanvas: () => PixelCanvas): SamplingSes
 	let isActive = $state(false);
 	let grid = $state<(Color | null)[]>([]);
 	let centerColor = $state<Color | null>(null);
+	let inputSource = $state<LoupeInputSource | null>(null);
 	let commitTarget: 'foreground' | 'background' = 'foreground';
 
 	// Loupe visibility depends only on `isActive`. Both commit paths
@@ -54,6 +60,7 @@ export function createSamplingSession(getCanvas: () => PixelCanvas): SamplingSes
 		isActive = false;
 		grid = [];
 		centerColor = null;
+		inputSource = null;
 	}
 
 	return {
@@ -66,12 +73,16 @@ export function createSamplingSession(getCanvas: () => PixelCanvas): SamplingSes
 		get centerColor() {
 			return centerColor;
 		},
+		get inputSource() {
+			return inputSource;
+		},
 		start(params: SamplingSessionStartParams): void {
 			const canvas = getCanvas();
 			grid = sampleGrid(canvas, params.targetPixel, GRID_SIZE);
 			const raw = grid[CENTER_INDEX];
 			centerColor = isValidOpaque(raw) ? raw : null;
 			commitTarget = params.commitTarget;
+			inputSource = params.inputSource;
 			isActive = true;
 		},
 		update(target: CanvasCoords): void {

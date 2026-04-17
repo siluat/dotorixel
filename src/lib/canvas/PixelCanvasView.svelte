@@ -6,7 +6,11 @@
 	import * as m from '$lib/paraglide/messages';
 	import { createWheelInputClassifier } from './wheel-input.ts';
 	import { renderPixelCanvas } from './renderer.ts';
-	import { createCanvasInteraction } from './canvas-interaction.svelte';
+	import {
+		createCanvasInteraction,
+		normalizePointerType,
+		type PointerType
+	} from './canvas-interaction.svelte';
 	import Loupe from '$lib/ui-editor/Loupe.svelte';
 
 	interface Props {
@@ -15,7 +19,7 @@
 		viewportSize?: ViewportSize;
 		renderVersion?: number;
 		onDraw?: (current: CanvasCoords, previous: CanvasCoords | null) => void;
-		onDrawStart?: (button: number) => void;
+		onDrawStart?: (button: number, pointerType: PointerType) => void;
 		onDrawEnd?: () => void;
 		onViewportChange?: (viewport: ViewportData) => void;
 		onLongPress?: (coords: CanvasCoords, button: number) => boolean;
@@ -52,6 +56,15 @@
 	 * a fresh position the moment `samplingSession.isActive` flips to true.
 	 */
 	let screenPointer = $state<{ x: number; y: number } | null>(null);
+	/**
+	 * Tracks `window.innerWidth/innerHeight` for the Loupe overlay's
+	 * fixed-position math. The Loupe needs the document viewport (not the
+	 * canvas's local viewport) because it's positioned in screen space.
+	 */
+	let windowSize = $state({
+		width: typeof window === 'undefined' ? 0 : window.innerWidth,
+		height: typeof window === 'undefined' ? 0 : window.innerHeight
+	});
 	const classifyWheelInput = createWheelInputClassifier();
 
 	const canvasInteraction = createCanvasInteraction(
@@ -61,7 +74,7 @@
 			isSpaceHeld: () => isSpaceHeld
 		},
 		{
-			onDrawStart: (button) => onDrawStart?.(button),
+			onDrawStart: (button, pointerType) => onDrawStart?.(button, pointerType),
 			onDraw: (c, p) => onDraw?.(c, p),
 			onDrawEnd: () => onDrawEnd?.(),
 			onViewportChange: (vp) => onViewportChange?.(vp),
@@ -148,7 +161,13 @@
 		if (event.button === 1 || event.button === 2) event.preventDefault();
 		trackScreenPointer(event);
 		const { x, y } = toLocal(event);
-		canvasInteraction.pointerDown(event.pointerId, x, y, event.pointerType, event.button);
+		canvasInteraction.pointerDown(
+			event.pointerId,
+			x,
+			y,
+			normalizePointerType(event.pointerType),
+			event.button
+		);
 	}
 
 	function handlePointerMove(event: PointerEvent): void {
@@ -179,12 +198,17 @@
 		canvasInteraction.blur();
 		screenPointer = null;
 	}
+
+	function handleWindowResize(): void {
+		windowSize = { width: window.innerWidth, height: window.innerHeight };
+	}
 </script>
 
 <svelte:window
 	onpointermove={handleWindowPointerMove}
 	onpointerup={handlePointerUp}
 	onblur={handleWindowBlur}
+	onresize={handleWindowResize}
 />
 
 <!-- role="application" tells screen readers this is a custom interactive widget (pixel art canvas).
@@ -204,7 +228,12 @@
 ></canvas>
 
 {#if samplingSession?.isActive && screenPointer}
-	<Loupe grid={samplingSession.grid} {screenPointer} />
+	<Loupe
+		grid={samplingSession.grid}
+		{screenPointer}
+		viewport={windowSize}
+		inputSource={samplingSession.inputSource ?? 'mouse'}
+	/>
 {/if}
 
 <style>

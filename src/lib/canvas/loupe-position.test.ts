@@ -183,6 +183,27 @@ describe('computeLoupePosition — touch', () => {
 			quadrant: 'tr'
 		});
 	});
+
+	it('clamps y to the viewport bottom edge on mobile-portrait heights where even the flip would still clip bottom', () => {
+		// Viewport 400×600 with pointer at y=300 (mobile-portrait mid-screen):
+		// defaultY = 300 − 290 − 80 = −70 so flip → y = 300 + 80 = 380.
+		// 380 + 290 = 670 > 600. Clamp pulls the loupe up to
+		// viewport.height − loupe.height = 310.
+		const result = computeLoupePosition({
+			pointer: { x: 200, y: 300 },
+			viewport: { width: 400, height: 600 },
+			loupe: { width: 240, height: 290 },
+			mouseOffset: 20,
+			touchOffset: 80,
+			inputSource: 'touch'
+		});
+
+		expect(result).toEqual({
+			x: 200 - 240 / 2,
+			y: 600 - 290,
+			quadrant: 'br'
+		});
+	});
 });
 
 // Sweep across the 9 reference pointer positions (4 corners, 4 edge midpoints,

@@ -80,10 +80,14 @@ function touchPosition(input: LoupePositionInput): LoupePosition {
 
 	const defaultY = pointer.y - loupe.height - touchOffset;
 	const flipsVertical = defaultY < 0;
+	const y = flipsVertical ? pointer.y + touchOffset : defaultY;
 
+	// On mobile-portrait heights (~600–700px usable), a narrow band of
+	// pointer.y values flips the loupe yet still clips the bottom edge.
+	// Clamp y inward as a safety net, mirroring the mouse branch.
 	return {
 		x,
-		y: flipsVertical ? pointer.y + touchOffset : defaultY,
+		y: Math.max(0, Math.min(y, viewport.height - loupe.height)),
 		quadrant: flipsVertical ? 'br' : 'tr'
 	};
 }

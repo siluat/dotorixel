@@ -32,7 +32,7 @@ export interface ToolContext {
 	readonly backgroundColor: Color;
 }
 
-// ── DrawTool: discriminated union of 4 tool categories ───────────
+// ── DrawTool: discriminated union of 5 tool categories ───────────
 
 /** Paints pixels every frame along the drag path. (pencil, eraser) */
 export interface ContinuousTool {
@@ -43,7 +43,7 @@ export interface ContinuousTool {
 	apply(ctx: ToolContext, current: CanvasCoords, previous: CanvasCoords | null): boolean;
 }
 
-/** Fires once on click, ignores drag. (floodfill, eyedropper) */
+/** Fires once on click, ignores drag. (floodfill) */
 export interface OneShotTool {
 	readonly kind: 'oneShot';
 	/** Whether ToolRunner should push a history snapshot before this tool fires. */
@@ -79,5 +79,22 @@ export interface DragTransformTool {
 	): void;
 }
 
+/**
+ * Samples a color during a drag and commits it on release. (eyedropper)
+ *
+ * Unlike OneShotTool, color-picking effects are deferred until the stroke
+ * ends, so the user can drag to refine the sample target. All sampling
+ * state and commit logic lives in `samplingSession`; the tool itself is a
+ * pure marker telling ToolRunner which lifecycle to run.
+ */
+export interface LiveSampleTool {
+	readonly kind: 'liveSample';
+}
+
 /** Union of all tool categories. */
-export type DrawTool = ContinuousTool | OneShotTool | ShapePreviewTool | DragTransformTool;
+export type DrawTool =
+	| ContinuousTool
+	| OneShotTool
+	| ShapePreviewTool
+	| DragTransformTool
+	| LiveSampleTool;

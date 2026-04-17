@@ -9,12 +9,14 @@ import {
 	type OneShotTool,
 	type ShapePreviewTool,
 	type DragTransformTool,
+	type LiveSampleTool,
 	type DrawTool,
 	type ToolContext,
 	type ToolEffect
 } from './draw-tool';
 import type { ToolType } from './tool-registry';
 import { createAllTools } from './tool-registry';
+import type { SamplingSession } from './sampling-session.svelte';
 import { createDrawingOps, canvasFactory, createHistoryManager } from './wasm-backend';
 
 // ── Effects: ToolRunner adds RunnerEffect on top of tool-produced ToolEffect ──
@@ -60,10 +62,12 @@ export interface ToolRunnerDeps {
 	readonly host: ToolRunnerHost;
 	readonly shared: SharedState;
 	readonly getShiftHeld: () => boolean;
+	/** Session shared with the Loupe overlay; LiveSampleTool delegates to it. */
+	readonly samplingSession: SamplingSession;
 }
 
 export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
-	const { host, shared, getShiftHeld } = deps;
+	const { host, shared, getShiftHeld, samplingSession } = deps;
 
 	// ── DrawingOps (bound to current canvas) ────────────────────────
 	const ops = createDrawingOps(() => host.pixelCanvas);
@@ -132,7 +136,8 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 		start(ctx: ToolContext): EditorEffects;
 		draw(ctx: ToolContext, current: CanvasCoords, previous: CanvasCoords | null): EditorEffects;
 		modifierChanged(ctx: ToolContext): EditorEffects;
-		end(): void;
+		/** Called when the stroke ends. Returns any effects produced on release (e.g. live-sample commit). */
+		end(): EditorEffects;
 	}
 
 	function continuousLifecycle(tool: ContinuousTool, pushHistory: () => void): StrokeLifecycle {
@@ -149,7 +154,9 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 			modifierChanged() {
 				return NO_EFFECTS;
 			},
-			end() {}
+			end() {
+				return NO_EFFECTS;
+			}
 		};
 	}
 
@@ -170,7 +177,9 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 			modifierChanged() {
 				return NO_EFFECTS;
 			},
-			end() {}
+			end() {
+				return NO_EFFECTS;
+			}
 		};
 	}
 
@@ -212,6 +221,7 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 				snapshot = null;
 				anchor = null;
 				lastCurrent = null;
+				return NO_EFFECTS;
 			}
 		};
 	}
@@ -241,6 +251,35 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 			end() {
 				snapshot = null;
 				anchor = null;
+				return NO_EFFECTS;
+			}
+		};
+	}
+
+	function liveSampleLifecycle(_tool: LiveSampleTool): StrokeLifecycle {
+		let started = false;
+		return {
+			start() {
+				// Deferred to first draw: samplingSession needs the initial target pixel.
+				return NO_EFFECTS;
+			},
+			draw(ctx, current) {
+				const commitTarget = ctx.drawButton === 2 ? 'background' : 'foreground';
+				if (!started) {
+					samplingSession.start({ targetPixel: current, commitTarget });
+					started = true;
+				} else {
+					samplingSession.update(current);
+				}
+				return NO_EFFECTS;
+			},
+			modifierChanged() {
+				return NO_EFFECTS;
+			},
+			end() {
+				const effects = samplingSession.commit();
+				started = false;
+				return effects;
 			}
 		};
 	}
@@ -255,6 +294,8 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 				return shapePreviewLifecycle(tool, pushHistory);
 			case 'dragTransform':
 				return dragTransformLifecycle(tool, pushHistory);
+			case 'liveSample':
+				return liveSampleLifecycle(tool);
 		}
 	}
 
@@ -288,12 +329,12 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 
 		drawEnd(): EditorEffects {
 			if (!isDrawing || !activeLifecycle) return NO_EFFECTS;
-			activeLifecycle.end();
+			const endEffects = activeLifecycle.end();
 			activeLifecycle = null;
 			isDrawing = false;
 			drawButton = 0;
 			activeDrawColor = null;
-			return NO_EFFECTS;
+			return endEffects;
 		},
 
 		modifierChanged(): EditorEffects {

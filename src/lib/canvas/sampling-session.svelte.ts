@@ -43,6 +43,15 @@ export function createSamplingSession(getCanvas: () => PixelCanvas): SamplingSes
 	let targetPixel: CanvasCoords | null = null;
 	let commitTarget: 'foreground' | 'background' = 'foreground';
 
+	// 세션을 비활성 상태로 되돌린다. commit 성공/무효 여부와 무관하게 호출되므로,
+	// Loupe가 다음 start() 전까지 남은 grid를 그대로 보여주는 회귀를 막는다.
+	function reset(): void {
+		isActive = false;
+		grid = [];
+		centerColor = null;
+		targetPixel = null;
+	}
+
 	return {
 		get isActive() {
 			return isActive;
@@ -68,19 +77,20 @@ export function createSamplingSession(getCanvas: () => PixelCanvas): SamplingSes
 			targetPixel = target;
 		},
 		commit(): ToolEffects {
-			if (!targetPixel || !centerColor || centerColor.a === 0) return NO_EFFECTS;
+			const pickedColor = centerColor;
+			const pickedTarget = commitTarget;
+			const pickedPixel = targetPixel;
 			const canvas = getCanvas();
-			if (!canvas.is_inside_bounds(targetPixel.x, targetPixel.y)) return NO_EFFECTS;
+			reset();
+			if (!pickedPixel || !pickedColor || pickedColor.a === 0) return NO_EFFECTS;
+			if (!canvas.is_inside_bounds(pickedPixel.x, pickedPixel.y)) return NO_EFFECTS;
 			return [
-				{ type: 'colorPick', target: commitTarget, color: centerColor },
-				{ type: 'addRecentColor', hex: colorToHex(centerColor) }
+				{ type: 'colorPick', target: pickedTarget, color: pickedColor },
+				{ type: 'addRecentColor', hex: colorToHex(pickedColor) }
 			];
 		},
 		cancel(): void {
-			isActive = false;
-			grid = [];
-			centerColor = null;
-			targetPixel = null;
+			reset();
 		}
 	};
 }

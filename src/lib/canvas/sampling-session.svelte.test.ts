@@ -116,6 +116,43 @@ describe('samplingSession — commit', () => {
 
 		expect(effects).toEqual([]);
 	});
+
+	it('deactivates the session after a successful commit', () => {
+		const canvas = canvasFactory.withColor(16, 16, RED);
+		const session = createSamplingSession(() => canvas);
+
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground' });
+		session.commit();
+
+		expect(session.isActive).toBe(false);
+		expect(session.grid).toEqual([]);
+		expect(session.centerColor).toBeNull();
+	});
+
+	it('deactivates the session even when the commit produces no effects (transparent center)', () => {
+		const TRANSPARENT: Color = { r: 0, g: 0, b: 0, a: 0 };
+		const canvas = canvasFactory.withColor(16, 16, TRANSPARENT);
+		const session = createSamplingSession(() => canvas);
+
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground' });
+		session.commit();
+
+		expect(session.isActive).toBe(false);
+		expect(session.grid).toEqual([]);
+		expect(session.centerColor).toBeNull();
+	});
+
+	it('deactivates the session even when the commit produces no effects (out of bounds)', () => {
+		const canvas = canvasFactory.withColor(16, 16, RED);
+		const session = createSamplingSession(() => canvas);
+
+		session.start({ targetPixel: { x: -1, y: 8 }, commitTarget: 'foreground' });
+		session.commit();
+
+		expect(session.isActive).toBe(false);
+		expect(session.grid).toEqual([]);
+		expect(session.centerColor).toBeNull();
+	});
 });
 
 describe('samplingSession — cancel', () => {

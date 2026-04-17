@@ -28,16 +28,6 @@
 		centerCell && centerCell.a > 0 ? colorToHex(centerCell) : null
 	);
 	const displayHex = $derived(canonicalHex ? canonicalHex.toUpperCase() : null);
-
-	/**
-	 * Dedicated checkerboard/hatch styling for transparent (a=0) and
-	 * out-of-canvas cells lands in slices E/F. For now both states fall
-	 * back to the surface tone so each cell still holds its grid position.
-	 */
-	function cellFill(color: Color | null): string {
-		if (color === null || color.a === 0) return 'var(--ds-bg-surface)';
-		return `rgb(${color.r}, ${color.g}, ${color.b})`;
-	}
 </script>
 
 {#if screenPointer}
@@ -55,7 +45,9 @@
 					class:cell--center={i === centerIndex}
 					class:cell--out-of-canvas={color === null}
 					class:cell--transparent={color !== null && color.a === 0}
-					style:background-color={cellFill(color)}
+					style:background-color={color !== null && color.a > 0
+						? `rgb(${color.r}, ${color.g}, ${color.b})`
+						: null}
 				></div>
 			{/each}
 		</div>
@@ -64,7 +56,7 @@
 				class="swatch"
 				class:swatch--out-of-canvas={centerCell === null}
 				class:swatch--transparent={centerCell !== null && centerCell.a === 0}
-				style:background-color={canonicalHex ?? 'var(--ds-bg-surface)'}
+				style:background-color={canonicalHex}
 			></div>
 			<span class="hex" class:hex--muted={displayHex === null} data-testid="loupe-hex-text">
 				{displayHex ?? EM_DASH}

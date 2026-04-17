@@ -2,10 +2,12 @@
 	import type { PixelCanvas, CanvasCoords } from './canvas-model';
 	import { viewportOps } from './wasm-backend';
 	import type { ViewportData, ViewportSize } from './viewport';
+	import type { SamplingSession } from './sampling-session.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { createWheelInputClassifier } from './wheel-input.ts';
 	import { renderPixelCanvas } from './renderer.ts';
 	import { createCanvasInteraction } from './canvas-interaction.svelte';
+	import Loupe from '$lib/ui-editor/Loupe.svelte';
 
 	interface Props {
 		pixelCanvas: PixelCanvas;
@@ -19,6 +21,12 @@
 		onLongPress?: (coords: CanvasCoords, button: number) => boolean;
 		toolCursor?: string;
 		isSpaceHeld?: boolean;
+		/**
+		 * Provided by the owning editor when a color-sampling session is available.
+		 * When active, the Loupe overlay renders next to the pointer. Optional so
+		 * Storybook stories and other consumers without a session still render.
+		 */
+		samplingSession?: SamplingSession;
 	}
 
 	let {
@@ -32,10 +40,18 @@
 		onViewportChange,
 		onLongPress,
 		toolCursor = 'crosshair',
-		isSpaceHeld = false
+		isSpaceHeld = false,
+		samplingSession
 	}: Props = $props();
 
 	let canvasEl: HTMLCanvasElement | undefined = $state();
+	/**
+	 * Viewport-relative pointer coordinates for the Loupe. Uses clientX/clientY
+	 * directly (not canvas-local) because Loupe is `position: fixed`. Set on
+	 * every pointer event (even outside a sampling session) so the overlay has
+	 * a fresh position the moment `samplingSession.isActive` flips to true.
+	 */
+	let screenPointer = $state<{ x: number; y: number } | null>(null);
 	const classifyWheelInput = createWheelInputClassifier();
 
 	const canvasInteraction = createCanvasInteraction(
@@ -124,19 +140,26 @@
 		return { x: event.clientX - rect.left, y: event.clientY - rect.top };
 	}
 
+	function trackScreenPointer(event: PointerEvent): void {
+		screenPointer = { x: event.clientX, y: event.clientY };
+	}
+
 	function handlePointerDown(event: PointerEvent): void {
 		if (event.button === 1 || event.button === 2) event.preventDefault();
+		trackScreenPointer(event);
 		const { x, y } = toLocal(event);
 		canvasInteraction.pointerDown(event.pointerId, x, y, event.pointerType, event.button);
 	}
 
 	function handlePointerMove(event: PointerEvent): void {
+		trackScreenPointer(event);
 		const { x, y } = toLocal(event);
 		canvasInteraction.pointerMove(x, y);
 	}
 
 	function handleWindowPointerMove(event: PointerEvent): void {
 		if (!canvasEl) return;
+		trackScreenPointer(event);
 		const { x, y } = toLocal(event);
 		canvasInteraction.windowPointerMove(event.pointerId, x, y, event.buttons);
 	}
@@ -145,6 +168,8 @@
 		if (!canvasEl) return;
 		const { x, y } = toLocal(event);
 		canvasInteraction.pointerUp(event.pointerId, x, y);
+		// Hide the Loupe at the end of a sampling drag; next pointerDown re-primes it.
+		screenPointer = null;
 	}
 
 	function handlePointerLeave(event: PointerEvent): void {
@@ -154,6 +179,7 @@
 
 	function handleWindowBlur(): void {
 		canvasInteraction.blur();
+		screenPointer = null;
 	}
 </script>
 
@@ -178,6 +204,14 @@
 	onpointercancel={handlePointerUp}
 	oncontextmenu={(e) => e.preventDefault()}
 ></canvas>
+
+{#if samplingSession?.isActive && screenPointer}
+	<Loupe
+		grid={samplingSession.grid}
+		centerColor={samplingSession.centerColor}
+		{screenPointer}
+	/>
+{/if}
 
 <style>
 	.pixel-canvas {

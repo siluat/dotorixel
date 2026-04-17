@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 32 | 27 | 5 | 25 | 84% | 52% |
-| cubic-dev-ai[bot] | 23 | 19 | 4 | 32 | 83% | 37% |
-| coderabbitai[bot] | 44 | 28 | 16 | 24 | 64% | 54% |
+| greptile-apps[bot] | 33 | 28 | 5 | 25 | 85% | 53% |
+| cubic-dev-ai[bot] | 23 | 19 | 4 | 33 | 83% | 37% |
+| coderabbitai[bot] | 44 | 28 | 16 | 25 | 64% | 53% |
 
 ## Log
 
@@ -194,3 +194,6 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #153 | cubic-dev-ai[bot] | Miss | Did not flag mouse-branch missing clamp on degenerate viewports |
 | #153 | cubic-dev-ai[bot] | Miss | Did not flag misleading "right edge at 1300" test comment |
 | #153 | cubic-dev-ai[bot] | Miss | Did not flag `.hex` default line-height drift vs CHIP_HEIGHT_PX |
+| #153 | greptile-apps[bot] | Accept | Touch branch missing y-clamp after vertical flip — clips on mobile-portrait heights |
+| #153 | coderabbitai[bot] | Miss | Did not flag touch-branch missing y-clamp (APPROVED review) |
+| #153 | cubic-dev-ai[bot] | Miss | Did not flag touch-branch missing y-clamp |

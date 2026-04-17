@@ -264,8 +264,8 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 				return NO_EFFECTS;
 			},
 			draw(ctx, current) {
-				const commitTarget = ctx.drawButton === 2 ? 'background' : 'foreground';
 				if (!started) {
+					const commitTarget = ctx.drawButton === 2 ? 'background' : 'foreground';
 					samplingSession.start({ targetPixel: current, commitTarget });
 					started = true;
 				} else {

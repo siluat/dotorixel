@@ -52,6 +52,8 @@
 			{/each}
 		</div>
 		<div class="chip" data-testid="loupe-hex-chip">
+			<!-- swatch--empty is a hook for issue 066 (checkerboard/hatch fill for
+			     transparent and out-of-canvas center pixels). -->
 			<div
 				class="swatch"
 				class:swatch--empty={canonicalHex === null}
@@ -69,6 +71,7 @@
 		/* Fixed upper-right quadrant offset from pointer. Quadrant flip lands
 		   in issue 067; a touch-specific offset lands in issue 068. */
 		--cell-size: 24px;
+		--grid-columns: 9;
 		--pointer-offset: 20px;
 
 		position: fixed;
@@ -93,8 +96,8 @@
 	.grid {
 		/* Gridlines are rendered by the gap showing through the --ds-border background. */
 		display: grid;
-		grid-template-columns: repeat(9, var(--cell-size));
-		grid-template-rows: repeat(9, var(--cell-size));
+		grid-template-columns: repeat(var(--grid-columns), var(--cell-size));
+		grid-template-rows: repeat(var(--grid-columns), var(--cell-size));
 		gap: 1px;
 		background: var(--ds-border);
 	}

@@ -7,6 +7,10 @@ import type { Color } from '$lib/canvas/color';
 const OPAQUE_BLUE: Color = { r: 0, g: 0, b: 255, a: 255 };
 const TRANSPARENT: Color = { r: 0, g: 0, b: 0, a: 0 };
 
+// Roomy viewport so existing rendering tests never trigger quadrant flips
+// or clamping. Positioning behavior gets its own dedicated describe below.
+const TEST_VIEWPORT = { width: 1200, height: 800 } as const;
+
 function makeGrid(fill: Color): Color[] {
 	return Array.from({ length: 81 }, () => fill);
 }
@@ -36,7 +40,7 @@ afterEach(() => {
 describe('Loupe', () => {
 	it('renders nothing when screenPointer is null', () => {
 		const { container } = render(Loupe, {
-			props: { grid: makeGrid(OPAQUE_BLUE), screenPointer: null }
+			props: { grid: makeGrid(OPAQUE_BLUE), screenPointer: null, viewport: TEST_VIEWPORT, inputSource: 'mouse' }
 		});
 
 		expect(container.querySelector('[data-testid="loupe-root"]')).toBeNull();
@@ -44,7 +48,7 @@ describe('Loupe', () => {
 
 	it('renders an 81-cell grid when screenPointer is provided', () => {
 		const { container } = render(Loupe, {
-			props: { grid: makeGrid(OPAQUE_BLUE), screenPointer: { x: 100, y: 200 } }
+			props: { grid: makeGrid(OPAQUE_BLUE), screenPointer: { x: 100, y: 200 }, viewport: TEST_VIEWPORT, inputSource: 'mouse' }
 		});
 
 		const cells = container.querySelectorAll('.cell');
@@ -55,7 +59,9 @@ describe('Loupe', () => {
 		const { getByTestId } = render(Loupe, {
 			props: {
 				grid: makeGridWithCenter(OPAQUE_BLUE, { r: 0x4b, g: 0x2a, b: 0x1a, a: 255 }),
-				screenPointer: { x: 0, y: 0 }
+				screenPointer: { x: 0, y: 0 },
+				viewport: TEST_VIEWPORT,
+				inputSource: 'mouse'
 			}
 		});
 
@@ -66,7 +72,9 @@ describe('Loupe', () => {
 		const { getByTestId } = render(Loupe, {
 			props: {
 				grid: makeGridWithCenter(OPAQUE_BLUE, null),
-				screenPointer: { x: 0, y: 0 }
+				screenPointer: { x: 0, y: 0 },
+				viewport: TEST_VIEWPORT,
+				inputSource: 'mouse'
 			}
 		});
 
@@ -77,7 +85,9 @@ describe('Loupe', () => {
 		const { getByTestId } = render(Loupe, {
 			props: {
 				grid: makeGridWithCenter(OPAQUE_BLUE, TRANSPARENT),
-				screenPointer: { x: 0, y: 0 }
+				screenPointer: { x: 0, y: 0 },
+				viewport: TEST_VIEWPORT,
+				inputSource: 'mouse'
 			}
 		});
 
@@ -88,7 +98,9 @@ describe('Loupe', () => {
 		const { container } = render(Loupe, {
 			props: {
 				grid: makeGridWithCenter(OPAQUE_BLUE, null),
-				screenPointer: { x: 0, y: 0 }
+				screenPointer: { x: 0, y: 0 },
+				viewport: TEST_VIEWPORT,
+				inputSource: 'mouse'
 			}
 		});
 
@@ -101,7 +113,9 @@ describe('Loupe', () => {
 		const { container } = render(Loupe, {
 			props: {
 				grid: makeGridWithCenter(OPAQUE_BLUE, TRANSPARENT),
-				screenPointer: { x: 0, y: 0 }
+				screenPointer: { x: 0, y: 0 },
+				viewport: TEST_VIEWPORT,
+				inputSource: 'mouse'
 			}
 		});
 
@@ -112,7 +126,7 @@ describe('Loupe', () => {
 
 	it('leaves the swatch unmarked when the center cell is opaque', () => {
 		const { container } = render(Loupe, {
-			props: { grid: makeGrid(OPAQUE_BLUE), screenPointer: { x: 0, y: 0 } }
+			props: { grid: makeGrid(OPAQUE_BLUE), screenPointer: { x: 0, y: 0 }, viewport: TEST_VIEWPORT, inputSource: 'mouse' }
 		});
 
 		const swatch = container.querySelector('.swatch');
@@ -120,19 +134,59 @@ describe('Loupe', () => {
 		expect(swatch?.classList.contains('swatch--transparent')).toBe(false);
 	});
 
-	it('exposes the pointer coordinates as CSS variables on the root', () => {
+	it('positions itself in the top-right quadrant for mouse with room', () => {
 		const { getByTestId } = render(Loupe, {
-			props: { grid: makeGrid(OPAQUE_BLUE), screenPointer: { x: 150, y: 250 } }
+			props: {
+				grid: makeGrid(OPAQUE_BLUE),
+				screenPointer: { x: 600, y: 400 },
+				viewport: TEST_VIEWPORT,
+				inputSource: 'mouse'
+			}
 		});
 
 		const root = getByTestId('loupe-root') as HTMLElement;
-		expect(root.style.getPropertyValue('--pointer-x')).toBe('150px');
-		expect(root.style.getPropertyValue('--pointer-y')).toBe('250px');
+		// Mouse default offset = 20px: x = pointer.x + 20 = 620.
+		// Asserting `top < pointer.y` instead of an exact value keeps the test
+		// stable if the loupe outer height changes.
+		expect(parseFloat(root.style.left)).toBe(620);
+		expect(parseFloat(root.style.top)).toBeLessThan(400);
+	});
+
+	it('flips horizontally to the top-left quadrant when near the right edge for mouse', () => {
+		const { getByTestId } = render(Loupe, {
+			props: {
+				grid: makeGrid(OPAQUE_BLUE),
+				screenPointer: { x: 1180, y: 400 },
+				viewport: TEST_VIEWPORT,
+				inputSource: 'mouse'
+			}
+		});
+
+		const root = getByTestId('loupe-root') as HTMLElement;
+		// Right-edge pointer flips horizontally — loupe sits to the left of the pointer.
+		expect(parseFloat(root.style.left)).toBeLessThan(1180);
+	});
+
+	it('centers horizontally on the pointer for touch input', () => {
+		const { getByTestId } = render(Loupe, {
+			props: {
+				grid: makeGrid(OPAQUE_BLUE),
+				screenPointer: { x: 600, y: 400 },
+				viewport: TEST_VIEWPORT,
+				inputSource: 'touch'
+			}
+		});
+
+		const root = getByTestId('loupe-root') as HTMLElement;
+		// Touch centers horizontally: left = pointer.x - loupeWidth / 2.
+		// Touch vertical offset is 80px, so the loupe sits well above the pointer.
+		expect(parseFloat(root.style.left)).toBeLessThan(600);
+		expect(parseFloat(root.style.top)).toBeLessThan(400 - 80);
 	});
 
 	it('marks exactly one cell (index 40) as the center cell', () => {
 		const { container } = render(Loupe, {
-			props: { grid: makeGrid(OPAQUE_BLUE), screenPointer: { x: 0, y: 0 } }
+			props: { grid: makeGrid(OPAQUE_BLUE), screenPointer: { x: 0, y: 0 }, viewport: TEST_VIEWPORT, inputSource: 'mouse' }
 		});
 
 		const centers = container.querySelectorAll('.cell--center');
@@ -143,7 +197,9 @@ describe('Loupe', () => {
 		const { container } = render(Loupe, {
 			props: {
 				grid: makeGridWithNullAt(OPAQUE_BLUE, [0, 1, 9]),
-				screenPointer: { x: 0, y: 0 }
+				screenPointer: { x: 0, y: 0 },
+				viewport: TEST_VIEWPORT,
+				inputSource: 'mouse'
 			}
 		});
 
@@ -159,7 +215,9 @@ describe('Loupe', () => {
 		const { container } = render(Loupe, {
 			props: {
 				grid: makeGridWithTransparentAt(OPAQUE_BLUE, [0, 2, 80]),
-				screenPointer: { x: 0, y: 0 }
+				screenPointer: { x: 0, y: 0 },
+				viewport: TEST_VIEWPORT,
+				inputSource: 'mouse'
 			}
 		});
 
@@ -176,7 +234,7 @@ describe('Loupe', () => {
 	it('fills each opaque grid cell with its sampled rgb color', () => {
 		const red: Color = { r: 255, g: 0, b: 0, a: 255 };
 		const { container } = render(Loupe, {
-			props: { grid: makeGrid(red), screenPointer: { x: 0, y: 0 } }
+			props: { grid: makeGrid(red), screenPointer: { x: 0, y: 0 }, viewport: TEST_VIEWPORT, inputSource: 'mouse' }
 		});
 
 		const firstCell = container.querySelector('.cell') as HTMLElement;

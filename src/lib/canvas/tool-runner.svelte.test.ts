@@ -56,7 +56,7 @@ function hasEffect(effects: EditorEffects, type: string): boolean {
 describe('ToolRunner — pencil tool', () => {
 	it('produces canvasChanged and addRecentColor effects', () => {
 		const { runner } = createRunner();
-		const startEffects = runner.drawStart(0);
+		const startEffects = runner.drawStart(0, 'mouse');
 		expect(hasEffect(startEffects, 'addRecentColor')).toBe(true);
 
 		const drawEffects = runner.draw({ x: 3, y: 3 }, null);
@@ -68,7 +68,7 @@ describe('ToolRunner — pencil tool', () => {
 	it('draws a pixel on the canvas', () => {
 		const canvas = canvasFactory.create(8, 8);
 		const { runner } = createRunner(canvas);
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 3, y: 3 }, null);
 		runner.drawEnd();
 
@@ -84,7 +84,7 @@ describe('ToolRunner — eyedropper tool', () => {
 		const shared2 = new SharedState();
 		const samplingSession2 = createSamplingSession(() => host.pixelCanvas);
 		const runner2 = createToolRunner({ host, shared: shared2, getShiftHeld: () => false, samplingSession: samplingSession2 });
-		runner2.drawStart(0);
+		runner2.drawStart(0, 'mouse');
 		runner2.draw({ x: 2, y: 2 }, null);
 		runner2.drawEnd();
 		expect(getPixel(canvas, 2, 2)).toEqual(RED);
@@ -92,7 +92,7 @@ describe('ToolRunner — eyedropper tool', () => {
 		// Eyedropper: no colorPick mid-stroke; commit happens on drawEnd.
 		const { runner, shared } = createRunner(canvas);
 		shared.activeTool = 'eyedropper';
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		const drawEffects = runner.draw({ x: 2, y: 2 }, null);
 		expect(hasEffect(drawEffects, 'colorPick')).toBe(false);
 
@@ -110,7 +110,7 @@ describe('ToolRunner — eyedropper tool', () => {
 		const redShared = new SharedState();
 		const redSession = createSamplingSession(() => redHost.pixelCanvas);
 		const redRunner = createToolRunner({ host: redHost, shared: redShared, getShiftHeld: () => false, samplingSession: redSession });
-		redRunner.drawStart(0);
+		redRunner.drawStart(0, 'mouse');
 		redRunner.draw({ x: 5, y: 5 }, null);
 		redRunner.drawEnd();
 		expect(getPixel(canvas, 5, 5)).toEqual(RED);
@@ -119,7 +119,7 @@ describe('ToolRunner — eyedropper tool', () => {
 		// Eyedropper drag: start on transparent (0,0), end on red (5,5). Commit should be RED.
 		const { runner, shared } = createRunner(canvas);
 		shared.activeTool = 'eyedropper';
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.draw({ x: 5, y: 5 }, { x: 0, y: 0 });
 		const endEffects = runner.drawEnd();
@@ -131,7 +131,7 @@ describe('ToolRunner — eyedropper tool', () => {
 	it('does not push a history snapshot', () => {
 		const { runner, shared } = createRunner();
 		shared.activeTool = 'eyedropper';
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.drawEnd();
 
@@ -145,7 +145,7 @@ describe('ToolRunner — floodfill tool', () => {
 		const { runner, shared } = createRunner(canvas);
 		shared.activeTool = 'floodfill';
 
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		const firstDraw = runner.draw({ x: 0, y: 0 }, null);
 		expect(hasEffect(firstDraw, 'canvasChanged')).toBe(true);
 
@@ -162,7 +162,7 @@ describe('ToolRunner — shape tool', () => {
 		const { runner, shared } = createRunner(canvas);
 		shared.activeTool = 'line';
 
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 		const drawEffects = runner.draw({ x: 3, y: 0 }, { x: 0, y: 0 });
 		expect(hasEffect(drawEffects, 'canvasChanged')).toBe(true);
@@ -178,7 +178,7 @@ describe('ToolRunner — shape tool', () => {
 		const { runner, shared } = createRunner(canvas);
 		shared.activeTool = 'line';
 
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.draw({ x: 4, y: 4 }, { x: 0, y: 0 });
 		// Intermediate preview drawn
@@ -200,14 +200,14 @@ describe('ToolRunner — move tool', () => {
 
 		// Paint a pixel with pencil
 		shared.activeTool = 'pencil';
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.drawEnd();
 		expect(getPixel(canvas, 0, 0)).toEqual(BLACK);
 
 		// Move it
 		shared.activeTool = 'move';
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 		const moveEffects = runner.draw({ x: 2, y: 3 }, { x: 0, y: 0 });
 		expect(hasEffect(moveEffects, 'canvasChanged')).toBe(true);
@@ -225,14 +225,14 @@ describe('ToolRunner — eraser tool', () => {
 
 		// Paint a pixel with pencil
 		shared.activeTool = 'pencil';
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 3, y: 3 }, null);
 		runner.drawEnd();
 		expect(getPixel(canvas, 3, 3)).toEqual(BLACK);
 
 		// Erase it
 		shared.activeTool = 'eraser';
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 3, y: 3 }, null);
 		runner.drawEnd();
 
@@ -242,7 +242,7 @@ describe('ToolRunner — eraser tool', () => {
 	it('does not produce addRecentColor effect', () => {
 		const { runner, shared } = createRunner();
 		shared.activeTool = 'eraser';
-		const startEffects = runner.drawStart(0);
+		const startEffects = runner.drawStart(0, 'mouse');
 		expect(hasEffect(startEffects, 'addRecentColor')).toBe(false);
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.drawEnd();
@@ -254,7 +254,7 @@ describe('ToolRunner — eraser tool', () => {
 describe('ToolRunner — addsActiveColor', () => {
 	it('pencil emits addRecentColor with foreground hex on left-click', () => {
 		const { runner } = createRunner();
-		const effects = runner.drawStart(0);
+		const effects = runner.drawStart(0, 'mouse');
 		const recentColor = effects.find((e) => e.type === 'addRecentColor');
 		expect(recentColor).toEqual({ type: 'addRecentColor', hex: '#000000' });
 		runner.draw({ x: 0, y: 0 }, null);
@@ -263,7 +263,7 @@ describe('ToolRunner — addsActiveColor', () => {
 
 	it('pencil emits addRecentColor with background hex on right-click', () => {
 		const { runner } = createRunner();
-		const effects = runner.drawStart(2);
+		const effects = runner.drawStart(2, 'mouse');
 		const recentColor = effects.find((e) => e.type === 'addRecentColor');
 		expect(recentColor).toEqual({ type: 'addRecentColor', hex: '#ffffff' });
 		runner.draw({ x: 0, y: 0 }, null);
@@ -273,7 +273,7 @@ describe('ToolRunner — addsActiveColor', () => {
 	it('eyedropper does not emit addRecentColor on drawStart', () => {
 		const { runner, shared } = createRunner();
 		shared.activeTool = 'eyedropper';
-		const effects = runner.drawStart(0);
+		const effects = runner.drawStart(0, 'mouse');
 		expect(hasEffect(effects, 'addRecentColor')).toBe(false);
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.drawEnd();
@@ -282,7 +282,7 @@ describe('ToolRunner — addsActiveColor', () => {
 	it('floodfill emits addRecentColor on drawStart', () => {
 		const { runner, shared } = createRunner();
 		shared.activeTool = 'floodfill';
-		const effects = runner.drawStart(0);
+		const effects = runner.drawStart(0, 'mouse');
 		expect(hasEffect(effects, 'addRecentColor')).toBe(true);
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.drawEnd();
@@ -291,7 +291,7 @@ describe('ToolRunner — addsActiveColor', () => {
 	it('line tool emits addRecentColor on drawStart', () => {
 		const { runner, shared } = createRunner();
 		shared.activeTool = 'line';
-		const effects = runner.drawStart(0);
+		const effects = runner.drawStart(0, 'mouse');
 		expect(hasEffect(effects, 'addRecentColor')).toBe(true);
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.drawEnd();
@@ -305,7 +305,7 @@ describe('ToolRunner — right-click', () => {
 		const canvas = canvasFactory.create(8, 8);
 		const { runner } = createRunner(canvas);
 
-		runner.drawStart(2);
+		runner.drawStart(2, 'mouse');
 		runner.draw({ x: 3, y: 3 }, null);
 		runner.drawEnd();
 
@@ -318,7 +318,7 @@ describe('ToolRunner — right-click', () => {
 describe('ToolRunner — history', () => {
 	it('pushes snapshot for capturesHistory tools', () => {
 		const { runner } = createRunner();
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.drawEnd();
 
@@ -327,7 +327,7 @@ describe('ToolRunner — history', () => {
 
 	it('undo returns canvasChanged effect', () => {
 		const { runner } = createRunner();
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.drawEnd();
 
@@ -337,7 +337,7 @@ describe('ToolRunner — history', () => {
 
 	it('redo returns canvasChanged effect', () => {
 		const { runner } = createRunner();
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.drawEnd();
 
@@ -350,7 +350,7 @@ describe('ToolRunner — history', () => {
 		const canvas = canvasFactory.create(8, 8);
 		const { runner } = createRunner(canvas);
 
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 3, y: 3 }, null);
 		runner.drawEnd();
 		expect(getPixel(canvas, 3, 3)).toEqual(BLACK);
@@ -363,7 +363,7 @@ describe('ToolRunner — history', () => {
 		const canvas = canvasFactory.create(8, 8);
 		const { runner } = createRunner(canvas);
 
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.drawEnd();
 
@@ -437,7 +437,7 @@ describe('ToolRunner — guards', () => {
 
 	it('undo returns empty when drawing', () => {
 		const { runner } = createRunner();
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 
 		// Push a snapshot first so undo would normally succeed
@@ -449,11 +449,51 @@ describe('ToolRunner — guards', () => {
 
 	it('redo returns empty when drawing', () => {
 		const { runner } = createRunner();
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 
 		const effects = runner.redo();
 		expect(effects).toEqual([]);
+
+		runner.drawEnd();
+	});
+});
+
+// ── inputSource plumbing (live-sample lifecycle) ────────────────────
+
+describe('ToolRunner — inputSource plumbing', () => {
+	it('starts the sampling session with mouse inputSource when drawStart pointerType is "mouse"', () => {
+		const { runner, shared, samplingSession } = createRunner();
+		shared.activeTool = 'eyedropper';
+
+		runner.drawStart(0, 'mouse');
+		runner.draw({ x: 0, y: 0 }, null);
+
+		expect(samplingSession.inputSource).toBe('mouse');
+
+		runner.drawEnd();
+	});
+
+	it('starts the sampling session with mouse inputSource when drawStart pointerType is "pen"', () => {
+		const { runner, shared, samplingSession } = createRunner();
+		shared.activeTool = 'eyedropper';
+
+		runner.drawStart(0, 'pen');
+		runner.draw({ x: 0, y: 0 }, null);
+
+		expect(samplingSession.inputSource).toBe('mouse');
+
+		runner.drawEnd();
+	});
+
+	it('starts the sampling session with touch inputSource when drawStart pointerType is "touch"', () => {
+		const { runner, shared, samplingSession } = createRunner();
+		shared.activeTool = 'eyedropper';
+
+		runner.drawStart(0, 'touch');
+		runner.draw({ x: 0, y: 0 }, null);
+
+		expect(samplingSession.inputSource).toBe('touch');
 
 		runner.drawEnd();
 	});
@@ -472,7 +512,7 @@ describe('ToolRunner — shift constraint', () => {
 		const runner = createToolRunner({ host, shared, getShiftHeld: () => shiftHeld, samplingSession });
 
 		shiftHeld = true;
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.draw({ x: 5, y: 1 }, { x: 0, y: 0 });
 		runner.drawEnd();
@@ -491,7 +531,7 @@ describe('ToolRunner — shift constraint', () => {
 		const samplingSession = createSamplingSession(() => host.pixelCanvas);
 		const runner = createToolRunner({ host, shared, getShiftHeld: () => shiftHeld, samplingSession });
 
-		runner.drawStart(0);
+		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.draw({ x: 5, y: 1 }, { x: 0, y: 0 });
 

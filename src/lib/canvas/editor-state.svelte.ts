@@ -8,6 +8,7 @@ import { exportAsPng } from './export';
 import { createKeyboardInput, type KeyboardInput } from './keyboard-input.svelte';
 import { createSamplingSession, type SamplingSession } from './sampling-session.svelte';
 import { createToolRunner, type ToolRunner, type EditorEffects } from './tool-runner.svelte';
+import type { PointerType } from './canvas-interaction.svelte';
 
 function assertNever(x: never): never {
 	throw new Error(`Unhandled effect type: ${(x as { type: string }).type}`);
@@ -205,9 +206,9 @@ export class EditorState {
 		);
 	};
 
-	handleDrawStart = (button: number): void => {
+	handleDrawStart = (button: number, pointerType: PointerType): void => {
 		if (this.#keyboard.isShortcutHintsVisible) return;
-		this.#applyEffects(this.#toolRunner.drawStart(button));
+		this.#applyEffects(this.#toolRunner.drawStart(button, pointerType));
 	};
 
 	handleDrawEnd = (): void => {

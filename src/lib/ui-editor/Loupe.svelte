@@ -1,6 +1,27 @@
 <script lang="ts">
 	import type { Color } from '$lib/canvas/color';
 	import { colorToHex } from '$lib/canvas/color';
+	import {
+		computeLoupePosition,
+		type LoupeInputSource
+	} from '$lib/canvas/loupe-position';
+
+	// Loupe outer dimensions (border-box) derived from the design spec.
+	// Each building block names a single CSS value below — change one here and
+	// in the CSS together; the totals re-derive automatically.
+	const CELL_SIZE_PX = 24; // .cell width/height
+	const GRID_COLUMNS = 9; // .grid grid-template-columns repeat count
+	const CELL_GAP_PX = 1; // .grid `gap`
+	const PADDING_PX = 8; // .loupe `padding` (= --ds-space-3)
+	const BORDER_PX = 1; // .loupe `border` width (= --ds-border-width)
+	const GRID_CHIP_GAP_PX = 8; // .loupe `gap` between grid and chip (= --ds-space-3)
+	const CHIP_HEIGHT_PX = 24; // .chip height: 4px×2 padding + 16px swatch
+	const GRID_PIXELS = CELL_SIZE_PX * GRID_COLUMNS + CELL_GAP_PX * (GRID_COLUMNS - 1);
+	const LOUPE_WIDTH = GRID_PIXELS + PADDING_PX * 2 + BORDER_PX * 2;
+	const LOUPE_HEIGHT =
+		GRID_PIXELS + GRID_CHIP_GAP_PX + CHIP_HEIGHT_PX + PADDING_PX * 2 + BORDER_PX * 2;
+	const MOUSE_OFFSET = 20;
+	const TOUCH_OFFSET = 80;
 
 	interface Props {
 		/**
@@ -11,9 +32,17 @@
 		grid: readonly (Color | null)[];
 		/** Pointer position in viewport coordinates; `null` hides the loupe. */
 		screenPointer: { x: number; y: number } | null;
+		/**
+		 * Visible viewport dimensions in pixels (typically `window.innerWidth`
+		 * × `window.innerHeight`). Used to flip/clamp the loupe so it stays
+		 * fully on-screen near viewport edges.
+		 */
+		viewport: { width: number; height: number };
+		/** Picks between the mouse (20px symmetric) and touch (80px vertical, centered horizontally) offset presets. */
+		inputSource: LoupeInputSource;
 	}
 
-	let { grid, screenPointer }: Props = $props();
+	let { grid, screenPointer, viewport, inputSource }: Props = $props();
 
 	const centerIndex = $derived((grid.length - 1) / 2);
 	// The chip reflects the CURRENT center cell, not the session's preserved
@@ -28,15 +57,28 @@
 		centerCell && centerCell.a > 0 ? colorToHex(centerCell) : null
 	);
 	const displayHex = $derived(canonicalHex ? canonicalHex.toUpperCase() : null);
+
+	const position = $derived(
+		screenPointer
+			? computeLoupePosition({
+					pointer: screenPointer,
+					viewport,
+					loupe: { width: LOUPE_WIDTH, height: LOUPE_HEIGHT },
+					mouseOffset: MOUSE_OFFSET,
+					touchOffset: TOUCH_OFFSET,
+					inputSource
+				})
+			: null
+	);
 </script>
 
-{#if screenPointer}
+{#if screenPointer && position}
 	<div
 		class="loupe"
 		data-testid="loupe-root"
 		role="presentation"
-		style:--pointer-x="{screenPointer.x}px"
-		style:--pointer-y="{screenPointer.y}px"
+		style:left="{position.x}px"
+		style:top="{position.y}px"
 	>
 		<div class="grid" role="presentation">
 			{#each grid as color, i (i)}
@@ -67,16 +109,12 @@
 
 <style>
 	.loupe {
-		/* Fixed upper-right quadrant offset from pointer. Quadrant flip lands
-		   in issue 067; a touch-specific offset lands in issue 068. */
+		/* `left` / `top` are set inline from `computeLoupePosition` (positions
+		   the loupe to stay fully on-screen even near viewport edges). */
 		--cell-size: 24px;
 		--grid-columns: 9;
-		--pointer-offset: 20px;
 
 		position: fixed;
-		left: var(--pointer-x);
-		top: var(--pointer-y);
-		transform: translate(var(--pointer-offset), calc(-100% - var(--pointer-offset)));
 		pointer-events: none;
 		z-index: 1000;
 
@@ -201,6 +239,10 @@
 	.hex {
 		font-family: var(--ds-font-mono);
 		font-size: var(--ds-font-size-sm);
+		/* Locks to 16px (matches .swatch height) so CHIP_HEIGHT_PX = 24 stays
+		   accurate — default normal line-height (~17px) would add a 1px drift
+		   through the positioning math. */
+		line-height: 16px;
 		color: var(--ds-text-primary);
 	}
 

@@ -30,6 +30,43 @@ describe('samplingSession — initial state', () => {
 
 		expect(session.isActive).toBe(false);
 	});
+
+	it('reports the input source as null before start is called', () => {
+		const canvas = canvasFactory.withColor(16, 16, RED);
+		const session = createSamplingSession(() => canvas);
+
+		expect(session.inputSource).toBeNull();
+	});
+});
+
+describe('samplingSession — input source', () => {
+	it('exposes the mouse input source after start with inputSource: mouse', () => {
+		const canvas = canvasFactory.withColor(16, 16, RED);
+		const session = createSamplingSession(() => canvas);
+
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground', inputSource: 'mouse' });
+
+		expect(session.inputSource).toBe('mouse');
+	});
+
+	it('exposes the touch input source after start with inputSource: touch', () => {
+		const canvas = canvasFactory.withColor(16, 16, RED);
+		const session = createSamplingSession(() => canvas);
+
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground', inputSource: 'touch' });
+
+		expect(session.inputSource).toBe('touch');
+	});
+
+	it('clears the input source back to null after cancel', () => {
+		const canvas = canvasFactory.withColor(16, 16, RED);
+		const session = createSamplingSession(() => canvas);
+
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground', inputSource: 'touch' });
+		session.cancel();
+
+		expect(session.inputSource).toBeNull();
+	});
 });
 
 describe('samplingSession — start', () => {
@@ -37,7 +74,7 @@ describe('samplingSession — start', () => {
 		const canvas = canvasFactory.withColor(16, 16, RED);
 		const session = createSamplingSession(() => canvas);
 
-		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground' });
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground', inputSource: 'mouse' });
 
 		expect(session.isActive).toBe(true);
 	});
@@ -46,7 +83,7 @@ describe('samplingSession — start', () => {
 		const canvas = canvasFactory.withColor(16, 16, RED);
 		const session = createSamplingSession(() => canvas);
 
-		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground' });
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground', inputSource: 'mouse' });
 
 		expect(session.grid).toHaveLength(81);
 		expect(session.centerColor).toEqual(RED);
@@ -58,7 +95,7 @@ describe('samplingSession — update', () => {
 		const canvas = splitCanvas(16, 16); // left half RED, right half BLUE
 		const session = createSamplingSession(() => canvas);
 
-		session.start({ targetPixel: { x: 2, y: 8 }, commitTarget: 'foreground' });
+		session.start({ targetPixel: { x: 2, y: 8 }, commitTarget: 'foreground', inputSource: 'mouse' });
 		expect(session.centerColor).toEqual(RED);
 
 		session.update({ x: 12, y: 8 });
@@ -70,7 +107,7 @@ describe('samplingSession — update', () => {
 		const canvas = canvasFactory.withColor(16, 16, RED);
 		const session = createSamplingSession(() => canvas);
 
-		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground' });
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground', inputSource: 'mouse' });
 		expect(session.centerColor).toEqual(RED);
 
 		// (-1, 8) is outside the canvas → grid center is null. The last
@@ -101,7 +138,7 @@ describe('samplingSession — update', () => {
 		const canvas = canvasFactory.fromPixels(width, height, bytes);
 		const session = createSamplingSession(() => canvas);
 
-		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground' });
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground', inputSource: 'mouse' });
 		expect(session.centerColor).toEqual(RED);
 
 		session.update({ x: 0, y: 8 });
@@ -115,7 +152,7 @@ describe('samplingSession — commit', () => {
 		const canvas = canvasFactory.withColor(16, 16, RED);
 		const session = createSamplingSession(() => canvas);
 
-		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground' });
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground', inputSource: 'mouse' });
 		const effects = session.commit();
 
 		expect(effects).toEqual([
@@ -128,7 +165,7 @@ describe('samplingSession — commit', () => {
 		const canvas = canvasFactory.withColor(16, 16, RED);
 		const session = createSamplingSession(() => canvas);
 
-		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'background' });
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'background', inputSource: 'mouse' });
 		const effects = session.commit();
 
 		expect(effects).toEqual([
@@ -142,7 +179,7 @@ describe('samplingSession — commit', () => {
 		const canvas = canvasFactory.withColor(16, 16, TRANSPARENT);
 		const session = createSamplingSession(() => canvas);
 
-		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground' });
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground', inputSource: 'mouse' });
 		const effects = session.commit();
 
 		expect(effects).toEqual([]);
@@ -155,7 +192,7 @@ describe('samplingSession — commit', () => {
 		// targetPixel.x = -1 is outside the canvas, so the center cell is
 		// null and commit must refuse to pick even though there is no
 		// preserved centerColor either.
-		session.start({ targetPixel: { x: -1, y: 8 }, commitTarget: 'foreground' });
+		session.start({ targetPixel: { x: -1, y: 8 }, commitTarget: 'foreground', inputSource: 'mouse' });
 		const effects = session.commit();
 
 		expect(effects).toEqual([]);
@@ -183,7 +220,7 @@ describe('samplingSession — commit', () => {
 		const canvas = canvasFactory.fromPixels(width, height, bytes);
 		const session = createSamplingSession(() => canvas);
 
-		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground' });
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground', inputSource: 'mouse' });
 		session.update({ x: 0, y: 8 });
 		const effects = session.commit();
 
@@ -194,7 +231,7 @@ describe('samplingSession — commit', () => {
 		const canvas = canvasFactory.withColor(16, 16, RED);
 		const session = createSamplingSession(() => canvas);
 
-		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground' });
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground', inputSource: 'mouse' });
 		session.update({ x: -1, y: 8 });
 		const effects = session.commit();
 
@@ -223,7 +260,7 @@ describe('samplingSession — commit', () => {
 		const canvas = canvasFactory.fromPixels(width, height, bytes);
 		const session = createSamplingSession(() => canvas);
 
-		session.start({ targetPixel: { x: 4, y: 8 }, commitTarget: 'foreground' });
+		session.start({ targetPixel: { x: 4, y: 8 }, commitTarget: 'foreground', inputSource: 'mouse' });
 		session.update({ x: 0, y: 8 });
 		session.update({ x: 12, y: 8 });
 		const effects = session.commit();
@@ -238,7 +275,7 @@ describe('samplingSession — commit', () => {
 		const canvas = canvasFactory.withColor(16, 16, RED);
 		const session = createSamplingSession(() => canvas);
 
-		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground' });
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground', inputSource: 'mouse' });
 		session.commit();
 
 		expect(session.isActive).toBe(false);
@@ -251,7 +288,7 @@ describe('samplingSession — commit', () => {
 		const canvas = canvasFactory.withColor(16, 16, TRANSPARENT);
 		const session = createSamplingSession(() => canvas);
 
-		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground' });
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground', inputSource: 'mouse' });
 		session.commit();
 
 		expect(session.isActive).toBe(false);
@@ -263,7 +300,7 @@ describe('samplingSession — commit', () => {
 		const canvas = canvasFactory.withColor(16, 16, RED);
 		const session = createSamplingSession(() => canvas);
 
-		session.start({ targetPixel: { x: -1, y: 8 }, commitTarget: 'foreground' });
+		session.start({ targetPixel: { x: -1, y: 8 }, commitTarget: 'foreground', inputSource: 'mouse' });
 		session.commit();
 
 		expect(session.isActive).toBe(false);
@@ -277,7 +314,7 @@ describe('samplingSession — cancel', () => {
 		const canvas = canvasFactory.withColor(16, 16, RED);
 		const session = createSamplingSession(() => canvas);
 
-		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground' });
+		session.start({ targetPixel: { x: 8, y: 8 }, commitTarget: 'foreground', inputSource: 'mouse' });
 		expect(session.isActive).toBe(true);
 
 		session.cancel();

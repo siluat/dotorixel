@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 30 | 25 | 5 | 24 | 83% | 51% |
-| cubic-dev-ai[bot] | 23 | 19 | 4 | 29 | 83% | 40% |
-| coderabbitai[bot] | 43 | 27 | 16 | 22 | 63% | 55% |
+| greptile-apps[bot] | 33 | 28 | 5 | 25 | 85% | 53% |
+| cubic-dev-ai[bot] | 23 | 19 | 4 | 33 | 83% | 37% |
+| coderabbitai[bot] | 44 | 28 | 16 | 25 | 64% | 53% |
 
 ## Log
 
@@ -185,3 +185,15 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #152 | cubic-dev-ai[bot] | Accept | E2E `.first()` palette-swatch default collision — add colorAHex + assertion |
 | #152 | cubic-dev-ai[bot] | Accept | Test-count off-by-one in issue 066 Results (4 vs 5) |
 | #152 | cubic-dev-ai[bot] | Miss | Did not flag stale JSDoc on `cellFill` |
+| #153 | greptile-apps[bot] | Accept | Mouse-branch clamping absent — mirror touch pattern for degenerate viewports |
+| #153 | greptile-apps[bot] | Accept | Clarify "right edge at 1300" test comment with full derivation |
+| #153 | coderabbitai[bot] | Accept | `.hex` line-height: 16px — lock CHIP_HEIGHT_PX=24 contract vs ~17px default |
+| #153 | greptile-apps[bot] | Miss | Did not flag `.hex` default line-height drift vs CHIP_HEIGHT_PX |
+| #153 | coderabbitai[bot] | Miss | Did not flag mouse-branch missing clamp on degenerate viewports |
+| #153 | coderabbitai[bot] | Miss | Did not flag misleading "right edge at 1300" test comment |
+| #153 | cubic-dev-ai[bot] | Miss | Did not flag mouse-branch missing clamp on degenerate viewports |
+| #153 | cubic-dev-ai[bot] | Miss | Did not flag misleading "right edge at 1300" test comment |
+| #153 | cubic-dev-ai[bot] | Miss | Did not flag `.hex` default line-height drift vs CHIP_HEIGHT_PX |
+| #153 | greptile-apps[bot] | Accept | Touch branch missing y-clamp after vertical flip — clips on mobile-portrait heights |
+| #153 | coderabbitai[bot] | Miss | Did not flag touch-branch missing y-clamp (APPROVED review) |
+| #153 | cubic-dev-ai[bot] | Miss | Did not flag touch-branch missing y-clamp |

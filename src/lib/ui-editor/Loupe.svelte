@@ -13,8 +13,7 @@
 
 	let { grid, centerColor, screenPointer }: Props = $props();
 
-	/** Center cell index of a 9×9 row-major grid. */
-	const CENTER_INDEX = 40;
+	const centerIndex = $derived((grid.length - 1) / 2);
 	const EM_DASH = '—';
 
 	// 칩 hex 표기: commit 가능한 샘플(센터 픽셀이 불투명)일 때만 표시. 그 외엔 em-dash.
@@ -46,7 +45,7 @@
 			{#each grid as color, i (i)}
 				<div
 					class="cell"
-					class:cell--center={i === CENTER_INDEX}
+					class:cell--center={i === centerIndex}
 					style:background-color={cellFill(color)}
 				></div>
 			{/each}
@@ -66,12 +65,15 @@
 
 <style>
 	.loupe {
-		/* 포인터 기준 오른쪽+위 20px 오프셋(upper-right quadrant 기본값).
-		   쿼드런트 플립은 issue 067에서 추가, 터치 전용 오프셋(80px)은 issue 068에서 추가. */
+		/* 포인터 기준 upper-right quadrant 고정 오프셋. quadrant-flip은 issue 067,
+		   터치 전용 오프셋은 issue 068에서 추가. */
+		--cell-size: 24px;
+		--pointer-offset: 20px;
+
 		position: fixed;
 		left: var(--pointer-x);
 		top: var(--pointer-y);
-		transform: translate(20px, calc(-100% - 20px));
+		transform: translate(var(--pointer-offset), calc(-100% - var(--pointer-offset)));
 		pointer-events: none;
 		z-index: 1000;
 
@@ -88,19 +90,17 @@
 	}
 
 	.grid {
-		/* 9개 셀(24px) + 8개 구분선(1px) = 224px. gap을 --ds-border 배경으로 채워 그리드라인을 구현. */
+		/* gap을 --ds-border 배경으로 채워 그리드라인을 구현. grid 자체는 children + gap으로 자동 크기. */
 		display: grid;
-		grid-template-columns: repeat(9, 24px);
-		grid-template-rows: repeat(9, 24px);
+		grid-template-columns: repeat(9, var(--cell-size));
+		grid-template-rows: repeat(9, var(--cell-size));
 		gap: 1px;
-		width: 224px;
-		height: 224px;
 		background: var(--ds-border);
 	}
 
 	.cell {
-		width: 24px;
-		height: 24px;
+		width: var(--cell-size);
+		height: var(--cell-size);
 	}
 
 	/* 중앙 픽셀 하이라이트 — 2px 흰색 안쪽 링 + 2px 검정 바깥쪽 링.

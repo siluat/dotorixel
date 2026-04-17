@@ -43,8 +43,8 @@ export function createSamplingSession(getCanvas: () => PixelCanvas): SamplingSes
 	let targetPixel: CanvasCoords | null = null;
 	let commitTarget: 'foreground' | 'background' = 'foreground';
 
-	// 세션을 비활성 상태로 되돌린다. commit 성공/무효 여부와 무관하게 호출되므로,
-	// Loupe가 다음 start() 전까지 남은 grid를 그대로 보여주는 회귀를 막는다.
+	// Loupe 가시성은 `isActive`에만 의존한다. commit() 성공/무효 양 경로에서
+	// 모두 호출되지 않으면 다음 start() 전까지 이전 grid가 계속 노출된다.
 	function reset(): void {
 		isActive = false;
 		grid = [];
@@ -83,6 +83,8 @@ export function createSamplingSession(getCanvas: () => PixelCanvas): SamplingSes
 			const canvas = getCanvas();
 			reset();
 			if (!pickedPixel || !pickedColor || pickedColor.a === 0) return NO_EFFECTS;
+			// WASM 바인딩이 u32로 캐스팅되기 전, TS 경계에서 음수를 명시적으로 거른다.
+			if (pickedPixel.x < 0 || pickedPixel.y < 0) return NO_EFFECTS;
 			if (!canvas.is_inside_bounds(pickedPixel.x, pickedPixel.y)) return NO_EFFECTS;
 			return [
 				{ type: 'colorPick', target: pickedTarget, color: pickedColor },

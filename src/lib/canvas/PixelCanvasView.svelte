@@ -168,8 +168,6 @@
 		if (!canvasEl) return;
 		const { x, y } = toLocal(event);
 		canvasInteraction.pointerUp(event.pointerId, x, y);
-		// Hide the Loupe at the end of a sampling drag; next pointerDown re-primes it.
-		screenPointer = null;
 	}
 
 	function handlePointerLeave(event: PointerEvent): void {

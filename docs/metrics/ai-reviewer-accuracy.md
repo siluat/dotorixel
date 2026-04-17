@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 26 | 21 | 5 | 21 | 81% | 50% |
-| cubic-dev-ai[bot] | 20 | 16 | 4 | 25 | 80% | 39% |
-| coderabbitai[bot] | 39 | 25 | 14 | 17 | 64% | 60% |
+| greptile-apps[bot] | 28 | 23 | 5 | 22 | 82% | 51% |
+| cubic-dev-ai[bot] | 20 | 16 | 4 | 28 | 80% | 36% |
+| coderabbitai[bot] | 42 | 26 | 16 | 19 | 62% | 58% |
 
 ## Log
 
@@ -162,3 +162,14 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #149 | greptile-apps[bot] | Miss | Did not flag Scenario #1 URL inconsistency |
 | #149 | coderabbitai[bot] | Miss | Did not flag middle-click localStorage write on language selector |
 | #149 | cubic-dev-ai[bot] | Miss | Did not flag middle-click localStorage write on language selector |
+| #151 | greptile-apps[bot] | Accept | CSS grid template hardcoded to 9 — extract `--grid-columns` token |
+| #151 | greptile-apps[bot] | Accept | `swatch--empty` class applied but has no CSS rule |
+| #151 | greptile-apps[bot] | Miss | Did not flag commitTarget first-draw scoping |
+| #151 | coderabbitai[bot] | Accept | Scope commitTarget to first-draw in liveSampleLifecycle (expresses pinned-once invariant) |
+| #151 | coderabbitai[bot] | Reject | Extract makeRunner test helper — 5 setup sites are intentional variants, not identical duplication |
+| #151 | coderabbitai[bot] | Reject | Add comment explaining `#each` index key — idiomatic on fixed-length 81-cell grid |
+| #151 | coderabbitai[bot] | Miss | Did not flag hardcoded `repeat(9, ...)` invariant |
+| #151 | coderabbitai[bot] | Miss | Did not flag `swatch--empty` without CSS rule |
+| #151 | cubic-dev-ai[bot] | Miss | Did not flag hardcoded `repeat(9, ...)` invariant |
+| #151 | cubic-dev-ai[bot] | Miss | Did not flag `swatch--empty` without CSS rule |
+| #151 | cubic-dev-ai[bot] | Miss | Did not flag commitTarget first-draw scoping |

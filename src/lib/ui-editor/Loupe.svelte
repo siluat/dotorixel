@@ -16,16 +16,17 @@
 	const centerIndex = $derived((grid.length - 1) / 2);
 	const EM_DASH = '—';
 
-	// 칩 hex 표기: commit 가능한 샘플(센터 픽셀이 불투명)일 때만 표시. 그 외엔 em-dash.
-	// "commit 가능" 판별은 sampling-session이 권위를 가지지만, UI는 alpha > 0만으로도 충분히 근사함.
+	// The authoritative "commit eligible" check lives in sampling-session;
+	// `alpha > 0` is a sufficient UI approximation for the hex chip.
 	const canonicalHex = $derived(
 		centerColor && centerColor.a > 0 ? colorToHex(centerColor) : null
 	);
 	const displayHex = $derived(canonicalHex ? canonicalHex.toUpperCase() : null);
 
 	/**
-	 * Transparent(a=0) 및 OoC(없는 셀)의 전용 스타일(체커보드/해치)은 issue 066에서 도입 예정.
-	 * 현재 트레이서 슬라이스에서는 투명 셀을 surface 톤으로 폴백하여 시각적으로 자리만 유지한다.
+	 * Dedicated checkerboard/hatch styling for transparent (a=0) and
+	 * out-of-canvas cells lands in issue 066. This tracer slice falls back
+	 * to the surface tone so the cell still holds its grid position.
 	 */
 	function cellFill(color: Color): string {
 		if (color.a === 0) return 'var(--ds-bg-surface)';
@@ -65,8 +66,8 @@
 
 <style>
 	.loupe {
-		/* 포인터 기준 upper-right quadrant 고정 오프셋. quadrant-flip은 issue 067,
-		   터치 전용 오프셋은 issue 068에서 추가. */
+		/* Fixed upper-right quadrant offset from pointer. Quadrant flip lands
+		   in issue 067; a touch-specific offset lands in issue 068. */
 		--cell-size: 24px;
 		--pointer-offset: 20px;
 
@@ -90,7 +91,7 @@
 	}
 
 	.grid {
-		/* gap을 --ds-border 배경으로 채워 그리드라인을 구현. grid 자체는 children + gap으로 자동 크기. */
+		/* Gridlines are rendered by the gap showing through the --ds-border background. */
 		display: grid;
 		grid-template-columns: repeat(9, var(--cell-size));
 		grid-template-rows: repeat(9, var(--cell-size));
@@ -103,11 +104,11 @@
 		height: var(--cell-size);
 	}
 
-	/* 중앙 픽셀 하이라이트 — 2px 흰색 안쪽 링 + 2px 검정 바깥쪽 링.
-	   어떤 픽셀 색상에도 대비가 유지되도록 테마 토큰이 아닌 리터럴 #000/#FFF를 사용한다. */
+	/* White inner + black outer ring. Uses literal #000/#FFF (not theme tokens)
+	   so contrast holds against any sampled cell color. */
 	.cell--center {
 		position: relative;
-		z-index: 1; /* sibling cell들 위로 링이 올라오도록 */
+		z-index: 1; /* lift the rings above sibling cells */
 	}
 
 	.cell--center::before,
@@ -118,13 +119,13 @@
 		box-sizing: border-box;
 	}
 
-	/* 바깥쪽 검정 링: 셀 경계에서 바깥쪽으로 4px 확장, 두께 2px → 실제 위치 -4 ~ -2. */
+	/* Outer black ring: sits 4px..2px outside the cell edge. */
 	.cell--center::before {
 		inset: -4px;
 		border: 2px solid #000;
 	}
 
-	/* 안쪽 흰색 링: 셀 경계에서 바깥쪽으로 2px 확장, 두께 2px → 실제 위치 -2 ~ 0. */
+	/* Inner white ring: sits 2px..0px outside the cell edge (flush with it). */
 	.cell--center::after {
 		inset: -2px;
 		border: 2px solid #fff;

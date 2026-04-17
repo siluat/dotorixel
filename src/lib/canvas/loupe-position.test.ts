@@ -69,6 +69,46 @@ describe('computeLoupePosition — mouse', () => {
 			quadrant: 'bl'
 		});
 	});
+
+	it('clamps x to the viewport left edge on degenerate-width viewports where even the flip would still clip left', () => {
+		// Viewport 400×800 with pointer at x=180: default x=200; 200+240=440>400 so
+		// flip → x=180−240−20=−80. Without clamping the loupe would sit off-screen
+		// to the left; clamp pulls it back to x=0.
+		const result = computeLoupePosition({
+			pointer: { x: 180, y: 400 },
+			viewport: { width: 400, height: 800 },
+			loupe: { width: 240, height: 290 },
+			mouseOffset: 20,
+			touchOffset: 80,
+			inputSource: 'mouse'
+		});
+
+		expect(result).toEqual({
+			x: 0,
+			y: 400 - 290 - 20,
+			quadrant: 'tl'
+		});
+	});
+
+	it('clamps y to the viewport bottom edge on degenerate-height viewports where even the flip would still clip bottom', () => {
+		// Viewport 1200×400 with pointer at y=200: default y=−110 so flip →
+		// y=220; 220+290=510>400. Clamp pulls the loupe up to
+		// viewport.height − loupe.height = 110.
+		const result = computeLoupePosition({
+			pointer: { x: 600, y: 200 },
+			viewport: { width: 1200, height: 400 },
+			loupe: { width: 240, height: 290 },
+			mouseOffset: 20,
+			touchOffset: 80,
+			inputSource: 'mouse'
+		});
+
+		expect(result).toEqual({
+			x: 600 + 20,
+			y: 400 - 290,
+			quadrant: 'br'
+		});
+	});
 });
 
 describe('computeLoupePosition — touch', () => {
@@ -135,7 +175,7 @@ describe('computeLoupePosition — touch', () => {
 			inputSource: 'touch'
 		});
 
-		// Centered-above x would be 1180 - 120 = 1060; right edge at 1300 clips.
+		// Centered x: 1180 − 120 = 1060; loupe right edge 1060 + 240 = 1300 > viewport 1200 → clip.
 		// Clamp to viewport.width - loupe.width = 960.
 		expect(result).toEqual({
 			x: 1200 - 240,

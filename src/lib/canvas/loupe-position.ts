@@ -58,7 +58,14 @@ function mousePosition(input: LoupePositionInput): LoupePosition {
 			? 'tl'
 			: 'tr';
 
-	return { x, y, quadrant };
+	// Degenerate-viewport safety net: in viewports too narrow or too short
+	// for even the flipped position to fit, clamp inward so at least one edge
+	// stays on-screen. Mirrors the touch branch's clamping pattern.
+	return {
+		x: Math.max(0, Math.min(x, viewport.width - loupe.width)),
+		y: Math.max(0, Math.min(y, viewport.height - loupe.height)),
+		quadrant
+	};
 }
 
 function touchPosition(input: LoupePositionInput): LoupePosition {

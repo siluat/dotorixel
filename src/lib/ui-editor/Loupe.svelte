@@ -239,6 +239,10 @@
 	.hex {
 		font-family: var(--ds-font-mono);
 		font-size: var(--ds-font-size-sm);
+		/* Locks to 16px (matches .swatch height) so CHIP_HEIGHT_PX = 24 stays
+		   accurate — default normal line-height (~17px) would add a 1px drift
+		   through the positioning math. */
+		line-height: 16px;
 		color: var(--ds-text-primary);
 	}
 

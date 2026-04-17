@@ -3,16 +3,14 @@
 ## Currently Working On
 
 Color picker loupe ([PRD](../issues/063-color-picker-loupe.md))
-- Tracer slice landed ([065](../issues/065-color-picker-loupe-drag-commit.md)). 066/067/068 now pickable in parallel.
+- 065 + 066 landed. 067/068 remaining.
 
 ## Last Completed
 
-Color picker loupe — drag-and-commit eyedropper + basic loupe ([issue](../issues/065-color-picker-loupe-drag-commit.md))
+Color picker loupe — out-of-canvas + transparent rendering ([issue](../issues/066-color-picker-loupe-edge-rendering.md))
 
 ## Next Up
 
-- [066 — out-of-canvas + transparent rendering](../issues/066-color-picker-loupe-edge-rendering.md)
-  - Unblocked by 065. Checkerboard/hatch for transparent and OoC loupe cells.
 - [067 — quadrant flip positioning](../issues/067-color-picker-loupe-positioning.md)
   - Unblocked by 065. Prevents loupe from clipping at viewport edges.
 - [068 — long-press touch entry](../issues/068-color-picker-loupe-long-press.md)

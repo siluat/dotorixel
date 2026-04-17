@@ -204,11 +204,7 @@
 ></canvas>
 
 {#if samplingSession?.isActive && screenPointer}
-	<Loupe
-		grid={samplingSession.grid}
-		centerColor={samplingSession.centerColor}
-		{screenPointer}
-	/>
+	<Loupe grid={samplingSession.grid} {screenPointer} />
 {/if}
 
 <style>

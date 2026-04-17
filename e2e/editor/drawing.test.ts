@@ -147,4 +147,46 @@ test.describe('Drawing', () => {
 		expect(pickedHex).toBe(colorBHex);
 		expect(pickedHex).not.toBe(colorAHex);
 	});
+
+	test('eyedropper drag released on a transparent pixel does not commit', async ({
+		editorPage
+	}) => {
+		const { canvas, tools, page } = editorPage;
+
+		const hexValue = page.locator('.hex-value');
+
+		// Step 1 — draw an opaque pixel off-center with the initial foreground (color A).
+		const colorAHex = await hexValue.textContent();
+		const box = await canvas.canvasLocator.boundingBox();
+		if (!box) throw new Error('Canvas not found');
+		const opaquePoint = { x: box.width * 0.25, y: box.height * 0.5 };
+		await canvas.canvasLocator.click({ position: opaquePoint });
+
+		// Step 2 — switch foreground to a different color (color B). This is
+		// the color we expect to survive the drag — if the commit incorrectly
+		// used the preserved last-opaque sample, FG would flip back to A.
+		// Guard against palette-swatch-default collision so the test never
+		// passes vacuously if the default FG is later changed to match `.first()`.
+		const paletteSwatch = page.locator('.palette-grid .editor-swatch').first();
+		await paletteSwatch.click();
+		const colorBHex = await hexValue.textContent();
+		expect(colorBHex).not.toBe(colorAHex);
+
+		// Step 3 — eyedropper drag from color-A pixel onto the default-transparent
+		// canvas center (which was never drawn on), then release there.
+		await tools.selectTool('Eyedropper');
+		const startX = box.x + opaquePoint.x;
+		const startY = box.y + opaquePoint.y;
+		const endX = box.x + box.width / 2;
+		const endY = box.y + box.height / 2;
+
+		await page.mouse.move(startX, startY);
+		await page.mouse.down();
+		await page.mouse.move(endX, endY, { steps: 5 });
+		await page.mouse.up();
+
+		// Foreground must be unchanged — releasing on transparent commits nothing.
+		const afterHex = await hexValue.textContent();
+		expect(afterHex).toBe(colorBHex);
+	});
 });

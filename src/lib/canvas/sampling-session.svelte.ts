@@ -8,6 +8,11 @@ import { sampleGrid } from './sample-grid';
 const GRID_SIZE = 9;
 const CENTER_INDEX = (GRID_SIZE * GRID_SIZE - 1) / 2;
 
+/** A cell is "commit-eligible" when it is in-canvas and fully/partially opaque. */
+function isValidOpaque(cell: Color | null): cell is Color {
+	return cell !== null && cell.a > 0;
+}
+
 export interface SamplingSessionStartParams {
 	readonly targetPixel: CanvasCoords;
 	readonly commitTarget: 'foreground' | 'background';
@@ -21,7 +26,7 @@ export interface SamplingSessionStartParams {
  */
 export interface SamplingSession {
 	readonly isActive: boolean;
-	readonly grid: readonly Color[];
+	readonly grid: readonly (Color | null)[];
 	readonly centerColor: Color | null;
 	start(params: SamplingSessionStartParams): void;
 	update(targetPixel: CanvasCoords): void;
@@ -38,9 +43,8 @@ export interface SamplingSession {
 
 export function createSamplingSession(getCanvas: () => PixelCanvas): SamplingSession {
 	let isActive = $state(false);
-	let grid = $state<Color[]>([]);
+	let grid = $state<(Color | null)[]>([]);
 	let centerColor = $state<Color | null>(null);
-	let targetPixel: CanvasCoords | null = null;
 	let commitTarget: 'foreground' | 'background' = 'foreground';
 
 	// Loupe visibility depends only on `isActive`. Both commit paths
@@ -50,7 +54,6 @@ export function createSamplingSession(getCanvas: () => PixelCanvas): SamplingSes
 		isActive = false;
 		grid = [];
 		centerColor = null;
-		targetPixel = null;
 	}
 
 	return {
@@ -66,31 +69,38 @@ export function createSamplingSession(getCanvas: () => PixelCanvas): SamplingSes
 		start(params: SamplingSessionStartParams): void {
 			const canvas = getCanvas();
 			grid = sampleGrid(canvas, params.targetPixel, GRID_SIZE);
-			centerColor = grid[CENTER_INDEX];
-			targetPixel = params.targetPixel;
+			const raw = grid[CENTER_INDEX];
+			centerColor = isValidOpaque(raw) ? raw : null;
 			commitTarget = params.commitTarget;
 			isActive = true;
 		},
 		update(target: CanvasCoords): void {
 			const canvas = getCanvas();
 			grid = sampleGrid(canvas, target, GRID_SIZE);
-			centerColor = grid[CENTER_INDEX];
-			targetPixel = target;
+			const raw = grid[CENTER_INDEX];
+			// centerColor is the last valid opaque color — preserved when the
+			// new center is null (out of canvas) or transparent (a = 0) so a
+			// future live preview does not flicker to "no color" during drag.
+			if (isValidOpaque(raw)) {
+				centerColor = raw;
+			}
 		},
 		commit(): ToolEffects {
-			const pickedColor = centerColor;
+			// Guard against callers that reach `end()` on a lifecycle that
+			// never saw a `draw` (e.g., Alt-eyedropper press/release with no
+			// motion): the session was never started, so there is nothing
+			// to commit and `grid[CENTER_INDEX]` would be `undefined`.
+			if (!isActive) return NO_EFFECTS;
+			// Commit uses the CURRENT center cell, not the preserved
+			// `centerColor`. Releasing over null/transparent must produce no
+			// effects even when an earlier opaque pixel is still in preview.
+			const raw = grid[CENTER_INDEX];
 			const pickedTarget = commitTarget;
-			const pickedPixel = targetPixel;
-			const canvas = getCanvas();
 			reset();
-			if (!pickedPixel || !pickedColor || pickedColor.a === 0) return NO_EFFECTS;
-			// Reject negative coords at the TS boundary before the WASM
-			// binding casts them to u32.
-			if (pickedPixel.x < 0 || pickedPixel.y < 0) return NO_EFFECTS;
-			if (!canvas.is_inside_bounds(pickedPixel.x, pickedPixel.y)) return NO_EFFECTS;
+			if (!isValidOpaque(raw)) return NO_EFFECTS;
 			return [
-				{ type: 'colorPick', target: pickedTarget, color: pickedColor },
-				{ type: 'addRecentColor', hex: colorToHex(pickedColor) }
+				{ type: 'colorPick', target: pickedTarget, color: raw },
+				{ type: 'addRecentColor', hex: colorToHex(raw) }
 			];
 		},
 		cancel(): void {

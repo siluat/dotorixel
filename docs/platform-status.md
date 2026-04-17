@@ -14,7 +14,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Rectangle | ✅ | ✅ | ⬜ | Outline only, snapshot-restore preview |
 | Ellipse | ✅ | ✅ | ⬜ | Outline only, snapshot-restore preview |
 | Flood fill | ✅ | ✅ | ⬜ | BFS, 4-connectivity |
-| Eyedropper | — | ✅ | ⬜ | Drag-and-commit with live 9×9 loupe; releases to FG (left-click) or BG (right-click); skips transparent pixels |
+| Eyedropper | — | ✅ | ⬜ | Drag-and-commit with live 9×9 loupe (hatched out-of-canvas + checkerboard transparent cells); releases to FG (left-click) or BG (right-click); skips transparent pixels |
 | Move | — | ✅ | ⬜ | Drag to reposition canvas content, snapshot-restore preview, `move` cursor |
 | Right-click background color | — | ✅ | ⬜ | All tools draw with BG color on right-click; eraser unchanged |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |

@@ -96,4 +96,55 @@ test.describe('Drawing', () => {
 		const pickedHex = await hexValue.textContent();
 		expect(pickedHex).toBe(initialHex);
 	});
+
+	test('eyedropper drag commits the final pixel color, loupe is visible mid-drag', async ({
+		editorPage
+	}) => {
+		const { canvas, tools, page } = editorPage;
+
+		const hexValue = page.locator('.hex-value');
+		const loupe = page.locator('[data-testid="loupe-root"]');
+
+		// Step 1 — draw at an off-center pixel with the initial foreground (color A).
+		const box = await canvas.canvasLocator.boundingBox();
+		if (!box) throw new Error('Canvas not found');
+		const offCenter = { x: box.width * 0.25, y: box.height * 0.5 };
+		const colorAHex = await hexValue.textContent();
+		await canvas.canvasLocator.click({ position: offCenter });
+
+		// Step 2 — switch foreground to a different color (color B) via the palette.
+		const paletteSwatch = page.locator('.palette-grid .editor-swatch').first();
+		await paletteSwatch.click();
+		const colorBHex = await hexValue.textContent();
+		expect(colorBHex).not.toBe(colorAHex);
+
+		// Step 3 — draw at canvas center with color B so the drag endpoint has a known color.
+		await canvas.clickCanvas();
+
+		// Step 4 — eyedropper drag from the color-A pixel to the color-B pixel.
+		await tools.selectTool('Eyedropper');
+		const startX = box.x + offCenter.x;
+		const startY = box.y + offCenter.y;
+		const endX = box.x + box.width / 2;
+		const endY = box.y + box.height / 2;
+
+		await page.mouse.move(startX, startY);
+		await page.mouse.down();
+		// Step through a few intermediate positions so liveSample.draw fires `update`s.
+		await page.mouse.move(startX + 10, startY, { steps: 2 });
+
+		// Loupe overlay must be visible while the sampling session is active.
+		await expect(loupe).toBeVisible();
+
+		await page.mouse.move(endX, endY, { steps: 5 });
+		await page.mouse.up();
+
+		// Loupe is torn down once the drag ends.
+		await expect(loupe).toBeHidden();
+
+		// Foreground must now match color B (the drag endpoint, not the starting pixel).
+		const pickedHex = await hexValue.textContent();
+		expect(pickedHex).toBe(colorBHex);
+		expect(pickedHex).not.toBe(colorAHex);
+	});
 });

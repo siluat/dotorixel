@@ -2,17 +2,14 @@
 
 ## Currently Working On
 
-Color picker loupe ([PRD](../issues/063-color-picker-loupe.md))
-- 065 + 066 + 067 landed. 068 remaining.
+None
 
 ## Last Completed
 
-Color picker loupe — quadrant flip positioning ([issue](../issues/067-color-picker-loupe-positioning.md))
+Color picker loupe — long-press touch entry ([issue](../issues/068-color-picker-loupe-long-press.md))
 
 ## Next Up
 
-- [068 — long-press touch entry](../issues/068-color-picker-loupe-long-press.md)
-  - Unblocked by 065. 400ms long-press opens the sampling session on touch.
 - Pixel-perfect drawing (Milestone 2)
   - Needs PRD. Run /write-a-prd to start.
 - 018 — RightPanel (Apple Native)

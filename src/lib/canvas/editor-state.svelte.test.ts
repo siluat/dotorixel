@@ -1022,94 +1022,146 @@ describe('EditorState — move tool', () => {
 	});
 });
 
-describe('EditorState — long-press eyedropper', () => {
-	it('picks foreground color on long-press (button 0)', () => {
-		const editor = createEditor();
-		const red = { r: 255, g: 0, b: 0, a: 255 };
-		editor.foregroundColor = red;
+describe('EditorState — sampling session (touch long-press)', () => {
+	function paintPixelAt(editor: EditorState, coords: CanvasCoords, color: typeof BLACK) {
+		const prev = editor.foregroundColor;
+		editor.foregroundColor = color;
 		editor.activeTool = 'pencil';
 		editor.handleDrawStart(0, 'mouse');
-		editor.handleDraw({ x: 3, y: 3 }, null);
+		editor.handleDraw(coords, null);
 		editor.handleDrawEnd();
+		editor.foregroundColor = prev;
+	}
+
+	it('commits foreground color on button 0 sample over opaque pixel', () => {
+		const editor = createEditor();
+		const red = { r: 255, g: 0, b: 0, a: 255 };
+		paintPixelAt(editor, { x: 3, y: 3 }, red);
+		editor.activeTool = 'pencil';
 
 		editor.foregroundColor = BLACK;
-		const result = editor.handleLongPress({ x: 3, y: 3 }, 0);
+		const started = editor.handleSampleStart({ x: 3, y: 3 }, 0, 'touch');
+		editor.handleSampleEnd();
 
+		expect(started).toBe(true);
 		expect(editor.foregroundColor).toEqual(red);
-		expect(result).toBe(true);
 	});
 
-	it('picks background color on long-press (button 2)', () => {
+	it('commits background color on button 2 sample over opaque pixel', () => {
 		const editor = createEditor();
 		const red = { r: 255, g: 0, b: 0, a: 255 };
-		editor.foregroundColor = red;
+		paintPixelAt(editor, { x: 3, y: 3 }, red);
 		editor.activeTool = 'pencil';
-		editor.handleDrawStart(0, 'mouse');
-		editor.handleDraw({ x: 3, y: 3 }, null);
-		editor.handleDrawEnd();
 
-		const result = editor.handleLongPress({ x: 3, y: 3 }, 2);
+		editor.handleSampleStart({ x: 3, y: 3 }, 2, 'touch');
+		editor.handleSampleEnd();
 
 		expect(editor.backgroundColor).toEqual(red);
-		expect(result).toBe(true);
 	});
 
-	it('returns true without changing color on transparent pixel', () => {
+	it('does not change foreground when sample ends over transparent', () => {
 		const editor = createEditor();
-		const result = editor.handleLongPress({ x: 0, y: 0 }, 0);
+		editor.activeTool = 'pencil';
+
+		editor.handleSampleStart({ x: 0, y: 0 }, 0, 'touch');
+		editor.handleSampleEnd();
 
 		expect(editor.foregroundColor).toEqual(BLACK);
-		expect(result).toBe(true);
 	});
 
-	it('adds picked color to recentColors', () => {
+	it('keeps the sampling session active between start and end', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+
+		editor.handleSampleStart({ x: 0, y: 0 }, 0, 'touch');
+		expect(editor.samplingSession.isActive).toBe(true);
+
+		editor.handleSampleEnd();
+		expect(editor.samplingSession.isActive).toBe(false);
+	});
+
+	it('records touch inputSource on the session for the loupe', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+
+		editor.handleSampleStart({ x: 0, y: 0 }, 0, 'touch');
+
+		expect(editor.samplingSession.inputSource).toBe('touch');
+	});
+
+	it('records mouse inputSource when pointerType is mouse or pen', () => {
+		const editor = createEditor();
+		editor.activeTool = 'pencil';
+
+		editor.handleSampleStart({ x: 0, y: 0 }, 0, 'pen');
+
+		expect(editor.samplingSession.inputSource).toBe('mouse');
+	});
+
+	it('re-samples at new coords on update', () => {
+		const editor = createEditor();
+		const red = { r: 255, g: 0, b: 0, a: 255 };
+		const green = { r: 0, g: 128, b: 0, a: 255 };
+		paintPixelAt(editor, { x: 1, y: 1 }, red);
+		paintPixelAt(editor, { x: 5, y: 5 }, green);
+		editor.activeTool = 'pencil';
+
+		editor.handleSampleStart({ x: 1, y: 1 }, 0, 'touch');
+		expect(editor.samplingSession.centerColor).toEqual(red);
+
+		editor.handleSampleUpdate({ x: 5, y: 5 });
+		expect(editor.samplingSession.centerColor).toEqual(green);
+
+		editor.handleSampleEnd();
+		expect(editor.foregroundColor).toEqual(green);
+	});
+
+	it('adds committed color to recentColors', () => {
 		const editor = createEditor();
 		const green = { r: 0, g: 128, b: 0, a: 255 };
-		editor.foregroundColor = green;
+		paintPixelAt(editor, { x: 2, y: 2 }, green);
 		editor.activeTool = 'pencil';
-		editor.handleDrawStart(0, 'mouse');
-		editor.handleDraw({ x: 2, y: 2 }, null);
-		editor.handleDrawEnd();
-
 		editor.recentColors = [];
-		editor.handleLongPress({ x: 2, y: 2 }, 0);
+
+		editor.handleSampleStart({ x: 2, y: 2 }, 0, 'touch');
+		editor.handleSampleEnd();
 
 		expect(editor.recentColors).toContain('#008000');
 	});
 
-	it('preserves current tool', () => {
+	it('preserves active tool through start/update/end', () => {
 		const editor = createEditor();
 		editor.foregroundColor = WHITE;
-		editor.activeTool = 'pencil';
-		editor.handleDrawStart(0, 'mouse');
-		editor.handleDraw({ x: 0, y: 0 }, null);
-		editor.handleDrawEnd();
-
+		paintPixelAt(editor, { x: 0, y: 0 }, WHITE);
 		editor.activeTool = 'line';
-		editor.handleLongPress({ x: 0, y: 0 }, 0);
 
+		editor.handleSampleStart({ x: 0, y: 0 }, 0, 'touch');
+		expect(editor.activeTool).toBe('line');
+		editor.handleSampleUpdate({ x: 1, y: 1 });
+		expect(editor.activeTool).toBe('line');
+		editor.handleSampleEnd();
 		expect(editor.activeTool).toBe('line');
 	});
 
-	it('returns false when eyedropper is already active', () => {
+	it('returns false and does not start a session when eyedropper is active', () => {
 		const editor = createEditor();
 		editor.activeTool = 'eyedropper';
 
-		const result = editor.handleLongPress({ x: 0, y: 0 }, 0);
+		const started = editor.handleSampleStart({ x: 0, y: 0 }, 0, 'touch');
 
-		expect(result).toBe(false);
+		expect(started).toBe(false);
+		expect(editor.samplingSession.isActive).toBe(false);
 	});
 
 	it('does not create an undo snapshot', () => {
 		const editor = createEditor();
-		editor.activeTool = 'pencil';
-		editor.handleDrawStart(0, 'mouse');
-		editor.handleDraw({ x: 0, y: 0 }, null);
-		editor.handleDrawEnd();
+		const red = { r: 255, g: 0, b: 0, a: 255 };
+		paintPixelAt(editor, { x: 0, y: 0 }, red);
 		editor.handleUndo();
 		expect(editor.canUndo).toBe(false);
 
-		editor.handleLongPress({ x: 0, y: 0 }, 0);
+		editor.handleSampleStart({ x: 0, y: 0 }, 0, 'touch');
+		editor.handleSampleEnd();
 
 		expect(editor.canUndo).toBe(false);
 	});

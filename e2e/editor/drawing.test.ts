@@ -148,6 +148,127 @@ test.describe('Drawing', () => {
 		expect(pickedHex).not.toBe(colorAHex);
 	});
 
+	test('touch long-press opens loupe and drag-release commits final pixel color', async ({
+		editorPage
+	}) => {
+		const { canvas, page } = editorPage;
+
+		const hexValue = page.locator('.hex-value');
+		const loupe = page.locator('[data-testid="loupe-root"]');
+
+		// Step 1 — draw with color A at an off-center pixel so we have a known
+		// opaque pixel to long-press on.
+		const box = await canvas.canvasLocator.boundingBox();
+		if (!box) throw new Error('Canvas not found');
+		const pressPoint = { x: box.width * 0.25, y: box.height * 0.5 };
+		const colorAHex = await hexValue.textContent();
+		await canvas.canvasLocator.click({ position: pressPoint });
+
+		// Step 2 — switch foreground to color B and draw at canvas center. The
+		// drag will release over this pixel, so FG must end up as color B.
+		const paletteSwatch = page.locator('.palette-grid .editor-swatch').first();
+		await paletteSwatch.click();
+		const colorBHex = await hexValue.textContent();
+		expect(colorBHex).not.toBe(colorAHex);
+		await canvas.clickCanvas();
+
+		// Step 3 — switch to a non-eyedropper tool so the long-press path is
+		// actually exercised (eyedropper would run the session through its own
+		// draw lifecycle).
+		await page.keyboard.press('p'); // Pencil
+
+		const startClientX = box.x + pressPoint.x;
+		const startClientY = box.y + pressPoint.y;
+		const endClientX = box.x + box.width / 2;
+		const endClientY = box.y + box.height / 2;
+
+		// Step 4 — dispatch a touch pointerdown and wait past the 400ms
+		// long-press threshold. PlaywrightChromium lacks a native long-press
+		// helper for non-mobile projects, so we drive PointerEvents directly;
+		// canvas-interaction reads `pointerType` so the path is identical to a
+		// real touch.
+		await page.evaluate(
+			({ x, y }) => {
+				const canvas = document.querySelector('canvas.pixel-canvas');
+				if (!canvas) throw new Error('canvas not found');
+				canvas.dispatchEvent(
+					new PointerEvent('pointerdown', {
+						bubbles: true,
+						cancelable: true,
+						pointerType: 'touch',
+						pointerId: 1,
+						clientX: x,
+						clientY: y,
+						button: 0,
+						buttons: 1,
+						isPrimary: true
+					})
+				);
+			},
+			{ x: startClientX, y: startClientY }
+		);
+
+		await page.waitForTimeout(450);
+
+		// Step 5 — loupe must be visible once the sampling session has opened.
+		await expect(loupe).toBeVisible();
+
+		// Step 6 — drag the finger to the center pixel (color B). Dispatch
+		// pointermove on the canvas element so canvas-interaction's in-canvas
+		// pointerMove handler runs (the window-level handler is for pan/pinch
+		// and does not forward to the sampling session).
+		await page.evaluate(
+			({ x, y }) => {
+				const canvas = document.querySelector('canvas.pixel-canvas');
+				if (!canvas) throw new Error('canvas not found');
+				canvas.dispatchEvent(
+					new PointerEvent('pointermove', {
+						bubbles: true,
+						cancelable: true,
+						pointerType: 'touch',
+						pointerId: 1,
+						clientX: x,
+						clientY: y,
+						buttons: 1,
+						isPrimary: true
+					})
+				);
+			},
+			{ x: endClientX, y: endClientY }
+		);
+
+		// Loupe stays visible mid-drag.
+		await expect(loupe).toBeVisible();
+
+		// Step 7 — release.
+		await page.evaluate(
+			({ x, y }) => {
+				window.dispatchEvent(
+					new PointerEvent('pointerup', {
+						bubbles: true,
+						cancelable: true,
+						pointerType: 'touch',
+						pointerId: 1,
+						clientX: x,
+						clientY: y,
+						button: 0,
+						buttons: 0,
+						isPrimary: true
+					})
+				);
+			},
+			{ x: endClientX, y: endClientY }
+		);
+
+		await expect(loupe).toBeHidden();
+
+		// FG must be the color at the release position (color B), not the
+		// press position (color A).
+		const pickedHex = await hexValue.textContent();
+		expect(pickedHex).toBe(colorBHex);
+		expect(pickedHex).not.toBe(colorAHex);
+	});
+
 	test('eyedropper drag released on a transparent pixel does not commit', async ({
 		editorPage
 	}) => {

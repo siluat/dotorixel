@@ -15,7 +15,9 @@ function setup(overrides?: {
 		onDraw: vi.fn(),
 		onDrawEnd: vi.fn(),
 		onViewportChange: vi.fn(),
-		onLongPress: vi.fn(() => true),
+		onSampleStart: vi.fn(() => true),
+		onSampleUpdate: vi.fn(),
+		onSampleEnd: vi.fn(),
 		...overrides?.callbacks
 	};
 	let spaceHeld = false;
@@ -460,63 +462,51 @@ describe('edge cases', () => {
 	});
 });
 
-// ── Long-press (touch eyedropper) ────────────────────────────
+// ── Sampling session (touch long-press) ──────────────────────
 
-describe('long-press', () => {
+describe('sampling — long-press entry', () => {
 	beforeEach(() => vi.useFakeTimers());
 	afterEach(() => vi.useRealTimers());
 
-	it('fires onLongPress after delay with no movement', () => {
+	it('fires onSampleStart at 400ms with touch pointerType', () => {
 		const { interaction, callbacks } = setup();
-		interaction.pointerDown(1, 50, 50, 'touch', 0);
+		interaction.pointerDown(1, 0, 0, 'touch', 0);
 
 		vi.advanceTimersByTime(400);
 
-		expect(callbacks.onLongPress).toHaveBeenCalledOnce();
-		expect(interaction.interactionType).toBe('idle');
+		expect(callbacks.onSampleStart).toHaveBeenCalledOnce();
+		expect(callbacks.onSampleStart).toHaveBeenCalledWith({ x: 0, y: 0 }, 0, 'touch');
 	});
 
-	it('keeps drawing state when onLongPress returns false', () => {
-		const { interaction, callbacks } = setup({
-			callbacks: { onLongPress: vi.fn(() => false) }
-		});
-		interaction.pointerDown(1, 50, 50, 'touch', 0);
-
-		vi.advanceTimersByTime(400);
-
-		expect(callbacks.onLongPress).toHaveBeenCalledOnce();
-		expect(interaction.interactionType).toBe('drawing');
-	});
-
-	it('does not fire before delay completes', () => {
+	it('does not fire before 400ms', () => {
 		const { interaction, callbacks } = setup();
 		interaction.pointerDown(1, 50, 50, 'touch', 0);
 
 		vi.advanceTimersByTime(300);
 
-		expect(callbacks.onLongPress).not.toHaveBeenCalled();
+		expect(callbacks.onSampleStart).not.toHaveBeenCalled();
 		expect(interaction.interactionType).toBe('drawing');
 	});
 
-	it('cancelled by pointer move (drag)', () => {
+	it('cancelled by pointer move (drag becomes normal draw)', () => {
 		const { interaction, callbacks } = setup();
 		interaction.pointerDown(1, 0, 0, 'touch', 0);
 		interaction.pointerMove(32, 0);
 
 		vi.advanceTimersByTime(400);
 
-		expect(callbacks.onLongPress).not.toHaveBeenCalled();
+		expect(callbacks.onSampleStart).not.toHaveBeenCalled();
 		expect(callbacks.onDrawStart).toHaveBeenCalledOnce();
 	});
 
-	it('cancelled by pointer up (tap)', () => {
+	it('cancelled by pointer up (tap commits as normal draw)', () => {
 		const { interaction, callbacks } = setup();
 		interaction.pointerDown(1, 50, 50, 'touch', 0);
 		interaction.pointerUp(1, 50, 50);
 
 		vi.advanceTimersByTime(400);
 
-		expect(callbacks.onLongPress).not.toHaveBeenCalled();
+		expect(callbacks.onSampleStart).not.toHaveBeenCalled();
 		expect(callbacks.onDrawStart).toHaveBeenCalledOnce();
 		expect(callbacks.onDrawEnd).toHaveBeenCalledOnce();
 	});
@@ -528,7 +518,7 @@ describe('long-press', () => {
 
 		vi.advanceTimersByTime(400);
 
-		expect(callbacks.onLongPress).not.toHaveBeenCalled();
+		expect(callbacks.onSampleStart).not.toHaveBeenCalled();
 	});
 
 	it('cancelled by pointer leave', () => {
@@ -538,7 +528,7 @@ describe('long-press', () => {
 
 		vi.advanceTimersByTime(400);
 
-		expect(callbacks.onLongPress).not.toHaveBeenCalled();
+		expect(callbacks.onSampleStart).not.toHaveBeenCalled();
 	});
 
 	it('cancelled by blur', () => {
@@ -548,7 +538,7 @@ describe('long-press', () => {
 
 		vi.advanceTimersByTime(400);
 
-		expect(callbacks.onLongPress).not.toHaveBeenCalled();
+		expect(callbacks.onSampleStart).not.toHaveBeenCalled();
 	});
 
 	it('does not fire for mouse pointer', () => {
@@ -557,15 +547,108 @@ describe('long-press', () => {
 
 		vi.advanceTimersByTime(400);
 
-		expect(callbacks.onLongPress).not.toHaveBeenCalled();
+		expect(callbacks.onSampleStart).not.toHaveBeenCalled();
 	});
 
-	it('does not fire for pen/stylus pointer', () => {
+	it('does not fire for pen pointer', () => {
 		const { interaction, callbacks } = setup();
 		interaction.pointerDown(1, 50, 50, 'pen', 0);
 
 		vi.advanceTimersByTime(400);
 
-		expect(callbacks.onLongPress).not.toHaveBeenCalled();
+		expect(callbacks.onSampleStart).not.toHaveBeenCalled();
+	});
+
+	it('enters sampling state when onSampleStart returns true', () => {
+		const { interaction } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+
+		vi.advanceTimersByTime(400);
+
+		expect(interaction.interactionType).toBe('sampling');
+	});
+
+	it('stays in drawing when onSampleStart returns false', () => {
+		const { interaction, callbacks } = setup({
+			callbacks: { onSampleStart: vi.fn(() => false) }
+		});
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+
+		vi.advanceTimersByTime(400);
+
+		expect(callbacks.onSampleStart).toHaveBeenCalledOnce();
+		expect(interaction.interactionType).toBe('drawing');
+	});
+});
+
+describe('sampling — during session', () => {
+	beforeEach(() => vi.useFakeTimers());
+	afterEach(() => vi.useRealTimers());
+
+	it('pointer move forwards canvas coords to onSampleUpdate', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 0, 0, 'touch', 0);
+		vi.advanceTimersByTime(400);
+
+		interaction.pointerMove(32, 0);
+
+		expect(callbacks.onSampleUpdate).toHaveBeenCalledOnce();
+		expect(callbacks.onSampleUpdate).toHaveBeenCalledWith({ x: 1, y: 0 });
+	});
+
+	it('pointer move during sampling does not fire onDraw', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 0, 0, 'touch', 0);
+		vi.advanceTimersByTime(400);
+
+		interaction.pointerMove(32, 0);
+
+		expect(callbacks.onDraw).not.toHaveBeenCalled();
+		expect(callbacks.onDrawStart).not.toHaveBeenCalled();
+	});
+
+	it('pointer up during sampling fires onSampleEnd and returns to idle', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+		vi.advanceTimersByTime(400);
+
+		interaction.pointerUp(1, 50, 50);
+
+		expect(callbacks.onSampleEnd).toHaveBeenCalledOnce();
+		expect(callbacks.onDrawEnd).not.toHaveBeenCalled();
+		expect(interaction.interactionType).toBe('idle');
+	});
+
+	it('blur during sampling fires onSampleEnd and returns to idle', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+		vi.advanceTimersByTime(400);
+
+		interaction.blur();
+
+		expect(callbacks.onSampleEnd).toHaveBeenCalledOnce();
+		expect(interaction.interactionType).toBe('idle');
+	});
+
+	it('pointer leave during sampling fires onSampleEnd and returns to idle', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+		vi.advanceTimersByTime(400);
+
+		interaction.pointerLeave(50, 50);
+
+		expect(callbacks.onSampleEnd).toHaveBeenCalledOnce();
+		expect(interaction.interactionType).toBe('idle');
+	});
+
+	it('second touch during sampling ends session and enters pinching', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+		vi.advanceTimersByTime(400);
+
+		interaction.pointerDown(2, 200, 200, 'touch', 0);
+
+		expect(callbacks.onSampleEnd).toHaveBeenCalledOnce();
+		expect(interaction.interactionType).toBe('pinching');
 	});
 });

@@ -50,7 +50,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Preset palette | — | ✅ | ✅ | 18 Pebble colors |
 | Recent colors | — | ✅ | ⬜ | Last 12 used |
 | FG/BG color swap | — | ✅ | ⬜ | Swap button + per-swatch color picker |
-| Color loupe overlay | — | 🔧 | ⬜ | 9×9 magnifier + hex chip during eyedropper drag with quadrant-flip positioning (stays fully visible near viewport edges). Long-press touch entry (068) pending |
+| Color loupe overlay | — | ✅ | ⬜ | 9×9 magnifier + hex chip during eyedropper drag (mouse) and 400ms long-press (touch) with quadrant-flip positioning (stays fully visible near viewport edges) |
 
 ## Rendering
 

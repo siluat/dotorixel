@@ -5,7 +5,7 @@ import type { CanvasCoords } from './canvas-model';
 const MIN_PINCH_DISTANCE = 10;
 const LONG_PRESS_DELAY = 400;
 
-export type InteractionType = 'idle' | 'drawing' | 'panning' | 'pinching';
+export type InteractionType = 'idle' | 'drawing' | 'panning' | 'pinching' | 'sampling';
 
 /**
  * The W3C Pointer Events `pointerType` values we care about. The spec also
@@ -35,7 +35,8 @@ type InteractionMode =
 			initialDistance: number;
 			initialMidX: number;
 			initialMidY: number;
-		};
+		}
+	| { readonly type: 'sampling' };
 
 export interface CanvasInteractionOptions {
 	screenToCanvas: (localX: number, localY: number) => CanvasCoords;
@@ -52,7 +53,16 @@ export interface CanvasInteractionCallbacks {
 	onDraw: (current: CanvasCoords, previous: CanvasCoords | null) => void;
 	onDrawEnd: () => void;
 	onViewportChange: (viewport: ViewportData) => void;
-	onLongPress: (coords: CanvasCoords, button: number) => boolean;
+	/**
+	 * Called when a color-sampling session should open (400ms touch long-press).
+	 * Returning `true` transitions the interaction into `'sampling'`, suppressing
+	 * further draw callbacks until the pointer lifts. Returning `false` leaves
+	 * the pending touch draw intact — used to short-circuit when the active
+	 * tool already drives sampling through the normal drawing flow.
+	 */
+	onSampleStart: (coords: CanvasCoords, button: number, pointerType: PointerType) => boolean;
+	onSampleUpdate: (coords: CanvasCoords) => void;
+	onSampleEnd: () => void;
 }
 
 export interface CanvasInteraction {
@@ -78,8 +88,9 @@ export function createCanvasInteraction(
 		longPressTimer = setTimeout(() => {
 			longPressTimer = null;
 			if (interaction.type === 'drawing' && interaction.pendingCoords !== null) {
-				if (callbacks.onLongPress(coords, button)) {
-					interaction = { type: 'idle' };
+				const pointerType = interaction.pointerType;
+				if (callbacks.onSampleStart(coords, button, pointerType)) {
+					interaction = { type: 'sampling' };
 				}
 			}
 		}, LONG_PRESS_DELAY);
@@ -166,6 +177,9 @@ export function createCanvasInteraction(
 						callbacks.onDrawEnd();
 					}
 					interaction = { type: 'idle' };
+				} else if (interaction.type === 'sampling') {
+					callbacks.onSampleEnd();
+					interaction = { type: 'idle' };
 				}
 				tryEnterPinching();
 				return;
@@ -213,6 +227,10 @@ export function createCanvasInteraction(
 		},
 
 		pointerMove(x: number, y: number): void {
+			if (interaction.type === 'sampling') {
+				callbacks.onSampleUpdate(options.screenToCanvas(x, y));
+				return;
+			}
 			if (interaction.type !== 'drawing') return;
 			clearLongPressTimer();
 			commitPending();
@@ -274,6 +292,12 @@ export function createCanvasInteraction(
 			clearLongPressTimer();
 			activePointers.delete(id);
 
+			if (interaction.type === 'sampling') {
+				callbacks.onSampleEnd();
+				interaction = { type: 'idle' };
+				return;
+			}
+
 			if (interaction.type === 'pinching') {
 				interaction = { type: 'idle' };
 				return;
@@ -294,6 +318,12 @@ export function createCanvasInteraction(
 			clearLongPressTimer();
 			if (interaction.type === 'pinching') return;
 
+			if (interaction.type === 'sampling') {
+				callbacks.onSampleEnd();
+				interaction = { type: 'idle' };
+				return;
+			}
+
 			if (interaction.type === 'drawing') {
 				if (interaction.pendingCoords !== null) {
 					// Touch drawing never started — discard
@@ -309,7 +339,9 @@ export function createCanvasInteraction(
 		blur(): void {
 			clearLongPressTimer();
 			activePointers.clear();
-			if (interaction.type === 'drawing' && interaction.pendingCoords === null) {
+			if (interaction.type === 'sampling') {
+				callbacks.onSampleEnd();
+			} else if (interaction.type === 'drawing' && interaction.pendingCoords === null) {
 				callbacks.onDrawEnd();
 			}
 			interaction = { type: 'idle' };

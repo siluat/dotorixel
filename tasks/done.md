@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 068 | [Color picker loupe — long-press touch entry](../issues/068-color-picker-loupe-long-press.md) | 2026-04-17 |
 | 067 | [Color picker loupe — quadrant flip positioning](../issues/067-color-picker-loupe-positioning.md) | 2026-04-17 |
 | 066 | [Color picker loupe — out-of-canvas + transparent rendering](../issues/066-color-picker-loupe-edge-rendering.md) | 2026-04-17 |
 | 065 | [Color picker loupe — drag-and-commit eyedropper + basic loupe](../issues/065-color-picker-loupe-drag-commit.md) | 2026-04-17 |

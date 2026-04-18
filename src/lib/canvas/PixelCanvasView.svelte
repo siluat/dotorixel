@@ -22,7 +22,9 @@
 		onDrawStart?: (button: number, pointerType: PointerType) => void;
 		onDrawEnd?: () => void;
 		onViewportChange?: (viewport: ViewportData) => void;
-		onLongPress?: (coords: CanvasCoords, button: number) => boolean;
+		onSampleStart?: (coords: CanvasCoords, button: number, pointerType: PointerType) => boolean;
+		onSampleUpdate?: (coords: CanvasCoords) => void;
+		onSampleEnd?: () => void;
 		toolCursor?: string;
 		isSpaceHeld?: boolean;
 		/**
@@ -42,7 +44,9 @@
 		onDrawStart,
 		onDrawEnd,
 		onViewportChange,
-		onLongPress,
+		onSampleStart,
+		onSampleUpdate,
+		onSampleEnd,
 		toolCursor = 'crosshair',
 		isSpaceHeld = false,
 		samplingSession
@@ -78,7 +82,10 @@
 			onDraw: (c, p) => onDraw?.(c, p),
 			onDrawEnd: () => onDrawEnd?.(),
 			onViewportChange: (vp) => onViewportChange?.(vp),
-			onLongPress: (coords, button) => onLongPress?.(coords, button) ?? false
+			onSampleStart: (coords, button, pointerType) =>
+				onSampleStart?.(coords, button, pointerType) ?? false,
+			onSampleUpdate: (coords) => onSampleUpdate?.(coords),
+			onSampleEnd: () => onSampleEnd?.()
 		}
 	);
 

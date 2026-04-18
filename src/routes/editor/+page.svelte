@@ -294,7 +294,9 @@
 				onDrawStart={editor.handleDrawStart}
 				onDrawEnd={editor.handleDrawEnd}
 				onViewportChange={editor.handleViewportChange}
-				onLongPress={editor.handleLongPress}
+				onSampleStart={editor.handleSampleStart}
+				onSampleUpdate={editor.handleSampleUpdate}
+				onSampleEnd={editor.handleSampleEnd}
 				toolCursor={editor.toolCursor}
 				isSpaceHeld={editor.isSpaceHeld}
 				samplingSession={editor.samplingSession}
@@ -356,7 +358,9 @@
 						onDrawStart={editor.handleDrawStart}
 						onDrawEnd={editor.handleDrawEnd}
 						onViewportChange={editor.handleViewportChange}
-						onLongPress={editor.handleLongPress}
+						onSampleStart={editor.handleSampleStart}
+						onSampleUpdate={editor.handleSampleUpdate}
+						onSampleEnd={editor.handleSampleEnd}
 						toolCursor={editor.toolCursor}
 						isSpaceHeld={editor.isSpaceHeld}
 						samplingSession={editor.samplingSession}

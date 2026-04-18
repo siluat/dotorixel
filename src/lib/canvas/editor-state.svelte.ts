@@ -219,20 +219,28 @@ export class EditorState {
 		}
 	};
 
-	handleLongPress = (coords: CanvasCoords, button: number): boolean => {
+	handleSampleStart = (
+		coords: CanvasCoords,
+		button: number,
+		pointerType: PointerType
+	): boolean => {
+		// Eyedropper already runs the sampling session through its draw
+		// lifecycle, so a long-press on top of it would double-start.
 		if (this.activeTool === 'eyedropper') return false;
-		const pixel = this.pixelCanvas.get_pixel(coords.x, coords.y);
-		if (pixel.a !== 0) {
-			const pickedColor = { r: pixel.r, g: pixel.g, b: pixel.b, a: pixel.a };
-			const isRightClick = button === 2;
-			if (isRightClick) {
-				this.backgroundColor = pickedColor;
-			} else {
-				this.foregroundColor = pickedColor;
-			}
-			this.recentColors = addRecentColor(this.recentColors, colorToHex(pickedColor));
-		}
+		this.samplingSession.start({
+			targetPixel: coords,
+			commitTarget: button === 2 ? 'background' : 'foreground',
+			inputSource: pointerType === 'touch' ? 'touch' : 'mouse'
+		});
 		return true;
+	};
+
+	handleSampleUpdate = (coords: CanvasCoords): void => {
+		this.samplingSession.update(coords);
+	};
+
+	handleSampleEnd = (): void => {
+		this.#applyEffects(this.samplingSession.commit());
 	};
 
 	handleUndo = (): void => {

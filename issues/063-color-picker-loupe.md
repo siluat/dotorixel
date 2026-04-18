@@ -1,6 +1,6 @@
 ---
 title: Color picker loupe
-status: open
+status: done
 created: 2026-04-16
 ---
 

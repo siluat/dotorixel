@@ -6,12 +6,12 @@ Pixel-perfect drawing — remove double-pixels at stroke joints ([PRD](../issues
 
 ## Last Completed
 
-Color picker loupe — long-press touch entry ([issue](../issues/068-color-picker-loupe-long-press.md))
+Pixel Perfect toggle — visual design (topBar/mAppBar) ([issue](../issues/070-pixel-perfect-toggle-design.md))
 
 ## Next Up
 
-- Pixel-perfect drawing (Milestone 2)
-  - Needs PRD. Run /write-a-prd to start.
+- [071 — Rust filter function](../issues/071-pixel-perfect-rust-filter.md)
+  - PP PRD 의 foundation. Blockers 없음.
 - 018 — RightPanel (Apple Native)
   - Independent. Can start immediately.
 - 019 — StatusBar (Apple Native)

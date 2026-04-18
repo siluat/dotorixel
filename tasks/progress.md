@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None
+Pixel-perfect drawing — remove double-pixels at stroke joints ([PRD](../issues/069-pixel-perfect-drawing.md))
 
 ## Last Completed
 

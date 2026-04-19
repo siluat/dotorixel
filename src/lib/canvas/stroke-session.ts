@@ -5,7 +5,8 @@ import type {
 	ContinuousTool,
 	DragTransformTool,
 	OneShotTool,
-	ShapePreviewTool
+	ShapePreviewTool,
+	ToolContext
 } from './draw-tool';
 import type { LoupeInputSource } from './loupe-position';
 import type { SamplingSession } from './sampling-session.svelte';
@@ -72,7 +73,54 @@ export interface StrokeSessions {
 	}): StrokeSession;
 }
 
-import { NO_EFFECTS } from './draw-tool';
+import { CANVAS_CHANGED, NO_EFFECTS } from './draw-tool';
+
+function toolContext(
+	spec: { drawColor: Color; drawButton: number },
+	deps: StrokeDeps,
+	ops: DrawingOps
+): ToolContext {
+	return {
+		canvas: deps.host.pixelCanvas,
+		ops,
+		drawColor: spec.drawColor,
+		drawButton: spec.drawButton,
+		isShiftHeld: deps.isShiftHeld,
+		foregroundColor: deps.host.foregroundColor,
+		backgroundColor: deps.host.backgroundColor
+	};
+}
+
+function openDragTransformSession(
+	spec: { tool: DragTransformTool; drawColor: Color; drawButton: number },
+	deps: StrokeDeps
+): StrokeSession {
+	let snapshot: Uint8Array | null = null;
+	let anchor: CanvasCoords | null = null;
+
+	return {
+		start() {
+			deps.history.pushSnapshot();
+			snapshot = new Uint8Array(deps.host.pixelCanvas.pixels());
+			return NO_EFFECTS;
+		},
+		draw(current, previous) {
+			if (previous === null) {
+				anchor = current;
+				return NO_EFFECTS;
+			}
+			if (!anchor || !snapshot) return NO_EFFECTS;
+			spec.tool.applyTransform(toolContext(spec, deps, deps.baseOps), snapshot, anchor, current);
+			return CANVAS_CHANGED;
+		},
+		modifierChanged() {
+			return NO_EFFECTS;
+		},
+		end() {
+			return NO_EFFECTS;
+		}
+	};
+}
 
 function openLiveSampleSession(
 	spec: { drawButton: number; inputSource: LoupeInputSource },
@@ -123,7 +171,7 @@ export function createStrokeSessions(deps: StrokeDeps): StrokeSessions {
 		continuous: notImplemented,
 		oneShot: notImplemented,
 		shapePreview: notImplemented,
-		dragTransform: notImplemented,
+		dragTransform: (spec) => openDragTransformSession(spec, deps),
 		liveSample: (spec) => openLiveSampleSession(spec, deps)
 	};
 }

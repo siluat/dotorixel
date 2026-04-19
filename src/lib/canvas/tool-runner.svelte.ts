@@ -244,38 +244,8 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 		};
 	}
 
-	function dragTransformLifecycle(tool: DragTransformTool, pushHistory: () => void): StrokeLifecycle {
-		let snapshot: Uint8Array | null = null;
-		let anchor: CanvasCoords | null = null;
-
-		return {
-			start() {
-				pushHistory();
-				snapshot = new Uint8Array(host.pixelCanvas.pixels());
-				return NO_EFFECTS;
-			},
-			draw(ctx, current, previous) {
-				if (previous === null) {
-					anchor = current;
-					return NO_EFFECTS;
-				}
-				if (!anchor || !snapshot) return NO_EFFECTS;
-				tool.applyTransform(ctx, snapshot, anchor, current);
-				return CANVAS_CHANGED;
-			},
-			modifierChanged() {
-				return NO_EFFECTS;
-			},
-			end() {
-				snapshot = null;
-				anchor = null;
-				return NO_EFFECTS;
-			}
-		};
-	}
-
 	function resolveLifecycle(
-		tool: Exclude<DrawTool, LiveSampleTool>,
+		tool: Exclude<DrawTool, LiveSampleTool | DragTransformTool>,
 		pushHistory: () => void
 	): StrokeLifecycle {
 		switch (tool.kind) {
@@ -285,8 +255,6 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 				return oneShotLifecycle(tool, pushHistory);
 			case 'shapePreview':
 				return shapePreviewLifecycle(tool, pushHistory);
-			case 'dragTransform':
-				return dragTransformLifecycle(tool, pushHistory);
 		}
 	}
 
@@ -331,6 +299,16 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 				activeSession = sessions.liveSample({
 					drawButton: button,
 					inputSource: activeInputSource
+				});
+				activeLifecycle = null;
+				return activeSession.start();
+			}
+
+			if (tool.kind === 'dragTransform') {
+				activeSession = sessions.dragTransform({
+					tool,
+					drawColor: activeDrawColor,
+					drawButton: button
 				});
 				activeLifecycle = null;
 				return activeSession.start();

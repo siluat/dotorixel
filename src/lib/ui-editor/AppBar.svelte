@@ -48,6 +48,11 @@
 				? m.action_pixelPerfectOn()
 				: m.action_pixelPerfectOff()
 	);
+
+	function handlePixelPerfectClick() {
+		if (pixelPerfectDisabled) return;
+		onPixelPerfectToggle();
+	}
 </script>
 
 {#if activeTab === 'draw'}
@@ -76,10 +81,10 @@
 				class="pp-btn"
 				class:pp-btn--on={pixelPerfect && !pixelPerfectDisabled}
 				class:pp-btn--disabled={pixelPerfectDisabled}
-				onclick={onPixelPerfectToggle}
+				onclick={handlePixelPerfectClick}
 				aria-label={ppLabel}
 				aria-pressed={pixelPerfect}
-				aria-disabled={pixelPerfectDisabled}
+				aria-disabled={pixelPerfectDisabled || undefined}
 			>
 				<PixelPerfectIcon size={18} />
 			</button>

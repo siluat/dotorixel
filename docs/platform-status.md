@@ -18,7 +18,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Move | — | ✅ | ⬜ | Drag to reposition canvas content, snapshot-restore preview, `move` cursor |
 | Right-click background color | — | ✅ | ⬜ | All tools draw with BG color on right-click; eraser unchanged |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |
-| Pixel-perfect filter | ✅ | ✅ | ⬜ | L-corner 3-window rule (Aseprite-style); stateless with `TailState` carry; WASM + UniFFI bindings exported. Web: pencil/eraser strokes wired through `createPixelPerfectOps` decorator; topBar/mAppBar toggle with session-persisted preference (default ON), disabled on non-freehand tools |
+| Pixel-perfect filter | ✅ | ✅ | ⬜ | L-corner 3-window rule (Aseprite-style); stateless with `TailState` carry; WASM + UniFFI bindings exported. Web: pencil/eraser strokes wired through `createPixelPerfectOps` decorator; topBar/mAppBar toggle with IndexedDB-persisted preference (default ON), disabled on non-freehand tools |
 
 ## Canvas
 

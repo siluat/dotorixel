@@ -61,6 +61,11 @@
 				: m.action_pixelPerfectOff()
 	);
 
+	function handlePixelPerfectClick() {
+		if (pixelPerfectDisabled) return;
+		onPixelPerfectToggle();
+	}
+
 	let exportBtnEl = $state<HTMLButtonElement>();
 </script>
 
@@ -91,10 +96,10 @@
 			class="pp-btn"
 			class:pp-btn--on={pixelPerfect && !pixelPerfectDisabled}
 			class:pp-btn--disabled={pixelPerfectDisabled}
-			onclick={onPixelPerfectToggle}
+			onclick={handlePixelPerfectClick}
 			aria-label={ppLabel}
 			aria-pressed={pixelPerfect}
-			aria-disabled={pixelPerfectDisabled}
+			aria-disabled={pixelPerfectDisabled || undefined}
 			use:tooltip={ppLabel}
 		>
 			<PixelPerfectIcon size={16} />

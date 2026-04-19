@@ -6,14 +6,14 @@ Pixel-perfect drawing — remove double-pixels at stroke joints ([PRD](../issues
 
 ## Last Completed
 
-Pixel Perfect filter — Rust core function ([issue](../issues/071-pixel-perfect-rust-filter.md))
+Pixel Perfect — Pencil integration (hardcoded ON) ([issue](../issues/072-pixel-perfect-pencil-integration.md))
 
 ## Next Up
 
-- [072 — Pencil integration](../issues/072-pixel-perfect-pencil-integration.md)
-  - 071 완료로 unblocked. PP PRD 의 첫 shell-side 통합.
+- [073 — Eraser integration](../issues/073-pixel-perfect-eraser-integration.md)
+  - 072 완료로 unblocked. 부수 효과로 코드 대부분이 이미 wired; eraser 전용 E2E 만 남음.
 - [074 — topBar/mAppBar toggle + preference](../issues/074-pixel-perfect-toggle-ui.md)
-  - 070 (design) 완료로 unblocked. 072 와 병렬 진행 가능.
+  - 070 (design) 완료로 unblocked. 073 와 병렬 진행 가능.
 - 018 — RightPanel (Apple Native)
   - Independent. Can start immediately.
 - 019 — StatusBar (Apple Native)

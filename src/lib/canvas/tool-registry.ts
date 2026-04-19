@@ -66,8 +66,8 @@ export interface ToolDef {
  * Keys determine ToolType union and toolbar display order.
  */
 const TOOL_DEFS = {
-	pencil:     { cursor: 'crosshair', shortcutKey: 'P', tool: createPencilTool },
-	eraser:     { cursor: 'crosshair', shortcutKey: 'E', tool: createEraserTool },
+	pencil:     { cursor: 'crosshair', shortcutKey: 'P', tool: createPencilTool() },
+	eraser:     { cursor: 'crosshair', shortcutKey: 'E', tool: createEraserTool() },
 	line:       { cursor: 'crosshair', shortcutKey: 'L', tool: (ops) => createShapeTool(ops, 'line',      ops.interpolatePixels, constrainLine) },
 	rectangle:  { cursor: 'crosshair', shortcutKey: 'U', tool: (ops) => createShapeTool(ops, 'rectangle', ops.rectangleOutline,  constrainSquare) },
 	ellipse:    { cursor: 'crosshair', shortcutKey: 'O', tool: (ops) => createShapeTool(ops, 'ellipse',   ops.ellipseOutline,    constrainSquare) },

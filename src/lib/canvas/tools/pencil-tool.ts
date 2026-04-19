@@ -1,9 +1,8 @@
-import type { DrawingOps, DrawingToolType } from '../drawing-ops';
+import type { DrawingToolType } from '../drawing-ops';
 import type { ContinuousTool, ToolContext } from '../draw-tool';
 import type { CanvasCoords } from '../canvas-model';
 
 function createFreehandTool(
-	ops: DrawingOps,
 	toolType: DrawingToolType,
 	addsActiveColor: boolean
 ): ContinuousTool {
@@ -12,30 +11,21 @@ function createFreehandTool(
 		addsActiveColor,
 
 		apply(ctx: ToolContext, current: CanvasCoords, previous: CanvasCoords | null): boolean {
-			let changed = false;
-
-			if (previous) {
-				const flat = ops.interpolatePixels(previous.x, previous.y, current.x, current.y);
-				for (let i = 0; i < flat.length; i += 2) {
-					if (ops.applyTool(flat[i], flat[i + 1], toolType, ctx.drawColor)) {
-						changed = true;
-					}
-				}
-			} else {
-				changed = ops.applyTool(current.x, current.y, toolType, ctx.drawColor);
-			}
-
-			return changed;
+			const ops = ctx.ops;
+			const segment = previous
+				? ops.interpolatePixels(previous.x, previous.y, current.x, current.y)
+				: new Int32Array([current.x, current.y]);
+			return ops.applyStroke(segment, toolType, ctx.drawColor);
 		}
 	};
 }
 
 /** Creates a freehand drawing tool that paints pixels with the active color. */
-export function createPencilTool(ops: DrawingOps): ContinuousTool {
-	return createFreehandTool(ops, 'pencil', true);
+export function createPencilTool(): ContinuousTool {
+	return createFreehandTool('pencil', true);
 }
 
 /** Creates a freehand tool that erases pixels to transparent. Does not add to recent colors. */
-export function createEraserTool(ops: DrawingOps): ContinuousTool {
-	return createFreehandTool(ops, 'eraser', false);
+export function createEraserTool(): ContinuousTool {
+	return createFreehandTool('eraser', false);
 }

@@ -339,9 +339,6 @@ describe('Workspace', () => {
 		});
 
 		it('defaults pixelPerfect to true when missing from a legacy snapshot', () => {
-			// Legacy snapshots produced before this field was added do not carry
-			// pixelPerfect. Hydration must treat absence as "use the default (ON)"
-			// rather than crashing or falsely flipping it to false.
 			const restored: WorkspaceSnapshot = {
 				tabs: [
 					{

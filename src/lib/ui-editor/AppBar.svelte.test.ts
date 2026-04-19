@@ -7,8 +7,11 @@ function renderAppBar(props: Record<string, unknown> = {}) {
 	const defaults = {
 		activeTab: 'draw' as const,
 		showGrid: false,
+		pixelPerfect: true,
+		pixelPerfectDisabled: false,
 		zoomPercent: 100,
 		onGridToggle: vi.fn(),
+		onPixelPerfectToggle: vi.fn(),
 		onExport: vi.fn(),
 		onZoomIn: vi.fn(),
 		onZoomOut: vi.fn(),

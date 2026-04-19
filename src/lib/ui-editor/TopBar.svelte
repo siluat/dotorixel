@@ -10,11 +10,14 @@
 	import * as m from '$lib/paraglide/messages';
 	import { tooltip } from '$lib/tooltip';
 	import ExportPopover from './ExportPopover.svelte';
+	import PixelPerfectIcon from './PixelPerfectIcon.svelte';
 	import type { ExportFormat } from '$lib/canvas/export';
 
 	interface Props {
 		zoomPercent: number;
 		showGrid: boolean;
+		pixelPerfect: boolean;
+		pixelPerfectDisabled: boolean;
 		isExportOpen: boolean;
 		canvasWidth: number;
 		canvasHeight: number;
@@ -23,6 +26,7 @@
 		onZoomReset: () => void;
 		onFit: () => void;
 		onGridToggle: () => void;
+		onPixelPerfectToggle: () => void;
 		onExportToggle: () => void;
 		onExportConfirm: (format: ExportFormat, filenameStem: string) => void;
 		onBrowseSavedWork: () => void;
@@ -32,6 +36,8 @@
 	let {
 		zoomPercent,
 		showGrid,
+		pixelPerfect,
+		pixelPerfectDisabled,
 		isExportOpen,
 		canvasWidth,
 		canvasHeight,
@@ -40,11 +46,20 @@
 		onZoomReset,
 		onFit,
 		onGridToggle,
+		onPixelPerfectToggle,
 		onExportToggle,
 		onExportConfirm,
 		onBrowseSavedWork,
 		isBrowserOpen = false
 	}: Props = $props();
+
+	const ppLabel = $derived(
+		pixelPerfectDisabled
+			? m.action_pixelPerfectDisabled()
+			: pixelPerfect
+				? m.action_pixelPerfectOn()
+				: m.action_pixelPerfectOff()
+	);
 
 	let exportBtnEl = $state<HTMLButtonElement>();
 </script>
@@ -71,6 +86,19 @@
 				<Maximize2 size={14} />
 			</button>
 		</div>
+
+		<button
+			class="pp-btn"
+			class:pp-btn--on={pixelPerfect && !pixelPerfectDisabled}
+			class:pp-btn--disabled={pixelPerfectDisabled}
+			onclick={onPixelPerfectToggle}
+			aria-label={ppLabel}
+			aria-pressed={pixelPerfect}
+			aria-disabled={pixelPerfectDisabled}
+			use:tooltip={ppLabel}
+		>
+			<PixelPerfectIcon size={16} />
+		</button>
 
 		<button
 			class="icon-btn"
@@ -220,6 +248,58 @@
 
 	.icon-btn.active {
 		color: var(--ds-accent);
+	}
+
+	.pp-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		border: none;
+		background: transparent;
+		border-radius: var(--ds-radius-sm);
+		color: var(--ds-text-secondary);
+		cursor: pointer;
+		padding: 0;
+		transition: background-color 120ms ease-out, color 120ms ease-out;
+	}
+
+	.pp-btn:hover {
+		background: var(--ds-bg-hover);
+	}
+
+	.pp-btn:active {
+		background: var(--ds-bg-active);
+	}
+
+	.pp-btn.pp-btn--on {
+		background: var(--ds-accent-subtle);
+		color: var(--ds-accent);
+	}
+
+	.pp-btn.pp-btn--on:hover {
+		background: var(--ds-accent-subtle);
+	}
+
+	.pp-btn.pp-btn--on:active {
+		background: color-mix(in srgb, var(--ds-accent-subtle) 90%, var(--ds-accent) 10%);
+	}
+
+	.pp-btn.pp-btn--disabled {
+		opacity: 0.4;
+		cursor: default;
+	}
+
+	.pp-btn.pp-btn--disabled:hover {
+		background: transparent;
+	}
+
+	@media (min-width: 1024px) and (max-width: 1439px) {
+		.pp-btn {
+			width: 36px;
+			height: 36px;
+		}
 	}
 
 	.export-wrapper {

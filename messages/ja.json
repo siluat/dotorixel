@@ -18,6 +18,9 @@
 	"action_zoomOut": "縮小",
 	"action_resetZoom": "100%にリセット",
 	"action_fitToView": "画面に合わせる",
+	"action_pixelPerfectOn": "ピクセルパーフェクト: オン",
+	"action_pixelPerfectOff": "ピクセルパーフェクト: オフ",
+	"action_pixelPerfectDisabled": "ピクセルパーフェクト (ペンシル/消しゴム専用)",
 
 	"canvas_width": "キャンバス幅",
 	"canvas_height": "キャンバス高さ",

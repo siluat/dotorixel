@@ -1,11 +1,5 @@
 # Todo
 
-## Milestone 2: Production UIUX
-
-- Pixel-perfect drawing — remove double-pixels at stroke joints — [PRD](../issues/069-pixel-perfect-drawing.md)
-
-  - [074 — topBar/mAppBar toggle + preference](../issues/074-pixel-perfect-toggle-ui.md)
-
 ## Milestone 3: Editor for Serious Work
 
 - Floating reference image windows (import from Files/Photos, reposition/minimize, color sampling) — inspired by Pixquare — [PRD](../issues/053-floating-reference-window.md)

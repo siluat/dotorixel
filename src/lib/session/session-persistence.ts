@@ -56,7 +56,8 @@ export class SessionPersistence {
 				activeTool: snapshot.sharedState.activeTool,
 				foregroundColor: { ...snapshot.sharedState.foregroundColor },
 				backgroundColor: { ...snapshot.sharedState.backgroundColor },
-				recentColors: [...snapshot.sharedState.recentColors]
+				recentColors: [...snapshot.sharedState.recentColors],
+				pixelPerfect: snapshot.sharedState.pixelPerfect
 			},
 			viewports
 		});

@@ -18,6 +18,9 @@
 	"action_zoomOut": "Zoom Out",
 	"action_resetZoom": "Reset zoom to 100%",
 	"action_fitToView": "Fit to View",
+	"action_pixelPerfectOn": "Pixel Perfect: On",
+	"action_pixelPerfectOff": "Pixel Perfect: Off",
+	"action_pixelPerfectDisabled": "Pixel Perfect (Pencil/Eraser only)",
 
 	"canvas_width": "Canvas width",
 	"canvas_height": "Canvas height",

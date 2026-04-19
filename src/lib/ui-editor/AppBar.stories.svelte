@@ -10,8 +10,11 @@
 		<AppBar
 			activeTab="draw"
 			showGrid={true}
+			pixelPerfect={true}
+			pixelPerfectDisabled={false}
 			zoomPercent={800}
 			onGridToggle={() => {}}
+			onPixelPerfectToggle={() => {}}
 			onExport={() => {}}
 			onZoomIn={() => {}}
 			onZoomOut={() => {}}
@@ -25,8 +28,11 @@
 		<AppBar
 			activeTab="colors"
 			showGrid={false}
+			pixelPerfect={true}
+			pixelPerfectDisabled={false}
 			zoomPercent={100}
 			onGridToggle={() => {}}
+			onPixelPerfectToggle={() => {}}
 			onExport={() => {}}
 			onZoomIn={() => {}}
 			onZoomOut={() => {}}
@@ -40,8 +46,11 @@
 		<AppBar
 			activeTab="settings"
 			showGrid={false}
+			pixelPerfect={true}
+			pixelPerfectDisabled={false}
 			zoomPercent={100}
 			onGridToggle={() => {}}
+			onPixelPerfectToggle={() => {}}
 			onExport={() => {}}
 			onZoomIn={() => {}}
 			onZoomOut={() => {}}

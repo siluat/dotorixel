@@ -45,6 +45,9 @@
 		})
 	);
 	const editor = $derived(workspace.activeEditor);
+	const pixelPerfectDisabled = $derived(
+		editor.activeTool !== 'pencil' && editor.activeTool !== 'eraser'
+	);
 
 	const layout = createLayoutMode();
 	let activeTab: MobileTab = $state('draw');
@@ -72,6 +75,12 @@
 
 	function handleAddTab() {
 		workspace.addTab();
+		session?.markDirty(workspace.activeEditor.documentId);
+	}
+
+	function handlePixelPerfectToggle() {
+		if (pixelPerfectDisabled) return;
+		editor.handlePixelPerfectToggle();
 		session?.markDirty(workspace.activeEditor.documentId);
 	}
 
@@ -253,6 +262,8 @@
 		<TopBar
 			zoomPercent={editor.zoomPercent}
 			showGrid={editor.viewport.showGrid}
+			pixelPerfect={editor.pixelPerfect}
+			pixelPerfectDisabled={pixelPerfectDisabled}
 			isExportOpen={editor.isExportUIOpen}
 			canvasWidth={editor.pixelCanvas.width}
 			canvasHeight={editor.pixelCanvas.height}
@@ -261,6 +272,7 @@
 			onZoomReset={editor.handleZoomReset}
 			onFit={editor.handleFit}
 			onGridToggle={editor.handleGridToggle}
+			onPixelPerfectToggle={handlePixelPerfectToggle}
 			onExportToggle={editor.toggleExportUI}
 			onExportConfirm={handleExportConfirm}
 			onBrowseSavedWork={handleBrowseSavedWork}
@@ -329,8 +341,11 @@
 		<AppBar
 			activeTab={activeTab}
 			showGrid={editor.viewport.showGrid}
+			pixelPerfect={editor.pixelPerfect}
+			pixelPerfectDisabled={pixelPerfectDisabled}
 			zoomPercent={editor.zoomPercent}
 			onGridToggle={editor.handleGridToggle}
+			onPixelPerfectToggle={handlePixelPerfectToggle}
 			onExport={editor.toggleExportUI}
 			onZoomIn={editor.handleZoomIn}
 			onZoomOut={editor.handleZoomOut}

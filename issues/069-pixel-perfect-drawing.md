@@ -1,6 +1,6 @@
 ---
 title: Pixel Perfect drawing — remove double-pixels at stroke joints
-status: open
+status: done
 created: 2026-04-18
 ---
 

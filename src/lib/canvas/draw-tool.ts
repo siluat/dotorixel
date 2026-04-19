@@ -47,6 +47,8 @@ export interface ContinuousTool {
 	readonly kind: 'continuous';
 	/** Whether ToolRunner should add the active drawing color to recent colors on stroke start. */
 	readonly addsActiveColor: boolean;
+	/** Whether this tool opts into pixel-perfect L-corner filtering when the user has it enabled. */
+	readonly supportsPixelPerfect: boolean;
 	/** Returns true if any pixel was changed. */
 	apply(ctx: ToolContext, current: CanvasCoords, previous: CanvasCoords | null): boolean;
 }

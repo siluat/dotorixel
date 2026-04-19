@@ -174,12 +174,19 @@
 		trackEditorOpen('editor');
 		const sessionStart = Date.now();
 
+		// Expose the async-restore phase so E2E can await a deterministic
+		// ready state. The initial Workspace above is a transient default
+		// that `openSession` replaces once IDB restore resolves; asserting
+		// on persisted state before the swap would race.
+		document.documentElement.dataset.sessionState = 'loading';
+
 		openSession({ gridColor: '#ECE5D9' }).then((result) => {
 			workspace = result.workspace;
 			session = result.session;
 			for (const tab of workspace.tabs) {
 				fittedEditors.add(tab);
 			}
+			document.documentElement.dataset.sessionState = 'restored';
 		});
 
 		document.addEventListener('visibilitychange', handleVisibilityChange);

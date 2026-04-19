@@ -47,45 +47,46 @@ pub struct FilterResult {
 /// Applies the L-corner filter to a batch of points.
 ///
 /// `points` is a coordinate sequence (typically one `pointermove` worth of
-/// Bresenham output). `prev_tail` carries the last 0–2 points from a prior
-/// call so L-corners that span the call boundary are still judged.
+/// Bresenham output). `prev_tail` carries the last 0–2 points of the
+/// *effective* (post-revert) path from a prior call so L-corners that span
+/// the call boundary are still judged against the same shortened sequence.
 ///
-/// The returned `actions` are ordered as all `Paint`s first (one per input
-/// point, in input order), followed by any `Revert`s emitted for L-corners
-/// discovered in the combined `prev_tail ++ points` sequence.
+/// Actions are emitted in processing order: each input point produces a
+/// `Paint`, and any `Revert` for an L-corner tip is emitted immediately
+/// after the point that completed the corner. Same-batch revisits of a
+/// reverted coordinate therefore repaint correctly — the later `Paint`
+/// lands after the `Revert`, not before. A reverted tip is dropped from
+/// the effective path so it can't participate in further 3-window
+/// judgments; otherwise a staircase of successive L-corners cascades and
+/// wipes out the diagonal pixels the filter is meant to preserve.
 pub fn pixel_perfect_filter(
     points: &[(i32, i32)],
     prev_tail: TailState,
 ) -> FilterResult {
-    let mut actions: Vec<Action> = points
-        .iter()
-        .map(|&(x, y)| Action::Paint(x, y))
-        .collect();
+    let mut actions: Vec<Action> = Vec::with_capacity(points.len() * 2);
 
-    let prefix_len = match prev_tail {
-        TailState::Empty => 0,
-        TailState::One(..) => 1,
-        TailState::Two(..) => 2,
-    };
-    let mut combined: Vec<(i32, i32)> = Vec::with_capacity(prefix_len + points.len());
+    let mut effective: Vec<(i32, i32)> = Vec::with_capacity(2 + points.len());
     match prev_tail {
         TailState::Empty => {}
-        TailState::One(x, y) => combined.push((x, y)),
+        TailState::One(x, y) => effective.push((x, y)),
         TailState::Two(ax, ay, bx, by) => {
-            combined.push((ax, ay));
-            combined.push((bx, by));
-        }
-    }
-    combined.extend_from_slice(points);
-
-    for w in combined.windows(3) {
-        let (prev, cur, next) = (w[0], w[1], w[2]);
-        if is_l_corner(prev, cur, next) {
-            actions.push(Action::Revert(cur.0, cur.1));
+            effective.push((ax, ay));
+            effective.push((bx, by));
         }
     }
 
-    let new_tail = match combined.as_slice() {
+    for &pt in points {
+        actions.push(Action::Paint(pt.0, pt.1));
+        effective.push(pt);
+        let n = effective.len();
+        if n >= 3 && is_l_corner(effective[n - 3], effective[n - 2], effective[n - 1]) {
+            let (cx, cy) = effective[n - 2];
+            actions.push(Action::Revert(cx, cy));
+            effective.remove(n - 2);
+        }
+    }
+
+    let new_tail = match effective.as_slice() {
         [] => TailState::Empty,
         [(x, y)] => TailState::One(*x, *y),
         [.., (ax, ay), (bx, by)] => TailState::Two(*ax, *ay, *bx, *by),
@@ -168,7 +169,10 @@ mod tests {
                 Action::Revert(1, 0),
             ]
         );
-        assert_eq!(result.new_tail, TailState::Two(1, 0, 1, 1));
+        // Tail reflects the effective (post-revert) path: the reverted tip
+        // (1,0) is gone so subsequent batches judge new points against the
+        // shortened sequence (0,0)(1,1), not the raw input.
+        assert_eq!(result.new_tail, TailState::Two(0, 0, 1, 1));
     }
 
     // ── L-corner in all 8 orientations ─────────────────────────
@@ -202,11 +206,43 @@ mod tests {
     // ── consecutive L-corners (staircase) ──────────────────────
 
     #[test]
-    fn staircase_reverts_every_middle_pixel() {
-        // Each step is an L-corner: three overlapping 3-windows.
-        // After reverts, effective path is only the two endpoints — a clean
-        // diagonal — matching Aseprite's stair-stepping fix.
+    fn staircase_reverts_only_joint_pixels_preserving_diagonal() {
+        // A Bresenham staircase looks like three overlapping L-corners. The
+        // filter must revert only the joint pixels (1,0), (2,1) and keep the
+        // diagonal (0,0), (1,1), (2,2) intact — reverting (1,1) as well
+        // would cascade and collapse the line to its two endpoints, which
+        // is the exact bug that pixel-perfect is supposed to hide.
         let points = vec![(0, 0), (1, 0), (1, 1), (2, 1), (2, 2)];
+        let result = pixel_perfect_filter(&points, TailState::Empty);
+        // Actions are interleaved in processing order: each Paint is
+        // emitted as its point arrives, and the Revert for a detected
+        // L-corner tip immediately follows the point that completed it.
+        assert_eq!(
+            result.actions,
+            vec![
+                Action::Paint(0, 0),
+                Action::Paint(1, 0),
+                Action::Paint(1, 1),
+                Action::Revert(1, 0),
+                Action::Paint(2, 1),
+                Action::Paint(2, 2),
+                Action::Revert(2, 1),
+            ]
+        );
+        // Tail is the last two points of the effective path (0,0)(1,1)(2,2).
+        assert_eq!(result.new_tail, TailState::Two(1, 1, 2, 2));
+    }
+
+    // ── same-batch revisit after revert ────────────────────────
+
+    #[test]
+    fn same_batch_revisit_of_reverted_tip_repaints_last() {
+        // User pens an L, then doubles back to the tip in the same batch.
+        // The filter must emit `Revert(1,0)` before the trailing `Paint(1,0)`
+        // so the caller's replay ends with the revisited pixel painted —
+        // emitting all Paints before all Reverts would instead wipe the
+        // user's closing pixel.
+        let points = vec![(0, 0), (1, 0), (1, 1), (1, 0)];
         let result = pixel_perfect_filter(&points, TailState::Empty);
         assert_eq!(
             result.actions,
@@ -214,14 +250,13 @@ mod tests {
                 Action::Paint(0, 0),
                 Action::Paint(1, 0),
                 Action::Paint(1, 1),
-                Action::Paint(2, 1),
-                Action::Paint(2, 2),
                 Action::Revert(1, 0),
-                Action::Revert(1, 1),
-                Action::Revert(2, 1),
+                Action::Paint(1, 0),
             ]
         );
-        assert_eq!(result.new_tail, TailState::Two(2, 1, 2, 2));
+        // Effective path ends at [(0,0), (1,1), (1,0)] — the revisit is
+        // part of the path again, so the tail reflects the last two points.
+        assert_eq!(result.new_tail, TailState::Two(1, 1, 1, 0));
     }
 
     // ── L-corner spanning batch boundary via prev_tail ─────────
@@ -236,18 +271,24 @@ mod tests {
             result.actions,
             vec![Action::Paint(1, 1), Action::Revert(1, 0)]
         );
-        // new_tail must carry the last two points of the combined path so the
-        // next batch can judge 3-windows through (1,0)→(1,1).
-        assert_eq!(result.new_tail, TailState::Two(1, 0, 1, 1));
+        // new_tail carries the last two points of the effective (post-revert)
+        // path. Dropping the reverted tip here is what stops the next batch
+        // from judging new points against the stale raw sequence — see the
+        // staircase test for the concrete cascade this prevents.
+        assert_eq!(result.new_tail, TailState::Two(0, 0, 1, 1));
     }
 
     // ── self-crossing path (revisit) ────────────────────────────
 
     #[test]
     fn self_crossing_revisit_is_judged_on_path_not_pixel_identity() {
-        // Closed 2x2 square revisiting origin. Three L-corners; the final
-        // Paint(0,0) revisits the first pixel — the filter emits it anyway
-        // and the caller's first-touch cache handles the no-op recolor.
+        // Closed 2x2 square revisiting origin. Two L-corners are visible in
+        // the effective path — the tip (1,0) at the first turn and the tip
+        // (0,1) at the last — because reverting (1,0) leaves (0,0)→(1,1) as
+        // a diagonal segment, and the middle corner (1,1)→(0,1) is no longer
+        // a 3-point L with (1,0) dropped. The final Paint(0,0) revisits the
+        // first pixel — the filter emits it anyway and the caller's
+        // first-touch cache handles the no-op recolor.
         let points = vec![(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)];
         let result = pixel_perfect_filter(&points, TailState::Empty);
         assert_eq!(
@@ -256,14 +297,13 @@ mod tests {
                 Action::Paint(0, 0),
                 Action::Paint(1, 0),
                 Action::Paint(1, 1),
+                Action::Revert(1, 0),
                 Action::Paint(0, 1),
                 Action::Paint(0, 0),
-                Action::Revert(1, 0),
-                Action::Revert(1, 1),
                 Action::Revert(0, 1),
             ]
         );
-        assert_eq!(result.new_tail, TailState::Two(0, 1, 0, 0));
+        assert_eq!(result.new_tail, TailState::Two(1, 1, 0, 0));
     }
 
     // ── is_l_corner predicate truth table ──────────────────────

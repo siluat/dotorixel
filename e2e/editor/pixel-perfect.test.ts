@@ -56,6 +56,119 @@ test.describe('Pixel Perfect', () => {
 		expect(canvas.pixelEquals(cornerAfter, initialCornerPixel)).toBe(true);
 	});
 
+	test('staircase pencil drag preserves an 8-connected diagonal (no cascading revert)', async ({
+		editorPage
+	}) => {
+		const { canvas, page } = editorPage;
+		await canvas.canvasLocator.waitFor({ state: 'visible' });
+
+		const geo = await page.evaluate(readArtGeometry);
+		const box = await canvas.canvasLocator.boundingBox();
+		if (!box) throw new Error('No bounding box');
+		const cssScale = box.width / geo.canvasWidth;
+
+		// `readArtGeometry.pixelSize` reports the transparency-checker period,
+		// which is half of one art pixel in the current editor render. The
+		// true per-art-pixel render size is therefore 2×. Without this
+		// correction, each "one-pixel" step in the staircase path would hit
+		// the same art pixel as the previous one half the time, collapsing
+		// the 7-step path to only 3 distinct art-pixel positions and the
+		// test would silently pass because the filter never sees a staircase.
+		const artPixelCss = geo.pixelSize * 2;
+		// Guard the checker-period assumption: if the renderer changes so
+		// that the transparency-checker tile no longer spans half an art
+		// pixel, `artPixelCss` above becomes wrong and the test would land
+		// staircase steps inside the same art pixel. A single-line assert
+		// here fails loudly with an actionable message instead.
+		expect(
+			geo.artPixelsAcross % 2,
+			'readArtGeometry expects the art area to span an even number of checker tiles (two per art pixel); update the factor above if rendering changes.'
+		).toBe(0);
+		const artPixelsAcross = Math.floor(geo.artPixelsAcross / 2);
+		const artPixelsDown = Math.floor(geo.artPixelsDown / 2);
+
+		const originArtX = Math.floor(artPixelsAcross / 2) - 2;
+		const originArtY = Math.floor(artPixelsDown / 2) - 2;
+
+		const toCss = (artX: number, artY: number) => {
+			const canvasX = geo.artLeft + artX * artPixelCss + artPixelCss / 2;
+			const canvasY = geo.artTop + artY * artPixelCss + artPixelCss / 2;
+			return { cssX: canvasX * cssScale, cssY: canvasY * cssScale, canvasX, canvasY };
+		};
+
+		// Staircase path (origin-relative): right, down, right, down, right, down.
+		// Each step is exactly one art pixel, so every pointermove produces a
+		// single-pixel Bresenham batch and the pp filter sees the raw sequence
+		//     (0,0), (1,0), (1,1), (2,1), (2,2), (3,2), (3,3)
+		// which contains three overlapping L-corners. Aseprite-style pp removes
+		// only the joint pixels (1,0), (2,1), (3,2), leaving a clean 8-connected
+		// diagonal (0,0), (1,1), (2,2), (3,3). The previous (pre-fix) filter
+		// reverted joint-adjacent pixels as well because each 3-window was
+		// judged on the raw sequence; that collapsed the stroke to just the
+		// two endpoints and produced a visible gap — this test pins down the
+		// corrected behavior to guard against regression.
+		const pathSteps: Array<[number, number]> = [
+			[0, 0],
+			[1, 0],
+			[1, 1],
+			[2, 1],
+			[2, 2],
+			[3, 2],
+			[3, 3]
+		];
+		const points = pathSteps.map(([dx, dy]) => {
+			const art = { x: originArtX + dx, y: originArtY + dy };
+			return { ...toCss(art.x, art.y), art };
+		});
+
+		const readAt = async (artX: number, artY: number) => {
+			const { canvasX, canvasY } = toCss(artX, artY);
+			return page.evaluate(readPixelAt, { px: canvasX, py: canvasY });
+		};
+
+		// Record initial color for every pixel the staircase path touches, so
+		// the assertion can distinguish "painted foreground" from "initial".
+		const initials = await Promise.all(
+			pathSteps.map(([dx, dy]) => readAt(originArtX + dx, originArtY + dy))
+		);
+
+		// Drive the stroke one art pixel at a time. Between moves, pump the
+		// event loop so Chromium doesn't coalesce consecutive pointermoves into
+		// a single diagonal — the filter must see the staircase sequence for
+		// the cascading-revert bug to manifest.
+		await page.mouse.move(box.x + points[0].cssX, box.y + points[0].cssY);
+		await page.mouse.down();
+		await page.waitForTimeout(30);
+		for (let i = 1; i < points.length; i++) {
+			await page.mouse.move(box.x + points[i].cssX, box.y + points[i].cssY);
+			await page.waitForTimeout(30);
+		}
+		await page.mouse.up();
+
+		const finals = await Promise.all(
+			pathSteps.map(([dx, dy]) => readAt(originArtX + dx, originArtY + dy))
+		);
+
+		// Classify each touched pixel: `painted` iff its color changed from the
+		// pre-stroke value. A correct pp filter paints the four diagonal
+		// pixels (0,0), (1,1), (2,2), (3,3) and reverts the three stair joints
+		// (1,0), (2,1), (3,2). The cascading-revert bug wipes the two interior
+		// diagonals (1,1) and (2,2) as well, collapsing the stroke to just the
+		// two endpoints.
+		const paintedAt = (dx: number, dy: number) => {
+			const idx = pathSteps.findIndex(([x, y]) => x === dx && y === dy);
+			return !canvas.pixelEquals(finals[idx], initials[idx]);
+		};
+
+		expect(paintedAt(0, 0), 'endpoint (+0,+0) must be painted').toBe(true);
+		expect(paintedAt(1, 0), 'stair joint (+1,+0) must be reverted').toBe(false);
+		expect(paintedAt(1, 1), 'diagonal pixel (+1,+1) must survive as part of the line').toBe(true);
+		expect(paintedAt(2, 1), 'stair joint (+2,+1) must be reverted').toBe(false);
+		expect(paintedAt(2, 2), 'diagonal pixel (+2,+2) must survive as part of the line').toBe(true);
+		expect(paintedAt(3, 2), 'stair joint (+3,+2) must be reverted').toBe(false);
+		expect(paintedAt(3, 3), 'endpoint (+3,+3) must be painted').toBe(true);
+	});
+
 	test('toggle OFF preserves the corner middle pixel on pencil L-shape drag', async ({ editorPage }) => {
 		const { canvas, page } = editorPage;
 		await canvas.canvasLocator.waitFor({ state: 'visible' });

@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 41 | 34 | 7 | 29 | 83% | 54% |
-| cubic-dev-ai[bot] | 27 | 23 | 4 | 36 | 85% | 39% |
-| coderabbitai[bot] | 49 | 32 | 17 | 28 | 65% | 53% |
+| greptile-apps[bot] | 43 | 35 | 8 | 32 | 81% | 52% |
+| cubic-dev-ai[bot] | 27 | 23 | 4 | 40 | 85% | 37% |
+| coderabbitai[bot] | 52 | 35 | 17 | 29 | 67% | 55% |
 
 ## Log
 
@@ -224,3 +224,16 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #161 | coderabbitai[bot] | Accept | Vacuous `restore_pixels` assertion in shapePreview test — use `restoreCalls.length` for real verification |
 | #161 | coderabbitai[bot] | Accept | `ToolContext` rebuild in 3 non-continuous openers (duplicate of greptile finding) |
 | #161 | coderabbitai[bot] | Reject | Length-validate `restore_pixels` input — "fail at the boundary, trust the core" applies to test stubs |
+| #162 | greptile-apps[bot] | Accept | Hardcoded `artPixelCss = pixelSize*2` assumption — add runtime guard on even checker-tile span |
+| #162 | greptile-apps[bot] | Reject | `Vec::remove` O(n) in filter loop — batch n~10, premature optimization per YAGNI |
+| #162 | greptile-apps[bot] | Miss | Did not flag action emission order (same-batch revisit of reverted tip was wiped) |
+| #162 | greptile-apps[bot] | Miss | Did not flag missing negative joint assertions for stair corners |
+| #162 | greptile-apps[bot] | Miss | Did not flag "current filter" wording that contradicts the fix in test comment |
+| #162 | coderabbitai[bot] | Accept | Emit actions in processing order — same-batch revisit of reverted tip was wiped |
+| #162 | coderabbitai[bot] | Accept | Add negative assertions for stair joints (1,0), (2,1), (3,2) to complete PP contract |
+| #162 | coderabbitai[bot] | Accept | Reword "the current filter reverts" → "the previous filter reverted" in test comment |
+| #162 | coderabbitai[bot] | Miss | Did not flag hardcoded `artPixelCss` assumption |
+| #162 | cubic-dev-ai[bot] | Miss | Did not flag hardcoded `artPixelCss` assumption |
+| #162 | cubic-dev-ai[bot] | Miss | Did not flag action emission order (same-batch revisit wipe) |
+| #162 | cubic-dev-ai[bot] | Miss | Did not flag missing negative joint assertions |
+| #162 | cubic-dev-ai[bot] | Miss | Did not flag "current filter" wording in test comment |

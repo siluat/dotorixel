@@ -72,8 +72,18 @@ test.describe('Pixel Perfect', () => {
 		// true per-art-pixel render size is therefore 2×. Without this
 		// correction, each "one-pixel" step in the staircase path would hit
 		// the same art pixel as the previous one half the time, collapsing
-		// the 7-step path to only 3 distinct art-pixel positions.
+		// the 7-step path to only 3 distinct art-pixel positions and the
+		// test would silently pass because the filter never sees a staircase.
 		const artPixelCss = geo.pixelSize * 2;
+		// Guard the checker-period assumption: if the renderer changes so
+		// that the transparency-checker tile no longer spans half an art
+		// pixel, `artPixelCss` above becomes wrong and the test would land
+		// staircase steps inside the same art pixel. A single-line assert
+		// here fails loudly with an actionable message instead.
+		expect(
+			geo.artPixelsAcross % 2,
+			'readArtGeometry expects the art area to span an even number of checker tiles (two per art pixel); update the factor above if rendering changes.'
+		).toBe(0);
 		const artPixelsAcross = Math.floor(geo.artPixelsAcross / 2);
 		const artPixelsDown = Math.floor(geo.artPixelsDown / 2);
 
@@ -92,10 +102,11 @@ test.describe('Pixel Perfect', () => {
 		//     (0,0), (1,0), (1,1), (2,1), (2,2), (3,2), (3,3)
 		// which contains three overlapping L-corners. Aseprite-style pp removes
 		// only the joint pixels (1,0), (2,1), (3,2), leaving a clean 8-connected
-		// diagonal (0,0), (1,1), (2,2), (3,3). The current filter reverts
-		// joint-adjacent pixels as well because each 3-window is judged on the
-		// original sequence; that collapses the stroke to just the two endpoints
-		// and the user sees a gap in the middle of the line.
+		// diagonal (0,0), (1,1), (2,2), (3,3). The previous (pre-fix) filter
+		// reverted joint-adjacent pixels as well because each 3-window was
+		// judged on the raw sequence; that collapsed the stroke to just the
+		// two endpoints and produced a visible gap — this test pins down the
+		// corrected behavior to guard against regression.
 		const pathSteps: Array<[number, number]> = [
 			[0, 0],
 			[1, 0],
@@ -150,8 +161,11 @@ test.describe('Pixel Perfect', () => {
 		};
 
 		expect(paintedAt(0, 0), 'endpoint (+0,+0) must be painted').toBe(true);
+		expect(paintedAt(1, 0), 'stair joint (+1,+0) must be reverted').toBe(false);
 		expect(paintedAt(1, 1), 'diagonal pixel (+1,+1) must survive as part of the line').toBe(true);
+		expect(paintedAt(2, 1), 'stair joint (+2,+1) must be reverted').toBe(false);
 		expect(paintedAt(2, 2), 'diagonal pixel (+2,+2) must survive as part of the line').toBe(true);
+		expect(paintedAt(3, 2), 'stair joint (+3,+2) must be reverted').toBe(false);
 		expect(paintedAt(3, 3), 'endpoint (+3,+3) must be painted').toBe(true);
 	});
 

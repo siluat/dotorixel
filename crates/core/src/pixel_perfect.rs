@@ -51,20 +51,19 @@ pub struct FilterResult {
 /// *effective* (post-revert) path from a prior call so L-corners that span
 /// the call boundary are still judged against the same shortened sequence.
 ///
-/// The returned `actions` are ordered as all `Paint`s first (one per input
-/// point, in input order), followed by any `Revert`s emitted for L-corner
-/// tips discovered while building the effective path. A reverted tip is
-/// dropped from the path so it can't participate in further 3-window
-/// judgments — otherwise a staircase of successive L-corners cascades and
+/// Actions are emitted in processing order: each input point produces a
+/// `Paint`, and any `Revert` for an L-corner tip is emitted immediately
+/// after the point that completed the corner. Same-batch revisits of a
+/// reverted coordinate therefore repaint correctly — the later `Paint`
+/// lands after the `Revert`, not before. A reverted tip is dropped from
+/// the effective path so it can't participate in further 3-window
+/// judgments; otherwise a staircase of successive L-corners cascades and
 /// wipes out the diagonal pixels the filter is meant to preserve.
 pub fn pixel_perfect_filter(
     points: &[(i32, i32)],
     prev_tail: TailState,
 ) -> FilterResult {
-    let mut actions: Vec<Action> = points
-        .iter()
-        .map(|&(x, y)| Action::Paint(x, y))
-        .collect();
+    let mut actions: Vec<Action> = Vec::with_capacity(points.len() * 2);
 
     let mut effective: Vec<(i32, i32)> = Vec::with_capacity(2 + points.len());
     match prev_tail {
@@ -77,6 +76,7 @@ pub fn pixel_perfect_filter(
     }
 
     for &pt in points {
+        actions.push(Action::Paint(pt.0, pt.1));
         effective.push(pt);
         let n = effective.len();
         if n >= 3 && is_l_corner(effective[n - 3], effective[n - 2], effective[n - 1]) {
@@ -214,20 +214,49 @@ mod tests {
         // is the exact bug that pixel-perfect is supposed to hide.
         let points = vec![(0, 0), (1, 0), (1, 1), (2, 1), (2, 2)];
         let result = pixel_perfect_filter(&points, TailState::Empty);
+        // Actions are interleaved in processing order: each Paint is
+        // emitted as its point arrives, and the Revert for a detected
+        // L-corner tip immediately follows the point that completed it.
         assert_eq!(
             result.actions,
             vec![
                 Action::Paint(0, 0),
                 Action::Paint(1, 0),
                 Action::Paint(1, 1),
+                Action::Revert(1, 0),
                 Action::Paint(2, 1),
                 Action::Paint(2, 2),
-                Action::Revert(1, 0),
                 Action::Revert(2, 1),
             ]
         );
         // Tail is the last two points of the effective path (0,0)(1,1)(2,2).
         assert_eq!(result.new_tail, TailState::Two(1, 1, 2, 2));
+    }
+
+    // ── same-batch revisit after revert ────────────────────────
+
+    #[test]
+    fn same_batch_revisit_of_reverted_tip_repaints_last() {
+        // User pens an L, then doubles back to the tip in the same batch.
+        // The filter must emit `Revert(1,0)` before the trailing `Paint(1,0)`
+        // so the caller's replay ends with the revisited pixel painted —
+        // emitting all Paints before all Reverts would instead wipe the
+        // user's closing pixel.
+        let points = vec![(0, 0), (1, 0), (1, 1), (1, 0)];
+        let result = pixel_perfect_filter(&points, TailState::Empty);
+        assert_eq!(
+            result.actions,
+            vec![
+                Action::Paint(0, 0),
+                Action::Paint(1, 0),
+                Action::Paint(1, 1),
+                Action::Revert(1, 0),
+                Action::Paint(1, 0),
+            ]
+        );
+        // Effective path ends at [(0,0), (1,1), (1,0)] — the revisit is
+        // part of the path again, so the tail reflects the last two points.
+        assert_eq!(result.new_tail, TailState::Two(1, 1, 1, 0));
     }
 
     // ── L-corner spanning batch boundary via prev_tail ─────────
@@ -268,9 +297,9 @@ mod tests {
                 Action::Paint(0, 0),
                 Action::Paint(1, 0),
                 Action::Paint(1, 1),
+                Action::Revert(1, 0),
                 Action::Paint(0, 1),
                 Action::Paint(0, 0),
-                Action::Revert(1, 0),
                 Action::Revert(0, 1),
             ]
         );

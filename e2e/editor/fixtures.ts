@@ -90,9 +90,10 @@ export function readArtGeometry(): ArtGeometry {
  * avoids grid lines (which sit on art-pixel boundaries).
  */
 function artCenterFromGeometry(geo: ArtGeometry): { canvasX: number; canvasY: number; cssX: number; cssY: number } {
-	const centerIdx = Math.floor(geo.artPixelsAcross / 2);
-	const canvasX = Math.round(geo.artLeft + centerIdx * geo.pixelSize + geo.pixelSize / 2);
-	const canvasY = Math.round(geo.artTop + centerIdx * geo.pixelSize + geo.pixelSize / 2);
+	const centerXIdx = Math.floor(geo.artPixelsAcross / 2);
+	const centerYIdx = Math.floor(geo.artPixelsDown / 2);
+	const canvasX = Math.round(geo.artLeft + centerXIdx * geo.pixelSize + geo.pixelSize / 2);
+	const canvasY = Math.round(geo.artTop + centerYIdx * geo.pixelSize + geo.pixelSize / 2);
 	const cssX = Math.round(canvasX * (geo.cssWidth / geo.canvasWidth));
 	const cssY = Math.round(canvasY * (geo.cssHeight / geo.canvasHeight));
 	return { canvasX, canvasY, cssX, cssY };

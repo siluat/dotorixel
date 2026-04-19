@@ -50,6 +50,7 @@ export function createPixelPerfectOps(baseOps: DrawingOps): DrawingOps {
 		const result = wasm_pixel_perfect_filter(deduped, tail);
 		tail = result.new_tail_flat();
 		const actions = result.actions_flat();
+		result.free();
 
 		let changed = false;
 		for (let i = 0; i < actions.length; i += 3) {

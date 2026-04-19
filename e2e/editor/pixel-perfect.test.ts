@@ -37,6 +37,7 @@ test.describe('Pixel Perfect', () => {
 
 		const initialCornerPixel = await page.evaluate(readPixelAt, { px: corner.canvasX, py: corner.canvasY });
 		const initialStartPixel = await page.evaluate(readPixelAt, { px: start.canvasX, py: start.canvasY });
+		const initialEndPixel = await page.evaluate(readPixelAt, { px: end.canvasX, py: end.canvasY });
 
 		// Continuous L-shape drag.
 		await page.mouse.move(box.x + start.cssX, box.y + start.cssY);
@@ -51,7 +52,7 @@ test.describe('Pixel Perfect', () => {
 
 		// Endpoints painted, L-corner middle reverted to its initial color.
 		expect(canvas.pixelEquals(startAfter, initialStartPixel)).toBe(false);
-		expect(canvas.pixelEquals(endAfter, initialStartPixel)).toBe(false);
+		expect(canvas.pixelEquals(endAfter, initialEndPixel)).toBe(false);
 		expect(canvas.pixelEquals(cornerAfter, initialCornerPixel)).toBe(true);
 	});
 });

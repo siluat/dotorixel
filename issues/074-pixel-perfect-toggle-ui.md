@@ -7,27 +7,27 @@ parent: 069-pixel-perfect-drawing.md
 
 ## What to build
 
-Editor preference 에 `pixelPerfect` 필드 추가 (기본 `true`, 기존 영속성 메커니즘 재사용). 070 디자인 기반으로 topBar/mAppBar 에 토글 버튼 구현. tool-runner 가 preference 를 조회해 **조건부** PP 래핑으로 전환 (072/073 의 hardcoded ON 을 교체). 스트로크 중 preference 변경은 현재 스트로크 무시, 다음 스트로크부터 반영. 토글 상태는 세션 간 유지.
+Add a `pixelPerfect` field to the editor preference (default `true`, reusing the existing persistence mechanism). Implement the toggle button in topBar/mAppBar based on the 070 design. Tool-runner queries the preference and switches to **conditional** PP wrapping (replacing the hardcoded ON from 072/073). Mid-stroke preference changes are ignored for the current stroke; they take effect from the next stroke. The toggle state persists across sessions.
 
-Parent PRD 의 "설정 / 영속성", "UI" 섹션 및 Scenario 2, 7, 8, 9, 11 참조.
+See the parent PRD's "Settings / Persistence" and "UI" sections, and Scenarios 2, 7, 8, 9, and 11.
 
 ## Acceptance criteria
 
-- Editor preference 에 `pixelPerfect: boolean` 필드 (기본값 `true`) 추가, 기존 영속성 패턴 재사용
-- topBar/mAppBar 에 PP 토글 버튼 구현 (070 의 `.pen` 디자인 기반)
-  - 커스텀 아이콘, ON/OFF/hover/active/disabled 상태 반영
-  - 활성 도구가 Pencil/Eraser 가 아닐 때 토글은 **disabled** 시각화 (opacity 0.4 + `aria-disabled="true"`, hover/press 무반응, tooltip 은 "Pencil/Eraser only" 문맥 안내로 교체)
-  - `aria-label` 과 툴팁에 현재 상태 표현
-- i18n 문자열 추가 (en, ko, ja) — 토글 레이블 / aria / 툴팁용
-- tool-runner 가 `drawStart` 시 preference 를 조회하여 조건부 PP 래퍼 적용 (기존 hardcoded ON 로직 대체)
-  - PP OFF 인 경우 또는 활성 도구가 pencil/eraser 가 아닌 경우 기본 `ops` 사용
-- 스트로크 시작 시점의 값으로 스트로크 내내 고정 (드래그 중 토글 변경은 다음 스트로크부터)
+- Editor preference gains a `pixelPerfect: boolean` field (default `true`), reusing the existing persistence pattern
+- PP toggle button implemented in topBar/mAppBar (based on 070's `.pen` design)
+  - Custom icon; ON/OFF/hover/active/disabled states reflected
+  - When the active tool is not Pencil/Eraser, the toggle is visualized as **disabled** (opacity 0.4 + `aria-disabled="true"`, no hover/press response, tooltip replaced with contextual "Pencil/Eraser only" guidance)
+  - `aria-label` and tooltip express the current state
+- i18n strings added (en, ko, ja) — for toggle label / aria / tooltip
+- tool-runner queries the preference on `drawStart` and conditionally applies the PP wrapper (replacing the existing hardcoded ON logic)
+  - When PP is OFF, or when the active tool is not pencil/eraser, use the default `ops`
+- Stroke-start-time value is fixed for the entire stroke (toggle changes mid-drag take effect from the next stroke)
 - E2E cases (Playwright):
-  - PP OFF 상태로 Pencil L-shape → 중간 픽셀 있음 (072 의 ON 케이스와 비교)
-  - topBar/mAppBar 토글 클릭 → 상태 표시 변화 + 다음 스트로크에서 동작 전환
-  - 앱 재진입 (reload) 후 토글 상태 유지
-  - PP ON 상태에서 Line 도구로 L-corner 를 유발하는 대각선 → 중간 픽셀 있음 (PP 래핑 스코프 경계 방어)
-- `cargo test`, Vitest, Playwright 전부 통과
+  - PP OFF + Pencil L-shape → middle pixel present (compared to 072's ON case)
+  - topBar/mAppBar toggle click → state display changes + next stroke switches behavior
+  - After app reload, toggle state is preserved
+  - PP ON + Line tool drawing a diagonal that would induce an L-corner → middle pixel present (defends PP wrapping scope boundary)
+- `cargo test`, Vitest, and Playwright all pass
 
 ## Blocked by
 
@@ -36,42 +36,42 @@ Parent PRD 의 "설정 / 영속성", "UI" 섹션 및 Scenario 2, 7, 8, 9, 11 참
 
 ## Scenarios addressed
 
-- Scenario 2 (Pencil PP OFF Bresenham 원본 보존)
-- Scenario 7 (토글 클릭 → 다음 스트로크 반영)
-- Scenario 8 (스트로크 중 토글 변경 무시)
-- Scenario 9 (세션 간 영속)
-- Scenario 11 (Shape 도구 영향 없음 — PP 래핑 스코프 경계 확인)
+- Scenario 2 (Pencil PP OFF Bresenham raw preservation)
+- Scenario 7 (toggle click → next stroke reflects change)
+- Scenario 8 (mid-stroke toggle change ignored)
+- Scenario 9 (persistence across sessions)
+- Scenario 11 (no effect on Shape tools — verifies PP wrapping scope boundary)
 
 ## Results
 
 | File | Description |
 |------|-------------|
-| `src/lib/canvas/shared-state.svelte.ts` | `pixelPerfect = $state<boolean>(true)` 필드 추가 (기본 ON) |
-| `src/lib/canvas/editor-state.svelte.ts` | PP getter/setter + `handlePixelPerfectToggle()` 메서드 |
-| `src/lib/canvas/tool-runner.svelte.ts` | `drawStart` 시점에 preference 조회 → 조건부 `createPixelPerfectOps` 래핑 (hardcoded ON 제거). Pencil/Eraser 외 도구는 preference 무관하게 기본 ops |
-| `src/lib/canvas/workspace-snapshot.ts` | `SharedStateSnapshot.pixelPerfect?: boolean` (레거시 스냅샷은 `?? true` 로 복원) |
-| `src/lib/canvas/workspace.svelte.ts` | `#hydrate` 에서 `pixelPerfect` 복원, `toSnapshot` 에서 포함 |
-| `src/lib/session/session-storage-types.ts` | `SharedStateRecord.pixelPerfect?: boolean` 추가 (스키마 확장) |
-| `src/lib/session/session-persistence.ts` | save 시 `pixelPerfect` 매핑 |
-| `src/routes/editor/+page.svelte` | PP 토글 핸들러 (disabled 가드 + `markDirty`), TopBar/AppBar 프롭 전달, `pixelPerfectDisabled` derived |
-| `src/lib/ui-editor/TopBar.svelte` | PP 버튼 (커스텀 아이콘, ON/OFF/disabled 상태, `aria-pressed`/`aria-disabled`, 상태별 i18n 툴팁) |
-| `src/lib/ui-editor/AppBar.svelte` | 동일한 PP 버튼 (compact 뷰포트용) |
-| `src/lib/ui-editor/PixelPerfectIcon.svelte` | 계단형 PP 아이콘 (신규) |
-| `src/lib/ui-editor/TopBar.stories.svelte`, `AppBar.stories.svelte` | PP 프롭 추가 |
-| `src/lib/ui-editor/AppBar.svelte.test.ts` | PP 프롭 defaults 추가 |
-| `src/lib/canvas/shared-state.svelte.test.ts`, `workspace.svelte.test.ts` | PP 기본값 + 스냅샷 round-trip (레거시 absence → `true`) unit coverage |
-| `messages/en.json`, `messages/ko.json`, `messages/ja.json` | `action_pixelPerfectOn` / `Off` / `Disabled` i18n 3종 (3개 로케일) |
-| `e2e/editor/pixel-perfect.test.ts` | 5 개 E2E 시나리오 추가: PP OFF L-shape 보존 · 재로드 영속 · 비호환 도구 disabled · AppBar(compact) 토글 · Line L-corner scope 경계 |
+| `src/lib/canvas/shared-state.svelte.ts` | Added `pixelPerfect = $state<boolean>(true)` field (default ON) |
+| `src/lib/canvas/editor-state.svelte.ts` | PP getter/setter + `handlePixelPerfectToggle()` method |
+| `src/lib/canvas/tool-runner.svelte.ts` | On `drawStart`, queries preference → conditional `createPixelPerfectOps` wrapping (removed hardcoded ON). Tools other than Pencil/Eraser use the default ops regardless of preference |
+| `src/lib/canvas/workspace-snapshot.ts` | `SharedStateSnapshot.pixelPerfect?: boolean` (legacy snapshots restored via `?? true`) |
+| `src/lib/canvas/workspace.svelte.ts` | `#hydrate` restores `pixelPerfect`; `toSnapshot` includes it |
+| `src/lib/session/session-storage-types.ts` | Added `SharedStateRecord.pixelPerfect?: boolean` (schema extension) |
+| `src/lib/session/session-persistence.ts` | Map `pixelPerfect` on save |
+| `src/routes/editor/+page.svelte` | PP toggle handler (disabled guard + `markDirty`), props passed to TopBar/AppBar, `pixelPerfectDisabled` derived |
+| `src/lib/ui-editor/TopBar.svelte` | PP button (custom icon, ON/OFF/disabled states, `aria-pressed`/`aria-disabled`, per-state i18n tooltip) |
+| `src/lib/ui-editor/AppBar.svelte` | Same PP button (for compact viewport) |
+| `src/lib/ui-editor/PixelPerfectIcon.svelte` | Staircase-shaped PP icon (new) |
+| `src/lib/ui-editor/TopBar.stories.svelte`, `AppBar.stories.svelte` | Added PP props |
+| `src/lib/ui-editor/AppBar.svelte.test.ts` | Added PP prop defaults |
+| `src/lib/canvas/shared-state.svelte.test.ts`, `workspace.svelte.test.ts` | PP default + snapshot round-trip (legacy absence → `true`) unit coverage |
+| `messages/en.json`, `messages/ko.json`, `messages/ja.json` | `action_pixelPerfectOn` / `Off` / `Disabled` i18n entries (3 locales) |
+| `e2e/editor/pixel-perfect.test.ts` | Added 5 E2E scenarios: PP OFF L-shape preservation · reload persistence · incompatible-tool disabled · AppBar(compact) toggle · Line L-corner scope boundary |
 
 ### Key Decisions
 
-- **Disabled 상태는 버튼을 제거하지 않고 시각/의미적으로 억제** — `aria-disabled="true"` + opacity 0.4 + hover 억제 + `(Pencil/Eraser only)` 문맥 툴팁. 버튼을 숨기지 않음으로써 도구 전환 시 레이아웃 이동이 없고, 왜 회색인지를 스크린리더/툴팁으로 직접 안내.
-- **Preference 스냅샷은 stroke 시작 시점에 고정** — tool-runner 의 `drawStart` 가 `shared.pixelPerfect` 를 읽어 래퍼를 결정. 스트로크 중 토글 변경은 다음 스트로크부터 반영 (Scenario 8).
-- **레거시 스냅샷 호환** — `SharedStateSnapshot.pixelPerfect?: boolean` 로 optional 선언, hydrate 시 `?? true` 기본값 적용. 기존 사용자는 ON 상태로 복원되어 이전 동작(PR #156/#157)과 일관.
-- **Shape 도구 scope 경계 이중 방어** — tool-runner 는 `pencil`/`eraser` 에만 PP 래퍼를 적용하고, 추가로 `createPixelPerfectOps` 는 `applyStroke` 만 감싸고 `applyTool` 은 그대로 포워드. Line/Rect/Ellipse 는 `applyTool` 경로이므로 설계상 PP 에 영향받지 않음 (Cycle 6 E2E 에서 회귀 방어).
-- **재로드 영속 테스트 안정화** — `page.reload()` 는 `beforeunload` 의 async flush 를 기다리지 않으므로, 테스트는 reload 직전에 `page.waitForFunction` 으로 IDB 에 `pixelPerfect === false` 가 실제로 반영됐는지를 폴링하고 200ms 세틀 pad 후 reload. 3s debounce 와 reload 간 경쟁을 제거.
+- **Disabled state visually/semantically suppresses the button without removing it** — `aria-disabled="true"` + opacity 0.4 + hover suppression + `(Pencil/Eraser only)` contextual tooltip. Not hiding the button prevents layout shift on tool switch and directly explains the grayed state via screen reader / tooltip.
+- **Preference snapshot fixed at stroke start** — tool-runner's `drawStart` reads `shared.pixelPerfect` to decide the wrapper. Mid-stroke toggle changes apply from the next stroke (Scenario 8).
+- **Legacy snapshot compatibility** — `SharedStateSnapshot.pixelPerfect?: boolean` declared as optional; hydrate applies `?? true` default. Existing users are restored in ON state, consistent with prior behavior (PR #156/#157).
+- **Double defense of Shape tool scope boundary** — tool-runner applies the PP wrapper only to `pencil`/`eraser`, and additionally `createPixelPerfectOps` only wraps `applyStroke` while forwarding `applyTool` as-is. Line/Rect/Ellipse go through the `applyTool` path and are by design unaffected by PP (regression-defended in Cycle 6 E2E).
+- **Reload persistence test stabilization** — `page.reload()` doesn't wait for `beforeunload`'s async flush, so the test polls IDB with `page.waitForFunction` to confirm `pixelPerfect === false` before reload, plus a 200ms settle pad. Eliminates the race between the 3s debounce and reload.
 
 ### Notes
 
-- 이 이슈는 parent PRD 069 (Pixel-perfect drawing) 의 마지막 sub-issue. 070/071/072/073 완료 후 074 가 마감되면서 PRD 전체가 done 으로 이동.
-- Apple 쉘은 아직 PP 미탑재 — `platform-status.md` 의 Pixel-perfect filter 행에서 Web ✅, Apple ⬜ 유지.
+- This issue is the last sub-issue of parent PRD 069 (Pixel-perfect drawing). After 070/071/072/073 finished, 074's completion closes the PRD as done.
+- Apple shell still lacks PP — `platform-status.md` keeps the Pixel-perfect filter row at Web ✅, Apple ⬜.

@@ -1,60 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { createPixelPerfectOps } from './pixel-perfect-ops';
-import type { DrawingOps, DrawingToolType } from './drawing-ops';
-import type { Color } from './color';
+import { BLACK, WHITE, createFakeDrawingOps } from './fake-drawing-ops';
 
-const WHITE: Color = { r: 255, g: 255, b: 255, a: 255 };
-const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
-const TRANSPARENT: Color = { r: 0, g: 0, b: 0, a: 0 };
-
-function colorsEqual(a: Color, b: Color): boolean {
-	return a.r === b.r && a.g === b.g && a.b === b.b && a.a === b.a;
-}
-
-interface FakeOps extends DrawingOps {
-	readonly snapshot: () => Map<string, Color>;
-}
-
-/**
- * In-memory DrawingOps for testing the PP decorator.
- * Initial pixel color is `initial`; pencil writes the requested color,
- * eraser writes transparent. Out-of-bounds writes are dropped.
- */
-function createFakeOps(width: number, height: number, initial: Color): FakeOps {
-	const pixels = new Map<string, Color>();
-	const key = (x: number, y: number) => `${x},${y}`;
-	const inBounds = (x: number, y: number) => x >= 0 && y >= 0 && x < width && y < height;
-	const colorFor = (kind: DrawingToolType, color: Color): Color =>
-		kind === 'eraser' ? TRANSPARENT : color;
-
-	return {
-		applyTool(x, y, kind, color) {
-			if (!inBounds(x, y)) return false;
-			const before = pixels.get(key(x, y)) ?? initial;
-			const after = colorFor(kind, color);
-			if (colorsEqual(before, after)) return false;
-			pixels.set(key(x, y), after);
-			return true;
-		},
-		setPixel(x, y, color) {
-			if (!inBounds(x, y)) return false;
-			pixels.set(key(x, y), color);
-			return true;
-		},
-		getPixel(x, y) {
-			if (!inBounds(x, y)) return null;
-			return pixels.get(key(x, y)) ?? initial;
-		},
-		applyStroke() {
-			throw new Error('Fake baseOps.applyStroke should not be called by PP wrapper');
-		},
-		floodFill: () => false,
-		interpolatePixels: () => new Int32Array(),
-		rectangleOutline: () => new Int32Array(),
-		ellipseOutline: () => new Int32Array(),
-		snapshot: () => new Map(pixels),
-	};
-}
+const createFakeOps = createFakeDrawingOps;
 
 describe('createPixelPerfectOps', () => {
 	it('reverts the L-corner middle pixel to its pre-paint color', () => {

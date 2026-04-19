@@ -56,6 +56,45 @@ test.describe('Canvas settings', () => {
 		await expect(zoomLabel).toHaveText('100%');
 	});
 
+	// Regression: macOS trackpads can fire a pure-vertical pan as a WheelEvent
+	// with deltaX=0, integer deltaY, deltaMode=0, ctrlKey=false. The stateful
+	// wheel classifier (src/lib/canvas/wheel-input.ts) previously trusted the
+	// base classification on its very first call (no timing history), which
+	// produced 'wheelZoom' for this signal — causing the first trackpad pan
+	// after every tab load to trigger a jarring zoom jump instead of a pan.
+	test('first wheel event with integer deltaY and no deltaX does not trigger zoom', async ({
+		editorPage,
+	}) => {
+		const { page } = editorPage;
+
+		const zoomLabel = page.getByRole('button', { name: 'Reset zoom to 100%' });
+		await expect(zoomLabel).toHaveText('100%');
+
+		// Dispatch a synthetic WheelEvent matching the trackpad vertical-pan
+		// signature exactly. Using evaluate + dispatchEvent (rather than
+		// page.mouse.wheel) guarantees deltaMode=0 and ctrlKey=false are set
+		// precisely — the conditions that produce the misclassification.
+		await page.evaluate(() => {
+			const canvas = document.querySelector<HTMLCanvasElement>('canvas.pixel-canvas');
+			if (!canvas) throw new Error('Canvas not found');
+			const rect = canvas.getBoundingClientRect();
+			canvas.dispatchEvent(
+				new WheelEvent('wheel', {
+					bubbles: true,
+					cancelable: true,
+					deltaX: 0,
+					deltaY: 100,
+					deltaMode: 0,
+					ctrlKey: false,
+					clientX: rect.left + rect.width / 2,
+					clientY: rect.top + rect.height / 2,
+				})
+			);
+		});
+
+		await expect(zoomLabel).toHaveText('100%');
+	});
+
 	test('canvas size changes via preset button', async ({ editorPage }) => {
 		const { page } = editorPage;
 

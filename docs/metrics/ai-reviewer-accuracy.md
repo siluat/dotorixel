@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 37 | 30 | 7 | 27 | 81% | 53% |
-| cubic-dev-ai[bot] | 25 | 21 | 4 | 35 | 84% | 38% |
-| coderabbitai[bot] | 44 | 28 | 16 | 26 | 64% | 52% |
+| greptile-apps[bot] | 39 | 32 | 7 | 29 | 82% | 52% |
+| cubic-dev-ai[bot] | 27 | 23 | 4 | 36 | 85% | 39% |
+| coderabbitai[bot] | 45 | 29 | 16 | 28 | 64% | 51% |
 
 ## Log
 
@@ -208,3 +208,13 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #157 | greptile-apps[bot] | Reject | Missing pre-paint sanity assertion — contrast assertions already trap silent failure, pencil test has no such guard |
 | #157 | greptile-apps[bot] | Miss | Did not flag AC/Key Decisions ambiguity from Korean wording |
 | #157 | coderabbitai[bot] | Miss | Did not flag AC/Key Decisions ambiguity (rate-limited review) |
+| #158 | greptile-apps[bot] | Accept | `aria-disabled="false"` rendered on enabled PP button — suppress with `\|\| undefined` (TopBar) |
+| #158 | greptile-apps[bot] | Accept | `aria-disabled="false"` rendered on enabled PP button (AppBar, same finding as TopBar) |
+| #158 | cubic-dev-ai[bot] | Accept | PP button remains clickable when aria-disabled — add component-level click guard |
+| #158 | coderabbitai[bot] | Accept | PP button click guard (AppBar; "Also applies to: 75-83" covers TopBar) |
+| #158 | cubic-dev-ai[bot] | Accept | platform-status.md "session-persisted" misdocuments IndexedDB-backed storage |
+| #158 | greptile-apps[bot] | Miss | Did not flag PP button click guard |
+| #158 | greptile-apps[bot] | Miss | Did not flag platform-status.md "session-persisted" misdocumentation |
+| #158 | cubic-dev-ai[bot] | Miss | Did not flag `aria-disabled="false"` noise on enabled PP button |
+| #158 | coderabbitai[bot] | Miss | Did not flag `aria-disabled="false"` noise on enabled PP button |
+| #158 | coderabbitai[bot] | Miss | Did not flag platform-status.md "session-persisted" misdocumentation |

@@ -22,6 +22,10 @@ function renderAppBar(props: Record<string, unknown> = {}) {
 	return { ...result, ...merged };
 }
 
+function findButtonByLabel(container: HTMLElement, label: string): HTMLButtonElement | null {
+	return container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
+}
+
 afterEach(() => {
 	cleanup();
 });
@@ -31,59 +35,47 @@ describe('AppBar', () => {
 		const onBrowseSavedWork = vi.fn();
 		const { container } = renderAppBar({ onBrowseSavedWork });
 
-		const allButtons = container.querySelectorAll('.action-btn');
-		const browseButton = [...allButtons].find(
-			(btn) => btn.getAttribute('aria-label') === 'My Works'
-		);
-		expect(browseButton).toBeTruthy();
+		expect(findButtonByLabel(container, 'My Works')).toBeTruthy();
 	});
 
 	it('does not render browse button when onBrowseSavedWork is not provided', () => {
 		const { container } = renderAppBar();
 
-		const allButtons = container.querySelectorAll('.action-btn');
-		const browseButton = [...allButtons].find(
-			(btn) => btn.getAttribute('aria-label') === 'My Works'
-		);
-		expect(browseButton).toBeUndefined();
+		expect(findButtonByLabel(container, 'My Works')).toBeNull();
 	});
 
 	it('calls onBrowseSavedWork when browse button is clicked', async () => {
 		const onBrowseSavedWork = vi.fn();
 		const { container } = renderAppBar({ onBrowseSavedWork });
 
-		const allButtons = container.querySelectorAll('.action-btn');
-		const browseButton = [...allButtons].find(
-			(btn) => btn.getAttribute('aria-label') === 'My Works'
-		);
-		await fireEvent.click(browseButton!);
+		await fireEvent.click(findButtonByLabel(container, 'My Works')!);
 
 		expect(onBrowseSavedWork).toHaveBeenCalledOnce();
 	});
 
 	describe('pixel perfect button', () => {
+		function findPixelPerfectButton(container: HTMLElement): HTMLButtonElement | null {
+			return container.querySelector<HTMLButtonElement>('button[aria-pressed][aria-label*="Pixel Perfect"]');
+		}
+
 		it('reflects pixelPerfect=true via aria-pressed', () => {
 			const { container } = renderAppBar({ pixelPerfect: true });
-			const ppButton = container.querySelector('.pp-btn');
-			expect(ppButton?.getAttribute('aria-pressed')).toBe('true');
+			expect(findPixelPerfectButton(container)?.getAttribute('aria-pressed')).toBe('true');
 		});
 
 		it('reflects pixelPerfect=false via aria-pressed', () => {
 			const { container } = renderAppBar({ pixelPerfect: false });
-			const ppButton = container.querySelector('.pp-btn');
-			expect(ppButton?.getAttribute('aria-pressed')).toBe('false');
+			expect(findPixelPerfectButton(container)?.getAttribute('aria-pressed')).toBe('false');
 		});
 
 		it('omits aria-disabled attribute when enabled', () => {
 			const { container } = renderAppBar({ pixelPerfectDisabled: false });
-			const ppButton = container.querySelector('.pp-btn');
-			expect(ppButton?.hasAttribute('aria-disabled')).toBe(false);
+			expect(findPixelPerfectButton(container)?.hasAttribute('aria-disabled')).toBe(false);
 		});
 
 		it('sets aria-disabled="true" when disabled', () => {
 			const { container } = renderAppBar({ pixelPerfectDisabled: true });
-			const ppButton = container.querySelector('.pp-btn');
-			expect(ppButton?.getAttribute('aria-disabled')).toBe('true');
+			expect(findPixelPerfectButton(container)?.getAttribute('aria-disabled')).toBe('true');
 		});
 
 		it('does not invoke onPixelPerfectToggle when disabled and clicked', async () => {
@@ -92,8 +84,7 @@ describe('AppBar', () => {
 				pixelPerfectDisabled: true,
 				onPixelPerfectToggle
 			});
-			const ppButton = container.querySelector('.pp-btn');
-			await fireEvent.click(ppButton!);
+			await fireEvent.click(findPixelPerfectButton(container)!);
 			expect(onPixelPerfectToggle).not.toHaveBeenCalled();
 		});
 
@@ -103,8 +94,7 @@ describe('AppBar', () => {
 				pixelPerfectDisabled: false,
 				onPixelPerfectToggle
 			});
-			const ppButton = container.querySelector('.pp-btn');
-			await fireEvent.click(ppButton!);
+			await fireEvent.click(findPixelPerfectButton(container)!);
 			expect(onPixelPerfectToggle).toHaveBeenCalledOnce();
 		});
 	});

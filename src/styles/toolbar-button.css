@@ -1,0 +1,80 @@
+/*
+ * Shared toolbar-button styles — consumed by TopBar (desktop) and AppBar (mobile).
+ *
+ * Size and radius are driven by custom properties so each bar can tune
+ * ergonomics without redefining the base rules:
+ *   --tbar-btn-size   : button width/height (default 32px)
+ *   --tbar-btn-radius : corner radius (default var(--ds-radius-sm))
+ *
+ * Modifiers:
+ *   .toolbar-btn           : default state (action button, toggle-off)
+ *   .toolbar-btn.is-on     : toggled on / popover open (accent-subtle bg)
+ *   .toolbar-btn.is-disabled : disabled state
+ *   .toolbar-btn--accent   : primary-action variant (solid accent bg)
+ */
+.toolbar-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--tbar-btn-size, 32px);
+	height: var(--tbar-btn-size, 32px);
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: var(--ds-text-secondary);
+	border-radius: var(--tbar-btn-radius, var(--ds-radius-sm));
+	cursor: pointer;
+	transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+
+.toolbar-btn:hover {
+	background: var(--ds-bg-hover);
+}
+
+.toolbar-btn:active {
+	background: var(--ds-bg-active);
+}
+
+.toolbar-btn.is-on {
+	background: var(--ds-accent-subtle);
+	color: var(--ds-accent);
+}
+
+.toolbar-btn.is-on:hover {
+	background: var(--ds-accent-subtle);
+}
+
+.toolbar-btn.is-on:active {
+	background: color-mix(in srgb, var(--ds-accent-subtle) 90%, var(--ds-accent) 10%);
+}
+
+.toolbar-btn.is-disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+
+.toolbar-btn.is-disabled:hover {
+	background: transparent;
+}
+
+.toolbar-btn--accent {
+	background: var(--ds-accent);
+	color: #ffffff;
+}
+
+.toolbar-btn--accent:hover {
+	background: color-mix(in srgb, var(--ds-accent) 85%, black);
+}
+
+.toolbar-btn--accent:active {
+	background: color-mix(in srgb, var(--ds-accent) 75%, black);
+}
+
+.toolbar-btn--accent.is-on {
+	background: color-mix(in srgb, var(--ds-accent) 70%, black);
+	color: #ffffff;
+}
+
+.toolbar-btn--accent.is-on:hover {
+	background: color-mix(in srgb, var(--ds-accent) 70%, black);
+}

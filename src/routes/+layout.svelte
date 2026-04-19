@@ -3,6 +3,7 @@
 	import { isAnalyticsEnabled, getUmamiConfig, initUmami } from '$lib/analytics/umami';
 	import '../styles/global.css';
 	import '../styles/design-tokens.css';
+	import '../styles/toolbar-button.css';
 
 	let { children } = $props();
 

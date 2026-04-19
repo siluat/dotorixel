@@ -93,9 +93,9 @@
 		</div>
 
 		<button
-			class="pp-btn"
-			class:pp-btn--on={pixelPerfect && !pixelPerfectDisabled}
-			class:pp-btn--disabled={pixelPerfectDisabled}
+			class="toolbar-btn"
+			class:is-on={pixelPerfect && !pixelPerfectDisabled}
+			class:is-disabled={pixelPerfectDisabled}
 			onclick={handlePixelPerfectClick}
 			aria-label={ppLabel}
 			aria-pressed={pixelPerfect}
@@ -106,8 +106,8 @@
 		</button>
 
 		<button
-			class="icon-btn"
-			class:active={showGrid}
+			class="toolbar-btn"
+			class:is-on={showGrid}
 			onclick={onGridToggle}
 			aria-label={m.action_toggleGrid()}
 			aria-pressed={showGrid}
@@ -116,11 +116,23 @@
 			<Grid3X3 size={16} />
 		</button>
 
+		<button
+			class="toolbar-btn"
+			class:is-on={isBrowserOpen}
+			onclick={onBrowseSavedWork}
+			aria-label={m.label_savedWorks()}
+			aria-haspopup="dialog"
+			aria-expanded={isBrowserOpen}
+			use:tooltip={m.label_savedWorks()}
+		>
+			<FolderOpen size={16} />
+		</button>
+
 		<div class="export-wrapper">
 			<button
 				bind:this={exportBtnEl}
-				class="export-btn"
-				class:export-btn--active={isExportOpen}
+				class="toolbar-btn toolbar-btn--accent export-btn"
+				class:is-on={isExportOpen}
 				onclick={onExportToggle}
 				aria-label={m.label_export()}
 				aria-expanded={isExportOpen}
@@ -140,18 +152,6 @@
 				/>
 			{/if}
 		</div>
-
-		<button
-			class="icon-btn"
-			class:active={isBrowserOpen}
-			onclick={onBrowseSavedWork}
-			aria-label={m.label_savedWorks()}
-			aria-haspopup="dialog"
-			aria-expanded={isBrowserOpen}
-			use:tooltip={m.label_savedWorks()}
-		>
-			<FolderOpen size={16} />
-		</button>
 	</div>
 </header>
 
@@ -175,6 +175,8 @@
 	}
 
 	.actions {
+		--tbar-btn-size: 32px;
+		--tbar-btn-radius: var(--ds-radius-sm);
 		display: flex;
 		align-items: center;
 		gap: var(--ds-space-4);
@@ -187,21 +189,6 @@
 		border-radius: var(--ds-radius-sm);
 		height: 32px;
 		padding: 0 4px;
-	}
-
-	@media (min-width: 1024px) and (max-width: 1439px) {
-		.zoom-controls {
-			height: 36px;
-		}
-
-		.icon-btn {
-			width: 36px;
-			height: 36px;
-		}
-
-		.export-btn {
-			height: 36px;
-		}
 	}
 
 	.zoom-btn {
@@ -233,110 +220,26 @@
 		white-space: nowrap;
 	}
 
-	.icon-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 32px;
-		height: 32px;
-		border: none;
-		background: var(--ds-bg-hover);
-		border-radius: var(--ds-radius-sm);
-		color: var(--ds-text-secondary);
-		cursor: pointer;
-		padding: 0;
-	}
-
-	.icon-btn:hover {
-		background: var(--ds-bg-active);
-	}
-
-	.icon-btn.active {
-		color: var(--ds-accent);
-	}
-
-	.pp-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 32px;
-		height: 32px;
-		border: none;
-		background: transparent;
-		border-radius: var(--ds-radius-sm);
-		color: var(--ds-text-secondary);
-		cursor: pointer;
-		padding: 0;
-		transition: background-color 120ms ease-out, color 120ms ease-out;
-	}
-
-	.pp-btn:hover {
-		background: var(--ds-bg-hover);
-	}
-
-	.pp-btn:active {
-		background: var(--ds-bg-active);
-	}
-
-	.pp-btn.pp-btn--on {
-		background: var(--ds-accent-subtle);
-		color: var(--ds-accent);
-	}
-
-	.pp-btn.pp-btn--on:hover {
-		background: var(--ds-accent-subtle);
-	}
-
-	.pp-btn.pp-btn--on:active {
-		background: color-mix(in srgb, var(--ds-accent-subtle) 90%, var(--ds-accent) 10%);
-	}
-
-	.pp-btn.pp-btn--disabled {
-		opacity: 0.4;
-		cursor: default;
-	}
-
-	.pp-btn.pp-btn--disabled:hover {
-		background: transparent;
-	}
-
-	@media (min-width: 1024px) and (max-width: 1439px) {
-		.pp-btn {
-			width: 36px;
-			height: 36px;
-		}
-	}
-
 	.export-wrapper {
 		position: relative;
 	}
 
+	/* Export keeps the labeled form on desktop: auto width + padding + gap. */
 	.export-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		width: auto;
 		gap: 6px;
-		height: 32px;
 		padding: 0 12px;
-		border: none;
-		background: var(--ds-accent);
-		border-radius: var(--ds-radius-sm);
-		color: #ffffff;
 		font-family: var(--ds-font-body);
 		font-size: var(--ds-font-size-sm);
-		cursor: pointer;
 	}
 
-	.export-btn:hover {
-		background: color-mix(in srgb, var(--ds-accent) 85%, black);
-	}
+	@media (min-width: 1024px) and (max-width: 1439px) {
+		.actions {
+			--tbar-btn-size: 36px;
+		}
 
-	.export-btn--active {
-		--export-btn-active-bg: #8a5d20;
-		background: var(--export-btn-active-bg);
-	}
-
-	.export-btn--active:hover {
-		background: var(--export-btn-active-bg);
+		.zoom-controls {
+			height: 36px;
+		}
 	}
 </style>

@@ -22,6 +22,7 @@ import type { LoupeInputSource } from './loupe-position';
 import { createDrawingOps, canvasFactory, createHistoryManager } from './wasm-backend';
 import { createPixelPerfectOps } from './pixel-perfect-ops';
 import type { DrawingOps } from './drawing-ops';
+import { createStrokeSessions, type StrokeSession, type StrokeSessions } from './stroke-session';
 
 // ── Effects: ToolRunner adds RunnerEffect on top of tool-produced ToolEffect ──
 
@@ -93,6 +94,7 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 	let activeDrawColor: Color | null = null;
 	let activeInputSource: LoupeInputSource = 'mouse';
 	let activeLifecycle: StrokeLifecycle | null = null;
+	let activeSession: StrokeSession | null = null;
 	/**
 	 * Stroke-scoped DrawingOps. Pencil/eraser get a pixel-perfect wrapper that
 	 * accumulates a per-stroke cache + tail; other tools get the bare ops.
@@ -272,39 +274,10 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 		};
 	}
 
-	function liveSampleLifecycle(_tool: LiveSampleTool): StrokeLifecycle {
-		let started = false;
-		return {
-			start() {
-				// Deferred to first draw: samplingSession needs the initial target pixel.
-				return NO_EFFECTS;
-			},
-			draw(ctx, current) {
-				if (!started) {
-					const commitTarget = ctx.drawButton === 2 ? 'background' : 'foreground';
-					samplingSession.start({
-						targetPixel: current,
-						commitTarget,
-						inputSource: activeInputSource
-					});
-					started = true;
-				} else {
-					samplingSession.update(current);
-				}
-				return NO_EFFECTS;
-			},
-			modifierChanged() {
-				return NO_EFFECTS;
-			},
-			end() {
-				const effects = samplingSession.commit();
-				started = false;
-				return effects;
-			}
-		};
-	}
-
-	function resolveLifecycle(tool: DrawTool, pushHistory: () => void): StrokeLifecycle {
+	function resolveLifecycle(
+		tool: Exclude<DrawTool, LiveSampleTool>,
+		pushHistory: () => void
+	): StrokeLifecycle {
 		switch (tool.kind) {
 			case 'continuous':
 				return continuousLifecycle(tool, pushHistory);
@@ -314,10 +287,18 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 				return shapePreviewLifecycle(tool, pushHistory);
 			case 'dragTransform':
 				return dragTransformLifecycle(tool, pushHistory);
-			case 'liveSample':
-				return liveSampleLifecycle(tool);
 		}
 	}
+
+	// ── StrokeSessions: per-kind openers migrated off the lifecycle factories ──
+	const sessions: StrokeSessions = createStrokeSessions({
+		host,
+		baseOps: ops,
+		history: { pushSnapshot: pushHistorySnapshot },
+		sampling: samplingSession,
+		isShiftHeld: getShiftHeld,
+		pixelPerfect: () => shared.pixelPerfect
+	});
 
 	// ── Public interface ────────────────────────────────────────────
 
@@ -345,18 +326,36 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 			const toolSupportsPixelPerfect = tool.kind === 'continuous' && tool.supportsPixelPerfect;
 			const usesPixelPerfect = shared.pixelPerfect && toolSupportsPixelPerfect;
 			strokeOps = usesPixelPerfect ? createPixelPerfectOps(ops) : ops;
+
+			if (tool.kind === 'liveSample') {
+				activeSession = sessions.liveSample({
+					drawButton: button,
+					inputSource: activeInputSource
+				});
+				activeLifecycle = null;
+				return activeSession.start();
+			}
+
+			activeSession = null;
 			activeLifecycle = resolveLifecycle(tool, pushHistorySnapshot);
 			return activeLifecycle.start(buildContext());
 		},
 
 		draw(current: CanvasCoords, previous: CanvasCoords | null): EditorEffects {
-			if (!isDrawing || !activeLifecycle) return NO_EFFECTS;
-			return activeLifecycle.draw(buildContext(), current, previous);
+			if (!isDrawing) return NO_EFFECTS;
+			if (activeSession) return activeSession.draw(current, previous);
+			if (activeLifecycle) return activeLifecycle.draw(buildContext(), current, previous);
+			return NO_EFFECTS;
 		},
 
 		drawEnd(): EditorEffects {
-			if (!isDrawing || !activeLifecycle) return NO_EFFECTS;
-			const endEffects = activeLifecycle.end();
+			if (!isDrawing) return NO_EFFECTS;
+			const endEffects = activeSession
+				? activeSession.end()
+				: activeLifecycle
+					? activeLifecycle.end()
+					: NO_EFFECTS;
+			activeSession = null;
 			activeLifecycle = null;
 			strokeOps = null;
 			isDrawing = false;
@@ -367,8 +366,10 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 		},
 
 		modifierChanged(): EditorEffects {
-			if (!isDrawing || !activeLifecycle) return NO_EFFECTS;
-			return activeLifecycle.modifierChanged(buildContext());
+			if (!isDrawing) return NO_EFFECTS;
+			if (activeSession) return activeSession.modifierChanged();
+			if (activeLifecycle) return activeLifecycle.modifierChanged(buildContext());
+			return NO_EFFECTS;
 		},
 
 		undo(): EditorEffects {

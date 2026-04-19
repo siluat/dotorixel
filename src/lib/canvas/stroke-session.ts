@@ -72,6 +72,43 @@ export interface StrokeSessions {
 	}): StrokeSession;
 }
 
+import { NO_EFFECTS } from './draw-tool';
+
+function openLiveSampleSession(
+	spec: { drawButton: number; inputSource: LoupeInputSource },
+	deps: StrokeDeps
+): StrokeSession {
+	let started = false;
+	const commitTarget: 'foreground' | 'background' =
+		spec.drawButton === 2 ? 'background' : 'foreground';
+
+	return {
+		start() {
+			// Deferred to first draw — sampling needs the initial target pixel.
+			return NO_EFFECTS;
+		},
+		draw(current) {
+			if (!started) {
+				deps.sampling.start({
+					targetPixel: current,
+					commitTarget,
+					inputSource: spec.inputSource
+				});
+				started = true;
+			} else {
+				deps.sampling.update(current);
+			}
+			return NO_EFFECTS;
+		},
+		modifierChanged() {
+			return NO_EFFECTS;
+		},
+		end() {
+			return deps.sampling.commit();
+		}
+	};
+}
+
 /**
  * Construct the per-editor stroke-session factory. Call once per editor; the
  * returned object's opener methods are invoked on every stroke start. Each
@@ -79,7 +116,6 @@ export interface StrokeSessions {
  * returned session's `start()` to emit entry-time effects.
  */
 export function createStrokeSessions(deps: StrokeDeps): StrokeSessions {
-	void deps;
 	const notImplemented = (): StrokeSession => {
 		throw new Error('stroke-session: opener not yet implemented');
 	};
@@ -88,6 +124,6 @@ export function createStrokeSessions(deps: StrokeDeps): StrokeSessions {
 		oneShot: notImplemented,
 		shapePreview: notImplemented,
 		dragTransform: notImplemented,
-		liveSample: notImplemented
+		liveSample: (spec) => openLiveSampleSession(spec, deps)
 	};
 }

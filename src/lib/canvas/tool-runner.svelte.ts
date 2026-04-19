@@ -1,27 +1,12 @@
 import type { PixelCanvas, CanvasCoords } from './canvas-model';
 import type { Color } from './color';
-import { colorToHex } from './color';
 import type { SharedState } from './shared-state.svelte';
-import {
-	CANVAS_CHANGED,
-	NO_EFFECTS,
-	type ContinuousTool,
-	type OneShotTool,
-	type ShapePreviewTool,
-	type DragTransformTool,
-	type LiveSampleTool,
-	type DrawTool,
-	type ToolContext,
-	type ToolEffect
-} from './draw-tool';
-import type { ToolType } from './tool-registry';
+import { CANVAS_CHANGED, NO_EFFECTS, type ToolEffect } from './draw-tool';
 import { createAllTools } from './tool-registry';
 import type { PointerType } from './canvas-interaction.svelte';
 import type { SamplingSession } from './sampling-session.svelte';
 import type { LoupeInputSource } from './loupe-position';
 import { createDrawingOps, canvasFactory, createHistoryManager } from './wasm-backend';
-import { createPixelPerfectOps } from './pixel-perfect-ops';
-import type { DrawingOps } from './drawing-ops';
 import { createStrokeSessions, type StrokeSession, type StrokeSessions } from './stroke-session';
 
 // ── Effects: ToolRunner adds RunnerEffect on top of tool-produced ToolEffect ──
@@ -93,14 +78,7 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 	let drawButton = 0;
 	let activeDrawColor: Color | null = null;
 	let activeInputSource: LoupeInputSource = 'mouse';
-	let activeLifecycle: StrokeLifecycle | null = null;
 	let activeSession: StrokeSession | null = null;
-	/**
-	 * Stroke-scoped DrawingOps. Pencil/eraser get a pixel-perfect wrapper that
-	 * accumulates a per-stroke cache + tail; other tools get the bare ops.
-	 * Reset to `null` at drawEnd so the next stroke gets a fresh wrapper.
-	 */
-	let strokeOps: DrawingOps | null = null;
 
 	// ── Derived reactive properties ─────────────────────────────────
 	const canUndo = $derived.by(() => {
@@ -114,18 +92,6 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 	});
 
 	// ── Internal helpers ────────────────────────────────────────────
-
-	function buildContext(): ToolContext {
-		return {
-			canvas: host.pixelCanvas,
-			ops: strokeOps ?? ops,
-			drawColor: activeDrawColor!,
-			drawButton,
-			isShiftHeld: getShiftHeld,
-			foregroundColor: host.foregroundColor,
-			backgroundColor: host.backgroundColor
-		};
-	}
 
 	function pushHistorySnapshot(): void {
 		const canvas = host.pixelCanvas;
@@ -148,47 +114,7 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 		}
 	}
 
-	// ── StrokeLifecycle: category-specific stroke policies ──────────
-
-	interface StrokeLifecycle {
-		start(ctx: ToolContext): EditorEffects;
-		draw(ctx: ToolContext, current: CanvasCoords, previous: CanvasCoords | null): EditorEffects;
-		modifierChanged(ctx: ToolContext): EditorEffects;
-		/** Called when the stroke ends. Returns any effects produced on release (e.g. live-sample commit). */
-		end(): EditorEffects;
-	}
-
-	function continuousLifecycle(tool: ContinuousTool, pushHistory: () => void): StrokeLifecycle {
-		return {
-			start(ctx) {
-				pushHistory();
-				return tool.addsActiveColor
-					? [{ type: 'addRecentColor', hex: colorToHex(ctx.drawColor) }]
-					: NO_EFFECTS;
-			},
-			draw(ctx, current, previous) {
-				return tool.apply(ctx, current, previous) ? CANVAS_CHANGED : NO_EFFECTS;
-			},
-			modifierChanged() {
-				return NO_EFFECTS;
-			},
-			end() {
-				return NO_EFFECTS;
-			}
-		};
-	}
-
-	function resolveLifecycle(
-		tool: Exclude<DrawTool, LiveSampleTool | DragTransformTool | ShapePreviewTool | OneShotTool>,
-		pushHistory: () => void
-	): StrokeLifecycle {
-		switch (tool.kind) {
-			case 'continuous':
-				return continuousLifecycle(tool, pushHistory);
-		}
-	}
-
-	// ── StrokeSessions: per-kind openers migrated off the lifecycle factories ──
+	// ── StrokeSessions: typed openers, one per DrawTool.kind ────────
 	const sessions: StrokeSessions = createStrokeSessions({
 		host,
 		baseOps: ops,
@@ -221,71 +147,55 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 			// larger touch offset to clear finger occlusion.
 			activeInputSource = pointerType === 'touch' ? 'touch' : 'mouse';
 			const tool = tools[shared.activeTool];
-			const toolSupportsPixelPerfect = tool.kind === 'continuous' && tool.supportsPixelPerfect;
-			const usesPixelPerfect = shared.pixelPerfect && toolSupportsPixelPerfect;
-			strokeOps = usesPixelPerfect ? createPixelPerfectOps(ops) : ops;
 
-			if (tool.kind === 'liveSample') {
-				activeSession = sessions.liveSample({
-					drawButton: button,
-					inputSource: activeInputSource
-				});
-				activeLifecycle = null;
-				return activeSession.start();
+			switch (tool.kind) {
+				case 'liveSample':
+					activeSession = sessions.liveSample({
+						drawButton: button,
+						inputSource: activeInputSource
+					});
+					break;
+				case 'dragTransform':
+					activeSession = sessions.dragTransform({
+						tool,
+						drawColor: activeDrawColor,
+						drawButton: button
+					});
+					break;
+				case 'shapePreview':
+					activeSession = sessions.shapePreview({
+						tool,
+						drawColor: activeDrawColor,
+						drawButton: button
+					});
+					break;
+				case 'oneShot':
+					activeSession = sessions.oneShot({
+						tool,
+						drawColor: activeDrawColor,
+						drawButton: button
+					});
+					break;
+				case 'continuous':
+					activeSession = sessions.continuous({
+						tool,
+						drawColor: activeDrawColor,
+						drawButton: button
+					});
+					break;
 			}
-
-			if (tool.kind === 'dragTransform') {
-				activeSession = sessions.dragTransform({
-					tool,
-					drawColor: activeDrawColor,
-					drawButton: button
-				});
-				activeLifecycle = null;
-				return activeSession.start();
-			}
-
-			if (tool.kind === 'shapePreview') {
-				activeSession = sessions.shapePreview({
-					tool,
-					drawColor: activeDrawColor,
-					drawButton: button
-				});
-				activeLifecycle = null;
-				return activeSession.start();
-			}
-
-			if (tool.kind === 'oneShot') {
-				activeSession = sessions.oneShot({
-					tool,
-					drawColor: activeDrawColor,
-					drawButton: button
-				});
-				activeLifecycle = null;
-				return activeSession.start();
-			}
-
-			activeSession = null;
-			activeLifecycle = resolveLifecycle(tool, pushHistorySnapshot);
-			return activeLifecycle.start(buildContext());
+			return activeSession.start();
 		},
 
 		draw(current: CanvasCoords, previous: CanvasCoords | null): EditorEffects {
-			if (!isDrawing) return NO_EFFECTS;
-			if (activeSession) return activeSession.draw(current, previous);
-			if (activeLifecycle) return activeLifecycle.draw(buildContext(), current, previous);
-			return NO_EFFECTS;
+			if (!isDrawing || !activeSession) return NO_EFFECTS;
+			return activeSession.draw(current, previous);
 		},
 
 		drawEnd(): EditorEffects {
 			if (!isDrawing) return NO_EFFECTS;
-			const endEffects = activeSession
-				? activeSession.end()
-				: activeLifecycle
-					? activeLifecycle.end()
-					: NO_EFFECTS;
+			const endEffects = activeSession ? activeSession.end() : NO_EFFECTS;
 			activeSession = null;
-			activeLifecycle = null;
-			strokeOps = null;
 			isDrawing = false;
 			drawButton = 0;
 			activeDrawColor = null;
@@ -294,10 +204,8 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 		},
 
 		modifierChanged(): EditorEffects {
-			if (!isDrawing) return NO_EFFECTS;
-			if (activeSession) return activeSession.modifierChanged();
-			if (activeLifecycle) return activeLifecycle.modifierChanged(buildContext());
-			return NO_EFFECTS;
+			if (!isDrawing || !activeSession) return NO_EFFECTS;
+			return activeSession.modifierChanged();
 		},
 
 		undo(): EditorEffects {

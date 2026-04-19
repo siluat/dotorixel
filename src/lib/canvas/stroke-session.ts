@@ -2,14 +2,17 @@ import type { CanvasCoords } from './canvas-model';
 import type { Color } from './color';
 import { colorToHex } from './color';
 import type { DrawingOps } from './drawing-ops';
-import type {
-	ContinuousTool,
-	DragTransformTool,
-	OneShotTool,
-	ShapePreviewTool,
-	ToolContext
+import {
+	CANVAS_CHANGED,
+	NO_EFFECTS,
+	type ContinuousTool,
+	type DragTransformTool,
+	type OneShotTool,
+	type ShapePreviewTool,
+	type ToolContext
 } from './draw-tool';
 import type { LoupeInputSource } from './loupe-position';
+import { createPixelPerfectOps } from './pixel-perfect-ops';
 import type { SamplingSession } from './sampling-session.svelte';
 import type { EditorEffects, ToolRunnerHost } from './tool-runner.svelte';
 
@@ -74,8 +77,6 @@ export interface StrokeSessions {
 	}): StrokeSession;
 }
 
-import { CANVAS_CHANGED, NO_EFFECTS } from './draw-tool';
-
 function toolContext(
 	spec: { drawColor: Color; drawButton: number },
 	deps: StrokeDeps,
@@ -89,6 +90,38 @@ function toolContext(
 		isShiftHeld: deps.isShiftHeld,
 		foregroundColor: deps.host.foregroundColor,
 		backgroundColor: deps.host.backgroundColor
+	};
+}
+
+function openContinuousSession(
+	spec: { tool: ContinuousTool; drawColor: Color; drawButton: number },
+	deps: StrokeDeps
+): StrokeSession {
+	// Pixel-perfect wraps the base ops only when both the tool opts in and the
+	// user has the feature enabled. The wrapper carries a per-stroke cache + tail,
+	// so it must be scoped to this session.
+	const strokeOps: DrawingOps =
+		spec.tool.supportsPixelPerfect && deps.pixelPerfect()
+			? createPixelPerfectOps(deps.baseOps)
+			: deps.baseOps;
+	const ctx = toolContext(spec, deps, strokeOps);
+
+	return {
+		start() {
+			deps.history.pushSnapshot();
+			return spec.tool.addsActiveColor
+				? [{ type: 'addRecentColor', hex: colorToHex(spec.drawColor) }]
+				: NO_EFFECTS;
+		},
+		draw(current, previous) {
+			return spec.tool.apply(ctx, current, previous) ? CANVAS_CHANGED : NO_EFFECTS;
+		},
+		modifierChanged() {
+			return NO_EFFECTS;
+		},
+		end() {
+			return NO_EFFECTS;
+		}
 	};
 }
 
@@ -235,11 +268,8 @@ function openLiveSampleSession(
  * returned session's `start()` to emit entry-time effects.
  */
 export function createStrokeSessions(deps: StrokeDeps): StrokeSessions {
-	const notImplemented = (): StrokeSession => {
-		throw new Error('stroke-session: opener not yet implemented');
-	};
 	return {
-		continuous: notImplemented,
+		continuous: (spec) => openContinuousSession(spec, deps),
 		oneShot: (spec) => openOneShotSession(spec, deps),
 		shapePreview: (spec) => openShapePreviewSession(spec, deps),
 		dragTransform: (spec) => openDragTransformSession(spec, deps),

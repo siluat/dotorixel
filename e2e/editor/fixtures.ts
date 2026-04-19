@@ -215,12 +215,24 @@ function createHistoryHelpers(page: Page): HistoryHelpers {
 	};
 }
 
+/**
+ * Wait for the editor's async IndexedDB restore to complete. The page mounts
+ * with a transient default Workspace and swaps it once `openSession` resolves;
+ * asserting on persisted state before the swap would race.
+ */
+export async function waitForSessionRestored(page: Page): Promise<void> {
+	await page.waitForFunction(
+		() => document.documentElement.dataset.sessionState === 'restored'
+	);
+}
+
 export const test = base.extend<{ editorPage: EditorPage }>({
 	editorPage: async ({ page }, use) => {
 		await page.goto('/editor');
 		await page
 			.getByRole('application', { name: 'Pixel art canvas' })
 			.waitFor({ state: 'visible' });
+		await waitForSessionRestored(page);
 
 		await use({
 			page,

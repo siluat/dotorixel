@@ -1,4 +1,4 @@
-import { test, expect, readArtGeometry } from './fixtures';
+import { test, expect, readArtGeometry, waitForSessionRestored } from './fixtures';
 
 function readPixelAt({ px, py }: { px: number; py: number }) {
 	const canvas = document.querySelector<HTMLCanvasElement>('canvas.pixel-canvas');
@@ -143,6 +143,7 @@ test.describe('Pixel Perfect', () => {
 		await page
 			.getByRole('application', { name: 'Pixel art canvas' })
 			.waitFor({ state: 'visible' });
+		await waitForSessionRestored(page);
 
 		// After reload, the toggle must still read "Off".
 		await expect(page.getByRole('button', { name: 'Pixel Perfect: Off' })).toBeVisible();

@@ -178,38 +178,13 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 		};
 	}
 
-	function oneShotLifecycle(tool: OneShotTool, pushHistory: () => void): StrokeLifecycle {
-		let fired = false;
-		return {
-			start(ctx) {
-				if (tool.capturesHistory) pushHistory();
-				return tool.addsActiveColor
-					? [{ type: 'addRecentColor', hex: colorToHex(ctx.drawColor) }]
-					: NO_EFFECTS;
-			},
-			draw(ctx, current) {
-				if (fired) return NO_EFFECTS;
-				fired = true;
-				return tool.execute(ctx, current);
-			},
-			modifierChanged() {
-				return NO_EFFECTS;
-			},
-			end() {
-				return NO_EFFECTS;
-			}
-		};
-	}
-
 	function resolveLifecycle(
-		tool: Exclude<DrawTool, LiveSampleTool | DragTransformTool | ShapePreviewTool>,
+		tool: Exclude<DrawTool, LiveSampleTool | DragTransformTool | ShapePreviewTool | OneShotTool>,
 		pushHistory: () => void
 	): StrokeLifecycle {
 		switch (tool.kind) {
 			case 'continuous':
 				return continuousLifecycle(tool, pushHistory);
-			case 'oneShot':
-				return oneShotLifecycle(tool, pushHistory);
 		}
 	}
 
@@ -271,6 +246,16 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 
 			if (tool.kind === 'shapePreview') {
 				activeSession = sessions.shapePreview({
+					tool,
+					drawColor: activeDrawColor,
+					drawButton: button
+				});
+				activeLifecycle = null;
+				return activeSession.start();
+			}
+
+			if (tool.kind === 'oneShot') {
+				activeSession = sessions.oneShot({
 					tool,
 					drawColor: activeDrawColor,
 					drawButton: button

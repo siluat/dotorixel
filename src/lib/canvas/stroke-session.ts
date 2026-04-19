@@ -166,6 +166,33 @@ function openShapePreviewSession(
 	};
 }
 
+function openOneShotSession(
+	spec: { tool: OneShotTool; drawColor: Color; drawButton: number },
+	deps: StrokeDeps
+): StrokeSession {
+	let fired = false;
+
+	return {
+		start() {
+			if (spec.tool.capturesHistory) deps.history.pushSnapshot();
+			return spec.tool.addsActiveColor
+				? [{ type: 'addRecentColor', hex: colorToHex(spec.drawColor) }]
+				: NO_EFFECTS;
+		},
+		draw(current) {
+			if (fired) return NO_EFFECTS;
+			fired = true;
+			return spec.tool.execute(toolContext(spec, deps, deps.baseOps), current);
+		},
+		modifierChanged() {
+			return NO_EFFECTS;
+		},
+		end() {
+			return NO_EFFECTS;
+		}
+	};
+}
+
 function openLiveSampleSession(
 	spec: { drawButton: number; inputSource: LoupeInputSource },
 	deps: StrokeDeps
@@ -213,7 +240,7 @@ export function createStrokeSessions(deps: StrokeDeps): StrokeSessions {
 	};
 	return {
 		continuous: notImplemented,
-		oneShot: notImplemented,
+		oneShot: (spec) => openOneShotSession(spec, deps),
 		shapePreview: (spec) => openShapePreviewSession(spec, deps),
 		dragTransform: (spec) => openDragTransformSession(spec, deps),
 		liveSample: (spec) => openLiveSampleSession(spec, deps)

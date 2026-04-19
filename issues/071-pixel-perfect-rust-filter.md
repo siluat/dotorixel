@@ -1,6 +1,6 @@
 ---
 title: Pixel Perfect filter — Rust core function
-status: open
+status: done
 created: 2026-04-18
 parent: 069-pixel-perfect-drawing.md
 ---
@@ -41,3 +41,27 @@ Algorithmic foundation for:
 - Scenario 5 (단일 탭)
 - Scenario 10 (자기 교차 first-touch wins 의 알고리즘 부분)
 - Scenario 12 (입력 장치 무관 — 필터는 좌표만 다룸)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/pixel_perfect.rs` | New module — `Action`/`TailState`/`FilterResult` types, `pixel_perfect_filter`, `is_l_corner`, 10 unit tests |
+| `crates/core/src/lib.rs` | Register `pub mod pixel_perfect;` |
+| `wasm/src/lib.rs` | `WasmActionKind` enum + `WasmFilterResult` wrapper + `wasm_pixel_perfect_filter` export |
+| `apple/src/lib.rs` | `apple_pixel_perfect_filter` free function wrapping core call with `ScreenCanvasCoords` inputs |
+| `src/lib/wasm/wasm-pixel-perfect.test.ts` | 5-case Vitest smoke test covering exports, collinear/L-corner behavior, input validation |
+
+### Key Decisions
+
+- **`TailState` enum over spec's `Option<[(i32, i32); 2]>`** — Option\<pair\> couldn't express the 0/1/2-point carry state needed for boundary-spanning L-corner detection. Enum variants use positional `i32` fields for UniFFI auto-enum compatibility (UniFFI does not support Rust tuples).
+- **Action ordering = Batch (all Paints first, then Reverts)** — single-pass implementation; user-visible result is identical for live strokes because Revert is interpreted via a caller-side first-touch cache.
+- **New `pixel_perfect.rs` module** rather than appending to the 697-line `tool.rs` — keeps the L-corner algorithm's contract self-contained and discoverable.
+- **WASM action encoding** — `WasmActionKind { Paint = 0, Revert = 1 }` enum exposed alongside flat `Int32Array` serialization. Avoids wasm-bindgen's enum-with-data limitation while making the flat-triple protocol explicit on both sides.
+- **No crate-root re-exports** — `dotorixel_core::pixel_perfect::TailState` over `dotorixel_core::TailState`. Follows the tool-module style (where `interpolate_pixels` etc. stay namespaced) rather than the canvas/viewport style.
+
+### Notes
+
+- Shell integration is deferred to issues 072 (Pencil) and 073 (Eraser). This slice only verifies the binding is importable on both shells.
+- Tail update uses the combined-path last-2 rule, not just input-last-2 — required so boundary-spanning L-corners across batches remain detectable. Regression test: `prev_tail_enables_l_corner_detection_across_batches`.
+- `apple/generated/` is gitignored; Swift bindings are regenerated on demand by `scripts/build-rust.sh`.

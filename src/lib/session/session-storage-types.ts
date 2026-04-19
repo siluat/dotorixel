@@ -45,6 +45,11 @@ export interface SharedStateRecord {
 	foregroundColor: { r: number; g: number; b: number; a: number };
 	backgroundColor: { r: number; g: number; b: number; a: number };
 	recentColors: string[];
+	/**
+	 * Absent on records written before this field existed. Hydration should
+	 * treat absence as "use the default (ON)".
+	 */
+	pixelPerfect?: boolean;
 }
 
 export interface ViewportRecord {

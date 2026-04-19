@@ -43,6 +43,7 @@ export class Workspace {
 		this.shared.foregroundColor = snapshot.sharedState.foregroundColor;
 		this.shared.backgroundColor = snapshot.sharedState.backgroundColor;
 		this.shared.recentColors = [...snapshot.sharedState.recentColors];
+		this.shared.pixelPerfect = snapshot.sharedState.pixelPerfect ?? true;
 
 		for (const tab of snapshot.tabs) {
 			const pixelCanvas = canvasFactory.fromPixels(tab.width, tab.height, tab.pixels);
@@ -125,7 +126,8 @@ export class Workspace {
 				activeTool: active.activeTool,
 				foregroundColor: { ...active.foregroundColor },
 				backgroundColor: { ...active.backgroundColor },
-				recentColors: [...active.recentColors]
+				recentColors: [...active.recentColors],
+				pixelPerfect: active.pixelPerfect
 			}
 		};
 	}

@@ -18,6 +18,9 @@
 	"action_zoomOut": "축소",
 	"action_resetZoom": "100%로 초기화",
 	"action_fitToView": "화면에 맞추기",
+	"action_pixelPerfectOn": "픽셀 퍼펙트: 켜짐",
+	"action_pixelPerfectOff": "픽셀 퍼펙트: 꺼짐",
+	"action_pixelPerfectDisabled": "픽셀 퍼펙트 (연필/지우개 전용)",
 
 	"canvas_width": "캔버스 너비",
 	"canvas_height": "캔버스 높이",

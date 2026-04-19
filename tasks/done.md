@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 074 | [Pixel Perfect — topBar/mAppBar toggle and preference persistence](../issues/074-pixel-perfect-toggle-ui.md) | 2026-04-19 |
 | 073 | [Pixel Perfect — Eraser integration](../issues/073-pixel-perfect-eraser-integration.md) | 2026-04-19 |
 | 072 | [Pixel Perfect — Pencil integration (hardcoded ON)](../issues/072-pixel-perfect-pencil-integration.md) | 2026-04-19 |
 | 071 | [Pixel Perfect filter — Rust core function](../issues/071-pixel-perfect-rust-filter.md) | 2026-04-19 |

@@ -5,6 +5,11 @@ export interface SharedStateSnapshot {
 	readonly foregroundColor: { r: number; g: number; b: number; a: number };
 	readonly backgroundColor: { r: number; g: number; b: number; a: number };
 	readonly recentColors: readonly string[];
+	/**
+	 * Undefined on snapshots produced before this field existed. Hydration
+	 * should treat absence as "use the default (ON)".
+	 */
+	readonly pixelPerfect?: boolean;
 }
 
 /**

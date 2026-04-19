@@ -1,14 +1,18 @@
 <script lang="ts">
 	import { Download, FolderOpen, Grid3X3, Minus, Plus } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
+	import PixelPerfectIcon from './PixelPerfectIcon.svelte';
 
 	type MobileTab = 'draw' | 'colors' | 'settings';
 
 	interface Props {
 		activeTab: MobileTab;
 		showGrid: boolean;
+		pixelPerfect: boolean;
+		pixelPerfectDisabled: boolean;
 		zoomPercent: number;
 		onGridToggle: () => void;
+		onPixelPerfectToggle: () => void;
 		onExport: () => void;
 		onZoomIn: () => void;
 		onZoomOut: () => void;
@@ -19,8 +23,11 @@
 	let {
 		activeTab,
 		showGrid,
+		pixelPerfect,
+		pixelPerfectDisabled,
 		zoomPercent,
 		onGridToggle,
+		onPixelPerfectToggle,
 		onExport,
 		onZoomIn,
 		onZoomOut,
@@ -33,6 +40,19 @@
 		colors: m.tab_colors,
 		settings: m.tab_settings
 	};
+
+	const ppLabel = $derived(
+		pixelPerfectDisabled
+			? m.action_pixelPerfectDisabled()
+			: pixelPerfect
+				? m.action_pixelPerfectOn()
+				: m.action_pixelPerfectOff()
+	);
+
+	function handlePixelPerfectClick() {
+		if (pixelPerfectDisabled) return;
+		onPixelPerfectToggle();
+	}
 </script>
 
 {#if activeTab === 'draw'}
@@ -56,6 +76,18 @@
 					<Plus size={14} />
 				</button>
 			</div>
+
+			<button
+				class="pp-btn"
+				class:pp-btn--on={pixelPerfect && !pixelPerfectDisabled}
+				class:pp-btn--disabled={pixelPerfectDisabled}
+				onclick={handlePixelPerfectClick}
+				aria-label={ppLabel}
+				aria-pressed={pixelPerfect}
+				aria-disabled={pixelPerfectDisabled || undefined}
+			>
+				<PixelPerfectIcon size={18} />
+			</button>
 
 			{#if onBrowseSavedWork}
 				<button class="action-btn" onclick={onBrowseSavedWork} aria-label={m.browser_title()}>
@@ -212,5 +244,38 @@
 
 	.action-btn.active {
 		color: var(--ds-accent);
+	}
+
+	.pp-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: var(--ds-touch-target-min);
+		height: var(--ds-touch-target-min);
+		border: none;
+		background: transparent;
+		border-radius: 8px;
+		color: var(--ds-text-secondary);
+		cursor: pointer;
+		padding: 0;
+		transition: background-color 120ms ease-out, color 120ms ease-out;
+	}
+
+	.pp-btn:hover {
+		background: var(--ds-bg-hover);
+	}
+
+	.pp-btn.pp-btn--on {
+		background: var(--ds-accent-subtle);
+		color: var(--ds-accent);
+	}
+
+	.pp-btn.pp-btn--disabled {
+		opacity: 0.4;
+		cursor: default;
+	}
+
+	.pp-btn.pp-btn--disabled:hover {
+		background: transparent;
 	}
 </style>

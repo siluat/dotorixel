@@ -11,6 +11,7 @@ describe('SharedState', () => {
 		expect(shared.foregroundColor).toEqual({ r: 0, g: 0, b: 0, a: 255 });
 		expect(shared.backgroundColor).toEqual({ r: 255, g: 255, b: 255, a: 255 });
 		expect(shared.recentColors).toEqual([]);
+		expect(shared.pixelPerfect).toBe(true);
 	});
 });
 

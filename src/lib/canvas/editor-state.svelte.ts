@@ -67,6 +67,13 @@ export class EditorState {
 		this.shared.recentColors = value;
 	}
 
+	get pixelPerfect(): boolean {
+		return this.shared.pixelPerfect;
+	}
+	set pixelPerfect(value: boolean) {
+		this.shared.pixelPerfect = value;
+	}
+
 	#toolRunner: ToolRunner;
 	#keyboard: KeyboardInput;
 
@@ -296,6 +303,10 @@ export class EditorState {
 
 	handleGridToggle = (): void => {
 		this.viewport = { ...this.viewport, showGrid: !this.viewport.showGrid };
+	};
+
+	handlePixelPerfectToggle = (): void => {
+		this.shared.pixelPerfect = !this.shared.pixelPerfect;
 	};
 
 	handleForegroundColorChange = (hex: string): void => {

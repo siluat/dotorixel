@@ -17,6 +17,9 @@
 		onZoomReset={() => {}}
 		onFit={() => {}}
 		onGridToggle={() => {}}
+		pixelPerfect={true}
+		pixelPerfectDisabled={false}
+		onPixelPerfectToggle={() => {}}
 		onExportToggle={() => {}}
 		onExportConfirm={() => {}}
 		onBrowseSavedWork={() => {}}
@@ -35,6 +38,9 @@
 		onZoomReset={() => {}}
 		onFit={() => {}}
 		onGridToggle={() => {}}
+		pixelPerfect={true}
+		pixelPerfectDisabled={false}
+		onPixelPerfectToggle={() => {}}
 		onExportToggle={() => {}}
 		onExportConfirm={() => {}}
 		onBrowseSavedWork={() => {}}

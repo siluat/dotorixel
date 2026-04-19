@@ -341,7 +341,9 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 			// `pen` shares the mouse offset preset; only `touch` uses the
 			// larger touch offset to clear finger occlusion.
 			activeInputSource = pointerType === 'touch' ? 'touch' : 'mouse';
-			const usesPixelPerfect = shared.activeTool === 'pencil' || shared.activeTool === 'eraser';
+			const toolSupportsPixelPerfect =
+				shared.activeTool === 'pencil' || shared.activeTool === 'eraser';
+			const usesPixelPerfect = shared.pixelPerfect && toolSupportsPixelPerfect;
 			strokeOps = usesPixelPerfect ? createPixelPerfectOps(ops) : ops;
 			activeLifecycle = resolveLifecycle(tools[shared.activeTool], pushHistorySnapshot);
 			return activeLifecycle.start(buildContext());

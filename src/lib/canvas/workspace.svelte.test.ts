@@ -299,5 +299,69 @@ describe('Workspace', () => {
 
 			expect(snapshot.sharedState.recentColors).not.toBe(workspace.activeEditor.recentColors);
 		});
+
+		it('captures the pixelPerfect preference', () => {
+			const workspace = new Workspace({ gridColor: '#ECE5D9' });
+			workspace.activeEditor.pixelPerfect = false;
+
+			const snapshot = workspace.toSnapshot();
+
+			expect(snapshot.sharedState.pixelPerfect).toBe(false);
+		});
+	});
+
+	describe('pixelPerfect hydration', () => {
+		it('restores pixelPerfect = false from snapshot', () => {
+			const restored: WorkspaceSnapshot = {
+				tabs: [
+					{
+						id: 'doc-1',
+						name: 'Tab 1',
+						width: 1,
+						height: 1,
+						pixels: new Uint8Array([0, 0, 0, 255]),
+						viewport: { pixelSize: 32, zoom: 1.0, panX: 0, panY: 0, showGrid: true, gridColor: '#cccccc' }
+					}
+				],
+				activeTabIndex: 0,
+				sharedState: {
+					activeTool: 'pencil',
+					foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
+					backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+					recentColors: [],
+					pixelPerfect: false
+				}
+			};
+
+			const workspace = new Workspace({ restored });
+
+			expect(workspace.activeEditor.pixelPerfect).toBe(false);
+		});
+
+		it('defaults pixelPerfect to true when missing from a legacy snapshot', () => {
+			const restored: WorkspaceSnapshot = {
+				tabs: [
+					{
+						id: 'doc-1',
+						name: 'Tab 1',
+						width: 1,
+						height: 1,
+						pixels: new Uint8Array([0, 0, 0, 255]),
+						viewport: { pixelSize: 32, zoom: 1.0, panX: 0, panY: 0, showGrid: true, gridColor: '#cccccc' }
+					}
+				],
+				activeTabIndex: 0,
+				sharedState: {
+					activeTool: 'pencil',
+					foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
+					backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+					recentColors: []
+				}
+			};
+
+			const workspace = new Workspace({ restored });
+
+			expect(workspace.activeEditor.pixelPerfect).toBe(true);
+		});
 	});
 });

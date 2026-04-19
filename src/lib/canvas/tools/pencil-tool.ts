@@ -9,6 +9,7 @@ function createFreehandTool(
 	return {
 		kind: 'continuous',
 		addsActiveColor,
+		supportsPixelPerfect: true,
 
 		apply(ctx: ToolContext, current: CanvasCoords, previous: CanvasCoords | null): boolean {
 			const ops = ctx.ops;

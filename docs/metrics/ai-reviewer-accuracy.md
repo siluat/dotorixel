@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 39 | 32 | 7 | 29 | 82% | 52% |
+| greptile-apps[bot] | 41 | 34 | 7 | 29 | 83% | 54% |
 | cubic-dev-ai[bot] | 27 | 23 | 4 | 36 | 85% | 39% |
-| coderabbitai[bot] | 45 | 29 | 16 | 28 | 64% | 51% |
+| coderabbitai[bot] | 49 | 32 | 17 | 28 | 65% | 53% |
 
 ## Log
 
@@ -218,3 +218,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #158 | cubic-dev-ai[bot] | Miss | Did not flag `aria-disabled="false"` noise on enabled PP button |
 | #158 | coderabbitai[bot] | Miss | Did not flag `aria-disabled="false"` noise on enabled PP button |
 | #158 | coderabbitai[bot] | Miss | Did not flag platform-status.md "session-persisted" misdocumentation |
+| #161 | greptile-apps[bot] | Accept | Missing exhaustive `default` in drawStart switch — null-deref risk if new DrawTool kind added |
+| #161 | greptile-apps[bot] | Accept | `ToolContext` rebuilt per draw call in dragTransform (inconsistent with continuous opener) |
+| #161 | coderabbitai[bot] | Accept | `FakePixelCanvas.get_pixel` hardcoded `{0,0,0,0}` — inconsistent with `pixels()`/`restore_pixels` state buffer |
+| #161 | coderabbitai[bot] | Accept | Vacuous `restore_pixels` assertion in shapePreview test — use `restoreCalls.length` for real verification |
+| #161 | coderabbitai[bot] | Accept | `ToolContext` rebuild in 3 non-continuous openers (duplicate of greptile finding) |
+| #161 | coderabbitai[bot] | Reject | Length-validate `restore_pixels` input — "fail at the boundary, trust the core" applies to test stubs |

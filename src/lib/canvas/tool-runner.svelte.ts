@@ -1,27 +1,13 @@
 import type { PixelCanvas, CanvasCoords } from './canvas-model';
 import type { Color } from './color';
-import { colorToHex } from './color';
 import type { SharedState } from './shared-state.svelte';
-import {
-	CANVAS_CHANGED,
-	NO_EFFECTS,
-	type ContinuousTool,
-	type OneShotTool,
-	type ShapePreviewTool,
-	type DragTransformTool,
-	type LiveSampleTool,
-	type DrawTool,
-	type ToolContext,
-	type ToolEffect
-} from './draw-tool';
-import type { ToolType } from './tool-registry';
+import { CANVAS_CHANGED, NO_EFFECTS, type ToolEffect } from './draw-tool';
 import { createAllTools } from './tool-registry';
 import type { PointerType } from './canvas-interaction.svelte';
 import type { SamplingSession } from './sampling-session.svelte';
 import type { LoupeInputSource } from './loupe-position';
 import { createDrawingOps, canvasFactory, createHistoryManager } from './wasm-backend';
-import { createPixelPerfectOps } from './pixel-perfect-ops';
-import type { DrawingOps } from './drawing-ops';
+import { createStrokeSessions, type StrokeSession, type StrokeSessions } from './stroke-session';
 
 // ── Effects: ToolRunner adds RunnerEffect on top of tool-produced ToolEffect ──
 
@@ -92,13 +78,7 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 	let drawButton = 0;
 	let activeDrawColor: Color | null = null;
 	let activeInputSource: LoupeInputSource = 'mouse';
-	let activeLifecycle: StrokeLifecycle | null = null;
-	/**
-	 * Stroke-scoped DrawingOps. Pencil/eraser get a pixel-perfect wrapper that
-	 * accumulates a per-stroke cache + tail; other tools get the bare ops.
-	 * Reset to `null` at drawEnd so the next stroke gets a fresh wrapper.
-	 */
-	let strokeOps: DrawingOps | null = null;
+	let activeSession: StrokeSession | null = null;
 
 	// ── Derived reactive properties ─────────────────────────────────
 	const canUndo = $derived.by(() => {
@@ -112,18 +92,6 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 	});
 
 	// ── Internal helpers ────────────────────────────────────────────
-
-	function buildContext(): ToolContext {
-		return {
-			canvas: host.pixelCanvas,
-			ops: strokeOps ?? ops,
-			drawColor: activeDrawColor!,
-			drawButton,
-			isShiftHeld: getShiftHeld,
-			foregroundColor: host.foregroundColor,
-			backgroundColor: host.backgroundColor
-		};
-	}
 
 	function pushHistorySnapshot(): void {
 		const canvas = host.pixelCanvas;
@@ -146,178 +114,15 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 		}
 	}
 
-	// ── StrokeLifecycle: category-specific stroke policies ──────────
-
-	interface StrokeLifecycle {
-		start(ctx: ToolContext): EditorEffects;
-		draw(ctx: ToolContext, current: CanvasCoords, previous: CanvasCoords | null): EditorEffects;
-		modifierChanged(ctx: ToolContext): EditorEffects;
-		/** Called when the stroke ends. Returns any effects produced on release (e.g. live-sample commit). */
-		end(): EditorEffects;
-	}
-
-	function continuousLifecycle(tool: ContinuousTool, pushHistory: () => void): StrokeLifecycle {
-		return {
-			start(ctx) {
-				pushHistory();
-				return tool.addsActiveColor
-					? [{ type: 'addRecentColor', hex: colorToHex(ctx.drawColor) }]
-					: NO_EFFECTS;
-			},
-			draw(ctx, current, previous) {
-				return tool.apply(ctx, current, previous) ? CANVAS_CHANGED : NO_EFFECTS;
-			},
-			modifierChanged() {
-				return NO_EFFECTS;
-			},
-			end() {
-				return NO_EFFECTS;
-			}
-		};
-	}
-
-	function oneShotLifecycle(tool: OneShotTool, pushHistory: () => void): StrokeLifecycle {
-		let fired = false;
-		return {
-			start(ctx) {
-				if (tool.capturesHistory) pushHistory();
-				return tool.addsActiveColor
-					? [{ type: 'addRecentColor', hex: colorToHex(ctx.drawColor) }]
-					: NO_EFFECTS;
-			},
-			draw(ctx, current) {
-				if (fired) return NO_EFFECTS;
-				fired = true;
-				return tool.execute(ctx, current);
-			},
-			modifierChanged() {
-				return NO_EFFECTS;
-			},
-			end() {
-				return NO_EFFECTS;
-			}
-		};
-	}
-
-	function shapePreviewLifecycle(tool: ShapePreviewTool, pushHistory: () => void): StrokeLifecycle {
-		let snapshot: Uint8Array | null = null;
-		let anchor: CanvasCoords | null = null;
-		let lastCurrent: CanvasCoords | null = null;
-
-		function redraw(ctx: ToolContext): EditorEffects {
-			if (!anchor || !snapshot) return NO_EFFECTS;
-			host.pixelCanvas.restore_pixels(snapshot);
-			const end = ctx.isShiftHeld() ? tool.constrainFn(anchor, lastCurrent!) : lastCurrent!;
-			tool.onPreview(ctx, anchor, end);
-			return CANVAS_CHANGED;
-		}
-
-		return {
-			start(ctx) {
-				pushHistory();
-				snapshot = new Uint8Array(host.pixelCanvas.pixels());
-				return tool.addsActiveColor
-					? [{ type: 'addRecentColor', hex: colorToHex(ctx.drawColor) }]
-					: NO_EFFECTS;
-			},
-			draw(ctx, current, previous) {
-				lastCurrent = current;
-				if (previous === null) {
-					anchor = current;
-					tool.onAnchor(ctx, current);
-					return CANVAS_CHANGED;
-				}
-				return redraw(ctx);
-			},
-			modifierChanged(ctx) {
-				if (!lastCurrent) return NO_EFFECTS;
-				return redraw(ctx);
-			},
-			end() {
-				snapshot = null;
-				anchor = null;
-				lastCurrent = null;
-				return NO_EFFECTS;
-			}
-		};
-	}
-
-	function dragTransformLifecycle(tool: DragTransformTool, pushHistory: () => void): StrokeLifecycle {
-		let snapshot: Uint8Array | null = null;
-		let anchor: CanvasCoords | null = null;
-
-		return {
-			start() {
-				pushHistory();
-				snapshot = new Uint8Array(host.pixelCanvas.pixels());
-				return NO_EFFECTS;
-			},
-			draw(ctx, current, previous) {
-				if (previous === null) {
-					anchor = current;
-					return NO_EFFECTS;
-				}
-				if (!anchor || !snapshot) return NO_EFFECTS;
-				tool.applyTransform(ctx, snapshot, anchor, current);
-				return CANVAS_CHANGED;
-			},
-			modifierChanged() {
-				return NO_EFFECTS;
-			},
-			end() {
-				snapshot = null;
-				anchor = null;
-				return NO_EFFECTS;
-			}
-		};
-	}
-
-	function liveSampleLifecycle(_tool: LiveSampleTool): StrokeLifecycle {
-		let started = false;
-		return {
-			start() {
-				// Deferred to first draw: samplingSession needs the initial target pixel.
-				return NO_EFFECTS;
-			},
-			draw(ctx, current) {
-				if (!started) {
-					const commitTarget = ctx.drawButton === 2 ? 'background' : 'foreground';
-					samplingSession.start({
-						targetPixel: current,
-						commitTarget,
-						inputSource: activeInputSource
-					});
-					started = true;
-				} else {
-					samplingSession.update(current);
-				}
-				return NO_EFFECTS;
-			},
-			modifierChanged() {
-				return NO_EFFECTS;
-			},
-			end() {
-				const effects = samplingSession.commit();
-				started = false;
-				return effects;
-			}
-		};
-	}
-
-	function resolveLifecycle(tool: DrawTool, pushHistory: () => void): StrokeLifecycle {
-		switch (tool.kind) {
-			case 'continuous':
-				return continuousLifecycle(tool, pushHistory);
-			case 'oneShot':
-				return oneShotLifecycle(tool, pushHistory);
-			case 'shapePreview':
-				return shapePreviewLifecycle(tool, pushHistory);
-			case 'dragTransform':
-				return dragTransformLifecycle(tool, pushHistory);
-			case 'liveSample':
-				return liveSampleLifecycle(tool);
-		}
-	}
+	// ── StrokeSessions: typed openers, one per DrawTool.kind ────────
+	const sessions: StrokeSessions = createStrokeSessions({
+		host,
+		baseOps: ops,
+		history: { pushSnapshot: pushHistorySnapshot },
+		sampling: samplingSession,
+		isShiftHeld: getShiftHeld,
+		pixelPerfect: () => shared.pixelPerfect
+	});
 
 	// ── Public interface ────────────────────────────────────────────
 
@@ -341,24 +146,63 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 			// `pen` shares the mouse offset preset; only `touch` uses the
 			// larger touch offset to clear finger occlusion.
 			activeInputSource = pointerType === 'touch' ? 'touch' : 'mouse';
-			const toolSupportsPixelPerfect =
-				shared.activeTool === 'pencil' || shared.activeTool === 'eraser';
-			const usesPixelPerfect = shared.pixelPerfect && toolSupportsPixelPerfect;
-			strokeOps = usesPixelPerfect ? createPixelPerfectOps(ops) : ops;
-			activeLifecycle = resolveLifecycle(tools[shared.activeTool], pushHistorySnapshot);
-			return activeLifecycle.start(buildContext());
+			const tool = tools[shared.activeTool];
+
+			switch (tool.kind) {
+				case 'liveSample':
+					activeSession = sessions.liveSample({
+						drawButton: button,
+						inputSource: activeInputSource
+					});
+					break;
+				case 'dragTransform':
+					activeSession = sessions.dragTransform({
+						tool,
+						drawColor: activeDrawColor,
+						drawButton: button
+					});
+					break;
+				case 'shapePreview':
+					activeSession = sessions.shapePreview({
+						tool,
+						drawColor: activeDrawColor,
+						drawButton: button
+					});
+					break;
+				case 'oneShot':
+					activeSession = sessions.oneShot({
+						tool,
+						drawColor: activeDrawColor,
+						drawButton: button
+					});
+					break;
+				case 'continuous':
+					activeSession = sessions.continuous({
+						tool,
+						drawColor: activeDrawColor,
+						drawButton: button
+					});
+					break;
+				default:
+					// Exhaustive guard: new DrawTool kinds must be handled above or
+					// `activeSession` stays null and `start()` below would crash.
+					tool satisfies never;
+					throw new Error(
+						`tool-runner: unhandled tool kind "${(tool as { kind: string }).kind}"`
+					);
+			}
+			return activeSession.start();
 		},
 
 		draw(current: CanvasCoords, previous: CanvasCoords | null): EditorEffects {
-			if (!isDrawing || !activeLifecycle) return NO_EFFECTS;
-			return activeLifecycle.draw(buildContext(), current, previous);
+			if (!isDrawing || !activeSession) return NO_EFFECTS;
+			return activeSession.draw(current, previous);
 		},
 
 		drawEnd(): EditorEffects {
-			if (!isDrawing || !activeLifecycle) return NO_EFFECTS;
-			const endEffects = activeLifecycle.end();
-			activeLifecycle = null;
-			strokeOps = null;
+			if (!isDrawing) return NO_EFFECTS;
+			const endEffects = activeSession ? activeSession.end() : NO_EFFECTS;
+			activeSession = null;
 			isDrawing = false;
 			drawButton = 0;
 			activeDrawColor = null;
@@ -367,8 +211,8 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 		},
 
 		modifierChanged(): EditorEffects {
-			if (!isDrawing || !activeLifecycle) return NO_EFFECTS;
-			return activeLifecycle.modifierChanged(buildContext());
+			if (!isDrawing || !activeSession) return NO_EFFECTS;
+			return activeSession.modifierChanged();
 		},
 
 		undo(): EditorEffects {

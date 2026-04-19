@@ -20,6 +20,8 @@ import type { PointerType } from './canvas-interaction.svelte';
 import type { SamplingSession } from './sampling-session.svelte';
 import type { LoupeInputSource } from './loupe-position';
 import { createDrawingOps, canvasFactory, createHistoryManager } from './wasm-backend';
+import { createPixelPerfectOps } from './pixel-perfect-ops';
+import type { DrawingOps } from './drawing-ops';
 
 // ── Effects: ToolRunner adds RunnerEffect on top of tool-produced ToolEffect ──
 
@@ -91,6 +93,12 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 	let activeDrawColor: Color | null = null;
 	let activeInputSource: LoupeInputSource = 'mouse';
 	let activeLifecycle: StrokeLifecycle | null = null;
+	/**
+	 * Stroke-scoped DrawingOps. Pencil/eraser get a pixel-perfect wrapper that
+	 * accumulates a per-stroke cache + tail; other tools get the bare ops.
+	 * Reset to `null` at drawEnd so the next stroke gets a fresh wrapper.
+	 */
+	let strokeOps: DrawingOps | null = null;
 
 	// ── Derived reactive properties ─────────────────────────────────
 	const canUndo = $derived.by(() => {
@@ -108,6 +116,7 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 	function buildContext(): ToolContext {
 		return {
 			canvas: host.pixelCanvas,
+			ops: strokeOps ?? ops,
 			drawColor: activeDrawColor!,
 			drawButton,
 			isShiftHeld: getShiftHeld,
@@ -332,6 +341,8 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 			// `pen` shares the mouse offset preset; only `touch` uses the
 			// larger touch offset to clear finger occlusion.
 			activeInputSource = pointerType === 'touch' ? 'touch' : 'mouse';
+			const usesPixelPerfect = shared.activeTool === 'pencil' || shared.activeTool === 'eraser';
+			strokeOps = usesPixelPerfect ? createPixelPerfectOps(ops) : ops;
 			activeLifecycle = resolveLifecycle(tools[shared.activeTool], pushHistorySnapshot);
 			return activeLifecycle.start(buildContext());
 		},
@@ -345,6 +356,7 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 			if (!isDrawing || !activeLifecycle) return NO_EFFECTS;
 			const endEffects = activeLifecycle.end();
 			activeLifecycle = null;
+			strokeOps = null;
 			isDrawing = false;
 			drawButton = 0;
 			activeDrawColor = null;

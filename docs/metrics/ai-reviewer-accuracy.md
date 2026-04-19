@@ -6,8 +6,8 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 33 | 28 | 5 | 25 | 85% | 53% |
-| cubic-dev-ai[bot] | 23 | 19 | 4 | 33 | 83% | 37% |
+| greptile-apps[bot] | 35 | 30 | 5 | 26 | 86% | 54% |
+| cubic-dev-ai[bot] | 24 | 20 | 4 | 35 | 83% | 36% |
 | coderabbitai[bot] | 44 | 28 | 16 | 25 | 64% | 53% |
 
 ## Log
@@ -197,3 +197,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #153 | greptile-apps[bot] | Accept | Touch branch missing y-clamp after vertical flip — clips on mobile-portrait heights |
 | #153 | coderabbitai[bot] | Miss | Did not flag touch-branch missing y-clamp (APPROVED review) |
 | #153 | cubic-dev-ai[bot] | Miss | Did not flag touch-branch missing y-clamp |
+| #156 | cubic-dev-ai[bot] | Accept | Y center axis uses artPixelsAcross instead of artPixelsDown — non-square art bug |
+| #156 | greptile-apps[bot] | Accept | End pixel assertion compares against initialStartPixel — silently passes on uniform canvas |
+| #156 | greptile-apps[bot] | Accept | WasmFilterResult.free() omitted — FinalizationRegistry mitigates but explicit free preferred for stroke-scoped object |
+| #156 | cubic-dev-ai[bot] | Miss | Did not flag end pixel assertion using wrong initial reference |
+| #156 | cubic-dev-ai[bot] | Miss | Did not flag WasmFilterResult.free() omission |
+| #156 | greptile-apps[bot] | Miss | Did not flag Y center axis bug in artCenterFromGeometry |

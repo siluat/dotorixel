@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 072 | [Pixel Perfect — Pencil integration (hardcoded ON)](../issues/072-pixel-perfect-pencil-integration.md) | 2026-04-19 |
 | 071 | [Pixel Perfect filter — Rust core function](../issues/071-pixel-perfect-rust-filter.md) | 2026-04-19 |
 | 070 | [Pixel Perfect toggle — visual design (topBar/mAppBar)](../issues/070-pixel-perfect-toggle-design.md) | 2026-04-18 |
 | 068 | [Color picker loupe — long-press touch entry](../issues/068-color-picker-loupe-long-press.md) | 2026-04-17 |

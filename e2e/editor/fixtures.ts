@@ -11,8 +11,25 @@ function pixelColorsEqual(a: PixelColor, b: PixelColor): boolean {
 	return a.r === b.r && a.g === b.g && a.b === b.b && a.a === b.a;
 }
 
-/** Find the art canvas center in internal canvas coords and its CSS-space equivalent. */
-function findArtCenter(): { canvasX: number; canvasY: number; cssX: number; cssY: number } {
+export interface ArtGeometry {
+	artLeft: number;
+	artTop: number;
+	artRight: number;
+	artBottom: number;
+	pixelSize: number;
+	artPixelsAcross: number;
+	artPixelsDown: number;
+	canvasWidth: number;
+	canvasHeight: number;
+	cssWidth: number;
+	cssHeight: number;
+}
+
+/**
+ * Detects the on-screen art canvas bounds and per-pixel size in HTML-canvas
+ * pixel space. Self-contained so it can be passed to `page.evaluate`.
+ */
+export function readArtGeometry(): ArtGeometry {
 	const canvas = document.querySelector<HTMLCanvasElement>('canvas.pixel-canvas');
 	if (!canvas) throw new Error('Canvas not found');
 	const ctx = canvas.getContext('2d');
@@ -53,14 +70,32 @@ function findArtCenter(): { canvasX: number; canvasY: number; cssX: number; cssY
 		}
 	}
 
-	// Click/read the center of the center art pixel to avoid grid lines.
-	// Grid lines are on art pixel boundaries (multiples of pixelSize).
-	const artPixelCount = Math.round((artRight - artLeft + 1) / pixelSize);
-	const centerIdx = Math.floor(artPixelCount / 2);
-	const canvasX = Math.round(artLeft + centerIdx * pixelSize + pixelSize / 2);
-	const canvasY = Math.round(artTop + centerIdx * pixelSize + pixelSize / 2);
-	const cssX = Math.round(canvasX * (rect.width / canvas.width));
-	const cssY = Math.round(canvasY * (rect.height / canvas.height));
+	return {
+		artLeft,
+		artTop,
+		artRight,
+		artBottom,
+		pixelSize,
+		artPixelsAcross: Math.round((artRight - artLeft + 1) / pixelSize),
+		artPixelsDown: Math.round((artBottom - artTop + 1) / pixelSize),
+		canvasWidth: canvas.width,
+		canvasHeight: canvas.height,
+		cssWidth: rect.width,
+		cssHeight: rect.height,
+	};
+}
+
+/**
+ * Center of the center art pixel — the canonical safe-to-click point that
+ * avoids grid lines (which sit on art-pixel boundaries).
+ */
+function artCenterFromGeometry(geo: ArtGeometry): { canvasX: number; canvasY: number; cssX: number; cssY: number } {
+	const centerXIdx = Math.floor(geo.artPixelsAcross / 2);
+	const centerYIdx = Math.floor(geo.artPixelsDown / 2);
+	const canvasX = Math.round(geo.artLeft + centerXIdx * geo.pixelSize + geo.pixelSize / 2);
+	const canvasY = Math.round(geo.artTop + centerYIdx * geo.pixelSize + geo.pixelSize / 2);
+	const cssX = Math.round(canvasX * (geo.cssWidth / geo.canvasWidth));
+	const cssY = Math.round(canvasY * (geo.cssHeight / geo.canvasHeight));
 	return { canvasX, canvasY, cssX, cssY };
 }
 
@@ -112,12 +147,12 @@ function createCanvasHelpers(page: Page): CanvasHelpers {
 		// Retry until the art area is rendered (tab switch may delay rendering)
 		for (let attempt = 0; attempt < 10; attempt++) {
 			try {
-				return await page.evaluate(findArtCenter);
+				return artCenterFromGeometry(await page.evaluate(readArtGeometry));
 			} catch {
 				await page.waitForTimeout(100);
 			}
 		}
-		return page.evaluate(findArtCenter);
+		return artCenterFromGeometry(await page.evaluate(readArtGeometry));
 	}
 
 	return {

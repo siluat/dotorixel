@@ -163,7 +163,11 @@ function resolveWasmCanvas(canvas: PixelCanvas): WasmPixelCanvas {
  * on the current canvas (which may be replaced by undo/redo).
  */
 export function createDrawingOps(getCanvas: () => PixelCanvas): DrawingOps {
-	return {
+	function inBounds(canvas: WasmPixelCanvas, x: number, y: number): boolean {
+		return x >= 0 && y >= 0 && canvas.is_inside_bounds(x, y);
+	}
+
+	const ops: DrawingOps = {
 		applyTool(x, y, tool, color) {
 			return apply_tool(
 				resolveWasmCanvas(getCanvas()),
@@ -172,6 +176,27 @@ export function createDrawingOps(getCanvas: () => PixelCanvas): DrawingOps {
 				TOOL_MAP[tool],
 				new WasmColor(color.r, color.g, color.b, color.a)
 			);
+		},
+		applyStroke(pixels, tool, color) {
+			let changed = false;
+			for (let i = 0; i < pixels.length; i += 2) {
+				if (ops.applyTool(pixels[i], pixels[i + 1], tool, color)) {
+					changed = true;
+				}
+			}
+			return changed;
+		},
+		setPixel(x, y, color) {
+			const canvas = resolveWasmCanvas(getCanvas());
+			if (!inBounds(canvas, x, y)) return false;
+			canvas.set_pixel(x, y, new WasmColor(color.r, color.g, color.b, color.a));
+			return true;
+		},
+		getPixel(x, y) {
+			const canvas = resolveWasmCanvas(getCanvas());
+			if (!inBounds(canvas, x, y)) return null;
+			const c = canvas.get_pixel(x, y);
+			return { r: c.r, g: c.g, b: c.b, a: c.a };
 		},
 		floodFill(x, y, color) {
 			return wasm_flood_fill(
@@ -185,6 +210,8 @@ export function createDrawingOps(getCanvas: () => PixelCanvas): DrawingOps {
 		rectangleOutline: wasm_rectangle_outline,
 		ellipseOutline: wasm_ellipse_outline
 	};
+
+	return ops;
 }
 
 // ── HistoryManager ──────────────────────────────────────────────────

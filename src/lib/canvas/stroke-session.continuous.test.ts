@@ -49,6 +49,23 @@ function makeTool(overrides: Partial<ContinuousTool> = {}): ContinuousTool {
 	};
 }
 
+// Pencil stand-in for stroke-level PP assertions: emits [curr] on the first
+// sample and [prev, curr] on subsequent ones, matching the Bresenham-style
+// shared-junction batching the real pencil produces for adjacent pointer moves.
+function makePencilTool(): ContinuousTool {
+	return {
+		kind: 'continuous',
+		addsActiveColor: true,
+		supportsPixelPerfect: true,
+		apply(ctx, current, previous) {
+			const segment = previous
+				? new Int32Array([previous.x, previous.y, current.x, current.y])
+				: new Int32Array([current.x, current.y]);
+			return ctx.ops.applyStroke(segment, 'pencil', ctx.drawColor);
+		}
+	};
+}
+
 describe('sessions.continuous', () => {
 	it('pushes history and emits addRecentColor on start when addsActiveColor is true', () => {
 		const canvas = createFakePixelCanvas(8, 8);
@@ -171,5 +188,74 @@ describe('sessions.continuous', () => {
 
 		expect(s.modifierChanged()).toEqual([]);
 		expect(s.end()).toEqual([]);
+	});
+
+	// L-corner regression defense: an adjacent 3-sample pencil stroke
+	// (0,0) → (1,0) → (1,1) forms an L. Under pixel-perfect, the middle
+	// pixel (1,0) must revert to its pre-stroke color; without PP, all
+	// three pixels stay painted.
+	it('reverts the L-corner middle pixel when pixel-perfect is enabled', () => {
+		const canvas = createFakePixelCanvas(8, 8);
+		const { deps, baseOps } = makeDeps(canvas, { pixelPerfect: true });
+		const sessions = createStrokeSessions(deps);
+		const s = sessions.continuous({
+			tool: makePencilTool(),
+			drawColor: BLACK,
+			drawButton: 0
+		});
+		s.start();
+
+		s.draw({ x: 0, y: 0 }, null);
+		s.draw({ x: 1, y: 0 }, { x: 0, y: 0 });
+		s.draw({ x: 1, y: 1 }, { x: 1, y: 0 });
+
+		expect(baseOps.getPixel(0, 0)).toEqual(BLACK);
+		expect(baseOps.getPixel(1, 0)).toEqual(WHITE);
+		expect(baseOps.getPixel(1, 1)).toEqual(BLACK);
+	});
+
+	it('paints every pixel of an L-corner stroke when pixel-perfect is disabled', () => {
+		const canvas = createFakePixelCanvas(8, 8);
+		const { deps, baseOps } = makeDeps(canvas, { pixelPerfect: false });
+		const sessions = createStrokeSessions(deps);
+		const s = sessions.continuous({
+			tool: makePencilTool(),
+			drawColor: BLACK,
+			drawButton: 0
+		});
+		s.start();
+
+		s.draw({ x: 0, y: 0 }, null);
+		s.draw({ x: 1, y: 0 }, { x: 0, y: 0 });
+		s.draw({ x: 1, y: 1 }, { x: 1, y: 0 });
+
+		expect(baseOps.getPixel(0, 0)).toEqual(BLACK);
+		expect(baseOps.getPixel(1, 0)).toEqual(BLACK);
+		expect(baseOps.getPixel(1, 1)).toEqual(BLACK);
+	});
+
+	// First-touch cache regression defense: when a coord is painted,
+	// revisited within the same stroke, and later reverted as an L-corner
+	// middle pixel, the revert must restore the original pre-stroke color
+	// (WHITE), not the mid-stroke color (BLACK).
+	it('preserves the first pre-paint color when a coord is revisited within a PP stroke', () => {
+		const canvas = createFakePixelCanvas(8, 8);
+		const { deps, baseOps } = makeDeps(canvas, { pixelPerfect: true });
+		const sessions = createStrokeSessions(deps);
+		const s = sessions.continuous({
+			tool: makePencilTool(),
+			drawColor: BLACK,
+			drawButton: 0
+		});
+		s.start();
+
+		// Paint (1,0) WHITE→BLACK, step to (0,0), revisit (1,0) (no cache
+		// update — first-touch wins), then step to (1,1) to close the L.
+		s.draw({ x: 1, y: 0 }, null);
+		s.draw({ x: 0, y: 0 }, { x: 1, y: 0 });
+		s.draw({ x: 1, y: 0 }, { x: 0, y: 0 });
+		s.draw({ x: 1, y: 1 }, { x: 1, y: 0 });
+
+		expect(baseOps.getPixel(1, 0)).toEqual(WHITE);
 	});
 });

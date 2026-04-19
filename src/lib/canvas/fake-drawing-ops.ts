@@ -17,10 +17,10 @@ export interface FakeDrawingOps extends DrawingOps {
 /**
  * In-memory DrawingOps for unit tests. Initial pixel color is `initial`;
  * pencil writes the requested color, eraser writes transparent. Out-of-bounds
- * writes are dropped. Stroke methods (`applyStroke`, `interpolatePixels`,
- * `rectangleOutline`, `ellipseOutline`) are unimplemented — tests that need
- * them should wrap this fake with the subject under test (e.g. the
- * pixel-perfect decorator).
+ * writes are dropped. `applyStroke` models each pixel pair as an independent
+ * `applyTool` — no Bresenham interpolation, no dedup. Geometry helpers
+ * (`interpolatePixels`, `rectangleOutline`, `ellipseOutline`) stay
+ * unimplemented; tests that need them should stub via mocks.
  */
 export function createFakeDrawingOps(
 	width: number,
@@ -33,15 +33,17 @@ export function createFakeDrawingOps(
 	const colorFor = (kind: DrawingToolType, color: Color): Color =>
 		kind === 'eraser' ? TRANSPARENT : color;
 
+	function applyToolImpl(x: number, y: number, kind: DrawingToolType, color: Color): boolean {
+		if (!inBounds(x, y)) return false;
+		const before = pixels.get(key(x, y)) ?? initial;
+		const after = colorFor(kind, color);
+		if (colorsEqual(before, after)) return false;
+		pixels.set(key(x, y), after);
+		return true;
+	}
+
 	return {
-		applyTool(x, y, kind, color) {
-			if (!inBounds(x, y)) return false;
-			const before = pixels.get(key(x, y)) ?? initial;
-			const after = colorFor(kind, color);
-			if (colorsEqual(before, after)) return false;
-			pixels.set(key(x, y), after);
-			return true;
-		},
+		applyTool: applyToolImpl,
 		setPixel(x, y, color) {
 			if (!inBounds(x, y)) return false;
 			pixels.set(key(x, y), color);
@@ -51,8 +53,12 @@ export function createFakeDrawingOps(
 			if (!inBounds(x, y)) return null;
 			return pixels.get(key(x, y)) ?? initial;
 		},
-		applyStroke() {
-			throw new Error('createFakeDrawingOps: applyStroke is not implemented; wrap with the subject under test');
+		applyStroke(points, kind, color) {
+			let changed = false;
+			for (let i = 0; i + 1 < points.length; i += 2) {
+				if (applyToolImpl(points[i], points[i + 1], kind, color)) changed = true;
+			}
+			return changed;
 		},
 		floodFill: () => false,
 		interpolatePixels: () => new Int32Array(),

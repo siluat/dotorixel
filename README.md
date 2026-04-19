@@ -9,7 +9,7 @@ A pixel art editor you can open anywhere and start drawing right away.
 
 ## Roadmap
 
-> Currently working on: **Milestone 2 — Production UIUX**
+> Currently working on: **Milestone 3 — Editor for Serious Work**
 
 ### Milestone 1 — Usable Editor ✓
 
@@ -21,7 +21,7 @@ The foundation: enough tools and polish to create real pixel art.
 - i18n (Korean / English / Japanese)
 - Landing page and analytics
 
-### Milestone 2 — Production UIUX
+### Milestone 2 — Production UIUX ✓
 
 Overhaul the UI from prototype-level to production quality. Design for all platforms (desktop, iPad, mobile) and plan ahead for layers and animation.
 
@@ -32,13 +32,16 @@ Overhaul the UI from prototype-level to production quality. Design for all platf
 
 ### Milestone 3 — Editor for Serious Work
 
-Layer support, selection, and project persistence for larger projects.
+Layer support, selection, project persistence, and reference imagery for larger projects.
 
 - Layer system (add/delete/reorder, visibility, opacity)
+- Reference layer (import image as non-editable layer)
+- Floating reference image windows (reposition, color sampling) — inspired by Pixquare
 - Selection & transform (rect select, move, copy/paste, flip)
 - Project file format (JSON-based save/load)
 - Apple Pencil: hover preview + palm rejection
 - Touch modifier alternatives
+- Feature guide page
 
 ### Milestone 4 — Animation-Capable Editor
 

@@ -129,6 +129,7 @@ function openDragTransformSession(
 	spec: { tool: DragTransformTool; drawColor: Color; drawButton: number },
 	deps: StrokeDeps
 ): StrokeSession {
+	const ctx = toolContext(spec, deps, deps.baseOps);
 	let snapshot: Uint8Array | null = null;
 	let anchor: CanvasCoords | null = null;
 
@@ -144,7 +145,7 @@ function openDragTransformSession(
 				return NO_EFFECTS;
 			}
 			if (!anchor || !snapshot) return NO_EFFECTS;
-			spec.tool.applyTransform(toolContext(spec, deps, deps.baseOps), snapshot, anchor, current);
+			spec.tool.applyTransform(ctx, snapshot, anchor, current);
 			return CANVAS_CHANGED;
 		},
 		modifierChanged() {
@@ -160,6 +161,7 @@ function openShapePreviewSession(
 	spec: { tool: ShapePreviewTool; drawColor: Color; drawButton: number },
 	deps: StrokeDeps
 ): StrokeSession {
+	const ctx = toolContext(spec, deps, deps.baseOps);
 	let snapshot: Uint8Array | null = null;
 	let anchor: CanvasCoords | null = null;
 	let lastCurrent: CanvasCoords | null = null;
@@ -168,7 +170,7 @@ function openShapePreviewSession(
 		if (!anchor || !snapshot || !lastCurrent) return NO_EFFECTS;
 		deps.host.pixelCanvas.restore_pixels(snapshot);
 		const end = deps.isShiftHeld() ? spec.tool.constrainFn(anchor, lastCurrent) : lastCurrent;
-		spec.tool.onPreview(toolContext(spec, deps, deps.baseOps), anchor, end);
+		spec.tool.onPreview(ctx, anchor, end);
 		return CANVAS_CHANGED;
 	}
 
@@ -184,7 +186,7 @@ function openShapePreviewSession(
 			lastCurrent = current;
 			if (previous === null) {
 				anchor = current;
-				spec.tool.onAnchor(toolContext(spec, deps, deps.baseOps), current);
+				spec.tool.onAnchor(ctx, current);
 				return CANVAS_CHANGED;
 			}
 			return redraw();
@@ -203,6 +205,7 @@ function openOneShotSession(
 	spec: { tool: OneShotTool; drawColor: Color; drawButton: number },
 	deps: StrokeDeps
 ): StrokeSession {
+	const ctx = toolContext(spec, deps, deps.baseOps);
 	let fired = false;
 
 	return {
@@ -215,7 +218,7 @@ function openOneShotSession(
 		draw(current) {
 			if (fired) return NO_EFFECTS;
 			fired = true;
-			return spec.tool.execute(toolContext(spec, deps, deps.baseOps), current);
+			return spec.tool.execute(ctx, current);
 		},
 		modifierChanged() {
 			return NO_EFFECTS;

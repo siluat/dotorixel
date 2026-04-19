@@ -183,6 +183,13 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 						drawButton: button
 					});
 					break;
+				default:
+					// Exhaustive guard: new DrawTool kinds must be handled above or
+					// `activeSession` stays null and `start()` below would crash.
+					tool satisfies never;
+					throw new Error(
+						`tool-runner: unhandled tool kind "${(tool as { kind: string }).kind}"`
+					);
 			}
 			return activeSession.start();
 		},

@@ -85,7 +85,13 @@ export function createFakePixelCanvas(width: number, height: number): FakePixelC
 		width,
 		height,
 		pixels: () => new Uint8Array(state),
-		get_pixel: () => ({ r: 0, g: 0, b: 0, a: 0 }),
+		get_pixel: (x, y) => {
+			if (x < 0 || y < 0 || x >= width || y >= height) {
+				return { r: 0, g: 0, b: 0, a: 0 };
+			}
+			const i = (y * width + x) * 4;
+			return { r: state[i], g: state[i + 1], b: state[i + 2], a: state[i + 3] };
+		},
 		restore_pixels(data) {
 			restoreCalls.push(new Uint8Array(data));
 			state.set(data);

@@ -95,9 +95,10 @@ describe('sessions.shapePreview', () => {
 		s.start();
 		s.draw({ x: 1, y: 1 }, null);
 
+		const restoreCountBefore = canvas.restoreCalls.length;
 		const effects = s.draw({ x: 5, y: 3 }, { x: 1, y: 1 });
 
-		expect(canvas.restore_pixels).toBeDefined();
+		expect(canvas.restoreCalls.length).toBe(restoreCountBefore + 1);
 		expect(constrainFn).not.toHaveBeenCalled();
 		expect(onPreview).toHaveBeenCalledOnce();
 		const [, anchor, end] = onPreview.mock.calls[0] as [

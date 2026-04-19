@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 35 | 30 | 5 | 26 | 86% | 54% |
-| cubic-dev-ai[bot] | 24 | 20 | 4 | 35 | 83% | 36% |
-| coderabbitai[bot] | 44 | 28 | 16 | 25 | 64% | 53% |
+| greptile-apps[bot] | 37 | 30 | 7 | 27 | 81% | 53% |
+| cubic-dev-ai[bot] | 25 | 21 | 4 | 35 | 84% | 38% |
+| coderabbitai[bot] | 44 | 28 | 16 | 26 | 64% | 52% |
 
 ## Log
 
@@ -203,3 +203,8 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #156 | cubic-dev-ai[bot] | Miss | Did not flag end pixel assertion using wrong initial reference |
 | #156 | cubic-dev-ai[bot] | Miss | Did not flag WasmFilterResult.free() omission |
 | #156 | greptile-apps[bot] | Miss | Did not flag Y center axis bug in artCenterFromGeometry |
+| #157 | cubic-dev-ai[bot] | Accept | AC "middle preserved" vs "middle erased" ambiguity — resolved by English translation in amend |
+| #157 | greptile-apps[bot] | Reject | `toCss` helper duplication — rule of three, defer until third PP test |
+| #157 | greptile-apps[bot] | Reject | Missing pre-paint sanity assertion — contrast assertions already trap silent failure, pencil test has no such guard |
+| #157 | greptile-apps[bot] | Miss | Did not flag AC/Key Decisions ambiguity from Korean wording |
+| #157 | coderabbitai[bot] | Miss | Did not flag AC/Key Decisions ambiguity (rate-limited review) |

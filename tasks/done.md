@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 073 | [Pixel Perfect — Eraser integration](../issues/073-pixel-perfect-eraser-integration.md) | 2026-04-19 |
 | 072 | [Pixel Perfect — Pencil integration (hardcoded ON)](../issues/072-pixel-perfect-pencil-integration.md) | 2026-04-19 |
 | 071 | [Pixel Perfect filter — Rust core function](../issues/071-pixel-perfect-rust-filter.md) | 2026-04-19 |
 | 070 | [Pixel Perfect toggle — visual design (topBar/mAppBar)](../issues/070-pixel-perfect-toggle-design.md) | 2026-04-18 |

@@ -201,51 +201,8 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 		};
 	}
 
-	function shapePreviewLifecycle(tool: ShapePreviewTool, pushHistory: () => void): StrokeLifecycle {
-		let snapshot: Uint8Array | null = null;
-		let anchor: CanvasCoords | null = null;
-		let lastCurrent: CanvasCoords | null = null;
-
-		function redraw(ctx: ToolContext): EditorEffects {
-			if (!anchor || !snapshot) return NO_EFFECTS;
-			host.pixelCanvas.restore_pixels(snapshot);
-			const end = ctx.isShiftHeld() ? tool.constrainFn(anchor, lastCurrent!) : lastCurrent!;
-			tool.onPreview(ctx, anchor, end);
-			return CANVAS_CHANGED;
-		}
-
-		return {
-			start(ctx) {
-				pushHistory();
-				snapshot = new Uint8Array(host.pixelCanvas.pixels());
-				return tool.addsActiveColor
-					? [{ type: 'addRecentColor', hex: colorToHex(ctx.drawColor) }]
-					: NO_EFFECTS;
-			},
-			draw(ctx, current, previous) {
-				lastCurrent = current;
-				if (previous === null) {
-					anchor = current;
-					tool.onAnchor(ctx, current);
-					return CANVAS_CHANGED;
-				}
-				return redraw(ctx);
-			},
-			modifierChanged(ctx) {
-				if (!lastCurrent) return NO_EFFECTS;
-				return redraw(ctx);
-			},
-			end() {
-				snapshot = null;
-				anchor = null;
-				lastCurrent = null;
-				return NO_EFFECTS;
-			}
-		};
-	}
-
 	function resolveLifecycle(
-		tool: Exclude<DrawTool, LiveSampleTool | DragTransformTool>,
+		tool: Exclude<DrawTool, LiveSampleTool | DragTransformTool | ShapePreviewTool>,
 		pushHistory: () => void
 	): StrokeLifecycle {
 		switch (tool.kind) {
@@ -253,8 +210,6 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 				return continuousLifecycle(tool, pushHistory);
 			case 'oneShot':
 				return oneShotLifecycle(tool, pushHistory);
-			case 'shapePreview':
-				return shapePreviewLifecycle(tool, pushHistory);
 		}
 	}
 
@@ -306,6 +261,16 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 
 			if (tool.kind === 'dragTransform') {
 				activeSession = sessions.dragTransform({
+					tool,
+					drawColor: activeDrawColor,
+					drawButton: button
+				});
+				activeLifecycle = null;
+				return activeSession.start();
+			}
+
+			if (tool.kind === 'shapePreview') {
+				activeSession = sessions.shapePreview({
 					tool,
 					drawColor: activeDrawColor,
 					drawButton: button

@@ -1,5 +1,6 @@
 import type { CanvasCoords } from './canvas-model';
 import type { Color } from './color';
+import { colorToHex } from './color';
 import type { DrawingOps } from './drawing-ops';
 import type {
 	ContinuousTool,
@@ -122,6 +123,49 @@ function openDragTransformSession(
 	};
 }
 
+function openShapePreviewSession(
+	spec: { tool: ShapePreviewTool; drawColor: Color; drawButton: number },
+	deps: StrokeDeps
+): StrokeSession {
+	let snapshot: Uint8Array | null = null;
+	let anchor: CanvasCoords | null = null;
+	let lastCurrent: CanvasCoords | null = null;
+
+	function redraw(): EditorEffects {
+		if (!anchor || !snapshot || !lastCurrent) return NO_EFFECTS;
+		deps.host.pixelCanvas.restore_pixels(snapshot);
+		const end = deps.isShiftHeld() ? spec.tool.constrainFn(anchor, lastCurrent) : lastCurrent;
+		spec.tool.onPreview(toolContext(spec, deps, deps.baseOps), anchor, end);
+		return CANVAS_CHANGED;
+	}
+
+	return {
+		start() {
+			deps.history.pushSnapshot();
+			snapshot = new Uint8Array(deps.host.pixelCanvas.pixels());
+			return spec.tool.addsActiveColor
+				? [{ type: 'addRecentColor', hex: colorToHex(spec.drawColor) }]
+				: NO_EFFECTS;
+		},
+		draw(current, previous) {
+			lastCurrent = current;
+			if (previous === null) {
+				anchor = current;
+				spec.tool.onAnchor(toolContext(spec, deps, deps.baseOps), current);
+				return CANVAS_CHANGED;
+			}
+			return redraw();
+		},
+		modifierChanged() {
+			if (!lastCurrent) return NO_EFFECTS;
+			return redraw();
+		},
+		end() {
+			return NO_EFFECTS;
+		}
+	};
+}
+
 function openLiveSampleSession(
 	spec: { drawButton: number; inputSource: LoupeInputSource },
 	deps: StrokeDeps
@@ -170,7 +214,7 @@ export function createStrokeSessions(deps: StrokeDeps): StrokeSessions {
 	return {
 		continuous: notImplemented,
 		oneShot: notImplemented,
-		shapePreview: notImplemented,
+		shapePreview: (spec) => openShapePreviewSession(spec, deps),
 		dragTransform: (spec) => openDragTransformSession(spec, deps),
 		liveSample: (spec) => openLiveSampleSession(spec, deps)
 	};

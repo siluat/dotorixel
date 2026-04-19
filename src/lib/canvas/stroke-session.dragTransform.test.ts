@@ -1,43 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createStrokeSessions, type StrokeDeps } from './stroke-session';
-import { createFakeDrawingOps, WHITE } from './fake-drawing-ops';
+import { BLACK, WHITE, createFakeDrawingOps, createFakePixelCanvas } from './fake-drawing-ops';
 import type { CanvasCoords, PixelCanvas } from './canvas-model';
-import type { Color } from './color';
 import type { DragTransformTool, ToolContext } from './draw-tool';
 import type { SamplingSession } from './sampling-session.svelte';
-
-const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
-
-interface FakePixelCanvas extends PixelCanvas {
-	readonly restoreCalls: ReadonlyArray<Uint8Array>;
-}
-
-function createFakePixelCanvas(width: number, height: number): FakePixelCanvas {
-	const state = new Uint8Array(width * height * 4);
-	const restoreCalls: Uint8Array[] = [];
-	return {
-		width,
-		height,
-		pixels: () => new Uint8Array(state),
-		get_pixel: () => ({ r: 0, g: 0, b: 0, a: 0 }),
-		restore_pixels(data) {
-			restoreCalls.push(new Uint8Array(data));
-			state.set(data);
-		},
-		is_inside_bounds: (x, y) => x >= 0 && y >= 0 && x < width && y < height,
-		clear() {
-			state.fill(0);
-		},
-		encode_png: () => new Uint8Array(),
-		encode_svg: () => '',
-		resize: () => {
-			throw new Error('resize not expected in dragTransform tests');
-		},
-		get restoreCalls() {
-			return restoreCalls;
-		}
-	};
-}
 
 function makeDeps(canvas: PixelCanvas): {
 	deps: StrokeDeps;

@@ -1,3 +1,4 @@
+import type { PixelCanvas } from './canvas-model';
 import type { Color } from './color';
 import type { DrawingOps, DrawingToolType } from './drawing-ops';
 
@@ -58,5 +59,46 @@ export function createFakeDrawingOps(
 		rectangleOutline: () => new Int32Array(),
 		ellipseOutline: () => new Int32Array(),
 		snapshot: () => new Map(pixels)
+	};
+}
+
+export interface FakePixelCanvas extends PixelCanvas {
+	/** Every `Uint8Array` passed to `restore_pixels`, in call order. */
+	readonly restoreCalls: ReadonlyArray<Uint8Array>;
+}
+
+/**
+ * In-memory PixelCanvas stub for session tests. Tracks every `restore_pixels`
+ * call so tests can assert snapshot-restore behavior without a WASM canvas.
+ * `encode_png`/`encode_svg`/`resize` throw to flag misuse — extend as needed.
+ */
+export function createFakePixelCanvas(width: number, height: number): FakePixelCanvas {
+	const state = new Uint8Array(width * height * 4);
+	const restoreCalls: Uint8Array[] = [];
+	return {
+		width,
+		height,
+		pixels: () => new Uint8Array(state),
+		get_pixel: () => ({ r: 0, g: 0, b: 0, a: 0 }),
+		restore_pixels(data) {
+			restoreCalls.push(new Uint8Array(data));
+			state.set(data);
+		},
+		is_inside_bounds: (x, y) => x >= 0 && y >= 0 && x < width && y < height,
+		clear() {
+			state.fill(0);
+		},
+		encode_png: () => {
+			throw new Error('createFakePixelCanvas: encode_png not implemented');
+		},
+		encode_svg: () => {
+			throw new Error('createFakePixelCanvas: encode_svg not implemented');
+		},
+		resize: () => {
+			throw new Error('createFakePixelCanvas: resize not implemented');
+		},
+		get restoreCalls() {
+			return restoreCalls;
+		}
 	};
 }

@@ -18,6 +18,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Move | — | ✅ | ⬜ | Drag to reposition canvas content, snapshot-restore preview, `move` cursor |
 | Right-click background color | — | ✅ | ⬜ | All tools draw with BG color on right-click; eraser unchanged |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |
+| Pixel-perfect filter | ✅ | ⬜ | ⬜ | L-corner 3-window rule (Aseprite-style); stateless with `TailState` carry; WASM + UniFFI bindings exported, shell integration pending |
 
 ## Canvas
 

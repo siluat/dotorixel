@@ -4,6 +4,9 @@ use dotorixel_core::canvas::{PixelCanvas, ResizeAnchor};
 use dotorixel_core::color::Color;
 use dotorixel_core::export::{PngExport, SvgExport};
 use dotorixel_core::history::{HistoryManager, Snapshot};
+use dotorixel_core::pixel_perfect::{
+    Action, FilterResult, TailState, pixel_perfect_filter,
+};
 use dotorixel_core::tool::{
     ToolType, ellipse_outline, interpolate_pixels, rectangle_outline,
 };
@@ -415,6 +418,89 @@ impl WasmHistoryManager {
     pub fn default_max_snapshots() -> usize {
         HistoryManager::DEFAULT_MAX_SNAPSHOTS
     }
+}
+
+// ---------------------------------------------------------------------------
+// Pixel Perfect filter
+// ---------------------------------------------------------------------------
+
+/// Discriminant encoded as the first `i32` of each triple in
+/// `WasmFilterResult::actions_flat`. Matches the TS import name.
+#[wasm_bindgen]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WasmActionKind {
+    Paint = 0,
+    Revert = 1,
+}
+
+/// Opaque result of one `wasm_pixel_perfect_filter` call.
+///
+/// Exposes actions and the updated tail via flat `Int32Array` accessors — the
+/// TS caller parses them. Wrapping avoids `wasm-bindgen` enum-with-data
+/// limitations.
+#[wasm_bindgen]
+pub struct WasmFilterResult {
+    inner: FilterResult,
+}
+
+#[wasm_bindgen]
+impl WasmFilterResult {
+    /// Actions as flat `i32` triples: `[kind0, x0, y0, kind1, x1, y1, ...]`.
+    /// `kind` discriminants are defined by [`WasmActionKind`].
+    pub fn actions_flat(&self) -> Vec<i32> {
+        let mut flat = Vec::with_capacity(self.inner.actions.len() * 3);
+        for action in &self.inner.actions {
+            let (kind, x, y) = match *action {
+                Action::Paint(x, y) => (WasmActionKind::Paint, x, y),
+                Action::Revert(x, y) => (WasmActionKind::Revert, x, y),
+            };
+            flat.push(kind as i32);
+            flat.push(x);
+            flat.push(y);
+        }
+        flat
+    }
+
+    /// Tail as flat `i32`: `[]` empty, `[x, y]` one, `[ax, ay, bx, by]` two.
+    pub fn new_tail_flat(&self) -> Vec<i32> {
+        match self.inner.new_tail {
+            TailState::Empty => vec![],
+            TailState::One(x, y) => vec![x, y],
+            TailState::Two(ax, ay, bx, by) => vec![ax, ay, bx, by],
+        }
+    }
+}
+
+/// Apply the L-corner filter to a batch of points.
+///
+/// `points` is flat `[x0, y0, x1, y1, ...]`; `prev_tail` is `[]`, `[x, y]`,
+/// or `[ax, ay, bx, by]` encoding the 0/1/2-point carry state.
+#[wasm_bindgen]
+pub fn wasm_pixel_perfect_filter(
+    points: &[i32],
+    prev_tail: &[i32],
+) -> Result<WasmFilterResult, JsError> {
+    if points.len() % 2 != 0 {
+        return Err(JsError::new("points length must be even"));
+    }
+    let point_vec: Vec<(i32, i32)> =
+        points.chunks_exact(2).map(|c| (c[0], c[1])).collect();
+
+    let tail = match prev_tail.len() {
+        0 => TailState::Empty,
+        2 => TailState::One(prev_tail[0], prev_tail[1]),
+        4 => TailState::Two(
+            prev_tail[0],
+            prev_tail[1],
+            prev_tail[2],
+            prev_tail[3],
+        ),
+        _ => return Err(JsError::new("prev_tail must have 0, 2, or 4 elements")),
+    };
+
+    Ok(WasmFilterResult {
+        inner: pixel_perfect_filter(&point_vec, tail),
+    })
 }
 
 // ---------------------------------------------------------------------------

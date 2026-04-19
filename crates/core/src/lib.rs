@@ -5,6 +5,7 @@ pub mod canvas;
 pub mod color;
 pub mod export;
 pub mod history;
+pub mod pixel_perfect;
 pub mod tool;
 pub mod viewport;
 pub use canvas::{PixelCanvasError, ResizeAnchor};

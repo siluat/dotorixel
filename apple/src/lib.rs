@@ -3,6 +3,9 @@ use std::sync::{Arc, Mutex};
 use dotorixel_core::canvas::PixelCanvas;
 use dotorixel_core::export::PngExport;
 use dotorixel_core::history::{HistoryManager, Snapshot};
+use dotorixel_core::pixel_perfect::{
+    FilterResult, TailState, pixel_perfect_filter,
+};
 use dotorixel_core::tool::interpolate_pixels;
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
 
@@ -71,6 +74,17 @@ fn apple_interpolate_pixels(x0: i32, y0: i32, x1: i32, y1: i32) -> Vec<ScreenCan
         .into_iter()
         .map(|(x, y)| ScreenCanvasCoords::new(x, y))
         .collect()
+}
+
+/// Apply the pixel-perfect L-corner filter. Wraps core `pixel_perfect_filter`
+/// with `ScreenCanvasCoords` inputs because UniFFI does not support tuples.
+#[uniffi::export]
+fn apple_pixel_perfect_filter(
+    points: Vec<ScreenCanvasCoords>,
+    prev_tail: TailState,
+) -> FilterResult {
+    let tuples: Vec<(i32, i32)> = points.into_iter().map(|p| (p.x, p.y)).collect();
+    pixel_perfect_filter(&tuples, prev_tail)
 }
 
 // --- Canvas constants ---

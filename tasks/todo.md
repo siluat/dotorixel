@@ -4,7 +4,6 @@
 
 - Pixel-perfect drawing — remove double-pixels at stroke joints — [PRD](../issues/069-pixel-perfect-drawing.md)
 
-  - [071 — Rust filter function](../issues/071-pixel-perfect-rust-filter.md)
   - [072 — Pencil integration](../issues/072-pixel-perfect-pencil-integration.md)
   - [073 — Eraser integration](../issues/073-pixel-perfect-eraser-integration.md)
   - [074 — topBar/mAppBar toggle + preference](../issues/074-pixel-perfect-toggle-ui.md)

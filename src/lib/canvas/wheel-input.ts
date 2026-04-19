@@ -78,12 +78,16 @@ export function createWheelInputClassifier(): WheelInputClassifier {
 			return 'wheelZoom';
 		}
 
-		// First ambiguous event — no timing history to override base classification.
+		// First ambiguous event — no timing history yet. Prefer the same safe
+		// default as the post-cooldown fall-through below: an unwanted pan is
+		// far less disruptive than an unwanted discrete zoom jump. The next
+		// slow event (within IDLE_TIMEOUT_MS) will confirm mouse wheel and
+		// correct classification for the rest of the session.
 		if (lastEventTime === 0) {
 			lastEventTime = now;
 			rapidEventCount = 1;
 			slowEventCount = 1;
-			return baseResult;
+			return 'trackpadPan';
 		}
 
 		const elapsed = now - lastEventTime;

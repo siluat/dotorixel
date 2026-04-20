@@ -5,7 +5,7 @@ import { pencilTool, eraserTool } from './tools/pencil-tool';
 import { createFloodfillTool } from './tools/floodfill-tool';
 import { eyedropperTool } from './tools/eyedropper-tool';
 import { moveTool } from './tools/move-tool';
-import { createShapeTool } from './tools/shape-tool';
+import { lineTool, rectangleTool, ellipseTool } from './tools/shape-tool';
 
 // ── Constrain helpers ──────────────────────────────────────────────
 
@@ -68,9 +68,9 @@ export interface ToolDef {
 const TOOL_DEFS = {
 	pencil:     { cursor: 'crosshair', shortcutKey: 'P', tool: pencilTool },
 	eraser:     { cursor: 'crosshair', shortcutKey: 'E', tool: eraserTool },
-	line:       { cursor: 'crosshair', shortcutKey: 'L', tool: (ops) => createShapeTool(ops, 'line',      ops.interpolatePixels, constrainLine) },
-	rectangle:  { cursor: 'crosshair', shortcutKey: 'U', tool: (ops) => createShapeTool(ops, 'rectangle', ops.rectangleOutline,  constrainSquare) },
-	ellipse:    { cursor: 'crosshair', shortcutKey: 'O', tool: (ops) => createShapeTool(ops, 'ellipse',   ops.ellipseOutline,    constrainSquare) },
+	line:       { cursor: 'crosshair', shortcutKey: 'L', tool: lineTool },
+	rectangle:  { cursor: 'crosshair', shortcutKey: 'U', tool: rectangleTool },
+	ellipse:    { cursor: 'crosshair', shortcutKey: 'O', tool: ellipseTool },
 	floodfill:  { cursor: 'crosshair', shortcutKey: 'F', tool: createFloodfillTool },
 	eyedropper: { cursor: 'crosshair', shortcutKey: 'I', tool: eyedropperTool },
 	move:       { cursor: 'move',      shortcutKey: 'V', tool: moveTool }

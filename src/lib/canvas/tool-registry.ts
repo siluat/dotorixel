@@ -1,7 +1,7 @@
 import type { DrawTool } from './draw-tool';
 import type { DrawingOps } from './drawing-ops';
 import type { CanvasCoords } from './canvas-model';
-import { createPencilTool, createEraserTool } from './tools/pencil-tool';
+import { pencilTool, eraserTool } from './tools/pencil-tool';
 import { createFloodfillTool } from './tools/floodfill-tool';
 import { eyedropperTool } from './tools/eyedropper-tool';
 import { moveTool } from './tools/move-tool';
@@ -66,8 +66,8 @@ export interface ToolDef {
  * Keys determine ToolType union and toolbar display order.
  */
 const TOOL_DEFS = {
-	pencil:     { cursor: 'crosshair', shortcutKey: 'P', tool: createPencilTool() },
-	eraser:     { cursor: 'crosshair', shortcutKey: 'E', tool: createEraserTool() },
+	pencil:     { cursor: 'crosshair', shortcutKey: 'P', tool: pencilTool },
+	eraser:     { cursor: 'crosshair', shortcutKey: 'E', tool: eraserTool },
 	line:       { cursor: 'crosshair', shortcutKey: 'L', tool: (ops) => createShapeTool(ops, 'line',      ops.interpolatePixels, constrainLine) },
 	rectangle:  { cursor: 'crosshair', shortcutKey: 'U', tool: (ops) => createShapeTool(ops, 'rectangle', ops.rectangleOutline,  constrainSquare) },
 	ellipse:    { cursor: 'crosshair', shortcutKey: 'O', tool: (ops) => createShapeTool(ops, 'ellipse',   ops.ellipseOutline,    constrainSquare) },

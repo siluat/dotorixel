@@ -93,7 +93,7 @@ function toolContext(
 	};
 }
 
-function openContinuousSession(
+export function openContinuousSession(
 	spec: { tool: ContinuousTool; drawColor: Color; drawButton: number },
 	deps: StrokeDeps
 ): StrokeSession {
@@ -125,7 +125,7 @@ function openContinuousSession(
 	};
 }
 
-function openDragTransformSession(
+export function openDragTransformSession(
 	spec: { tool: DragTransformTool; drawColor: Color; drawButton: number },
 	deps: StrokeDeps
 ): StrokeSession {
@@ -157,7 +157,7 @@ function openDragTransformSession(
 	};
 }
 
-function openShapePreviewSession(
+export function openShapePreviewSession(
 	spec: { tool: ShapePreviewTool; drawColor: Color; drawButton: number },
 	deps: StrokeDeps
 ): StrokeSession {
@@ -201,7 +201,7 @@ function openShapePreviewSession(
 	};
 }
 
-function openOneShotSession(
+export function openOneShotSession(
 	spec: { tool: OneShotTool; drawColor: Color; drawButton: number },
 	deps: StrokeDeps
 ): StrokeSession {
@@ -229,7 +229,7 @@ function openOneShotSession(
 	};
 }
 
-function openLiveSampleSession(
+export function openLiveSampleSession(
 	spec: { drawButton: number; inputSource: LoupeInputSource },
 	deps: StrokeDeps
 ): StrokeSession {

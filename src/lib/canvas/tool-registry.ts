@@ -2,7 +2,7 @@ import type { DrawTool } from './draw-tool';
 import type { DrawingOps } from './drawing-ops';
 import type { CanvasCoords } from './canvas-model';
 import { pencilTool, eraserTool } from './tools/pencil-tool';
-import { createFloodfillTool } from './tools/floodfill-tool';
+import { floodfillTool } from './tools/floodfill-tool';
 import { eyedropperTool } from './tools/eyedropper-tool';
 import { moveTool } from './tools/move-tool';
 import { lineTool, rectangleTool, ellipseTool } from './tools/shape-tool';
@@ -71,7 +71,7 @@ const TOOL_DEFS = {
 	line:       { cursor: 'crosshair', shortcutKey: 'L', tool: lineTool },
 	rectangle:  { cursor: 'crosshair', shortcutKey: 'U', tool: rectangleTool },
 	ellipse:    { cursor: 'crosshair', shortcutKey: 'O', tool: ellipseTool },
-	floodfill:  { cursor: 'crosshair', shortcutKey: 'F', tool: createFloodfillTool },
+	floodfill:  { cursor: 'crosshair', shortcutKey: 'F', tool: floodfillTool },
 	eyedropper: { cursor: 'crosshair', shortcutKey: 'I', tool: eyedropperTool },
 	move:       { cursor: 'move',      shortcutKey: 'V', tool: moveTool }
 } as const satisfies Record<string, ToolDef>;
@@ -93,7 +93,7 @@ export function getToolDef(type: ToolType): ToolDef {
 export function createAllTools(ops: DrawingOps): Record<ToolType, DrawTool> {
 	return Object.fromEntries(
 		TOOL_TYPES.map((type) => {
-			const t: ToolDef['tool'] = TOOL_DEFS[type].tool;
+			const t = TOOL_DEFS[type].tool as DrawTool | ((ops: DrawingOps) => DrawTool);
 			return [type, typeof t === 'function' ? t(ops) : t];
 		})
 	) as Record<ToolType, DrawTool>;

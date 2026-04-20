@@ -117,6 +117,17 @@ describe('tool registry', () => {
 		}
 	});
 
+	it('every registered tool exposes a callable open()', () => {
+		const canvas = canvasFactory.create(8, 8);
+		const ops = createDrawingOps(() => canvas);
+		const tools = createAllTools(ops);
+
+		for (const type of TOOL_TYPES) {
+			const tool = tools[type] as unknown as { open?: unknown };
+			expect(typeof tool.open).toBe('function');
+		}
+	});
+
 	it('isValidToolType accepts registered types and rejects unknown', () => {
 		for (const type of TOOL_TYPES) {
 			expect(isValidToolType(type)).toBe(true);

@@ -1,5 +1,6 @@
-import type { DragTransformTool, ToolContext } from '../draw-tool';
 import type { CanvasCoords } from '../canvas-model';
+import { CANVAS_CHANGED, NO_EFFECTS, type DragTransformTool } from '../draw-tool';
+import { customTool, type AuthoredTool } from '../tool-authoring';
 
 /**
  * Shifts pixel data by (dx, dy) within the same canvas dimensions.
@@ -35,19 +36,57 @@ export function shiftPixels(
 	return result;
 }
 
-/** Shifts all canvas pixels by drag delta from the initial click point. */
-export const moveTool: DragTransformTool = {
-	kind: 'dragTransform',
+/**
+ * Shifts all canvas pixels by drag delta from the initial click point. The
+ * first sample marks the anchor; subsequent samples restore the original
+ * snapshot and re-shift by the delta so the transform is always relative to
+ * the drag origin.
+ */
+export const moveTool: DragTransformTool & AuthoredTool = customTool({
+	id: 'move',
+	legacy: {
+		kind: 'dragTransform',
+		applyTransform(ctx, snapshot, start, current): void {
+			const dx = current.x - start.x;
+			const dy = current.y - start.y;
+			const shifted = shiftPixels(snapshot, ctx.canvas.width, ctx.canvas.height, dx, dy);
+			ctx.canvas.restore_pixels(shifted);
+		}
+	},
+	open(host) {
+		let snapshot: Uint8Array | null = null;
+		let anchor: CanvasCoords | null = null;
 
-	applyTransform(
-		ctx: ToolContext,
-		snapshot: Uint8Array,
-		start: CanvasCoords,
-		current: CanvasCoords
-	): void {
-		const dx = current.x - start.x;
-		const dy = current.y - start.y;
-		const shifted = shiftPixels(snapshot, ctx.canvas.width, ctx.canvas.height, dx, dy);
-		ctx.canvas.restore_pixels(shifted);
+		return {
+			start() {
+				host.history.pushSnapshot();
+				snapshot = new Uint8Array(host.pixelCanvas.pixels());
+				return NO_EFFECTS;
+			},
+			draw(current, previous) {
+				if (previous === null) {
+					anchor = current;
+					return NO_EFFECTS;
+				}
+				if (!anchor || !snapshot) return NO_EFFECTS;
+				const dx = current.x - anchor.x;
+				const dy = current.y - anchor.y;
+				const shifted = shiftPixels(
+					snapshot,
+					host.pixelCanvas.width,
+					host.pixelCanvas.height,
+					dx,
+					dy
+				);
+				host.pixelCanvas.restore_pixels(shifted);
+				return CANVAS_CHANGED;
+			},
+			modifierChanged() {
+				return NO_EFFECTS;
+			},
+			end() {
+				return NO_EFFECTS;
+			}
+		};
 	}
-};
+});

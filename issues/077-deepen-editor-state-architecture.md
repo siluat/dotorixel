@@ -1,6 +1,6 @@
 ---
 title: Deepen editor state — split god object into layered TabState / Workspace / EditorController with ports
-status: open
+status: done
 created: 2026-04-22
 ---
 
@@ -276,3 +276,43 @@ The current `editor-state.svelte.test.ts` overlaps heavily with those lower-laye
 - **`DirtyNotifier` as a persistence integration seam.** Future persistence backends (cloud sync, project-file-format saves, undo-group batching) can adapt the port without changing the state layers.
 - **`CanvasBackend` as an Apple-shell seam.** If the Apple shell ever wants to reuse the TypeScript session layers (with a Metal-backed canvas implementation bridged through UniFFI), `CanvasBackend` is the swap point. This is an option the refactor keeps open, not a commitment to implement.
 - **Convenience-getter contract as project convention.** Short-form `editor.X` is the preferred common-case read path; long-form `editor.workspace.shared.X` / `editor.workspace.activeTab.X` / `editor.keyboard.X` is the explicit escape hatch for persistence, test, and debug code where ownership must be visible. This convention should be documented near the `EditorController` type definition (class-level doc comment) so future contributors pick the right path by default.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/editor-session/canvas-backend.ts` | New umbrella port aggregating `CanvasFactory` / `CanvasConstraints` / `ViewportOps` / history + drawing factories into a single injection seam |
+| `src/lib/canvas/editor-session/dirty-notifier.ts` | New persistence port (`markDirty`, `notifyTabRemoved`) with `autoSaveDirtyNotifier` production adapter |
+| `src/lib/canvas/editor-session/fake-dirty-notifier.ts` | Array-capture test fake for asserting dirty-notification contracts |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Pure per-tab state — owns canvas/viewport/history/sampling/tool-runner; auto-emits `markDirty` |
+| `src/lib/canvas/editor-session/tab-state.svelte.test.ts` | Behavior spec for `TabState` — ownership, effect dispatch, undo across resize, snapshot round-trip |
+| `src/lib/canvas/editor-session/workspace.svelte.ts` | Tabs + `SharedState` + dirty fan-out; `createTab` canonical producer |
+| `src/lib/canvas/editor-session/workspace.svelte.test.ts` | Parity tests with the old `Workspace` suite plus explicit dirty-notification assertions |
+| `src/lib/canvas/editor-session/editor-controller.svelte.ts` | UI facade — convenience getters, 4 setters, handlers delegating to workspace/keyboard |
+| `src/lib/canvas/editor-session/editor-controller.svelte.test.ts` | Boundary tests — getter projection, setter routing, handler delegation, escape hatches |
+| `src/lib/canvas/editor-session/create-editor-controller.ts` | Composition root factory resolving the keyboard ↔ tool-runner circular init with forward-declared closure |
+| `src/lib/canvas/wasm-backend.ts` | Added `wasmBackend: CanvasBackend` composite export |
+| `src/lib/canvas/keyboard-input.svelte.ts` | Stale JSDoc updated (`EditorState.handleDrawEnd` → `EditorController.handleDrawEnd`) |
+| `src/lib/canvas/tool-runner.svelte.ts` | Stale references updated (`EditorState` → `TabState`) in two doc comments |
+| `src/lib/canvas/shared-state.svelte.test.ts` | Removed `EditorState — SharedState integration` block (coverage now in `tab-state` / `workspace` suites); kept standalone defaults test |
+| `src/lib/session/session.ts` | Switched session orchestrator to `createEditorController` / `EditorController`; removed manual `markDirty` / `notifyTabClosed` threading |
+| `src/lib/session/session.test.ts` | Updated assertions to match new controller contract |
+| `src/routes/editor/+page.svelte` | Atomic consumer switch — `EditorState` → `EditorController`, removed 7 manual session-dirty calls and the `renderVersion` effect |
+| `src/lib/canvas/editor-state.svelte.ts` | Deleted (368 LOC) |
+| `src/lib/canvas/editor-state.svelte.test.ts` | Deleted (1210 LOC) — coverage redistributed |
+| `src/lib/canvas/workspace.svelte.ts` | Deleted (134 LOC) |
+| `src/lib/canvas/workspace.svelte.test.ts` | Deleted (367 LOC) — coverage redistributed |
+
+### Key Decisions
+
+- **Auto-dirty emission instead of manual fan-out.** `TabState` and `Workspace` internally invoke `DirtyNotifier` on every persistable mutation; the 7 manual `autoSave.markDirty(...)` and `renderVersion` `$effect` in `+page.svelte` are gone. Contract is locked by `TabState` / `Workspace` unit tests.
+- **Mixed dependency strategy.** Pure state layers (`TabState`, `Workspace`) ship as in-process classes; cross-boundary concerns (`CanvasBackend`, `DirtyNotifier`) are ports. Consumer tests inject the real `wasmBackend` — WASM under happy-dom is fast and accurate, so the initial `fake-canvas-backend.ts` draft (315 LOC) was dropped in a cleanup commit.
+- **Composition root as a factory, not a two-step init.** `createEditorController({ backend, notifier, ... })` resolves the keyboard ↔ tool-runner circular reference via a forward-declared `let workspace` + closures in keyboard-host callbacks. No partial-state foot-guns for callers.
+- **Minimal setter surface on the facade.** `EditorController` exposes only `setTool`, `setForegroundColor`, `setBackgroundColor`, `togglePixelPerfect`. All other mutations go through the explicit escape hatches (`editor.workspace.shared.X`, `editor.workspace.activeTab.X`, `editor.keyboard.X`) to prevent the facade from regrowing into a god object.
+
+### Notes
+
+- **Latent keyboard-state bug fixed as a side effect.** The old `EditorState` architecture constructed a per-tab `KeyboardInput`, so keys held down during a tab switch (Space for pan, Shift for constrain) stayed "held" on the previous tab's state. The new architecture owns a single `KeyboardInput` on `EditorController`, which removes the bug structurally — a real correctness gain on top of the structural deepening.
+- **Test LOC net reduction despite more modules.** Total source LOC grew from 502 → 878 (+74%, justified by real interfaces and injected ports), but test LOC fell from 1577 → 1181 (−396). Coverage moved from wide integration tests on the god object to focused boundary tests per layer, producing better signal with less code.
+- **`editor-state.svelte.test.ts` (1210 LOC) not mechanically ported.** Coverage was redistributed into `tab-state`, `workspace` (new), and `editor-controller` suites plus the untouched lower-layer suites (`tool-runner`, `stroke-engine`, `shape-tool`, `pixel-perfect-ops`, `keyboard-input`, `shared-state`). If a specific behavior turns out uncovered in practice, it can be added to the matching new suite.
+- **No `parent` field in frontmatter** — this issue stands alone, so no sibling-completion check applies.

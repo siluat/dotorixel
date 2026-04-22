@@ -79,7 +79,7 @@ Internally, `createEditorController` forward-declares `workspace`, constructs `k
 
 **Session persistence**. The composition root wires the `DirtyNotifier` port to the `AutoSave` instance and passes it to `Workspace` (which in turn injects it into each `TabState`). Every mutation `TabState` and `Workspace` perform invokes the port; no caller outside the session layers threads dirty notifications manually. Save and restore operate on `Workspace.toSnapshot()` / a restore path driven by `createEditorController({ restored })`.
 
-**Unit test**. Each layer is instantiable alone with a pure-TypeScript `CanvasBackend` fake and an array-capture `DirtyNotifier` fake. A test can construct a `TabState` to assert undo-across-resize, a `Workspace` to assert that `shared.activeTool` propagates and that `closeTab` notifies the port, or an `EditorController` with a fake workspace to assert handler dispatch — without instantiating the others and without WASM.
+**Unit test**. Each layer is instantiable alone with the production `wasmBackend` (fast and accurate under happy-dom) and an array-capture `DirtyNotifier` fake. A test can construct a `TabState` to assert undo-across-resize, a `Workspace` to assert that `shared.activeTool` propagates and that `closeTab` notifies the port, or an `EditorController` to assert handler dispatch — without depending on the others.
 
 ### What the interface hides
 
@@ -95,20 +95,21 @@ Internally, `createEditorController` forward-declares `workspace`, constructs `k
 
 Seven commits. Commits 1–5 are additive scaffolding; Commit 6 is the atomic switch; Commit 7 is the atomic deletion. Every commit must leave `main` green under the three-check gate (`bun run check`, `bun run test`, `cargo test`). Commits 1–5 and 7 introduce no observable behavior change; Commit 6 is the only commit that changes runtime object identity, and it must preserve behavior (verified by manual Playwright E2E and Storybook smoke).
 
-### Commit 1 — `feat: introduce CanvasBackend umbrella port + fake`
+### Commit 1 — `feat: introduce CanvasBackend umbrella port`
 
 Create the umbrella port that aggregates the existing individual adapters (`CanvasFactory`, `CanvasConstraints`, `ViewportOps`, `HistoryManager` factory, `DrawingOps` factory) into a single injection point.
 
 New files:
 
 - `src/lib/canvas/editor-session/canvas-backend.ts` — the `CanvasBackend` interface.
-- `src/lib/canvas/editor-session/fake-canvas-backend.ts` — a pure-TypeScript fake composed from existing `createFakePixelCanvas` / `createFakeDrawingOps` primitives plus new in-memory `ViewportOps` and `HistoryManager` shims. Returns a full `CanvasBackend`.
 
 Modifications:
 
 - `src/lib/canvas/wasm-backend.ts` — add a `wasmBackend: CanvasBackend` export that composes the existing `canvasFactory`, `canvasConstraints`, `viewportOps`, `createHistoryManager`, `createDrawingOps` values. Existing individual exports are unchanged; callers not yet migrated continue to import them.
 
 No consumers change. Additive only.
+
+**Note (2026-04-22)**: An initial draft of this commit also introduced `fake-canvas-backend.ts` (315 LOC) for WASM-free unit tests, per an earlier "no WASM in tests" testing strategy. That file was dropped in a subsequent cleanup commit after verification that existing session-level tests (`editor-state.svelte.test.ts`, `workspace.svelte.test.ts`, `tool-runner.svelte.test.ts`) already use `wasmBackend` / `canvasFactory` directly under happy-dom without issue. Consumer tests (Commits 3–5) use `wasmBackend` rather than a fake. See Testing Decisions below.
 
 ### Commit 2 — `feat: introduce TabState (per-tab editor session) + tests`
 
@@ -117,7 +118,7 @@ Create the per-tab state layer with its own `ToolRunner` internally, auto-dirty 
 New files:
 
 - `src/lib/canvas/editor-session/tab-state.svelte.ts` — `TabState` class. `TabStateDeps` bag: `backend`, `shared`, `keyboard` (`{ getShiftHeld(): boolean }`), `notifier`, `documentId`, `canvasConfig`. Owns `$state`-backed canvas/viewport/renderVersion/resizeAnchor/isExportUIOpen, owns `samplingSession`, owns `toolRunner` wired to a host that projects `pixelCanvas` (own) and `foregroundColor`/`backgroundColor` (from `shared`). Methods: `drawStart`/`draw`/`drawEnd` (dispatch `ToolRunner` effects internally — `canvasChanged` bumps `renderVersion` and calls `notifier.markDirty`, `canvasReplaced` swaps the canvas, `addRecentColor` calls `shared.addRecentColor`, `colorPick` sets `shared.foregroundColor`), `undo`, `redo`, `clear`, `pushHistorySnapshot`, `resize`, `toSnapshot`.
-- `src/lib/canvas/editor-session/tab-state.svelte.test.ts` — unit tests using `createFakeCanvasBackend()` + `createFakeDirtyNotifier()` + a plain `SharedState` + a `{ getShiftHeld: () => false }` stub. Assertions: ownership (canvas/viewport are owned, shared is referenced), renderVersion increments on `canvasChanged`, auto-emit on mutation, undo across resize uses `canvasReplaced` path, effect dispatcher handles all `EditorEffect` variants, snapshot round-trips preserve state.
+- `src/lib/canvas/editor-session/tab-state.svelte.test.ts` — unit tests using the production `wasmBackend` + `createFakeDirtyNotifier()` + a plain `SharedState` + a `{ getShiftHeld: () => false }` stub. Assertions: ownership (canvas/viewport are owned, shared is referenced), renderVersion increments on `canvasChanged`, auto-emit on mutation, undo across resize uses `canvasReplaced` path, effect dispatcher handles all `EditorEffect` variants, snapshot round-trips preserve state.
 
 No consumers change.
 
@@ -151,7 +152,7 @@ New files:
 
 - `src/lib/canvas/editor-session/editor-controller.svelte.ts` — `EditorController` class. Constructor: `constructor(readonly workspace: Workspace, readonly keyboard: KeyboardInput)`. Exposes all convenience getters listed under "Layer 3" above as plain getter proxies. Setter methods: `setTool`, `setForegroundColor`, `setBackgroundColor`, `togglePixelPerfect`. Handler delegators forward to `workspace.activeTab.X` or `keyboard.X`. `workspace` and `keyboard` are `readonly` fields — exposing them IS the escape hatch.
 - `src/lib/canvas/editor-session/create-editor-controller.ts` — the composition root factory. Takes `{ backend, notifier, initialDocument | restored }`. Internally: creates `SharedState`, forward-declares `workspace`, creates `keyboard` with a host whose callbacks close over `workspace`, creates `workspace` with `{ getShiftHeld: () => keyboard.isShiftHeld }`, returns `new EditorController(workspace, keyboard)`.
-- `src/lib/canvas/editor-session/editor-controller.svelte.test.ts` — unit tests. Assertions: every getter projects the correct underlying value (test all 18+ getters with a minimal fake workspace or `createEditorController` + fake ports), setter methods route correctly (e.g., `setTool('line')` updates `workspace.shared.activeTool` and triggers `notifier.markDirty`), handler delegation (`handleUndo` calls `workspace.activeTab.undo`), keyboard projections reflect `keyboard.isSpaceHeld`, escape hatches (`editor.workspace`, `editor.keyboard`) return the constructor-injected instances.
+- `src/lib/canvas/editor-session/editor-controller.svelte.test.ts` — unit tests. Assertions: every getter projects the correct underlying value (test all 18+ getters with `createEditorController({ backend: wasmBackend, notifier: createFakeDirtyNotifier(), ... })`), setter methods route correctly (e.g., `setTool('line')` updates `workspace.shared.activeTool` and triggers `notifier.markDirty`), handler delegation (`handleUndo` calls `workspace.activeTab.undo`), keyboard projections reflect `keyboard.isSpaceHeld`, escape hatches (`editor.workspace`, `editor.keyboard`) return the constructor-injected instances.
 
 No consumers change.
 
@@ -192,7 +193,7 @@ This is the only irreversible commit in the sequence. Revert plan: `git revert` 
 Mixed: **in-process** for the pure state layers, **ports & adapters** for the two cross-boundary concerns.
 
 - `TabState` and `Workspace` are merged directly into the deepened module — they own their data, their reactivity is a Svelte 5 runtime implementation detail, and they have no I/O. They accept ambient references (`SharedState`, keyboard callback bag, `DirtyNotifier`) via constructor injection but do not treat them as ports requiring interface stability.
-- `CanvasBackend` is the port for WASM-backed construction of canvases, viewports, history managers, and drawing operations. The production adapter is `wasmBackend`, composed from the existing individual exports (`canvasFactory`, `canvasConstraints`, `viewportOps`, `createHistoryManager`, `createDrawingOps`). The test adapter is a pure-TypeScript `createFakeCanvasBackend()` composed from existing fake primitives. Tests never touch WASM.
+- `CanvasBackend` is the port for WASM-backed construction of canvases, viewports, history managers, and drawing operations. The production adapter is `wasmBackend`, composed from the existing individual exports (`canvasFactory`, `canvasConstraints`, `viewportOps`, `createHistoryManager`, `createDrawingOps`). **Consumer tests use `wasmBackend` directly** — WASM initializes cleanly under happy-dom, matches real behavior exactly, and avoids the double-implementation burden of a pure-TypeScript fake. The port still exists to keep the Apple-shell swap point open (a Metal-backed adapter is still possible later without changing session-layer code).
 - `DirtyNotifier` is the port for persistence dirty notifications. Two methods only: `markDirty(documentId)` and `notifyTabRemoved(documentId)` — mirror the existing `AutoSave` API exactly so the production adapter is trivial. Test adapter is an array-capture fake. Tests never touch IndexedDB.
 - `SamplingSession`, `ToolRunner`, and `KeyboardInput` remain in-process factories — `SamplingSession` and `ToolRunner` are constructed inside `TabState`; `KeyboardInput` is constructed inside `createEditorController` and owned by `EditorController`.
 
@@ -215,7 +216,7 @@ Mixed: **in-process** for the pure state layers, **ports & adapters** for the tw
 
 | # | Type | Scope | Consumers touched |
 |---|---|---|---|
-| 1 | additive | `CanvasBackend` port + fake | 0 |
+| 1 | additive | `CanvasBackend` port | 0 |
 | 2 | additive | `TabState` + tests | 0 |
 | 3 | additive | `DirtyNotifier` port + fake | 0 |
 | 4 | additive | `Workspace` (new) + tests | 0 |
@@ -229,8 +230,8 @@ A good test is a behavioral specification: a reader unfamiliar with the implemen
 
 ### What gets tested where
 
-- **`CanvasBackend` port (Commit 1)** — no new tests. The port is a pure interface; the production adapter is a literal composition of already-tested values; the fake is exercised transitively through `TabState` and `Workspace` tests.
-- **`TabState` (Commit 2)** — new file `editor-session/tab-state.svelte.test.ts`. Behaviors tested: per-tab ownership (canvas/viewport/history/samplingSession are owned; `shared` is referenced only), `renderVersion` increments on `canvasChanged` effect, `canvasReplaced` swaps the underlying canvas and increments `renderVersion`, `addRecentColor` effect propagates to `shared`, `colorPick` effect propagates to `shared.foregroundColor`, auto-emit of `markDirty(documentId)` on mutation, undo-across-resize round-trips canvas dimensions, `toSnapshot` captures the full per-tab state.
+- **`CanvasBackend` port (Commit 1)** — no new tests. The port is a pure interface; the production adapter is a literal composition of already-tested values; consumer tests exercise it through `wasmBackend` directly.
+- **`TabState` (Commit 2)** — new file `editor-session/tab-state.svelte.test.ts`. Behaviors tested: per-tab ownership (canvas/viewport/history/samplingSession are owned; `shared` is referenced only), `renderVersion` increments on `canvasChanged` effect, `canvasReplaced` swaps the underlying canvas and increments `renderVersion`, `addRecentColor` effect propagates to `shared`, `colorPick` effect propagates to `shared.foregroundColor`, auto-emit of `markDirty(documentId)` on mutation, undo-across-resize round-trips canvas dimensions, `toSnapshot` captures the full per-tab state. Wired with `wasmBackend` + `createFakeDirtyNotifier()`.
 - **`DirtyNotifier` port (Commit 3)** — no new tests. The interface is two-method; the production adapter is a literal object; the fake is exercised transitively through `TabState` and `Workspace` tests.
 - **`Workspace` new (Commit 4)** — new file `editor-session/workspace.svelte.test.ts`. Parity with existing `src/lib/canvas/workspace.svelte.test.ts` (28 behaviors) plus new assertions for dirty-notification contract: `closeTab` calls `notifier.notifyTabRemoved(documentId)` exactly once with the removed tab's id; every `shared` setter triggers `markDirty(activeDocumentId)`; `addTab` triggers `markDirty` for the new tab; `openDocument` triggers `markDirty` for the loaded document.
 - **`EditorController` (Commit 5)** — new file `editor-session/editor-controller.svelte.test.ts`. Facade-scoped tests: every convenience getter projects the correct underlying value, every setter routes to `workspace.shared` (and triggers auto-dirty), every handler delegates to the correct owner (`handleUndo` → `workspace.activeTab.undo`, `handleKeyDown` → `keyboard.handleKeyDown`), `editor.workspace` and `editor.keyboard` return the injected instances (escape hatches intact), `createEditorController` returns a fully wired controller and the circular closure resolves correctly under a draw + keyboard interaction.
@@ -248,13 +249,15 @@ The current `editor-state.svelte.test.ts` overlaps heavily with those lower-laye
 
 ### Prior art
 
-`tool-runner.svelte.test.ts` already uses `createFakeDrawingOps` / `createFakePixelCanvas` + plain `SharedState` + stub callbacks to unit-test effect dispatch without WASM. This refactor extends that pattern one layer up (`TabState` composes a `ToolRunner` and tests the combined effect dispatcher the same way).
+`tool-runner.svelte.test.ts` composes the real `canvasFactory` from `wasm-backend.ts` with a plain `SharedState` + stub callbacks to unit-test effect dispatch. The existing `editor-state.svelte.test.ts` and `workspace.svelte.test.ts` likewise instantiate their subjects directly (which internally use WASM). WASM initializes cleanly under happy-dom + Vitest, so consumer tests for the new session layers follow the same pattern.
+
+(The lower-level `fake-drawing-ops.ts` + `createFakePixelCanvas` primitives exist for tool-authoring algorithm tests — `continuous-tool.test.ts`, `shape-tool.test.ts`, `pixel-perfect-ops.test.ts` — where the unit under test is a tool definition, not a canvas session. Session-layer tests do not use them.)
 
 `076-deepen-tool-dispatch.md` established the "sugar first, engine last" shape with green commits all the way through and a single irreversible deletion commit. This plan follows the same pattern at a smaller commit count (7 vs 11) because the two ports already exist in the codebase as individual adapters — there is less net-new surface to build.
 
 ### Test environment needs
 
-- A pure-TypeScript `createFakeCanvasBackend()` colocated in `editor-session/`, composing `createFakePixelCanvas` / `createFakeDrawingOps` (existing) with new in-memory `ViewportOps` and `HistoryManager` shims. No new test framework, no WASM in any test.
+- Consumer tests use the production `wasmBackend` from `src/lib/canvas/wasm-backend.ts`. WASM loads cleanly under happy-dom; no special setup required (same pattern as existing `editor-state.svelte.test.ts`, `workspace.svelte.test.ts`, `tool-runner.svelte.test.ts`).
 - A `createFakeDirtyNotifier()` array-capture fake colocated in `editor-session/`. No IndexedDB.
 - No new test environment beyond `happy-dom + Vitest`.
 

@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 45 | 37 | 8 | 35 | 82% | 51% |
-| cubic-dev-ai[bot] | 28 | 24 | 4 | 42 | 86% | 36% |
-| coderabbitai[bot] | 56 | 38 | 18 | 31 | 68% | 55% |
+| greptile-apps[bot] | 46 | 38 | 8 | 35 | 83% | 52% |
+| cubic-dev-ai[bot] | 31 | 25 | 6 | 43 | 81% | 37% |
+| coderabbitai[bot] | 56 | 38 | 18 | 32 | 68% | 54% |
 
 ## Log
 
@@ -251,3 +251,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #164 | coderabbitai[bot] | Reject | `closeTab` index validation — internal API, project trusts internal callers per CLAUDE.md |
 | #164 | greptile-apps[bot] | Miss | Did not flag test redundancy masking `Workspace.closeTab` auto-notifier path |
 | #164 | coderabbitai[bot] | Miss | Did not flag `activeTabIndex` bounds-check gap on hydration |
+| #164 | greptile-apps[bot] | Accept | Missing `foregroundColor` in `openSession` call — new users see dark-gray→black flick on fresh session |
+| #164 | cubic-dev-ai[bot] | Accept | Clamp restored `activeTabIndex` on hydration (duplicate of greptile finding) |
+| #164 | cubic-dev-ai[bot] | Reject | `closeTab` index validation (duplicate of coderabbitai rejection) — internal API, trust callers |
+| #164 | cubic-dev-ai[bot] | Reject | `setActiveTab` index validation — internal API, same rationale as closeTab |
+| #164 | coderabbitai[bot] | Miss | Did not flag missing `foregroundColor` in `openSession` call |
+| #164 | cubic-dev-ai[bot] | Miss | Did not flag missing `foregroundColor` in `openSession` call |

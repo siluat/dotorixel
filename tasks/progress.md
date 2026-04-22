@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-Deepen tool dispatch — author sugar constructors + opaque stroke engine ([issue](../issues/076-deepen-tool-dispatch.md))
+Deepen editor state — split god object into layered TabState / Workspace / EditorController with ports ([issue](../issues/077-deepen-editor-state-architecture.md))
 
 ## Next Up
 
@@ -16,3 +16,5 @@ Deepen tool dispatch — author sugar constructors + opaque stroke engine ([issu
   - Independent. Can start immediately.
 - [019 — StatusBar (Apple Native)](../issues/019-apple-status-bar.md)
   - Same PRD as 018. Can start independently.
+- Deepen per-stroke state — StrokeSession factory with typed openers ([plan](../issues/075-deepen-stroke-session.md))
+  - Review-backlog refactor. Can start immediately.

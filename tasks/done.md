@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 077 | [Deepen editor state — split god object into layered TabState / Workspace / EditorController with ports](../issues/077-deepen-editor-state-architecture.md) | 2026-04-22 |
 | 076 | [Deepen tool dispatch — author sugar constructors + opaque stroke engine](../issues/076-deepen-tool-dispatch.md) | 2026-04-22 |
 | 074 | [Pixel Perfect — topBar/mAppBar toggle and preference persistence](../issues/074-pixel-perfect-toggle-ui.md) | 2026-04-19 |
 | 073 | [Pixel Perfect — Eraser integration](../issues/073-pixel-perfect-eraser-integration.md) | 2026-04-19 |

@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Workspace } from '$lib/canvas/workspace.svelte';
-	import type { EditorState } from '$lib/canvas/editor-state.svelte';
+	import { createEditorController } from '$lib/canvas/editor-session/create-editor-controller';
+	import type { EditorController } from '$lib/canvas/editor-session/editor-controller.svelte';
+	import type { TabState } from '$lib/canvas/editor-session/tab-state.svelte';
+	import { wasmBackend } from '$lib/canvas/wasm-backend';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 	import { createLayoutMode } from '$lib/ui-editor/layout-mode.svelte';
 	import TopBar from '$lib/ui-editor/TopBar.svelte';
@@ -38,13 +40,14 @@
 
 	type MobileTab = 'draw' | 'colors' | 'settings';
 
-	let workspace = $state(
-		new Workspace({
-			foregroundColor: { r: 45, g: 45, b: 45, a: 255 },
+	let editor = $state<EditorController>(
+		createEditorController({
+			backend: wasmBackend,
+			notifier: { markDirty() {}, notifyTabRemoved() {} },
+			initialForegroundColor: { r: 45, g: 45, b: 45, a: 255 },
 			gridColor: '#ECE5D9'
 		})
 	);
-	const editor = $derived(workspace.activeEditor);
 	const pixelPerfectDisabled = $derived(
 		editor.activeTool !== 'pencil' && editor.activeTool !== 'eraser'
 	);
@@ -52,16 +55,16 @@
 	const layout = createLayoutMode();
 	let activeTab: MobileTab = $state('draw');
 	let canvasContainerEl: HTMLDivElement | undefined = $state();
-	const fittedEditors = new WeakSet<EditorState>();
+	const fittedTabs = new WeakSet<TabState>();
 	let session: SessionHandle | undefined;
 	let saveDialogTabIndex: number | null = $state(null);
 	let browserDocuments: SavedDocumentSummary[] | null = $state(null);
 
-	function initEditorViewport(ed: EditorState, width: number, height: number) {
-		ed.viewportSize = { width, height };
-		if (!fittedEditors.has(ed)) {
-			fittedEditors.add(ed);
-			ed.handleFit(1.0);
+	function initTabViewport(tab: TabState, width: number, height: number) {
+		tab.viewportSize = { width, height };
+		if (!fittedTabs.has(tab)) {
+			fittedTabs.add(tab);
+			tab.zoomFit(1.0);
 		}
 	}
 
@@ -74,25 +77,21 @@
 	}
 
 	function handleAddTab() {
-		workspace.addTab();
-		session?.markDirty(workspace.activeEditor.documentId);
+		editor.workspace.addTab();
 	}
 
 	function handlePixelPerfectToggle() {
 		if (pixelPerfectDisabled) return;
-		editor.handlePixelPerfectToggle();
-		session?.markDirty(workspace.activeEditor.documentId);
+		editor.togglePixelPerfect();
 	}
 
 	async function closeTabImmediately(index: number) {
-		const removedDocId = workspace.tabs[index].documentId;
 		await session?.flush();
-		workspace.closeTab(index);
-		session?.notifyTabClosed(removedDocId);
+		editor.workspace.closeTab(index);
 	}
 
 	async function handleCloseTab(index: number) {
-		const tab = workspace.tabs[index];
+		const tab = editor.workspace.tabs[index];
 		const isSaved = await session?.isDocumentSaved(tab.documentId) ?? false;
 
 		if (isSaved) {
@@ -111,23 +110,21 @@
 	async function handleSaveDialogSave(name: string) {
 		if (saveDialogTabIndex === null) return;
 		const closeIndex = saveDialogTabIndex;
-		const tab = workspace.tabs[closeIndex];
+		const tab = editor.workspace.tabs[closeIndex];
 		const docId = tab.documentId;
 		await session?.flush();
 		await session?.saveDocumentAs(docId, name);
 		saveDialogTabIndex = null;
-		workspace.closeTab(closeIndex);
-		session?.notifyTabClosed(docId);
+		editor.workspace.closeTab(closeIndex);
 	}
 
 	async function handleSaveDialogDelete() {
 		if (saveDialogTabIndex === null) return;
-		const tab = workspace.tabs[saveDialogTabIndex];
+		const tab = editor.workspace.tabs[saveDialogTabIndex];
 		const docId = tab.documentId;
 		const closeIndex = saveDialogTabIndex;
 		saveDialogTabIndex = null;
-		workspace.closeTab(closeIndex);
-		session?.notifyTabClosed(docId);
+		editor.workspace.closeTab(closeIndex);
 		await session?.deleteDocument(docId);
 	}
 
@@ -138,14 +135,13 @@
 	async function handleBrowseSavedWork() {
 		if (!session) return;
 		await session.flush();
-		const openIds = new Set(workspace.tabs.map((t) => t.documentId));
+		const openIds = new Set(editor.workspace.tabs.map((t) => t.documentId));
 		const docs = await session.getAllSavedDocuments();
 		browserDocuments = docs.filter((d) => !openIds.has(d.id));
 	}
 
 	function handleBrowserSelect(doc: SavedDocumentSummary) {
-		workspace.openDocument(doc);
-		session?.markDirty(workspace.activeEditor.documentId);
+		editor.workspace.openDocument(doc);
 		browserDocuments = null;
 	}
 
@@ -175,16 +171,20 @@
 		const sessionStart = Date.now();
 
 		// Expose the async-restore phase so E2E can await a deterministic
-		// ready state. The initial Workspace above is a transient default
+		// ready state. The initial controller above is a transient default
 		// that `openSession` replaces once IDB restore resolves; asserting
 		// on persisted state before the swap would race.
 		document.documentElement.dataset.sessionState = 'loading';
 
-		openSession({ gridColor: '#ECE5D9' }).then((result) => {
-			workspace = result.workspace;
+		openSession({
+			backend: wasmBackend,
+			gridColor: '#ECE5D9',
+			foregroundColor: { r: 45, g: 45, b: 45, a: 255 }
+		}).then((result) => {
+			editor = result.editor;
 			session = result.session;
-			for (const tab of workspace.tabs) {
-				fittedEditors.add(tab);
+			for (const tab of editor.workspace.tabs) {
+				fittedTabs.add(tab);
 			}
 			document.documentElement.dataset.sessionState = 'restored';
 		});
@@ -208,27 +208,15 @@
 		prevTool = tool;
 	});
 
-	// Auto-save: track canvas changes per editor
-	const lastSeenVersions = new Map<EditorState, number>();
-	$effect(() => {
-		const currentEditor = editor;
-		const version = currentEditor.renderVersion;
-		const lastSeen = lastSeenVersions.get(currentEditor);
-		if (lastSeen !== undefined && lastSeen !== version) {
-			session?.markDirty(currentEditor.documentId);
-		}
-		lastSeenVersions.set(currentEditor, version);
-	});
-
 	// Sync viewport size when active tab changes
 	$effect(() => {
-		const currentEditor = editor;
+		const currentTab = editor.workspace.activeTab;
 		if (!canvasContainerEl) return;
 		const rect = canvasContainerEl.getBoundingClientRect();
 		const w = Math.round(rect.width);
 		const h = Math.round(rect.height);
 		if (w > 0 && h > 0) {
-			initEditorViewport(currentEditor, w, h);
+			initTabViewport(currentTab, w, h);
 		}
 	});
 
@@ -241,7 +229,7 @@
 			const { width, height } = entry.contentRect;
 			const w = Math.round(width);
 			const h = Math.round(height);
-			initEditorViewport(editor, w, h);
+			initTabViewport(editor.workspace.activeTab, w, h);
 		});
 		ro.observe(canvasContainerEl);
 		return () => ro.disconnect();
@@ -258,7 +246,7 @@
 		const filename = buildExportFilename(cleanStem, format.extension, editor.pixelCanvas);
 		format.exportFn(editor.pixelCanvas, filename);
 		trackExport(editor.pixelCanvas.width, editor.pixelCanvas.height, format.id);
-		editor.isExportUIOpen = false;
+		editor.workspace.activeTab.isExportUIOpen = false;
 	}
 </script>
 
@@ -287,9 +275,9 @@
 		/>
 
 		<TabStrip
-			tabs={workspace.tabs}
-			activeTabIndex={workspace.activeTabIndex}
-			onTabClick={(i) => workspace.setActiveTab(i)}
+			tabs={editor.workspace.tabs}
+			activeTabIndex={editor.workspace.activeIndex}
+			onTabClick={(i) => editor.workspace.setActiveTab(i)}
 			onTabClose={handleCloseTab}
 			onNewTab={handleAddTab}
 		/>
@@ -298,7 +286,7 @@
 			activeTool={editor.activeTool}
 			canUndo={editor.canUndo}
 			canRedo={editor.canRedo}
-			onToolChange={(tool) => (editor.activeTool = tool)}
+			onToolChange={(tool) => editor.setTool(tool)}
 			onUndo={editor.handleUndo}
 			onRedo={editor.handleRedo}
 		/>
@@ -334,7 +322,7 @@
 			onSwapColors={editor.swapColors}
 			onResize={handleResize}
 			onClear={editor.handleClear}
-			onAnchorChange={(anchor) => (editor.resizeAnchor = anchor)}
+			onAnchorChange={(anchor) => editor.workspace.setActiveResizeAnchor(anchor)}
 		/>
 
 		<StatusBar
@@ -361,9 +349,9 @@
 		/>
 
 		<TabStrip
-			tabs={workspace.tabs}
-			activeTabIndex={workspace.activeTabIndex}
-			onTabClick={(i) => workspace.setActiveTab(i)}
+			tabs={editor.workspace.tabs}
+			activeTabIndex={editor.workspace.activeIndex}
+			onTabClick={(i) => editor.workspace.setActiveTab(i)}
 			onTabClose={handleCloseTab}
 			onNewTab={handleAddTab}
 		/>
@@ -406,7 +394,7 @@
 					onExport={editor.toggleExportUI}
 					onClear={editor.handleClear}
 					onGridToggle={editor.handleGridToggle}
-					onAnchorChange={(anchor) => (editor.resizeAnchor = anchor)}
+					onAnchorChange={(anchor) => editor.workspace.setActiveResizeAnchor(anchor)}
 				/>
 			{/if}
 		</div>
@@ -416,7 +404,7 @@
 				activeTool={editor.activeTool}
 				canUndo={editor.canUndo}
 				canRedo={editor.canRedo}
-				onToolChange={(tool) => (editor.activeTool = tool)}
+				onToolChange={(tool) => editor.setTool(tool)}
 				onUndo={editor.handleUndo}
 				onRedo={editor.handleRedo}
 			/>
@@ -437,7 +425,7 @@
 			open={editor.isExportUIOpen}
 			canvasWidth={editor.pixelCanvas.width}
 			canvasHeight={editor.pixelCanvas.height}
-			onOpenChange={(isOpen) => (editor.isExportUIOpen = isOpen)}
+			onOpenChange={(isOpen) => (editor.workspace.activeTab.isExportUIOpen = isOpen)}
 			onExport={handleExportConfirm}
 		/>
 
@@ -462,7 +450,7 @@
 
 {#if saveDialogTabIndex !== null}
 	<SaveDialog
-		documentName={workspace.tabs[saveDialogTabIndex].name}
+		documentName={editor.workspace.tabs[saveDialogTabIndex].name}
 		onSave={handleSaveDialogSave}
 		onDelete={handleSaveDialogDelete}
 		onCancel={handleSaveDialogCancel}

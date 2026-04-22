@@ -1,27 +1,22 @@
 import type { CanvasCoords, PixelCanvas } from './canvas-model';
-import type { Color } from './color';
+import { colorToHex, type Color } from './color';
 import type { DrawingOps } from './drawing-ops';
-import type {
-	ContinuousTool,
-	DragTransformTool,
-	LiveSampleTool,
-	OneShotTool,
-	ShapePreviewTool,
-	ToolContext,
-	ToolEffects
+import {
+	CANVAS_CHANGED,
+	NO_EFFECTS,
+	type ContinuousTool,
+	type DragTransformTool,
+	type LiveSampleTool,
+	type OneShotTool,
+	type ShapePreviewTool,
+	type ToolContext,
+	type ToolEffects
 } from './draw-tool';
 import type { LoupeInputSource } from './loupe-position';
+import { createPixelPerfectOps } from './pixel-perfect-ops';
 import type { SamplingSession } from './sampling-session.svelte';
-import {
-	openContinuousSession,
-	openOneShotSession,
-	openShapePreviewSession,
-	type StrokeDeps,
-	type StrokeSession
-} from './stroke-session';
 import type { ToolType } from './tool-registry';
-
-export type { StrokeSession } from './stroke-session';
+import type { EditorEffects } from './tool-runner.svelte';
 
 /**
  * Per-sample drawing step for continuous tools (pencil, eraser).
@@ -62,6 +57,18 @@ export interface StrokeSpec {
 }
 
 /**
+ * Internal 4-method stroke contract. The engine bridges this to the
+ * 3-method external `ActiveStroke` — `start()` fires eagerly at `begin()`
+ * and its effects fold into the returned effects.
+ */
+export interface StrokeSession {
+	start(): EditorEffects;
+	draw(current: CanvasCoords, previous: CanvasCoords | null): EditorEffects;
+	modifierChanged(): EditorEffects;
+	end(): EditorEffects;
+}
+
+/**
  * Output shape common to every sugar — carries the opaque `open()` that the
  * engine calls on stroke begin. Sugar-specific legacy fields (`kind`,
  * `apply`, `constrainFn`, etc.) are attached alongside `id` + `open` until
@@ -72,18 +79,15 @@ export interface AuthoredTool {
 	open(host: SessionHost, spec: StrokeSpec): StrokeSession;
 }
 
-function depsFromHost(host: SessionHost): StrokeDeps {
+function toolContext(host: SessionHost, spec: StrokeSpec, ops: DrawingOps): ToolContext {
 	return {
-		host: {
-			pixelCanvas: host.pixelCanvas,
-			foregroundColor: host.foregroundColor,
-			backgroundColor: host.backgroundColor
-		},
-		baseOps: host.baseOps,
-		history: host.history,
-		sampling: host.sampling,
+		canvas: host.pixelCanvas,
+		ops,
+		drawColor: spec.drawColor,
+		drawButton: spec.drawButton,
 		isShiftHeld: host.isShiftHeld,
-		pixelPerfect: () => host.pixelPerfect
+		foregroundColor: host.foregroundColor,
+		backgroundColor: host.backgroundColor
 	};
 }
 
@@ -98,24 +102,44 @@ export function continuousTool(spec: {
 	addsActiveColor?: boolean;
 	pixelPerfect?: boolean;
 }): ContinuousTool & AuthoredTool {
+	const addsActiveColor = spec.addsActiveColor ?? true;
+	const supportsPixelPerfect = spec.pixelPerfect ?? true;
 	const legacy: ContinuousTool = {
 		kind: 'continuous',
-		addsActiveColor: spec.addsActiveColor ?? true,
-		supportsPixelPerfect: spec.pixelPerfect ?? true,
+		addsActiveColor,
+		supportsPixelPerfect,
 		apply: spec.apply
 	};
 	return {
 		...legacy,
 		id: spec.id,
 		open(host, strokeSpec): StrokeSession {
-			return openContinuousSession(
-				{
-					tool: legacy,
-					drawColor: strokeSpec.drawColor,
-					drawButton: strokeSpec.drawButton
+			// PP wraps the base ops only when both the tool opts in and the user
+			// has the feature enabled. The wrapper carries a per-stroke cache +
+			// tail, so it must be scoped to this session.
+			const strokeOps: DrawingOps =
+				supportsPixelPerfect && host.pixelPerfect
+					? createPixelPerfectOps(host.baseOps)
+					: host.baseOps;
+			const ctx = toolContext(host, strokeSpec, strokeOps);
+
+			return {
+				start() {
+					host.history.pushSnapshot();
+					return addsActiveColor
+						? [{ type: 'addRecentColor', hex: colorToHex(strokeSpec.drawColor) }]
+						: NO_EFFECTS;
 				},
-				depsFromHost(host)
-			);
+				draw(current, previous) {
+					return spec.apply(ctx, current, previous) ? CANVAS_CHANGED : NO_EFFECTS;
+				},
+				modifierChanged() {
+					return NO_EFFECTS;
+				},
+				end() {
+					return NO_EFFECTS;
+				}
+			};
 		}
 	};
 }
@@ -131,9 +155,10 @@ export function shapeTool(spec: {
 	constrainOnShift: (start: CanvasCoords, end: CanvasCoords) => CanvasCoords;
 	addsActiveColor?: boolean;
 }): ShapePreviewTool & AuthoredTool {
+	const addsActiveColor = spec.addsActiveColor ?? true;
 	const legacy: ShapePreviewTool = {
 		kind: 'shapePreview',
-		addsActiveColor: spec.addsActiveColor ?? true,
+		addsActiveColor,
 		constrainFn: spec.constrainOnShift,
 		onAnchor: (ctx, start) => spec.stroke(ctx, start, start),
 		onPreview: spec.stroke
@@ -142,14 +167,46 @@ export function shapeTool(spec: {
 		...legacy,
 		id: spec.id,
 		open(host, strokeSpec): StrokeSession {
-			return openShapePreviewSession(
-				{
-					tool: legacy,
-					drawColor: strokeSpec.drawColor,
-					drawButton: strokeSpec.drawButton
+			const ctx = toolContext(host, strokeSpec, host.baseOps);
+			let snapshot: Uint8Array | null = null;
+			let anchor: CanvasCoords | null = null;
+			let lastCurrent: CanvasCoords | null = null;
+
+			function redraw(): EditorEffects {
+				if (!anchor || !snapshot || !lastCurrent) return NO_EFFECTS;
+				host.pixelCanvas.restore_pixels(snapshot);
+				const end = host.isShiftHeld()
+					? spec.constrainOnShift(anchor, lastCurrent)
+					: lastCurrent;
+				spec.stroke(ctx, anchor, end);
+				return CANVAS_CHANGED;
+			}
+
+			return {
+				start() {
+					host.history.pushSnapshot();
+					snapshot = new Uint8Array(host.pixelCanvas.pixels());
+					return addsActiveColor
+						? [{ type: 'addRecentColor', hex: colorToHex(strokeSpec.drawColor) }]
+						: NO_EFFECTS;
 				},
-				depsFromHost(host)
-			);
+				draw(current, previous) {
+					lastCurrent = current;
+					if (previous === null) {
+						anchor = current;
+						spec.stroke(ctx, current, current);
+						return CANVAS_CHANGED;
+					}
+					return redraw();
+				},
+				modifierChanged() {
+					if (!lastCurrent) return NO_EFFECTS;
+					return redraw();
+				},
+				end() {
+					return NO_EFFECTS;
+				}
+			};
 		}
 	};
 }
@@ -164,24 +221,40 @@ export function oneShotTool(spec: {
 	addsActiveColor?: boolean;
 	capturesHistory?: boolean;
 }): OneShotTool & AuthoredTool {
+	const addsActiveColor = spec.addsActiveColor ?? true;
+	const capturesHistory = spec.capturesHistory ?? true;
 	const legacy: OneShotTool = {
 		kind: 'oneShot',
-		addsActiveColor: spec.addsActiveColor ?? true,
-		capturesHistory: spec.capturesHistory ?? true,
+		addsActiveColor,
+		capturesHistory,
 		execute: spec.execute
 	};
 	return {
 		...legacy,
 		id: spec.id,
 		open(host, strokeSpec): StrokeSession {
-			return openOneShotSession(
-				{
-					tool: legacy,
-					drawColor: strokeSpec.drawColor,
-					drawButton: strokeSpec.drawButton
+			const ctx = toolContext(host, strokeSpec, host.baseOps);
+			let fired = false;
+
+			return {
+				start() {
+					if (capturesHistory) host.history.pushSnapshot();
+					return addsActiveColor
+						? [{ type: 'addRecentColor', hex: colorToHex(strokeSpec.drawColor) }]
+						: NO_EFFECTS;
 				},
-				depsFromHost(host)
-			);
+				draw(current) {
+					if (fired) return NO_EFFECTS;
+					fired = true;
+					return spec.execute(ctx, current);
+				},
+				modifierChanged() {
+					return NO_EFFECTS;
+				},
+				end() {
+					return NO_EFFECTS;
+				}
+			};
 		}
 	};
 }

@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 44 | 36 | 8 | 34 | 82% | 51% |
+| greptile-apps[bot] | 45 | 37 | 8 | 35 | 82% | 51% |
 | cubic-dev-ai[bot] | 28 | 24 | 4 | 42 | 86% | 36% |
-| coderabbitai[bot] | 54 | 37 | 17 | 30 | 69% | 55% |
+| coderabbitai[bot] | 56 | 38 | 18 | 31 | 68% | 55% |
 
 ## Log
 
@@ -246,3 +246,8 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #163 | coderabbitai[bot] | Miss | Did not flag `customTool` spec parameter shadowing |
 | #163 | cubic-dev-ai[bot] | Miss | Did not flag `customTool` spec parameter shadowing |
 | #163 | cubic-dev-ai[bot] | Miss | Did not flag ToolContext lifecycle wording in issue 076 |
+| #164 | greptile-apps[bot] | Accept | `activeTabIndex` not bounds-checked on Workspace hydration — corrupt snapshot yields `undefined` activeTab |
+| #164 | coderabbitai[bot] | Accept | session.test.ts explicit `notifyTabClosed` after `closeTab` masks auto-notifier regression |
+| #164 | coderabbitai[bot] | Reject | `closeTab` index validation — internal API, project trusts internal callers per CLAUDE.md |
+| #164 | greptile-apps[bot] | Miss | Did not flag test redundancy masking `Workspace.closeTab` auto-notifier path |
+| #164 | coderabbitai[bot] | Miss | Did not flag `activeTabIndex` bounds-check gap on hydration |

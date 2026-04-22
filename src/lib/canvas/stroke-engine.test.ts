@@ -278,6 +278,72 @@ describe('stroke-engine — ActiveStroke adapter', () => {
 	});
 });
 
+// ── Move tool (dragTransform customTool) ────────────────────────────
+
+describe('stroke-engine — move tool', () => {
+	it('pushes a history snapshot at begin', () => {
+		const { engine, shared, pushSnapshot } = createSetup();
+		shared.activeTool = 'move';
+		engine.begin({ button: 0, pointerType: 'mouse' });
+		expect(pushSnapshot).toHaveBeenCalledOnce();
+	});
+
+	it('first drag sample sets the anchor without shifting the canvas', () => {
+		const canvas = canvasFactory.create(4, 4);
+		// Seed (1,1) black so we can verify the first sample does not move it.
+		const { engine: seed } = createSetup({ canvas });
+		seed.begin({ button: 0, pointerType: 'mouse' }).stroke.sample({ x: 1, y: 1 }, null);
+		expect(getPixel(canvas, 1, 1)).toEqual(BLACK);
+
+		const { engine, shared } = createSetup({ canvas });
+		shared.activeTool = 'move';
+		const { stroke } = engine.begin({ button: 0, pointerType: 'mouse' });
+		stroke.sample({ x: 2, y: 2 }, null);
+
+		// Anchor captured; canvas unchanged.
+		expect(getPixel(canvas, 1, 1)).toEqual(BLACK);
+	});
+
+	it('subsequent drag samples shift the snapshot by the delta from the anchor', () => {
+		const canvas = canvasFactory.create(4, 4);
+		// Seed (0,0) with black.
+		const { engine: seed } = createSetup({ canvas });
+		seed.begin({ button: 0, pointerType: 'mouse' }).stroke.sample({ x: 0, y: 0 }, null);
+		expect(getPixel(canvas, 0, 0)).toEqual(BLACK);
+
+		const { engine, shared } = createSetup({ canvas });
+		shared.activeTool = 'move';
+		const { stroke } = engine.begin({ button: 0, pointerType: 'mouse' });
+		stroke.sample({ x: 0, y: 0 }, null); // anchor at (0,0)
+		stroke.sample({ x: 2, y: 1 }, { x: 0, y: 0 }); // delta (2,1)
+		stroke.end();
+
+		expect(getPixel(canvas, 0, 0)).toEqual(TRANSPARENT);
+		expect(getPixel(canvas, 2, 1)).toEqual(BLACK);
+	});
+});
+
+// ── Eyedropper right-click ──────────────────────────────────────────
+
+describe('stroke-engine — eyedropper right-click', () => {
+	it('right-click eyedropper commits to the background target', () => {
+		const canvas = canvasFactory.create(4, 4);
+		const red: Color = { r: 255, g: 0, b: 0, a: 255 };
+		// Seed (1,1) red.
+		const { engine: seed } = createSetup({ canvas, foregroundColor: red });
+		seed.begin({ button: 0, pointerType: 'mouse' }).stroke.sample({ x: 1, y: 1 }, null);
+		expect(getPixel(canvas, 1, 1)).toEqual(red);
+
+		const { engine, shared } = createSetup({ canvas });
+		shared.activeTool = 'eyedropper';
+		const { stroke } = engine.begin({ button: 2, pointerType: 'mouse' });
+		stroke.sample({ x: 1, y: 1 }, null);
+		const endEffects = stroke.end();
+		const colorPick = endEffects.find((e) => e.type === 'colorPick');
+		expect(colorPick).toEqual({ type: 'colorPick', target: 'background', color: red });
+	});
+});
+
 // ── Pencil pixel-perfect scenarios (engine-boundary) ────────────────
 
 describe('stroke-engine — pencil pixel-perfect', () => {

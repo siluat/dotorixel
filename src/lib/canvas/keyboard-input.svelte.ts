@@ -39,7 +39,7 @@ export interface KeyboardInput {
 	readonly isShortcutHintsVisible: boolean;
 
 	/**
-	 * Called by EditorState.handleDrawEnd to restore a temporary tool switch.
+	 * Called by EditorController.handleDrawEnd to restore a temporary tool switch.
 	 * Returns the tool to restore, or null if no restoration is needed.
 	 * Consumes the internal state — subsequent calls return null until the next temporary switch.
 	 */

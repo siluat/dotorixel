@@ -13,12 +13,12 @@ import { createStrokeEngine, type ActiveStroke } from './stroke-engine';
 export type RunnerEffect =
 	| { readonly type: 'canvasReplaced'; readonly canvas: PixelCanvas };
 
-/** Union of all effects EditorState must handle. */
+/** Union of all effects TabState must handle. */
 export type EditorEffect = ToolEffect | RunnerEffect;
 
 export type EditorEffects = readonly EditorEffect[];
 
-// ── ToolRunnerHost: read-only queries ToolRunner needs from EditorState ──
+// ── ToolRunnerHost: read-only queries ToolRunner needs from TabState ──
 
 export interface ToolRunnerHost {
 	readonly pixelCanvas: PixelCanvas;

@@ -176,7 +176,11 @@
 		// on persisted state before the swap would race.
 		document.documentElement.dataset.sessionState = 'loading';
 
-		openSession({ backend: wasmBackend, gridColor: '#ECE5D9' }).then((result) => {
+		openSession({
+			backend: wasmBackend,
+			gridColor: '#ECE5D9',
+			foregroundColor: { r: 45, g: 45, b: 45, a: 255 }
+		}).then((result) => {
 			editor = result.editor;
 			session = result.session;
 			for (const tab of editor.workspace.tabs) {

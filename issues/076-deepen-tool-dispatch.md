@@ -194,7 +194,7 @@ Behind the engine + sugar constructors:
 - Pixel-perfect decorator composition — read once at stroke open, scoped per-stroke, opt-in via constructor default.
 - Snapshot capture + restore-for-preview — lives inside `shapeTool` once; shape authors never touch `restore_pixels`.
 - History-snapshot timing — defaulted to "before first mutation at stroke start," opt-out via `capturesHistory: false` on `oneShotTool`.
-- `ToolContext` construction per sample.
+- `ToolContext` construction per opened stroke session.
 - Fire-once / started-once guards for oneShot and liveSample.
 - Input-source mapping (`pen → mouse`) for loupe positioning.
 - Tool resolution from `shared.activeTool`.

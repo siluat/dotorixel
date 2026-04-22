@@ -24,9 +24,15 @@ export type ApplyFn = (
 ) => boolean;
 
 /**
- * Editor-scoped dependencies exposed to `customTool` authors. Fields are
- * resolved at stroke begin — mid-stroke mutations to shared state do not
- * affect the active session.
+ * Editor-scoped dependencies exposed to `customTool` authors.
+ *
+ * Captured as values at stroke begin (mid-stroke mutations ignored):
+ * `foregroundColor`, `backgroundColor`, `pixelPerfect`.
+ *
+ * Live references that remain responsive during the stroke:
+ * `pixelCanvas`, `baseOps`, `sampling`, `history` (write-only port),
+ * `isShiftHeld` (evaluated per call — shape tools rely on this to
+ * observe modifier changes via `modifierChanged`).
  */
 export interface SessionHost {
 	readonly pixelCanvas: PixelCanvas;
@@ -239,7 +245,7 @@ export function oneShotTool(spec: {
  */
 export function customTool(spec: {
 	id: ToolType;
-	open(host: SessionHost, spec: StrokeSpec): StrokeSession;
+	open(host: SessionHost, strokeSpec: StrokeSpec): StrokeSession;
 }): DrawTool {
 	return {
 		id: spec.id,

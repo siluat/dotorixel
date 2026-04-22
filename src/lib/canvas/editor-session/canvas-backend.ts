@@ -9,10 +9,8 @@ import type { DrawingOps } from '../drawing-ops';
  * instead of wiring each sub-port individually.
  *
  * Production adapter: `wasmBackend` from `../wasm-backend.ts` — composed
- * from the existing per-port WASM exports.
- *
- * Test adapter: `createFakeCanvasBackend()` from `./fake-canvas-backend.ts`
- * — pure-TypeScript in-memory implementations. No WASM.
+ * from the existing per-port WASM exports. Tests also inject `wasmBackend`
+ * directly; WASM runs cleanly under happy-dom so no in-memory fake is kept.
  */
 export interface CanvasBackend {
 	readonly canvasFactory: CanvasFactory;

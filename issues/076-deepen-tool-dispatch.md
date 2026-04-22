@@ -1,6 +1,6 @@
 ---
 title: Deepen tool dispatch — author sugar constructors + opaque stroke engine
-status: open
+status: done
 created: 2026-04-19
 ---
 
@@ -432,3 +432,40 @@ No new infrastructure. Reuse `FakeDrawingOps`, `FakePixelCanvas`, `canvasFactory
 - **Risk — exhaustiveness loss**: mitigated by sugar constructor return types + registry coverage test (commit 8).
 - **Risk — sugar defaults obscure opt-out**: a variant tool that should not push history sets `capturesHistory: false` on `oneShotTool`; easy to miss. Mitigated by choosing defaults that are always-safe (snapshot with no mutation is a no-op; PP is a no-op unless the user toggles the feature on).
 - **Risk — `customTool` discoverability cliff**: authors browsing the three sugar constructors may not realize a fourth path exists. Mitigated by exporting `customTool` from the same module with a deliberate name and cross-referencing it from each sugar constructor's JSDoc.
+
+## Results
+
+Landed across 11 commits on `refactor/076-deepen-tool-dispatch`. Strategy C (sugar first, engine last) held: each commit left `main` green; only Commit 11 was irreversible.
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/tool-authoring.ts` | New. Sugar constructors (`continuousTool`, `shapeTool`, `oneShotTool`, `customTool`), `ApplyFn`, and the opaque `DrawTool` interface. Owns `SessionHost`, `StrokeSpec`, `StrokeSession`. |
+| `src/lib/canvas/stroke-engine.ts` | New. `createStrokeEngine` resolves active tool, snapshots `pixelPerfect`, derives `drawColor`/`inputSource`, and returns `{ stroke, effects }`. |
+| `src/lib/canvas/draw-tool.ts` | Reduced to `ToolEffect`/`ToolEffects`/`CANVAS_CHANGED`/`NO_EFFECTS`/`ToolContext`. The five kind-specific interfaces and the `DrawTool` union are gone. |
+| `src/lib/canvas/tool-registry.ts` | `ToolDef.tool` collapsed from `DrawTool \| ((ops) => DrawTool)` to `DrawTool`. `createAllTools()` is zero-arg. Imports `DrawTool` from `tool-authoring`. |
+| `src/lib/canvas/tool-runner.svelte.ts` | 5-way `switch (tool.kind)` deleted. `drawStart`/`draw`/`modifierChanged`/`drawEnd` delegate through `engine.begin()` + `ActiveStroke`. |
+| `src/lib/canvas/tools/pencil-tool.ts` | `pencilTool` and `eraserTool` each shrink to a single `continuousTool({ id, apply, ... })` call. |
+| `src/lib/canvas/tools/shape-tool.ts` | `lineTool`/`rectangleTool`/`ellipseTool` each shrink to `shapeTool({ id, stroke, constrainOnShift })`. The `(ops) => createShapeTool(...)` factory is gone. |
+| `src/lib/canvas/tools/floodfill-tool.ts` | `floodfillTool` is one `oneShotTool({ id, execute })` call; registry references the singleton directly. |
+| `src/lib/canvas/tools/eyedropper-tool.ts` | Lifted to `customTool`. Sampling-session lifecycle lives fully in the opener closure. |
+| `src/lib/canvas/tools/move-tool.ts` | Lifted to `customTool`. Snapshot + anchor + delta shift live in the opener closure; `shiftPixels` stays an exported pure helper. |
+| `src/lib/canvas/stroke-session.ts` | Deleted. Openers absorbed into each sugar's closure inside `tool-authoring.ts`. |
+| `src/lib/canvas/stroke-engine.test.ts` | New. Real-WASM engine-boundary coverage: per-sugar smoke, mid-stroke isolation (active tool, `pixelPerfect`), input-source mapping, pencil PP scenarios, move anchor/delta, eyedropper right-click commitTarget. |
+| `src/lib/canvas/continuous-tool.test.ts` | New. Fake-based sugar unit tests for default/opt-out of `addsActiveColor` and `pixelPerfect`, plus apply forwarding and history push. |
+| `src/lib/canvas/shape-tool.test.ts` | New. First-sample anchor, snapshot-restore on subsequent samples, shift-held `constrainOnShift`, `refresh()` re-render. |
+| `src/lib/canvas/one-shot-tool.test.ts` | New. Fire-once guard, `capturesHistory` opt-out, `addsActiveColor` opt-out. |
+| `src/lib/canvas/custom-tool.test.ts` | New. Opaque pass-through: `id` attachment, `open(host, spec)` invocation, session lifecycle passthrough. |
+| `src/lib/canvas/tool-registry.test.ts` | Added "every registered tool exposes a callable `open()`" case to replace the lost `tool satisfies never` exhaustiveness. |
+| `src/lib/canvas/stroke-session.*.test.ts` | Five opener-level test files deleted after verifying scenario subsumption by engine + per-sugar tests. |
+
+### Key Decisions
+
+- **`DrawTool` co-located with its deps (deviation from plan).** The plan placed opaque `DrawTool` in `draw-tool.ts`, but `DrawTool` depends on `SessionHost`/`StrokeSpec`/`StrokeSession` — all naturally owned by `tool-authoring.ts`. Splitting them would create a file-level cycle. Resolved by exporting `DrawTool` from `tool-authoring.ts`; `draw-tool.ts` now holds only value-level effect types and `ToolContext`. Cleaner separation of concerns: "what the engine opens" lives next to "how authors build that thing."
+- **Consolidate by inlining, not renaming.** The plan said `git mv stroke-session.ts → stroke-engine.ts`, but `stroke-engine.ts` already existed from Commit 7. Commit 10 instead inlined the three remaining sugar openers into each sugar's closure and deleted `stroke-session.ts` entirely. No history loss since `git mv` wouldn't have preserved it across the prior split either.
+- **Regression defense before retiring tests.** Before Commit 9 deleted the five `stroke-session.*.test.ts` files, move-tool anchor/delta semantics and eyedropper right-click `commitTarget=background` were verified missing from engine coverage and added to `stroke-engine.test.ts` as gap-fills.
+
+### Notes
+
+- `SessionHost.pixelPerfect: boolean` doesn't follow the "booleans read as questions" guideline strictly (`isPixelPerfect` would). Kept for parity with the pre-existing `shared.pixelPerfect`; rename is out of scope for this refactor.
+- `button === 2` magic number in `stroke-engine.ts` reads against `MouseEvent.button` domain knowledge. Inherited from prior code; extracting a constant is out of scope.
+- Test count shifted from 671 → 670. The −1 is the deleted "preserves the legacy fields on the sugar output (pre-commit-11 dual path)" case in `custom-tool.test.ts`, which tested the intentionally-temporary AuthoredTool dual-path bridge.

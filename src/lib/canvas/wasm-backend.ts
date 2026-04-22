@@ -22,6 +22,7 @@ import type { PixelCanvas, ResizeAnchor } from './canvas-model';
 import type { CanvasFactory, CanvasConstraints, HistoryManager } from './adapter-types';
 import type { ViewportData, ViewportOps } from './viewport';
 import type { DrawingOps, DrawingToolType } from './drawing-ops';
+import type { CanvasBackend } from './editor-session/canvas-backend';
 
 // ── Internal mappings ───────────────────────────────────────────────
 
@@ -219,3 +220,19 @@ export function createDrawingOps(getCanvas: () => PixelCanvas): DrawingOps {
 export function createHistoryManager(): HistoryManager {
 	return WasmHistoryManager.default_manager();
 }
+
+// ── CanvasBackend umbrella ─────────────────────────────────────────
+
+/**
+ * Production `CanvasBackend` — aggregates the WASM-backed adapters above
+ * into the single injection point consumed by editor-session layers
+ * (TabState, Workspace). Individual exports remain available for callers
+ * that need a narrower dependency.
+ */
+export const wasmBackend: CanvasBackend = {
+	canvasFactory,
+	canvasConstraints,
+	viewportOps,
+	createHistoryManager,
+	createDrawingOps
+};

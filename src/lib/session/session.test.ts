@@ -118,10 +118,9 @@ describe('openSession', () => {
 		}
 		await session.flush();
 
-		// Close middle tab
+		// Close middle tab — Workspace.closeTab auto-emits notifyTabRemoved via the notifier.
 		const removedDocId = editor.workspace.tabs[1].documentId;
 		editor.workspace.closeTab(1);
-		session.notifyTabClosed(removedDocId);
 		await session.flush();
 		session.dispose();
 

@@ -341,6 +341,72 @@ describe('Workspace — hydration', () => {
 
 		expect(workspace.shared.pixelPerfect).toBe(true);
 	});
+
+	it('clamps an out-of-range activeTabIndex to the last tab', () => {
+		const makeTabSnap = (id: string) => ({
+			id,
+			name: id,
+			width: 1,
+			height: 1,
+			pixels: new Uint8Array([0, 0, 0, 255]),
+			viewport: {
+				pixelSize: 32,
+				zoom: 1.0,
+				panX: 0,
+				panY: 0,
+				showGrid: true,
+				gridColor: '#cccccc'
+			}
+		});
+		const restored: WorkspaceSnapshot = {
+			tabs: [makeTabSnap('doc-a'), makeTabSnap('doc-b')],
+			activeTabIndex: 5,
+			sharedState: {
+				activeTool: 'pencil',
+				foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
+				backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+				recentColors: []
+			}
+		};
+
+		const { workspace } = makeWorkspace({ restored });
+
+		expect(workspace.activeIndex).toBe(1);
+		expect(workspace.activeTab.name).toBe('doc-b');
+	});
+
+	it('clamps a negative activeTabIndex to the first tab', () => {
+		const makeTabSnap = (id: string) => ({
+			id,
+			name: id,
+			width: 1,
+			height: 1,
+			pixels: new Uint8Array([0, 0, 0, 255]),
+			viewport: {
+				pixelSize: 32,
+				zoom: 1.0,
+				panX: 0,
+				panY: 0,
+				showGrid: true,
+				gridColor: '#cccccc'
+			}
+		});
+		const restored: WorkspaceSnapshot = {
+			tabs: [makeTabSnap('doc-a'), makeTabSnap('doc-b')],
+			activeTabIndex: -1,
+			sharedState: {
+				activeTool: 'pencil',
+				foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
+				backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+				recentColors: []
+			}
+		};
+
+		const { workspace } = makeWorkspace({ restored });
+
+		expect(workspace.activeIndex).toBe(0);
+		expect(workspace.activeTab.name).toBe('doc-a');
+	});
 });
 
 describe('Workspace — toSnapshot', () => {

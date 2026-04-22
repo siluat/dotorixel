@@ -215,7 +215,7 @@ export class Workspace {
 			this.tabs.push(tab);
 		}
 
-		this.activeIndex = snapshot.activeTabIndex;
+		this.activeIndex = Math.max(0, Math.min(snapshot.activeTabIndex, this.tabs.length - 1));
 	}
 
 	#nextUntitledName(): string {

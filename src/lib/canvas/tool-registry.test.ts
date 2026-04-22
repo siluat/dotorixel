@@ -10,7 +10,6 @@ import {
 	createAllTools,
 	isValidToolType
 } from './tool-registry';
-import { createDrawingOps, canvasFactory } from './wasm-backend';
 
 // ── constrainLine ──────────────────────────────────────────────────
 
@@ -106,14 +105,12 @@ describe('tool registry', () => {
 		}
 	});
 
-	it('createAllTools returns entries for all tool types', () => {
-		const canvas = canvasFactory.create(8, 8);
-		const ops = createDrawingOps(() => canvas);
-		const tools = createAllTools(ops);
+	it('createAllTools returns entries for all tool types with callable open()', () => {
+		const tools = createAllTools();
 
 		for (const type of TOOL_TYPES) {
 			expect(tools[type]).toBeDefined();
-			expect(tools[type].kind).toBeTruthy();
+			expect(typeof tools[type].open).toBe('function');
 		}
 	});
 

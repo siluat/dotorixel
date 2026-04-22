@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 076 | [Deepen tool dispatch — author sugar constructors + opaque stroke engine](../issues/076-deepen-tool-dispatch.md) | 2026-04-22 |
 | 074 | [Pixel Perfect — topBar/mAppBar toggle and preference persistence](../issues/074-pixel-perfect-toggle-ui.md) | 2026-04-19 |
 | 073 | [Pixel Perfect — Eraser integration](../issues/073-pixel-perfect-eraser-integration.md) | 2026-04-19 |
 | 072 | [Pixel Perfect — Pencil integration (hardcoded ON)](../issues/072-pixel-perfect-pencil-integration.md) | 2026-04-19 |

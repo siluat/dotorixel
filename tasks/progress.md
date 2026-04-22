@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-Pixel Perfect — topBar/mAppBar toggle and preference persistence ([issue](../issues/074-pixel-perfect-toggle-ui.md))
+Deepen tool dispatch — author sugar constructors + opaque stroke engine ([issue](../issues/076-deepen-tool-dispatch.md))
 
 ## Next Up
 

@@ -2,12 +2,10 @@ import type { PixelCanvas, CanvasCoords } from './canvas-model';
 import type { Color } from './color';
 import type { SharedState } from './shared-state.svelte';
 import { CANVAS_CHANGED, NO_EFFECTS, type ToolEffect } from './draw-tool';
-import { createAllTools } from './tool-registry';
 import type { PointerType } from './canvas-interaction.svelte';
 import type { SamplingSession } from './sampling-session.svelte';
-import type { LoupeInputSource } from './loupe-position';
-import { createDrawingOps, canvasFactory, createHistoryManager } from './wasm-backend';
-import { createStrokeSessions, type StrokeSession, type StrokeSessions } from './stroke-session';
+import { canvasFactory, createHistoryManager } from './wasm-backend';
+import { createStrokeEngine, type ActiveStroke } from './stroke-engine';
 
 // ── Effects: ToolRunner adds RunnerEffect on top of tool-produced ToolEffect ──
 
@@ -36,7 +34,7 @@ export interface ToolRunner {
 	readonly canRedo: boolean;
 
 	/**
-	 * The runner maps `pen` → `mouse` for the loupe `inputSource` because pens
+	 * The engine maps `pen` → `mouse` for the loupe `inputSource` because pens
 	 * share the mouse offset preset.
 	 */
 	drawStart(button: number, pointerType: PointerType): EditorEffects;
@@ -56,18 +54,12 @@ export interface ToolRunnerDeps {
 	readonly host: ToolRunnerHost;
 	readonly shared: SharedState;
 	readonly getShiftHeld: () => boolean;
-	/** Session shared with the Loupe overlay; LiveSampleTool delegates to it. */
+	/** Session shared with the Loupe overlay; the eyedropper tool delegates to it. */
 	readonly samplingSession: SamplingSession;
 }
 
 export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 	const { host, shared, getShiftHeld, samplingSession } = deps;
-
-	// ── DrawingOps (bound to current canvas) ────────────────────────
-	const ops = createDrawingOps(() => host.pixelCanvas);
-
-	// ── Tool instances ──────────────────────────────────────────────
-	const tools = createAllTools(ops);
 
 	// ── History ─────────────────────────────────────────────────────
 	const history = createHistoryManager();
@@ -75,10 +67,7 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 
 	// ── Draw state ──────────────────────────────────────────────────
 	let isDrawing = $state(false);
-	let drawButton = 0;
-	let activeDrawColor: Color | null = null;
-	let activeInputSource: LoupeInputSource = 'mouse';
-	let activeSession: StrokeSession | null = null;
+	let activeStroke: ActiveStroke | null = null;
 
 	// ── Derived reactive properties ─────────────────────────────────
 	const canUndo = $derived.by(() => {
@@ -114,14 +103,13 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 		}
 	}
 
-	// ── StrokeSessions: typed openers, one per DrawTool.kind ────────
-	const sessions: StrokeSessions = createStrokeSessions({
+	// ── Stroke engine: resolves active tool + opens sessions ────────
+	const engine = createStrokeEngine({
 		host,
-		baseOps: ops,
+		shared,
 		history: { pushSnapshot: pushHistorySnapshot },
 		sampling: samplingSession,
-		isShiftHeld: getShiftHeld,
-		pixelPerfect: () => shared.pixelPerfect
+		isShiftHeld: getShiftHeld
 	});
 
 	// ── Public interface ────────────────────────────────────────────
@@ -141,78 +129,27 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 
 		drawStart(button: number, pointerType: PointerType): EditorEffects {
 			isDrawing = true;
-			drawButton = button;
-			activeDrawColor = button === 2 ? host.backgroundColor : host.foregroundColor;
-			// `pen` shares the mouse offset preset; only `touch` uses the
-			// larger touch offset to clear finger occlusion.
-			activeInputSource = pointerType === 'touch' ? 'touch' : 'mouse';
-			const tool = tools[shared.activeTool];
-
-			switch (tool.kind) {
-				case 'liveSample':
-					activeSession = sessions.liveSample({
-						drawButton: button,
-						inputSource: activeInputSource
-					});
-					break;
-				case 'dragTransform':
-					activeSession = sessions.dragTransform({
-						tool,
-						drawColor: activeDrawColor,
-						drawButton: button
-					});
-					break;
-				case 'shapePreview':
-					activeSession = sessions.shapePreview({
-						tool,
-						drawColor: activeDrawColor,
-						drawButton: button
-					});
-					break;
-				case 'oneShot':
-					activeSession = sessions.oneShot({
-						tool,
-						drawColor: activeDrawColor,
-						drawButton: button
-					});
-					break;
-				case 'continuous':
-					activeSession = sessions.continuous({
-						tool,
-						drawColor: activeDrawColor,
-						drawButton: button
-					});
-					break;
-				default:
-					// Exhaustive guard: new DrawTool kinds must be handled above or
-					// `activeSession` stays null and `start()` below would crash.
-					tool satisfies never;
-					throw new Error(
-						`tool-runner: unhandled tool kind "${(tool as { kind: string }).kind}"`
-					);
-			}
-			return activeSession.start();
+			const { stroke, effects } = engine.begin({ button, pointerType });
+			activeStroke = stroke;
+			return effects;
 		},
 
 		draw(current: CanvasCoords, previous: CanvasCoords | null): EditorEffects {
-			if (!isDrawing || !activeSession) return NO_EFFECTS;
-			return activeSession.draw(current, previous);
+			if (!isDrawing || !activeStroke) return NO_EFFECTS;
+			return activeStroke.sample(current, previous);
 		},
 
 		drawEnd(): EditorEffects {
 			if (!isDrawing) return NO_EFFECTS;
-			const endEffects = activeSession ? activeSession.end() : NO_EFFECTS;
-			activeSession = null;
+			const endEffects = activeStroke ? activeStroke.end() : NO_EFFECTS;
+			activeStroke = null;
 			isDrawing = false;
-			drawButton = 0;
-			activeDrawColor = null;
-			activeInputSource = 'mouse';
 			return endEffects;
 		},
 
 		modifierChanged(): EditorEffects {
-			if (!isDrawing || !activeSession) return NO_EFFECTS;
-			return activeSession.modifierChanged();
+			if (!isDrawing || !activeStroke) return NO_EFFECTS;
+			return activeStroke.refresh();
 		},
 
 		undo(): EditorEffects {

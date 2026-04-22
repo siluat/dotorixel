@@ -1,6 +1,5 @@
-import type { DrawTool } from './draw-tool';
-import type { DrawingOps } from './drawing-ops';
 import type { CanvasCoords } from './canvas-model';
+import type { DrawTool } from './tool-authoring';
 import { pencilTool, eraserTool } from './tools/pencil-tool';
 import { floodfillTool } from './tools/floodfill-tool';
 import { eyedropperTool } from './tools/eyedropper-tool';
@@ -52,11 +51,7 @@ export function constrainSquare(start: CanvasCoords, end: CanvasCoords): CanvasC
 export interface ToolDef {
 	readonly cursor: string;
 	readonly shortcutKey: string;
-	/**
-	 * Either a built DrawTool instance (singleton) or a factory that closes over
-	 * DrawingOps. `createAllTools` resolves both shapes uniformly at editor startup.
-	 */
-	readonly tool: DrawTool | ((ops: DrawingOps) => DrawTool);
+	readonly tool: DrawTool;
 }
 
 // ── Registry ───────────────────────────────────────────────────────
@@ -89,13 +84,10 @@ export function getToolDef(type: ToolType): ToolDef {
 	return TOOL_DEFS[type];
 }
 
-/** Instantiate all DrawTool instances. Called once at editor startup. */
-export function createAllTools(ops: DrawingOps): Record<ToolType, DrawTool> {
+/** Collect all DrawTool instances. Called once at engine construction. */
+export function createAllTools(): Record<ToolType, DrawTool> {
 	return Object.fromEntries(
-		TOOL_TYPES.map((type) => {
-			const t = TOOL_DEFS[type].tool as DrawTool | ((ops: DrawingOps) => DrawTool);
-			return [type, typeof t === 'function' ? t(ops) : t];
-		})
+		TOOL_TYPES.map((type) => [type, TOOL_DEFS[type].tool])
 	) as Record<ToolType, DrawTool>;
 }
 

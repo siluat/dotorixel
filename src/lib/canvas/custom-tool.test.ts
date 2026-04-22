@@ -30,7 +30,6 @@ describe('customTool sugar', () => {
 	it('attaches the id passed in the spec', () => {
 		const tool = customTool({
 			id: 'eyedropper',
-			legacy: { kind: 'liveSample' },
 			open: () => ({
 				start: () => [],
 				draw: () => [],
@@ -54,7 +53,6 @@ describe('customTool sugar', () => {
 		}));
 		const tool = customTool({
 			id: 'eyedropper',
-			legacy: { kind: 'liveSample' },
 			open
 		});
 
@@ -89,7 +87,6 @@ describe('customTool sugar', () => {
 		};
 		const tool = customTool({
 			id: 'move',
-			legacy: { kind: 'dragTransform', applyTransform: vi.fn() },
 			open: () => authorSession
 		});
 		const session = tool.open(host, makeSpec());
@@ -104,22 +101,5 @@ describe('customTool sugar', () => {
 			'modifierChanged',
 			'end'
 		]);
-	});
-
-	it('preserves the legacy fields on the sugar output (pre-commit-11 dual path)', () => {
-		const applyTransform = vi.fn();
-		const tool = customTool({
-			id: 'move',
-			legacy: { kind: 'dragTransform', applyTransform },
-			open: () => ({
-				start: () => [],
-				draw: () => [],
-				modifierChanged: () => [],
-				end: () => []
-			})
-		});
-
-		expect(tool.kind).toBe('dragTransform');
-		expect(tool.applyTransform).toBe(applyTransform);
 	});
 });

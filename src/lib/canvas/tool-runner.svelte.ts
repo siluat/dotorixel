@@ -54,7 +54,7 @@ export interface ToolRunnerDeps {
 	readonly host: ToolRunnerHost;
 	readonly shared: SharedState;
 	readonly getShiftHeld: () => boolean;
-	/** Session shared with the Loupe overlay; LiveSampleTool delegates to it. */
+	/** Session shared with the Loupe overlay; the eyedropper tool delegates to it. */
 	readonly samplingSession: SamplingSession;
 }
 

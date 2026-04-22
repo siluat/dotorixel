@@ -1,5 +1,5 @@
-import { NO_EFFECTS, type LiveSampleTool } from '../draw-tool';
-import { customTool, type AuthoredTool } from '../tool-authoring';
+import { NO_EFFECTS } from '../draw-tool';
+import { customTool } from '../tool-authoring';
 
 /**
  * Samples a pixel color during a drag and commits it on release. The drag
@@ -7,9 +7,8 @@ import { customTool, type AuthoredTool } from '../tool-authoring';
  * the surrounding grid. All grid/center/bounds state lives in the shared
  * `samplingSession` on `SessionHost`; this tool owns the drag lifecycle.
  */
-export const eyedropperTool: LiveSampleTool & AuthoredTool = customTool({
+export const eyedropperTool = customTool({
 	id: 'eyedropper',
-	legacy: { kind: 'liveSample' },
 	open(host, spec) {
 		let started = false;
 		const commitTarget: 'foreground' | 'background' =

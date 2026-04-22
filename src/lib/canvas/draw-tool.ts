@@ -1,4 +1,4 @@
-import type { PixelCanvas, CanvasCoords } from './canvas-model';
+import type { PixelCanvas } from './canvas-model';
 import type { Color } from './color';
 import type { DrawingOps } from './drawing-ops';
 
@@ -25,9 +25,9 @@ export interface ToolContext {
 	readonly canvas: PixelCanvas;
 	/**
 	 * The drawing operations to use for this stroke. May be a stroke-scoped
-	 * decorator (e.g. pixel-perfect wrapper) chosen by ToolRunner at drawStart.
-	 * Tools that paint pixels should call into this rather than capturing ops at
-	 * tool-construction time.
+	 * decorator (e.g. pixel-perfect wrapper) chosen by the sugar constructor
+	 * at stroke begin. Tools that paint pixels should call into this rather
+	 * than capturing ops at tool-construction time.
 	 */
 	readonly ops: DrawingOps;
 	/** Pre-resolved draw color (left click = foreground, right click = background). */
@@ -39,72 +39,3 @@ export interface ToolContext {
 	readonly foregroundColor: Color;
 	readonly backgroundColor: Color;
 }
-
-// ── DrawTool: discriminated union of 5 tool categories ───────────
-
-/** Paints pixels every frame along the drag path. (pencil, eraser) */
-export interface ContinuousTool {
-	readonly kind: 'continuous';
-	/** Whether ToolRunner should add the active drawing color to recent colors on stroke start. */
-	readonly addsActiveColor: boolean;
-	/** Whether this tool opts into pixel-perfect L-corner filtering when the user has it enabled. */
-	readonly supportsPixelPerfect: boolean;
-	/** Returns true if any pixel was changed. */
-	apply(ctx: ToolContext, current: CanvasCoords, previous: CanvasCoords | null): boolean;
-}
-
-/** Fires once on click, ignores drag. (floodfill) */
-export interface OneShotTool {
-	readonly kind: 'oneShot';
-	/** Whether ToolRunner should push a history snapshot before this tool fires. */
-	readonly capturesHistory: boolean;
-	/** Whether ToolRunner should add the active drawing color to recent colors on click. */
-	readonly addsActiveColor: boolean;
-	/** Called exactly once per click. */
-	execute(ctx: ToolContext, target: CanvasCoords): ToolEffects;
-}
-
-/** Snapshot-restore live preview with shift-constraint. (line, rect, ellipse) */
-export interface ShapePreviewTool {
-	readonly kind: 'shapePreview';
-	/** Whether ToolRunner should add the active drawing color to recent colors on stroke start. */
-	readonly addsActiveColor: boolean;
-	/** Constrains `end` when shift is held (e.g., snap to 45° or force square). */
-	readonly constrainFn: (start: CanvasCoords, end: CanvasCoords) => CanvasCoords;
-	/** Stamps the initial anchor pixel. ToolRunner emits canvasChanged. */
-	onAnchor(ctx: ToolContext, start: CanvasCoords): void;
-	/** Draws the shape preview. ToolRunner restores the snapshot before calling, then emits canvasChanged. */
-	onPreview(ctx: ToolContext, start: CanvasCoords, end: CanvasCoords): void;
-}
-
-/** Snapshot-restore with cumulative drag delta. (move) */
-export interface DragTransformTool {
-	readonly kind: 'dragTransform';
-	/** Applies the transform using the snapshot. ToolRunner emits canvasChanged after this call. */
-	applyTransform(
-		ctx: ToolContext,
-		snapshot: Uint8Array,
-		start: CanvasCoords,
-		current: CanvasCoords
-	): void;
-}
-
-/**
- * Samples a color during a drag and commits it on release. (eyedropper)
- *
- * Unlike OneShotTool, color-picking effects are deferred until the stroke
- * ends, so the user can drag to refine the sample target. All sampling
- * state and commit logic lives in `samplingSession`; the tool itself is a
- * pure marker telling ToolRunner which lifecycle to run.
- */
-export interface LiveSampleTool {
-	readonly kind: 'liveSample';
-}
-
-/** Union of all tool categories. */
-export type DrawTool =
-	| ContinuousTool
-	| OneShotTool
-	| ShapePreviewTool
-	| DragTransformTool
-	| LiveSampleTool;

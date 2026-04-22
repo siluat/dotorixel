@@ -1,11 +1,10 @@
 import type { CanvasCoords } from './canvas-model';
 import type { Color } from './color';
 import type { PointerType } from './canvas-interaction.svelte';
-import type { DrawTool } from './draw-tool';
 import type { LoupeInputSource } from './loupe-position';
 import type { SamplingSession } from './sampling-session.svelte';
 import type { SharedState } from './shared-state.svelte';
-import type { AuthoredTool, SessionHost, StrokeSpec } from './tool-authoring';
+import type { SessionHost, StrokeSpec } from './tool-authoring';
 import type { EditorEffects, ToolRunnerHost } from './tool-runner.svelte';
 import { createDrawingOps } from './wasm-backend';
 import { createAllTools } from './tool-registry';
@@ -65,11 +64,11 @@ export interface StrokeEngine {
  */
 export function createStrokeEngine(deps: StrokeEngineDeps): StrokeEngine {
 	const baseOps = createDrawingOps(() => deps.host.pixelCanvas);
-	const tools = createAllTools(baseOps);
+	const tools = createAllTools();
 
 	return {
 		begin({ button, pointerType }) {
-			const tool = tools[deps.shared.activeTool] as DrawTool & AuthoredTool;
+			const tool = tools[deps.shared.activeTool];
 			const drawColor: Color =
 				button === 2 ? deps.host.backgroundColor : deps.host.foregroundColor;
 			const inputSource: LoupeInputSource = pointerType === 'touch' ? 'touch' : 'mouse';

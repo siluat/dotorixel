@@ -4,11 +4,6 @@ import type { DrawingOps } from './drawing-ops';
 import {
 	CANVAS_CHANGED,
 	NO_EFFECTS,
-	type ContinuousTool,
-	type DragTransformTool,
-	type LiveSampleTool,
-	type OneShotTool,
-	type ShapePreviewTool,
 	type ToolContext,
 	type ToolEffects
 } from './draw-tool';
@@ -69,12 +64,12 @@ export interface StrokeSession {
 }
 
 /**
- * Output shape common to every sugar — carries the opaque `open()` that the
- * engine calls on stroke begin. Sugar-specific legacy fields (`kind`,
- * `apply`, `constrainFn`, etc.) are attached alongside `id` + `open` until
- * commit 11 makes `DrawTool` opaque.
+ * Opaque contract between the engine and authored tools. Only `id` (for
+ * diagnostics and registry coverage) and `open()` (for stroke construction)
+ * are observable to consumers — all sugar-specific behavior is captured in
+ * the closure returned from `open()`.
  */
-export interface AuthoredTool {
+export interface DrawTool {
 	readonly id: ToolType;
 	open(host: SessionHost, spec: StrokeSpec): StrokeSession;
 }
@@ -101,17 +96,10 @@ export function continuousTool(spec: {
 	apply: ApplyFn;
 	addsActiveColor?: boolean;
 	pixelPerfect?: boolean;
-}): ContinuousTool & AuthoredTool {
+}): DrawTool {
 	const addsActiveColor = spec.addsActiveColor ?? true;
 	const supportsPixelPerfect = spec.pixelPerfect ?? true;
-	const legacy: ContinuousTool = {
-		kind: 'continuous',
-		addsActiveColor,
-		supportsPixelPerfect,
-		apply: spec.apply
-	};
 	return {
-		...legacy,
 		id: spec.id,
 		open(host, strokeSpec): StrokeSession {
 			// PP wraps the base ops only when both the tool opts in and the user
@@ -154,17 +142,9 @@ export function shapeTool(spec: {
 	stroke: (ctx: ToolContext, start: CanvasCoords, end: CanvasCoords) => void;
 	constrainOnShift: (start: CanvasCoords, end: CanvasCoords) => CanvasCoords;
 	addsActiveColor?: boolean;
-}): ShapePreviewTool & AuthoredTool {
+}): DrawTool {
 	const addsActiveColor = spec.addsActiveColor ?? true;
-	const legacy: ShapePreviewTool = {
-		kind: 'shapePreview',
-		addsActiveColor,
-		constrainFn: spec.constrainOnShift,
-		onAnchor: (ctx, start) => spec.stroke(ctx, start, start),
-		onPreview: spec.stroke
-	};
 	return {
-		...legacy,
 		id: spec.id,
 		open(host, strokeSpec): StrokeSession {
 			const ctx = toolContext(host, strokeSpec, host.baseOps);
@@ -220,17 +200,10 @@ export function oneShotTool(spec: {
 	execute: (ctx: ToolContext, target: CanvasCoords) => ToolEffects;
 	addsActiveColor?: boolean;
 	capturesHistory?: boolean;
-}): OneShotTool & AuthoredTool {
+}): DrawTool {
 	const addsActiveColor = spec.addsActiveColor ?? true;
 	const capturesHistory = spec.capturesHistory ?? true;
-	const legacy: OneShotTool = {
-		kind: 'oneShot',
-		addsActiveColor,
-		capturesHistory,
-		execute: spec.execute
-	};
 	return {
-		...legacy,
 		id: spec.id,
 		open(host, strokeSpec): StrokeSession {
 			const ctx = toolContext(host, strokeSpec, host.baseOps);
@@ -263,19 +236,13 @@ export function oneShotTool(spec: {
  * Escape hatch — full session control for oddballs whose lifecycles don't
  * fit any sugar (eyedropper, move). The author writes `open()` directly and
  * returns a `StrokeSession`.
- *
- * `legacy` carries the `kind` discriminator plus any kind-specific methods
- * (e.g. `applyTransform` for `dragTransform`) that the `DrawTool` union
- * still requires pre-commit-11. Drops when `DrawTool` becomes opaque.
  */
-export function customTool<Legacy extends LiveSampleTool | DragTransformTool>(spec: {
+export function customTool(spec: {
 	id: ToolType;
-	legacy: Legacy;
 	open(host: SessionHost, spec: StrokeSpec): StrokeSession;
-}): Legacy & AuthoredTool {
+}): DrawTool {
 	return {
-		...spec.legacy,
 		id: spec.id,
 		open: spec.open
-	} as Legacy & AuthoredTool;
+	};
 }

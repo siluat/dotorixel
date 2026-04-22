@@ -1,6 +1,6 @@
 import type { CanvasCoords } from '../canvas-model';
-import { CANVAS_CHANGED, NO_EFFECTS, type DragTransformTool } from '../draw-tool';
-import { customTool, type AuthoredTool } from '../tool-authoring';
+import { CANVAS_CHANGED, NO_EFFECTS } from '../draw-tool';
+import { customTool } from '../tool-authoring';
 
 /**
  * Shifts pixel data by (dx, dy) within the same canvas dimensions.
@@ -42,17 +42,8 @@ export function shiftPixels(
  * snapshot and re-shift by the delta so the transform is always relative to
  * the drag origin.
  */
-export const moveTool: DragTransformTool & AuthoredTool = customTool({
+export const moveTool = customTool({
 	id: 'move',
-	legacy: {
-		kind: 'dragTransform',
-		applyTransform(ctx, snapshot, start, current): void {
-			const dx = current.x - start.x;
-			const dy = current.y - start.y;
-			const shifted = shiftPixels(snapshot, ctx.canvas.width, ctx.canvas.height, dx, dy);
-			ctx.canvas.restore_pixels(shifted);
-		}
-	},
 	open(host) {
 		let snapshot: Uint8Array | null = null;
 		let anchor: CanvasCoords | null = null;

@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 43 | 35 | 8 | 32 | 81% | 52% |
-| cubic-dev-ai[bot] | 27 | 23 | 4 | 40 | 85% | 37% |
-| coderabbitai[bot] | 52 | 35 | 17 | 29 | 67% | 55% |
+| greptile-apps[bot] | 44 | 36 | 8 | 34 | 82% | 51% |
+| cubic-dev-ai[bot] | 28 | 24 | 4 | 42 | 86% | 36% |
+| coderabbitai[bot] | 54 | 37 | 17 | 30 | 69% | 55% |
 
 ## Log
 
@@ -237,3 +237,12 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #162 | cubic-dev-ai[bot] | Miss | Did not flag action emission order (same-batch revisit wipe) |
 | #162 | cubic-dev-ai[bot] | Miss | Did not flag missing negative joint assertions |
 | #162 | cubic-dev-ai[bot] | Miss | Did not flag "current filter" wording in test comment |
+| #163 | greptile-apps[bot] | Accept | `customTool` type-signature `spec` shadows outer config — rename to `strokeSpec` |
+| #163 | coderabbitai[bot] | Accept | SessionHost JSDoc overstates "fields resolved at stroke begin" — `isShiftHeld` is live, collaborators are mutable |
+| #163 | cubic-dev-ai[bot] | Accept | SessionHost JSDoc live vs snapshot contract (duplicate of coderabbit) |
+| #163 | coderabbitai[bot] | Accept | Issue 076 note "ToolContext construction per sample" — actually per opened stroke session |
+| #163 | greptile-apps[bot] | Miss | Did not flag SessionHost JSDoc live/snapshot contract |
+| #163 | greptile-apps[bot] | Miss | Did not flag ToolContext lifecycle wording in issue 076 |
+| #163 | coderabbitai[bot] | Miss | Did not flag `customTool` spec parameter shadowing |
+| #163 | cubic-dev-ai[bot] | Miss | Did not flag `customTool` spec parameter shadowing |
+| #163 | cubic-dev-ai[bot] | Miss | Did not flag ToolContext lifecycle wording in issue 076 |

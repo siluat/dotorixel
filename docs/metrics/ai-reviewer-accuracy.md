@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 46 | 38 | 8 | 35 | 83% | 52% |
-| cubic-dev-ai[bot] | 31 | 25 | 6 | 43 | 81% | 37% |
-| coderabbitai[bot] | 56 | 38 | 18 | 32 | 68% | 54% |
+| greptile-apps[bot] | 47 | 39 | 8 | 35 | 83% | 53% |
+| cubic-dev-ai[bot] | 31 | 25 | 6 | 44 | 81% | 36% |
+| coderabbitai[bot] | 56 | 38 | 18 | 33 | 68% | 54% |
 
 ## Log
 
@@ -257,3 +257,6 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #164 | cubic-dev-ai[bot] | Reject | `setActiveTab` index validation — internal API, same rationale as closeTab |
 | #164 | coderabbitai[bot] | Miss | Did not flag missing `foregroundColor` in `openSession` call |
 | #164 | cubic-dev-ai[bot] | Miss | Did not flag missing `foregroundColor` in `openSession` call |
+| #165 | greptile-apps[bot] | Accept | Stale `.first()` reference in vacuous-pass guard comment — finding valid; fix taken differently (rewrote comment to describe invariant rather than chase selector name) |
+| #165 | coderabbitai[bot] | Miss | Did not flag stale `.first()` reference in guard comment (APPROVED review) |
+| #165 | cubic-dev-ai[bot] | Miss | Did not flag stale `.first()` reference in guard comment (APPROVED review) |

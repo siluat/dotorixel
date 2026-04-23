@@ -44,7 +44,7 @@
 		createEditorController({
 			backend: wasmBackend,
 			notifier: { markDirty() {}, notifyTabRemoved() {} },
-			initialForegroundColor: { r: 45, g: 45, b: 45, a: 255 },
+			initialForegroundColor: { r: 0, g: 0, b: 0, a: 255 },
 			gridColor: '#ECE5D9'
 		})
 	);
@@ -179,7 +179,7 @@
 		openSession({
 			backend: wasmBackend,
 			gridColor: '#ECE5D9',
-			foregroundColor: { r: 45, g: 45, b: 45, a: 255 }
+			foregroundColor: { r: 0, g: 0, b: 0, a: 255 }
 		}).then((result) => {
 			editor = result.editor;
 			session = result.session;

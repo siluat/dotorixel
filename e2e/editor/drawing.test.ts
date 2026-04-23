@@ -84,7 +84,7 @@ test.describe('Drawing', () => {
 		await canvas.clickCanvas();
 
 		// Change foreground color via palette swatch
-		const paletteSwatch = page.locator('.palette-grid .editor-swatch').first();
+		const paletteSwatch = page.locator('.palette-grid .editor-swatch').nth(1);
 		await paletteSwatch.click();
 		const changedHex = await hexValue.textContent();
 		expect(changedHex).not.toBe(initialHex);
@@ -113,7 +113,7 @@ test.describe('Drawing', () => {
 		await canvas.canvasLocator.click({ position: offCenter });
 
 		// Step 2 — switch foreground to a different color (color B) via the palette.
-		const paletteSwatch = page.locator('.palette-grid .editor-swatch').first();
+		const paletteSwatch = page.locator('.palette-grid .editor-swatch').nth(1);
 		await paletteSwatch.click();
 		const colorBHex = await hexValue.textContent();
 		expect(colorBHex).not.toBe(colorAHex);
@@ -166,7 +166,7 @@ test.describe('Drawing', () => {
 
 		// Step 2 — switch foreground to color B and draw at canvas center. The
 		// drag will release over this pixel, so FG must end up as color B.
-		const paletteSwatch = page.locator('.palette-grid .editor-swatch').first();
+		const paletteSwatch = page.locator('.palette-grid .editor-swatch').nth(1);
 		await paletteSwatch.click();
 		const colorBHex = await hexValue.textContent();
 		expect(colorBHex).not.toBe(colorAHex);
@@ -286,9 +286,10 @@ test.describe('Drawing', () => {
 		// Step 2 — switch foreground to a different color (color B). This is
 		// the color we expect to survive the drag — if the commit incorrectly
 		// used the preserved last-opaque sample, FG would flip back to A.
-		// Guard against palette-swatch-default collision so the test never
-		// passes vacuously if the default FG is later changed to match `.first()`.
-		const paletteSwatch = page.locator('.palette-grid .editor-swatch').first();
+		// Guard against palette-swatch-default collision: if the default FG
+		// ever matches the clicked swatch's color, this assertion is what
+		// prevents the test from passing vacuously.
+		const paletteSwatch = page.locator('.palette-grid .editor-swatch').nth(1);
 		await paletteSwatch.click();
 		const colorBHex = await hexValue.textContent();
 		expect(colorBHex).not.toBe(colorAHex);

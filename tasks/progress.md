@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None
+Fix sampling disruption commits as cancel (PR 1) — [Plan](../issues/078-deepen-loupe-session.md)
 
 ## Last Completed
 
@@ -10,6 +10,8 @@ Deepen editor state — split god object into layered TabState / Workspace / Edi
 
 ## Next Up
 
+- Deepen SamplingSession — extract port-injected session with reactive position (PR 2) — [Plan](../issues/078-deepen-loupe-session.md)
+  - Begins after PR 1 merges. Purely structural; 4 internal commits.
 - [054 — Floating reference windows: UI design spec](../issues/054-reference-images-design.md) (HITL design)
   - First gate for PRD 053 (Floating reference image windows). Unblocks 055–062.
 - [018 — RightPanel (Apple Native)](../issues/018-apple-right-panel.md)

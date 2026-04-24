@@ -55,6 +55,10 @@
 	}: Props = $props();
 
 	let canvasEl: HTMLCanvasElement | undefined = $state();
+	// Last pointer screen coords. Cached so a window resize during an active
+	// sampling session can re-fire updatePointer with fresh viewport dimensions
+	// without waiting for the next pointer event.
+	let lastScreen: { x: number; y: number } | null = null;
 	const classifyWheelInput = createWheelInputClassifier();
 
 	const canvasInteraction = createCanvasInteraction(
@@ -148,8 +152,17 @@
 	}
 
 	function pushPointerToSession(event: PointerEvent): void {
+		lastScreen = { x: event.clientX, y: event.clientY };
 		samplingSession?.updatePointer({
-			screen: { x: event.clientX, y: event.clientY },
+			screen: lastScreen,
+			viewport: { width: window.innerWidth, height: window.innerHeight }
+		});
+	}
+
+	function handleWindowResize(): void {
+		if (!samplingSession || !lastScreen) return;
+		samplingSession.updatePointer({
+			screen: lastScreen,
 			viewport: { width: window.innerWidth, height: window.innerHeight }
 		});
 	}
@@ -204,6 +217,7 @@
 	onpointermove={handleWindowPointerMove}
 	onpointerup={handlePointerUp}
 	onblur={handleWindowBlur}
+	onresize={handleWindowResize}
 />
 
 <!-- role="application" tells screen readers this is a custom interactive widget (pixel art canvas).

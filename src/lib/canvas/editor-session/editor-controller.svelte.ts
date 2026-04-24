@@ -5,7 +5,7 @@ import type { Color } from '../color';
 import { colorToHex, hexToColor } from '../color';
 import { TOOL_CURSORS, type ToolType } from '../tool-registry';
 import type { KeyboardInput } from '../keyboard-input.svelte';
-import type { SamplingSession } from '../sampling-session.svelte';
+import type { SamplingSession } from '../sampling/session.svelte';
 import type { PointerType } from '../canvas-interaction.svelte';
 import type { Workspace } from './workspace.svelte';
 

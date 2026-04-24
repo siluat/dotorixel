@@ -1,27 +1,6 @@
 <script lang="ts">
 	import type { Color } from '$lib/canvas/color';
 	import { colorToHex } from '$lib/canvas/color';
-	import {
-		computeLoupePosition,
-		type LoupeInputSource
-	} from '$lib/canvas/loupe-position';
-
-	// Loupe outer dimensions (border-box) derived from the design spec.
-	// Each building block names a single CSS value below — change one here and
-	// in the CSS together; the totals re-derive automatically.
-	const CELL_SIZE_PX = 24; // .cell width/height
-	const GRID_COLUMNS = 9; // .grid grid-template-columns repeat count
-	const CELL_GAP_PX = 1; // .grid `gap`
-	const PADDING_PX = 8; // .loupe `padding` (= --ds-space-3)
-	const BORDER_PX = 1; // .loupe `border` width (= --ds-border-width)
-	const GRID_CHIP_GAP_PX = 8; // .loupe `gap` between grid and chip (= --ds-space-3)
-	const CHIP_HEIGHT_PX = 24; // .chip height: 4px×2 padding + 16px swatch
-	const GRID_PIXELS = CELL_SIZE_PX * GRID_COLUMNS + CELL_GAP_PX * (GRID_COLUMNS - 1);
-	const LOUPE_WIDTH = GRID_PIXELS + PADDING_PX * 2 + BORDER_PX * 2;
-	const LOUPE_HEIGHT =
-		GRID_PIXELS + GRID_CHIP_GAP_PX + CHIP_HEIGHT_PX + PADDING_PX * 2 + BORDER_PX * 2;
-	const MOUSE_OFFSET = 20;
-	const TOUCH_OFFSET = 80;
 
 	interface Props {
 		/**
@@ -30,19 +9,11 @@
 		 * pixels are a `Color` with `a === 0`.
 		 */
 		grid: readonly (Color | null)[];
-		/** Pointer position in viewport coordinates; `null` hides the loupe. */
-		screenPointer: { x: number; y: number } | null;
-		/**
-		 * Visible viewport dimensions in pixels (typically `window.innerWidth`
-		 * × `window.innerHeight`). Used to flip/clamp the loupe so it stays
-		 * fully on-screen near viewport edges.
-		 */
-		viewport: { width: number; height: number };
-		/** Picks between the mouse (20px symmetric) and touch (80px vertical, centered horizontally) offset presets. */
-		inputSource: LoupeInputSource;
+		/** Window-coord top-left of the loupe overlay, already flipped/clamped by the sampling session. */
+		position: { x: number; y: number };
 	}
 
-	let { grid, screenPointer, viewport, inputSource }: Props = $props();
+	let { grid, position }: Props = $props();
 
 	const centerIndex = $derived((grid.length - 1) / 2);
 	// The chip reflects the CURRENT center cell, not the session's preserved
@@ -51,66 +22,51 @@
 	const centerCell = $derived<Color | null>(grid[centerIndex] ?? null);
 	const EM_DASH = '—';
 
-	// The authoritative "commit eligible" check lives in sampling-session;
+	// The authoritative "commit eligible" check lives in `sampling/session`;
 	// `alpha > 0` is a sufficient UI approximation for the hex chip.
 	const canonicalHex = $derived(
 		centerCell && centerCell.a > 0 ? colorToHex(centerCell) : null
 	);
 	const displayHex = $derived(canonicalHex ? canonicalHex.toUpperCase() : null);
-
-	const position = $derived(
-		screenPointer
-			? computeLoupePosition({
-					pointer: screenPointer,
-					viewport,
-					loupe: { width: LOUPE_WIDTH, height: LOUPE_HEIGHT },
-					mouseOffset: MOUSE_OFFSET,
-					touchOffset: TOUCH_OFFSET,
-					inputSource
-				})
-			: null
-	);
 </script>
 
-{#if screenPointer && position}
-	<div
-		class="loupe"
-		data-testid="loupe-root"
-		role="presentation"
-		style:left="{position.x}px"
-		style:top="{position.y}px"
-	>
-		<div class="grid" role="presentation">
-			{#each grid as color, i (i)}
-				<div
-					class="cell"
-					class:cell--center={i === centerIndex}
-					class:cell--out-of-canvas={color === null}
-					class:cell--transparent={color !== null && color.a === 0}
-					style:background-color={color !== null && color.a > 0
-						? `rgb(${color.r}, ${color.g}, ${color.b})`
-						: null}
-				></div>
-			{/each}
-		</div>
-		<div class="chip" data-testid="loupe-hex-chip">
+<div
+	class="loupe"
+	data-testid="loupe-root"
+	role="presentation"
+	style:left="{position.x}px"
+	style:top="{position.y}px"
+>
+	<div class="grid" role="presentation">
+		{#each grid as color, i (i)}
 			<div
-				class="swatch"
-				class:swatch--out-of-canvas={centerCell === null}
-				class:swatch--transparent={centerCell !== null && centerCell.a === 0}
-				style:background-color={canonicalHex}
+				class="cell"
+				class:cell--center={i === centerIndex}
+				class:cell--out-of-canvas={color === null}
+				class:cell--transparent={color !== null && color.a === 0}
+				style:background-color={color !== null && color.a > 0
+					? `rgb(${color.r}, ${color.g}, ${color.b})`
+					: null}
 			></div>
-			<span class="hex" class:hex--muted={displayHex === null} data-testid="loupe-hex-text">
-				{displayHex ?? EM_DASH}
-			</span>
-		</div>
+		{/each}
 	</div>
-{/if}
+	<div class="chip" data-testid="loupe-hex-chip">
+		<div
+			class="swatch"
+			class:swatch--out-of-canvas={centerCell === null}
+			class:swatch--transparent={centerCell !== null && centerCell.a === 0}
+			style:background-color={canonicalHex}
+		></div>
+		<span class="hex" class:hex--muted={displayHex === null} data-testid="loupe-hex-text">
+			{displayHex ?? EM_DASH}
+		</span>
+	</div>
+</div>
 
 <style>
 	.loupe {
-		/* `left` / `top` are set inline from `computeLoupePosition` (positions
-		   the loupe to stay fully on-screen even near viewport edges). */
+		/* `left` / `top` are set inline from the sampling session's flipped/clamped
+		   position so the loupe stays fully on-screen near viewport edges. */
 		--cell-size: 24px;
 		--grid-columns: 9;
 

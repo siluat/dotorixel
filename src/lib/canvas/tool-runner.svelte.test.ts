@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { createToolRunner, type ToolRunnerHost, type ToolRunnerDeps, type EditorEffects } from './tool-runner.svelte';
-import { createSamplingSession } from './sampling-session.svelte';
+import { createSamplingSession } from './sampling/session.svelte';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
 import type { PixelCanvas } from './canvas-model';
@@ -37,7 +37,7 @@ function createHost(canvas?: PixelCanvas, fg?: Color, bg?: Color): ToolRunnerHos
 function createRunner(canvas?: PixelCanvas, fg?: Color, bg?: Color) {
 	const host = createHost(canvas, fg, bg);
 	const shared = new SharedState();
-	const samplingSession = createSamplingSession(() => host.pixelCanvas);
+	const samplingSession = createSamplingSession({ getSamplingPort: () => host.pixelCanvas });
 	const runner = createToolRunner({ host, shared, getShiftHeld: () => false, samplingSession });
 	return { host, shared, runner, samplingSession };
 }
@@ -82,7 +82,7 @@ describe('ToolRunner — eyedropper tool', () => {
 		// Paint a red pixel at (2,2) using a separate runner with red foreground
 		const host = { pixelCanvas: canvas, foregroundColor: RED, backgroundColor: WHITE } as ToolRunnerHost;
 		const shared2 = new SharedState();
-		const samplingSession2 = createSamplingSession(() => host.pixelCanvas);
+		const samplingSession2 = createSamplingSession({ getSamplingPort: () => host.pixelCanvas });
 		const runner2 = createToolRunner({ host, shared: shared2, getShiftHeld: () => false, samplingSession: samplingSession2 });
 		runner2.drawStart(0, 'mouse');
 		runner2.draw({ x: 2, y: 2 }, null);
@@ -108,7 +108,7 @@ describe('ToolRunner — eyedropper tool', () => {
 		// Fill the canvas with red at (5,5) using pencil with red foreground
 		const redHost = { pixelCanvas: canvas, foregroundColor: RED, backgroundColor: WHITE } as ToolRunnerHost;
 		const redShared = new SharedState();
-		const redSession = createSamplingSession(() => redHost.pixelCanvas);
+		const redSession = createSamplingSession({ getSamplingPort: () => redHost.pixelCanvas });
 		const redRunner = createToolRunner({ host: redHost, shared: redShared, getShiftHeld: () => false, samplingSession: redSession });
 		redRunner.drawStart(0, 'mouse');
 		redRunner.draw({ x: 5, y: 5 }, null);
@@ -403,7 +403,7 @@ describe('ToolRunner — canvasReplaced', () => {
 			}
 		};
 		const shared = new SharedState();
-		const samplingSession = createSamplingSession(() => host.pixelCanvas);
+		const samplingSession = createSamplingSession({ getSamplingPort: () => host.pixelCanvas });
 		const runner = createToolRunner({ host, shared, getShiftHeld: () => false, samplingSession });
 
 		// Push snapshot of 8x8, then simulate resize by swapping the canvas
@@ -462,40 +462,29 @@ describe('ToolRunner — guards', () => {
 // ── inputSource plumbing (live-sample lifecycle) ────────────────────
 
 describe('ToolRunner — inputSource plumbing', () => {
-	it('starts the sampling session with mouse inputSource when drawStart pointerType is "mouse"', () => {
+	// Observed via the loupe's positioning preset (mouse uses an offset, touch
+	// centers horizontally). Position is the only externally visible signal of
+	// which input-source preset the session adopted.
+	function loupePositionFor(pointerType: 'mouse' | 'pen' | 'touch') {
 		const { runner, shared, samplingSession } = createRunner();
 		shared.activeTool = 'eyedropper';
-
-		runner.drawStart(0, 'mouse');
+		runner.drawStart(0, pointerType);
 		runner.draw({ x: 0, y: 0 }, null);
-
-		expect(samplingSession.inputSource).toBe('mouse');
-
+		samplingSession.updatePointer({
+			screen: { x: 600, y: 400 },
+			viewport: { width: 1200, height: 800 }
+		});
+		const position = samplingSession.position;
 		runner.drawEnd();
+		return position;
+	}
+
+	it('treats "mouse" and "pen" pointers as the same positioning preset', () => {
+		expect(loupePositionFor('pen')).toEqual(loupePositionFor('mouse'));
 	});
 
-	it('starts the sampling session with mouse inputSource when drawStart pointerType is "pen"', () => {
-		const { runner, shared, samplingSession } = createRunner();
-		shared.activeTool = 'eyedropper';
-
-		runner.drawStart(0, 'pen');
-		runner.draw({ x: 0, y: 0 }, null);
-
-		expect(samplingSession.inputSource).toBe('mouse');
-
-		runner.drawEnd();
-	});
-
-	it('starts the sampling session with touch inputSource when drawStart pointerType is "touch"', () => {
-		const { runner, shared, samplingSession } = createRunner();
-		shared.activeTool = 'eyedropper';
-
-		runner.drawStart(0, 'touch');
-		runner.draw({ x: 0, y: 0 }, null);
-
-		expect(samplingSession.inputSource).toBe('touch');
-
-		runner.drawEnd();
+	it('treats "touch" pointers as a distinct positioning preset from mouse', () => {
+		expect(loupePositionFor('touch')).not.toEqual(loupePositionFor('mouse'));
 	});
 });
 
@@ -508,7 +497,7 @@ describe('ToolRunner — shift constraint', () => {
 		const shared = new SharedState();
 		shared.activeTool = 'line';
 		let shiftHeld = false;
-		const samplingSession = createSamplingSession(() => host.pixelCanvas);
+		const samplingSession = createSamplingSession({ getSamplingPort: () => host.pixelCanvas });
 		const runner = createToolRunner({ host, shared, getShiftHeld: () => shiftHeld, samplingSession });
 
 		shiftHeld = true;
@@ -528,7 +517,7 @@ describe('ToolRunner — shift constraint', () => {
 		const shared = new SharedState();
 		shared.activeTool = 'line';
 		let shiftHeld = false;
-		const samplingSession = createSamplingSession(() => host.pixelCanvas);
+		const samplingSession = createSamplingSession({ getSamplingPort: () => host.pixelCanvas });
 		const runner = createToolRunner({ host, shared, getShiftHeld: () => shiftHeld, samplingSession });
 
 		runner.drawStart(0, 'mouse');

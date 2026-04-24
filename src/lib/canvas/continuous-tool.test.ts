@@ -9,7 +9,7 @@ import {
 } from './fake-drawing-ops';
 import type { PixelCanvas, CanvasCoords } from './canvas-model';
 import type { Color } from './color';
-import type { SamplingSession } from './sampling-session.svelte';
+import type { SamplingSession } from './sampling/session.svelte';
 import type { ToolContext } from './draw-tool';
 
 function makeHost(

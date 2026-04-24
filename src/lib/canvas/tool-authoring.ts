@@ -7,9 +7,9 @@ import {
 	type ToolContext,
 	type ToolEffects
 } from './draw-tool';
-import type { LoupeInputSource } from './loupe-position';
+import type { LoupeInputSource } from './sampling/types';
 import { createPixelPerfectOps } from './pixel-perfect-ops';
-import type { SamplingSession } from './sampling-session.svelte';
+import type { SamplingSession } from './sampling/session.svelte';
 import type { ToolType } from './tool-registry';
 import type { EditorEffects } from './tool-runner.svelte';
 

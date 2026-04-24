@@ -1,7 +1,7 @@
+import type { LoupeInputSource } from './types';
+
 /** Which quadrant of the pointer the loupe occupies. */
 export type Quadrant = 'tl' | 'tr' | 'bl' | 'br';
-
-export type LoupeInputSource = 'mouse' | 'touch';
 
 export interface LoupePositionInput {
 	/** Pointer position in viewport coordinates. */

@@ -1,5 +1,6 @@
-import type { PixelCanvas, CanvasCoords } from './canvas-model';
-import type { Color } from './color';
+import type { CanvasCoords } from '../canvas-model';
+import type { Color } from '../color';
+import type { CanvasSamplingPort } from './ports';
 
 /**
  * Returns a row-major flat array of length `size × size` for an N×N pixel
@@ -11,7 +12,7 @@ import type { Color } from './color';
  * index `(size² - 1) / 2` in the returned array.
  */
 export function sampleGrid(
-	canvas: PixelCanvas,
+	canvas: CanvasSamplingPort,
 	center: CanvasCoords,
 	size: number
 ): (Color | null)[] {

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { customTool, type SessionHost, type StrokeSession, type StrokeSpec } from './tool-authoring';
 import { BLACK, WHITE, createFakeDrawingOps, createFakePixelCanvas } from './fake-drawing-ops';
 import type { PixelCanvas } from './canvas-model';
-import type { SamplingSession } from './sampling-session.svelte';
+import type { SamplingSession } from './sampling/session.svelte';
 
 function makeHost(canvas: PixelCanvas): SessionHost {
 	return {

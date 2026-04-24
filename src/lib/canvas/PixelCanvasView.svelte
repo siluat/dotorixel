@@ -2,7 +2,7 @@
 	import type { PixelCanvas, CanvasCoords } from './canvas-model';
 	import { viewportOps } from './wasm-backend';
 	import type { ViewportData, ViewportSize } from './viewport';
-	import type { SamplingSession } from './sampling-session.svelte';
+	import type { SamplingSession } from './sampling/session.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { createWheelInputClassifier } from './wheel-input.ts';
 	import { renderPixelCanvas } from './renderer.ts';
@@ -55,22 +55,10 @@
 	}: Props = $props();
 
 	let canvasEl: HTMLCanvasElement | undefined = $state();
-	/**
-	 * Viewport-relative pointer coordinates for the Loupe. Uses clientX/clientY
-	 * directly (not canvas-local) because Loupe is `position: fixed`. Set on
-	 * every pointer event (even outside a sampling session) so the overlay has
-	 * a fresh position the moment `samplingSession.isActive` flips to true.
-	 */
-	let screenPointer = $state<{ x: number; y: number } | null>(null);
-	/**
-	 * Tracks `window.innerWidth/innerHeight` for the Loupe overlay's
-	 * fixed-position math. The Loupe needs the document viewport (not the
-	 * canvas's local viewport) because it's positioned in screen space.
-	 */
-	let windowSize = $state({
-		width: typeof window === 'undefined' ? 0 : window.innerWidth,
-		height: typeof window === 'undefined' ? 0 : window.innerHeight
-	});
+	// Last pointer screen coords. Cached so a window resize during an active
+	// sampling session can re-fire updatePointer with fresh viewport dimensions
+	// without waiting for the next pointer event.
+	let lastScreen: { x: number; y: number } | null = null;
 	const classifyWheelInput = createWheelInputClassifier();
 
 	const canvasInteraction = createCanvasInteraction(
@@ -163,13 +151,25 @@
 		return { x: event.clientX - rect.left, y: event.clientY - rect.top };
 	}
 
-	function trackScreenPointer(event: PointerEvent): void {
-		screenPointer = { x: event.clientX, y: event.clientY };
+	function pushPointerToSession(event: PointerEvent): void {
+		lastScreen = { x: event.clientX, y: event.clientY };
+		samplingSession?.updatePointer({
+			screen: lastScreen,
+			viewport: { width: window.innerWidth, height: window.innerHeight }
+		});
+	}
+
+	function handleWindowResize(): void {
+		if (!samplingSession || !lastScreen) return;
+		samplingSession.updatePointer({
+			screen: lastScreen,
+			viewport: { width: window.innerWidth, height: window.innerHeight }
+		});
 	}
 
 	function handlePointerDown(event: PointerEvent): void {
 		if (event.button === 1 || event.button === 2) event.preventDefault();
-		trackScreenPointer(event);
+		pushPointerToSession(event);
 		const { x, y } = toLocal(event);
 		canvasInteraction.pointerDown(
 			event.pointerId,
@@ -181,14 +181,14 @@
 	}
 
 	function handlePointerMove(event: PointerEvent): void {
-		trackScreenPointer(event);
+		pushPointerToSession(event);
 		const { x, y } = toLocal(event);
 		canvasInteraction.pointerMove(x, y);
 	}
 
 	function handleWindowPointerMove(event: PointerEvent): void {
 		if (!canvasEl) return;
-		trackScreenPointer(event);
+		pushPointerToSession(event);
 		const { x, y } = toLocal(event);
 		canvasInteraction.windowPointerMove(event.pointerId, x, y, event.buttons);
 	}
@@ -210,11 +210,6 @@
 
 	function handleWindowBlur(): void {
 		canvasInteraction.blur();
-		screenPointer = null;
-	}
-
-	function handleWindowResize(): void {
-		windowSize = { width: window.innerWidth, height: window.innerHeight };
 	}
 </script>
 
@@ -241,13 +236,8 @@
 	oncontextmenu={(e) => e.preventDefault()}
 ></canvas>
 
-{#if samplingSession?.isActive && screenPointer}
-	<Loupe
-		grid={samplingSession.grid}
-		{screenPointer}
-		viewport={windowSize}
-		inputSource={samplingSession.inputSource ?? 'mouse'}
-	/>
+{#if samplingSession?.position}
+	<Loupe grid={samplingSession.grid} position={samplingSession.position} />
 {/if}
 
 <style>

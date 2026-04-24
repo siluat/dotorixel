@@ -459,6 +459,24 @@ The boundary-test pattern via in-memory adapter mirrors the architecture establi
 7. **`canvas-interaction.svelte.ts` deepening.** Only the callback split (`onSampleCancel`) lands in PR 1. Larger refactors of the gesture machine are separate.
 8. **Reference image sampling implementation (issue 060).** This refactor makes the `CanvasSamplingPort` extension point exist; the actual reference-image adapter and overlay window are issue 060's work.
 
+## Results — PR 1 (`fix: cancel sampling session on disruption`)
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/canvas-interaction.svelte.ts` | Added `onSampleCancel` to `CanvasInteractionCallbacks`. Routed pinch / pointerleave / blur to `onSampleCancel`; `onSampleEnd` now fires only on the clean pointerup release. JSDoc on the four sampling callbacks for documentation symmetry. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Added `sampleCancel = () => this.samplingSession.cancel()`. |
+| `src/lib/canvas/editor-session/editor-controller.svelte.ts` | Added `handleSampleCancel` arrow delegating to the active tab. |
+| `src/lib/canvas/PixelCanvasView.svelte` | Threaded the optional `onSampleCancel` prop through to the interaction layer. |
+| `src/routes/editor/+page.svelte` | Wired `onSampleCancel={editor.handleSampleCancel}` into both compact and x-wide `<PixelCanvasView>` instances. |
+| `src/lib/canvas/canvas-interaction.svelte.test.ts` | New `describe('sampling disruption')` block with three tests (pinch / leave / blur) asserting cancel-not-end. Existing pointer-up test extended with `onSampleCancel` not-called assertion. |
+| `e2e/editor/drawing.test.ts` | New regression: "touch long-press then pointer leave does not commit color" — failed on main, passes after fix. |
+
+### Notes
+
+- Issue stays `open` because PR 2 (the structural deepening) is the still-pending half. PR 2 begins after PR 1 merges to main.
+- PR 1 contained one cleanup follow-up commit (`docs:`) that removed a redundant test comment and added a JSDoc to `onSampleUpdate` for callback documentation symmetry.
+- `samplingSession.cancel()` already existed; PR 1 only needed to route the disruption call sites to it. The ToolEffects-based `commit()` was untouched.
+
 ## Further Notes
 
 The PR 1 e2e test scenario (touch long-press → pointer leave) was chosen over blur or pinch because:

@@ -2,11 +2,11 @@
 
 ## Currently Working On
 
-Fix sampling disruption commits as cancel (PR 1) — [Plan](../issues/078-deepen-loupe-session.md)
+None
 
 ## Last Completed
 
-Deepen editor state — split god object into layered TabState / Workspace / EditorController with ports ([issue](../issues/077-deepen-editor-state-architecture.md))
+Fix sampling disruption commits as cancel (PR 1) — pinch / pointerleave / blur during a sampling session now route to `onSampleCancel` instead of committing the picked color ([issue](../issues/078-deepen-loupe-session.md))
 
 ## Next Up
 

@@ -3,7 +3,7 @@ import type { Color } from './color';
 import type { SharedState } from './shared-state.svelte';
 import { CANVAS_CHANGED, NO_EFFECTS, type ToolEffect } from './draw-tool';
 import type { PointerType } from './canvas-interaction.svelte';
-import type { SamplingSession } from './sampling-session.svelte';
+import type { SamplingSession } from './sampling/session.svelte';
 import { canvasFactory, createHistoryManager } from './wasm-backend';
 import { createStrokeEngine, type ActiveStroke } from './stroke-engine';
 

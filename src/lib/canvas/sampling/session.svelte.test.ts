@@ -399,32 +399,3 @@ describe('samplingSession — position', () => {
 		expect(session.position).toBeNull();
 	});
 });
-
-describe('samplingSession — inputSource (compat surface, removed in commit 2.④)', () => {
-	it('exposes the input source while active', () => {
-		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
-
-		session.start({
-			targetPixel: { x: 8, y: 8 },
-			commitTarget: 'foreground',
-			inputSource: 'touch'
-		});
-
-		expect(session.inputSource).toBe('touch');
-	});
-
-	it('clears the input source after cancel', () => {
-		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
-
-		session.start({
-			targetPixel: { x: 8, y: 8 },
-			commitTarget: 'foreground',
-			inputSource: 'touch'
-		});
-		session.cancel();
-
-		expect(session.inputSource).toBeNull();
-	});
-});

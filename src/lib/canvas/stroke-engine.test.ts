@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createStrokeEngine, type StrokeEngineDeps } from './stroke-engine';
 import { canvasFactory } from './wasm-backend';
 import { SharedState } from './shared-state.svelte';
-import { createSamplingSession } from './sampling-session.svelte';
+import { createSamplingSession } from './sampling/session.svelte';
 import type { Color } from './color';
 import type { PixelCanvas } from './canvas-model';
 import type { EditorEffects, ToolRunnerHost } from './tool-runner.svelte';
@@ -41,7 +41,7 @@ function createSetup(opts?: {
 		}
 	};
 	const shared = new SharedState();
-	const samplingSession = createSamplingSession(() => canvas);
+	const samplingSession = createSamplingSession({ getSamplingPort: () => canvas });
 	const pushSnapshot = vi.fn();
 	const deps: StrokeEngineDeps = {
 		host,
@@ -66,28 +66,27 @@ function hasEffect(effects: EditorEffects, type: string): boolean {
 // ── input-source mapping ─────────────────────────────────────────────
 
 describe('stroke-engine — input-source mapping', () => {
-	it('maps pointerType "mouse" to sampling inputSource "mouse"', () => {
+	// Observed via the loupe's positioning preset (mouse uses an offset, touch
+	// centers horizontally). Position is the only externally visible signal of
+	// which input-source preset the session adopted.
+	function loupePositionFor(pointerType: 'mouse' | 'pen' | 'touch') {
 		const { engine, shared, samplingSession } = createSetup();
 		shared.activeTool = 'eyedropper';
-		const { stroke } = engine.begin({ button: 0, pointerType: 'mouse' });
+		const { stroke } = engine.begin({ button: 0, pointerType });
 		stroke.sample({ x: 0, y: 0 }, null);
-		expect(samplingSession.inputSource).toBe('mouse');
+		samplingSession.updatePointer({
+			screen: { x: 600, y: 400 },
+			viewport: { width: 1200, height: 800 }
+		});
+		return samplingSession.position;
+	}
+
+	it('treats "mouse" and "pen" pointers as the same positioning preset', () => {
+		expect(loupePositionFor('pen')).toEqual(loupePositionFor('mouse'));
 	});
 
-	it('maps pointerType "pen" to sampling inputSource "mouse" (shared offset preset)', () => {
-		const { engine, shared, samplingSession } = createSetup();
-		shared.activeTool = 'eyedropper';
-		const { stroke } = engine.begin({ button: 0, pointerType: 'pen' });
-		stroke.sample({ x: 0, y: 0 }, null);
-		expect(samplingSession.inputSource).toBe('mouse');
-	});
-
-	it('maps pointerType "touch" to sampling inputSource "touch"', () => {
-		const { engine, shared, samplingSession } = createSetup();
-		shared.activeTool = 'eyedropper';
-		const { stroke } = engine.begin({ button: 0, pointerType: 'touch' });
-		stroke.sample({ x: 0, y: 0 }, null);
-		expect(samplingSession.inputSource).toBe('touch');
+	it('treats "touch" pointers as a distinct positioning preset from mouse', () => {
+		expect(loupePositionFor('touch')).not.toEqual(loupePositionFor('mouse'));
 	});
 });
 

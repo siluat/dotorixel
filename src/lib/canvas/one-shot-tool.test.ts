@@ -3,7 +3,7 @@ import { oneShotTool, type SessionHost } from './tool-authoring';
 import { BLACK, WHITE, createFakeDrawingOps, createFakePixelCanvas } from './fake-drawing-ops';
 import type { CanvasCoords, PixelCanvas } from './canvas-model';
 import type { Color } from './color';
-import type { SamplingSession } from './sampling-session.svelte';
+import type { SamplingSession } from './sampling/session.svelte';
 import type { ToolContext } from './draw-tool';
 
 function makeHost(canvas: PixelCanvas): {

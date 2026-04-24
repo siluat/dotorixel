@@ -22,7 +22,7 @@
 	const centerCell = $derived<Color | null>(grid[centerIndex] ?? null);
 	const EM_DASH = '—';
 
-	// The authoritative "commit eligible" check lives in sampling-session;
+	// The authoritative "commit eligible" check lives in `sampling/session`;
 	// `alpha > 0` is a sufficient UI approximation for the hex chip.
 	const canonicalHex = $derived(
 		centerCell && centerCell.a > 0 ? colorToHex(centerCell) : null

@@ -47,6 +47,13 @@ export interface SamplingSession {
 	 * the getter is removed in commit 2.④.
 	 */
 	readonly inputSource: LoupeInputSource | null;
+	/**
+	 * Compatibility surface during the deepening migration. Retained so the
+	 * old `SamplingSession` interface (consumed by tool-runner / controller)
+	 * stays structurally assignable across commits 2.②–2.③. Always returns
+	 * `null` — no live consumer reads it. Removed in commit 2.④.
+	 */
+	readonly centerColor: Color | null;
 	start(params: SamplingSessionStartParams): void;
 	update(targetPixel: CanvasCoords): void;
 	/** Always safe to call — pointer state caches even when the session is inactive. */
@@ -97,6 +104,9 @@ export function createSamplingSession(opts: {
 		},
 		get inputSource() {
 			return inputSource;
+		},
+		get centerColor() {
+			return null;
 		},
 		start(params: SamplingSessionStartParams): void {
 			const port = opts.getSamplingPort();

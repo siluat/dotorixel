@@ -2,7 +2,7 @@ import type { PixelCanvas, CanvasCoords, ResizeAnchor } from '../canvas-model';
 import type { ViewportData, ViewportSize } from '../viewport';
 import { addRecentColor } from '../color';
 import type { SharedState } from '../shared-state.svelte';
-import { createSamplingSession, type SamplingSession } from '../sampling-session.svelte';
+import { createSamplingSession, type SamplingSession } from '../sampling/session.svelte';
 import { createToolRunner, type ToolRunner, type EditorEffects } from '../tool-runner.svelte';
 import { exportAsPng } from '../export';
 import type { PointerType } from '../canvas-interaction.svelte';
@@ -102,7 +102,7 @@ export class TabState {
 		}
 
 		const self = this;
-		this.samplingSession = createSamplingSession(() => self.pixelCanvas);
+		this.samplingSession = createSamplingSession({ getSamplingPort: () => self.pixelCanvas });
 
 		this.#toolRunner = createToolRunner({
 			host: {

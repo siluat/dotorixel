@@ -74,6 +74,9 @@ export function createSamplingSession(opts: {
 	});
 
 	function reset(): void {
+		// `commitTarget` is intentionally not reset here — `start()` always
+		// rewrites it, and `commit()` is guarded by `isActive` so a stale value
+		// can never leak into an effect.
 		isActive = false;
 		grid = [];
 		inputSource = null;

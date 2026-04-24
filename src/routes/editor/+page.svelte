@@ -304,6 +304,7 @@
 				onSampleStart={editor.handleSampleStart}
 				onSampleUpdate={editor.handleSampleUpdate}
 				onSampleEnd={editor.handleSampleEnd}
+				onSampleCancel={editor.handleSampleCancel}
 				toolCursor={editor.toolCursor}
 				isSpaceHeld={editor.isSpaceHeld}
 				samplingSession={editor.samplingSession}
@@ -371,6 +372,7 @@
 						onSampleStart={editor.handleSampleStart}
 						onSampleUpdate={editor.handleSampleUpdate}
 						onSampleEnd={editor.handleSampleEnd}
+						onSampleCancel={editor.handleSampleCancel}
 						toolCursor={editor.toolCursor}
 						isSpaceHeld={editor.isSpaceHeld}
 						samplingSession={editor.samplingSession}

@@ -149,6 +149,10 @@ export class EditorController {
 		this.workspace.activeTab.sampleEnd();
 	};
 
+	handleSampleCancel = (): void => {
+		this.workspace.activeTab.sampleCancel();
+	};
+
 	// History handlers
 	handleUndo = (): void => {
 		this.workspace.activeTab.undo();

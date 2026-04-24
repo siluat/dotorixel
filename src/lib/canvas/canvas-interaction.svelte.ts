@@ -62,7 +62,14 @@ export interface CanvasInteractionCallbacks {
 	 */
 	onSampleStart: (coords: CanvasCoords, button: number, pointerType: PointerType) => boolean;
 	onSampleUpdate: (coords: CanvasCoords) => void;
+	/** Called when the pointer lifts cleanly over the canvas — commit the picked color. */
 	onSampleEnd: () => void;
+	/**
+	 * Called when sampling is interrupted before a clean release (pinch transition,
+	 * pointer leaving the canvas, window blur). Must not commit a color — the user
+	 * never confirmed the pick.
+	 */
+	onSampleCancel: () => void;
 }
 
 export interface CanvasInteraction {
@@ -178,7 +185,7 @@ export function createCanvasInteraction(
 					}
 					interaction = { type: 'idle' };
 				} else if (interaction.type === 'sampling') {
-					callbacks.onSampleEnd();
+					callbacks.onSampleCancel();
 					interaction = { type: 'idle' };
 				}
 				tryEnterPinching();
@@ -319,7 +326,7 @@ export function createCanvasInteraction(
 			if (interaction.type === 'pinching') return;
 
 			if (interaction.type === 'sampling') {
-				callbacks.onSampleEnd();
+				callbacks.onSampleCancel();
 				interaction = { type: 'idle' };
 				return;
 			}
@@ -340,7 +347,7 @@ export function createCanvasInteraction(
 			clearLongPressTimer();
 			activePointers.clear();
 			if (interaction.type === 'sampling') {
-				callbacks.onSampleEnd();
+				callbacks.onSampleCancel();
 			} else if (interaction.type === 'drawing' && interaction.pendingCoords === null) {
 				callbacks.onDrawEnd();
 			}

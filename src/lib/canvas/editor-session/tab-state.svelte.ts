@@ -203,6 +203,10 @@ export class TabState {
 		this.#applyEffects(this.samplingSession.commit());
 	};
 
+	sampleCancel = (): void => {
+		this.samplingSession.cancel();
+	};
+
 	undo = (): void => {
 		this.#applyEffects(this.#toolRunner.undo());
 	};

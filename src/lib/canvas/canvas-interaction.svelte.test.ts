@@ -622,9 +622,6 @@ describe('sampling — during session', () => {
 	});
 });
 
-// Disruption = sampling ended WITHOUT a clean release. The user never
-// confirmed the pick, so these paths must route to `onSampleCancel`
-// (no color commit) rather than `onSampleEnd` (commits the picked color).
 describe('sampling disruption', () => {
 	beforeEach(() => vi.useFakeTimers());
 	afterEach(() => vi.useRealTimers());

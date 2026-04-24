@@ -61,6 +61,7 @@ export interface CanvasInteractionCallbacks {
 	 * tool already drives sampling through the normal drawing flow.
 	 */
 	onSampleStart: (coords: CanvasCoords, button: number, pointerType: PointerType) => boolean;
+	/** Called on each pointer move during a sampling session — drives the loupe overlay's live grid. */
 	onSampleUpdate: (coords: CanvasCoords) => void;
 	/** Called when the pointer lifts cleanly over the canvas — commit the picked color. */
 	onSampleEnd: () => void;

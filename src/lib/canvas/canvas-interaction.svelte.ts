@@ -61,8 +61,16 @@ export interface CanvasInteractionCallbacks {
 	 * tool already drives sampling through the normal drawing flow.
 	 */
 	onSampleStart: (coords: CanvasCoords, button: number, pointerType: PointerType) => boolean;
+	/** Called on each pointer move during a sampling session — drives the loupe overlay's live grid. */
 	onSampleUpdate: (coords: CanvasCoords) => void;
+	/** Called when the pointer lifts cleanly over the canvas — commit the picked color. */
 	onSampleEnd: () => void;
+	/**
+	 * Called when sampling is interrupted before a clean release (pinch transition,
+	 * pointer leaving the canvas, window blur). Must not commit a color — the user
+	 * never confirmed the pick.
+	 */
+	onSampleCancel: () => void;
 }
 
 export interface CanvasInteraction {
@@ -71,6 +79,12 @@ export interface CanvasInteraction {
 	windowPointerMove(id: number, x: number, y: number, buttons: number): void;
 	pointerUp(id: number, x: number, y: number): void;
 	pointerLeave(x: number, y: number): void;
+	/**
+	 * Browser-level interruption (OS gesture conflict, incoming call, etc.).
+	 * Per W3C Pointer Events, the user never released — treat as cancellation:
+	 * sampling → `onSampleCancel`, drawing → end without committing pending.
+	 */
+	pointerCancel(id: number): void;
 	blur(): void;
 	readonly interactionType: InteractionType;
 }
@@ -178,7 +192,7 @@ export function createCanvasInteraction(
 					}
 					interaction = { type: 'idle' };
 				} else if (interaction.type === 'sampling') {
-					callbacks.onSampleEnd();
+					callbacks.onSampleCancel();
 					interaction = { type: 'idle' };
 				}
 				tryEnterPinching();
@@ -319,7 +333,7 @@ export function createCanvasInteraction(
 			if (interaction.type === 'pinching') return;
 
 			if (interaction.type === 'sampling') {
-				callbacks.onSampleEnd();
+				callbacks.onSampleCancel();
 				interaction = { type: 'idle' };
 				return;
 			}
@@ -336,11 +350,34 @@ export function createCanvasInteraction(
 			}
 		},
 
+		pointerCancel(id: number): void {
+			clearLongPressTimer();
+			activePointers.delete(id);
+
+			if (interaction.type === 'sampling') {
+				callbacks.onSampleCancel();
+				interaction = { type: 'idle' };
+				return;
+			}
+
+			if (interaction.type === 'drawing') {
+				if (interaction.pendingCoords === null) {
+					callbacks.onDrawEnd();
+				}
+				interaction = { type: 'idle' };
+				return;
+			}
+
+			if (interaction.type === 'pinching' || interaction.type === 'panning') {
+				interaction = { type: 'idle' };
+			}
+		},
+
 		blur(): void {
 			clearLongPressTimer();
 			activePointers.clear();
 			if (interaction.type === 'sampling') {
-				callbacks.onSampleEnd();
+				callbacks.onSampleCancel();
 			} else if (interaction.type === 'drawing' && interaction.pendingCoords === null) {
 				callbacks.onDrawEnd();
 			}

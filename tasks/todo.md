@@ -65,6 +65,7 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 ## Review backlog (not assigned to a milestone)
 
 - Deepen per-stroke state — StrokeSession factory with typed openers — [Plan](../issues/075-deepen-stroke-session.md)
+- Deepen SamplingSession — extract port-injected session with reactive position (PR 2) — [Plan](../issues/078-deepen-loupe-session.md)
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate (deferred from Milestone 3 MVP)
 - Reference image import — clipboard paste support (Ctrl/Cmd+V), deferred from Milestone 3 MVP
 - Design: share artwork dialog — URL sharing dialog UI (.pen)

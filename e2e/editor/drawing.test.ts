@@ -269,6 +269,120 @@ test.describe('Drawing', () => {
 		expect(pickedHex).not.toBe(colorAHex);
 	});
 
+	test('touch long-press then pointer leave does not commit color', async ({
+		editorPage
+	}) => {
+		const { canvas, page } = editorPage;
+
+		const hexValue = page.locator('.hex-value');
+		const loupe = page.locator('[data-testid="loupe-root"]');
+
+		// Step 1 — draw color A at an off-center pixel so we have a known
+		// opaque pixel to long-press on.
+		const box = await canvas.canvasLocator.boundingBox();
+		if (!box) throw new Error('Canvas not found');
+		const pressPoint = { x: box.width * 0.25, y: box.height * 0.5 };
+		const colorAHex = await hexValue.textContent();
+		await canvas.canvasLocator.click({ position: pressPoint });
+
+		// Step 2 — switch foreground to color B. Color B must survive the
+		// disrupted sampling — if disruption incorrectly commits, FG would
+		// flip back to color A.
+		const paletteSwatch = page.locator('.palette-grid .editor-swatch').nth(1);
+		await paletteSwatch.click();
+		const colorBHex = await hexValue.textContent();
+		expect(colorBHex).not.toBe(colorAHex);
+
+		// Step 3 — non-eyedropper tool so the long-press path is exercised.
+		await page.keyboard.press('p'); // Pencil
+
+		const startClientX = box.x + pressPoint.x;
+		const startClientY = box.y + pressPoint.y;
+
+		// Step 4 — touch pointerdown on the color-A pixel and wait past the
+		// 400ms long-press threshold to engage the sampling session.
+		await page.evaluate(
+			({ x, y }) => {
+				const el = document.querySelector('canvas.pixel-canvas');
+				if (!el) throw new Error('canvas not found');
+				el.dispatchEvent(
+					new PointerEvent('pointerdown', {
+						bubbles: true,
+						cancelable: true,
+						pointerType: 'touch',
+						pointerId: 1,
+						clientX: x,
+						clientY: y,
+						button: 0,
+						buttons: 1,
+						isPrimary: true
+					})
+				);
+			},
+			{ x: startClientX, y: startClientY }
+		);
+
+		await page.waitForTimeout(450);
+
+		// Step 5 — loupe visible: sampling session is open.
+		await expect(loupe).toBeVisible();
+
+		// Step 6 — disruption: pointer leaves the canvas while sampling is
+		// active. PixelCanvasView wires `pointerleave` to
+		// `canvas-interaction.pointerLeave`, which today (incorrectly) calls
+		// `onSampleEnd` — committing the sampled pixel as the new foreground.
+		// After the fix, this path must call `onSampleCancel` and produce
+		// no effects.
+		await page.evaluate(
+			({ x, y }) => {
+				const el = document.querySelector('canvas.pixel-canvas');
+				if (!el) throw new Error('canvas not found');
+				el.dispatchEvent(
+					new PointerEvent('pointerleave', {
+						bubbles: true,
+						cancelable: true,
+						pointerType: 'touch',
+						pointerId: 1,
+						clientX: x,
+						clientY: y,
+						buttons: 1,
+						isPrimary: true
+					})
+				);
+			},
+			{ x: startClientX, y: startClientY }
+		);
+
+		// Step 7 — release. Even if the touch is still tracked elsewhere, the
+		// session was already torn down by the leave; pointerup is a no-op
+		// for sampling at this point.
+		await page.evaluate(
+			({ x, y }) => {
+				window.dispatchEvent(
+					new PointerEvent('pointerup', {
+						bubbles: true,
+						cancelable: true,
+						pointerType: 'touch',
+						pointerId: 1,
+						clientX: x,
+						clientY: y,
+						button: 0,
+						buttons: 0,
+						isPrimary: true
+					})
+				);
+			},
+			{ x: startClientX, y: startClientY }
+		);
+
+		await expect(loupe).toBeHidden();
+
+		// FG must remain at color B — the disruption must not commit.
+		const pickedHex = await hexValue.textContent();
+		expect(pickedHex).toBe(colorBHex);
+		expect(pickedHex).not.toBe(colorAHex);
+	});
+
 	test('eyedropper drag released on a transparent pixel does not commit', async ({
 		editorPage
 	}) => {

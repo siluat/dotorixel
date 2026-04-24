@@ -25,6 +25,7 @@
 		onSampleStart?: (coords: CanvasCoords, button: number, pointerType: PointerType) => boolean;
 		onSampleUpdate?: (coords: CanvasCoords) => void;
 		onSampleEnd?: () => void;
+		onSampleCancel?: () => void;
 		toolCursor?: string;
 		isSpaceHeld?: boolean;
 		/**
@@ -47,6 +48,7 @@
 		onSampleStart,
 		onSampleUpdate,
 		onSampleEnd,
+		onSampleCancel,
 		toolCursor = 'crosshair',
 		isSpaceHeld = false,
 		samplingSession
@@ -85,7 +87,8 @@
 			onSampleStart: (coords, button, pointerType) =>
 				onSampleStart?.(coords, button, pointerType) ?? false,
 			onSampleUpdate: (coords) => onSampleUpdate?.(coords),
-			onSampleEnd: () => onSampleEnd?.()
+			onSampleEnd: () => onSampleEnd?.(),
+			onSampleCancel: () => onSampleCancel?.()
 		}
 	);
 
@@ -201,6 +204,10 @@
 		canvasInteraction.pointerLeave(x, y);
 	}
 
+	function handlePointerCancel(event: PointerEvent): void {
+		canvasInteraction.pointerCancel(event.pointerId);
+	}
+
 	function handleWindowBlur(): void {
 		canvasInteraction.blur();
 		screenPointer = null;
@@ -230,7 +237,7 @@
 	onpointerdown={handlePointerDown}
 	onpointermove={handlePointerMove}
 	onpointerleave={handlePointerLeave}
-	onpointercancel={handlePointerUp}
+	onpointercancel={handlePointerCancel}
 	oncontextmenu={(e) => e.preventDefault()}
 ></canvas>
 

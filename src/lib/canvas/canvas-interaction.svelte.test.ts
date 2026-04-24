@@ -18,6 +18,7 @@ function setup(overrides?: {
 		onSampleStart: vi.fn(() => true),
 		onSampleUpdate: vi.fn(),
 		onSampleEnd: vi.fn(),
+		onSampleCancel: vi.fn(),
 		...overrides?.callbacks
 	};
 	let spaceHeld = false;
@@ -615,40 +616,61 @@ describe('sampling — during session', () => {
 		interaction.pointerUp(1, 50, 50);
 
 		expect(callbacks.onSampleEnd).toHaveBeenCalledOnce();
+		expect(callbacks.onSampleCancel).not.toHaveBeenCalled();
 		expect(callbacks.onDrawEnd).not.toHaveBeenCalled();
 		expect(interaction.interactionType).toBe('idle');
 	});
+});
 
-	it('blur during sampling fires onSampleEnd and returns to idle', () => {
-		const { interaction, callbacks } = setup();
-		interaction.pointerDown(1, 50, 50, 'touch', 0);
-		vi.advanceTimersByTime(400);
+describe('sampling disruption', () => {
+	beforeEach(() => vi.useFakeTimers());
+	afterEach(() => vi.useRealTimers());
 
-		interaction.blur();
-
-		expect(callbacks.onSampleEnd).toHaveBeenCalledOnce();
-		expect(interaction.interactionType).toBe('idle');
-	});
-
-	it('pointer leave during sampling fires onSampleEnd and returns to idle', () => {
-		const { interaction, callbacks } = setup();
-		interaction.pointerDown(1, 50, 50, 'touch', 0);
-		vi.advanceTimersByTime(400);
-
-		interaction.pointerLeave(50, 50);
-
-		expect(callbacks.onSampleEnd).toHaveBeenCalledOnce();
-		expect(interaction.interactionType).toBe('idle');
-	});
-
-	it('second touch during sampling ends session and enters pinching', () => {
+	it('pinch transition (second touch) cancels sampling without commit', () => {
 		const { interaction, callbacks } = setup();
 		interaction.pointerDown(1, 50, 50, 'touch', 0);
 		vi.advanceTimersByTime(400);
 
 		interaction.pointerDown(2, 200, 200, 'touch', 0);
 
-		expect(callbacks.onSampleEnd).toHaveBeenCalledOnce();
+		expect(callbacks.onSampleCancel).toHaveBeenCalledOnce();
+		expect(callbacks.onSampleEnd).not.toHaveBeenCalled();
 		expect(interaction.interactionType).toBe('pinching');
+	});
+
+	it('pointer leave cancels sampling without commit', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+		vi.advanceTimersByTime(400);
+
+		interaction.pointerLeave(50, 50);
+
+		expect(callbacks.onSampleCancel).toHaveBeenCalledOnce();
+		expect(callbacks.onSampleEnd).not.toHaveBeenCalled();
+		expect(interaction.interactionType).toBe('idle');
+	});
+
+	it('blur cancels sampling without commit', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+		vi.advanceTimersByTime(400);
+
+		interaction.blur();
+
+		expect(callbacks.onSampleCancel).toHaveBeenCalledOnce();
+		expect(callbacks.onSampleEnd).not.toHaveBeenCalled();
+		expect(interaction.interactionType).toBe('idle');
+	});
+
+	it('pointer cancel cancels sampling without commit', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+		vi.advanceTimersByTime(400);
+
+		interaction.pointerCancel(1);
+
+		expect(callbacks.onSampleCancel).toHaveBeenCalledOnce();
+		expect(callbacks.onSampleEnd).not.toHaveBeenCalled();
+		expect(interaction.interactionType).toBe('idle');
 	});
 });

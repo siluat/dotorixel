@@ -79,6 +79,12 @@ export interface CanvasInteraction {
 	windowPointerMove(id: number, x: number, y: number, buttons: number): void;
 	pointerUp(id: number, x: number, y: number): void;
 	pointerLeave(x: number, y: number): void;
+	/**
+	 * Browser-level interruption (OS gesture conflict, incoming call, etc.).
+	 * Per W3C Pointer Events, the user never released — treat as cancellation:
+	 * sampling → `onSampleCancel`, drawing → end without committing pending.
+	 */
+	pointerCancel(id: number): void;
 	blur(): void;
 	readonly interactionType: InteractionType;
 }
@@ -340,6 +346,29 @@ export function createCanvasInteraction(
 				}
 				drawAt(options.screenToCanvas(x, y));
 				callbacks.onDrawEnd();
+				interaction = { type: 'idle' };
+			}
+		},
+
+		pointerCancel(id: number): void {
+			clearLongPressTimer();
+			activePointers.delete(id);
+
+			if (interaction.type === 'sampling') {
+				callbacks.onSampleCancel();
+				interaction = { type: 'idle' };
+				return;
+			}
+
+			if (interaction.type === 'drawing') {
+				if (interaction.pendingCoords === null) {
+					callbacks.onDrawEnd();
+				}
+				interaction = { type: 'idle' };
+				return;
+			}
+
+			if (interaction.type === 'pinching' || interaction.type === 'panning') {
 				interaction = { type: 'idle' };
 			}
 		},

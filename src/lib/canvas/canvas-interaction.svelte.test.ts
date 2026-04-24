@@ -661,4 +661,16 @@ describe('sampling disruption', () => {
 		expect(callbacks.onSampleEnd).not.toHaveBeenCalled();
 		expect(interaction.interactionType).toBe('idle');
 	});
+
+	it('pointer cancel cancels sampling without commit', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+		vi.advanceTimersByTime(400);
+
+		interaction.pointerCancel(1);
+
+		expect(callbacks.onSampleCancel).toHaveBeenCalledOnce();
+		expect(callbacks.onSampleEnd).not.toHaveBeenCalled();
+		expect(interaction.interactionType).toBe('idle');
+	});
 });

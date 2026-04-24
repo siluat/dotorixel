@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 47 | 39 | 8 | 36 | 83% | 52% |
-| cubic-dev-ai[bot] | 31 | 25 | 6 | 45 | 81% | 36% |
-| coderabbitai[bot] | 57 | 39 | 18 | 33 | 68% | 54% |
+| greptile-apps[bot] | 48 | 40 | 8 | 37 | 83% | 52% |
+| cubic-dev-ai[bot] | 32 | 26 | 6 | 46 | 81% | 36% |
+| coderabbitai[bot] | 60 | 41 | 19 | 33 | 68% | 55% |
 
 ## Log
 
@@ -263,3 +263,10 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #166 | coderabbitai[bot] | Accept | `pointercancel` routed to `pointerUp` → `onSampleEnd` commits color; should map to `onSampleCancel` like other disruption paths |
 | #166 | greptile-apps[bot] | Miss | Did not flag `pointercancel` routing to commit path (APPROVED review) |
 | #166 | cubic-dev-ai[bot] | Miss | Did not flag `pointercancel` routing to commit path (APPROVED review) |
+| #167 | coderabbitai[bot] | Accept | Window resize during sampling — viewport stale until next pointer event; restore prior behavior |
+| #167 | cubic-dev-ai[bot] | Accept | Window resize stale viewport (duplicate of coderabbit/greptile) |
+| #167 | greptile-apps[bot] | Accept | Window resize stale viewport (duplicate of coderabbit/cubic) |
+| #167 | coderabbitai[bot] | Accept | `commitTarget` non-reset rationale in `reset()` — added a one-line comment |
+| #167 | coderabbitai[bot] | Reject | `as const` on loupe-config exports — no consumer narrows on literals, hypothetical benefit |
+| #167 | cubic-dev-ai[bot] | Miss | Did not flag `commitTarget` non-reset rationale |
+| #167 | greptile-apps[bot] | Miss | Did not flag `commitTarget` non-reset rationale |

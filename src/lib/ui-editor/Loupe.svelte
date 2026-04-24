@@ -1,10 +1,8 @@
 <script lang="ts">
 	import type { Color } from '$lib/canvas/color';
 	import { colorToHex } from '$lib/canvas/color';
-	import {
-		computeLoupePosition,
-		type LoupeInputSource
-	} from '$lib/canvas/loupe-position';
+	import { computeLoupePosition } from '$lib/canvas/sampling/loupe-position';
+	import type { LoupeInputSource } from '$lib/canvas/sampling/types';
 
 	// Loupe outer dimensions (border-box) derived from the design spec.
 	// Each building block names a single CSS value below — change one here and

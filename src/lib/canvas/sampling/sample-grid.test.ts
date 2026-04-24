@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { sampleGrid } from './sample-grid';
-import { canvasFactory } from './wasm-backend';
-import type { Color } from './color';
+import { canvasFactory } from '../wasm-backend';
+import type { Color } from '../color';
 
 const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
 

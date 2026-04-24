@@ -2,8 +2,8 @@ import type { PixelCanvas, CanvasCoords } from './canvas-model';
 import type { Color } from './color';
 import { colorToHex } from './color';
 import { NO_EFFECTS, type ToolEffects } from './draw-tool';
-import type { LoupeInputSource } from './loupe-position';
-import { sampleGrid } from './sample-grid';
+import type { LoupeInputSource } from './sampling/types';
+import { sampleGrid } from './sampling/sample-grid';
 
 /** Odd-sized grid around the target pixel. 9 matches the design spec. */
 const GRID_SIZE = 9;

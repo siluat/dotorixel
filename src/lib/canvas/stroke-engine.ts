@@ -1,7 +1,7 @@
 import type { CanvasCoords } from './canvas-model';
 import type { Color } from './color';
 import type { PointerType } from './canvas-interaction.svelte';
-import type { LoupeInputSource } from './loupe-position';
+import type { LoupeInputSource } from './sampling/types';
 import type { SamplingSession } from './sampling-session.svelte';
 import type { SharedState } from './shared-state.svelte';
 import type { SessionHost, StrokeSpec } from './tool-authoring';

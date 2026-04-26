@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 52 | 41 | 11 | 40 | 79% | 51% |
-| cubic-dev-ai[bot] | 35 | 29 | 6 | 47 | 83% | 38% |
-| coderabbitai[bot] | 64 | 43 | 21 | 35 | 67% | 55% |
+| greptile-apps[bot] | 55 | 42 | 13 | 44 | 76% | 49% |
+| cubic-dev-ai[bot] | 35 | 29 | 6 | 52 | 83% | 36% |
+| coderabbitai[bot] | 74 | 48 | 26 | 36 | 65% | 57% |
 
 ## Log
 
@@ -287,3 +287,26 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #168 | coderabbitai[bot] | Accept | `.card-text` `<div>` inside `.card-open` `<button>` — same HTML5 phrasing-content rule as the empty-state, missed in earlier round |
 | #168 | greptile-apps[bot] | Miss | Did not flag `.card-text` div-in-button violation |
 | #168 | cubic-dev-ai[bot] | Miss | Did not flag `.card-text` div-in-button violation (caught the empty-state variant but missed the card variant) |
+| #169 | greptile-apps[bot] | Accept | Duplicate `Placement` type — import from compute-initial-placement.ts |
+| #169 | greptile-apps[bot] | Reject | `DisplayStateRecord` shape alias to `DisplayState` — deliberate persistence/domain boundary, mirrors `ReferenceImageRecord` pattern |
+| #169 | greptile-apps[bot] | Reject | `show`/`close` unconditional `markDirty` guard — internal API, call site already guards via `displayStateFor` |
+| #169 | greptile-apps[bot] | Miss | Did not flag Korean particle 을 → 을(를) alternation |
+| #169 | greptile-apps[bot] | Miss | Did not flag missing JSDoc contract on `computeInitialPlacement` |
+| #169 | greptile-apps[bot] | Miss | Did not flag missing left/top=0 assertion in fit-larger-than-viewport test |
+| #169 | greptile-apps[bot] | Miss | Did not flag cascadeIndex collision when reopening after close |
+| #169 | cubic-dev-ai[bot] | Miss | Did not flag duplicate `Placement` type |
+| #169 | cubic-dev-ai[bot] | Miss | Did not flag Korean particle 을 → 을(를) alternation |
+| #169 | cubic-dev-ai[bot] | Miss | Did not flag missing JSDoc on `computeInitialPlacement` |
+| #169 | cubic-dev-ai[bot] | Miss | Did not flag missing left/top=0 assertion in fit test |
+| #169 | cubic-dev-ai[bot] | Miss | Did not flag cascadeIndex collision when reopening after close |
+| #169 | coderabbitai[bot] | Accept | Korean particle 을 → 을(를) alternation for vowel-final filenames |
+| #169 | coderabbitai[bot] | Accept | JSDoc contract on `computeInitialPlacement` — non-obvious algorithm warrants doc |
+| #169 | coderabbitai[bot] | Accept | objectUrl action duplication — defer to third consumer per "rule of three" |
+| #169 | coderabbitai[bot] | Accept | Pin left/top=0 in "fits larger than viewport" overlay test |
+| #169 | coderabbitai[bot] | Accept | Cascade index based on visible count collides with closed-but-tracked windows |
+| #169 | coderabbitai[bot] | Reject | JSDoc on all public store methods — defaults to no comments unless WHY non-obvious |
+| #169 | coderabbitai[bot] | Reject | `display()` upsert to prevent duplicate refId — internal API trusts caller's guard |
+| #169 | coderabbitai[bot] | Reject | JSDoc on DisplayState fields — types are self-documenting |
+| #169 | coderabbitai[bot] | Reject | `show()` no-op fallback when entry absent — same internal-API rationale |
+| #169 | coderabbitai[bot] | Reject | Raise z-order on already-visible click — PRD #056 explicitly defers to #059 |
+| #169 | coderabbitai[bot] | Miss | Did not flag duplicate `Placement` type |

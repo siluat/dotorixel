@@ -3,6 +3,7 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { WorkspaceSnapshot, TabSnapshot } from '$lib/canvas/workspace-snapshot';
 import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
+import type { DisplayState } from '$lib/reference-images/display-state-types';
 import { SessionPersistence } from './session-persistence';
 import { SessionStorage } from './session-storage';
 
@@ -423,6 +424,34 @@ describe('SessionPersistence', () => {
 		expect(restored!.references!['doc-1'][0].id).toBe('ref-a');
 		expect(restored!.references!['doc-1'][0].filename).toBe('ref-a.png');
 		expect(restored!.references!['doc-1'][0].naturalWidth).toBe(100);
+	});
+
+	it('round-trips display states for the open tabs', async () => {
+		const refA = makeRef('ref-a');
+		const displayStates: Record<string, DisplayState[]> = {
+			'doc-1': [
+				{
+					refId: 'ref-a',
+					visible: true,
+					x: 10,
+					y: 20,
+					width: 100,
+					height: 200,
+					minimized: false,
+					zOrder: 1
+				}
+			]
+		};
+		const snapshot = makeSnapshot(
+			{ references: { 'doc-1': [refA] }, displayStates },
+			[makeTab({ id: 'doc-1' })]
+		);
+
+		await persistence.save(snapshot);
+		const restored = await persistence.restore();
+
+		expect(restored).not.toBeNull();
+		expect(restored!.displayStates).toEqual(displayStates);
 	});
 
 	it('returns null when workspace references a missing document', async () => {

@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 056 | [Reference images — display on canvas + close](../issues/056-reference-images-display-close.md) | 2026-04-26 |
 | 055 | [Reference images — gallery foundation (store, persistence, import, modal)](../issues/055-reference-images-gallery-foundation.md) | 2026-04-26 |
 | 054 | [Reference images — UI design spec](../issues/054-reference-images-design.md) | 2026-04-26 |
 | 078 | [Deepen SamplingSession — port-injected session with reactive position (PR 2)](../issues/078-deepen-loupe-session.md) | 2026-04-24 |

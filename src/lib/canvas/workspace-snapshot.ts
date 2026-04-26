@@ -1,5 +1,6 @@
 import type { ViewportData } from './viewport';
 import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
+import type { DisplayState } from '$lib/reference-images/display-state-types';
 
 export interface SharedStateSnapshot {
 	readonly activeTool: string;
@@ -29,6 +30,11 @@ export interface WorkspaceSnapshot {
 	 * field existed; hydration should treat absence as "empty map".
 	 */
 	readonly references?: Readonly<Record<string, readonly ReferenceImage[]>>;
+	/**
+	 * Per-doc reference window display states. Undefined on snapshots produced
+	 * before this field existed; hydration should treat absence as "empty map".
+	 */
+	readonly displayStates?: Readonly<Record<string, readonly DisplayState[]>>;
 }
 
 export interface TabSnapshot {

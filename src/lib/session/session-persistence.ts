@@ -1,7 +1,12 @@
 import type { WorkspaceSnapshot, TabSnapshot } from '$lib/canvas/workspace-snapshot';
 import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
+import type { DisplayState } from '$lib/reference-images/display-state-types';
 import type { SessionStorage } from './session-storage';
-import type { ReferenceImageRecord, SavedDocumentSummary } from './session-storage-types';
+import type {
+	DisplayStateRecord,
+	ReferenceImageRecord,
+	SavedDocumentSummary
+} from './session-storage-types';
 
 const DEFAULT_VIEWPORT = {
 	pixelSize: 32,
@@ -27,6 +32,7 @@ export class SessionPersistence {
 		const tabOrder: string[] = [];
 		const viewports: Record<string, TabSnapshot['viewport']> = {};
 		const references: Record<string, ReferenceImageRecord[]> = {};
+		const displayStates: Record<string, DisplayStateRecord[]> = {};
 
 		for (const tab of snapshot.tabs) {
 			tabOrder.push(tab.id);
@@ -53,6 +59,11 @@ export class SessionPersistence {
 			if (refs && refs.length > 0) {
 				references[tab.id] = refs.map((r) => ({ ...r }));
 			}
+
+			const states = snapshot.displayStates?.[tab.id];
+			if (states && states.length > 0) {
+				displayStates[tab.id] = states.map((s) => ({ ...s }));
+			}
 		}
 
 		await this.#storage.putWorkspace({
@@ -67,7 +78,8 @@ export class SessionPersistence {
 				pixelPerfect: snapshot.sharedState.pixelPerfect
 			},
 			viewports,
-			references
+			references,
+			displayStates
 		});
 
 		// Delete unsaved documents that are no longer in any tab
@@ -132,11 +144,19 @@ export class SessionPersistence {
 				}
 			}
 
+			const displayStates: Record<string, DisplayState[]> = {};
+			if (ws.displayStates) {
+				for (const [docId, states] of Object.entries(ws.displayStates)) {
+					displayStates[docId] = states.map((s) => ({ ...s }));
+				}
+			}
+
 			return {
 				tabs,
 				activeTabIndex: Math.min(ws.activeTabIndex, tabs.length - 1),
 				sharedState: ws.sharedState,
-				references
+				references,
+				displayStates
 			};
 		} catch {
 			// Corrupted or unreadable data should not block the editor —

@@ -22,14 +22,18 @@ function makeRef(overrides: Partial<ReferenceImage> = {}): ReferenceImage {
 function renderGrid(
 	props: Partial<{
 		references: ReferenceImage[];
+		displayedRefIds: ReadonlySet<string>;
 		onSelect: (ref: ReferenceImage) => void;
 		onDelete: (id: string) => void | Promise<void>;
+		onToggleDisplay: (ref: ReferenceImage) => void;
 	}> = {}
 ) {
 	const defaults = {
 		references: [makeRef()],
+		displayedRefIds: new Set<string>(),
 		onSelect: vi.fn(),
-		onDelete: vi.fn()
+		onDelete: vi.fn(),
+		onToggleDisplay: vi.fn()
 	};
 	const merged = { ...defaults, ...props };
 	const result = render(ReferenceGalleryGrid, { props: merged });
@@ -90,5 +94,42 @@ describe('ReferenceGalleryGrid', () => {
 
 		expect(onDelete).toHaveBeenCalledOnce();
 		expect(onDelete).toHaveBeenCalledWith('del-1');
+	});
+
+	it('renders an Eye toggle button on each card', () => {
+		const refs = [
+			makeRef({ id: 'a', filename: 'one.png' }),
+			makeRef({ id: 'b', filename: 'two.png' })
+		];
+		const { container } = renderGrid({ references: refs });
+
+		expect(container.querySelectorAll('.card-display-toggle')).toHaveLength(2);
+	});
+
+	it('calls onToggleDisplay when the Eye button is clicked, not onSelect', async () => {
+		const ref = makeRef({ id: 'eye-1', filename: 'visible.png' });
+		const { container, onToggleDisplay, onSelect } = renderGrid({ references: [ref] });
+
+		const toggleBtn = container.querySelector('.card-display-toggle')!;
+		await fireEvent.click(toggleBtn);
+
+		expect(onToggleDisplay).toHaveBeenCalledOnce();
+		expect(onToggleDisplay).toHaveBeenCalledWith(ref);
+		expect(onSelect).not.toHaveBeenCalled();
+	});
+
+	it('marks cards in displayedRefIds via data-displayed', () => {
+		const refs = [
+			makeRef({ id: 'a', filename: 'one.png' }),
+			makeRef({ id: 'b', filename: 'two.png' })
+		];
+		const { container } = renderGrid({
+			references: refs,
+			displayedRefIds: new Set(['a'])
+		});
+
+		const cards = container.querySelectorAll('.card');
+		expect(cards[0].getAttribute('data-displayed')).toBe('true');
+		expect(cards[1].getAttribute('data-displayed')).toBe('false');
 	});
 });

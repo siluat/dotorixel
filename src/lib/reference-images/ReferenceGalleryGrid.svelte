@@ -91,10 +91,10 @@
 			<div class="card">
 				<button class="card-open" onclick={() => onSelect(ref)}>
 					<img class="card-thumb" alt="" use:objectUrl={ref.thumbnail} />
-					<div class="card-text">
+					<span class="card-text">
 						<span class="card-name">{ref.filename}</span>
 						<span class="card-meta">{ref.naturalWidth} × {ref.naturalHeight}</span>
-					</div>
+					</span>
 				</button>
 				<div class="card-actions">
 					<button

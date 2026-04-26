@@ -80,11 +80,11 @@
 </script>
 
 {#if references.length === 0}
-	<div class="empty-state">
+	<span class="empty-state">
 		<ImageIcon size={40} />
-		<p class="empty-title">{m.references_empty_title()}</p>
-		<p class="empty-desc">{m.references_empty_desc()}</p>
-	</div>
+		<span class="empty-title">{m.references_empty_title()}</span>
+		<span class="empty-desc">{m.references_empty_desc()}</span>
+	</span>
 {:else}
 	<div class="card-grid">
 		{#each references as ref (ref.id)}

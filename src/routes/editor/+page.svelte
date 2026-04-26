@@ -175,6 +175,7 @@
 
 	function handleCloseReferences() {
 		isReferencesOpen = false;
+		referenceErrors = [];
 	}
 
 	function handleReferenceAddRequest() {

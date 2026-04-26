@@ -25,4 +25,9 @@ describe('computeThumbnailDimensions', () => {
 
 		expect(result).toEqual({ w: 64, h: 32 });
 	});
+
+	it('clamps the short edge to 1 when an extreme aspect ratio rounds it to zero', () => {
+		expect(computeThumbnailDimensions(1, 10_000, 256)).toEqual({ w: 1, h: 256 });
+		expect(computeThumbnailDimensions(10_000, 1, 256)).toEqual({ w: 256, h: 1 });
+	});
 });

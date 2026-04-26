@@ -245,16 +245,14 @@
 
 	function displayReference(ref: ReferenceImage, docId: string) {
 		const store = editor.workspace.references;
-		const visibleCount = store
-			.displayStatesForDoc(docId)
-			.filter((s) => s.visible).length;
+		const cascadeIndex = store.displayStatesForDoc(docId).length;
 		const { width: viewportWidth, height: viewportHeight } = editor.viewportSize;
 		const placement = computeInitialPlacement({
 			naturalWidth: ref.naturalWidth,
 			naturalHeight: ref.naturalHeight,
 			viewportWidth: Math.max(viewportWidth, 1),
 			viewportHeight: Math.max(viewportHeight, 1),
-			cascadeIndex: visibleCount
+			cascadeIndex
 		});
 		store.display(ref.id, docId, placement);
 	}

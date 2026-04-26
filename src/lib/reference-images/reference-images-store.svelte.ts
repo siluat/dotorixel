@@ -1,13 +1,7 @@
 import type { DirtyNotifier } from '$lib/canvas/editor-session/dirty-notifier';
 import type { ReferenceImage } from './reference-image-types';
 import type { DisplayState } from './display-state-types';
-
-export type Placement = {
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-};
+import type { Placement } from './compute-initial-placement';
 
 export class ReferenceImagesStore {
 	#notifier: DirtyNotifier;

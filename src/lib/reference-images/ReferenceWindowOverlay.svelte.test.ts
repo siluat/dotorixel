@@ -112,6 +112,8 @@ describe('ReferenceWindowOverlay', () => {
 		});
 
 		const win = screen.getByRole('dialog');
+		expect(win.style.left).toBe('0px');
+		expect(win.style.top).toBe('0px');
 		expect(win.style.width).toBe('360px');
 		expect(win.style.height).toBe('500px');
 	});

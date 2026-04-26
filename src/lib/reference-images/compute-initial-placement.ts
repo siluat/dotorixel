@@ -17,6 +17,22 @@ const MIN_EDGE = 80;
 const VIEWPORT_FRACTION = 0.3;
 const CASCADE_OFFSET = 24;
 
+/**
+ * Compute initial placement for a newly-displayed reference window.
+ *
+ * Sizing (aspect-preserving):
+ * - Longer edge ≤ `max(viewportWidth, viewportHeight) * 0.3`.
+ * - Shorter edge scaled up to ≥ 80px when the natural shape is very thin.
+ * - Final size capped to the viewport — overrides the 80px floor when the
+ *   floor would push the window past the viewport (e.g. extreme aspect ratios
+ *   on small viewports), keeping the window fully visible.
+ *
+ * Positioning:
+ * - Centered in the viewport, then shifted by `cascadeIndex × 24` on both axes.
+ * - Clamped so the window stays fully inside the viewport.
+ *
+ * Pure: no side effects. All inputs are assumed positive.
+ */
 export function computeInitialPlacement(input: ComputeInitialPlacementInput): Placement {
 	const { naturalWidth, naturalHeight, viewportWidth, viewportHeight, cascadeIndex } = input;
 	const naturalLonger = Math.max(naturalWidth, naturalHeight);

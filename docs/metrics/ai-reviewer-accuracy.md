@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 52 | 41 | 11 | 39 | 79% | 51% |
-| cubic-dev-ai[bot] | 35 | 29 | 6 | 46 | 83% | 39% |
-| coderabbitai[bot] | 63 | 42 | 21 | 35 | 67% | 55% |
+| greptile-apps[bot] | 52 | 41 | 11 | 40 | 79% | 51% |
+| cubic-dev-ai[bot] | 35 | 29 | 6 | 47 | 83% | 38% |
+| coderabbitai[bot] | 64 | 43 | 21 | 35 | 67% | 55% |
 
 ## Log
 
@@ -284,3 +284,6 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #168 | coderabbitai[bot] | Miss | Did not flag thumbnail 0-dim rounding bug |
 | #168 | greptile-apps[bot] | Reject | Type duplication `ReferenceImageRecord` vs `ReferenceImage` — deliberate IDB↔app boundary, mirrors existing `ViewportRecord`/`SharedStateRecord` pattern |
 | #168 | greptile-apps[bot] | Reject | Stale-entry load path in `session-persistence.ts` restore — writer rebuilds map each save, producer cannot create the state being defended against |
+| #168 | coderabbitai[bot] | Accept | `.card-text` `<div>` inside `.card-open` `<button>` — same HTML5 phrasing-content rule as the empty-state, missed in earlier round |
+| #168 | greptile-apps[bot] | Miss | Did not flag `.card-text` div-in-button violation |
+| #168 | cubic-dev-ai[bot] | Miss | Did not flag `.card-text` div-in-button violation (caught the empty-state variant but missed the card variant) |

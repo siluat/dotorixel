@@ -2,18 +2,16 @@
 
 ## Currently Working On
 
-None
+Floating reference image windows ([PRD 053](../issues/053-floating-reference-window.md))
 
 ## Last Completed
 
-Fix sampling disruption commits as cancel (PR 1) — pinch / pointerleave / blur during a sampling session now route to `onSampleCancel` instead of committing the picked color ([issue](../issues/078-deepen-loupe-session.md))
+Reference images — UI design spec — `.pen` spec for floating window component (light + dark), gallery card (Eye toggle), TopBar Images button, References modal/sheet, delete dialog, and integrated editor view. Q1–Q8 decisions captured in issue file ([issue](../issues/054-reference-images-design.md))
 
 ## Next Up
 
-- Deepen SamplingSession — extract port-injected session with reactive position (PR 2) — [Plan](../issues/078-deepen-loupe-session.md)
-  - Begins after PR 1 merges. Purely structural; 4 internal commits.
-- [054 — Floating reference windows: UI design spec](../issues/054-reference-images-design.md) (HITL design)
-  - First gate for PRD 053 (Floating reference image windows). Unblocks 055–062.
+- [055 — Reference images: gallery foundation](../issues/055-reference-images-gallery-foundation.md)
+  - First implementation slice for PRD 053 — IndexedDB-backed gallery + browser modal/sheet wiring. Unblocked by 054.
 - [018 — RightPanel (Apple Native)](../issues/018-apple-right-panel.md)
   - Independent. Can start immediately.
 - [019 — StatusBar (Apple Native)](../issues/019-apple-status-bar.md)

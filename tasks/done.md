@@ -2,6 +2,8 @@
 
 | # | Task | Date |
 |---|------|------|
+| 054 | [Reference images — UI design spec](../issues/054-reference-images-design.md) | 2026-04-26 |
+| 078 | [Deepen SamplingSession — port-injected session with reactive position (PR 2)](../issues/078-deepen-loupe-session.md) | 2026-04-24 |
 | 078 | [Fix sampling disruption commits as cancel (PR 1)](../issues/078-deepen-loupe-session.md) | 2026-04-24 |
 | 077 | [Deepen editor state — split god object into layered TabState / Workspace / EditorController with ports](../issues/077-deepen-editor-state-architecture.md) | 2026-04-22 |
 | 076 | [Deepen tool dispatch — author sugar constructors + opaque stroke engine](../issues/076-deepen-tool-dispatch.md) | 2026-04-22 |

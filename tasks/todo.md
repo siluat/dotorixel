@@ -4,7 +4,6 @@
 
 - Floating reference image windows (import from Files/Photos, reposition/minimize, color sampling) — inspired by Pixquare — [PRD](../issues/053-floating-reference-window.md)
 
-  - [054 — UI design spec](../issues/054-reference-images-design.md) (HITL)
   - [055 — gallery foundation](../issues/055-reference-images-gallery-foundation.md)
   - [056 — display on canvas + close](../issues/056-reference-images-display-close.md)
   - [057 — move + resize](../issues/057-reference-images-move-resize.md)
@@ -65,7 +64,6 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 ## Review backlog (not assigned to a milestone)
 
 - Deepen per-stroke state — StrokeSession factory with typed openers — [Plan](../issues/075-deepen-stroke-session.md)
-- Deepen SamplingSession — extract port-injected session with reactive position (PR 2) — [Plan](../issues/078-deepen-loupe-session.md)
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate (deferred from Milestone 3 MVP)
 - Reference image import — clipboard paste support (Ctrl/Cmd+V), deferred from Milestone 3 MVP
 - Design: share artwork dialog — URL sharing dialog UI (.pen)

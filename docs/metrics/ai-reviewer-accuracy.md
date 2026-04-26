@@ -6,7 +6,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 50 | 41 | 9 | 39 | 82% | 51% |
+| greptile-apps[bot] | 52 | 41 | 11 | 39 | 79% | 51% |
 | cubic-dev-ai[bot] | 35 | 29 | 6 | 46 | 83% | 39% |
 | coderabbitai[bot] | 63 | 42 | 21 | 35 | 67% | 55% |
 
@@ -282,3 +282,5 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #168 | greptile-apps[bot] | Miss | Did not flag block-in-button HTML violation |
 | #168 | coderabbitai[bot] | Miss | Did not flag stale `referenceErrors` on modal close |
 | #168 | coderabbitai[bot] | Miss | Did not flag thumbnail 0-dim rounding bug |
+| #168 | greptile-apps[bot] | Reject | Type duplication `ReferenceImageRecord` vs `ReferenceImage` — deliberate IDB↔app boundary, mirrors existing `ViewportRecord`/`SharedStateRecord` pattern |
+| #168 | greptile-apps[bot] | Reject | Stale-entry load path in `session-persistence.ts` restore — writer rebuilds map each save, producer cannot create the state being defended against |

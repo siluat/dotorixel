@@ -21,6 +21,11 @@
 	import SaveDialog from '$lib/ui-editor/SaveDialog.svelte';
 	import SavedWorkBrowser from '$lib/ui-editor/SavedWorkBrowser.svelte';
 	import SavedWorkBrowserSheet from '$lib/ui-editor/SavedWorkBrowserSheet.svelte';
+	import ReferenceBrowser from '$lib/reference-images/ReferenceBrowser.svelte';
+	import ReferenceBrowserSheet from '$lib/reference-images/ReferenceBrowserSheet.svelte';
+	import { importReferenceImage } from '$lib/reference-images/import-reference-image';
+	import * as m from '$lib/paraglide/messages';
+	import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 	import { openSession, type SessionHandle } from '$lib/session/session';
 	import type { SavedDocumentSummary } from '$lib/session/session-storage-types';
 	import { isBlankCanvas } from '$lib/canvas/blank-detection';
@@ -59,6 +64,12 @@
 	let session: SessionHandle | undefined;
 	let saveDialogTabIndex: number | null = $state(null);
 	let browserDocuments: SavedDocumentSummary[] | null = $state(null);
+	let isReferencesOpen = $state(false);
+	let referenceErrors = $state<string[]>([]);
+	let referenceFileInputEl = $state<HTMLInputElement>();
+	const activeReferences = $derived(
+		editor.workspace.references.forDoc(editor.workspace.activeTab.documentId)
+	);
 
 	function initTabViewport(tab: TabState, width: number, height: number) {
 		tab.viewportSize = { width, height };
@@ -125,6 +136,7 @@
 		const closeIndex = saveDialogTabIndex;
 		saveDialogTabIndex = null;
 		editor.workspace.closeTab(closeIndex);
+		editor.workspace.references.removeDoc(docId);
 		await session?.deleteDocument(docId);
 	}
 
@@ -146,6 +158,7 @@
 	}
 
 	async function handleBrowserDelete(id: string) {
+		editor.workspace.references.removeDoc(id);
 		await session?.deleteDocument(id);
 		if (browserDocuments) {
 			browserDocuments = browserDocuments.filter((d) => d.id !== id);
@@ -156,13 +169,58 @@
 		browserDocuments = null;
 	}
 
+	function handleOpenReferences() {
+		isReferencesOpen = true;
+	}
+
+	function handleCloseReferences() {
+		isReferencesOpen = false;
+	}
+
+	function handleReferenceAddRequest() {
+		referenceFileInputEl?.click();
+	}
+
+	async function handleReferenceFileChange(event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		const files = input.files;
+		if (!files || files.length === 0) return;
+		const docId = editor.workspace.activeTab.documentId;
+		for (const file of files) {
+			const result = await importReferenceImage(file);
+			if (result.ok) {
+				editor.workspace.references.add(result.reference, docId);
+			} else {
+				const msg =
+					result.error.kind === 'unsupported-format'
+						? m.references_error_unsupported_format({ name: file.name })
+						: result.error.kind === 'too-large'
+							? m.references_error_too_large({ name: file.name })
+							: m.references_error_decode_failed({ name: file.name });
+				referenceErrors = [...referenceErrors, msg];
+			}
+		}
+		input.value = '';
+	}
+
+	function handleReferenceSelect(_ref: ReferenceImage) {}
+
+	async function handleReferenceDelete(id: string) {
+		const docId = editor.workspace.activeTab.documentId;
+		editor.workspace.references.delete(id, docId);
+	}
+
+	function handleDismissReferenceError(index: number) {
+		referenceErrors = referenceErrors.filter((_, i) => i !== index);
+	}
+
 	function handleEditorKeyDown(event: KeyboardEvent) {
-		if (saveDialogTabIndex !== null || browserDocuments !== null) return;
+		if (saveDialogTabIndex !== null || browserDocuments !== null || isReferencesOpen) return;
 		editor.handleKeyDown(event);
 	}
 
 	function handleEditorKeyUp(event: KeyboardEvent) {
-		if (saveDialogTabIndex !== null || browserDocuments !== null) return;
+		if (saveDialogTabIndex !== null || browserDocuments !== null || isReferencesOpen) return;
 		editor.handleKeyUp(event);
 	}
 
@@ -272,6 +330,8 @@
 			onExportConfirm={handleExportConfirm}
 			onBrowseSavedWork={handleBrowseSavedWork}
 			isBrowserOpen={browserDocuments !== null}
+			onOpenReferences={handleOpenReferences}
+			isReferencesOpen={isReferencesOpen}
 		/>
 
 		<TabStrip
@@ -347,6 +407,7 @@
 			onZoomOut={editor.handleZoomOut}
 			onZoomReset={editor.handleZoomReset}
 			onBrowseSavedWork={handleBrowseSavedWork}
+			onOpenReferences={handleOpenReferences}
 		/>
 
 		<TabStrip
@@ -438,8 +499,40 @@
 			onDelete={handleBrowserDelete}
 			onClose={handleBrowserClose}
 		/>
+
+		<ReferenceBrowserSheet
+			open={isReferencesOpen}
+			references={activeReferences}
+			errors={referenceErrors}
+			onSelect={handleReferenceSelect}
+			onDelete={handleReferenceDelete}
+			onAddRequest={handleReferenceAddRequest}
+			onDismissError={handleDismissReferenceError}
+			onClose={handleCloseReferences}
+		/>
 	</div>
 {/if}
+
+{#if layout.isDocked && isReferencesOpen}
+	<ReferenceBrowser
+		references={activeReferences}
+		errors={referenceErrors}
+		onSelect={handleReferenceSelect}
+		onDelete={handleReferenceDelete}
+		onAddRequest={handleReferenceAddRequest}
+		onDismissError={handleDismissReferenceError}
+		onClose={handleCloseReferences}
+	/>
+{/if}
+
+<input
+	type="file"
+	accept="image/png,image/jpeg,image/webp,image/gif"
+	multiple
+	bind:this={referenceFileInputEl}
+	onchange={handleReferenceFileChange}
+	style="display: none"
+/>
 
 {#if layout.isDocked && browserDocuments !== null}
 	<SavedWorkBrowser

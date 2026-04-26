@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Download, FolderOpen, Grid3X3, Minus, Plus } from 'lucide-svelte';
+	import { Download, FolderOpen, Grid3X3, Images, Minus, Plus } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import PixelPerfectIcon from './PixelPerfectIcon.svelte';
 
@@ -18,6 +18,7 @@
 		onZoomOut: () => void;
 		onZoomReset: () => void;
 		onBrowseSavedWork?: () => void;
+		onOpenReferences?: () => void;
 	}
 
 	let {
@@ -32,7 +33,8 @@
 		onZoomIn,
 		onZoomOut,
 		onZoomReset,
-		onBrowseSavedWork
+		onBrowseSavedWork,
+		onOpenReferences
 	}: Props = $props();
 
 	const tabTitles: Record<MobileTab, (() => string) | null> = {
@@ -102,6 +104,12 @@
 			{#if onBrowseSavedWork}
 				<button class="toolbar-btn" onclick={onBrowseSavedWork} aria-label={m.browser_title()}>
 					<FolderOpen size={18} />
+				</button>
+			{/if}
+
+			{#if onOpenReferences}
+				<button class="toolbar-btn" onclick={onOpenReferences} aria-label={m.aria_openReferences()}>
+					<Images size={18} />
 				</button>
 			{/if}
 

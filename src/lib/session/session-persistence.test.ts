@@ -2,8 +2,23 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { WorkspaceSnapshot, TabSnapshot } from '$lib/canvas/workspace-snapshot';
+import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 import { SessionPersistence } from './session-persistence';
 import { SessionStorage } from './session-storage';
+
+function makeRef(id: string): ReferenceImage {
+	return {
+		id,
+		filename: `${id}.png`,
+		blob: new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' }),
+		thumbnail: new Blob([new Uint8Array([4, 5, 6])], { type: 'image/png' }),
+		mimeType: 'image/png',
+		naturalWidth: 100,
+		naturalHeight: 100,
+		byteSize: 3,
+		addedAt: new Date('2026-04-26T00:00:00Z')
+	};
+}
 
 function makeTab(overrides: Partial<TabSnapshot> = {}) {
 	return {
@@ -369,6 +384,45 @@ describe('SessionPersistence', () => {
 		await persistence.deleteDocument('doc-1');
 
 		expect(await storage.getDocument('doc-1')).toBeUndefined();
+	});
+
+	it('drops references for tabs no longer in the workspace on re-save', async () => {
+		const refA = makeRef('ref-a');
+		const refB = makeRef('ref-b');
+		const twoTabs = makeSnapshot(
+			{ references: { 'doc-1': [refA], 'doc-2': [refB] } },
+			[makeTab({ id: 'doc-1' }), makeTab({ id: 'doc-2' })]
+		);
+		await persistence.save(twoTabs);
+
+		const oneTab = makeSnapshot(
+			{ references: { 'doc-1': [refA] } },
+			[makeTab({ id: 'doc-1' })]
+		);
+		await persistence.save(oneTab);
+
+		const ws = await storage.getWorkspace();
+		expect(ws!.references).toBeDefined();
+		expect(ws!.references!['doc-1']).toHaveLength(1);
+		expect(ws!.references!['doc-2']).toBeUndefined();
+	});
+
+	it('round-trips reference images for the open tabs', async () => {
+		const refA = makeRef('ref-a');
+		const snapshot = makeSnapshot(
+			{ references: { 'doc-1': [refA] } },
+			[makeTab({ id: 'doc-1' })]
+		);
+
+		await persistence.save(snapshot);
+		const restored = await persistence.restore();
+
+		expect(restored).not.toBeNull();
+		expect(restored!.references).toBeDefined();
+		expect(restored!.references!['doc-1']).toHaveLength(1);
+		expect(restored!.references!['doc-1'][0].id).toBe('ref-a');
+		expect(restored!.references!['doc-1'][0].filename).toBe('ref-a.png');
+		expect(restored!.references!['doc-1'][0].naturalWidth).toBe(100);
 	});
 
 	it('returns null when workspace references a missing document', async () => {

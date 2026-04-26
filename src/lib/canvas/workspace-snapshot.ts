@@ -1,4 +1,5 @@
 import type { ViewportData } from './viewport';
+import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 
 export interface SharedStateSnapshot {
 	readonly activeTool: string;
@@ -23,6 +24,11 @@ export interface WorkspaceSnapshot {
 	readonly tabs: readonly TabSnapshot[];
 	readonly activeTabIndex: number;
 	readonly sharedState: SharedStateSnapshot;
+	/**
+	 * Per-doc reference images. Undefined on snapshots produced before this
+	 * field existed; hydration should treat absence as "empty map".
+	 */
+	readonly references?: Readonly<Record<string, readonly ReferenceImage[]>>;
 }
 
 export interface TabSnapshot {

@@ -110,5 +110,20 @@
 	"browser_cancel": "Cancel",
 	"label_savedWorks": "Saved Works",
 	"action_close": "Close",
-	"aria_deleteDocument": "Delete {name}"
+	"aria_deleteDocument": "Delete {name}",
+
+	"references_title": "References",
+	"references_empty_title": "No reference images yet",
+	"references_empty_desc": "Drop in sketches and photos to reference while you draw.",
+	"references_add": "Add image",
+	"references_delete_title": "Remove \"{name}\"?",
+	"references_delete_message": "This will remove the reference from this document.",
+	"references_delete_confirm": "Remove",
+	"references_cancel": "Cancel",
+	"references_error_unsupported_format": "{name}: unsupported format. Use PNG, JPEG, WebP, or GIF.",
+	"references_error_too_large": "{name}: file is too large. Maximum 10 MB.",
+	"references_error_decode_failed": "{name}: could not decode image.",
+	"references_error_dismiss": "Dismiss",
+	"aria_deleteReference": "Delete {name}",
+	"aria_openReferences": "Open references"
 }

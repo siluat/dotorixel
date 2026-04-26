@@ -61,10 +61,27 @@ export interface ViewportRecord {
 	gridColor: string;
 }
 
+export interface ReferenceImageRecord {
+	id: string;
+	filename: string;
+	blob: Blob;
+	thumbnail: Blob;
+	mimeType: string;
+	naturalWidth: number;
+	naturalHeight: number;
+	byteSize: number;
+	addedAt: Date;
+}
+
 export interface WorkspaceRecord {
 	id: string;
 	tabOrder: string[];
 	activeTabIndex: number;
 	sharedState: SharedStateRecord;
 	viewports: Record<string, ViewportRecord>;
+	/**
+	 * Absent on records written before this field existed. Hydration should
+	 * treat absence as "empty map".
+	 */
+	references?: Record<string, ReferenceImageRecord[]>;
 }

@@ -5,6 +5,7 @@ import type { ToolType } from '../tool-registry';
 import { isValidToolType } from '../tool-registry';
 import { SharedState } from '../shared-state.svelte';
 import type { WorkspaceSnapshot, TabSnapshot } from '../workspace-snapshot';
+import { ReferenceImagesStore } from '$lib/reference-images/reference-images-store.svelte';
 import type { CanvasBackend } from './canvas-backend';
 import type { DirtyNotifier } from './dirty-notifier';
 import { TabState } from './tab-state.svelte';
@@ -56,6 +57,7 @@ export interface OpenDocumentInput {
  */
 export class Workspace {
 	readonly shared: SharedState;
+	readonly references: ReferenceImagesStore;
 	tabs = $state<TabState[]>([]);
 	activeIndex = $state(0);
 
@@ -74,6 +76,15 @@ export class Workspace {
 		this.#keyboard = deps.keyboard;
 		this.#gridColor = deps.gridColor;
 		this.shared = new SharedState();
+		const restoredRefs = deps.restored?.references
+			? Object.fromEntries(
+					Object.entries(deps.restored.references).map(([id, refs]) => [id, [...refs]])
+				)
+			: undefined;
+		this.references = new ReferenceImagesStore({
+			notifier: deps.notifier,
+			restored: restoredRefs
+		});
 
 		if (deps.restored) {
 			this.#hydrate(deps.restored);
@@ -188,7 +199,8 @@ export class Workspace {
 				backgroundColor: { ...this.shared.backgroundColor },
 				recentColors: [...this.shared.recentColors],
 				pixelPerfect: this.shared.pixelPerfect
-			}
+			},
+			references: this.references.toSnapshot()
 		};
 	}
 

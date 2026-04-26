@@ -110,5 +110,20 @@
 	"browser_cancel": "취소",
 	"label_savedWorks": "저장된 작업",
 	"action_close": "닫기",
-	"aria_deleteDocument": "{name} 삭제"
+	"aria_deleteDocument": "{name} 삭제",
+
+	"references_title": "참조 이미지",
+	"references_empty_title": "참조 이미지가 없습니다",
+	"references_empty_desc": "스케치나 사진을 추가해 그릴 때 참고하세요.",
+	"references_add": "이미지 추가",
+	"references_delete_title": "\"{name}\"을(를) 제거할까요?",
+	"references_delete_message": "이 문서에서 참조 이미지가 제거됩니다.",
+	"references_delete_confirm": "제거",
+	"references_cancel": "취소",
+	"references_error_unsupported_format": "{name}: 지원되지 않는 형식입니다. PNG, JPEG, WebP, GIF만 가능합니다.",
+	"references_error_too_large": "{name}: 파일이 너무 큽니다. 최대 10 MB.",
+	"references_error_decode_failed": "{name}: 이미지를 디코딩할 수 없습니다.",
+	"references_error_dismiss": "닫기",
+	"aria_deleteReference": "{name} 삭제",
+	"aria_openReferences": "참조 이미지 열기"
 }

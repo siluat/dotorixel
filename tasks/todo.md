@@ -4,7 +4,6 @@
 
 - Floating reference image windows (import from Files/Photos, reposition/minimize, color sampling) — inspired by Pixquare — [PRD](../issues/053-floating-reference-window.md)
 
-  - [055 — gallery foundation](../issues/055-reference-images-gallery-foundation.md)
   - [056 — display on canvas + close](../issues/056-reference-images-display-close.md)
   - [057 — move + resize](../issues/057-reference-images-move-resize.md)
   - [058 — minimize (window-shade)](../issues/058-reference-images-minimize.md)

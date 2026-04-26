@@ -23,6 +23,7 @@
 		onExportToggle={() => {}}
 		onExportConfirm={() => {}}
 		onBrowseSavedWork={() => {}}
+		onOpenReferences={() => {}}
 	/>
 </Story>
 
@@ -44,5 +45,6 @@
 		onExportToggle={() => {}}
 		onExportConfirm={() => {}}
 		onBrowseSavedWork={() => {}}
+		onOpenReferences={() => {}}
 	/>
 </Story>

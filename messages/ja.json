@@ -110,5 +110,20 @@
 	"browser_cancel": "キャンセル",
 	"label_savedWorks": "保存した作品",
 	"action_close": "閉じる",
-	"aria_deleteDocument": "{name}を削除"
+	"aria_deleteDocument": "{name}を削除",
+
+	"references_title": "参照画像",
+	"references_empty_title": "参照画像はまだありません",
+	"references_empty_desc": "スケッチや写真を追加して、描く際の参考にしましょう。",
+	"references_add": "画像を追加",
+	"references_delete_title": "「{name}」を削除しますか？",
+	"references_delete_message": "このドキュメントから参照画像が削除されます。",
+	"references_delete_confirm": "削除",
+	"references_cancel": "キャンセル",
+	"references_error_unsupported_format": "{name}: サポートされていない形式です。PNG、JPEG、WebP、GIFを使用してください。",
+	"references_error_too_large": "{name}: ファイルが大きすぎます。最大10 MB。",
+	"references_error_decode_failed": "{name}: 画像をデコードできませんでした。",
+	"references_error_dismiss": "閉じる",
+	"aria_deleteReference": "{name}を削除",
+	"aria_openReferences": "参照画像を開く"
 }

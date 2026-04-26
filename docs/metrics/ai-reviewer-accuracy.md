@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 48 | 40 | 8 | 37 | 83% | 52% |
-| cubic-dev-ai[bot] | 32 | 26 | 6 | 46 | 81% | 36% |
-| coderabbitai[bot] | 60 | 41 | 19 | 33 | 68% | 55% |
+| greptile-apps[bot] | 52 | 41 | 11 | 40 | 79% | 51% |
+| cubic-dev-ai[bot] | 35 | 29 | 6 | 47 | 83% | 38% |
+| coderabbitai[bot] | 64 | 43 | 21 | 35 | 67% | 55% |
 
 ## Log
 
@@ -270,3 +270,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #167 | coderabbitai[bot] | Reject | `as const` on loupe-config exports — no consumer narrows on literals, hypothetical benefit |
 | #167 | cubic-dev-ai[bot] | Miss | Did not flag `commitTarget` non-reset rationale |
 | #167 | greptile-apps[bot] | Miss | Did not flag `commitTarget` non-reset rationale |
+| #168 | greptile-apps[bot] | Accept | Clear `referenceErrors` when References modal closes — stale banners on reopen |
+| #168 | cubic-dev-ai[bot] | Accept | Clear `referenceErrors` on modal close (duplicate of greptile) |
+| #168 | greptile-apps[bot] | Reject | `Promise.allSettled` for parallel imports — typical 1–5 file batches, simpler sequential control flow preferred |
+| #168 | cubic-dev-ai[bot] | Accept | Thumbnail dimensions round to 0 for extreme aspect ratios — clamp to min 1px |
+| #168 | cubic-dev-ai[bot] | Accept | Block elements (`div`/`p`) inside `<button class="empty-trigger">` — invalid HTML5 button content model |
+| #168 | coderabbitai[bot] | Accept | Block elements inside `<button>` empty-trigger (duplicate of cubic) |
+| #168 | coderabbitai[bot] | Reject | `onDelete` throws → focus loss — `onDelete` is sync in-memory mutation, no failure path |
+| #168 | coderabbitai[bot] | Reject | `referenceErrors` global, not per-document — modal-close clear addresses primary case; per-tab scoping deferred to #056 |
+| #168 | greptile-apps[bot] | Miss | Did not flag thumbnail 0-dim rounding bug |
+| #168 | greptile-apps[bot] | Miss | Did not flag block-in-button HTML violation |
+| #168 | coderabbitai[bot] | Miss | Did not flag stale `referenceErrors` on modal close |
+| #168 | coderabbitai[bot] | Miss | Did not flag thumbnail 0-dim rounding bug |
+| #168 | greptile-apps[bot] | Reject | Type duplication `ReferenceImageRecord` vs `ReferenceImage` — deliberate IDB↔app boundary, mirrors existing `ViewportRecord`/`SharedStateRecord` pattern |
+| #168 | greptile-apps[bot] | Reject | Stale-entry load path in `session-persistence.ts` restore — writer rebuilds map each save, producer cannot create the state being defended against |
+| #168 | coderabbitai[bot] | Accept | `.card-text` `<div>` inside `.card-open` `<button>` — same HTML5 phrasing-content rule as the empty-state, missed in earlier round |
+| #168 | greptile-apps[bot] | Miss | Did not flag `.card-text` div-in-button violation |
+| #168 | cubic-dev-ai[bot] | Miss | Did not flag `.card-text` div-in-button violation (caught the empty-state variant but missed the card variant) |

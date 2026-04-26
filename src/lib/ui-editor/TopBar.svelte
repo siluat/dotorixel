@@ -5,7 +5,8 @@
 		Maximize2,
 		Grid3X3,
 		Download,
-		FolderOpen
+		FolderOpen,
+		Images
 	} from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { tooltip } from '$lib/tooltip';
@@ -31,6 +32,8 @@
 		onExportConfirm: (format: ExportFormat, filenameStem: string) => void;
 		onBrowseSavedWork: () => void;
 		isBrowserOpen?: boolean;
+		onOpenReferences: () => void;
+		isReferencesOpen?: boolean;
 	}
 
 	let {
@@ -50,7 +53,9 @@
 		onExportToggle,
 		onExportConfirm,
 		onBrowseSavedWork,
-		isBrowserOpen = false
+		isBrowserOpen = false,
+		onOpenReferences,
+		isReferencesOpen = false
 	}: Props = $props();
 
 	const ppLabel = $derived(
@@ -126,6 +131,18 @@
 			use:tooltip={m.label_savedWorks()}
 		>
 			<FolderOpen size={16} />
+		</button>
+
+		<button
+			class="toolbar-btn"
+			class:is-on={isReferencesOpen}
+			onclick={onOpenReferences}
+			aria-label={m.aria_openReferences()}
+			aria-haspopup="dialog"
+			aria-expanded={isReferencesOpen}
+			use:tooltip={m.references_title()}
+		>
+			<Images size={16} />
 		</button>
 
 		<div class="export-wrapper">

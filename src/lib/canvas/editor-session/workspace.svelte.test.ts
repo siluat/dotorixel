@@ -478,6 +478,40 @@ describe('Workspace — toSnapshot', () => {
 	});
 });
 
+describe('Workspace — reference images', () => {
+	function makeRef(id: string) {
+		return {
+			id,
+			filename: `${id}.png`,
+			blob: new Blob([new Uint8Array([0])], { type: 'image/png' }),
+			thumbnail: new Blob([new Uint8Array([0])], { type: 'image/png' }),
+			mimeType: 'image/png',
+			naturalWidth: 100,
+			naturalHeight: 100,
+			byteSize: 1,
+			addedAt: new Date('2026-04-26T00:00:00Z')
+		};
+	}
+
+	it('exposes a reference-images store from the start', () => {
+		const { workspace } = makeWorkspace();
+
+		expect(workspace.references.forDoc(workspace.activeTab.documentId)).toEqual([]);
+	});
+
+	it('snapshot includes references added to a tab', () => {
+		const { workspace } = makeWorkspace();
+		const docId = workspace.activeTab.documentId;
+		workspace.references.add(makeRef('ref-a'), docId);
+
+		const snapshot = workspace.toSnapshot();
+
+		expect(snapshot.references).toBeDefined();
+		expect(snapshot.references![docId]).toHaveLength(1);
+		expect(snapshot.references![docId][0].id).toBe('ref-a');
+	});
+});
+
 describe('Workspace — dirty notifications', () => {
 	it('construction emits markDirty for the initial tab', () => {
 		const { workspace, notifier } = makeWorkspace();

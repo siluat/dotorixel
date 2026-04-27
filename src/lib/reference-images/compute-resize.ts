@@ -19,11 +19,14 @@ export type Size = {
  *   relative change) drives the size; the other axis follows from the aspect.
  *   This makes diagonal drags feel predictable regardless of which axis the
  *   user emphasises.
- * - When the result would fall below `minSize` on either axis, the size is
- *   scaled back up so the smaller axis lands exactly at `minSize` and the
- *   other axis follows from the aspect. Both axes always satisfy `>= minSize`.
+ * - The result is clamped to an aspect-preserving floor: the shorter axis
+ *   lands at `minSize` and the other axis follows from the aspect. Both axes
+ *   always satisfy `>= minSize`, including when proposed dims become zero or
+ *   negative (reachable when the pointer drags past the window's top-left
+ *   corner — pointer capture lets the cursor go anywhere on screen).
  *
- * Pure: no side effects. All inputs are assumed positive.
+ * Pure: no side effects. `startWidth`, `startHeight`, and `minSize` are
+ * assumed positive; `deltaX` / `deltaY` are signed (negative when shrinking).
  */
 export function computeResize(input: ComputeResizeInput): Size {
 	const { startWidth, startHeight, deltaX, deltaY, minSize } = input;
@@ -43,10 +46,9 @@ export function computeResize(input: ComputeResizeInput): Size {
 		height = proposedHeight;
 	}
 
-	if (width < minSize || height < minSize) {
-		const scaleUp = Math.max(minSize / width, minSize / height);
-		width *= scaleUp;
-		height *= scaleUp;
-	}
+	const minWidth = aspect >= 1 ? minSize * aspect : minSize;
+	const minHeight = aspect >= 1 ? minSize : minSize / aspect;
+	width = Math.max(width, minWidth);
+	height = Math.max(height, minHeight);
 	return { width, height };
 }

@@ -49,4 +49,42 @@ describe('computeResize', () => {
 
 		expect(result).toEqual({ width: 160, height: 80 });
 	});
+
+	it('clamps to floor with aspect preserved when proposed dims go negative on a landscape image', () => {
+		const result = computeResize({
+			startWidth: 200,
+			startHeight: 100,
+			deltaX: -400,
+			deltaY: -200,
+			minSize: 80
+		});
+
+		expect(result).toEqual({ width: 160, height: 80 });
+	});
+
+	it('clamps to floor with aspect preserved when proposed dims go negative on a portrait image', () => {
+		const result = computeResize({
+			startWidth: 100,
+			startHeight: 200,
+			deltaX: -200,
+			deltaY: -400,
+			minSize: 80
+		});
+
+		expect(result).toEqual({ width: 80, height: 160 });
+	});
+
+	it('clamps to floor without producing NaN when both proposed dims collapse to zero', () => {
+		const result = computeResize({
+			startWidth: 200,
+			startHeight: 100,
+			deltaX: -200,
+			deltaY: -100,
+			minSize: 80
+		});
+
+		expect(Number.isFinite(result.width)).toBe(true);
+		expect(Number.isFinite(result.height)).toBe(true);
+		expect(result).toEqual({ width: 160, height: 80 });
+	});
 });

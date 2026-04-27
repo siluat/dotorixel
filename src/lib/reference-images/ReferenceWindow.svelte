@@ -51,6 +51,14 @@
 	}
 
 	function handleTitleBarPointerUp() {
+		releaseTitleBarDrag();
+	}
+
+	function handleTitleBarLostCapture() {
+		releaseTitleBarDrag();
+	}
+
+	function releaseTitleBarDrag() {
 		if (dragOrigin) {
 			dragOrigin = null;
 			onMoveCommit?.();
@@ -89,6 +97,14 @@
 	}
 
 	function handleResizePointerUp() {
+		releaseResize();
+	}
+
+	function handleResizeLostCapture() {
+		releaseResize();
+	}
+
+	function releaseResize() {
 		if (resizeOrigin) {
 			resizeOrigin = null;
 			onResizeCommit?.();
@@ -128,6 +144,7 @@
 		onpointerdown={handleTitleBarPointerDown}
 		onpointermove={handleTitleBarPointerMove}
 		onpointerup={handleTitleBarPointerUp}
+		onlostpointercapture={handleTitleBarLostCapture}
 	>
 		<span class="title">{reference.filename}</span>
 		<button
@@ -148,6 +165,7 @@
 		onpointerdown={handleResizePointerDown}
 		onpointermove={handleResizePointerMove}
 		onpointerup={handleResizePointerUp}
+		onlostpointercapture={handleResizeLostCapture}
 	></button>
 </div>
 
@@ -232,6 +250,7 @@
 
 	.title-bar {
 		cursor: grab;
+		touch-action: none;
 	}
 
 	.title-bar:active {

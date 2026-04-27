@@ -165,6 +165,62 @@ describe('ReferenceWindow', () => {
 		expect(win.style.pointerEvents).toBe('auto');
 	});
 
+	it('cleans up the title-bar drag and commits when pointer capture is lost (e.g., palm rejection)', async () => {
+		const ref = makeRef('ref-1');
+		const onMove = vi.fn();
+		const onMoveCommit = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 100,
+			y: 100,
+			width: 200,
+			height: 200,
+			isActive: true,
+			onClose: vi.fn(),
+			onMove,
+			onMoveCommit
+		});
+
+		const titleBar = screen.getByText(ref.filename).parentElement!;
+		await fireEvent.pointerDown(titleBar, { pointerId: 1, clientX: 50, clientY: 60 });
+		await fireEvent(titleBar, new Event('lostpointercapture'));
+
+		expect(onMoveCommit).toHaveBeenCalledTimes(1);
+
+		onMove.mockClear();
+		await fireEvent.pointerMove(titleBar, { pointerId: 1, clientX: 200, clientY: 200 });
+		expect(onMove).not.toHaveBeenCalled();
+	});
+
+	it('cleans up the resize drag and commits when pointer capture is lost', async () => {
+		const ref = makeRef('ref-1');
+		const onResize = vi.fn();
+		const onResizeCommit = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 100,
+			isActive: true,
+			onClose: vi.fn(),
+			onResize,
+			onResizeCommit
+		});
+
+		const handle = screen.getByRole('button', { name: /resize/i });
+		await fireEvent.pointerDown(handle, { pointerId: 1, clientX: 200, clientY: 100 });
+		await fireEvent(handle, new Event('lostpointercapture'));
+
+		expect(onResizeCommit).toHaveBeenCalledTimes(1);
+
+		onResize.mockClear();
+		await fireEvent.pointerMove(handle, { pointerId: 1, clientX: 400, clientY: 200 });
+		expect(onResize).not.toHaveBeenCalled();
+	});
+
 	it('marks itself active or inactive via data attribute for styling', () => {
 		const ref = makeRef('ref-1');
 

@@ -81,9 +81,15 @@ export class Workspace {
 					Object.entries(deps.restored.references).map(([id, refs]) => [id, [...refs]])
 				)
 			: undefined;
+		const restoredDisplayStates = deps.restored?.displayStates
+			? Object.fromEntries(
+					Object.entries(deps.restored.displayStates).map(([id, states]) => [id, [...states]])
+				)
+			: undefined;
 		this.references = new ReferenceImagesStore({
 			notifier: deps.notifier,
-			restored: restoredRefs
+			restored: restoredRefs,
+			restoredDisplayStates
 		});
 
 		if (deps.restored) {
@@ -200,7 +206,8 @@ export class Workspace {
 				recentColors: [...this.shared.recentColors],
 				pixelPerfect: this.shared.pixelPerfect
 			},
-			references: this.references.toSnapshot()
+			references: this.references.toSnapshot(),
+			displayStates: this.references.displayStatesSnapshot()
 		};
 	}
 

@@ -73,6 +73,17 @@ export interface ReferenceImageRecord {
 	addedAt: Date;
 }
 
+export interface DisplayStateRecord {
+	refId: string;
+	visible: boolean;
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	minimized: boolean;
+	zOrder: number;
+}
+
 export interface WorkspaceRecord {
 	id: string;
 	tabOrder: string[];
@@ -84,4 +95,9 @@ export interface WorkspaceRecord {
 	 * treat absence as "empty map".
 	 */
 	references?: Record<string, ReferenceImageRecord[]>;
+	/**
+	 * Absent on records written before this field existed. Hydration should
+	 * treat absence as "empty map".
+	 */
+	displayStates?: Record<string, DisplayStateRecord[]>;
 }

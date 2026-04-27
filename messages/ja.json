@@ -125,5 +125,8 @@
 	"references_error_decode_failed": "{name}: 画像をデコードできませんでした。",
 	"references_error_dismiss": "閉じる",
 	"aria_deleteReference": "{name}を削除",
-	"aria_openReferences": "参照画像を開く"
+	"aria_openReferences": "参照画像を開く",
+	"references_window_close": "{name}ウィンドウを閉じる",
+	"references_toggle_display_show": "{name}をキャンバスに表示",
+	"references_toggle_display_hide": "{name}をキャンバスから隠す"
 }

@@ -109,7 +109,8 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Gallery store + persistence | — | ✅ | ⬜ | Per-doc reactive store; round-trips through `WorkspaceRecord.references?` (optional, absent → empty); references for closed-but-saved docs are not retained yet |
 | Import pipeline | — | ✅ | ⬜ | File picker; PNG/JPEG/WebP/GIF, ≤10 MB; `createImageBitmap` decode + `OffscreenCanvas` thumbnail (256px longest edge, aspect preserved) |
-| Browser UI | — | ✅ | ⬜ | TopBar `Images` button; ReferenceBrowser modal (wide/x-wide), ReferenceBrowserSheet (compact/medium); gallery card with thumbnail/filename/dimensions, delete confirmation, empty state |
+| Browser UI | — | ✅ | ⬜ | TopBar `Images` button; ReferenceBrowser modal (wide/x-wide), ReferenceBrowserSheet (compact/medium); gallery card with thumbnail/filename/dimensions, delete confirmation, empty state, Eye/EyeOff display toggle |
+| Display on canvas | — | ✅ | ⬜ | `DisplayState` per-instance record (refId, visible, x/y/w/h, minimized, zOrder) round-trips through `WorkspaceRecord.displayStates?` (optional, absent → empty); `ReferenceWindowOverlay` mounts above canvas/below editor chrome; pointer-absorb on window, pass-through on overlay container; initial placement = viewport center + cascade offset, size = `min(natural, viewport×0.3)` on longer edge with 80px min and viewport upper-bound cap; render-time fit clamps oversized/off-screen windows into viewport without mutating stored placement (responsive). Move/resize/minimize/z-order not yet implemented |
 
 ## UI
 

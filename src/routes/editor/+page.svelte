@@ -23,7 +23,9 @@
 	import SavedWorkBrowserSheet from '$lib/ui-editor/SavedWorkBrowserSheet.svelte';
 	import ReferenceBrowser from '$lib/reference-images/ReferenceBrowser.svelte';
 	import ReferenceBrowserSheet from '$lib/reference-images/ReferenceBrowserSheet.svelte';
+	import ReferenceWindowOverlay from '$lib/reference-images/ReferenceWindowOverlay.svelte';
 	import { importReferenceImage } from '$lib/reference-images/import-reference-image';
+	import { computeInitialPlacement } from '$lib/reference-images/compute-initial-placement';
 	import * as m from '$lib/paraglide/messages';
 	import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 	import { openSession, type SessionHandle } from '$lib/session/session';
@@ -69,6 +71,14 @@
 	let referenceFileInputEl = $state<HTMLInputElement>();
 	const activeReferences = $derived(
 		editor.workspace.references.forDoc(editor.workspace.activeTab.documentId)
+	);
+	const displayedRefIds = $derived(
+		new Set(
+			editor.workspace.references
+				.displayStatesForDoc(editor.workspace.activeTab.documentId)
+				.filter((s) => s.visible)
+				.map((s) => s.refId)
+		)
 	);
 
 	function initTabViewport(tab: TabState, width: number, height: number) {
@@ -204,7 +214,48 @@
 		input.value = '';
 	}
 
-	function handleReferenceSelect(_ref: ReferenceImage) {}
+	function handleReferenceSelect(ref: ReferenceImage) {
+		const docId = editor.workspace.activeTab.documentId;
+		const store = editor.workspace.references;
+		const existing = store.displayStateFor(ref.id, docId);
+		if (existing && existing.visible) {
+			handleCloseReferences();
+			return;
+		}
+		if (existing) {
+			store.show(ref.id, docId);
+		} else {
+			displayReference(ref, docId);
+		}
+		handleCloseReferences();
+	}
+
+	function handleReferenceToggleDisplay(ref: ReferenceImage) {
+		const docId = editor.workspace.activeTab.documentId;
+		const store = editor.workspace.references;
+		const existing = store.displayStateFor(ref.id, docId);
+		if (existing && existing.visible) {
+			store.close(ref.id, docId);
+		} else if (existing) {
+			store.show(ref.id, docId);
+		} else {
+			displayReference(ref, docId);
+		}
+	}
+
+	function displayReference(ref: ReferenceImage, docId: string) {
+		const store = editor.workspace.references;
+		const cascadeIndex = store.displayStatesForDoc(docId).length;
+		const { width: viewportWidth, height: viewportHeight } = editor.viewportSize;
+		const placement = computeInitialPlacement({
+			naturalWidth: ref.naturalWidth,
+			naturalHeight: ref.naturalHeight,
+			viewportWidth: Math.max(viewportWidth, 1),
+			viewportHeight: Math.max(viewportHeight, 1),
+			cascadeIndex
+		});
+		store.display(ref.id, docId, placement);
+	}
 
 	async function handleReferenceDelete(id: string) {
 		const docId = editor.workspace.activeTab.documentId;
@@ -370,6 +421,12 @@
 				isSpaceHeld={editor.isSpaceHeld}
 				samplingSession={editor.samplingSession}
 			/>
+			<ReferenceWindowOverlay
+				store={editor.workspace.references}
+				docId={editor.workspace.activeTab.documentId}
+				viewportWidth={editor.viewportSize.width}
+				viewportHeight={editor.viewportSize.height}
+			/>
 		</div>
 
 		<RightPanel
@@ -439,6 +496,12 @@
 						isSpaceHeld={editor.isSpaceHeld}
 						samplingSession={editor.samplingSession}
 					/>
+					<ReferenceWindowOverlay
+						store={editor.workspace.references}
+						docId={editor.workspace.activeTab.documentId}
+						viewportWidth={editor.viewportSize.width}
+						viewportHeight={editor.viewportSize.height}
+					/>
 				</div>
 			{:else if activeTab === 'colors'}
 				<ColorsContent
@@ -504,9 +567,11 @@
 		<ReferenceBrowserSheet
 			open={isReferencesOpen}
 			references={activeReferences}
+			displayedRefIds={displayedRefIds}
 			errors={referenceErrors}
 			onSelect={handleReferenceSelect}
 			onDelete={handleReferenceDelete}
+			onToggleDisplay={handleReferenceToggleDisplay}
 			onAddRequest={handleReferenceAddRequest}
 			onDismissError={handleDismissReferenceError}
 			onClose={handleCloseReferences}
@@ -517,9 +582,11 @@
 {#if layout.isDocked && isReferencesOpen}
 	<ReferenceBrowser
 		references={activeReferences}
+		displayedRefIds={displayedRefIds}
 		errors={referenceErrors}
 		onSelect={handleReferenceSelect}
 		onDelete={handleReferenceDelete}
+		onToggleDisplay={handleReferenceToggleDisplay}
 		onAddRequest={handleReferenceAddRequest}
 		onDismissError={handleDismissReferenceError}
 		onClose={handleCloseReferences}

@@ -8,9 +8,11 @@
 	interface Props {
 		open: boolean;
 		references: readonly ReferenceImage[];
+		displayedRefIds?: ReadonlySet<string>;
 		errors: readonly string[];
 		onSelect: (ref: ReferenceImage) => void;
 		onDelete: (id: string) => void | Promise<void>;
+		onToggleDisplay?: (ref: ReferenceImage) => void;
 		onAddRequest: () => void;
 		onDismissError: (index: number) => void;
 		onClose: () => void;
@@ -19,9 +21,11 @@
 	let {
 		open,
 		references,
+		displayedRefIds,
 		errors,
 		onSelect,
 		onDelete,
+		onToggleDisplay,
 		onAddRequest,
 		onDismissError,
 		onClose
@@ -61,10 +65,22 @@
 		<div class="sheet-body">
 			{#if references.length === 0}
 				<button class="empty-trigger" onclick={onAddRequest}>
-					<ReferenceGalleryGrid {references} {onSelect} {onDelete} />
+					<ReferenceGalleryGrid
+						{references}
+						{displayedRefIds}
+						{onSelect}
+						{onDelete}
+						{onToggleDisplay}
+					/>
 				</button>
 			{:else}
-				<ReferenceGalleryGrid {references} {onSelect} {onDelete} />
+				<ReferenceGalleryGrid
+					{references}
+					{displayedRefIds}
+					{onSelect}
+					{onDelete}
+					{onToggleDisplay}
+				/>
 			{/if}
 		</div>
 	</div>

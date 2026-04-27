@@ -6,12 +6,12 @@ Floating reference image windows ([PRD 053](../issues/053-floating-reference-win
 
 ## Last Completed
 
-Reference images — gallery foundation — per-doc reactive store, IndexedDB round-trip via optional `references?` field on `WorkspaceRecord`, file-picker import (PNG/JPEG/WebP/GIF ≤10 MB) with discriminated-union error handling, ReferenceBrowser modal + ReferenceBrowserSheet, gallery grid with delete confirmation, TopBar/AppBar `Images` entry button. Selection from card is a no-op until #056 wires display ([issue](../issues/055-reference-images-gallery-foundation.md))
+Reference images — display on canvas + close — `DisplayState` per-instance record (refId, visible, x/y/w/h, minimized, zOrder), `ReferenceWindow` component (title bar + close X, pointer-absorb, active/inactive styling), `ReferenceWindowOverlay` with render-time viewport fit (preserves stored intent for responsive resize), Eye/EyeOff toggle on gallery cards, forward-compat `WorkspaceRecord.displayStates?` round-trip. Initial placement now caps to viewport so extreme aspect ratios stay visible on mobile ([issue](../issues/056-reference-images-display-close.md))
 
 ## Next Up
 
-- [056 — Reference images: display on canvas + close](../issues/056-reference-images-display-close.md)
-  - Next slice of PRD 053 — wires gallery selection to floating windows on the canvas.
+- [057 — Reference images: move + resize](../issues/057-reference-images-move-resize.md)
+  - Next slice of PRD 053 — adds drag-to-move and edge/corner resize on floating windows.
 - [018 — RightPanel (Apple Native)](../issues/018-apple-right-panel.md)
   - Independent. Can start immediately.
 - [019 — StatusBar (Apple Native)](../issues/019-apple-status-bar.md)

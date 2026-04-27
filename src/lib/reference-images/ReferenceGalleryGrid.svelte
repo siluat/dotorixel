@@ -1,17 +1,25 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { Trash2, ImageIcon } from 'lucide-svelte';
+	import { Trash2, ImageIcon, Eye, EyeOff } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { trapFocus } from '$lib/ui/trap-focus';
 	import type { ReferenceImage } from './reference-image-types';
 
 	interface Props {
 		references: readonly ReferenceImage[];
+		displayedRefIds?: ReadonlySet<string>;
 		onSelect: (ref: ReferenceImage) => void;
 		onDelete: (id: string) => void | Promise<void>;
+		onToggleDisplay?: (ref: ReferenceImage) => void;
 	}
 
-	let { references, onSelect, onDelete }: Props = $props();
+	let {
+		references,
+		displayedRefIds = new Set<string>(),
+		onSelect,
+		onDelete,
+		onToggleDisplay
+	}: Props = $props();
 
 	let deleteTarget: { id: string; name: string } | null = $state(null);
 	let deleteDialogEl = $state<HTMLDivElement>();
@@ -88,7 +96,8 @@
 {:else}
 	<div class="card-grid">
 		{#each references as ref (ref.id)}
-			<div class="card">
+			{@const displayed = displayedRefIds.has(ref.id)}
+			<div class="card" data-displayed={displayed ? 'true' : 'false'}>
 				<button class="card-open" onclick={() => onSelect(ref)}>
 					<img class="card-thumb" alt="" use:objectUrl={ref.thumbnail} />
 					<span class="card-text">
@@ -97,6 +106,24 @@
 					</span>
 				</button>
 				<div class="card-actions">
+					<button
+						class="card-display-toggle"
+						class:active={displayed}
+						onclick={(e) => {
+							e.stopPropagation();
+							onToggleDisplay?.(ref);
+						}}
+						aria-label={displayed
+							? m.references_toggle_display_hide({ name: ref.filename })
+							: m.references_toggle_display_show({ name: ref.filename })}
+						aria-pressed={displayed}
+					>
+						{#if displayed}
+							<Eye size={14} />
+						{:else}
+							<EyeOff size={14} />
+						{/if}
+					</button>
 					<button
 						class="card-delete"
 						onclick={(e) => requestDelete(e, ref)}
@@ -226,8 +253,33 @@
 
 	.card-actions {
 		display: flex;
-		justify-content: flex-end;
+		justify-content: space-between;
+		align-items: center;
 		padding: 0 10px 8px;
+	}
+
+	.card-display-toggle {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		border: none;
+		background: transparent;
+		border-radius: 4px;
+		color: var(--ds-text-tertiary);
+		cursor: pointer;
+		padding: 0;
+		flex-shrink: 0;
+	}
+
+	.card-display-toggle:hover {
+		color: var(--ds-text-primary);
+		background: var(--ds-bg-hover);
+	}
+
+	.card-display-toggle.active {
+		color: var(--ds-accent);
 	}
 
 	.card-name {

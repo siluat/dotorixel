@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ReferenceWindow from './ReferenceWindow.svelte';
 	import type { ReferenceImagesStore } from './reference-images-store.svelte';
+	import { clampPosition } from './compute-position-clamp';
 
 	interface Props {
 		store: ReferenceImagesStore;
@@ -39,6 +40,23 @@
 	function clamp(value: number, min: number, max: number): number {
 		return Math.min(Math.max(value, min), max);
 	}
+
+	function commitPosition(refId: string) {
+		if (viewportWidth === undefined || viewportHeight === undefined) return;
+		const state = store.displayStateFor(refId, docId);
+		if (!state) return;
+		const next = clampPosition({
+			x: state.x,
+			y: state.y,
+			width: state.width,
+			height: state.height,
+			viewportWidth,
+			viewportHeight
+		});
+		if (next.x !== state.x || next.y !== state.y) {
+			store.setDisplayPosition(refId, docId, next.x, next.y);
+		}
+	}
 </script>
 
 <div class="overlay">
@@ -54,6 +72,9 @@
 				height={r.height}
 				isActive={state.zOrder === maxZ}
 				onClose={() => store.close(state.refId, docId)}
+				onMove={(x, y) => store.setDisplayPosition(state.refId, docId, x, y)}
+				onMoveCommit={() => commitPosition(state.refId)}
+				onResize={(width, height) => store.setDisplaySize(state.refId, docId, width, height)}
 			/>
 		{/if}
 	{/each}

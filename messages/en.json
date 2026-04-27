@@ -127,6 +127,7 @@
 	"aria_deleteReference": "Delete {name}",
 	"aria_openReferences": "Open references",
 	"references_window_close": "Close {name} window",
+	"references_window_resize": "Resize {name} window",
 	"references_toggle_display_show": "Show {name} on canvas",
 	"references_toggle_display_hide": "Hide {name} from canvas"
 }

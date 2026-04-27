@@ -1,3 +1,5 @@
+import { MIN_WINDOW_EDGE } from './reference-window-constants';
+
 export type ComputeInitialPlacementInput = {
 	naturalWidth: number;
 	naturalHeight: number;
@@ -13,7 +15,6 @@ export type Placement = {
 	height: number;
 };
 
-const MIN_EDGE = 80;
 const VIEWPORT_FRACTION = 0.3;
 const CASCADE_OFFSET = 24;
 
@@ -40,8 +41,8 @@ export function computeInitialPlacement(input: ComputeInitialPlacementInput): Pl
 	const viewportLonger = Math.max(viewportWidth, viewportHeight);
 
 	let scale = Math.min(naturalLonger, viewportLonger * VIEWPORT_FRACTION) / naturalLonger;
-	if (naturalShorter * scale < MIN_EDGE) {
-		scale = MIN_EDGE / naturalShorter;
+	if (naturalShorter * scale < MIN_WINDOW_EDGE) {
+		scale = MIN_WINDOW_EDGE / naturalShorter;
 	}
 	const scaleViewportMax = Math.min(viewportWidth / naturalWidth, viewportHeight / naturalHeight);
 	if (scale > scaleViewportMax) {

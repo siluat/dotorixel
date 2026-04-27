@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { X } from 'lucide-svelte';
+	import { ChevronDown, ChevronUp, X } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { ReferenceImage } from './reference-image-types';
 	import { computeResize } from './compute-resize';
@@ -12,11 +12,13 @@
 		width: number;
 		height: number;
 		isActive: boolean;
+		minimized?: boolean;
 		onClose: () => void;
 		onMove?: (x: number, y: number) => void;
 		onMoveCommit?: () => void;
 		onResize?: (width: number, height: number) => void;
 		onResizeCommit?: () => void;
+		onMinimizeChange?: (next: boolean) => void;
 	}
 
 	let {
@@ -26,11 +28,13 @@
 		width,
 		height,
 		isActive,
+		minimized = false,
 		onClose,
 		onMove,
 		onMoveCommit,
 		onResize,
-		onResizeCommit
+		onResizeCommit,
+		onMinimizeChange
 	}: Props = $props();
 
 	let dragOrigin: { startX: number; startY: number; pointerX: number; pointerY: number } | null =
@@ -56,6 +60,11 @@
 
 	function handleTitleBarLostCapture() {
 		releaseTitleBarDrag();
+	}
+
+	function handleTitleBarDblClick(e: MouseEvent) {
+		if ((e.target as HTMLElement).closest('button')) return;
+		onMinimizeChange?.(!minimized);
 	}
 
 	function releaseTitleBarDrag() {
@@ -132,10 +141,11 @@
 	role="dialog"
 	aria-label={reference.filename}
 	data-active={isActive ? 'true' : 'false'}
+	data-minimized={minimized ? 'true' : 'false'}
 	style:left="{x}px"
 	style:top="{y}px"
 	style:width="{width}px"
-	style:height="{height}px"
+	style:height={minimized ? 'auto' : `${height}px`}
 	style:pointer-events="auto"
 >
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -145,28 +155,48 @@
 		onpointermove={handleTitleBarPointerMove}
 		onpointerup={handleTitleBarPointerUp}
 		onlostpointercapture={handleTitleBarLostCapture}
+		ondblclick={handleTitleBarDblClick}
 	>
 		<span class="title">{reference.filename}</span>
+		<div class="title-bar-controls">
+			<button
+				class="title-bar-button"
+				onclick={() => onMinimizeChange?.(!minimized)}
+				aria-label={minimized
+					? m.references_window_restore({ name: reference.filename })
+					: m.references_window_minimize({ name: reference.filename })}
+			>
+				{#if minimized}
+					<ChevronDown size={14} />
+				{:else}
+					<ChevronUp size={14} />
+				{/if}
+			</button>
+			<button
+				class="title-bar-button"
+				onclick={onClose}
+				aria-label={m.references_window_close({ name: reference.filename })}
+			>
+				<X size={14} />
+			</button>
+		</div>
+	</div>
+	{#if !minimized}
+		<div class="body">
+			<img class="image" alt={reference.filename} use:objectUrl={reference.blob} />
+		</div>
+	{/if}
+	{#if !minimized}
 		<button
-			class="close-button"
-			onclick={onClose}
-			aria-label={m.references_window_close({ name: reference.filename })}
-		>
-			<X size={14} />
-		</button>
-	</div>
-	<div class="body">
-		<img class="image" alt={reference.filename} use:objectUrl={reference.blob} />
-	</div>
-	<button
-		type="button"
-		class="resize-handle"
-		aria-label={m.references_window_resize({ name: reference.filename })}
-		onpointerdown={handleResizePointerDown}
-		onpointermove={handleResizePointerMove}
-		onpointerup={handleResizePointerUp}
-		onlostpointercapture={handleResizeLostCapture}
-	></button>
+			type="button"
+			class="resize-handle"
+			aria-label={m.references_window_resize({ name: reference.filename })}
+			onpointerdown={handleResizePointerDown}
+			onpointermove={handleResizePointerMove}
+			onpointerup={handleResizePointerUp}
+			onlostpointercapture={handleResizeLostCapture}
+		></button>
+	{/if}
 </div>
 
 <style>
@@ -197,6 +227,10 @@
 		flex-shrink: 0;
 	}
 
+	.window[data-minimized='true'] .title-bar {
+		border-bottom: none;
+	}
+
 	.title {
 		font-family: var(--ds-font-body-sm);
 		font-size: var(--ds-font-size-sm);
@@ -207,7 +241,14 @@
 		min-width: 0;
 	}
 
-	.close-button {
+	.title-bar-controls {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+		flex-shrink: 0;
+	}
+
+	.title-bar-button {
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -222,7 +263,7 @@
 		flex-shrink: 0;
 	}
 
-	.close-button:hover {
+	.title-bar-button:hover {
 		color: var(--ds-text-primary);
 		background: var(--ds-bg-hover);
 	}

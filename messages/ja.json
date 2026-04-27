@@ -128,6 +128,8 @@
 	"aria_openReferences": "参照画像を開く",
 	"references_window_close": "{name}ウィンドウを閉じる",
 	"references_window_resize": "{name}ウィンドウのサイズを変更",
+	"references_window_minimize": "{name}ウィンドウを最小化",
+	"references_window_restore": "{name}ウィンドウを復元",
 	"references_toggle_display_show": "{name}をキャンバスに表示",
 	"references_toggle_display_hide": "{name}をキャンバスから隠す"
 }

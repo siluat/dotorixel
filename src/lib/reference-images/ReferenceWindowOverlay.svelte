@@ -71,10 +71,12 @@
 				width={r.width}
 				height={r.height}
 				isActive={state.zOrder === maxZ}
+				minimized={state.minimized}
 				onClose={() => store.close(state.refId, docId)}
 				onMove={(x, y) => store.setDisplayPosition(state.refId, docId, x, y)}
 				onMoveCommit={() => commitPosition(state.refId)}
 				onResize={(width, height) => store.setDisplaySize(state.refId, docId, width, height)}
+				onMinimizeChange={(next) => store.setMinimized(state.refId, docId, next)}
 			/>
 		{/if}
 	{/each}

@@ -221,6 +221,152 @@ describe('ReferenceWindow', () => {
 		expect(onResize).not.toHaveBeenCalled();
 	});
 
+	it('clicking the minimize button when expanded calls onMinimizeChange(true)', async () => {
+		const ref = makeRef('ref-1');
+		const onMinimizeChange = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			isActive: true,
+			minimized: false,
+			onClose: vi.fn(),
+			onMinimizeChange
+		});
+
+		const minimizeButton = screen.getByRole('button', { name: /minimize/i });
+		await fireEvent.click(minimizeButton);
+
+		expect(onMinimizeChange).toHaveBeenCalledWith(true);
+	});
+
+	it('clicking the restore button when minimized calls onMinimizeChange(false)', async () => {
+		const ref = makeRef('ref-1');
+		const onMinimizeChange = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			isActive: true,
+			minimized: true,
+			onClose: vi.fn(),
+			onMinimizeChange
+		});
+
+		const restoreButton = screen.getByRole('button', { name: /restore/i });
+		await fireEvent.click(restoreButton);
+
+		expect(onMinimizeChange).toHaveBeenCalledWith(false);
+	});
+
+	it('double-clicking the title bar when expanded calls onMinimizeChange(true)', async () => {
+		const ref = makeRef('ref-1');
+		const onMinimizeChange = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			isActive: true,
+			minimized: false,
+			onClose: vi.fn(),
+			onMinimizeChange
+		});
+
+		const titleBar = screen.getByText(ref.filename).parentElement!;
+		await fireEvent.dblClick(titleBar);
+
+		expect(onMinimizeChange).toHaveBeenCalledWith(true);
+	});
+
+	it('double-clicking the title bar when minimized calls onMinimizeChange(false)', async () => {
+		const ref = makeRef('ref-1');
+		const onMinimizeChange = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			isActive: true,
+			minimized: true,
+			onClose: vi.fn(),
+			onMinimizeChange
+		});
+
+		const titleBar = screen.getByText(ref.filename).parentElement!;
+		await fireEvent.dblClick(titleBar);
+
+		expect(onMinimizeChange).toHaveBeenCalledWith(false);
+	});
+
+	it('does not render the image body when minimized', () => {
+		const ref = makeRef('ref-1');
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			isActive: true,
+			minimized: true,
+			onClose: vi.fn()
+		});
+
+		expect(screen.queryByRole('img')).toBeNull();
+	});
+
+	it('does not render the resize handle when minimized', () => {
+		const ref = makeRef('ref-1');
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			isActive: true,
+			minimized: true,
+			onClose: vi.fn(),
+			onResize: vi.fn()
+		});
+
+		expect(screen.queryByRole('button', { name: /resize/i })).toBeNull();
+	});
+
+	it('still allows title-bar drag to emit onMove when minimized', async () => {
+		const ref = makeRef('ref-1');
+		const onMove = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 100,
+			y: 100,
+			width: 200,
+			height: 200,
+			isActive: true,
+			minimized: true,
+			onClose: vi.fn(),
+			onMove
+		});
+
+		const titleBar = screen.getByText(ref.filename).parentElement!;
+		await fireEvent.pointerDown(titleBar, { pointerId: 1, clientX: 50, clientY: 60 });
+		await fireEvent.pointerMove(titleBar, { pointerId: 1, clientX: 80, clientY: 110 });
+
+		expect(onMove).toHaveBeenCalledWith(130, 150);
+	});
+
 	it('marks itself active or inactive via data attribute for styling', () => {
 		const ref = makeRef('ref-1');
 

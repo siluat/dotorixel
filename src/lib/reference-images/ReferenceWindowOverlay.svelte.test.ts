@@ -175,6 +175,24 @@ describe('ReferenceWindowOverlay', () => {
 		expect(state).toMatchObject({ x: 800, y: 600 });
 	});
 
+	it('writes the minimized flag to the store when the minimize button is clicked', async () => {
+		store.add(makeRef('ref-1'), 'doc-1');
+		store.display('ref-1', 'doc-1', { x: 100, y: 100, width: 200, height: 200 });
+		const spy = vi.spyOn(store, 'setMinimized');
+
+		render(ReferenceWindowOverlay, {
+			store,
+			docId: 'doc-1',
+			viewportWidth: 1000,
+			viewportHeight: 800
+		});
+
+		const minimizeButton = screen.getByRole('button', { name: /minimize/i });
+		await fireEvent.click(minimizeButton);
+
+		expect(spy).toHaveBeenLastCalledWith('ref-1', 'doc-1', true);
+	});
+
 	it('writes the new size to the store when a window is resized by the corner handle', async () => {
 		store.add(makeRef('ref-1'), 'doc-1');
 		store.display('ref-1', 'doc-1', { x: 100, y: 100, width: 200, height: 100 });

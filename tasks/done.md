@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 058 | [Reference images — minimize (window-shade)](../issues/058-reference-images-minimize.md) | 2026-04-27 |
 | 057 | [Reference images — move + resize](../issues/057-reference-images-move-resize.md) | 2026-04-27 |
 | 056 | [Reference images — display on canvas + close](../issues/056-reference-images-display-close.md) | 2026-04-26 |
 | 055 | [Reference images — gallery foundation (store, persistence, import, modal)](../issues/055-reference-images-gallery-foundation.md) | 2026-04-26 |

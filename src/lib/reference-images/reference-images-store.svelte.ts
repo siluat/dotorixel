@@ -121,4 +121,11 @@ export class ReferenceImagesStore {
 		this.#displayByDoc = { ...this.#displayByDoc, [docId]: next };
 		this.#notifier.markDirty(docId);
 	}
+
+	setMinimized(refId: string, docId: string, minimized: boolean): void {
+		const existing = this.#displayByDoc[docId] ?? [];
+		const next = existing.map((s) => (s.refId === refId ? { ...s, minimized } : s));
+		this.#displayByDoc = { ...this.#displayByDoc, [docId]: next };
+		this.#notifier.markDirty(docId);
+	}
 }

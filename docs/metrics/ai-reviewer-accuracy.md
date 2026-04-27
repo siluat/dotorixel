@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 58 | 45 | 13 | 44 | 78% | 51% |
-| cubic-dev-ai[bot] | 38 | 32 | 6 | 52 | 84% | 38% |
-| coderabbitai[bot] | 76 | 50 | 26 | 37 | 66% | 57% |
+| greptile-apps[bot] | 59 | 46 | 13 | 46 | 78% | 50% |
+| cubic-dev-ai[bot] | 38 | 32 | 6 | 55 | 84% | 37% |
+| coderabbitai[bot] | 78 | 52 | 26 | 38 | 67% | 58% |
 
 ## Log
 
@@ -319,3 +319,11 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #172 | coderabbitai[bot] | Accept | Min-size floor breaks for zero/negative proposed dims (duplicate of greptile) |
 | #172 | coderabbitai[bot] | Accept | `touch-action: none` on `.title-bar` (duplicate of greptile) |
 | #172 | coderabbitai[bot] | Miss | Did not flag missing pointercancel/lostpointercapture handlers |
+| #173 | coderabbitai[bot] | Accept | Test-count off-by-three in 058 Results table (5 → 8) |
+| #173 | coderabbitai[bot] | Accept | Add regression test asserting dblclick on title-bar buttons doesn't toggle minimize (`closest('button')` guard) |
+| #173 | greptile-apps[bot] | Accept | Merge two adjacent `{#if !minimized}` blocks in ReferenceWindow.svelte |
+| #173 | greptile-apps[bot] | Miss | Did not flag test-count off-by-three in 058 Results table |
+| #173 | greptile-apps[bot] | Miss | Did not flag missing dblclick guard regression test |
+| #173 | cubic-dev-ai[bot] | Miss | Did not flag test-count off-by-three in 058 Results table |
+| #173 | cubic-dev-ai[bot] | Miss | Did not flag missing dblclick guard regression test |
+| #173 | cubic-dev-ai[bot] | Miss | Did not flag adjacent `{#if !minimized}` block merge |

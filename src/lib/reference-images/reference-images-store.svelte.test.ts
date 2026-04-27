@@ -249,6 +249,45 @@ describe('ReferenceImagesStore', () => {
 			expect(notifier.dirtyCalls).toEqual(['doc-1']);
 		});
 
+		it('round-trips the minimized flag via displayStatesSnapshot and restoredDisplayStates', () => {
+			const store1 = new ReferenceImagesStore({ notifier });
+			store1.add(makeRef('ref-1'), 'doc-1');
+			store1.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
+			store1.setMinimized('ref-1', 'doc-1', true);
+
+			const store2 = new ReferenceImagesStore({
+				notifier,
+				restored: store1.toSnapshot(),
+				restoredDisplayStates: store1.displayStatesSnapshot()
+			});
+
+			expect(store2.displayStateFor('ref-1', 'doc-1')).toMatchObject({
+				refId: 'ref-1',
+				minimized: true
+			});
+		});
+
+		it('setMinimized flips the minimized flag, preserves the rest, and marks the doc dirty', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
+			notifier.reset();
+
+			store.setMinimized('ref-1', 'doc-1', true);
+
+			expect(store.displayStateFor('ref-1', 'doc-1')).toEqual({
+				refId: 'ref-1',
+				visible: true,
+				x: 10,
+				y: 20,
+				width: 100,
+				height: 200,
+				minimized: true,
+				zOrder: 1
+			});
+			expect(notifier.dirtyCalls).toEqual(['doc-1']);
+		});
+
 		it('flips visible to false on close, preserving x/y/w/h and zOrder', () => {
 			const store = new ReferenceImagesStore({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');

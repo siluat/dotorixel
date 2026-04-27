@@ -207,6 +207,48 @@ describe('ReferenceImagesStore', () => {
 			expect(store.displayStatesForDoc('doc-1').map((s) => s.refId)).toEqual(['ref-2']);
 		});
 
+		it('setDisplaySize updates width/height, preserves the rest, and marks the doc dirty', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
+			notifier.reset();
+
+			store.setDisplaySize('ref-1', 'doc-1', 250, 400);
+
+			expect(store.displayStateFor('ref-1', 'doc-1')).toEqual({
+				refId: 'ref-1',
+				visible: true,
+				x: 10,
+				y: 20,
+				width: 250,
+				height: 400,
+				minimized: false,
+				zOrder: 1
+			});
+			expect(notifier.dirtyCalls).toEqual(['doc-1']);
+		});
+
+		it('setDisplayPosition updates x/y, preserves the rest, and marks the doc dirty', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
+			notifier.reset();
+
+			store.setDisplayPosition('ref-1', 'doc-1', 300, 400);
+
+			expect(store.displayStateFor('ref-1', 'doc-1')).toEqual({
+				refId: 'ref-1',
+				visible: true,
+				x: 300,
+				y: 400,
+				width: 100,
+				height: 200,
+				minimized: false,
+				zOrder: 1
+			});
+			expect(notifier.dirtyCalls).toEqual(['doc-1']);
+		});
+
 		it('flips visible to false on close, preserving x/y/w/h and zOrder', () => {
 			const store = new ReferenceImagesStore({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');

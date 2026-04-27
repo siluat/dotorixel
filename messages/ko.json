@@ -127,6 +127,7 @@
 	"aria_deleteReference": "{name} 삭제",
 	"aria_openReferences": "참조 이미지 열기",
 	"references_window_close": "{name} 창 닫기",
+	"references_window_resize": "{name} 창 크기 조절",
 	"references_toggle_display_show": "{name}을(를) 캔버스에 표시",
 	"references_toggle_display_hide": "{name}을(를) 캔버스에서 숨기기"
 }

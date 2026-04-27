@@ -78,6 +78,149 @@ describe('ReferenceWindow', () => {
 		expect(onClose).toHaveBeenCalledTimes(1);
 	});
 
+	it('title-bar drag emits onMove with the new absolute position based on pointer delta', async () => {
+		const ref = makeRef('ref-1');
+		const onMove = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 100,
+			y: 100,
+			width: 200,
+			height: 200,
+			isActive: true,
+			onClose: vi.fn(),
+			onMove
+		});
+
+		const titleBar = screen.getByText(ref.filename).parentElement!;
+		await fireEvent.pointerDown(titleBar, { pointerId: 1, clientX: 50, clientY: 60 });
+		await fireEvent.pointerMove(titleBar, { pointerId: 1, clientX: 80, clientY: 110 });
+
+		expect(onMove).toHaveBeenCalledWith(130, 150);
+	});
+
+	it('bottom-right handle drag emits onResize with the aspect ratio preserved', async () => {
+		const ref = makeRef('ref-1');
+		const onResize = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 100,
+			isActive: true,
+			onClose: vi.fn(),
+			onResize
+		});
+
+		const handle = screen.getByRole('button', { name: /resize/i });
+		await fireEvent.pointerDown(handle, { pointerId: 1, clientX: 200, clientY: 100 });
+		await fireEvent.pointerMove(handle, { pointerId: 1, clientX: 250, clientY: 150 });
+
+		expect(onResize).toHaveBeenCalledWith(300, 150);
+	});
+
+	it('does not start a drag when pointerdown originates from a button inside the title bar', async () => {
+		const ref = makeRef('ref-1');
+		const onMove = vi.fn();
+		const onMoveCommit = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 100,
+			y: 100,
+			width: 200,
+			height: 200,
+			isActive: true,
+			onClose: vi.fn(),
+			onMove,
+			onMoveCommit
+		});
+
+		const closeButton = screen.getByRole('button', { name: /close/i });
+		await fireEvent.pointerDown(closeButton, { pointerId: 1, clientX: 0, clientY: 0 });
+		await fireEvent.pointerMove(closeButton, { pointerId: 1, clientX: 50, clientY: 50 });
+		await fireEvent.pointerUp(closeButton, { pointerId: 1, clientX: 50, clientY: 50 });
+
+		expect(onMove).not.toHaveBeenCalled();
+		expect(onMoveCommit).not.toHaveBeenCalled();
+	});
+
+	it('absorbs pointer events so a hit-test inside the window does not pass through to siblings', () => {
+		const ref = makeRef('ref-1');
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 200,
+			isActive: true,
+			onClose: vi.fn()
+		});
+
+		const win = screen.getByRole('dialog');
+		expect(win.style.pointerEvents).toBe('auto');
+	});
+
+	it('cleans up the title-bar drag and commits when pointer capture is lost (e.g., palm rejection)', async () => {
+		const ref = makeRef('ref-1');
+		const onMove = vi.fn();
+		const onMoveCommit = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 100,
+			y: 100,
+			width: 200,
+			height: 200,
+			isActive: true,
+			onClose: vi.fn(),
+			onMove,
+			onMoveCommit
+		});
+
+		const titleBar = screen.getByText(ref.filename).parentElement!;
+		await fireEvent.pointerDown(titleBar, { pointerId: 1, clientX: 50, clientY: 60 });
+		await fireEvent(titleBar, new Event('lostpointercapture'));
+
+		expect(onMoveCommit).toHaveBeenCalledTimes(1);
+
+		onMove.mockClear();
+		await fireEvent.pointerMove(titleBar, { pointerId: 1, clientX: 200, clientY: 200 });
+		expect(onMove).not.toHaveBeenCalled();
+	});
+
+	it('cleans up the resize drag and commits when pointer capture is lost', async () => {
+		const ref = makeRef('ref-1');
+		const onResize = vi.fn();
+		const onResizeCommit = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 100,
+			isActive: true,
+			onClose: vi.fn(),
+			onResize,
+			onResizeCommit
+		});
+
+		const handle = screen.getByRole('button', { name: /resize/i });
+		await fireEvent.pointerDown(handle, { pointerId: 1, clientX: 200, clientY: 100 });
+		await fireEvent(handle, new Event('lostpointercapture'));
+
+		expect(onResizeCommit).toHaveBeenCalledTimes(1);
+
+		onResize.mockClear();
+		await fireEvent.pointerMove(handle, { pointerId: 1, clientX: 400, clientY: 200 });
+		expect(onResize).not.toHaveBeenCalled();
+	});
+
 	it('marks itself active or inactive via data attribute for styling', () => {
 		const ref = makeRef('ref-1');
 

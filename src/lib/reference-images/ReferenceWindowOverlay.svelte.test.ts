@@ -136,6 +136,64 @@ describe('ReferenceWindowOverlay', () => {
 		expect(win.style.height).toBe('100px');
 	});
 
+	it('writes the new position to the store when a window is dragged by the title bar', async () => {
+		store.add(makeRef('ref-1'), 'doc-1');
+		store.display('ref-1', 'doc-1', { x: 100, y: 100, width: 200, height: 200 });
+		const spy = vi.spyOn(store, 'setDisplayPosition');
+
+		render(ReferenceWindowOverlay, {
+			store,
+			docId: 'doc-1',
+			viewportWidth: 1000,
+			viewportHeight: 800
+		});
+
+		const titleBar = screen.getByText('ref-1.png').parentElement!;
+		await fireEvent.pointerDown(titleBar, { pointerId: 1, clientX: 0, clientY: 0 });
+		await fireEvent.pointerMove(titleBar, { pointerId: 1, clientX: 50, clientY: 30 });
+
+		expect(spy).toHaveBeenLastCalledWith('ref-1', 'doc-1', 150, 130);
+	});
+
+	it('clamps the stored position back into the viewport when the drag is released', async () => {
+		store.add(makeRef('ref-1'), 'doc-1');
+		store.display('ref-1', 'doc-1', { x: 100, y: 100, width: 200, height: 200 });
+
+		render(ReferenceWindowOverlay, {
+			store,
+			docId: 'doc-1',
+			viewportWidth: 1000,
+			viewportHeight: 800
+		});
+
+		const titleBar = screen.getByText('ref-1.png').parentElement!;
+		await fireEvent.pointerDown(titleBar, { pointerId: 1, clientX: 0, clientY: 0 });
+		await fireEvent.pointerMove(titleBar, { pointerId: 1, clientX: 2000, clientY: 2000 });
+		await fireEvent.pointerUp(titleBar, { pointerId: 1, clientX: 2000, clientY: 2000 });
+
+		const state = store.displayStateFor('ref-1', 'doc-1');
+		expect(state).toMatchObject({ x: 800, y: 600 });
+	});
+
+	it('writes the new size to the store when a window is resized by the corner handle', async () => {
+		store.add(makeRef('ref-1'), 'doc-1');
+		store.display('ref-1', 'doc-1', { x: 100, y: 100, width: 200, height: 100 });
+		const spy = vi.spyOn(store, 'setDisplaySize');
+
+		render(ReferenceWindowOverlay, {
+			store,
+			docId: 'doc-1',
+			viewportWidth: 1000,
+			viewportHeight: 800
+		});
+
+		const handle = screen.getByRole('button', { name: /resize/i });
+		await fireEvent.pointerDown(handle, { pointerId: 1, clientX: 300, clientY: 200 });
+		await fireEvent.pointerMove(handle, { pointerId: 1, clientX: 350, clientY: 250 });
+
+		expect(spy).toHaveBeenLastCalledWith('ref-1', 'doc-1', 300, 150);
+	});
+
 	it('preserves the stored placement and uses it when the viewport is large again', () => {
 		store.add(makeRef('ref-1'), 'doc-1');
 		store.display('ref-1', 'doc-1', { x: 550, y: 350, width: 400, height: 300 });

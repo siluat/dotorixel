@@ -107,4 +107,18 @@ export class ReferenceImagesStore {
 		this.#displayByDoc = { ...this.#displayByDoc, [docId]: next };
 		this.#notifier.markDirty(docId);
 	}
+
+	setDisplayPosition(refId: string, docId: string, x: number, y: number): void {
+		const existing = this.#displayByDoc[docId] ?? [];
+		const next = existing.map((s) => (s.refId === refId ? { ...s, x, y } : s));
+		this.#displayByDoc = { ...this.#displayByDoc, [docId]: next };
+		this.#notifier.markDirty(docId);
+	}
+
+	setDisplaySize(refId: string, docId: string, width: number, height: number): void {
+		const existing = this.#displayByDoc[docId] ?? [];
+		const next = existing.map((s) => (s.refId === refId ? { ...s, width, height } : s));
+		this.#displayByDoc = { ...this.#displayByDoc, [docId]: next };
+		this.#notifier.markDirty(docId);
+	}
 }

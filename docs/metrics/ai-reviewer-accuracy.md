@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 55 | 42 | 13 | 44 | 76% | 49% |
-| cubic-dev-ai[bot] | 35 | 29 | 6 | 52 | 83% | 36% |
-| coderabbitai[bot] | 74 | 48 | 26 | 36 | 65% | 57% |
+| greptile-apps[bot] | 58 | 45 | 13 | 44 | 78% | 51% |
+| cubic-dev-ai[bot] | 38 | 32 | 6 | 52 | 84% | 38% |
+| coderabbitai[bot] | 76 | 50 | 26 | 37 | 66% | 57% |
 
 ## Log
 
@@ -310,3 +310,12 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #169 | coderabbitai[bot] | Reject | `show()` no-op fallback when entry absent — same internal-API rationale |
 | #169 | coderabbitai[bot] | Reject | Raise z-order on already-visible click — PRD #056 explicitly defers to #059 |
 | #169 | coderabbitai[bot] | Miss | Did not flag duplicate `Placement` type |
+| #172 | greptile-apps[bot] | Accept | Min-size floor breaks for negative/zero proposed dims (computeResize) |
+| #172 | greptile-apps[bot] | Accept | Missing pointercancel/lostpointercapture handlers leak drag/resize state |
+| #172 | greptile-apps[bot] | Accept | `touch-action: none` missing on `.title-bar` |
+| #172 | cubic-dev-ai[bot] | Accept | Min-size floor breaks for negative/zero proposed dims (duplicate of greptile) |
+| #172 | cubic-dev-ai[bot] | Accept | Missing pointercancel/lostpointercapture handlers (duplicate of greptile) |
+| #172 | cubic-dev-ai[bot] | Accept | `touch-action: none` on `.title-bar` (duplicate of greptile) |
+| #172 | coderabbitai[bot] | Accept | Min-size floor breaks for zero/negative proposed dims (duplicate of greptile) |
+| #172 | coderabbitai[bot] | Accept | `touch-action: none` on `.title-bar` (duplicate of greptile) |
+| #172 | coderabbitai[bot] | Miss | Did not flag missing pointercancel/lostpointercapture handlers |

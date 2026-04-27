@@ -6,12 +6,12 @@ Floating reference image windows ([PRD 053](../issues/053-floating-reference-win
 
 ## Last Completed
 
-Reference images — display on canvas + close — `DisplayState` per-instance record (refId, visible, x/y/w/h, minimized, zOrder), `ReferenceWindow` component (title bar + close X, pointer-absorb, active/inactive styling), `ReferenceWindowOverlay` with render-time viewport fit (preserves stored intent for responsive resize), Eye/EyeOff toggle on gallery cards, forward-compat `WorkspaceRecord.displayStates?` round-trip. Initial placement now caps to viewport so extreme aspect ratios stay visible on mobile ([issue](../issues/056-reference-images-display-close.md))
+Reference images — move + resize — title-bar drag updates `DisplayState.x/y` (with X-button guard), bottom-right handle resize via dominant-axis aspect-locked math (`computeResize`) with shared `MIN_WINDOW_EDGE = 80` floor, release-time `clampPosition` keeps the window fully inside viewport so the title bar stays grabbable, store gains `setDisplayPosition`/`setDisplaySize` with auto-save dirty marking, resize handle has 44×44 invisible hit area (`::before`) and subtle diagonal grip indicator (`::after`) ([issue](../issues/057-reference-images-move-resize.md))
 
 ## Next Up
 
-- [057 — Reference images: move + resize](../issues/057-reference-images-move-resize.md)
-  - Next slice of PRD 053 — adds drag-to-move and edge/corner resize on floating windows.
+- [058 — Reference images: minimize (window-shade)](../issues/058-reference-images-minimize.md)
+  - Next slice of PRD 053 — collapses window body to title bar only.
 - [018 — RightPanel (Apple Native)](../issues/018-apple-right-panel.md)
   - Independent. Can start immediately.
 - [019 — StatusBar (Apple Native)](../issues/019-apple-status-bar.md)

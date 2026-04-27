@@ -185,8 +185,6 @@
 		<div class="body">
 			<img class="image" alt={reference.filename} use:objectUrl={reference.blob} />
 		</div>
-	{/if}
-	{#if !minimized}
 		<button
 			type="button"
 			class="resize-handle"

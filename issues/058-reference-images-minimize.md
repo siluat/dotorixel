@@ -41,7 +41,7 @@ Add window-shade minimize: a minimize button in the title bar (and double-click 
 | `src/lib/reference-images/ReferenceWindowOverlay.svelte` | Wires `minimized={state.minimized}` and `onMinimizeChange={(next) => store.setMinimized(...)}` to the store. |
 | `messages/en.json`, `messages/ko.json`, `messages/ja.json` | Added `references_window_minimize` and `references_window_restore` i18n keys. |
 | `src/lib/reference-images/reference-images-store.svelte.test.ts` | 2 new tests: flag flip + dirty mark, snapshot/restore round-trip preserves `minimized: true`. |
-| `src/lib/reference-images/ReferenceWindow.svelte.test.ts` | 5 new tests: minimize button click (both directions), title-bar dblclick (both directions), no image body when minimized, no resize handle when minimized, title-bar drag still works when minimized. |
+| `src/lib/reference-images/ReferenceWindow.svelte.test.ts` | 8 new tests: minimize button click (both directions), title-bar dblclick (both directions), no image body when minimized, no resize handle when minimized, title-bar drag still works when minimized, dblclick on title-bar buttons does not toggle minimize state (regression test for `closest('button')` guard). |
 | `src/lib/reference-images/ReferenceWindowOverlay.svelte.test.ts` | 1 new test: minimize button click writes through to `store.setMinimized` with the expected args. |
 
 ### Key Decisions

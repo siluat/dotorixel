@@ -309,6 +309,28 @@ describe('ReferenceWindow', () => {
 		expect(onMinimizeChange).toHaveBeenCalledWith(false);
 	});
 
+	it('does not toggle minimize state when double-clicking title-bar buttons (closest("button") guard)', async () => {
+		const ref = makeRef('ref-1');
+		const onMinimizeChange = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			isActive: true,
+			minimized: false,
+			onClose: vi.fn(),
+			onMinimizeChange
+		});
+
+		const closeButton = screen.getByRole('button', { name: /close/i });
+		await fireEvent.dblClick(closeButton);
+
+		expect(onMinimizeChange).not.toHaveBeenCalled();
+	});
+
 	it('does not render the image body when minimized', () => {
 		const ref = makeRef('ref-1');
 

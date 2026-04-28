@@ -1,7 +1,8 @@
 import type { PixelCanvas, CanvasCoords, ResizeAnchor } from '../canvas-model';
 import type { ViewportData, ViewportSize } from '../viewport';
-import { addRecentColor } from '../color';
+import { addRecentColor, colorToHex } from '../color';
 import type { SharedState } from '../shared-state.svelte';
+import { samplePixel as sampleReferenceBlobPixel } from '../../reference-images/sampler';
 import { createSamplingSession, type SamplingSession } from '../sampling/session.svelte';
 import { createToolRunner, type ToolRunner, type EditorEffects } from '../tool-runner.svelte';
 import { exportAsPng } from '../export';
@@ -205,6 +206,20 @@ export class TabState {
 
 	sampleCancel = (): void => {
 		this.samplingSession.cancel();
+	};
+
+	sampleReferencePixel = async (blob: Blob, imageX: number, imageY: number): Promise<void> => {
+		let color;
+		try {
+			color = await sampleReferenceBlobPixel(blob, imageX, imageY);
+		} catch {
+			return;
+		}
+		if (color.a === 0) return;
+		this.#applyEffects([
+			{ type: 'colorPick', target: 'foreground', color },
+			{ type: 'addRecentColor', hex: colorToHex(color) }
+		]);
 	};
 
 	undo = (): void => {

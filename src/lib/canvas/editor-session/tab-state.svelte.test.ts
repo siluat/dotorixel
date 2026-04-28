@@ -1,11 +1,18 @@
 // @vitest-environment happy-dom
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { TabState, type TabStateDeps } from './tab-state.svelte';
 import { wasmBackend } from '../wasm-backend';
 import { createFakeDirtyNotifier } from './fake-dirty-notifier';
 import { SharedState } from '../shared-state.svelte';
 import type { CanvasCoords } from '../canvas-model';
 import type { Color } from '../color';
+import { samplePixel as samplerSamplePixel } from '../../reference-images/sampler';
+
+vi.mock('../../reference-images/sampler', () => ({
+	samplePixel: vi.fn()
+}));
+
+const mockedSamplePixel = vi.mocked(samplerSamplePixel);
 
 const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
 const WHITE: Color = { r: 255, g: 255, b: 255, a: 255 };
@@ -163,6 +170,52 @@ describe('TabState — sample gating', () => {
 		const { tab, shared } = makeTab();
 		shared.activeTool = 'eyedropper';
 		expect(tab.sampleStart({ x: 0, y: 0 }, 0, 'mouse')).toBe(false);
+	});
+});
+
+describe('TabState — reference image sampling', () => {
+	const blob = new Blob([new Uint8Array([0])], { type: 'image/png' });
+
+	it('opaque sample updates foregroundColor + recentColors and emits markDirty', async () => {
+		mockedSamplePixel.mockResolvedValueOnce({ r: 12, g: 34, b: 56, a: 255 });
+		const { tab, shared, notifier } = makeTab({ documentId: 'doc-ref' });
+		shared.foregroundColor = BLACK;
+		shared.recentColors = [];
+		notifier.reset();
+
+		await tab.sampleReferencePixel(blob, 0, 0);
+
+		expect(shared.foregroundColor).toEqual({ r: 12, g: 34, b: 56, a: 255 });
+		expect(shared.recentColors).toEqual(['#0c2238']);
+		expect(notifier.dirtyCalls).toEqual(['doc-ref']);
+	});
+
+	it('decode failure is silent: no effects, foregroundColor unchanged, no markDirty', async () => {
+		mockedSamplePixel.mockRejectedValueOnce(new Error('decode failed'));
+		const { tab, shared, notifier } = makeTab({ documentId: 'doc-ref' });
+		shared.foregroundColor = BLACK;
+		shared.recentColors = [];
+		notifier.reset();
+
+		await expect(tab.sampleReferencePixel(blob, 0, 0)).resolves.toBeUndefined();
+
+		expect(shared.foregroundColor).toEqual(BLACK);
+		expect(shared.recentColors).toEqual([]);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('transparent sample (a===0) emits no effects, leaves foregroundColor unchanged', async () => {
+		mockedSamplePixel.mockResolvedValueOnce({ r: 0, g: 0, b: 0, a: 0 });
+		const { tab, shared, notifier } = makeTab({ documentId: 'doc-ref' });
+		shared.foregroundColor = BLACK;
+		shared.recentColors = [];
+		notifier.reset();
+
+		await tab.sampleReferencePixel(blob, 0, 0);
+
+		expect(shared.foregroundColor).toEqual(BLACK);
+		expect(shared.recentColors).toEqual([]);
+		expect(notifier.dirtyCalls).toEqual([]);
 	});
 });
 

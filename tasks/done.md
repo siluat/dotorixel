@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 060 | [Reference images — color sampling via Eyedropper tool](../issues/060-reference-images-eyedropper-sampling.md) | 2026-04-28 |
 | 059 | [Reference images — multi-window z-order + cascade placement](../issues/059-reference-images-z-order-cascade.md) | 2026-04-28 |
 | 058 | [Reference images — minimize (window-shade)](../issues/058-reference-images-minimize.md) | 2026-04-27 |
 | 057 | [Reference images — move + resize](../issues/057-reference-images-move-resize.md) | 2026-04-27 |

@@ -661,6 +661,49 @@ describe('ReferenceWindow', () => {
 		expect(onSampleStart).toHaveBeenCalledWith(25, 40);
 	});
 
+	it('pre-fire pointercancel does not commit a color sample (system cancellation is not a tap)', async () => {
+		vi.useFakeTimers();
+		const ref = makeRef('ref-1');
+		const onSamplePixelAt = vi.fn();
+		const onSampleStart = vi.fn();
+		const onSampleEnd = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			onSamplePixelAt,
+			onSampleStart,
+			onSampleEnd
+		});
+
+		const img = screen.getByRole('img');
+		mockImageRect(img, 200, 300);
+
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+		// System cancellation before the long-press threshold.
+		await vi.advanceTimersByTimeAsync(100);
+		await fireEvent.pointerCancel(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+
+		expect(onSampleStart).not.toHaveBeenCalled();
+		expect(onSampleEnd).not.toHaveBeenCalled();
+		expect(onSamplePixelAt).not.toHaveBeenCalled();
+	});
+
 	it('a second long-press after a successful first one still fires onSampleStart (pendingTapCoords cleared on end)', async () => {
 		vi.useFakeTimers();
 		const ref = makeRef('ref-1');

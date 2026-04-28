@@ -217,6 +217,7 @@
 
 	function handleImagePointerCancel(e: PointerEvent) {
 		if (!isLongPressPointer(e)) return;
+		pendingTapCoords = null;
 		detector?.pointerCancel({ pointerId: e.pointerId, x: e.clientX, y: e.clientY });
 	}
 

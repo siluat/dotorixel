@@ -153,6 +153,10 @@ export class EditorController {
 		this.workspace.activeTab.sampleCancel();
 	};
 
+	handleSampleReference = (blob: Blob, imageX: number, imageY: number): void => {
+		void this.workspace.activeTab.sampleReferencePixel(blob, imageX, imageY);
+	};
+
 	// History handlers
 	handleUndo = (): void => {
 		this.workspace.activeTab.undo();

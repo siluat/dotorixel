@@ -409,6 +409,9 @@
 				docId={editor.workspace.activeTab.documentId}
 				viewportWidth={editor.viewportSize.width}
 				viewportHeight={editor.viewportSize.height}
+				onSamplePixel={editor.activeTool === 'eyedropper'
+					? editor.handleSampleReference
+					: undefined}
 			/>
 		</div>
 
@@ -484,6 +487,9 @@
 						docId={editor.workspace.activeTab.documentId}
 						viewportWidth={editor.viewportSize.width}
 						viewportHeight={editor.viewportSize.height}
+						onSamplePixel={editor.activeTool === 'eyedropper'
+							? editor.handleSampleReference
+							: undefined}
 					/>
 				</div>
 			{:else if activeTab === 'colors'}

@@ -8,9 +8,10 @@
 		docId: string;
 		viewportWidth?: number;
 		viewportHeight?: number;
+		onSamplePixel?: (blob: Blob, imageX: number, imageY: number) => void;
 	}
 
-	let { store, docId, viewportWidth, viewportHeight }: Props = $props();
+	let { store, docId, viewportWidth, viewportHeight, onSamplePixel }: Props = $props();
 
 	const visibleStates = $derived(
 		store.displayStatesForDoc(docId).filter((s) => s.visible)
@@ -80,6 +81,9 @@
 				onActivate={() => {
 					if (state.zOrder !== maxZ) store.show(state.refId, docId);
 				}}
+				onSamplePixelAt={onSamplePixel
+					? (imageX, imageY) => onSamplePixel(ref.blob, imageX, imageY)
+					: undefined}
 			/>
 		{/if}
 	{/each}

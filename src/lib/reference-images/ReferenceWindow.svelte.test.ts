@@ -389,6 +389,63 @@ describe('ReferenceWindow', () => {
 		expect(onMove).toHaveBeenCalledWith(130, 150);
 	});
 
+	it('image pointerdown invokes onSamplePixelAt with image-natural integer coords derived from the image element bounds', async () => {
+		const ref = makeRef('ref-1');
+		const onSamplePixelAt = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			onSamplePixelAt
+		});
+
+		const img = screen.getByRole('img');
+		// happy-dom does not run layout, so getBoundingClientRect returns zeros.
+		// Inject a deterministic rect representing the displayed image (200×300 at top-left of the viewport).
+		vi.spyOn(img, 'getBoundingClientRect').mockReturnValue({
+			x: 0,
+			y: 0,
+			left: 0,
+			top: 0,
+			right: 200,
+			bottom: 300,
+			width: 200,
+			height: 300,
+			toJSON() {}
+		} as DOMRect);
+
+		await fireEvent.pointerDown(img, { pointerId: 1, clientX: 50, clientY: 60 });
+
+		// natural 100×200 displayed as 200×300 → x = floor(50*100/200)=25, y = floor(60*200/300)=40.
+		expect(onSamplePixelAt).toHaveBeenCalledTimes(1);
+		expect(onSamplePixelAt).toHaveBeenCalledWith(25, 40);
+	});
+
+	it('does not invoke onSamplePixelAt when the prop is omitted', async () => {
+		const ref = makeRef('ref-1');
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn()
+		});
+
+		const img = screen.getByRole('img');
+		// No assertion on a callback — this case asserts the absence of error
+		// when onSamplePixelAt is undefined. A regression that throws would fail
+		// fireEvent.pointerDown.
+		await fireEvent.pointerDown(img, { pointerId: 1, clientX: 10, clientY: 10 });
+	});
+
 	it('marks itself active or inactive via data attribute for styling', () => {
 		const ref = makeRef('ref-1');
 

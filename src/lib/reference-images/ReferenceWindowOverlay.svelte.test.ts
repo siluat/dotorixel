@@ -290,6 +290,70 @@ describe('ReferenceWindowOverlay', () => {
 		);
 	});
 
+	it('forwards image pointerdown to onSamplePixel with (blob, imageX, imageY)', async () => {
+		const ref = makeRef('ref-1');
+		store.add(ref, 'doc-1');
+		store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 200, height: 200 });
+		const onSamplePixel = vi.fn();
+
+		render(ReferenceWindowOverlay, {
+			store,
+			docId: 'doc-1',
+			viewportWidth: 1000,
+			viewportHeight: 800,
+			onSamplePixel
+		});
+
+		const win = screen.getByRole('dialog');
+		const img = win.querySelector('img.image') as HTMLImageElement;
+		vi.spyOn(img, 'getBoundingClientRect').mockReturnValue({
+			left: 0,
+			top: 0,
+			right: 200,
+			bottom: 200,
+			width: 200,
+			height: 200,
+			x: 0,
+			y: 0,
+			toJSON: () => ({})
+		});
+
+		await fireEvent.pointerDown(img, { pointerId: 11, clientX: 50, clientY: 80 });
+
+		expect(onSamplePixel).toHaveBeenCalledTimes(1);
+		expect(onSamplePixel).toHaveBeenCalledWith(ref.blob, 25, 40);
+	});
+
+	it('does not forward image pointerdown when onSamplePixel is omitted', async () => {
+		store.add(makeRef('ref-1'), 'doc-1');
+		store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 200, height: 200 });
+
+		render(ReferenceWindowOverlay, {
+			store,
+			docId: 'doc-1',
+			viewportWidth: 1000,
+			viewportHeight: 800
+		});
+
+		const win = screen.getByRole('dialog');
+		const img = win.querySelector('img.image') as HTMLImageElement;
+		vi.spyOn(img, 'getBoundingClientRect').mockReturnValue({
+			left: 0,
+			top: 0,
+			right: 200,
+			bottom: 200,
+			width: 200,
+			height: 200,
+			x: 0,
+			y: 0,
+			toJSON: () => ({})
+		});
+
+		await expect(
+			fireEvent.pointerDown(img, { pointerId: 12, clientX: 50, clientY: 80 })
+		).resolves.toBeDefined();
+	});
+
 	it('preserves the stored placement and uses it when the viewport is large again', () => {
 		store.add(makeRef('ref-1'), 'doc-1');
 		store.display('ref-1', 'doc-1', { x: 550, y: 350, width: 400, height: 300 });

@@ -3,6 +3,7 @@
 	import * as m from '$lib/paraglide/messages';
 	import type { ReferenceImage } from './reference-image-types';
 	import { computeResize } from './compute-resize';
+	import { windowToImageCoords } from './window-to-image-coords';
 	import { MIN_WINDOW_EDGE } from './reference-window-constants';
 
 	interface Props {
@@ -20,6 +21,7 @@
 		onResizeCommit?: () => void;
 		onMinimizeChange?: (next: boolean) => void;
 		onActivate?: () => void;
+		onSamplePixelAt?: (imageX: number, imageY: number) => void;
 	}
 
 	let {
@@ -36,7 +38,8 @@
 		onResize,
 		onResizeCommit,
 		onMinimizeChange,
-		onActivate
+		onActivate,
+		onSamplePixelAt
 	}: Props = $props();
 
 	let dragOrigin: { startX: number; startY: number; pointerX: number; pointerY: number } | null =
@@ -126,6 +129,21 @@
 		}
 	}
 
+	function handleImagePointerDown(e: PointerEvent) {
+		if (!onSamplePixelAt) return;
+		const target = e.currentTarget as HTMLImageElement;
+		const rect = target.getBoundingClientRect();
+		const { x, y } = windowToImageCoords({
+			localX: e.clientX - rect.left,
+			localY: e.clientY - rect.top,
+			displayedWidth: rect.width,
+			displayedHeight: rect.height,
+			naturalWidth: reference.naturalWidth,
+			naturalHeight: reference.naturalHeight
+		});
+		onSamplePixelAt(x, y);
+	}
+
 	function objectUrl(node: HTMLImageElement, blob: Blob) {
 		let url = URL.createObjectURL(blob);
 		node.src = url;
@@ -191,7 +209,12 @@
 	</div>
 	{#if !minimized}
 		<div class="body">
-			<img class="image" alt={reference.filename} use:objectUrl={reference.blob} />
+			<img
+				class="image"
+				alt={reference.filename}
+				use:objectUrl={reference.blob}
+				onpointerdown={handleImagePointerDown}
+			/>
 		</div>
 		<button
 			type="button"

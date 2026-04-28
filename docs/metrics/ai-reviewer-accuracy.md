@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 60 | 47 | 13 | 49 | 78% | 49% |
-| cubic-dev-ai[bot] | 40 | 34 | 6 | 58 | 85% | 37% |
-| coderabbitai[bot] | 84 | 55 | 29 | 39 | 65% | 59% |
+| greptile-apps[bot] | 62 | 49 | 13 | 49 | 79% | 50% |
+| cubic-dev-ai[bot] | 40 | 34 | 6 | 60 | 85% | 36% |
+| coderabbitai[bot] | 85 | 55 | 30 | 41 | 65% | 57% |
 
 ## Log
 
@@ -343,3 +343,10 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #175 | coderabbitai[bot] | Reject | sampleReferencePixel method doc comment — inconsistent with TabState sibling-method convention |
 | #175 | coderabbitai[bot] | Reject | handleSampleReference method doc comment — inconsistent with EditorController sibling-method convention |
 | #175 | coderabbitai[bot] | Miss | Did not flag `.resolves.toBeDefined()` test cleanup |
+| #176 | greptile-apps[bot] | Accept | `dispose()` leaves trackedId/origin/last/fired intact — post-dispose pointerUp can fire onEnd |
+| #176 | greptile-apps[bot] | Accept | `pendingTapCoords` overwritten by simultaneous second touch — early release samples wrong location |
+| #176 | coderabbitai[bot] | Reject | Rename "Blocked by" → "Dependencies (completed)" in issue 079 — established convention across `issues/` tree |
+| #176 | cubic-dev-ai[bot] | Miss | Did not flag `dispose()` leaving non-timer state intact |
+| #176 | cubic-dev-ai[bot] | Miss | Did not flag `pendingTapCoords` overwrite by simultaneous second touch |
+| #176 | coderabbitai[bot] | Miss | Did not flag `dispose()` leaving non-timer state intact (APPROVED review) |
+| #176 | coderabbitai[bot] | Miss | Did not flag `pendingTapCoords` overwrite by simultaneous second touch (APPROVED review) |

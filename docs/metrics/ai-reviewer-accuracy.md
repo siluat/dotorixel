@@ -7,7 +7,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 63 | 50 | 13 | 51 | 79% | 50% |
-| cubic-dev-ai[bot] | 41 | 35 | 6 | 62 | 85% | 36% |
+| cubic-dev-ai[bot] | 42 | 35 | 7 | 62 | 83% | 36% |
 | coderabbitai[bot] | 86 | 56 | 30 | 42 | 65% | 57% |
 
 ## Log
@@ -359,3 +359,4 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #176 | cubic-dev-ai[bot] | Accept | Coderabbitai Miss total off-by-one in Running Totals (42 vs 41 actual) |
 | #176 | greptile-apps[bot] | Miss | Did not flag coderabbitai Miss total arithmetic mismatch |
 | #176 | coderabbitai[bot] | Miss | Did not flag own Miss total arithmetic mismatch |
+| #176 | cubic-dev-ai[bot] | Reject | Claimed `pointercancel` clear breaks short-tap commit — conflates `pointerup` (clean release, still commits) with W3C abnormal-termination semantics |

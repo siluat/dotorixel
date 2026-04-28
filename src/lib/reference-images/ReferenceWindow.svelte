@@ -5,6 +5,11 @@
 	import { computeResize } from './compute-resize';
 	import { windowToImageCoords } from './window-to-image-coords';
 	import { MIN_WINDOW_EDGE } from './reference-window-constants';
+	import {
+		createLongPressDetector,
+		type LongPressDetector,
+		type PointerSnapshot
+	} from '$lib/gestures/long-press';
 
 	interface Props {
 		reference: ReferenceImage;
@@ -22,6 +27,9 @@
 		onMinimizeChange?: (next: boolean) => void;
 		onActivate?: () => void;
 		onSamplePixelAt?: (imageX: number, imageY: number) => void;
+		onSampleStart?: (imageX: number, imageY: number) => void;
+		onSampleMove?: (imageX: number, imageY: number) => void;
+		onSampleEnd?: (imageX: number, imageY: number) => void;
 	}
 
 	let {
@@ -39,7 +47,10 @@
 		onResizeCommit,
 		onMinimizeChange,
 		onActivate,
-		onSamplePixelAt
+		onSamplePixelAt,
+		onSampleStart,
+		onSampleMove,
+		onSampleEnd
 	}: Props = $props();
 
 	let dragOrigin: { startX: number; startY: number; pointerX: number; pointerY: number } | null =
@@ -129,19 +140,82 @@
 		}
 	}
 
-	function handleImagePointerDown(e: PointerEvent) {
-		if (!onSamplePixelAt) return;
-		const target = e.currentTarget as HTMLImageElement;
-		const rect = target.getBoundingClientRect();
-		const { x, y } = windowToImageCoords({
-			localX: e.clientX - rect.left,
-			localY: e.clientY - rect.top,
+	let imageEl = $state<HTMLImageElement | null>(null);
+	let detector: LongPressDetector | null = null;
+	let pendingTapCoords: { x: number; y: number } | null = null;
+
+	$effect(() => {
+		return () => detector?.dispose();
+	});
+
+	function snapshotToImageCoords(p: PointerSnapshot): { x: number; y: number } | null {
+		if (!imageEl) return null;
+		const rect = imageEl.getBoundingClientRect();
+		return windowToImageCoords({
+			localX: p.x - rect.left,
+			localY: p.y - rect.top,
 			displayedWidth: rect.width,
 			displayedHeight: rect.height,
 			naturalWidth: reference.naturalWidth,
 			naturalHeight: reference.naturalHeight
 		});
-		onSamplePixelAt(x, y);
+	}
+
+	function ensureDetector(): LongPressDetector {
+		if (detector) return detector;
+		detector = createLongPressDetector({
+			onFire(p) {
+				const c = snapshotToImageCoords(p);
+				if (c) onSampleStart?.(c.x, c.y);
+			},
+			onMove(p) {
+				const c = snapshotToImageCoords(p);
+				if (c) onSampleMove?.(c.x, c.y);
+			},
+			onEnd(p) {
+				const c = snapshotToImageCoords(p);
+				if (c) onSampleEnd?.(c.x, c.y);
+			},
+			onCancel() {
+				if (pendingTapCoords) {
+					onSamplePixelAt?.(pendingTapCoords.x, pendingTapCoords.y);
+				}
+				pendingTapCoords = null;
+			}
+		});
+		return detector;
+	}
+
+	function isLongPressPointer(e: PointerEvent): boolean {
+		return e.pointerType === 'touch' || e.pointerType === 'pen';
+	}
+
+	function handleImagePointerDown(e: PointerEvent) {
+		if (!isLongPressPointer(e)) {
+			if (!onSamplePixelAt) return;
+			const c = snapshotToImageCoords({ pointerId: e.pointerId, x: e.clientX, y: e.clientY });
+			if (c) onSamplePixelAt(c.x, c.y);
+			return;
+		}
+		const c = snapshotToImageCoords({ pointerId: e.pointerId, x: e.clientX, y: e.clientY });
+		pendingTapCoords = c;
+		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+		ensureDetector().pointerDown({ pointerId: e.pointerId, x: e.clientX, y: e.clientY });
+	}
+
+	function handleImagePointerMove(e: PointerEvent) {
+		if (!isLongPressPointer(e)) return;
+		detector?.pointerMove({ pointerId: e.pointerId, x: e.clientX, y: e.clientY });
+	}
+
+	function handleImagePointerUp(e: PointerEvent) {
+		if (!isLongPressPointer(e)) return;
+		detector?.pointerUp({ pointerId: e.pointerId, x: e.clientX, y: e.clientY });
+	}
+
+	function handleImagePointerCancel(e: PointerEvent) {
+		if (!isLongPressPointer(e)) return;
+		detector?.pointerCancel({ pointerId: e.pointerId, x: e.clientX, y: e.clientY });
 	}
 
 	function objectUrl(node: HTMLImageElement, blob: Blob) {
@@ -212,8 +286,12 @@
 			<img
 				class="image"
 				alt={reference.filename}
+				bind:this={imageEl}
 				use:objectUrl={reference.blob}
 				onpointerdown={handleImagePointerDown}
+				onpointermove={handleImagePointerMove}
+				onpointerup={handleImagePointerUp}
+				onpointercancel={handleImagePointerCancel}
 			/>
 		</div>
 		<button
@@ -312,6 +390,7 @@
 		max-height: 100%;
 		object-fit: contain;
 		display: block;
+		touch-action: none;
 	}
 
 	.window[data-active='false'] .image {

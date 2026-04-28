@@ -4,7 +4,6 @@
 
 - Floating reference image windows (import from Files/Photos, reposition/minimize, color sampling) — inspired by Pixquare — [PRD](../issues/053-floating-reference-window.md)
 
-  - [061 — long-press sampling](../issues/061-reference-images-long-press-sampling.md)
   - [062 — drag-drop import](../issues/062-reference-images-drag-drop-import.md)
 - Layer system: basic infrastructure (add/delete/reorder)
 - Reference Layer type (import image as non-editable layer, rasterize, restore original size) — rides on layer system

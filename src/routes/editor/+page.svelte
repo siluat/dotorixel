@@ -412,6 +412,9 @@
 				onSamplePixel={editor.activeTool === 'eyedropper'
 					? editor.handleSampleReference
 					: undefined}
+				onSampleStart={editor.handleReferenceSampleStart}
+				onSampleMove={editor.handleReferenceSampleMove}
+				onSampleEnd={editor.handleReferenceSampleEnd}
 			/>
 		</div>
 
@@ -490,6 +493,9 @@
 						onSamplePixel={editor.activeTool === 'eyedropper'
 							? editor.handleSampleReference
 							: undefined}
+						onSampleStart={editor.handleReferenceSampleStart}
+						onSampleMove={editor.handleReferenceSampleMove}
+						onSampleEnd={editor.handleReferenceSampleEnd}
 					/>
 				</div>
 			{:else if activeTab === 'colors'}

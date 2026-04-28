@@ -183,7 +183,7 @@ describe('TabState — reference image sampling', () => {
 		shared.recentColors = [];
 		notifier.reset();
 
-		await tab.sampleReferencePixel(blob, 0, 0);
+		await tab.sampleReferenceCommit(blob, 0, 0);
 
 		expect(shared.foregroundColor).toEqual({ r: 12, g: 34, b: 56, a: 255 });
 		expect(shared.recentColors).toEqual(['#0c2238']);
@@ -197,7 +197,7 @@ describe('TabState — reference image sampling', () => {
 		shared.recentColors = [];
 		notifier.reset();
 
-		await expect(tab.sampleReferencePixel(blob, 0, 0)).resolves.toBeUndefined();
+		await expect(tab.sampleReferenceCommit(blob, 0, 0)).resolves.toBeUndefined();
 
 		expect(shared.foregroundColor).toEqual(BLACK);
 		expect(shared.recentColors).toEqual([]);
@@ -211,11 +211,74 @@ describe('TabState — reference image sampling', () => {
 		shared.recentColors = [];
 		notifier.reset();
 
-		await tab.sampleReferencePixel(blob, 0, 0);
+		await tab.sampleReferenceCommit(blob, 0, 0);
 
 		expect(shared.foregroundColor).toEqual(BLACK);
 		expect(shared.recentColors).toEqual([]);
 		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('preview updates foregroundColor but does not append to recentColors', async () => {
+		mockedSamplePixel.mockResolvedValueOnce({ r: 12, g: 34, b: 56, a: 255 });
+		const { tab, shared, notifier } = makeTab({ documentId: 'doc-ref' });
+		shared.foregroundColor = BLACK;
+		shared.recentColors = [];
+		notifier.reset();
+
+		await tab.sampleReferencePreview(blob, 0, 0);
+
+		expect(shared.foregroundColor).toEqual({ r: 12, g: 34, b: 56, a: 255 });
+		expect(shared.recentColors).toEqual([]);
+		expect(notifier.dirtyCalls).toEqual(['doc-ref']);
+	});
+
+	it('preview ignores transparent samples — no effects, foregroundColor unchanged', async () => {
+		mockedSamplePixel.mockResolvedValueOnce({ r: 0, g: 0, b: 0, a: 0 });
+		const { tab, shared, notifier } = makeTab({ documentId: 'doc-ref' });
+		shared.foregroundColor = BLACK;
+		shared.recentColors = [];
+		notifier.reset();
+
+		await tab.sampleReferencePreview(blob, 0, 0);
+
+		expect(shared.foregroundColor).toEqual(BLACK);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('preview swallows decode failures silently', async () => {
+		mockedSamplePixel.mockRejectedValueOnce(new Error('decode failed'));
+		const { tab, shared, notifier } = makeTab({ documentId: 'doc-ref' });
+		shared.foregroundColor = BLACK;
+		notifier.reset();
+
+		await expect(tab.sampleReferencePreview(blob, 0, 0)).resolves.toBeUndefined();
+
+		expect(shared.foregroundColor).toEqual(BLACK);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('stale preview from a slow decode is dropped when a newer call has already started', async () => {
+		// Slow first call (will resolve last), fast second call (resolves first).
+		let resolveSlow!: (color: { r: number; g: number; b: number; a: number }) => void;
+		mockedSamplePixel.mockImplementationOnce(
+			() => new Promise((r) => { resolveSlow = r; })
+		);
+		mockedSamplePixel.mockResolvedValueOnce({ r: 200, g: 200, b: 200, a: 255 });
+
+		const { tab, shared } = makeTab({ documentId: 'doc-ref' });
+		shared.foregroundColor = BLACK;
+
+		const slow = tab.sampleReferencePreview(blob, 0, 0);
+		const fast = tab.sampleReferencePreview(blob, 1, 1);
+
+		await fast;
+		expect(shared.foregroundColor).toEqual({ r: 200, g: 200, b: 200, a: 255 });
+
+		// Now the slow call resolves with a different color — it should be ignored.
+		resolveSlow({ r: 50, g: 50, b: 50, a: 255 });
+		await slow;
+
+		expect(shared.foregroundColor).toEqual({ r: 200, g: 200, b: 200, a: 255 });
 	});
 });
 

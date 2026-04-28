@@ -19,6 +19,7 @@
 		onResize?: (width: number, height: number) => void;
 		onResizeCommit?: () => void;
 		onMinimizeChange?: (next: boolean) => void;
+		onActivate?: () => void;
 	}
 
 	let {
@@ -34,7 +35,8 @@
 		onMoveCommit,
 		onResize,
 		onResizeCommit,
-		onMinimizeChange
+		onMinimizeChange,
+		onActivate
 	}: Props = $props();
 
 	let dragOrigin: { startX: number; startY: number; pointerX: number; pointerY: number } | null =
@@ -81,9 +83,13 @@
 		pointerY: number;
 	} | null = null;
 
+	function handleWindowPointerDown(e: PointerEvent) {
+		if ((e.target as HTMLElement).closest('.title-bar-button')) return;
+		onActivate?.();
+	}
+
 	function handleResizePointerDown(e: PointerEvent) {
 		if (!onResize) return;
-		e.stopPropagation();
 		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 		resizeOrigin = {
 			startWidth: width,
@@ -140,6 +146,7 @@
 	class="window"
 	role="dialog"
 	aria-label={reference.filename}
+	tabindex="-1"
 	data-active={isActive ? 'true' : 'false'}
 	data-minimized={minimized ? 'true' : 'false'}
 	style:left="{x}px"
@@ -147,6 +154,7 @@
 	style:width="{width}px"
 	style:height={minimized ? 'auto' : `${height}px`}
 	style:pointer-events="auto"
+	onpointerdown={handleWindowPointerDown}
 >
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div

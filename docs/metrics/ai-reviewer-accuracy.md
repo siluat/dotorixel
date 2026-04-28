@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 59 | 46 | 13 | 46 | 78% | 50% |
-| cubic-dev-ai[bot] | 38 | 32 | 6 | 55 | 84% | 37% |
-| coderabbitai[bot] | 78 | 52 | 26 | 38 | 67% | 58% |
+| greptile-apps[bot] | 59 | 46 | 13 | 48 | 78% | 49% |
+| cubic-dev-ai[bot] | 38 | 32 | 6 | 57 | 84% | 36% |
+| coderabbitai[bot] | 80 | 54 | 26 | 38 | 68% | 59% |
 
 ## Log
 
@@ -327,3 +327,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #173 | cubic-dev-ai[bot] | Miss | Did not flag test-count off-by-three in 058 Results table |
 | #173 | cubic-dev-ai[bot] | Miss | Did not flag missing dblclick guard regression test |
 | #173 | cubic-dev-ai[bot] | Miss | Did not flag adjacent `{#if !minimized}` block merge |
+| #174 | coderabbitai[bot] | Accept | progress.md/issue 059 wording: store.show() is not idempotent — mutates zOrder above current max on every call |
+| #174 | coderabbitai[bot] | Accept | Add regression test pinning displayed-card branch — extracted orchestration to pure selectReference helper for unit-testability |
+| #174 | greptile-apps[bot] | Miss | Did not flag inaccurate "idempotent" show() wording (Confidence 5/5 — safe to merge) |
+| #174 | greptile-apps[bot] | Miss | Did not flag missing regression test for displayed-card raise path |
+| #174 | cubic-dev-ai[bot] | Miss | Did not flag inaccurate "idempotent" show() wording (APPROVED review) |
+| #174 | cubic-dev-ai[bot] | Miss | Did not flag missing regression test for displayed-card raise path |

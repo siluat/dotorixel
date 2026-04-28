@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/svelte';
+import { render, screen, within, fireEvent, cleanup } from '@testing-library/svelte';
 import ReferenceWindowOverlay from './ReferenceWindowOverlay.svelte';
 import { ReferenceImagesStore } from './reference-images-store.svelte';
 import { createFakeDirtyNotifier } from '$lib/canvas/editor-session/fake-dirty-notifier';
@@ -210,6 +210,84 @@ describe('ReferenceWindowOverlay', () => {
 		await fireEvent.pointerMove(handle, { pointerId: 1, clientX: 350, clientY: 250 });
 
 		expect(spy).toHaveBeenLastCalledWith('ref-1', 'doc-1', 300, 150);
+	});
+
+	it('pointerdown on a non-active window raises it to the top of the z-order', async () => {
+		store.add(makeRef('ref-1'), 'doc-1');
+		store.add(makeRef('ref-2'), 'doc-1');
+		store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
+		store.display('ref-2', 'doc-1', { x: 200, y: 220, width: 100, height: 100 });
+
+		render(ReferenceWindowOverlay, {
+			store,
+			docId: 'doc-1',
+			viewportWidth: 1000,
+			viewportHeight: 800
+		});
+
+		const win1 = screen.getByRole('dialog', { name: 'ref-1.png' });
+		const win2 = screen.getByRole('dialog', { name: 'ref-2.png' });
+		expect(win1.getAttribute('data-active')).toBe('false');
+		expect(win2.getAttribute('data-active')).toBe('true');
+
+		await fireEvent.pointerDown(win1, { pointerId: 7, clientX: 50, clientY: 50 });
+
+		expect(screen.getByRole('dialog', { name: 'ref-1.png' }).getAttribute('data-active')).toBe(
+			'true'
+		);
+		expect(screen.getByRole('dialog', { name: 'ref-2.png' }).getAttribute('data-active')).toBe(
+			'false'
+		);
+	});
+
+	it('does not raise a non-active window when its title-bar button is pressed', async () => {
+		store.add(makeRef('ref-1'), 'doc-1');
+		store.add(makeRef('ref-2'), 'doc-1');
+		store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
+		store.display('ref-2', 'doc-1', { x: 200, y: 220, width: 100, height: 100 });
+
+		render(ReferenceWindowOverlay, {
+			store,
+			docId: 'doc-1',
+			viewportWidth: 1000,
+			viewportHeight: 800
+		});
+
+		const win1 = screen.getByRole('dialog', { name: 'ref-1.png' });
+		const closeButton = within(win1).getByRole('button', { name: /close/i });
+		await fireEvent.pointerDown(closeButton, { pointerId: 8, clientX: 50, clientY: 25 });
+
+		expect(screen.getByRole('dialog', { name: 'ref-1.png' }).getAttribute('data-active')).toBe(
+			'false'
+		);
+		expect(screen.getByRole('dialog', { name: 'ref-2.png' }).getAttribute('data-active')).toBe(
+			'true'
+		);
+	});
+
+	it('raises a non-active window when its resize handle is pressed', async () => {
+		store.add(makeRef('ref-1'), 'doc-1');
+		store.add(makeRef('ref-2'), 'doc-1');
+		store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
+		store.display('ref-2', 'doc-1', { x: 200, y: 220, width: 100, height: 100 });
+
+		render(ReferenceWindowOverlay, {
+			store,
+			docId: 'doc-1',
+			viewportWidth: 1000,
+			viewportHeight: 800
+		});
+
+		const win1 = screen.getByRole('dialog', { name: 'ref-1.png' });
+		const handle = within(win1).getByRole('button', { name: /resize/i });
+		await fireEvent.pointerDown(handle, { pointerId: 9, clientX: 100, clientY: 100 });
+
+		expect(screen.getByRole('dialog', { name: 'ref-1.png' }).getAttribute('data-active')).toBe(
+			'true'
+		);
+		expect(screen.getByRole('dialog', { name: 'ref-2.png' }).getAttribute('data-active')).toBe(
+			'false'
+		);
 	});
 
 	it('preserves the stored placement and uses it when the viewport is large again', () => {

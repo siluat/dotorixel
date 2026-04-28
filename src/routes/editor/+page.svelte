@@ -25,7 +25,10 @@
 	import ReferenceBrowserSheet from '$lib/reference-images/ReferenceBrowserSheet.svelte';
 	import ReferenceWindowOverlay from '$lib/reference-images/ReferenceWindowOverlay.svelte';
 	import { importReferenceImage } from '$lib/reference-images/import-reference-image';
-	import { computeInitialPlacement } from '$lib/reference-images/compute-initial-placement';
+	import {
+		selectReference,
+		displayReference
+	} from '$lib/reference-images/select-reference';
 	import * as m from '$lib/paraglide/messages';
 	import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 	import { openSession, type SessionHandle } from '$lib/session/session';
@@ -215,19 +218,13 @@
 	}
 
 	function handleReferenceSelect(ref: ReferenceImage) {
-		const docId = editor.workspace.activeTab.documentId;
-		const store = editor.workspace.references;
-		const existing = store.displayStateFor(ref.id, docId);
-		if (existing && existing.visible) {
-			handleCloseReferences();
-			return;
-		}
-		if (existing) {
-			store.show(ref.id, docId);
-		} else {
-			displayReference(ref, docId);
-		}
-		handleCloseReferences();
+		selectReference({
+			store: editor.workspace.references,
+			docId: editor.workspace.activeTab.documentId,
+			ref,
+			viewport: editor.viewportSize,
+			onClose: handleCloseReferences
+		});
 	}
 
 	function handleReferenceToggleDisplay(ref: ReferenceImage) {
@@ -239,22 +236,8 @@
 		} else if (existing) {
 			store.show(ref.id, docId);
 		} else {
-			displayReference(ref, docId);
+			displayReference({ store, docId, ref, viewport: editor.viewportSize });
 		}
-	}
-
-	function displayReference(ref: ReferenceImage, docId: string) {
-		const store = editor.workspace.references;
-		const cascadeIndex = store.displayStatesForDoc(docId).length;
-		const { width: viewportWidth, height: viewportHeight } = editor.viewportSize;
-		const placement = computeInitialPlacement({
-			naturalWidth: ref.naturalWidth,
-			naturalHeight: ref.naturalHeight,
-			viewportWidth: Math.max(viewportWidth, 1),
-			viewportHeight: Math.max(viewportHeight, 1),
-			cascadeIndex
-		});
-		store.display(ref.id, docId, placement);
 	}
 
 	async function handleReferenceDelete(id: string) {

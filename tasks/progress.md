@@ -6,16 +6,16 @@ Floating reference image windows ([PRD 053](../issues/053-floating-reference-win
 
 ## Last Completed
 
-Reference images — minimize (window-shade) — store gains `setMinimized` with same immutable-update + dirty-mark pattern as `setDisplayPosition`/`setDisplaySize`, `ReferenceWindow` adds `minimized` prop and `onMinimizeChange` callback, title-bar minimize button uses `ChevronUp`/`ChevronDown` to signal the next action, title-bar `ondblclick` toggles via `closest('button')` guard (same shield as the existing pointerdown drag), body and resize handle wrapped in `{#if !minimized}` so they leave the DOM (and the accessibility tree) when collapsed, container `style:height` switches to `auto` and `data-minimized` attribute drops the title-bar `border-bottom` for a clean pill silhouette, three new locales (`references_window_minimize` / `references_window_restore`) ([issue](../issues/058-reference-images-minimize.md))
+Reference images — multi-window z-order + cascade — store gains `nextCascadeIndex(docId)` (count of currently visible windows) so cascade resets to viewport-center after all windows are dismissed; the inline `displayStatesForDoc(docId).length` (which kept counting hidden states forever) is replaced with the new query; gallery-card click orchestration extracted to `selectReference()` in `select-reference.ts` — when the card has an existing display state it calls `store.show()` (which bumps `zOrder` above the current max, raising the window), otherwise it falls through to `displayReference()`, and the modal closes after either path (bug fix: the previous displayed-card branch early-returned and never raised z-order); `ReferenceWindow` adds optional `onActivate` callback fired from a root `pointerdown` with a `.title-bar-button` guard (close/minimize don't flicker-raise) and gains `tabindex="-1"`; defensive `e.stopPropagation()` removed from resize-handle pointerdown so resize also bubbles to root and raises; `ReferenceWindowOverlay` wires `onActivate` → `store.show(refId, docId)`, skipped when already top-of-z to avoid spurious dirty marks ([issue](../issues/059-reference-images-z-order-cascade.md))
 
 ## Next Up
 
-- [059 — Reference images: z-order + cascade](../issues/059-reference-images-z-order-cascade.md)
-  - Next slice of PRD 053. Can start immediately.
 - [060 — Reference images: Eyedropper sampling](../issues/060-reference-images-eyedropper-sampling.md)
-  - Sibling slice of PRD 053. Independent of 059.
+  - Next slice of PRD 053. Can start immediately.
+- [061 — Reference images: long-press sampling](../issues/061-reference-images-long-press-sampling.md)
+  - Sibling slice of PRD 053. Builds on 060 (Eyedropper) for touch entry.
 - [062 — Reference images: drag-drop import](../issues/062-reference-images-drag-drop-import.md)
-  - Sibling slice of PRD 053. Independent of 059/060.
+  - Sibling slice of PRD 053. Independent of 060/061.
 - [018 — RightPanel (Apple Native)](../issues/018-apple-right-panel.md)
   - Independent. Can start immediately.
 - [019 — StatusBar (Apple Native)](../issues/019-apple-status-bar.md)

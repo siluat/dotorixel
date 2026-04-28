@@ -77,6 +77,9 @@
 				onMoveCommit={() => commitPosition(state.refId)}
 				onResize={(width, height) => store.setDisplaySize(state.refId, docId, width, height)}
 				onMinimizeChange={(next) => store.setMinimized(state.refId, docId, next)}
+				onActivate={() => {
+					if (state.zOrder !== maxZ) store.show(state.refId, docId);
+				}}
 			/>
 		{/if}
 	{/each}

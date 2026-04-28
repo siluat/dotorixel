@@ -1,5 +1,4 @@
 import type { Color } from '../canvas/color';
-import { samplePixel as samplePixelFromDecoded } from './sample-pixel';
 
 /**
  * Decodes a reference image Blob and returns the RGBA color at the given
@@ -7,10 +6,10 @@ import { samplePixel as samplePixelFromDecoded } from './sample-pixel';
  * and `0 <= y < naturalHeight` — produce these via `windowToImageCoords`.
  *
  * Stateless: no decode caching. Each call performs a fresh
- * `createImageBitmap` + `OffscreenCanvas.getImageData`. For typical
- * reference images this is sub-millisecond on modern browsers; if hot-path
- * latency becomes a concern, a per-reference cache can layer behind this
- * same signature without changing call sites.
+ * `createImageBitmap` + `OffscreenCanvas.getImageData` for a single pixel
+ * (4-byte buffer), so even multi-megapixel references stay cheap. If the
+ * hot path ever needs multiple samples per decode, a per-reference cache
+ * can layer behind this same signature without changing call sites.
  *
  * Throws if the Blob fails to decode (corrupt data or browser-side error).
  */
@@ -21,12 +20,8 @@ export async function samplePixel(blob: Blob, x: number, y: number): Promise<Col
 		const ctx = offscreen.getContext('2d');
 		if (!ctx) throw new Error('Failed to acquire 2D context for reference sampling');
 		ctx.drawImage(bitmap, 0, 0);
-		const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
-		return samplePixelFromDecoded(
-			{ width: imageData.width, height: imageData.height, data: imageData.data },
-			x,
-			y
-		);
+		const { data } = ctx.getImageData(x, y, 1, 1);
+		return { r: data[0], g: data[1], b: data[2], a: data[3] };
 	} finally {
 		bitmap.close();
 	}

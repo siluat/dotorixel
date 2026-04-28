@@ -349,9 +349,7 @@ describe('ReferenceWindowOverlay', () => {
 			toJSON: () => ({})
 		});
 
-		await expect(
-			fireEvent.pointerDown(img, { pointerId: 12, clientX: 50, clientY: 80 })
-		).resolves.toBeDefined();
+		await fireEvent.pointerDown(img, { pointerId: 12, clientX: 50, clientY: 80 });
 	});
 
 	it('preserves the stored placement and uses it when the viewport is large again', () => {

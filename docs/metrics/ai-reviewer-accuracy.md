@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 63 | 50 | 13 | 49 | 79% | 51% |
-| cubic-dev-ai[bot] | 40 | 34 | 6 | 61 | 85% | 36% |
-| coderabbitai[bot] | 85 | 55 | 30 | 42 | 65% | 57% |
+| greptile-apps[bot] | 63 | 50 | 13 | 51 | 79% | 50% |
+| cubic-dev-ai[bot] | 41 | 35 | 6 | 62 | 85% | 36% |
+| coderabbitai[bot] | 86 | 56 | 30 | 42 | 65% | 57% |
 
 ## Log
 
@@ -353,3 +353,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #176 | greptile-apps[bot] | Accept | `pendingTapCoords` never cleared on `onEnd` — second long-press silently dropped after first success |
 | #176 | cubic-dev-ai[bot] | Miss | Did not flag stale `pendingTapCoords` after `onEnd` (post-fix regression) |
 | #176 | coderabbitai[bot] | Miss | Did not flag stale `pendingTapCoords` after `onEnd` (post-fix regression, APPROVED review) |
+| #176 | coderabbitai[bot] | Accept | Pre-fire `pointercancel` commits a color sample — clear `pendingTapCoords` before forwarding to detector |
+| #176 | greptile-apps[bot] | Miss | Did not flag pre-fire `pointercancel` committing a color sample |
+| #176 | cubic-dev-ai[bot] | Miss | Did not flag pre-fire `pointercancel` committing a color sample |
+| #176 | cubic-dev-ai[bot] | Accept | Coderabbitai Miss total off-by-one in Running Totals (42 vs 41 actual) |
+| #176 | greptile-apps[bot] | Miss | Did not flag coderabbitai Miss total arithmetic mismatch |
+| #176 | coderabbitai[bot] | Miss | Did not flag own Miss total arithmetic mismatch |

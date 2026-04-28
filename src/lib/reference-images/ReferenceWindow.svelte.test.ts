@@ -4,7 +4,24 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/svelte';
 import ReferenceWindow from './ReferenceWindow.svelte';
 import type { ReferenceImage } from './reference-image-types';
 
-afterEach(() => cleanup());
+afterEach(() => {
+	cleanup();
+	vi.useRealTimers();
+});
+
+function mockImageRect(img: HTMLElement, width: number, height: number, left = 0, top = 0): void {
+	vi.spyOn(img, 'getBoundingClientRect').mockReturnValue({
+		x: left,
+		y: top,
+		left,
+		top,
+		right: left + width,
+		bottom: top + height,
+		width,
+		height,
+		toJSON() {}
+	} as DOMRect);
+}
 
 function makeRef(id: string, filename = `${id}.png`): ReferenceImage {
 	return {
@@ -389,7 +406,7 @@ describe('ReferenceWindow', () => {
 		expect(onMove).toHaveBeenCalledWith(130, 150);
 	});
 
-	it('image pointerdown invokes onSamplePixelAt with image-natural integer coords derived from the image element bounds', async () => {
+	it('mouse pointerdown on the image invokes onSamplePixelAt immediately with image-natural integer coords', async () => {
 		const ref = makeRef('ref-1');
 		const onSamplePixelAt = vi.fn();
 
@@ -419,14 +436,14 @@ describe('ReferenceWindow', () => {
 			toJSON() {}
 		} as DOMRect);
 
-		await fireEvent.pointerDown(img, { pointerId: 1, clientX: 50, clientY: 60 });
+		await fireEvent.pointerDown(img, { pointerId: 1, pointerType: 'mouse', clientX: 50, clientY: 60 });
 
 		// natural 100×200 displayed as 200×300 → x = floor(50*100/200)=25, y = floor(60*200/300)=40.
 		expect(onSamplePixelAt).toHaveBeenCalledTimes(1);
 		expect(onSamplePixelAt).toHaveBeenCalledWith(25, 40);
 	});
 
-	it('does not invoke onSamplePixelAt when the prop is omitted', async () => {
+	it('does not invoke onSamplePixelAt when the prop is omitted (mouse path)', async () => {
 		const ref = makeRef('ref-1');
 
 		render(ReferenceWindow, {
@@ -443,7 +460,385 @@ describe('ReferenceWindow', () => {
 		// No assertion on a callback — this case asserts the absence of error
 		// when onSamplePixelAt is undefined. A regression that throws would fail
 		// fireEvent.pointerDown.
-		await fireEvent.pointerDown(img, { pointerId: 1, clientX: 10, clientY: 10 });
+		await fireEvent.pointerDown(img, { pointerId: 1, pointerType: 'mouse', clientX: 10, clientY: 10 });
+	});
+
+	it('touch long-press on the image fires onSampleStart with image-natural integer coords', async () => {
+		vi.useFakeTimers();
+		const ref = makeRef('ref-1');
+		const onSampleStart = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			onSampleStart
+		});
+
+		const img = screen.getByRole('img');
+		mockImageRect(img, 200, 300);
+
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+
+		expect(onSampleStart).not.toHaveBeenCalled();
+
+		await vi.advanceTimersByTimeAsync(450);
+
+		// natural 100×200 displayed as 200×300 → x=floor(50*100/200)=25, y=floor(60*200/300)=40.
+		expect(onSampleStart).toHaveBeenCalledTimes(1);
+		expect(onSampleStart).toHaveBeenCalledWith(25, 40);
+	});
+
+	it('after touch long-press fires, pointermove invokes onSampleMove with current image coords', async () => {
+		vi.useFakeTimers();
+		const ref = makeRef('ref-1');
+		const onSampleStart = vi.fn();
+		const onSampleMove = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			onSampleStart,
+			onSampleMove
+		});
+
+		const img = screen.getByRole('img');
+		mockImageRect(img, 200, 300);
+
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+		await vi.advanceTimersByTimeAsync(450);
+		expect(onSampleStart).toHaveBeenCalledTimes(1);
+
+		await fireEvent.pointerMove(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 100,
+			clientY: 150
+		});
+
+		// natural 100×200 displayed as 200×300 → x=floor(100*100/200)=50, y=floor(150*200/300)=100.
+		expect(onSampleMove).toHaveBeenCalledTimes(1);
+		expect(onSampleMove).toHaveBeenCalledWith(50, 100);
+	});
+
+	it('releasing after touch long-press fires onSampleEnd with the release image coords', async () => {
+		vi.useFakeTimers();
+		const ref = makeRef('ref-1');
+		const onSampleEnd = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			onSampleStart: vi.fn(),
+			onSampleMove: vi.fn(),
+			onSampleEnd
+		});
+
+		const img = screen.getByRole('img');
+		mockImageRect(img, 200, 300);
+
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+		await vi.advanceTimersByTimeAsync(450);
+
+		await fireEvent.pointerMove(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 80,
+			clientY: 90
+		});
+		await fireEvent.pointerUp(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 80,
+			clientY: 90
+		});
+
+		// natural 100×200 displayed as 200×300 → x=floor(80*100/200)=40, y=floor(90*200/300)=60.
+		expect(onSampleEnd).toHaveBeenCalledTimes(1);
+		expect(onSampleEnd).toHaveBeenCalledWith(40, 60);
+	});
+
+	it('short touch tap (release before threshold) invokes onSamplePixelAt and not the long-press callbacks', async () => {
+		vi.useFakeTimers();
+		const ref = makeRef('ref-1');
+		const onSamplePixelAt = vi.fn();
+		const onSampleStart = vi.fn();
+		const onSampleEnd = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			onSamplePixelAt,
+			onSampleStart,
+			onSampleEnd
+		});
+
+		const img = screen.getByRole('img');
+		mockImageRect(img, 200, 300);
+
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+		await vi.advanceTimersByTimeAsync(100);
+		await fireEvent.pointerUp(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+
+		expect(onSampleStart).not.toHaveBeenCalled();
+		expect(onSampleEnd).not.toHaveBeenCalled();
+		expect(onSamplePixelAt).toHaveBeenCalledTimes(1);
+		expect(onSamplePixelAt).toHaveBeenCalledWith(25, 40);
+	});
+
+	it('pen long-press behaves like touch (fires onSampleStart after threshold)', async () => {
+		vi.useFakeTimers();
+		const ref = makeRef('ref-1');
+		const onSampleStart = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			onSampleStart
+		});
+
+		const img = screen.getByRole('img');
+		mockImageRect(img, 200, 300);
+
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'pen',
+			clientX: 50,
+			clientY: 60
+		});
+		await vi.advanceTimersByTimeAsync(450);
+
+		expect(onSampleStart).toHaveBeenCalledTimes(1);
+		expect(onSampleStart).toHaveBeenCalledWith(25, 40);
+	});
+
+	it('pre-fire pointercancel does not commit a color sample (system cancellation is not a tap)', async () => {
+		vi.useFakeTimers();
+		const ref = makeRef('ref-1');
+		const onSamplePixelAt = vi.fn();
+		const onSampleStart = vi.fn();
+		const onSampleEnd = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			onSamplePixelAt,
+			onSampleStart,
+			onSampleEnd
+		});
+
+		const img = screen.getByRole('img');
+		mockImageRect(img, 200, 300);
+
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+		// System cancellation before the long-press threshold.
+		await vi.advanceTimersByTimeAsync(100);
+		await fireEvent.pointerCancel(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+
+		expect(onSampleStart).not.toHaveBeenCalled();
+		expect(onSampleEnd).not.toHaveBeenCalled();
+		expect(onSamplePixelAt).not.toHaveBeenCalled();
+	});
+
+	it('a second long-press after a successful first one still fires onSampleStart (pendingTapCoords cleared on end)', async () => {
+		vi.useFakeTimers();
+		const ref = makeRef('ref-1');
+		const onSampleStart = vi.fn();
+		const onSampleEnd = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			onSampleStart,
+			onSampleEnd
+		});
+
+		const img = screen.getByRole('img');
+		mockImageRect(img, 200, 300);
+
+		// First long-press: down, hold past threshold, release.
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+		await vi.advanceTimersByTimeAsync(450);
+		await fireEvent.pointerUp(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+
+		expect(onSampleStart).toHaveBeenCalledTimes(1);
+		expect(onSampleEnd).toHaveBeenCalledTimes(1);
+
+		// Second long-press must not be dropped by a stale pendingTapCoords.
+		await fireEvent.pointerDown(img, {
+			pointerId: 2,
+			pointerType: 'touch',
+			clientX: 100,
+			clientY: 150
+		});
+		await vi.advanceTimersByTimeAsync(450);
+
+		expect(onSampleStart).toHaveBeenCalledTimes(2);
+	});
+
+	it('a simultaneous second touch does not overwrite the first finger\'s pending tap coords', async () => {
+		vi.useFakeTimers();
+		const ref = makeRef('ref-1');
+		const onSamplePixelAt = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			onSamplePixelAt,
+			onSampleStart: vi.fn(),
+			onSampleEnd: vi.fn()
+		});
+
+		const img = screen.getByRole('img');
+		mockImageRect(img, 200, 300);
+
+		// First finger lands at (50, 60) — natural coords (25, 40).
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+		// Second finger lands at (100, 150) before the threshold — must be ignored.
+		await fireEvent.pointerDown(img, {
+			pointerId: 2,
+			pointerType: 'touch',
+			clientX: 100,
+			clientY: 150
+		});
+		// First finger lifts before the long-press threshold.
+		await vi.advanceTimersByTimeAsync(100);
+		await fireEvent.pointerUp(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+
+		expect(onSamplePixelAt).toHaveBeenCalledTimes(1);
+		expect(onSamplePixelAt).toHaveBeenCalledWith(25, 40);
+	});
+
+	it('pointercancel after fire still emits onSampleEnd (commit-on-leave semantics)', async () => {
+		vi.useFakeTimers();
+		const ref = makeRef('ref-1');
+		const onSampleEnd = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			onSampleStart: vi.fn(),
+			onSampleEnd
+		});
+
+		const img = screen.getByRole('img');
+		mockImageRect(img, 200, 300);
+
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+		await vi.advanceTimersByTimeAsync(450);
+		await fireEvent.pointerCancel(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+
+		expect(onSampleEnd).toHaveBeenCalledTimes(1);
+		expect(onSampleEnd).toHaveBeenCalledWith(25, 40);
 	});
 
 	it('marks itself active or inactive via data attribute for styling', () => {

@@ -6,14 +6,14 @@ Floating reference image windows ([PRD 053](../issues/053-floating-reference-win
 
 ## Last Completed
 
-Reference images — Eyedropper sampling — new `sample-pixel.ts` (pure `(DecodedImage, x, y) → Color`), `window-to-image-coords.ts` (floor-then-clamp coord mapping defends trailing edge off-by-one), and `sampler.ts` (thin async wrapper: `createImageBitmap` → `OffscreenCanvas.getImageData`, stateless, throws on decode failure with `bitmap.close()` in `finally`); `TabState.sampleReferencePixel(blob, x, y)` async method routes through the existing `#applyEffects` dispatcher emitting `colorPick(foreground) + addRecentColor` for opaque samples (transparent and decode failure are silent); `EditorController.handleSampleReference` fire-and-forget delegate; `ReferenceWindow` adds optional `onSamplePixelAt(imageX, imageY)` prop with `<img>`-element `onpointerdown` so the letterbox region naturally falls through to z-order activation; `ReferenceWindowOverlay` adds `onSamplePixel(blob, imageX, imageY)` and pass-through is conditional so non-eyedropper tools see no behavior change; `+page.svelte` wires both mount sites with `editor.activeTool === 'eyedropper' ? editor.handleSampleReference : undefined`. Naming chain `samplePixel` → `sampleReferencePixel` → `handleSampleReference` → `onSamplePixel` → `onSamplePixelAt` keeps the action traceable across layers ([issue](../issues/060-reference-images-eyedropper-sampling.md))
+Reference images — long-press + drag color sampling — new framework-agnostic `long-press` gesture detector in `src/lib/gestures/` (single-pointer tracking, 400 ms threshold, 8 px Euclidean radius, lifecycle `pointerDown → onFire → onMove → onEnd` plus pre-fire `onCancel` for early release / out-of-radius / cancel); `TabState.sampleReferenceCommit` (renamed from `sampleReferencePixel`) and new `sampleReferencePreview` share `#refSampleSeq` to discard stale async samples; `EditorController` adds `handleReferenceSampleStart/Move/End` thin delegates (Start/Move → preview, End → commit + recentColors); `ReferenceWindow` branches on `pointerType === 'touch' || 'pen'` to the detector path with `setPointerCapture`, mouse keeps the immediate path from #060, short tap on touch/pen routes through `onCancel` → `onSamplePixelAt` (eyedropper-only), `$effect` cleanup disposes the detector, `.image` gets `touch-action: none`; `ReferenceWindowOverlay` passes the three new callbacks through (prepending `ref.blob`); `+page.svelte` wires long-press handlers unconditionally (tool-independent), `onSamplePixel` stays gated on `activeTool === 'eyedropper'` ([issue](../issues/061-reference-images-long-press-sampling.md))
 
 ## Next Up
 
-- [061 — Reference images: long-press sampling](../issues/061-reference-images-long-press-sampling.md)
-  - Sibling slice of PRD 053. Builds on 060 (Eyedropper) for touch entry.
 - [062 — Reference images: drag-drop import](../issues/062-reference-images-drag-drop-import.md)
   - Sibling slice of PRD 053. Independent of 060/061.
+- [079 — Reference images: long-press sampling loupe](../issues/079-reference-images-long-press-loupe.md)
+  - Sibling slice of PRD 053. Builds on 061; visual parity with canvas Eyedropper loupe.
 - [018 — RightPanel (Apple Native)](../issues/018-apple-right-panel.md)
   - Independent. Can start immediately.
 - [019 — StatusBar (Apple Native)](../issues/019-apple-status-bar.md)

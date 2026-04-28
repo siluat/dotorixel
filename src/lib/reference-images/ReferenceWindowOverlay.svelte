@@ -9,9 +9,21 @@
 		viewportWidth?: number;
 		viewportHeight?: number;
 		onSamplePixel?: (blob: Blob, imageX: number, imageY: number) => void;
+		onSampleStart?: (blob: Blob, imageX: number, imageY: number) => void;
+		onSampleMove?: (blob: Blob, imageX: number, imageY: number) => void;
+		onSampleEnd?: (blob: Blob, imageX: number, imageY: number) => void;
 	}
 
-	let { store, docId, viewportWidth, viewportHeight, onSamplePixel }: Props = $props();
+	let {
+		store,
+		docId,
+		viewportWidth,
+		viewportHeight,
+		onSamplePixel,
+		onSampleStart,
+		onSampleMove,
+		onSampleEnd
+	}: Props = $props();
 
 	const visibleStates = $derived(
 		store.displayStatesForDoc(docId).filter((s) => s.visible)
@@ -83,6 +95,15 @@
 				}}
 				onSamplePixelAt={onSamplePixel
 					? (imageX, imageY) => onSamplePixel(ref.blob, imageX, imageY)
+					: undefined}
+				onSampleStart={onSampleStart
+					? (imageX, imageY) => onSampleStart(ref.blob, imageX, imageY)
+					: undefined}
+				onSampleMove={onSampleMove
+					? (imageX, imageY) => onSampleMove(ref.blob, imageX, imageY)
+					: undefined}
+				onSampleEnd={onSampleEnd
+					? (imageX, imageY) => onSampleEnd(ref.blob, imageX, imageY)
 					: undefined}
 			/>
 		{/if}

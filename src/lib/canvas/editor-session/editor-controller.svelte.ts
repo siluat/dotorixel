@@ -154,7 +154,19 @@ export class EditorController {
 	};
 
 	handleSampleReference = (blob: Blob, imageX: number, imageY: number): void => {
-		void this.workspace.activeTab.sampleReferencePixel(blob, imageX, imageY);
+		void this.workspace.activeTab.sampleReferenceCommit(blob, imageX, imageY);
+	};
+
+	handleReferenceSampleStart = (blob: Blob, imageX: number, imageY: number): void => {
+		void this.workspace.activeTab.sampleReferencePreview(blob, imageX, imageY);
+	};
+
+	handleReferenceSampleMove = (blob: Blob, imageX: number, imageY: number): void => {
+		void this.workspace.activeTab.sampleReferencePreview(blob, imageX, imageY);
+	};
+
+	handleReferenceSampleEnd = (blob: Blob, imageX: number, imageY: number): void => {
+		void this.workspace.activeTab.sampleReferenceCommit(blob, imageX, imageY);
 	};
 
 	// History handlers

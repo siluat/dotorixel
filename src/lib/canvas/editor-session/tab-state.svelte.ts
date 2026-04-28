@@ -208,13 +208,30 @@ export class TabState {
 		this.samplingSession.cancel();
 	};
 
-	sampleReferencePixel = async (blob: Blob, imageX: number, imageY: number): Promise<void> => {
+	#refSampleSeq = 0;
+
+	sampleReferencePreview = async (blob: Blob, imageX: number, imageY: number): Promise<void> => {
+		const my = ++this.#refSampleSeq;
 		let color;
 		try {
 			color = await sampleReferenceBlobPixel(blob, imageX, imageY);
 		} catch {
 			return;
 		}
+		if (my !== this.#refSampleSeq) return;
+		if (color.a === 0) return;
+		this.#applyEffects([{ type: 'colorPick', target: 'foreground', color }]);
+	};
+
+	sampleReferenceCommit = async (blob: Blob, imageX: number, imageY: number): Promise<void> => {
+		const my = ++this.#refSampleSeq;
+		let color;
+		try {
+			color = await sampleReferenceBlobPixel(blob, imageX, imageY);
+		} catch {
+			return;
+		}
+		if (my !== this.#refSampleSeq) return;
 		if (color.a === 0) return;
 		this.#applyEffects([
 			{ type: 'colorPick', target: 'foreground', color },

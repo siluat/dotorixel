@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 59 | 46 | 13 | 48 | 78% | 49% |
-| cubic-dev-ai[bot] | 38 | 32 | 6 | 57 | 84% | 36% |
-| coderabbitai[bot] | 80 | 54 | 26 | 38 | 68% | 59% |
+| greptile-apps[bot] | 60 | 47 | 13 | 49 | 78% | 49% |
+| cubic-dev-ai[bot] | 40 | 34 | 6 | 58 | 85% | 37% |
+| coderabbitai[bot] | 84 | 55 | 29 | 39 | 65% | 59% |
 
 ## Log
 
@@ -333,3 +333,13 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #174 | greptile-apps[bot] | Miss | Did not flag missing regression test for displayed-card raise path |
 | #174 | cubic-dev-ai[bot] | Miss | Did not flag inaccurate "idempotent" show() wording (APPROVED review) |
 | #174 | cubic-dev-ai[bot] | Miss | Did not flag missing regression test for displayed-card raise path |
+| #175 | greptile-apps[bot] | Accept | sampler.ts full-image getImageData allocates ~48 MB for 12 MP — use (x,y,1,1) for 4 bytes |
+| #175 | greptile-apps[bot] | Miss | Did not flag `.resolves.toBeDefined()` with sync-feeling fireEvent.pointerDown |
+| #175 | cubic-dev-ai[bot] | Accept | sampler.ts memory efficiency (duplicate of greptile) |
+| #175 | cubic-dev-ai[bot] | Accept | `.resolves.toBeDefined()` test cleanup with fireEvent.pointerDown |
+| #175 | cubic-dev-ai[bot] | Miss | Did not flag windowToImageCoords/samplePixel doc-comment gap |
+| #175 | coderabbitai[bot] | Accept | windowToImageCoords export doc comments — matches sibling pure-utility convention |
+| #175 | coderabbitai[bot] | Reject | latest-sample-wins token for sampleReferencePixel — explicitly deferred per issue Notes |
+| #175 | coderabbitai[bot] | Reject | sampleReferencePixel method doc comment — inconsistent with TabState sibling-method convention |
+| #175 | coderabbitai[bot] | Reject | handleSampleReference method doc comment — inconsistent with EditorController sibling-method convention |
+| #175 | coderabbitai[bot] | Miss | Did not flag `.resolves.toBeDefined()` test cleanup |

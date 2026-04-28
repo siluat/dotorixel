@@ -218,10 +218,6 @@
 		const docId = editor.workspace.activeTab.documentId;
 		const store = editor.workspace.references;
 		const existing = store.displayStateFor(ref.id, docId);
-		if (existing && existing.visible) {
-			handleCloseReferences();
-			return;
-		}
 		if (existing) {
 			store.show(ref.id, docId);
 		} else {
@@ -245,7 +241,7 @@
 
 	function displayReference(ref: ReferenceImage, docId: string) {
 		const store = editor.workspace.references;
-		const cascadeIndex = store.displayStatesForDoc(docId).length;
+		const cascadeIndex = store.nextCascadeIndex(docId);
 		const { width: viewportWidth, height: viewportHeight } = editor.viewportSize;
 		const placement = computeInitialPlacement({
 			naturalWidth: ref.naturalWidth,

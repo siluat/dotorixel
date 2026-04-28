@@ -288,6 +288,51 @@ describe('ReferenceImagesStore', () => {
 			expect(notifier.dirtyCalls).toEqual(['doc-1']);
 		});
 
+		it('nextCascadeIndex returns 0 when no windows are visible', () => {
+			const store = new ReferenceImagesStore({ notifier });
+
+			expect(store.nextCascadeIndex('doc-1')).toBe(0);
+		});
+
+		it('nextCascadeIndex grows with each newly displayed window', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.add(makeRef('ref-2'), 'doc-1');
+
+			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
+			expect(store.nextCascadeIndex('doc-1')).toBe(1);
+
+			store.display('ref-2', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
+			expect(store.nextCascadeIndex('doc-1')).toBe(2);
+		});
+
+		it('nextCascadeIndex resets to 0 once all visible windows are closed', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.add(makeRef('ref-2'), 'doc-1');
+			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
+			store.display('ref-2', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
+
+			store.close('ref-1', 'doc-1');
+			store.close('ref-2', 'doc-1');
+
+			expect(store.nextCascadeIndex('doc-1')).toBe(0);
+		});
+
+		it('nextCascadeIndex counts only currently visible windows, not closed ones', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.add(makeRef('ref-2'), 'doc-1');
+			store.add(makeRef('ref-3'), 'doc-1');
+			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
+			store.display('ref-2', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
+			store.display('ref-3', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
+
+			store.close('ref-2', 'doc-1');
+
+			expect(store.nextCascadeIndex('doc-1')).toBe(2);
+		});
+
 		it('flips visible to false on close, preserving x/y/w/h and zOrder', () => {
 			const store = new ReferenceImagesStore({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');

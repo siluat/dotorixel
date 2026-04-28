@@ -122,6 +122,18 @@ export class ReferenceImagesStore {
 		this.#notifier.markDirty(docId);
 	}
 
+	/**
+	 * Cascade index for the next reference window to be displayed in this doc.
+	 *
+	 * Equals the count of currently visible windows so each new window is offset
+	 * by `index × 24px` from the viewport center. Resets to 0 once all visible
+	 * windows are dismissed; closed-but-still-existing states do not contribute.
+	 */
+	nextCascadeIndex(docId: string): number {
+		const states = this.#displayByDoc[docId] ?? [];
+		return states.filter((s) => s.visible).length;
+	}
+
 	setMinimized(refId: string, docId: string, minimized: boolean): void {
 		const existing = this.#displayByDoc[docId] ?? [];
 		const next = existing.map((s) => (s.refId === refId ? { ...s, minimized } : s));

@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 62 | 49 | 13 | 49 | 79% | 50% |
-| cubic-dev-ai[bot] | 40 | 34 | 6 | 60 | 85% | 36% |
-| coderabbitai[bot] | 85 | 55 | 30 | 41 | 65% | 57% |
+| greptile-apps[bot] | 63 | 50 | 13 | 49 | 79% | 51% |
+| cubic-dev-ai[bot] | 40 | 34 | 6 | 61 | 85% | 36% |
+| coderabbitai[bot] | 85 | 55 | 30 | 42 | 65% | 57% |
 
 ## Log
 
@@ -350,3 +350,6 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #176 | cubic-dev-ai[bot] | Miss | Did not flag `pendingTapCoords` overwrite by simultaneous second touch |
 | #176 | coderabbitai[bot] | Miss | Did not flag `dispose()` leaving non-timer state intact (APPROVED review) |
 | #176 | coderabbitai[bot] | Miss | Did not flag `pendingTapCoords` overwrite by simultaneous second touch (APPROVED review) |
+| #176 | greptile-apps[bot] | Accept | `pendingTapCoords` never cleared on `onEnd` — second long-press silently dropped after first success |
+| #176 | cubic-dev-ai[bot] | Miss | Did not flag stale `pendingTapCoords` after `onEnd` (post-fix regression) |
+| #176 | coderabbitai[bot] | Miss | Did not flag stale `pendingTapCoords` after `onEnd` (post-fix regression, APPROVED review) |

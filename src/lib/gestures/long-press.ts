@@ -125,7 +125,7 @@ export function createLongPressDetector(opts: LongPressOptions): LongPressDetect
 			endPress(p);
 		},
 		dispose() {
-			clearTimer();
+			reset();
 		}
 	};
 }

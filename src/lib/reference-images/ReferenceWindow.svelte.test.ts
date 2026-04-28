@@ -661,6 +661,54 @@ describe('ReferenceWindow', () => {
 		expect(onSampleStart).toHaveBeenCalledWith(25, 40);
 	});
 
+	it('a simultaneous second touch does not overwrite the first finger\'s pending tap coords', async () => {
+		vi.useFakeTimers();
+		const ref = makeRef('ref-1');
+		const onSamplePixelAt = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			onSamplePixelAt,
+			onSampleStart: vi.fn(),
+			onSampleEnd: vi.fn()
+		});
+
+		const img = screen.getByRole('img');
+		mockImageRect(img, 200, 300);
+
+		// First finger lands at (50, 60) — natural coords (25, 40).
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+		// Second finger lands at (100, 150) before the threshold — must be ignored.
+		await fireEvent.pointerDown(img, {
+			pointerId: 2,
+			pointerType: 'touch',
+			clientX: 100,
+			clientY: 150
+		});
+		// First finger lifts before the long-press threshold.
+		await vi.advanceTimersByTimeAsync(100);
+		await fireEvent.pointerUp(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+
+		expect(onSamplePixelAt).toHaveBeenCalledTimes(1);
+		expect(onSamplePixelAt).toHaveBeenCalledWith(25, 40);
+	});
+
 	it('pointercancel after fire still emits onSampleEnd (commit-on-leave semantics)', async () => {
 		vi.useFakeTimers();
 		const ref = makeRef('ref-1');

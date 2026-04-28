@@ -197,6 +197,7 @@
 			if (c) onSamplePixelAt(c.x, c.y);
 			return;
 		}
+		if (pendingTapCoords !== null) return;
 		const c = snapshotToImageCoords({ pointerId: e.pointerId, x: e.clientX, y: e.clientY });
 		pendingTapCoords = c;
 		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);

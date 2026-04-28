@@ -661,6 +661,57 @@ describe('ReferenceWindow', () => {
 		expect(onSampleStart).toHaveBeenCalledWith(25, 40);
 	});
 
+	it('a second long-press after a successful first one still fires onSampleStart (pendingTapCoords cleared on end)', async () => {
+		vi.useFakeTimers();
+		const ref = makeRef('ref-1');
+		const onSampleStart = vi.fn();
+		const onSampleEnd = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			onSampleStart,
+			onSampleEnd
+		});
+
+		const img = screen.getByRole('img');
+		mockImageRect(img, 200, 300);
+
+		// First long-press: down, hold past threshold, release.
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+		await vi.advanceTimersByTimeAsync(450);
+		await fireEvent.pointerUp(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+
+		expect(onSampleStart).toHaveBeenCalledTimes(1);
+		expect(onSampleEnd).toHaveBeenCalledTimes(1);
+
+		// Second long-press must not be dropped by a stale pendingTapCoords.
+		await fireEvent.pointerDown(img, {
+			pointerId: 2,
+			pointerType: 'touch',
+			clientX: 100,
+			clientY: 150
+		});
+		await vi.advanceTimersByTimeAsync(450);
+
+		expect(onSampleStart).toHaveBeenCalledTimes(2);
+	});
+
 	it('a simultaneous second touch does not overwrite the first finger\'s pending tap coords', async () => {
 		vi.useFakeTimers();
 		const ref = makeRef('ref-1');

@@ -173,6 +173,7 @@
 				if (c) onSampleMove?.(c.x, c.y);
 			},
 			onEnd(p) {
+				pendingTapCoords = null;
 				const c = snapshotToImageCoords(p);
 				if (c) onSampleEnd?.(c.x, c.y);
 			},

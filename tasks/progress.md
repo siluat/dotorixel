@@ -12,6 +12,8 @@ Reference images — long-press + drag color sampling — new framework-agnostic
 
 - [062 — Reference images: drag-drop import](../issues/062-reference-images-drag-drop-import.md)
   - Sibling slice of PRD 053. Independent of 060/061.
+- [079 — Reference images: long-press sampling loupe](../issues/079-reference-images-long-press-loupe.md)
+  - Sibling slice of PRD 053. Builds on 061; visual parity with canvas Eyedropper loupe.
 - [018 — RightPanel (Apple Native)](../issues/018-apple-right-panel.md)
   - Independent. Can start immediately.
 - [019 — StatusBar (Apple Native)](../issues/019-apple-status-bar.md)

@@ -24,11 +24,15 @@
 	import ReferenceBrowser from '$lib/reference-images/ReferenceBrowser.svelte';
 	import ReferenceBrowserSheet from '$lib/reference-images/ReferenceBrowserSheet.svelte';
 	import ReferenceWindowOverlay from '$lib/reference-images/ReferenceWindowOverlay.svelte';
-	import { importReferenceImage } from '$lib/reference-images/import-reference-image';
+	import { importReferenceFiles } from '$lib/reference-images/import-reference-files';
+	import type { ImportError } from '$lib/reference-images/import-reference-image';
 	import {
 		selectReference,
 		displayReference
 	} from '$lib/reference-images/select-reference';
+	import { computeDropPlacement } from '$lib/reference-images/compute-drop-placement';
+	import { canvasDropzone } from '$lib/reference-images/canvas-dropzone';
+	import { CASCADE_OFFSET } from '$lib/reference-images/reference-window-constants';
 	import * as m from '$lib/paraglide/messages';
 	import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 	import { openSession, type SessionHandle } from '$lib/session/session';
@@ -195,26 +199,59 @@
 		referenceFileInputEl?.click();
 	}
 
+	function importErrorMessage(file: File, error: ImportError): string {
+		switch (error.kind) {
+			case 'unsupported-format':
+				return m.references_error_unsupported_format({ name: file.name });
+			case 'too-large':
+				return m.references_error_too_large({ name: file.name });
+			case 'decode-failed':
+				return m.references_error_decode_failed({ name: file.name });
+		}
+	}
+
+	async function importToGallery(files: Iterable<File>): Promise<void> {
+		const docId = editor.workspace.activeTab.documentId;
+		const { imported, errors } = await importReferenceFiles(files);
+		for (const ref of imported) {
+			editor.workspace.references.add(ref, docId);
+		}
+		if (errors.length > 0) {
+			referenceErrors = [...referenceErrors, ...errors.map((e) => importErrorMessage(e.file, e.error))];
+		}
+	}
+
 	async function handleReferenceFileChange(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
 		const files = input.files;
 		if (!files || files.length === 0) return;
-		const docId = editor.workspace.activeTab.documentId;
-		for (const file of files) {
-			const result = await importReferenceImage(file);
-			if (result.ok) {
-				editor.workspace.references.add(result.reference, docId);
-			} else {
-				const msg =
-					result.error.kind === 'unsupported-format'
-						? m.references_error_unsupported_format({ name: file.name })
-						: result.error.kind === 'too-large'
-							? m.references_error_too_large({ name: file.name })
-							: m.references_error_decode_failed({ name: file.name });
-				referenceErrors = [...referenceErrors, msg];
-			}
-		}
+		await importToGallery(files);
 		input.value = '';
+	}
+
+	async function handleReferenceModalDrop(files: File[]) {
+		await importToGallery(files);
+	}
+
+	async function handleCanvasDrop(files: File[], dropX: number, dropY: number) {
+		const docId = editor.workspace.activeTab.documentId;
+		const viewport = editor.viewportSize;
+		const { imported, errors } = await importReferenceFiles(files);
+		imported.forEach((ref, index) => {
+			editor.workspace.references.add(ref, docId);
+			const placement = computeDropPlacement({
+				naturalWidth: ref.naturalWidth,
+				naturalHeight: ref.naturalHeight,
+				viewportWidth: Math.max(viewport.width, 1),
+				viewportHeight: Math.max(viewport.height, 1),
+				dropX: dropX + index * CASCADE_OFFSET,
+				dropY: dropY + index * CASCADE_OFFSET
+			});
+			editor.workspace.references.display(ref.id, docId, placement);
+		});
+		if (errors.length > 0) {
+			referenceErrors = [...referenceErrors, ...errors.map((e) => importErrorMessage(e.file, e.error))];
+		}
 	}
 
 	function handleReferenceSelect(ref: ReferenceImage) {
@@ -386,7 +423,11 @@
 			onRedo={editor.handleRedo}
 		/>
 
-		<div class="canvas-area" bind:this={canvasContainerEl}>
+		<div
+			class="canvas-area"
+			bind:this={canvasContainerEl}
+			use:canvasDropzone={{ onFilesDropped: handleCanvasDrop }}
+		>
 			<PixelCanvasView
 				pixelCanvas={editor.pixelCanvas}
 				viewport={editor.viewport}
@@ -467,7 +508,11 @@
 
 		<div class="content-area">
 			{#if activeTab === 'draw'}
-				<div class="canvas-area" bind:this={canvasContainerEl}>
+				<div
+					class="canvas-area"
+					bind:this={canvasContainerEl}
+					use:canvasDropzone={{ onFilesDropped: handleCanvasDrop }}
+				>
 					<PixelCanvasView
 						pixelCanvas={editor.pixelCanvas}
 						viewport={editor.viewport}
@@ -570,6 +615,7 @@
 			onAddRequest={handleReferenceAddRequest}
 			onDismissError={handleDismissReferenceError}
 			onClose={handleCloseReferences}
+			onFilesDropped={handleReferenceModalDrop}
 		/>
 	</div>
 {/if}
@@ -585,6 +631,7 @@
 		onAddRequest={handleReferenceAddRequest}
 		onDismissError={handleDismissReferenceError}
 		onClose={handleCloseReferences}
+		onFilesDropped={handleReferenceModalDrop}
 	/>
 {/if}
 
@@ -663,6 +710,20 @@
 		grid-area: canvas;
 		position: relative;
 		overflow: hidden;
+	}
+
+	/* :global because the `data-drag-over` attribute is set imperatively by the
+	   canvasDropzone action; Svelte's scoped CSS only tracks attributes present
+	   in markup at compile time. */
+	:global(.canvas-area[data-drag-over='true']::after) {
+		content: '';
+		position: absolute;
+		inset: 8px;
+		border: 2px dashed var(--ds-accent);
+		border-radius: 8px;
+		background: color-mix(in srgb, var(--ds-accent) 4%, transparent);
+		pointer-events: none;
+		z-index: 60;
 	}
 
 	.editor-docked > :global(.right-panel) {

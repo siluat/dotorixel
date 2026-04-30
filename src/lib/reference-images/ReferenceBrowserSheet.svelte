@@ -16,6 +16,7 @@
 		onAddRequest: () => void;
 		onDismissError: (index: number) => void;
 		onClose: () => void;
+		onFilesDropped?: (files: File[]) => void;
 	}
 
 	let {
@@ -28,12 +29,55 @@
 		onToggleDisplay,
 		onAddRequest,
 		onDismissError,
-		onClose
+		onClose,
+		onFilesDropped
 	}: Props = $props();
+
+	let dragDepth = $state(0);
+	const isDragOver = $derived(dragDepth > 0);
+
+	function hasFiles(event: DragEvent): boolean {
+		const dt = event.dataTransfer;
+		if (!dt) return false;
+		if (dt.types.includes('Files')) return true;
+		return Array.from(dt.items ?? []).some((item) => item.kind === 'file');
+	}
+
+	function handleDragEnter(event: DragEvent) {
+		if (!hasFiles(event)) return;
+		event.preventDefault();
+		dragDepth += 1;
+	}
+
+	function handleDragLeave(event: DragEvent) {
+		if (!hasFiles(event)) return;
+		dragDepth = Math.max(0, dragDepth - 1);
+	}
+
+	function handleDragOver(event: DragEvent) {
+		if (!hasFiles(event)) return;
+		event.preventDefault();
+	}
+
+	function handleDrop(event: DragEvent) {
+		event.preventDefault();
+		dragDepth = 0;
+		const files = Array.from(event.dataTransfer?.files ?? []);
+		if (files.length === 0) return;
+		onFilesDropped?.(files);
+	}
 </script>
 
 <BottomSheet {open} onclose={onClose}>
-	<div class="browser-sheet">
+	<div
+		class="browser-sheet"
+		ondragenter={handleDragEnter}
+		ondragleave={handleDragLeave}
+		ondragover={handleDragOver}
+		ondrop={handleDrop}
+		data-drag-over={isDragOver ? 'true' : 'false'}
+		role="region"
+	>
 		<div class="drag-handle"></div>
 		<div class="sheet-header">
 			<h2 class="title">{m.references_title()}</h2>
@@ -94,6 +138,11 @@
 		border-radius: 16px 16px 0 0;
 		max-height: 85vh;
 		padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+		transition: background 120ms ease;
+	}
+
+	.browser-sheet[data-drag-over='true'] {
+		background: color-mix(in srgb, var(--ds-accent) 4%, var(--ds-bg-elevated));
 	}
 
 	.drag-handle {

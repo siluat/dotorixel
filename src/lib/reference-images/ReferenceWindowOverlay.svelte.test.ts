@@ -290,18 +290,19 @@ describe('ReferenceWindowOverlay', () => {
 		);
 	});
 
-	it('forwards image pointerdown to onSamplePixel with (blob, imageX, imageY)', async () => {
+	it('forwards mouse pointerdown on the image to onSampleStart with (blob, x, y, "mouse") when quickSamplingEnabled', async () => {
 		const ref = makeRef('ref-1');
 		store.add(ref, 'doc-1');
 		store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 200, height: 200 });
-		const onSamplePixel = vi.fn();
+		const onSampleStart = vi.fn();
 
 		render(ReferenceWindowOverlay, {
 			store,
 			docId: 'doc-1',
 			viewportWidth: 1000,
 			viewportHeight: 800,
-			onSamplePixel
+			quickSamplingEnabled: true,
+			onSampleStart
 		});
 
 		const win = screen.getByRole('dialog');
@@ -318,21 +319,29 @@ describe('ReferenceWindowOverlay', () => {
 			toJSON: () => ({})
 		});
 
-		await fireEvent.pointerDown(img, { pointerId: 11, clientX: 50, clientY: 80 });
+		await fireEvent.pointerDown(img, {
+			pointerId: 11,
+			pointerType: 'mouse',
+			clientX: 50,
+			clientY: 80
+		});
 
-		expect(onSamplePixel).toHaveBeenCalledTimes(1);
-		expect(onSamplePixel).toHaveBeenCalledWith(ref.blob, 25, 40);
+		expect(onSampleStart).toHaveBeenCalledTimes(1);
+		expect(onSampleStart).toHaveBeenCalledWith(ref.blob, 25, 40, 'mouse');
 	});
 
-	it('does not forward image pointerdown when onSamplePixel is omitted', async () => {
+	it('does not forward mouse pointerdown when quickSamplingEnabled is false', async () => {
 		store.add(makeRef('ref-1'), 'doc-1');
 		store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 200, height: 200 });
+		const onSampleStart = vi.fn();
 
 		render(ReferenceWindowOverlay, {
 			store,
 			docId: 'doc-1',
 			viewportWidth: 1000,
-			viewportHeight: 800
+			viewportHeight: 800,
+			quickSamplingEnabled: false,
+			onSampleStart
 		});
 
 		const win = screen.getByRole('dialog');
@@ -349,7 +358,14 @@ describe('ReferenceWindowOverlay', () => {
 			toJSON: () => ({})
 		});
 
-		await fireEvent.pointerDown(img, { pointerId: 12, clientX: 50, clientY: 80 });
+		await fireEvent.pointerDown(img, {
+			pointerId: 12,
+			pointerType: 'mouse',
+			clientX: 50,
+			clientY: 80
+		});
+
+		expect(onSampleStart).not.toHaveBeenCalled();
 	});
 
 	it('preserves the stored placement and uses it when the viewport is large again', () => {

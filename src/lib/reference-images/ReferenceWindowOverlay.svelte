@@ -2,16 +2,27 @@
 	import ReferenceWindow from './ReferenceWindow.svelte';
 	import type { ReferenceImagesStore } from './reference-images-store.svelte';
 	import { clampPosition } from './compute-position-clamp';
+	import type { LoupeInputSource } from '../canvas/sampling/types';
 
 	interface Props {
 		store: ReferenceImagesStore;
 		docId: string;
 		viewportWidth?: number;
 		viewportHeight?: number;
-		onSamplePixel?: (blob: Blob, imageX: number, imageY: number) => void;
-		onSampleStart?: (blob: Blob, imageX: number, imageY: number) => void;
-		onSampleMove?: (blob: Blob, imageX: number, imageY: number) => void;
-		onSampleEnd?: (blob: Blob, imageX: number, imageY: number) => void;
+		/**
+		 * When true, mouse press-and-drag and touch short-tap on the reference
+		 * image route through the sampling lifecycle. Touch/pen long-press
+		 * sampling stays unconditional (tool-independent global gesture).
+		 */
+		quickSamplingEnabled?: boolean;
+		onSampleStart?: (
+			blob: Blob,
+			imageX: number,
+			imageY: number,
+			inputSource: LoupeInputSource
+		) => void;
+		onSampleMove?: (imageX: number, imageY: number) => void;
+		onSampleEnd?: (imageX: number, imageY: number) => void;
 	}
 
 	let {
@@ -19,7 +30,7 @@
 		docId,
 		viewportWidth,
 		viewportHeight,
-		onSamplePixel,
+		quickSamplingEnabled = false,
 		onSampleStart,
 		onSampleMove,
 		onSampleEnd
@@ -93,18 +104,13 @@
 				onActivate={() => {
 					if (state.zOrder !== maxZ) store.show(state.refId, docId);
 				}}
-				onSamplePixelAt={onSamplePixel
-					? (imageX, imageY) => onSamplePixel(ref.blob, imageX, imageY)
-					: undefined}
+				{quickSamplingEnabled}
 				onSampleStart={onSampleStart
-					? (imageX, imageY) => onSampleStart(ref.blob, imageX, imageY)
+					? (imageX, imageY, inputSource) =>
+							onSampleStart(ref.blob, imageX, imageY, inputSource)
 					: undefined}
-				onSampleMove={onSampleMove
-					? (imageX, imageY) => onSampleMove(ref.blob, imageX, imageY)
-					: undefined}
-				onSampleEnd={onSampleEnd
-					? (imageX, imageY) => onSampleEnd(ref.blob, imageX, imageY)
-					: undefined}
+				{onSampleMove}
+				{onSampleEnd}
 			/>
 		{/if}
 	{/each}

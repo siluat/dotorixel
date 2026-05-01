@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 67 | 53 | 14 | 54 | 79% | 50% |
-| cubic-dev-ai[bot] | 42 | 35 | 7 | 68 | 83% | 34% |
-| coderabbitai[bot] | 90 | 60 | 30 | 44 | 67% | 58% |
+| greptile-apps[bot] | 68 | 53 | 15 | 55 | 78% | 49% |
+| cubic-dev-ai[bot] | 42 | 35 | 7 | 69 | 83% | 34% |
+| coderabbitai[bot] | 92 | 61 | 31 | 44 | 66% | 58% |
 
 ## Log
 
@@ -379,3 +379,8 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #178 | cubic-dev-ai[bot] | Miss | Did not flag `REFERENCE_LOUPE_CENTER_INDEX` declaration in import block |
 | #178 | cubic-dev-ai[bot] | Miss | Did not flag asymmetric `#referencePort` cleanup in early-return path |
 | #178 | cubic-dev-ai[bot] | Miss | Did not flag stale-coords risk on stationary long-press without onpointerdown |
+| #179 | greptile-apps[bot] | Reject | `pointercancel` for mouse commits sample — touch path also commits-on-leave per existing test; mirrors canvas Eyedropper |
+| #179 | coderabbitai[bot] | Accept | platform-status.md `#refSampleSeq` race-handling note stale — split responsibility with `#endPending` |
+| #179 | coderabbitai[bot] | Reject | Fast-click pending-commit uses down-coord not last-move-coord — consistent with canvas Eyedropper, sub-pixel impact after integer floor |
+| #179 | greptile-apps[bot] | Miss | Did not flag stale `#refSampleSeq` race-handling note in platform-status.md |
+| #179 | cubic-dev-ai[bot] | Miss | Did not flag stale `#refSampleSeq` race-handling note in platform-status.md |

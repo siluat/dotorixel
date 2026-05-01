@@ -479,9 +479,7 @@
 				docId={editor.workspace.activeTab.documentId}
 				viewportWidth={editor.viewportSize.width}
 				viewportHeight={editor.viewportSize.height}
-				onSamplePixel={editor.activeTool === 'eyedropper'
-					? editor.handleReferenceSampleCommit
-					: undefined}
+				quickSamplingEnabled={editor.activeTool === 'eyedropper'}
 				onSampleStart={editor.handleReferenceSampleStart}
 				onSampleMove={editor.handleReferenceSampleMove}
 				onSampleEnd={editor.handleReferenceSampleEnd}
@@ -564,9 +562,7 @@
 						docId={editor.workspace.activeTab.documentId}
 						viewportWidth={editor.viewportSize.width}
 						viewportHeight={editor.viewportSize.height}
-						onSamplePixel={editor.activeTool === 'eyedropper'
-							? editor.handleReferenceSampleCommit
-							: undefined}
+						quickSamplingEnabled={editor.activeTool === 'eyedropper'}
 						onSampleStart={editor.handleReferenceSampleStart}
 						onSampleMove={editor.handleReferenceSampleMove}
 						onSampleEnd={editor.handleReferenceSampleEnd}

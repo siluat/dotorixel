@@ -6,6 +6,7 @@ import { colorToHex, hexToColor } from '../color';
 import { TOOL_CURSORS, type ToolType } from '../tool-registry';
 import type { KeyboardInput } from '../keyboard-input.svelte';
 import type { SamplingSession } from '../sampling/session.svelte';
+import type { LoupeInputSource } from '../sampling/types';
 import type { PointerType } from '../canvas-interaction.svelte';
 import type { Workspace } from './workspace.svelte';
 
@@ -156,15 +157,16 @@ export class EditorController {
 		this.workspace.activeTab.sampleCancel();
 	};
 
-	handleReferenceSampleCommit = (blob: Blob, imageX: number, imageY: number): void => {
-		void this.workspace.activeTab.referenceSampleCommit(blob, imageX, imageY);
+	handleReferenceSampleStart = (
+		blob: Blob,
+		imageX: number,
+		imageY: number,
+		inputSource: LoupeInputSource
+	): void => {
+		void this.workspace.activeTab.referenceSampleStart(blob, imageX, imageY, inputSource);
 	};
 
-	handleReferenceSampleStart = (blob: Blob, imageX: number, imageY: number): void => {
-		void this.workspace.activeTab.referenceSampleStart(blob, imageX, imageY);
-	};
-
-	handleReferenceSampleMove = (_blob: Blob, imageX: number, imageY: number): void => {
+	handleReferenceSampleMove = (imageX: number, imageY: number): void => {
 		this.workspace.activeTab.referenceSampleMove(imageX, imageY);
 	};
 

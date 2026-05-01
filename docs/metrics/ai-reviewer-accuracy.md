@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 69 | 54 | 15 | 57 | 78% | 49% |
-| cubic-dev-ai[bot] | 46 | 39 | 7 | 70 | 85% | 36% |
-| coderabbitai[bot] | 97 | 65 | 32 | 45 | 67% | 59% |
+| greptile-apps[bot] | 69 | 54 | 15 | 58 | 78% | 48% |
+| cubic-dev-ai[bot] | 46 | 39 | 7 | 71 | 85% | 35% |
+| coderabbitai[bot] | 98 | 66 | 32 | 45 | 67% | 59% |
 
 ## Log
 
@@ -398,3 +398,6 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #181 | coderabbitai[bot] | Accept | commitResize dominant-axis comparison wrong on shrink drags — pure single-axis shrink silently no-ops |
 | #181 | cubic-dev-ai[bot] | Accept | commitResize dominant-axis on shrink drags (duplicate of coderabbit) |
 | #181 | greptile-apps[bot] | Miss | Did not flag commitResize dominant-axis bug on shrink drags |
+| #182 | coderabbitai[bot] | Accept | Refit `$effect` runs against stale default `tab.viewportSize` `{512, 512}` after openSession swap — would irreversibly shrink restored windows >512px before live DOM measurement; fix moved `refitAll` into `initTabViewport` (proposed gating-on-canvasContainerEl diff would have dropped browser-resize trigger) |
+| #182 | greptile-apps[bot] | Miss | Did not flag refit-on-stale-default race (Confidence 4/5 — "safe to merge") |
+| #182 | cubic-dev-ai[bot] | Miss | Did not flag refit-on-stale-default race (commented-only review) |

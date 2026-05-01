@@ -16,5 +16,3 @@ Reference images — mouse drag-to-sample loupe parity — closed the desktop/mo
   - Sibling of 018. Can start independently.
 - Layer system: basic infrastructure (add/delete/reorder)
   - Milestone 3 next major feature. Needs a PRD before implementation.
-- Deepen per-stroke state — StrokeSession factory with typed openers ([plan](../issues/075-deepen-stroke-session.md))
-  - Review-backlog refactor. Can start immediately.

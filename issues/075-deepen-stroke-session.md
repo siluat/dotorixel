@@ -1,8 +1,23 @@
 ---
 title: Deepen per-stroke state — StrokeSession factory with typed openers
-status: open
+status: done
 created: 2026-04-19
+closed: 2026-05-01
 ---
+
+## Closing Note
+
+Superseded by the design that landed in #076 (sugar constructors + opaque stroke engine) and #077 (god-object split). The deepening goal — collapsing per-stroke state out of `tool-runner.svelte.ts` — was achieved with a different shape than this RFC proposed:
+
+- Per-tool `open(host, spec): StrokeSession` method on `DrawTool` instead of an external `StrokeSessions` factory with five `kind`-specific openers.
+- Sugar constructors (`continuousTool`, `shapeTool`, `oneShotTool`, `customTool`) in `tool-authoring.ts` instead of a closed `DrawTool.kind` union.
+- `customTool` escape hatch absorbs `liveSample` and `dragTransform` without adding new kinds, so introducing a new tool category no longer requires editing a dispatch switch.
+- `pixelPerfect: boolean` opt-in on `continuousTool` spec replaces the hardcoded `'pencil' | 'eraser'` check.
+- `StrokeEngine.begin()` is the single dispatch — `tool.open(host, spec)` then fold `session.start()` effects.
+
+Result: ToolRunner shrank to 181 lines with the five lifecycle closures, `strokeOps` field, `buildContext` helper, and PP gate all gone; PP regression coverage moved from `pixel-perfect-ops.test.ts` (now 26 lines, residue only) to session-boundary tests (`continuous-tool.test.ts`, `shape-tool.test.ts`, `one-shot-tool.test.ts`, `custom-tool.test.ts`, `stroke-engine.test.ts`).
+
+The RFC body below documents the original proposal for historical reference.
 
 ## Problem Statement
 

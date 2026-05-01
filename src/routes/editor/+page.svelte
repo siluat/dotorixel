@@ -24,6 +24,7 @@
 	import ReferenceBrowser from '$lib/reference-images/ReferenceBrowser.svelte';
 	import ReferenceBrowserSheet from '$lib/reference-images/ReferenceBrowserSheet.svelte';
 	import ReferenceWindowOverlay from '$lib/reference-images/ReferenceWindowOverlay.svelte';
+	import Loupe from '$lib/ui-editor/Loupe.svelte';
 	import { importReferenceFiles } from '$lib/reference-images/import-reference-files';
 	import type { ImportError } from '$lib/reference-images/import-reference-image';
 	import {
@@ -286,6 +287,26 @@
 		referenceErrors = referenceErrors.filter((_, i) => i !== index);
 	}
 
+	// Reference long-press sampling lives outside the canvas, so pump pointer
+	// coords into the session at page level rather than relying on the canvas's
+	// own pump in PixelCanvasView.
+	let lastReferenceScreen: { x: number; y: number } | null = null;
+	function pushReferencePointer(event: PointerEvent) {
+		lastReferenceScreen = { x: event.clientX, y: event.clientY };
+		editor.referenceSamplingSession.updatePointer({
+			screen: lastReferenceScreen,
+			viewport: { width: window.innerWidth, height: window.innerHeight }
+		});
+	}
+
+	function handleWindowResize() {
+		if (!lastReferenceScreen) return;
+		editor.referenceSamplingSession.updatePointer({
+			screen: lastReferenceScreen,
+			viewport: { width: window.innerWidth, height: window.innerHeight }
+		});
+	}
+
 	function handleEditorKeyDown(event: KeyboardEvent) {
 		if (saveDialogTabIndex !== null || browserDocuments !== null || isReferencesOpen) return;
 		editor.handleKeyDown(event);
@@ -380,7 +401,14 @@
 	}
 </script>
 
-<svelte:window onkeydown={handleEditorKeyDown} onkeyup={handleEditorKeyUp} onblur={editor.handleBlur} onbeforeunload={flushSession} />
+<svelte:window
+	onkeydown={handleEditorKeyDown}
+	onkeyup={handleEditorKeyUp}
+	onblur={editor.handleBlur}
+	onbeforeunload={flushSession}
+	onpointermove={pushReferencePointer}
+	onresize={handleWindowResize}
+/>
 
 {#if layout.isDocked}
 	<div class="editor-docked">
@@ -451,7 +479,7 @@
 				viewportWidth={editor.viewportSize.width}
 				viewportHeight={editor.viewportSize.height}
 				onSamplePixel={editor.activeTool === 'eyedropper'
-					? editor.handleSampleReference
+					? editor.handleReferenceSampleCommit
 					: undefined}
 				onSampleStart={editor.handleReferenceSampleStart}
 				onSampleMove={editor.handleReferenceSampleMove}
@@ -536,7 +564,7 @@
 						viewportWidth={editor.viewportSize.width}
 						viewportHeight={editor.viewportSize.height}
 						onSamplePixel={editor.activeTool === 'eyedropper'
-							? editor.handleSampleReference
+							? editor.handleReferenceSampleCommit
 							: undefined}
 						onSampleStart={editor.handleReferenceSampleStart}
 						onSampleMove={editor.handleReferenceSampleMove}
@@ -618,6 +646,13 @@
 			onFilesDropped={handleReferenceModalDrop}
 		/>
 	</div>
+{/if}
+
+{#if editor.referenceSamplingSession.position}
+	<Loupe
+		grid={editor.referenceSamplingSession.grid}
+		position={editor.referenceSamplingSession.position}
+	/>
 {/if}
 
 {#if layout.isDocked && isReferencesOpen}

@@ -78,6 +78,9 @@ export class EditorController {
 	get samplingSession(): SamplingSession {
 		return this.workspace.activeTab.samplingSession;
 	}
+	get referenceSamplingSession(): SamplingSession {
+		return this.workspace.activeTab.referenceSamplingSession;
+	}
 	get canUndo(): boolean {
 		return this.workspace.activeTab.canUndo;
 	}
@@ -153,20 +156,20 @@ export class EditorController {
 		this.workspace.activeTab.sampleCancel();
 	};
 
-	handleSampleReference = (blob: Blob, imageX: number, imageY: number): void => {
-		void this.workspace.activeTab.sampleReferenceCommit(blob, imageX, imageY);
+	handleReferenceSampleCommit = (blob: Blob, imageX: number, imageY: number): void => {
+		void this.workspace.activeTab.referenceSampleCommit(blob, imageX, imageY);
 	};
 
 	handleReferenceSampleStart = (blob: Blob, imageX: number, imageY: number): void => {
-		void this.workspace.activeTab.sampleReferencePreview(blob, imageX, imageY);
+		void this.workspace.activeTab.referenceSampleStart(blob, imageX, imageY);
 	};
 
-	handleReferenceSampleMove = (blob: Blob, imageX: number, imageY: number): void => {
-		void this.workspace.activeTab.sampleReferencePreview(blob, imageX, imageY);
+	handleReferenceSampleMove = (_blob: Blob, imageX: number, imageY: number): void => {
+		this.workspace.activeTab.referenceSampleMove(imageX, imageY);
 	};
 
-	handleReferenceSampleEnd = (blob: Blob, imageX: number, imageY: number): void => {
-		void this.workspace.activeTab.sampleReferenceCommit(blob, imageX, imageY);
+	handleReferenceSampleEnd = (): void => {
+		this.workspace.activeTab.referenceSampleEnd();
 	};
 
 	// History handlers

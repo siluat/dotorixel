@@ -9,7 +9,7 @@ import {
 	MOUSE_OFFSET,
 	TOUCH_OFFSET
 } from './loupe-config';
-import type { CanvasSamplingPort } from './ports';
+import type { SamplingPort } from './ports';
 import { sampleGrid } from './sample-grid';
 import type { LoupeInputSource } from './types';
 
@@ -50,7 +50,7 @@ export interface SamplingSession {
 }
 
 export function createSamplingSession(opts: {
-	getSamplingPort: () => CanvasSamplingPort;
+	getSamplingPort: () => SamplingPort;
 }): SamplingSession {
 	let isActive = $state(false);
 	let grid = $state<(Color | null)[]>([]);

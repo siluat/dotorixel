@@ -2,9 +2,6 @@
 
 ## Milestone 3: Editor for Serious Work
 
-- Floating reference image windows (import from Files/Photos, reposition/minimize, color sampling) — inspired by Pixquare — [PRD](../issues/053-floating-reference-window.md)
-
-  - [079 — long-press sampling loupe](../issues/079-reference-images-long-press-loupe.md)
 - Layer system: basic infrastructure (add/delete/reorder)
 - Reference Layer type (import image as non-editable layer, rasterize, restore original size) — rides on layer system
 - Layer properties (visibility toggle, opacity control)

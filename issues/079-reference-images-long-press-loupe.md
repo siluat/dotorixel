@@ -1,6 +1,6 @@
 ---
 title: Reference images — long-press sampling loupe
-status: open
+status: done
 created: 2026-04-28
 parent: 053-floating-reference-window.md
 ---
@@ -44,3 +44,32 @@ Issue #061 specified "live preview = foreground color updates continuously; rele
 ## Related
 
 - Sibling slice of PRD [053 — Floating reference image windows](053-floating-reference-window.md).
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/sampling/ports.ts` | Renamed `CanvasSamplingPort` → `SamplingPort` and updated doc to reflect the realized adapters (canvas, reference, in-memory test) — the "future adapters" speculation is now concrete |
+| `src/lib/canvas/sampling/sample-grid.ts` | Updated to `SamplingPort`; parameter `canvas:` → `port:` and doc "canvas coordinates" → "pixel coordinates" so the wording fits both pixel sources |
+| `src/lib/canvas/sampling/adapters/in-memory.ts` | Updated to `SamplingPort`; doc generalized |
+| `src/lib/canvas/sampling/session.svelte.ts` | `getSamplingPort: () => SamplingPort` |
+| `src/lib/reference-images/decode-reference-blob.ts` | New: decode a reference Blob once into a synchronous RGBA buffer (`createImageBitmap` → `OffscreenCanvas.getImageData`). Lets the loupe path read ~81 pixels/move synchronously without paying `createImageBitmap` per move |
+| `src/lib/reference-images/sampling-port.ts` | New: `createReferenceSamplingPort(DecodedImage): SamplingPort` adapter so `SamplingSession` drives a loupe over a reference image with no duplicated grid/position/clamp logic |
+| `src/lib/reference-images/sampling-port.test.ts` | New: dimension exposure + RGBA pixel reads from the wrapped buffer |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Added `referenceSamplingSession: SamplingSession`; new lifecycle `referenceSampleStart/Move/End` for the long-press loupe path; renamed `sampleReferenceCommit` → `referenceSampleCommit` for vocabulary alignment with the lifecycle methods; `#refSampleSeq` race defense covers both decode-supersession and ghost-session prevention (release before decode resolves) |
+| `src/lib/canvas/editor-session/tab-state.svelte.test.ts` | 9 new tests covering reference loupe lifecycle (start/move/end/commit, transparent center, decode failure, slow-decode supersession, ghost-session) |
+| `src/lib/canvas/editor-session/editor-controller.svelte.ts` | New `referenceSamplingSession` getter; renamed `handleSampleReference` → `handleReferenceSampleCommit`; new lifecycle delegators `handleReferenceSampleStart/Move/End` |
+| `src/routes/editor/+page.svelte` | Single page-level `<Loupe>` instance rendered conditionally on `editor.referenceSamplingSession.position` (position: fixed → DOM placement irrelevant, serves both docked and tabs layouts); `<svelte:window>` `pushReferencePointer`/`handleWindowResize` pump screen coords into the session so quadrant flip + viewport clamping reuse the canvas implementation; `ReferenceWindowOverlay` wired to the new lifecycle handlers |
+
+### Key Decisions
+
+- **Decode once per long-press session (Open question option b).** The loupe reads dozens of pixels per pointer move; paying `createImageBitmap` per sample (as the existing `sampler.samplePixel` does for the one-click path) is wasteful in a hot loop. Decode runs once on long-press start; subsequent moves read RGBA synchronously from the cached buffer.
+- **Reuse `SamplingSession` via port adapter (Open question option a).** Aligns with the abstraction #078 was already preparing. Renamed `CanvasSamplingPort` → `SamplingPort` to reflect the realized abstraction. One session field per tab; `#referencePort` is swapped per long-press so the same session machinery drives both canvas and reference loupes.
+- **Single `<Loupe>` instance at page root.** `position: fixed` makes DOM placement irrelevant. One conditional render serves both docked and tabs layouts and avoids duplicating the markup per shell.
+- **Domain vocabulary unification.** Aligned all reference-image sampling methods on the `referenceSample*` prefix (`sampleReferenceCommit` → `referenceSampleCommit`, `handleSampleReference` → `handleReferenceSampleCommit`) so the mouse-commit method and long-press lifecycle methods share one naming convention. Trimmed unused params (`_blob`, `_imageX`, `_imageY`) from `referenceSampleMove`/`End` per "delete unused completely" guideline.
+
+### Notes
+
+- Long-press detector's post-fire termination always routes through `onEnd` (clean release or cancel — both commit per W3C "leave/cancel commits last value"). Pre-fire `onCancel` is the short-tap path that delegates to the immediate one-click Eyedropper via `onSamplePixelAt`.
+- Ghost-session prevention: `referenceSampleEnd` bumps `#refSampleSeq` before checking `isActive`, so an in-flight decode resolved after release is discarded by its own sequence guard.
+- `CanvasCoords` type still used by `sample-grid.ts` even though the port may wrap a reference image. Renaming would touch the entire codebase; deferred as out-of-scope.

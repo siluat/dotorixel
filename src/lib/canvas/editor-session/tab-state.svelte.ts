@@ -3,7 +3,13 @@ import type { ViewportData, ViewportSize } from '../viewport';
 import { addRecentColor, colorToHex } from '../color';
 import type { SharedState } from '../shared-state.svelte';
 import { samplePixel as sampleReferenceBlobPixel } from '../../reference-images/sampler';
+import { decodeReferenceBlob } from '../../reference-images/decode-reference-blob';
+import { createReferenceSamplingPort } from '../../reference-images/sampling-port';
 import { createSamplingSession, type SamplingSession } from '../sampling/session.svelte';
+import { GRID_SIZE } from '../sampling/loupe-config';
+import type { SamplingPort } from '../sampling/ports';
+
+const REFERENCE_LOUPE_CENTER_INDEX = (GRID_SIZE * GRID_SIZE - 1) / 2;
 import { createToolRunner, type ToolRunner, type EditorEffects } from '../tool-runner.svelte';
 import { exportAsPng } from '../export';
 import type { PointerType } from '../canvas-interaction.svelte';
@@ -49,6 +55,7 @@ export class TabState {
 	readonly name: string;
 	readonly shared: SharedState;
 	readonly samplingSession: SamplingSession;
+	readonly referenceSamplingSession: SamplingSession;
 
 	pixelCanvas = $state<PixelCanvas>(null!);
 	viewport = $state<ViewportData>(null!);
@@ -104,6 +111,14 @@ export class TabState {
 
 		const self = this;
 		this.samplingSession = createSamplingSession({ getSamplingPort: () => self.pixelCanvas });
+		this.referenceSamplingSession = createSamplingSession({
+			getSamplingPort: () => {
+				if (!self.#referencePort) {
+					throw new Error('Reference sampling session is not bound to a port');
+				}
+				return self.#referencePort;
+			}
+		});
 
 		this.#toolRunner = createToolRunner({
 			host: {
@@ -209,21 +224,53 @@ export class TabState {
 	};
 
 	#refSampleSeq = 0;
+	#referencePort: SamplingPort | null = null;
 
-	sampleReferencePreview = async (blob: Blob, imageX: number, imageY: number): Promise<void> => {
-		const my = ++this.#refSampleSeq;
-		let color;
+	#previewSamplingCenter = (): void => {
+		const center = this.referenceSamplingSession.grid[REFERENCE_LOUPE_CENTER_INDEX];
+		if (!center || center.a === 0) return;
+		this.#applyEffects([{ type: 'colorPick', target: 'foreground', color: center }]);
+	};
+
+	referenceSampleStart = async (
+		blob: Blob,
+		imageX: number,
+		imageY: number
+	): Promise<void> => {
+		const seq = ++this.#refSampleSeq;
+		let decoded;
 		try {
-			color = await sampleReferenceBlobPixel(blob, imageX, imageY);
+			decoded = await decodeReferenceBlob(blob);
 		} catch {
 			return;
 		}
-		if (my !== this.#refSampleSeq) return;
-		if (color.a === 0) return;
-		this.#applyEffects([{ type: 'colorPick', target: 'foreground', color }]);
+		if (seq !== this.#refSampleSeq) return;
+		this.#referencePort = createReferenceSamplingPort(decoded);
+		this.referenceSamplingSession.start({
+			targetPixel: { x: imageX, y: imageY },
+			commitTarget: 'foreground',
+			inputSource: 'touch'
+		});
+		this.#previewSamplingCenter();
 	};
 
-	sampleReferenceCommit = async (blob: Blob, imageX: number, imageY: number): Promise<void> => {
+	referenceSampleMove = (imageX: number, imageY: number): void => {
+		if (!this.referenceSamplingSession.isActive) return;
+		this.referenceSamplingSession.update({ x: imageX, y: imageY });
+		this.#previewSamplingCenter();
+	};
+
+	referenceSampleEnd = (): void => {
+		// Bumping the sequence here invalidates any in-flight decode whose start
+		// was already issued — without it, a release before the decode resolved
+		// would leave a "ghost" session active after the user already let go.
+		this.#refSampleSeq++;
+		if (!this.referenceSamplingSession.isActive) return;
+		this.#applyEffects(this.referenceSamplingSession.commit());
+		this.#referencePort = null;
+	};
+
+	referenceSampleCommit = async (blob: Blob, imageX: number, imageY: number): Promise<void> => {
 		const my = ++this.#refSampleSeq;
 		let color;
 		try {

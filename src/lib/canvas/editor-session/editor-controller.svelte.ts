@@ -5,6 +5,7 @@ import type { Color } from '../color';
 import { colorToHex, hexToColor } from '../color';
 import { TOOL_CURSORS, type ToolType } from '../tool-registry';
 import type { KeyboardInput } from '../keyboard-input.svelte';
+import type { ReferenceSamplingSession } from '../../reference-images/reference-sampling-session.svelte';
 import type { SamplingSession } from '../sampling/session.svelte';
 import type { LoupeInputSource } from '../sampling/types';
 import type { PointerType } from '../canvas-interaction.svelte';
@@ -79,7 +80,7 @@ export class EditorController {
 	get samplingSession(): SamplingSession {
 		return this.workspace.activeTab.samplingSession;
 	}
-	get referenceSamplingSession(): SamplingSession {
+	get referenceSamplingSession(): ReferenceSamplingSession {
 		return this.workspace.activeTab.referenceSamplingSession;
 	}
 	get canUndo(): boolean {

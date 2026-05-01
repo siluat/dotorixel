@@ -38,8 +38,6 @@ function decodedImageBy(
 	return { width, height, data };
 }
 
-const CENTER_INDEX = 40; // (9*9 - 1) / 2
-
 const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
 const WHITE: Color = { r: 255, g: 255, b: 255, a: 255 };
 
@@ -200,53 +198,14 @@ describe('TabState — sample gating', () => {
 });
 
 
-describe('TabState — reference loupe sampling session', () => {
+describe('TabState — reference sampling integration', () => {
 	const blob = new Blob([new Uint8Array([0])], { type: 'image/png' });
 
-	it('start activates the reference sampling session with a grid centered on (imageX, imageY)', async () => {
-		// 9×9 image — every pixel red so the entire 9×9 sampled grid is red.
-		const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
-		mockedDecodeReferenceBlob.mockResolvedValueOnce(decodedImageBy(9, 9, () => RED));
-		const { tab } = makeTab();
-
-		await tab.referenceSampleStart(blob, 4, 4, 'touch');
-
-		expect(tab.referenceSamplingSession.isActive).toBe(true);
-		expect(tab.referenceSamplingSession.grid).toHaveLength(81);
-		expect(tab.referenceSamplingSession.grid[CENTER_INDEX]).toEqual(RED);
-	});
-
-	it('start previews foregroundColor (no recentColor yet) so the user sees the picked color during drag', async () => {
-		const SAMPLED: Color = { r: 12, g: 34, b: 56, a: 255 };
-		mockedDecodeReferenceBlob.mockResolvedValueOnce(decodedImageBy(9, 9, () => SAMPLED));
-		const { tab, shared } = makeTab();
-		shared.foregroundColor = BLACK;
-		shared.recentColors = [];
-
-		await tab.referenceSampleStart(blob, 4, 4, 'touch');
-
-		expect(shared.foregroundColor).toEqual(SAMPLED);
-		expect(shared.recentColors).toEqual([]);
-	});
-
-	it('move updates the live foregroundColor preview to the new center pixel', async () => {
-		const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
-		const BLUE: Color = { r: 0, g: 0, b: 255, a: 255 };
-		mockedDecodeReferenceBlob.mockResolvedValueOnce(
-			decodedImageBy(16, 16, (x) => (x < 8 ? RED : BLUE))
-		);
-		const { tab, shared } = makeTab();
-		shared.recentColors = [];
-
-		await tab.referenceSampleStart(blob, 4, 8, 'touch');
-		expect(shared.foregroundColor).toEqual(RED);
-
-		tab.referenceSampleMove(12, 8);
-		expect(shared.foregroundColor).toEqual(BLUE);
-		expect(shared.recentColors).toEqual([]); // still no commit
-	});
-
-	it('end deactivates the session and commits foregroundColor + recentColor on the centered pixel', async () => {
+	it('a full reference-sampling cycle propagates effects through #applyEffects (foregroundColor, recentColors, markDirty)', async () => {
+		// Lifecycle and race coverage live in `reference-sampling-session.svelte.test.ts`.
+		// This test only verifies the wiring: the new module's commit effects
+		// reach `shared.foregroundColor`, `shared.recentColors`, and
+		// `notifier.markDirty` via `TabState`'s effect dispatcher.
 		const SAMPLED: Color = { r: 12, g: 34, b: 56, a: 255 };
 		mockedDecodeReferenceBlob.mockResolvedValueOnce(decodedImageBy(9, 9, () => SAMPLED));
 		const { tab, shared, notifier } = makeTab({ documentId: 'doc-ref' });
@@ -257,192 +216,9 @@ describe('TabState — reference loupe sampling session', () => {
 		await tab.referenceSampleStart(blob, 4, 4, 'touch');
 		tab.referenceSampleEnd();
 
-		expect(tab.referenceSamplingSession.isActive).toBe(false);
 		expect(shared.foregroundColor).toEqual(SAMPLED);
 		expect(shared.recentColors).toEqual(['#0c2238']);
 		expect(notifier.dirtyCalls).toContain('doc-ref');
-	});
-
-	it('end on a transparent center pixel hides the loupe without changing foregroundColor', async () => {
-		const TRANSPARENT: Color = { r: 0, g: 0, b: 0, a: 0 };
-		mockedDecodeReferenceBlob.mockResolvedValueOnce(decodedImageBy(9, 9, () => TRANSPARENT));
-		const { tab, shared, notifier } = makeTab({ documentId: 'doc-ref' });
-		shared.foregroundColor = BLACK;
-		shared.recentColors = [];
-		notifier.reset();
-
-		await tab.referenceSampleStart(blob, 4, 4, 'touch');
-		tab.referenceSampleEnd();
-
-		expect(tab.referenceSamplingSession.isActive).toBe(false);
-		expect(shared.foregroundColor).toEqual(BLACK);
-		expect(shared.recentColors).toEqual([]);
-		expect(notifier.dirtyCalls).toEqual([]);
-	});
-
-	it('decode failure leaves the session inactive and silently no-ops', async () => {
-		mockedDecodeReferenceBlob.mockRejectedValueOnce(new Error('decode failed'));
-		const { tab, shared, notifier } = makeTab({ documentId: 'doc-ref' });
-		shared.foregroundColor = BLACK;
-		notifier.reset();
-
-		await expect(tab.referenceSampleStart(blob, 4, 4, 'touch')).resolves.toBeUndefined();
-
-		expect(tab.referenceSamplingSession.isActive).toBe(false);
-		expect(shared.foregroundColor).toEqual(BLACK);
-		expect(notifier.dirtyCalls).toEqual([]);
-	});
-
-	it('release before decode resolves still commits the sampled color (pending-commit)', async () => {
-		// Mouse fast-click and touch short-tap both end before a slow decode
-		// resolves. The pending-commit pattern records the release and triggers
-		// the commit when the decode finally arrives — so the user never loses
-		// a sample to async timing.
-		const SAMPLED: Color = { r: 12, g: 34, b: 56, a: 255 };
-		let resolveDecode!: (image: DecodedImage) => void;
-		mockedDecodeReferenceBlob.mockImplementationOnce(
-			() => new Promise((r) => { resolveDecode = r; })
-		);
-		const { tab, shared, notifier } = makeTab({ documentId: 'doc-ref' });
-		shared.foregroundColor = BLACK;
-		shared.recentColors = [];
-		notifier.reset();
-
-		const startPromise = tab.referenceSampleStart(blob, 4, 4, 'mouse');
-		tab.referenceSampleEnd();
-
-		resolveDecode(decodedImageBy(9, 9, () => SAMPLED));
-		await startPromise;
-
-		expect(tab.referenceSamplingSession.isActive).toBe(false);
-		expect(shared.foregroundColor).toEqual(SAMPLED);
-		expect(shared.recentColors).toEqual(['#0c2238']);
-		expect(notifier.dirtyCalls).toContain('doc-ref');
-	});
-
-	it('release before decode + decode failure stays silent', async () => {
-		let rejectDecode!: (err: Error) => void;
-		mockedDecodeReferenceBlob.mockImplementationOnce(
-			() => new Promise((_, reject) => { rejectDecode = reject; })
-		);
-		const { tab, shared, notifier } = makeTab({ documentId: 'doc-ref' });
-		shared.foregroundColor = BLACK;
-		notifier.reset();
-
-		const startPromise = tab.referenceSampleStart(blob, 4, 4, 'mouse');
-		tab.referenceSampleEnd();
-		rejectDecode(new Error('decode failed'));
-		await startPromise;
-
-		expect(tab.referenceSamplingSession.isActive).toBe(false);
-		expect(shared.foregroundColor).toEqual(BLACK);
-		expect(notifier.dirtyCalls).toEqual([]);
-	});
-
-	it('a new start clears any pending-commit from the previous interaction', async () => {
-		// Click 1: start → end (decode pending) — pending-commit is set.
-		// Click 2: start (new session) — must reset pending so click 1's
-		// stale release does not commit click 2's session.
-		const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
-		const BLUE: Color = { r: 0, g: 0, b: 255, a: 255 };
-		let resolveFirst!: (image: DecodedImage) => void;
-		mockedDecodeReferenceBlob.mockImplementationOnce(
-			() => new Promise((r) => { resolveFirst = r; })
-		);
-		mockedDecodeReferenceBlob.mockResolvedValueOnce(decodedImageBy(9, 9, () => BLUE));
-
-		const { tab, shared } = makeTab();
-		shared.recentColors = [];
-
-		const first = tab.referenceSampleStart(blob, 0, 0, 'mouse');
-		tab.referenceSampleEnd(); // pending — decode 1 not yet resolved
-
-		const second = tab.referenceSampleStart(blob, 4, 4, 'mouse');
-		await second; // decode 2 (BLUE) resolves immediately, session active
-
-		// Decode 1 (RED) now resolves — must NOT commit (superseded).
-		resolveFirst(decodedImageBy(9, 9, () => RED));
-		await first;
-
-		// Session is still active (from click 2), no stray commit fired.
-		expect(tab.referenceSamplingSession.isActive).toBe(true);
-		expect(tab.referenceSamplingSession.grid[CENTER_INDEX]).toEqual(BLUE);
-		expect(shared.recentColors).toEqual([]); // no commit yet on session 2
-	});
-
-	it('a slow decode whose start was superseded does not activate the session', async () => {
-		// First start has a decode that resolves last; second start has a decode
-		// that resolves first. Only the second should bind the session.
-		const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
-		const BLUE: Color = { r: 0, g: 0, b: 255, a: 255 };
-		let resolveSlow!: (image: DecodedImage) => void;
-		mockedDecodeReferenceBlob.mockImplementationOnce(
-			() => new Promise((r) => { resolveSlow = r; })
-		);
-		mockedDecodeReferenceBlob.mockResolvedValueOnce(decodedImageBy(9, 9, () => BLUE));
-
-		const { tab } = makeTab();
-
-		const slow = tab.referenceSampleStart(blob, 0, 0, 'touch');
-		const fast = tab.referenceSampleStart(blob, 4, 4, 'touch');
-
-		await fast;
-		expect(tab.referenceSamplingSession.grid[CENTER_INDEX]).toEqual(BLUE);
-
-		// The slow decode now resolves with red — it must be discarded.
-		resolveSlow(decodedImageBy(9, 9, () => RED));
-		await slow;
-
-		expect(tab.referenceSamplingSession.grid[CENTER_INDEX]).toEqual(BLUE);
-	});
-
-	it('move re-samples the grid around the new (imageX, imageY) using the cached decode', async () => {
-		// 16×16 split image: x<8 red, x>=8 blue. The decode is mocked exactly
-		// once with mockResolvedValueOnce — if move tried to re-decode, the
-		// second call would return undefined and the assertions below would fail.
-		const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
-		const BLUE: Color = { r: 0, g: 0, b: 255, a: 255 };
-		mockedDecodeReferenceBlob.mockResolvedValueOnce(
-			decodedImageBy(16, 16, (x) => (x < 8 ? RED : BLUE))
-		);
-		const { tab } = makeTab();
-
-		await tab.referenceSampleStart(blob, 4, 8, 'touch'); // start over the red half
-		expect(tab.referenceSamplingSession.grid[CENTER_INDEX]).toEqual(RED);
-
-		tab.referenceSampleMove(12, 8); // move to the blue half
-		expect(tab.referenceSamplingSession.grid[CENTER_INDEX]).toEqual(BLUE);
-	});
-
-	it('inputSource is plumbed through to the loupe positioning', async () => {
-		// Touch and mouse inputs use different loupe offsets (TOUCH_OFFSET vs
-		// MOUSE_OFFSET) — verifying via session.position that the right offset
-		// is selected confirms inputSource reaches the session.
-		const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
-		mockedDecodeReferenceBlob.mockResolvedValue(decodedImageBy(9, 9, () => RED));
-		const { tab } = makeTab();
-
-		await tab.referenceSampleStart(blob, 4, 4, 'mouse');
-		tab.referenceSamplingSession.updatePointer({
-			screen: { x: 600, y: 400 },
-			viewport: { width: 1200, height: 800 }
-		});
-		const mousePos = tab.referenceSamplingSession.position;
-
-		tab.referenceSampleEnd();
-		mockedDecodeReferenceBlob.mockResolvedValue(decodedImageBy(9, 9, () => RED));
-
-		await tab.referenceSampleStart(blob, 4, 4, 'touch');
-		tab.referenceSamplingSession.updatePointer({
-			screen: { x: 600, y: 400 },
-			viewport: { width: 1200, height: 800 }
-		});
-		const touchPos = tab.referenceSamplingSession.position;
-
-		// Mouse and touch produce different positions for the same pointer
-		// coords because their offsets differ — that's the proof inputSource
-		// was respected.
-		expect(mousePos).not.toEqual(touchPos);
 	});
 });
 

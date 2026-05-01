@@ -7,8 +7,8 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 68 | 53 | 15 | 55 | 78% | 49% |
-| cubic-dev-ai[bot] | 42 | 35 | 7 | 69 | 83% | 34% |
-| coderabbitai[bot] | 92 | 61 | 31 | 44 | 66% | 58% |
+| cubic-dev-ai[bot] | 44 | 37 | 7 | 69 | 84% | 35% |
+| coderabbitai[bot] | 94 | 62 | 32 | 45 | 66% | 58% |
 
 ## Log
 
@@ -384,3 +384,8 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #179 | coderabbitai[bot] | Reject | Fast-click pending-commit uses down-coord not last-move-coord — consistent with canvas Eyedropper, sub-pixel impact after integer floor |
 | #179 | greptile-apps[bot] | Miss | Did not flag stale `#refSampleSeq` race-handling note in platform-status.md |
 | #179 | cubic-dev-ai[bot] | Miss | Did not flag stale `#refSampleSeq` race-handling note in platform-status.md |
+| #180 | coderabbitai[bot] | Accept | Cancel previous reference sampling session before async decode — race during decode gap let move()/end() touch stale grid |
+| #180 | cubic-dev-ai[bot] | Accept | Cancel previous session before await (duplicate of coderabbit) |
+| #180 | cubic-dev-ai[bot] | Accept | Add mandatory AI-triage disclaimer to agent brief template per SKILL.md contract |
+| #180 | coderabbitai[bot] | Reject | Refresh acceptance checklist post-shipping — Notes section already documents divergences; new template uses bullets without checkboxes |
+| #180 | coderabbitai[bot] | Miss | Did not flag missing AI-triage disclaimer in agent brief template |

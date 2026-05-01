@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 082 | [Deepen Reference Window Placement (1/2): introduce module and migrate create paths](../issues/082-deepen-reference-window-placement-create-paths.md) | 2026-05-01 |
 | — | Architecture deepening — file Reference Window Placement deepening as [082](../issues/082-deepen-reference-window-placement-create-paths.md) / [083](../issues/083-deepen-reference-window-placement-commit-and-refit.md) | 2026-05-01 |
 | 081 | [Deepen reference sampling — extract ReferenceSamplingSession from TabState](../issues/081-deepen-reference-sampling-session.md) | 2026-05-01 |
 | 080 | [Reference images — mouse drag-to-sample loupe parity](../issues/080-reference-images-mouse-loupe.md) | 2026-05-01 |

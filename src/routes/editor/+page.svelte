@@ -31,7 +31,7 @@
 		selectReference,
 		displayReference
 	} from '$lib/reference-images/select-reference';
-	import { computeDropPlacement } from '$lib/reference-images/compute-drop-placement';
+	import { createPlacement } from '$lib/reference-images/reference-window-placement';
 	import { canvasDropzone } from '$lib/reference-images/canvas-dropzone';
 	import { CASCADE_OFFSET } from '$lib/reference-images/reference-window-constants';
 	import * as m from '$lib/paraglide/messages';
@@ -240,14 +240,15 @@
 		const { imported, errors } = await importReferenceFiles(files);
 		imported.forEach((ref, index) => {
 			editor.workspace.references.add(ref, docId);
-			const placement = computeDropPlacement({
-				naturalWidth: ref.naturalWidth,
-				naturalHeight: ref.naturalHeight,
-				viewportWidth: Math.max(viewport.width, 1),
-				viewportHeight: Math.max(viewport.height, 1),
-				dropX: dropX + index * CASCADE_OFFSET,
-				dropY: dropY + index * CASCADE_OFFSET
-			});
+			const placement = createPlacement(
+				{ width: ref.naturalWidth, height: ref.naturalHeight },
+				{
+					kind: 'at-point',
+					x: dropX + index * CASCADE_OFFSET,
+					y: dropY + index * CASCADE_OFFSET
+				},
+				{ width: Math.max(viewport.width, 1), height: Math.max(viewport.height, 1) }
+			);
 			editor.workspace.references.display(ref.id, docId, placement);
 		});
 		if (errors.length > 0) {

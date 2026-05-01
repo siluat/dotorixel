@@ -167,3 +167,17 @@ When deciding whether to implement logic in the Rust core (shared via WASM + Uni
 
 - **Integrate before creating.** When adding a rule, first check if existing content already touches the topic. Prefer strengthening an existing table cell, bullet, or section over adding a new heading. Create a new section only when the rule is standalone and integration would be awkward.
 
+## Agent skills
+
+### Issue tracker
+
+Issues live as local markdown files at `issues/NNN-slug.md`, and progress is tracked through `tasks/{todo,progress,done}.md`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage labels are recorded in each issue file's YAML front-matter `status:` field. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repo — refer to `CONTEXT.md` at the root (created lazily by `/grill-with-docs` when needed) and ADRs under `docs/decisions/`. See `docs/agents/domain.md`.
+

@@ -66,6 +66,10 @@ export function createReferenceSamplingSession(
 		async start(blob, coords, src) {
 			const seq = ++startSeq;
 			endPending = false;
+			// Discard any prior active session up front so move()/end() during
+			// the decode gap can't operate on the stale grid.
+			inner.cancel();
+			port = null;
 			let decoded;
 			try {
 				decoded = await deps.decode(blob);

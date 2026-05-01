@@ -242,6 +242,27 @@ describe('ReferenceSamplingSession', () => {
 		]);
 	});
 
+	it('a new start while a previous session is active cancels it immediately, before the new decode resolves', async () => {
+		// Session 1 fully resolves and is active. Session 2's decode is slow,
+		// leaving an async gap. During that gap, move() and end() must NOT see
+		// the previous session as active and must NOT commit its grid.
+		const { deps, enqueueResolved, enqueueDeferred } = withQueuedDecodes();
+		enqueueResolved(decodedImageBy(9, 9, () => RED));
+		const decode2 = enqueueDeferred();
+		const session = createReferenceSamplingSession(deps);
+
+		await session.start(blob, { x: 4, y: 4 }, 'mouse');
+		expect(session.isActive).toBe(true);
+
+		const startPromise = session.start(blob, { x: 4, y: 4 }, 'mouse');
+
+		expect(session.isActive).toBe(false);
+		expect(session.move({ x: 5, y: 5 })).toEqual([]);
+
+		decode2.resolve(decodedImageBy(9, 9, () => RED));
+		await startPromise;
+	});
+
 	it('inputSource is plumbed through to the loupe positioning', async () => {
 		// Touch and mouse inputs use different loupe offsets — verifying via
 		// session.position that the right offset is selected confirms inputSource

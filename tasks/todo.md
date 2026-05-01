@@ -33,7 +33,6 @@
 
 ## Architecture deepening
 
-- [082 — Deepen Reference Window Placement (1/2): introduce module and migrate create paths](../issues/082-deepen-reference-window-placement-create-paths.md)
 - [083 — Deepen Reference Window Placement (2/2): commit ops and viewport refit lifecycle](../issues/083-deepen-reference-window-placement-commit-and-refit.md)
 
 ## Apple Native: Phase 1 — [RFC](../issues/013-apple-native-catchup.md)

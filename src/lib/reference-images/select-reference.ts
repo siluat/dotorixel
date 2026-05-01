@@ -1,4 +1,4 @@
-import { computeInitialPlacement } from './compute-initial-placement';
+import { createPlacement } from './reference-window-placement';
 import type { ReferenceImagesStore } from './reference-images-store.svelte';
 import type { ReferenceImage } from './reference-image-types';
 
@@ -22,13 +22,11 @@ interface SelectArgs extends DisplayArgs {
  */
 export function displayReference({ store, docId, ref, viewport }: DisplayArgs): void {
 	const cascadeIndex = store.nextCascadeIndex(docId);
-	const placement = computeInitialPlacement({
-		naturalWidth: ref.naturalWidth,
-		naturalHeight: ref.naturalHeight,
-		viewportWidth: Math.max(viewport.width, 1),
-		viewportHeight: Math.max(viewport.height, 1),
-		cascadeIndex
-	});
+	const placement = createPlacement(
+		{ width: ref.naturalWidth, height: ref.naturalHeight },
+		{ kind: 'centered', cascadeIndex },
+		{ width: Math.max(viewport.width, 1), height: Math.max(viewport.height, 1) }
+	);
 	store.display(ref.id, docId, placement);
 }
 

@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 68 | 53 | 15 | 55 | 78% | 49% |
-| cubic-dev-ai[bot] | 44 | 37 | 7 | 69 | 84% | 35% |
-| coderabbitai[bot] | 94 | 62 | 32 | 45 | 66% | 58% |
+| greptile-apps[bot] | 69 | 54 | 15 | 57 | 78% | 49% |
+| cubic-dev-ai[bot] | 46 | 39 | 7 | 70 | 85% | 36% |
+| coderabbitai[bot] | 97 | 65 | 32 | 45 | 67% | 59% |
 
 ## Log
 
@@ -389,3 +389,12 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #180 | cubic-dev-ai[bot] | Accept | Add mandatory AI-triage disclaimer to agent brief template per SKILL.md contract |
 | #180 | coderabbitai[bot] | Reject | Refresh acceptance checklist post-shipping — Notes section already documents divergences; new template uses bullets without checkboxes |
 | #180 | coderabbitai[bot] | Miss | Did not flag missing AI-triage disclaimer in agent brief template |
+| #181 | greptile-apps[bot] | Accept | commitResize viewport cap doesn't account for off-origin position — window can extend past viewport edge |
+| #181 | coderabbitai[bot] | Accept | commitResize viewport cap ignores anchored origin (duplicate of greptile) |
+| #181 | cubic-dev-ai[bot] | Miss | Did not flag commitResize off-origin overflow |
+| #181 | coderabbitai[bot] | Accept | createPlacement doc overstates sizing — small images stay at natural size, not `viewport_longer × 0.3` |
+| #181 | cubic-dev-ai[bot] | Accept | createPlacement doc overstates sizing (duplicate of coderabbit) |
+| #181 | greptile-apps[bot] | Miss | Did not flag createPlacement doc overstating sizing contract |
+| #181 | coderabbitai[bot] | Accept | commitResize dominant-axis comparison wrong on shrink drags — pure single-axis shrink silently no-ops |
+| #181 | cubic-dev-ai[bot] | Accept | commitResize dominant-axis on shrink drags (duplicate of coderabbit) |
+| #181 | greptile-apps[bot] | Miss | Did not flag commitResize dominant-axis bug on shrink drags |

@@ -75,6 +75,23 @@ describe('ReferenceWindow', () => {
 		expect(img.getAttribute('src')).toMatch(/^blob:/);
 	});
 
+	it('marks the reference image as non-draggable so HTML5 drag does not hijack mouse sampling', () => {
+		const ref = makeRef('ref-1');
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			isActive: true,
+			onClose: vi.fn()
+		});
+
+		const img = screen.getByRole('img');
+		expect(img.getAttribute('draggable')).toBe('false');
+	});
+
 	it('calls onClose when the close button is clicked', async () => {
 		const ref = makeRef('ref-1');
 		const onClose = vi.fn();
@@ -406,9 +423,9 @@ describe('ReferenceWindow', () => {
 		expect(onMove).toHaveBeenCalledWith(130, 150);
 	});
 
-	it('mouse pointerdown on the image invokes onSamplePixelAt immediately with image-natural integer coords', async () => {
+	it('mouse pointerdown when quickSamplingEnabled fires onSampleStart with mouse inputSource', async () => {
 		const ref = makeRef('ref-1');
-		const onSamplePixelAt = vi.fn();
+		const onSampleStart = vi.fn();
 
 		render(ReferenceWindow, {
 			reference: ref,
@@ -418,33 +435,30 @@ describe('ReferenceWindow', () => {
 			height: 300,
 			isActive: true,
 			onClose: vi.fn(),
-			onSamplePixelAt
+			quickSamplingEnabled: true,
+			onSampleStart
 		});
 
 		const img = screen.getByRole('img');
-		// happy-dom does not run layout, so getBoundingClientRect returns zeros.
-		// Inject a deterministic rect representing the displayed image (200×300 at top-left of the viewport).
-		vi.spyOn(img, 'getBoundingClientRect').mockReturnValue({
-			x: 0,
-			y: 0,
-			left: 0,
-			top: 0,
-			right: 200,
-			bottom: 300,
-			width: 200,
-			height: 300,
-			toJSON() {}
-		} as DOMRect);
+		mockImageRect(img, 200, 300);
 
-		await fireEvent.pointerDown(img, { pointerId: 1, pointerType: 'mouse', clientX: 50, clientY: 60 });
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			clientX: 50,
+			clientY: 60
+		});
 
 		// natural 100×200 displayed as 200×300 → x = floor(50*100/200)=25, y = floor(60*200/300)=40.
-		expect(onSamplePixelAt).toHaveBeenCalledTimes(1);
-		expect(onSamplePixelAt).toHaveBeenCalledWith(25, 40);
+		expect(onSampleStart).toHaveBeenCalledTimes(1);
+		expect(onSampleStart).toHaveBeenCalledWith(25, 40, 'mouse');
 	});
 
-	it('does not invoke onSamplePixelAt when the prop is omitted (mouse path)', async () => {
+	it('mouse pointerdown when quickSamplingEnabled is false is a no-op', async () => {
 		const ref = makeRef('ref-1');
+		const onSampleStart = vi.fn();
+		const onSampleMove = vi.fn();
+		const onSampleEnd = vi.fn();
 
 		render(ReferenceWindow, {
 			reference: ref,
@@ -453,14 +467,154 @@ describe('ReferenceWindow', () => {
 			width: 200,
 			height: 300,
 			isActive: true,
-			onClose: vi.fn()
+			onClose: vi.fn(),
+			quickSamplingEnabled: false,
+			onSampleStart,
+			onSampleMove,
+			onSampleEnd
 		});
 
 		const img = screen.getByRole('img');
-		// No assertion on a callback — this case asserts the absence of error
-		// when onSamplePixelAt is undefined. A regression that throws would fail
-		// fireEvent.pointerDown.
-		await fireEvent.pointerDown(img, { pointerId: 1, pointerType: 'mouse', clientX: 10, clientY: 10 });
+		mockImageRect(img, 200, 300);
+
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			clientX: 50,
+			clientY: 60
+		});
+		await fireEvent.pointerMove(img, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			clientX: 80,
+			clientY: 90
+		});
+		await fireEvent.pointerUp(img, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			clientX: 80,
+			clientY: 90
+		});
+
+		expect(onSampleStart).not.toHaveBeenCalled();
+		expect(onSampleMove).not.toHaveBeenCalled();
+		expect(onSampleEnd).not.toHaveBeenCalled();
+	});
+
+	it('mouse pointermove during an active sample invokes onSampleMove with image coords', async () => {
+		const ref = makeRef('ref-1');
+		const onSampleStart = vi.fn();
+		const onSampleMove = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			quickSamplingEnabled: true,
+			onSampleStart,
+			onSampleMove
+		});
+
+		const img = screen.getByRole('img');
+		mockImageRect(img, 200, 300);
+
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			clientX: 50,
+			clientY: 60
+		});
+		await fireEvent.pointerMove(img, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			clientX: 100,
+			clientY: 150
+		});
+
+		expect(onSampleMove).toHaveBeenCalledTimes(1);
+		expect(onSampleMove).toHaveBeenCalledWith(50, 100);
+	});
+
+	it('mouse pointerup ends an active sample with onSampleEnd at the release coords', async () => {
+		const ref = makeRef('ref-1');
+		const onSampleStart = vi.fn();
+		const onSampleEnd = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			quickSamplingEnabled: true,
+			onSampleStart,
+			onSampleEnd
+		});
+
+		const img = screen.getByRole('img');
+		mockImageRect(img, 200, 300);
+
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			clientX: 50,
+			clientY: 60
+		});
+		await fireEvent.pointerUp(img, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			clientX: 80,
+			clientY: 90
+		});
+
+		expect(onSampleEnd).toHaveBeenCalledTimes(1);
+		expect(onSampleEnd).toHaveBeenCalledWith(40, 60);
+	});
+
+	it('a single mouse click (down + up at the same point) fires both onSampleStart and onSampleEnd', async () => {
+		const ref = makeRef('ref-1');
+		const onSampleStart = vi.fn();
+		const onSampleEnd = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			quickSamplingEnabled: true,
+			onSampleStart,
+			onSampleEnd
+		});
+
+		const img = screen.getByRole('img');
+		mockImageRect(img, 200, 300);
+
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			clientX: 50,
+			clientY: 60
+		});
+		await fireEvent.pointerUp(img, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			clientX: 50,
+			clientY: 60
+		});
+
+		expect(onSampleStart).toHaveBeenCalledTimes(1);
+		expect(onSampleStart).toHaveBeenCalledWith(25, 40, 'mouse');
+		expect(onSampleEnd).toHaveBeenCalledTimes(1);
+		expect(onSampleEnd).toHaveBeenCalledWith(25, 40);
 	});
 
 	it('touch long-press on the image fires onSampleStart with image-natural integer coords', async () => {
@@ -495,7 +649,7 @@ describe('ReferenceWindow', () => {
 
 		// natural 100×200 displayed as 200×300 → x=floor(50*100/200)=25, y=floor(60*200/300)=40.
 		expect(onSampleStart).toHaveBeenCalledTimes(1);
-		expect(onSampleStart).toHaveBeenCalledWith(25, 40);
+		expect(onSampleStart).toHaveBeenCalledWith(25, 40, 'touch');
 	});
 
 	it('after touch long-press fires, pointermove invokes onSampleMove with current image coords', async () => {
@@ -587,10 +741,9 @@ describe('ReferenceWindow', () => {
 		expect(onSampleEnd).toHaveBeenCalledWith(40, 60);
 	});
 
-	it('short touch tap (release before threshold) invokes onSamplePixelAt and not the long-press callbacks', async () => {
+	it('short touch tap with quickSamplingEnabled routes through the sampling lifecycle (start + end)', async () => {
 		vi.useFakeTimers();
 		const ref = makeRef('ref-1');
-		const onSamplePixelAt = vi.fn();
 		const onSampleStart = vi.fn();
 		const onSampleEnd = vi.fn();
 
@@ -602,7 +755,49 @@ describe('ReferenceWindow', () => {
 			height: 300,
 			isActive: true,
 			onClose: vi.fn(),
-			onSamplePixelAt,
+			quickSamplingEnabled: true,
+			onSampleStart,
+			onSampleEnd
+		});
+
+		const img = screen.getByRole('img');
+		mockImageRect(img, 200, 300);
+
+		await fireEvent.pointerDown(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+		await vi.advanceTimersByTimeAsync(100);
+		await fireEvent.pointerUp(img, {
+			pointerId: 1,
+			pointerType: 'touch',
+			clientX: 50,
+			clientY: 60
+		});
+
+		expect(onSampleStart).toHaveBeenCalledTimes(1);
+		expect(onSampleStart).toHaveBeenCalledWith(25, 40, 'touch');
+		expect(onSampleEnd).toHaveBeenCalledTimes(1);
+		expect(onSampleEnd).toHaveBeenCalledWith(25, 40);
+	});
+
+	it('short touch tap with quickSamplingEnabled=false does not invoke any sampling callbacks', async () => {
+		vi.useFakeTimers();
+		const ref = makeRef('ref-1');
+		const onSampleStart = vi.fn();
+		const onSampleEnd = vi.fn();
+
+		render(ReferenceWindow, {
+			reference: ref,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 300,
+			isActive: true,
+			onClose: vi.fn(),
+			quickSamplingEnabled: false,
 			onSampleStart,
 			onSampleEnd
 		});
@@ -626,8 +821,6 @@ describe('ReferenceWindow', () => {
 
 		expect(onSampleStart).not.toHaveBeenCalled();
 		expect(onSampleEnd).not.toHaveBeenCalled();
-		expect(onSamplePixelAt).toHaveBeenCalledTimes(1);
-		expect(onSamplePixelAt).toHaveBeenCalledWith(25, 40);
 	});
 
 	it('pen long-press behaves like touch (fires onSampleStart after threshold)', async () => {
@@ -658,13 +851,12 @@ describe('ReferenceWindow', () => {
 		await vi.advanceTimersByTimeAsync(450);
 
 		expect(onSampleStart).toHaveBeenCalledTimes(1);
-		expect(onSampleStart).toHaveBeenCalledWith(25, 40);
+		expect(onSampleStart).toHaveBeenCalledWith(25, 40, 'touch');
 	});
 
 	it('pre-fire pointercancel does not commit a color sample (system cancellation is not a tap)', async () => {
 		vi.useFakeTimers();
 		const ref = makeRef('ref-1');
-		const onSamplePixelAt = vi.fn();
 		const onSampleStart = vi.fn();
 		const onSampleEnd = vi.fn();
 
@@ -676,7 +868,7 @@ describe('ReferenceWindow', () => {
 			height: 300,
 			isActive: true,
 			onClose: vi.fn(),
-			onSamplePixelAt,
+			quickSamplingEnabled: true,
 			onSampleStart,
 			onSampleEnd
 		});
@@ -701,7 +893,6 @@ describe('ReferenceWindow', () => {
 
 		expect(onSampleStart).not.toHaveBeenCalled();
 		expect(onSampleEnd).not.toHaveBeenCalled();
-		expect(onSamplePixelAt).not.toHaveBeenCalled();
 	});
 
 	it('a second long-press after a successful first one still fires onSampleStart (pendingTapCoords cleared on end)', async () => {
@@ -758,7 +949,8 @@ describe('ReferenceWindow', () => {
 	it('a simultaneous second touch does not overwrite the first finger\'s pending tap coords', async () => {
 		vi.useFakeTimers();
 		const ref = makeRef('ref-1');
-		const onSamplePixelAt = vi.fn();
+		const onSampleStart = vi.fn();
+		const onSampleEnd = vi.fn();
 
 		render(ReferenceWindow, {
 			reference: ref,
@@ -768,9 +960,9 @@ describe('ReferenceWindow', () => {
 			height: 300,
 			isActive: true,
 			onClose: vi.fn(),
-			onSamplePixelAt,
-			onSampleStart: vi.fn(),
-			onSampleEnd: vi.fn()
+			quickSamplingEnabled: true,
+			onSampleStart,
+			onSampleEnd
 		});
 
 		const img = screen.getByRole('img');
@@ -799,8 +991,11 @@ describe('ReferenceWindow', () => {
 			clientY: 60
 		});
 
-		expect(onSamplePixelAt).toHaveBeenCalledTimes(1);
-		expect(onSamplePixelAt).toHaveBeenCalledWith(25, 40);
+		// Short tap routes through the lifecycle with the first finger's coords.
+		expect(onSampleStart).toHaveBeenCalledTimes(1);
+		expect(onSampleStart).toHaveBeenCalledWith(25, 40, 'touch');
+		expect(onSampleEnd).toHaveBeenCalledTimes(1);
+		expect(onSampleEnd).toHaveBeenCalledWith(25, 40);
 	});
 
 	it('pointercancel after fire still emits onSampleEnd (commit-on-leave semantics)', async () => {

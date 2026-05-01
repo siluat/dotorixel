@@ -10,6 +10,7 @@
 		type LongPressDetector,
 		type PointerSnapshot
 	} from '$lib/gestures/long-press';
+	import type { LoupeInputSource } from '$lib/canvas/sampling/types';
 
 	interface Props {
 		reference: ReferenceImage;
@@ -26,8 +27,14 @@
 		onResizeCommit?: () => void;
 		onMinimizeChange?: (next: boolean) => void;
 		onActivate?: () => void;
-		onSamplePixelAt?: (imageX: number, imageY: number) => void;
-		onSampleStart?: (imageX: number, imageY: number) => void;
+		/**
+		 * When true, mouse press-and-drag and touch short-tap route through the
+		 * sampling lifecycle (`onSampleStart`/`Move`/`End`). When false, mouse
+		 * press is a no-op and touch short-tap doesn't sample. Touch/pen
+		 * long-press always engages the lifecycle regardless of this flag.
+		 */
+		quickSamplingEnabled?: boolean;
+		onSampleStart?: (imageX: number, imageY: number, inputSource: LoupeInputSource) => void;
 		onSampleMove?: (imageX: number, imageY: number) => void;
 		onSampleEnd?: (imageX: number, imageY: number) => void;
 	}
@@ -47,7 +54,7 @@
 		onResizeCommit,
 		onMinimizeChange,
 		onActivate,
-		onSamplePixelAt,
+		quickSamplingEnabled = false,
 		onSampleStart,
 		onSampleMove,
 		onSampleEnd
@@ -143,6 +150,10 @@
 	let imageEl = $state<HTMLImageElement | null>(null);
 	let detector: LongPressDetector | null = null;
 	let pendingTapCoords: { x: number; y: number } | null = null;
+	// Mouse uses an immediate press-drag-release lifecycle (no detector — no
+	// jitter tolerance or hold timer needed). This flag tracks whether a mouse
+	// press is currently engaged so move/up route to the lifecycle handlers.
+	let isMouseSampling = false;
 
 	$effect(() => {
 		return () => detector?.dispose();
@@ -166,7 +177,7 @@
 		detector = createLongPressDetector({
 			onFire(p) {
 				const c = snapshotToImageCoords(p);
-				if (c) onSampleStart?.(c.x, c.y);
+				if (c) onSampleStart?.(c.x, c.y, 'touch');
 			},
 			onMove(p) {
 				const c = snapshotToImageCoords(p);
@@ -178,8 +189,14 @@
 				if (c) onSampleEnd?.(c.x, c.y);
 			},
 			onCancel() {
-				if (pendingTapCoords) {
-					onSamplePixelAt?.(pendingTapCoords.x, pendingTapCoords.y);
+				// Short tap: route through the lifecycle so the
+				// pending-commit pattern in tab-state handles the decode race
+				// uniformly with mouse fast-clicks. Gated on
+				// `quickSamplingEnabled` so non-eyedropper tools stay no-ops.
+				if (pendingTapCoords && quickSamplingEnabled) {
+					const tap = pendingTapCoords;
+					onSampleStart?.(tap.x, tap.y, 'touch');
+					onSampleEnd?.(tap.x, tap.y);
 				}
 				pendingTapCoords = null;
 			}
@@ -193,9 +210,12 @@
 
 	function handleImagePointerDown(e: PointerEvent) {
 		if (!isLongPressPointer(e)) {
-			if (!onSamplePixelAt) return;
+			if (!quickSamplingEnabled) return;
 			const c = snapshotToImageCoords({ pointerId: e.pointerId, x: e.clientX, y: e.clientY });
-			if (c) onSamplePixelAt(c.x, c.y);
+			if (!c) return;
+			isMouseSampling = true;
+			(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+			onSampleStart?.(c.x, c.y, 'mouse');
 			return;
 		}
 		if (pendingTapCoords !== null) return;
@@ -206,17 +226,34 @@
 	}
 
 	function handleImagePointerMove(e: PointerEvent) {
-		if (!isLongPressPointer(e)) return;
+		if (!isLongPressPointer(e)) {
+			if (!isMouseSampling) return;
+			const c = snapshotToImageCoords({ pointerId: e.pointerId, x: e.clientX, y: e.clientY });
+			if (c) onSampleMove?.(c.x, c.y);
+			return;
+		}
 		detector?.pointerMove({ pointerId: e.pointerId, x: e.clientX, y: e.clientY });
 	}
 
 	function handleImagePointerUp(e: PointerEvent) {
-		if (!isLongPressPointer(e)) return;
+		if (!isLongPressPointer(e)) {
+			if (!isMouseSampling) return;
+			isMouseSampling = false;
+			const c = snapshotToImageCoords({ pointerId: e.pointerId, x: e.clientX, y: e.clientY });
+			if (c) onSampleEnd?.(c.x, c.y);
+			return;
+		}
 		detector?.pointerUp({ pointerId: e.pointerId, x: e.clientX, y: e.clientY });
 	}
 
 	function handleImagePointerCancel(e: PointerEvent) {
-		if (!isLongPressPointer(e)) return;
+		if (!isLongPressPointer(e)) {
+			if (!isMouseSampling) return;
+			isMouseSampling = false;
+			const c = snapshotToImageCoords({ pointerId: e.pointerId, x: e.clientX, y: e.clientY });
+			if (c) onSampleEnd?.(c.x, c.y);
+			return;
+		}
 		pendingTapCoords = null;
 		detector?.pointerCancel({ pointerId: e.pointerId, x: e.clientX, y: e.clientY });
 	}
@@ -291,6 +328,7 @@
 				alt={reference.filename}
 				bind:this={imageEl}
 				use:objectUrl={reference.blob}
+				draggable="false"
 				onpointerdown={handleImagePointerDown}
 				onpointermove={handleImagePointerMove}
 				onpointerup={handleImagePointerUp}

@@ -1,13 +1,13 @@
 import type { PixelCanvas, CanvasCoords, ResizeAnchor } from '../canvas-model';
 import type { ViewportData, ViewportSize } from '../viewport';
-import { addRecentColor, colorToHex } from '../color';
+import { addRecentColor } from '../color';
 import type { SharedState } from '../shared-state.svelte';
-import { samplePixel as sampleReferenceBlobPixel } from '../../reference-images/sampler';
 import { decodeReferenceBlob } from '../../reference-images/decode-reference-blob';
 import { createReferenceSamplingPort } from '../../reference-images/sampling-port';
 import { createSamplingSession, type SamplingSession } from '../sampling/session.svelte';
 import { LOUPE_CENTER_INDEX } from '../sampling/loupe-config';
 import type { SamplingPort } from '../sampling/ports';
+import type { LoupeInputSource } from '../sampling/types';
 import { createToolRunner, type ToolRunner, type EditorEffects } from '../tool-runner.svelte';
 import { exportAsPng } from '../export';
 import type { PointerType } from '../canvas-interaction.svelte';
@@ -223,6 +223,12 @@ export class TabState {
 
 	#refSampleSeq = 0;
 	#referencePort: SamplingPort | null = null;
+	// Set by `referenceSampleEnd` when the user releases before the async
+	// decode in `referenceSampleStart` has resolved. The in-flight start
+	// checks this flag after activating the session and commits immediately,
+	// so fast clicks (mouse) and short taps (touch) never lose a sample to
+	// async timing.
+	#endPending = false;
 
 	#previewSamplingCenter = (): void => {
 		const center = this.referenceSamplingSession.grid[LOUPE_CENTER_INDEX];
@@ -233,9 +239,11 @@ export class TabState {
 	referenceSampleStart = async (
 		blob: Blob,
 		imageX: number,
-		imageY: number
+		imageY: number,
+		inputSource: LoupeInputSource
 	): Promise<void> => {
 		const seq = ++this.#refSampleSeq;
+		this.#endPending = false; // new session = clean slate, no leak from prior pending
 		let decoded;
 		try {
 			decoded = await decodeReferenceBlob(blob);
@@ -247,9 +255,14 @@ export class TabState {
 		this.referenceSamplingSession.start({
 			targetPixel: { x: imageX, y: imageY },
 			commitTarget: 'foreground',
-			inputSource: 'touch'
+			inputSource
 		});
 		this.#previewSamplingCenter();
+		if (this.#endPending) {
+			this.#endPending = false;
+			this.#referencePort = null;
+			this.#applyEffects(this.referenceSamplingSession.commit());
+		}
 	};
 
 	referenceSampleMove = (imageX: number, imageY: number): void => {
@@ -259,29 +272,15 @@ export class TabState {
 	};
 
 	referenceSampleEnd = (): void => {
-		// Bumping the sequence here invalidates any in-flight decode whose start
-		// was already issued — without it, a release before the decode resolved
-		// would leave a "ghost" session active after the user already let go.
-		this.#refSampleSeq++;
-		this.#referencePort = null;
-		if (!this.referenceSamplingSession.isActive) return;
-		this.#applyEffects(this.referenceSamplingSession.commit());
-	};
-
-	referenceSampleCommit = async (blob: Blob, imageX: number, imageY: number): Promise<void> => {
-		const my = ++this.#refSampleSeq;
-		let color;
-		try {
-			color = await sampleReferenceBlobPixel(blob, imageX, imageY);
-		} catch {
+		if (this.referenceSamplingSession.isActive) {
+			this.#refSampleSeq++; // invalidate any future in-flight start belonging to this session
+			this.#referencePort = null;
+			this.#applyEffects(this.referenceSamplingSession.commit());
 			return;
 		}
-		if (my !== this.#refSampleSeq) return;
-		if (color.a === 0) return;
-		this.#applyEffects([
-			{ type: 'colorPick', target: 'foreground', color },
-			{ type: 'addRecentColor', hex: colorToHex(color) }
-		]);
+		// Decode hasn't resolved yet — defer the commit. Don't bump seq, or
+		// the in-flight start will abort and we'd lose the sample.
+		this.#endPending = true;
 	};
 
 	undo = (): void => {

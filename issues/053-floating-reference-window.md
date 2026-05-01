@@ -1,6 +1,6 @@
 ---
 title: Floating reference image windows
-status: open
+status: done
 created: 2026-04-16
 ---
 

@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 65 | 51 | 14 | 53 | 78% | 49% |
-| cubic-dev-ai[bot] | 42 | 35 | 7 | 65 | 83% | 35% |
-| coderabbitai[bot] | 89 | 59 | 30 | 42 | 66% | 58% |
+| greptile-apps[bot] | 67 | 53 | 14 | 54 | 79% | 50% |
+| cubic-dev-ai[bot] | 42 | 35 | 7 | 68 | 83% | 34% |
+| coderabbitai[bot] | 90 | 60 | 30 | 44 | 67% | 58% |
 
 ## Log
 
@@ -370,3 +370,12 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #177 | cubic-dev-ai[bot] | Miss | Did not flag `handleDrop` `preventDefault` before file check |
 | #177 | cubic-dev-ai[bot] | Miss | Did not flag `{refs, errors}` doc mismatch in platform-status.md |
 | #177 | cubic-dev-ai[bot] | Miss | Did not flag `{refs, errors}` doc mismatch in tasks/progress.md |
+| #178 | greptile-apps[bot] | Accept | `const REFERENCE_LOUPE_CENTER_INDEX` declared mid-import-block — extracted shared `LOUPE_CENTER_INDEX` to loupe-config.ts |
+| #178 | greptile-apps[bot] | Accept | `#referencePort` not cleared on early-return path in `referenceSampleEnd` — moved cleanup before isActive guard |
+| #178 | coderabbitai[bot] | Accept | Reference loupe stays null until first pointermove — added `onpointerdown={pushReferencePointer}` to seed initial position |
+| #178 | greptile-apps[bot] | Miss | Did not flag stale-coords risk on stationary long-press without onpointerdown |
+| #178 | coderabbitai[bot] | Miss | Did not flag `REFERENCE_LOUPE_CENTER_INDEX` declaration in import block |
+| #178 | coderabbitai[bot] | Miss | Did not flag asymmetric `#referencePort` cleanup in early-return path |
+| #178 | cubic-dev-ai[bot] | Miss | Did not flag `REFERENCE_LOUPE_CENTER_INDEX` declaration in import block |
+| #178 | cubic-dev-ai[bot] | Miss | Did not flag asymmetric `#referencePort` cleanup in early-return path |
+| #178 | cubic-dev-ai[bot] | Miss | Did not flag stale-coords risk on stationary long-press without onpointerdown |

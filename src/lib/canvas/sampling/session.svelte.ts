@@ -4,16 +4,15 @@ import { NO_EFFECTS, type ToolEffects } from '../draw-tool';
 import { computeLoupePosition } from './loupe-position';
 import {
 	GRID_SIZE,
+	LOUPE_CENTER_INDEX,
 	LOUPE_HEIGHT,
 	LOUPE_WIDTH,
 	MOUSE_OFFSET,
 	TOUCH_OFFSET
 } from './loupe-config';
-import type { CanvasSamplingPort } from './ports';
+import type { SamplingPort } from './ports';
 import { sampleGrid } from './sample-grid';
 import type { LoupeInputSource } from './types';
-
-const CENTER_INDEX = (GRID_SIZE * GRID_SIZE - 1) / 2;
 
 function isValidOpaque(cell: Color | null): cell is Color {
 	return cell !== null && cell.a > 0;
@@ -50,7 +49,7 @@ export interface SamplingSession {
 }
 
 export function createSamplingSession(opts: {
-	getSamplingPort: () => CanvasSamplingPort;
+	getSamplingPort: () => SamplingPort;
 }): SamplingSession {
 	let isActive = $state(false);
 	let grid = $state<(Color | null)[]>([]);
@@ -109,7 +108,7 @@ export function createSamplingSession(opts: {
 		},
 		commit(): ToolEffects {
 			if (!isActive) return NO_EFFECTS;
-			const raw = grid[CENTER_INDEX];
+			const raw = grid[LOUPE_CENTER_INDEX];
 			const pickedTarget = commitTarget;
 			reset();
 			if (!isValidOpaque(raw)) return NO_EFFECTS;

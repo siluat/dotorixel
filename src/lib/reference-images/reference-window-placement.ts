@@ -78,8 +78,9 @@ export function commitMove(
  * Commit a corner-handle resize. Aspect ratio is locked to `current`'s; the
  * dominant axis (the one whose pointer delta drives the larger relative
  * change) drives the resulting size. The shorter edge floors at
- * {@link MIN_WINDOW_EDGE}, and the result is capped to the viewport while
- * preserving aspect. `(x, y)` is unchanged — the top-left stays anchored.
+ * {@link MIN_WINDOW_EDGE}, and the result is capped against the available
+ * space from the anchored top-left so the window stays inside the viewport
+ * (preserving aspect). `(x, y)` is unchanged — the top-left stays anchored.
  */
 export function commitResize(
 	current: Placement,
@@ -108,7 +109,9 @@ export function commitResize(
 	width = Math.max(width, minWidth);
 	height = Math.max(height, minHeight);
 
-	const viewportShrink = Math.min(1, viewport.width / width, viewport.height / height);
+	const availableWidth = Math.max(0, viewport.width - current.x);
+	const availableHeight = Math.max(0, viewport.height - current.y);
+	const viewportShrink = Math.min(1, availableWidth / width, availableHeight / height);
 	width *= viewportShrink;
 	height *= viewportShrink;
 

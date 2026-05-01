@@ -168,4 +168,15 @@ describe('commitResize', () => {
 		expect(result.width).toBeCloseTo(600, 5);
 		expect(result.height).toBeCloseTo(300, 5);
 	});
+
+	it('caps the size against the available space from the anchored top-left so the result fits the viewport', () => {
+		const current = { x: 400, y: 300, width: 200, height: 100 };
+		const result = commitResize(current, 5000, 5000, { width: 1000, height: 800 });
+
+		expect(result.x).toBe(400);
+		expect(result.y).toBe(300);
+		expect(result.x + result.width).toBeLessThanOrEqual(1000);
+		expect(result.y + result.height).toBeLessThanOrEqual(800);
+		expect(result.width / result.height).toBeCloseTo(2, 5);
+	});
 });

@@ -96,7 +96,7 @@ export function commitResize(
 
 	let width: number;
 	let height: number;
-	if (widthRatio >= heightRatio) {
+	if (Math.abs(widthRatio - 1) >= Math.abs(heightRatio - 1)) {
 		width = proposedWidth;
 		height = proposedWidth / aspect;
 	} else {

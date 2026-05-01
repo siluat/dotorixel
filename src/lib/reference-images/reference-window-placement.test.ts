@@ -179,4 +179,11 @@ describe('commitResize', () => {
 		expect(result.y + result.height).toBeLessThanOrEqual(800);
 		expect(result.width / result.height).toBeCloseTo(2, 5);
 	});
+
+	it('drives the width-dominant axis on pure horizontal shrink (preserving aspect)', () => {
+		const current = { x: 100, y: 100, width: 600, height: 300 };
+		const result = commitResize(current, -200, 0, { width: 1000, height: 800 });
+
+		expect(result).toEqual({ x: 100, y: 100, width: 400, height: 200 });
+	});
 });

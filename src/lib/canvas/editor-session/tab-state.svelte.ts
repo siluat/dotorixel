@@ -3,10 +3,11 @@ import type { ViewportData, ViewportSize } from '../viewport';
 import { addRecentColor } from '../color';
 import type { SharedState } from '../shared-state.svelte';
 import { decodeReferenceBlob } from '../../reference-images/decode-reference-blob';
-import { createReferenceSamplingPort } from '../../reference-images/sampling-port';
+import {
+	createReferenceSamplingSession,
+	type ReferenceSamplingSession
+} from '../../reference-images/reference-sampling-session.svelte';
 import { createSamplingSession, type SamplingSession } from '../sampling/session.svelte';
-import { LOUPE_CENTER_INDEX } from '../sampling/loupe-config';
-import type { SamplingPort } from '../sampling/ports';
 import type { LoupeInputSource } from '../sampling/types';
 import { createToolRunner, type ToolRunner, type EditorEffects } from '../tool-runner.svelte';
 import { exportAsPng } from '../export';
@@ -53,7 +54,7 @@ export class TabState {
 	readonly name: string;
 	readonly shared: SharedState;
 	readonly samplingSession: SamplingSession;
-	readonly referenceSamplingSession: SamplingSession;
+	readonly referenceSamplingSession: ReferenceSamplingSession;
 
 	pixelCanvas = $state<PixelCanvas>(null!);
 	viewport = $state<ViewportData>(null!);
@@ -109,13 +110,8 @@ export class TabState {
 
 		const self = this;
 		this.samplingSession = createSamplingSession({ getSamplingPort: () => self.pixelCanvas });
-		this.referenceSamplingSession = createSamplingSession({
-			getSamplingPort: () => {
-				if (!self.#referencePort) {
-					throw new Error('Reference sampling session is not bound to a port');
-				}
-				return self.#referencePort;
-			}
+		this.referenceSamplingSession = createReferenceSamplingSession({
+			decode: decodeReferenceBlob
 		});
 
 		this.#toolRunner = createToolRunner({
@@ -221,66 +217,23 @@ export class TabState {
 		this.samplingSession.cancel();
 	};
 
-	#refSampleSeq = 0;
-	#referencePort: SamplingPort | null = null;
-	// Set by `referenceSampleEnd` when the user releases before the async
-	// decode in `referenceSampleStart` has resolved. The in-flight start
-	// checks this flag after activating the session and commits immediately,
-	// so fast clicks (mouse) and short taps (touch) never lose a sample to
-	// async timing.
-	#endPending = false;
-
-	#previewSamplingCenter = (): void => {
-		const center = this.referenceSamplingSession.grid[LOUPE_CENTER_INDEX];
-		if (!center || center.a === 0) return;
-		this.#applyEffects([{ type: 'colorPick', target: 'foreground', color: center }]);
-	};
-
 	referenceSampleStart = async (
 		blob: Blob,
 		imageX: number,
 		imageY: number,
 		inputSource: LoupeInputSource
 	): Promise<void> => {
-		const seq = ++this.#refSampleSeq;
-		this.#endPending = false; // new session = clean slate, no leak from prior pending
-		let decoded;
-		try {
-			decoded = await decodeReferenceBlob(blob);
-		} catch {
-			return;
-		}
-		if (seq !== this.#refSampleSeq) return;
-		this.#referencePort = createReferenceSamplingPort(decoded);
-		this.referenceSamplingSession.start({
-			targetPixel: { x: imageX, y: imageY },
-			commitTarget: 'foreground',
-			inputSource
-		});
-		this.#previewSamplingCenter();
-		if (this.#endPending) {
-			this.#endPending = false;
-			this.#referencePort = null;
-			this.#applyEffects(this.referenceSamplingSession.commit());
-		}
+		this.#applyEffects(
+			await this.referenceSamplingSession.start(blob, { x: imageX, y: imageY }, inputSource)
+		);
 	};
 
 	referenceSampleMove = (imageX: number, imageY: number): void => {
-		if (!this.referenceSamplingSession.isActive) return;
-		this.referenceSamplingSession.update({ x: imageX, y: imageY });
-		this.#previewSamplingCenter();
+		this.#applyEffects(this.referenceSamplingSession.move({ x: imageX, y: imageY }));
 	};
 
 	referenceSampleEnd = (): void => {
-		if (this.referenceSamplingSession.isActive) {
-			this.#refSampleSeq++; // invalidate any future in-flight start belonging to this session
-			this.#referencePort = null;
-			this.#applyEffects(this.referenceSamplingSession.commit());
-			return;
-		}
-		// Decode hasn't resolved yet — defer the commit. Don't bump seq, or
-		// the in-flight start will abort and we'd lose the sample.
-		this.#endPending = true;
+		this.#applyEffects(this.referenceSamplingSession.end());
 	};
 
 	undo = (): void => {

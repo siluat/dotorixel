@@ -1,6 +1,6 @@
 ---
 title: Deepen Reference Window Placement (2/2) — commit ops and viewport refit lifecycle
-status: ready-for-agent
+status: done
 created: 2026-05-01
 ---
 
@@ -41,3 +41,29 @@ Behaviour change versus today (the agreed (B-비율유지) policy):
 ## Blocked by
 
 - [082 — Deepen Reference Window Placement (1/2)](./082-deepen-reference-window-placement-create-paths.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/reference-images/ReferenceWindow.svelte` | `viewportWidth` / `viewportHeight` promoted to required props. `handleResizePointerMove` calls `commitResize(current, deltaX, deltaY, viewport)` per move event, so resize handles stop at the viewport edge during a drag. `releaseResize` performs no clamp. |
+| `src/lib/reference-images/ReferenceWindowOverlay.svelte` | Private `fit()` and `clamp()` helpers deleted; overlay now passes `state.{x,y,width,height}` to `<ReferenceWindow>` verbatim. `commitPosition` calls `commitMove(current, state.x, state.y, viewport)` on `onMoveCommit` and writes back only when the clamped value differs. `viewportWidth` / `viewportHeight` are required. |
+| `src/lib/reference-images/reference-images-store.svelte.ts` | Added `refitAll(docId, viewport)` — iterates visible display states, applies `refitPlacement`, writes back only when geometry actually changes, and fires one `markDirty(docId)` per changed placement. Idempotent skips do nothing. |
+| `src/routes/editor/+page.svelte` | New `$effect` colocated with the other `editor.viewportSize` consumers — invokes `editor.workspace.references.refitAll(activeDocId, viewport)` on viewport change. |
+| `src/lib/reference-images/compute-position-clamp.{ts,test.ts}` | Deleted. |
+| `src/lib/reference-images/compute-resize.{ts,test.ts}` | Deleted. |
+| `src/lib/reference-images/reference-images-store.svelte.test.ts` | 5 new specs covering `refitAll` — no-op on fitting, shrink-aspect-preserved, skip-closed, shrunk-persists-after-regrow, dirty fan-out matches change count. |
+| `src/lib/reference-images/ReferenceWindowOverlay.svelte.test.ts` | Replaced two render-time `fit()` specs with one "renders stored placement geometry verbatim" spec. Added "no write-back on fitting drag release" and "drag-time resize clamps at viewport edge with aspect preserved" specs. Added `renderOverlay` helper for the now-required viewport props. |
+| `src/lib/reference-images/ReferenceWindow.svelte.test.ts` | Added `renderWindow` helper for the now-required viewport props; converted all 34 render call sites. |
+
+### Key Decisions
+
+- **Picked `ReferenceImagesStore` over `Workspace` as the owner of `refitAll`.** The store already owns per-document `DisplayState[]`; routing the operation through `Workspace` would have been a thin pass-through. Kept the per-doc scope (`refitAll(docId, viewport)`) since each tab has its own viewport.
+- **Made `viewportWidth` / `viewportHeight` required (not defaulted to `Number.POSITIVE_INFINITY`).** Production callers always supply finite values, so the sentinel was a fallback for an impossible case — violates the project's "no fallbacks unless concretely justified" rule. Promoting to required props makes the type system enforce the invariant.
+- **Refactored `refitAll` to separate transformation from side effects.** The first cut interleaved `mutated = true` and `markDirty(docId)` inside `.map()`. Rewrote as a `for-of` that builds the next array and counts changes, then fires `markDirty` `changedCount` times after committing the new state. Mirrors the dirty fan-out spec contract directly.
+
+### Notes
+
+- `cargo test` is unaffected by this slice — placement logic lives in TS — but was run for completeness (236/236 green).
+- Manual smoke verified in dev browser: gallery open / drag-drop import / reference move / reference resize / browser-window shrink-then-grow all match the (B-비율유지) policy. A viewport regrow does not restore pre-shrink size, as agreed.
+- 836/836 web tests + 236/236 cargo tests + `bun run check` all green.

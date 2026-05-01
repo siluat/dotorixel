@@ -387,6 +387,19 @@
 		return () => ro.disconnect();
 	});
 
+	// Refit Reference Window Placements whenever the active tab's viewport
+	// changes. The store skips idempotent re-fits, so this effect is cheap on
+	// no-op viewport ticks.
+	$effect(() => {
+		const docId = editor.workspace.activeTab.documentId;
+		const viewport = editor.viewportSize;
+		if (viewport.width <= 0 || viewport.height <= 0) return;
+		editor.workspace.references.refitAll(docId, {
+			width: viewport.width,
+			height: viewport.height
+		});
+	});
+
 	function handleResize(w: number, h: number) {
 		editor.handleResize(w, h);
 		trackCanvasSize(w, h);

@@ -1,7 +1,8 @@
 import type { DirtyNotifier } from '$lib/canvas/editor-session/dirty-notifier';
 import type { ReferenceImage } from './reference-image-types';
 import type { DisplayState } from './display-state-types';
-import type { Placement } from './reference-window-placement';
+import type { Placement, Viewport } from './reference-window-placement';
+import { refitPlacement } from './reference-window-placement';
 
 export class ReferenceImagesStore {
 	#notifier: DirtyNotifier;
@@ -132,6 +133,46 @@ export class ReferenceImagesStore {
 	nextCascadeIndex(docId: string): number {
 		const states = this.#displayByDoc[docId] ?? [];
 		return states.filter((s) => s.visible).length;
+	}
+
+	/**
+	 * Re-fit every visible reference window's placement to the supplied viewport.
+	 *
+	 * For each visible {@link DisplayState} in `docId`, applies
+	 * {@link refitPlacement}. Writes back only when the resulting placement
+	 * differs from the stored one — idempotent skips do not fire `markDirty`.
+	 * Each actually-changed placement triggers a single `markDirty(docId)`.
+	 */
+	refitAll(docId: string, viewport: Viewport): void {
+		const existing = this.#displayByDoc[docId] ?? [];
+		const next: DisplayState[] = [];
+		let changedCount = 0;
+		for (const s of existing) {
+			if (!s.visible) {
+				next.push(s);
+				continue;
+			}
+			const refit = refitPlacement(
+				{ x: s.x, y: s.y, width: s.width, height: s.height },
+				viewport
+			);
+			if (
+				refit.x === s.x &&
+				refit.y === s.y &&
+				refit.width === s.width &&
+				refit.height === s.height
+			) {
+				next.push(s);
+				continue;
+			}
+			next.push({ ...s, x: refit.x, y: refit.y, width: refit.width, height: refit.height });
+			changedCount++;
+		}
+		if (changedCount === 0) return;
+		this.#displayByDoc = { ...this.#displayByDoc, [docId]: next };
+		for (let i = 0; i < changedCount; i++) {
+			this.#notifier.markDirty(docId);
+		}
 	}
 
 	setMinimized(refId: string, docId: string, minimized: boolean): void {

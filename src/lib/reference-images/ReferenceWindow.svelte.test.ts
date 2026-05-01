@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import type { ComponentProps } from 'svelte';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/svelte';
 import ReferenceWindow from './ReferenceWindow.svelte';
@@ -8,6 +9,18 @@ afterEach(() => {
 	cleanup();
 	vi.useRealTimers();
 });
+
+type WindowProps = ComponentProps<typeof ReferenceWindow>;
+
+// Tests that don't exercise resize don't care about the viewport — the helper
+// supplies a generous default so each test only declares what it checks.
+function renderWindow(overrides: Partial<WindowProps>) {
+	return render(ReferenceWindow, {
+		viewportWidth: 1000,
+		viewportHeight: 1000,
+		...overrides
+	} as WindowProps);
+}
 
 function mockImageRect(img: HTMLElement, width: number, height: number, left = 0, top = 0): void {
 	vi.spyOn(img, 'getBoundingClientRect').mockReturnValue({
@@ -41,7 +54,7 @@ describe('ReferenceWindow', () => {
 	it('positions the window using the provided x/y/width/height', () => {
 		const ref = makeRef('ref-1');
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 40,
 			y: 60,
@@ -61,7 +74,7 @@ describe('ReferenceWindow', () => {
 	it('renders the reference image in the body', () => {
 		const ref = makeRef('ref-1');
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -78,7 +91,7 @@ describe('ReferenceWindow', () => {
 	it('marks the reference image as non-draggable so HTML5 drag does not hijack mouse sampling', () => {
 		const ref = makeRef('ref-1');
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -96,7 +109,7 @@ describe('ReferenceWindow', () => {
 		const ref = makeRef('ref-1');
 		const onClose = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -116,7 +129,7 @@ describe('ReferenceWindow', () => {
 		const ref = makeRef('ref-1');
 		const onMove = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 100,
 			y: 100,
@@ -138,7 +151,7 @@ describe('ReferenceWindow', () => {
 		const ref = makeRef('ref-1');
 		const onResize = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -161,7 +174,7 @@ describe('ReferenceWindow', () => {
 		const onMove = vi.fn();
 		const onMoveCommit = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 100,
 			y: 100,
@@ -185,7 +198,7 @@ describe('ReferenceWindow', () => {
 	it('absorbs pointer events so a hit-test inside the window does not pass through to siblings', () => {
 		const ref = makeRef('ref-1');
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -204,7 +217,7 @@ describe('ReferenceWindow', () => {
 		const onMove = vi.fn();
 		const onMoveCommit = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 100,
 			y: 100,
@@ -232,7 +245,7 @@ describe('ReferenceWindow', () => {
 		const onResize = vi.fn();
 		const onResizeCommit = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -259,7 +272,7 @@ describe('ReferenceWindow', () => {
 		const ref = makeRef('ref-1');
 		const onMinimizeChange = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -281,7 +294,7 @@ describe('ReferenceWindow', () => {
 		const ref = makeRef('ref-1');
 		const onMinimizeChange = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -303,7 +316,7 @@ describe('ReferenceWindow', () => {
 		const ref = makeRef('ref-1');
 		const onMinimizeChange = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -325,7 +338,7 @@ describe('ReferenceWindow', () => {
 		const ref = makeRef('ref-1');
 		const onMinimizeChange = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -347,7 +360,7 @@ describe('ReferenceWindow', () => {
 		const ref = makeRef('ref-1');
 		const onMinimizeChange = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -368,7 +381,7 @@ describe('ReferenceWindow', () => {
 	it('does not render the image body when minimized', () => {
 		const ref = makeRef('ref-1');
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -385,7 +398,7 @@ describe('ReferenceWindow', () => {
 	it('does not render the resize handle when minimized', () => {
 		const ref = makeRef('ref-1');
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -404,7 +417,7 @@ describe('ReferenceWindow', () => {
 		const ref = makeRef('ref-1');
 		const onMove = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 100,
 			y: 100,
@@ -427,7 +440,7 @@ describe('ReferenceWindow', () => {
 		const ref = makeRef('ref-1');
 		const onSampleStart = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -460,7 +473,7 @@ describe('ReferenceWindow', () => {
 		const onSampleMove = vi.fn();
 		const onSampleEnd = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -506,7 +519,7 @@ describe('ReferenceWindow', () => {
 		const onSampleStart = vi.fn();
 		const onSampleMove = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -544,7 +557,7 @@ describe('ReferenceWindow', () => {
 		const onSampleStart = vi.fn();
 		const onSampleEnd = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -582,7 +595,7 @@ describe('ReferenceWindow', () => {
 		const onSampleStart = vi.fn();
 		const onSampleEnd = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -622,7 +635,7 @@ describe('ReferenceWindow', () => {
 		const ref = makeRef('ref-1');
 		const onSampleStart = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -658,7 +671,7 @@ describe('ReferenceWindow', () => {
 		const onSampleStart = vi.fn();
 		const onSampleMove = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -699,7 +712,7 @@ describe('ReferenceWindow', () => {
 		const ref = makeRef('ref-1');
 		const onSampleEnd = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -747,7 +760,7 @@ describe('ReferenceWindow', () => {
 		const onSampleStart = vi.fn();
 		const onSampleEnd = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -789,7 +802,7 @@ describe('ReferenceWindow', () => {
 		const onSampleStart = vi.fn();
 		const onSampleEnd = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -828,7 +841,7 @@ describe('ReferenceWindow', () => {
 		const ref = makeRef('ref-1');
 		const onSampleStart = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -860,7 +873,7 @@ describe('ReferenceWindow', () => {
 		const onSampleStart = vi.fn();
 		const onSampleEnd = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -901,7 +914,7 @@ describe('ReferenceWindow', () => {
 		const onSampleStart = vi.fn();
 		const onSampleEnd = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -952,7 +965,7 @@ describe('ReferenceWindow', () => {
 		const onSampleStart = vi.fn();
 		const onSampleEnd = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -1003,7 +1016,7 @@ describe('ReferenceWindow', () => {
 		const ref = makeRef('ref-1');
 		const onSampleEnd = vi.fn();
 
-		render(ReferenceWindow, {
+		renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -1039,7 +1052,7 @@ describe('ReferenceWindow', () => {
 	it('marks itself active or inactive via data attribute for styling', () => {
 		const ref = makeRef('ref-1');
 
-		const { rerender } = render(ReferenceWindow, {
+		const { rerender } = renderWindow({
 			reference: ref,
 			x: 0,
 			y: 0,
@@ -1059,6 +1072,8 @@ describe('ReferenceWindow', () => {
 			width: 100,
 			height: 100,
 			isActive: false,
+			viewportWidth: 1000,
+			viewportHeight: 1000,
 			onClose: vi.fn()
 		});
 

@@ -26,10 +26,10 @@ const VIEWPORT_FRACTION = 0.3;
 /**
  * Build a fresh {@link Placement} for a newly-displayed reference window.
  *
- * Sizing is aspect-preserving: the longer edge sits at
- * `max(viewport.width, viewport.height) × 0.3`, the shorter edge is lifted to
- * at least {@link MIN_WINDOW_EDGE}, and the result is capped to the viewport
- * for extreme aspects on small viewports.
+ * Sizing is aspect-preserving: larger images are shrunk so the longer edge is
+ * `max(viewport.width, viewport.height) × 0.3`; smaller images stay at natural
+ * size. The shorter edge is then lifted to at least {@link MIN_WINDOW_EDGE},
+ * and the result is capped to the viewport for extreme aspects on small viewports.
  *
  * Position depends on the {@link PlacementIntent}:
  * - `centered` — viewport-centered, then offset by `cascadeIndex × CASCADE_OFFSET`.

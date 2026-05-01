@@ -95,7 +95,9 @@
 			fittedTabs.add(tab);
 			tab.zoomFit(1.0);
 		}
-		editor.workspace.references.refitAll(tab.documentId, { width, height });
+		if (width > 0 && height > 0) {
+			editor.workspace.references.refitAll(tab.documentId, { width, height });
+		}
 	}
 
 	function flushSession() {

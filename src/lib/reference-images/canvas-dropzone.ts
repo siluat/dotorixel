@@ -51,6 +51,7 @@ export const canvasDropzone: Action<HTMLElement, CanvasDropzoneParams> = (node, 
 	}
 
 	function onDrop(event: DragEvent) {
+		if (!hasFiles(event)) return;
 		event.preventDefault();
 		depth = 0;
 		setDragOver(false);

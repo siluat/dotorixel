@@ -57,6 +57,7 @@
 	}
 
 	function handleDrop(event: DragEvent) {
+		if (!hasFiles(event)) return;
 		event.preventDefault();
 		dragDepth = 0;
 		const files = Array.from(event.dataTransfer?.files ?? []);

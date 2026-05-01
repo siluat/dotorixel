@@ -15,6 +15,7 @@
 		onAddRequest: () => void;
 		onDismissError: (index: number) => void;
 		onClose: () => void;
+		onFilesDropped?: (files: File[]) => void;
 	}
 
 	let {
@@ -26,9 +27,46 @@
 		onToggleDisplay,
 		onAddRequest,
 		onDismissError,
-		onClose
+		onClose,
+		onFilesDropped
 	}: Props = $props();
+
+	function hasFiles(event: DragEvent): boolean {
+		const dt = event.dataTransfer;
+		if (!dt) return false;
+		// Real browsers expose a 'Files' sentinel in `types`; some envs (and
+		// some browsers during dragleave) only populate `items[].kind`.
+		if (dt.types.includes('Files')) return true;
+		return Array.from(dt.items ?? []).some((item) => item.kind === 'file');
+	}
+
+	function handleDragEnter(event: DragEvent) {
+		if (!hasFiles(event)) return;
+		event.preventDefault();
+		dragDepth += 1;
+	}
+
+	function handleDragLeave(event: DragEvent) {
+		if (!hasFiles(event)) return;
+		dragDepth = Math.max(0, dragDepth - 1);
+	}
+
+	function handleDragOver(event: DragEvent) {
+		if (!hasFiles(event)) return;
+		event.preventDefault();
+	}
+
+	function handleDrop(event: DragEvent) {
+		if (!hasFiles(event)) return;
+		event.preventDefault();
+		dragDepth = 0;
+		const files = Array.from(event.dataTransfer?.files ?? []);
+		if (files.length === 0) return;
+		onFilesDropped?.(files);
+	}
 	let cardGrid = $state<ReferenceGalleryGrid>();
+	let dragDepth = $state(0);
+	const isDragOver = $derived(dragDepth > 0);
 
 	const modal = createModal({
 		onClose: () => onClose(),
@@ -50,6 +88,11 @@
 		class="browser-modal"
 		bind:this={modal.containerEl}
 		onmousedown={(e) => e.stopPropagation()}
+		ondragenter={handleDragEnter}
+		ondragleave={handleDragLeave}
+		ondragover={handleDragOver}
+		ondrop={handleDrop}
+		data-drag-over={isDragOver ? 'true' : 'false'}
 		use:autoFocus
 		role="dialog"
 		aria-labelledby="ref-browser-title"
@@ -137,6 +180,12 @@
 		border-radius: 12px;
 		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 		overflow: hidden;
+		transition: border-color 120ms ease;
+	}
+
+	.browser-modal[data-drag-over='true'] {
+		border-color: var(--ds-accent);
+		background: color-mix(in srgb, var(--ds-accent) 4%, var(--ds-bg-elevated));
 	}
 
 	.browser-header {

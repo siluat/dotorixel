@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 63 | 50 | 13 | 51 | 79% | 50% |
-| cubic-dev-ai[bot] | 42 | 35 | 7 | 62 | 83% | 36% |
-| coderabbitai[bot] | 86 | 56 | 30 | 42 | 65% | 57% |
+| greptile-apps[bot] | 65 | 51 | 14 | 53 | 78% | 49% |
+| cubic-dev-ai[bot] | 42 | 35 | 7 | 65 | 83% | 35% |
+| coderabbitai[bot] | 89 | 59 | 30 | 42 | 66% | 58% |
 
 ## Log
 
@@ -360,3 +360,13 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #176 | greptile-apps[bot] | Miss | Did not flag coderabbitai Miss total arithmetic mismatch |
 | #176 | coderabbitai[bot] | Miss | Did not flag own Miss total arithmetic mismatch |
 | #176 | cubic-dev-ai[bot] | Reject | Claimed `pointercancel` clear breaks short-tap commit — conflates `pointerup` (clean release, still commits) with W3C abnormal-termination semantics |
+| #177 | greptile-apps[bot] | Reject | `waitForTimeout(200)` after IDB poll — rendered position already polled at lines 186-190; the 200ms is the final reactive-flush cushion, not a substitute for the assertion |
+| #177 | greptile-apps[bot] | Accept | `handleDrop` calls `preventDefault` before file check across canvas-dropzone, ReferenceBrowser, ReferenceBrowserSheet — gate on `hasFiles` first for consistency with `handleDragOver` |
+| #177 | coderabbitai[bot] | Accept | `canvas-dropzone.ts` `onDrop` calls `preventDefault` before payload-type check (duplicate of greptile pattern, applied to action variant) |
+| #177 | coderabbitai[bot] | Accept | `docs/platform-status.md` documents importReferenceFiles return shape as `{refs, errors}` — actual export is `{imported, errors}` |
+| #177 | coderabbitai[bot] | Accept | `tasks/progress.md` same `{refs, errors}` vs `{imported, errors}` doc mismatch |
+| #177 | greptile-apps[bot] | Miss | Did not flag `{refs, errors}` doc mismatch in platform-status.md |
+| #177 | greptile-apps[bot] | Miss | Did not flag `{refs, errors}` doc mismatch in tasks/progress.md |
+| #177 | cubic-dev-ai[bot] | Miss | Did not flag `handleDrop` `preventDefault` before file check |
+| #177 | cubic-dev-ai[bot] | Miss | Did not flag `{refs, errors}` doc mismatch in platform-status.md |
+| #177 | cubic-dev-ai[bot] | Miss | Did not flag `{refs, errors}` doc mismatch in tasks/progress.md |

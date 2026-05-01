@@ -6,10 +6,8 @@ import { samplePixel as sampleReferenceBlobPixel } from '../../reference-images/
 import { decodeReferenceBlob } from '../../reference-images/decode-reference-blob';
 import { createReferenceSamplingPort } from '../../reference-images/sampling-port';
 import { createSamplingSession, type SamplingSession } from '../sampling/session.svelte';
-import { GRID_SIZE } from '../sampling/loupe-config';
+import { LOUPE_CENTER_INDEX } from '../sampling/loupe-config';
 import type { SamplingPort } from '../sampling/ports';
-
-const REFERENCE_LOUPE_CENTER_INDEX = (GRID_SIZE * GRID_SIZE - 1) / 2;
 import { createToolRunner, type ToolRunner, type EditorEffects } from '../tool-runner.svelte';
 import { exportAsPng } from '../export';
 import type { PointerType } from '../canvas-interaction.svelte';
@@ -227,7 +225,7 @@ export class TabState {
 	#referencePort: SamplingPort | null = null;
 
 	#previewSamplingCenter = (): void => {
-		const center = this.referenceSamplingSession.grid[REFERENCE_LOUPE_CENTER_INDEX];
+		const center = this.referenceSamplingSession.grid[LOUPE_CENTER_INDEX];
 		if (!center || center.a === 0) return;
 		this.#applyEffects([{ type: 'colorPick', target: 'foreground', color: center }]);
 	};
@@ -265,9 +263,9 @@ export class TabState {
 		// was already issued — without it, a release before the decode resolved
 		// would leave a "ghost" session active after the user already let go.
 		this.#refSampleSeq++;
+		this.#referencePort = null;
 		if (!this.referenceSamplingSession.isActive) return;
 		this.#applyEffects(this.referenceSamplingSession.commit());
-		this.#referencePort = null;
 	};
 
 	referenceSampleCommit = async (blob: Blob, imageX: number, imageY: number): Promise<void> => {

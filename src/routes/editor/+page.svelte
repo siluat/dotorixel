@@ -406,6 +406,7 @@
 	onkeyup={handleEditorKeyUp}
 	onblur={editor.handleBlur}
 	onbeforeunload={flushSession}
+	onpointerdown={pushReferencePointer}
 	onpointermove={pushReferencePointer}
 	onresize={handleWindowResize}
 />

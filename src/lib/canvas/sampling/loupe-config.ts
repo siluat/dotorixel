@@ -11,6 +11,9 @@
 /** Cells per side in the sampled grid (also passed to `sampleGrid`). */
 export const GRID_SIZE = 9;
 
+/** Index of the centre cell in the sampled grid — the colour the session commits. */
+export const LOUPE_CENTER_INDEX = (GRID_SIZE * GRID_SIZE - 1) / 2;
+
 /** Pixel size of each grid cell. Mirrors `.cell` width/height. */
 export const CELL_SIZE_PX = 24;
 

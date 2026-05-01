@@ -1,12 +1,23 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, within, fireEvent, cleanup } from '@testing-library/svelte';
+import type { ComponentProps } from 'svelte';
 import ReferenceWindowOverlay from './ReferenceWindowOverlay.svelte';
 import { ReferenceImagesStore } from './reference-images-store.svelte';
 import { createFakeDirtyNotifier } from '$lib/canvas/editor-session/fake-dirty-notifier';
 import type { ReferenceImage } from './reference-image-types';
 
 afterEach(() => cleanup());
+
+type OverlayProps = ComponentProps<typeof ReferenceWindowOverlay>;
+
+function renderOverlay(overrides: Partial<OverlayProps> & Pick<OverlayProps, 'store' | 'docId'>) {
+	return render(ReferenceWindowOverlay, {
+		viewportWidth: 1000,
+		viewportHeight: 1000,
+		...overrides
+	} as OverlayProps);
+}
 
 function makeRef(id: string, filename = `${id}.png`): ReferenceImage {
 	return {
@@ -30,7 +41,7 @@ describe('ReferenceWindowOverlay', () => {
 	});
 
 	it('renders nothing when no display states are visible', () => {
-		render(ReferenceWindowOverlay, { store, docId: 'doc-1' });
+		renderOverlay({ store, docId: 'doc-1' });
 		expect(screen.queryByRole('dialog')).toBeNull();
 	});
 
@@ -40,7 +51,7 @@ describe('ReferenceWindowOverlay', () => {
 		store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
 		store.display('ref-2', 'doc-1', { x: 50, y: 60, width: 80, height: 80 });
 
-		render(ReferenceWindowOverlay, { store, docId: 'doc-1' });
+		renderOverlay({ store, docId: 'doc-1' });
 
 		const windows = screen.getAllByRole('dialog');
 		expect(windows).toHaveLength(2);
@@ -52,7 +63,7 @@ describe('ReferenceWindowOverlay', () => {
 		store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
 		store.display('ref-2', 'doc-2', { x: 30, y: 40, width: 80, height: 80 });
 
-		render(ReferenceWindowOverlay, { store, docId: 'doc-1' });
+		renderOverlay({ store, docId: 'doc-1' });
 
 		const windows = screen.getAllByRole('dialog');
 		expect(windows).toHaveLength(1);
@@ -66,7 +77,7 @@ describe('ReferenceWindowOverlay', () => {
 		store.display('ref-2', 'doc-1', { x: 50, y: 60, width: 80, height: 80 });
 		store.close('ref-1', 'doc-1');
 
-		render(ReferenceWindowOverlay, { store, docId: 'doc-1' });
+		renderOverlay({ store, docId: 'doc-1' });
 
 		const windows = screen.getAllByRole('dialog');
 		expect(windows).toHaveLength(1);
@@ -79,7 +90,7 @@ describe('ReferenceWindowOverlay', () => {
 		store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 100 }); // z=1
 		store.display('ref-2', 'doc-1', { x: 50, y: 60, width: 80, height: 80 }); // z=2
 
-		render(ReferenceWindowOverlay, { store, docId: 'doc-1' });
+		renderOverlay({ store, docId: 'doc-1' });
 
 		const win1 = screen.getByRole('dialog', { name: 'ref-1.png' });
 		const win2 = screen.getByRole('dialog', { name: 'ref-2.png' });
@@ -92,7 +103,7 @@ describe('ReferenceWindowOverlay', () => {
 		store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
 		const spy = vi.spyOn(store, 'close');
 
-		render(ReferenceWindowOverlay, { store, docId: 'doc-1' });
+		renderOverlay({ store, docId: 'doc-1' });
 
 		const closeButton = screen.getByRole('button', { name: /close/i });
 		await fireEvent.click(closeButton);
@@ -100,9 +111,9 @@ describe('ReferenceWindowOverlay', () => {
 		expect(spy).toHaveBeenCalledWith('ref-1', 'doc-1');
 	});
 
-	it('fits a window larger than the viewport into the viewport for rendering', () => {
+	it('renders the stored placement geometry verbatim (refit/clamp is a store-side responsibility, not render-time)', () => {
 		store.add(makeRef('ref-1'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 800, height: 600 });
+		store.display('ref-1', 'doc-1', { x: 550, y: 350, width: 800, height: 600 });
 
 		render(ReferenceWindowOverlay, {
 			store,
@@ -112,28 +123,10 @@ describe('ReferenceWindowOverlay', () => {
 		});
 
 		const win = screen.getByRole('dialog');
-		expect(win.style.left).toBe('0px');
-		expect(win.style.top).toBe('0px');
-		expect(win.style.width).toBe('360px');
-		expect(win.style.height).toBe('500px');
-	});
-
-	it('clamps render position so a window placed off-screen returns into the viewport', () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 550, y: 350, width: 100, height: 100 });
-
-		render(ReferenceWindowOverlay, {
-			store,
-			docId: 'doc-1',
-			viewportWidth: 360,
-			viewportHeight: 500
-		});
-
-		const win = screen.getByRole('dialog');
-		expect(win.style.left).toBe('260px');
+		expect(win.style.left).toBe('550px');
 		expect(win.style.top).toBe('350px');
-		expect(win.style.width).toBe('100px');
-		expect(win.style.height).toBe('100px');
+		expect(win.style.width).toBe('800px');
+		expect(win.style.height).toBe('600px');
 	});
 
 	it('writes the new position to the store when a window is dragged by the title bar', async () => {
@@ -153,6 +146,28 @@ describe('ReferenceWindowOverlay', () => {
 		await fireEvent.pointerMove(titleBar, { pointerId: 1, clientX: 50, clientY: 30 });
 
 		expect(spy).toHaveBeenLastCalledWith('ref-1', 'doc-1', 150, 130);
+	});
+
+	it('does not write back on drag release when the released position already fits the viewport', async () => {
+		store.add(makeRef('ref-1'), 'doc-1');
+		store.display('ref-1', 'doc-1', { x: 100, y: 100, width: 200, height: 200 });
+		// Drain the markDirty from display() / setDisplayPosition() inside the drag.
+		const spy = vi.spyOn(store, 'setDisplayPosition');
+
+		render(ReferenceWindowOverlay, {
+			store,
+			docId: 'doc-1',
+			viewportWidth: 1000,
+			viewportHeight: 800
+		});
+
+		const titleBar = screen.getByText('ref-1.png').parentElement!;
+		await fireEvent.pointerDown(titleBar, { pointerId: 1, clientX: 0, clientY: 0 });
+		await fireEvent.pointerMove(titleBar, { pointerId: 1, clientX: 50, clientY: 30 });
+		spy.mockClear();
+		await fireEvent.pointerUp(titleBar, { pointerId: 1, clientX: 50, clientY: 30 });
+
+		expect(spy).not.toHaveBeenCalled();
 	});
 
 	it('clamps the stored position back into the viewport when the drag is released', async () => {
@@ -210,6 +225,33 @@ describe('ReferenceWindowOverlay', () => {
 		await fireEvent.pointerMove(handle, { pointerId: 1, clientX: 350, clientY: 250 });
 
 		expect(spy).toHaveBeenLastCalledWith('ref-1', 'doc-1', 300, 150);
+	});
+
+	it('stops a corner-handle resize at the viewport edge during a drag past the edge (drag-time clamp, aspect preserved)', async () => {
+		store.add(makeRef('ref-1'), 'doc-1');
+		store.display('ref-1', 'doc-1', { x: 100, y: 100, width: 200, height: 100 });
+		const spy = vi.spyOn(store, 'setDisplaySize');
+
+		render(ReferenceWindowOverlay, {
+			store,
+			docId: 'doc-1',
+			viewportWidth: 1000,
+			viewportHeight: 800
+		});
+
+		const handle = screen.getByRole('button', { name: /resize/i });
+		await fireEvent.pointerDown(handle, { pointerId: 1, clientX: 300, clientY: 200 });
+		await fireEvent.pointerMove(handle, { pointerId: 1, clientX: 5000, clientY: 5000 });
+
+		// Anchored top-left at (100, 100); viewport 1000x800 leaves 900x700 of room.
+		// Aspect 2:1 → width capped at 900 (which fits 700 vertically since 900/2=450 ≤ 700).
+		const lastCall = spy.mock.calls[spy.mock.calls.length - 1];
+		const [, , width, height] = lastCall;
+		expect(width as number).toBeLessThanOrEqual(900);
+		expect(height as number).toBeLessThanOrEqual(700);
+		expect((width as number) / (height as number)).toBeCloseTo(2, 5);
+		expect(width).toBeCloseTo(900, 5);
+		expect(height).toBeCloseTo(450, 5);
 	});
 
 	it('pointerdown on a non-active window raises it to the top of the z-order', async () => {

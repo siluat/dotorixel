@@ -2,9 +2,8 @@
 	import { ChevronDown, ChevronUp, X } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { ReferenceImage } from './reference-image-types';
-	import { computeResize } from './compute-resize';
+	import { commitResize } from './reference-window-placement';
 	import { windowToImageCoords } from './window-to-image-coords';
-	import { MIN_WINDOW_EDGE } from './reference-window-constants';
 	import {
 		createLongPressDetector,
 		type LongPressDetector,
@@ -20,6 +19,12 @@
 		height: number;
 		isActive: boolean;
 		minimized?: boolean;
+		/**
+		 * Viewport size used for drag-time clamping of corner-handle resizes so
+		 * the bottom-right edge cannot escape past the viewport.
+		 */
+		viewportWidth: number;
+		viewportHeight: number;
 		onClose: () => void;
 		onMove?: (x: number, y: number) => void;
 		onMoveCommit?: () => void;
@@ -47,6 +52,8 @@
 		height,
 		isActive,
 		minimized = false,
+		viewportWidth,
+		viewportHeight,
 		onClose,
 		onMove,
 		onMoveCommit,
@@ -98,6 +105,8 @@
 	}
 
 	let resizeOrigin: {
+		startX: number;
+		startY: number;
 		startWidth: number;
 		startHeight: number;
 		pointerX: number;
@@ -113,6 +122,8 @@
 		if (!onResize) return;
 		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 		resizeOrigin = {
+			startX: x,
+			startY: y,
 			startWidth: width,
 			startHeight: height,
 			pointerX: e.clientX,
@@ -122,13 +133,17 @@
 
 	function handleResizePointerMove(e: PointerEvent) {
 		if (!resizeOrigin || !onResize) return;
-		const next = computeResize({
-			startWidth: resizeOrigin.startWidth,
-			startHeight: resizeOrigin.startHeight,
-			deltaX: e.clientX - resizeOrigin.pointerX,
-			deltaY: e.clientY - resizeOrigin.pointerY,
-			minSize: MIN_WINDOW_EDGE
-		});
+		const next = commitResize(
+			{
+				x: resizeOrigin.startX,
+				y: resizeOrigin.startY,
+				width: resizeOrigin.startWidth,
+				height: resizeOrigin.startHeight
+			},
+			e.clientX - resizeOrigin.pointerX,
+			e.clientY - resizeOrigin.pointerY,
+			{ width: viewportWidth, height: viewportHeight }
+		);
 		onResize(next.width, next.height);
 	}
 

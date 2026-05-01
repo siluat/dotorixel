@@ -333,6 +333,89 @@ describe('ReferenceImagesStore', () => {
 			expect(store.nextCascadeIndex('doc-1')).toBe(2);
 		});
 
+		it('refitAll keeps the shrunk size after a viewport regrow (no auto-restoration)', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 800, height: 400 });
+
+			store.refitAll('doc-1', { width: 400, height: 400 });
+			const shrunk = store.displayStateFor('ref-1', 'doc-1')!;
+			notifier.reset();
+
+			store.refitAll('doc-1', { width: 1600, height: 1200 });
+
+			expect(store.displayStateFor('ref-1', 'doc-1')).toEqual(shrunk);
+			expect(notifier.dirtyCalls).toEqual([]);
+		});
+
+		it('refitAll fires one markDirty per actually-changed placement (dirty fan-out matches change count)', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.add(makeRef('ref-2'), 'doc-1');
+			store.add(makeRef('ref-3'), 'doc-1');
+			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 800, height: 400 });
+			store.display('ref-2', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
+			store.display('ref-3', 'doc-1', { x: 0, y: 0, width: 600, height: 300 });
+			notifier.reset();
+
+			store.refitAll('doc-1', { width: 400, height: 400 });
+
+			expect(notifier.dirtyCalls).toEqual(['doc-1', 'doc-1']);
+		});
+
+		it('refitAll skips closed (invisible) placements and never resizes them', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 800, height: 400 });
+			store.close('ref-1', 'doc-1');
+			notifier.reset();
+
+			store.refitAll('doc-1', { width: 400, height: 400 });
+
+			expect(store.displayStateFor('ref-1', 'doc-1')).toMatchObject({
+				visible: false,
+				width: 800,
+				height: 400
+			});
+			expect(notifier.dirtyCalls).toEqual([]);
+		});
+
+		it('refitAll shrinks an oversized visible placement (aspect-preserving) and fires markDirty for the changed one only', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.add(makeRef('ref-2'), 'doc-1');
+			// Already fits — should not change.
+			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
+			// Wider than the new viewport — must shrink, aspect-preserving.
+			store.display('ref-2', 'doc-1', { x: 0, y: 0, width: 800, height: 400 });
+			notifier.reset();
+
+			store.refitAll('doc-1', { width: 400, height: 400 });
+
+			const ref1 = store.displayStateFor('ref-1', 'doc-1');
+			const ref2 = store.displayStateFor('ref-2', 'doc-1');
+			expect(ref1).toMatchObject({ x: 0, y: 0, width: 100, height: 100 });
+			expect(ref2!.width).toBeCloseTo(400, 5);
+			expect(ref2!.height).toBeCloseTo(200, 5);
+			expect(ref2!.width / ref2!.height).toBeCloseTo(2, 5);
+			expect(notifier.dirtyCalls).toEqual(['doc-1']);
+		});
+
+		it('refitAll is a no-op (no markDirty, no state change) when every visible placement already fits the viewport', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.add(makeRef('ref-2'), 'doc-1');
+			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 80 });
+			store.display('ref-2', 'doc-1', { x: 200, y: 300, width: 150, height: 100 });
+			const before = store.displayStatesSnapshot();
+			notifier.reset();
+
+			store.refitAll('doc-1', { width: 1000, height: 800 });
+
+			expect(store.displayStatesSnapshot()).toEqual(before);
+			expect(notifier.dirtyCalls).toEqual([]);
+		});
+
 		it('flips visible to false on close, preserving x/y/w/h and zOrder', () => {
 			const store = new ReferenceImagesStore({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');

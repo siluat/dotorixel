@@ -1,6 +1,6 @@
 ---
 title: Deepen reference image lifecycle — promote intake/display orchestration into a References class
-status: ready-for-human
+status: done
 created: 2026-05-03
 ---
 
@@ -103,3 +103,30 @@ Sharpened in `CONTEXT.md` so the `importDroppedBatch` method name reads as a dom
 ## Blocked by
 
 None — can start immediately.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/reference-images/references.svelte.ts` | Renamed from `reference-images-store.svelte.ts`. Class renamed `ReferenceImagesStore` → `References`. Adds `importToGallery`, `importDroppedBatch`, `openCentered`, `toggleDisplay` lifecycle methods plus private `#importOne`, `#displayCentered`, `#nextCascadeIndex`. `ImportError` and `ImportFileError` types now exported from this file. |
+| `src/lib/reference-images/references.svelte.test.ts` | Renamed from `reference-images-store.svelte.test.ts`. Absorbs coverage from the deleted intake/select tests. Replaces `vi.spyOn(singleImport, 'importReferenceImage')` with `vi.stubGlobal('createImageBitmap', …)` + a fake `OffscreenCanvas`, since `#importOne` is no longer reachable as a free function. Adds `installFakeImageDecoding` / `installDecodeFailure` helpers. |
+| `src/lib/reference-images/select-reference.{ts,test.ts}` | Deleted. `selectReference` and `displayReference` orchestration folded into `References.openCentered` / `References.toggleDisplay`. |
+| `src/lib/reference-images/import-reference-files.{ts,test.ts}` | Deleted. Batch intake folded into `References.importToGallery` / `importDroppedBatch`. |
+| `src/lib/reference-images/import-reference-image.{ts,test.ts}` | Deleted. Single-file intake (validate → `createImageBitmap` → `OffscreenCanvas` thumbnail) inlined as `References.#importOne`. `THUMBNAIL_LONGEST_EDGE = 256` moved alongside it. |
+| `src/lib/canvas/editor-session/workspace.svelte.ts` | Updated import path and class name (`ReferenceImagesStore` → `References`). |
+| `src/lib/reference-images/ReferenceWindowOverlay.svelte` | Updated `store` prop type to `References`. The overlay's direct `show` / `close` / `set*` calls are intentionally preserved — the geometry/visibility primitives stay public for window-level UI. |
+| `src/lib/reference-images/ReferenceWindowOverlay.svelte.test.ts` | Updated import path and class name. Existing fixture-only `store.add(…)` / `store.display(…)` calls preserved (see Key Decisions). |
+| `src/routes/editor/+page.svelte` | The four reference handlers (`importToGallery`, `handleCanvasDrop`, `handleReferenceSelect`, `handleReferenceToggleDisplay`) shrank to delegations + i18n only. Page no longer imports `select-reference`, `import-reference-files`, `createPlacement`, or `CASCADE_OFFSET`. `ImportError` type now imported from `references.svelte`. |
+
+### Key Decisions
+
+- **`add` and `display` stay public** — diverges from the issue's "0 consumers touched" claim for commit 3. Discovered during commit 3 prep that `ReferenceWindowOverlay.svelte.test.ts` (~50 fixture calls) and `workspace.svelte.test.ts` (1 call) use these primitives to build display states with precise coordinates — fixture seams that have no lifecycle meaning. Routing those through lifecycle methods would degrade test readability for no real enforcement gain (the issue's `restoredDisplayStates` constructor option already permits state-injection fixtures by design). `#nextCascadeIndex` *is* `#`-private, which captures the issue's enforcement intent for the cascade-slot ownership.
+- **No `#ensureDisplayed` helper** — the issue lists this as a private helper, but with `add`/`display` staying public the only place that benefits is `openCentered`, where one inline call to `this.show(…)` covers it. Keeping it inline keeps the lifecycle method readable as a 2-branch decision rather than a delegation.
+- **Fake decoder via `vi.stubGlobal` rather than DI seam** — `#importOne` is properly private, so the previous `vi.spyOn(singleImport, 'importReferenceImage')` pattern no longer applies. Adding a constructor-injected decoder dependency would have grown the public surface for a test concern. Stubbing `createImageBitmap` and `OffscreenCanvas` globals matches the "fail at the boundary, trust the core" rule and keeps `References` API focused on lifecycle, not infrastructure.
+
+### Notes
+
+- 4 commits as planned (additive → migration → deletion+encapsulation → rename), all green at each step (`bun run check`, `bun run test`, `cargo test`).
+- Test count change: 847 → 836. Net −11 = 6 deleted test files (~10 cases) + 4 removed `nextCascadeIndex` direct unit tests − 3 absorbed validation/decode cases now covered via `importToGallery`.
+- `+page.svelte` reference imports collapsed from 9 to 4 (3 components, 1 type, 1 dropzone) — slightly more than the issue's projected "9 to 2" because the issue counted only library imports, not Svelte component imports. The intent (no `select-reference`/`createPlacement`/`CASCADE_OFFSET` at the page) is satisfied.
+- Out-of-scope cleanups still pending — the 4 shallow sampling helpers (`sampler.ts`, `sample-pixel.ts`, `sampling-port.ts`, `decode-reference-blob.ts`) and the duplicate `samplePixel` name remain a separate deepening candidate.

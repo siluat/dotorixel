@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createFakeDirtyNotifier, type FakeDirtyNotifier } from '$lib/canvas/editor-session/fake-dirty-notifier';
-import { ReferenceImagesStore } from './reference-images-store.svelte';
+import { References } from './references.svelte';
 import type { ReferenceImage } from './reference-image-types';
 
 type ImportedShape = { width: number; height: number };
@@ -60,7 +60,7 @@ function makeRef(id: string, filename = `${id}.png`): ReferenceImage {
 	};
 }
 
-describe('ReferenceImagesStore', () => {
+describe('References', () => {
 	let notifier: FakeDirtyNotifier;
 
 	beforeEach(() => {
@@ -68,13 +68,13 @@ describe('ReferenceImagesStore', () => {
 	});
 
 	it('returns an empty list for a doc that has no references', () => {
-		const store = new ReferenceImagesStore({ notifier });
+		const store = new References({ notifier });
 
 		expect(store.forDoc('doc-1')).toEqual([]);
 	});
 
 	it('returns added references for the doc and marks the doc dirty', () => {
-		const store = new ReferenceImagesStore({ notifier });
+		const store = new References({ notifier });
 		const ref = makeRef('ref-1');
 
 		store.add(ref, 'doc-1');
@@ -84,7 +84,7 @@ describe('ReferenceImagesStore', () => {
 	});
 
 	it('keeps references isolated per doc', () => {
-		const store = new ReferenceImagesStore({ notifier });
+		const store = new References({ notifier });
 		const refA = makeRef('ref-a');
 		const refB = makeRef('ref-b');
 
@@ -96,7 +96,7 @@ describe('ReferenceImagesStore', () => {
 	});
 
 	it('deletes a reference by id and marks the doc dirty', () => {
-		const store = new ReferenceImagesStore({ notifier });
+		const store = new References({ notifier });
 		const refA = makeRef('ref-a');
 		const refB = makeRef('ref-b');
 		store.add(refA, 'doc-1');
@@ -110,7 +110,7 @@ describe('ReferenceImagesStore', () => {
 	});
 
 	it('removes all references for a doc on removeDoc, leaving other docs intact', () => {
-		const store = new ReferenceImagesStore({ notifier });
+		const store = new References({ notifier });
 		store.add(makeRef('ref-a'), 'doc-1');
 		const refB = makeRef('ref-b');
 		store.add(refB, 'doc-2');
@@ -122,7 +122,7 @@ describe('ReferenceImagesStore', () => {
 	});
 
 	it('exports a snapshot of all docs', () => {
-		const store = new ReferenceImagesStore({ notifier });
+		const store = new References({ notifier });
 		const refA = makeRef('ref-a');
 		const refB = makeRef('ref-b');
 		store.add(refA, 'doc-1');
@@ -136,7 +136,7 @@ describe('ReferenceImagesStore', () => {
 
 	describe('display states', () => {
 		it('creates a visible DisplayState on display, with zOrder, and marks the doc dirty', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			const ref = makeRef('ref-1');
 			store.add(ref, 'doc-1');
 			notifier.reset();
@@ -159,7 +159,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('show flips visible back to true, preserves x/y/w/h, and bumps zOrder above the current max', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');
 			store.add(makeRef('ref-2'), 'doc-1');
 			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
@@ -185,12 +185,12 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('round-trips displayStates via displayStatesSnapshot and restoredDisplayStates', () => {
-			const store1 = new ReferenceImagesStore({ notifier });
+			const store1 = new References({ notifier });
 			store1.add(makeRef('ref-1'), 'doc-1');
 			store1.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
 			store1.close('ref-1', 'doc-1');
 
-			const store2 = new ReferenceImagesStore({
+			const store2 = new References({
 				notifier,
 				restored: store1.toSnapshot(),
 				restoredDisplayStates: store1.displayStatesSnapshot()
@@ -211,7 +211,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('displayStateFor returns undefined when absent, the DisplayState when present', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');
 
 			expect(store.displayStateFor('ref-1', 'doc-1')).toBeUndefined();
@@ -225,7 +225,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('removeDoc clears references and displayStates for that doc', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');
 			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
 
@@ -236,7 +236,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('delete removes the reference and its DisplayState together', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');
 			store.add(makeRef('ref-2'), 'doc-1');
 			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
@@ -250,7 +250,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('setDisplaySize updates width/height, preserves the rest, and marks the doc dirty', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');
 			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
 			notifier.reset();
@@ -271,7 +271,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('setDisplayPosition updates x/y, preserves the rest, and marks the doc dirty', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');
 			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
 			notifier.reset();
@@ -292,12 +292,12 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('round-trips the minimized flag via displayStatesSnapshot and restoredDisplayStates', () => {
-			const store1 = new ReferenceImagesStore({ notifier });
+			const store1 = new References({ notifier });
 			store1.add(makeRef('ref-1'), 'doc-1');
 			store1.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
 			store1.setMinimized('ref-1', 'doc-1', true);
 
-			const store2 = new ReferenceImagesStore({
+			const store2 = new References({
 				notifier,
 				restored: store1.toSnapshot(),
 				restoredDisplayStates: store1.displayStatesSnapshot()
@@ -310,7 +310,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('setMinimized flips the minimized flag, preserves the rest, and marks the doc dirty', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');
 			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
 			notifier.reset();
@@ -331,7 +331,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('refitAll keeps the shrunk size after a viewport regrow (no auto-restoration)', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');
 			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 800, height: 400 });
 
@@ -346,7 +346,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('refitAll fires one markDirty per actually-changed placement (dirty fan-out matches change count)', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');
 			store.add(makeRef('ref-2'), 'doc-1');
 			store.add(makeRef('ref-3'), 'doc-1');
@@ -361,7 +361,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('refitAll skips closed (invisible) placements and never resizes them', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');
 			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 800, height: 400 });
 			store.close('ref-1', 'doc-1');
@@ -378,7 +378,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('refitAll shrinks an oversized visible placement (aspect-preserving) and fires markDirty for the changed one only', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');
 			store.add(makeRef('ref-2'), 'doc-1');
 			// Already fits — should not change.
@@ -399,7 +399,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('refitAll is a no-op (no markDirty, no state change) when every visible placement already fits the viewport', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');
 			store.add(makeRef('ref-2'), 'doc-1');
 			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 80 });
@@ -414,7 +414,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('flips visible to false on close, preserving x/y/w/h and zOrder', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');
 			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
 			notifier.reset();
@@ -451,7 +451,7 @@ describe('ReferenceImagesStore', () => {
 				{ width: 100, height: 50 },
 				{ width: 200, height: 80 }
 			]);
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 
 			const result = await store.importToGallery(
 				[makeFile('a.png'), makeFile('b.png')],
@@ -468,7 +468,7 @@ describe('ReferenceImagesStore', () => {
 
 		it('keeps valid files and surfaces validation failures as typed errors paired with the source file', async () => {
 			installFakeImageDecoding([{ width: 100, height: 100 }]);
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			const valid = makeFile('keep.png');
 			const oversize = makeFile('big.png', 'image/png', 10 * 1024 * 1024 + 1);
 			const unsupported = makeFile('weird.svg', 'image/svg+xml');
@@ -483,7 +483,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('rejects an SVG file with unsupported-format before touching the decoder', async () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			const svg = makeFile('weird.svg', 'image/svg+xml');
 
 			const result = await store.importToGallery([svg], 'doc-1');
@@ -493,7 +493,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('rejects a >10MB file with too-large before touching the decoder', async () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			const big = makeFile('big.png', 'image/png', 10 * 1024 * 1024 + 1);
 
 			const result = await store.importToGallery([big], 'doc-1');
@@ -504,7 +504,7 @@ describe('ReferenceImagesStore', () => {
 
 		it('surfaces decode-failed when the decoder throws', async () => {
 			installDecodeFailure();
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			const file = makeFile('broken.png');
 
 			const result = await store.importToGallery([file], 'doc-1');
@@ -530,7 +530,7 @@ describe('ReferenceImagesStore', () => {
 				{ width: 100, height: 100 },
 				{ width: 100, height: 100 }
 			]);
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 
 			await store.importDroppedBatch(
 				[makeFile('a.png'), makeFile('b.png')],
@@ -551,7 +551,7 @@ describe('ReferenceImagesStore', () => {
 
 		it('places every successful import — failed ones are skipped from display, errors propagate', async () => {
 			installFakeImageDecoding([{ width: 100, height: 100 }]);
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			const ok = makeFile('ok.png');
 			const bad = makeFile('bad.svg', 'image/svg+xml');
 
@@ -573,7 +573,7 @@ describe('ReferenceImagesStore', () => {
 				{ width: 100, height: 100 },
 				{ width: 100, height: 100 }
 			]);
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 
 			await store.importDroppedBatch(
 				[makeFile('a.png'), makeFile('b.png')],
@@ -607,7 +607,7 @@ describe('ReferenceImagesStore', () => {
 		const VIEWPORT = { width: 1000, height: 800 };
 
 		it('raises an already-visible reference to the top z-order, leaving it visible', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('a'), 'doc-1');
 			store.add(makeRef('b'), 'doc-1');
 			store.display('a', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
@@ -624,7 +624,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('reopens a hidden (visible=false) reference and raises it to the top z-order', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('a'), 'doc-1');
 			store.display('a', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
 			store.close('a', 'doc-1');
@@ -638,7 +638,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('creates a fresh centered placement for a never-shown reference, consuming the doc cascade slot', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('a'), 'doc-1');
 			store.add(makeRef('b'), 'doc-1');
 
@@ -658,7 +658,7 @@ describe('ReferenceImagesStore', () => {
 		const VIEWPORT = { width: 1000, height: 800 };
 
 		it('hides a currently visible reference', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('a'), 'doc-1');
 			store.display('a', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
 
@@ -668,7 +668,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('reopens a hidden reference and raises it to the top z-order', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('a'), 'doc-1');
 			store.add(makeRef('b'), 'doc-1');
 			store.display('a', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
@@ -685,7 +685,7 @@ describe('ReferenceImagesStore', () => {
 		});
 
 		it('creates a fresh centered placement for a never-shown reference (preserves "first toggle opens" UX)', () => {
-			const store = new ReferenceImagesStore({ notifier });
+			const store = new References({ notifier });
 			store.add(makeRef('a'), 'doc-1');
 
 			store.toggleDisplay('a', 'doc-1', VIEWPORT);

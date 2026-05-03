@@ -23,7 +23,7 @@ type ImportOneResult =
 	| { ok: true; reference: ReferenceImage }
 	| { ok: false; error: ImportError };
 
-export class ReferenceImagesStore {
+export class References {
 	#notifier: DirtyNotifier;
 	#byDoc = $state<Record<string, ReferenceImage[]>>({});
 	#displayByDoc = $state<Record<string, DisplayState[]>>({});

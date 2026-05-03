@@ -5,7 +5,7 @@ import type { ToolType } from '../tool-registry';
 import { isValidToolType } from '../tool-registry';
 import { SharedState } from '../shared-state.svelte';
 import type { WorkspaceSnapshot, TabSnapshot } from '../workspace-snapshot';
-import { ReferenceImagesStore } from '$lib/reference-images/reference-images-store.svelte';
+import { References } from '$lib/reference-images/references.svelte';
 import type { CanvasBackend } from './canvas-backend';
 import type { DirtyNotifier } from './dirty-notifier';
 import { TabState } from './tab-state.svelte';
@@ -57,7 +57,7 @@ export interface OpenDocumentInput {
  */
 export class Workspace {
 	readonly shared: SharedState;
-	readonly references: ReferenceImagesStore;
+	readonly references: References;
 	tabs = $state<TabState[]>([]);
 	activeIndex = $state(0);
 
@@ -86,7 +86,7 @@ export class Workspace {
 					Object.entries(deps.restored.displayStates).map(([id, states]) => [id, [...states]])
 				)
 			: undefined;
-		this.references = new ReferenceImagesStore({
+		this.references = new References({
 			notifier: deps.notifier,
 			restored: restoredRefs,
 			restoredDisplayStates

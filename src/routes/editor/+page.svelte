@@ -25,7 +25,7 @@
 	import ReferenceBrowserSheet from '$lib/reference-images/ReferenceBrowserSheet.svelte';
 	import ReferenceWindowOverlay from '$lib/reference-images/ReferenceWindowOverlay.svelte';
 	import Loupe from '$lib/ui-editor/Loupe.svelte';
-	import type { ImportError } from '$lib/reference-images/reference-images-store.svelte';
+	import type { ImportError } from '$lib/reference-images/references.svelte';
 	import { canvasDropzone } from '$lib/reference-images/canvas-dropzone';
 	import * as m from '$lib/paraglide/messages';
 	import type { ReferenceImage } from '$lib/reference-images/reference-image-types';

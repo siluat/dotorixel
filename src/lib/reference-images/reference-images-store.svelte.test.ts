@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createFakeDirtyNotifier, type FakeDirtyNotifier } from '$lib/canvas/editor-session/fake-dirty-notifier';
 import { ReferenceImagesStore } from './reference-images-store.svelte';
+import * as singleImport from './import-reference-image';
 import type { ReferenceImage } from './reference-image-types';
 
 function makeRef(id: string, filename = `${id}.png`): ReferenceImage {
@@ -437,6 +438,225 @@ describe('ReferenceImagesStore', () => {
 				}
 			]);
 			expect(notifier.dirtyCalls).toEqual(['doc-1']);
+		});
+	});
+
+	describe('importToGallery', () => {
+		function makeFile(name: string, type = 'image/png'): File {
+			return new File([new Uint8Array([0])], name, { type });
+		}
+
+		beforeEach(() => {
+			vi.spyOn(singleImport, 'importReferenceImage').mockReset();
+		});
+
+		afterEach(() => {
+			vi.restoreAllMocks();
+		});
+
+		it('adds every successfully imported file to the doc in input order, with no display state', async () => {
+			const store = new ReferenceImagesStore({ notifier });
+			const refA = makeRef('a');
+			const refB = makeRef('b');
+			vi.spyOn(singleImport, 'importReferenceImage')
+				.mockResolvedValueOnce({ ok: true, reference: refA })
+				.mockResolvedValueOnce({ ok: true, reference: refB });
+
+			const result = await store.importToGallery([makeFile('a.png'), makeFile('b.png')], 'doc-1');
+
+			expect(store.forDoc('doc-1').map((r) => r.id)).toEqual(['a', 'b']);
+			expect(store.displayStatesForDoc('doc-1')).toEqual([]);
+			expect(result.errors).toEqual([]);
+		});
+
+		it('skips failed imports and surfaces them as typed errors paired with the source file', async () => {
+			const store = new ReferenceImagesStore({ notifier });
+			const valid = makeFile('keep.png');
+			const oversize = makeFile('big.png');
+			const unsupported = makeFile('weird.svg', 'image/svg+xml');
+			vi.spyOn(singleImport, 'importReferenceImage')
+				.mockResolvedValueOnce({ ok: true, reference: makeRef('keep') })
+				.mockResolvedValueOnce({ ok: false, error: { kind: 'too-large' } })
+				.mockResolvedValueOnce({ ok: false, error: { kind: 'unsupported-format' } });
+
+			const result = await store.importToGallery([valid, oversize, unsupported], 'doc-1');
+
+			expect(store.forDoc('doc-1').map((r) => r.id)).toEqual(['keep']);
+			expect(result.errors).toEqual([
+				{ file: oversize, error: { kind: 'too-large' } },
+				{ file: unsupported, error: { kind: 'unsupported-format' } }
+			]);
+		});
+	});
+
+	describe('importDroppedBatch', () => {
+		function makeFile(name: string, type = 'image/png'): File {
+			return new File([new Uint8Array([0])], name, { type });
+		}
+
+		const VIEWPORT = { width: 1000, height: 800 };
+
+		beforeEach(() => {
+			vi.spyOn(singleImport, 'importReferenceImage').mockReset();
+		});
+
+		afterEach(() => {
+			vi.restoreAllMocks();
+		});
+
+		it('places successive references along an intra-batch cascade from the drop anchor (24px down-right per index)', async () => {
+			const store = new ReferenceImagesStore({ notifier });
+			const refA = makeRef('a');
+			const refB = makeRef('b');
+			vi.spyOn(singleImport, 'importReferenceImage')
+				.mockResolvedValueOnce({ ok: true, reference: refA })
+				.mockResolvedValueOnce({ ok: true, reference: refB });
+
+			await store.importDroppedBatch(
+				[makeFile('a.png'), makeFile('b.png')],
+				'doc-1',
+				{ x: 500, y: 400 },
+				VIEWPORT
+			);
+
+			const sA = store.displayStateFor('a', 'doc-1')!;
+			const sB = store.displayStateFor('b', 'doc-1')!;
+			expect(sA).toBeDefined();
+			expect(sB).toBeDefined();
+			expect(sB.x - sA.x).toBe(24);
+			expect(sB.y - sA.y).toBe(24);
+		});
+
+		it('does not advance the document cascade index — at-point intents bypass the cascade slot', async () => {
+			const store = new ReferenceImagesStore({ notifier });
+			vi.spyOn(singleImport, 'importReferenceImage')
+				.mockResolvedValueOnce({ ok: true, reference: makeRef('a') })
+				.mockResolvedValueOnce({ ok: true, reference: makeRef('b') });
+
+			await store.importDroppedBatch(
+				[makeFile('a.png'), makeFile('b.png')],
+				'doc-1',
+				{ x: 500, y: 400 },
+				VIEWPORT
+			);
+			// Both windows are visible — but the cascade index must reflect them
+			// only because they hold visible display state, not because the
+			// at-point path "consumed" cascade slots. This test asserts the
+			// path doesn't trigger any centered-cascade behaviour.
+			expect(store.nextCascadeIndex('doc-1')).toBe(2); // visible-window count
+		});
+
+		it('skips failed imports — they get neither a reference entry nor a display state, but errors propagate', async () => {
+			const store = new ReferenceImagesStore({ notifier });
+			const ok = makeFile('ok.png');
+			const bad = makeFile('bad.png');
+			vi.spyOn(singleImport, 'importReferenceImage')
+				.mockResolvedValueOnce({ ok: true, reference: makeRef('ok') })
+				.mockResolvedValueOnce({ ok: false, error: { kind: 'decode-failed' } });
+
+			const result = await store.importDroppedBatch(
+				[ok, bad],
+				'doc-1',
+				{ x: 100, y: 100 },
+				VIEWPORT
+			);
+
+			expect(store.forDoc('doc-1').map((r) => r.id)).toEqual(['ok']);
+			expect(store.displayStatesForDoc('doc-1').map((s) => s.refId)).toEqual(['ok']);
+			expect(result.errors).toEqual([{ file: bad, error: { kind: 'decode-failed' } }]);
+		});
+	});
+
+	describe('openCentered', () => {
+		const VIEWPORT = { width: 1000, height: 800 };
+
+		it('raises an already-visible reference to the top z-order, leaving it visible', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('a'), 'doc-1');
+			store.add(makeRef('b'), 'doc-1');
+			store.display('a', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
+			store.display('b', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
+			const aBefore = store.displayStateFor('a', 'doc-1')!;
+			const bZ = store.displayStateFor('b', 'doc-1')!.zOrder;
+
+			store.openCentered('a', 'doc-1', VIEWPORT);
+
+			const aAfter = store.displayStateFor('a', 'doc-1')!;
+			expect(aAfter.visible).toBe(true);
+			expect(aAfter.zOrder).toBeGreaterThan(bZ);
+			expect(aAfter.zOrder).toBeGreaterThan(aBefore.zOrder);
+		});
+
+		it('reopens a hidden (visible=false) reference and raises it to the top z-order', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('a'), 'doc-1');
+			store.display('a', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
+			store.close('a', 'doc-1');
+
+			store.openCentered('a', 'doc-1', VIEWPORT);
+
+			const after = store.displayStateFor('a', 'doc-1')!;
+			expect(after.visible).toBe(true);
+			expect(after.x).toBe(10); // existing geometry preserved (no fresh placement)
+			expect(after.y).toBe(20);
+		});
+
+		it('creates a fresh centered placement for a never-shown reference, consuming the doc cascade slot', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('a'), 'doc-1');
+			store.add(makeRef('b'), 'doc-1');
+
+			store.openCentered('a', 'doc-1', VIEWPORT);
+			store.openCentered('b', 'doc-1', VIEWPORT);
+
+			const a = store.displayStateFor('a', 'doc-1')!;
+			const b = store.displayStateFor('b', 'doc-1')!;
+			expect(a).toBeDefined();
+			expect(b).toBeDefined();
+			expect(b.x - a.x).toBe(24); // centered cascade offset
+			expect(b.y - a.y).toBe(24);
+		});
+	});
+
+	describe('toggleDisplay', () => {
+		const VIEWPORT = { width: 1000, height: 800 };
+
+		it('hides a currently visible reference', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('a'), 'doc-1');
+			store.display('a', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
+
+			store.toggleDisplay('a', 'doc-1', VIEWPORT);
+
+			expect(store.displayStateFor('a', 'doc-1')!.visible).toBe(false);
+		});
+
+		it('reopens a hidden reference and raises it to the top z-order', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('a'), 'doc-1');
+			store.add(makeRef('b'), 'doc-1');
+			store.display('a', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
+			store.display('b', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
+			store.close('a', 'doc-1');
+			const bZ = store.displayStateFor('b', 'doc-1')!.zOrder;
+
+			store.toggleDisplay('a', 'doc-1', VIEWPORT);
+
+			const after = store.displayStateFor('a', 'doc-1')!;
+			expect(after.visible).toBe(true);
+			expect(after.x).toBe(10); // existing geometry preserved
+			expect(after.zOrder).toBeGreaterThan(bZ);
+		});
+
+		it('creates a fresh centered placement for a never-shown reference (preserves "first toggle opens" UX)', () => {
+			const store = new ReferenceImagesStore({ notifier });
+			store.add(makeRef('a'), 'doc-1');
+
+			store.toggleDisplay('a', 'doc-1', VIEWPORT);
+
+			const after = store.displayStateFor('a', 'doc-1');
+			expect(after).toBeDefined();
+			expect(after!.visible).toBe(true);
 		});
 	});
 });

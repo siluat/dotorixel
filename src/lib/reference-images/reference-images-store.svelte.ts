@@ -2,7 +2,14 @@ import type { DirtyNotifier } from '$lib/canvas/editor-session/dirty-notifier';
 import type { ReferenceImage } from './reference-image-types';
 import type { DisplayState } from './display-state-types';
 import type { Placement, Viewport } from './reference-window-placement';
-import { refitPlacement } from './reference-window-placement';
+import { createPlacement, refitPlacement } from './reference-window-placement';
+import { CASCADE_OFFSET } from './reference-window-constants';
+import { importReferenceImage, type ImportError } from './import-reference-image';
+
+export type ImportFileError = {
+	file: File;
+	error: ImportError;
+};
 
 export class ReferenceImagesStore {
 	#notifier: DirtyNotifier;
@@ -173,6 +180,131 @@ export class ReferenceImagesStore {
 		for (let i = 0; i < changedCount; i++) {
 			this.#notifier.markDirty(docId);
 		}
+	}
+
+	/**
+	 * Validate, decode, thumbnail, and add each file to the doc's gallery
+	 * sequentially in input order. Imports that fail validation or decoding
+	 * are returned as typed errors paired with the source `File`; callers
+	 * format localized messages from those.
+	 *
+	 * No display state is created — gallery import is intake-only.
+	 */
+	async importToGallery(
+		files: Iterable<File>,
+		docId: string
+	): Promise<{ errors: ImportFileError[] }> {
+		const errors: ImportFileError[] = [];
+		for (const file of files) {
+			const result = await importReferenceImage(file);
+			if (result.ok) {
+				this.add(result.reference, docId);
+			} else {
+				errors.push({ file, error: result.error });
+			}
+		}
+		return { errors };
+	}
+
+	/**
+	 * Drop-batch intake: validate/decode/thumbnail each file, add it, and
+	 * place it on the canvas with an *at-point* placement anchored at
+	 * `(anchor.x + index × CASCADE_OFFSET, anchor.y + index × CASCADE_OFFSET)`.
+	 *
+	 * The intra-batch cascade is local to this drop — the document's
+	 * centered-cascade slot (`nextCascadeIndex`) is not advanced. Failed
+	 * imports are skipped and surfaced as errors paired with the source `File`.
+	 */
+	async importDroppedBatch(
+		files: Iterable<File>,
+		docId: string,
+		anchor: { x: number; y: number },
+		viewport: Viewport
+	): Promise<{ errors: ImportFileError[] }> {
+		const safeViewport: Viewport = {
+			width: Math.max(viewport.width, 1),
+			height: Math.max(viewport.height, 1)
+		};
+		const errors: ImportFileError[] = [];
+		let index = 0;
+		for (const file of files) {
+			const result = await importReferenceImage(file);
+			if (!result.ok) {
+				errors.push({ file, error: result.error });
+				continue;
+			}
+			const ref = result.reference;
+			this.add(ref, docId);
+			const placement = createPlacement(
+				{ width: ref.naturalWidth, height: ref.naturalHeight },
+				{
+					kind: 'at-point',
+					x: anchor.x + index * CASCADE_OFFSET,
+					y: anchor.y + index * CASCADE_OFFSET
+				},
+				safeViewport
+			);
+			this.display(ref.id, docId, placement);
+			index++;
+		}
+		return { errors };
+	}
+
+	/**
+	 * Gallery-card "open" action: ensures the reference window is visible at
+	 * the top z-order on return.
+	 *
+	 * - Existing display state (visible or hidden) → raises z-order via `show`.
+	 * - No display state → creates a fresh *centered* placement, consuming
+	 *   the document's cascade slot.
+	 *
+	 * Requires that the reference exists in the doc (callers obtain `refId`
+	 * from the gallery list of refs already in the store).
+	 */
+	openCentered(refId: string, docId: string, viewport: Viewport): void {
+		const existing = this.displayStateFor(refId, docId);
+		if (existing) {
+			this.show(refId, docId);
+			return;
+		}
+		this.#displayCentered(refId, docId, viewport);
+	}
+
+	/**
+	 * Gallery toggle-button action: cycles a reference window's visibility.
+	 *
+	 * - Visible → close (becomes hidden).
+	 * - Hidden → show (becomes visible, raises z-order).
+	 * - No display state → fresh centered placement (preserves the "first
+	 *   toggle opens" UX).
+	 */
+	toggleDisplay(refId: string, docId: string, viewport: Viewport): void {
+		const existing = this.displayStateFor(refId, docId);
+		if (existing && existing.visible) {
+			this.close(refId, docId);
+			return;
+		}
+		if (existing) {
+			this.show(refId, docId);
+			return;
+		}
+		this.#displayCentered(refId, docId, viewport);
+	}
+
+	#displayCentered(refId: string, docId: string, viewport: Viewport): void {
+		const ref = this.forDoc(docId).find((r) => r.id === refId);
+		if (!ref) return;
+		const safeViewport: Viewport = {
+			width: Math.max(viewport.width, 1),
+			height: Math.max(viewport.height, 1)
+		};
+		const cascadeIndex = this.nextCascadeIndex(docId);
+		const placement = createPlacement(
+			{ width: ref.naturalWidth, height: ref.naturalHeight },
+			{ kind: 'centered', cascadeIndex },
+			safeViewport
+		);
+		this.display(refId, docId, placement);
 	}
 
 	setMinimized(refId: string, docId: string, minimized: boolean): void {

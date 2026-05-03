@@ -4,12 +4,24 @@ import type { DisplayState } from './display-state-types';
 import type { Placement, Viewport } from './reference-window-placement';
 import { createPlacement, refitPlacement } from './reference-window-placement';
 import { CASCADE_OFFSET } from './reference-window-constants';
-import { importReferenceImage, type ImportError } from './import-reference-image';
+import { validateFile, type ValidationResult } from './import-validator';
+import { computeThumbnailDimensions } from './thumbnail';
+
+export type ImportError =
+	| { kind: 'unsupported-format' }
+	| { kind: 'too-large' }
+	| { kind: 'decode-failed' };
 
 export type ImportFileError = {
 	file: File;
 	error: ImportError;
 };
+
+const THUMBNAIL_LONGEST_EDGE = 256;
+
+type ImportOneResult =
+	| { ok: true; reference: ReferenceImage }
+	| { ok: false; error: ImportError };
 
 export class ReferenceImagesStore {
 	#notifier: DirtyNotifier;
@@ -131,13 +143,14 @@ export class ReferenceImagesStore {
 	}
 
 	/**
-	 * Cascade index for the next reference window to be displayed in this doc.
+	 * Cascade index for the next centered reference window in this doc.
 	 *
 	 * Equals the count of currently visible windows so each new window is offset
-	 * by `index × 24px` from the viewport center. Resets to 0 once all visible
-	 * windows are dismissed; closed-but-still-existing states do not contribute.
+	 * by `index × CASCADE_OFFSET` from the viewport center. Drops to 0 once all
+	 * visible windows are dismissed; closed-but-still-existing states do not
+	 * contribute. Owned by the centered-open lifecycle path (`#displayCentered`).
 	 */
-	nextCascadeIndex(docId: string): number {
+	#nextCascadeIndex(docId: string): number {
 		const states = this.#displayByDoc[docId] ?? [];
 		return states.filter((s) => s.visible).length;
 	}
@@ -196,7 +209,7 @@ export class ReferenceImagesStore {
 	): Promise<{ errors: ImportFileError[] }> {
 		const errors: ImportFileError[] = [];
 		for (const file of files) {
-			const result = await importReferenceImage(file);
+			const result = await this.#importOne(file);
 			if (result.ok) {
 				this.add(result.reference, docId);
 			} else {
@@ -228,7 +241,7 @@ export class ReferenceImagesStore {
 		const errors: ImportFileError[] = [];
 		let index = 0;
 		for (const file of files) {
-			const result = await importReferenceImage(file);
+			const result = await this.#importOne(file);
 			if (!result.ok) {
 				errors.push({ file, error: result.error });
 				continue;
@@ -291,6 +304,55 @@ export class ReferenceImagesStore {
 		this.#displayCentered(refId, docId, viewport);
 	}
 
+	async #importOne(file: File): Promise<ImportOneResult> {
+		const validation: ValidationResult = validateFile({ type: file.type, size: file.size });
+		if (!validation.ok) {
+			return { ok: false, error: { kind: validation.reason } };
+		}
+
+		let bitmap: ImageBitmap;
+		try {
+			bitmap = await createImageBitmap(file);
+		} catch {
+			return { ok: false, error: { kind: 'decode-failed' } };
+		}
+
+		const naturalWidth = bitmap.width;
+		const naturalHeight = bitmap.height;
+		const { w, h } = computeThumbnailDimensions(naturalWidth, naturalHeight, THUMBNAIL_LONGEST_EDGE);
+
+		let thumbnail: Blob;
+		try {
+			const offscreen = new OffscreenCanvas(w, h);
+			const ctx = offscreen.getContext('2d');
+			if (!ctx) {
+				bitmap.close();
+				return { ok: false, error: { kind: 'decode-failed' } };
+			}
+			ctx.drawImage(bitmap, 0, 0, w, h);
+			thumbnail = await offscreen.convertToBlob({ type: 'image/png' });
+		} catch {
+			bitmap.close();
+			return { ok: false, error: { kind: 'decode-failed' } };
+		}
+		bitmap.close();
+
+		return {
+			ok: true,
+			reference: {
+				id: crypto.randomUUID(),
+				filename: file.name,
+				blob: file,
+				thumbnail,
+				mimeType: file.type,
+				naturalWidth,
+				naturalHeight,
+				byteSize: file.size,
+				addedAt: new Date()
+			}
+		};
+	}
+
 	#displayCentered(refId: string, docId: string, viewport: Viewport): void {
 		const ref = this.forDoc(docId).find((r) => r.id === refId);
 		if (!ref) return;
@@ -298,7 +360,7 @@ export class ReferenceImagesStore {
 			width: Math.max(viewport.width, 1),
 			height: Math.max(viewport.height, 1)
 		};
-		const cascadeIndex = this.nextCascadeIndex(docId);
+		const cascadeIndex = this.#nextCascadeIndex(docId);
 		const placement = createPlacement(
 			{ width: ref.naturalWidth, height: ref.naturalHeight },
 			{ kind: 'centered', cascadeIndex },

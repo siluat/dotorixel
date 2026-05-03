@@ -2,8 +2,49 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createFakeDirtyNotifier, type FakeDirtyNotifier } from '$lib/canvas/editor-session/fake-dirty-notifier';
 import { ReferenceImagesStore } from './reference-images-store.svelte';
-import * as singleImport from './import-reference-image';
 import type { ReferenceImage } from './reference-image-types';
+
+type ImportedShape = { width: number; height: number };
+
+function installFakeImageDecoding(shapes: ImportedShape[] | (() => ImportedShape[])) {
+	const queue = typeof shapes === 'function' ? shapes() : shapes.slice();
+	vi.stubGlobal(
+		'createImageBitmap',
+		vi.fn(async () => {
+			const next = queue.shift();
+			if (!next) throw new Error('no fake bitmap remaining');
+			return {
+				width: next.width,
+				height: next.height,
+				close: () => {}
+			} as ImageBitmap;
+		})
+	);
+	vi.stubGlobal(
+		'OffscreenCanvas',
+		class FakeOffscreenCanvas {
+			constructor(
+				public width: number,
+				public height: number
+			) {}
+			getContext() {
+				return { drawImage: () => {} };
+			}
+			convertToBlob() {
+				return Promise.resolve(new Blob([new Uint8Array([0])], { type: 'image/png' }));
+			}
+		}
+	);
+}
+
+function installDecodeFailure() {
+	vi.stubGlobal(
+		'createImageBitmap',
+		vi.fn(async () => {
+			throw new Error('boom');
+		})
+	);
+}
 
 function makeRef(id: string, filename = `${id}.png`): ReferenceImage {
 	return {
@@ -289,51 +330,6 @@ describe('ReferenceImagesStore', () => {
 			expect(notifier.dirtyCalls).toEqual(['doc-1']);
 		});
 
-		it('nextCascadeIndex returns 0 when no windows are visible', () => {
-			const store = new ReferenceImagesStore({ notifier });
-
-			expect(store.nextCascadeIndex('doc-1')).toBe(0);
-		});
-
-		it('nextCascadeIndex grows with each newly displayed window', () => {
-			const store = new ReferenceImagesStore({ notifier });
-			store.add(makeRef('ref-1'), 'doc-1');
-			store.add(makeRef('ref-2'), 'doc-1');
-
-			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
-			expect(store.nextCascadeIndex('doc-1')).toBe(1);
-
-			store.display('ref-2', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
-			expect(store.nextCascadeIndex('doc-1')).toBe(2);
-		});
-
-		it('nextCascadeIndex resets to 0 once all visible windows are closed', () => {
-			const store = new ReferenceImagesStore({ notifier });
-			store.add(makeRef('ref-1'), 'doc-1');
-			store.add(makeRef('ref-2'), 'doc-1');
-			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
-			store.display('ref-2', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
-
-			store.close('ref-1', 'doc-1');
-			store.close('ref-2', 'doc-1');
-
-			expect(store.nextCascadeIndex('doc-1')).toBe(0);
-		});
-
-		it('nextCascadeIndex counts only currently visible windows, not closed ones', () => {
-			const store = new ReferenceImagesStore({ notifier });
-			store.add(makeRef('ref-1'), 'doc-1');
-			store.add(makeRef('ref-2'), 'doc-1');
-			store.add(makeRef('ref-3'), 'doc-1');
-			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
-			store.display('ref-2', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
-			store.display('ref-3', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
-
-			store.close('ref-2', 'doc-1');
-
-			expect(store.nextCascadeIndex('doc-1')).toBe(2);
-		});
-
 		it('refitAll keeps the shrunk size after a viewport regrow (no auto-restoration)', () => {
 			const store = new ReferenceImagesStore({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');
@@ -442,50 +438,79 @@ describe('ReferenceImagesStore', () => {
 	});
 
 	describe('importToGallery', () => {
-		function makeFile(name: string, type = 'image/png'): File {
-			return new File([new Uint8Array([0])], name, { type });
+		function makeFile(name: string, type = 'image/png', size = 1): File {
+			return new File([new Uint8Array(size)], name, { type });
 		}
 
-		beforeEach(() => {
-			vi.spyOn(singleImport, 'importReferenceImage').mockReset();
-		});
-
 		afterEach(() => {
-			vi.restoreAllMocks();
+			vi.unstubAllGlobals();
 		});
 
-		it('adds every successfully imported file to the doc in input order, with no display state', async () => {
+		it('decodes and adds every valid file to the doc in input order, with no display state', async () => {
+			installFakeImageDecoding([
+				{ width: 100, height: 50 },
+				{ width: 200, height: 80 }
+			]);
 			const store = new ReferenceImagesStore({ notifier });
-			const refA = makeRef('a');
-			const refB = makeRef('b');
-			vi.spyOn(singleImport, 'importReferenceImage')
-				.mockResolvedValueOnce({ ok: true, reference: refA })
-				.mockResolvedValueOnce({ ok: true, reference: refB });
 
-			const result = await store.importToGallery([makeFile('a.png'), makeFile('b.png')], 'doc-1');
+			const result = await store.importToGallery(
+				[makeFile('a.png'), makeFile('b.png')],
+				'doc-1'
+			);
 
-			expect(store.forDoc('doc-1').map((r) => r.id)).toEqual(['a', 'b']);
+			const refs = store.forDoc('doc-1');
+			expect(refs.map((r) => r.filename)).toEqual(['a.png', 'b.png']);
+			expect(refs[0].naturalWidth).toBe(100);
+			expect(refs[1].naturalWidth).toBe(200);
 			expect(store.displayStatesForDoc('doc-1')).toEqual([]);
 			expect(result.errors).toEqual([]);
 		});
 
-		it('skips failed imports and surfaces them as typed errors paired with the source file', async () => {
+		it('keeps valid files and surfaces validation failures as typed errors paired with the source file', async () => {
+			installFakeImageDecoding([{ width: 100, height: 100 }]);
 			const store = new ReferenceImagesStore({ notifier });
 			const valid = makeFile('keep.png');
-			const oversize = makeFile('big.png');
+			const oversize = makeFile('big.png', 'image/png', 10 * 1024 * 1024 + 1);
 			const unsupported = makeFile('weird.svg', 'image/svg+xml');
-			vi.spyOn(singleImport, 'importReferenceImage')
-				.mockResolvedValueOnce({ ok: true, reference: makeRef('keep') })
-				.mockResolvedValueOnce({ ok: false, error: { kind: 'too-large' } })
-				.mockResolvedValueOnce({ ok: false, error: { kind: 'unsupported-format' } });
 
 			const result = await store.importToGallery([valid, oversize, unsupported], 'doc-1');
 
-			expect(store.forDoc('doc-1').map((r) => r.id)).toEqual(['keep']);
+			expect(store.forDoc('doc-1').map((r) => r.filename)).toEqual(['keep.png']);
 			expect(result.errors).toEqual([
 				{ file: oversize, error: { kind: 'too-large' } },
 				{ file: unsupported, error: { kind: 'unsupported-format' } }
 			]);
+		});
+
+		it('rejects an SVG file with unsupported-format before touching the decoder', async () => {
+			const store = new ReferenceImagesStore({ notifier });
+			const svg = makeFile('weird.svg', 'image/svg+xml');
+
+			const result = await store.importToGallery([svg], 'doc-1');
+
+			expect(store.forDoc('doc-1')).toEqual([]);
+			expect(result.errors).toEqual([{ file: svg, error: { kind: 'unsupported-format' } }]);
+		});
+
+		it('rejects a >10MB file with too-large before touching the decoder', async () => {
+			const store = new ReferenceImagesStore({ notifier });
+			const big = makeFile('big.png', 'image/png', 10 * 1024 * 1024 + 1);
+
+			const result = await store.importToGallery([big], 'doc-1');
+
+			expect(store.forDoc('doc-1')).toEqual([]);
+			expect(result.errors).toEqual([{ file: big, error: { kind: 'too-large' } }]);
+		});
+
+		it('surfaces decode-failed when the decoder throws', async () => {
+			installDecodeFailure();
+			const store = new ReferenceImagesStore({ notifier });
+			const file = makeFile('broken.png');
+
+			const result = await store.importToGallery([file], 'doc-1');
+
+			expect(store.forDoc('doc-1')).toEqual([]);
+			expect(result.errors).toEqual([{ file, error: { kind: 'decode-failed' } }]);
 		});
 	});
 
@@ -496,21 +521,16 @@ describe('ReferenceImagesStore', () => {
 
 		const VIEWPORT = { width: 1000, height: 800 };
 
-		beforeEach(() => {
-			vi.spyOn(singleImport, 'importReferenceImage').mockReset();
-		});
-
 		afterEach(() => {
-			vi.restoreAllMocks();
+			vi.unstubAllGlobals();
 		});
 
 		it('places successive references along an intra-batch cascade from the drop anchor (24px down-right per index)', async () => {
+			installFakeImageDecoding([
+				{ width: 100, height: 100 },
+				{ width: 100, height: 100 }
+			]);
 			const store = new ReferenceImagesStore({ notifier });
-			const refA = makeRef('a');
-			const refB = makeRef('b');
-			vi.spyOn(singleImport, 'importReferenceImage')
-				.mockResolvedValueOnce({ ok: true, reference: refA })
-				.mockResolvedValueOnce({ ok: true, reference: refB });
 
 			await store.importDroppedBatch(
 				[makeFile('a.png'), makeFile('b.png')],
@@ -519,40 +539,21 @@ describe('ReferenceImagesStore', () => {
 				VIEWPORT
 			);
 
-			const sA = store.displayStateFor('a', 'doc-1')!;
-			const sB = store.displayStateFor('b', 'doc-1')!;
+			const refs = store.forDoc('doc-1');
+			expect(refs.length).toBe(2);
+			const sA = store.displayStateFor(refs[0].id, 'doc-1')!;
+			const sB = store.displayStateFor(refs[1].id, 'doc-1')!;
 			expect(sA).toBeDefined();
 			expect(sB).toBeDefined();
 			expect(sB.x - sA.x).toBe(24);
 			expect(sB.y - sA.y).toBe(24);
 		});
 
-		it('does not advance the document cascade index — at-point intents bypass the cascade slot', async () => {
-			const store = new ReferenceImagesStore({ notifier });
-			vi.spyOn(singleImport, 'importReferenceImage')
-				.mockResolvedValueOnce({ ok: true, reference: makeRef('a') })
-				.mockResolvedValueOnce({ ok: true, reference: makeRef('b') });
-
-			await store.importDroppedBatch(
-				[makeFile('a.png'), makeFile('b.png')],
-				'doc-1',
-				{ x: 500, y: 400 },
-				VIEWPORT
-			);
-			// Both windows are visible — but the cascade index must reflect them
-			// only because they hold visible display state, not because the
-			// at-point path "consumed" cascade slots. This test asserts the
-			// path doesn't trigger any centered-cascade behaviour.
-			expect(store.nextCascadeIndex('doc-1')).toBe(2); // visible-window count
-		});
-
-		it('skips failed imports — they get neither a reference entry nor a display state, but errors propagate', async () => {
+		it('places every successful import — failed ones are skipped from display, errors propagate', async () => {
+			installFakeImageDecoding([{ width: 100, height: 100 }]);
 			const store = new ReferenceImagesStore({ notifier });
 			const ok = makeFile('ok.png');
-			const bad = makeFile('bad.png');
-			vi.spyOn(singleImport, 'importReferenceImage')
-				.mockResolvedValueOnce({ ok: true, reference: makeRef('ok') })
-				.mockResolvedValueOnce({ ok: false, error: { kind: 'decode-failed' } });
+			const bad = makeFile('bad.svg', 'image/svg+xml');
 
 			const result = await store.importDroppedBatch(
 				[ok, bad],
@@ -561,9 +562,44 @@ describe('ReferenceImagesStore', () => {
 				VIEWPORT
 			);
 
-			expect(store.forDoc('doc-1').map((r) => r.id)).toEqual(['ok']);
-			expect(store.displayStatesForDoc('doc-1').map((s) => s.refId)).toEqual(['ok']);
-			expect(result.errors).toEqual([{ file: bad, error: { kind: 'decode-failed' } }]);
+			const refs = store.forDoc('doc-1');
+			expect(refs.map((r) => r.filename)).toEqual(['ok.png']);
+			expect(store.displayStatesForDoc('doc-1').map((s) => s.refId)).toEqual([refs[0].id]);
+			expect(result.errors).toEqual([{ file: bad, error: { kind: 'unsupported-format' } }]);
+		});
+
+		it('does not consume the document centered-cascade slot — the next centered open opens at index 0 after dismissals', async () => {
+			installFakeImageDecoding([
+				{ width: 100, height: 100 },
+				{ width: 100, height: 100 }
+			]);
+			const store = new ReferenceImagesStore({ notifier });
+
+			await store.importDroppedBatch(
+				[makeFile('a.png'), makeFile('b.png')],
+				'doc-1',
+				{ x: 500, y: 400 },
+				VIEWPORT
+			);
+			// Dismiss everything dropped — the centered-cascade slot should
+			// behave as if no centered placement had ever been recorded.
+			for (const ref of store.forDoc('doc-1')) {
+				store.close(ref.id, 'doc-1');
+			}
+			// Now drop a third reference and open it centered — its
+			// placement should be at the cascade-0 position (i.e. exactly
+			// matches a fresh centered placement on an empty doc).
+			vi.unstubAllGlobals();
+			installFakeImageDecoding([{ width: 100, height: 100 }]);
+			await store.importToGallery([makeFile('c.png')], 'doc-1');
+			const c = store.forDoc('doc-1').find((r) => r.filename === 'c.png')!;
+
+			store.openCentered(c.id, 'doc-1', VIEWPORT);
+
+			const cState = store.displayStateFor(c.id, 'doc-1')!;
+			// At index 0 the placement is viewport-centered exactly: x = (w - 100)/2.
+			expect(cState.x).toBe((VIEWPORT.width - 100) / 2);
+			expect(cState.y).toBe((VIEWPORT.height - 100) / 2);
 		});
 	});
 

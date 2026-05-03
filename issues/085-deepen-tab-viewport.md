@@ -1,6 +1,6 @@
 ---
 title: Deepen TabState's viewport responsibility into a TabViewport class
-status: ready-for-agent
+status: done
 created: 2026-05-03
 ---
 
@@ -139,3 +139,27 @@ Decisions made during the grilling that produced this plan:
 - **Gesture decomposition into `pan` / `pinchZoomAtPoint` / `wheelZoomAtPoint`.** Not introduced.
 - **Reactive `$effect`-based reclamp.** Considered and rejected (see Decision Record #4).
 - **Apple shell viewport layer.** This deepening is web-shell only; UniFFI Apple bindings are unaffected.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/editor-session/tab-viewport.svelte.ts` | New. `TabViewport` class owns `ViewportData` + `ViewportSize`, reads canvas dimensions through an injected reactive getter, hides the `clampPan` rule, and emits `markDirty` itself. Public surface: `viewport`/`viewportSize` getters, `apply`, `setViewportSize`, `zoomIn`/`zoomOut`/`zoomReset`/`zoomFit`, `toggleGrid`, `reclamp`. Private `#zoomCenteredTo` centralizes the centered-zoom helper. |
+| `src/lib/canvas/editor-session/tab-viewport.svelte.test.ts` | New. 9 tests covering the public surface using production `wasmBackend.viewportOps` + `createFakeDirtyNotifier()`. The `reclamp` test mutates a plain `dimensions = { width, height }` object between construction and call to verify the reactive-getter wiring. The `markDirty` fan-out test asserts every mutating method emits exactly one `markDirty(documentId)` per call. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | `viewport` and `viewportSize` `$state` fields replaced with getters that project through `#tabViewport`. Constructor builds the initial fitted viewport (with optional `gridColor` override) and constructs `TabViewport` with `getCanvasDimensions: () => ({ width: self.pixelCanvas.width, height: self.pixelCanvas.height })`. All viewport intent methods (`zoomIn/Out/Reset/Fit`, `toggleGrid`) now delegate. New `setViewportSize` method added. `setViewport` retains the explicit `clampPan` call as a safety net for raw gesture inputs before delegating to `#tabViewport.apply`. `resize` and the `canvasReplaced` effect path call `this.#tabViewport.reclamp()` instead of inline `clampPan`. |
+| `src/lib/canvas/editor-session/tab-state.svelte.test.ts` | Adds `'canvas resize triggers viewport reclamp against the new canvas dimensions'` — a sanity check on the reactive-getter wiring at the integration level (resize → reclamp → idempotent clampPan match). |
+| `src/lib/canvas/editor-session/workspace.svelte.test.ts` | One `tab.viewport = …` direct assignment swapped for `tab.setViewport(…)` (TabState.viewport is now a getter). Snapshot-equality assertion adjusted to compare `snapshot.viewport === workspace.activeTab.viewport` rather than direct `panX` numbers, since `clampPan` may transform the input. |
+| `src/lib/session/session.test.ts` | One `editor.workspace.activeTab.viewport = … satisfies ViewportData` direct assignment swapped for `editor.workspace.activeTab.setViewport(… satisfies ViewportData)`. Resolves a read-only-property type error and 3 cascade timeout failures with one fix. |
+| `src/routes/editor/+page.svelte` | DOM-measurement code (`bind:clientWidth`/`bind:clientHeight` consumer in `initTabViewport`) now calls `tab.setViewportSize({ width, height })` instead of assigning `tab.viewportSize` directly. |
+
+### Key Decisions
+
+- **Commit 3 (rename `TabState.setViewport` → `apply`) skipped.** `TabState.setViewport` keeps an explicit `clampPan` call as a safety net before delegating, while `TabViewport.apply` writes the supplied viewport directly per the issue spec. Renaming would create *same name, different semantics* anti-parity across the two layers. Functional deepening is complete after Commit 2; the rename was always optional in the plan.
+- **Reactive-getter for canvas dimensions, not push notifications.** Matches the existing pattern from `ToolRunner.host`, `StrokeEngine.host`, `SamplingSession.getSamplingPort`. Verified end-to-end by the `tab-state` reactive-getter test.
+- **`TabViewport` owns `markDirty` directly.** Holds `notifier` + `documentId` privately, mirroring the `References` pattern from 084. Boolean-return / external-dispatch alternatives push boilerplate back to callers.
+
+### Notes
+
+- 2 commits (planned 3, Commit 3 skipped): `feat: introduce TabViewport + tests` (additive) → `refactor: delegate TabState viewport responsibility to TabViewport` (atomic switch).
+- `bun run check` 0 errors, `bun run test` 846 passing (net +10: 9 new `TabViewport` tests + 1 new `TabState` reactive-getter test), `cargo test` green at every commit.
+- Direct field assignments (`tab.viewport = …`, `tab.viewportSize = …`) in two test files and one route page were converted to setter calls as part of Commit 2's atomic switch — this is the only consumer-visible change beyond the `editor-session/` cluster, exactly as the plan projected.

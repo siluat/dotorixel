@@ -1,6 +1,6 @@
 ---
 title: Deepen SamplingSession — collapse sampling/grid/position into a port-injected session
-status: open
+status: done
 created: 2026-04-23
 ---
 

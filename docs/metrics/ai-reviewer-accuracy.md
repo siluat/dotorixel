@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 69 | 54 | 15 | 58 | 78% | 48% |
-| cubic-dev-ai[bot] | 47 | 40 | 7 | 71 | 85% | 36% |
-| coderabbitai[bot] | 98 | 66 | 32 | 46 | 67% | 59% |
+| greptile-apps[bot] | 71 | 56 | 15 | 59 | 79% | 49% |
+| cubic-dev-ai[bot] | 49 | 42 | 7 | 71 | 86% | 37% |
+| coderabbitai[bot] | 101 | 68 | 33 | 46 | 67% | 60% |
 
 ## Log
 
@@ -403,3 +403,11 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #182 | cubic-dev-ai[bot] | Miss | Did not flag refit-on-stale-default race (commented-only review) |
 | #182 | cubic-dev-ai[bot] | Accept | Guard refitAll against zero/negative viewport sizes; transient ResizeObserver 0×0 tick could permanently collapse reference windows since refitPlacement only shrinks |
 | #182 | coderabbitai[bot] | Miss | Did not flag refitAll zero-viewport guard (APPROVED review on commit e32a56b5) |
+| #184 | greptile-apps[bot] | Accept | Double markDirty per resize — explicit notifier.markDirty after reclamp (which already emits via apply) |
+| #184 | greptile-apps[bot] | Accept | Double markDirty in canvasReplaced path — persistableChanged sentinel fires on top of reclamp |
+| #184 | greptile-apps[bot] | Miss | Did not flag setViewportSize markDirty on layout-only viewportSize |
+| #184 | coderabbitai[bot] | Accept | Resize and canvas replacement notify dirty twice (combined A+B finding via reclamp + persistableChanged) |
+| #184 | coderabbitai[bot] | Accept | setViewportSize markDirty turns DOM resize / tab switch into session save trigger |
+| #184 | coderabbitai[bot] | Reject | "afterwards" → "afterward" American-English style — issue file is historical planning artifact |
+| #184 | cubic-dev-ai[bot] | Accept | reclamp triggers markDirty on paths that already call markDirty (combined A+B) |
+| #184 | cubic-dev-ai[bot] | Accept | setViewportSize markDirty marks tabs dirty for non-persisted viewport-size changes |

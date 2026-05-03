@@ -83,7 +83,7 @@
 	);
 
 	function initTabViewport(tab: TabState, width: number, height: number) {
-		tab.viewportSize = { width, height };
+		tab.setViewportSize({ width, height });
 		if (!fittedTabs.has(tab)) {
 			fittedTabs.add(tab);
 			tab.zoomFit(1.0);

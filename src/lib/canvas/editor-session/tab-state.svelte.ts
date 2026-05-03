@@ -15,6 +15,7 @@ import type { PointerType } from '../canvas-interaction.svelte';
 import type { TabSnapshot } from '../workspace-snapshot';
 import type { CanvasBackend } from './canvas-backend';
 import type { DirtyNotifier } from './dirty-notifier';
+import { TabViewport } from './tab-viewport.svelte';
 
 function assertNever(x: never): never {
 	throw new Error(`Unhandled effect type: ${(x as { type: string }).type}`);
@@ -57,8 +58,6 @@ export class TabState {
 	readonly referenceSamplingSession: ReferenceSamplingSession;
 
 	pixelCanvas = $state<PixelCanvas>(null!);
-	viewport = $state<ViewportData>(null!);
-	viewportSize = $state<ViewportSize>(DEFAULT_VIEWPORT_SIZE);
 	renderVersion = $state(0);
 	resizeAnchor = $state<ResizeAnchor>('top-left');
 	isExportUIOpen = $state(false);
@@ -66,6 +65,15 @@ export class TabState {
 	#backend: CanvasBackend;
 	#notifier: DirtyNotifier;
 	#toolRunner: ToolRunner;
+	#tabViewport: TabViewport;
+
+	get viewport(): ViewportData {
+		return this.#tabViewport.viewport;
+	}
+
+	get viewportSize(): ViewportSize {
+		return this.#tabViewport.viewportSize;
+	}
 
 	get canUndo(): boolean {
 		return this.#toolRunner.canUndo;
@@ -98,17 +106,30 @@ export class TabState {
 			this.pixelCanvas = this.#backend.canvasFactory.create(cw, ch);
 		}
 
+		let initialViewport: ViewportData;
 		if (deps.viewport) {
-			this.viewport = deps.viewport;
+			initialViewport = deps.viewport;
 		} else {
 			const vd = this.#backend.viewportOps.forCanvas(
 				this.pixelCanvas.width,
 				this.pixelCanvas.height
 			);
-			this.viewport = deps.gridColor ? { ...vd, gridColor: deps.gridColor } : vd;
+			initialViewport = deps.gridColor ? { ...vd, gridColor: deps.gridColor } : vd;
 		}
 
 		const self = this;
+		this.#tabViewport = new TabViewport({
+			initial: initialViewport,
+			initialViewportSize: DEFAULT_VIEWPORT_SIZE,
+			getCanvasDimensions: () => ({
+				width: self.pixelCanvas.width,
+				height: self.pixelCanvas.height
+			}),
+			viewportOps: this.#backend.viewportOps,
+			notifier: this.#notifier,
+			documentId: this.documentId
+		});
+
 		this.samplingSession = createSamplingSession({ getSamplingPort: () => self.pixelCanvas });
 		this.referenceSamplingSession = createReferenceSamplingSession({
 			decode: decodeReferenceBlob
@@ -142,13 +163,7 @@ export class TabState {
 					break;
 				case 'canvasReplaced':
 					this.pixelCanvas = effect.canvas;
-					this.viewport = this.#backend.viewportOps.clampPan(
-						this.viewport,
-						effect.canvas.width,
-						effect.canvas.height,
-						this.viewportSize.width,
-						this.viewportSize.height
-					);
+					this.#tabViewport.reclamp();
 					this.renderVersion++;
 					persistableChanged = true;
 					break;
@@ -253,54 +268,39 @@ export class TabState {
 	};
 
 	setViewport = (newViewport: ViewportData): void => {
-		this.viewport = this.#backend.viewportOps.clampPan(
-			newViewport,
-			this.pixelCanvas.width,
-			this.pixelCanvas.height,
-			this.viewportSize.width,
-			this.viewportSize.height
+		this.#tabViewport.apply(
+			this.#backend.viewportOps.clampPan(
+				newViewport,
+				this.pixelCanvas.width,
+				this.pixelCanvas.height,
+				this.viewportSize.width,
+				this.viewportSize.height
+			)
 		);
-		this.#notifier.markDirty(this.documentId);
+	};
+
+	setViewportSize = (size: ViewportSize): void => {
+		this.#tabViewport.setViewportSize(size);
 	};
 
 	zoomIn = (): void => {
-		const centerX = this.viewportSize.width / 2;
-		const centerY = this.viewportSize.height / 2;
-		const newZoom = this.#backend.viewportOps.nextZoomLevel(this.viewport.zoom);
-		const zoomed = this.#backend.viewportOps.zoomAtPoint(this.viewport, centerX, centerY, newZoom);
-		this.setViewport(zoomed);
+		this.#tabViewport.zoomIn();
 	};
 
 	zoomOut = (): void => {
-		const centerX = this.viewportSize.width / 2;
-		const centerY = this.viewportSize.height / 2;
-		const newZoom = this.#backend.viewportOps.prevZoomLevel(this.viewport.zoom);
-		const zoomed = this.#backend.viewportOps.zoomAtPoint(this.viewport, centerX, centerY, newZoom);
-		this.setViewport(zoomed);
+		this.#tabViewport.zoomOut();
 	};
 
 	zoomReset = (): void => {
-		const centerX = this.viewportSize.width / 2;
-		const centerY = this.viewportSize.height / 2;
-		const zoomed = this.#backend.viewportOps.zoomAtPoint(this.viewport, centerX, centerY, 1.0);
-		this.setViewport(zoomed);
+		this.#tabViewport.zoomReset();
 	};
 
 	zoomFit = (maxZoom: number = Infinity): void => {
-		this.viewport = this.#backend.viewportOps.fitToViewport(
-			this.viewport,
-			this.pixelCanvas.width,
-			this.pixelCanvas.height,
-			this.viewportSize.width,
-			this.viewportSize.height,
-			maxZoom
-		);
-		this.#notifier.markDirty(this.documentId);
+		this.#tabViewport.zoomFit(maxZoom);
 	};
 
 	toggleGrid = (): void => {
-		this.viewport = { ...this.viewport, showGrid: !this.viewport.showGrid };
-		this.#notifier.markDirty(this.documentId);
+		this.#tabViewport.toggleGrid();
 	};
 
 	resize = (newWidth: number, newHeight: number): void => {
@@ -312,13 +312,7 @@ export class TabState {
 			newHeight,
 			this.resizeAnchor
 		);
-		this.viewport = this.#backend.viewportOps.clampPan(
-			this.viewport,
-			newWidth,
-			newHeight,
-			this.viewportSize.width,
-			this.viewportSize.height
-		);
+		this.#tabViewport.reclamp();
 		this.renderVersion++;
 		this.#notifier.markDirty(this.documentId);
 	};

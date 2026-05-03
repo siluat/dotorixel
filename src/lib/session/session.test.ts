@@ -68,10 +68,10 @@ describe('openSession', () => {
 
 		// Tab 0: draw red pixel, zoom to 3x
 		setPixel(editor.workspace.activeTab.pixelCanvas, 0, 0, { r: 255, g: 0, b: 0, a: 255 });
-		editor.workspace.activeTab.viewport = {
+		editor.workspace.activeTab.setViewport({
 			pixelSize: 32, zoom: 3.0, panX: 100, panY: -50,
 			showGrid: false, gridColor: '#ECE5D9'
-		} satisfies ViewportData;
+		} satisfies ViewportData);
 		session.markDirty(editor.workspace.activeTab.documentId);
 
 		// Tab 1: draw blue pixel

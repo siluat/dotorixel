@@ -40,8 +40,12 @@ The semantic that produces a Reference Window Placement — *centered* (offset f
 _Avoid_: placement strategy, placement mode.
 
 **Cascade Index**:
-A per-document counter incremented each time the user opens a Reference Window via the gallery (a *centered* Placement Intent), used to stagger successive windows so they don't fully cover each other. *At-point* placements (drops) do not consume or advance the Cascade Index — they cascade only within a single drop batch.
+A per-document counter incremented each time the user opens a Reference Window via the gallery (a *centered* Placement Intent), used to stagger successive windows so they don't fully cover each other. *At-point* placements (drops) do not consume or advance the Cascade Index — they cascade only within a single Drop Batch.
 _Avoid_: stagger index, offset count.
+
+**Drop Batch**:
+A single drag-and-drop import operation containing one or more files. *At-point* Placement Intents within the same Drop Batch cascade linearly from the drop anchor by `index × CASCADE_OFFSET` along both axes; batches do not influence each other, and a Drop Batch never advances the document's Cascade Index.
+_Avoid_: drop group, drop session.
 
 ## Relationships
 
@@ -51,6 +55,7 @@ _Avoid_: stagger index, offset count.
 - A **Reference Window** has exactly one **Reference Window Placement**.
 - A **Reference Window Placement** is produced by applying a **Placement Intent** under the current viewport.
 - A *centered* **Placement Intent** consumes the document's **Cascade Index**; an *at-point* **Placement Intent** does not.
+- An *at-point* **Placement Intent** belongs to a **Drop Batch**, which determines its intra-batch stagger from the drop anchor.
 
 ## Example dialogue
 

@@ -31,6 +31,10 @@
 - Editor for Game Developers (Milestone 5)
 - Beyond the Editor (Milestone 6)
 
+## Architecture deepening
+
+- [084 — Deepen reference image lifecycle: promote intake/display orchestration into a References class](../issues/084-deepen-reference-image-lifecycle.md)
+
 ## Apple Native: Phase 1 — [RFC](../issues/013-apple-native-catchup.md)
 
 Phase 1 modernizes the native layout from Pebble UI to the web's docked structure.

@@ -186,7 +186,7 @@ describe('TabViewport', () => {
 	});
 
 	describe('setViewportSize', () => {
-		it('updates viewportSize and emits markDirty', () => {
+		it('updates viewportSize without emitting markDirty (DOM-measurement layout state, not persisted)', () => {
 			const notifier = createFakeDirtyNotifier();
 			const initial = viewportOps.forCanvas(16, 16);
 			const tabViewport = new TabViewport({
@@ -201,12 +201,12 @@ describe('TabViewport', () => {
 			tabViewport.setViewportSize({ width: 800, height: 600 });
 
 			expect(tabViewport.viewportSize).toEqual({ width: 800, height: 600 });
-			expect(notifier.dirtyCalls).toEqual(['doc-1']);
+			expect(notifier.dirtyCalls).toEqual([]);
 		});
 	});
 
 	describe('markDirty fan-out', () => {
-		it('every mutating method emits exactly one markDirty per call', () => {
+		it('every persistable mutating method emits exactly one markDirty per call (setViewportSize excluded — layout-only)', () => {
 			const notifier = createFakeDirtyNotifier();
 			const initial = viewportOps.forCanvas(16, 16);
 			const tabViewport = new TabViewport({
@@ -227,7 +227,7 @@ describe('TabViewport', () => {
 			tabViewport.toggleGrid();
 			tabViewport.reclamp();
 
-			expect(notifier.dirtyCalls.length).toBe(8);
+			expect(notifier.dirtyCalls.length).toBe(7);
 			expect(notifier.dirtyCalls.every((id) => id === 'doc-1')).toBe(true);
 		});
 	});

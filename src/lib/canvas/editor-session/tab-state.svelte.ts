@@ -165,7 +165,6 @@ export class TabState {
 					this.pixelCanvas = effect.canvas;
 					this.#tabViewport.reclamp();
 					this.renderVersion++;
-					persistableChanged = true;
 					break;
 				case 'colorPick':
 					if (effect.target === 'foreground') {
@@ -314,7 +313,6 @@ export class TabState {
 		);
 		this.#tabViewport.reclamp();
 		this.renderVersion++;
-		this.#notifier.markDirty(this.documentId);
 	};
 
 	toggleExportUI = (): void => {

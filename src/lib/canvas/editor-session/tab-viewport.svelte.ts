@@ -13,7 +13,9 @@ export interface TabViewportDeps {
 /**
  * Per-tab binding of viewport state to the current canvas. Owns
  * `ViewportData` + `ViewportSize`, reads canvas dimensions through an injected
- * reactive getter, and emits `markDirty(documentId)` on every mutation.
+ * reactive getter, and emits `markDirty(documentId)` on every persistable
+ * viewport mutation. `setViewportSize` is excluded — it tracks DOM-measurement
+ * layout state which is not serialized by `TabState.toSnapshot()`.
  */
 export class TabViewport {
 	#viewportOps: ViewportOps;
@@ -40,7 +42,6 @@ export class TabViewport {
 
 	setViewportSize(size: ViewportSize): void {
 		this.viewportSize = size;
-		this.#notifier.markDirty(this.#documentId);
 	}
 
 	zoomIn(): void {

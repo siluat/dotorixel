@@ -444,19 +444,19 @@ describe('Workspace — toSnapshot', () => {
 
 	it('captures per-tab viewport state', () => {
 		const { workspace } = makeWorkspace({ gridColor: '#ECE5D9' });
-		workspace.activeTab.viewport = {
+		workspace.activeTab.setViewport({
 			pixelSize: 32,
 			zoom: 3.0,
 			panX: 100,
 			panY: -50,
 			showGrid: false,
 			gridColor: '#ECE5D9'
-		};
+		});
 
 		const snapshot = workspace.toSnapshot();
 
+		expect(snapshot.tabs[0].viewport).toEqual(workspace.activeTab.viewport);
 		expect(snapshot.tabs[0].viewport.zoom).toBe(3.0);
-		expect(snapshot.tabs[0].viewport.panX).toBe(100);
 		expect(snapshot.tabs[0].viewport.showGrid).toBe(false);
 	});
 

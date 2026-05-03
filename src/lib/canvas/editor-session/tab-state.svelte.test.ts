@@ -104,6 +104,23 @@ describe('TabState — effect dispatcher', () => {
 		expect(notifier.dirtyCalls.every((id) => id === 'doc-test')).toBe(true);
 	});
 
+	it('canvas resize triggers viewport reclamp against the new canvas dimensions', () => {
+		const { tab } = makeTab({ canvasWidth: 32, canvasHeight: 32 });
+		tab.setViewport({ ...tab.viewport, panX: 5000, panY: 5000 });
+
+		tab.resize(8, 8);
+
+		const reapplied = wasmBackend.viewportOps.clampPan(
+			tab.viewport,
+			tab.pixelCanvas.width,
+			tab.pixelCanvas.height,
+			tab.viewportSize.width,
+			tab.viewportSize.height
+		);
+		expect(tab.viewport.panX).toBe(reapplied.panX);
+		expect(tab.viewport.panY).toBe(reapplied.panY);
+	});
+
 	it('canvasReplaced path: undo after resize swaps the canvas and bumps renderVersion', () => {
 		const { tab } = makeTab({ canvasWidth: 8, canvasHeight: 8 });
 		expect(tab.pixelCanvas.width).toBe(8);

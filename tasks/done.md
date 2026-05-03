@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 085 | [Deepen TabState's viewport responsibility into a TabViewport class](../issues/085-deepen-tab-viewport.md) | 2026-05-03 |
 | 084 | [Deepen reference image lifecycle: promote intake/display orchestration into a References class](../issues/084-deepen-reference-image-lifecycle.md) | 2026-05-03 |
 | — | Architecture deepening — file [Reference Image Lifecycle deepening as 084](../issues/084-deepen-reference-image-lifecycle.md) + seed Drop Batch term | 2026-05-03 |
 | 083 | [Deepen Reference Window Placement (2/2): commit ops and viewport refit lifecycle](../issues/083-deepen-reference-window-placement-commit-and-refit.md) | 2026-05-01 |

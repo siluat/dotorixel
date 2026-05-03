@@ -1,5 +1,9 @@
 # Todo
 
+## Architecture deepening
+
+- [085 — Deepen TabState's viewport responsibility into a TabViewport class](../issues/085-deepen-tab-viewport.md)
+
 ## Milestone 3: Editor for Serious Work
 
 - Layer system: basic infrastructure (add/delete/reorder)

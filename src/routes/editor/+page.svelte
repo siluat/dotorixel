@@ -25,15 +25,8 @@
 	import ReferenceBrowserSheet from '$lib/reference-images/ReferenceBrowserSheet.svelte';
 	import ReferenceWindowOverlay from '$lib/reference-images/ReferenceWindowOverlay.svelte';
 	import Loupe from '$lib/ui-editor/Loupe.svelte';
-	import { importReferenceFiles } from '$lib/reference-images/import-reference-files';
-	import type { ImportError } from '$lib/reference-images/import-reference-image';
-	import {
-		selectReference,
-		displayReference
-	} from '$lib/reference-images/select-reference';
-	import { createPlacement } from '$lib/reference-images/reference-window-placement';
+	import type { ImportError } from '$lib/reference-images/references.svelte';
 	import { canvasDropzone } from '$lib/reference-images/canvas-dropzone';
-	import { CASCADE_OFFSET } from '$lib/reference-images/reference-window-constants';
 	import * as m from '$lib/paraglide/messages';
 	import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 	import { openSession, type SessionHandle } from '$lib/session/session';
@@ -216,10 +209,7 @@
 
 	async function importToGallery(files: Iterable<File>): Promise<void> {
 		const docId = editor.workspace.activeTab.documentId;
-		const { imported, errors } = await importReferenceFiles(files);
-		for (const ref of imported) {
-			editor.workspace.references.add(ref, docId);
-		}
+		const { errors } = await editor.workspace.references.importToGallery(files, docId);
 		if (errors.length > 0) {
 			referenceErrors = [...referenceErrors, ...errors.map((e) => importErrorMessage(e.file, e.error))];
 		}
@@ -239,47 +229,26 @@
 
 	async function handleCanvasDrop(files: File[], dropX: number, dropY: number) {
 		const docId = editor.workspace.activeTab.documentId;
-		const viewport = editor.viewportSize;
-		const { imported, errors } = await importReferenceFiles(files);
-		imported.forEach((ref, index) => {
-			editor.workspace.references.add(ref, docId);
-			const placement = createPlacement(
-				{ width: ref.naturalWidth, height: ref.naturalHeight },
-				{
-					kind: 'at-point',
-					x: dropX + index * CASCADE_OFFSET,
-					y: dropY + index * CASCADE_OFFSET
-				},
-				{ width: Math.max(viewport.width, 1), height: Math.max(viewport.height, 1) }
-			);
-			editor.workspace.references.display(ref.id, docId, placement);
-		});
+		const { errors } = await editor.workspace.references.importDroppedBatch(
+			files,
+			docId,
+			{ x: dropX, y: dropY },
+			editor.viewportSize
+		);
 		if (errors.length > 0) {
 			referenceErrors = [...referenceErrors, ...errors.map((e) => importErrorMessage(e.file, e.error))];
 		}
 	}
 
 	function handleReferenceSelect(ref: ReferenceImage) {
-		selectReference({
-			store: editor.workspace.references,
-			docId: editor.workspace.activeTab.documentId,
-			ref,
-			viewport: editor.viewportSize,
-			onClose: handleCloseReferences
-		});
+		const docId = editor.workspace.activeTab.documentId;
+		editor.workspace.references.openCentered(ref.id, docId, editor.viewportSize);
+		handleCloseReferences();
 	}
 
 	function handleReferenceToggleDisplay(ref: ReferenceImage) {
 		const docId = editor.workspace.activeTab.documentId;
-		const store = editor.workspace.references;
-		const existing = store.displayStateFor(ref.id, docId);
-		if (existing && existing.visible) {
-			store.close(ref.id, docId);
-		} else if (existing) {
-			store.show(ref.id, docId);
-		} else {
-			displayReference({ store, docId, ref, viewport: editor.viewportSize });
-		}
+		editor.workspace.references.toggleDisplay(ref.id, docId, editor.viewportSize);
 	}
 
 	async function handleReferenceDelete(id: string) {

@@ -1,11 +1,11 @@
 <script lang="ts">
 	import ReferenceWindow from './ReferenceWindow.svelte';
-	import type { ReferenceImagesStore } from './reference-images-store.svelte';
+	import type { References } from './references.svelte';
 	import { commitMove } from './reference-window-placement';
 	import type { LoupeInputSource } from '../canvas/sampling/types';
 
 	interface Props {
-		store: ReferenceImagesStore;
+		store: References;
 		docId: string;
 		viewportWidth: number;
 		viewportHeight: number;

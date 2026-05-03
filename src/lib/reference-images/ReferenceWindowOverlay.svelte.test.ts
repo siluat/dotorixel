@@ -3,7 +3,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, within, fireEvent, cleanup } from '@testing-library/svelte';
 import type { ComponentProps } from 'svelte';
 import ReferenceWindowOverlay from './ReferenceWindowOverlay.svelte';
-import { ReferenceImagesStore } from './reference-images-store.svelte';
+import { References } from './references.svelte';
 import { createFakeDirtyNotifier } from '$lib/canvas/editor-session/fake-dirty-notifier';
 import type { ReferenceImage } from './reference-image-types';
 
@@ -34,10 +34,10 @@ function makeRef(id: string, filename = `${id}.png`): ReferenceImage {
 }
 
 describe('ReferenceWindowOverlay', () => {
-	let store: ReferenceImagesStore;
+	let store: References;
 
 	beforeEach(() => {
-		store = new ReferenceImagesStore({ notifier: createFakeDirtyNotifier() });
+		store = new References({ notifier: createFakeDirtyNotifier() });
 	});
 
 	it('renders nothing when no display states are visible', () => {

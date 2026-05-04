@@ -48,4 +48,16 @@ struct EditorStateResizeCanvasTests {
         #expect(state.pixelCanvas.height() == 16)
         #expect(state.canvasVersion == versionBefore)
     }
+
+    @Test("resize clears history so canUndo doesn't lie about pre-resize snapshots")
+    func resizeClearsHistory() {
+        let state = EditorState(width: 16, height: 16)
+        state.handleDrawStart()
+        #expect(state.canUndo == true)
+
+        state.resizeCanvas(width: 32, height: 32)
+
+        #expect(state.canUndo == false)
+        #expect(state.canRedo == false)
+    }
 }

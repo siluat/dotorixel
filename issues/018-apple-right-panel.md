@@ -53,7 +53,7 @@ The panel scrolls vertically if content exceeds available height. Existing logic
 
 ### Key Decisions
 
-- **No history snapshot on resize.** `applySnapshot` rejects cross-dimension restores (`assertionFailure`), so pushing a snapshot would only stash state that can never be restored. Resize is non-undoable on Apple until cross-dimension undo is implemented; this is a known divergence from web (`tasks/todo.md` Apple Phase 1 area can absorb a follow-up).
+- **Resize clears history.** `applySnapshot` rejects cross-dimension restores (`assertionFailure` in debug, silent no-op in release), so leaving pre-resize snapshots on the stack would surface as `canUndo == true` while the actual restore silently fails — a user-visible regression where the Undo button appears active but does nothing. `resizeCanvas` therefore calls `historyManager.clear()` (and bumps `historyVersion`) on every successful resize. Resize itself stays non-undoable on Apple until cross-dimension undo is implemented; this is a known divergence from web (`tasks/todo.md` Apple Phase 1 area can absorb a follow-up).
 - **Direct foreground color assignment.** Palette swatches use `editorState.foregroundColor = color` directly rather than introducing a wrapper method — minimal abstraction matches the simplicity of the action.
 - **Extract `controlHeight`.** The 28pt control height appeared in 4 places (preset buttons, size inputs, Clear button, foreground swatch). Extracted to a single private constant per CLAUDE.md "make values self-documenting" / shared-constant rule.
 - **`DefaultPalette.columnCount`.** Replaced magic `9` in `LazyVGrid` columns with a derived `columnCount`, so structural changes to palette layout flow through one source of truth.
@@ -63,4 +63,4 @@ The panel scrolls vertically if content exceeds available height. Existing logic
 
 - All 19 Apple unit tests pass (15 existing + 4 new in `EditorStateTests`).
 - SwiftUI view tests were not added: the Apple shell currently has no view-test infrastructure (only `DesignTokensTests.swift`). Introducing ViewInspector / XCUITest is a meta-decision and out of scope for #018; TDD was scoped to the `EditorState` mutator the panel calls into.
-- All 8 acceptance criteria manually verified by the user in the running app.
+- All 8 acceptance criteria manually verified by the user on macOS in the running app. iPadOS smoke test is pending reviewer follow-up.

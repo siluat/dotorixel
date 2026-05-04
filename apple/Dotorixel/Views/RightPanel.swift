@@ -99,8 +99,8 @@ struct RightPanel: View {
             .focused($focusedField, equals: field)
             .accessibilityLabel(accessibilityLabel)
             .onSubmit { commitDimensions() }
-            .onChange(of: focusedField) { _, newValue in
-                if newValue != field { commitDimensions() }
+            .onChange(of: focusedField) { oldValue, _ in
+                if oldValue == field { commitDimensions() }
             }
     }
 

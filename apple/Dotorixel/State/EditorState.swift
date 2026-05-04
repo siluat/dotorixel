@@ -102,8 +102,11 @@ final class EditorState {
     /// against the new bounds. Silent no-op when dimensions are unchanged or
     /// outside `canvasMinDimension...canvasMaxDimension`.
     ///
-    /// Does not push a history snapshot: `applySnapshot` rejects cross-dimension
-    /// restores, so resize is non-undoable on Apple until that gap is addressed.
+    /// Clears history on a successful resize: `applySnapshot` rejects
+    /// cross-dimension restores, so leaving pre-resize snapshots on the stack
+    /// would surface as `canUndo == true` while the actual restore silently
+    /// fails. Dropping the stack keeps `canUndo`/`canRedo` honest until
+    /// cross-dimension undo lands.
     func resizeCanvas(width: UInt32, height: UInt32) {
         guard width != pixelCanvas.width() || height != pixelCanvas.height() else { return }
         guard let resized = try? pixelCanvas.resize(newWidth: width, newHeight: height) else { return }
@@ -113,6 +116,8 @@ final class EditorState {
             canvasHeight: height,
             viewportSize: viewportSize
         )
+        historyManager.clear()
+        historyVersion += 1
         canvasVersion += 1
     }
 

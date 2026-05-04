@@ -1,6 +1,6 @@
 ---
 title: "Apple native: RightPanel"
-status: open
+status: done
 created: 2026-04-06
 parent: 014-apple-native-docked-layout.md
 ---
@@ -40,3 +40,27 @@ The panel scrolls vertically if content exceeds available height. Existing logic
 
 - Scenario 5: User adjusts canvas size via presets or text input → canvas resizes
 - Scenario 6: User picks a color from palette or ColorPicker → foreground color updates
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Views/RightPanel.swift` | Replaced placeholder with full implementation: `ScrollView` + `VStack` containing Canvas section (preset row, width/height inputs, disabled Clear button) and Color section (foreground swatch, palette grid, SwiftUI `ColorPicker`), separated by a divider. Computed-property sub-views mirror `TopBar.swift`. Bridges UniFFI `Color` ↔ `SwiftUI.Color` via `foregroundBinding` so `ColorPicker` can drive `editorState.foregroundColor` directly. |
+| `apple/Dotorixel/State/EditorState.swift` | Added `resizeCanvas(width:height:)`: silent no-op for unchanged or out-of-range dimensions, swaps in the resized `ApplePixelCanvas`, reclamps the viewport against the new bounds, bumps `canvasVersion` to trigger re-render. Removed legacy "matches Pebble's #2D2D2D" comment from default foreground initialization. |
+| `apple/DotorixelTests/EditorStateTests.swift` | New Swift Testing suite with 4 tests covering `resizeCanvas`: dimension update, `canvasVersion` bump, same-dimensions no-op, invalid-dimensions rejection (zero / above `canvasMaxDimension()`). |
+| `apple/Dotorixel/Data/DefaultPalette.swift` | Renamed `enum PebblePalette` → `enum DefaultPalette`. Added `static var columnCount: Int { rows[0].count }` so the palette grid in `RightPanel` derives column count from the data instead of hard-coding `9`. Removed dead reference to a no-longer-existing `pebble-palette-data.ts`. |
+| `apple/Dotorixel/Rendering/PixelCanvasView.swift` | Cleaned up the default grid color comment to drop the dead `--pebble-canvas-stroke` reference; now reads `Default grid line color — light warm gray (#E0DCD7).` |
+
+### Key Decisions
+
+- **No history snapshot on resize.** `applySnapshot` rejects cross-dimension restores (`assertionFailure`), so pushing a snapshot would only stash state that can never be restored. Resize is non-undoable on Apple until cross-dimension undo is implemented; this is a known divergence from web (`tasks/todo.md` Apple Phase 1 area can absorb a follow-up).
+- **Direct foreground color assignment.** Palette swatches use `editorState.foregroundColor = color` directly rather than introducing a wrapper method — minimal abstraction matches the simplicity of the action.
+- **Extract `controlHeight`.** The 28pt control height appeared in 4 places (preset buttons, size inputs, Clear button, foreground swatch). Extracted to a single private constant per CLAUDE.md "make values self-documenting" / shared-constant rule.
+- **`DefaultPalette.columnCount`.** Replaced magic `9` in `LazyVGrid` columns with a derived `columnCount`, so structural changes to palette layout flow through one source of truth.
+- **Pebble naming cleanup scoped to Apple.** Renamed `PebblePalette` → `DefaultPalette` (Apple-only file, no cross-shell references) and removed dead web-side comments referencing files/tokens that no longer exist (`pebble-palette-data.ts`, `--pebble-canvas-stroke`). Web-side `Pebble UI theme` row in `docs/platform-status.md` and any remaining web identifiers are out of scope for this task — they describe a real (deprecated) UI theme history and need a separate, web-aware cleanup.
+
+### Notes
+
+- All 19 Apple unit tests pass (15 existing + 4 new in `EditorStateTests`).
+- SwiftUI view tests were not added: the Apple shell currently has no view-test infrastructure (only `DesignTokensTests.swift`). Introducing ViewInspector / XCUITest is a meta-decision and out of scope for #018; TDD was scoped to the `EditorState` mutator the panel calls into.
+- All 8 acceptance criteria manually verified by the user in the running app.

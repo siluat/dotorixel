@@ -1,7 +1,7 @@
 import SwiftUI
 import MetalKit
 
-/// Grid line color matching Pebble UI's `--pebble-canvas-stroke: #E0DCD7`.
+/// Default grid line color — light warm gray (#E0DCD7).
 private let defaultGridColor = SIMD4<Float>(0.878, 0.863, 0.843, 1.0)
 
 /// SwiftUI wrapper for the Metal-backed pixel canvas renderer.

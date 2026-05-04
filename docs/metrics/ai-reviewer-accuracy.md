@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 71 | 56 | 15 | 59 | 79% | 49% |
-| cubic-dev-ai[bot] | 49 | 42 | 7 | 71 | 86% | 37% |
-| coderabbitai[bot] | 101 | 68 | 33 | 46 | 67% | 60% |
+| greptile-apps[bot] | 74 | 58 | 16 | 60 | 78% | 49% |
+| cubic-dev-ai[bot] | 50 | 43 | 7 | 73 | 86% | 37% |
+| coderabbitai[bot] | 103 | 70 | 33 | 47 | 68% | 60% |
 
 ## Log
 
@@ -411,3 +411,13 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #184 | coderabbitai[bot] | Reject | "afterwards" → "afterward" American-English style — issue file is historical planning artifact |
 | #184 | cubic-dev-ai[bot] | Accept | reclamp triggers markDirty on paths that already call markDirty (combined A+B) |
 | #184 | cubic-dev-ai[bot] | Accept | setViewportSize markDirty marks tabs dirty for non-persisted viewport-size changes |
+| #185 | greptile-apps[bot] | Accept | Resize leaves pre-resize snapshots in undo stack — canUndo returns true while applySnapshot silently rejects on dimension mismatch in release |
+| #185 | greptile-apps[bot] | Reject | `columnCount` uses `rows[0].count` — `DefaultPalette.rows` is a static literal, empty case can't occur per CLAUDE.md |
+| #185 | greptile-apps[bot] | Accept | `onChange(of: focusedField)` commits on focus-gain via sibling input — switch predicate to `oldValue == field` |
+| #185 | greptile-apps[bot] | Miss | Did not flag verification claim overclaim (issue Notes vs PR plan macOS-only scope) |
+| #185 | coderabbitai[bot] | Accept | Resize strands undo stack (duplicate of greptile / cubic — same finding) |
+| #185 | coderabbitai[bot] | Accept | Narrow verification claim in issue Notes to macOS — iPadOS smoke test deferred per PR plan |
+| #185 | coderabbitai[bot] | Miss | Did not flag `onChange(of: focusedField)` commit-on-focus-gain semantic |
+| #185 | cubic-dev-ai[bot] | Accept | Resize leaves incompatible snapshots in undo history (duplicate of greptile / coderabbit) |
+| #185 | cubic-dev-ai[bot] | Miss | Did not flag `onChange(of: focusedField)` commit-on-focus-gain semantic |
+| #185 | cubic-dev-ai[bot] | Miss | Did not flag verification claim overclaim in issue Notes |

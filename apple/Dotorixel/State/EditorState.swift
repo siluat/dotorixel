@@ -12,7 +12,6 @@ final class EditorState {
     var viewport: AppleViewport
     let historyManager = AppleHistoryManager.defaultManager()
     var activeTool: ToolType = .pencil
-    /// Default foreground color matches Pebble's #2D2D2D.
     var foregroundColor: Color
     var showGrid: Bool = true
 
@@ -95,6 +94,31 @@ final class EditorState {
         } catch {
             assertionFailure("Failed to apply snapshot: \(error)")
         }
+    }
+
+    // MARK: - Canvas size
+
+    /// Resizes the canvas to the given dimensions and reclamps the viewport pan
+    /// against the new bounds. Silent no-op when dimensions are unchanged or
+    /// outside `canvasMinDimension...canvasMaxDimension`.
+    ///
+    /// Clears history on a successful resize: `applySnapshot` rejects
+    /// cross-dimension restores, so leaving pre-resize snapshots on the stack
+    /// would surface as `canUndo == true` while the actual restore silently
+    /// fails. Dropping the stack keeps `canUndo`/`canRedo` honest until
+    /// cross-dimension undo lands.
+    func resizeCanvas(width: UInt32, height: UInt32) {
+        guard width != pixelCanvas.width() || height != pixelCanvas.height() else { return }
+        guard let resized = try? pixelCanvas.resize(newWidth: width, newHeight: height) else { return }
+        pixelCanvas = resized
+        viewport = viewport.clampPan(
+            canvasWidth: width,
+            canvasHeight: height,
+            viewportSize: viewportSize
+        )
+        historyManager.clear()
+        historyVersion += 1
+        canvasVersion += 1
     }
 
     // MARK: - Viewport

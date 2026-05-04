@@ -1,6 +1,7 @@
-/// Pebble UI preset palette — 2 rows × 9 columns (18 colors).
-/// Matches `pebble-palette-data.ts`.
-enum PebblePalette {
+/// Default editor palette — 2 rows × 9 columns (18 colors).
+enum DefaultPalette {
+    static var columnCount: Int { rows[0].count }
+
     static let rows: [[Color]] = [
         [
             Color(r: 0x2D, g: 0x2D, b: 0x2D, a: 0xFF), // #2D2D2D

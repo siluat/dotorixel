@@ -34,7 +34,7 @@ Follow these steps in order when starting a task.
 
 The item needs a PRD before implementation can begin.
 
-5. Invoke the `/write-a-prd` skill for this item.
+5. Invoke the `/to-prd` skill for this item.
 
 6. After the PRD is created, update "Currently Working On" in `tasks/progress.md` to the PRD title with a link (e.g., `Export UI — format selector and filename input ([PRD](../issues/033-export-ui-web.md))`).
 
@@ -44,7 +44,7 @@ Stop after the PRD is created.
 
 The item has a PRD but hasn't been broken into implementable sub-issues yet.
 
-5. Invoke the `/prd-to-issues` skill for this item.
+5. Invoke the `/to-issues` skill for this item.
 
 6. Ensure "Currently Working On" in `tasks/progress.md` is set to the PRD title with a link. If already set, leave unchanged.
 

@@ -52081,6 +52081,1054 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "sTEPj",
+      "x": -430,
+      "y": 28063,
+      "name": "Layer UI Candidates",
+      "theme": {
+        "mode": "light"
+      },
+      "width": 2100,
+      "fill": "$--bg-base",
+      "layout": "vertical",
+      "gap": 80,
+      "padding": 80,
+      "children": [
+        {
+          "type": "text",
+          "id": "R0YNr",
+          "name": "title",
+          "fill": "$--text-primary",
+          "content": "Layer System UI — 3 Candidates",
+          "fontFamily": "Inter",
+          "fontSize": 36,
+          "fontWeight": "600"
+        },
+        {
+          "type": "text",
+          "id": "Njler",
+          "name": "subtitle",
+          "fill": "$--text-secondary",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Wireframes for Milestone 3 layer UI placement decision. Each row: Desktop (1440 × 900) + Mobile (390 × 844). Highlighted areas show where the layer system lives.",
+          "lineHeight": 1.5,
+          "fontFamily": "Inter",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "zFRpK",
+          "name": "Candidate A row",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "cwCa8",
+              "name": "candAhdr",
+              "fill": "$--accent-text",
+              "content": "Candidate A — Unified Timeline Panel  ✓ ADOPTED (collapsible variant)",
+              "fontFamily": "Inter",
+              "fontSize": 22,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "kKiJI",
+              "name": "candAdesc",
+              "fill": "$--text-secondary",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Bottom panel houses both layers (rows) and frames (columns). For Milestone 3, the frame axis is hidden or 1-column. Panel is collapsible — chevron at top-right, default open, persisted per-document. Mobile uses the 4th tab (Timeline) as toggle.",
+              "lineHeight": 1.5,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "JAzon",
+              "name": "A devices",
+              "width": "fill_container",
+              "gap": 60,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "DkDGC",
+                  "name": "A — Desktop",
+                  "clip": true,
+                  "width": 1440,
+                  "height": 900,
+                  "fill": "$--bg-base",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$--border"
+                  },
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "c3R7bL",
+                      "name": "topBar",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "$--bg-surface",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": {
+                          "bottom": 1
+                        },
+                        "fill": "$--border-subtle"
+                      },
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Y5Adc",
+                          "name": "aTopBarLabel",
+                          "fill": "$--text-tertiary",
+                          "content": "TopBar",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Diy8h",
+                      "name": "bodyRow",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "sBBIA",
+                          "name": "leftToolbar",
+                          "width": 48,
+                          "height": "fill_container",
+                          "fill": "$--bg-surface",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": {
+                              "right": 1
+                            },
+                            "fill": "$--border-subtle"
+                          },
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "yQOjN",
+                              "name": "aLTLabel",
+                              "rotation": 90,
+                              "fill": "$--text-tertiary",
+                              "content": "Tools",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "R8uhF",
+                          "name": "canvasArea",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "fill": "$--canvas-bg",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "k74Ta",
+                              "name": "aCanvasLabel",
+                              "fill": "$--text-tertiary",
+                              "content": "Canvas",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "H5B3BB",
+                          "name": "rightPanel",
+                          "width": 240,
+                          "height": "fill_container",
+                          "fill": "$--bg-surface",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": {
+                              "left": 1
+                            },
+                            "fill": "$--border-subtle"
+                          },
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": 12,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "g4RvU7",
+                              "name": "aRPLabel",
+                              "fill": "$--text-tertiary",
+                              "content": "RightPanel",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "LuSvN",
+                      "name": "timelinePanel HIGHLIGHT",
+                      "width": "fill_container",
+                      "height": 180,
+                      "fill": "$--accent-subtle",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": {
+                          "top": 2
+                        },
+                        "fill": "$--accent"
+                      },
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "GNMuW",
+                          "name": "layerSidebar",
+                          "width": 140,
+                          "height": "fill_container",
+                          "fill": "$--bg-surface",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": {
+                              "right": 1
+                            },
+                            "fill": "$--border-subtle"
+                          },
+                          "layout": "vertical",
+                          "gap": 6,
+                          "padding": 8,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "l8gLI7",
+                              "name": "aTLSLabel",
+                              "fill": "$--accent-text",
+                              "content": "Layers",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "BWXbt",
+                          "name": "frameArea",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "layout": "vertical",
+                          "gap": 6,
+                          "padding": 8,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Qnn7C",
+                              "name": "aTLFLabel",
+                              "fill": "$--accent-text",
+                              "content": "Frame tracks (1 column at M3, expands at M4)",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "K9YhTB",
+                      "name": "statusBar",
+                      "width": "fill_container",
+                      "height": 28,
+                      "fill": "$--bg-surface",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": {
+                          "top": 1
+                        },
+                        "fill": "$--border-subtle"
+                      },
+                      "padding": [
+                        0,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "WJtOw",
+                          "name": "aSBLabel",
+                          "fill": "$--text-tertiary",
+                          "content": "StatusBar",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "XsJwZ",
+                  "name": "A — Mobile",
+                  "clip": true,
+                  "width": 390,
+                  "height": 844,
+                  "fill": "$--bg-base",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$--border"
+                  },
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "k0B1I",
+                      "name": "mStatusBar",
+                      "width": "fill_container",
+                      "height": 54,
+                      "fill": "$--bg-surface"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "B3LRn",
+                      "name": "mAppBar",
+                      "width": "fill_container",
+                      "height": 44,
+                      "fill": "$--bg-surface",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": {
+                          "bottom": 1
+                        },
+                        "fill": "$--border-subtle"
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "uKTas",
+                      "name": "mCanvas",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "$--canvas-bg"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "oG6cy",
+                      "name": "mTimeline HIGHLIGHT",
+                      "width": "fill_container",
+                      "height": 146,
+                      "fill": "$--accent-subtle",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": {
+                          "top": 2
+                        },
+                        "fill": "$--accent"
+                      },
+                      "padding": 12,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "hZSmh",
+                          "name": "aMTLText",
+                          "fill": "$--accent-text",
+                          "content": "Timeline Panel (Layers × Frames)",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "nXIwX",
+                      "name": "mTabBar",
+                      "width": "fill_container",
+                      "height": 82,
+                      "fill": "$--bg-surface",
+                      "padding": [
+                        8,
+                        16,
+                        20,
+                        16
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Csb3m",
+                          "name": "aMTabText",
+                          "fill": "$--text-tertiary",
+                          "content": "Tabs:  Draw  •  Colors  •  Settings  •  [Timeline ●]",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "k748B7",
+          "name": "Candidate B row",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "SzoAG",
+              "name": "candBhdr",
+              "fill": "$--text-primary",
+              "content": "Candidate B — RightPanel Section + Mobile 4th Tab (layer-only) — not adopted",
+              "fontFamily": "Inter",
+              "fontSize": 22,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "xB0hA",
+              "name": "candBdesc",
+              "fill": "$--text-secondary",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Layers as a section inside the existing RightPanel (Canvas / Color / Layers). Mobile gets a new 4th tab. No frame axis. Replaced by a unified timeline at M4.",
+              "lineHeight": 1.5,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "Edy02",
+              "name": "B devices",
+              "width": "fill_container",
+              "gap": 60,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "ZYbc0",
+                  "name": "B — Desktop",
+                  "clip": true,
+                  "width": 1440,
+                  "height": 900,
+                  "fill": "$--bg-base",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$--border"
+                  },
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Hkfpq",
+                      "name": "topBar",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "$--bg-surface",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": {
+                          "bottom": 1
+                        },
+                        "fill": "$--border-subtle"
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "T06D5",
+                      "name": "bodyRow",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "XTqnk",
+                          "name": "leftToolbar",
+                          "width": 48,
+                          "height": "fill_container",
+                          "fill": "$--bg-surface",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": {
+                              "right": 1
+                            },
+                            "fill": "$--border-subtle"
+                          }
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Y2HXho",
+                          "name": "canvasArea",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "fill": "$--canvas-bg"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "B4IT3d",
+                          "name": "rightPanel",
+                          "width": 240,
+                          "height": "fill_container",
+                          "fill": "$--bg-surface",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": {
+                              "left": 1
+                            },
+                            "fill": "$--border-subtle"
+                          },
+                          "layout": "vertical",
+                          "gap": 12,
+                          "padding": 12,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "yo4YM",
+                              "name": "Canvas section",
+                              "width": "fill_container",
+                              "height": 80,
+                              "fill": "$--bg-elevated",
+                              "cornerRadius": 6,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "COFw4",
+                                  "name": "bRPCanvasL",
+                                  "fill": "$--text-secondary",
+                                  "content": "Canvas",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "UMprM",
+                              "name": "Color section",
+                              "width": "fill_container",
+                              "height": 120,
+                              "fill": "$--bg-elevated",
+                              "cornerRadius": 6,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "SO9kG",
+                                  "name": "bRPColorL",
+                                  "fill": "$--text-secondary",
+                                  "content": "Color",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "i5M9J8",
+                              "name": "Layers section HIGHLIGHT",
+                              "width": "fill_container",
+                              "height": "fill_container",
+                              "fill": "$--accent-subtle",
+                              "cornerRadius": 6,
+                              "stroke": {
+                                "align": "inside",
+                                "thickness": 2,
+                                "fill": "$--accent"
+                              },
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Rc3x2",
+                                  "name": "bRPLayersL",
+                                  "fill": "$--accent-text",
+                                  "content": "Layers (NEW at M3)",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "PSIX6",
+                      "name": "statusBar",
+                      "width": "fill_container",
+                      "height": 28,
+                      "fill": "$--bg-surface",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": {
+                          "top": 1
+                        },
+                        "fill": "$--border-subtle"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "fIn2z",
+                  "name": "B — Mobile",
+                  "clip": true,
+                  "width": 390,
+                  "height": 844,
+                  "fill": "$--bg-base",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$--border"
+                  },
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "qXrRN",
+                      "name": "mStatusBar",
+                      "width": "fill_container",
+                      "height": 54,
+                      "fill": "$--bg-surface"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "zmO7g",
+                      "name": "mAppBar",
+                      "width": "fill_container",
+                      "height": 44,
+                      "fill": "$--bg-surface",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": {
+                          "bottom": 1
+                        },
+                        "fill": "$--border-subtle"
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "TT2NY",
+                      "name": "mCanvas (Layers tab active → shows layer list)",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "$--accent-subtle",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 2,
+                        "fill": "$--accent"
+                      },
+                      "padding": 24,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "xWlKd",
+                          "name": "bMCanvasL",
+                          "fill": "$--accent-text",
+                          "content": "Layer List (Layers tab active)",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Bn0HH",
+                      "name": "mTabBar HIGHLIGHT",
+                      "width": "fill_container",
+                      "height": 82,
+                      "fill": "$--bg-surface",
+                      "padding": [
+                        8,
+                        16,
+                        20,
+                        16
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Z2aFG",
+                          "name": "bMTabText",
+                          "fill": "$--accent-text",
+                          "content": "Tabs:  Draw  •  Colors  •  [Layers ● NEW]  •  Settings",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "EtT56",
+          "name": "Candidate C row",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "mc4St",
+              "name": "candChdr",
+              "fill": "$--text-primary",
+              "content": "Candidate C — Bottom LayerPanel (layer-only, not a timeline) — not adopted",
+              "fontFamily": "Inter",
+              "fontSize": 22,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "kdx41",
+              "name": "candCdesc",
+              "fill": "$--text-secondary",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Dedicated layer panel below the canvas (where the timelinePanel sits in A), but layer-only — no frame axis. Mobile uses a bottom drawer/sheet that opens via a button. Replaced by unified timeline at M4.",
+              "lineHeight": 1.5,
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "Iwlfy",
+              "name": "C devices",
+              "width": "fill_container",
+              "gap": 60,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "KZIpi",
+                  "name": "C — Desktop",
+                  "clip": true,
+                  "width": 1440,
+                  "height": 900,
+                  "fill": "$--bg-base",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$--border"
+                  },
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "a9jfY",
+                      "name": "topBar",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "$--bg-surface",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": {
+                          "bottom": 1
+                        },
+                        "fill": "$--border-subtle"
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "cSKNo",
+                      "name": "bodyRow",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "R2RYH",
+                          "name": "leftToolbar",
+                          "width": 48,
+                          "height": "fill_container",
+                          "fill": "$--bg-surface",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": {
+                              "right": 1
+                            },
+                            "fill": "$--border-subtle"
+                          }
+                        },
+                        {
+                          "type": "frame",
+                          "id": "J6iEdX",
+                          "name": "canvasArea",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "fill": "$--canvas-bg",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "PhCYN",
+                              "name": "cCanvasL",
+                              "fill": "$--text-tertiary",
+                              "content": "Canvas",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "w1Q2p",
+                          "name": "rightPanel",
+                          "width": 240,
+                          "height": "fill_container",
+                          "fill": "$--bg-surface",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": {
+                              "left": 1
+                            },
+                            "fill": "$--border-subtle"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "BqEfs",
+                      "name": "layerPanel HIGHLIGHT",
+                      "width": "fill_container",
+                      "height": 140,
+                      "fill": "$--accent-subtle",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": {
+                          "top": 2
+                        },
+                        "fill": "$--accent"
+                      },
+                      "padding": 12,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ATs2j",
+                          "name": "cLayerL",
+                          "fill": "$--accent-text",
+                          "content": "LayerPanel — layer rows only, no frame axis",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "lRrSE",
+                      "name": "statusBar",
+                      "width": "fill_container",
+                      "height": 28,
+                      "fill": "$--bg-surface",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": {
+                          "top": 1
+                        },
+                        "fill": "$--border-subtle"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "O2yEF",
+                  "name": "C — Mobile",
+                  "clip": true,
+                  "width": 390,
+                  "height": 844,
+                  "fill": "$--bg-base",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$--border"
+                  },
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ZGsYc",
+                      "name": "mStatusBar",
+                      "width": "fill_container",
+                      "height": 54,
+                      "fill": "$--bg-surface"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "GZ7kG",
+                      "name": "mAppBar (with Layers toggle button)",
+                      "width": "fill_container",
+                      "height": 44,
+                      "fill": "$--bg-surface",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": {
+                          "bottom": 1
+                        },
+                        "fill": "$--border-subtle"
+                      },
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "justifyContent": "end",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "u7O3Ju",
+                          "name": "cMAppBarL",
+                          "fill": "$--accent-text",
+                          "content": "[ ☰ Layers ]",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "w1Q3fb",
+                      "name": "mCanvas (shrunk by sheet)",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "$--canvas-bg"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "LFiUG",
+                      "name": "mLayerSheet HIGHLIGHT (open)",
+                      "width": "fill_container",
+                      "height": 200,
+                      "fill": "$--accent-subtle",
+                      "cornerRadius": [
+                        16,
+                        16,
+                        0,
+                        0
+                      ],
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 2,
+                        "fill": "$--accent"
+                      },
+                      "padding": 16,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "MgA5R",
+                          "name": "cMSheetL",
+                          "fill": "$--accent-text",
+                          "content": "Layers Sheet (open) — toggled from app bar",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "zQiIJ",
+                      "name": "mTabBar (existing 3 tabs)",
+                      "width": "fill_container",
+                      "height": 82,
+                      "fill": "$--bg-surface",
+                      "padding": [
+                        8,
+                        16,
+                        20,
+                        16
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "k4qIsO",
+                          "name": "cMTabText",
+                          "fill": "$--text-tertiary",
+                          "content": "Tabs:  Draw  •  Colors  •  Settings",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "themes": {

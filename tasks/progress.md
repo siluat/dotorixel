@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None
+Layer system — basic infrastructure (add/delete/reorder) ([PRD](../issues/086-layer-system-basic-infrastructure.md)). PRD published and decomposed into 14 sub-issues (087–100); see `todo.md` for the full list. ADR `docs/decisions/web-document-layer-apple-preserved.en.md` records the web-only / Apple-preserved split. Starting points without blockers: **087** (Rust core: Document/Layer + composite + add/delete/reorder, AFK) and **092** (TimelinePanel design — Candidate A detail pass, HITL). The two run in parallel.
 
 ## Last Completed
 
@@ -10,8 +10,6 @@ None
 
 ## Next Up
 
-- Layer system: basic infrastructure (add/delete/reorder)
-  - Milestone 3 next major feature. Needs a PRD before implementation.
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
   - Now that the docked layout is in, the next Apple Phase 1 item. Independent.
 - Apple Phase 1 — Enable clear canvas (existing disabled button)

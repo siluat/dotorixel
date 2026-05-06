@@ -74,7 +74,7 @@ Run the `/task-start` skill.
 
 1. Read `tasks/progress.md` to understand the current state.
 2. If there are 2+ items in "Next Up", ask the user which task to work on.
-3. Classify the item and route to the appropriate skill (write-a-prd / prd-to-issues / tdd).
+3. Classify the item and route to the appropriate skill (to-prd / to-issues / tdd).
 
 ### Completing a Task
 

@@ -4,6 +4,16 @@ DOTORIXEL is a pixel art editor with a Svelte web shell, an Apple SwiftUI shell,
 
 ## Language
 
+### Document & Layers
+
+**Document**:
+The artifact a user edits and saves — a single piece of pixel art with its own canvas dimensions, layer stack, and active layer pointer. One Document per tab. Persisted to IndexedDB; opened and edited at runtime through a single `Document` model that owns the layer stack and exposes composite, resize, history, and structural mutation as first-class operations.
+_Avoid_: artwork (too vague — also used for portfolio sharing), composition (overlaps with the rendering term), image (used for reference images and exports).
+
+**Layer**:
+A named, ordered slot inside a Document holding its own pixel buffer plus per-layer display flags (visibility, opacity). Drawing tools and history operate against the Document's currently active Layer; rendering composites the full stack into a single image. Treated as a flat type today — when Reference Layer arrives, this term becomes the umbrella and the present variant is renamed Pixel Layer.
+_Avoid_: frame (animation term), tile, slice, stack (the *collection* of layers; an individual entry is a Layer).
+
 ### Sampling
 
 **Sampling Session**:

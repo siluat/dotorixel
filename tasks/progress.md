@@ -2,15 +2,21 @@
 
 ## Currently Working On
 
-Apple native: layout transition from floating panels to docked layout ([PRD](../issues/014-apple-native-docked-layout.md))
+None
 
 ## Last Completed
 
-[018 — Apple native: RightPanel](../issues/018-apple-right-panel.md): replaced the placeholder with a full RightPanel implementation — Canvas section (preset row, width/height text inputs that commit on blur/Return, disabled Clear button) and Color section (foreground swatch, 2×9 palette grid, SwiftUI `ColorPicker`) separated by a divider, wrapped in a vertical `ScrollView`. Added `EditorState.resizeCanvas(width:height:)` (silent no-op for unchanged or out-of-range dimensions, swaps in resized `ApplePixelCanvas`, reclamps viewport, bumps `canvasVersion`); no history snapshot pushed because `applySnapshot` rejects cross-dimension restores — resize stays non-undoable on Apple until that gap is addressed. Bridged UniFFI `Color` ↔ `SwiftUI.Color` via `foregroundBinding` so `ColorPicker` drives `editorState.foregroundColor` directly. Apple-side Pebble naming residue cleaned up: renamed `enum PebblePalette` → `enum DefaultPalette` with derived `columnCount`; dropped dead web-side comments (`pebble-palette-data.ts`, `--pebble-canvas-stroke`) from migrated files. 4 new tests on `EditorState` mutator (dimension update, `canvasVersion` bump, same-dimensions no-op, invalid-dimensions rejection); 19 Apple tests passing. SwiftUI view tests deferred — Apple shell has no view-test infrastructure yet, so introducing ViewInspector/XCUITest is a separate meta-decision.
+[019 — Apple native: StatusBar](../issues/019-apple-status-bar.md): replaced the placeholder StatusBar with the real implementation — `HStack` with canvas dimensions on the left (`Text("\(width) × \(height)")`, `textSecondary`) and active tool label on the right (`Text(activeTool.displayName)`, `textTertiary`), separated by a `Spacer`. Reads `editorState.pixelCanvas` and `editorState.activeTool` directly; both are tracked by `@Observable` so no manual `canvasVersion` bump is needed. Introduced a new `ToolType.displayName` extension returning a static English label per case (`"Pencil"`, `"Eraser"`, `"Line"`, `"Rectangle"`, `"Ellipse"`) — Apple has no i18n yet, but the extension itself is the natural integration point when an Apple i18n mechanism is decided. New parameterized Swift Testing suite verifies all 5 cases; SwiftUI view tests deferred consistently with #018 (Apple shell has no view-test infra). All 21 Apple tests passing. This issue completes [PRD 014 — Apple native docked layout](../issues/014-apple-native-docked-layout.md); Phase 1 layout sub-issues (015–019) are all done. Two review-backlog items filed: Apple view test infrastructure evaluation, and Apple spacing tokens (sibling views inline `4`/`8`/`12`/`16` literals because `DesignTokens.swift` has no spacing scale).
 
 ## Next Up
 
-- [019 — StatusBar (Apple Native)](../issues/019-apple-status-bar.md)
-  - Sibling of 018 under [PRD 014](../issues/014-apple-native-docked-layout.md). Independent, can start immediately and completes the docked layout PRD.
 - Layer system: basic infrastructure (add/delete/reorder)
   - Milestone 3 next major feature. Needs a PRD before implementation.
+- Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
+  - Now that the docked layout is in, the next Apple Phase 1 item. Independent.
+- Apple Phase 1 — Enable clear canvas (existing disabled button)
+  - Independent. Needs core wiring + button enable.
+- Apple Phase 1 — Enable PNG export (existing disabled button)
+  - Independent. Core export already done; wiring + UI enable only.
+- Apple Phase 1 — Shift-constrain for shape tools (macOS keyboard modifier)
+  - Independent, but blocked on shape tools not yet existing on Apple side; functionally on hold.

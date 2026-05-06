@@ -1,6 +1,6 @@
 ---
 title: "Apple native: layout transition from floating panels to docked layout"
-status: open
+status: done
 created: 2026-04-06
 parent: 013-apple-native-catchup.md
 ---

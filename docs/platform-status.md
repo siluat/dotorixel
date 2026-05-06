@@ -103,6 +103,12 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Saved work browser (desktop) | — | ✅ | ⬜ | Browse/open/delete saved documents; card grid with thumbnails, empty state, delete confirmation |
 | Saved work browser (mobile) | — | ✅ | — | Bottom sheet (vaul-svelte); shared card grid, AppBar trigger, responsive 2/3 column grid |
 
+## Layers
+
+| Feature | Core | Web | Apple | Notes |
+|---------|------|-----|-------|-------|
+| Document/Layer model | 🔧 | ⬜ | ⬜ | Core (#087): `Document` (width/height, ordered layer stack, active-layer UUID, monotonic `next_layer_number`, `timelinePanelCollapsed` flag) + `Layer` (id, name, pixels, visible, opacity) + `LayerError` (`Display + Error`). Mutators: `add_layer` (insert above active, becomes active), `remove_layer` (relocate active to neighbor; rejects last), `reorder_layer` (clamps), `set_active_layer`, `set_pixel`, `resize`. `composite()` returns row-major RGBA via straight source-over, multiplying `opacity` into source alpha and skipping `visible=false`. Not yet wired through WASM/TS or Apple. ADR records web-first / Apple-preserved (single-canvas) split |
+
 ## Reference Images
 
 | Feature | Core | Web | Apple | Notes |

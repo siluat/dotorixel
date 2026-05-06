@@ -1,6 +1,6 @@
 ---
 title: "Layer system: Rust core — Document/Layer + composite + add/delete/reorder"
-status: ready-for-agent
+status: done
 created: 2026-05-06
 parent: 086-layer-system-basic-infrastructure.md
 ---
@@ -45,3 +45,28 @@ None — can start immediately.
 ## Scenarios addressed
 
 - Partial coverage of Scenario 1, 2 (data-model groundwork, no UI yet).
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/Cargo.toml` | Added `uuid = "1"` (prod, type only) and `uuid = { version = "1", features = ["v4"] }` (dev, for test UUID generation) |
+| `crates/core/src/lib.rs` | Registered `pub mod document` / `pub mod layer`, re-exported `Document`, `LayerError`, `Layer` |
+| `crates/core/src/layer.rs` (new) | `Layer { id, name, pixels, visible, opacity }` with `pub` fields and `Layer::new` constructor; defaults visible=true, opacity=1.0 |
+| `crates/core/src/document.rs` (new) | `Document` with private fields + getters: `width`, `height`, `layers`, `active_layer_id`, `next_layer_number`, `is_timeline_panel_collapsed`. Mutators: `add_layer`, `remove_layer`, `reorder_layer`, `set_active_layer`, `composite`, `set_pixel`, `resize`. `LayerError { LayerNotFound, RemoveLastLayer }` implements `Display + Error`. Source-over alpha compositing in private `blend_layer_over` helper. 21 inline unit tests covering all acceptance criteria + active-layer preservation across reorder |
+
+### Key Decisions
+
+- **Core is layer-name-agnostic.** PRD 086 ties layer naming to Paraglide i18n in the TS shell. Rust takes `name: String` as a parameter on `add_layer`/`Document::new` — the shell is responsible for formatting `next_layer_number` into a localized string. This keeps `crates/core` framework-free (per CLAUDE.md "Core logic is self-contained").
+- **UUID dependency split between `[dependencies]` and `[dev-dependencies]`.** Production code uses `uuid` as a type only (no v4 generation, per PRD — IDs come from the TS shell). Tests need to fabricate UUIDs, so v4 is enabled only in `[dev-dependencies]`. This isolates the random-number dependency tree from the WASM/UniFFI build.
+- **`Document` fields are private with getters; `Layer` fields are public.** Mirrors the existing `PixelCanvas` precedent (private fields, getter methods) for the more complex aggregate. `Layer` is a value-bag type without invariants beyond what its constructor provides, so public fields preserve struct-literal ergonomics.
+- **`reorder_layer` silently clamps `new_index`** to `[0, len-1]` rather than returning an error. PRD didn't specify; clamping is the friendlier choice for drag-handle UIs that may overshoot. Documented in the doc comment.
+- **`remove_layer` active relocation**: prefer the layer immediately below; fall back to the layer immediately above when removing the bottom layer. Counter (`next_layer_number`) does not decrement — it is monotonic across the document's lifetime.
+- **`composite` returns straight (non-premultiplied) RGBA.** Matches the existing `PixelCanvas::pixels()` convention; `opacity` multiplies into source alpha; `visible=false` layers are skipped entirely.
+
+### Notes
+
+- This slice is dead-code from the user's point of view; main is unaffected. The next slice (#088 — Rust HistoryManager Document snapshot support) is now unblocked, followed by #089 (WASM Document facade).
+- Tests reach into `doc.layers[0].pixels = PixelCanvas::with_color(...)` for setup convenience (allowed because tests are a child module). Verification is done via the public surface (`composite`, `layers()[i].pixels.get_pixel`). A dedicated test fixture API was not added because it would be production code purely for tests.
+- Independent post-implementation audit ran against `.claude/rules/rust-conventions.md` and `CLAUDE.md`; addressed three findings: added doc comments to all non-trivial public methods (`canvas.rs` parity), renamed `timeline_panel_collapsed()` → `is_timeline_panel_collapsed()` (boolean-as-question + project precedent), added `reorder_layer_preserves_active_layer_id` regression test.
+- Final state: 21 new tests, 257 total core tests passing, clippy clean on new files, `cargo build --workspace` clean.

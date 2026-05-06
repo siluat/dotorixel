@@ -35,9 +35,6 @@
 
 Phase 1 modernizes the native layout from Pebble UI to the web's docked structure.
 
-- Layout transition: floating panels to docked layout (TopBar, LeftToolbar, RightPanel, StatusBar) — [PRD](../issues/014-apple-native-docked-layout.md)
-
-  - [019 — StatusBar](../issues/019-apple-status-bar.md)
 - Responsive tiers: iPad compact / iPad regular / Mac
 - Enable clear canvas (existing disabled button)
 - Enable PNG export (existing disabled button)
@@ -52,6 +49,8 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 
 ## Review backlog (not assigned to a milestone)
 
+- Apple view test infrastructure — evaluate ViewInspector / swift-snapshot-testing / XCUITest. Trigger: a regression class that's hard to catch via `EditorState` unit tests alone (e.g., reactive binding miss, layout drift, gesture flow on iPad).
+- Apple spacing tokens — `DesignTokens.swift` has no spacing scale; sibling views inline `4`/`8`/`12`/`16` literals. Promote to constants once the docked layout has settled and reuse is confirmed.
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate (deferred from Milestone 3 MVP)
 - Reference image import — clipboard paste support (Ctrl/Cmd+V), deferred from Milestone 3 MVP
 - Design: share artwork dialog — URL sharing dialog UI (.pen)

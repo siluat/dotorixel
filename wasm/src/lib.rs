@@ -1,7 +1,9 @@
+use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 
 use dotorixel_core::canvas::{PixelCanvas, ResizeAnchor};
 use dotorixel_core::color::Color;
+use dotorixel_core::document::Document;
 use dotorixel_core::export::{PngExport, SvgExport};
 use dotorixel_core::history::{HistoryManager, Snapshot};
 use dotorixel_core::pixel_perfect::{
@@ -204,6 +206,139 @@ impl WasmPixelCanvas {
         self.inner
             .encode_svg()
             .map_err(|e| JsError::new(&e.to_string()))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// WasmDocument
+// ---------------------------------------------------------------------------
+
+#[wasm_bindgen]
+pub struct WasmDocument {
+    inner: Document,
+}
+
+#[wasm_bindgen]
+impl WasmDocument {
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        width: u32,
+        height: u32,
+        first_layer_id: String,
+        first_layer_name: String,
+    ) -> Result<WasmDocument, JsError> {
+        let id = Uuid::parse_str(&first_layer_id).map_err(|e| JsError::new(&e.to_string()))?;
+        let document = Document::new(width, height, id, first_layer_name)
+            .map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(WasmDocument { inner: document })
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn width(&self) -> u32 {
+        self.inner.width()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn height(&self) -> u32 {
+        self.inner.height()
+    }
+
+    pub fn active_layer_id(&self) -> String {
+        self.inner.active_layer_id().to_string()
+    }
+
+    pub fn next_layer_number(&self) -> u32 {
+        self.inner.next_layer_number()
+    }
+
+    pub fn layer_count(&self) -> usize {
+        self.inner.layers().len()
+    }
+
+    /// Inserts a transparent layer directly above the active layer and makes
+    /// it active. Increments `next_layer_number`; the counter is never
+    /// decremented by `remove_layer`.
+    pub fn add_layer(&mut self, new_id: String, name: String) -> Result<(), JsError> {
+        let id = Uuid::parse_str(&new_id).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner.add_layer(id, name);
+        Ok(())
+    }
+
+    /// Removes the layer with `id`. Errors when the layer does not exist or
+    /// when removing it would empty the document (a document must always
+    /// contain at least one layer). When the removed layer was active, the
+    /// active pointer moves to an adjacent layer.
+    pub fn remove_layer(&mut self, id: String) -> Result<(), JsError> {
+        let layer_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner
+            .remove_layer(layer_id)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// RGBA row-major composite buffer (`width * height * 4` bytes), suitable
+    /// for `ImageData`.
+    pub fn composite(&self) -> Vec<u8> {
+        self.inner.composite()
+    }
+
+    /// Writes `color` to `(x, y)` on the active layer.
+    pub fn set_pixel(&mut self, x: u32, y: u32, color: &WasmColor) -> Result<(), JsError> {
+        self.inner
+            .set_pixel(x, y, color.inner)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn is_timeline_panel_collapsed(&self) -> bool {
+        self.inner.is_timeline_panel_collapsed()
+    }
+
+    /// Sets the active layer by id. Errors when no layer with `id` exists; in
+    /// that case the previous active layer is preserved.
+    pub fn set_active_layer(&mut self, id: String) -> Result<(), JsError> {
+        let layer_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner
+            .set_active_layer(layer_id)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// Moves the layer with `id` to `new_index`. `new_index` is silently
+    /// clamped to `[0, layer_count - 1]`. The active layer pointer is
+    /// preserved across reordering (tracked by id, not by index).
+    pub fn reorder_layer(&mut self, id: String, new_index: usize) -> Result<(), JsError> {
+        let layer_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner
+            .reorder_layer(layer_id, new_index)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// Resizes every layer to `new_width × new_height` using the same
+    /// `anchor`, preserving each layer's id, name, visibility, and opacity.
+    /// The active layer pointer is preserved.
+    pub fn resize(
+        &mut self,
+        new_width: u32,
+        new_height: u32,
+        anchor: WasmResizeAnchor,
+    ) -> Result<(), JsError> {
+        self.inner
+            .resize(new_width, new_height, anchor.to_core())
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    pub fn layer_id_at(&self, index: usize) -> Option<String> {
+        self.inner.layers().get(index).map(|l| l.id.to_string())
+    }
+
+    pub fn layer_name_at(&self, index: usize) -> Option<String> {
+        self.inner.layers().get(index).map(|l| l.name.clone())
+    }
+
+    pub fn layer_visible_at(&self, index: usize) -> Option<bool> {
+        self.inner.layers().get(index).map(|l| l.visible)
+    }
+
+    pub fn layer_opacity_at(&self, index: usize) -> Option<f32> {
+        self.inner.layers().get(index).map(|l| l.opacity)
     }
 }
 
@@ -417,6 +552,22 @@ impl WasmHistoryManager {
 
     pub fn default_max_snapshots() -> usize {
         HistoryManager::DEFAULT_MAX_SNAPSHOTS
+    }
+
+    pub fn push_document(&mut self, document: &WasmDocument) {
+        self.inner.push_document(&document.inner);
+    }
+
+    pub fn undo_document(&mut self, current: &WasmDocument) -> Option<WasmDocument> {
+        self.inner
+            .undo_document(&current.inner)
+            .map(|inner| WasmDocument { inner })
+    }
+
+    pub fn redo_document(&mut self, current: &WasmDocument) -> Option<WasmDocument> {
+        self.inner
+            .redo_document(&current.inner)
+            .map(|inner| WasmDocument { inner })
     }
 }
 
@@ -694,4 +845,113 @@ impl WasmViewport {
     pub fn max_zoom() -> f64 {
         Viewport::MAX_ZOOM
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use uuid::Uuid;
+
+    // -- WasmDocument --
+
+    #[test]
+    fn wasm_document_new_round_trips_dimensions_and_active_id() {
+        let id = Uuid::new_v4();
+        let doc = WasmDocument::new(8, 16, id.to_string(), "Layer 1".to_string()).unwrap();
+
+        assert_eq!(doc.width(), 8);
+        assert_eq!(doc.height(), 16);
+        assert_eq!(doc.active_layer_id(), id.to_string());
+        assert_eq!(doc.next_layer_number(), 2);
+        assert_eq!(doc.layer_count(), 1);
+    }
+
+    #[test]
+    fn wasm_document_set_pixel_on_active_layer_shows_in_composite() {
+        let id = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 2, id.to_string(), "L1".into()).unwrap();
+        let red = WasmColor::new(255, 0, 0, 255);
+
+        doc.set_pixel(1, 0, &red).unwrap();
+
+        // Pixel (1, 0) starts at byte offset (0 * 2 + 1) * 4 = 4.
+        let buf = doc.composite();
+        assert_eq!(&buf[4..8], &[255, 0, 0, 255]);
+    }
+
+    #[test]
+    fn wasm_document_composite_of_new_doc_is_all_zero_rgba() {
+        let id = Uuid::new_v4();
+        let doc = WasmDocument::new(3, 5, id.to_string(), "L1".into()).unwrap();
+
+        let buf = doc.composite();
+        assert_eq!(buf.len(), 3 * 5 * 4);
+        assert!(buf.iter().all(|&b| b == 0));
+    }
+
+    #[test]
+    fn wasm_document_remove_layer_decrements_count_and_relocates_active() {
+        let first = Uuid::new_v4();
+        let second = Uuid::new_v4();
+        let mut doc = WasmDocument::new(4, 4, first.to_string(), "A".into()).unwrap();
+        doc.add_layer(second.to_string(), "B".into()).unwrap(); // active=B
+
+        doc.remove_layer(second.to_string()).unwrap();
+
+        assert_eq!(doc.layer_count(), 1);
+        assert_eq!(doc.active_layer_id(), first.to_string());
+    }
+
+    #[test]
+    fn wasm_document_add_layer_advances_count_counter_and_active_id() {
+        let first = Uuid::new_v4();
+        let second = Uuid::new_v4();
+        let mut doc = WasmDocument::new(4, 4, first.to_string(), "Layer 1".into()).unwrap();
+
+        doc.add_layer(second.to_string(), "Layer 2".into()).unwrap();
+
+        assert_eq!(doc.layer_count(), 2);
+        assert_eq!(doc.next_layer_number(), 3);
+        assert_eq!(doc.active_layer_id(), second.to_string());
+    }
+
+    // -- WasmHistoryManager Document path --
+
+    #[test]
+    fn wasm_history_manager_push_then_undo_document_round_trip() {
+        let first = Uuid::new_v4();
+        let second = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 2, first.to_string(), "A".into()).unwrap();
+        let mut history = WasmHistoryManager::default_manager();
+
+        history.push_document(&doc);
+        doc.add_layer(second.to_string(), "B".into()).unwrap(); // mutate
+
+        let restored = history.undo_document(&doc).expect("undo should yield prior doc");
+        assert_eq!(restored.layer_count(), 1);
+        assert_eq!(restored.active_layer_id(), first.to_string());
+        assert_eq!(restored.next_layer_number(), 2);
+    }
+
+    #[test]
+    fn wasm_history_manager_redo_document_reapplies_post_undo_state() {
+        let first = Uuid::new_v4();
+        let second = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 2, first.to_string(), "A".into()).unwrap();
+        let mut history = WasmHistoryManager::default_manager();
+
+        history.push_document(&doc);
+        doc.add_layer(second.to_string(), "B".into()).unwrap();
+
+        let restored = history.undo_document(&doc).unwrap();
+        let redone = history.redo_document(&restored).unwrap();
+
+        assert_eq!(redone.layer_count(), 2);
+        assert_eq!(redone.active_layer_id(), second.to_string());
+    }
+
+    // Note: JsError-returning paths (e.g., invalid UUID, oversize dimensions)
+    // panic under `cargo test` because `JsError::new` is only callable on
+    // wasm targets. They're verified end-to-end in TS via wasm-pack output;
+    // a wasm-bindgen-test rig can be added if a regression class warrants it.
 }

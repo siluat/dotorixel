@@ -32,7 +32,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Undo / redo | ✅ | ✅ | ✅ | Snapshot-based, dimension-aware (resize undoable on Web) |
-| Document undo / redo | 🔧 | ⬜ | ⬜ | Core (#088): `HistoryManager` extended with internal `HistoryEntry` enum (`Canvas` / `Document` variants). New public methods `push_document` / `undo_document` / `redo_document` capture and restore the full `Document` (layer stack + `next_layer_number`). Existing canvas-path API preserved unchanged. `DEFAULT_MAX_SNAPSHOTS=100` shared across both paths. Not yet exposed through WASM or Apple bindings |
+| Document undo / redo | 🔧 | 🔧 | ⬜ | Core (#088): `HistoryManager` extended with internal `HistoryEntry` enum (`Canvas` / `Document` variants). New public methods `push_document` / `undo_document` / `redo_document` capture and restore the full `Document` (layer stack + `next_layer_number`). Existing canvas-path API preserved unchanged. `DEFAULT_MAX_SNAPSHOTS=100` shared across both paths. WASM (#089): the three Document-snapshot methods exposed on `WasmHistoryManager`. TS shell does not yet call them (`TabState` still uses canvas-path). Not yet exposed through Apple bindings |
 
 ## Viewport
 
@@ -108,7 +108,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Document/Layer model | 🔧 | ⬜ | ⬜ | Core (#087): `Document` (width/height, ordered layer stack, active-layer UUID, monotonic `next_layer_number`, `timelinePanelCollapsed` flag) + `Layer` (id, name, pixels, visible, opacity) + `LayerError` (`Display + Error`). Mutators: `add_layer` (insert above active, becomes active), `remove_layer` (relocate active to neighbor; rejects last), `reorder_layer` (clamps), `set_active_layer`, `set_pixel`, `resize`. `composite()` returns row-major RGBA via straight source-over, multiplying `opacity` into source alpha and skipping `visible=false`. Not yet wired through WASM/TS or Apple. ADR records web-first / Apple-preserved (single-canvas) split |
+| Document/Layer model | 🔧 | 🔧 | ⬜ | Core (#087): `Document` (width/height, ordered layer stack, active-layer UUID, monotonic `next_layer_number`, `timelinePanelCollapsed` flag) + `Layer` (id, name, pixels, visible, opacity) + `LayerError` (`Display + Error`). Mutators: `add_layer` (insert above active, becomes active), `remove_layer` (relocate active to neighbor; rejects last), `reorder_layer` (clamps), `set_active_layer`, `set_pixel`, `resize`. `composite()` returns row-major RGBA via straight source-over, multiplying `opacity` into source alpha and skipping `visible=false`. WASM (#089): `WasmDocument` facade exposes constructor, getters, index-based layer access, mutators, and `composite() -> Vec<u8>` (`ImageData`-compatible). Layer IDs accepted as UUID v4 strings (TS-side `crypto.randomUUID()`). TS shell does not yet construct it. Not yet wired through Apple. ADR records web-first / Apple-preserved (single-canvas) split |
 
 ## Reference Images
 

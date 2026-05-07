@@ -210,6 +210,7 @@ name = "dotorixel-wasm"
 version = "0.0.0"
 dependencies = [
  "dotorixel-core",
+ "uuid",
  "wasm-bindgen",
 ]
 

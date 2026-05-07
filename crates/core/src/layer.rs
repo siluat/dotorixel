@@ -2,6 +2,8 @@ use uuid::Uuid;
 
 use crate::canvas::{PixelCanvas, PixelCanvasError};
 
+/// A single drawable layer in a [`Document`](crate::Document): an addressable
+/// pixel buffer with display state. `opacity` is in `[0.0, 1.0]`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Layer {
     pub id: Uuid,
@@ -12,6 +14,8 @@ pub struct Layer {
 }
 
 impl Layer {
+    /// Creates a fully-transparent layer of `width × height`. New layers start
+    /// `visible = true` and `opacity = 1.0`.
     pub fn new(
         id: Uuid,
         name: String,

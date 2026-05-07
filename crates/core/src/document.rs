@@ -43,6 +43,9 @@ pub struct Document {
 }
 
 impl Document {
+    /// Creates a new document with one transparent layer (`first_layer_id` /
+    /// `first_layer_name`) marked active. `next_layer_number` starts at 2 and
+    /// the timeline panel begins expanded.
     pub fn new(
         width: u32,
         height: u32,
@@ -91,6 +94,10 @@ impl Document {
     /// is not decremented by [`remove_layer`](Self::remove_layer), so layer
     /// numbers remain monotonic across the document's lifetime.
     pub fn add_layer(&mut self, new_id: Uuid, name: String) {
+        debug_assert!(
+            !self.layers.iter().any(|l| l.id == new_id),
+            "add_layer called with a UUID already present in the stack"
+        );
         let active_idx = self
             .layers
             .iter()
@@ -125,14 +132,14 @@ impl Document {
     /// layer immediately below; if the removed layer was at the bottom, it
     /// falls back to the layer immediately above.
     pub fn remove_layer(&mut self, id: Uuid) -> Result<(), LayerError> {
-        if self.layers.len() == 1 {
-            return Err(LayerError::RemoveLastLayer);
-        }
         let idx = self
             .layers
             .iter()
             .position(|l| l.id == id)
             .ok_or(LayerError::LayerNotFound { id })?;
+        if self.layers.len() == 1 {
+            return Err(LayerError::RemoveLastLayer);
+        }
         self.layers.remove(idx);
         if self.active_layer_id == id {
             // Prefer the layer immediately below; fall back to the layer
@@ -357,6 +364,23 @@ mod tests {
             Err(LayerError::LayerNotFound { id: unknown })
         );
         assert_eq!(doc.layers().len(), 2);
+    }
+
+    #[test]
+    fn remove_layer_prefers_layer_not_found_over_remove_last_layer_on_single_layer_document() {
+        let a = Uuid::new_v4();
+        let unknown = Uuid::new_v4();
+        let mut doc = Document::new(8, 8, a, "A".to_string()).unwrap();
+
+        // Single-layer document: an unknown id must surface LayerNotFound, not
+        // RemoveLastLayer. The two errors mean different things to callers
+        // (stale id vs. minimum-layer-count), and the doc comment promises
+        // LayerNotFound takes precedence.
+        assert_eq!(
+            doc.remove_layer(unknown),
+            Err(LayerError::LayerNotFound { id: unknown })
+        );
+        assert_eq!(doc.layers().len(), 1);
     }
 
     #[test]

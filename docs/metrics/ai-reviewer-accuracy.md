@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 76 | 60 | 16 | 62 | 79% | 49% |
-| cubic-dev-ai[bot] | 50 | 43 | 7 | 77 | 86% | 36% |
-| coderabbitai[bot] | 106 | 73 | 33 | 48 | 69% | 60% |
+| greptile-apps[bot] | 77 | 60 | 17 | 63 | 78% | 49% |
+| cubic-dev-ai[bot] | 50 | 43 | 7 | 78 | 86% | 36% |
+| coderabbitai[bot] | 107 | 74 | 33 | 48 | 69% | 61% |
 
 ## Log
 
@@ -433,3 +433,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #187 | cubic-dev-ai[bot] | Miss | Did not flag duplicate-UUID guard gap in add_layer |
 | #187 | cubic-dev-ai[bot] | Miss | Did not flag missing rustdoc on Layer / Layer::new |
 | #187 | cubic-dev-ai[bot] | Miss | Did not flag missing rustdoc on Document::new |
+| #188 | coderabbitai[bot] | Accept | Doc comment camelCase `nextLayerNumber` → snake_case `next_layer_number` |
+| #188 | greptile-apps[bot] | Reject | Variant check ordering — panic after redo_stack push, hardening for catch_unwind out of scope |
+| #188 | greptile-apps[bot] | Miss | Did not flag camelCase `nextLayerNumber` doc comment |
+| #188 | cubic-dev-ai[bot] | Miss | Did not flag camelCase `nextLayerNumber` doc comment |

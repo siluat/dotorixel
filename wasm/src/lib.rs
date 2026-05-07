@@ -220,6 +220,10 @@ pub struct WasmDocument {
 
 #[wasm_bindgen]
 impl WasmDocument {
+    /// Creates a document of `width × height` with one initial transparent
+    /// layer keyed by `first_layer_id`. Errors when `first_layer_id` is not a
+    /// valid UUID string or when the dimensions fall outside the core's
+    /// supported range.
     #[wasm_bindgen(constructor)]
     pub fn new(
         width: u32,
@@ -257,9 +261,15 @@ impl WasmDocument {
 
     /// Inserts a transparent layer directly above the active layer and makes
     /// it active. Increments `next_layer_number`; the counter is never
-    /// decremented by `remove_layer`.
+    /// decremented by `remove_layer`. Errors when `new_id` is not a valid UUID
+    /// string or when a layer with the same id already exists in the document.
     pub fn add_layer(&mut self, new_id: String, name: String) -> Result<(), JsError> {
         let id = Uuid::parse_str(&new_id).map_err(|e| JsError::new(&e.to_string()))?;
+        if self.inner.layers().iter().any(|l| l.id == id) {
+            return Err(JsError::new(&format!(
+                "Layer with id {id} already exists"
+            )));
+        }
         self.inner.add_layer(id, name);
         Ok(())
     }
@@ -325,18 +335,26 @@ impl WasmDocument {
             .map_err(|e| JsError::new(&e.to_string()))
     }
 
+    /// Returns the layer id at `index` as a UUID string, or `None` when
+    /// `index` is out of range. `index = 0` is the bottom-most layer.
     pub fn layer_id_at(&self, index: usize) -> Option<String> {
         self.inner.layers().get(index).map(|l| l.id.to_string())
     }
 
+    /// Returns the layer name at `index`, or `None` when `index` is out of
+    /// range.
     pub fn layer_name_at(&self, index: usize) -> Option<String> {
         self.inner.layers().get(index).map(|l| l.name.clone())
     }
 
+    /// Returns the visibility flag of the layer at `index`, or `None` when
+    /// `index` is out of range.
     pub fn layer_visible_at(&self, index: usize) -> Option<bool> {
         self.inner.layers().get(index).map(|l| l.visible)
     }
 
+    /// Returns the opacity (0.0..=1.0) of the layer at `index`, or `None` when
+    /// `index` is out of range.
     pub fn layer_opacity_at(&self, index: usize) -> Option<f32> {
         self.inner.layers().get(index).map(|l| l.opacity)
     }
@@ -554,16 +572,23 @@ impl WasmHistoryManager {
         HistoryManager::DEFAULT_MAX_SNAPSHOTS
     }
 
+    /// Captures `document` as the new top of the undo stack and clears the
+    /// redo stack. Older snapshots are evicted once the configured maximum is
+    /// exceeded.
     pub fn push_document(&mut self, document: &WasmDocument) {
         self.inner.push_document(&document.inner);
     }
 
+    /// Pushes `current` onto the redo stack and returns the previous document
+    /// snapshot, or `None` when the undo stack is empty.
     pub fn undo_document(&mut self, current: &WasmDocument) -> Option<WasmDocument> {
         self.inner
             .undo_document(&current.inner)
             .map(|inner| WasmDocument { inner })
     }
 
+    /// Pushes `current` onto the undo stack and returns the next document
+    /// snapshot, or `None` when the redo stack is empty.
     pub fn redo_document(&mut self, current: &WasmDocument) -> Option<WasmDocument> {
         self.inner
             .redo_document(&current.inner)

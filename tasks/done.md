@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 087 | [Layer system: Rust core — Document/Layer + composite + add/delete/reorder](../issues/087-layer-system-rust-document-layer-core.md) | 2026-05-06 |
 | 019 | [Apple native: StatusBar](../issues/019-apple-status-bar.md) | 2026-05-06 |
 | 018 | [Apple native: RightPanel](../issues/018-apple-right-panel.md) | 2026-05-04 |
 | 085 | [Deepen TabState's viewport responsibility into a TabViewport class](../issues/085-deepen-tab-viewport.md) | 2026-05-03 |

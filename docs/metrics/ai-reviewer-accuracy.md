@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 74 | 58 | 16 | 60 | 78% | 49% |
-| cubic-dev-ai[bot] | 50 | 43 | 7 | 73 | 86% | 37% |
-| coderabbitai[bot] | 103 | 70 | 33 | 47 | 68% | 60% |
+| greptile-apps[bot] | 76 | 60 | 16 | 62 | 79% | 49% |
+| cubic-dev-ai[bot] | 50 | 43 | 7 | 77 | 86% | 36% |
+| coderabbitai[bot] | 106 | 73 | 33 | 48 | 69% | 60% |
 
 ## Log
 
@@ -421,3 +421,15 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #185 | cubic-dev-ai[bot] | Accept | Resize leaves incompatible snapshots in undo history (duplicate of greptile / coderabbit) |
 | #185 | cubic-dev-ai[bot] | Miss | Did not flag `onChange(of: focusedField)` commit-on-focus-gain semantic |
 | #185 | cubic-dev-ai[bot] | Miss | Did not flag verification claim overclaim in issue Notes |
+| #187 | greptile-apps[bot] | Accept | remove_layer error-discriminant: RemoveLastLayer guard fires before id check (duplicate of coderabbit) |
+| #187 | greptile-apps[bot] | Accept | add_layer silently inserts duplicate UUIDs — added debug_assert! dev-tripwire |
+| #187 | coderabbitai[bot] | Accept | remove_layer error-discriminant: resolve id before last-layer guard (duplicate of greptile) |
+| #187 | coderabbitai[bot] | Accept | Layer struct + Layer::new lacked rustdoc for field defaults (visible=true, opacity=1.0) |
+| #187 | coderabbitai[bot] | Accept | Document::new lacked rustdoc for non-obvious initial state (next_layer_number=2, timeline panel default) |
+| #187 | greptile-apps[bot] | Miss | Did not flag missing rustdoc on Layer / Layer::new |
+| #187 | greptile-apps[bot] | Miss | Did not flag missing rustdoc on Document::new |
+| #187 | coderabbitai[bot] | Miss | Did not flag duplicate-UUID guard gap in add_layer |
+| #187 | cubic-dev-ai[bot] | Miss | Did not flag remove_layer error-discriminant ordering |
+| #187 | cubic-dev-ai[bot] | Miss | Did not flag duplicate-UUID guard gap in add_layer |
+| #187 | cubic-dev-ai[bot] | Miss | Did not flag missing rustdoc on Layer / Layer::new |
+| #187 | cubic-dev-ai[bot] | Miss | Did not flag missing rustdoc on Document::new |

@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 77 | 60 | 17 | 63 | 78% | 49% |
-| cubic-dev-ai[bot] | 50 | 43 | 7 | 78 | 86% | 36% |
-| coderabbitai[bot] | 107 | 74 | 33 | 48 | 69% | 61% |
+| greptile-apps[bot] | 78 | 61 | 17 | 65 | 78% | 48% |
+| cubic-dev-ai[bot] | 52 | 44 | 8 | 80 | 85% | 35% |
+| coderabbitai[bot] | 110 | 76 | 34 | 49 | 69% | 61% |
 
 ## Log
 
@@ -437,3 +437,14 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #188 | greptile-apps[bot] | Reject | Variant check ordering — panic after redo_stack push, hardening for catch_unwind out of scope |
 | #188 | greptile-apps[bot] | Miss | Did not flag camelCase `nextLayerNumber` doc comment |
 | #188 | cubic-dev-ai[bot] | Miss | Did not flag camelCase `nextLayerNumber` doc comment |
+| #189 | greptile-apps[bot] | Accept | `WasmDocument::add_layer` silently inserts duplicate UUIDs — return JsError at boundary |
+| #189 | cubic-dev-ai[bot] | Accept | Duplicate UUID guard in `add_layer` (duplicate of greptile) |
+| #189 | cubic-dev-ai[bot] | Reject | Runtime guard against mixed canvas/document HistoryEntry paths — single-path-per-manager is intentional design with core panic guards |
+| #189 | coderabbitai[bot] | Reject | Validate UUID is v4 specifically — generation strategy, not validation contract; non-v4 still functions as a unique id |
+| #189 | coderabbitai[bot] | Accept | Doc comments on `WasmDocument::new` and index-based layer getters (`layer_*_at`) — error / out-of-range conditions |
+| #189 | coderabbitai[bot] | Accept | Doc comments on `WasmHistoryManager` Document-snapshot methods — snapshot capture, redo-stack clear, None conditions |
+| #189 | coderabbitai[bot] | Miss | Did not flag duplicate-UUID guard gap in `add_layer` |
+| #189 | greptile-apps[bot] | Miss | Did not flag missing doc comments on `WasmDocument::new` and index-based layer getters |
+| #189 | greptile-apps[bot] | Miss | Did not flag missing doc comments on `WasmHistoryManager` Document-snapshot methods |
+| #189 | cubic-dev-ai[bot] | Miss | Did not flag missing doc comments on `WasmDocument::new` and index-based layer getters |
+| #189 | cubic-dev-ai[bot] | Miss | Did not flag missing doc comments on `WasmHistoryManager` Document-snapshot methods |

@@ -81,7 +81,7 @@ impl HistoryManager {
         }));
     }
 
-    /// Saves a [`Document`] snapshot — full layer stack and `nextLayerNumber`
+    /// Saves a [`Document`] snapshot — full layer stack and `next_layer_number`
     /// — onto the undo stack.
     ///
     /// Evicts the oldest snapshot if the stack exceeds `max_snapshots`,

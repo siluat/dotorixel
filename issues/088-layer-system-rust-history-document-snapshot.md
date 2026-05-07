@@ -1,6 +1,6 @@
 ---
 title: "Layer system: Rust HistoryManager — Document snapshot support"
-status: ready-for-agent
+status: done
 created: 2026-05-06
 parent: 086-layer-system-basic-infrastructure.md
 ---
@@ -39,3 +39,21 @@ Scope:
 ## Scenarios addressed
 
 - Partial coverage of Scenario 6 (history groundwork, no UI yet).
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/history.rs` | Internal `HistoryEntry` enum (`Canvas(Snapshot)` / `Document(Document)`) added; stacks switched to `VecDeque<HistoryEntry>`. New public methods `push_document(&Document)`, `undo_document(&Document) -> Option<Document>`, `redo_document(&Document) -> Option<Document>`. Existing `push_snapshot` / `undo` / `redo` preserved unchanged on the public surface — they now wrap into `HistoryEntry::Canvas` internally. Variant guards `expect_canvas` / `expect_document` panic with actionable "do not mix paths" messages. `DEFAULT_MAX_SNAPSHOTS=100` retained via shared `push_entry` helper. 9 new inline tests (T1–T9) cover document round-trip across `set_pixel` / `add_layer` / `remove_layer` / `reorder_layer`, redo, push-clears-redo, `next_layer_number` preservation, and eviction. All 24 pre-existing canvas-path tests still pass; 33 history tests / 267 core tests total. `history.rs` is clippy-clean. Workspace builds clean — WASM/Apple bindings unaffected (still depend only on `Snapshot` struct + canvas-path methods). |
+
+### Key Decisions
+
+- **Discriminated internal enum, not enum-as-public-type.** Considered three approaches: (1) two parallel methods backed by an internal `HistoryEntry` enum, (2) shorter method names without "snapshot" suffix, (3) make the public `Snapshot` itself an enum. Chose option 2 (`push_document` / `undo_document` / `redo_document`) for internal symmetry across the three methods — opting into the shorter `_document` suffix everywhere instead of mirroring the existing `_snapshot` quirk on push only. Rejected option 3 because it would break the WASM `WasmSnapshot::pixels()` getter and the Apple uniffi `Snapshot { width, height, pixels }` Record exposure, which lies outside this dead-code slice's scope.
+- **Variant mismatch panics rather than degrades.** `expect_canvas` / `expect_document` panic if a stack contains the wrong variant for the active path. A single `HistoryManager` is meant to be driven through one path at a time (canvas during transition, document afterward); silent fallthrough would mask programming errors. The panic message names what to do ("do not mix paths").
+- **No visibility/opacity round-trip test.** Scope mentions these flags, but the AC list calls out only "structural and pixel changes." `Document` exposes no public mutator for `Layer.visible` / `Layer.opacity` yet — adding one solely for testing would be out of scope. `#[derive(Clone)]` on `Layer` and `Document` already guarantees the round-trip; a regression test belongs alongside the public mutator in 097 (visibility toggle).
+
+### Notes
+
+- Slice remains dead code from the user's perspective — neither the new methods nor the new internal enum are reachable from main. WASM facade (089) is the next slice that begins exposing the document path.
+- Pre-existing clippy `-D warnings` errors in `pixel_perfect.rs` (`type_complexity` × 2) and `tool.rs` (`assertions_on_constants` × 1) are not introduced by this slice — confirmed by stashing the diff and re-running clippy on `main`. Captured for follow-up cleanup; out of scope here.
+- Parent 086 frontmatter is already `status: done` (predates this slice's start) — left untouched per `/task-done` semantics, which only set parent to done, never reverse.

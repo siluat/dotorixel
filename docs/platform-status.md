@@ -32,6 +32,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Undo / redo | ✅ | ✅ | ✅ | Snapshot-based, dimension-aware (resize undoable on Web) |
+| Document undo / redo | 🔧 | ⬜ | ⬜ | Core (#088): `HistoryManager` extended with internal `HistoryEntry` enum (`Canvas` / `Document` variants). New public methods `push_document` / `undo_document` / `redo_document` capture and restore the full `Document` (layer stack + `next_layer_number`). Existing canvas-path API preserved unchanged. `DEFAULT_MAX_SNAPSHOTS=100` shared across both paths. Not yet exposed through WASM or Apple bindings |
 
 ## Viewport
 

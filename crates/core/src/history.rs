@@ -1,5 +1,7 @@
 use std::collections::VecDeque;
 
+use crate::document::Document;
+
 /// A canvas snapshot that captures both pixel data and dimensions.
 ///
 /// Pairing dimensions with the pixel buffer allows the history system
@@ -12,16 +14,29 @@ pub struct Snapshot {
     pub pixels: Vec<u8>,
 }
 
-/// Manages undo/redo history as dimension-aware pixel snapshots.
+/// A history entry — either a single-canvas snapshot or a full `Document`
+/// snapshot.
 ///
-/// Each snapshot stores owned pixel data alongside canvas dimensions,
-/// enabling undo/redo across resize operations. Both stacks use `VecDeque`
-/// to support efficient eviction of the oldest undo entry when
+/// Two paths coexist while document-aware undo rolls out across callers; the
+/// single-canvas path will be retired once nothing references it. One
+/// [`HistoryManager`] should be driven through a single path.
+#[derive(Debug, Clone)]
+enum HistoryEntry {
+    Canvas(Snapshot),
+    Document(Document),
+}
+
+/// Manages undo/redo history as snapshots — either dimension-aware pixel
+/// snapshots (canvas path) or full [`Document`] snapshots (layer-aware path).
+///
+/// A single manager should be driven through one path; the two coexist while
+/// callers migrate from canvas-only to document-aware undo. Both stacks use
+/// `VecDeque` to support efficient eviction of the oldest undo entry when
 /// `max_snapshots` is exceeded.
 #[derive(Debug, Clone)]
 pub struct HistoryManager {
-    undo_stack: VecDeque<Snapshot>,
-    redo_stack: VecDeque<Snapshot>,
+    undo_stack: VecDeque<HistoryEntry>,
+    redo_stack: VecDeque<HistoryEntry>,
     max_snapshots: usize,
 }
 
@@ -59,11 +74,25 @@ impl HistoryManager {
             (width as usize) * (height as usize) * 4,
             "snapshot pixel buffer length must match width * height * 4"
         );
-        self.undo_stack.push_back(Snapshot {
+        self.push_entry(HistoryEntry::Canvas(Snapshot {
             width,
             height,
             pixels: pixels.to_vec(),
-        });
+        }));
+    }
+
+    /// Saves a [`Document`] snapshot — full layer stack and `nextLayerNumber`
+    /// — onto the undo stack.
+    ///
+    /// Evicts the oldest snapshot if the stack exceeds `max_snapshots`,
+    /// and clears the redo stack (branching from a past state discards
+    /// the former future).
+    pub fn push_document(&mut self, document: &Document) {
+        self.push_entry(HistoryEntry::Document(document.clone()));
+    }
+
+    fn push_entry(&mut self, entry: HistoryEntry) {
+        self.undo_stack.push_back(entry);
         if self.undo_stack.len() > self.max_snapshots {
             self.undo_stack.pop_front();
         }
@@ -82,13 +111,13 @@ impl HistoryManager {
             current_pixels.len(),
             (current_width as usize) * (current_height as usize) * 4,
         );
-        let snapshot = self.undo_stack.pop_back()?;
-        self.redo_stack.push_back(Snapshot {
+        let entry = self.undo_stack.pop_back()?;
+        self.redo_stack.push_back(HistoryEntry::Canvas(Snapshot {
             width: current_width,
             height: current_height,
             pixels: current_pixels.to_vec(),
-        });
-        Some(snapshot)
+        }));
+        Some(expect_canvas(entry))
     }
 
     /// Pops the most recent snapshot from the redo stack and pushes the
@@ -103,18 +132,54 @@ impl HistoryManager {
             current_pixels.len(),
             (current_width as usize) * (current_height as usize) * 4,
         );
-        let snapshot = self.redo_stack.pop_back()?;
-        self.undo_stack.push_back(Snapshot {
+        let entry = self.redo_stack.pop_back()?;
+        self.undo_stack.push_back(HistoryEntry::Canvas(Snapshot {
             width: current_width,
             height: current_height,
             pixels: current_pixels.to_vec(),
-        });
-        Some(snapshot)
+        }));
+        Some(expect_canvas(entry))
+    }
+
+    /// Pops the most recent [`Document`] snapshot from the undo stack and
+    /// pushes the caller's current document onto the redo stack.
+    pub fn undo_document(&mut self, current: &Document) -> Option<Document> {
+        let entry = self.undo_stack.pop_back()?;
+        self.redo_stack
+            .push_back(HistoryEntry::Document(current.clone()));
+        Some(expect_document(entry))
+    }
+
+    /// Pops the most recent [`Document`] snapshot from the redo stack and
+    /// pushes the caller's current document onto the undo stack.
+    pub fn redo_document(&mut self, current: &Document) -> Option<Document> {
+        let entry = self.redo_stack.pop_back()?;
+        self.undo_stack
+            .push_back(HistoryEntry::Document(current.clone()));
+        Some(expect_document(entry))
     }
 
     pub fn clear(&mut self) {
         self.undo_stack.clear();
         self.redo_stack.clear();
+    }
+}
+
+fn expect_canvas(entry: HistoryEntry) -> Snapshot {
+    match entry {
+        HistoryEntry::Canvas(snapshot) => snapshot,
+        HistoryEntry::Document(_) => {
+            panic!("canvas-path undo/redo encountered a Document entry; do not mix paths")
+        }
+    }
+}
+
+fn expect_document(entry: HistoryEntry) -> Document {
+    match entry {
+        HistoryEntry::Document(document) => document,
+        HistoryEntry::Canvas(_) => {
+            panic!("document-path undo/redo encountered a Canvas entry; do not mix paths")
+        }
     }
 }
 
@@ -127,6 +192,8 @@ impl Default for HistoryManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::document::Document;
+    use uuid::Uuid;
 
     // -- initial state --
 
@@ -374,6 +441,166 @@ mod tests {
         assert_eq!(snapshot.width, 2);
         assert_eq!(snapshot.height, 2);
         assert_eq!(snapshot.pixels.len(), 16);
+    }
+
+    // -- document snapshot path --
+
+    #[test]
+    fn push_document_enables_can_undo() {
+        let mut history = HistoryManager::default();
+        let doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".into()).unwrap();
+        history.push_document(&doc);
+        assert!(history.can_undo());
+    }
+
+    #[test]
+    fn document_path_evicts_oldest_when_limit_exceeded() {
+        let doc = Document::new(2, 2, Uuid::new_v4(), "A".into()).unwrap();
+        let mut history = HistoryManager::default();
+
+        // Push one more than the limit; the oldest must be evicted.
+        for _ in 0..=HistoryManager::DEFAULT_MAX_SNAPSHOTS {
+            history.push_document(&doc);
+        }
+        let mut count = 0;
+        while history.undo_document(&doc).is_some() {
+            count += 1;
+        }
+        assert_eq!(count, HistoryManager::DEFAULT_MAX_SNAPSHOTS);
+    }
+
+    #[test]
+    fn undo_document_restores_next_layer_number() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, a, "A".into()).unwrap();
+        assert_eq!(doc.next_layer_number(), 2);
+
+        let mut history = HistoryManager::default();
+        history.push_document(&doc);
+        doc.add_layer(b, "B".into());
+        assert_eq!(doc.next_layer_number(), 3);
+
+        let restored = history.undo_document(&doc).unwrap();
+        assert_eq!(restored.next_layer_number(), 2);
+    }
+
+    #[test]
+    fn push_document_clears_redo_stack() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, a, "A".into()).unwrap();
+        let mut history = HistoryManager::default();
+
+        history.push_document(&doc);
+        doc.add_layer(b, "B".into());
+        history.undo_document(&doc);
+        assert!(history.can_redo());
+
+        // A new push from the (restored) past must discard the former future.
+        history.push_document(&doc);
+        assert!(!history.can_redo());
+    }
+
+    #[test]
+    fn redo_document_reapplies_post_undo_state() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, a, "A".into()).unwrap();
+        let mut history = HistoryManager::default();
+
+        history.push_document(&doc);
+        doc.add_layer(b, "B".into()); // mutated state has [A, B]
+        let pre_undo = doc.clone();
+
+        let undone = history.undo_document(&doc).unwrap();
+        // After undo, caller's document should be restored back to the
+        // single-layer state (caller responsibility outside this manager).
+        let restored_pre_state = undone;
+        let redone = history.redo_document(&restored_pre_state).unwrap();
+
+        let ids: Vec<Uuid> = redone.layers().iter().map(|l| l.id).collect();
+        let pre_ids: Vec<Uuid> = pre_undo.layers().iter().map(|l| l.id).collect();
+        assert_eq!(ids, pre_ids);
+        assert_eq!(redone.active_layer_id(), pre_undo.active_layer_id());
+    }
+
+    #[test]
+    fn undo_document_after_reorder_restores_original_order() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let c = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, a, "A".into()).unwrap();
+        doc.add_layer(b, "B".into());
+        doc.add_layer(c, "C".into()); // [A, B, C]
+
+        let mut history = HistoryManager::default();
+        history.push_document(&doc);
+        doc.reorder_layer(a, 2).unwrap(); // [B, C, A]
+
+        let restored = history.undo_document(&doc).unwrap();
+
+        let ids: Vec<Uuid> = restored.layers().iter().map(|l| l.id).collect();
+        assert_eq!(ids, vec![a, b, c]);
+    }
+
+    #[test]
+    fn undo_document_after_remove_layer_restores_removed_layer() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let mut doc = Document::new(2, 2, a, "A".into()).unwrap();
+        doc.add_layer(b, "B".into()); // active=B
+        doc.set_pixel(0, 0, red).unwrap(); // stamp B for round-trip verification
+
+        let mut history = HistoryManager::default();
+        history.push_document(&doc);
+        doc.remove_layer(b).unwrap();
+
+        let restored = history.undo_document(&doc).unwrap();
+
+        let ids: Vec<Uuid> = restored.layers().iter().map(|l| l.id).collect();
+        assert_eq!(ids, vec![a, b]);
+        assert_eq!(restored.layers()[1].name, "B");
+        assert_eq!(restored.layers()[1].pixels.get_pixel(0, 0).unwrap(), red);
+    }
+
+    #[test]
+    fn undo_document_after_add_layer_restores_prior_stack() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, a, "A".into()).unwrap();
+        let mut history = HistoryManager::default();
+
+        history.push_document(&doc);
+        doc.add_layer(b, "B".into());
+
+        let restored = history.undo_document(&doc).unwrap();
+
+        let ids: Vec<Uuid> = restored.layers().iter().map(|l| l.id).collect();
+        assert_eq!(ids, vec![a]);
+        assert_eq!(restored.active_layer_id(), a);
+    }
+
+    #[test]
+    fn undo_document_after_pixel_change_restores_active_layer_pixels() {
+        use crate::color::Color;
+
+        let id = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, id, "Layer 1".into()).unwrap();
+        let mut history = HistoryManager::default();
+
+        history.push_document(&doc);
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+
+        let restored = history.undo_document(&doc).unwrap();
+
+        assert_eq!(
+            restored.layers()[0].pixels.get_pixel(0, 0).unwrap(),
+            Color::TRANSPARENT
+        );
     }
 
     #[test]

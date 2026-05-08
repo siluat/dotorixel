@@ -3,7 +3,6 @@
 ## Milestone 3: Editor for Serious Work
 
 - Layer system: basic infrastructure (add/delete/reorder) ([PRD](../issues/086-layer-system-basic-infrastructure.md))
-  - [090 — TS V3 schema + V2→V3 migration (not yet wired)](../issues/090-layer-system-ts-v3-schema-migration.md)
   - [091 — TabState switch: `pixelCanvas` → `document`](../issues/091-layer-system-tab-state-document-switch.md)
   - [092 — TimelinePanel design (Candidate A detail pass)](../issues/092-layer-system-timeline-panel-design.md)
   - [093 — TimelinePanel shell (desktop, single-layer row)](../issues/093-layer-system-timeline-panel-shell.md)

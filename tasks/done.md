@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 090 | [Layer system: TS V3 persistence schema + V2→V3 migration (not yet wired)](../issues/090-layer-system-ts-v3-schema-migration.md) | 2026-05-08 |
 | 089 | [Layer system: WASM Document facade](../issues/089-layer-system-wasm-document-facade.md) | 2026-05-07 |
 | 088 | [Layer system: Rust HistoryManager — Document snapshot support](../issues/088-layer-system-rust-history-document-snapshot.md) | 2026-05-07 |
 | 087 | [Layer system: Rust core — Document/Layer + composite + add/delete/reorder](../issues/087-layer-system-rust-document-layer-core.md) | 2026-05-06 |

@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-Layer system — basic infrastructure (add/delete/reorder) ([PRD](../issues/086-layer-system-basic-infrastructure.md)). PRD decomposed into 14 sub-issues (087–100); 087 + 088 + 089 + 090 done, 10 remaining (see `todo.md`). ADR `docs/decisions/web-document-layer-apple-preserved.en.md` records the web-only / Apple-preserved split. Newly unblocked: **091** (TabState switch — replace `pixelCanvas: PixelCanvas` with `document: Document` and route `samplingSession`/`toolRunner`/`tabViewport` through the active layer; first call site of `migrateV2ToV3` and the WASM Document facade in main code paths). **092** (TimelinePanel design, HITL) remains independently startable. The two run in parallel; 093 (TimelinePanel shell) needs both.
+Layer system — basic infrastructure (add/delete/reorder) ([PRD](../issues/086-layer-system-basic-infrastructure.md)). PRD now decomposed into 15 sub-issues (087–101); 087 + 088 + 089 + 090 done, 11 remaining (see `todo.md`). ADR `docs/decisions/web-document-layer-apple-preserved.en.md` records the web-only / Apple-preserved split. Pre-implementation grilling on **091** (TabState switch) surfaced three FFI gaps that block atomic completion: no multi-layer hydration constructor, no Document-level `apply_tool`/`flood_fill`/`clear`, no TS Document facade. Carved those into new precursor **101** (Document builder + tool bindings + TS facade) — pure plumbing, no `main` call site. 091 becomes pure shell-side wiring once 101 lands and gains a 10-slice strangler TDD strategy (shadow `document` field, advance one consumer at a time). **092** (TimelinePanel design, HITL) remains independently startable. 101 + 092 run in parallel; 091 needs 101; 093 (TimelinePanel shell) needs 091 + 092.
 
 ## Last Completed
 
@@ -10,10 +10,12 @@ Layer system — basic infrastructure (add/delete/reorder) ([PRD](../issues/086-
 
 ## Next Up
 
+- [101 — Document builder + tool bindings + TS facade](../issues/101-layer-system-document-builder-and-tool-bindings.md)
+  - New. Closes the FFI gap blocking 091: Rust `Document::from_layers` + `DocumentBuildError`, Document-level `apply_tool`/`flood_fill`/`clear` + `layer_pixels_at`, WASM `WasmDocumentBuilder` and matching extensions, TS `Document` facade interface + `documentFromSchemaV3`, TS `HistoryManager` document path. Plumbing only — no `main` call site.
 - [091 — TabState switch: `pixelCanvas` → `document`](../issues/091-layer-system-tab-state-document-switch.md)
-  - Newly unblocked by 090. First main-code consumer of `migrateV2ToV3` and the WASM Document facade.
+  - Now blocked by 101 (in addition to 090). Pure shell-side wiring once 101 lands; 10-slice strangler TDD strategy (shadow `document` field, one consumer at a time).
 - [092 — TimelinePanel design (Candidate A detail pass)](../issues/092-layer-system-timeline-panel-design.md)
-  - Independent (no blockers); HITL `.pen` design task. Runs in parallel with 091.
+  - Independent (no blockers); HITL `.pen` design task. Runs in parallel with 101.
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
   - Independent. Now that the docked layout is in, this is the next Apple Phase 1 item.
 - Apple Phase 1 — Enable clear canvas (existing disabled button)

@@ -369,6 +369,17 @@ describe('migrateV2ToV3', () => {
 		expect(v3.layers[0].opacity).toBe(1);
 	});
 
+	it('detaches the V3 pixel buffer from the V2 source so writes do not alias', () => {
+		const v2 = sampleV2();
+
+		const v3 = migrateV2ToV3(v2);
+		v3.layers[0].pixels[0] = 0xff;
+		v3.layers[0].pixels[1] = 0xff;
+
+		expect(v2.pixels[0]).toBe(0);
+		expect(v2.pixels[1]).toBe(0);
+	});
+
 	it('preserves top-level document metadata (id, name, saved, timestamps)', () => {
 		const v2: DocumentSchemaV2 = {
 			...sampleV2(),

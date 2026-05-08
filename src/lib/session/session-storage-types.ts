@@ -81,7 +81,7 @@ export function migrateV2ToV3(doc: DocumentSchemaV2): DocumentSchemaV3 {
 			{
 				id: layerId,
 				name: 'Layer 1',
-				pixels: doc.pixels,
+				pixels: doc.pixels.slice(),
 				visible: true,
 				opacity: 1
 			}

@@ -5,6 +5,7 @@ use uuid::Uuid;
 use crate::canvas::{PixelCanvasError, ResizeAnchor};
 use crate::color::Color;
 use crate::layer::Layer;
+use crate::tool::ToolType;
 
 /// Errors that can occur during layer-stack operations on a [`Document`].
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,6 +27,48 @@ impl fmt::Display for LayerError {
 }
 
 impl std::error::Error for LayerError {}
+
+/// Errors returned by [`Document::from_layers`] when the supplied layer stack
+/// is inconsistent with the requested document.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DocumentBuildError {
+    EmptyLayers,
+    DuplicateLayerId(Uuid),
+    LayerDimensionsMismatch {
+        layer_id: Uuid,
+        expected: (u32, u32),
+        actual: (u32, u32),
+    },
+    UnknownActiveLayer(Uuid),
+}
+
+impl fmt::Display for DocumentBuildError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyLayers => {
+                write!(f, "Document must contain at least one layer.")
+            }
+            Self::DuplicateLayerId(id) => {
+                write!(f, "Layer id {id} appears more than once in the supplied layer stack.")
+            }
+            Self::LayerDimensionsMismatch {
+                layer_id,
+                expected: (ew, eh),
+                actual: (aw, ah),
+            } => {
+                write!(
+                    f,
+                    "Layer {layer_id} has pixel dimensions {aw}x{ah}; document expects {ew}x{eh}.",
+                )
+            }
+            Self::UnknownActiveLayer(id) => {
+                write!(f, "Active layer id {id} is not present in the supplied layer stack.")
+            }
+        }
+    }
+}
+
+impl std::error::Error for DocumentBuildError {}
 
 /// A pixel art document: an ordered stack of layers, an active-layer pointer,
 /// and presentation state.
@@ -60,6 +103,45 @@ impl Document {
             active_layer_id: first_layer_id,
             next_layer_number: 2,
             timeline_panel_collapsed: false,
+        })
+    }
+
+    /// Constructs a document from an existing layer stack — used by the
+    /// persistence hydration path to restore a saved [`Document`].
+    pub fn from_layers(
+        width: u32,
+        height: u32,
+        layers: Vec<Layer>,
+        active_layer_id: Uuid,
+        next_layer_number: u32,
+        timeline_panel_collapsed: bool,
+    ) -> Result<Self, DocumentBuildError> {
+        if layers.is_empty() {
+            return Err(DocumentBuildError::EmptyLayers);
+        }
+        for (i, layer) in layers.iter().enumerate() {
+            if layers[..i].iter().any(|prior| prior.id == layer.id) {
+                return Err(DocumentBuildError::DuplicateLayerId(layer.id));
+            }
+            let actual = (layer.pixels.width(), layer.pixels.height());
+            if actual != (width, height) {
+                return Err(DocumentBuildError::LayerDimensionsMismatch {
+                    layer_id: layer.id,
+                    expected: (width, height),
+                    actual,
+                });
+            }
+        }
+        if !layers.iter().any(|l| l.id == active_layer_id) {
+            return Err(DocumentBuildError::UnknownActiveLayer(active_layer_id));
+        }
+        Ok(Self {
+            width,
+            height,
+            layers,
+            active_layer_id,
+            next_layer_number,
+            timeline_panel_collapsed,
         })
     }
 
@@ -193,6 +275,30 @@ impl Document {
         self.active_layer_mut().pixels.set_pixel(x, y, color)
     }
 
+    /// Applies `tool` at `(x, y)` to the active layer. Returns `true` when a
+    /// pixel was written, `false` when the coordinates are out of bounds.
+    pub fn apply_tool(&mut self, tool: ToolType, x: i32, y: i32, color: Color) -> bool {
+        tool.apply(&mut self.active_layer_mut().pixels, x, y, color)
+    }
+
+    /// 4-connected flood fill on the active layer starting at `(x, y)`.
+    /// Returns `true` when at least one pixel was changed.
+    pub fn flood_fill(&mut self, x: u32, y: u32, color: Color) -> bool {
+        self.active_layer_mut().pixels.flood_fill(x, y, color)
+    }
+
+    /// Clears the active layer to fully transparent. Other layers are
+    /// unaffected.
+    pub fn clear(&mut self) {
+        self.active_layer_mut().pixels.clear();
+    }
+
+    /// Returns the RGBA pixel buffer of the layer at `index`, or `None` when
+    /// `index` is out of range. Used by the persistence save path.
+    pub fn layer_pixels_at(&self, index: usize) -> Option<&[u8]> {
+        self.layers.get(index).map(|l| l.pixels.pixels())
+    }
+
     /// Resizes every layer to `new_width × new_height` using the same
     /// `anchor`, preserving each layer's id, name, visibility, and opacity.
     /// The active layer pointer is preserved.
@@ -259,6 +365,178 @@ fn blend_layer_over(dst: &mut [u8], layer: &Layer) {
 mod tests {
     use super::*;
     use uuid::Uuid;
+
+    #[test]
+    fn layer_pixels_at_returns_buffer_for_each_layer_or_none_for_out_of_range() {
+        use crate::canvas::PixelCanvas;
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+
+        let mut doc = Document::new(1, 1, a, "A".to_string()).unwrap();
+        doc.layers[0].pixels = PixelCanvas::with_color(1, 1, red).unwrap();
+        doc.add_layer(b, "B".to_string());
+        doc.layers[1].pixels = PixelCanvas::with_color(1, 1, green).unwrap();
+
+        assert_eq!(doc.layer_pixels_at(0), Some([255, 0, 0, 255].as_slice()));
+        assert_eq!(doc.layer_pixels_at(1), Some([0, 255, 0, 255].as_slice()));
+        assert_eq!(doc.layer_pixels_at(2), None);
+    }
+
+    #[test]
+    fn clear_resets_only_active_layer_to_transparent() {
+        use crate::canvas::PixelCanvas;
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+
+        let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
+        doc.layers[0].pixels = PixelCanvas::with_color(2, 2, red).unwrap();
+        doc.add_layer(b, "B".to_string()); // active = B
+        doc.layers[1].pixels = PixelCanvas::with_color(2, 2, green).unwrap();
+
+        doc.clear();
+
+        for y in 0..2 {
+            for x in 0..2 {
+                assert_eq!(doc.layers[0].pixels.get_pixel(x, y).unwrap(), red);
+                assert_eq!(
+                    doc.layers[1].pixels.get_pixel(x, y).unwrap(),
+                    Color::TRANSPARENT
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn flood_fill_writes_only_to_active_layer() {
+        use crate::canvas::PixelCanvas;
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+
+        let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
+        // Bottom (a): solid red — must remain red.
+        doc.layers[0].pixels = PixelCanvas::with_color(2, 2, red).unwrap();
+        // Top (b, active): transparent — flood_fill should turn it solid blue.
+        doc.add_layer(b, "B".to_string());
+
+        let painted = doc.flood_fill(0, 0, blue);
+
+        assert!(painted);
+        for y in 0..2 {
+            for x in 0..2 {
+                assert_eq!(doc.layers[1].pixels.get_pixel(x, y).unwrap(), blue);
+                assert_eq!(doc.layers[0].pixels.get_pixel(x, y).unwrap(), red);
+            }
+        }
+    }
+
+    #[test]
+    fn apply_tool_writes_only_to_active_layer() {
+        use crate::color::Color;
+        use crate::tool::ToolType;
+
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
+        doc.add_layer(b, "B".to_string()); // active = B
+
+        let red = Color::new(255, 0, 0, 255);
+        let drew = doc.apply_tool(ToolType::Pencil, 0, 0, red);
+
+        assert!(drew);
+        assert_eq!(doc.layers[1].pixels.get_pixel(0, 0).unwrap(), red);
+        assert_eq!(
+            doc.layers[0].pixels.get_pixel(0, 0).unwrap(),
+            Color::TRANSPARENT
+        );
+    }
+
+    #[test]
+    fn from_layers_rejects_active_id_not_present_in_stack() {
+        let a = Uuid::new_v4();
+        let stranger = Uuid::new_v4();
+        let layers = vec![Layer::new(a, "A".to_string(), 4, 4).unwrap()];
+        let result = Document::from_layers(4, 4, layers, stranger, 1, false);
+        assert_eq!(
+            result.unwrap_err(),
+            DocumentBuildError::UnknownActiveLayer(stranger)
+        );
+    }
+
+    #[test]
+    fn from_layers_rejects_layer_with_mismatched_dimensions() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let layers = vec![
+            Layer::new(a, "A".to_string(), 8, 8).unwrap(),
+            // Layer b has the wrong size for an 8x8 document.
+            Layer::new(b, "B".to_string(), 4, 4).unwrap(),
+        ];
+        let result = Document::from_layers(8, 8, layers, a, 1, false);
+        assert_eq!(
+            result.unwrap_err(),
+            DocumentBuildError::LayerDimensionsMismatch {
+                layer_id: b,
+                expected: (8, 8),
+                actual: (4, 4),
+            }
+        );
+    }
+
+    #[test]
+    fn from_layers_rejects_duplicate_layer_ids() {
+        let dup = Uuid::new_v4();
+        let other = Uuid::new_v4();
+        let layers = vec![
+            Layer::new(dup, "A".to_string(), 4, 4).unwrap(),
+            Layer::new(other, "B".to_string(), 4, 4).unwrap(),
+            Layer::new(dup, "C".to_string(), 4, 4).unwrap(),
+        ];
+        let result = Document::from_layers(4, 4, layers, dup, 1, false);
+        assert_eq!(
+            result.unwrap_err(),
+            DocumentBuildError::DuplicateLayerId(dup)
+        );
+    }
+
+    #[test]
+    fn from_layers_rejects_empty_layer_stack() {
+        let dummy_id = Uuid::new_v4();
+        let result = Document::from_layers(8, 8, vec![], dummy_id, 1, false);
+        assert_eq!(result.unwrap_err(), DocumentBuildError::EmptyLayers);
+    }
+
+    #[test]
+    fn from_layers_constructs_document_with_supplied_layer_stack() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let layers = vec![
+            Layer::new(a, "A".to_string(), 4, 4).unwrap(),
+            Layer::new(b, "B".to_string(), 4, 4).unwrap(),
+        ];
+
+        let doc = Document::from_layers(4, 4, layers, b, 7, true).unwrap();
+
+        assert_eq!(doc.width(), 4);
+        assert_eq!(doc.height(), 4);
+        assert_eq!(doc.layers().len(), 2);
+        assert_eq!(doc.layers()[0].id, a);
+        assert_eq!(doc.layers()[1].id, b);
+        assert_eq!(doc.active_layer_id(), b);
+        assert_eq!(doc.next_layer_number(), 7);
+        assert!(doc.is_timeline_panel_collapsed());
+    }
 
     #[test]
     fn new_creates_document_with_one_active_layer_and_counter_at_two() {

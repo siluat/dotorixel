@@ -6,7 +6,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 82 | 63 | 19 | 65 | 77% | 49% |
+| greptile-apps[bot] | 83 | 64 | 19 | 65 | 77% | 50% |
 | cubic-dev-ai[bot] | 52 | 44 | 8 | 82 | 85% | 35% |
 | coderabbitai[bot] | 113 | 77 | 36 | 50 | 68% | 61% |
 
@@ -458,3 +458,4 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #191 | greptile-apps[bot] | Reject | WASM builder leak on `add_layer` error path — `wasm-bindgen` FinalizationRegistry reclaims; `build()` consumes `self` so try/finally `builder.free()` is unsafe on success; revisit in 091 with corrupt-schema policy |
 | #191 | coderabbitai[bot] | Miss | Did not flag validation-order Notes oversimplification |
 | #191 | cubic-dev-ai[bot] | Miss | Did not flag validation-order Notes oversimplification (auto-approved review) |
+| #191 | greptile-apps[bot] | Accept | Follow-up: `try/finally + builder.free()` mechanics correction (`__destroy_into_raw()` zeroes `__wbg_ptr` → `free(null)` not double-free); loop-scoped `try/catch` pattern recorded in issue 091 Implementation notes |

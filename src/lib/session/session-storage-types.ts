@@ -40,6 +40,61 @@ export function migrateDocumentToV2(doc: DocumentSchemaV1): DocumentSchemaV2 {
 	return { ...doc, schemaVersion: 2, saved: true };
 }
 
+/** Schema V3 — single canvas replaced by a Document with a layer stack */
+export interface LayerRecord {
+	id: string;
+	name: string;
+	pixels: Uint8Array;
+	visible: boolean;
+	opacity: number;
+}
+
+export interface DocumentSchemaV3 {
+	schemaVersion: 3;
+	id: string;
+	name: string;
+	width: number;
+	height: number;
+	layers: LayerRecord[];
+	activeLayerId: string;
+	nextLayerNumber: number;
+	timelinePanelCollapsed: boolean;
+	saved: boolean;
+	createdAt: Date;
+	updatedAt: Date;
+}
+
+/**
+ * Wraps a V2 single-canvas document as a V3 Document with one "Layer 1".
+ * History is dropped — V2 single-canvas snapshots are incompatible with the
+ * Document shape and the migrated session starts with an empty history.
+ */
+export function migrateV2ToV3(doc: DocumentSchemaV2): DocumentSchemaV3 {
+	const layerId = crypto.randomUUID();
+	return {
+		schemaVersion: 3,
+		id: doc.id,
+		name: doc.name,
+		width: doc.width,
+		height: doc.height,
+		layers: [
+			{
+				id: layerId,
+				name: 'Layer 1',
+				pixels: doc.pixels.slice(),
+				visible: true,
+				opacity: 1
+			}
+		],
+		activeLayerId: layerId,
+		nextLayerNumber: 2,
+		timelinePanelCollapsed: false,
+		saved: doc.saved,
+		createdAt: doc.createdAt,
+		updatedAt: doc.updatedAt
+	};
+}
+
 export interface SharedStateRecord {
 	activeTool: string;
 	foregroundColor: { r: number; g: number; b: number; a: number };

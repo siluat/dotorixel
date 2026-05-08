@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 79 | 61 | 18 | 65 | 77% | 48% |
-| cubic-dev-ai[bot] | 52 | 44 | 8 | 80 | 85% | 35% |
-| coderabbitai[bot] | 110 | 76 | 34 | 49 | 69% | 61% |
+| greptile-apps[bot] | 80 | 62 | 18 | 65 | 78% | 49% |
+| cubic-dev-ai[bot] | 52 | 44 | 8 | 81 | 85% | 35% |
+| coderabbitai[bot] | 112 | 77 | 35 | 49 | 69% | 61% |
 
 ## Log
 
@@ -449,3 +449,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #189 | cubic-dev-ai[bot] | Miss | Did not flag missing doc comments on `WasmDocument::new` and index-based layer getters |
 | #189 | cubic-dev-ai[bot] | Miss | Did not flag missing doc comments on `WasmHistoryManager` Document-snapshot methods |
 | #189 | greptile-apps[bot] | Reject | Mixed canvas/document HistoryEntry paths cause uncatchable WASM panic + state corruption (re-raise of cubic finding with stronger arguments) — same rejection: panic path is unreachable from TS in this dead-code slice and will be statically removed in 091 |
+| #190 | greptile-apps[bot] | Accept | `migrateV2ToV3` shares `Uint8Array` between V2 source and V3 layer — clone via `doc.pixels.slice()` |
+| #190 | coderabbitai[bot] | Accept | V3 migration `Uint8Array` aliasing (duplicate of greptile finding) |
+| #190 | coderabbitai[bot] | Reject | JSDoc `@param`/`@returns`/`@remarks` on `migrateV2ToV3` — restates type signature; current comment intentionally documents only non-obvious history-drop |
+| #190 | cubic-dev-ai[bot] | Miss | Did not flag V3 migration `Uint8Array` aliasing (APPROVED review) |

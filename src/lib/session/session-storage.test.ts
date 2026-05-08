@@ -2,8 +2,13 @@ import 'fake-indexeddb/auto';
 import { openDB } from 'idb';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SessionStorage } from './session-storage';
-import { migrateDocumentToV2 } from './session-storage-types';
-import type { DocumentRecord, DocumentSchemaV1, WorkspaceRecord } from './session-storage-types';
+import { migrateDocumentToV2, migrateV2ToV3 } from './session-storage-types';
+import type {
+	DocumentRecord,
+	DocumentSchemaV1,
+	DocumentSchemaV2,
+	WorkspaceRecord
+} from './session-storage-types';
 
 describe('SessionStorage', () => {
 	let storage: SessionStorage;
@@ -302,5 +307,95 @@ describe('migrateDocumentToV2', () => {
 		expect(v2.name).toBe('Test');
 		expect(v2.createdAt).toEqual(new Date('2026-03-01'));
 		expect(v2.updatedAt).toEqual(new Date('2026-03-15'));
+	});
+});
+
+describe('migrateV2ToV3', () => {
+	const sampleV2 = (): DocumentSchemaV2 => {
+		const pixels = new Uint8Array(4 * 4 * 4);
+		// paint a non-trivial signature so a faulty wrap can be detected
+		for (let i = 0; i < pixels.length; i += 4) {
+			pixels[i] = (i / 4) & 0xff;
+			pixels[i + 3] = 255;
+		}
+		return {
+			schemaVersion: 2,
+			id: 'doc-v2',
+			name: 'Migrated',
+			width: 4,
+			height: 4,
+			pixels,
+			createdAt: new Date('2026-04-01'),
+			updatedAt: new Date('2026-04-10'),
+			saved: true
+		};
+	};
+
+	it('wraps the V2 pixel buffer into a single "Layer 1" with schemaVersion 3', () => {
+		const v2 = sampleV2();
+
+		const v3 = migrateV2ToV3(v2);
+
+		expect(v3.schemaVersion).toBe(3);
+		expect(v3.layers).toHaveLength(1);
+		expect(v3.layers[0].name).toBe('Layer 1');
+		expect(v3.layers[0].pixels).toEqual(v2.pixels);
+	});
+
+	it('preserves dimensions and seeds Document-level counters', () => {
+		const v2: DocumentSchemaV2 = { ...sampleV2(), width: 32, height: 24 };
+
+		const v3 = migrateV2ToV3(v2);
+
+		expect(v3.width).toBe(32);
+		expect(v3.height).toBe(24);
+		expect(v3.nextLayerNumber).toBe(2);
+		expect(v3.timelinePanelCollapsed).toBe(false);
+	});
+
+	it('points activeLayerId at the wrapped layer using a fresh UUID v4', () => {
+		const v3 = migrateV2ToV3(sampleV2());
+
+		expect(v3.activeLayerId).toBe(v3.layers[0].id);
+		expect(v3.activeLayerId).toMatch(
+			/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+		);
+	});
+
+	it('initializes the wrapped layer as visible with full opacity', () => {
+		const v3 = migrateV2ToV3(sampleV2());
+
+		expect(v3.layers[0].visible).toBe(true);
+		expect(v3.layers[0].opacity).toBe(1);
+	});
+
+	it('detaches the V3 pixel buffer from the V2 source so writes do not alias', () => {
+		const v2 = sampleV2();
+
+		const v3 = migrateV2ToV3(v2);
+		v3.layers[0].pixels[0] = 0xff;
+		v3.layers[0].pixels[1] = 0xff;
+
+		expect(v2.pixels[0]).toBe(0);
+		expect(v2.pixels[1]).toBe(0);
+	});
+
+	it('preserves top-level document metadata (id, name, saved, timestamps)', () => {
+		const v2: DocumentSchemaV2 = {
+			...sampleV2(),
+			id: 'doc-keep',
+			name: 'Keep Me',
+			saved: false,
+			createdAt: new Date('2025-12-01'),
+			updatedAt: new Date('2026-04-15')
+		};
+
+		const v3 = migrateV2ToV3(v2);
+
+		expect(v3.id).toBe('doc-keep');
+		expect(v3.name).toBe('Keep Me');
+		expect(v3.saved).toBe(false);
+		expect(v3.createdAt).toEqual(new Date('2025-12-01'));
+		expect(v3.updatedAt).toEqual(new Date('2026-04-15'));
 	});
 });

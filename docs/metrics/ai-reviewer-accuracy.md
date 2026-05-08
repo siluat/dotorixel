@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 80 | 62 | 18 | 65 | 78% | 49% |
-| cubic-dev-ai[bot] | 52 | 44 | 8 | 81 | 85% | 35% |
-| coderabbitai[bot] | 112 | 77 | 35 | 49 | 69% | 61% |
+| greptile-apps[bot] | 82 | 63 | 19 | 65 | 77% | 49% |
+| cubic-dev-ai[bot] | 52 | 44 | 8 | 82 | 85% | 35% |
+| coderabbitai[bot] | 113 | 77 | 36 | 50 | 68% | 61% |
 
 ## Log
 
@@ -453,3 +453,8 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #190 | coderabbitai[bot] | Accept | V3 migration `Uint8Array` aliasing (duplicate of greptile finding) |
 | #190 | coderabbitai[bot] | Reject | JSDoc `@param`/`@returns`/`@remarks` on `migrateV2ToV3` — restates type signature; current comment intentionally documents only non-obvious history-drop |
 | #190 | cubic-dev-ai[bot] | Miss | Did not flag V3 migration `Uint8Array` aliasing (APPROVED review) |
+| #191 | greptile-apps[bot] | Accept | Validation-order Notes in issue 101 oversimplified — clarified empty-first, per-layer scan (first-violation-wins on duplicate-id vs dimension-mismatch), then active id |
+| #191 | coderabbitai[bot] | Reject | Add contract doc comment for `WasmDocumentBuilder::new(width, height)` — self-evident constructor; surrounding struct + `add_layer` / `build` docs already cover the contract |
+| #191 | greptile-apps[bot] | Reject | WASM builder leak on `add_layer` error path — `wasm-bindgen` FinalizationRegistry reclaims; `build()` consumes `self` so try/finally `builder.free()` is unsafe on success; revisit in 091 with corrupt-schema policy |
+| #191 | coderabbitai[bot] | Miss | Did not flag validation-order Notes oversimplification |
+| #191 | cubic-dev-ai[bot] | Miss | Did not flag validation-order Notes oversimplification (auto-approved review) |

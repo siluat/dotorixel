@@ -37,3 +37,27 @@ export interface PixelCanvas {
 	encode_svg(): string;
 	resize(new_width: number, new_height: number): PixelCanvas;
 }
+
+/**
+ * Document with a stack of layers, an active-layer pointer, and presentation
+ * state. The `composite()` method returns a row-major RGBA buffer of all
+ * visible layers blended bottom-to-top.
+ *
+ * Structurally satisfied by WasmDocument. Method names are snake_case to
+ * match the WASM bindings; the structural-compatibility check in
+ * `wasm-sync.test.ts` enforces this contract at compile time.
+ */
+export interface Document {
+	readonly width: number;
+	readonly height: number;
+	composite(): Uint8Array;
+	active_layer_id(): string;
+	next_layer_number(): number;
+	is_timeline_panel_collapsed(): boolean;
+	layer_count(): number;
+	layer_id_at(index: number): string | undefined;
+	layer_name_at(index: number): string | undefined;
+	layer_visible_at(index: number): boolean | undefined;
+	layer_opacity_at(index: number): number | undefined;
+	layer_pixels_at(index: number): Uint8Array | undefined;
+}

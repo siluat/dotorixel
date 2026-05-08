@@ -171,7 +171,7 @@ dead code until 091 wires it into `TabState`.
 
 ### Notes
 
-- Validation order in `Document::from_layers`: empty → duplicate ids → per-layer dimension mismatch → active id presence. Each case has an isolated `from_layers_rejects_*` test.
+- Validation order in `Document::from_layers`: empty stack first; then a per-layer scan that checks duplicate-id then dimension-mismatch (first violation wins, so a stack with both errors surfaces whichever the iterator hits first); finally active id presence. Each case has an isolated `from_layers_rejects_*` test.
 - `WasmDocument::flood_fill` short-circuits on negative coordinates (`x < 0 || y < 0 → false`), matching the existing `wasm_flood_fill` free function on `WasmPixelCanvas`.
 - The `WasmDocumentBuilder` validates pixel buffer length per `add_layer` call (delegates to `PixelCanvas::from_pixels`), so dimension mismatches surface immediately on add rather than at `build`.
 - `cargo test --workspace` 287/287 pass (276 core + 11 wasm). `bun run check` 0 errors / 0 warnings. No production call site constructs `WasmDocument` or the TS `Document` facade yet — slice remains dead code in `main` until 091 wires it into `TabState`.

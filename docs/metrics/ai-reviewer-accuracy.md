@@ -6,7 +6,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 78 | 61 | 17 | 65 | 78% | 48% |
+| greptile-apps[bot] | 79 | 61 | 18 | 65 | 77% | 48% |
 | cubic-dev-ai[bot] | 52 | 44 | 8 | 80 | 85% | 35% |
 | coderabbitai[bot] | 110 | 76 | 34 | 49 | 69% | 61% |
 
@@ -448,3 +448,4 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #189 | greptile-apps[bot] | Miss | Did not flag missing doc comments on `WasmHistoryManager` Document-snapshot methods |
 | #189 | cubic-dev-ai[bot] | Miss | Did not flag missing doc comments on `WasmDocument::new` and index-based layer getters |
 | #189 | cubic-dev-ai[bot] | Miss | Did not flag missing doc comments on `WasmHistoryManager` Document-snapshot methods |
+| #189 | greptile-apps[bot] | Reject | Mixed canvas/document HistoryEntry paths cause uncatchable WASM panic + state corruption (re-raise of cubic finding with stronger arguments) — same rejection: panic path is unreachable from TS in this dead-code slice and will be statically removed in 091 |

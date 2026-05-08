@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 089 | [Layer system: WASM Document facade](../issues/089-layer-system-wasm-document-facade.md) | 2026-05-07 |
 | 088 | [Layer system: Rust HistoryManager — Document snapshot support](../issues/088-layer-system-rust-history-document-snapshot.md) | 2026-05-07 |
 | 087 | [Layer system: Rust core — Document/Layer + composite + add/delete/reorder](../issues/087-layer-system-rust-document-layer-core.md) | 2026-05-06 |
 | 019 | [Apple native: StatusBar](../issues/019-apple-status-bar.md) | 2026-05-06 |

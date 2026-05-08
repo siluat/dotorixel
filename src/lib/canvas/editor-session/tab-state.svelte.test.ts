@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi } from 'vitest';
 import { TabState, type TabStateDeps } from './tab-state.svelte';
-import { wasmBackend } from '../wasm-backend';
+import { wasmBackend, singleLayerDocument } from '../wasm-backend';
 import { createFakeDirtyNotifier } from './fake-dirty-notifier';
 import { SharedState } from '../shared-state.svelte';
 import type { CanvasCoords } from '../canvas-model';
@@ -12,6 +12,11 @@ import type { DecodedImage } from '../../reference-images/sample-pixel';
 vi.mock('../../reference-images/decode-reference-blob', () => ({
 	decodeReferenceBlob: vi.fn()
 }));
+
+vi.mock('../export', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('../export')>();
+	return { ...actual, exportAsPng: vi.fn() };
+});
 
 const mockedDecodeReferenceBlob = vi.mocked(samplerDecodeReferenceBlob);
 
@@ -121,7 +126,7 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.viewport.panY).toBe(reapplied.panY);
 	});
 
-	it('canvasReplaced path: undo after resize swaps the canvas and bumps renderVersion', () => {
+	it('documentReplaced path: undo after resize swaps the canvas and bumps renderVersion', () => {
 		const { tab } = makeTab({ canvasWidth: 8, canvasHeight: 8 });
 		expect(tab.pixelCanvas.width).toBe(8);
 
@@ -271,6 +276,193 @@ describe('TabState — snapshot', () => {
 	});
 });
 
+describe('TabState — tools write to document active layer', () => {
+	it('pencil stroke is reflected in document.layer_pixels_at(0)', () => {
+		const { tab, shared } = makeTab();
+		shared.foregroundColor = BLACK;
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 2, y: 2 }, null);
+		tab.drawEnd();
+
+		const layerPixels = tab.document.layer_pixels_at(0);
+		expect(layerPixels).toBeDefined();
+		const i = (2 * tab.document.width + 2) * 4;
+		expect(Array.from(layerPixels!.slice(i, i + 4))).toEqual([0, 0, 0, 255]);
+	});
+
+	it('flood fill is reflected in document.layer_pixels_at(0)', () => {
+		const { tab, shared } = makeTab();
+		shared.foregroundColor = BLACK;
+		shared.activeTool = 'floodfill';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 0, y: 0 }, null);
+		tab.drawEnd();
+
+		const layerPixels = tab.document.layer_pixels_at(0)!;
+		// Every pixel of the single layer should now be black.
+		for (let i = 0; i < layerPixels.length; i += 4) {
+			expect([layerPixels[i], layerPixels[i + 1], layerPixels[i + 2], layerPixels[i + 3]]).toEqual(
+				[0, 0, 0, 255]
+			);
+		}
+	});
+});
+
+describe('TabState — toSnapshot derives from document', () => {
+	it('snapshot width/height/pixels match document, not pixelCanvas, when they diverge', () => {
+		const { tab } = makeTab();
+		const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
+		const w = tab.pixelCanvas.width;
+		const h = tab.pixelCanvas.height;
+		const docPixels = new Uint8Array(w * h * 4);
+		const i = (3 * w + 3) * 4;
+		docPixels[i] = RED.r;
+		docPixels[i + 1] = RED.g;
+		docPixels[i + 2] = RED.b;
+		docPixels[i + 3] = RED.a;
+		tab.document = singleLayerDocument(w, h, docPixels);
+
+		const snap = tab.toSnapshot();
+		expect(snap.width).toBe(tab.document.width);
+		expect(snap.height).toBe(tab.document.height);
+		expect(snap.pixels).toEqual(tab.document.composite());
+		expect(snap.pixels).not.toEqual(tab.pixelCanvas.pixels());
+	});
+});
+
+describe('TabState — exportPng uses document.composite()', () => {
+	it('passes a canvas whose pixels match document.composite(), not pixelCanvas.pixels()', async () => {
+		const exportModule = await import('../export');
+		const exportSpy = vi.mocked(exportModule.exportAsPng);
+		exportSpy.mockClear();
+
+		const { tab } = makeTab();
+		const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
+		const w = tab.pixelCanvas.width;
+		const h = tab.pixelCanvas.height;
+		const docPixels = new Uint8Array(w * h * 4);
+		const i = (3 * w + 3) * 4;
+		docPixels[i] = RED.r;
+		docPixels[i + 1] = RED.g;
+		docPixels[i + 2] = RED.b;
+		docPixels[i + 3] = RED.a;
+		tab.document = singleLayerDocument(w, h, docPixels);
+
+		tab.exportPng();
+
+		expect(exportSpy).toHaveBeenCalledTimes(1);
+		const passed = exportSpy.mock.calls[0][0] as { width: number; height: number; pixels(): Uint8Array };
+		expect(passed.width).toBe(w);
+		expect(passed.height).toBe(h);
+		expect(passed.pixels()).toEqual(tab.document.composite());
+		expect(passed.pixels()).not.toEqual(tab.pixelCanvas.pixels());
+	});
+});
+
+describe('TabState — resize updates the document', () => {
+	it('resize changes document width and height to match new canvas dims', () => {
+		const { tab } = makeTab({ canvasWidth: 8, canvasHeight: 8 });
+		tab.resize(16, 12);
+		expect(tab.document.width).toBe(16);
+		expect(tab.document.height).toBe(12);
+	});
+
+	it('resize preserves active-layer pixels with the anchor (top-left default)', () => {
+		const { tab, shared } = makeTab({ canvasWidth: 4, canvasHeight: 4 });
+		shared.foregroundColor = BLACK;
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 0, y: 0 }, null);
+		tab.drawEnd();
+
+		tab.resize(8, 8);
+
+		const layer = tab.document.layer_pixels_at(0)!;
+		const i = (0 * tab.document.width + 0) * 4;
+		expect(Array.from(layer.slice(i, i + 4))).toEqual([0, 0, 0, 255]);
+	});
+});
+
+describe('TabState — history snapshots the whole document', () => {
+	it('undo restores document active-layer pixels, not just pixelCanvas', () => {
+		const { tab, shared } = makeTab();
+		shared.foregroundColor = BLACK;
+		shared.activeTool = 'pencil';
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 2, y: 2 }, null);
+		tab.drawEnd();
+
+		const i = (2 * tab.document.width + 2) * 4;
+		expect(Array.from(tab.document.layer_pixels_at(0)!.slice(i, i + 4))).toEqual([0, 0, 0, 255]);
+
+		tab.undo();
+
+		expect(Array.from(tab.document.layer_pixels_at(0)!.slice(i, i + 4))).toEqual([0, 0, 0, 0]);
+	});
+
+	it('redo re-applies pencil stroke to document active layer', () => {
+		const { tab, shared } = makeTab();
+		shared.foregroundColor = BLACK;
+		shared.activeTool = 'pencil';
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 2, y: 2 }, null);
+		tab.drawEnd();
+		tab.undo();
+		tab.redo();
+
+		const i = (2 * tab.document.width + 2) * 4;
+		expect(Array.from(tab.document.layer_pixels_at(0)!.slice(i, i + 4))).toEqual([0, 0, 0, 255]);
+	});
+});
+
+describe('TabState — sampling reads from document active layer', () => {
+	it('eyedropper picks color from document, not pixelCanvas', () => {
+		const { tab, shared } = makeTab();
+		const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
+
+		const w = tab.pixelCanvas.width;
+		const h = tab.pixelCanvas.height;
+		const pixels = new Uint8Array(w * h * 4);
+		const i = (3 * w + 3) * 4;
+		pixels[i] = RED.r;
+		pixels[i + 1] = RED.g;
+		pixels[i + 2] = RED.b;
+		pixels[i + 3] = RED.a;
+		tab.document = singleLayerDocument(w, h, pixels);
+
+		expect(getPixel(tab, 3, 3)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+
+		shared.foregroundColor = BLACK;
+		shared.activeTool = 'eyedropper';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 3, y: 3 }, null);
+		tab.drawEnd();
+
+		expect(shared.foregroundColor).toEqual(RED);
+	});
+});
+
+describe('TabState — document shadow', () => {
+	it('document dimensions match pixelCanvas dimensions', () => {
+		const { tab } = makeTab({ canvasWidth: 12, canvasHeight: 7 });
+		expect(tab.document.width).toBe(12);
+		expect(tab.document.height).toBe(7);
+	});
+
+	it('document.composite mirrors pixelCanvas pixels initially and after a draw', () => {
+		const { tab, shared } = makeTab();
+		expect(tab.document.composite()).toEqual(tab.pixelCanvas.pixels());
+
+		shared.foregroundColor = BLACK;
+		drawLine(tab, { x: 0, y: 0 }, { x: 3, y: 0 });
+
+		expect(tab.document.composite()).toEqual(tab.pixelCanvas.pixels());
+	});
+});
+
 describe('TabState — undo/redo', () => {
 	it('undo after a drawn line restores original pixels', () => {
 		const { tab } = makeTab();
@@ -300,5 +492,53 @@ describe('TabState — undo/redo', () => {
 
 		tab.undo();
 		expect(tab.canRedo).toBe(true);
+	});
+});
+
+describe('TabState — constructor accepts document', () => {
+	it('adopts a passed document and derives pixelCanvas from active-layer pixels', () => {
+		const w = 4;
+		const h = 4;
+		const pixels = new Uint8Array(w * h * 4);
+		const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
+		const i = (1 * w + 2) * 4;
+		pixels[i] = RED.r;
+		pixels[i + 1] = RED.g;
+		pixels[i + 2] = RED.b;
+		pixels[i + 3] = RED.a;
+		const doc = singleLayerDocument(w, h, pixels);
+
+		const { tab } = makeTab({ document: doc, canvasWidth: undefined, canvasHeight: undefined });
+
+		expect(tab.document).toBe(doc);
+		expect(tab.pixelCanvas.width).toBe(w);
+		expect(tab.pixelCanvas.height).toBe(h);
+		const px = tab.pixelCanvas.pixels();
+		expect(px[i]).toBe(RED.r);
+		expect(px[i + 1]).toBe(RED.g);
+		expect(px[i + 2]).toBe(RED.b);
+		expect(px[i + 3]).toBe(RED.a);
+	});
+});
+
+describe('TabState — pixelCanvas shadow removed', () => {
+	it('ignores a passed `pixelCanvas` deps option (only `document` seeds tab state)', () => {
+		const customPixels = new Uint8Array(4 * 4 * 4);
+		const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
+		customPixels[0] = RED.r;
+		customPixels[1] = RED.g;
+		customPixels[2] = RED.b;
+		customPixels[3] = RED.a;
+		const customCanvas = wasmBackend.canvasFactory.fromPixels(4, 4, customPixels);
+
+		const { tab } = makeTab({
+			canvasWidth: 4,
+			canvasHeight: 4,
+			// @ts-expect-error: `pixelCanvas` is no longer part of TabStateDeps after slice 10
+			pixelCanvas: customCanvas
+		});
+
+		const layer = tab.document.layer_pixels_at(0)!;
+		expect(Array.from(layer)).toEqual(new Array(4 * 4 * 4).fill(0));
 	});
 });

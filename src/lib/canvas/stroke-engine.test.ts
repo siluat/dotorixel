@@ -1,11 +1,11 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from 'vitest';
 import { createStrokeEngine, type StrokeEngineDeps } from './stroke-engine';
-import { canvasFactory } from './wasm-backend';
+import { canvasFactory, singleLayerDocument } from './wasm-backend';
 import { SharedState } from './shared-state.svelte';
 import { createSamplingSession } from './sampling/session.svelte';
 import type { Color } from './color';
-import type { PixelCanvas } from './canvas-model';
+import type { Document, PixelCanvas } from './canvas-model';
 import type { EditorEffects, ToolRunnerHost } from './tool-runner.svelte';
 
 const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
@@ -29,9 +29,13 @@ function createSetup(opts?: {
 	const canvas = opts?.canvas ?? canvasFactory.create(8, 8);
 	const fg = opts?.foregroundColor ?? BLACK;
 	const bg = opts?.backgroundColor ?? WHITE;
+	const document: Document = singleLayerDocument(canvas.width, canvas.height, canvas.pixels());
 	const host: ToolRunnerHost = {
 		get pixelCanvas() {
 			return canvas;
+		},
+		get document() {
+			return document;
 		},
 		get foregroundColor() {
 			return fg;

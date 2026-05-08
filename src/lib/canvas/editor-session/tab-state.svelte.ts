@@ -1,4 +1,5 @@
-import type { PixelCanvas, CanvasCoords, ResizeAnchor } from '../canvas-model';
+import type { Document, PixelCanvas, CanvasCoords, ResizeAnchor } from '../canvas-model';
+import { resizeDocumentWithAnchor, singleLayerDocument } from '../wasm-backend';
 import type { ViewportData, ViewportSize } from '../viewport';
 import { addRecentColor } from '../color';
 import type { SharedState } from '../shared-state.svelte';
@@ -21,6 +22,16 @@ function assertNever(x: never): never {
 	throw new Error(`Unhandled effect type: ${(x as { type: string }).type}`);
 }
 
+function activeLayerPixels(doc: Document): Uint8Array {
+	const id = doc.active_layer_id();
+	for (let i = 0; i < doc.layer_count(); i++) {
+		if (doc.layer_id_at(i) === id) {
+			return doc.layer_pixels_at(i)!;
+		}
+	}
+	throw new Error(`Active layer ${id} not found in document`);
+}
+
 export interface TabStateDeps {
 	readonly backend: CanvasBackend;
 	readonly shared: SharedState;
@@ -28,8 +39,8 @@ export interface TabStateDeps {
 	readonly notifier: DirtyNotifier;
 	readonly documentId: string;
 	readonly name: string;
-	/** When provided, the tab adopts this canvas; otherwise a fresh canvas is created from `canvasWidth`/`canvasHeight`. */
-	readonly pixelCanvas?: PixelCanvas;
+	/** When provided, the tab adopts this document; otherwise a fresh empty document is created from `canvasWidth`/`canvasHeight`. The Document is the single source of truth — pixelCanvas is derived from its active layer. */
+	readonly document?: Document;
 	/** When provided, the tab adopts this viewport; otherwise a fitted viewport is computed from the canvas dimensions. */
 	readonly viewport?: ViewportData;
 	readonly canvasWidth?: number;
@@ -58,6 +69,7 @@ export class TabState {
 	readonly referenceSamplingSession: ReferenceSamplingSession;
 
 	pixelCanvas = $state<PixelCanvas>(null!);
+	document = $state<Document>(null!);
 	renderVersion = $state(0);
 	resizeAnchor = $state<ResizeAnchor>('top-left');
 	isExportUIOpen = $state(false);
@@ -98,13 +110,18 @@ export class TabState {
 		this.documentId = deps.documentId;
 		this.name = deps.name;
 
-		if (deps.pixelCanvas) {
-			this.pixelCanvas = deps.pixelCanvas;
+		if (deps.document) {
+			this.document = deps.document;
 		} else {
 			const cw = deps.canvasWidth ?? DEFAULT_CANVAS_DIMENSION;
 			const ch = deps.canvasHeight ?? DEFAULT_CANVAS_DIMENSION;
-			this.pixelCanvas = this.#backend.canvasFactory.create(cw, ch);
+			this.document = singleLayerDocument(cw, ch, new Uint8Array(cw * ch * 4));
 		}
+		this.pixelCanvas = this.#backend.canvasFactory.fromPixels(
+			this.document.width,
+			this.document.height,
+			activeLayerPixels(this.document)
+		);
 
 		let initialViewport: ViewportData;
 		if (deps.viewport) {
@@ -130,7 +147,7 @@ export class TabState {
 			documentId: this.documentId
 		});
 
-		this.samplingSession = createSamplingSession({ getSamplingPort: () => self.pixelCanvas });
+		this.samplingSession = createSamplingSession({ getSamplingPort: () => self.document });
 		this.referenceSamplingSession = createReferenceSamplingSession({
 			decode: decodeReferenceBlob
 		});
@@ -139,6 +156,9 @@ export class TabState {
 			host: {
 				get pixelCanvas() {
 					return self.pixelCanvas;
+				},
+				get document() {
+					return self.document;
 				},
 				get foregroundColor() {
 					return self.shared.foregroundColor;
@@ -161,10 +181,16 @@ export class TabState {
 					this.renderVersion++;
 					persistableChanged = true;
 					break;
-				case 'canvasReplaced':
-					this.pixelCanvas = effect.canvas;
+				case 'documentReplaced':
+					this.document = effect.document;
+					this.pixelCanvas = this.#backend.canvasFactory.fromPixels(
+						effect.document.width,
+						effect.document.height,
+						activeLayerPixels(effect.document)
+					);
 					this.#tabViewport.reclamp();
 					this.renderVersion++;
+					persistableChanged = true;
 					break;
 				case 'colorPick':
 					if (effect.target === 'foreground') {
@@ -311,6 +337,7 @@ export class TabState {
 			newHeight,
 			this.resizeAnchor
 		);
+		resizeDocumentWithAnchor(this.document, newWidth, newHeight, this.resizeAnchor);
 		this.#tabViewport.reclamp();
 		this.renderVersion++;
 	};
@@ -321,7 +348,12 @@ export class TabState {
 
 	exportPng = (): void => {
 		try {
-			exportAsPng(this.pixelCanvas);
+			const exportCanvas = this.#backend.canvasFactory.fromPixels(
+				this.document.width,
+				this.document.height,
+				this.document.composite()
+			);
+			exportAsPng(exportCanvas);
 		} catch (error) {
 			console.error('PNG export failed:', error);
 		}
@@ -330,9 +362,9 @@ export class TabState {
 	toSnapshot = (): TabSnapshot => ({
 		id: this.documentId,
 		name: this.name,
-		width: this.pixelCanvas.width,
-		height: this.pixelCanvas.height,
-		pixels: this.pixelCanvas.pixels(),
+		width: this.document.width,
+		height: this.document.height,
+		pixels: this.document.composite(),
 		viewport: { ...this.viewport }
 	});
 }

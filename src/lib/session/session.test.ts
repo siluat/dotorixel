@@ -4,18 +4,16 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { openSession } from './session';
 import { SessionStorage } from './session-storage';
 import { wasmBackend } from '$lib/canvas/wasm-backend';
-import type { PixelCanvas } from '$lib/canvas/canvas-model';
 import type { Color } from '$lib/canvas/color';
 import type { ViewportData } from '$lib/canvas/viewport';
+import type { TabState } from '$lib/canvas/editor-session/tab-state.svelte';
 
-function setPixel(canvas: PixelCanvas, x: number, y: number, color: Color) {
-	const pixels = canvas.pixels();
-	const idx = (y * canvas.width + x) * 4;
-	pixels[idx] = color.r;
-	pixels[idx + 1] = color.g;
-	pixels[idx + 2] = color.b;
-	pixels[idx + 3] = color.a;
-	canvas.restore_pixels(pixels);
+function setPixel(tab: TabState, x: number, y: number, color: Color) {
+	tab.shared.foregroundColor = color;
+	tab.shared.activeTool = 'pencil';
+	tab.drawStart(0, 'mouse');
+	tab.draw({ x, y }, null);
+	tab.drawEnd();
 }
 
 describe('openSession', () => {
@@ -41,7 +39,7 @@ describe('openSession', () => {
 			gridColor: '#ECE5D9'
 		});
 
-		setPixel(editor.workspace.activeTab.pixelCanvas, 0, 0, { r: 255, g: 0, b: 0, a: 255 });
+		setPixel(editor.workspace.activeTab, 0, 0, { r: 255, g: 0, b: 0, a: 255 });
 		session.markDirty(editor.workspace.activeTab.documentId);
 		await session.flush();
 		session.dispose();
@@ -67,7 +65,7 @@ describe('openSession', () => {
 		});
 
 		// Tab 0: draw red pixel, zoom to 3x
-		setPixel(editor.workspace.activeTab.pixelCanvas, 0, 0, { r: 255, g: 0, b: 0, a: 255 });
+		setPixel(editor.workspace.activeTab, 0, 0, { r: 255, g: 0, b: 0, a: 255 });
 		editor.workspace.activeTab.setViewport({
 			pixelSize: 32, zoom: 3.0, panX: 100, panY: -50,
 			showGrid: false, gridColor: '#ECE5D9'
@@ -76,7 +74,7 @@ describe('openSession', () => {
 
 		// Tab 1: draw blue pixel
 		editor.workspace.addTab();
-		setPixel(editor.workspace.activeTab.pixelCanvas, 1, 0, { r: 0, g: 0, b: 255, a: 255 });
+		setPixel(editor.workspace.activeTab, 1, 0, { r: 0, g: 0, b: 255, a: 255 });
 		session.markDirty(editor.workspace.activeTab.documentId);
 
 		await session.flush();

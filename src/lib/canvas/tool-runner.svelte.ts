@@ -1,17 +1,16 @@
-import type { PixelCanvas, CanvasCoords } from './canvas-model';
+import type { Document, PixelCanvas, CanvasCoords } from './canvas-model';
 import type { Color } from './color';
 import type { SharedState } from './shared-state.svelte';
 import { CANVAS_CHANGED, NO_EFFECTS, type ToolEffect } from './draw-tool';
 import type { PointerType } from './canvas-interaction.svelte';
 import type { SamplingSession } from './sampling/session.svelte';
-import { canvasFactory, createHistoryManager } from './wasm-backend';
+import { clearDocumentActiveLayer, createHistoryManager } from './wasm-backend';
 import { createStrokeEngine, type ActiveStroke } from './stroke-engine';
 
 // ── Effects: ToolRunner adds RunnerEffect on top of tool-produced ToolEffect ──
 
 /** Effects that only ToolRunner can produce (undo/redo infrastructure). */
-export type RunnerEffect =
-	| { readonly type: 'canvasReplaced'; readonly canvas: PixelCanvas };
+export type RunnerEffect = { readonly type: 'documentReplaced'; readonly document: Document };
 
 /** Union of all effects TabState must handle. */
 export type EditorEffect = ToolEffect | RunnerEffect;
@@ -22,6 +21,7 @@ export type EditorEffects = readonly EditorEffect[];
 
 export interface ToolRunnerHost {
 	readonly pixelCanvas: PixelCanvas;
+	readonly document: Document;
 	readonly foregroundColor: Color;
 	readonly backgroundColor: Color;
 }
@@ -83,24 +83,8 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 	// ── Internal helpers ────────────────────────────────────────────
 
 	function pushHistorySnapshot(): void {
-		const canvas = host.pixelCanvas;
-		history.push_snapshot(canvas.width, canvas.height, canvas.pixels());
+		history.push_document(host.document);
 		historyVersion++;
-	}
-
-	function applySnapshot(snapshot: { width: number; height: number; pixels(): Uint8Array }): EditorEffects {
-		const canvas = host.pixelCanvas;
-		const hasDimensionsChanged =
-			snapshot.width !== canvas.width || snapshot.height !== canvas.height;
-		if (hasDimensionsChanged) {
-			const newCanvas = canvasFactory.fromPixels(snapshot.width, snapshot.height, snapshot.pixels());
-			historyVersion++;
-			return [{ type: 'canvasReplaced', canvas: newCanvas }];
-		} else {
-			canvas.restore_pixels(snapshot.pixels());
-			historyVersion++;
-			return CANVAS_CHANGED;
-		}
 	}
 
 	// ── Stroke engine: resolves active tool + opens sessions ────────
@@ -154,23 +138,24 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 
 		undo(): EditorEffects {
 			if (isDrawing) return NO_EFFECTS;
-			const canvas = host.pixelCanvas;
-			const snapshot = history.undo(canvas.width, canvas.height, canvas.pixels());
-			if (!snapshot) return NO_EFFECTS;
-			return applySnapshot(snapshot);
+			const restored = history.undo_document(host.document);
+			if (!restored) return NO_EFFECTS;
+			historyVersion++;
+			return [{ type: 'documentReplaced', document: restored }];
 		},
 
 		redo(): EditorEffects {
 			if (isDrawing) return NO_EFFECTS;
-			const canvas = host.pixelCanvas;
-			const snapshot = history.redo(canvas.width, canvas.height, canvas.pixels());
-			if (!snapshot) return NO_EFFECTS;
-			return applySnapshot(snapshot);
+			const restored = history.redo_document(host.document);
+			if (!restored) return NO_EFFECTS;
+			historyVersion++;
+			return [{ type: 'documentReplaced', document: restored }];
 		},
 
 		clear(): EditorEffects {
 			pushHistorySnapshot();
 			host.pixelCanvas.clear();
+			clearDocumentActiveLayer(host.document);
 			return CANVAS_CHANGED;
 		},
 

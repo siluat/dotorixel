@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 091 | [Layer system: TabState switch — `pixelCanvas` → `document`](../issues/091-layer-system-tab-state-document-switch.md) | 2026-05-09 |
 | 101 | [Layer system: Document builder + tool bindings + TS facade](../issues/101-layer-system-document-builder-and-tool-bindings.md) | 2026-05-08 |
 | 090 | [Layer system: TS V3 persistence schema + V2→V3 migration (not yet wired)](../issues/090-layer-system-ts-v3-schema-migration.md) | 2026-05-08 |
 | 089 | [Layer system: WASM Document facade](../issues/089-layer-system-wasm-document-facade.md) | 2026-05-07 |

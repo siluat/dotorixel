@@ -8,6 +8,7 @@
 import {
 	WasmPixelCanvas,
 	WasmColor,
+	WasmDocument,
 	WasmDocumentBuilder,
 	WasmViewport,
 	WasmHistoryManager,
@@ -217,6 +218,132 @@ export function createDrawingOps(getCanvas: () => PixelCanvas): DrawingOps {
 	return ops;
 }
 
+function resolveWasmDocument(doc: Document): WasmDocument {
+	if (doc instanceof WasmDocument) return doc;
+	throw new Error('Document was not created by wasm-backend');
+}
+
+/**
+ * Clears the active layer's pixels in place. Used by the tool runner's
+ * `clear()` to keep the shadow `Document` aligned with `pixelCanvas` during
+ * the strangler migration; the read-only `Document` interface intentionally
+ * omits mutators, so callers go through this helper.
+ */
+export function clearDocumentActiveLayer(doc: Document): void {
+	resolveWasmDocument(doc).clear();
+}
+
+/**
+ * Resizes a `Document` in place using the given anchor. All layers are
+ * resized using the same anchor — see `crates/core/src/document.rs` for the
+ * row-major copy semantics.
+ */
+export function resizeDocumentWithAnchor(
+	doc: Document,
+	newWidth: number,
+	newHeight: number,
+	anchor: ResizeAnchor
+): void {
+	resolveWasmDocument(doc).resize(newWidth, newHeight, ANCHOR_MAP[anchor]);
+}
+
+/**
+ * DrawingOps that mutate a `Document`'s active layer. Used by the strangler
+ * migration to tee tool writes so the shadow `Document` on `TabState` stays
+ * in sync with `pixelCanvas` until the latter is removed.
+ */
+export function createDocumentDrawingOps(getDocument: () => Document): DrawingOps {
+	const ops: DrawingOps = {
+		applyTool(x, y, tool, color) {
+			return resolveWasmDocument(getDocument()).apply_tool(
+				x,
+				y,
+				TOOL_MAP[tool],
+				new WasmColor(color.r, color.g, color.b, color.a)
+			);
+		},
+		applyStroke(pixels, tool, color) {
+			let changed = false;
+			for (let i = 0; i < pixels.length; i += 2) {
+				if (ops.applyTool(pixels[i], pixels[i + 1], tool, color)) {
+					changed = true;
+				}
+			}
+			return changed;
+		},
+		setPixel(x, y, color) {
+			const doc = resolveWasmDocument(getDocument());
+			if (x < 0 || y < 0 || x >= doc.width || y >= doc.height) return false;
+			try {
+				doc.set_pixel(x, y, new WasmColor(color.r, color.g, color.b, color.a));
+				return true;
+			} catch {
+				return false;
+			}
+		},
+		getPixel(x, y) {
+			const doc = resolveWasmDocument(getDocument());
+			if (x < 0 || y < 0 || x >= doc.width || y >= doc.height) return null;
+			try {
+				const c = doc.get_pixel(x, y);
+				return { r: c.r, g: c.g, b: c.b, a: c.a };
+			} catch {
+				return null;
+			}
+		},
+		floodFill(x, y, color) {
+			return resolveWasmDocument(getDocument()).flood_fill(
+				x,
+				y,
+				new WasmColor(color.r, color.g, color.b, color.a)
+			);
+		},
+		interpolatePixels: wasm_interpolate_pixels,
+		rectangleOutline: wasm_rectangle_outline,
+		ellipseOutline: wasm_ellipse_outline
+	};
+
+	return ops;
+}
+
+/**
+ * Wraps two `DrawingOps` so each mutating call runs on both. Reads and pure
+ * outline/interpolation helpers delegate to `primary`. The return value of
+ * mutating calls comes from `primary` — assumes both ops produce equivalent
+ * results given the same starting state (true while the two backings stay
+ * in sync via this tee).
+ */
+export function teeDrawingOps(primary: DrawingOps, secondary: DrawingOps): DrawingOps {
+	return {
+		applyTool(x, y, tool, color) {
+			const result = primary.applyTool(x, y, tool, color);
+			secondary.applyTool(x, y, tool, color);
+			return result;
+		},
+		applyStroke(pixels, tool, color) {
+			const result = primary.applyStroke(pixels, tool, color);
+			secondary.applyStroke(pixels, tool, color);
+			return result;
+		},
+		setPixel(x, y, color) {
+			const result = primary.setPixel(x, y, color);
+			secondary.setPixel(x, y, color);
+			return result;
+		},
+		getPixel(x, y) {
+			return primary.getPixel(x, y);
+		},
+		floodFill(x, y, color) {
+			const result = primary.floodFill(x, y, color);
+			secondary.floodFill(x, y, color);
+			return result;
+		},
+		interpolatePixels: primary.interpolatePixels,
+		rectangleOutline: primary.rectangleOutline,
+		ellipseOutline: primary.ellipseOutline
+	};
+}
+
 // ── HistoryManager ──────────────────────────────────────────────────
 
 export function createHistoryManager(): HistoryManager {
@@ -246,6 +373,22 @@ export function documentFromSchemaV3(schema: DocumentSchemaV3): Document {
 		schema.nextLayerNumber,
 		schema.timelinePanelCollapsed
 	);
+}
+
+/**
+ * Builds a single-layer [`Document`] containing the given pixel buffer as
+ * "Layer 1". Used by the strangler migration to mirror a `PixelCanvas` into
+ * a `Document` without going through V3 schema serialization.
+ */
+export function singleLayerDocument(
+	width: number,
+	height: number,
+	pixels: Uint8Array
+): Document {
+	const builder = new WasmDocumentBuilder(width, height);
+	const id = crypto.randomUUID();
+	builder.add_layer(id, 'Layer 1', pixels.slice(), true, 1);
+	return builder.build(id, 2, false);
 }
 
 // ── CanvasBackend umbrella ─────────────────────────────────────────

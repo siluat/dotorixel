@@ -51,6 +51,7 @@ export interface Document {
 	readonly width: number;
 	readonly height: number;
 	composite(): Uint8Array;
+	get_pixel(x: number, y: number): Color;
 	active_layer_id(): string;
 	next_layer_number(): number;
 	is_timeline_panel_collapsed(): boolean;

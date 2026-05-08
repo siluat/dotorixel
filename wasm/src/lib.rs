@@ -292,6 +292,14 @@ impl WasmDocument {
         self.inner.composite()
     }
 
+    /// Reads the pixel color at `(x, y)` on the active layer.
+    pub fn get_pixel(&self, x: u32, y: u32) -> Result<WasmColor, JsError> {
+        self.inner
+            .get_pixel(x, y)
+            .map(|c| WasmColor { inner: c })
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
     /// Writes `color` to `(x, y)` on the active layer.
     pub fn set_pixel(&mut self, x: u32, y: u32, color: &WasmColor) -> Result<(), JsError> {
         self.inner
@@ -1010,6 +1018,17 @@ mod tests {
         // Pixel (1, 0) starts at byte offset (0 * 2 + 1) * 4 = 4.
         let buf = doc.composite();
         assert_eq!(&buf[4..8], &[255, 0, 0, 255]);
+    }
+
+    #[test]
+    fn wasm_document_get_pixel_reads_active_layer() {
+        let id = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 2, id.to_string(), "L1".into()).unwrap();
+        let red = WasmColor::new(255, 0, 0, 255);
+        doc.set_pixel(1, 0, &red).unwrap();
+
+        let read = doc.get_pixel(1, 0).unwrap();
+        assert_eq!(read.inner, red.inner);
     }
 
     #[test]

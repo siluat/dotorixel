@@ -33,11 +33,10 @@ export interface CanvasConstraints {
  * Undo/redo stack with two snapshot paths:
  *
  * - **Single-canvas path** (legacy): `push_snapshot` / `undo` / `redo` carry
- *   the canvas dimensions + pixel buffer. Used while the shell still drives
- *   the editor through `PixelCanvas`.
+ *   the canvas dimensions + pixel buffer.
  * - **Document path**: `push_document` / `undo_document` / `redo_document`
  *   carry a whole `Document` snapshot (layer stack + active pointer +
- *   counters). The TabState switch (issue 091) becomes the first consumer.
+ *   counters).
  *
  * Structurally satisfied by WasmHistoryManager — no wrapping needed at runtime.
  */

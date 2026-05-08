@@ -106,8 +106,11 @@ impl Document {
         })
     }
 
-    /// Constructs a document from an existing layer stack — used by the
-    /// persistence hydration path to restore a saved [`Document`].
+    /// Constructs a document from an existing layer stack with caller-supplied
+    /// layer ids, names, pixel buffers, visibility, and opacity. Returns
+    /// [`DocumentBuildError`] when the stack is empty, contains duplicate ids,
+    /// contains a layer whose pixel dimensions don't match `width × height`,
+    /// or when `active_layer_id` is not present in the supplied stack.
     pub fn from_layers(
         width: u32,
         height: u32,
@@ -294,7 +297,7 @@ impl Document {
     }
 
     /// Returns the RGBA pixel buffer of the layer at `index`, or `None` when
-    /// `index` is out of range. Used by the persistence save path.
+    /// `index` is out of range.
     pub fn layer_pixels_at(&self, index: usize) -> Option<&[u8]> {
         self.layers.get(index).map(|l| l.pixels.pixels())
     }

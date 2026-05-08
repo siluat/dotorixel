@@ -361,7 +361,7 @@ impl WasmDocument {
     }
 
     /// Returns a copy of the RGBA pixel buffer of the layer at `index`, or
-    /// `None` when `index` is out of range. Used by the persistence save path.
+    /// `None` when `index` is out of range.
     pub fn layer_pixels_at(&self, index: usize) -> Option<Vec<u8>> {
         self.inner.layer_pixels_at(index).map(|p| p.to_vec())
     }
@@ -396,7 +396,8 @@ impl WasmDocument {
 // ---------------------------------------------------------------------------
 
 /// Builder for constructing a [`WasmDocument`] from a pre-existing layer
-/// stack — used by the persistence hydration path.
+/// stack with caller-supplied layer ids, names, pixel buffers, visibility,
+/// and opacity.
 ///
 /// `wasm-bindgen` cannot marshal `Vec<MyType>` directly, so callers add
 /// layers one at a time via [`Self::add_layer`] and then call [`Self::build`].

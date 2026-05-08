@@ -4,6 +4,7 @@ use wasm_bindgen::prelude::*;
 use dotorixel_core::canvas::{PixelCanvas, ResizeAnchor};
 use dotorixel_core::color::Color;
 use dotorixel_core::document::Document;
+use dotorixel_core::layer::Layer;
 use dotorixel_core::export::{PngExport, SvgExport};
 use dotorixel_core::history::{HistoryManager, Snapshot};
 use dotorixel_core::pixel_perfect::{
@@ -357,6 +358,113 @@ impl WasmDocument {
     /// `index` is out of range.
     pub fn layer_opacity_at(&self, index: usize) -> Option<f32> {
         self.inner.layers().get(index).map(|l| l.opacity)
+    }
+
+    /// Returns a copy of the RGBA pixel buffer of the layer at `index`, or
+    /// `None` when `index` is out of range.
+    pub fn layer_pixels_at(&self, index: usize) -> Option<Vec<u8>> {
+        self.inner.layer_pixels_at(index).map(|p| p.to_vec())
+    }
+
+    /// Applies `tool` at `(x, y)` to the active layer. Returns `true` when a
+    /// pixel was written; `false` when the coordinates are out of bounds
+    /// (including negative values, which match `apply_tool` on
+    /// `WasmPixelCanvas`).
+    pub fn apply_tool(&mut self, x: i32, y: i32, tool: WasmToolType, color: &WasmColor) -> bool {
+        self.inner.apply_tool(tool.to_core(), x, y, color.inner)
+    }
+
+    /// 4-connected flood fill on the active layer starting at `(x, y)`.
+    /// Returns `true` when at least one pixel was changed. Negative
+    /// coordinates short-circuit to `false`.
+    pub fn flood_fill(&mut self, x: i32, y: i32, color: &WasmColor) -> bool {
+        if x < 0 || y < 0 {
+            return false;
+        }
+        self.inner.flood_fill(x as u32, y as u32, color.inner)
+    }
+
+    /// Clears the active layer to fully transparent. Other layers are
+    /// unaffected.
+    pub fn clear(&mut self) {
+        self.inner.clear();
+    }
+}
+
+// ---------------------------------------------------------------------------
+// WasmDocumentBuilder
+// ---------------------------------------------------------------------------
+
+/// Builder for constructing a [`WasmDocument`] from a pre-existing layer
+/// stack with caller-supplied layer ids, names, pixel buffers, visibility,
+/// and opacity.
+///
+/// `wasm-bindgen` cannot marshal `Vec<MyType>` directly, so callers add
+/// layers one at a time via [`Self::add_layer`] and then call [`Self::build`].
+#[wasm_bindgen]
+pub struct WasmDocumentBuilder {
+    width: u32,
+    height: u32,
+    layers: Vec<Layer>,
+}
+
+#[wasm_bindgen]
+impl WasmDocumentBuilder {
+    #[wasm_bindgen(constructor)]
+    pub fn new(width: u32, height: u32) -> WasmDocumentBuilder {
+        WasmDocumentBuilder {
+            width,
+            height,
+            layers: Vec::new(),
+        }
+    }
+
+    /// Appends a layer to the in-progress stack. `pixels` must be a row-major
+    /// RGBA buffer of length `width * height * 4`. Errors when `id` is not a
+    /// valid UUID string or when the pixel buffer is the wrong length.
+    pub fn add_layer(
+        &mut self,
+        id: String,
+        name: String,
+        pixels: Vec<u8>,
+        visible: bool,
+        opacity: f32,
+    ) -> Result<(), JsError> {
+        let layer_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
+        let pixel_canvas = PixelCanvas::from_pixels(self.width, self.height, pixels)
+            .map_err(|e| JsError::new(&e.to_string()))?;
+        self.layers.push(Layer {
+            id: layer_id,
+            name,
+            pixels: pixel_canvas,
+            visible,
+            opacity,
+        });
+        Ok(())
+    }
+
+    /// Consumes the builder and returns the resulting document. Errors when
+    /// the accumulated layer stack fails [`Document::from_layers`] validation
+    /// (empty stack, duplicate ids, layer/document dimension mismatch, or
+    /// `active_layer_id` not present).
+    pub fn build(
+        self,
+        active_layer_id: String,
+        next_layer_number: u32,
+        timeline_panel_collapsed: bool,
+    ) -> Result<WasmDocument, JsError> {
+        let active_id =
+            Uuid::parse_str(&active_layer_id).map_err(|e| JsError::new(&e.to_string()))?;
+        let document = Document::from_layers(
+            self.width,
+            self.height,
+            self.layers,
+            active_id,
+            next_layer_number,
+            timeline_panel_collapsed,
+        )
+        .map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(WasmDocument { inner: document })
     }
 }
 
@@ -938,6 +1046,108 @@ mod tests {
         assert_eq!(doc.layer_count(), 2);
         assert_eq!(doc.next_layer_number(), 3);
         assert_eq!(doc.active_layer_id(), second.to_string());
+    }
+
+    // -- WasmDocumentBuilder --
+
+    #[test]
+    fn wasm_document_builder_assembles_multi_layer_document() {
+        let bottom = Uuid::new_v4();
+        let top = Uuid::new_v4();
+        let mut builder = WasmDocumentBuilder::new(2, 2);
+
+        // Layer A: solid red, visible, full opacity.
+        let red_pixels: Vec<u8> = std::iter::repeat_n([255u8, 0, 0, 255], 4).flatten().collect();
+        builder
+            .add_layer(bottom.to_string(), "Bottom".into(), red_pixels, true, 1.0)
+            .unwrap();
+
+        // Layer B: transparent, hidden, half opacity (just to verify per-layer
+        // metadata propagation).
+        let transparent_pixels = vec![0u8; 16];
+        builder
+            .add_layer(top.to_string(), "Top".into(), transparent_pixels, false, 0.5)
+            .unwrap();
+
+        let doc = builder.build(top.to_string(), 7, true).unwrap();
+
+        assert_eq!(doc.width(), 2);
+        assert_eq!(doc.height(), 2);
+        assert_eq!(doc.layer_count(), 2);
+        assert_eq!(doc.layer_id_at(0), Some(bottom.to_string()));
+        assert_eq!(doc.layer_id_at(1), Some(top.to_string()));
+        assert_eq!(doc.layer_name_at(0), Some("Bottom".into()));
+        assert_eq!(doc.layer_visible_at(1), Some(false));
+        assert_eq!(doc.layer_opacity_at(1), Some(0.5));
+        assert_eq!(doc.active_layer_id(), top.to_string());
+        assert_eq!(doc.next_layer_number(), 7);
+        assert!(doc.is_timeline_panel_collapsed());
+    }
+
+    // -- WasmDocument tool surface --
+
+    #[test]
+    fn wasm_document_apply_tool_writes_only_to_active_layer() {
+        let bottom = Uuid::new_v4();
+        let top = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 2, bottom.to_string(), "A".into()).unwrap();
+        doc.add_layer(top.to_string(), "B".into()).unwrap(); // active = top
+
+        let red = WasmColor::new(255, 0, 0, 255);
+        let drew = doc.apply_tool(0, 0, WasmToolType::Pencil, &red);
+
+        assert!(drew);
+        assert_eq!(doc.layer_pixels_at(0).unwrap()[..4], [0, 0, 0, 0]);
+        assert_eq!(doc.layer_pixels_at(1).unwrap()[..4], [255, 0, 0, 255]);
+    }
+
+    #[test]
+    fn wasm_document_flood_fill_writes_only_to_active_layer() {
+        let bottom = Uuid::new_v4();
+        let top = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 2, bottom.to_string(), "A".into()).unwrap();
+        doc.add_layer(top.to_string(), "B".into()).unwrap();
+
+        let blue = WasmColor::new(0, 0, 255, 255);
+        let painted = doc.flood_fill(0, 0, &blue);
+
+        assert!(painted);
+        let top_pixels = doc.layer_pixels_at(1).unwrap();
+        for chunk in top_pixels.chunks_exact(4) {
+            assert_eq!(chunk, [0, 0, 255, 255]);
+        }
+        // Bottom is still all-transparent.
+        assert!(doc.layer_pixels_at(0).unwrap().iter().all(|&b| b == 0));
+    }
+
+    #[test]
+    fn wasm_document_clear_resets_only_active_layer_to_transparent() {
+        let bottom = Uuid::new_v4();
+        let top = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 2, bottom.to_string(), "A".into()).unwrap();
+        // Paint bottom red via direct set_pixel through set_active_layer trick.
+        let red = WasmColor::new(255, 0, 0, 255);
+        for y in 0..2 {
+            for x in 0..2 {
+                doc.set_pixel(x, y, &red).unwrap();
+            }
+        }
+        doc.add_layer(top.to_string(), "B".into()).unwrap(); // active=top
+        let green = WasmColor::new(0, 255, 0, 255);
+        for y in 0..2 {
+            for x in 0..2 {
+                doc.set_pixel(x, y, &green).unwrap();
+            }
+        }
+
+        doc.clear();
+
+        // Active (top) is now transparent.
+        assert!(doc.layer_pixels_at(1).unwrap().iter().all(|&b| b == 0));
+        // Bottom is still red.
+        for chunk in doc.layer_pixels_at(0).unwrap().chunks_exact(4) {
+            assert_eq!(chunk, [255, 0, 0, 255]);
+        }
     }
 
     // -- WasmHistoryManager Document path --

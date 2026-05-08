@@ -8,6 +8,7 @@
 import {
 	WasmPixelCanvas,
 	WasmColor,
+	WasmDocumentBuilder,
 	WasmViewport,
 	WasmHistoryManager,
 	WasmResizeAnchor,
@@ -18,8 +19,9 @@ import {
 	wasm_ellipse_outline,
 	wasm_flood_fill
 } from '$wasm/dotorixel_wasm';
-import type { PixelCanvas, ResizeAnchor } from './canvas-model';
+import type { Document, PixelCanvas, ResizeAnchor } from './canvas-model';
 import type { CanvasFactory, CanvasConstraints, HistoryManager } from './adapter-types';
+import type { DocumentSchemaV3 } from '$lib/session/session-storage-types';
 import type { ViewportData, ViewportOps } from './viewport';
 import type { DrawingOps, DrawingToolType } from './drawing-ops';
 import type { CanvasBackend } from './editor-session/canvas-backend';
@@ -219,6 +221,31 @@ export function createDrawingOps(getCanvas: () => PixelCanvas): DrawingOps {
 
 export function createHistoryManager(): HistoryManager {
 	return WasmHistoryManager.default_manager();
+}
+
+// ── Document hydration ──────────────────────────────────────────────
+
+/**
+ * Builds a [`Document`] from a persisted V3 schema. Each layer's pixel
+ * buffer must already be in the schema's `width × height × 4` shape;
+ * validation errors from the WASM builder propagate as thrown `Error`s.
+ */
+export function documentFromSchemaV3(schema: DocumentSchemaV3): Document {
+	const builder = new WasmDocumentBuilder(schema.width, schema.height);
+	for (const layer of schema.layers) {
+		builder.add_layer(
+			layer.id,
+			layer.name,
+			layer.pixels.slice(),
+			layer.visible,
+			layer.opacity
+		);
+	}
+	return builder.build(
+		schema.activeLayerId,
+		schema.nextLayerNumber,
+		schema.timelinePanelCollapsed
+	);
 }
 
 // ── CanvasBackend umbrella ─────────────────────────────────────────

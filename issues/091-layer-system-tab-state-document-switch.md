@@ -38,6 +38,10 @@ exportPng → toSnapshot → fromSnapshot → load path → final removal of the
 shadow). Each slice is one RED → GREEN cycle; do not write the full set of
 new tests up front.
 
+## Implementation notes
+
+- **`documentFromSchemaV3` error path**: when adding a corrupt-schema policy, wrap only the `add_layer` loop in `try / catch`; call `builder.free()` inside `catch` and re-throw. Do **not** wrap `builder.build()` — it consumes `self` and `wasm-bindgen`'s `__destroy_into_raw()` zeroes `__wbg_ptr` before the WASM call, so a `finally`-style `builder.free()` would invoke `free(null)` (allocator-dependent). Pattern proposed by @greptile-apps on PR #191.
+
 ## Acceptance criteria
 
 - `TabState.document: Document` replaces `pixelCanvas`.

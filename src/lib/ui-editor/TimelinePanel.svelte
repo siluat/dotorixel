@@ -87,13 +87,13 @@
 		display: flex;
 		flex: 1;
 		min-height: 0;
+		overflow-y: auto;
 	}
 
 	.sidebar {
 		width: var(--sidebar-width);
 		display: flex;
 		flex-direction: column;
-		overflow-y: auto;
 		flex: none;
 	}
 

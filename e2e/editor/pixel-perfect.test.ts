@@ -191,12 +191,23 @@ test.describe('Pixel Perfect', () => {
 		if (!box) throw new Error('No bounding box');
 		const cssScale = box.width / geo.canvasWidth;
 
-		const aArt = Math.floor(geo.artPixelsAcross / 2);
-		const bArt = Math.floor(geo.artPixelsDown / 2);
+		// `geo.pixelSize` reports the transparency-checker period (half an
+		// art pixel). Recover real art-pixel coordinates by doubling the
+		// per-pixel size and halving the per-axis count. See the staircase
+		// test for the same correction. Without this, an odd `artPixelsDown`
+		// (e.g., 27 in the default cropped viewport) collapses the L-shape's
+		// vertical leg into the same art pixel as the corner — the test
+		// would then pass on a 2-pixel horizontal stroke instead of a real L.
+		const artPixelCss = geo.pixelSize * 2;
+		const artPixelsAcross = Math.floor(geo.artPixelsAcross / 2);
+		const artPixelsDown = Math.floor(geo.artPixelsDown / 2);
+
+		const aArt = Math.floor(artPixelsAcross / 2);
+		const bArt = Math.floor(artPixelsDown / 2);
 
 		const toCss = (artX: number, artY: number) => {
-			const canvasX = geo.artLeft + artX * geo.pixelSize + geo.pixelSize / 2;
-			const canvasY = geo.artTop + artY * geo.pixelSize + geo.pixelSize / 2;
+			const canvasX = geo.artLeft + artX * artPixelCss + artPixelCss / 2;
+			const canvasY = geo.artTop + artY * artPixelCss + artPixelCss / 2;
 			return { cssX: canvasX * cssScale, cssY: canvasY * cssScale, canvasX, canvasY };
 		};
 

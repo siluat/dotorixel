@@ -9,6 +9,37 @@ function readPixelAt({ px, py }: { px: number; py: number }) {
 	return { r: p[0], g: p[1], b: p[2], a: p[3] };
 }
 
+/**
+ * Normalize `readArtGeometry` output to art-pixel space.
+ *
+ * `geo.pixelSize` reports the transparency-checker period, which is half
+ * an art pixel in the renderer's sub-checker mode (the default at typical
+ * zoom). Tests that need precise art-pixel arithmetic must double the
+ * per-pixel size and halve the per-axis count.
+ *
+ * Asserts `artPixelsAcross % 2 === 0` to fail loudly if the renderer ever
+ * stops pairing one art pixel to exactly two checker tiles — without this
+ * guard, the math below silently goes wrong. The Y-axis is intentionally
+ * not asserted: the editor's default viewport may crop the bottom of the
+ * art canvas at a half-pixel boundary, leaving `artPixelsDown` legitimately
+ * odd; that is not a renderer invariant violation.
+ */
+function normalizeArtGrid(geo: {
+	pixelSize: number;
+	artPixelsAcross: number;
+	artPixelsDown: number;
+}): { artPixelCss: number; artPixelsAcross: number; artPixelsDown: number } {
+	expect(
+		geo.artPixelsAcross % 2,
+		'readArtGeometry expects the art area to span an even number of checker tiles (two per art pixel); update normalizeArtGrid if rendering changes.'
+	).toBe(0);
+	return {
+		artPixelCss: geo.pixelSize * 2,
+		artPixelsAcross: Math.floor(geo.artPixelsAcross / 2),
+		artPixelsDown: Math.floor(geo.artPixelsDown / 2)
+	};
+}
+
 test.describe('Pixel Perfect', () => {
 	test('L-shape pencil drag reverts the corner middle pixel', async ({ editorPage }) => {
 		const { canvas, page } = editorPage;
@@ -19,15 +50,17 @@ test.describe('Pixel Perfect', () => {
 		if (!box) throw new Error('No bounding box');
 		const cssScale = box.width / geo.canvasWidth;
 
+		const { artPixelCss, artPixelsAcross, artPixelsDown } = normalizeArtGrid(geo);
+
 		// Pick three adjacent art pixels forming an L: (a-1, b) → (a, b) → (a, b-1).
 		// Aim near the canvas center to stay safely inside bounds.
-		const aArt = Math.floor(geo.artPixelsAcross / 2);
-		const bArt = Math.floor(geo.artPixelsDown / 2);
+		const aArt = Math.floor(artPixelsAcross / 2);
+		const bArt = Math.floor(artPixelsDown / 2);
 
 		// Convert art-pixel index to internal canvas coords (pixel center), then to CSS.
 		const toCss = (artX: number, artY: number) => {
-			const canvasX = geo.artLeft + artX * geo.pixelSize + geo.pixelSize / 2;
-			const canvasY = geo.artTop + artY * geo.pixelSize + geo.pixelSize / 2;
+			const canvasX = geo.artLeft + artX * artPixelCss + artPixelCss / 2;
+			const canvasY = geo.artTop + artY * artPixelCss + artPixelCss / 2;
 			return { cssX: canvasX * cssScale, cssY: canvasY * cssScale, canvasX, canvasY };
 		};
 
@@ -67,25 +100,7 @@ test.describe('Pixel Perfect', () => {
 		if (!box) throw new Error('No bounding box');
 		const cssScale = box.width / geo.canvasWidth;
 
-		// `readArtGeometry.pixelSize` reports the transparency-checker period,
-		// which is half of one art pixel in the current editor render. The
-		// true per-art-pixel render size is therefore 2×. Without this
-		// correction, each "one-pixel" step in the staircase path would hit
-		// the same art pixel as the previous one half the time, collapsing
-		// the 7-step path to only 3 distinct art-pixel positions and the
-		// test would silently pass because the filter never sees a staircase.
-		const artPixelCss = geo.pixelSize * 2;
-		// Guard the checker-period assumption: if the renderer changes so
-		// that the transparency-checker tile no longer spans half an art
-		// pixel, `artPixelCss` above becomes wrong and the test would land
-		// staircase steps inside the same art pixel. A single-line assert
-		// here fails loudly with an actionable message instead.
-		expect(
-			geo.artPixelsAcross % 2,
-			'readArtGeometry expects the art area to span an even number of checker tiles (two per art pixel); update the factor above if rendering changes.'
-		).toBe(0);
-		const artPixelsAcross = Math.floor(geo.artPixelsAcross / 2);
-		const artPixelsDown = Math.floor(geo.artPixelsDown / 2);
+		const { artPixelCss, artPixelsAcross, artPixelsDown } = normalizeArtGrid(geo);
 
 		const originArtX = Math.floor(artPixelsAcross / 2) - 2;
 		const originArtY = Math.floor(artPixelsDown / 2) - 2;
@@ -182,12 +197,18 @@ test.describe('Pixel Perfect', () => {
 		if (!box) throw new Error('No bounding box');
 		const cssScale = box.width / geo.canvasWidth;
 
-		const aArt = Math.floor(geo.artPixelsAcross / 2);
-		const bArt = Math.floor(geo.artPixelsDown / 2);
+		// Without art-pixel normalization, an odd `artPixelsDown` (e.g., 27
+		// in the default cropped viewport) collapses the L's vertical leg
+		// into the same art pixel as the corner — the test would then pass
+		// on a 2-pixel horizontal stroke instead of a real L.
+		const { artPixelCss, artPixelsAcross, artPixelsDown } = normalizeArtGrid(geo);
+
+		const aArt = Math.floor(artPixelsAcross / 2);
+		const bArt = Math.floor(artPixelsDown / 2);
 
 		const toCss = (artX: number, artY: number) => {
-			const canvasX = geo.artLeft + artX * geo.pixelSize + geo.pixelSize / 2;
-			const canvasY = geo.artTop + artY * geo.pixelSize + geo.pixelSize / 2;
+			const canvasX = geo.artLeft + artX * artPixelCss + artPixelCss / 2;
+			const canvasY = geo.artTop + artY * artPixelCss + artPixelCss / 2;
 			return { cssX: canvasX * cssScale, cssY: canvasY * cssScale, canvasX, canvasY };
 		};
 
@@ -314,12 +335,14 @@ test.describe('Pixel Perfect', () => {
 		if (!box) throw new Error('No bounding box');
 		const cssScale = box.width / geo.canvasWidth;
 
-		const aArt = Math.floor(geo.artPixelsAcross / 2);
-		const bArt = Math.floor(geo.artPixelsDown / 2);
+		const { artPixelCss, artPixelsAcross, artPixelsDown } = normalizeArtGrid(geo);
+
+		const aArt = Math.floor(artPixelsAcross / 2);
+		const bArt = Math.floor(artPixelsDown / 2);
 
 		const toCss = (artX: number, artY: number) => {
-			const canvasX = geo.artLeft + artX * geo.pixelSize + geo.pixelSize / 2;
-			const canvasY = geo.artTop + artY * geo.pixelSize + geo.pixelSize / 2;
+			const canvasX = geo.artLeft + artX * artPixelCss + artPixelCss / 2;
+			const canvasY = geo.artTop + artY * artPixelCss + artPixelCss / 2;
 			return { cssX: canvasX * cssScale, cssY: canvasY * cssScale, canvasX, canvasY };
 		};
 
@@ -358,12 +381,14 @@ test.describe('Pixel Perfect', () => {
 		if (!box) throw new Error('No bounding box');
 		const cssScale = box.width / geo.canvasWidth;
 
-		const aArt = Math.floor(geo.artPixelsAcross / 2);
-		const bArt = Math.floor(geo.artPixelsDown / 2);
+		const { artPixelCss, artPixelsAcross, artPixelsDown } = normalizeArtGrid(geo);
+
+		const aArt = Math.floor(artPixelsAcross / 2);
+		const bArt = Math.floor(artPixelsDown / 2);
 
 		const toCss = (artX: number, artY: number) => {
-			const canvasX = geo.artLeft + artX * geo.pixelSize + geo.pixelSize / 2;
-			const canvasY = geo.artTop + artY * geo.pixelSize + geo.pixelSize / 2;
+			const canvasX = geo.artLeft + artX * artPixelCss + artPixelCss / 2;
+			const canvasY = geo.artTop + artY * artPixelCss + artPixelCss / 2;
 			return { cssX: canvasX * cssScale, cssY: canvasY * cssScale, canvasX, canvasY };
 		};
 

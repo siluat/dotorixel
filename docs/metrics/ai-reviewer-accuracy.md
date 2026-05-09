@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 83 | 64 | 19 | 65 | 77% | 50% |
-| cubic-dev-ai[bot] | 52 | 44 | 8 | 82 | 85% | 35% |
-| coderabbitai[bot] | 113 | 77 | 36 | 50 | 68% | 61% |
+| greptile-apps[bot] | 85 | 65 | 20 | 69 | 76% | 49% |
+| cubic-dev-ai[bot] | 52 | 44 | 8 | 87 | 85% | 34% |
+| coderabbitai[bot] | 119 | 81 | 38 | 51 | 68% | 61% |
 
 ## Log
 
@@ -459,3 +459,21 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #191 | coderabbitai[bot] | Miss | Did not flag validation-order Notes oversimplification |
 | #191 | cubic-dev-ai[bot] | Miss | Did not flag validation-order Notes oversimplification (auto-approved review) |
 | #191 | greptile-apps[bot] | Accept | Follow-up: `try/finally + builder.free()` mechanics correction (`__destroy_into_raw()` zeroes `__wbg_ptr` → `free(null)` not double-free); loop-scoped `try/catch` pattern recorded in issue 091 Implementation notes |
+| #192 | coderabbitai[bot] | Accept | tee primary swapped to `documentOps` so source-of-truth Document write decides stroke success |
+| #192 | coderabbitai[bot] | Reject | "future date 2026-05-09" in `tasks/done.md` — today is 2026-05-09 per project context |
+| #192 | coderabbitai[bot] | Accept | `Document::get_pixel` Rust doc states OOB → `Err(PixelCanvasError::OutOfBounds)` |
+| #192 | coderabbitai[bot] | Accept | `WasmDocument::get_pixel` WASM doc states OOB → `Err(JsError)` |
+| #192 | coderabbitai[bot] | Accept | TS `Document.get_pixel` doc states throws on OOB |
+| #192 | coderabbitai[bot] | Reject | `activeLayerPixels` error message extra context — internal invariant guard, "trust internal code" |
+| #192 | greptile-apps[bot] | Accept | `clear` test undo-after-clear restored: assert pre-clear pixel via `documentReplaced` active layer |
+| #192 | greptile-apps[bot] | Reject | `pixelCanvas` active-layer vs `composite()` divergence — forward-looking, single-layer scope; render-cache rebuild switches to `composite()` in #094–097 |
+| #192 | greptile-apps[bot] | Miss | Did not flag tee primary deciding stroke result from cache rather than truth |
+| #192 | greptile-apps[bot] | Miss | Did not flag missing OOB error contract on `get_pixel` (Rust core) |
+| #192 | greptile-apps[bot] | Miss | Did not flag missing OOB error contract on `get_pixel` (WASM facade) |
+| #192 | greptile-apps[bot] | Miss | Did not flag missing OOB error contract on `get_pixel` (TS interface) |
+| #192 | coderabbitai[bot] | Miss | Did not flag `clear` test undo coverage regression |
+| #192 | cubic-dev-ai[bot] | Miss | Did not flag tee primary deciding stroke result from cache (no issues found across 18 files) |
+| #192 | cubic-dev-ai[bot] | Miss | Did not flag missing OOB error contract on `get_pixel` (Rust core) |
+| #192 | cubic-dev-ai[bot] | Miss | Did not flag missing OOB error contract on `get_pixel` (WASM facade) |
+| #192 | cubic-dev-ai[bot] | Miss | Did not flag missing OOB error contract on `get_pixel` (TS interface) |
+| #192 | cubic-dev-ai[bot] | Miss | Did not flag `clear` test undo coverage regression |

@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 88 | 68 | 20 | 71 | 77% | 49% |
-| cubic-dev-ai[bot] | 54 | 45 | 9 | 91 | 83% | 33% |
-| coderabbitai[bot] | 120 | 82 | 38 | 52 | 68% | 61% |
+| greptile-apps[bot] | 88 | 68 | 20 | 72 | 77% | 49% |
+| cubic-dev-ai[bot] | 55 | 46 | 9 | 91 | 84% | 34% |
+| coderabbitai[bot] | 121 | 83 | 38 | 52 | 69% | 61% |
 
 ## Log
 
@@ -490,3 +490,6 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #194 | greptile-apps[bot] | Miss | Did not flag helper duplication / centralization opportunity (proposed adding the guard inline at each site) |
 | #194 | cubic-dev-ai[bot] | Miss | Did not flag missing renderer-assumption guard (auto-approved 3050b0a) |
 | #194 | cubic-dev-ai[bot] | Miss | Did not flag helper duplication / centralization opportunity (auto-approved 3050b0a + 4343d3c) |
+| #195 | coderabbitai[bot] | Accept | `addLayer` does not re-derive `pixelCanvas` after `add_layer` switches active layer — invariant ("pixelCanvas reflects active layer") established by ctor + documentReplaced is broken |
+| #195 | cubic-dev-ai[bot] | Accept | `pixelCanvas` not re-derived from new active layer after `addLayer` (duplicate of coderabbit) |
+| #195 | greptile-apps[bot] | Miss | Did not flag `pixelCanvas`/active-layer desync after `addLayer` (Confidence 5/5, Safe to merge) |

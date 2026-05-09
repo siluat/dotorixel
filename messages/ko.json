@@ -131,5 +131,9 @@
 	"references_window_minimize": "{name} 창 최소화",
 	"references_window_restore": "{name} 창 복원",
 	"references_toggle_display_show": "{name}을(를) 캔버스에 표시",
-	"references_toggle_display_hide": "{name}을(를) 캔버스에서 숨기기"
+	"references_toggle_display_hide": "{name}을(를) 캔버스에서 숨기기",
+
+	"layer_default_name": "레이어 {n}",
+	"layer_panel_title": "레이어",
+	"aria_addLayer": "레이어 추가"
 }

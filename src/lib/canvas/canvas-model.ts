@@ -62,4 +62,11 @@ export interface Document {
 	layer_visible_at(index: number): boolean | undefined;
 	layer_opacity_at(index: number): number | undefined;
 	layer_pixels_at(index: number): Uint8Array | undefined;
+	/**
+	 * Appends a new transparent layer with the given UUID and display name.
+	 * The new layer becomes active; `next_layer_number` is incremented (the
+	 * counter is monotonic — never reused after delete). Throws if the id is
+	 * not a valid UUID, or already exists in the document.
+	 */
+	add_layer(new_id: string, name: string): void;
 }

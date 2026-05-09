@@ -292,6 +292,18 @@ export class TabState {
 		this.#toolRunner.pushSnapshot();
 	};
 
+	addLayer = (name: string): void => {
+		this.#toolRunner.pushSnapshot();
+		this.document.add_layer(crypto.randomUUID(), name);
+		this.pixelCanvas = this.#backend.canvasFactory.fromPixels(
+			this.document.width,
+			this.document.height,
+			activeLayerPixels(this.document)
+		);
+		this.renderVersion++;
+		this.#notifier.markDirty(this.documentId);
+	};
+
 	setViewport = (newViewport: ViewportData): void => {
 		this.#tabViewport.apply(
 			this.#backend.viewportOps.clampPan(

@@ -131,5 +131,9 @@
 	"references_window_minimize": "Minimize {name} window",
 	"references_window_restore": "Restore {name} window",
 	"references_toggle_display_show": "Show {name} on canvas",
-	"references_toggle_display_hide": "Hide {name} from canvas"
+	"references_toggle_display_hide": "Hide {name} from canvas",
+
+	"layer_default_name": "Layer {n}",
+	"layer_panel_title": "Layers",
+	"aria_addLayer": "Add layer"
 }

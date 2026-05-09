@@ -1,4 +1,6 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages';
+
 	interface LayerSummary {
 		readonly id: string;
 		readonly name: string;
@@ -7,14 +9,24 @@
 	interface Props {
 		layers: ReadonlyArray<LayerSummary>;
 		activeLayerId: string;
+		onAddLayer: () => void;
 	}
 
-	let { layers, activeLayerId }: Props = $props();
+	let { layers, activeLayerId, onAddLayer }: Props = $props();
 </script>
 
-<section class="timeline-panel" aria-label="Layers">
+<section class="timeline-panel" aria-label={m.layer_panel_title()}>
 	<div class="header">
-		<span class="header-label">Layers</span>
+		<button
+			type="button"
+			class="add-btn"
+			data-add-layer
+			aria-label={m.aria_addLayer()}
+			onclick={onAddLayer}
+		>
+			+
+		</button>
+		<span class="header-label">{m.layer_panel_title()}</span>
 	</div>
 	<div class="divider"></div>
 	<div class="body">
@@ -66,6 +78,7 @@
 		height: var(--row-height);
 		display: flex;
 		align-items: center;
+		gap: var(--ds-space-2);
 		padding: 0 var(--ds-space-2);
 		flex: none;
 	}
@@ -73,8 +86,34 @@
 	.header-label {
 		font-size: var(--ds-font-size-md);
 		font-weight: 600;
-		padding: 0 var(--ds-space-3);
 		color: var(--ds-text-primary);
+	}
+
+	.add-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		padding: 0;
+		border: none;
+		background: none;
+		border-radius: var(--ds-radius-sm);
+		color: var(--ds-text-secondary);
+		font-size: var(--ds-font-size-md);
+		font-family: inherit;
+		line-height: 1;
+		cursor: pointer;
+	}
+
+	.add-btn:hover {
+		background: var(--ds-bg-hover);
+		color: var(--ds-text-primary);
+	}
+
+	.add-btn:focus-visible {
+		outline: var(--ds-border-width-thick) solid var(--ds-accent);
+		outline-offset: 1px;
 	}
 
 	.divider {

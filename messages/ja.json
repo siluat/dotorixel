@@ -131,5 +131,9 @@
 	"references_window_minimize": "{name}ウィンドウを最小化",
 	"references_window_restore": "{name}ウィンドウを復元",
 	"references_toggle_display_show": "{name}をキャンバスに表示",
-	"references_toggle_display_hide": "{name}をキャンバスから隠す"
+	"references_toggle_display_hide": "{name}をキャンバスから隠す",
+
+	"layer_default_name": "レイヤー {n}",
+	"layer_panel_title": "レイヤー",
+	"aria_addLayer": "レイヤーを追加"
 }

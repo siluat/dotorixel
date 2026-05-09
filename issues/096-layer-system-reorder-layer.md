@@ -20,12 +20,15 @@ Scope:
 - The renderer composites in the new order on the next frame.
 - A snapshot is pushed so the action is undoable.
 
+The TimelinePanel already renders front-most layer at the top (established in 094). Drag/up-down operations work in the **panel's visual order**, but the underlying `Document.reorder_layer` API takes a **stack index** — so this slice must translate visual index → stack index (`stack_idx = (count - 1) - visual_idx`). Add a unit test that locks the mapping so future changes don't silently invert it.
+
 ## Acceptance criteria
 
 - Layers can be reordered via the affordance from the design.
 - The composite reflects the new depth order immediately after the action.
 - Reordering does not change the active layer pointer.
 - The action is undoable.
+- Dragging a row up moves it forward in z; dragging it down moves it backward.
 
 ## Blocked by
 

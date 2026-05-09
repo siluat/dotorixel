@@ -542,3 +542,84 @@ describe('TabState — pixelCanvas shadow removed', () => {
 		expect(Array.from(layer)).toEqual(new Array(4 * 4 * 4).fill(0));
 	});
 });
+
+describe('TabState — addLayer', () => {
+	it('increments document.layer_count by 1', () => {
+		const { tab } = makeTab();
+		const before = tab.document.layer_count();
+
+		tab.addLayer('Layer 2');
+
+		expect(tab.document.layer_count()).toBe(before + 1);
+	});
+
+	it('makes the newly added layer the active layer', () => {
+		const { tab } = makeTab();
+		const previousActiveId = tab.document.active_layer_id();
+
+		tab.addLayer('Layer 2');
+
+		expect(tab.document.active_layer_id()).not.toBe(previousActiveId);
+	});
+
+	it('uses the given string as the new layer name', () => {
+		const { tab } = makeTab();
+
+		tab.addLayer('레이어 2');
+
+		const newIndex = tab.document.layer_count() - 1;
+		expect(tab.document.layer_name_at(newIndex)).toBe('레이어 2');
+	});
+
+	it('advances next_layer_number monotonically (never reused)', () => {
+		const { tab } = makeTab();
+		const start = tab.document.next_layer_number();
+
+		tab.addLayer('Layer 2');
+		expect(tab.document.next_layer_number()).toBe(start + 1);
+
+		tab.addLayer('Layer 3');
+		expect(tab.document.next_layer_number()).toBe(start + 2);
+	});
+
+	it('is undoable: undo restores the prior layer count and active layer', () => {
+		const { tab } = makeTab();
+		const baseCount = tab.document.layer_count();
+		const baseActive = tab.document.active_layer_id();
+
+		tab.addLayer('Layer 2');
+		expect(tab.document.layer_count()).toBe(baseCount + 1);
+
+		tab.undo();
+
+		expect(tab.document.layer_count()).toBe(baseCount);
+		expect(tab.document.active_layer_id()).toBe(baseActive);
+	});
+
+	it('bumps renderVersion and emits markDirty', () => {
+		const { tab, notifier } = makeTab();
+		const before = tab.renderVersion;
+		notifier.reset();
+
+		tab.addLayer('Layer 2');
+
+		expect(tab.renderVersion).toBeGreaterThan(before);
+		expect(notifier.dirtyCalls).toContain('doc-test');
+	});
+
+	it('re-derives pixelCanvas from the new active (empty) layer, not the previous layer pixels', () => {
+		const { tab, shared } = makeTab();
+		shared.foregroundColor = BLACK;
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 2, y: 2 }, null);
+		tab.drawEnd();
+
+		tab.addLayer('Layer 2');
+
+		const pixels = tab.pixelCanvas.pixels();
+		for (let i = 0; i < pixels.length; i += 4) {
+			expect(pixels[i + 3]).toBe(0);
+		}
+	});
+});

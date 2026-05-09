@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 87 | 67 | 20 | 70 | 77% | 49% |
-| cubic-dev-ai[bot] | 54 | 45 | 9 | 89 | 83% | 34% |
-| coderabbitai[bot] | 119 | 81 | 38 | 52 | 68% | 61% |
+| greptile-apps[bot] | 88 | 68 | 20 | 71 | 77% | 49% |
+| cubic-dev-ai[bot] | 54 | 45 | 9 | 91 | 83% | 33% |
+| coderabbitai[bot] | 120 | 82 | 38 | 52 | 68% | 61% |
 
 ## Log
 
@@ -485,3 +485,8 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #193 | greptile-apps[bot] | Accept | `.vdiv` empty divider collapsed to 0px under `.body { align-items: flex-start }` — added `align-self: stretch` so the column separator spans full body height |
 | #193 | cubic-dev-ai[bot] | Reject | Revert `.body` to `align-items: stretch` — reintroduces the prior round's P1 (sidebar/frame-area scroll cap); divider regression handled by `align-self: stretch` on `.vdiv` alone |
 | #193 | cubic-dev-ai[bot] | Miss | Did not flag `.vdiv` 0-px collapse in the same round (proposed reverting the parent's `align-items` instead of overriding on the empty child) |
+| #194 | greptile-apps[bot] | Accept | Missing renderer-assumption guard in fixed tests — even-checker-tile invariant (`artPixelsAcross % 2 === 0`) silently relied on without diagnostic |
+| #194 | coderabbitai[bot] | Accept | Factor geometry normalization into shared helper with even-checker-tile guard — partial (X-axis adopted; Y-axis rejected: viewport may crop at mid-pixel, `artPixelsDown` legitimately odd at default 27) |
+| #194 | greptile-apps[bot] | Miss | Did not flag helper duplication / centralization opportunity (proposed adding the guard inline at each site) |
+| #194 | cubic-dev-ai[bot] | Miss | Did not flag missing renderer-assumption guard (auto-approved 3050b0a) |
+| #194 | cubic-dev-ai[bot] | Miss | Did not flag helper duplication / centralization opportunity (auto-approved 3050b0a + 4343d3c) |

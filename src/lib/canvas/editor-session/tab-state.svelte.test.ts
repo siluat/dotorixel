@@ -606,4 +606,20 @@ describe('TabState — addLayer', () => {
 		expect(tab.renderVersion).toBeGreaterThan(before);
 		expect(notifier.dirtyCalls).toContain('doc-test');
 	});
+
+	it('re-derives pixelCanvas from the new active (empty) layer, not the previous layer pixels', () => {
+		const { tab, shared } = makeTab();
+		shared.foregroundColor = BLACK;
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 2, y: 2 }, null);
+		tab.drawEnd();
+
+		tab.addLayer('Layer 2');
+
+		const pixels = tab.pixelCanvas.pixels();
+		for (let i = 0; i < pixels.length; i += 4) {
+			expect(pixels[i + 3]).toBe(0);
+		}
+	});
 });

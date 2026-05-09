@@ -1,10 +1,11 @@
 import type { Color } from '../color';
-import type { PixelCanvas, ResizeAnchor } from '../canvas-model';
+import type { Document, ResizeAnchor } from '../canvas-model';
 import type { ViewportData } from '../viewport';
 import type { ToolType } from '../tool-registry';
 import { isValidToolType } from '../tool-registry';
 import { SharedState } from '../shared-state.svelte';
 import type { WorkspaceSnapshot, TabSnapshot } from '../workspace-snapshot';
+import { singleLayerDocument } from '../wasm-backend';
 import { References } from '$lib/reference-images/references.svelte';
 import type { CanvasBackend } from './canvas-backend';
 import type { DirtyNotifier } from './dirty-notifier';
@@ -29,7 +30,7 @@ export interface WorkspaceDeps {
 export interface CreateTabConfig {
 	readonly documentId?: string;
 	readonly name?: string;
-	readonly pixelCanvas?: PixelCanvas;
+	readonly document?: Document;
 	readonly viewport?: ViewportData;
 	readonly canvasWidth?: number;
 	readonly canvasHeight?: number;
@@ -118,7 +119,7 @@ export class Workspace {
 			notifier: this.#notifier,
 			documentId,
 			name,
-			pixelCanvas: config.pixelCanvas,
+			document: config.document,
 			viewport: config.viewport,
 			canvasWidth: config.canvasWidth,
 			canvasHeight: config.canvasHeight,
@@ -135,11 +136,11 @@ export class Workspace {
 	}
 
 	openDocument(doc: OpenDocumentInput): TabState {
-		const pixelCanvas = this.#backend.canvasFactory.fromPixels(doc.width, doc.height, doc.pixels);
+		const document = singleLayerDocument(doc.width, doc.height, doc.pixels);
 		const tab = this.createTab({
 			documentId: doc.id,
 			name: doc.name,
-			pixelCanvas
+			document
 		});
 		this.tabs.push(tab);
 		this.activeIndex = this.tabs.length - 1;
@@ -220,15 +221,11 @@ export class Workspace {
 		this.shared.pixelPerfect = snapshot.sharedState.pixelPerfect ?? true;
 
 		for (const tabSnap of snapshot.tabs) {
-			const pixelCanvas = this.#backend.canvasFactory.fromPixels(
-				tabSnap.width,
-				tabSnap.height,
-				tabSnap.pixels
-			);
+			const document = singleLayerDocument(tabSnap.width, tabSnap.height, tabSnap.pixels);
 			const tab = this.createTab({
 				documentId: tabSnap.id,
 				name: tabSnap.name,
-				pixelCanvas,
+				document,
 				viewport: tabSnap.viewport
 			});
 			this.tabs.push(tab);

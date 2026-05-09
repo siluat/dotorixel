@@ -272,6 +272,14 @@ impl Document {
         buf
     }
 
+    /// Reads the color at `(x, y)` on the active layer.
+    ///
+    /// Returns [`PixelCanvasError::OutOfBounds`] when `(x, y)` is outside the
+    /// document's `width × height`.
+    pub fn get_pixel(&self, x: u32, y: u32) -> Result<Color, PixelCanvasError> {
+        self.active_layer().pixels.get_pixel(x, y)
+    }
+
     /// Writes `color` to `(x, y)` on the active layer. Other layers are
     /// unaffected.
     pub fn set_pixel(&mut self, x: u32, y: u32, color: Color) -> Result<(), PixelCanvasError> {
@@ -331,6 +339,14 @@ impl Document {
         self.width = new_width;
         self.height = new_height;
         Ok(())
+    }
+
+    fn active_layer(&self) -> &Layer {
+        let id = self.active_layer_id;
+        self.layers
+            .iter()
+            .find(|l| l.id == id)
+            .expect("active layer is always present in the stack")
     }
 
     fn active_layer_mut(&mut self) -> &mut Layer {
@@ -830,6 +846,33 @@ mod tests {
         // src_a = 1.0 * 0.5 = 0.5 → out_a = 0.5 → alpha byte = 128
         // RGB unchanged (only red has color, divided by out_a).
         assert_eq!(doc.composite(), vec![255, 0, 0, 128]);
+    }
+
+    #[test]
+    fn get_pixel_reads_from_active_layer() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
+        doc.add_layer(b, "B".to_string()); // active=B
+
+        let red = Color::new(255, 0, 0, 255);
+        doc.set_pixel(0, 0, red).unwrap();
+
+        assert_eq!(doc.get_pixel(0, 0).unwrap(), red);
+
+        // Switching active layer surfaces the other layer's pixel.
+        doc.set_active_layer(a).unwrap();
+        assert_eq!(doc.get_pixel(0, 0).unwrap(), Color::TRANSPARENT);
+    }
+
+    #[test]
+    fn get_pixel_out_of_bounds_returns_error() {
+        let id = Uuid::new_v4();
+        let doc = Document::new(2, 2, id, "A".to_string()).unwrap();
+        assert!(doc.get_pixel(2, 0).is_err());
+        assert!(doc.get_pixel(0, 2).is_err());
     }
 
     #[test]

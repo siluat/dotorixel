@@ -4,8 +4,8 @@ import { createToolRunner, type ToolRunnerHost, type ToolRunnerDeps, type Editor
 import { createSamplingSession } from './sampling/session.svelte';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
-import type { PixelCanvas } from './canvas-model';
-import { canvasFactory } from './wasm-backend';
+import type { Document, PixelCanvas } from './canvas-model';
+import { canvasFactory, singleLayerDocument } from './wasm-backend';
 
 const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
 const WHITE: Color = { r: 255, g: 255, b: 255, a: 255 };
@@ -13,11 +13,19 @@ const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
 
 function createHost(canvas?: PixelCanvas, fg?: Color, bg?: Color): ToolRunnerHost {
 	const pixelCanvas = canvas ?? canvasFactory.create(8, 8);
+	const document: Document = singleLayerDocument(
+		pixelCanvas.width,
+		pixelCanvas.height,
+		pixelCanvas.pixels()
+	);
 	let foregroundColor = fg ?? BLACK;
 	let backgroundColor = bg ?? WHITE;
 	return {
 		get pixelCanvas() {
 			return pixelCanvas;
+		},
+		get document() {
+			return document;
 		},
 		get foregroundColor() {
 			return foregroundColor;
@@ -80,7 +88,7 @@ describe('ToolRunner — eyedropper tool', () => {
 	it('commits colorPick on drawEnd, not mid-stroke', () => {
 		const canvas = canvasFactory.create(8, 8);
 		// Paint a red pixel at (2,2) using a separate runner with red foreground
-		const host = { pixelCanvas: canvas, foregroundColor: RED, backgroundColor: WHITE } as ToolRunnerHost;
+		const host = createHost(canvas, RED, WHITE);
 		const shared2 = new SharedState();
 		const samplingSession2 = createSamplingSession({ getSamplingPort: () => host.pixelCanvas });
 		const runner2 = createToolRunner({ host, shared: shared2, getShiftHeld: () => false, samplingSession: samplingSession2 });
@@ -106,7 +114,7 @@ describe('ToolRunner — eyedropper tool', () => {
 	it('commits the color at the final drag position, not the starting one', () => {
 		const canvas = canvasFactory.create(8, 8);
 		// Fill the canvas with red at (5,5) using pencil with red foreground
-		const redHost = { pixelCanvas: canvas, foregroundColor: RED, backgroundColor: WHITE } as ToolRunnerHost;
+		const redHost = createHost(canvas, RED, WHITE);
 		const redShared = new SharedState();
 		const redSession = createSamplingSession({ getSamplingPort: () => redHost.pixelCanvas });
 		const redRunner = createToolRunner({ host: redHost, shared: redShared, getShiftHeld: () => false, samplingSession: redSession });
@@ -325,17 +333,23 @@ describe('ToolRunner — history', () => {
 		expect(runner.canUndo).toBe(true);
 	});
 
-	it('undo returns canvasChanged effect', () => {
+	it('undo returns documentReplaced effect carrying the previous document', () => {
 		const { runner } = createRunner();
 		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.drawEnd();
 
 		const effects = runner.undo();
-		expect(hasEffect(effects, 'canvasChanged')).toBe(true);
+		const replaced = effects.find((e) => e.type === 'documentReplaced');
+		expect(replaced).toBeDefined();
+		if (replaced && replaced.type === 'documentReplaced') {
+			const i = (0 * replaced.document.width + 0) * 4;
+			const layer = replaced.document.layer_pixels_at(0)!;
+			expect(Array.from(layer.slice(i, i + 4))).toEqual([0, 0, 0, 0]);
+		}
 	});
 
-	it('redo returns canvasChanged effect', () => {
+	it('redo returns documentReplaced effect carrying the post-draw document', () => {
 		const { runner } = createRunner();
 		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
@@ -343,23 +357,16 @@ describe('ToolRunner — history', () => {
 
 		runner.undo();
 		const effects = runner.redo();
-		expect(hasEffect(effects, 'canvasChanged')).toBe(true);
+		const replaced = effects.find((e) => e.type === 'documentReplaced');
+		expect(replaced).toBeDefined();
+		if (replaced && replaced.type === 'documentReplaced') {
+			const i = (0 * replaced.document.width + 0) * 4;
+			const layer = replaced.document.layer_pixels_at(0)!;
+			expect(Array.from(layer.slice(i, i + 4))).toEqual([0, 0, 0, 255]);
+		}
 	});
 
-	it('undo restores previous canvas state', () => {
-		const canvas = canvasFactory.create(8, 8);
-		const { runner } = createRunner(canvas);
-
-		runner.drawStart(0, 'mouse');
-		runner.draw({ x: 3, y: 3 }, null);
-		runner.drawEnd();
-		expect(getPixel(canvas, 3, 3)).toEqual(BLACK);
-
-		runner.undo();
-		expect(getPixel(canvas, 3, 3)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
-	});
-
-	it('clear pushes snapshot and returns canvasChanged', () => {
+	it('clear pushes snapshot, clears the canvas, and undo restores the pre-clear pixel', () => {
 		const canvas = canvasFactory.create(8, 8);
 		const { runner } = createRunner(canvas);
 
@@ -370,10 +377,15 @@ describe('ToolRunner — history', () => {
 		const effects = runner.clear();
 		expect(hasEffect(effects, 'canvasChanged')).toBe(true);
 		expect(getPixel(canvas, 0, 0)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(runner.canUndo).toBe(true);
 
-		// Can undo the clear
-		runner.undo();
-		expect(getPixel(canvas, 0, 0)).toEqual(BLACK);
+		const undoEffects = runner.undo();
+		const replaced = undoEffects.find((e) => e.type === 'documentReplaced');
+		expect(replaced?.type).toBe('documentReplaced');
+		if (replaced?.type === 'documentReplaced') {
+			const layer = replaced.document.layer_pixels_at(0)!;
+			expect(Array.from(layer.slice(0, 4))).toEqual([0, 0, 0, 255]);
+		}
 	});
 
 	it('pushSnapshot makes canUndo true', () => {
@@ -386,14 +398,22 @@ describe('ToolRunner — history', () => {
 	});
 });
 
-// ── canvasReplaced effect ───────────────────────────────────────────
+// ── documentReplaced effect ─────────────────────────────────────────
 
-describe('ToolRunner — canvasReplaced', () => {
-	it('returns canvasReplaced on undo when dimensions changed', () => {
+describe('ToolRunner — documentReplaced on undo with dimension change', () => {
+	it('returns documentReplaced carrying the previous dimensions', () => {
 		let currentCanvas = canvasFactory.create(8, 8);
+		let currentDocument: Document = singleLayerDocument(
+			currentCanvas.width,
+			currentCanvas.height,
+			currentCanvas.pixels()
+		);
 		const host: ToolRunnerHost = {
 			get pixelCanvas() {
 				return currentCanvas;
+			},
+			get document() {
+				return currentDocument;
 			},
 			get foregroundColor() {
 				return BLACK;
@@ -406,16 +426,16 @@ describe('ToolRunner — canvasReplaced', () => {
 		const samplingSession = createSamplingSession({ getSamplingPort: () => host.pixelCanvas });
 		const runner = createToolRunner({ host, shared, getShiftHeld: () => false, samplingSession });
 
-		// Push snapshot of 8x8, then simulate resize by swapping the canvas
 		runner.pushSnapshot();
 		currentCanvas = canvasFactory.create(16, 16);
+		currentDocument = singleLayerDocument(16, 16, currentCanvas.pixels());
 
 		const effects = runner.undo();
-		const replaced = effects.find((e) => e.type === 'canvasReplaced');
+		const replaced = effects.find((e) => e.type === 'documentReplaced');
 		expect(replaced).toBeDefined();
-		if (replaced && replaced.type === 'canvasReplaced') {
-			expect(replaced.canvas.width).toBe(8);
-			expect(replaced.canvas.height).toBe(8);
+		if (replaced && replaced.type === 'documentReplaced') {
+			expect(replaced.document.width).toBe(8);
+			expect(replaced.document.height).toBe(8);
 		}
 	});
 });

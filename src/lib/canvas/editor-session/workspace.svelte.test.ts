@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { Workspace, type WorkspaceDeps } from './workspace.svelte';
-import { wasmBackend } from '../wasm-backend';
+import { wasmBackend, singleLayerDocument } from '../wasm-backend';
 import { createFakeDirtyNotifier } from './fake-dirty-notifier';
 import type { WorkspaceSnapshot } from '../workspace-snapshot';
 
@@ -625,5 +625,63 @@ describe('Workspace — dirty notifications', () => {
 		workspace.setActiveTab(0);
 
 		expect(notifier.dirtyCalls).toEqual([]);
+	});
+});
+
+describe('Workspace — load path constructs Document', () => {
+	it('createTab forwards a passed document to the new TabState', () => {
+		const { workspace } = makeWorkspace();
+		const w = 4;
+		const h = 4;
+		const pixels = new Uint8Array(w * h * 4);
+		pixels[0] = 255;
+		pixels[3] = 255;
+		const doc = singleLayerDocument(w, h, pixels);
+
+		const tab = workspace.createTab({
+			documentId: 'd1',
+			name: 'X',
+			document: doc
+		});
+
+		expect(tab.document).toBe(doc);
+	});
+
+	it('hydration constructs the active-layer document directly from snapshot pixels', () => {
+		const pixels = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]);
+		const restored: WorkspaceSnapshot = {
+			tabs: [
+				{
+					id: 'doc-1',
+					name: 'My Sprite',
+					width: 2,
+					height: 1,
+					pixels,
+					viewport: {
+						pixelSize: 32,
+						zoom: 1.0,
+						panX: 0,
+						panY: 0,
+						showGrid: true,
+						gridColor: '#cccccc'
+					}
+				}
+			],
+			activeTabIndex: 0,
+			sharedState: {
+				activeTool: 'pencil',
+				foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
+				backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+				recentColors: []
+			}
+		};
+
+		const { workspace } = makeWorkspace({ restored });
+
+		const tab = workspace.tabs[0];
+		expect(tab.document.width).toBe(2);
+		expect(tab.document.height).toBe(1);
+		const layer = tab.document.layer_pixels_at(0)!;
+		expect(Array.from(layer)).toEqual(Array.from(pixels));
 	});
 });

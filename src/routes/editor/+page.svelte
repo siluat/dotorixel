@@ -74,12 +74,23 @@
 	const activeReferences = $derived(
 		editor.workspace.references.forDoc(editor.workspace.activeTab.documentId)
 	);
-	const activeLayerId = $derived(editor.workspace.activeTab.document.active_layer_id());
+	const activeLayerId = $derived.by(() => {
+		const tab = editor.workspace.activeTab;
+		// Subscribe to document mutations — Document is a WASM handle, so its
+		// methods don't trigger Svelte reactivity on their own.
+		void tab.renderVersion;
+		return tab.document.active_layer_id();
+	});
+	// TimelinePanel shows front-most (z-top) layer at the top, matching the
+	// Aseprite/Photoshop convention. The core stack is bottom-to-top
+	// (`layers[0]` = z-bottom, `layers[N-1]` = z-top), so iterate in reverse.
 	const layers = $derived.by(() => {
-		const doc = editor.workspace.activeTab.document;
+		const tab = editor.workspace.activeTab;
+		void tab.renderVersion;
+		const doc = tab.document;
 		const out: { id: string; name: string }[] = [];
 		const count = doc.layer_count();
-		for (let i = 0; i < count; i++) {
+		for (let i = count - 1; i >= 0; i--) {
 			const id = doc.layer_id_at(i);
 			const name = doc.layer_name_at(i);
 			if (id !== undefined && name !== undefined) {
@@ -118,6 +129,12 @@
 
 	function handleAddTab() {
 		editor.workspace.addTab();
+	}
+
+	function handleAddLayer() {
+		const tab = editor.workspace.activeTab;
+		const n = tab.document.next_layer_number();
+		tab.addLayer(m.layer_default_name({ n }));
 	}
 
 	function handlePixelPerfectToggle() {
@@ -474,7 +491,7 @@
 			/>
 		</div>
 
-		<TimelinePanel layers={layers} activeLayerId={activeLayerId} />
+		<TimelinePanel layers={layers} activeLayerId={activeLayerId} onAddLayer={handleAddLayer} />
 
 		<RightPanel
 			foregroundColor={editor.foregroundColorHex}

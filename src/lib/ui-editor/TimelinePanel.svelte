@@ -102,6 +102,7 @@
 		width: var(--ds-border-width);
 		background: var(--ds-border-subtle);
 		flex: none;
+		align-self: stretch;
 	}
 
 	.frame-area {

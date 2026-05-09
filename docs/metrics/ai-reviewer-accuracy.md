@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 85 | 65 | 20 | 69 | 76% | 49% |
-| cubic-dev-ai[bot] | 52 | 44 | 8 | 87 | 85% | 34% |
-| coderabbitai[bot] | 119 | 81 | 38 | 51 | 68% | 61% |
+| greptile-apps[bot] | 85 | 65 | 20 | 70 | 76% | 48% |
+| cubic-dev-ai[bot] | 53 | 45 | 8 | 87 | 85% | 34% |
+| coderabbitai[bot] | 119 | 81 | 38 | 52 | 68% | 61% |
 
 ## Log
 
@@ -477,3 +477,6 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #192 | cubic-dev-ai[bot] | Miss | Did not flag missing OOB error contract on `get_pixel` (WASM facade) |
 | #192 | cubic-dev-ai[bot] | Miss | Did not flag missing OOB error contract on `get_pixel` (TS interface) |
 | #192 | cubic-dev-ai[bot] | Miss | Did not flag `clear` test undo coverage regression |
+| #193 | cubic-dev-ai[bot] | Accept | Sidebar-only `overflow-y: auto` decouples sidebar rows from frame cells under overflow — moved scroll ownership to `.body` |
+| #193 | coderabbitai[bot] | Miss | Did not flag sidebar/frame-area scroll-alignment regression (APPROVED review) |
+| #193 | greptile-apps[bot] | Miss | Did not flag sidebar/frame-area scroll-alignment regression (Confidence 5/5) |

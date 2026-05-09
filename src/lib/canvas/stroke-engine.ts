@@ -65,7 +65,7 @@ export interface StrokeEngine {
 export function createStrokeEngine(deps: StrokeEngineDeps): StrokeEngine {
 	const canvasOps = createDrawingOps(() => deps.host.pixelCanvas);
 	const documentOps = createDocumentDrawingOps(() => deps.host.document);
-	const baseOps = teeDrawingOps(canvasOps, documentOps);
+	const baseOps = teeDrawingOps(documentOps, canvasOps);
 	const tools = createAllTools();
 
 	return {

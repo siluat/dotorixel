@@ -293,6 +293,9 @@ impl WasmDocument {
     }
 
     /// Reads the pixel color at `(x, y)` on the active layer.
+    ///
+    /// Returns `Err(JsError)` when `(x, y)` is outside the document's
+    /// `width × height` (out-of-bounds reads do not throw silently).
     pub fn get_pixel(&self, x: u32, y: u32) -> Result<WasmColor, JsError> {
         self.inner
             .get_pixel(x, y)

@@ -366,7 +366,7 @@ describe('ToolRunner — history', () => {
 		}
 	});
 
-	it('clear pushes snapshot, clears the canvas, and returns canvasChanged', () => {
+	it('clear pushes snapshot, clears the canvas, and undo restores the pre-clear pixel', () => {
 		const canvas = canvasFactory.create(8, 8);
 		const { runner } = createRunner(canvas);
 
@@ -378,6 +378,14 @@ describe('ToolRunner — history', () => {
 		expect(hasEffect(effects, 'canvasChanged')).toBe(true);
 		expect(getPixel(canvas, 0, 0)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
 		expect(runner.canUndo).toBe(true);
+
+		const undoEffects = runner.undo();
+		const replaced = undoEffects.find((e) => e.type === 'documentReplaced');
+		expect(replaced?.type).toBe('documentReplaced');
+		if (replaced?.type === 'documentReplaced') {
+			const layer = replaced.document.layer_pixels_at(0)!;
+			expect(Array.from(layer.slice(0, 4))).toEqual([0, 0, 0, 255]);
+		}
 	});
 
 	it('pushSnapshot makes canUndo true', () => {

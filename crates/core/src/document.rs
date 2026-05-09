@@ -273,6 +273,9 @@ impl Document {
     }
 
     /// Reads the color at `(x, y)` on the active layer.
+    ///
+    /// Returns [`PixelCanvasError::OutOfBounds`] when `(x, y)` is outside the
+    /// document's `width × height`.
     pub fn get_pixel(&self, x: u32, y: u32) -> Result<Color, PixelCanvasError> {
         self.active_layer().pixels.get_pixel(x, y)
     }

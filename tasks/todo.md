@@ -3,7 +3,6 @@
 ## Milestone 3: Editor for Serious Work
 
 - Layer system: basic infrastructure (add/delete/reorder) ([PRD](../issues/086-layer-system-basic-infrastructure.md))
-  - [093 — TimelinePanel shell (desktop, single-layer row)](../issues/093-layer-system-timeline-panel-shell.md)
   - [094 — Add-layer button](../issues/094-layer-system-add-layer-button.md)
   - [095 — Delete-layer button](../issues/095-layer-system-delete-layer-button.md)
   - [096 — Layer reorder](../issues/096-layer-system-reorder-layer.md)

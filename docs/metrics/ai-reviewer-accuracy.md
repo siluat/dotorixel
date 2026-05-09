@@ -6,8 +6,8 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 85 | 65 | 20 | 70 | 76% | 48% |
-| cubic-dev-ai[bot] | 53 | 45 | 8 | 87 | 85% | 34% |
+| greptile-apps[bot] | 86 | 66 | 20 | 70 | 77% | 49% |
+| cubic-dev-ai[bot] | 53 | 45 | 8 | 88 | 85% | 34% |
 | coderabbitai[bot] | 119 | 81 | 38 | 52 | 68% | 61% |
 
 ## Log
@@ -480,3 +480,5 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #193 | cubic-dev-ai[bot] | Accept | Sidebar-only `overflow-y: auto` decouples sidebar rows from frame cells under overflow — moved scroll ownership to `.body` |
 | #193 | coderabbitai[bot] | Miss | Did not flag sidebar/frame-area scroll-alignment regression (APPROVED review) |
 | #193 | greptile-apps[bot] | Miss | Did not flag sidebar/frame-area scroll-alignment regression (Confidence 5/5) |
+| #193 | greptile-apps[bot] | Accept | `.body` default `align-items: stretch` caps `.sidebar`/`.frame-area` at body height; rows squash under flex-shrink:1 or visible-overflow stays out of body's scrollHeight (Chromium) — set `align-items: flex-start` |
+| #193 | cubic-dev-ai[bot] | Miss | Did not flag `.body` flex-stretch scroll-cap regression (APPROVED post-fix review) |

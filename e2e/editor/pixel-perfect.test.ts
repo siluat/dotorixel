@@ -19,15 +19,24 @@ test.describe('Pixel Perfect', () => {
 		if (!box) throw new Error('No bounding box');
 		const cssScale = box.width / geo.canvasWidth;
 
+		// `geo.pixelSize` reports the transparency-checker period, which is
+		// half of one art pixel in the current editor render — so both the
+		// per-art-pixel render size AND the art-pixel count must be doubled
+		// out / halved to recover real art-pixel coordinates. See the
+		// staircase test below for the same correction and rationale.
+		const artPixelCss = geo.pixelSize * 2;
+		const artPixelsAcross = Math.floor(geo.artPixelsAcross / 2);
+		const artPixelsDown = Math.floor(geo.artPixelsDown / 2);
+
 		// Pick three adjacent art pixels forming an L: (a-1, b) → (a, b) → (a, b-1).
 		// Aim near the canvas center to stay safely inside bounds.
-		const aArt = Math.floor(geo.artPixelsAcross / 2);
-		const bArt = Math.floor(geo.artPixelsDown / 2);
+		const aArt = Math.floor(artPixelsAcross / 2);
+		const bArt = Math.floor(artPixelsDown / 2);
 
 		// Convert art-pixel index to internal canvas coords (pixel center), then to CSS.
 		const toCss = (artX: number, artY: number) => {
-			const canvasX = geo.artLeft + artX * geo.pixelSize + geo.pixelSize / 2;
-			const canvasY = geo.artTop + artY * geo.pixelSize + geo.pixelSize / 2;
+			const canvasX = geo.artLeft + artX * artPixelCss + artPixelCss / 2;
+			const canvasY = geo.artTop + artY * artPixelCss + artPixelCss / 2;
 			return { cssX: canvasX * cssScale, cssY: canvasY * cssScale, canvasX, canvasY };
 		};
 
@@ -314,12 +323,20 @@ test.describe('Pixel Perfect', () => {
 		if (!box) throw new Error('No bounding box');
 		const cssScale = box.width / geo.canvasWidth;
 
-		const aArt = Math.floor(geo.artPixelsAcross / 2);
-		const bArt = Math.floor(geo.artPixelsDown / 2);
+		// `geo.pixelSize` reports the transparency-checker period (half an
+		// art pixel). Recover real art-pixel coordinates by doubling the
+		// per-pixel size and halving the per-axis count. See the staircase
+		// test for the same correction.
+		const artPixelCss = geo.pixelSize * 2;
+		const artPixelsAcross = Math.floor(geo.artPixelsAcross / 2);
+		const artPixelsDown = Math.floor(geo.artPixelsDown / 2);
+
+		const aArt = Math.floor(artPixelsAcross / 2);
+		const bArt = Math.floor(artPixelsDown / 2);
 
 		const toCss = (artX: number, artY: number) => {
-			const canvasX = geo.artLeft + artX * geo.pixelSize + geo.pixelSize / 2;
-			const canvasY = geo.artTop + artY * geo.pixelSize + geo.pixelSize / 2;
+			const canvasX = geo.artLeft + artX * artPixelCss + artPixelCss / 2;
+			const canvasY = geo.artTop + artY * artPixelCss + artPixelCss / 2;
 			return { cssX: canvasX * cssScale, cssY: canvasY * cssScale, canvasX, canvasY };
 		};
 
@@ -358,12 +375,20 @@ test.describe('Pixel Perfect', () => {
 		if (!box) throw new Error('No bounding box');
 		const cssScale = box.width / geo.canvasWidth;
 
-		const aArt = Math.floor(geo.artPixelsAcross / 2);
-		const bArt = Math.floor(geo.artPixelsDown / 2);
+		// `geo.pixelSize` reports the transparency-checker period (half an
+		// art pixel). Recover real art-pixel coordinates by doubling the
+		// per-pixel size and halving the per-axis count. See the staircase
+		// test for the same correction.
+		const artPixelCss = geo.pixelSize * 2;
+		const artPixelsAcross = Math.floor(geo.artPixelsAcross / 2);
+		const artPixelsDown = Math.floor(geo.artPixelsDown / 2);
+
+		const aArt = Math.floor(artPixelsAcross / 2);
+		const bArt = Math.floor(artPixelsDown / 2);
 
 		const toCss = (artX: number, artY: number) => {
-			const canvasX = geo.artLeft + artX * geo.pixelSize + geo.pixelSize / 2;
-			const canvasY = geo.artTop + artY * geo.pixelSize + geo.pixelSize / 2;
+			const canvasX = geo.artLeft + artX * artPixelCss + artPixelCss / 2;
+			const canvasY = geo.artTop + artY * artPixelCss + artPixelCss / 2;
 			return { cssX: canvasX * cssScale, cssY: canvasY * cssScale, canvasX, canvasY };
 		};
 

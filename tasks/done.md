@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 093 | [Layer system: TimelinePanel shell — desktop, single-layer row](../issues/093-layer-system-timeline-panel-shell.md) | 2026-05-09 |
 | 092 | [Layer system: TimelinePanel design — Candidate A detail pass](../issues/092-layer-system-timeline-panel-design.md) | 2026-05-09 |
 | 091 | [Layer system: TabState switch — `pixelCanvas` → `document`](../issues/091-layer-system-tab-state-document-switch.md) | 2026-05-09 |
 | 101 | [Layer system: Document builder + tool bindings + TS facade](../issues/101-layer-system-document-builder-and-tool-bindings.md) | 2026-05-08 |

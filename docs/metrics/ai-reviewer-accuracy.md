@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 85 | 65 | 20 | 69 | 76% | 49% |
-| cubic-dev-ai[bot] | 52 | 44 | 8 | 87 | 85% | 34% |
-| coderabbitai[bot] | 119 | 81 | 38 | 51 | 68% | 61% |
+| greptile-apps[bot] | 87 | 67 | 20 | 70 | 77% | 49% |
+| cubic-dev-ai[bot] | 54 | 45 | 9 | 89 | 83% | 34% |
+| coderabbitai[bot] | 119 | 81 | 38 | 52 | 68% | 61% |
 
 ## Log
 
@@ -477,3 +477,11 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #192 | cubic-dev-ai[bot] | Miss | Did not flag missing OOB error contract on `get_pixel` (WASM facade) |
 | #192 | cubic-dev-ai[bot] | Miss | Did not flag missing OOB error contract on `get_pixel` (TS interface) |
 | #192 | cubic-dev-ai[bot] | Miss | Did not flag `clear` test undo coverage regression |
+| #193 | cubic-dev-ai[bot] | Accept | Sidebar-only `overflow-y: auto` decouples sidebar rows from frame cells under overflow — moved scroll ownership to `.body` |
+| #193 | coderabbitai[bot] | Miss | Did not flag sidebar/frame-area scroll-alignment regression (APPROVED review) |
+| #193 | greptile-apps[bot] | Miss | Did not flag sidebar/frame-area scroll-alignment regression (Confidence 5/5) |
+| #193 | greptile-apps[bot] | Accept | `.body` default `align-items: stretch` caps `.sidebar`/`.frame-area` at body height; rows squash under flex-shrink:1 or visible-overflow stays out of body's scrollHeight (Chromium) — set `align-items: flex-start` |
+| #193 | cubic-dev-ai[bot] | Miss | Did not flag `.body` flex-stretch scroll-cap regression (APPROVED post-fix review) |
+| #193 | greptile-apps[bot] | Accept | `.vdiv` empty divider collapsed to 0px under `.body { align-items: flex-start }` — added `align-self: stretch` so the column separator spans full body height |
+| #193 | cubic-dev-ai[bot] | Reject | Revert `.body` to `align-items: stretch` — reintroduces the prior round's P1 (sidebar/frame-area scroll cap); divider regression handled by `align-self: stretch` on `.vdiv` alone |
+| #193 | cubic-dev-ai[bot] | Miss | Did not flag `.vdiv` 0-px collapse in the same round (proposed reverting the parent's `align-items` instead of overriding on the empty child) |

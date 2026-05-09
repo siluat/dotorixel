@@ -10,6 +10,7 @@
 	import LeftToolbar from '$lib/ui-editor/LeftToolbar.svelte';
 	import RightPanel from '$lib/ui-editor/RightPanel.svelte';
 	import StatusBar from '$lib/ui-editor/StatusBar.svelte';
+	import TimelinePanel from '$lib/ui-editor/TimelinePanel.svelte';
 	import AppBar from '$lib/ui-editor/AppBar.svelte';
 	import ToolStrip from '$lib/ui-editor/ToolStrip.svelte';
 	import ColorBar from '$lib/ui-editor/ColorBar.svelte';
@@ -73,6 +74,20 @@
 	const activeReferences = $derived(
 		editor.workspace.references.forDoc(editor.workspace.activeTab.documentId)
 	);
+	const activeLayerId = $derived(editor.workspace.activeTab.document.active_layer_id());
+	const layers = $derived.by(() => {
+		const doc = editor.workspace.activeTab.document;
+		const out: { id: string; name: string }[] = [];
+		const count = doc.layer_count();
+		for (let i = 0; i < count; i++) {
+			const id = doc.layer_id_at(i);
+			const name = doc.layer_name_at(i);
+			if (id !== undefined && name !== undefined) {
+				out.push({ id, name });
+			}
+		}
+		return out;
+	});
 	const displayedRefIds = $derived(
 		new Set(
 			editor.workspace.references
@@ -459,6 +474,8 @@
 			/>
 		</div>
 
+		<TimelinePanel layers={layers} activeLayerId={activeLayerId} />
+
 		<RightPanel
 			foregroundColor={editor.foregroundColorHex}
 			backgroundColor={editor.backgroundColorHex}
@@ -681,9 +698,10 @@
 		-webkit-user-select: none;
 		user-select: none;
 		grid-template:
-			'topbar   topbar   topbar'   calc(44px + env(safe-area-inset-top, 0px))
+			'topbar   topbar   topbar'    calc(44px + env(safe-area-inset-top, 0px))
 			'tabstrip tabstrip tabstrip'  36px
 			'toolbar  canvas   panel'     1fr
+			'toolbar  timeline panel'     180px
 			'status   status   status'    calc(28px + env(safe-area-inset-bottom, 0px))
 			/ 44px    1fr      200px;
 	}
@@ -691,9 +709,10 @@
 	@media (min-width: 1440px) {
 		.editor-docked {
 			grid-template:
-				'topbar   topbar   topbar'   calc(48px + env(safe-area-inset-top, 0px))
+				'topbar   topbar   topbar'    calc(48px + env(safe-area-inset-top, 0px))
 				'tabstrip tabstrip tabstrip'  36px
 				'toolbar  canvas   panel'     1fr
+				'toolbar  timeline panel'     180px
 				'status   status   status'    calc(28px + env(safe-area-inset-bottom, 0px))
 				/ 48px    1fr      240px;
 		}
@@ -729,6 +748,10 @@
 		background: color-mix(in srgb, var(--ds-accent) 4%, transparent);
 		pointer-events: none;
 		z-index: 60;
+	}
+
+	.editor-docked > :global(.timeline-panel) {
+		grid-area: timeline;
 	}
 
 	.editor-docked > :global(.right-panel) {

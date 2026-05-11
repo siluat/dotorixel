@@ -1,12 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 import { customTool, type SessionHost, type StrokeSession, type StrokeSpec } from './tool-authoring';
-import { BLACK, WHITE, createFakeDrawingOps, createFakePixelCanvas } from './fake-drawing-ops';
+import {
+	BLACK,
+	WHITE,
+	createFakeDocument,
+	createFakeDrawingOps,
+	createFakePixelCanvas
+} from './fake-drawing-ops';
 import type { PixelCanvas } from './canvas-model';
 import type { SamplingSession } from './sampling/session.svelte';
 
 function makeHost(canvas: PixelCanvas): SessionHost {
 	return {
-		pixelCanvas: canvas,
+		document: createFakeDocument(canvas.width, canvas.height),
 		foregroundColor: BLACK,
 		backgroundColor: WHITE,
 		baseOps: createFakeDrawingOps(8, 8, WHITE),

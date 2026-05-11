@@ -1,6 +1,11 @@
 import type { ViewportData, ViewportSize } from './viewport';
 
-interface RenderableCanvas {
+/**
+ * Minimal shape the renderer needs from a pixel buffer source — width,
+ * height, and a row-major RGBA `pixels()` accessor. Satisfied by
+ * `PixelCanvas` and by the `compositeBuffer` getter on `TabState`.
+ */
+export interface RenderableCanvas {
 	readonly width: number;
 	readonly height: number;
 	pixels(): Uint8Array;

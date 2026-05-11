@@ -1,10 +1,10 @@
-import type { Document, PixelCanvas, CanvasCoords } from './canvas-model';
+import type { Document, CanvasCoords } from './canvas-model';
 import type { Color } from './color';
 import type { SharedState } from './shared-state.svelte';
 import { CANVAS_CHANGED, NO_EFFECTS, type ToolEffect } from './draw-tool';
 import type { PointerType } from './canvas-interaction.svelte';
 import type { SamplingSession } from './sampling/session.svelte';
-import { clearDocumentActiveLayer, createHistoryManager } from './wasm-backend';
+import { clearActiveLayerPixels, createHistoryManager } from './wasm-backend';
 import { createStrokeEngine, type ActiveStroke } from './stroke-engine';
 
 // ── Effects: ToolRunner adds RunnerEffect on top of tool-produced ToolEffect ──
@@ -20,7 +20,6 @@ export type EditorEffects = readonly EditorEffect[];
 // ── ToolRunnerHost: read-only queries ToolRunner needs from TabState ──
 
 export interface ToolRunnerHost {
-	readonly pixelCanvas: PixelCanvas;
 	readonly document: Document;
 	readonly foregroundColor: Color;
 	readonly backgroundColor: Color;
@@ -154,8 +153,7 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 
 		clear(): EditorEffects {
 			pushHistorySnapshot();
-			host.pixelCanvas.clear();
-			clearDocumentActiveLayer(host.document);
+			clearActiveLayerPixels(host.document);
 			return CANVAS_CHANGED;
 		},
 

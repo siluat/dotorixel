@@ -107,11 +107,19 @@ describe('EditorController — shared-state projections', () => {
 });
 
 describe('EditorController — active-tab projections', () => {
-	it('pixelCanvas, viewport, viewportSize reflect the active tab', () => {
+	it('document, viewport, viewportSize reflect the active tab', () => {
 		const { editor } = makeController();
-		expect(editor.pixelCanvas).toBe(editor.workspace.activeTab.pixelCanvas);
+		expect(editor.document).toBe(editor.workspace.activeTab.document);
 		expect(editor.viewport).toBe(editor.workspace.activeTab.viewport);
 		expect(editor.viewportSize).toBe(editor.workspace.activeTab.viewportSize);
+	});
+
+	it('compositeBuffer projects the active tab — width, height, pixels mirror document.composite()', () => {
+		const { editor } = makeController();
+		const tab = editor.workspace.activeTab;
+		expect(editor.compositeBuffer.width).toBe(tab.document.width);
+		expect(editor.compositeBuffer.height).toBe(tab.document.height);
+		expect(editor.compositeBuffer.pixels()).toEqual(tab.document.composite());
 	});
 
 	it('renderVersion projects the active tab', () => {
@@ -158,10 +166,10 @@ describe('EditorController — active-tab projections', () => {
 		const { editor } = makeController();
 		editor.workspace.addTab();
 		drawLine(editor, { x: 0, y: 0 }, { x: 3, y: 0 });
-		const secondTabCanvas = editor.pixelCanvas;
+		const secondTabDocument = editor.document;
 
 		editor.workspace.setActiveTab(0);
-		expect(editor.pixelCanvas).not.toBe(secondTabCanvas);
+		expect(editor.document).not.toBe(secondTabDocument);
 		expect(editor.canUndo).toBe(false);
 	});
 });
@@ -249,12 +257,12 @@ describe('EditorController — handler delegation', () => {
 	it('handleRedo delegates to activeTab.redo', () => {
 		const { editor } = makeController();
 		drawLine(editor, { x: 0, y: 0 }, { x: 3, y: 0 });
-		const afterDraw = editor.pixelCanvas.pixels();
+		const afterDraw = editor.compositeBuffer.pixels();
 		editor.handleUndo();
 
 		editor.handleRedo();
 
-		expect(editor.pixelCanvas.pixels()).toEqual(afterDraw);
+		expect(editor.compositeBuffer.pixels()).toEqual(afterDraw);
 	});
 
 	it('handleDrawStart/Draw/End route through activeTab', () => {
@@ -303,8 +311,8 @@ describe('EditorController — handler delegation', () => {
 	it('handleResize delegates to activeTab.resize', () => {
 		const { editor } = makeController();
 		editor.handleResize(32, 24);
-		expect(editor.pixelCanvas.width).toBe(32);
-		expect(editor.pixelCanvas.height).toBe(24);
+		expect(editor.document.width).toBe(32);
+		expect(editor.document.height).toBe(24);
 	});
 
 	it('handleGridToggle delegates to activeTab.toggleGrid', () => {

@@ -6,7 +6,7 @@ import type { SamplingSession } from './sampling/session.svelte';
 import type { SharedState } from './shared-state.svelte';
 import type { SessionHost, StrokeSpec } from './tool-authoring';
 import type { EditorEffects, ToolRunnerHost } from './tool-runner.svelte';
-import { createDrawingOps, createDocumentDrawingOps, teeDrawingOps } from './wasm-backend';
+import { createDocumentDrawingOps } from './wasm-backend';
 import { createAllTools } from './tool-registry';
 
 /**
@@ -63,9 +63,7 @@ export interface StrokeEngine {
  * subsequent sample flows through that fixed closure.
  */
 export function createStrokeEngine(deps: StrokeEngineDeps): StrokeEngine {
-	const canvasOps = createDrawingOps(() => deps.host.pixelCanvas);
-	const documentOps = createDocumentDrawingOps(() => deps.host.document);
-	const baseOps = teeDrawingOps(documentOps, canvasOps);
+	const baseOps = createDocumentDrawingOps(() => deps.host.document);
 	const tools = createAllTools();
 
 	return {
@@ -77,7 +75,7 @@ export function createStrokeEngine(deps: StrokeEngineDeps): StrokeEngine {
 			const spec: StrokeSpec = { drawColor, drawButton: button, inputSource };
 
 			const host: SessionHost = {
-				pixelCanvas: deps.host.pixelCanvas,
+				document: deps.host.document,
 				foregroundColor: deps.host.foregroundColor,
 				backgroundColor: deps.host.backgroundColor,
 				baseOps,

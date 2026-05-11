@@ -377,6 +377,16 @@ impl WasmDocument {
         self.inner.layer_pixels_at(index).map(|p| p.to_vec())
     }
 
+    /// Overwrites the active layer's pixel buffer with `data`. Used by tools
+    /// that take a stroke-start snapshot and restore it during preview (shape
+    /// tools, move tool). Other layers are unaffected. Fails when `data.len()`
+    /// is not exactly `width * height * 4`.
+    pub fn restore_active_layer_pixels(&mut self, data: &[u8]) -> Result<(), JsError> {
+        self.inner
+            .restore_active_layer_pixels(data)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
     /// Applies `tool` at `(x, y)` to the active layer. Returns `true` when a
     /// pixel was written; `false` when the coordinates are out of bounds
     /// (including negative values, which match `apply_tool` on

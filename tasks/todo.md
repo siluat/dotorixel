@@ -3,7 +3,6 @@
 ## Milestone 3: Editor for Serious Work
 
 - Layer system: basic infrastructure (add/delete/reorder) ([PRD](../issues/086-layer-system-basic-infrastructure.md))
-  - [102 — Switch main canvas render to `document.composite()`](../issues/102-layer-system-composite-render-path.md)
   - [103 — V3 multi-layer pixel persistence wiring](../issues/103-layer-system-multi-layer-persistence.md)
   - [095 — Delete-layer button](../issues/095-layer-system-delete-layer-button.md)
   - [096 — Layer reorder](../issues/096-layer-system-reorder-layer.md)

@@ -310,6 +310,16 @@ impl Document {
         self.layers.get(index).map(|l| l.pixels.pixels())
     }
 
+    /// Overwrites the active layer's pixel buffer with `data`. Used by tools
+    /// that take a stroke-start snapshot and restore it during preview
+    /// (shape tools, move tool). Other layers are unaffected.
+    ///
+    /// Returns [`PixelCanvasError::InvalidBufferLength`] when `data.len()` is
+    /// not exactly `width * height * 4`.
+    pub fn restore_active_layer_pixels(&mut self, data: &[u8]) -> Result<(), PixelCanvasError> {
+        self.active_layer_mut().pixels.restore_pixels(data)
+    }
+
     /// Resizes every layer to `new_width × new_height` using the same
     /// `anchor`, preserving each layer's id, name, visibility, and opacity.
     /// The active layer pointer is preserved.

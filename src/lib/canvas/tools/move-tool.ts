@@ -1,6 +1,7 @@
 import type { CanvasCoords } from '../canvas-model';
 import { CANVAS_CHANGED, NO_EFFECTS } from '../draw-tool';
 import { customTool } from '../tool-authoring';
+import { activeLayerPixels, restoreActiveLayerPixels } from '../wasm-backend';
 
 /**
  * Shifts pixel data by (dx, dy) within the same canvas dimensions.
@@ -51,7 +52,7 @@ export const moveTool = customTool({
 		return {
 			start() {
 				host.history.pushSnapshot();
-				snapshot = new Uint8Array(host.pixelCanvas.pixels());
+				snapshot = new Uint8Array(activeLayerPixels(host.document));
 				return NO_EFFECTS;
 			},
 			draw(current, previous) {
@@ -64,12 +65,12 @@ export const moveTool = customTool({
 				const dy = current.y - anchor.y;
 				const shifted = shiftPixels(
 					snapshot,
-					host.pixelCanvas.width,
-					host.pixelCanvas.height,
+					host.document.width,
+					host.document.height,
 					dx,
 					dy
 				);
-				host.pixelCanvas.restore_pixels(shifted);
+				restoreActiveLayerPixels(host.document, shifted);
 				return CANVAS_CHANGED;
 			},
 			modifierChanged() {

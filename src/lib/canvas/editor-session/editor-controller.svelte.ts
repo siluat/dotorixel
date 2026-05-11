@@ -1,6 +1,6 @@
 import type { CanvasCoords, ResizeAnchor } from '../canvas-model';
 import type { ViewportData, ViewportSize } from '../viewport';
-import type { PixelCanvas } from '../canvas-model';
+import type { Document, PixelCanvas } from '../canvas-model';
 import type { Color } from '../color';
 import { colorToHex, hexToColor } from '../color';
 import { TOOL_CURSORS, type ToolType } from '../tool-registry';
@@ -59,8 +59,14 @@ export class EditorController {
 	}
 
 	// Active-tab projections
-	get pixelCanvas(): PixelCanvas {
-		return this.workspace.activeTab.pixelCanvas;
+	get document(): Document {
+		return this.workspace.activeTab.document;
+	}
+	get compositeBuffer(): { readonly width: number; readonly height: number; pixels(): Uint8Array } {
+		return this.workspace.activeTab.compositeBuffer;
+	}
+	exportableSnapshot(): PixelCanvas {
+		return this.workspace.activeTab.exportableSnapshot();
 	}
 	get viewport(): ViewportData {
 		return this.workspace.activeTab.viewport;

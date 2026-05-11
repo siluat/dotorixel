@@ -11,19 +11,18 @@ const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
 const WHITE: Color = { r: 255, g: 255, b: 255, a: 255 };
 const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
 
-function createHost(canvas?: PixelCanvas, fg?: Color, bg?: Color): ToolRunnerHost {
+function createHost(
+	canvas?: PixelCanvas,
+	fg?: Color,
+	bg?: Color,
+	doc?: Document
+): ToolRunnerHost {
 	const pixelCanvas = canvas ?? canvasFactory.create(8, 8);
-	const document: Document = singleLayerDocument(
-		pixelCanvas.width,
-		pixelCanvas.height,
-		pixelCanvas.pixels()
-	);
+	const document: Document =
+		doc ?? singleLayerDocument(pixelCanvas.width, pixelCanvas.height, pixelCanvas.pixels());
 	let foregroundColor = fg ?? BLACK;
 	let backgroundColor = bg ?? WHITE;
 	return {
-		get pixelCanvas() {
-			return pixelCanvas;
-		},
 		get document() {
 			return document;
 		},
@@ -42,16 +41,16 @@ function createHost(canvas?: PixelCanvas, fg?: Color, bg?: Color): ToolRunnerHos
 	} as ToolRunnerHost;
 }
 
-function createRunner(canvas?: PixelCanvas, fg?: Color, bg?: Color) {
-	const host = createHost(canvas, fg, bg);
+function createRunner(canvas?: PixelCanvas, fg?: Color, bg?: Color, doc?: Document) {
+	const host = createHost(canvas, fg, bg, doc);
 	const shared = new SharedState();
-	const samplingSession = createSamplingSession({ getSamplingPort: () => host.pixelCanvas });
+	const samplingSession = createSamplingSession({ getSamplingPort: () => host.document });
 	const runner = createToolRunner({ host, shared, getShiftHeld: () => false, samplingSession });
 	return { host, shared, runner, samplingSession };
 }
 
-function getPixel(canvas: PixelCanvas, x: number, y: number) {
-	const p = canvas.get_pixel(x, y);
+function getDocPixel(doc: Document, x: number, y: number) {
+	const p = doc.get_pixel(x, y);
 	return { r: p.r, g: p.g, b: p.b, a: p.a };
 }
 
@@ -73,14 +72,14 @@ describe('ToolRunner — pencil tool', () => {
 		runner.drawEnd();
 	});
 
-	it('draws a pixel on the canvas', () => {
+	it('draws a pixel on the active layer', () => {
 		const canvas = canvasFactory.create(8, 8);
-		const { runner } = createRunner(canvas);
+		const { host, runner } = createRunner(canvas);
 		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 3, y: 3 }, null);
 		runner.drawEnd();
 
-		expect(getPixel(canvas, 3, 3)).toEqual(BLACK);
+		expect(getDocPixel(host.document, 3, 3)).toEqual(BLACK);
 	});
 });
 
@@ -90,15 +89,15 @@ describe('ToolRunner — eyedropper tool', () => {
 		// Paint a red pixel at (2,2) using a separate runner with red foreground
 		const host = createHost(canvas, RED, WHITE);
 		const shared2 = new SharedState();
-		const samplingSession2 = createSamplingSession({ getSamplingPort: () => host.pixelCanvas });
+		const samplingSession2 = createSamplingSession({ getSamplingPort: () => host.document });
 		const runner2 = createToolRunner({ host, shared: shared2, getShiftHeld: () => false, samplingSession: samplingSession2 });
 		runner2.drawStart(0, 'mouse');
 		runner2.draw({ x: 2, y: 2 }, null);
 		runner2.drawEnd();
-		expect(getPixel(canvas, 2, 2)).toEqual(RED);
+		expect(getDocPixel(host.document, 2, 2)).toEqual(RED);
 
 		// Eyedropper: no colorPick mid-stroke; commit happens on drawEnd.
-		const { runner, shared } = createRunner(canvas);
+		const { runner, shared } = createRunner(canvas, undefined, undefined, host.document);
 		shared.activeTool = 'eyedropper';
 		runner.drawStart(0, 'mouse');
 		const drawEffects = runner.draw({ x: 2, y: 2 }, null);
@@ -116,16 +115,16 @@ describe('ToolRunner — eyedropper tool', () => {
 		// Fill the canvas with red at (5,5) using pencil with red foreground
 		const redHost = createHost(canvas, RED, WHITE);
 		const redShared = new SharedState();
-		const redSession = createSamplingSession({ getSamplingPort: () => redHost.pixelCanvas });
+		const redSession = createSamplingSession({ getSamplingPort: () => redHost.document });
 		const redRunner = createToolRunner({ host: redHost, shared: redShared, getShiftHeld: () => false, samplingSession: redSession });
 		redRunner.drawStart(0, 'mouse');
 		redRunner.draw({ x: 5, y: 5 }, null);
 		redRunner.drawEnd();
-		expect(getPixel(canvas, 5, 5)).toEqual(RED);
+		expect(getDocPixel(redHost.document, 5, 5)).toEqual(RED);
 		// (0,0) remains transparent
 
 		// Eyedropper drag: start on transparent (0,0), end on red (5,5). Commit should be RED.
-		const { runner, shared } = createRunner(canvas);
+		const { runner, shared } = createRunner(canvas, undefined, undefined, redHost.document);
 		shared.activeTool = 'eyedropper';
 		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
@@ -167,7 +166,7 @@ describe('ToolRunner — floodfill tool', () => {
 describe('ToolRunner — shape tool', () => {
 	it('draws a line and produces correct effects', () => {
 		const canvas = canvasFactory.create(8, 8);
-		const { runner, shared } = createRunner(canvas);
+		const { host, runner, shared } = createRunner(canvas);
 		shared.activeTool = 'line';
 
 		runner.drawStart(0, 'mouse');
@@ -177,25 +176,24 @@ describe('ToolRunner — shape tool', () => {
 		runner.drawEnd();
 
 		for (let x = 0; x <= 3; x++) {
-			expect(getPixel(canvas, x, 0)).toEqual(BLACK);
+			expect(getDocPixel(host.document, x, 0)).toEqual(BLACK);
 		}
 	});
 
 	it('cleans up preview artifacts on drawEnd', () => {
-		const canvas = canvasFactory.create(8, 8);
-		const { runner, shared } = createRunner(canvas);
+		const { host, runner, shared } = createRunner();
 		shared.activeTool = 'line';
 
 		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.draw({ x: 4, y: 4 }, { x: 0, y: 0 });
 		// Intermediate preview drawn
-		expect(getPixel(canvas, 2, 2)).toEqual(BLACK);
+		expect(getDocPixel(host.document, 2, 2)).toEqual(BLACK);
 
 		// Change to final position
 		runner.draw({ x: 3, y: 0 }, { x: 4, y: 4 });
 		// Intermediate preview cleaned
-		expect(getPixel(canvas, 2, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getDocPixel(host.document, 2, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
 
 		runner.drawEnd();
 	});
@@ -203,15 +201,14 @@ describe('ToolRunner — shape tool', () => {
 
 describe('ToolRunner — move tool', () => {
 	it('shifts canvas content and produces canvasChanged', () => {
-		const canvas = canvasFactory.create(8, 8);
-		const { runner, shared } = createRunner(canvas);
+		const { host, runner, shared } = createRunner();
 
 		// Paint a pixel with pencil
 		shared.activeTool = 'pencil';
 		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
 		runner.drawEnd();
-		expect(getPixel(canvas, 0, 0)).toEqual(BLACK);
+		expect(getDocPixel(host.document, 0, 0)).toEqual(BLACK);
 
 		// Move it
 		shared.activeTool = 'move';
@@ -221,22 +218,22 @@ describe('ToolRunner — move tool', () => {
 		expect(hasEffect(moveEffects, 'canvasChanged')).toBe(true);
 		runner.drawEnd();
 
-		expect(getPixel(canvas, 2, 3)).toEqual(BLACK);
-		expect(getPixel(canvas, 0, 0)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getDocPixel(host.document, 2, 3)).toEqual(BLACK);
+		expect(getDocPixel(host.document, 0, 0)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
 	});
 });
 
 describe('ToolRunner — eraser tool', () => {
 	it('erases pixels to transparent', () => {
 		const canvas = canvasFactory.create(8, 8);
-		const { runner, shared } = createRunner(canvas);
+		const { host, runner, shared } = createRunner(canvas);
 
 		// Paint a pixel with pencil
 		shared.activeTool = 'pencil';
 		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 3, y: 3 }, null);
 		runner.drawEnd();
-		expect(getPixel(canvas, 3, 3)).toEqual(BLACK);
+		expect(getDocPixel(host.document, 3, 3)).toEqual(BLACK);
 
 		// Erase it
 		shared.activeTool = 'eraser';
@@ -244,7 +241,7 @@ describe('ToolRunner — eraser tool', () => {
 		runner.draw({ x: 3, y: 3 }, null);
 		runner.drawEnd();
 
-		expect(getPixel(canvas, 3, 3)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getDocPixel(host.document, 3, 3)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
 	});
 
 	it('does not produce addRecentColor effect', () => {
@@ -311,13 +308,13 @@ describe('ToolRunner — addsActiveColor', () => {
 describe('ToolRunner — right-click', () => {
 	it('uses background color for pencil on right-click', () => {
 		const canvas = canvasFactory.create(8, 8);
-		const { runner } = createRunner(canvas);
+		const { host, runner } = createRunner(canvas);
 
 		runner.drawStart(2, 'mouse');
 		runner.draw({ x: 3, y: 3 }, null);
 		runner.drawEnd();
 
-		expect(getPixel(canvas, 3, 3)).toEqual(WHITE);
+		expect(getDocPixel(host.document, 3, 3)).toEqual(WHITE);
 	});
 });
 
@@ -368,7 +365,7 @@ describe('ToolRunner — history', () => {
 
 	it('clear pushes snapshot, clears the canvas, and undo restores the pre-clear pixel', () => {
 		const canvas = canvasFactory.create(8, 8);
-		const { runner } = createRunner(canvas);
+		const { host, runner } = createRunner(canvas);
 
 		runner.drawStart(0, 'mouse');
 		runner.draw({ x: 0, y: 0 }, null);
@@ -376,7 +373,7 @@ describe('ToolRunner — history', () => {
 
 		const effects = runner.clear();
 		expect(hasEffect(effects, 'canvasChanged')).toBe(true);
-		expect(getPixel(canvas, 0, 0)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getDocPixel(host.document, 0, 0)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
 		expect(runner.canUndo).toBe(true);
 
 		const undoEffects = runner.undo();
@@ -409,9 +406,6 @@ describe('ToolRunner — documentReplaced on undo with dimension change', () => 
 			currentCanvas.pixels()
 		);
 		const host: ToolRunnerHost = {
-			get pixelCanvas() {
-				return currentCanvas;
-			},
 			get document() {
 				return currentDocument;
 			},
@@ -423,7 +417,7 @@ describe('ToolRunner — documentReplaced on undo with dimension change', () => 
 			}
 		};
 		const shared = new SharedState();
-		const samplingSession = createSamplingSession({ getSamplingPort: () => host.pixelCanvas });
+		const samplingSession = createSamplingSession({ getSamplingPort: () => host.document });
 		const runner = createToolRunner({ host, shared, getShiftHeld: () => false, samplingSession });
 
 		runner.pushSnapshot();
@@ -517,7 +511,7 @@ describe('ToolRunner — shift constraint', () => {
 		const shared = new SharedState();
 		shared.activeTool = 'line';
 		let shiftHeld = false;
-		const samplingSession = createSamplingSession({ getSamplingPort: () => host.pixelCanvas });
+		const samplingSession = createSamplingSession({ getSamplingPort: () => host.document });
 		const runner = createToolRunner({ host, shared, getShiftHeld: () => shiftHeld, samplingSession });
 
 		shiftHeld = true;
@@ -527,17 +521,16 @@ describe('ToolRunner — shift constraint', () => {
 		runner.drawEnd();
 
 		// Constrained to horizontal: (0,0)→(5,0)
-		expect(getPixel(canvas, 3, 0)).toEqual(BLACK);
-		expect(getPixel(canvas, 0, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getDocPixel(host.document, 3, 0)).toEqual(BLACK);
+		expect(getDocPixel(host.document, 0, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
 	});
 
 	it('responds to shift toggle mid-stroke via modifierChanged', () => {
-		const canvas = canvasFactory.create(8, 8);
-		const host = createHost(canvas);
+		const host = createHost();
 		const shared = new SharedState();
 		shared.activeTool = 'line';
 		let shiftHeld = false;
-		const samplingSession = createSamplingSession({ getSamplingPort: () => host.pixelCanvas });
+		const samplingSession = createSamplingSession({ getSamplingPort: () => host.document });
 		const runner = createToolRunner({ host, shared, getShiftHeld: () => shiftHeld, samplingSession });
 
 		runner.drawStart(0, 'mouse');
@@ -545,7 +538,7 @@ describe('ToolRunner — shift constraint', () => {
 		runner.draw({ x: 5, y: 1 }, { x: 0, y: 0 });
 
 		// Without shift: line goes to (5,1)
-		expect(getPixel(canvas, 5, 1)).toEqual(BLACK);
+		expect(getDocPixel(host.document, 5, 1)).toEqual(BLACK);
 
 		// Toggle shift → constrain
 		shiftHeld = true;
@@ -553,8 +546,8 @@ describe('ToolRunner — shift constraint', () => {
 		expect(hasEffect(effects, 'canvasChanged')).toBe(true);
 
 		// Now line should be horizontal
-		expect(getPixel(canvas, 5, 0)).toEqual(BLACK);
-		expect(getPixel(canvas, 5, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getDocPixel(host.document, 5, 0)).toEqual(BLACK);
+		expect(getDocPixel(host.document, 5, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
 
 		runner.drawEnd();
 	});

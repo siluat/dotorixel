@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { oneShotTool, type SessionHost } from './tool-authoring';
-import { BLACK, WHITE, createFakeDrawingOps, createFakePixelCanvas } from './fake-drawing-ops';
+import {
+	BLACK,
+	WHITE,
+	createFakeDocument,
+	createFakeDrawingOps,
+	createFakePixelCanvas
+} from './fake-drawing-ops';
 import type { CanvasCoords, PixelCanvas } from './canvas-model';
 import type { Color } from './color';
 import type { SamplingSession } from './sampling/session.svelte';
@@ -14,7 +20,7 @@ function makeHost(canvas: PixelCanvas): {
 	return {
 		pushSnapshot,
 		host: {
-			pixelCanvas: canvas,
+			document: createFakeDocument(canvas.width, canvas.height),
 			foregroundColor: BLACK,
 			backgroundColor: WHITE,
 			baseOps: createFakeDrawingOps(8, 8, WHITE),
@@ -101,7 +107,6 @@ describe('oneShotTool sugar', () => {
 
 		expect(effects).toEqual([{ type: 'canvasChanged' }]);
 		expect(captured.target).toEqual({ x: 3, y: 4 });
-		expect(captured.ctx?.canvas).toBe(canvas);
 		expect(captured.ctx?.drawColor).toEqual(BLACK);
 	});
 

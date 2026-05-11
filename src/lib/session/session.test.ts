@@ -49,7 +49,7 @@ describe('openSession', () => {
 			gridColor: '#ECE5D9'
 		});
 
-		const pixels = restored.workspace.activeTab.pixelCanvas.pixels();
+		const pixels = restored.workspace.activeTab.document.composite();
 		expect(pixels[0]).toBe(255); // R
 		expect(pixels[1]).toBe(0); // G
 		expect(pixels[2]).toBe(0); // B
@@ -88,14 +88,14 @@ describe('openSession', () => {
 		expect(restored.workspace.tabs).toHaveLength(2);
 
 		// Tab 0: pixel + viewport preserved
-		const px0 = restored.workspace.tabs[0].pixelCanvas.pixels();
+		const px0 = restored.workspace.tabs[0].document.composite();
 		expect(px0[0]).toBe(255); // R
 		expect(restored.workspace.tabs[0].viewport.zoom).toBe(3.0);
 		expect(restored.workspace.tabs[0].viewport.panX).toBe(100);
 		expect(restored.workspace.tabs[0].viewport.showGrid).toBe(false);
 
 		// Tab 1: pixel preserved
-		const px1 = restored.workspace.tabs[1].pixelCanvas.pixels();
+		const px1 = restored.workspace.tabs[1].document.composite();
 		expect(px1[4]).toBe(0); // R
 		expect(px1[5]).toBe(0); // G
 		expect(px1[6]).toBe(255); // B

@@ -106,12 +106,14 @@ Add a `Document` binding in `wasm/`. The interface mirrors a single canvas in sh
 - Migration: wrap V2's single pixel buffer as a single layer inside V3 (no pixel loss; dimensions preserved).
 - History is dropped during migration — V2 history is in single-canvas shape and is incompatible with the Document shape. The session starts with an empty history immediately after migration.
 - The `viewports` field on workspace records and other persistence shapes are unchanged.
+- **Wiring scope** — declaring the schema is not enough. The read/write path must also be on V3: `SessionStorage`'s `DocumentRecord` / `StoredDocument` / `getAllSavedDocuments`, IndexedDB `DB_VERSION` upgrade with a V2→V3 cursor migration, `tab-state.toSnapshot()` serializing per-layer pixels + per-layer metadata + activeLayerId + nextLayerNumber + timelinePanelCollapsed, and hydration building the multi-layer document via `WasmDocumentBuilder`. Owned by sub-issue **103**.
 
 ### TabState integration
 
 - Replace `pixelCanvas: PixelCanvas` in `src/lib/canvas/editor-session/tab-state.svelte.ts` with `document: Document`.
 - `samplingSession`, `toolRunner`, and `tabViewport` operate via the active layer (interfaces change minimally).
 - `documentId` is preserved.
+- **Document is the sole source of truth** — the transitional `pixelCanvas` field that mirrors the active layer is removed in this PRD, not left to evolve organically. The main canvas renderer receives the RGBA buffer returned by `document.composite()` (all visible layers, source-over from the bottom up), not just the active layer's pixels. Tools mutate the active layer through `document.set_pixel` / `document.apply_tool` / `document.flood_fill`. Owned by sub-issue **102**.
 
 ### UI: unified Timeline Panel
 
@@ -210,6 +212,15 @@ Layer + per-frame Cel separation.
 - **TimelinePanel pixel-level design** — follow-up design task.
 - **Frame axis UI activation** — M4. M3 either renders one frame column or hides it.
 - **`HistoryManager` memory measurement / compression** — keep the current policy; measurement is a follow-up.
+
+## Follow-up sub-issues (post-decomposition gaps)
+
+The initial decomposition (087–101) covered the data model, history, design, and the first add-layer slice, but two implementation paths required to make layers user-visible and durable were not assigned to a sub-issue:
+
+- **102 — Render path: switch main canvas to `document.composite()`**. With only 094 in place, the renderer still reads `tab-state.pixelCanvas` (a mirror of the active layer), so additional layers exist in the document but never appear on screen. Without 102, the composite results from 095/096/097 cannot be visually verified.
+- **103 — V3 multi-layer pixel persistence wiring**. `DocumentSchemaV3` and `migrateV2ToV3` are declared in `session-storage-types.ts`, but `SessionStorage` and `tab-state.toSnapshot()` are still on V2 — refreshing the page collapses every multi-layer document back to a single layer and discards every layer's name, visibility, opacity, and id. Required before any M3 release that exposes the layer system to users.
+
+Both are blockers for the rest of PRD-086 to be more than data-model bookkeeping.
 
 ## Further Notes
 

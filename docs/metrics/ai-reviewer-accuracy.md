@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 88 | 68 | 20 | 72 | 77% | 49% |
-| cubic-dev-ai[bot] | 55 | 46 | 9 | 91 | 84% | 34% |
-| coderabbitai[bot] | 121 | 83 | 38 | 52 | 69% | 61% |
+| greptile-apps[bot] | 89 | 69 | 20 | 74 | 78% | 48% |
+| cubic-dev-ai[bot] | 56 | 47 | 9 | 93 | 84% | 34% |
+| coderabbitai[bot] | 125 | 86 | 39 | 52 | 69% | 62% |
 
 ## Log
 
@@ -493,3 +493,13 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #195 | coderabbitai[bot] | Accept | `addLayer` does not re-derive `pixelCanvas` after `add_layer` switches active layer — invariant ("pixelCanvas reflects active layer") established by ctor + documentReplaced is broken |
 | #195 | cubic-dev-ai[bot] | Accept | `pixelCanvas` not re-derived from new active layer after `addLayer` (duplicate of coderabbit) |
 | #195 | greptile-apps[bot] | Miss | Did not flag `pixelCanvas`/active-layer desync after `addLayer` (Confidence 5/5, Safe to merge) |
+| #196 | greptile-apps[bot] | Accept | `compositeBuffer` staleness — getter mixed captured `doc` with live `this.document` |
+| #196 | coderabbitai[bot] | Accept | `compositeBuffer` staleness (duplicate of greptile) |
+| #196 | coderabbitai[bot] | Accept | Guard `layer_pixels_at` instead of non-null asserting in `activeLayerPixels` |
+| #196 | coderabbitai[bot] | Accept | Blank-tab detection misses hidden-layer content — added `TabState.isDocumentBlank()` iterating all layers |
+| #196 | coderabbitai[bot] | Reject | Make canvas dimensions reactive to `renderVersion` — pre-existing pattern, not a 102 regression; parent template already subscribes via `PixelCanvasView` prop |
+| #196 | cubic-dev-ai[bot] | Accept | Blank-tab detection misses hidden-layer content (duplicate of coderabbit) |
+| #196 | cubic-dev-ai[bot] | Miss | Did not flag `compositeBuffer` staleness |
+| #196 | greptile-apps[bot] | Miss | Did not flag `activeLayerPixels` non-null assertion guard |
+| #196 | cubic-dev-ai[bot] | Miss | Did not flag `activeLayerPixels` non-null assertion guard |
+| #196 | greptile-apps[bot] | Miss | Did not flag blank-tab hidden-layer content discard |

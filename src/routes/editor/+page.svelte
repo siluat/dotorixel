@@ -424,8 +424,8 @@
 			pixelPerfect={editor.pixelPerfect}
 			pixelPerfectDisabled={pixelPerfectDisabled}
 			isExportOpen={editor.isExportUIOpen}
-			canvasWidth={editor.document.width}
-			canvasHeight={editor.document.height}
+			canvasWidth={editor.canvasWidth}
+			canvasHeight={editor.canvasHeight}
 			onZoomIn={editor.handleZoomIn}
 			onZoomOut={editor.handleZoomOut}
 			onZoomReset={editor.handleZoomReset}
@@ -497,8 +497,8 @@
 			foregroundColor={editor.foregroundColorHex}
 			backgroundColor={editor.backgroundColorHex}
 			recentColors={editor.recentColors}
-			canvasWidth={editor.document.width}
-			canvasHeight={editor.document.height}
+			canvasWidth={editor.canvasWidth}
+			canvasHeight={editor.canvasHeight}
 			resizeAnchor={editor.resizeAnchor}
 			onForegroundColorChange={editor.handleForegroundColorChange}
 			onBackgroundColorChange={editor.handleBackgroundColorChange}
@@ -509,8 +509,8 @@
 		/>
 
 		<StatusBar
-			canvasWidth={editor.document.width}
-			canvasHeight={editor.document.height}
+			canvasWidth={editor.canvasWidth}
+			canvasHeight={editor.canvasHeight}
 			activeTool={editor.activeTool}
 		/>
 	</div>
@@ -585,8 +585,8 @@
 				/>
 			{:else}
 				<SettingsContent
-					canvasWidth={editor.document.width}
-					canvasHeight={editor.document.height}
+					canvasWidth={editor.canvasWidth}
+					canvasHeight={editor.canvasHeight}
 					showGrid={editor.viewport.showGrid}
 					resizeAnchor={editor.resizeAnchor}
 					onResize={handleResize}
@@ -622,8 +622,8 @@
 
 		<ExportBottomSheet
 			open={editor.isExportUIOpen}
-			canvasWidth={editor.document.width}
-			canvasHeight={editor.document.height}
+			canvasWidth={editor.canvasWidth}
+			canvasHeight={editor.canvasHeight}
 			onOpenChange={(isOpen) => (editor.workspace.activeTab.isExportUIOpen = isOpen)}
 			onExport={handleExportConfirm}
 		/>

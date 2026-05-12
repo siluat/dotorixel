@@ -1,5 +1,6 @@
 import type { Document, PixelCanvas, CanvasCoords, ResizeAnchor } from '../canvas-model';
 import { resizeDocumentWithAnchor, singleLayerDocument } from '../wasm-backend';
+import { isBlankCanvas } from '../blank-detection';
 import type { ViewportData, ViewportSize } from '../viewport';
 import { addRecentColor } from '../color';
 import type { SharedState } from '../shared-state.svelte';
@@ -22,16 +23,6 @@ function assertNever(x: never): never {
 	throw new Error(`Unhandled effect type: ${(x as { type: string }).type}`);
 }
 
-function activeLayerPixels(doc: Document): Uint8Array {
-	const id = doc.active_layer_id();
-	for (let i = 0; i < doc.layer_count(); i++) {
-		if (doc.layer_id_at(i) === id) {
-			return doc.layer_pixels_at(i)!;
-		}
-	}
-	throw new Error(`Active layer ${id} not found in document`);
-}
-
 export interface TabStateDeps {
 	readonly backend: CanvasBackend;
 	readonly shared: SharedState;
@@ -39,7 +30,7 @@ export interface TabStateDeps {
 	readonly notifier: DirtyNotifier;
 	readonly documentId: string;
 	readonly name: string;
-	/** When provided, the tab adopts this document; otherwise a fresh empty document is created from `canvasWidth`/`canvasHeight`. The Document is the single source of truth — pixelCanvas is derived from its active layer. */
+	/** When provided, the tab adopts this document; otherwise a fresh empty document is created from `canvasWidth`/`canvasHeight`. The Document is the single source of truth for pixel data. */
 	readonly document?: Document;
 	/** When provided, the tab adopts this viewport; otherwise a fitted viewport is computed from the canvas dimensions. */
 	readonly viewport?: ViewportData;
@@ -68,11 +59,45 @@ export class TabState {
 	readonly samplingSession: SamplingSession;
 	readonly referenceSamplingSession: ReferenceSamplingSession;
 
-	pixelCanvas = $state<PixelCanvas>(null!);
 	document = $state<Document>(null!);
 	renderVersion = $state(0);
 	resizeAnchor = $state<ResizeAnchor>('top-left');
 	isExportUIOpen = $state(false);
+
+	/**
+	 * Renderer-facing view of the document. `pixels()` returns the full
+	 * source-over composite of every visible layer — the main canvas reads
+	 * this so all layers are visible, not just the active one.
+	 */
+	get compositeBuffer(): { readonly width: number; readonly height: number; pixels(): Uint8Array } {
+		const self = this;
+		return {
+			get width() {
+				return self.document.width;
+			},
+			get height() {
+				return self.document.height;
+			},
+			pixels: () => self.document.composite()
+		};
+	}
+
+	/**
+	 * True when every layer's pixel buffer is fully transparent. Unlike
+	 * `compositeBuffer.pixels()` this iterates every layer (including hidden
+	 * ones), so painted-then-hidden content still counts as non-blank — the
+	 * tab-close save prompt won't silently discard it.
+	 */
+	isDocumentBlank(): boolean {
+		const doc = this.document;
+		for (let i = 0; i < doc.layer_count(); i++) {
+			const pixels = doc.layer_pixels_at(i);
+			if (pixels && !isBlankCanvas(pixels)) {
+				return false;
+			}
+		}
+		return true;
+	}
 
 	#backend: CanvasBackend;
 	#notifier: DirtyNotifier;
@@ -117,20 +142,12 @@ export class TabState {
 			const ch = deps.canvasHeight ?? DEFAULT_CANVAS_DIMENSION;
 			this.document = singleLayerDocument(cw, ch, new Uint8Array(cw * ch * 4));
 		}
-		this.pixelCanvas = this.#backend.canvasFactory.fromPixels(
-			this.document.width,
-			this.document.height,
-			activeLayerPixels(this.document)
-		);
 
 		let initialViewport: ViewportData;
 		if (deps.viewport) {
 			initialViewport = deps.viewport;
 		} else {
-			const vd = this.#backend.viewportOps.forCanvas(
-				this.pixelCanvas.width,
-				this.pixelCanvas.height
-			);
+			const vd = this.#backend.viewportOps.forCanvas(this.document.width, this.document.height);
 			initialViewport = deps.gridColor ? { ...vd, gridColor: deps.gridColor } : vd;
 		}
 
@@ -139,8 +156,8 @@ export class TabState {
 			initial: initialViewport,
 			initialViewportSize: DEFAULT_VIEWPORT_SIZE,
 			getCanvasDimensions: () => ({
-				width: self.pixelCanvas.width,
-				height: self.pixelCanvas.height
+				width: self.document.width,
+				height: self.document.height
 			}),
 			viewportOps: this.#backend.viewportOps,
 			notifier: this.#notifier,
@@ -154,9 +171,6 @@ export class TabState {
 
 		this.#toolRunner = createToolRunner({
 			host: {
-				get pixelCanvas() {
-					return self.pixelCanvas;
-				},
 				get document() {
 					return self.document;
 				},
@@ -183,11 +197,6 @@ export class TabState {
 					break;
 				case 'documentReplaced':
 					this.document = effect.document;
-					this.pixelCanvas = this.#backend.canvasFactory.fromPixels(
-						effect.document.width,
-						effect.document.height,
-						activeLayerPixels(effect.document)
-					);
 					this.#tabViewport.reclamp();
 					this.renderVersion++;
 					persistableChanged = true;
@@ -295,11 +304,6 @@ export class TabState {
 	addLayer = (name: string): void => {
 		this.#toolRunner.pushSnapshot();
 		this.document.add_layer(crypto.randomUUID(), name);
-		this.pixelCanvas = this.#backend.canvasFactory.fromPixels(
-			this.document.width,
-			this.document.height,
-			activeLayerPixels(this.document)
-		);
 		this.renderVersion++;
 		this.#notifier.markDirty(this.documentId);
 	};
@@ -308,8 +312,8 @@ export class TabState {
 		this.#tabViewport.apply(
 			this.#backend.viewportOps.clampPan(
 				newViewport,
-				this.pixelCanvas.width,
-				this.pixelCanvas.height,
+				this.document.width,
+				this.document.height,
 				this.viewportSize.width,
 				this.viewportSize.height
 			)
@@ -341,14 +345,8 @@ export class TabState {
 	};
 
 	resize = (newWidth: number, newHeight: number): void => {
-		if (newWidth === this.pixelCanvas.width && newHeight === this.pixelCanvas.height) return;
+		if (newWidth === this.document.width && newHeight === this.document.height) return;
 		this.#toolRunner.pushSnapshot();
-		this.pixelCanvas = this.#backend.canvasFactory.resizeWithAnchor(
-			this.pixelCanvas,
-			newWidth,
-			newHeight,
-			this.resizeAnchor
-		);
 		resizeDocumentWithAnchor(this.document, newWidth, newHeight, this.resizeAnchor);
 		this.#tabViewport.reclamp();
 		this.renderVersion++;
@@ -358,14 +356,22 @@ export class TabState {
 		this.isExportUIOpen = !this.isExportUIOpen;
 	};
 
+	/**
+	 * Builds a fresh `PixelCanvas` from `document.composite()` — used by
+	 * exporters that need `encode_png` / `encode_svg`. The buffer is a
+	 * one-shot snapshot; callers must not retain it across mutations.
+	 */
+	exportableSnapshot = (): PixelCanvas => {
+		return this.#backend.canvasFactory.fromPixels(
+			this.document.width,
+			this.document.height,
+			this.document.composite()
+		);
+	};
+
 	exportPng = (): void => {
 		try {
-			const exportCanvas = this.#backend.canvasFactory.fromPixels(
-				this.document.width,
-				this.document.height,
-				this.document.composite()
-			);
-			exportAsPng(exportCanvas);
+			exportAsPng(this.exportableSnapshot());
 		} catch (error) {
 			console.error('PNG export failed:', error);
 		}

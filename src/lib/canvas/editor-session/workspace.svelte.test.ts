@@ -161,9 +161,9 @@ describe('Workspace — openDocument', () => {
 		expect(workspace.activeIndex).toBe(1);
 		expect(workspace.activeTab.name).toBe('My Art');
 		expect(workspace.activeTab.documentId).toBe('saved-doc');
-		expect(workspace.activeTab.pixelCanvas.width).toBe(2);
-		expect(workspace.activeTab.pixelCanvas.height).toBe(1);
-		expect(workspace.activeTab.pixelCanvas.pixels()).toEqual(pixels);
+		expect(workspace.activeTab.document.width).toBe(2);
+		expect(workspace.activeTab.document.height).toBe(1);
+		expect(workspace.activeTab.document.composite()).toEqual(pixels);
 	});
 });
 
@@ -201,7 +201,7 @@ describe('Workspace — hydration', () => {
 
 		expect(workspace.tabs).toHaveLength(1);
 		expect(workspace.activeTab.name).toBe('My Sprite');
-		expect(workspace.activeTab.pixelCanvas.pixels()).toEqual(pixels);
+		expect(workspace.activeTab.document.composite()).toEqual(pixels);
 		expect(workspace.shared.activeTool).toBe('eraser');
 		expect(workspace.shared.foregroundColor).toEqual({ r: 255, g: 0, b: 0, a: 255 });
 		expect(workspace.shared.recentColors).toEqual(['#ff0000']);

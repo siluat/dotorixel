@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 102 | [Layer system: switch main canvas render to `document.composite()`](../issues/102-layer-system-composite-render-path.md) | 2026-05-11 |
 | 094 | [Layer system: add-layer button](../issues/094-layer-system-add-layer-button.md) | 2026-05-09 |
 | 093 | [Layer system: TimelinePanel shell — desktop, single-layer row](../issues/093-layer-system-timeline-panel-shell.md) | 2026-05-09 |
 | 092 | [Layer system: TimelinePanel design — Candidate A detail pass](../issues/092-layer-system-timeline-panel-design.md) | 2026-05-09 |

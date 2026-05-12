@@ -1,11 +1,11 @@
 <script lang="ts">
-	import type { PixelCanvas, CanvasCoords } from './canvas-model';
+	import type { CanvasCoords } from './canvas-model';
 	import { viewportOps } from './wasm-backend';
 	import type { ViewportData, ViewportSize } from './viewport';
 	import type { SamplingSession } from './sampling/session.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { createWheelInputClassifier } from './wheel-input.ts';
-	import { renderPixelCanvas } from './renderer.ts';
+	import { renderPixelCanvas, type RenderableCanvas } from './renderer.ts';
 	import {
 		createCanvasInteraction,
 		normalizePointerType,
@@ -14,7 +14,7 @@
 	import Loupe from '$lib/ui-editor/Loupe.svelte';
 
 	interface Props {
-		pixelCanvas: PixelCanvas;
+		pixelCanvas: RenderableCanvas;
 		viewport: ViewportData;
 		viewportSize?: ViewportSize;
 		renderVersion?: number;

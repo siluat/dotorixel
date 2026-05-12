@@ -1,4 +1,4 @@
-import type { CanvasCoords, PixelCanvas } from './canvas-model';
+import type { CanvasCoords, Document } from './canvas-model';
 import { colorToHex, type Color } from './color';
 import type { DrawingOps } from './drawing-ops';
 import {
@@ -12,6 +12,7 @@ import { createPixelPerfectOps } from './pixel-perfect-ops';
 import type { SamplingSession } from './sampling/session.svelte';
 import type { ToolType } from './tool-registry';
 import type { EditorEffects } from './tool-runner.svelte';
+import { activeLayerPixels, restoreActiveLayerPixels } from './wasm-backend';
 
 /**
  * Per-sample drawing step for continuous tools (pencil, eraser).
@@ -30,12 +31,12 @@ export type ApplyFn = (
  * `foregroundColor`, `backgroundColor`, `pixelPerfect`.
  *
  * Live references that remain responsive during the stroke:
- * `pixelCanvas`, `baseOps`, `sampling`, `history` (write-only port),
- * `isShiftHeld` (evaluated per call — shape tools rely on this to
- * observe modifier changes via `modifierChanged`).
+ * `document`, `baseOps`, `sampling`, `history` (write-only port),
+ * `isShiftHeld` (evaluated per call — shape tools rely on this to observe
+ * modifier changes via `modifierChanged`).
  */
 export interface SessionHost {
-	readonly pixelCanvas: PixelCanvas;
+	readonly document: Document;
 	readonly foregroundColor: Color;
 	readonly backgroundColor: Color;
 	/** Unwrapped ops — sugars decide PP-wrap via their own `pixelPerfect` flag. */
@@ -82,7 +83,6 @@ export interface DrawTool {
 
 function toolContext(host: SessionHost, spec: StrokeSpec, ops: DrawingOps): ToolContext {
 	return {
-		canvas: host.pixelCanvas,
 		ops,
 		drawColor: spec.drawColor,
 		drawButton: spec.drawButton,
@@ -160,7 +160,7 @@ export function shapeTool(spec: {
 
 			function redraw(): EditorEffects {
 				if (!anchor || !snapshot || !lastCurrent) return NO_EFFECTS;
-				host.pixelCanvas.restore_pixels(snapshot);
+				restoreActiveLayerPixels(host.document, snapshot);
 				const end = host.isShiftHeld()
 					? spec.constrainOnShift(anchor, lastCurrent)
 					: lastCurrent;
@@ -171,7 +171,7 @@ export function shapeTool(spec: {
 			return {
 				start() {
 					host.history.pushSnapshot();
-					snapshot = new Uint8Array(host.pixelCanvas.pixels());
+					snapshot = new Uint8Array(activeLayerPixels(host.document));
 					return addsActiveColor
 						? [{ type: 'addRecentColor', hex: colorToHex(strokeSpec.drawColor) }]
 						: NO_EFFECTS;

@@ -32,7 +32,6 @@
 	import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 	import { openSession, type SessionHandle } from '$lib/session/session';
 	import type { SavedDocumentSummary } from '$lib/session/session-storage-types';
-	import { isBlankCanvas } from '$lib/canvas/blank-detection';
 	import {
 		trackEditorOpen,
 		trackToolUsage,
@@ -156,7 +155,7 @@
 			return;
 		}
 
-		if (isBlankCanvas(tab.pixelCanvas.pixels())) {
+		if (tab.isDocumentBlank()) {
 			await closeTabImmediately(index);
 			return;
 		}
@@ -399,9 +398,10 @@
 	function handleExportConfirm(format: ExportFormat, filenameStem: string) {
 		const knownExtensions = availableFormats.map((f) => f.extension);
 		const cleanStem = stripKnownExtension(filenameStem.trim(), knownExtensions);
-		const filename = buildExportFilename(cleanStem, format.extension, editor.pixelCanvas);
-		format.exportFn(editor.pixelCanvas, filename);
-		trackExport(editor.pixelCanvas.width, editor.pixelCanvas.height, format.id);
+		const snapshot = editor.exportableSnapshot();
+		const filename = buildExportFilename(cleanStem, format.extension, snapshot);
+		format.exportFn(snapshot, filename);
+		trackExport(snapshot.width, snapshot.height, format.id);
 		editor.workspace.activeTab.isExportUIOpen = false;
 	}
 </script>
@@ -424,8 +424,8 @@
 			pixelPerfect={editor.pixelPerfect}
 			pixelPerfectDisabled={pixelPerfectDisabled}
 			isExportOpen={editor.isExportUIOpen}
-			canvasWidth={editor.pixelCanvas.width}
-			canvasHeight={editor.pixelCanvas.height}
+			canvasWidth={editor.document.width}
+			canvasHeight={editor.document.height}
 			onZoomIn={editor.handleZoomIn}
 			onZoomOut={editor.handleZoomOut}
 			onZoomReset={editor.handleZoomReset}
@@ -463,7 +463,7 @@
 			use:canvasDropzone={{ onFilesDropped: handleCanvasDrop }}
 		>
 			<PixelCanvasView
-				pixelCanvas={editor.pixelCanvas}
+				pixelCanvas={editor.compositeBuffer}
 				viewport={editor.viewport}
 				viewportSize={editor.viewportSize}
 				renderVersion={editor.renderVersion}
@@ -497,8 +497,8 @@
 			foregroundColor={editor.foregroundColorHex}
 			backgroundColor={editor.backgroundColorHex}
 			recentColors={editor.recentColors}
-			canvasWidth={editor.pixelCanvas.width}
-			canvasHeight={editor.pixelCanvas.height}
+			canvasWidth={editor.document.width}
+			canvasHeight={editor.document.height}
 			resizeAnchor={editor.resizeAnchor}
 			onForegroundColorChange={editor.handleForegroundColorChange}
 			onBackgroundColorChange={editor.handleBackgroundColorChange}
@@ -509,8 +509,8 @@
 		/>
 
 		<StatusBar
-			canvasWidth={editor.pixelCanvas.width}
-			canvasHeight={editor.pixelCanvas.height}
+			canvasWidth={editor.document.width}
+			canvasHeight={editor.document.height}
 			activeTool={editor.activeTool}
 		/>
 	</div>
@@ -548,7 +548,7 @@
 					use:canvasDropzone={{ onFilesDropped: handleCanvasDrop }}
 				>
 					<PixelCanvasView
-						pixelCanvas={editor.pixelCanvas}
+						pixelCanvas={editor.compositeBuffer}
 						viewport={editor.viewport}
 						viewportSize={editor.viewportSize}
 						renderVersion={editor.renderVersion}
@@ -585,8 +585,8 @@
 				/>
 			{:else}
 				<SettingsContent
-					canvasWidth={editor.pixelCanvas.width}
-					canvasHeight={editor.pixelCanvas.height}
+					canvasWidth={editor.document.width}
+					canvasHeight={editor.document.height}
 					showGrid={editor.viewport.showGrid}
 					resizeAnchor={editor.resizeAnchor}
 					onResize={handleResize}
@@ -622,8 +622,8 @@
 
 		<ExportBottomSheet
 			open={editor.isExportUIOpen}
-			canvasWidth={editor.pixelCanvas.width}
-			canvasHeight={editor.pixelCanvas.height}
+			canvasWidth={editor.document.width}
+			canvasHeight={editor.document.height}
 			onOpenChange={(isOpen) => (editor.workspace.activeTab.isExportUIOpen = isOpen)}
 			onExport={handleExportConfirm}
 		/>

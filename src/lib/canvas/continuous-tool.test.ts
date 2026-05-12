@@ -3,6 +3,7 @@ import { continuousTool, type ApplyFn, type SessionHost } from './tool-authoring
 import {
 	BLACK,
 	WHITE,
+	createFakeDocument,
 	createFakeDrawingOps,
 	createFakePixelCanvas,
 	type FakeDrawingOps
@@ -22,7 +23,7 @@ function makeHost(
 		pushSnapshot,
 		baseOps,
 		host: {
-			pixelCanvas: canvas,
+			document: createFakeDocument(canvas.width, canvas.height),
 			foregroundColor: BLACK,
 			backgroundColor: WHITE,
 			baseOps,
@@ -134,7 +135,6 @@ describe('continuousTool sugar', () => {
 		session.start();
 		session.draw({ x: 2, y: 3 }, { x: 1, y: 1 });
 
-		expect(captured.ctx?.canvas).toBe(canvas);
 		expect(captured.ctx?.drawColor).toEqual(RED);
 		expect(captured.ctx?.drawButton).toBe(2);
 		expect(captured.current).toEqual({ x: 2, y: 3 });

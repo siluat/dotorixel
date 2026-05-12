@@ -63,6 +63,13 @@ export interface Document {
 	layer_opacity_at(index: number): number | undefined;
 	layer_pixels_at(index: number): Uint8Array | undefined;
 	/**
+	 * Overwrites the active layer's pixel buffer with `data`. Used by tools
+	 * that take a stroke-start snapshot and restore it during preview (shape
+	 * tools, move tool). Other layers are unaffected. Throws when `data.length`
+	 * is not exactly `width * height * 4`.
+	 */
+	restore_active_layer_pixels(data: Uint8Array): void;
+	/**
 	 * Appends a new transparent layer with the given UUID and display name.
 	 * The new layer becomes active; `next_layer_number` is incremented (the
 	 * counter is monotonic — never reused after delete). Throws if the id is

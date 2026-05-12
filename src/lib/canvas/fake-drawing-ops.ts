@@ -1,4 +1,4 @@
-import type { PixelCanvas } from './canvas-model';
+import type { Document, PixelCanvas } from './canvas-model';
 import type { Color } from './color';
 import type { DrawingOps, DrawingToolType } from './drawing-ops';
 
@@ -110,6 +110,53 @@ export function createFakePixelCanvas(width: number, height: number): FakePixelC
 			throw new Error('createFakePixelCanvas: resize not implemented');
 		},
 		get restoreCalls() {
+			return restoreCalls;
+		}
+	};
+}
+
+export interface FakeDocument extends Document {
+	/** Every `Uint8Array` passed to `restore_active_layer_pixels`, in call order. */
+	readonly restoreActiveLayerCalls: ReadonlyArray<Uint8Array>;
+}
+
+/**
+ * In-memory single-layer Document stub for tool authoring tests. Tracks every
+ * `restore_active_layer_pixels` call so tests can assert snapshot-restore
+ * behavior without a WASM document. Active-layer id is fixed at `'active'`;
+ * `composite()` returns the active layer's pixel buffer.
+ */
+export function createFakeDocument(width: number, height: number): FakeDocument {
+	const pixels = new Uint8Array(width * height * 4);
+	const restoreCalls: Uint8Array[] = [];
+	return {
+		width,
+		height,
+		composite: () => new Uint8Array(pixels),
+		get_pixel: (x, y) => {
+			if (x < 0 || y < 0 || x >= width || y >= height) {
+				return { r: 0, g: 0, b: 0, a: 0 };
+			}
+			const i = (y * width + x) * 4;
+			return { r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: pixels[i + 3] };
+		},
+		active_layer_id: () => 'active',
+		next_layer_number: () => 2,
+		is_timeline_panel_collapsed: () => false,
+		layer_count: () => 1,
+		layer_id_at: (index) => (index === 0 ? 'active' : undefined),
+		layer_name_at: (index) => (index === 0 ? 'Layer 1' : undefined),
+		layer_visible_at: (index) => (index === 0 ? true : undefined),
+		layer_opacity_at: (index) => (index === 0 ? 1.0 : undefined),
+		layer_pixels_at: (index) => (index === 0 ? new Uint8Array(pixels) : undefined),
+		restore_active_layer_pixels(data) {
+			restoreCalls.push(new Uint8Array(data));
+			pixels.set(data);
+		},
+		add_layer: () => {
+			throw new Error('createFakeDocument: add_layer not implemented');
+		},
+		get restoreActiveLayerCalls() {
 			return restoreCalls;
 		}
 	};

@@ -224,13 +224,40 @@ function resolveWasmDocument(doc: Document): WasmDocument {
 }
 
 /**
- * Clears the active layer's pixels in place. Used by the tool runner's
- * `clear()` to keep the shadow `Document` aligned with `pixelCanvas` during
- * the strangler migration; the read-only `Document` interface intentionally
- * omits mutators, so callers go through this helper.
+ * Clears the active layer's pixels in place. The read-only `Document`
+ * interface intentionally omits mutators, so callers go through this helper.
  */
-export function clearDocumentActiveLayer(doc: Document): void {
+export function clearActiveLayerPixels(doc: Document): void {
 	resolveWasmDocument(doc).clear();
+}
+
+/**
+ * Returns the active layer's RGBA pixel buffer. Used by tools that snapshot
+ * the active layer at stroke begin and restore it during preview (shape
+ * tools, move tool). Throws when the active layer id is not found in the
+ * document (an invariant violation that indicates corrupted state).
+ */
+export function activeLayerPixels(doc: Document): Uint8Array {
+	const id = doc.active_layer_id();
+	for (let i = 0; i < doc.layer_count(); i++) {
+		if (doc.layer_id_at(i) === id) {
+			const pixels = doc.layer_pixels_at(i);
+			if (!pixels) {
+				throw new Error(`Active layer ${id} (index ${i}) has no pixel buffer`);
+			}
+			return pixels;
+		}
+	}
+	throw new Error(`Active layer ${id} not found in document`);
+}
+
+/**
+ * Overwrites the active layer's pixel buffer. Inverse of
+ * `activeLayerPixels`. Used by shape and move tools to restore the
+ * stroke-start snapshot during mid-stroke preview.
+ */
+export function restoreActiveLayerPixels(doc: Document, pixels: Uint8Array): void {
+	doc.restore_active_layer_pixels(pixels);
 }
 
 /**
@@ -248,9 +275,8 @@ export function resizeDocumentWithAnchor(
 }
 
 /**
- * DrawingOps that mutate a `Document`'s active layer. Used by the strangler
- * migration to tee tool writes so the shadow `Document` on `TabState` stays
- * in sync with `pixelCanvas` until the latter is removed.
+ * DrawingOps that mutate a `Document`'s active layer. Backs the tool runner's
+ * writes; the `Document` is the single source of truth for pixel data.
  */
 export function createDocumentDrawingOps(getDocument: () => Document): DrawingOps {
 	const ops: DrawingOps = {

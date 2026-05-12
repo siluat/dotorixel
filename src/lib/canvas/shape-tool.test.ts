@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { shapeTool, type SessionHost } from './tool-authoring';
-import { BLACK, WHITE, createFakeDrawingOps, createFakePixelCanvas } from './fake-drawing-ops';
+import {
+	BLACK,
+	WHITE,
+	createFakeDocument,
+	createFakeDrawingOps,
+	createFakePixelCanvas,
+	type FakeDocument
+} from './fake-drawing-ops';
 import type { CanvasCoords, PixelCanvas } from './canvas-model';
 import type { Color } from './color';
 import type { SamplingSession } from './sampling/session.svelte';
@@ -9,12 +16,14 @@ import type { ToolContext } from './draw-tool';
 function makeHost(
 	canvas: PixelCanvas,
 	isShiftHeld: () => boolean = () => false
-): { host: SessionHost; pushSnapshot: ReturnType<typeof vi.fn> } {
+): { host: SessionHost; document: FakeDocument; pushSnapshot: ReturnType<typeof vi.fn> } {
 	const pushSnapshot = vi.fn();
+	const document = createFakeDocument(canvas.width, canvas.height);
 	return {
 		pushSnapshot,
+		document,
 		host: {
-			pixelCanvas: canvas,
+			document,
 			foregroundColor: BLACK,
 			backgroundColor: WHITE,
 			baseOps: createFakeDrawingOps(8, 8, WHITE),
@@ -83,8 +92,7 @@ describe('shapeTool sugar', () => {
 		const effects = session.draw({ x: 2, y: 3 }, null);
 
 		expect(stroke).toHaveBeenCalledOnce();
-		const [ctx, start, end] = stroke.mock.calls[0] as [ToolContext, CanvasCoords, CanvasCoords];
-		expect(ctx.canvas).toBe(canvas);
+		const [, start, end] = stroke.mock.calls[0] as [ToolContext, CanvasCoords, CanvasCoords];
 		expect(start).toEqual({ x: 2, y: 3 });
 		expect(end).toEqual({ x: 2, y: 3 });
 		expect(effects).toEqual([{ type: 'canvasChanged' }]);
@@ -92,7 +100,7 @@ describe('shapeTool sugar', () => {
 
 	it('restores snapshot and calls stroke(ctx, anchor, end) on subsequent draws', () => {
 		const canvas = createFakePixelCanvas(8, 8);
-		const { host } = makeHost(canvas);
+		const { host, document } = makeHost(canvas);
 		const stroke = vi.fn();
 		const tool = shapeTool({
 			id: 'line',
@@ -103,10 +111,10 @@ describe('shapeTool sugar', () => {
 		session.start();
 		session.draw({ x: 1, y: 1 }, null);
 
-		const restoreCountBefore = canvas.restoreCalls.length;
+		const restoreCountBefore = document.restoreActiveLayerCalls.length;
 		const effects = session.draw({ x: 5, y: 3 }, { x: 1, y: 1 });
 
-		expect(canvas.restoreCalls.length).toBe(restoreCountBefore + 1);
+		expect(document.restoreActiveLayerCalls.length).toBe(restoreCountBefore + 1);
 		expect(stroke).toHaveBeenCalledTimes(2);
 		const [, anchor, end] = stroke.mock.calls[1] as [ToolContext, CanvasCoords, CanvasCoords];
 		expect(anchor).toEqual({ x: 1, y: 1 });

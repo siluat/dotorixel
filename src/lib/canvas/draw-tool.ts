@@ -1,4 +1,3 @@
-import type { PixelCanvas } from './canvas-model';
 import type { Color } from './color';
 import type { DrawingOps } from './drawing-ops';
 
@@ -22,7 +21,6 @@ export const NO_EFFECTS: ToolEffects = [];
 
 /** Read-only snapshot of editor state that tools need during a draw stroke. */
 export interface ToolContext {
-	readonly canvas: PixelCanvas;
 	/**
 	 * The drawing operations to use for this stroke. May be a stroke-scoped
 	 * decorator (e.g. pixel-perfect wrapper) chosen by the sugar constructor

@@ -241,7 +241,11 @@ export function activeLayerPixels(doc: Document): Uint8Array {
 	const id = doc.active_layer_id();
 	for (let i = 0; i < doc.layer_count(); i++) {
 		if (doc.layer_id_at(i) === id) {
-			return doc.layer_pixels_at(i)!;
+			const pixels = doc.layer_pixels_at(i);
+			if (!pixels) {
+				throw new Error(`Active layer ${id} (index ${i}) has no pixel buffer`);
+			}
+			return pixels;
 		}
 	}
 	throw new Error(`Active layer ${id} not found in document`);

@@ -32,7 +32,6 @@
 	import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 	import { openSession, type SessionHandle } from '$lib/session/session';
 	import type { SavedDocumentSummary } from '$lib/session/session-storage-types';
-	import { isBlankCanvas } from '$lib/canvas/blank-detection';
 	import {
 		trackEditorOpen,
 		trackToolUsage,
@@ -156,7 +155,7 @@
 			return;
 		}
 
-		if (isBlankCanvas(tab.compositeBuffer.pixels())) {
+		if (tab.isDocumentBlank()) {
 			await closeTabImmediately(index);
 			return;
 		}

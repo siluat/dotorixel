@@ -1,5 +1,6 @@
 import type { Document, PixelCanvas, CanvasCoords, ResizeAnchor } from '../canvas-model';
 import { resizeDocumentWithAnchor, singleLayerDocument } from '../wasm-backend';
+import { isBlankCanvas } from '../blank-detection';
 import type { ViewportData, ViewportSize } from '../viewport';
 import { addRecentColor } from '../color';
 import type { SharedState } from '../shared-state.svelte';
@@ -69,16 +70,33 @@ export class TabState {
 	 * this so all layers are visible, not just the active one.
 	 */
 	get compositeBuffer(): { readonly width: number; readonly height: number; pixels(): Uint8Array } {
-		const doc = this.document;
+		const self = this;
 		return {
 			get width() {
-				return doc.width;
+				return self.document.width;
 			},
 			get height() {
-				return doc.height;
+				return self.document.height;
 			},
-			pixels: () => this.document.composite()
+			pixels: () => self.document.composite()
 		};
+	}
+
+	/**
+	 * True when every layer's pixel buffer is fully transparent. Unlike
+	 * `compositeBuffer.pixels()` this iterates every layer (including hidden
+	 * ones), so painted-then-hidden content still counts as non-blank — the
+	 * tab-close save prompt won't silently discard it.
+	 */
+	isDocumentBlank(): boolean {
+		const doc = this.document;
+		for (let i = 0; i < doc.layer_count(); i++) {
+			const pixels = doc.layer_pixels_at(i);
+			if (pixels && !isBlankCanvas(pixels)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	#backend: CanvasBackend;

@@ -64,6 +64,11 @@ export class TabState {
 	resizeAnchor = $state<ResizeAnchor>('top-left');
 	isExportUIOpen = $state(false);
 
+	// WASM Document is external — Svelte can't track its internal mutations,
+	// so width/height are mirrored here and updated explicitly on resize().
+	canvasWidth = $state(0);
+	canvasHeight = $state(0);
+
 	/**
 	 * Renderer-facing view of the document. `pixels()` returns the full
 	 * source-over composite of every visible layer — the main canvas reads
@@ -142,6 +147,8 @@ export class TabState {
 			const ch = deps.canvasHeight ?? DEFAULT_CANVAS_DIMENSION;
 			this.document = singleLayerDocument(cw, ch, new Uint8Array(cw * ch * 4));
 		}
+		this.canvasWidth = this.document.width;
+		this.canvasHeight = this.document.height;
 
 		let initialViewport: ViewportData;
 		if (deps.viewport) {
@@ -197,6 +204,8 @@ export class TabState {
 					break;
 				case 'documentReplaced':
 					this.document = effect.document;
+					this.canvasWidth = effect.document.width;
+					this.canvasHeight = effect.document.height;
 					this.#tabViewport.reclamp();
 					this.renderVersion++;
 					persistableChanged = true;
@@ -348,6 +357,8 @@ export class TabState {
 		if (newWidth === this.document.width && newHeight === this.document.height) return;
 		this.#toolRunner.pushSnapshot();
 		resizeDocumentWithAnchor(this.document, newWidth, newHeight, this.resizeAnchor);
+		this.canvasWidth = newWidth;
+		this.canvasHeight = newHeight;
 		this.#tabViewport.reclamp();
 		this.renderVersion++;
 	};

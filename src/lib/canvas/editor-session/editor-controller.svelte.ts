@@ -62,6 +62,12 @@ export class EditorController {
 	get document(): Document {
 		return this.workspace.activeTab.document;
 	}
+	get canvasWidth(): number {
+		return this.workspace.activeTab.canvasWidth;
+	}
+	get canvasHeight(): number {
+		return this.workspace.activeTab.canvasHeight;
+	}
 	get compositeBuffer(): { readonly width: number; readonly height: number; pixels(): Uint8Array } {
 		return this.workspace.activeTab.compositeBuffer;
 	}

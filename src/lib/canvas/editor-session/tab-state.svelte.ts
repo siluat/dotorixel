@@ -340,6 +340,36 @@ export class TabState {
 		this.#notifier.markDirty(this.documentId);
 	};
 
+	/**
+	 * Moves the layer with `id` to `newVisualIndex` in **panel order** (top of
+	 * panel = visual 0). Translates visual→stack via
+	 * `stack_idx = (layer_count - 1) - visual_idx` and delegates to the core.
+	 * No-op when the layer is already at that visual position (no snapshot, no
+	 * renderVersion bump, no markDirty — keeps history clean and parallels the
+	 * `removeLayer` last-layer guard pattern). Pushes an undo snapshot on the
+	 * real-move branch and bumps `renderVersion`. Throws if `id` does not refer
+	 * to an existing layer.
+	 */
+	reorderLayer = (id: string, newVisualIndex: number): void => {
+		const count = this.document.layer_count();
+		const targetStackIdx = count - 1 - newVisualIndex;
+		const currentStackIdx = this.#stackIndexOf(id);
+		if (currentStackIdx === targetStackIdx) return;
+		this.#toolRunner.pushSnapshot();
+		this.document.reorder_layer(id, targetStackIdx);
+		this.renderVersion++;
+		this.#notifier.markDirty(this.documentId);
+	};
+
+	#stackIndexOf(id: string): number {
+		const doc = this.document;
+		const count = doc.layer_count();
+		for (let i = 0; i < count; i++) {
+			if (doc.layer_id_at(i) === id) return i;
+		}
+		throw new Error(`Layer with id ${id} not found`);
+	}
+
 	setViewport = (newViewport: ViewportData): void => {
 		this.#tabViewport.apply(
 			this.#backend.viewportOps.clampPan(

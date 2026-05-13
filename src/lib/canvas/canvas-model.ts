@@ -88,4 +88,11 @@ export interface Document {
 	 * exists; the previous active layer is preserved on error.
 	 */
 	set_active_layer(id: string): void;
+	/**
+	 * Moves the layer with `id` to `new_index` in the stack (0 = z-bottom).
+	 * `new_index` is silently clamped to `[0, layer_count - 1]`. The active
+	 * layer pointer is preserved across reordering — it's tracked by id, not
+	 * by index. Throws if no layer with this id exists.
+	 */
+	reorder_layer(id: string, new_index: number): void;
 }

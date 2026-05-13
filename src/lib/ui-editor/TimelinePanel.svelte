@@ -12,9 +12,59 @@
 		onAddLayer: () => void;
 		onActivateLayer: (id: string) => void;
 		onRemoveLayer: (id: string) => void;
+		onReorderLayer: (id: string, newVisualIndex: number) => void;
 	}
 
-	let { layers, activeLayerId, onAddLayer, onActivateLayer, onRemoveLayer }: Props = $props();
+	let {
+		layers,
+		activeLayerId,
+		onAddLayer,
+		onActivateLayer,
+		onRemoveLayer,
+		onReorderLayer
+	}: Props = $props();
+
+	let draggingId: string | null = null;
+
+	function handleReorderKey(event: KeyboardEvent, id: string, visualIndex: number) {
+		if (event.key === 'ArrowUp') {
+			event.preventDefault();
+			if (visualIndex > 0) onReorderLayer(id, visualIndex - 1);
+		} else if (event.key === 'ArrowDown') {
+			event.preventDefault();
+			if (visualIndex < layers.length - 1) onReorderLayer(id, visualIndex + 1);
+		} else if (event.key === 'Enter' || event.key === ' ') {
+			// Stop the row's Enter/Space activation handler from firing; the
+			// handle is for reordering, not activation.
+			event.stopPropagation();
+		}
+	}
+
+	function handleDragStart(event: DragEvent, id: string) {
+		draggingId = id;
+		if (event.dataTransfer) {
+			event.dataTransfer.effectAllowed = 'move';
+			event.dataTransfer.setData('text/plain', id);
+		}
+	}
+
+	function handleDragOver(event: DragEvent) {
+		if (draggingId === null) return;
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+	}
+
+	function handleDrop(event: DragEvent, targetVisualIndex: number) {
+		event.preventDefault();
+		const sourceId = draggingId;
+		draggingId = null;
+		if (sourceId === null) return;
+		onReorderLayer(sourceId, targetVisualIndex);
+	}
+
+	function handleDragEnd() {
+		draggingId = null;
+	}
 </script>
 
 <section class="timeline-panel" aria-label={m.layer_panel_title()}>
@@ -33,7 +83,7 @@
 	<div class="divider"></div>
 	<div class="body">
 		<div class="sidebar">
-			{#each layers as layer (layer.id)}
+			{#each layers as layer, visualIndex (layer.id)}
 				{@const isActive = layer.id === activeLayerId}
 				<div
 					class="row"
@@ -50,6 +100,8 @@
 							onActivateLayer(layer.id);
 						}
 					}}
+					ondragover={handleDragOver}
+					ondrop={(e) => handleDrop(e, visualIndex)}
 				>
 					<span class="bar"></span>
 					<span class="name">{layer.name}</span>
@@ -70,6 +122,20 @@
 						}}
 					>
 						✕
+					</button>
+					<button
+						type="button"
+						class="reorder-handle"
+						data-reorder-handle
+						aria-label={m.aria_reorderLayer({ name: layer.name })}
+						disabled={layers.length === 1}
+						draggable={layers.length > 1}
+						onclick={(e) => e.stopPropagation()}
+						onkeydown={(e) => handleReorderKey(e, layer.id, visualIndex)}
+						ondragstart={(e) => handleDragStart(e, layer.id)}
+						ondragend={handleDragEnd}
+					>
+						≡
 					</button>
 				</div>
 			{/each}
@@ -249,13 +315,13 @@
 		white-space: nowrap;
 	}
 
-	.remove-btn {
+	.remove-btn,
+	.reorder-handle {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		width: 24px;
 		height: 24px;
-		margin-right: var(--ds-space-2);
 		padding: 0;
 		border: none;
 		background: none;
@@ -267,18 +333,30 @@
 		cursor: pointer;
 	}
 
-	.remove-btn:hover:not(:disabled) {
+	.remove-btn:hover:not(:disabled),
+	.reorder-handle:hover:not(:disabled) {
 		background: var(--ds-bg-hover);
 		color: var(--ds-text-primary);
 	}
 
-	.remove-btn:focus-visible {
+	.remove-btn:focus-visible,
+	.reorder-handle:focus-visible {
 		outline: var(--ds-border-width-thick) solid var(--ds-accent);
 		outline-offset: 1px;
 	}
 
-	.remove-btn:disabled {
+	.remove-btn:disabled,
+	.reorder-handle:disabled {
 		opacity: 0.35;
 		cursor: not-allowed;
+	}
+
+	.reorder-handle {
+		margin-right: var(--ds-space-2);
+		cursor: grab;
+	}
+
+	.reorder-handle:active:not(:disabled) {
+		cursor: grabbing;
 	}
 </style>

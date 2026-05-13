@@ -164,6 +164,9 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 				throw new Error(`createFakeDocument: unknown layer id: ${id}`);
 			}
 		},
+		reorder_layer: () => {
+			throw new Error('createFakeDocument: reorder_layer not implemented');
+		},
 		get restoreActiveLayerCalls() {
 			return restoreCalls;
 		}

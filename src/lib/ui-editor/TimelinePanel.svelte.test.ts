@@ -10,6 +10,14 @@ afterEach(() => {
 const noopAddLayer = () => {};
 const noopActivateLayer = (_id: string) => {};
 const noopRemoveLayer = (_id: string) => {};
+const noopReorderLayer = (_id: string, _newVisualIndex: number) => {};
+
+const defaultProps = {
+	onAddLayer: noopAddLayer,
+	onActivateLayer: noopActivateLayer,
+	onRemoveLayer: noopRemoveLayer,
+	onReorderLayer: noopReorderLayer
+};
 
 describe('TimelinePanel', () => {
 	it('renders a single row showing the layer name when one layer is provided', () => {
@@ -20,7 +28,8 @@ describe('TimelinePanel', () => {
 				activeLayerId: 'a',
 				onAddLayer: noopAddLayer,
 				onActivateLayer: noopActivateLayer,
-				onRemoveLayer: noopRemoveLayer
+				onRemoveLayer: noopRemoveLayer,
+				onReorderLayer: noopReorderLayer
 			}
 		});
 
@@ -41,7 +50,8 @@ describe('TimelinePanel', () => {
 				activeLayerId: 'a',
 				onAddLayer: noopAddLayer,
 				onActivateLayer: noopActivateLayer,
-				onRemoveLayer: noopRemoveLayer
+				onRemoveLayer: noopRemoveLayer,
+				onReorderLayer: noopReorderLayer
 			}
 		});
 
@@ -63,7 +73,8 @@ describe('TimelinePanel', () => {
 				activeLayerId: 'b',
 				onAddLayer: noopAddLayer,
 				onActivateLayer: noopActivateLayer,
-				onRemoveLayer: noopRemoveLayer
+				onRemoveLayer: noopRemoveLayer,
+				onReorderLayer: noopReorderLayer
 			}
 		});
 
@@ -84,7 +95,8 @@ describe('TimelinePanel', () => {
 				activeLayerId: 'a',
 				onAddLayer: noopAddLayer,
 				onActivateLayer: noopActivateLayer,
-				onRemoveLayer: noopRemoveLayer
+				onRemoveLayer: noopRemoveLayer,
+				onReorderLayer: noopReorderLayer
 			}
 		});
 
@@ -102,7 +114,8 @@ describe('TimelinePanel', () => {
 				activeLayerId: 'a',
 				onAddLayer,
 				onActivateLayer: noopActivateLayer,
-				onRemoveLayer: noopRemoveLayer
+				onRemoveLayer: noopRemoveLayer,
+				onReorderLayer: noopReorderLayer
 			}
 		});
 
@@ -124,7 +137,8 @@ describe('TimelinePanel', () => {
 				activeLayerId: 'a',
 				onAddLayer: noopAddLayer,
 				onActivateLayer,
-				onRemoveLayer: noopRemoveLayer
+				onRemoveLayer: noopRemoveLayer,
+				onReorderLayer: noopReorderLayer
 			}
 		});
 
@@ -147,7 +161,8 @@ describe('TimelinePanel', () => {
 				activeLayerId: 'a',
 				onAddLayer: noopAddLayer,
 				onActivateLayer: noopActivateLayer,
-				onRemoveLayer: noopRemoveLayer
+				onRemoveLayer: noopRemoveLayer,
+				onReorderLayer: noopReorderLayer
 			}
 		});
 
@@ -170,7 +185,8 @@ describe('TimelinePanel', () => {
 				activeLayerId: 'a',
 				onAddLayer: noopAddLayer,
 				onActivateLayer: noopActivateLayer,
-				onRemoveLayer
+				onRemoveLayer,
+				onReorderLayer: noopReorderLayer
 			}
 		});
 
@@ -194,7 +210,8 @@ describe('TimelinePanel', () => {
 				activeLayerId: 'a',
 				onAddLayer: noopAddLayer,
 				onActivateLayer,
-				onRemoveLayer: noopRemoveLayer
+				onRemoveLayer: noopRemoveLayer,
+				onReorderLayer: noopReorderLayer
 			}
 		});
 
@@ -220,7 +237,8 @@ describe('TimelinePanel', () => {
 				activeLayerId: 'a',
 				onAddLayer: noopAddLayer,
 				onActivateLayer,
-				onRemoveLayer: noopRemoveLayer
+				onRemoveLayer: noopRemoveLayer,
+				onReorderLayer: noopReorderLayer
 			}
 		});
 
@@ -240,7 +258,8 @@ describe('TimelinePanel', () => {
 				activeLayerId: 'a',
 				onAddLayer: noopAddLayer,
 				onActivateLayer: noopActivateLayer,
-				onRemoveLayer: noopRemoveLayer
+				onRemoveLayer: noopRemoveLayer,
+				onReorderLayer: noopReorderLayer
 			}
 		});
 
@@ -259,13 +278,197 @@ describe('TimelinePanel', () => {
 				activeLayerId: 'a',
 				onAddLayer: noopAddLayer,
 				onActivateLayer: noopActivateLayer,
-				onRemoveLayer: noopRemoveLayer
+				onRemoveLayer: noopRemoveLayer,
+				onReorderLayer: noopReorderLayer
 			}
 		});
 
 		const btns = container.querySelectorAll<HTMLButtonElement>('[data-remove-layer]');
 		expect(btns.length).toBe(2);
 		for (const b of btns) expect(b.disabled).toBe(false);
+	});
+
+	it('renders a reorder handle on every layer row', () => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1' },
+			{ id: 'b', name: 'Layer 2' },
+			{ id: 'c', name: 'Layer 3' }
+		];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps }
+		});
+
+		const handles = container.querySelectorAll('[data-reorder-handle]');
+		expect(handles.length).toBe(3);
+		for (const h of handles) {
+			expect(h.tagName).toBe('BUTTON');
+		}
+	});
+
+	it('disables the reorder handle when only one layer remains', () => {
+		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps }
+		});
+
+		const handle = container.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+		expect(handle.disabled).toBe(true);
+	});
+
+	it('enables the reorder handle on every row when two or more layers are present', () => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1' },
+			{ id: 'b', name: 'Layer 2' }
+		];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps }
+		});
+
+		const handles = container.querySelectorAll<HTMLButtonElement>('[data-reorder-handle]');
+		for (const h of handles) expect(h.disabled).toBe(false);
+	});
+
+	it('clicking the reorder handle does not activate the row', async () => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1' },
+			{ id: 'b', name: 'Layer 2' }
+		];
+		const onActivateLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onActivateLayer }
+		});
+
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+		const handle = rowB.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+		await fireEvent.click(handle);
+
+		expect(onActivateLayer).not.toHaveBeenCalled();
+	});
+
+	it.each([
+		['Enter', 'Enter'],
+		['Space', ' ']
+	])('pressing %s on the reorder handle does not activate the row', async (_label, key) => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1' },
+			{ id: 'b', name: 'Layer 2' }
+		];
+		const onActivateLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onActivateLayer }
+		});
+
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+		const handle = rowB.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+		handle.focus();
+		await fireEvent.keyDown(handle, { key });
+
+		expect(onActivateLayer).not.toHaveBeenCalled();
+	});
+
+	it('ArrowUp on a focused reorder handle moves the layer up one visual position', async () => {
+		// Panel order (top→bottom): [Layer 3 (id c), Layer 2 (id b), Layer 1 (id a)]
+		const layers = [
+			{ id: 'c', name: 'Layer 3' },
+			{ id: 'b', name: 'Layer 2' },
+			{ id: 'a', name: 'Layer 1' }
+		];
+		const onReorderLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
+		});
+
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+		const handle = rowB.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+		handle.focus();
+		await fireEvent.keyDown(handle, { key: 'ArrowUp' });
+
+		// Layer b is currently at visual index 1; ArrowUp targets visual index 0.
+		expect(onReorderLayer).toHaveBeenCalledWith('b', 0);
+		expect(onReorderLayer).toHaveBeenCalledTimes(1);
+	});
+
+	it('ArrowDown on a focused reorder handle moves the layer down one visual position', async () => {
+		const layers = [
+			{ id: 'c', name: 'Layer 3' },
+			{ id: 'b', name: 'Layer 2' },
+			{ id: 'a', name: 'Layer 1' }
+		];
+		const onReorderLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
+		});
+
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+		const handle = rowB.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+		handle.focus();
+		await fireEvent.keyDown(handle, { key: 'ArrowDown' });
+
+		// Layer b is currently at visual index 1; ArrowDown targets visual index 2.
+		expect(onReorderLayer).toHaveBeenCalledWith('b', 2);
+	});
+
+	it('ArrowUp on the top-row reorder handle is a no-op', async () => {
+		const layers = [
+			{ id: 'c', name: 'Layer 3' },
+			{ id: 'b', name: 'Layer 2' },
+			{ id: 'a', name: 'Layer 1' }
+		];
+		const onReorderLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
+		});
+
+		const rowC = container.querySelector('[data-layer-row][data-layer-id="c"]') as HTMLElement;
+		const handle = rowC.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+		handle.focus();
+		await fireEvent.keyDown(handle, { key: 'ArrowUp' });
+
+		expect(onReorderLayer).not.toHaveBeenCalled();
+	});
+
+	it('ArrowDown on the bottom-row reorder handle is a no-op', async () => {
+		const layers = [
+			{ id: 'c', name: 'Layer 3' },
+			{ id: 'b', name: 'Layer 2' },
+			{ id: 'a', name: 'Layer 1' }
+		];
+		const onReorderLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
+		});
+
+		const rowA = container.querySelector('[data-layer-row][data-layer-id="a"]') as HTMLElement;
+		const handle = rowA.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+		handle.focus();
+		await fireEvent.keyDown(handle, { key: 'ArrowDown' });
+
+		expect(onReorderLayer).not.toHaveBeenCalled();
+	});
+
+	it('dragging row C and dropping on row A calls onReorderLayer with the target row’s visual index', async () => {
+		const layers = [
+			{ id: 'c', name: 'Layer 3' },
+			{ id: 'b', name: 'Layer 2' },
+			{ id: 'a', name: 'Layer 1' }
+		];
+		const onReorderLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
+		});
+
+		const rowC = container.querySelector('[data-layer-row][data-layer-id="c"]') as HTMLElement;
+		const rowA = container.querySelector('[data-layer-row][data-layer-id="a"]') as HTMLElement;
+		const handleC = rowC.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+
+		const dataTransfer = new DataTransfer();
+		await fireEvent.dragStart(handleC, { dataTransfer });
+		await fireEvent.dragOver(rowA, { dataTransfer });
+		await fireEvent.drop(rowA, { dataTransfer });
+
+		// Row A is at visual index 2; dropping the dragged Layer 3 there should
+		// request reorder to visual index 2.
+		expect(onReorderLayer).toHaveBeenCalledWith('c', 2);
 	});
 
 	it('activates the row when Enter or Space is pressed on a focused row', async () => {
@@ -280,7 +483,8 @@ describe('TimelinePanel', () => {
 				activeLayerId: 'a',
 				onAddLayer: noopAddLayer,
 				onActivateLayer,
-				onRemoveLayer: noopRemoveLayer
+				onRemoveLayer: noopRemoveLayer,
+				onReorderLayer: noopReorderLayer
 			}
 		});
 

@@ -59,6 +59,11 @@
 						data-remove-layer
 						aria-label={m.aria_removeLayer({ name: layer.name })}
 						disabled={layers.length === 1}
+						onkeydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.stopPropagation();
+							}
+						}}
 						onclick={(e) => {
 							e.stopPropagation();
 							onRemoveLayer(layer.id);

@@ -205,6 +205,33 @@ describe('TimelinePanel', () => {
 		expect(onActivateLayer).not.toHaveBeenCalled();
 	});
 
+	it.each([
+		['Enter', 'Enter'],
+		['Space', ' ']
+	])('pressing %s on the remove button does not activate the row', async (_label, key) => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1' },
+			{ id: 'b', name: 'Layer 2' }
+		];
+		const onActivateLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: {
+				layers,
+				activeLayerId: 'a',
+				onAddLayer: noopAddLayer,
+				onActivateLayer,
+				onRemoveLayer: noopRemoveLayer
+			}
+		});
+
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+		const btn = rowB.querySelector('[data-remove-layer]') as HTMLButtonElement;
+		btn.focus();
+		await fireEvent.keyDown(btn, { key });
+
+		expect(onActivateLayer).not.toHaveBeenCalled();
+	});
+
 	it('disables the remove button when only one layer remains', () => {
 		const layers = [{ id: 'a', name: 'Layer 1' }];
 		const { container } = render(TimelinePanel, {

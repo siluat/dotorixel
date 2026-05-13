@@ -2,18 +2,16 @@
 
 ## Currently Working On
 
-Layer system — basic infrastructure (add/delete/reorder) ([PRD-086](../issues/086-layer-system-basic-infrastructure.md)). 13 done, 5 remaining (096/097/098/099/100). Per-row affordance pattern (`stopPropagation`, last-layer-style idempotency at the `TabState` boundary) is now established; 097's visibility chevron will follow the same rule. Web-only / Apple-preserved split recorded in ADR `docs/decisions/web-document-layer-apple-preserved.en.md`.
+Layer system — basic infrastructure (add/delete/reorder) ([PRD-086](../issues/086-layer-system-basic-infrastructure.md)). 14 done, 4 remaining (097/098/099/100). Desktop add/delete/reorder all landed; 097's visibility chevron is the natural next slice and inherits the established per-row pattern (`stopPropagation` + last-layer-style idempotency at the `TabState` boundary).
 
 ## Last Completed
 
-[095 — Delete-layer button](../issues/095-layer-system-delete-layer-button.md): per-row `✕` removes the layer; disabled at single-layer and a parallel last-layer guard in `TabState.removeLayer` keeps the UI's disabled contract honest from non-UI call paths and protects history from orphan snapshots. Internal verb is `remove` everywhere (094 pattern), user-facing copy stays "Delete/삭제/削除" (UX idiom).
+[096 — Layer reorder](../issues/096-layer-system-reorder-layer.md): per-row `≡` handle supports drag-and-drop or ArrowUp/Down reordering. The visual↔stack mapping (`stack_idx = (count - 1) - visual_idx`) is encapsulated in `TabState.reorderLayer` and locked by a unit test, so future panel-order changes will fail loudly instead of silently inverting depth.
 
 ## Next Up
 
-- [096 — Layer reorder](../issues/096-layer-system-reorder-layer.md)
-  - Unblocked. 094 locked the panel-order convention; drag translates visual→stack via `stack_idx = (count - 1) - visual_idx`.
 - [097 — Visibility toggle](../issues/097-layer-system-visibility-toggle.md)
-  - Unblocked. Per-row visibility chevron + composite update. Must `stopPropagation` (see 104/095).
+  - Unblocked. Per-row visibility chevron + composite update. Must `stopPropagation` (see 104/095/096).
 - [098 — Mobile Timeline tab](../issues/098-layer-system-mobile-timeline-tab.md)
   - Unblocked. Mobile entry point — independent of desktop add/delete/reorder.
 - [099 — Collapsible chevron (no persistence)](../issues/099-layer-system-collapsible-toggle.md)

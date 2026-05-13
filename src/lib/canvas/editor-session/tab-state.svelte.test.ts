@@ -783,6 +783,115 @@ describe('TabState — setActiveLayer', () => {
 	});
 });
 
+describe('TabState — reorderLayer', () => {
+	// `reorderLayer` takes a *visual* index in panel order (top of panel = visual 0),
+	// while the document stack runs bottom-to-top (`layer 0` = z-bottom). The
+	// public-API behavior locked here is the visual contract — these tests are
+	// what guard the `(count - 1) - visual_idx` mapping from silently inverting.
+
+	it('moving the top-of-panel layer (visual 0) to the bottom (visual layers-1) puts it at stack index 0', () => {
+		const { tab } = makeTab();
+		tab.addLayer('Layer 2');
+		tab.addLayer('Layer 3');
+		// Stack (bottom→top): [Layer 1, Layer 2, Layer 3]
+		// Panel (top→bottom): [Layer 3, Layer 2, Layer 1]
+		const layer3Id = tab.document.layer_id_at(2)!;
+
+		tab.reorderLayer(layer3Id, 2); // move Layer 3 to the panel's bottom row
+
+		// Now expected stack: [Layer 3, Layer 1, Layer 2]
+		expect(tab.document.layer_id_at(0)).toBe(layer3Id);
+	});
+
+	it('moving the bottom-of-panel layer (visual layers-1) to the top (visual 0) puts it at stack index layers-1', () => {
+		const { tab } = makeTab();
+		tab.addLayer('Layer 2');
+		tab.addLayer('Layer 3');
+		const layer1Id = tab.document.layer_id_at(0)!;
+
+		tab.reorderLayer(layer1Id, 0); // move Layer 1 (panel bottom) to the panel's top row
+
+		const top = tab.document.layer_count() - 1;
+		expect(tab.document.layer_id_at(top)).toBe(layer1Id);
+	});
+
+	it('preserves the active layer pointer across reordering (it is tracked by id, not index)', () => {
+		const { tab } = makeTab();
+		tab.addLayer('Layer 2');
+		tab.addLayer('Layer 3');
+		const activeId = tab.document.active_layer_id(); // Layer 3 (newly added)
+
+		tab.reorderLayer(activeId, 2); // move active from panel top to panel bottom
+
+		expect(tab.document.active_layer_id()).toBe(activeId);
+	});
+
+	it('is undoable: undo restores the prior stack order', () => {
+		const { tab } = makeTab();
+		tab.addLayer('Layer 2');
+		tab.addLayer('Layer 3');
+		const layer1Id = tab.document.layer_id_at(0)!;
+		const layer2Id = tab.document.layer_id_at(1)!;
+		const layer3Id = tab.document.layer_id_at(2)!;
+
+		tab.reorderLayer(layer3Id, 2); // [Layer 3, Layer 1, Layer 2]
+		expect([
+			tab.document.layer_id_at(0),
+			tab.document.layer_id_at(1),
+			tab.document.layer_id_at(2)
+		]).toEqual([layer3Id, layer1Id, layer2Id]);
+
+		tab.undo();
+
+		expect([
+			tab.document.layer_id_at(0),
+			tab.document.layer_id_at(1),
+			tab.document.layer_id_at(2)
+		]).toEqual([layer1Id, layer2Id, layer3Id]);
+	});
+
+	it('bumps renderVersion and emits markDirty', () => {
+		const { tab, notifier } = makeTab();
+		tab.addLayer('Layer 2');
+		const layer1Id = tab.document.layer_id_at(0)!;
+		const renderBefore = tab.renderVersion;
+		notifier.reset();
+
+		tab.reorderLayer(layer1Id, 0);
+
+		expect(tab.renderVersion).toBeGreaterThan(renderBefore);
+		expect(notifier.dirtyCalls).toContain('doc-test');
+	});
+
+	it('is a no-op when the target visual index matches the layer’s current visual index', () => {
+		const { tab, notifier } = makeTab();
+		tab.addLayer('Layer 2');
+		const layer2Id = tab.document.active_layer_id(); // currently panel top (visual 0)
+		const renderBefore = tab.renderVersion;
+		notifier.reset();
+
+		tab.reorderLayer(layer2Id, 0);
+
+		expect(tab.renderVersion).toBe(renderBefore);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('the no-op branch also leaves the undo stack untouched (no orphan snapshot)', () => {
+		const { tab, shared } = makeTab();
+		shared.foregroundColor = BLACK;
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 2, y: 2 }, null);
+		tab.drawEnd();
+
+		const onlyId = tab.document.active_layer_id();
+		tab.reorderLayer(onlyId, 0); // visual index unchanged → no-op
+
+		tab.undo();
+		expect(getPixel(tab, 2, 2).a).toBe(0);
+	});
+});
+
 describe('TabState — compositeBuffer reflects all visible layers', () => {
 	it('width and height match the document', () => {
 		const { tab } = makeTab({ canvasWidth: 12, canvasHeight: 7 });

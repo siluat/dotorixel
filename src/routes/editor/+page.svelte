@@ -144,6 +144,10 @@
 		editor.workspace.activeTab.removeLayer(id);
 	}
 
+	function handleReorderLayer(id: string, newVisualIndex: number) {
+		editor.workspace.activeTab.reorderLayer(id, newVisualIndex);
+	}
+
 	function handlePixelPerfectToggle() {
 		if (pixelPerfectDisabled) return;
 		editor.togglePixelPerfect();
@@ -505,6 +509,7 @@
 			onAddLayer={handleAddLayer}
 			onActivateLayer={handleActivateLayer}
 			onRemoveLayer={handleRemoveLayer}
+			onReorderLayer={handleReorderLayer}
 		/>
 
 		<RightPanel

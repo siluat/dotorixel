@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 096 | [Layer system: layer reorder](../issues/096-layer-system-reorder-layer.md) | 2026-05-13 |
 | 095 | [Layer system: delete-layer button](../issues/095-layer-system-delete-layer-button.md) | 2026-05-13 |
 | 104 | [Layer system: activate layer on row click](../issues/104-layer-system-activate-layer-on-row-click.md) | 2026-05-13 |
 | 103 | [Layer system: V3 multi-layer pixel persistence wiring](../issues/103-layer-system-multi-layer-persistence.md) | 2026-05-13 |

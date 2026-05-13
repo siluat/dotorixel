@@ -3,6 +3,7 @@
 ## Milestone 3: Editor for Serious Work
 
 - Layer system: basic infrastructure (add/delete/reorder) ([PRD](../issues/086-layer-system-basic-infrastructure.md))
+  - [104 — Activate layer on row click](../issues/104-layer-system-activate-layer-on-row-click.md)
   - [095 — Delete-layer button](../issues/095-layer-system-delete-layer-button.md)
   - [096 — Layer reorder](../issues/096-layer-system-reorder-layer.md)
   - [097 — Visibility toggle](../issues/097-layer-system-visibility-toggle.md)

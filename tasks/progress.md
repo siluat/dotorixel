@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-Layer system — basic infrastructure (add/delete/reorder) ([PRD-086](../issues/086-layer-system-basic-infrastructure.md)). 15 sub-issues (087–101) + late-added 102/103; 11 done, 6 remaining (095/096/097/098/099/100). End-to-end persistence is wired (102 composite-driven render + 103 V3 multi-layer persistence), so remaining UI sub-issues are visually verifiable through both refresh and saved-work paths. Web-only / Apple-preserved split recorded in ADR `docs/decisions/web-document-layer-apple-preserved.en.md`.
+Layer system — basic infrastructure (add/delete/reorder) ([PRD-086](../issues/086-layer-system-basic-infrastructure.md)). 15 sub-issues (087–101) + late-added 102/103/104; 11 done, 7 remaining (104/095/096/097/098/099/100). End-to-end persistence is wired (102 composite-driven render + 103 V3 multi-layer persistence), so remaining UI sub-issues are visually verifiable through both refresh and saved-work paths. Web-only / Apple-preserved split recorded in ADR `docs/decisions/web-document-layer-apple-preserved.en.md`.
 
 ## Last Completed
 
@@ -10,6 +10,8 @@ Layer system — basic infrastructure (add/delete/reorder) ([PRD-086](../issues/
 
 ## Next Up
 
+- [104 — Activate layer on row click](../issues/104-layer-system-activate-layer-on-row-click.md)
+  - Unblocked. Closes a post-decomposition gap — `set_active_layer` already exists in core (087) and WASM (089); TS + UI wiring only. Build before 095/096/097 so nested per-row buttons land with `stopPropagation` in place from the start.
 - [095 — Delete-layer button](../issues/095-layer-system-delete-layer-button.md)
   - Unblocked. `addLayer` pattern from 094 transfers directly.
 - [096 — Layer reorder](../issues/096-layer-system-reorder-layer.md)

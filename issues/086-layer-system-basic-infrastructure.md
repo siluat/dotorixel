@@ -40,7 +40,8 @@ This PRD changes **the web shell only**. The Apple shell preserves the single `P
 9. When an existing V2 user opens the page → the single canvas is auto-migrated to a V3 Document with one "Layer 1" (no pixel loss; history is reset).
 10. When the user clicks the chevron at the bottom of the canvas → the TimelinePanel collapses (h=180 → h=32). Click again to expand. The state persists per document.
 11. When a mobile user taps the 4th tab ("Timeline") → the layer interface appears. Switching to another tab implicitly closes it (the tab itself is the toggle).
-12. Apple shell users are unaffected by this PRD — Apple keeps the existing single `PixelCanvas` + `HistoryManager` interface.
+12. When the user clicks a non-active row in the TimelinePanel sidebar → that layer becomes the active layer; subsequent drawing tool actions apply to it. (Selection is not undoable — see sub-issue 104.)
+13. Apple shell users are unaffected by this PRD — Apple keeps the existing single `PixelCanvas` + `HistoryManager` interface.
 
 ## Implementation Decisions
 
@@ -215,12 +216,13 @@ Layer + per-frame Cel separation.
 
 ## Follow-up sub-issues (post-decomposition gaps)
 
-The initial decomposition (087–101) covered the data model, history, design, and the first add-layer slice, but two implementation paths required to make layers user-visible and durable were not assigned to a sub-issue:
+The initial decomposition (087–101) covered the data model, history, design, and the first add-layer slice, but several implementation paths required to make layers user-visible, selectable, and durable were not assigned to a sub-issue:
 
 - **102 — Render path: switch main canvas to `document.composite()`**. With only 094 in place, the renderer still reads `tab-state.pixelCanvas` (a mirror of the active layer), so additional layers exist in the document but never appear on screen. Without 102, the composite results from 095/096/097 cannot be visually verified.
 - **103 — V3 multi-layer pixel persistence wiring**. `DocumentSchemaV3` and `migrateV2ToV3` are declared in `session-storage-types.ts`, but `SessionStorage` and `tab-state.toSnapshot()` are still on V2 — refreshing the page collapses every multi-layer document back to a single layer and discards every layer's name, visibility, opacity, and id. Required before any M3 release that exposes the layer system to users.
+- **104 — Activate layer on row click**. The Rust core and WASM facade already expose `set_active_layer` (087, 089), but no sub-issue surfaces it as a UI affordance. Without 104 the user can only draw on whichever layer is left active by automatic transitions (add / delete) — a usability blocker once the stack has more than one layer. Build before 095 / 096 / 097 so those slices know to `stopPropagation` on their nested per-row buttons.
 
-Both are blockers for the rest of PRD-086 to be more than data-model bookkeeping.
+All three are blockers for the rest of PRD-086 to be more than data-model bookkeeping.
 
 ## Further Notes
 

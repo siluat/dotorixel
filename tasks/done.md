@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 104 | [Layer system: activate layer on row click](../issues/104-layer-system-activate-layer-on-row-click.md) | 2026-05-13 |
 | 103 | [Layer system: V3 multi-layer pixel persistence wiring](../issues/103-layer-system-multi-layer-persistence.md) | 2026-05-13 |
 | 102 | [Layer system: switch main canvas render to `document.composite()`](../issues/102-layer-system-composite-render-path.md) | 2026-05-11 |
 | 094 | [Layer system: add-layer button](../issues/094-layer-system-add-layer-button.md) | 2026-05-09 |

@@ -317,6 +317,13 @@ export class TabState {
 		this.#notifier.markDirty(this.documentId);
 	};
 
+	setActiveLayer = (id: string): void => {
+		if (id === this.document.active_layer_id()) return;
+		this.document.set_active_layer(id);
+		this.renderVersion++;
+		this.#notifier.markDirty(this.documentId);
+	};
+
 	setViewport = (newViewport: ViewportData): void => {
 		this.#tabViewport.apply(
 			this.#backend.viewportOps.clampPan(

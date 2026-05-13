@@ -76,4 +76,9 @@ export interface Document {
 	 * not a valid UUID, or already exists in the document.
 	 */
 	add_layer(new_id: string, name: string): void;
+	/**
+	 * Sets the active layer pointer by id. Throws if no layer with this id
+	 * exists; the previous active layer is preserved on error.
+	 */
+	set_active_layer(id: string): void;
 }

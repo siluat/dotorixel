@@ -1,6 +1,6 @@
 ---
 title: "Layer system: activate layer on row click"
-status: ready-for-agent
+status: done
 created: 2026-05-13
 parent: 086-layer-system-basic-infrastructure.md
 ---
@@ -47,3 +47,27 @@ None — the Rust core and WASM facade already expose `set_active_layer` (087, 0
 
 - Per-row keyboard navigation with `↑ / ↓` between rows — defer to a future a11y pass once delete / reorder / visibility are all in place (those slices introduce their own focusable controls and the full keyboard map is best designed together).
 - Hover preview / drag-to-activate / right-click context menu — not in M3 scope.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/canvas-model.ts` | Added `set_active_layer(id)` to the `Document` interface with a doc comment describing the throws-on-unknown-id contract. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Added `setActiveLayer(id)` — early-returns on the same id (owns the no-op contract), otherwise calls `document.set_active_layer`, bumps `renderVersion`, and marks the doc dirty. Not undoable. |
+| `src/lib/canvas/editor-session/tab-state.svelte.test.ts` | 4 new tests: state mutation + `renderVersion` + `markDirty`, no-op on same id, not undoable, draw applies to newly active layer. |
+| `src/lib/canvas/fake-drawing-ops.ts` | Throwing stub for `set_active_layer` to satisfy the `Document` interface in test fakes. |
+| `src/lib/ui-editor/TimelinePanel.svelte` | Added `activeLayerId` and `onActivateLayer` props; row uses `role="button"` + `tabindex="0"` + `onclick`/`onkeydown` for Space/Enter activation; `:focus-visible` outline matches the existing `.add-btn` pattern (no new tokens). |
+| `src/lib/ui-editor/TimelinePanel.svelte.test.ts` | 2 new tests: `onActivateLayer` invoked with the layer id on row click, Enter/Space keyboard activation. Existing tests updated for the new required prop. |
+| `src/routes/editor/+page.svelte` | Wired `handleActivateLayer` → `editor.workspace.activeTab.setActiveLayer` and passed it to `TimelinePanel`. |
+| `e2e/editor/layers.test.ts` | New E2E test: clicking a non-active row activates it, and undo afterward does not restore the previous active layer (selection is not in history). |
+
+### Key Decisions
+
+- **Idempotency owner is TabState, not the component.** The "click on the already-active row is a no-op" contract lives in `TabState.setActiveLayer` (early-return). The component always emits `onActivateLayer(id)`. This keeps the contract enforced even for programmatic callers (future shortcuts, command palette).
+- **`role="button"` over `<button>`.** Upcoming sub-issues 095 (delete) and 097 (visibility) will add nested per-row controls; nested `<button>` is invalid HTML. The row uses `role="button"` + `tabindex="0"` + key handler instead.
+- **Not undoable.** Matches Photoshop / Aseprite convention and the project's collapse-toggle precedent (099 / 100). The active-layer pointer still travels through history snapshots pushed by *other* operations (add / delete / reorder / draw), so undo restores the active layer that was correct at the time of the snapshot.
+
+### Notes
+
+- `:focus-visible` outline and `cursor: pointer` on `.row` are new visual states the keyboard-activation AC requires, but they reuse the existing `.add-btn:focus-visible` pattern and `--ds-*` tokens — no new design tokens. The active-row treatment (fill + accent bar) from 093 / 094 is unchanged.
+- 095 / 097 will need to `stopPropagation` on nested per-row buttons (delete, visibility chevron) so they don't accidentally trigger row activation.

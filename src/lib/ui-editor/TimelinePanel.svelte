@@ -10,9 +10,10 @@
 		layers: ReadonlyArray<LayerSummary>;
 		activeLayerId: string;
 		onAddLayer: () => void;
+		onActivateLayer: (id: string) => void;
 	}
 
-	let { layers, activeLayerId, onAddLayer }: Props = $props();
+	let { layers, activeLayerId, onAddLayer, onActivateLayer }: Props = $props();
 </script>
 
 <section class="timeline-panel" aria-label={m.layer_panel_title()}>
@@ -36,9 +37,18 @@
 				<div
 					class="row"
 					class:row--active={isActive}
+					role="button"
+					tabindex="0"
 					data-layer-row
 					data-layer-id={layer.id}
 					aria-current={isActive ? 'true' : undefined}
+					onclick={() => onActivateLayer(layer.id)}
+					onkeydown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault();
+							onActivateLayer(layer.id);
+						}
+					}}
 				>
 					<span class="bar"></span>
 					<span class="name">{layer.name}</span>
@@ -185,6 +195,12 @@
 		display: flex;
 		align-items: center;
 		height: var(--row-height);
+		cursor: pointer;
+	}
+
+	.row:focus-visible {
+		outline: var(--ds-border-width-thick) solid var(--ds-accent);
+		outline-offset: -2px;
 	}
 
 	.row--active {

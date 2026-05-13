@@ -136,6 +136,10 @@
 		tab.addLayer(m.layer_default_name({ n }));
 	}
 
+	function handleActivateLayer(id: string) {
+		editor.workspace.activeTab.setActiveLayer(id);
+	}
+
 	function handlePixelPerfectToggle() {
 		if (pixelPerfectDisabled) return;
 		editor.togglePixelPerfect();
@@ -491,7 +495,12 @@
 			/>
 		</div>
 
-		<TimelinePanel layers={layers} activeLayerId={activeLayerId} onAddLayer={handleAddLayer} />
+		<TimelinePanel
+			layers={layers}
+			activeLayerId={activeLayerId}
+			onAddLayer={handleAddLayer}
+			onActivateLayer={handleActivateLayer}
+		/>
 
 		<RightPanel
 			foregroundColor={editor.foregroundColorHex}

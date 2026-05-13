@@ -8,12 +8,18 @@ afterEach(() => {
 });
 
 const noopAddLayer = () => {};
+const noopActivateLayer = (_id: string) => {};
 
 describe('TimelinePanel', () => {
 	it('renders a single row showing the layer name when one layer is provided', () => {
 		const layers = [{ id: 'a', name: 'Layer 1' }];
 		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', onAddLayer: noopAddLayer }
+			props: {
+				layers,
+				activeLayerId: 'a',
+				onAddLayer: noopAddLayer,
+				onActivateLayer: noopActivateLayer
+			}
 		});
 
 		const rows = container.querySelectorAll('[data-layer-row]');
@@ -28,7 +34,12 @@ describe('TimelinePanel', () => {
 			{ id: 'c', name: 'Hair' }
 		];
 		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', onAddLayer: noopAddLayer }
+			props: {
+				layers,
+				activeLayerId: 'a',
+				onAddLayer: noopAddLayer,
+				onActivateLayer: noopActivateLayer
+			}
 		});
 
 		const rows = container.querySelectorAll('[data-layer-row]');
@@ -44,7 +55,12 @@ describe('TimelinePanel', () => {
 			{ id: 'c', name: 'Layer 3' }
 		];
 		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'b', onAddLayer: noopAddLayer }
+			props: {
+				layers,
+				activeLayerId: 'b',
+				onAddLayer: noopAddLayer,
+				onActivateLayer: noopActivateLayer
+			}
 		});
 
 		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]');
@@ -59,7 +75,12 @@ describe('TimelinePanel', () => {
 	it('renders an add-layer button in the header', () => {
 		const layers = [{ id: 'a', name: 'Layer 1' }];
 		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', onAddLayer: noopAddLayer }
+			props: {
+				layers,
+				activeLayerId: 'a',
+				onAddLayer: noopAddLayer,
+				onActivateLayer: noopActivateLayer
+			}
 		});
 
 		const button = container.querySelector('[data-add-layer]');
@@ -71,12 +92,49 @@ describe('TimelinePanel', () => {
 		const layers = [{ id: 'a', name: 'Layer 1' }];
 		const onAddLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', onAddLayer }
+			props: { layers, activeLayerId: 'a', onAddLayer, onActivateLayer: noopActivateLayer }
 		});
 
 		const button = container.querySelector('[data-add-layer]') as HTMLButtonElement;
 		await fireEvent.click(button);
 
 		expect(onAddLayer).toHaveBeenCalledTimes(1);
+	});
+
+	it('invokes onActivateLayer with the layer id when a non-active row is clicked', async () => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1' },
+			{ id: 'b', name: 'Layer 2' }
+		];
+		const onActivateLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', onAddLayer: noopAddLayer, onActivateLayer }
+		});
+
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+		await fireEvent.click(rowB);
+
+		expect(onActivateLayer).toHaveBeenCalledWith('b');
+		expect(onActivateLayer).toHaveBeenCalledTimes(1);
+	});
+
+	it('activates the row when Enter or Space is pressed on a focused row', async () => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1' },
+			{ id: 'b', name: 'Layer 2' }
+		];
+		const onActivateLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', onAddLayer: noopAddLayer, onActivateLayer }
+		});
+
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+
+		await fireEvent.keyDown(rowB, { key: 'Enter' });
+		expect(onActivateLayer).toHaveBeenCalledWith('b');
+
+		onActivateLayer.mockClear();
+		await fireEvent.keyDown(rowB, { key: ' ' });
+		expect(onActivateLayer).toHaveBeenCalledWith('b');
 	});
 });

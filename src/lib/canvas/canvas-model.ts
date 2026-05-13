@@ -77,6 +77,13 @@ export interface Document {
 	 */
 	add_layer(new_id: string, name: string): void;
 	/**
+	 * Removes the layer with `id`. Throws when the layer does not exist or
+	 * when removing it would empty the document (a document must always
+	 * contain at least one layer). When the removed layer was active, the
+	 * active pointer moves to an adjacent layer.
+	 */
+	remove_layer(id: string): void;
+	/**
 	 * Sets the active layer pointer by id. Throws if no layer with this id
 	 * exists; the previous active layer is preserved on error.
 	 */

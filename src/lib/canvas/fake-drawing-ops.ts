@@ -156,6 +156,9 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 		add_layer: () => {
 			throw new Error('createFakeDocument: add_layer not implemented');
 		},
+		remove_layer: () => {
+			throw new Error('createFakeDocument: remove_layer not implemented');
+		},
 		set_active_layer: (id) => {
 			if (id !== 'active') {
 				throw new Error(`createFakeDocument: unknown layer id: ${id}`);

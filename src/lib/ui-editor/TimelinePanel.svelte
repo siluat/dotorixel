@@ -11,9 +11,10 @@
 		activeLayerId: string;
 		onAddLayer: () => void;
 		onActivateLayer: (id: string) => void;
+		onRemoveLayer: (id: string) => void;
 	}
 
-	let { layers, activeLayerId, onAddLayer, onActivateLayer }: Props = $props();
+	let { layers, activeLayerId, onAddLayer, onActivateLayer, onRemoveLayer }: Props = $props();
 </script>
 
 <section class="timeline-panel" aria-label={m.layer_panel_title()}>
@@ -52,6 +53,24 @@
 				>
 					<span class="bar"></span>
 					<span class="name">{layer.name}</span>
+					<button
+						type="button"
+						class="remove-btn"
+						data-remove-layer
+						aria-label={m.aria_removeLayer({ name: layer.name })}
+						disabled={layers.length === 1}
+						onkeydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.stopPropagation();
+							}
+						}}
+						onclick={(e) => {
+							e.stopPropagation();
+							onRemoveLayer(layer.id);
+						}}
+					>
+						✕
+					</button>
 				</div>
 			{/each}
 		</div>
@@ -228,5 +247,38 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.remove-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		margin-right: var(--ds-space-2);
+		padding: 0;
+		border: none;
+		background: none;
+		border-radius: var(--ds-radius-sm);
+		color: var(--ds-text-secondary);
+		font-size: var(--ds-font-size-md);
+		font-family: inherit;
+		line-height: 1;
+		cursor: pointer;
+	}
+
+	.remove-btn:hover:not(:disabled) {
+		background: var(--ds-bg-hover);
+		color: var(--ds-text-primary);
+	}
+
+	.remove-btn:focus-visible {
+		outline: var(--ds-border-width-thick) solid var(--ds-accent);
+		outline-offset: 1px;
+	}
+
+	.remove-btn:disabled {
+		opacity: 0.35;
+		cursor: not-allowed;
 	}
 </style>

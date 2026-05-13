@@ -317,6 +317,22 @@ export class TabState {
 		this.#notifier.markDirty(this.documentId);
 	};
 
+	/**
+	 * Removes the layer with `id`. No-op when only one layer remains (last-layer
+	 * guard parallels the UI's disabled affordance and keeps history clean — no
+	 * snapshot is pushed in that branch). When the removed layer was active, the
+	 * active pointer moves to an adjacent layer (delegated to the core). Pushes
+	 * an undo snapshot, bumps `renderVersion`, and marks the tab dirty. Throws
+	 * if `id` does not refer to an existing layer.
+	 */
+	removeLayer = (id: string): void => {
+		if (this.document.layer_count() === 1) return;
+		this.#toolRunner.pushSnapshot();
+		this.document.remove_layer(id);
+		this.renderVersion++;
+		this.#notifier.markDirty(this.documentId);
+	};
+
 	setActiveLayer = (id: string): void => {
 		if (id === this.document.active_layer_id()) return;
 		this.document.set_active_layer(id);

@@ -135,5 +135,6 @@
 
 	"layer_default_name": "Layer {n}",
 	"layer_panel_title": "Layers",
-	"aria_addLayer": "Add layer"
+	"aria_addLayer": "Add layer",
+	"aria_removeLayer": "Delete {name}"
 }

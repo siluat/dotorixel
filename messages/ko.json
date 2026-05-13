@@ -135,5 +135,6 @@
 
 	"layer_default_name": "레이어 {n}",
 	"layer_panel_title": "레이어",
-	"aria_addLayer": "레이어 추가"
+	"aria_addLayer": "레이어 추가",
+	"aria_removeLayer": "{name} 삭제"
 }

@@ -13,7 +13,7 @@ import type {
 
 function makeSingleLayerV3(overrides: Partial<DocumentRecord> = {}): DocumentRecord {
 	const layerId = crypto.randomUUID();
-	return {
+	const merged: DocumentRecord = {
 		schemaVersion: 3,
 		id: 'doc-1',
 		name: 'Untitled 1',
@@ -36,6 +36,10 @@ function makeSingleLayerV3(overrides: Partial<DocumentRecord> = {}): DocumentRec
 		updatedAt: new Date(),
 		...overrides
 	};
+	if (overrides.layers && !overrides.activeLayerId) {
+		merged.activeLayerId = overrides.layers[0].id;
+	}
+	return merged;
 }
 
 describe('SessionStorage', () => {

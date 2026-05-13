@@ -29,7 +29,10 @@ const DB_VERSION = 3;
 function normalizeToV3(stored: StoredDocument): DocumentRecord {
 	if ('schemaVersion' in stored) {
 		if (stored.schemaVersion === 3) return stored;
-		return migrateV2ToV3(stored);
+		if (stored.schemaVersion === 2) return migrateV2ToV3(stored);
+		throw new Error(
+			`Unsupported document schemaVersion: ${(stored as { schemaVersion: number }).schemaVersion}`
+		);
 	}
 	return migrateV2ToV3(migrateDocumentToV2(stored));
 }

@@ -22,7 +22,7 @@ import {
 } from '$wasm/dotorixel_wasm';
 import type { Document, PixelCanvas, ResizeAnchor } from './canvas-model';
 import type { CanvasFactory, CanvasConstraints, HistoryManager } from './adapter-types';
-import type { DocumentSchemaV3 } from '$lib/session/session-storage-types';
+import type { LayerRecord } from '$lib/session/session-storage-types';
 import type { ViewportData, ViewportOps } from './viewport';
 import type { DrawingOps, DrawingToolType } from './drawing-ops';
 import type { CanvasBackend } from './editor-session/canvas-backend';
@@ -378,14 +378,24 @@ export function createHistoryManager(): HistoryManager {
 
 // ── Document hydration ──────────────────────────────────────────────
 
+export interface DocumentLayerSource {
+	readonly width: number;
+	readonly height: number;
+	readonly layers: readonly LayerRecord[];
+	readonly activeLayerId: string;
+	readonly nextLayerNumber: number;
+	readonly timelinePanelCollapsed: boolean;
+}
+
 /**
- * Builds a [`Document`] from a persisted V3 schema. Each layer's pixel
- * buffer must already be in the schema's `width × height × 4` shape;
+ * Builds a [`Document`] from any value carrying the [`DocumentLayerSource`]
+ * shape — e.g. a persisted V3 schema or a `TabSnapshot`. Each layer's pixel
+ * buffer must already be in the source's `width × height × 4` shape;
  * validation errors from the WASM builder propagate as thrown `Error`s.
  */
-export function documentFromSchemaV3(schema: DocumentSchemaV3): Document {
-	const builder = new WasmDocumentBuilder(schema.width, schema.height);
-	for (const layer of schema.layers) {
+export function documentFromLayerSource(source: DocumentLayerSource): Document {
+	const builder = new WasmDocumentBuilder(source.width, source.height);
+	for (const layer of source.layers) {
 		builder.add_layer(
 			layer.id,
 			layer.name,
@@ -395,9 +405,9 @@ export function documentFromSchemaV3(schema: DocumentSchemaV3): Document {
 		);
 	}
 	return builder.build(
-		schema.activeLayerId,
-		schema.nextLayerNumber,
-		schema.timelinePanelCollapsed
+		source.activeLayerId,
+		source.nextLayerNumber,
+		source.timelinePanelCollapsed
 	);
 }
 

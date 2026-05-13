@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 89 | 69 | 20 | 74 | 78% | 48% |
-| cubic-dev-ai[bot] | 56 | 47 | 9 | 93 | 84% | 34% |
-| coderabbitai[bot] | 125 | 86 | 39 | 52 | 69% | 62% |
+| greptile-apps[bot] | 89 | 69 | 20 | 77 | 78% | 47% |
+| cubic-dev-ai[bot] | 56 | 47 | 9 | 96 | 84% | 33% |
+| coderabbitai[bot] | 130 | 89 | 41 | 52 | 68% | 63% |
 
 ## Log
 
@@ -503,3 +503,14 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #196 | greptile-apps[bot] | Miss | Did not flag `activeLayerPixels` non-null assertion guard |
 | #196 | cubic-dev-ai[bot] | Miss | Did not flag `activeLayerPixels` non-null assertion guard |
 | #196 | greptile-apps[bot] | Miss | Did not flag blank-tab hidden-layer content discard |
+| #198 | coderabbitai[bot] | Reject | `FIXTURE_VIEWPORT` clone-per-call — no test mutates the shared object; defensive copy on every fixture call violates "don't validate scenarios that can't happen" |
+| #198 | coderabbitai[bot] | Reject | `compositeV3` opacity clamp / buffer-length guard — function is internal (downstream of `normalizeToV3`); silent skip on malformed layers masks corruption rather than surfacing it |
+| #198 | coderabbitai[bot] | Accept | `makeSingleLayerV3` leaves `activeLayerId` pointing at original layerId when callers override `layers` only — auto-derive from `overrides.layers[0].id` |
+| #198 | coderabbitai[bot] | Accept | `normalizeToV3` misroutes unknown `schemaVersion` through `migrateV2ToV3` — throw on unsupported versions instead |
+| #198 | coderabbitai[bot] | Accept | `tasks/progress.md` says "5 remaining" but lists 6 sub-issues (095/096/097/098/099/100) |
+| #198 | greptile-apps[bot] | Miss | Did not flag `makeSingleLayerV3` `activeLayerId` inconsistency (Confidence 5/5, Safe to merge) |
+| #198 | greptile-apps[bot] | Miss | Did not flag `normalizeToV3` unknown `schemaVersion` misrouting |
+| #198 | greptile-apps[bot] | Miss | Did not flag `progress.md` count mismatch |
+| #198 | cubic-dev-ai[bot] | Miss | Did not flag `makeSingleLayerV3` `activeLayerId` inconsistency (No issues found) |
+| #198 | cubic-dev-ai[bot] | Miss | Did not flag `normalizeToV3` unknown `schemaVersion` misrouting |
+| #198 | cubic-dev-ai[bot] | Miss | Did not flag `progress.md` count mismatch |

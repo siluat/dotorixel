@@ -7,8 +7,40 @@ import type {
 	DocumentRecord,
 	DocumentSchemaV1,
 	DocumentSchemaV2,
+	DocumentSchemaV3,
 	WorkspaceRecord
 } from './session-storage-types';
+
+function makeSingleLayerV3(overrides: Partial<DocumentRecord> = {}): DocumentRecord {
+	const layerId = crypto.randomUUID();
+	const merged: DocumentRecord = {
+		schemaVersion: 3,
+		id: 'doc-1',
+		name: 'Untitled 1',
+		width: 1,
+		height: 1,
+		layers: [
+			{
+				id: layerId,
+				name: 'Layer 1',
+				pixels: new Uint8Array([0, 0, 0, 255]),
+				visible: true,
+				opacity: 1
+			}
+		],
+		activeLayerId: layerId,
+		nextLayerNumber: 2,
+		timelinePanelCollapsed: false,
+		saved: false,
+		createdAt: new Date(),
+		updatedAt: new Date(),
+		...overrides
+	};
+	if (overrides.layers && !overrides.activeLayerId) {
+		merged.activeLayerId = overrides.layers[0].id;
+	}
+	return merged;
+}
 
 describe('SessionStorage', () => {
 	let storage: SessionStorage;
@@ -30,17 +62,7 @@ describe('SessionStorage', () => {
 		});
 
 		it('deletes a document', async () => {
-			const doc: DocumentRecord = {
-				schemaVersion: 2,
-				id: 'doc-del',
-				name: 'To delete',
-				width: 1,
-				height: 1,
-				pixels: new Uint8Array([0, 0, 0, 255]),
-				saved: false,
-				createdAt: new Date(),
-				updatedAt: new Date()
-			};
+			const doc = makeSingleLayerV3({ id: 'doc-del', name: 'To delete' });
 			await storage.putDocument(doc);
 
 			await storage.deleteDocument('doc-del');
@@ -51,13 +73,19 @@ describe('SessionStorage', () => {
 
 		it('stores and retrieves a document with pixel data', async () => {
 			const pixels = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]);
+			const layerId = crypto.randomUUID();
 			const doc: DocumentRecord = {
-				schemaVersion: 2,
+				schemaVersion: 3,
 				id: 'doc-1',
 				name: 'Untitled 1',
 				width: 2,
 				height: 1,
-				pixels,
+				layers: [
+					{ id: layerId, name: 'Layer 1', pixels, visible: true, opacity: 1 }
+				],
+				activeLayerId: layerId,
+				nextLayerNumber: 2,
+				timelinePanelCollapsed: false,
 				saved: false,
 				createdAt: new Date('2026-04-06T00:00:00Z'),
 				updatedAt: new Date('2026-04-06T00:00:00Z')
@@ -71,39 +99,32 @@ describe('SessionStorage', () => {
 			expect(retrieved!.name).toBe('Untitled 1');
 			expect(retrieved!.width).toBe(2);
 			expect(retrieved!.height).toBe(1);
-			expect(retrieved!.pixels).toEqual(pixels);
+			expect(retrieved!.layers[0].pixels).toEqual(pixels);
 			expect(retrieved!.createdAt).toEqual(new Date('2026-04-06T00:00:00Z'));
 		});
 
 		it('round-trips saved and schemaVersion fields', async () => {
-			const doc: DocumentRecord = {
-				schemaVersion: 2,
-				id: 'doc-v2',
-				name: 'Versioned',
-				width: 1,
-				height: 1,
-				pixels: new Uint8Array([0, 0, 0, 255]),
-				saved: true,
-				createdAt: new Date(),
-				updatedAt: new Date()
-			};
+			const doc = makeSingleLayerV3({ id: 'doc-v3', name: 'Versioned', saved: true });
 			await storage.putDocument(doc);
-			const retrieved = await storage.getDocument('doc-v2');
+			const retrieved = await storage.getDocument('doc-v3');
 
 			expect(retrieved).toBeDefined();
-			expect(retrieved!.schemaVersion).toBe(2);
+			expect(retrieved!.schemaVersion).toBe(3);
 			expect(retrieved!.saved).toBe(true);
 		});
 
 		it('normalizes a V1 document on read', async () => {
 			// Write a V1-shaped document directly (no schemaVersion, no saved)
-			const rawDb = await openDB('dotorixel', 2);
+			const v1Pixels = new Uint8Array(4 * 4 * 4);
+			v1Pixels[0] = 200; // distinctive signature
+			v1Pixels[3] = 255;
+			const rawDb = await openDB('dotorixel', 3);
 			await rawDb.put('documents', {
 				id: 'doc-v1',
 				name: 'Old doc',
 				width: 4,
 				height: 4,
-				pixels: new Uint8Array(4 * 4 * 4),
+				pixels: v1Pixels,
 				createdAt: new Date('2026-01-01'),
 				updatedAt: new Date('2026-01-01')
 			});
@@ -112,9 +133,110 @@ describe('SessionStorage', () => {
 			const retrieved = await storage.getDocument('doc-v1');
 
 			expect(retrieved).toBeDefined();
-			expect(retrieved!.schemaVersion).toBe(2);
+			expect(retrieved!.schemaVersion).toBe(3);
 			expect(retrieved!.saved).toBe(true);
 			expect(retrieved!.name).toBe('Old doc');
+			expect(retrieved!.layers).toHaveLength(1);
+			expect(retrieved!.layers[0].name).toBe('Layer 1');
+			expect(retrieved!.layers[0].pixels).toEqual(v1Pixels);
+			expect(retrieved!.layers[0].visible).toBe(true);
+			expect(retrieved!.layers[0].opacity).toBe(1);
+			expect(retrieved!.activeLayerId).toBe(retrieved!.layers[0].id);
+			expect(retrieved!.nextLayerNumber).toBe(2);
+			expect(retrieved!.timelinePanelCollapsed).toBe(false);
+		});
+	});
+
+	describe('V3 document CRUD', () => {
+		it('round-trips a multi-layer V3 document preserving order, metadata, and active pointer', async () => {
+			const bottomId = crypto.randomUUID();
+			const middleId = crypto.randomUUID();
+			const topId = crypto.randomUUID();
+			const bottomPixels = new Uint8Array(2 * 2 * 4);
+			bottomPixels[0] = 255;
+			bottomPixels[3] = 255;
+			const middlePixels = new Uint8Array(2 * 2 * 4);
+			middlePixels[5] = 200;
+			middlePixels[7] = 255;
+			const topPixels = new Uint8Array(2 * 2 * 4);
+			topPixels[10] = 50;
+			topPixels[11] = 255;
+
+			const doc: DocumentSchemaV3 = {
+				schemaVersion: 3,
+				id: 'doc-multi',
+				name: 'Multi-layer',
+				width: 2,
+				height: 2,
+				layers: [
+					{ id: bottomId, name: 'Bottom', pixels: bottomPixels, visible: true, opacity: 1 },
+					{ id: middleId, name: 'Middle', pixels: middlePixels, visible: false, opacity: 0.5 },
+					{ id: topId, name: 'Top', pixels: topPixels, visible: true, opacity: 0.75 }
+				],
+				activeLayerId: middleId,
+				nextLayerNumber: 4,
+				timelinePanelCollapsed: true,
+				saved: true,
+				createdAt: new Date('2026-05-02T00:00:00Z'),
+				updatedAt: new Date('2026-05-02T00:00:00Z')
+			};
+
+			await storage.putDocument(doc);
+			const retrieved = await storage.getDocument('doc-multi');
+
+			expect(retrieved).toBeDefined();
+			expect(retrieved!.layers).toHaveLength(3);
+			expect(retrieved!.layers.map((l) => l.id)).toEqual([bottomId, middleId, topId]);
+			expect(retrieved!.layers.map((l) => l.name)).toEqual(['Bottom', 'Middle', 'Top']);
+			expect(retrieved!.layers.map((l) => l.visible)).toEqual([true, false, true]);
+			expect(retrieved!.layers.map((l) => l.opacity)).toEqual([1, 0.5, 0.75]);
+			expect(retrieved!.layers[0].pixels).toEqual(bottomPixels);
+			expect(retrieved!.layers[1].pixels).toEqual(middlePixels);
+			expect(retrieved!.layers[2].pixels).toEqual(topPixels);
+			expect(retrieved!.activeLayerId).toBe(middleId);
+			expect(retrieved!.nextLayerNumber).toBe(4);
+			expect(retrieved!.timelinePanelCollapsed).toBe(true);
+		});
+
+		it('round-trips a single-layer V3 document with multi-layer fields intact', async () => {
+			const layerId = crypto.randomUUID();
+			const pixels = new Uint8Array(2 * 2 * 4);
+			pixels[0] = 255;
+			pixels[3] = 255;
+			const doc: DocumentSchemaV3 = {
+				schemaVersion: 3,
+				id: 'doc-v3',
+				name: 'V3 doc',
+				width: 2,
+				height: 2,
+				layers: [
+					{ id: layerId, name: 'Layer 1', pixels, visible: true, opacity: 1 }
+				],
+				activeLayerId: layerId,
+				nextLayerNumber: 2,
+				timelinePanelCollapsed: false,
+				saved: false,
+				createdAt: new Date('2026-05-01T00:00:00Z'),
+				updatedAt: new Date('2026-05-01T00:00:00Z')
+			};
+
+			await storage.putDocument(doc);
+			const retrieved = await storage.getDocument('doc-v3');
+
+			expect(retrieved).toBeDefined();
+			expect(retrieved!.schemaVersion).toBe(3);
+			expect(retrieved!.id).toBe('doc-v3');
+			expect(retrieved!.width).toBe(2);
+			expect(retrieved!.height).toBe(2);
+			expect(retrieved!.layers).toHaveLength(1);
+			expect(retrieved!.layers[0].id).toBe(layerId);
+			expect(retrieved!.layers[0].name).toBe('Layer 1');
+			expect(retrieved!.layers[0].pixels).toEqual(pixels);
+			expect(retrieved!.layers[0].visible).toBe(true);
+			expect(retrieved!.layers[0].opacity).toBe(1);
+			expect(retrieved!.activeLayerId).toBe(layerId);
+			expect(retrieved!.nextLayerNumber).toBe(2);
+			expect(retrieved!.timelinePanelCollapsed).toBe(false);
 		});
 	});
 
@@ -147,11 +269,11 @@ describe('SessionStorage', () => {
 			});
 			v1Db.close();
 
-			// Re-open with SessionStorage — triggers V1→V2 migration
+			// Re-open with SessionStorage — triggers V1→V3 migration
 			storage = await SessionStorage.open();
 
 			// Verify migration wrote to the raw store (not just read-time normalization)
-			const rawDb = await openDB('dotorixel', 2);
+			const rawDb = await openDB('dotorixel', 3);
 			const stored = await rawDb.get('documents', 'old-doc');
 			rawDb.close();
 
@@ -159,48 +281,125 @@ describe('SessionStorage', () => {
 			expect(stored).toMatchObject({
 				id: 'old-doc',
 				name: 'Pre-migration',
-				schemaVersion: 2,
+				schemaVersion: 3,
 				saved: true
 			});
 			expect(stored!.createdAt).toEqual(new Date('2026-02-01'));
+		});
+
+		it('upgrades V2 documents to V3 on DB open', async () => {
+			// Close the V3 DB opened by beforeEach
+			storage.close();
+			await new Promise<void>((resolve, reject) => {
+				const request = indexedDB.deleteDatabase('dotorixel');
+				request.onsuccess = () => resolve();
+				request.onerror = () => reject(request.error);
+			});
+
+			// Create a V2 database with a V2 document
+			const v2Pixels = new Uint8Array(8 * 8 * 4);
+			v2Pixels[0] = 123;
+			v2Pixels[3] = 255;
+			const v2Db = await openDB('dotorixel', 2, {
+				upgrade(db) {
+					const store = db.createObjectStore('documents', { keyPath: 'id' });
+					store.createIndex('updatedAt', 'updatedAt');
+					db.createObjectStore('workspace', { keyPath: 'id' });
+				}
+			});
+			await v2Db.put('documents', {
+				schemaVersion: 2,
+				id: 'v2-doc',
+				name: 'V2 saved',
+				width: 8,
+				height: 8,
+				pixels: v2Pixels,
+				saved: true,
+				createdAt: new Date('2026-03-01'),
+				updatedAt: new Date('2026-03-10')
+			});
+			v2Db.close();
+
+			// Re-open with SessionStorage — triggers V2→V3 migration
+			storage = await SessionStorage.open();
+
+			// Verify the raw store now holds a V3 record
+			const rawDb = await openDB('dotorixel', 3);
+			const stored = await rawDb.get('documents', 'v2-doc');
+			rawDb.close();
+
+			expect(stored).toBeDefined();
+			expect(stored!.schemaVersion).toBe(3);
+			expect(stored!.name).toBe('V2 saved');
+			expect(stored!.saved).toBe(true);
+			// V2 pixels rewrapped as a single Layer 1
+			expect(stored!.layers).toHaveLength(1);
+			expect(stored!.layers[0].name).toBe('Layer 1');
+			expect(stored!.layers[0].pixels).toEqual(v2Pixels);
+			expect(stored!.activeLayerId).toBe(stored!.layers[0].id);
+			expect(stored!.nextLayerNumber).toBe(2);
+			expect(stored!.timelinePanelCollapsed).toBe(false);
 		});
 	});
 
 	describe('getAllSavedDocuments', () => {
 		it('returns only saved documents, sorted by updatedAt descending', async () => {
-			const savedOld: DocumentRecord = {
-				schemaVersion: 2,
+			const savedOldPixels = new Uint8Array(8 * 8 * 4);
+			const savedNewPixels = new Uint8Array(16 * 16 * 4);
+			const savedOld = makeSingleLayerV3({
 				id: 'saved-old',
 				name: 'Old saved',
 				width: 8,
 				height: 8,
-				pixels: new Uint8Array(8 * 8 * 4),
+				layers: [
+					{
+						id: crypto.randomUUID(),
+						name: 'Layer 1',
+						pixels: savedOldPixels,
+						visible: true,
+						opacity: 1
+					}
+				],
 				saved: true,
 				createdAt: new Date('2026-04-01'),
 				updatedAt: new Date('2026-04-01')
-			};
-			const savedNew: DocumentRecord = {
-				schemaVersion: 2,
+			});
+			const savedNew = makeSingleLayerV3({
 				id: 'saved-new',
 				name: 'New saved',
 				width: 16,
 				height: 16,
-				pixels: new Uint8Array(16 * 16 * 4),
+				layers: [
+					{
+						id: crypto.randomUUID(),
+						name: 'Layer 1',
+						pixels: savedNewPixels,
+						visible: true,
+						opacity: 1
+					}
+				],
 				saved: true,
 				createdAt: new Date('2026-04-05'),
 				updatedAt: new Date('2026-04-05')
-			};
-			const unsaved: DocumentRecord = {
-				schemaVersion: 2,
+			});
+			const unsaved = makeSingleLayerV3({
 				id: 'unsaved',
 				name: 'Untitled 1',
 				width: 4,
 				height: 4,
-				pixels: new Uint8Array(4 * 4 * 4),
+				layers: [
+					{
+						id: crypto.randomUUID(),
+						name: 'Layer 1',
+						pixels: new Uint8Array(4 * 4 * 4),
+						visible: true,
+						opacity: 1
+					}
+				],
 				saved: false,
 				createdAt: new Date('2026-04-03'),
 				updatedAt: new Date('2026-04-03')
-			};
+			});
 
 			await storage.putDocument(savedOld);
 			await storage.putDocument(unsaved);
@@ -216,23 +415,91 @@ describe('SessionStorage', () => {
 				name: 'New saved',
 				width: 16,
 				height: 16,
-				pixels: savedNew.pixels,
+				pixels: savedNewPixels,
 				updatedAt: new Date('2026-04-05')
 			});
 		});
 
+		it('returns the composite of visible layers as the thumbnail for a multi-layer V3 doc', async () => {
+			// 1x1 doc with two layers:
+			//   bottom (red, opaque, visible) + top (blue, half-opaque, visible)
+			//   expected composite at (0,0): top 50% over red → mix
+			const bottomId = crypto.randomUUID();
+			const topId = crypto.randomUUID();
+			const bottomPixels = new Uint8Array([255, 0, 0, 255]);
+			const topPixels = new Uint8Array([0, 0, 255, 255]);
+			const doc: DocumentRecord = {
+				schemaVersion: 3,
+				id: 'multi-saved',
+				name: 'Multi saved',
+				width: 1,
+				height: 1,
+				layers: [
+					{ id: bottomId, name: 'Bottom', pixels: bottomPixels, visible: true, opacity: 1 },
+					{ id: topId, name: 'Top', pixels: topPixels, visible: true, opacity: 0.5 }
+				],
+				activeLayerId: topId,
+				nextLayerNumber: 3,
+				timelinePanelCollapsed: false,
+				saved: true,
+				createdAt: new Date('2026-05-03'),
+				updatedAt: new Date('2026-05-03')
+			};
+			await storage.putDocument(doc);
+
+			const summaries = await storage.getAllSavedDocuments();
+
+			expect(summaries).toHaveLength(1);
+			// source-over with top.opacity=0.5 over red:
+			//   src_alpha = 255 * 0.5 = 127.5 → 128 (rounded)
+			//   out_R = 0 * 128/255 + 255 * (1 - 128/255) ≈ 127
+			//   out_B = 255 * 128/255 + 0 ≈ 128
+			const [r, g, b, a] = summaries[0].pixels;
+			expect(r).toBeGreaterThan(100);
+			expect(r).toBeLessThan(140);
+			expect(g).toBe(0);
+			expect(b).toBeGreaterThan(100);
+			expect(b).toBeLessThan(140);
+			expect(a).toBe(255);
+		});
+
+		it('skips hidden layers when building the thumbnail', async () => {
+			const bottomId = crypto.randomUUID();
+			const topId = crypto.randomUUID();
+			const bottomPixels = new Uint8Array([255, 0, 0, 255]);
+			const topPixels = new Uint8Array([0, 0, 255, 255]); // would overwrite if visible
+			const doc: DocumentRecord = {
+				schemaVersion: 3,
+				id: 'hidden-top',
+				name: 'Hidden top',
+				width: 1,
+				height: 1,
+				layers: [
+					{ id: bottomId, name: 'Bottom', pixels: bottomPixels, visible: true, opacity: 1 },
+					{ id: topId, name: 'Top', pixels: topPixels, visible: false, opacity: 1 }
+				],
+				activeLayerId: bottomId,
+				nextLayerNumber: 3,
+				timelinePanelCollapsed: false,
+				saved: true,
+				createdAt: new Date('2026-05-03'),
+				updatedAt: new Date('2026-05-03')
+			};
+			await storage.putDocument(doc);
+
+			const summaries = await storage.getAllSavedDocuments();
+
+			expect(summaries[0].pixels).toEqual(bottomPixels);
+		});
+
 		it('returns empty array when no saved documents exist', async () => {
-			const unsaved: DocumentRecord = {
-				schemaVersion: 2,
+			const unsaved = makeSingleLayerV3({
 				id: 'unsaved',
 				name: 'Untitled 1',
 				width: 4,
 				height: 4,
-				pixels: new Uint8Array(4 * 4 * 4),
-				saved: false,
-				createdAt: new Date(),
-				updatedAt: new Date()
-			};
+				saved: false
+			});
 			await storage.putDocument(unsaved);
 
 			const result = await storage.getAllSavedDocuments();

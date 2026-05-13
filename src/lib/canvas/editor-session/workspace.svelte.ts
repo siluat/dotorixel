@@ -5,7 +5,7 @@ import type { ToolType } from '../tool-registry';
 import { isValidToolType } from '../tool-registry';
 import { SharedState } from '../shared-state.svelte';
 import type { WorkspaceSnapshot, TabSnapshot } from '../workspace-snapshot';
-import { singleLayerDocument } from '../wasm-backend';
+import { documentFromLayerSource, singleLayerDocument } from '../wasm-backend';
 import { References } from '$lib/reference-images/references.svelte';
 import type { CanvasBackend } from './canvas-backend';
 import type { DirtyNotifier } from './dirty-notifier';
@@ -221,7 +221,7 @@ export class Workspace {
 		this.shared.pixelPerfect = snapshot.sharedState.pixelPerfect ?? true;
 
 		for (const tabSnap of snapshot.tabs) {
-			const document = singleLayerDocument(tabSnap.width, tabSnap.height, tabSnap.pixels);
+			const document = documentFromLayerSource(tabSnap);
 			const tab = this.createTab({
 				documentId: tabSnap.id,
 				name: tabSnap.name,

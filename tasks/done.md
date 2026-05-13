@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 103 | [Layer system: V3 multi-layer pixel persistence wiring](../issues/103-layer-system-multi-layer-persistence.md) | 2026-05-13 |
 | 102 | [Layer system: switch main canvas render to `document.composite()`](../issues/102-layer-system-composite-render-path.md) | 2026-05-11 |
 | 094 | [Layer system: add-layer button](../issues/094-layer-system-add-layer-button.md) | 2026-05-09 |
 | 093 | [Layer system: TimelinePanel shell — desktop, single-layer row](../issues/093-layer-system-timeline-panel-shell.md) | 2026-05-09 |

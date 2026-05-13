@@ -2,25 +2,16 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { WorkspaceSnapshot, TabSnapshot } from '$lib/canvas/workspace-snapshot';
+import {
+	tabSnapshotFixture,
+	type TabSnapshotFixtureOpts
+} from '$lib/canvas/workspace-snapshot-fixtures';
 import { AutoSave } from './auto-save';
 import { SessionPersistence } from './session-persistence';
 import { SessionStorage } from './session-storage';
 
-function makeTab(
-	overrides: Partial<TabSnapshot> = {}
-): TabSnapshot {
-	return {
-		id: 'doc-1',
-		name: 'Untitled 1',
-		width: 16,
-		height: 16,
-		pixels: new Uint8Array(16 * 16 * 4),
-		viewport: {
-			pixelSize: 32, zoom: 1.0, panX: 0, panY: 0,
-			showGrid: true, gridColor: '#cccccc'
-		},
-		...overrides
-	};
+function makeTab(overrides: TabSnapshotFixtureOpts = {}): TabSnapshot {
+	return tabSnapshotFixture({ name: 'Untitled 1', width: 16, height: 16, ...overrides });
 }
 
 function makeSnapshot(

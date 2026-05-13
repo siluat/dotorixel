@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
-import { createHistoryManager, documentFromSchemaV3 } from './wasm-backend';
+import { createHistoryManager, documentFromLayerSource } from './wasm-backend';
 import type { DocumentSchemaV3 } from '$lib/session/session-storage-types';
 
 function makeSchema(overrides: Partial<DocumentSchemaV3> = {}): DocumentSchemaV3 {
@@ -30,7 +30,7 @@ function makeSchema(overrides: Partial<DocumentSchemaV3> = {}): DocumentSchemaV3
 	};
 }
 
-describe('documentFromSchemaV3', () => {
+describe('documentFromLayerSource', () => {
 	it('round-trips a multi-layer schema into a Document with matching pixels', () => {
 		const bottomId = crypto.randomUUID();
 		const topId = crypto.randomUUID();
@@ -53,7 +53,7 @@ describe('documentFromSchemaV3', () => {
 			timelinePanelCollapsed: true
 		});
 
-		const doc = documentFromSchemaV3(schema);
+		const doc = documentFromLayerSource(schema);
 
 		expect(doc.width).toBe(2);
 		expect(doc.height).toBe(2);
@@ -74,8 +74,8 @@ describe('documentFromSchemaV3', () => {
 
 describe('HistoryManager document path', () => {
 	it('push, undo, redo round-trip the Document state', () => {
-		const initial = documentFromSchemaV3(makeSchema());
-		const mutated = documentFromSchemaV3(
+		const initial = documentFromLayerSource(makeSchema());
+		const mutated = documentFromLayerSource(
 			makeSchema({ nextLayerNumber: 99, timelinePanelCollapsed: true })
 		);
 		const history = createHistoryManager();

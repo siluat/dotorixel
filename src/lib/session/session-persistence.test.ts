@@ -4,6 +4,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { WorkspaceSnapshot, TabSnapshot } from '$lib/canvas/workspace-snapshot';
 import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 import type { DisplayState } from '$lib/reference-images/display-state-types';
+import {
+	tabSnapshotFixture,
+	type TabSnapshotFixtureOpts
+} from '$lib/canvas/workspace-snapshot-fixtures';
+import { Workspace } from '$lib/canvas/editor-session/workspace.svelte';
+import { wasmBackend } from '$lib/canvas/wasm-backend';
+import { createFakeDirtyNotifier } from '$lib/canvas/editor-session/fake-dirty-notifier';
 import { SessionPersistence } from './session-persistence';
 import { SessionStorage } from './session-storage';
 
@@ -21,19 +28,8 @@ function makeRef(id: string): ReferenceImage {
 	};
 }
 
-function makeTab(overrides: Partial<TabSnapshot> = {}) {
-	return {
-		id: 'doc-1',
-		name: 'Untitled 1',
-		width: 16,
-		height: 16,
-		pixels: new Uint8Array(16 * 16 * 4),
-		viewport: {
-			pixelSize: 32, zoom: 1.0, panX: 0, panY: 0,
-			showGrid: true, gridColor: '#cccccc'
-		},
-		...overrides
-	};
+function makeTab(overrides: TabSnapshotFixtureOpts = {}): TabSnapshot {
+	return tabSnapshotFixture({ name: 'Untitled 1', width: 16, height: 16, ...overrides });
 }
 
 function makeSnapshot(
@@ -89,14 +85,70 @@ describe('SessionPersistence', () => {
 		expect(restored!.tabs[0].width).toBe(16);
 		expect(restored!.tabs[0].height).toBe(16);
 		// Verify pixel data includes the red pixel
-		expect(restored!.tabs[0].pixels[0]).toBe(255); // R
-		expect(restored!.tabs[0].pixels[1]).toBe(0);   // G
-		expect(restored!.tabs[0].pixels[2]).toBe(0);   // B
-		expect(restored!.tabs[0].pixels[3]).toBe(255); // A
+		const restoredPixels = restored!.tabs[0].layers[0].pixels;
+		expect(restoredPixels[0]).toBe(255); // R
+		expect(restoredPixels[1]).toBe(0);   // G
+		expect(restoredPixels[2]).toBe(0);   // B
+		expect(restoredPixels[3]).toBe(255); // A
 		// Verify shared state
 		expect(restored!.sharedState.activeTool).toBe('line');
 		expect(restored!.sharedState.foregroundColor).toEqual({ r: 200, g: 50, b: 30, a: 255 });
 		expect(restored!.activeTabIndex).toBe(0);
+	});
+
+	it('round-trips every layer (id, name, pixels, visibility, opacity) and document state', async () => {
+		const bottomId = crypto.randomUUID();
+		const topId = crypto.randomUUID();
+		const bottomPixels = new Uint8Array(2 * 2 * 4);
+		// Mark bottom layer with a recognizable red pixel at index 0
+		bottomPixels[0] = 255;
+		bottomPixels[3] = 255;
+		const topPixels = new Uint8Array(2 * 2 * 4);
+		// Mark top layer with a green pixel at index 1
+		topPixels[4] = 0;
+		topPixels[5] = 255;
+		topPixels[7] = 200;
+
+		const multiLayerTab: TabSnapshot = {
+			id: 'doc-multi',
+			name: 'Layered',
+			width: 2,
+			height: 2,
+			layers: [
+				{ id: bottomId, name: 'Background', pixels: bottomPixels, visible: true, opacity: 1 },
+				{ id: topId, name: 'Sketch', pixels: topPixels, visible: false, opacity: 0.5 }
+			],
+			activeLayerId: topId,
+			nextLayerNumber: 7,
+			timelinePanelCollapsed: true,
+			viewport: {
+				pixelSize: 32, zoom: 1.0, panX: 0, panY: 0,
+				showGrid: true, gridColor: '#cccccc'
+			}
+		};
+
+		await persistence.save(makeSnapshot({}, [multiLayerTab]));
+		const restored = await persistence.restore();
+
+		expect(restored).not.toBeNull();
+		expect(restored!.tabs).toHaveLength(1);
+		const tab = restored!.tabs[0];
+		expect(tab.activeLayerId).toBe(topId);
+		expect(tab.nextLayerNumber).toBe(7);
+		expect(tab.timelinePanelCollapsed).toBe(true);
+		expect(tab.layers).toHaveLength(2);
+
+		expect(tab.layers[0].id).toBe(bottomId);
+		expect(tab.layers[0].name).toBe('Background');
+		expect(tab.layers[0].visible).toBe(true);
+		expect(tab.layers[0].opacity).toBe(1);
+		expect(Array.from(tab.layers[0].pixels)).toEqual(Array.from(bottomPixels));
+
+		expect(tab.layers[1].id).toBe(topId);
+		expect(tab.layers[1].name).toBe('Sketch');
+		expect(tab.layers[1].visible).toBe(false);
+		expect(tab.layers[1].opacity).toBeCloseTo(0.5);
+		expect(Array.from(tab.layers[1].pixels)).toEqual(Array.from(topPixels));
 	});
 
 	it('returns null when no saved data exists', async () => {
@@ -125,12 +177,12 @@ describe('SessionPersistence', () => {
 		expect(restored!.tabs[0].name).toBe('Untitled 1');
 		expect(restored!.tabs[1].name).toBe('Untitled 2');
 		// Tab 0: red at (0,0)
-		expect(restored!.tabs[0].pixels[0]).toBe(255);
-		expect(restored!.tabs[0].pixels[1]).toBe(0);
+		expect(restored!.tabs[0].layers[0].pixels[0]).toBe(255);
+		expect(restored!.tabs[0].layers[0].pixels[1]).toBe(0);
 		// Tab 1: blue at (1,0)
-		expect(restored!.tabs[1].pixels[4]).toBe(0);
-		expect(restored!.tabs[1].pixels[5]).toBe(0);
-		expect(restored!.tabs[1].pixels[6]).toBe(255);
+		expect(restored!.tabs[1].layers[0].pixels[4]).toBe(0);
+		expect(restored!.tabs[1].layers[0].pixels[5]).toBe(0);
+		expect(restored!.tabs[1].layers[0].pixels[6]).toBe(255);
 	});
 
 	it('preserves activeTabIndex when middle tab is active', async () => {
@@ -327,13 +379,25 @@ describe('SessionPersistence', () => {
 
 	it('clamps activeTabIndex when saved value exceeds tab count', async () => {
 		// Simulate corrupted data: activeTabIndex beyond the tab count
+		const layerId = crypto.randomUUID();
 		const doc = {
-			schemaVersion: 2 as const,
+			schemaVersion: 3 as const,
 			id: 'doc-1',
 			name: 'Tab',
 			width: 1,
 			height: 1,
-			pixels: new Uint8Array([0, 0, 0, 255]),
+			layers: [
+				{
+					id: layerId,
+					name: 'Layer 1',
+					pixels: new Uint8Array([0, 0, 0, 255]),
+					visible: true,
+					opacity: 1
+				}
+			],
+			activeLayerId: layerId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false,
 			saved: false,
 			createdAt: new Date(),
 			updatedAt: new Date()
@@ -452,6 +516,48 @@ describe('SessionPersistence', () => {
 
 		expect(restored).not.toBeNull();
 		expect(restored!.displayStates).toEqual(displayStates);
+	});
+
+	it('Scenario 8 — Workspace with multiple layers survives save → restore → new Workspace', async () => {
+		// First session: build a multi-layer document and persist it.
+		const notifier1 = createFakeDirtyNotifier();
+		const ws1 = new Workspace({
+			backend: wasmBackend,
+			notifier: notifier1,
+			keyboard: { getShiftHeld: () => false }
+		});
+		const tab = ws1.activeTab;
+		tab.addLayer('Sketch');
+		tab.addLayer('Lineart');
+		const expectedLayerCount = tab.document.layer_count();
+		const expectedActiveId = tab.document.active_layer_id();
+		const expectedNext = tab.document.next_layer_number();
+		const expectedLayerIds = Array.from(
+			{ length: expectedLayerCount },
+			(_, i) => tab.document.layer_id_at(i)!
+		);
+
+		await persistence.save(ws1.toSnapshot());
+
+		// Second session: a fresh Workspace hydrated from the restored snapshot.
+		const restored = await persistence.restore();
+		expect(restored).not.toBeNull();
+
+		const ws2 = new Workspace({
+			backend: wasmBackend,
+			notifier: createFakeDirtyNotifier(),
+			keyboard: { getShiftHeld: () => false },
+			restored: restored!
+		});
+
+		expect(ws2.tabs).toHaveLength(1);
+		const restoredTab = ws2.activeTab;
+		expect(restoredTab.document.layer_count()).toBe(expectedLayerCount);
+		expect(restoredTab.document.active_layer_id()).toBe(expectedActiveId);
+		expect(restoredTab.document.next_layer_number()).toBe(expectedNext);
+		for (let i = 0; i < expectedLayerCount; i++) {
+			expect(restoredTab.document.layer_id_at(i)).toBe(expectedLayerIds[i]);
+		}
 	});
 
 	it('returns null when workspace references a missing document', async () => {

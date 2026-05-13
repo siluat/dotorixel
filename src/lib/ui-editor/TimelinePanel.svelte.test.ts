@@ -129,12 +129,16 @@ describe('TimelinePanel', () => {
 		});
 
 		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+		rowB.focus();
+		expect(document.activeElement).toBe(rowB);
 
 		await fireEvent.keyDown(rowB, { key: 'Enter' });
 		expect(onActivateLayer).toHaveBeenCalledWith('b');
+		expect(onActivateLayer).toHaveBeenCalledTimes(1);
 
 		onActivateLayer.mockClear();
 		await fireEvent.keyDown(rowB, { key: ' ' });
 		expect(onActivateLayer).toHaveBeenCalledWith('b');
+		expect(onActivateLayer).toHaveBeenCalledTimes(1);
 	});
 });

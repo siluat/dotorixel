@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 89 | 69 | 20 | 77 | 78% | 47% |
-| cubic-dev-ai[bot] | 56 | 47 | 9 | 96 | 84% | 33% |
-| coderabbitai[bot] | 130 | 89 | 41 | 52 | 68% | 63% |
+| greptile-apps[bot] | 90 | 69 | 21 | 79 | 77% | 47% |
+| cubic-dev-ai[bot] | 56 | 47 | 9 | 98 | 84% | 32% |
+| coderabbitai[bot] | 132 | 91 | 41 | 52 | 69% | 64% |
 
 ## Log
 
@@ -514,3 +514,10 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #198 | cubic-dev-ai[bot] | Miss | Did not flag `makeSingleLayerV3` `activeLayerId` inconsistency (No issues found) |
 | #198 | cubic-dev-ai[bot] | Miss | Did not flag `normalizeToV3` unknown `schemaVersion` misrouting |
 | #198 | cubic-dev-ai[bot] | Miss | Did not flag `progress.md` count mismatch |
+| #199 | coderabbitai[bot] | Accept | `createFakeDocument.set_active_layer` throws for valid id `'active'` — violates Document contract (throw only on unknown ids); proposed `if (id !== 'active') throw` |
+| #199 | coderabbitai[bot] | Accept | Keyboard test claims "focused row" but never focuses — added `rowB.focus()` + `document.activeElement` assertion + `toHaveBeenCalledTimes(1)` per key |
+| #199 | greptile-apps[bot] | Reject | `handleActivateLayer` lacks try/catch for `set_active_layer` throw — forward-looking (095 race), project convention is "don't design for hypothetical future requirements" |
+| #199 | greptile-apps[bot] | Miss | Did not flag `createFakeDocument.set_active_layer` contract violation |
+| #199 | greptile-apps[bot] | Miss | Did not flag keyboard test focus-path assertion gap |
+| #199 | cubic-dev-ai[bot] | Miss | Did not flag `createFakeDocument.set_active_layer` contract violation (auto-approved) |
+| #199 | cubic-dev-ai[bot] | Miss | Did not flag keyboard test focus-path assertion gap (auto-approved) |

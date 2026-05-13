@@ -41,12 +41,15 @@ export class SessionPersistence {
 			if (shouldWrite) {
 				const existing = await this.#storage.getDocument(tab.id);
 				await this.#storage.putDocument({
-					schemaVersion: 2,
+					schemaVersion: 3,
 					id: tab.id,
 					name: tab.name,
 					width: tab.width,
 					height: tab.height,
-					pixels: tab.pixels,
+					layers: tab.layers.map((l) => ({ ...l })),
+					activeLayerId: tab.activeLayerId,
+					nextLayerNumber: tab.nextLayerNumber,
+					timelinePanelCollapsed: tab.timelinePanelCollapsed,
 					saved: existing?.saved ?? false,
 					createdAt: existing?.createdAt ?? now,
 					updatedAt: now
@@ -130,7 +133,10 @@ export class SessionPersistence {
 					name: doc.name,
 					width: doc.width,
 					height: doc.height,
-					pixels: doc.pixels,
+					layers: doc.layers.map((l) => ({ ...l })),
+					activeLayerId: doc.activeLayerId,
+					nextLayerNumber: doc.nextLayerNumber,
+					timelinePanelCollapsed: doc.timelinePanelCollapsed,
 					viewport
 				});
 			}

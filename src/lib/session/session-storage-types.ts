@@ -21,10 +21,10 @@ export interface DocumentSchemaV2 extends DocumentSchemaV1 {
 }
 
 /** What IndexedDB may contain — union of all historical versions */
-export type StoredDocument = DocumentSchemaV1 | DocumentSchemaV2;
+export type StoredDocument = DocumentSchemaV1 | DocumentSchemaV2 | DocumentSchemaV3;
 
 /** App-facing document type — always the latest version */
-export type DocumentRecord = DocumentSchemaV2;
+export type DocumentRecord = DocumentSchemaV3;
 
 /** Lightweight summary for browsing saved documents (excludes schemaVersion, saved, createdAt) */
 export interface SavedDocumentSummary {
@@ -93,6 +93,33 @@ export function migrateV2ToV3(doc: DocumentSchemaV2): DocumentSchemaV3 {
 		createdAt: doc.createdAt,
 		updatedAt: doc.updatedAt
 	};
+}
+
+/**
+ * Source-over composite of every visible layer at its declared opacity.
+ * Used to build a single thumbnail buffer for the saved-work browser — the
+ * Rust core renders the in-editor canvas via a parallel implementation, so
+ * minor numeric differences here are tolerated.
+ */
+export function compositeV3(doc: DocumentSchemaV3): Uint8Array {
+	const out = new Uint8Array(doc.width * doc.height * 4);
+	for (const layer of doc.layers) {
+		if (!layer.visible || layer.opacity <= 0) continue;
+		const src = layer.pixels;
+		for (let i = 0; i < out.length; i += 4) {
+			const srcAlpha = (src[i + 3] / 255) * layer.opacity;
+			if (srcAlpha <= 0) continue;
+			const dstAlpha = out[i + 3] / 255;
+			const outAlpha = srcAlpha + dstAlpha * (1 - srcAlpha);
+			if (outAlpha <= 0) continue;
+			const dstWeight = dstAlpha * (1 - srcAlpha);
+			out[i] = Math.round((src[i] * srcAlpha + out[i] * dstWeight) / outAlpha);
+			out[i + 1] = Math.round((src[i + 1] * srcAlpha + out[i + 1] * dstWeight) / outAlpha);
+			out[i + 2] = Math.round((src[i + 2] * srcAlpha + out[i + 2] * dstWeight) / outAlpha);
+			out[i + 3] = Math.round(outAlpha * 255);
+		}
+	}
+	return out;
 }
 
 export interface SharedStateRecord {

@@ -4,6 +4,7 @@ import { Workspace, type WorkspaceDeps } from './workspace.svelte';
 import { wasmBackend, singleLayerDocument } from '../wasm-backend';
 import { createFakeDirtyNotifier } from './fake-dirty-notifier';
 import type { WorkspaceSnapshot } from '../workspace-snapshot';
+import { tabSnapshotFixture as makeTabSnap } from '../workspace-snapshot-fixtures';
 
 function makeWorkspace(overrides: Omit<Partial<WorkspaceDeps>, 'notifier'> = {}) {
 	const notifier = createFakeDirtyNotifier();
@@ -172,11 +173,9 @@ describe('Workspace — hydration', () => {
 		const pixels = new Uint8Array([255, 0, 0, 255]);
 		const restored: WorkspaceSnapshot = {
 			tabs: [
-				{
+				makeTabSnap({
 					id: 'doc-1',
 					name: 'My Sprite',
-					width: 1,
-					height: 1,
 					pixels,
 					viewport: {
 						pixelSize: 32,
@@ -186,7 +185,7 @@ describe('Workspace — hydration', () => {
 						showGrid: true,
 						gridColor: '#ECE5D9'
 					}
-				}
+				})
 			],
 			activeTabIndex: 0,
 			sharedState: {
@@ -210,21 +209,11 @@ describe('Workspace — hydration', () => {
 	it('new tabs after hydration do not duplicate restored tab numbers', () => {
 		const restored: WorkspaceSnapshot = {
 			tabs: [
-				{
+				makeTabSnap({
 					id: 'doc-1',
 					name: 'Untitled 2',
-					width: 1,
-					height: 1,
-					pixels: new Uint8Array([0, 0, 0, 255]),
-					viewport: {
-						pixelSize: 32,
-						zoom: 1.0,
-						panX: 0,
-						panY: 0,
-						showGrid: true,
-						gridColor: '#cccccc'
-					}
-				}
+					pixels: new Uint8Array([0, 0, 0, 255])
+				})
 			],
 			activeTabIndex: 0,
 			sharedState: {
@@ -244,21 +233,11 @@ describe('Workspace — hydration', () => {
 	it('hydration does NOT emit dirty notifications', () => {
 		const restored: WorkspaceSnapshot = {
 			tabs: [
-				{
+				makeTabSnap({
 					id: 'doc-restored',
 					name: 'Restored',
-					width: 1,
-					height: 1,
-					pixels: new Uint8Array([0, 0, 0, 255]),
-					viewport: {
-						pixelSize: 32,
-						zoom: 1.0,
-						panX: 0,
-						panY: 0,
-						showGrid: true,
-						gridColor: '#cccccc'
-					}
-				}
+					pixels: new Uint8Array([0, 0, 0, 255])
+				})
 			],
 			activeTabIndex: 0,
 			sharedState: {
@@ -278,21 +257,11 @@ describe('Workspace — hydration', () => {
 	it('restores pixelPerfect from a snapshot', () => {
 		const restored: WorkspaceSnapshot = {
 			tabs: [
-				{
+				makeTabSnap({
 					id: 'doc-1',
 					name: 'Tab 1',
-					width: 1,
-					height: 1,
-					pixels: new Uint8Array([0, 0, 0, 255]),
-					viewport: {
-						pixelSize: 32,
-						zoom: 1.0,
-						panX: 0,
-						panY: 0,
-						showGrid: true,
-						gridColor: '#cccccc'
-					}
-				}
+					pixels: new Uint8Array([0, 0, 0, 255])
+				})
 			],
 			activeTabIndex: 0,
 			sharedState: {
@@ -312,21 +281,11 @@ describe('Workspace — hydration', () => {
 	it('defaults pixelPerfect to true when absent from a legacy snapshot', () => {
 		const restored: WorkspaceSnapshot = {
 			tabs: [
-				{
+				makeTabSnap({
 					id: 'doc-1',
 					name: 'Tab 1',
-					width: 1,
-					height: 1,
-					pixels: new Uint8Array([0, 0, 0, 255]),
-					viewport: {
-						pixelSize: 32,
-						zoom: 1.0,
-						panX: 0,
-						panY: 0,
-						showGrid: true,
-						gridColor: '#cccccc'
-					}
-				}
+					pixels: new Uint8Array([0, 0, 0, 255])
+				})
 			],
 			activeTabIndex: 0,
 			sharedState: {
@@ -343,23 +302,11 @@ describe('Workspace — hydration', () => {
 	});
 
 	it('clamps an out-of-range activeTabIndex to the last tab', () => {
-		const makeTabSnap = (id: string) => ({
-			id,
-			name: id,
-			width: 1,
-			height: 1,
-			pixels: new Uint8Array([0, 0, 0, 255]),
-			viewport: {
-				pixelSize: 32,
-				zoom: 1.0,
-				panX: 0,
-				panY: 0,
-				showGrid: true,
-				gridColor: '#cccccc'
-			}
-		});
 		const restored: WorkspaceSnapshot = {
-			tabs: [makeTabSnap('doc-a'), makeTabSnap('doc-b')],
+			tabs: [
+				makeTabSnap({ id: 'doc-a', pixels: new Uint8Array([0, 0, 0, 255]) }),
+				makeTabSnap({ id: 'doc-b', pixels: new Uint8Array([0, 0, 0, 255]) })
+			],
 			activeTabIndex: 5,
 			sharedState: {
 				activeTool: 'pencil',
@@ -376,23 +323,11 @@ describe('Workspace — hydration', () => {
 	});
 
 	it('clamps a negative activeTabIndex to the first tab', () => {
-		const makeTabSnap = (id: string) => ({
-			id,
-			name: id,
-			width: 1,
-			height: 1,
-			pixels: new Uint8Array([0, 0, 0, 255]),
-			viewport: {
-				pixelSize: 32,
-				zoom: 1.0,
-				panX: 0,
-				panY: 0,
-				showGrid: true,
-				gridColor: '#cccccc'
-			}
-		});
 		const restored: WorkspaceSnapshot = {
-			tabs: [makeTabSnap('doc-a'), makeTabSnap('doc-b')],
+			tabs: [
+				makeTabSnap({ id: 'doc-a', pixels: new Uint8Array([0, 0, 0, 255]) }),
+				makeTabSnap({ id: 'doc-b', pixels: new Uint8Array([0, 0, 0, 255]) })
+			],
 			activeTabIndex: -1,
 			sharedState: {
 				activeTool: 'pencil',
@@ -651,21 +586,13 @@ describe('Workspace — load path constructs Document', () => {
 		const pixels = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]);
 		const restored: WorkspaceSnapshot = {
 			tabs: [
-				{
+				makeTabSnap({
 					id: 'doc-1',
 					name: 'My Sprite',
 					width: 2,
 					height: 1,
-					pixels,
-					viewport: {
-						pixelSize: 32,
-						zoom: 1.0,
-						panX: 0,
-						panY: 0,
-						showGrid: true,
-						gridColor: '#cccccc'
-					}
-				}
+					pixels
+				})
 			],
 			activeTabIndex: 0,
 			sharedState: {

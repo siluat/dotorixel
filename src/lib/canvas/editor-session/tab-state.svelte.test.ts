@@ -246,7 +246,7 @@ describe('TabState — reference sampling integration', () => {
 });
 
 describe('TabState — snapshot', () => {
-	it('toSnapshot captures id, name, dimensions, pixels, viewport', () => {
+	it('toSnapshot captures id, name, dimensions, viewport, and a single Layer 1', () => {
 		const { tab } = makeTab({
 			documentId: 'doc-snap',
 			name: 'My Tab',
@@ -260,19 +260,46 @@ describe('TabState — snapshot', () => {
 		expect(snap.name).toBe('My Tab');
 		expect(snap.width).toBe(8);
 		expect(snap.height).toBe(8);
-		expect(snap.pixels).toBeInstanceOf(Uint8Array);
-		expect(snap.pixels.length).toBe(8 * 8 * 4);
 		expect(snap.viewport.zoom).toBe(tab.viewport.zoom);
+		expect(snap.layers).toHaveLength(1);
+		expect(snap.layers[0].name).toBe('Layer 1');
+		expect(snap.layers[0].pixels).toBeInstanceOf(Uint8Array);
+		expect(snap.layers[0].pixels.length).toBe(8 * 8 * 4);
+		expect(snap.layers[0].visible).toBe(true);
+		expect(snap.layers[0].opacity).toBe(1);
+		expect(snap.activeLayerId).toBe(snap.layers[0].id);
+		expect(snap.nextLayerNumber).toBe(2);
+		expect(snap.timelinePanelCollapsed).toBe(false);
 	});
 
-	it('snapshot pixels reflect current document composite after a draw', () => {
+	it('snapshot active-layer pixels reflect the current document after a draw', () => {
 		const { tab, shared } = makeTab();
 		shared.foregroundColor = BLACK;
 		drawLine(tab, { x: 0, y: 0 }, { x: 3, y: 0 });
 
 		const snap = tab.toSnapshot();
-		expect(snap.pixels).toEqual(tab.document.composite());
+		expect(snap.layers[0].pixels).toEqual(tab.document.layer_pixels_at(0));
 		expect(getPixel(tab, 0, 0)).toEqual(BLACK);
+	});
+
+	it('serializes every layer with its id, name, visibility, opacity, and pixels', () => {
+		const { tab } = makeTab({ canvasWidth: 4, canvasHeight: 4 });
+		tab.addLayer('Layer 2');
+		tab.addLayer('Layer 3');
+
+		const snap = tab.toSnapshot();
+
+		expect(snap.layers).toHaveLength(3);
+		expect(snap.layers.map((l) => l.name)).toEqual(['Layer 1', 'Layer 2', 'Layer 3']);
+		for (let i = 0; i < snap.layers.length; i++) {
+			expect(snap.layers[i].id).toBe(tab.document.layer_id_at(i));
+			expect(snap.layers[i].visible).toBe(tab.document.layer_visible_at(i));
+			expect(snap.layers[i].opacity).toBe(tab.document.layer_opacity_at(i));
+			expect(snap.layers[i].pixels).toEqual(tab.document.layer_pixels_at(i));
+		}
+		expect(snap.activeLayerId).toBe(tab.document.active_layer_id());
+		expect(snap.nextLayerNumber).toBe(tab.document.next_layer_number());
+		expect(snap.timelinePanelCollapsed).toBe(tab.document.is_timeline_panel_collapsed());
 	});
 });
 
@@ -310,7 +337,7 @@ describe('TabState — tools write to document active layer', () => {
 });
 
 describe('TabState — toSnapshot derives from document', () => {
-	it('snapshot width/height/pixels match document.composite()', () => {
+	it('snapshot dimensions and layer 0 pixels match the underlying document', () => {
 		const { tab } = makeTab();
 		const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
 		const w = tab.document.width;
@@ -326,7 +353,7 @@ describe('TabState — toSnapshot derives from document', () => {
 		const snap = tab.toSnapshot();
 		expect(snap.width).toBe(tab.document.width);
 		expect(snap.height).toBe(tab.document.height);
-		expect(snap.pixels).toEqual(tab.document.composite());
+		expect(snap.layers[0].pixels).toEqual(tab.document.layer_pixels_at(0));
 	});
 });
 

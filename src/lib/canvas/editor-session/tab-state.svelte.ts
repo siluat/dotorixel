@@ -377,12 +377,26 @@ export class TabState {
 		}
 	};
 
-	toSnapshot = (): TabSnapshot => ({
-		id: this.documentId,
-		name: this.name,
-		width: this.document.width,
-		height: this.document.height,
-		pixels: this.document.composite(),
-		viewport: { ...this.viewport }
-	});
+	toSnapshot = (): TabSnapshot => {
+		const doc = this.document;
+		const layerCount = doc.layer_count();
+		const layers = Array.from({ length: layerCount }, (_, i) => ({
+			id: doc.layer_id_at(i)!,
+			name: doc.layer_name_at(i)!,
+			pixels: doc.layer_pixels_at(i)!.slice(),
+			visible: doc.layer_visible_at(i)!,
+			opacity: doc.layer_opacity_at(i)!
+		}));
+		return {
+			id: this.documentId,
+			name: this.name,
+			width: doc.width,
+			height: doc.height,
+			layers,
+			activeLayerId: doc.active_layer_id(),
+			nextLayerNumber: doc.next_layer_number(),
+			timelinePanelCollapsed: doc.is_timeline_panel_collapsed(),
+			viewport: { ...this.viewport }
+		};
+	};
 }

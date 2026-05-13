@@ -616,6 +616,102 @@ describe('TabState — addLayer', () => {
 	});
 });
 
+describe('TabState — removeLayer', () => {
+	it('decrements document.layer_count by 1', () => {
+		const { tab } = makeTab();
+		tab.addLayer('Layer 2');
+		const layer1Id = tab.document.layer_id_at(0)!;
+		const before = tab.document.layer_count();
+
+		tab.removeLayer(layer1Id);
+
+		expect(tab.document.layer_count()).toBe(before - 1);
+	});
+
+	it('reassigns the active pointer to an adjacent layer when the active layer is removed', () => {
+		const { tab } = makeTab();
+		tab.addLayer('Layer 2');
+		const activeId = tab.document.active_layer_id();
+		const otherId = tab.document.layer_id_at(0)!;
+		expect(activeId).not.toBe(otherId);
+
+		tab.removeLayer(activeId);
+
+		expect(tab.document.active_layer_id()).toBe(otherId);
+	});
+
+	it('leaves the active pointer unchanged when a non-active layer is removed', () => {
+		const { tab } = makeTab();
+		tab.addLayer('Layer 2');
+		const activeId = tab.document.active_layer_id();
+		const otherId = tab.document.layer_id_at(0)!;
+
+		tab.removeLayer(otherId);
+
+		expect(tab.document.active_layer_id()).toBe(activeId);
+	});
+
+	it('is undoable: undo restores the prior layer count and active layer', () => {
+		const { tab } = makeTab();
+		tab.addLayer('Layer 2');
+		const beforeCount = tab.document.layer_count();
+		const beforeActive = tab.document.active_layer_id();
+		const otherId = tab.document.layer_id_at(0)!;
+
+		tab.removeLayer(otherId);
+		expect(tab.document.layer_count()).toBe(beforeCount - 1);
+
+		tab.undo();
+
+		expect(tab.document.layer_count()).toBe(beforeCount);
+		expect(tab.document.active_layer_id()).toBe(beforeActive);
+	});
+
+	it('bumps renderVersion and emits markDirty', () => {
+		const { tab, notifier } = makeTab();
+		tab.addLayer('Layer 2');
+		const otherId = tab.document.layer_id_at(0)!;
+		const renderBefore = tab.renderVersion;
+		notifier.reset();
+
+		tab.removeLayer(otherId);
+
+		expect(tab.renderVersion).toBeGreaterThan(renderBefore);
+		expect(notifier.dirtyCalls).toContain('doc-test');
+	});
+
+	it('is a no-op on the last remaining layer: count, active, renderVersion, and markDirty are untouched', () => {
+		const { tab, notifier } = makeTab();
+		const onlyId = tab.document.active_layer_id();
+		const renderBefore = tab.renderVersion;
+		notifier.reset();
+
+		tab.removeLayer(onlyId);
+
+		expect(tab.document.layer_count()).toBe(1);
+		expect(tab.document.active_layer_id()).toBe(onlyId);
+		expect(tab.renderVersion).toBe(renderBefore);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('the last-layer no-op also leaves the undo stack untouched (no orphan snapshot)', () => {
+		const { tab, shared } = makeTab();
+		shared.foregroundColor = BLACK;
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 2, y: 2 }, null);
+		tab.drawEnd();
+		expect(getPixel(tab, 2, 2).a).toBe(255);
+
+		const onlyId = tab.document.active_layer_id();
+		tab.removeLayer(onlyId);
+
+		// Single undo should revert the prior draw — not consume an orphan snapshot.
+		tab.undo();
+		expect(getPixel(tab, 2, 2).a).toBe(0);
+	});
+});
+
 describe('TabState — setActiveLayer', () => {
 	it('changes active_layer_id, bumps renderVersion, and emits markDirty when called with a different layer id', () => {
 		const { tab, notifier } = makeTab();

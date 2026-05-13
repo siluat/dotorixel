@@ -140,6 +140,10 @@
 		editor.workspace.activeTab.setActiveLayer(id);
 	}
 
+	function handleRemoveLayer(id: string) {
+		editor.workspace.activeTab.removeLayer(id);
+	}
+
 	function handlePixelPerfectToggle() {
 		if (pixelPerfectDisabled) return;
 		editor.togglePixelPerfect();
@@ -500,6 +504,7 @@
 			activeLayerId={activeLayerId}
 			onAddLayer={handleAddLayer}
 			onActivateLayer={handleActivateLayer}
+			onRemoveLayer={handleRemoveLayer}
 		/>
 
 		<RightPanel

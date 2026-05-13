@@ -3,7 +3,6 @@
 ## Milestone 3: Editor for Serious Work
 
 - Layer system: basic infrastructure (add/delete/reorder) ([PRD](../issues/086-layer-system-basic-infrastructure.md))
-  - [095 — Delete-layer button](../issues/095-layer-system-delete-layer-button.md)
   - [096 — Layer reorder](../issues/096-layer-system-reorder-layer.md)
   - [097 — Visibility toggle](../issues/097-layer-system-visibility-toggle.md)
   - [098 — Mobile Timeline tab](../issues/098-layer-system-mobile-timeline-tab.md)

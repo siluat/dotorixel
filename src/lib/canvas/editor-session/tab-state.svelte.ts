@@ -317,6 +317,14 @@ export class TabState {
 		this.#notifier.markDirty(this.documentId);
 	};
 
+	removeLayer = (id: string): void => {
+		if (this.document.layer_count() === 1) return;
+		this.#toolRunner.pushSnapshot();
+		this.document.remove_layer(id);
+		this.renderVersion++;
+		this.#notifier.markDirty(this.documentId);
+	};
+
 	setActiveLayer = (id: string): void => {
 		if (id === this.document.active_layer_id()) return;
 		this.document.set_active_layer(id);

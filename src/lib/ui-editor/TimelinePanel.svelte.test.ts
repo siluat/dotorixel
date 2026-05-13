@@ -9,6 +9,7 @@ afterEach(() => {
 
 const noopAddLayer = () => {};
 const noopActivateLayer = (_id: string) => {};
+const noopRemoveLayer = (_id: string) => {};
 
 describe('TimelinePanel', () => {
 	it('renders a single row showing the layer name when one layer is provided', () => {
@@ -18,7 +19,8 @@ describe('TimelinePanel', () => {
 				layers,
 				activeLayerId: 'a',
 				onAddLayer: noopAddLayer,
-				onActivateLayer: noopActivateLayer
+				onActivateLayer: noopActivateLayer,
+				onRemoveLayer: noopRemoveLayer
 			}
 		});
 
@@ -38,13 +40,14 @@ describe('TimelinePanel', () => {
 				layers,
 				activeLayerId: 'a',
 				onAddLayer: noopAddLayer,
-				onActivateLayer: noopActivateLayer
+				onActivateLayer: noopActivateLayer,
+				onRemoveLayer: noopRemoveLayer
 			}
 		});
 
 		const rows = container.querySelectorAll('[data-layer-row]');
 		expect(rows.length).toBe(3);
-		const names = Array.from(rows).map((r) => r.textContent?.trim());
+		const names = Array.from(rows).map((r) => r.querySelector('.name')?.textContent?.trim());
 		expect(names).toEqual(expect.arrayContaining(['Layer 1', 'Layer 2', 'Hair']));
 	});
 
@@ -59,7 +62,8 @@ describe('TimelinePanel', () => {
 				layers,
 				activeLayerId: 'b',
 				onAddLayer: noopAddLayer,
-				onActivateLayer: noopActivateLayer
+				onActivateLayer: noopActivateLayer,
+				onRemoveLayer: noopRemoveLayer
 			}
 		});
 
@@ -79,7 +83,8 @@ describe('TimelinePanel', () => {
 				layers,
 				activeLayerId: 'a',
 				onAddLayer: noopAddLayer,
-				onActivateLayer: noopActivateLayer
+				onActivateLayer: noopActivateLayer,
+				onRemoveLayer: noopRemoveLayer
 			}
 		});
 
@@ -92,7 +97,13 @@ describe('TimelinePanel', () => {
 		const layers = [{ id: 'a', name: 'Layer 1' }];
 		const onAddLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', onAddLayer, onActivateLayer: noopActivateLayer }
+			props: {
+				layers,
+				activeLayerId: 'a',
+				onAddLayer,
+				onActivateLayer: noopActivateLayer,
+				onRemoveLayer: noopRemoveLayer
+			}
 		});
 
 		const button = container.querySelector('[data-add-layer]') as HTMLButtonElement;
@@ -108,7 +119,13 @@ describe('TimelinePanel', () => {
 		];
 		const onActivateLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', onAddLayer: noopAddLayer, onActivateLayer }
+			props: {
+				layers,
+				activeLayerId: 'a',
+				onAddLayer: noopAddLayer,
+				onActivateLayer,
+				onRemoveLayer: noopRemoveLayer
+			}
 		});
 
 		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
@@ -118,6 +135,112 @@ describe('TimelinePanel', () => {
 		expect(onActivateLayer).toHaveBeenCalledTimes(1);
 	});
 
+	it('renders a remove affordance on every layer row', () => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1' },
+			{ id: 'b', name: 'Layer 2' },
+			{ id: 'c', name: 'Layer 3' }
+		];
+		const { container } = render(TimelinePanel, {
+			props: {
+				layers,
+				activeLayerId: 'a',
+				onAddLayer: noopAddLayer,
+				onActivateLayer: noopActivateLayer,
+				onRemoveLayer: noopRemoveLayer
+			}
+		});
+
+		const removeButtons = container.querySelectorAll('[data-remove-layer]');
+		expect(removeButtons.length).toBe(3);
+		for (const btn of removeButtons) {
+			expect(btn.tagName).toBe('BUTTON');
+		}
+	});
+
+	it('invokes onRemoveLayer with that row’s layer id when its remove button is clicked', async () => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1' },
+			{ id: 'b', name: 'Layer 2' }
+		];
+		const onRemoveLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: {
+				layers,
+				activeLayerId: 'a',
+				onAddLayer: noopAddLayer,
+				onActivateLayer: noopActivateLayer,
+				onRemoveLayer
+			}
+		});
+
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+		const btn = rowB.querySelector('[data-remove-layer]') as HTMLButtonElement;
+		await fireEvent.click(btn);
+
+		expect(onRemoveLayer).toHaveBeenCalledWith('b');
+		expect(onRemoveLayer).toHaveBeenCalledTimes(1);
+	});
+
+	it('clicking the remove button does not also activate that row', async () => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1' },
+			{ id: 'b', name: 'Layer 2' }
+		];
+		const onActivateLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: {
+				layers,
+				activeLayerId: 'a',
+				onAddLayer: noopAddLayer,
+				onActivateLayer,
+				onRemoveLayer: noopRemoveLayer
+			}
+		});
+
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+		const btn = rowB.querySelector('[data-remove-layer]') as HTMLButtonElement;
+		await fireEvent.click(btn);
+
+		expect(onActivateLayer).not.toHaveBeenCalled();
+	});
+
+	it('disables the remove button when only one layer remains', () => {
+		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const { container } = render(TimelinePanel, {
+			props: {
+				layers,
+				activeLayerId: 'a',
+				onAddLayer: noopAddLayer,
+				onActivateLayer: noopActivateLayer,
+				onRemoveLayer: noopRemoveLayer
+			}
+		});
+
+		const btn = container.querySelector('[data-remove-layer]') as HTMLButtonElement;
+		expect(btn.disabled).toBe(true);
+	});
+
+	it('enables the remove button on every row when two or more layers are present', () => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1' },
+			{ id: 'b', name: 'Layer 2' }
+		];
+		const { container } = render(TimelinePanel, {
+			props: {
+				layers,
+				activeLayerId: 'a',
+				onAddLayer: noopAddLayer,
+				onActivateLayer: noopActivateLayer,
+				onRemoveLayer: noopRemoveLayer
+			}
+		});
+
+		const btns = container.querySelectorAll<HTMLButtonElement>('[data-remove-layer]');
+		expect(btns.length).toBe(2);
+		for (const b of btns) expect(b.disabled).toBe(false);
+	});
+
 	it('activates the row when Enter or Space is pressed on a focused row', async () => {
 		const layers = [
 			{ id: 'a', name: 'Layer 1' },
@@ -125,7 +248,13 @@ describe('TimelinePanel', () => {
 		];
 		const onActivateLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', onAddLayer: noopAddLayer, onActivateLayer }
+			props: {
+				layers,
+				activeLayerId: 'a',
+				onAddLayer: noopAddLayer,
+				onActivateLayer,
+				onRemoveLayer: noopRemoveLayer
+			}
 		});
 
 		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;

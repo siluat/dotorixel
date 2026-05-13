@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 90 | 69 | 21 | 79 | 77% | 47% |
-| cubic-dev-ai[bot] | 56 | 47 | 9 | 98 | 84% | 32% |
-| coderabbitai[bot] | 132 | 91 | 41 | 52 | 69% | 64% |
+| greptile-apps[bot] | 91 | 70 | 21 | 81 | 77% | 46% |
+| cubic-dev-ai[bot] | 57 | 48 | 9 | 100 | 84% | 32% |
+| coderabbitai[bot] | 136 | 94 | 42 | 52 | 69% | 64% |
 
 ## Log
 
@@ -521,3 +521,13 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #199 | greptile-apps[bot] | Miss | Did not flag keyboard test focus-path assertion gap |
 | #199 | cubic-dev-ai[bot] | Miss | Did not flag `createFakeDocument.set_active_layer` contract violation (auto-approved) |
 | #199 | cubic-dev-ai[bot] | Miss | Did not flag keyboard test focus-path assertion gap (auto-approved) |
+| #200 | greptile-apps[bot] | Accept | Keyboard activation on remove button bubbles to row handler; row's `preventDefault()` even blocks keyboard removal |
+| #200 | coderabbitai[bot] | Accept | Keyboard activation on remove button bubbles to row handler (duplicate of greptile) |
+| #200 | cubic-dev-ai[bot] | Accept | Keyboard activation on remove button bubbles to row handler (duplicate of greptile) |
+| #200 | coderabbitai[bot] | Reject | Validate layer id before snapshotting — violates "trust the core"; WASM throws on unknown ids; UI never passes invalid ids |
+| #200 | coderabbitai[bot] | Accept | Add doc comment to `TabState.removeLayer` (last-layer no-op, throws on unknown id, side effects) |
+| #200 | coderabbitai[bot] | Accept | Add keyboard-path regression test for remove-button non-activation |
+| #200 | greptile-apps[bot] | Miss | Did not flag missing `removeLayer` doc comment |
+| #200 | greptile-apps[bot] | Miss | Did not flag missing keyboard-path regression test |
+| #200 | cubic-dev-ai[bot] | Miss | Did not flag missing `removeLayer` doc comment |
+| #200 | cubic-dev-ai[bot] | Miss | Did not flag missing keyboard-path regression test |

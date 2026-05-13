@@ -51,3 +51,24 @@ test.describe('Layer panel — add layer', () => {
 		await expect(page.locator('[data-layer-row]')).toHaveCount(2);
 	});
 });
+
+test.describe('Layer panel — activate layer on row click', () => {
+	test('clicking a non-active row makes it active, and the activation is not in history', async ({
+		editorPage
+	}) => {
+		const { page, history } = editorPage;
+
+		await page.locator('[data-add-layer]').click();
+		const rows = page.locator('[data-layer-row]');
+		await expect(rows).toHaveCount(2);
+		await expect(rows.nth(0)).toHaveAttribute('aria-current', 'true');
+
+		await rows.nth(1).click();
+
+		await expect(rows.nth(1)).toHaveAttribute('aria-current', 'true');
+		await expect(rows.nth(0)).not.toHaveAttribute('aria-current', 'true');
+
+		await history.undo();
+		await expect(page.locator('[data-layer-row]')).toHaveCount(1);
+	});
+});

@@ -616,6 +616,77 @@ describe('TabState — addLayer', () => {
 	});
 });
 
+describe('TabState — setActiveLayer', () => {
+	it('changes active_layer_id, bumps renderVersion, and emits markDirty when called with a different layer id', () => {
+		const { tab, notifier } = makeTab();
+		tab.addLayer('Layer 2');
+		const layer1Id = tab.document.layer_id_at(0)!;
+		const layer2Id = tab.document.active_layer_id();
+		expect(layer1Id).not.toBe(layer2Id);
+
+		const renderBefore = tab.renderVersion;
+		notifier.reset();
+
+		tab.setActiveLayer(layer1Id);
+
+		expect(tab.document.active_layer_id()).toBe(layer1Id);
+		expect(tab.renderVersion).toBeGreaterThan(renderBefore);
+		expect(notifier.dirtyCalls).toContain('doc-test');
+	});
+
+	it('is a no-op when called with the already-active layer id', () => {
+		const { tab, notifier } = makeTab();
+		tab.addLayer('Layer 2');
+		const activeId = tab.document.active_layer_id();
+
+		const renderBefore = tab.renderVersion;
+		notifier.reset();
+
+		tab.setActiveLayer(activeId);
+
+		expect(tab.document.active_layer_id()).toBe(activeId);
+		expect(tab.renderVersion).toBe(renderBefore);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('is not undoable: undo after several setActiveLayer calls reverts the prior content op in a single step', () => {
+		const { tab } = makeTab();
+		tab.addLayer('Layer 2');
+		const layer1Id = tab.document.layer_id_at(0)!;
+		const layer2Id = tab.document.active_layer_id();
+
+		tab.setActiveLayer(layer1Id);
+		tab.setActiveLayer(layer2Id);
+		tab.setActiveLayer(layer1Id);
+
+		tab.undo();
+
+		expect(tab.document.layer_count()).toBe(1);
+	});
+
+	it('after activating a different layer, subsequent draws apply to that layer', () => {
+		const { tab, shared } = makeTab();
+		tab.addLayer('Layer 2');
+		const layer1Id = tab.document.layer_id_at(0)!;
+		const layer2Idx = tab.document.layer_count() - 1;
+
+		tab.setActiveLayer(layer1Id);
+
+		shared.foregroundColor = BLACK;
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 2, y: 2 }, null);
+		tab.drawEnd();
+
+		const i = (2 * tab.document.width + 2) * 4;
+		const layer1Pixels = tab.document.layer_pixels_at(0)!;
+		expect(Array.from(layer1Pixels.slice(i, i + 4))).toEqual([0, 0, 0, 255]);
+
+		const layer2Pixels = tab.document.layer_pixels_at(layer2Idx)!;
+		expect(layer2Pixels[i + 3]).toBe(0);
+	});
+});
+
 describe('TabState — compositeBuffer reflects all visible layers', () => {
 	it('width and height match the document', () => {
 		const { tab } = makeTab({ canvasWidth: 12, canvasHeight: 7 });

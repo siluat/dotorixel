@@ -110,7 +110,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Document/Layer model | 🔧 | 🔧 | ⬜ | `Document` owns ordered layer stack + active-layer UUID + monotonic `next_layer_number` + `timelinePanelCollapsed`. `Layer` is `(id, name, pixels, visible, opacity)`. `composite()` is straight source-over with layer opacity multiplied into source alpha; invisible layers skipped. Web: Document is single source of truth — tools/history/sampling/export/persistence all route through it; V3 schema persists the full stack. Apple: preserved as single-canvas (see ADR `docs/decisions/web-document-layer-apple-preserved.en.md`) |
-| Timeline panel — desktop shell | — | 🔧 | ⬜ | `TimelinePanel.svelte` in the docked layout's `timeline` row (180px). Sidebar (256px) lists layers top-z first (Aseprite/Photoshop convention) with accent bar + bold on the active row; placeholder frame column reserves the M4 ruler region. Header `+` wired to add-layer. Mobile entry pending (#098). Not yet on Apple |
+| Timeline panel — desktop shell | — | 🔧 | ⬜ | `TimelinePanel.svelte` in the docked layout's `timeline` row (180px). Sidebar (256px) lists layers top-z first (Aseprite/Photoshop convention) with accent bar + bold on the active row; row click (or Space/Enter) activates. Header `+` adds a layer. Placeholder frame column reserves the M4 ruler region. Mobile entry pending (#098). Not yet on Apple |
 
 ## Reference Images
 

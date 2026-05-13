@@ -51,24 +51,34 @@ Remove the completed item from `tasks/todo.md`.
 
 ### 4. Update progress.md
 
-Update `tasks/progress.md`:
-- **"Currently Working On"**:
-  - If the completed task has a `parent` PRD (check issue frontmatter) and sibling sub-issues remain open: keep "Currently Working On" as the parent PRD title with a link (e.g., `Tab system — multi-image workflow ([PRD](../issues/002-tab-system.md))`).
+`tasks/progress.md` is **orientation for the next session**, not a changelog. Keep it tight: a reader should pick up "where are we, what just shipped, what's next" in seconds. Implementation details live in the issue file — link to it instead of restating it.
+
+- **"Currently Working On"** — overwrite, do not append. 1–3 sentences max.
+  - If the completed task has a `parent` PRD (check issue frontmatter) and sibling sub-issues remain open: keep "Currently Working On" as the parent PRD title with a link (e.g., `Tab system — multi-image workflow ([PRD](../issues/002-tab-system.md))`) and a brief progress summary (how many sub-issues done / remaining, what just unblocked).
   - Otherwise: set to "None".
-- Set "Last Completed" to the task just finished.
-- Update "Next Up":
+- **"Last Completed"** — overwrite, do not append. 1–3 sentences max: link to the issue + the one or two facts a future reader needs (notable invariant locked in, out-of-scope follow-up). No function names, file paths, type signatures, or per-sub-issue change-by-change recaps — those are in the issue file.
+- **"Next Up"**:
   1. Enumerate **every** uncompleted item in `tasks/todo.md` across all sections and milestones.
   2. Filter by dependency readiness — only keep items that can start now.
-  3. List the independent items as bullet points.
+  3. List the independent items as bullet points; per-item note ≤ 1 line. Strip notes that have become stale (e.g., "blocked on X" when X is now done).
 
 ### 5. Update platform-status.md
+
+`docs/platform-status.md` is a **cross-platform matrix**, not a changelog. The Notes column answers "what's the most important cross-platform caveat or user-facing behavior for this row?" — nothing more.
 
 If the completed task added or changed any feature implementation, update `docs/platform-status.md`:
 
 - Add new rows for newly implemented features.
 - Update status markers (⬜ → 🔧 → ✅) for features that progressed.
-- Update the Notes column if relevant context changed.
+- Update the Notes column **by overwriting, not appending**. Per-issue change recaps do not accumulate here.
 - Only track features where at least one of Core / Web / Apple has an implementation.
+
+**Notes column rules**:
+
+- Aim for ≤ 200 characters per cell. Prefer one phrase or one short sentence.
+- Keep: platform-difference callouts ("Apple: core ready, UI disabled"), algorithm name ("BFS, 4-connectivity"), user-facing behavior caveats ("skips transparent pixels"), key constants ("1–256px, 18 Pebble colors").
+- Strip: function/method/file/type names, per-issue tags (`(#087)`), implementation step-by-step, internal struct fields, WASM/binding-glue detail.
+- If a detail is structurally significant (e.g., "Document is single source of truth on Web"), state it as an invariant — not as a recap of which issue established it. The issue file carries the history.
 
 ### 6. Git commit
 

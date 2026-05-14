@@ -3,7 +3,6 @@
 ## Milestone 3: Editor for Serious Work
 
 - Layer system: basic infrastructure (add/delete/reorder) ([PRD](../issues/086-layer-system-basic-infrastructure.md))
-  - [097 — Visibility toggle](../issues/097-layer-system-visibility-toggle.md)
   - [098 — Mobile Timeline tab](../issues/098-layer-system-mobile-timeline-tab.md)
   - [099 — Collapsible chevron (no persistence)](../issues/099-layer-system-collapsible-toggle.md)
   - [100 — Persist `timelinePanelCollapsed`](../issues/100-layer-system-collapsible-persistence.md)

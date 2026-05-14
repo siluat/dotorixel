@@ -235,6 +235,20 @@ impl Document {
         Ok(())
     }
 
+    /// Sets the visibility flag of the layer with `id`.
+    ///
+    /// Returns [`LayerError::LayerNotFound`] for an unknown id. The active
+    /// layer pointer is preserved (visibility does not affect activity).
+    pub fn set_layer_visibility(&mut self, id: Uuid, visible: bool) -> Result<(), LayerError> {
+        let layer = self
+            .layers
+            .iter_mut()
+            .find(|l| l.id == id)
+            .ok_or(LayerError::LayerNotFound { id })?;
+        layer.visible = visible;
+        Ok(())
+    }
+
     /// Moves the layer with `id` to `new_index`.
     ///
     /// `new_index` is silently clamped to `[0, layers.len() - 1]`. Returns
@@ -776,6 +790,35 @@ mod tests {
             Err(LayerError::LayerNotFound { id: unknown })
         );
         assert_eq!(doc.active_layer_id(), a, "active must remain unchanged on error");
+    }
+
+    #[test]
+    fn set_layer_visibility_flips_visible_flag() {
+        let a = Uuid::new_v4();
+        let mut doc = Document::new(8, 8, a, "A".to_string()).unwrap();
+        assert!(doc.layers[0].visible);
+
+        doc.set_layer_visibility(a, false).unwrap();
+        assert!(!doc.layers[0].visible);
+
+        doc.set_layer_visibility(a, true).unwrap();
+        assert!(doc.layers[0].visible);
+    }
+
+    #[test]
+    fn set_layer_visibility_returns_layer_not_found_for_unknown_id() {
+        let a = Uuid::new_v4();
+        let unknown = Uuid::new_v4();
+        let mut doc = Document::new(8, 8, a, "A".to_string()).unwrap();
+
+        assert_eq!(
+            doc.set_layer_visibility(unknown, false),
+            Err(LayerError::LayerNotFound { id: unknown })
+        );
+        assert!(
+            doc.layers[0].visible,
+            "visibility must remain unchanged on error"
+        );
     }
 
     #[test]

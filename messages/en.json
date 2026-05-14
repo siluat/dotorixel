@@ -137,5 +137,7 @@
 	"layer_panel_title": "Layers",
 	"aria_addLayer": "Add layer",
 	"aria_removeLayer": "Delete {name}",
-	"aria_reorderLayer": "Reorder {name}"
+	"aria_reorderLayer": "Reorder {name}",
+	"aria_hideLayer": "Hide {name}",
+	"aria_showLayer": "Show {name}"
 }

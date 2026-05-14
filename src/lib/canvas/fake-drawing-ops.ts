@@ -167,6 +167,9 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 		reorder_layer: () => {
 			throw new Error('createFakeDocument: reorder_layer not implemented');
 		},
+		set_layer_visibility: () => {
+			throw new Error('createFakeDocument: set_layer_visibility not implemented');
+		},
 		get restoreActiveLayerCalls() {
 			return restoreCalls;
 		}

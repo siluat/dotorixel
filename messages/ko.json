@@ -137,5 +137,7 @@
 	"layer_panel_title": "레이어",
 	"aria_addLayer": "레이어 추가",
 	"aria_removeLayer": "{name} 삭제",
-	"aria_reorderLayer": "{name} 순서 변경"
+	"aria_reorderLayer": "{name} 순서 변경",
+	"aria_hideLayer": "{name} 숨기기",
+	"aria_showLayer": "{name} 표시"
 }

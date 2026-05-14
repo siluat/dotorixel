@@ -11,12 +11,14 @@ const noopAddLayer = () => {};
 const noopActivateLayer = (_id: string) => {};
 const noopRemoveLayer = (_id: string) => {};
 const noopReorderLayer = (_id: string, _newVisualIndex: number) => {};
+const noopToggleLayerVisibility = (_id: string, _visible: boolean) => {};
 
 const defaultProps = {
 	onAddLayer: noopAddLayer,
 	onActivateLayer: noopActivateLayer,
 	onRemoveLayer: noopRemoveLayer,
-	onReorderLayer: noopReorderLayer
+	onReorderLayer: noopReorderLayer,
+	onToggleLayerVisibility: noopToggleLayerVisibility
 };
 
 describe('TimelinePanel', () => {
@@ -29,7 +31,8 @@ describe('TimelinePanel', () => {
 				onAddLayer: noopAddLayer,
 				onActivateLayer: noopActivateLayer,
 				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer
+				onReorderLayer: noopReorderLayer,
+				onToggleLayerVisibility: noopToggleLayerVisibility
 			}
 		});
 
@@ -51,7 +54,8 @@ describe('TimelinePanel', () => {
 				onAddLayer: noopAddLayer,
 				onActivateLayer: noopActivateLayer,
 				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer
+				onReorderLayer: noopReorderLayer,
+				onToggleLayerVisibility: noopToggleLayerVisibility
 			}
 		});
 
@@ -74,7 +78,8 @@ describe('TimelinePanel', () => {
 				onAddLayer: noopAddLayer,
 				onActivateLayer: noopActivateLayer,
 				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer
+				onReorderLayer: noopReorderLayer,
+				onToggleLayerVisibility: noopToggleLayerVisibility
 			}
 		});
 
@@ -96,7 +101,8 @@ describe('TimelinePanel', () => {
 				onAddLayer: noopAddLayer,
 				onActivateLayer: noopActivateLayer,
 				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer
+				onReorderLayer: noopReorderLayer,
+				onToggleLayerVisibility: noopToggleLayerVisibility
 			}
 		});
 
@@ -115,7 +121,8 @@ describe('TimelinePanel', () => {
 				onAddLayer,
 				onActivateLayer: noopActivateLayer,
 				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer
+				onReorderLayer: noopReorderLayer,
+				onToggleLayerVisibility: noopToggleLayerVisibility
 			}
 		});
 
@@ -138,7 +145,8 @@ describe('TimelinePanel', () => {
 				onAddLayer: noopAddLayer,
 				onActivateLayer,
 				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer
+				onReorderLayer: noopReorderLayer,
+				onToggleLayerVisibility: noopToggleLayerVisibility
 			}
 		});
 
@@ -162,7 +170,8 @@ describe('TimelinePanel', () => {
 				onAddLayer: noopAddLayer,
 				onActivateLayer: noopActivateLayer,
 				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer
+				onReorderLayer: noopReorderLayer,
+				onToggleLayerVisibility: noopToggleLayerVisibility
 			}
 		});
 
@@ -186,7 +195,8 @@ describe('TimelinePanel', () => {
 				onAddLayer: noopAddLayer,
 				onActivateLayer: noopActivateLayer,
 				onRemoveLayer,
-				onReorderLayer: noopReorderLayer
+				onReorderLayer: noopReorderLayer,
+				onToggleLayerVisibility: noopToggleLayerVisibility
 			}
 		});
 
@@ -211,7 +221,8 @@ describe('TimelinePanel', () => {
 				onAddLayer: noopAddLayer,
 				onActivateLayer,
 				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer
+				onReorderLayer: noopReorderLayer,
+				onToggleLayerVisibility: noopToggleLayerVisibility
 			}
 		});
 
@@ -238,7 +249,8 @@ describe('TimelinePanel', () => {
 				onAddLayer: noopAddLayer,
 				onActivateLayer,
 				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer
+				onReorderLayer: noopReorderLayer,
+				onToggleLayerVisibility: noopToggleLayerVisibility
 			}
 		});
 
@@ -259,7 +271,8 @@ describe('TimelinePanel', () => {
 				onAddLayer: noopAddLayer,
 				onActivateLayer: noopActivateLayer,
 				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer
+				onReorderLayer: noopReorderLayer,
+				onToggleLayerVisibility: noopToggleLayerVisibility
 			}
 		});
 
@@ -279,7 +292,8 @@ describe('TimelinePanel', () => {
 				onAddLayer: noopAddLayer,
 				onActivateLayer: noopActivateLayer,
 				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer
+				onReorderLayer: noopReorderLayer,
+				onToggleLayerVisibility: noopToggleLayerVisibility
 			}
 		});
 
@@ -471,6 +485,137 @@ describe('TimelinePanel', () => {
 		expect(onReorderLayer).toHaveBeenCalledWith('c', 2);
 	});
 
+	it('renders a visibility toggle on every layer row', () => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1' },
+			{ id: 'b', name: 'Layer 2' },
+			{ id: 'c', name: 'Layer 3' }
+		];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps }
+		});
+
+		const toggles = container.querySelectorAll('[data-visibility-toggle]');
+		expect(toggles.length).toBe(3);
+		for (const t of toggles) {
+			expect(t.tagName).toBe('BUTTON');
+		}
+	});
+
+	it('clicking a visible row’s visibility toggle invokes onToggleLayerVisibility(id, false)', async () => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1', visible: true },
+			{ id: 'b', name: 'Layer 2', visible: true }
+		];
+		const onToggleLayerVisibility = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onToggleLayerVisibility }
+		});
+
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+		const toggle = rowB.querySelector('[data-visibility-toggle]') as HTMLButtonElement;
+		await fireEvent.click(toggle);
+
+		expect(onToggleLayerVisibility).toHaveBeenCalledWith('b', false);
+		expect(onToggleLayerVisibility).toHaveBeenCalledTimes(1);
+	});
+
+	it('clicking a hidden row’s visibility toggle invokes onToggleLayerVisibility(id, true)', async () => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1', visible: true },
+			{ id: 'b', name: 'Layer 2', visible: false }
+		];
+		const onToggleLayerVisibility = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onToggleLayerVisibility }
+		});
+
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+		const toggle = rowB.querySelector('[data-visibility-toggle]') as HTMLButtonElement;
+		await fireEvent.click(toggle);
+
+		expect(onToggleLayerVisibility).toHaveBeenCalledWith('b', true);
+		expect(onToggleLayerVisibility).toHaveBeenCalledTimes(1);
+	});
+
+	it('clicking the visibility toggle does not also activate the row', async () => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1' },
+			{ id: 'b', name: 'Layer 2' }
+		];
+		const onActivateLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onActivateLayer }
+		});
+
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+		const toggle = rowB.querySelector('[data-visibility-toggle]') as HTMLButtonElement;
+		await fireEvent.click(toggle);
+
+		expect(onActivateLayer).not.toHaveBeenCalled();
+	});
+
+	it.each([
+		['Enter', 'Enter'],
+		['Space', ' ']
+	])('pressing %s on the visibility toggle does not activate the row', async (_label, key) => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1' },
+			{ id: 'b', name: 'Layer 2' }
+		];
+		const onActivateLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onActivateLayer }
+		});
+
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+		const toggle = rowB.querySelector('[data-visibility-toggle]') as HTMLButtonElement;
+		toggle.focus();
+		await fireEvent.keyDown(toggle, { key });
+
+		expect(onActivateLayer).not.toHaveBeenCalled();
+	});
+
+	it('uses a state-describing aria-label that switches between Hide and Show', () => {
+		// Visible rows announce the action that the toggle will perform ("Hide …"),
+		// hidden rows announce the inverse ("Show …"). No aria-pressed is used —
+		// pairing a dynamic label with aria-pressed produces conflicting state
+		// announcements (WAI-ARIA APG: the label must not change when state does).
+		const layers = [
+			{ id: 'a', name: 'Layer 1', visible: true },
+			{ id: 'b', name: 'Layer 2', visible: false }
+		];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps }
+		});
+
+		const rowA = container.querySelector('[data-layer-row][data-layer-id="a"]') as HTMLElement;
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+		const toggleA = rowA.querySelector('[data-visibility-toggle]') as HTMLButtonElement;
+		const toggleB = rowB.querySelector('[data-visibility-toggle]') as HTMLButtonElement;
+
+		expect(toggleA.getAttribute('aria-label')).toMatch(/hide/i);
+		expect(toggleB.getAttribute('aria-label')).toMatch(/show/i);
+		expect(toggleA.hasAttribute('aria-pressed')).toBe(false);
+		expect(toggleB.hasAttribute('aria-pressed')).toBe(false);
+	});
+
+	it('marks hidden rows with a class that is absent on visible rows', () => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1', visible: true },
+			{ id: 'b', name: 'Layer 2', visible: false }
+		];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps }
+		});
+
+		const rowA = container.querySelector('[data-layer-row][data-layer-id="a"]') as HTMLElement;
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+
+		expect(rowA.classList.contains('row--hidden')).toBe(false);
+		expect(rowB.classList.contains('row--hidden')).toBe(true);
+	});
+
 	it('activates the row when Enter or Space is pressed on a focused row', async () => {
 		const layers = [
 			{ id: 'a', name: 'Layer 1' },
@@ -484,7 +629,8 @@ describe('TimelinePanel', () => {
 				onAddLayer: noopAddLayer,
 				onActivateLayer,
 				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer
+				onReorderLayer: noopReorderLayer,
+				onToggleLayerVisibility: noopToggleLayerVisibility
 			}
 		});
 

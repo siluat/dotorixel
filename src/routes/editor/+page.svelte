@@ -752,7 +752,7 @@
 			'topbar   topbar   topbar'    calc(44px + env(safe-area-inset-top, 0px))
 			'tabstrip tabstrip tabstrip'  36px
 			'toolbar  canvas   panel'     1fr
-			'toolbar  timeline panel'     180px
+			'toolbar  timeline panel'     auto
 			'status   status   status'    calc(28px + env(safe-area-inset-bottom, 0px))
 			/ 44px    1fr      200px;
 	}
@@ -763,7 +763,7 @@
 				'topbar   topbar   topbar'    calc(48px + env(safe-area-inset-top, 0px))
 				'tabstrip tabstrip tabstrip'  36px
 				'toolbar  canvas   panel'     1fr
-				'toolbar  timeline panel'     180px
+				'toolbar  timeline panel'     auto
 				'status   status   status'    calc(28px + env(safe-area-inset-bottom, 0px))
 				/ 48px    1fr      240px;
 		}

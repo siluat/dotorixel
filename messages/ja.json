@@ -136,9 +136,12 @@
 
 	"layer_default_name": "レイヤー {n}",
 	"layer_panel_title": "レイヤー",
+	"layer_panel_collapsed_label": "レイヤー · {name}",
 	"aria_addLayer": "レイヤーを追加",
 	"aria_removeLayer": "{name}を削除",
 	"aria_reorderLayer": "{name}を並べ替え",
 	"aria_hideLayer": "{name}を隠す",
-	"aria_showLayer": "{name}を表示"
+	"aria_showLayer": "{name}を表示",
+	"aria_collapseTimelinePanel": "レイヤーパネルを折りたたむ",
+	"aria_expandTimelinePanel": "レイヤーパネルを展開"
 }

@@ -708,6 +708,99 @@ describe('TimelinePanel', () => {
 		expect(rowB.classList.contains('row--hidden')).toBe(true);
 	});
 
+	it('renders a collapse toggle button in the header', () => {
+		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps }
+		});
+
+		const toggle = container.querySelector('[data-collapse-toggle]');
+		expect(toggle).not.toBeNull();
+		expect(toggle?.tagName).toBe('BUTTON');
+	});
+
+	it('starts in the expanded state on first render', () => {
+		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps }
+		});
+
+		const panel = container.querySelector('.timeline-panel') as HTMLElement;
+		expect(panel.getAttribute('data-collapsed')).toBe('false');
+	});
+
+	it('collapses when the collapse toggle is clicked', async () => {
+		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps }
+		});
+
+		const toggle = container.querySelector('[data-collapse-toggle]') as HTMLButtonElement;
+		await fireEvent.click(toggle);
+
+		const panel = container.querySelector('.timeline-panel') as HTMLElement;
+		expect(panel.getAttribute('data-collapsed')).toBe('true');
+	});
+
+	it('expands again when the collapse toggle is clicked a second time', async () => {
+		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps }
+		});
+
+		const toggle = container.querySelector('[data-collapse-toggle]') as HTMLButtonElement;
+		await fireEvent.click(toggle);
+		await fireEvent.click(toggle);
+
+		const panel = container.querySelector('.timeline-panel') as HTMLElement;
+		expect(panel.getAttribute('data-collapsed')).toBe('false');
+	});
+
+	it('shows the active layer name in the header when collapsed', async () => {
+		const layers = [
+			{ id: 'a', name: 'Sky' },
+			{ id: 'b', name: 'Mountains' }
+		];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'b', ...defaultProps }
+		});
+
+		const toggle = container.querySelector('[data-collapse-toggle]') as HTMLButtonElement;
+		await fireEvent.click(toggle);
+
+		const header = container.querySelector('.timeline-panel .header') as HTMLElement;
+		expect(header.textContent).toContain('Mountains');
+	});
+
+	it('does not render the layer rows when collapsed', async () => {
+		const layers = [
+			{ id: 'a', name: 'Layer 1' },
+			{ id: 'b', name: 'Layer 2' }
+		];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps }
+		});
+
+		const toggle = container.querySelector('[data-collapse-toggle]') as HTMLButtonElement;
+		await fireEvent.click(toggle);
+
+		const rows = container.querySelectorAll('[data-layer-row]');
+		expect(rows.length).toBe(0);
+	});
+
+	it('switches the collapse toggle aria-label between Collapse and Expand', async () => {
+		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps }
+		});
+
+		const toggle = container.querySelector('[data-collapse-toggle]') as HTMLButtonElement;
+		expect(toggle.getAttribute('aria-label')).toMatch(/collapse/i);
+
+		await fireEvent.click(toggle);
+		expect(toggle.getAttribute('aria-label')).toMatch(/expand/i);
+	});
+
 	it('activates the row when Enter or Space is pressed on a focused row', async () => {
 		const layers = [
 			{ id: 'a', name: 'Layer 1' },

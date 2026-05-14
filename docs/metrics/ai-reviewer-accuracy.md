@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 91 | 70 | 21 | 81 | 77% | 46% |
-| cubic-dev-ai[bot] | 57 | 48 | 9 | 100 | 84% | 32% |
-| coderabbitai[bot] | 136 | 94 | 42 | 52 | 69% | 64% |
+| greptile-apps[bot] | 92 | 71 | 21 | 81 | 77% | 47% |
+| cubic-dev-ai[bot] | 58 | 49 | 9 | 100 | 84% | 33% |
+| coderabbitai[bot] | 137 | 94 | 43 | 53 | 69% | 64% |
 
 ## Log
 
@@ -531,3 +531,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #200 | greptile-apps[bot] | Miss | Did not flag missing keyboard-path regression test |
 | #200 | cubic-dev-ai[bot] | Miss | Did not flag missing `removeLayer` doc comment |
 | #200 | cubic-dev-ai[bot] | Miss | Did not flag missing keyboard-path regression test |
+| #202 | greptile-apps[bot] | Accept | `aria-pressed` + dynamic `aria-label` produces conflicting screen-reader state announcement on visibility toggle (WAI-ARIA APG) |
+| #202 | cubic-dev-ai[bot] | Accept | `aria-pressed` + dynamic `aria-label` conflict (duplicate of greptile) |
+| #202 | coderabbitai[bot] | Reject | `set_layer_visibility` doc should mention malformed-UUID error path — matches established WASM facade convention (sibling methods all omit it); parser-glue error not part of public contract |
+| #202 | coderabbitai[bot] | Miss | Did not flag `aria-pressed` + dynamic `aria-label` conflict on visibility toggle |

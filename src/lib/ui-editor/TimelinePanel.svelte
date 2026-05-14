@@ -4,6 +4,7 @@
 	interface LayerSummary {
 		readonly id: string;
 		readonly name: string;
+		readonly visible?: boolean;
 	}
 
 	interface Props {
@@ -13,6 +14,7 @@
 		onActivateLayer: (id: string) => void;
 		onRemoveLayer: (id: string) => void;
 		onReorderLayer: (id: string, newVisualIndex: number) => void;
+		onToggleLayerVisibility: (id: string, newVisible: boolean) => void;
 	}
 
 	let {
@@ -21,7 +23,8 @@
 		onAddLayer,
 		onActivateLayer,
 		onRemoveLayer,
-		onReorderLayer
+		onReorderLayer,
+		onToggleLayerVisibility
 	}: Props = $props();
 
 	let draggingId: string | null = null;
@@ -85,9 +88,11 @@
 		<div class="sidebar">
 			{#each layers as layer, visualIndex (layer.id)}
 				{@const isActive = layer.id === activeLayerId}
+				{@const isVisible = layer.visible ?? true}
 				<div
 					class="row"
 					class:row--active={isActive}
+					class:row--hidden={!isVisible}
 					role="button"
 					tabindex="0"
 					data-layer-row
@@ -103,6 +108,26 @@
 					ondragover={handleDragOver}
 					ondrop={(e) => handleDrop(e, visualIndex)}
 				>
+					<button
+						type="button"
+						class="visibility-toggle"
+						data-visibility-toggle
+						aria-label={isVisible
+							? m.aria_hideLayer({ name: layer.name })
+							: m.aria_showLayer({ name: layer.name })}
+						aria-pressed={isVisible}
+						onkeydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.stopPropagation();
+							}
+						}}
+						onclick={(e) => {
+							e.stopPropagation();
+							onToggleLayerVisibility(layer.id, !isVisible);
+						}}
+					>
+						{isVisible ? '◉' : '◎'}
+					</button>
 					<span class="bar"></span>
 					<span class="name">{layer.name}</span>
 					<button
@@ -316,7 +341,8 @@
 	}
 
 	.remove-btn,
-	.reorder-handle {
+	.reorder-handle,
+	.visibility-toggle {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -334,13 +360,15 @@
 	}
 
 	.remove-btn:hover:not(:disabled),
-	.reorder-handle:hover:not(:disabled) {
+	.reorder-handle:hover:not(:disabled),
+	.visibility-toggle:hover:not(:disabled) {
 		background: var(--ds-bg-hover);
 		color: var(--ds-text-primary);
 	}
 
 	.remove-btn:focus-visible,
-	.reorder-handle:focus-visible {
+	.reorder-handle:focus-visible,
+	.visibility-toggle:focus-visible {
 		outline: var(--ds-border-width-thick) solid var(--ds-accent);
 		outline-offset: 1px;
 	}
@@ -349,6 +377,15 @@
 	.reorder-handle:disabled {
 		opacity: 0.35;
 		cursor: not-allowed;
+	}
+
+	.visibility-toggle {
+		margin-left: var(--ds-space-2);
+	}
+
+	.row--hidden .name {
+		opacity: 0.45;
+		font-style: italic;
 	}
 
 	.reorder-handle {

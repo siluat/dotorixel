@@ -892,6 +892,96 @@ describe('TabState — reorderLayer', () => {
 	});
 });
 
+describe('TabState — setLayerVisibility', () => {
+	it('flips Layer.visible to false on the targeted layer', () => {
+		const { tab } = makeTab();
+		const layerId = tab.document.active_layer_id();
+
+		tab.setLayerVisibility(layerId, false);
+
+		expect(tab.document.layer_visible_at(0)).toBe(false);
+	});
+
+	it('restores Layer.visible to true from a hidden state', () => {
+		const { tab } = makeTab();
+		const layerId = tab.document.active_layer_id();
+		tab.setLayerVisibility(layerId, false);
+		expect(tab.document.layer_visible_at(0)).toBe(false);
+
+		tab.setLayerVisibility(layerId, true);
+
+		expect(tab.document.layer_visible_at(0)).toBe(true);
+	});
+
+	it('affects only the targeted layer; sibling layers retain their visibility', () => {
+		const { tab } = makeTab();
+		tab.addLayer('Layer 2');
+		const layer1Id = tab.document.layer_id_at(0)!;
+		const layer2Id = tab.document.layer_id_at(1)!;
+
+		tab.setLayerVisibility(layer1Id, false);
+
+		expect(tab.document.layer_visible_at(0)).toBe(false);
+		expect(tab.document.layer_visible_at(1)).toBe(true);
+		expect(tab.document.active_layer_id()).toBe(layer2Id);
+	});
+
+	it('bumps renderVersion and emits markDirty on a real change', () => {
+		const { tab, notifier } = makeTab();
+		const layerId = tab.document.active_layer_id();
+		const renderBefore = tab.renderVersion;
+		notifier.reset();
+
+		tab.setLayerVisibility(layerId, false);
+
+		expect(tab.renderVersion).toBeGreaterThan(renderBefore);
+		expect(notifier.dirtyCalls).toContain('doc-test');
+	});
+
+	it('is undoable: undo restores the prior visibility', () => {
+		const { tab } = makeTab();
+		const layerId = tab.document.active_layer_id();
+		expect(tab.document.layer_visible_at(0)).toBe(true);
+
+		tab.setLayerVisibility(layerId, false);
+		expect(tab.document.layer_visible_at(0)).toBe(false);
+
+		tab.undo();
+
+		expect(tab.document.layer_visible_at(0)).toBe(true);
+	});
+
+	it('is a no-op when called with the current visibility (no renderVersion bump, no markDirty)', () => {
+		const { tab, notifier } = makeTab();
+		const layerId = tab.document.active_layer_id();
+		expect(tab.document.layer_visible_at(0)).toBe(true);
+		const renderBefore = tab.renderVersion;
+		notifier.reset();
+
+		tab.setLayerVisibility(layerId, true);
+
+		expect(tab.document.layer_visible_at(0)).toBe(true);
+		expect(tab.renderVersion).toBe(renderBefore);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('the no-op branch also leaves the undo stack untouched (no orphan snapshot)', () => {
+		const { tab, shared } = makeTab();
+		shared.foregroundColor = BLACK;
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 2, y: 2 }, null);
+		tab.drawEnd();
+		expect(getPixel(tab, 2, 2).a).toBe(255);
+
+		const layerId = tab.document.active_layer_id();
+		tab.setLayerVisibility(layerId, true); // already visible → no-op
+
+		tab.undo();
+		expect(getPixel(tab, 2, 2).a).toBe(0);
+	});
+});
+
 describe('TabState — compositeBuffer reflects all visible layers', () => {
 	it('width and height match the document', () => {
 		const { tab } = makeTab({ canvasWidth: 12, canvasHeight: 7 });

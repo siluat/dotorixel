@@ -333,6 +333,15 @@ impl WasmDocument {
             .map_err(|e| JsError::new(&e.to_string()))
     }
 
+    /// Sets the visibility flag of the layer with `id`. Errors when no layer
+    /// with `id` exists; the previous visibility is preserved on error.
+    pub fn set_layer_visibility(&mut self, id: String, visible: bool) -> Result<(), JsError> {
+        let layer_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner
+            .set_layer_visibility(layer_id, visible)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
     /// Resizes every layer to `new_width × new_height` using the same
     /// `anchor`, preserving each layer's id, name, visibility, and opacity.
     /// The active layer pointer is preserved.

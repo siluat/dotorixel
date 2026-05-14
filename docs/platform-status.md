@@ -110,7 +110,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Document/Layer model | 🔧 | 🔧 | ⬜ | `Document` owns ordered layer stack + active-layer UUID + monotonic `next_layer_number` + `timelinePanelCollapsed`. `Layer` is `(id, name, pixels, visible, opacity)`. `composite()` is straight source-over with layer opacity multiplied into source alpha; invisible layers skipped. Web: Document is single source of truth — tools/history/sampling/export/persistence all route through it; V3 schema persists the full stack. Apple: preserved as single-canvas (see ADR `docs/decisions/web-document-layer-apple-preserved.en.md`) |
-| Timeline panel — desktop shell | — | 🔧 | ⬜ | Layers listed top-z first (Aseprite/Photoshop). Active row: accent bar + bold; click/Space/Enter activates. Header `+` adds; per-row `✕` removes (disabled with one layer); `≡` drag-and-drop or ArrowUp/Down reorders. Frame column is an M4 placeholder. Mobile + Apple pending |
+| Timeline panel — desktop shell | — | 🔧 | ⬜ | Layers listed top-z first (Aseprite/Photoshop). Active row: accent bar + bold; click/Space/Enter activates. Header `+` adds; per-row `✕` removes (disabled with one layer); `≡` drag-and-drop or ArrowUp/Down reorders; `◉`/`◎` toggles visibility (hidden rows dim/italic, excluded from composite, undoable). Frame column is an M4 placeholder. Mobile + Apple pending |
 
 ## Reference Images
 

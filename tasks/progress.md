@@ -2,18 +2,16 @@
 
 ## Currently Working On
 
-Layer system — basic infrastructure (add/delete/reorder) ([PRD-086](../issues/086-layer-system-basic-infrastructure.md)). 14 done, 4 remaining (097/098/099/100). Desktop add/delete/reorder all landed; 097's visibility chevron is the natural next slice and inherits the established per-row pattern (`stopPropagation` + last-layer-style idempotency at the `TabState` boundary).
+Layer system — basic infrastructure (add/delete/reorder) ([PRD-086](../issues/086-layer-system-basic-infrastructure.md)). 15 done, 3 remaining (098/099/100). The desktop sidebar is now feature-complete (add/delete/reorder/visibility); what's left is the mobile entry point and the panel collapse behavior.
 
 ## Last Completed
 
-[096 — Layer reorder](../issues/096-layer-system-reorder-layer.md): per-row `≡` handle supports drag-and-drop or ArrowUp/Down reordering. The visual↔stack mapping (`stack_idx = (count - 1) - visual_idx`) is encapsulated in `TabState.reorderLayer` and locked by a unit test, so future panel-order changes will fail loudly instead of silently inverting depth.
+[097 — Visibility toggle](../issues/097-layer-system-visibility-toggle.md): per-row `◉`/`◎` toggle, hidden rows visually distinct (italic + dimmed), composite excludes hidden layers, undoable. The TabState boundary short-circuits no-op re-applies (no orphan snapshot) — same idempotency pattern as `setActiveLayer`. Touch target (24×24) and hidden-row visual spec remain open against `web-styling.md` ≥44px and the unfinished 092 design pass; both are panel-wide concerns, not regressions.
 
 ## Next Up
 
-- [097 — Visibility toggle](../issues/097-layer-system-visibility-toggle.md)
-  - Unblocked. Per-row visibility chevron + composite update. Must `stopPropagation` (see 104/095/096).
 - [098 — Mobile Timeline tab](../issues/098-layer-system-mobile-timeline-tab.md)
-  - Unblocked. Mobile entry point — independent of desktop add/delete/reorder.
+  - Unblocked. Mobile entry point — independent of desktop add/delete/reorder/visibility.
 - [099 — Collapsible chevron (no persistence)](../issues/099-layer-system-collapsible-toggle.md)
   - Unblocked. Header chevron toggles in-memory collapsed state.
 - [100 — Persist `timelinePanelCollapsed`](../issues/100-layer-system-collapsible-persistence.md)

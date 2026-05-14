@@ -87,13 +87,14 @@
 		const tab = editor.workspace.activeTab;
 		void tab.renderVersion;
 		const doc = tab.document;
-		const out: { id: string; name: string }[] = [];
+		const out: { id: string; name: string; visible: boolean }[] = [];
 		const count = doc.layer_count();
 		for (let i = count - 1; i >= 0; i--) {
 			const id = doc.layer_id_at(i);
 			const name = doc.layer_name_at(i);
-			if (id !== undefined && name !== undefined) {
-				out.push({ id, name });
+			const visible = doc.layer_visible_at(i);
+			if (id !== undefined && name !== undefined && visible !== undefined) {
+				out.push({ id, name, visible });
 			}
 		}
 		return out;
@@ -146,6 +147,10 @@
 
 	function handleReorderLayer(id: string, newVisualIndex: number) {
 		editor.workspace.activeTab.reorderLayer(id, newVisualIndex);
+	}
+
+	function handleToggleLayerVisibility(id: string, newVisible: boolean) {
+		editor.workspace.activeTab.setLayerVisibility(id, newVisible);
 	}
 
 	function handlePixelPerfectToggle() {
@@ -510,6 +515,7 @@
 			onActivateLayer={handleActivateLayer}
 			onRemoveLayer={handleRemoveLayer}
 			onReorderLayer={handleReorderLayer}
+			onToggleLayerVisibility={handleToggleLayerVisibility}
 		/>
 
 		<RightPanel

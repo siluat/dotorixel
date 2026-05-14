@@ -95,4 +95,9 @@ export interface Document {
 	 * by index. Throws if no layer with this id exists.
 	 */
 	reorder_layer(id: string, new_index: number): void;
+	/**
+	 * Sets the visibility flag of the layer with `id`. Throws if no layer
+	 * with this id exists; previous visibility is preserved on error.
+	 */
+	set_layer_visibility(id: string, visible: boolean): void;
 }

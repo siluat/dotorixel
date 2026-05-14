@@ -137,5 +137,7 @@
 	"layer_panel_title": "レイヤー",
 	"aria_addLayer": "レイヤーを追加",
 	"aria_removeLayer": "{name}を削除",
-	"aria_reorderLayer": "{name}を並べ替え"
+	"aria_reorderLayer": "{name}を並べ替え",
+	"aria_hideLayer": "{name}を隠す",
+	"aria_showLayer": "{name}を表示"
 }

@@ -361,6 +361,23 @@ export class TabState {
 		this.#notifier.markDirty(this.documentId);
 	};
 
+	/**
+	 * Sets the visibility flag of the layer with `id`. No-op when the layer's
+	 * `visible` is already `visible` (no snapshot, no renderVersion bump, no
+	 * markDirty — keeps history clean and parallels the `setActiveLayer`
+	 * idempotency pattern). On a real change, pushes an undo snapshot, bumps
+	 * `renderVersion`, and marks the tab dirty. Throws if `id` does not refer
+	 * to an existing layer.
+	 */
+	setLayerVisibility = (id: string, visible: boolean): void => {
+		const stackIdx = this.#stackIndexOf(id);
+		if (this.document.layer_visible_at(stackIdx) === visible) return;
+		this.#toolRunner.pushSnapshot();
+		this.document.set_layer_visibility(id, visible);
+		this.renderVersion++;
+		this.#notifier.markDirty(this.documentId);
+	};
+
 	#stackIndexOf(id: string): number {
 		const doc = this.document;
 		const count = doc.layer_count();

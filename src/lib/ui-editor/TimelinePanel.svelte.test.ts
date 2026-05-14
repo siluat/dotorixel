@@ -576,7 +576,11 @@ describe('TimelinePanel', () => {
 		expect(onActivateLayer).not.toHaveBeenCalled();
 	});
 
-	it('reflects the layer’s visibility via aria-pressed on the toggle', () => {
+	it('uses a state-describing aria-label that switches between Hide and Show', () => {
+		// Visible rows announce the action that the toggle will perform ("Hide …"),
+		// hidden rows announce the inverse ("Show …"). No aria-pressed is used —
+		// pairing a dynamic label with aria-pressed produces conflicting state
+		// announcements (WAI-ARIA APG: the label must not change when state does).
 		const layers = [
 			{ id: 'a', name: 'Layer 1', visible: true },
 			{ id: 'b', name: 'Layer 2', visible: false }
@@ -590,8 +594,10 @@ describe('TimelinePanel', () => {
 		const toggleA = rowA.querySelector('[data-visibility-toggle]') as HTMLButtonElement;
 		const toggleB = rowB.querySelector('[data-visibility-toggle]') as HTMLButtonElement;
 
-		expect(toggleA.getAttribute('aria-pressed')).toBe('true');
-		expect(toggleB.getAttribute('aria-pressed')).toBe('false');
+		expect(toggleA.getAttribute('aria-label')).toMatch(/hide/i);
+		expect(toggleB.getAttribute('aria-label')).toMatch(/show/i);
+		expect(toggleA.hasAttribute('aria-pressed')).toBe(false);
+		expect(toggleB.hasAttribute('aria-pressed')).toBe(false);
 	});
 
 	it('marks hidden rows with a class that is absent on visible rows', () => {

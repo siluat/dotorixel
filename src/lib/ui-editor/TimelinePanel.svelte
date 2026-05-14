@@ -115,7 +115,6 @@
 						aria-label={isVisible
 							? m.aria_hideLayer({ name: layer.name })
 							: m.aria_showLayer({ name: layer.name })}
-						aria-pressed={isVisible}
 						onkeydown={(e) => {
 							if (e.key === 'Enter' || e.key === ' ') {
 								e.stopPropagation();

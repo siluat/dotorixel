@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 92 | 71 | 21 | 81 | 77% | 47% |
-| cubic-dev-ai[bot] | 58 | 49 | 9 | 100 | 84% | 33% |
-| coderabbitai[bot] | 137 | 94 | 43 | 53 | 69% | 64% |
+| greptile-apps[bot] | 94 | 72 | 22 | 82 | 77% | 47% |
+| cubic-dev-ai[bot] | 58 | 49 | 9 | 102 | 84% | 32% |
+| coderabbitai[bot] | 139 | 95 | 44 | 54 | 68% | 64% |
 
 ## Log
 
@@ -535,3 +535,11 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #202 | cubic-dev-ai[bot] | Accept | `aria-pressed` + dynamic `aria-label` conflict (duplicate of greptile) |
 | #202 | coderabbitai[bot] | Reject | `set_layer_visibility` doc should mention malformed-UUID error path — matches established WASM facade convention (sibling methods all omit it); parser-glue error not part of public contract |
 | #202 | coderabbitai[bot] | Miss | Did not flag `aria-pressed` + dynamic `aria-label` conflict on visibility toggle |
+| #203 | greptile-apps[bot] | Reject | No visual feedback during pointer drag — out of issue 098 scope; design spec 092 has no drag indicator; defer to follow-up |
+| #203 | greptile-apps[bot] | Accept | `handlePointerUp` used last `pointermove` Y instead of the release event's own `clientY` — release at a different Y reordered to wrong target |
+| #203 | coderabbitai[bot] | Reject | Add API doc comment to exported `MobileTab` type — string-literal union is self-documenting; project reserves doc comments for non-obvious contracts |
+| #203 | coderabbitai[bot] | Accept | Track initiating `pointerId` so a second touch cannot steal or reset an in-flight drag (multi-touch safety) |
+| #203 | coderabbitai[bot] | Miss | Did not flag stale `pointermove` Y on release |
+| #203 | greptile-apps[bot] | Miss | Did not flag missing `pointerId` tracking against multi-touch drag interference |
+| #203 | cubic-dev-ai[bot] | Miss | Did not flag stale `pointermove` Y on release |
+| #203 | cubic-dev-ai[bot] | Miss | Did not flag missing `pointerId` tracking against multi-touch drag interference |

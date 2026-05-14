@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 94 | 72 | 22 | 82 | 77% | 47% |
-| cubic-dev-ai[bot] | 58 | 49 | 9 | 102 | 84% | 32% |
-| coderabbitai[bot] | 139 | 95 | 44 | 54 | 68% | 64% |
+| greptile-apps[bot] | 94 | 72 | 22 | 83 | 77% | 46% |
+| cubic-dev-ai[bot] | 58 | 49 | 9 | 103 | 84% | 32% |
+| coderabbitai[bot] | 140 | 96 | 44 | 54 | 69% | 64% |
 
 ## Log
 
@@ -543,3 +543,6 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #203 | greptile-apps[bot] | Miss | Did not flag missing `pointerId` tracking against multi-touch drag interference |
 | #203 | cubic-dev-ai[bot] | Miss | Did not flag stale `pointermove` Y on release |
 | #203 | cubic-dev-ai[bot] | Miss | Did not flag missing `pointerId` tracking against multi-touch drag interference |
+| #203 | coderabbitai[bot] | Accept | Add intermediate `not.toHaveBeenCalled()` after secondary pointer release in multi-pointer test — catches a regression where the pointerId guard on pointerup is dropped |
+| #203 | greptile-apps[bot] | Miss | Did not flag false-positive risk in multi-pointer test (no intermediate assertion) |
+| #203 | cubic-dev-ai[bot] | Miss | Did not flag false-positive risk in multi-pointer test (no intermediate assertion) |

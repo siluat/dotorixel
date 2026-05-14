@@ -545,6 +545,9 @@ describe('TimelinePanel', () => {
 		// Events from the secondary pointer are also ignored.
 		await fireEvent.pointerMove(handleC, { clientY: 200, pointerId: 2 });
 		await fireEvent.pointerUp(handleC, { clientY: 200, pointerId: 2 });
+		// Guard: the secondary pointer's release alone must not trigger reorder —
+		// catches a regression where the pointerId check on pointerup is dropped.
+		expect(onReorderLayer).not.toHaveBeenCalled();
 		// The original pointer's release at deltaY=64 still drives the reorder.
 		await fireEvent.pointerMove(handleC, { clientY: 64, pointerId: 1 });
 		await fireEvent.pointerUp(handleC, { clientY: 64, pointerId: 1 });

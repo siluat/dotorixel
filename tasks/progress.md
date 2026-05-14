@@ -2,16 +2,14 @@
 
 ## Currently Working On
 
-Layer system — basic infrastructure (add/delete/reorder) ([PRD-086](../issues/086-layer-system-basic-infrastructure.md)). 15 done, 3 remaining (098/099/100). The desktop sidebar is now feature-complete (add/delete/reorder/visibility); what's left is the mobile entry point and the panel collapse behavior.
+Layer system — basic infrastructure (add/delete/reorder) ([PRD-086](../issues/086-layer-system-basic-infrastructure.md)). 16 done, 2 remaining (099/100). With 098 landed, the layer interface is now reachable on both desktop (RightPanel) and mobile (LAYERS tab); what's left is the panel collapse behavior and its persistence.
 
 ## Last Completed
 
-[097 — Visibility toggle](../issues/097-layer-system-visibility-toggle.md): per-row `◉`/`◎` toggle, hidden rows visually distinct (italic + dimmed), composite excludes hidden layers, undoable. The TabState boundary short-circuits no-op re-applies (no orphan snapshot) — same idempotency pattern as `setActiveLayer`. Touch target (24×24) and hidden-row visual spec remain open against `web-styling.md` ≥44px and the unfinished 092 design pass; both are panel-wide concerns, not regressions.
+[098 — Mobile Timeline tab](../issues/098-layer-system-mobile-timeline-tab.md): added the LAYERS tab (3rd of 4) to mobile BottomTabs, surfacing the same TimelinePanel without hiding the canvas. Reorder was reworked from HTML5 Drag & Drop to PointerEvents so the handle works on touch as well as mouse — same code path for both inputs. `MobileTab` union extracted to a single module to prevent re-sync drift across consumers.
 
 ## Next Up
 
-- [098 — Mobile Timeline tab](../issues/098-layer-system-mobile-timeline-tab.md)
-  - Unblocked. Mobile entry point — independent of desktop add/delete/reorder/visibility.
 - [099 — Collapsible chevron (no persistence)](../issues/099-layer-system-collapsible-toggle.md)
   - Unblocked. Header chevron toggles in-memory collapsed state.
 - [100 — Persist `timelinePanelCollapsed`](../issues/100-layer-system-collapsible-persistence.md)

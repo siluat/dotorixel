@@ -2,8 +2,7 @@
 	import { Download, FolderOpen, Grid3X3, Images, Minus, Plus } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import PixelPerfectIcon from './PixelPerfectIcon.svelte';
-
-	type MobileTab = 'draw' | 'colors' | 'settings';
+	import type { MobileTab } from './mobile-tab';
 
 	interface Props {
 		activeTab: MobileTab;
@@ -40,6 +39,7 @@
 	const tabTitles: Record<MobileTab, (() => string) | null> = {
 		draw: null,
 		colors: m.tab_colors,
+		layers: null,
 		settings: m.tab_settings
 	};
 
@@ -57,7 +57,7 @@
 	}
 </script>
 
-{#if activeTab === 'draw'}
+{#if activeTab === 'draw' || activeTab === 'layers'}
 	<header class="app-bar">
 		<div class="logo-area">
 			<a href="/" class="logo-link" aria-label="Home">

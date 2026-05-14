@@ -15,6 +15,7 @@
 	import ToolStrip from '$lib/ui-editor/ToolStrip.svelte';
 	import ColorBar from '$lib/ui-editor/ColorBar.svelte';
 	import TabBar from '$lib/ui-editor/TabBar.svelte';
+	import type { MobileTab } from '$lib/ui-editor/mobile-tab';
 	import TabStrip from '$lib/ui-editor/TabStrip.svelte';
 	import ColorsContent from '$lib/ui-editor/ColorsContent.svelte';
 	import SettingsContent from '$lib/ui-editor/SettingsContent.svelte';
@@ -45,8 +46,6 @@
 		buildExportFilename,
 		type ExportFormat
 	} from '$lib/canvas/export';
-
-	type MobileTab = 'draw' | 'colors' | 'settings';
 
 	let editor = $state<EditorController>(
 		createEditorController({
@@ -566,7 +565,7 @@
 		/>
 
 		<div class="content-area">
-			{#if activeTab === 'draw'}
+			{#if activeTab === 'draw' || activeTab === 'layers'}
 				<div
 					class="canvas-area"
 					bind:this={canvasContainerEl}
@@ -637,6 +636,16 @@
 				backgroundColor={editor.backgroundColorHex}
 				recentColors={editor.recentColors}
 				onForegroundColorChange={editor.handleForegroundColorChange}
+			/>
+		{:else if activeTab === 'layers'}
+			<TimelinePanel
+				layers={layers}
+				activeLayerId={activeLayerId}
+				onAddLayer={handleAddLayer}
+				onActivateLayer={handleActivateLayer}
+				onRemoveLayer={handleRemoveLayer}
+				onReorderLayer={handleReorderLayer}
+				onToggleLayerVisibility={handleToggleLayerVisibility}
 			/>
 		{/if}
 

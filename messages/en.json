@@ -47,6 +47,7 @@
 
 	"tab_draw": "DRAW",
 	"tab_colors": "COLORS",
+	"tab_layers": "LAYERS",
 	"tab_settings": "SETTINGS",
 
 	"section_canvas": "Canvas",

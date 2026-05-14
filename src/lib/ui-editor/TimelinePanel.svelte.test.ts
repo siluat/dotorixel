@@ -460,7 +460,7 @@ describe('TimelinePanel', () => {
 		expect(onReorderLayer).not.toHaveBeenCalled();
 	});
 
-	it('dragging row C and dropping on row A calls onReorderLayer with the target row’s visual index', async () => {
+	it('pointer-dragging row C downward by two row-heights and releasing calls onReorderLayer with the dropped visual index', async () => {
 		const layers = [
 			{ id: 'c', name: 'Layer 3' },
 			{ id: 'b', name: 'Layer 2' },
@@ -472,17 +472,55 @@ describe('TimelinePanel', () => {
 		});
 
 		const rowC = container.querySelector('[data-layer-row][data-layer-id="c"]') as HTMLElement;
-		const rowA = container.querySelector('[data-layer-row][data-layer-id="a"]') as HTMLElement;
 		const handleC = rowC.querySelector('[data-reorder-handle]') as HTMLButtonElement;
 
-		const dataTransfer = new DataTransfer();
-		await fireEvent.dragStart(handleC, { dataTransfer });
-		await fireEvent.dragOver(rowA, { dataTransfer });
-		await fireEvent.drop(rowA, { dataTransfer });
+		await fireEvent.pointerDown(handleC, { clientY: 0, pointerId: 1 });
+		await fireEvent.pointerMove(handleC, { clientY: 64, pointerId: 1 });
+		await fireEvent.pointerUp(handleC, { clientY: 64, pointerId: 1 });
 
-		// Row A is at visual index 2; dropping the dragged Layer 3 there should
-		// request reorder to visual index 2.
 		expect(onReorderLayer).toHaveBeenCalledWith('c', 2);
+	});
+
+	it('pointer cancel during a drag does not call onReorderLayer', async () => {
+		const layers = [
+			{ id: 'c', name: 'Layer 3' },
+			{ id: 'b', name: 'Layer 2' },
+			{ id: 'a', name: 'Layer 1' }
+		];
+		const onReorderLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
+		});
+
+		const rowC = container.querySelector('[data-layer-row][data-layer-id="c"]') as HTMLElement;
+		const handleC = rowC.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+
+		await fireEvent.pointerDown(handleC, { clientY: 0, pointerId: 1 });
+		await fireEvent.pointerMove(handleC, { clientY: 64, pointerId: 1 });
+		await fireEvent.pointerCancel(handleC, { pointerId: 1 });
+
+		expect(onReorderLayer).not.toHaveBeenCalled();
+	});
+
+	it('pointer release at the original Y does not call onReorderLayer', async () => {
+		const layers = [
+			{ id: 'c', name: 'Layer 3' },
+			{ id: 'b', name: 'Layer 2' },
+			{ id: 'a', name: 'Layer 1' }
+		];
+		const onReorderLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
+		});
+
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+		const handleB = rowB.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+
+		await fireEvent.pointerDown(handleB, { clientY: 0, pointerId: 1 });
+		await fireEvent.pointerMove(handleB, { clientY: 4, pointerId: 1 });
+		await fireEvent.pointerUp(handleB, { clientY: 4, pointerId: 1 });
+
+		expect(onReorderLayer).not.toHaveBeenCalled();
 	});
 
 	it('renders a visibility toggle on every layer row', () => {

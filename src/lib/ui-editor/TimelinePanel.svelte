@@ -32,10 +32,10 @@
 	const DEFAULT_ROW_HEIGHT_PX = 32;
 
 	let draggingId: string | null = null;
+	let draggingPointerId: number | null = null;
 	let dragStartY = 0;
 	let dragBaseIndex = 0;
 	let dragRowHeight = DEFAULT_ROW_HEIGHT_PX;
-	let dragLastTargetIndex = 0;
 
 	function handleReorderKey(event: KeyboardEvent, id: string, visualIndex: number) {
 		if (event.key === 'ArrowUp') {
@@ -61,7 +61,17 @@
 		}
 	}
 
+	function computeTargetIndex(clientY: number): number {
+		const deltaY = clientY - dragStartY;
+		const offset = Math.round(deltaY / dragRowHeight);
+		const candidate = dragBaseIndex + offset;
+		return Math.max(0, Math.min(layers.length - 1, candidate));
+	}
+
 	function handlePointerDown(event: PointerEvent, id: string, visualIndex: number) {
+		// Ignore secondary pointers (e.g. a second finger on a multi-touch device)
+		// while a drag is in progress — only the initiating pointer drives it.
+		if (draggingId !== null) return;
 		if (layers.length < 2) return;
 		if (event.button !== 0) return;
 		const target = event.currentTarget as HTMLElement;
@@ -69,10 +79,10 @@
 		const measured = row?.offsetHeight ?? 0;
 
 		draggingId = id;
+		draggingPointerId = event.pointerId;
 		dragStartY = event.clientY;
 		dragBaseIndex = visualIndex;
 		dragRowHeight = measured > 0 ? measured : DEFAULT_ROW_HEIGHT_PX;
-		dragLastTargetIndex = visualIndex;
 
 		try {
 			target.setPointerCapture(event.pointerId);
@@ -82,19 +92,12 @@
 		event.preventDefault();
 	}
 
-	function handlePointerMove(event: PointerEvent, id: string) {
-		if (draggingId !== id) return;
-		const deltaY = event.clientY - dragStartY;
-		const offset = Math.round(deltaY / dragRowHeight);
-		const candidate = dragBaseIndex + offset;
-		dragLastTargetIndex = Math.max(0, Math.min(layers.length - 1, candidate));
-	}
-
 	function handlePointerUp(event: PointerEvent, id: string) {
-		if (draggingId !== id) return;
-		const target = dragLastTargetIndex;
+		if (draggingId !== id || event.pointerId !== draggingPointerId) return;
+		const target = computeTargetIndex(event.clientY);
 		const base = dragBaseIndex;
 		draggingId = null;
+		draggingPointerId = null;
 		releaseCapture(event.currentTarget as Element, event.pointerId);
 		if (target !== base) {
 			onReorderLayer(id, target);
@@ -102,8 +105,9 @@
 	}
 
 	function handlePointerCancel(event: PointerEvent, id: string) {
-		if (draggingId !== id) return;
+		if (draggingId !== id || event.pointerId !== draggingPointerId) return;
 		draggingId = null;
+		draggingPointerId = null;
 		releaseCapture(event.currentTarget as Element, event.pointerId);
 	}
 </script>
@@ -192,7 +196,6 @@
 						onclick={(e) => e.stopPropagation()}
 						onkeydown={(e) => handleReorderKey(e, layer.id, visualIndex)}
 						onpointerdown={(e) => handlePointerDown(e, layer.id, visualIndex)}
-						onpointermove={(e) => handlePointerMove(e, layer.id)}
 						onpointerup={(e) => handlePointerUp(e, layer.id)}
 						onpointercancel={(e) => handlePointerCancel(e, layer.id)}
 					>

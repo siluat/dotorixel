@@ -502,6 +502,57 @@ describe('TimelinePanel', () => {
 		expect(onReorderLayer).not.toHaveBeenCalled();
 	});
 
+	it('pointer release at a Y different from the last pointermove uses the release Y for the target', async () => {
+		const layers = [
+			{ id: 'c', name: 'Layer 3' },
+			{ id: 'b', name: 'Layer 2' },
+			{ id: 'a', name: 'Layer 1' }
+		];
+		const onReorderLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
+		});
+
+		const rowC = container.querySelector('[data-layer-row][data-layer-id="c"]') as HTMLElement;
+		const handleC = rowC.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+
+		await fireEvent.pointerDown(handleC, { clientY: 0, pointerId: 1 });
+		await fireEvent.pointerMove(handleC, { clientY: 32, pointerId: 1 });
+		await fireEvent.pointerUp(handleC, { clientY: 64, pointerId: 1 });
+
+		expect(onReorderLayer).toHaveBeenCalledWith('c', 2);
+	});
+
+	it('a second pointer landing during an active drag does not steal or reset it', async () => {
+		const layers = [
+			{ id: 'c', name: 'Layer 3' },
+			{ id: 'b', name: 'Layer 2' },
+			{ id: 'a', name: 'Layer 1' }
+		];
+		const onReorderLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
+		});
+
+		const rowC = container.querySelector('[data-layer-row][data-layer-id="c"]') as HTMLElement;
+		const handleC = rowC.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+		const rowA = container.querySelector('[data-layer-row][data-layer-id="a"]') as HTMLElement;
+		const handleA = rowA.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+
+		await fireEvent.pointerDown(handleC, { clientY: 0, pointerId: 1 });
+		// Second finger lands on a different handle — must not start a second drag.
+		await fireEvent.pointerDown(handleA, { clientY: 100, pointerId: 2 });
+		// Events from the secondary pointer are also ignored.
+		await fireEvent.pointerMove(handleC, { clientY: 200, pointerId: 2 });
+		await fireEvent.pointerUp(handleC, { clientY: 200, pointerId: 2 });
+		// The original pointer's release at deltaY=64 still drives the reorder.
+		await fireEvent.pointerMove(handleC, { clientY: 64, pointerId: 1 });
+		await fireEvent.pointerUp(handleC, { clientY: 64, pointerId: 1 });
+
+		expect(onReorderLayer).toHaveBeenCalledTimes(1);
+		expect(onReorderLayer).toHaveBeenCalledWith('c', 2);
+	});
+
 	it('pointer release at the original Y does not call onReorderLayer', async () => {
 		const layers = [
 			{ id: 'c', name: 'Layer 3' },

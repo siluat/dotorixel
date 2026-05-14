@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { Pencil, Palette, Settings } from 'lucide-svelte';
+	import { Pencil, Palette, Layers, Settings } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
-
-	type MobileTab = 'draw' | 'colors' | 'settings';
+	import type { MobileTab } from './mobile-tab';
 
 	interface Props {
 		activeTab: MobileTab;
@@ -11,12 +10,13 @@
 
 	let { activeTab, onTabChange }: Props = $props();
 
-	const tabIds: MobileTab[] = ['draw', 'colors', 'settings'];
+	const tabIds: MobileTab[] = ['draw', 'colors', 'layers', 'settings'];
 	let activeIndex = $derived(tabIds.indexOf(activeTab));
 
 	const tabs: { id: MobileTab; label: () => string; icon: typeof Pencil }[] = [
 		{ id: 'draw', label: m.tab_draw, icon: Pencil },
 		{ id: 'colors', label: m.tab_colors, icon: Palette },
+		{ id: 'layers', label: m.tab_layers, icon: Layers },
 		{ id: 'settings', label: m.tab_settings, icon: Settings }
 	];
 </script>
@@ -71,7 +71,7 @@
 		top: 4px;
 		bottom: 4px;
 		left: 4px;
-		width: calc((100% - 8px) / 3);
+		width: calc((100% - 8px) / 4);
 		border-radius: 26px;
 		background: var(--ds-accent);
 		transform: translateX(calc(var(--active-index) * 100%));

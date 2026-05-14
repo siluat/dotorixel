@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 098 | [Layer system: mobile Timeline tab](../issues/098-layer-system-mobile-timeline-tab.md) | 2026-05-14 |
 | 097 | [Layer system: visibility toggle](../issues/097-layer-system-visibility-toggle.md) | 2026-05-14 |
 | 096 | [Layer system: layer reorder](../issues/096-layer-system-reorder-layer.md) | 2026-05-13 |
 | 095 | [Layer system: delete-layer button](../issues/095-layer-system-delete-layer-button.md) | 2026-05-13 |

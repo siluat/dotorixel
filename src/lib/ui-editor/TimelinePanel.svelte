@@ -27,7 +27,15 @@
 		onToggleLayerVisibility
 	}: Props = $props();
 
+	// Fallback row height used when the DOM has no layout (e.g. headless test
+	// environments where offsetHeight is 0). Matches the docked-mode --row-height.
+	const DEFAULT_ROW_HEIGHT_PX = 32;
+
 	let draggingId: string | null = null;
+	let draggingPointerId: number | null = null;
+	let dragStartY = 0;
+	let dragBaseIndex = 0;
+	let dragRowHeight = DEFAULT_ROW_HEIGHT_PX;
 
 	function handleReorderKey(event: KeyboardEvent, id: string, visualIndex: number) {
 		if (event.key === 'ArrowUp') {
@@ -43,30 +51,64 @@
 		}
 	}
 
-	function handleDragStart(event: DragEvent, id: string) {
-		draggingId = id;
-		if (event.dataTransfer) {
-			event.dataTransfer.effectAllowed = 'move';
-			event.dataTransfer.setData('text/plain', id);
+	function releaseCapture(target: Element, pointerId: number) {
+		try {
+			(target as Element & { releasePointerCapture(id: number): void }).releasePointerCapture(
+				pointerId
+			);
+		} catch {
+			// happy-dom or browsers that lack support — ignore.
 		}
 	}
 
-	function handleDragOver(event: DragEvent) {
-		if (draggingId === null) return;
-		event.preventDefault();
-		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+	function computeTargetIndex(clientY: number): number {
+		const deltaY = clientY - dragStartY;
+		const offset = Math.round(deltaY / dragRowHeight);
+		const candidate = dragBaseIndex + offset;
+		return Math.max(0, Math.min(layers.length - 1, candidate));
 	}
 
-	function handleDrop(event: DragEvent, targetVisualIndex: number) {
+	function handlePointerDown(event: PointerEvent, id: string, visualIndex: number) {
+		// Ignore secondary pointers (e.g. a second finger on a multi-touch device)
+		// while a drag is in progress — only the initiating pointer drives it.
+		if (draggingId !== null) return;
+		if (layers.length < 2) return;
+		if (event.button !== 0) return;
+		const target = event.currentTarget as HTMLElement;
+		const row = target.closest('[data-layer-row]') as HTMLElement | null;
+		const measured = row?.offsetHeight ?? 0;
+
+		draggingId = id;
+		draggingPointerId = event.pointerId;
+		dragStartY = event.clientY;
+		dragBaseIndex = visualIndex;
+		dragRowHeight = measured > 0 ? measured : DEFAULT_ROW_HEIGHT_PX;
+
+		try {
+			target.setPointerCapture(event.pointerId);
+		} catch {
+			// happy-dom or browsers that lack support — ignore.
+		}
 		event.preventDefault();
-		const sourceId = draggingId;
-		draggingId = null;
-		if (sourceId === null) return;
-		onReorderLayer(sourceId, targetVisualIndex);
 	}
 
-	function handleDragEnd() {
+	function handlePointerUp(event: PointerEvent, id: string) {
+		if (draggingId !== id || event.pointerId !== draggingPointerId) return;
+		const target = computeTargetIndex(event.clientY);
+		const base = dragBaseIndex;
 		draggingId = null;
+		draggingPointerId = null;
+		releaseCapture(event.currentTarget as Element, event.pointerId);
+		if (target !== base) {
+			onReorderLayer(id, target);
+		}
+	}
+
+	function handlePointerCancel(event: PointerEvent, id: string) {
+		if (draggingId !== id || event.pointerId !== draggingPointerId) return;
+		draggingId = null;
+		draggingPointerId = null;
+		releaseCapture(event.currentTarget as Element, event.pointerId);
 	}
 </script>
 
@@ -105,8 +147,6 @@
 							onActivateLayer(layer.id);
 						}
 					}}
-					ondragover={handleDragOver}
-					ondrop={(e) => handleDrop(e, visualIndex)}
 				>
 					<button
 						type="button"
@@ -153,11 +193,11 @@
 						data-reorder-handle
 						aria-label={m.aria_reorderLayer({ name: layer.name })}
 						disabled={layers.length === 1}
-						draggable={layers.length > 1}
 						onclick={(e) => e.stopPropagation()}
 						onkeydown={(e) => handleReorderKey(e, layer.id, visualIndex)}
-						ondragstart={(e) => handleDragStart(e, layer.id)}
-						ondragend={handleDragEnd}
+						onpointerdown={(e) => handlePointerDown(e, layer.id, visualIndex)}
+						onpointerup={(e) => handlePointerUp(e, layer.id)}
+						onpointercancel={(e) => handlePointerCancel(e, layer.id)}
 					>
 						≡
 					</button>
@@ -191,6 +231,13 @@
 		border: var(--ds-border-width) solid var(--ds-border-subtle);
 		font-family: var(--ds-font-body);
 		overflow: hidden;
+	}
+
+	@media (max-width: 1023px) {
+		.timeline-panel {
+			--row-height: 28px;
+			--panel-height: 146px;
+		}
 	}
 
 	.header {
@@ -390,6 +437,7 @@
 	.reorder-handle {
 		margin-right: var(--ds-space-2);
 		cursor: grab;
+		touch-action: none;
 	}
 
 	.reorder-handle:active:not(:disabled) {

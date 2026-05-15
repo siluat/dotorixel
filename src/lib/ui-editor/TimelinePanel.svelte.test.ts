@@ -801,6 +801,19 @@ describe('TimelinePanel', () => {
 		expect(toggle.getAttribute('aria-label')).toMatch(/expand/i);
 	});
 
+	it('reflects the panel state via aria-expanded on the collapse toggle', async () => {
+		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps }
+		});
+
+		const toggle = container.querySelector('[data-collapse-toggle]') as HTMLButtonElement;
+		expect(toggle.getAttribute('aria-expanded')).toBe('true');
+
+		await fireEvent.click(toggle);
+		expect(toggle.getAttribute('aria-expanded')).toBe('false');
+	});
+
 	it('activates the row when Enter or Space is pressed on a focused row', async () => {
 		const layers = [
 			{ id: 'a', name: 'Layer 1' },

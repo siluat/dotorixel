@@ -143,6 +143,7 @@
 			class="collapse-toggle"
 			data-collapse-toggle
 			aria-label={isCollapsed ? m.aria_expandTimelinePanel() : m.aria_collapseTimelinePanel()}
+			aria-expanded={!isCollapsed}
 			onclick={() => (isCollapsed = !isCollapsed)}
 		>
 			<ChevronDown size={14} aria-hidden="true" />

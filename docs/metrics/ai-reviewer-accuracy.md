@@ -7,7 +7,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 96 | 72 | 24 | 85 | 75% | 46% |
-| cubic-dev-ai[bot] | 59 | 49 | 10 | 105 | 83% | 32% |
+| cubic-dev-ai[bot] | 60 | 49 | 11 | 105 | 82% | 32% |
 | coderabbitai[bot] | 143 | 98 | 45 | 54 | 69% | 64% |
 
 ## Log
@@ -556,3 +556,4 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #205 | coderabbitai[bot] | Accept | Mobile honors persisted `collapsed` flag while chevron is hidden under `@media (max-width: 1023px)` — collapsed document renders header-only with no in-UI path to expand. Fixed by forcing `collapsed={false}` at the mobile call site (PRD-086 makes the LAYERS tab the sole mobile toggle) |
 | #205 | greptile-apps[bot] | Miss | Did not flag mobile collapse lock-in (chevron hidden + persisted flag honored at the mobile call site) |
 | #205 | cubic-dev-ai[bot] | Miss | Did not flag mobile collapse lock-in (chevron hidden + persisted flag honored at the mobile call site) |
+| #205 | cubic-dev-ai[bot] | Reject | Suggested reverting `collapsed={false}` mobile guard as a regression — would re-introduce the lock-in coderabbit flagged earlier in the same PR; PRD-086 makes the LAYERS tab the sole mobile toggle |

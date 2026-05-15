@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 94 | 72 | 22 | 83 | 77% | 46% |
-| cubic-dev-ai[bot] | 58 | 49 | 9 | 103 | 84% | 32% |
-| coderabbitai[bot] | 140 | 96 | 44 | 54 | 69% | 64% |
+| greptile-apps[bot] | 96 | 72 | 24 | 84 | 75% | 46% |
+| cubic-dev-ai[bot] | 59 | 49 | 10 | 104 | 83% | 32% |
+| coderabbitai[bot] | 141 | 97 | 44 | 54 | 69% | 64% |
 
 ## Log
 
@@ -546,3 +546,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #203 | coderabbitai[bot] | Accept | Add intermediate `not.toHaveBeenCalled()` after secondary pointer release in multi-pointer test — catches a regression where the pointerId guard on pointerup is dropped |
 | #203 | greptile-apps[bot] | Miss | Did not flag false-positive risk in multi-pointer test (no intermediate assertion) |
 | #203 | cubic-dev-ai[bot] | Miss | Did not flag false-positive risk in multi-pointer test (no intermediate assertion) |
+| #204 | coderabbitai[bot] | Accept | Add `aria-expanded` to chevron toggle — disclosure-pattern standard; aria-label swap alone is not the canonical state signal for screen readers |
+| #204 | greptile-apps[bot] | Reject | `.header-label` overflow on long layer names when collapsed — layer rename is M3 out-of-scope; all names follow the fixed `layer_default_name` i18n pattern, cannot overflow 32px header |
+| #204 | greptile-apps[bot] | Reject | Trailing separator (`Layers · `) if `activeLayerName` falls back to empty — TabState invariant guarantees `activeLayerId ∈ layers` and rename out-of-scope keeps names non-empty; defensive fallback would silence a real bug |
+| #204 | cubic-dev-ai[bot] | Reject | Same trailing-separator concern as greptile (line 139 site) — same rationale: TabState invariant + rename out-of-scope |
+| #204 | greptile-apps[bot] | Miss | Did not flag missing `aria-expanded` on chevron toggle |
+| #204 | cubic-dev-ai[bot] | Miss | Did not flag missing `aria-expanded` on chevron toggle |

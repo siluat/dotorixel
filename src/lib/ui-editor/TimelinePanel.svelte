@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ChevronDown } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 
 	interface LayerSummary {
@@ -30,6 +31,12 @@
 	// Fallback row height used when the DOM has no layout (e.g. headless test
 	// environments where offsetHeight is 0). Matches the docked-mode --row-height.
 	const DEFAULT_ROW_HEIGHT_PX = 32;
+
+	let isCollapsed = $state(false);
+
+	const activeLayerName = $derived(
+		layers.find((l) => l.id === activeLayerId)?.name ?? ''
+	);
 
 	let draggingId: string | null = null;
 	let draggingPointerId: number | null = null;
@@ -112,7 +119,12 @@
 	}
 </script>
 
-<section class="timeline-panel" aria-label={m.layer_panel_title()}>
+<section
+	class="timeline-panel"
+	class:timeline-panel--collapsed={isCollapsed}
+	aria-label={m.layer_panel_title()}
+	data-collapsed={isCollapsed ? 'true' : 'false'}
+>
 	<div class="header">
 		<button
 			type="button"
@@ -123,99 +135,113 @@
 		>
 			+
 		</button>
-		<span class="header-label">{m.layer_panel_title()}</span>
+		<span class="header-label">
+			{isCollapsed ? m.layer_panel_collapsed_label({ name: activeLayerName }) : m.layer_panel_title()}
+		</span>
+		<button
+			type="button"
+			class="collapse-toggle"
+			data-collapse-toggle
+			aria-label={isCollapsed ? m.aria_expandTimelinePanel() : m.aria_collapseTimelinePanel()}
+			aria-expanded={!isCollapsed}
+			onclick={() => (isCollapsed = !isCollapsed)}
+		>
+			<ChevronDown size={14} aria-hidden="true" />
+		</button>
 	</div>
-	<div class="divider"></div>
-	<div class="body">
-		<div class="sidebar">
-			{#each layers as layer, visualIndex (layer.id)}
-				{@const isActive = layer.id === activeLayerId}
-				{@const isVisible = layer.visible ?? true}
-				<div
-					class="row"
-					class:row--active={isActive}
-					class:row--hidden={!isVisible}
-					role="button"
-					tabindex="0"
-					data-layer-row
-					data-layer-id={layer.id}
-					aria-current={isActive ? 'true' : undefined}
-					onclick={() => onActivateLayer(layer.id)}
-					onkeydown={(e) => {
-						if (e.key === 'Enter' || e.key === ' ') {
-							e.preventDefault();
-							onActivateLayer(layer.id);
-						}
-					}}
-				>
-					<button
-						type="button"
-						class="visibility-toggle"
-						data-visibility-toggle
-						aria-label={isVisible
-							? m.aria_hideLayer({ name: layer.name })
-							: m.aria_showLayer({ name: layer.name })}
+	{#if !isCollapsed}
+		<div class="divider"></div>
+		<div class="body">
+			<div class="sidebar">
+				{#each layers as layer, visualIndex (layer.id)}
+					{@const isActive = layer.id === activeLayerId}
+					{@const isVisible = layer.visible ?? true}
+					<div
+						class="row"
+						class:row--active={isActive}
+						class:row--hidden={!isVisible}
+						role="button"
+						tabindex="0"
+						data-layer-row
+						data-layer-id={layer.id}
+						aria-current={isActive ? 'true' : undefined}
+						onclick={() => onActivateLayer(layer.id)}
 						onkeydown={(e) => {
 							if (e.key === 'Enter' || e.key === ' ') {
-								e.stopPropagation();
+								e.preventDefault();
+								onActivateLayer(layer.id);
 							}
 						}}
-						onclick={(e) => {
-							e.stopPropagation();
-							onToggleLayerVisibility(layer.id, !isVisible);
-						}}
 					>
-						{isVisible ? '◉' : '◎'}
-					</button>
-					<span class="bar"></span>
-					<span class="name">{layer.name}</span>
-					<button
-						type="button"
-						class="remove-btn"
-						data-remove-layer
-						aria-label={m.aria_removeLayer({ name: layer.name })}
-						disabled={layers.length === 1}
-						onkeydown={(e) => {
-							if (e.key === 'Enter' || e.key === ' ') {
+						<button
+							type="button"
+							class="visibility-toggle"
+							data-visibility-toggle
+							aria-label={isVisible
+								? m.aria_hideLayer({ name: layer.name })
+								: m.aria_showLayer({ name: layer.name })}
+							onkeydown={(e) => {
+								if (e.key === 'Enter' || e.key === ' ') {
+									e.stopPropagation();
+								}
+							}}
+							onclick={(e) => {
 								e.stopPropagation();
-							}
-						}}
-						onclick={(e) => {
-							e.stopPropagation();
-							onRemoveLayer(layer.id);
-						}}
-					>
-						✕
-					</button>
-					<button
-						type="button"
-						class="reorder-handle"
-						data-reorder-handle
-						aria-label={m.aria_reorderLayer({ name: layer.name })}
-						disabled={layers.length === 1}
-						onclick={(e) => e.stopPropagation()}
-						onkeydown={(e) => handleReorderKey(e, layer.id, visualIndex)}
-						onpointerdown={(e) => handlePointerDown(e, layer.id, visualIndex)}
-						onpointerup={(e) => handlePointerUp(e, layer.id)}
-						onpointercancel={(e) => handlePointerCancel(e, layer.id)}
-					>
-						≡
-					</button>
-				</div>
-			{/each}
-		</div>
-		<div class="vdiv"></div>
-		<div class="frame-area">
-			<div class="frame-col">
-				{#each layers as layer (layer.id)}
-					<div class="frame-cell"></div>
+								onToggleLayerVisibility(layer.id, !isVisible);
+							}}
+						>
+							{isVisible ? '◉' : '◎'}
+						</button>
+						<span class="bar"></span>
+						<span class="name">{layer.name}</span>
+						<button
+							type="button"
+							class="remove-btn"
+							data-remove-layer
+							aria-label={m.aria_removeLayer({ name: layer.name })}
+							disabled={layers.length === 1}
+							onkeydown={(e) => {
+								if (e.key === 'Enter' || e.key === ' ') {
+									e.stopPropagation();
+								}
+							}}
+							onclick={(e) => {
+								e.stopPropagation();
+								onRemoveLayer(layer.id);
+							}}
+						>
+							✕
+						</button>
+						<button
+							type="button"
+							class="reorder-handle"
+							data-reorder-handle
+							aria-label={m.aria_reorderLayer({ name: layer.name })}
+							disabled={layers.length === 1}
+							onclick={(e) => e.stopPropagation()}
+							onkeydown={(e) => handleReorderKey(e, layer.id, visualIndex)}
+							onpointerdown={(e) => handlePointerDown(e, layer.id, visualIndex)}
+							onpointerup={(e) => handlePointerUp(e, layer.id)}
+							onpointercancel={(e) => handlePointerCancel(e, layer.id)}
+						>
+							≡
+						</button>
+					</div>
 				{/each}
 			</div>
-			<div class="empty-axis">
-				<span class="empty-axis-hint">M3 placeholder — frame ruler grows here in M4</span>
+			<div class="vdiv"></div>
+			<div class="frame-area">
+				<div class="frame-col">
+					{#each layers as layer (layer.id)}
+						<div class="frame-cell"></div>
+					{/each}
+				</div>
+				<div class="empty-axis">
+					<span class="empty-axis-hint">M3 placeholder — frame ruler grows here in M4</span>
+				</div>
 			</div>
 		</div>
-	</div>
+	{/if}
 </section>
 
 <style>
@@ -231,6 +257,10 @@
 		border: var(--ds-border-width) solid var(--ds-border-subtle);
 		font-family: var(--ds-font-body);
 		overflow: hidden;
+	}
+
+	.timeline-panel--collapsed {
+		height: var(--row-height);
 	}
 
 	@media (max-width: 1023px) {
@@ -280,6 +310,45 @@
 	.add-btn:focus-visible {
 		outline: var(--ds-border-width-thick) solid var(--ds-accent);
 		outline-offset: 1px;
+	}
+
+	.collapse-toggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		margin-left: auto;
+		padding: 0;
+		border: none;
+		background: none;
+		border-radius: var(--ds-radius-sm);
+		color: var(--ds-text-secondary);
+		font-size: var(--ds-font-size-md);
+		font-family: inherit;
+		line-height: 1;
+		cursor: pointer;
+		transition: transform 120ms ease;
+	}
+
+	.collapse-toggle:hover {
+		background: var(--ds-bg-hover);
+		color: var(--ds-text-primary);
+	}
+
+	.collapse-toggle:focus-visible {
+		outline: var(--ds-border-width-thick) solid var(--ds-accent);
+		outline-offset: 1px;
+	}
+
+	.timeline-panel--collapsed .collapse-toggle {
+		transform: rotate(180deg);
+	}
+
+	@media (max-width: 1023px) {
+		.collapse-toggle {
+			display: none;
+		}
 	}
 
 	.divider {

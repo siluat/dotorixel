@@ -136,9 +136,12 @@
 
 	"layer_default_name": "레이어 {n}",
 	"layer_panel_title": "레이어",
+	"layer_panel_collapsed_label": "레이어 · {name}",
 	"aria_addLayer": "레이어 추가",
 	"aria_removeLayer": "{name} 삭제",
 	"aria_reorderLayer": "{name} 순서 변경",
 	"aria_hideLayer": "{name} 숨기기",
-	"aria_showLayer": "{name} 표시"
+	"aria_showLayer": "{name} 표시",
+	"aria_collapseTimelinePanel": "레이어 패널 접기",
+	"aria_expandTimelinePanel": "레이어 패널 펼치기"
 }

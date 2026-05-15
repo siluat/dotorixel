@@ -136,9 +136,12 @@
 
 	"layer_default_name": "Layer {n}",
 	"layer_panel_title": "Layers",
+	"layer_panel_collapsed_label": "Layers · {name}",
 	"aria_addLayer": "Add layer",
 	"aria_removeLayer": "Delete {name}",
 	"aria_reorderLayer": "Reorder {name}",
 	"aria_hideLayer": "Hide {name}",
-	"aria_showLayer": "Show {name}"
+	"aria_showLayer": "Show {name}",
+	"aria_collapseTimelinePanel": "Collapse layers panel",
+	"aria_expandTimelinePanel": "Expand layers panel"
 }

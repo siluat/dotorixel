@@ -653,7 +653,7 @@
 			<TimelinePanel
 				layers={layers}
 				activeLayerId={activeLayerId}
-				collapsed={isTimelinePanelCollapsed}
+				collapsed={false}
 				onAddLayer={handleAddLayer}
 				onActivateLayer={handleActivateLayer}
 				onRemoveLayer={handleRemoveLayer}

@@ -62,3 +62,4 @@ Scope:
 - Browser-verified all five acceptance criteria with `agent-browser`: collapse + refresh, expand + refresh, per-tab independence, default-expanded after V2→V3 migration (existing migration coverage), and no history snapshot.
 - Test totals after the change: 966 TS / 281 Rust workspace / 46 `TimelinePanel.svelte.test.ts`; `bun run check` clean.
 - Apple shell remains on the single-canvas model — this slice does not affect the ADR-recorded split.
+- **Mobile call site forces `collapsed={false}`** — PRD-086 specifies that on mobile the LAYERS tab itself is the toggle, with no separate collapse control. Honoring the persisted desktop flag on the mobile call site would render the panel as header-only with no in-UI path to expand (the chevron is hidden under the `@media (max-width: 1023px)` rule). The mobile call site therefore ignores the persisted flag; the desktop preference is preserved untouched on the document.

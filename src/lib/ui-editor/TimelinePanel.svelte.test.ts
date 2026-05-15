@@ -12,28 +12,23 @@ const noopActivateLayer = (_id: string) => {};
 const noopRemoveLayer = (_id: string) => {};
 const noopReorderLayer = (_id: string, _newVisualIndex: number) => {};
 const noopToggleLayerVisibility = (_id: string, _visible: boolean) => {};
+const noopToggleCollapsed = () => {};
 
 const defaultProps = {
+	collapsed: false,
 	onAddLayer: noopAddLayer,
 	onActivateLayer: noopActivateLayer,
 	onRemoveLayer: noopRemoveLayer,
 	onReorderLayer: noopReorderLayer,
-	onToggleLayerVisibility: noopToggleLayerVisibility
+	onToggleLayerVisibility: noopToggleLayerVisibility,
+	onToggleCollapsed: noopToggleCollapsed
 };
 
 describe('TimelinePanel', () => {
 	it('renders a single row showing the layer name when one layer is provided', () => {
 		const layers = [{ id: 'a', name: 'Layer 1' }];
 		const { container } = render(TimelinePanel, {
-			props: {
-				layers,
-				activeLayerId: 'a',
-				onAddLayer: noopAddLayer,
-				onActivateLayer: noopActivateLayer,
-				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer,
-				onToggleLayerVisibility: noopToggleLayerVisibility
-			}
+			props: { layers, activeLayerId: 'a', ...defaultProps }
 		});
 
 		const rows = container.querySelectorAll('[data-layer-row]');
@@ -48,15 +43,7 @@ describe('TimelinePanel', () => {
 			{ id: 'c', name: 'Hair' }
 		];
 		const { container } = render(TimelinePanel, {
-			props: {
-				layers,
-				activeLayerId: 'a',
-				onAddLayer: noopAddLayer,
-				onActivateLayer: noopActivateLayer,
-				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer,
-				onToggleLayerVisibility: noopToggleLayerVisibility
-			}
+			props: { layers, activeLayerId: 'a', ...defaultProps }
 		});
 
 		const rows = container.querySelectorAll('[data-layer-row]');
@@ -72,15 +59,7 @@ describe('TimelinePanel', () => {
 			{ id: 'c', name: 'Layer 3' }
 		];
 		const { container } = render(TimelinePanel, {
-			props: {
-				layers,
-				activeLayerId: 'b',
-				onAddLayer: noopAddLayer,
-				onActivateLayer: noopActivateLayer,
-				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer,
-				onToggleLayerVisibility: noopToggleLayerVisibility
-			}
+			props: { layers, activeLayerId: 'b', ...defaultProps }
 		});
 
 		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]');
@@ -95,15 +74,7 @@ describe('TimelinePanel', () => {
 	it('renders an add-layer button in the header', () => {
 		const layers = [{ id: 'a', name: 'Layer 1' }];
 		const { container } = render(TimelinePanel, {
-			props: {
-				layers,
-				activeLayerId: 'a',
-				onAddLayer: noopAddLayer,
-				onActivateLayer: noopActivateLayer,
-				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer,
-				onToggleLayerVisibility: noopToggleLayerVisibility
-			}
+			props: { layers, activeLayerId: 'a', ...defaultProps }
 		});
 
 		const button = container.querySelector('[data-add-layer]');
@@ -115,15 +86,7 @@ describe('TimelinePanel', () => {
 		const layers = [{ id: 'a', name: 'Layer 1' }];
 		const onAddLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
-			props: {
-				layers,
-				activeLayerId: 'a',
-				onAddLayer,
-				onActivateLayer: noopActivateLayer,
-				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer,
-				onToggleLayerVisibility: noopToggleLayerVisibility
-			}
+			props: { layers, activeLayerId: 'a', ...defaultProps, onAddLayer }
 		});
 
 		const button = container.querySelector('[data-add-layer]') as HTMLButtonElement;
@@ -139,15 +102,7 @@ describe('TimelinePanel', () => {
 		];
 		const onActivateLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
-			props: {
-				layers,
-				activeLayerId: 'a',
-				onAddLayer: noopAddLayer,
-				onActivateLayer,
-				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer,
-				onToggleLayerVisibility: noopToggleLayerVisibility
-			}
+			props: { layers, activeLayerId: 'a', ...defaultProps, onActivateLayer }
 		});
 
 		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
@@ -164,15 +119,7 @@ describe('TimelinePanel', () => {
 			{ id: 'c', name: 'Layer 3' }
 		];
 		const { container } = render(TimelinePanel, {
-			props: {
-				layers,
-				activeLayerId: 'a',
-				onAddLayer: noopAddLayer,
-				onActivateLayer: noopActivateLayer,
-				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer,
-				onToggleLayerVisibility: noopToggleLayerVisibility
-			}
+			props: { layers, activeLayerId: 'a', ...defaultProps }
 		});
 
 		const removeButtons = container.querySelectorAll('[data-remove-layer]');
@@ -189,15 +136,7 @@ describe('TimelinePanel', () => {
 		];
 		const onRemoveLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
-			props: {
-				layers,
-				activeLayerId: 'a',
-				onAddLayer: noopAddLayer,
-				onActivateLayer: noopActivateLayer,
-				onRemoveLayer,
-				onReorderLayer: noopReorderLayer,
-				onToggleLayerVisibility: noopToggleLayerVisibility
-			}
+			props: { layers, activeLayerId: 'a', ...defaultProps, onRemoveLayer }
 		});
 
 		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
@@ -215,15 +154,7 @@ describe('TimelinePanel', () => {
 		];
 		const onActivateLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
-			props: {
-				layers,
-				activeLayerId: 'a',
-				onAddLayer: noopAddLayer,
-				onActivateLayer,
-				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer,
-				onToggleLayerVisibility: noopToggleLayerVisibility
-			}
+			props: { layers, activeLayerId: 'a', ...defaultProps, onActivateLayer }
 		});
 
 		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
@@ -243,15 +174,7 @@ describe('TimelinePanel', () => {
 		];
 		const onActivateLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
-			props: {
-				layers,
-				activeLayerId: 'a',
-				onAddLayer: noopAddLayer,
-				onActivateLayer,
-				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer,
-				onToggleLayerVisibility: noopToggleLayerVisibility
-			}
+			props: { layers, activeLayerId: 'a', ...defaultProps, onActivateLayer }
 		});
 
 		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
@@ -265,15 +188,7 @@ describe('TimelinePanel', () => {
 	it('disables the remove button when only one layer remains', () => {
 		const layers = [{ id: 'a', name: 'Layer 1' }];
 		const { container } = render(TimelinePanel, {
-			props: {
-				layers,
-				activeLayerId: 'a',
-				onAddLayer: noopAddLayer,
-				onActivateLayer: noopActivateLayer,
-				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer,
-				onToggleLayerVisibility: noopToggleLayerVisibility
-			}
+			props: { layers, activeLayerId: 'a', ...defaultProps }
 		});
 
 		const btn = container.querySelector('[data-remove-layer]') as HTMLButtonElement;
@@ -286,15 +201,7 @@ describe('TimelinePanel', () => {
 			{ id: 'b', name: 'Layer 2' }
 		];
 		const { container } = render(TimelinePanel, {
-			props: {
-				layers,
-				activeLayerId: 'a',
-				onAddLayer: noopAddLayer,
-				onActivateLayer: noopActivateLayer,
-				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer,
-				onToggleLayerVisibility: noopToggleLayerVisibility
-			}
+			props: { layers, activeLayerId: 'a', ...defaultProps }
 		});
 
 		const btns = container.querySelectorAll<HTMLButtonElement>('[data-remove-layer]');
@@ -719,99 +626,118 @@ describe('TimelinePanel', () => {
 		expect(toggle?.tagName).toBe('BUTTON');
 	});
 
-	it('starts in the expanded state on first render', () => {
+	it('renders expanded when collapsed=false', () => {
 		const layers = [{ id: 'a', name: 'Layer 1' }];
 		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', ...defaultProps }
+			props: { layers, activeLayerId: 'a', ...defaultProps, collapsed: false }
 		});
 
 		const panel = container.querySelector('.timeline-panel') as HTMLElement;
 		expect(panel.getAttribute('data-collapsed')).toBe('false');
 	});
 
-	it('collapses when the collapse toggle is clicked', async () => {
+	it('renders collapsed when collapsed=true', () => {
 		const layers = [{ id: 'a', name: 'Layer 1' }];
 		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', ...defaultProps }
+			props: { layers, activeLayerId: 'a', ...defaultProps, collapsed: true }
 		});
-
-		const toggle = container.querySelector('[data-collapse-toggle]') as HTMLButtonElement;
-		await fireEvent.click(toggle);
 
 		const panel = container.querySelector('.timeline-panel') as HTMLElement;
 		expect(panel.getAttribute('data-collapsed')).toBe('true');
 	});
 
-	it('expands again when the collapse toggle is clicked a second time', async () => {
+	it('calls onToggleCollapsed when the collapse toggle is clicked', async () => {
+		const onToggleCollapsed = vi.fn();
 		const layers = [{ id: 'a', name: 'Layer 1' }];
 		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', ...defaultProps }
+			props: { layers, activeLayerId: 'a', ...defaultProps, onToggleCollapsed }
 		});
 
 		const toggle = container.querySelector('[data-collapse-toggle]') as HTMLButtonElement;
 		await fireEvent.click(toggle);
+
+		expect(onToggleCollapsed).toHaveBeenCalledTimes(1);
+	});
+
+	it('does not internally update collapsed when the toggle is clicked (controlled component)', async () => {
+		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, collapsed: false }
+		});
+
+		const toggle = container.querySelector('[data-collapse-toggle]') as HTMLButtonElement;
 		await fireEvent.click(toggle);
 
+		// Without the parent flipping the prop, the panel stays expanded — the
+		// click only signals intent.
 		const panel = container.querySelector('.timeline-panel') as HTMLElement;
 		expect(panel.getAttribute('data-collapsed')).toBe('false');
 	});
 
-	it('shows the active layer name in the header when collapsed', async () => {
+	it('shows the active layer name in the header when collapsed=true', () => {
 		const layers = [
 			{ id: 'a', name: 'Sky' },
 			{ id: 'b', name: 'Mountains' }
 		];
 		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'b', ...defaultProps }
+			props: { layers, activeLayerId: 'b', ...defaultProps, collapsed: true }
 		});
-
-		const toggle = container.querySelector('[data-collapse-toggle]') as HTMLButtonElement;
-		await fireEvent.click(toggle);
 
 		const header = container.querySelector('.timeline-panel .header') as HTMLElement;
 		expect(header.textContent).toContain('Mountains');
 	});
 
-	it('does not render the layer rows when collapsed', async () => {
+	it('does not render the layer rows when collapsed=true', () => {
 		const layers = [
 			{ id: 'a', name: 'Layer 1' },
 			{ id: 'b', name: 'Layer 2' }
 		];
 		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', ...defaultProps }
+			props: { layers, activeLayerId: 'a', ...defaultProps, collapsed: true }
 		});
-
-		const toggle = container.querySelector('[data-collapse-toggle]') as HTMLButtonElement;
-		await fireEvent.click(toggle);
 
 		const rows = container.querySelectorAll('[data-layer-row]');
 		expect(rows.length).toBe(0);
 	});
 
-	it('switches the collapse toggle aria-label between Collapse and Expand', async () => {
+	it('switches the collapse toggle aria-label between Collapse and Expand by prop', () => {
 		const layers = [{ id: 'a', name: 'Layer 1' }];
-		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', ...defaultProps }
+		const { container: expandedContainer } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, collapsed: false }
 		});
+		const expandedToggle = expandedContainer.querySelector(
+			'[data-collapse-toggle]'
+		) as HTMLButtonElement;
+		expect(expandedToggle.getAttribute('aria-label')).toMatch(/collapse/i);
 
-		const toggle = container.querySelector('[data-collapse-toggle]') as HTMLButtonElement;
-		expect(toggle.getAttribute('aria-label')).toMatch(/collapse/i);
-
-		await fireEvent.click(toggle);
-		expect(toggle.getAttribute('aria-label')).toMatch(/expand/i);
+		const { container: collapsedContainer } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, collapsed: true }
+		});
+		const collapsedToggle = collapsedContainer.querySelector(
+			'[data-collapse-toggle]'
+		) as HTMLButtonElement;
+		expect(collapsedToggle.getAttribute('aria-label')).toMatch(/expand/i);
 	});
 
-	it('reflects the panel state via aria-expanded on the collapse toggle', async () => {
+	it('reflects the collapsed prop via aria-expanded on the collapse toggle', () => {
 		const layers = [{ id: 'a', name: 'Layer 1' }];
-		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', ...defaultProps }
+		const { container: expandedContainer } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, collapsed: false }
 		});
+		expect(
+			expandedContainer
+				.querySelector('[data-collapse-toggle]')
+				?.getAttribute('aria-expanded')
+		).toBe('true');
 
-		const toggle = container.querySelector('[data-collapse-toggle]') as HTMLButtonElement;
-		expect(toggle.getAttribute('aria-expanded')).toBe('true');
-
-		await fireEvent.click(toggle);
-		expect(toggle.getAttribute('aria-expanded')).toBe('false');
+		const { container: collapsedContainer } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, collapsed: true }
+		});
+		expect(
+			collapsedContainer
+				.querySelector('[data-collapse-toggle]')
+				?.getAttribute('aria-expanded')
+		).toBe('false');
 	});
 
 	it('activates the row when Enter or Space is pressed on a focused row', async () => {
@@ -821,15 +747,7 @@ describe('TimelinePanel', () => {
 		];
 		const onActivateLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
-			props: {
-				layers,
-				activeLayerId: 'a',
-				onAddLayer: noopAddLayer,
-				onActivateLayer,
-				onRemoveLayer: noopRemoveLayer,
-				onReorderLayer: noopReorderLayer,
-				onToggleLayerVisibility: noopToggleLayerVisibility
-			}
+			props: { layers, activeLayerId: 'a', ...defaultProps, onActivateLayer }
 		});
 
 		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;

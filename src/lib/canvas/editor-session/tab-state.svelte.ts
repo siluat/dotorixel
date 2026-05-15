@@ -438,6 +438,18 @@ export class TabState {
 	};
 
 	/**
+	 * Sets the persisted timeline-panel collapsed flag on the underlying
+	 * document and marks the tab dirty so the new value reaches storage. The
+	 * change is **not** undoable — panel layout is incidental to the artwork.
+	 */
+	setTimelinePanelCollapsed = (collapsed: boolean): void => {
+		if (this.document.is_timeline_panel_collapsed() === collapsed) return;
+		this.document.set_timeline_panel_collapsed(collapsed);
+		this.renderVersion++;
+		this.#notifier.markDirty(this.documentId);
+	};
+
+	/**
 	 * Builds a fresh `PixelCanvas` from `document.composite()` — used by
 	 * exporters that need `encode_png` / `encode_svg`. The buffer is a
 	 * one-shot snapshot; callers must not retain it across mutations.

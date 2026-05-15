@@ -79,6 +79,11 @@
 		void tab.renderVersion;
 		return tab.document.active_layer_id();
 	});
+	const isTimelinePanelCollapsed = $derived.by(() => {
+		const tab = editor.workspace.activeTab;
+		void tab.renderVersion;
+		return tab.document.is_timeline_panel_collapsed();
+	});
 	// TimelinePanel shows front-most (z-top) layer at the top, matching the
 	// Aseprite/Photoshop convention. The core stack is bottom-to-top
 	// (`layers[0]` = z-bottom, `layers[N-1]` = z-top), so iterate in reverse.
@@ -150,6 +155,11 @@
 
 	function handleToggleLayerVisibility(id: string, newVisible: boolean) {
 		editor.workspace.activeTab.setLayerVisibility(id, newVisible);
+	}
+
+	function handleToggleTimelinePanelCollapsed() {
+		const tab = editor.workspace.activeTab;
+		tab.setTimelinePanelCollapsed(!tab.document.is_timeline_panel_collapsed());
 	}
 
 	function handlePixelPerfectToggle() {
@@ -510,11 +520,13 @@
 		<TimelinePanel
 			layers={layers}
 			activeLayerId={activeLayerId}
+			collapsed={isTimelinePanelCollapsed}
 			onAddLayer={handleAddLayer}
 			onActivateLayer={handleActivateLayer}
 			onRemoveLayer={handleRemoveLayer}
 			onReorderLayer={handleReorderLayer}
 			onToggleLayerVisibility={handleToggleLayerVisibility}
+			onToggleCollapsed={handleToggleTimelinePanelCollapsed}
 		/>
 
 		<RightPanel
@@ -641,11 +653,13 @@
 			<TimelinePanel
 				layers={layers}
 				activeLayerId={activeLayerId}
+				collapsed={isTimelinePanelCollapsed}
 				onAddLayer={handleAddLayer}
 				onActivateLayer={handleActivateLayer}
 				onRemoveLayer={handleRemoveLayer}
 				onReorderLayer={handleReorderLayer}
 				onToggleLayerVisibility={handleToggleLayerVisibility}
+				onToggleCollapsed={handleToggleTimelinePanelCollapsed}
 			/>
 		{/if}
 

@@ -8,7 +8,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 96 | 72 | 24 | 84 | 75% | 46% |
 | cubic-dev-ai[bot] | 59 | 49 | 10 | 104 | 83% | 32% |
-| coderabbitai[bot] | 141 | 97 | 44 | 54 | 69% | 64% |
+| coderabbitai[bot] | 142 | 97 | 45 | 54 | 68% | 64% |
 
 ## Log
 
@@ -552,3 +552,4 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #204 | cubic-dev-ai[bot] | Reject | Same trailing-separator concern as greptile (line 139 site) — same rationale: TabState invariant + rename out-of-scope |
 | #204 | greptile-apps[bot] | Miss | Did not flag missing `aria-expanded` on chevron toggle |
 | #204 | cubic-dev-ai[bot] | Miss | Did not flag missing `aria-expanded` on chevron toggle |
+| #204 | coderabbitai[bot] | Reject | Lock-in: collapsed state stuck after desktop→mobile viewport — desktop/mobile renders are separate TimelinePanel instances under `{#if layout.isDocked}` / `{:else}`, so viewport change unmounts the desktop instance and remounts the mobile one with default `isCollapsed=false` |

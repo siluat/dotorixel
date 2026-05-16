@@ -982,6 +982,75 @@ describe('TabState — setLayerVisibility', () => {
 	});
 });
 
+describe('TabState — setTimelinePanelCollapsed', () => {
+	it('writes the new value to the document', () => {
+		const { tab } = makeTab();
+		expect(tab.document.is_timeline_panel_collapsed()).toBe(false);
+
+		tab.setTimelinePanelCollapsed(true);
+		expect(tab.document.is_timeline_panel_collapsed()).toBe(true);
+
+		tab.setTimelinePanelCollapsed(false);
+		expect(tab.document.is_timeline_panel_collapsed()).toBe(false);
+	});
+
+	it('emits markDirty so the new value reaches the persistence layer', () => {
+		const { tab, notifier } = makeTab();
+		notifier.reset();
+
+		tab.setTimelinePanelCollapsed(true);
+
+		expect(notifier.dirtyCalls).toContain('doc-test');
+	});
+
+	it('bumps renderVersion so derived UI state reacts to the change', () => {
+		const { tab } = makeTab();
+		const before = tab.renderVersion;
+
+		tab.setTimelinePanelCollapsed(true);
+
+		expect(tab.renderVersion).toBeGreaterThan(before);
+	});
+
+	it('is a no-op when called with the current value (no markDirty, no renderVersion bump)', () => {
+		const { tab, notifier } = makeTab();
+		expect(tab.document.is_timeline_panel_collapsed()).toBe(false);
+		const renderBefore = tab.renderVersion;
+		notifier.reset();
+
+		tab.setTimelinePanelCollapsed(false);
+
+		expect(tab.renderVersion).toBe(renderBefore);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('is not undoable: a prior content op remains the undo target after toggling', () => {
+		const { tab, shared } = makeTab();
+		shared.foregroundColor = BLACK;
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 2, y: 2 }, null);
+		tab.drawEnd();
+		expect(getPixel(tab, 2, 2).a).toBe(255);
+
+		tab.setTimelinePanelCollapsed(true);
+		tab.setTimelinePanelCollapsed(false);
+
+		// One undo reverts the pencil stroke (no orphan snapshot pushed by toggles).
+		tab.undo();
+		expect(getPixel(tab, 2, 2).a).toBe(0);
+	});
+
+	it('is reflected in toSnapshot', () => {
+		const { tab } = makeTab();
+		tab.setTimelinePanelCollapsed(true);
+
+		const snap = tab.toSnapshot();
+
+		expect(snap.timelinePanelCollapsed).toBe(true);
+	});
+});
+
 describe('TabState — compositeBuffer reflects all visible layers', () => {
 	it('width and height match the document', () => {
 		const { tab } = makeTab({ canvasWidth: 12, canvasHeight: 7 });

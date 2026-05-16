@@ -314,6 +314,10 @@ impl WasmDocument {
         self.inner.is_timeline_panel_collapsed()
     }
 
+    pub fn set_timeline_panel_collapsed(&mut self, collapsed: bool) {
+        self.inner.set_timeline_panel_collapsed(collapsed);
+    }
+
     /// Sets the active layer by id. Errors when no layer with `id` exists; in
     /// that case the previous active layer is preserved.
     pub fn set_active_layer(&mut self, id: String) -> Result<(), JsError> {

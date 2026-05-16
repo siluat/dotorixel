@@ -2,8 +2,6 @@
 
 ## Milestone 3: Editor for Serious Work
 
-- Layer system: basic infrastructure (add/delete/reorder) ([PRD](../issues/086-layer-system-basic-infrastructure.md))
-  - [100 — Persist `timelinePanelCollapsed`](../issues/100-layer-system-collapsible-persistence.md)
 - Reference Layer type (import image as non-editable layer, rasterize, restore original size) — rides on layer system
 - Layer properties (visibility toggle, opacity control)
 - Selection tool (rectangle select + move)

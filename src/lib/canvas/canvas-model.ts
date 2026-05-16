@@ -56,6 +56,13 @@ export interface Document {
 	active_layer_id(): string;
 	next_layer_number(): number;
 	is_timeline_panel_collapsed(): boolean;
+	/**
+	 * Sets whether the timeline (layers) panel is rendered in its collapsed
+	 * mode. This is per-document UI state — persisted alongside the document
+	 * but never pushed to undo history, since the choice is incidental to
+	 * the artwork.
+	 */
+	set_timeline_panel_collapsed(collapsed: boolean): void;
 	layer_count(): number;
 	layer_id_at(index: number): string | undefined;
 	layer_name_at(index: number): string | undefined;

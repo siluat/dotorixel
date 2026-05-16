@@ -11,28 +11,30 @@
 	interface Props {
 		layers: ReadonlyArray<LayerSummary>;
 		activeLayerId: string;
+		collapsed: boolean;
 		onAddLayer: () => void;
 		onActivateLayer: (id: string) => void;
 		onRemoveLayer: (id: string) => void;
 		onReorderLayer: (id: string, newVisualIndex: number) => void;
 		onToggleLayerVisibility: (id: string, newVisible: boolean) => void;
+		onToggleCollapsed: () => void;
 	}
 
 	let {
 		layers,
 		activeLayerId,
+		collapsed,
 		onAddLayer,
 		onActivateLayer,
 		onRemoveLayer,
 		onReorderLayer,
-		onToggleLayerVisibility
+		onToggleLayerVisibility,
+		onToggleCollapsed
 	}: Props = $props();
 
 	// Fallback row height used when the DOM has no layout (e.g. headless test
 	// environments where offsetHeight is 0). Matches the docked-mode --row-height.
 	const DEFAULT_ROW_HEIGHT_PX = 32;
-
-	let isCollapsed = $state(false);
 
 	const activeLayerName = $derived(
 		layers.find((l) => l.id === activeLayerId)?.name ?? ''
@@ -121,9 +123,9 @@
 
 <section
 	class="timeline-panel"
-	class:timeline-panel--collapsed={isCollapsed}
+	class:timeline-panel--collapsed={collapsed}
 	aria-label={m.layer_panel_title()}
-	data-collapsed={isCollapsed ? 'true' : 'false'}
+	data-collapsed={collapsed ? 'true' : 'false'}
 >
 	<div class="header">
 		<button
@@ -136,20 +138,20 @@
 			+
 		</button>
 		<span class="header-label">
-			{isCollapsed ? m.layer_panel_collapsed_label({ name: activeLayerName }) : m.layer_panel_title()}
+			{collapsed ? m.layer_panel_collapsed_label({ name: activeLayerName }) : m.layer_panel_title()}
 		</span>
 		<button
 			type="button"
 			class="collapse-toggle"
 			data-collapse-toggle
-			aria-label={isCollapsed ? m.aria_expandTimelinePanel() : m.aria_collapseTimelinePanel()}
-			aria-expanded={!isCollapsed}
-			onclick={() => (isCollapsed = !isCollapsed)}
+			aria-label={collapsed ? m.aria_expandTimelinePanel() : m.aria_collapseTimelinePanel()}
+			aria-expanded={!collapsed}
+			onclick={onToggleCollapsed}
 		>
 			<ChevronDown size={14} aria-hidden="true" />
 		</button>
 	</div>
-	{#if !isCollapsed}
+	{#if !collapsed}
 		<div class="divider"></div>
 		<div class="body">
 			<div class="sidebar">

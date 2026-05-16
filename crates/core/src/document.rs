@@ -172,6 +172,10 @@ impl Document {
         self.timeline_panel_collapsed
     }
 
+    pub fn set_timeline_panel_collapsed(&mut self, collapsed: bool) {
+        self.timeline_panel_collapsed = collapsed;
+    }
+
     /// Inserts a new transparent layer directly above the active layer and
     /// makes it active.
     ///
@@ -579,6 +583,19 @@ mod tests {
         assert_eq!(doc.active_layer_id(), b);
         assert_eq!(doc.next_layer_number(), 7);
         assert!(doc.is_timeline_panel_collapsed());
+    }
+
+    #[test]
+    fn set_timeline_panel_collapsed_toggles_the_flag() {
+        let id = Uuid::new_v4();
+        let mut doc = Document::new(8, 8, id, "Layer 1".to_string()).unwrap();
+        assert!(!doc.is_timeline_panel_collapsed());
+
+        doc.set_timeline_panel_collapsed(true);
+        assert!(doc.is_timeline_panel_collapsed());
+
+        doc.set_timeline_panel_collapsed(false);
+        assert!(!doc.is_timeline_panel_collapsed());
     }
 
     #[test]

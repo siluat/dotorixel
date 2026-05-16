@@ -129,6 +129,7 @@ export interface FakeDocument extends Document {
 export function createFakeDocument(width: number, height: number): FakeDocument {
 	const pixels = new Uint8Array(width * height * 4);
 	const restoreCalls: Uint8Array[] = [];
+	let timelinePanelCollapsed = false;
 	return {
 		width,
 		height,
@@ -142,7 +143,10 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 		},
 		active_layer_id: () => 'active',
 		next_layer_number: () => 2,
-		is_timeline_panel_collapsed: () => false,
+		is_timeline_panel_collapsed: () => timelinePanelCollapsed,
+		set_timeline_panel_collapsed(collapsed) {
+			timelinePanelCollapsed = collapsed;
+		},
 		layer_count: () => 1,
 		layer_id_at: (index) => (index === 0 ? 'active' : undefined),
 		layer_name_at: (index) => (index === 0 ? 'Layer 1' : undefined),

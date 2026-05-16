@@ -2,16 +2,16 @@
 
 ## Currently Working On
 
-Layer system — basic infrastructure (add/delete/reorder) ([PRD-086](../issues/086-layer-system-basic-infrastructure.md)). 17 done, 1 remaining (100). 099 landed the in-memory collapse behavior; the last open slice is persisting that flag through the Document/V3 schema.
+None.
 
 ## Last Completed
 
-[099 — Collapsible chevron (no persistence)](../issues/099-layer-system-collapsible-toggle.md): desktop chevron in the TimelinePanel header toggles between expanded (h=180) and collapsed (h=32). State is component-local `$state` — by design, since lifting it to Document is sub-issue 100's scope. Page refresh resets to expanded.
+[100 — Persist `timelinePanelCollapsed`](../issues/100-layer-system-collapsible-persistence.md): chevron toggle now writes through Document and survives refresh. Closed out PRD-086 (Layer system: basic infrastructure) — all 18 sub-issues shipped.
 
 ## Next Up
 
-- [100 — Persist `timelinePanelCollapsed`](../issues/100-layer-system-collapsible-persistence.md)
-  - Unblocked. Lift the in-memory flag onto Document + V3 schema so refresh preserves it.
+- Reference Layer type (import image as non-editable layer, rasterize, restore original size)
+  - Next M3 feature; rides on the layer system that just closed out.
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
   - Independent. Next Apple Phase 1 item.
 - Apple Phase 1 — Enable clear canvas (existing disabled button)

@@ -52,6 +52,16 @@ A Reference Layer is **visible on screen but excluded from exports** (PNG, SVG, 
 20. As a pixel artist, I want layer-level operations (delete, reorder, visibility toggle) to behave the same way for Reference Layers as for Pixel Layers, so that I do not need to remember kind-specific exceptions.
 21. As a pixel artist, I want the Reference Layer import to reuse the same file decoder as the Reference Window flow, so that supported formats stay consistent across the two features.
 22. As a pixel artist, I want a Reference Layer's source dimensions and natural size to be preserved across reloads, so that "Restore original size" always returns to the same baseline.
+23. As a pixel artist importing a reference much larger than my canvas (e.g., a photo), I want the import to auto-fit aspect-preservingly so I can see the whole reference at once, instead of seeing a tiny center slice and being stuck on where to start.
+24. As a pixel artist resizing my canvas while a Reference Layer is in place, I want the placement to follow my chosen anchor (e.g., center anchor keeps the reference centered), so that anchor selection means the same thing for both layer kinds.
+25. As a pixel artist using a precise reference, I want to nudge the active Reference Layer 1 pixel at a time with arrow keys (10 pixels with Shift), so that I can align it to my work without resorting to mouse precision.
+26. As a pixel artist who wants a clean integer scale, I want Shift while dragging a corner handle to snap to integer scale multiples (1x, 2x, 3x ...), so that the reference renders crisply under nearest-neighbor sampling.
+27. As a pixel artist who just attempted to draw on a Reference Layer, I want to see a "not allowed" cursor (and the kind icon in the Timeline Panel) instead of an error toast, so that I recognize "wrong layer kind" without being interrupted by a dialog.
+28. As a pixel artist importing a large file, I want the new layer row to appear immediately with a loading indicator, so that I get clear feedback that my click was received before the decode finishes.
+29. As a pixel artist who picked an unsupported or corrupt file by mistake, I want a brief error toast and no leftover row, so that the failure is visible but doesn't clutter my workspace.
+30. As a pixel artist whose storage quota is near full, I want the failed import to roll back cleanly with a clear toast about disk space, so that I know what to do (delete other references / documents) instead of being silently failed.
+31. As a pixel artist on a touch device (tablet browser), I want the placement handles to be comfortably finger-sized regardless of canvas zoom, so that I can adjust the reference without zooming in just to hit a handle.
+32. As a pixel artist who eyedrops outside the projected reference area, I want nothing to happen (no false color committed), so that I don't accidentally pick up a color from a layer I didn't intend.
 
 ## Implementation Decisions
 
@@ -102,8 +112,10 @@ Free function (or inherent method) that, given `source_rgba`, `source_dimensions
 In `crates/core/src/document.rs`:
 
 - `add_reference_layer(id, name, source_rgba, source_width, source_height, placement)` — appends a Reference Layer and sets it active.
-- `set_reference_placement(id, placement)` — atomic placement update used by drag-release commits and "Restore original size".
+- `set_reference_placement(id, placement)` — atomic placement update used by drag-release commits, keyboard nudges, and "Restore original size".
+- `resize_with_placement(width, height, anchor)` — extends the existing resize to also transform every Reference Layer's placement by the same 9-anchor factor (`placement.x += (new_w − old_w) × anchor_x_factor`, same for y; `placement.scale` unchanged). Pixel Layers continue to use the existing anchor-based crop/extend.
 - `layer_kind_at(index)`, `layer_source_pixels_at(index)`, `layer_source_dimensions_at(index)`, `layer_placement_at(index)` — kind-aware accessors that return `Option<...>` when called against the wrong variant.
+- `try_get_pixel(x, y) → Option<Color>` — sampling-aware accessor. For a Pixel Layer active: returns `Some(color)` inside document bounds, `None` outside. For a Reference Layer active: returns `Some(color)` when `(x, y)` is inside the source's projected footprint, `None` otherwise. Used by eyedropper and Canvas Sampling Sessions; the existing throwing `get_pixel` is kept for callers that genuinely require in-bounds and would treat OOB as a bug.
 - `composite_for_export()` — Pixel-only composite (export path).
 - `composite()` — extended to include Reference Layers in the on-screen blend via the nearest-neighbor sampler.
 
@@ -134,21 +146,96 @@ The `Document` interface gains the new method signatures. `wasm-sync.test.ts` co
 
 ### Tool behavior
 
-- **Drawing tools** (pencil, brush, eraser, bucket, shape, move): when the active layer is a Reference Layer, the tool runner silently no-ops. UI affordance — a non-draw cursor and/or muted tool-button state — communicates the state. No toast, no error.
-- **Non-drawing tools** (eyedropper, Canvas Sampling Session): operate on the active layer regardless of kind. A Canvas Sampling Session against a Reference Layer reads the projected source pixel through the same nearest-neighbor sampler used for composite.
-- **Active-layer selection** works regardless of kind.
+- **Drawing tools** (pencil, brush, eraser, bucket, shape, move): when the active layer is a Reference Layer, the tool runner silently no-ops. Feedback is **passive**: the canvas cursor switches to `not-allowed` (⊘) while a drawing tool is selected and the active layer is Reference; the Reference Layer's kind icon in the Timeline Panel and the visible placement overlay supply the context. No toast, no dimmed tool buttons (tool selection is independent of active layer — buttons must remain immediately usable as soon as the user switches active to a Pixel Layer).
+- **Non-drawing tools** (eyedropper, Canvas Sampling Session): operate on the active layer regardless of kind via `Document.try_get_pixel`. For Pixel Layer active: standard sampling. For Reference Layer active: the projected source pixel is read through the same nearest-neighbor sampler used for composite. **Out-of-source-footprint clicks (or out-of-document clicks) are a silent no-op** — no color is committed to FG/BG and the recent-color list is not updated. This rule applies uniformly to both kinds: the meaning of "sampling outside the active layer's available pixels" is "do nothing".
+- **Active-layer selection** works regardless of kind. Switching active in the Timeline Panel is not undoable.
+- **Mobile / touch parity**: cursor feedback is desktop-only (no cursor on touch). On touch, the active Reference Layer's overlay (always visible) is the primary indicator that drawing tools will no-op — the placement handles and outline say "this layer is a Reference, not a drawing surface".
 
 ### Import entry point (Timeline Panel)
 
 A dedicated Reference Layer icon sits next to the existing `+` (Pixel Layer add). Single-click opens the file picker; the chosen file is decoded via `decode-reference-blob.ts` and added through `add_reference_layer`. The Pixel `+` path is unchanged — the more frequent action retains its single-click affordance.
 
+**Drag-and-drop policy** — file drops onto the canvas continue to create **Reference Window** per PRD-053 (Drop Batch mechanics unchanged). Reference Layer is created **only** via the dedicated Timeline Panel icon. Rationale: Reference Window and Reference Layer serve different use cases (sampling/preview vs. tracing); drop is a fast, low-commitment gesture that matches the Reference Window mental model, while the explicit icon click signals the deliberate trace-setup intent. A future "promote Reference Window to Reference Layer" action can bridge the two without changing the drop semantics — listed as Out of Scope.
+
+**Clipboard paste** — not supported in v1 for either Reference Window or Reference Layer. Reference Window's paste is already deferred (`tasks/todo.md` Review backlog); adding paste only for Reference Layer would be asymmetric. Both gain paste together in a future iteration.
+
+### Initial placement on import
+
+`add_reference_layer` computes the initial `ReferencePlacement` as **auto-fit, aspect-preserving**:
+
+```text
+scale  = min(canvas_width / source_width, canvas_height / source_height, 1.0)
+center = (canvas_width / 2, canvas_height / 2)
+```
+
+- When `source ≤ canvas` in both dimensions, `scale = 1.0` and the reference shows at native size, centered.
+- When `source > canvas` in either dimension, the reference is scaled down so the longest axis fits, centered. Aspect ratio is preserved by construction.
+- `Document.add_reference_layer` always computes this on the Rust side, so the TS caller only needs to supply source RGBA + dimensions + name. The placement is not a caller responsibility.
+- "Restore original size" (decided previously) resets `scale = 1.0` while preserving the current center point — regardless of whether the natural size exceeds the canvas. The user opts in to native-size view when needed.
+
+### Canvas resize × placement (Document.resize)
+
+`Document.resize(width, height, anchor)` extends its 9-anchor policy to Reference Layer placements:
+
+```text
+anchor_x_factor ∈ {0, 0.5, 1.0}  // left, center, right
+anchor_y_factor ∈ {0, 0.5, 1.0}  // top, center, bottom
+
+placement.x += (new_width  − old_width)  × anchor_x_factor
+placement.y += (new_height − old_height) × anchor_y_factor
+placement.scale  // unchanged
+```
+
+- For top-left anchor (factor = 0), placement coordinates are unchanged — the simple case stays simple.
+- For center anchor, the reference's center stays at the new canvas center after resize.
+- For bottom-right anchor, the reference shifts the full delta — its bottom-right corner stays anchored.
+- When the new canvas is smaller and the reference's projected footprint extends past the new bounds, the composite naturally clips (same policy as Pixel Layer cropping). The source RGBA buffer is **never modified**; the user can move the reference back into view with the overlay or arrow nudge.
+- "Restore original size" after a resize re-centers at the **current** canvas center (not the pre-resize center), consistent with the "center preserved" rule.
+
 ### Viewport placement overlay
 
-When the active layer is a Reference Layer, the canvas viewport renders an 8-handle overlay (corners + edge midpoints, mirroring Reference Window's resize affordance). Pointer drag previews the new placement in real time; on release the new placement commits via `set_reference_placement` and pushes a Document snapshot to history. Cancel-on-escape (or pointer-cancel) drops the preview without committing.
+When the active layer is a Reference Layer, the canvas viewport renders a placement overlay with three interaction zones:
+
+| Zone | Pointer action | Cursor |
+|---|---|---|
+| Four **corner handles** | Drag — uniform scale around the opposite corner anchor | `nwse-resize` / `nesw-resize` (per corner) |
+| **Body** (inside placement, outside handles) | Drag — translate (move) | `move` |
+| **Outside placement** | Tool default | Tool cursor |
+
+Edge-midpoint handles are intentionally **omitted** — placement is uniform-scale only (no non-uniform stretch), so an edge handle would be a misleading affordance.
+
+**Shift-modifier — integer scale snap.** While dragging a corner handle with Shift held, the effective scale snaps to integer multiples (`1.0, 2.0, 3.0, ...`). Useful for pixel-aligned reference renders under nearest-neighbor sampling.
+
+**Keyboard nudge.** When the active layer is Reference and focus is on the canvas / overlay (not on the Timeline Panel or other UI):
+
+- `↑ ↓ ← →` — translate placement by 1 pixel in the respective direction.
+- `Shift + ↑ ↓ ← →` — translate by 10 pixels.
+- Each nudge pushes a separate Document snapshot. Nudges are not coalesced (every nudge is a precise, undoable step).
+
+**Commit semantics.** Pointer-drag previews in real time; on release the new placement commits via `set_reference_placement` and pushes a single Document snapshot to history. Pointer-cancel or `Escape` during drag drops the preview without committing. Keyboard nudge commits per key event (no drag-in-progress concept).
+
+**Constraints.** Minimum projected size is 8×8 pixels — below that, the reference becomes invisible and the user is stranded. Maximum is unbounded (overflow allowed; "Restore original size" recovers).
+
+**Screen-space handle sizing.** Handles are rendered at a constant pixel size on screen regardless of canvas zoom — they never shrink to invisibility on zoom-out, never balloon on zoom-in. Visual size: ~12px (desktop) and ~16px (touch). Hit area is extended with invisible padding so that touch interactions clear the 44pt minimum target (iOS HIG). The pointer kind (`pointerType === 'touch'`) determines which sizing applies, leveraging existing PointerEvents infrastructure.
 
 ### History scope
 
-Add, remove, reorder, visibility toggle, placement drag-resize commit, and "Restore original size" all push Document snapshots through the existing `HistoryManager`. Active-layer selection is not undoable (consistent with PRD-086).
+Add, remove, reorder, visibility toggle, placement drag-resize commit, **keyboard nudge (per key event)**, and "Restore original size" all push Document snapshots through the existing `HistoryManager`. Active-layer selection is not undoable (consistent with PRD-086). Drag preview frames are not pushed — only the drag-release commit becomes a single snapshot.
+
+### Loading, failure, and storage-quota states
+
+The import flow has three non-happy paths; each gets a deliberate UX response.
+
+**Decode in progress (large files, ~500ms–1s).** Two simultaneous signals:
+
+1. The new Reference Layer row appears in the Timeline Panel **immediately**, in a skeleton/spinner state. The user sees their click was received.
+2. The Reference Layer import icon enters a disabled + spinner state to block duplicate triggers.
+
+Both clear when the decode completes (success) or fails (failure path below). Decoding does not block other UI — drawing on a Pixel Layer continues to work during the decode.
+
+**Decode failure (unsupported format, corrupt file).** The skeleton row is removed, the import icon returns to its normal state, and a brief error toast is shown via Paraglide messages (e.g., `reference_layer_import_failed`). The exact wording and supported-format list mirrors Reference Window's existing behavior — confirm during implementation that Reference Window's failure path uses a toast (vs. silent fail or modal); whatever it does, Reference Layer matches.
+
+**Storage quota exceeded (IndexedDB write fails).** The new layer is rolled back — the in-memory add is reverted before it appears outside the skeleton — and a toast is shown explaining the cause and remedy (e.g., `storage_quota_exceeded`). Deeper handling (pre-check, usage indicator, in-app cleanup) is out of scope here and is owned by the existing backlog item (`tasks/todo.md` Review backlog: "IndexedDB quota exceeded error handling"). Reference Layer just amplifies the trigger frequency; the architectural solution is shared.
 
 ### Naming convention
 
@@ -194,8 +281,12 @@ The user has asked for unit tests on **all four** deep-module candidates.
 
 - **`Document.composite_for_export()` excludes Reference Layers** — Rust unit test with a Document of mixed kinds; assert the export composite equals the Pixel-only composite.
 - **`Document.composite()` includes Reference Layers** — Rust unit test asserting a visible Reference Layer contributes to the on-screen blend; a hidden one does not.
+- **`Document.try_get_pixel` semantics across kinds** — Rust unit test: Pixel Layer in-bounds returns `Some`, OOB-document returns `None`; Reference Layer in-source-footprint returns `Some`, outside footprint returns `None`. Establishes the sampling contract eyedropper relies on.
+- **`Document.resize_with_placement` across 9 anchors** — Rust unit test asserting placement coordinates transform correctly for each of the 9 anchor combinations, for both canvas grow and canvas shrink. Pixel Layer behavior remains unchanged; Reference Layer placement follows the same anchor factor table.
+- **Initial placement = auto-fit aspect-preserving** — Rust unit test on `add_reference_layer` asserting the computed `scale` and `center` for cases: source ≤ canvas (scale = 1.0), source > canvas in one axis, source > canvas in both axes with different aspect ratios.
 - **Tool no-op on Reference Layer** — TS Vitest on `tool-runner` with a stubbed Document where the active layer is a Reference Layer; assert no pixel mutation occurs and no error is surfaced.
 - **Active-layer selection across kinds** — TS Vitest on `tab-state` asserting activation works for both kinds and editing tools silently no-op when a Reference Layer is active.
+- **Keyboard nudge → single snapshot per event** — TS Vitest or Rust integration: each arrow-key fire pushes one snapshot; consecutive nudges do not coalesce. `Shift+arrow` translates 10px.
 
 ### Lightly recommended
 
@@ -250,6 +341,42 @@ Expose a numeric width/height pair the user types to scale the reference.
 
 **Rejected for v1**: a single button ("Restore original size") + handle-drag covers 95% of the workflow without an extra input surface. Revisit if precise placement is requested.
 
+### Drag-and-drop creates a Reference Layer instead of a Reference Window
+
+Make drop the default Reference Layer entry; reduce the icon's importance.
+
+**Rejected because**: drop and trace-setup are different commitment levels. Drop is fast and low-commitment (peek at a reference); trace-setup is deliberate. Changing drop semantics also breaks the existing Reference Window muscle memory and adds a Drop Batch behavior mismatch (drop creates *many* references at once, which would create many tracing layers — almost never the user's intent). A future "promote Reference Window to Reference Layer" action bridges the two without changing drop.
+
+### Initial placement = always natural size (Aseprite / Photoshop pattern)
+
+Imported reference always starts at its native pixel size, centered.
+
+**Rejected because**: DOTORIXEL canvases are small (max 256×256) and references are typically large photos. Starting at native size on a 64×64 canvas shows only a 64×64 center slice — the user can't see what they're tracing or where to begin adjusting. Auto-fit on import makes the whole reference visible immediately; native size is one click away via "Restore original size".
+
+### Edge-midpoint handles with non-uniform (1-axis) scale
+
+Add 4 edge handles that stretch only one axis.
+
+**Rejected because**: non-uniform scale distorts the reference, which defeats the purpose of tracing. Pixel art references work best at native aspect; the placement model is deliberately uniform-scale-only. Edge handles with uniform scale would be a misleading affordance (they'd "feel" like 1-axis stretchers but behave identically to corners).
+
+### Multi-touch pinch-to-scale on the placement overlay
+
+Two-finger pinch on the overlay scales the reference.
+
+**Rejected for v1**: pinch is already bound to canvas zoom — gesture disambiguation (was the user pinching the overlay or the canvas?) requires a tap-target detection layer with edge cases. The added value is small (corner-handle drag + Restore + keyboard already cover the workflow). Revisit if a touch-first usage pattern emerges.
+
+### Eyedropper fall-through to composite at out-of-source coords
+
+When sampling outside a Reference Layer's projected footprint, sample the composite color at that point.
+
+**Rejected because**: the "active layer is sampling port" rule (decided in the layer-system grill) means the sampler reads what the *active* layer holds, not what's visually composited. Fall-through would surprise users with a color from a layer they didn't choose, and the natural extension ("which lower layer to sample from?") opens a separate decision tree with no good answer. Silent no-op is the consistent behavior — Pixel Layer + click on a transparent pixel already does the same thing.
+
+### Aggressive drawing-tool no-op feedback (toast + dimmed tool buttons)
+
+When a Reference Layer is active, dim drawing-tool buttons and show a first-click toast.
+
+**Rejected because**: dimming tool buttons implies the *tool* is disabled, but the tool is fine — only the active *layer* doesn't accept marks. A user who momentarily clicks a drawing tool then re-activates a Pixel Layer should find the tool immediately usable, not have to wait for a UI state to recover. Toasts on every Reference activation become noise within minutes. A `not-allowed` cursor at the action site, plus the Reference kind icon in the Timeline Panel and the visible placement overlay, communicates the state without interruption.
+
 ## Out of Scope
 
 - **Rasterize (convert Reference Layer to Pixel Layer pixels)** — explicitly excluded; revisit on demand.
@@ -257,11 +384,19 @@ Expose a numeric width/height pair the user types to scale the reference.
 - **Reference Layer opacity slider UI** — shared with the Pixel Layer opacity slider follow-up (PRD-086).
 - **Apple shell Reference Layer support** — Apple still preserves the single-canvas model; arrives in a future Phase.
 - **Per-layer "include in export" toggle** — Reference is unconditionally excluded.
-- **Reference Window ↔ Reference Layer cross-conversion** — independent features.
+- **Reference Window ↔ Reference Layer cross-conversion** — independent features. A future "promote Reference Window to Reference Layer" action is possible but not in v1.
+- **Drag-and-drop creating a Reference Layer** — drop continues to create Reference Window per PRD-053. Promote-from-window action is the planned bridge if/when demand emerges.
+- **Clipboard paste import (for Reference Layer)** — kept symmetric with Reference Window, which already has paste deferred (`tasks/todo.md` Review backlog). Both gain paste together later.
+- **Multi-touch pinch-to-scale on the placement overlay** — would conflict with the existing canvas-zoom pinch gesture. All v1 placement edits go through 1-pointer drag, keyboard nudge, or "Restore original size".
+- **Global "hide all Reference Layers" toggle** — per-layer visibility is sufficient for v1. Revisit if "preview without references" becomes a frequent ask.
+- **Duplicate-import dedup** — importing the same file twice produces two independent Reference Layers. No content-hash dedup in v1.
+- **Multi-layer selection / multi-select operations** — Timeline Panel operates on one active layer at a time, consistent with PRD-086.
+- **Crop / mask within a Reference Layer** — placement is full-source + position + uniform scale only. No region selection inside the reference.
 - **Image format support extensions** — supported set is whatever `decode-reference-blob.ts` already accepts.
 - **Source-image cache compaction / mipmaps** — source RGBA stored at native dimensions and resampled at composite time; no LOD pyramid.
 - **Reference Layer rotation or non-uniform scale** — v1 placement is position + uniform scale only.
 - **Composite caching** — keep PRD-086's "no caching" policy; measure if needed.
+- **Deep IndexedDB quota handling (pre-check, usage indicator, in-app cleanup)** — owned by the existing backlog item (`tasks/todo.md` Review backlog). PRD-105 only handles the import-time error toast and rollback.
 
 ## Further Notes
 

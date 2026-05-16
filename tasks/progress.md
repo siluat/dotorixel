@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None.
+Reference Layer type — tracing reference for pixel artwork ([PRD](../issues/105-reference-layer-type.md))
 
 ## Last Completed
 
@@ -10,8 +10,6 @@ None.
 
 ## Next Up
 
-- Reference Layer type (import image as non-editable layer, rasterize, restore original size)
-  - Next M3 feature; rides on the layer system that just closed out.
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
   - Independent. Next Apple Phase 1 item.
 - Apple Phase 1 — Enable clear canvas (existing disabled button)

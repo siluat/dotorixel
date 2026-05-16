@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| — | Issue filing — PRD-105 Reference Layer sub-issues (106–125, [PRD](../issues/105-reference-layer-type.md)) | 2026-05-16 |
 | 100 | [Layer system: persist `timelinePanelCollapsed`](../issues/100-layer-system-collapsible-persistence.md) | 2026-05-15 |
 | 099 | [Layer system: collapsible chevron (no persistence)](../issues/099-layer-system-collapsible-toggle.md) | 2026-05-14 |
 | 098 | [Layer system: mobile Timeline tab](../issues/098-layer-system-mobile-timeline-tab.md) | 2026-05-14 |

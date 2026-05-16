@@ -2,15 +2,14 @@
 
 ## Currently Working On
 
-Reference Layer type — tracing reference for pixel artwork ([PRD](../issues/105-reference-layer-type.md)). 20 sub-issues (106–125) filed, all `needs-triage`; four root-blocker slices (106 design, 107 LayerKind umbrella, 108 ReferencePlacement, 109 NN sampler) can start in parallel.
+Reference Layer type — tracing reference for pixel artwork ([PRD](../issues/105-reference-layer-type.md)). 1/20 sub-issues done (106 UX design); 19 implementation slices (107–125) remain, all unblocked from the design side. Three root Rust slices (107, 108, 109) can start in parallel.
 
 ## Last Completed
 
-Filed PRD-105 sub-issues 106–125 — single HITL design slice + 19 AFK implementation slices covering Rust core (umbrella + sampler + Document API), WASM/TS bindings, V3→V4 persistence, export call-site update, Timeline Panel additions, placement overlay (shell → drag → Shift-snap → keyboard nudge), and drawing/sampling tool kind-routing. Dependency graph encoded in each issue's "Blocked by".
+[106 — Reference Layer UX detail design](../issues/106-reference-layer-ux-design.md). All twelve overlay + Timeline Panel decisions are locked in `docs/pencil-dotorixel.pen` (frame at x=-430, y=37595); implementation sub-issues now have a concrete visual reference.
 
 ## Next Up
 
-- 106 — Reference Layer UX detail design (HITL: Timeline Panel additions + placement overlay)
 - 107 — Rust core: `Layer` umbrella refactor (`LayerKind::Pixel | Reference`)
 - 108 — Rust core: `ReferencePlacement` value type (deep-module tests)
 - 109 — Rust core: nearest-neighbor sampler (deep-module tests)

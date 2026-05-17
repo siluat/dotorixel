@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 107 | [Reference Layer: Rust core — `Layer` umbrella refactor (`LayerKind::Pixel \| Reference`)](../issues/107-reference-layer-kind-umbrella-refactor.md) | 2026-05-17 |
 | 106 | [Reference Layer: UX detail design](../issues/106-reference-layer-ux-design.md) | 2026-05-16 |
 | — | Issue filing — PRD-105 Reference Layer sub-issues (106–125, [PRD](../issues/105-reference-layer-type.md)) | 2026-05-16 |
 | 100 | [Layer system: persist `timelinePanelCollapsed`](../issues/100-layer-system-collapsible-persistence.md) | 2026-05-15 |

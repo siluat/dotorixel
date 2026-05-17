@@ -2,9 +2,9 @@ use std::fmt;
 
 use uuid::Uuid;
 
-use crate::canvas::{PixelCanvasError, ResizeAnchor};
+use crate::canvas::{PixelCanvas, PixelCanvasError, ResizeAnchor};
 use crate::color::Color;
-use crate::layer::Layer;
+use crate::layer::{Layer, LayerKind};
 use crate::tool::ToolType;
 
 /// Errors that can occur during layer-stack operations on a [`Document`].
@@ -126,13 +126,15 @@ impl Document {
             if layers[..i].iter().any(|prior| prior.id == layer.id) {
                 return Err(DocumentBuildError::DuplicateLayerId(layer.id));
             }
-            let actual = (layer.pixels.width(), layer.pixels.height());
-            if actual != (width, height) {
-                return Err(DocumentBuildError::LayerDimensionsMismatch {
-                    layer_id: layer.id,
-                    expected: (width, height),
-                    actual,
-                });
+            if let LayerKind::Pixel(canvas) = &layer.kind {
+                let actual = (canvas.width(), canvas.height());
+                if actual != (width, height) {
+                    return Err(DocumentBuildError::LayerDimensionsMismatch {
+                        layer_id: layer.id,
+                        expected: (width, height),
+                        actual,
+                    });
+                }
             }
         }
         if !layers.iter().any(|l| l.id == active_layer_id) {
@@ -274,18 +276,23 @@ impl Document {
     }
 
     /// Returns a freshly-allocated row-major RGBA byte buffer
-    /// (`width * height * 4`) with all visible layers blended bottom-to-top
-    /// using straight (non-premultiplied) source-over alpha.
+    /// (`width * height * 4`) with all visible Pixel Layers blended
+    /// bottom-to-top using straight (non-premultiplied) source-over alpha.
     ///
     /// Each layer's `opacity` is multiplied into its source alpha; layers with
-    /// `visible = false` are skipped entirely.
+    /// `visible = false` are skipped entirely. Reference Layers are excluded —
+    /// they are an on-screen tracing aid and do not contribute to the
+    /// composited output.
     pub fn composite(&self) -> Vec<u8> {
         let mut buf = vec![0u8; (self.width * self.height * 4) as usize];
         for layer in &self.layers {
             if !layer.visible {
                 continue;
             }
-            blend_layer_over(&mut buf, layer);
+            match &layer.kind {
+                LayerKind::Pixel(canvas) => blend_pixel_canvas_over(&mut buf, canvas, layer.opacity),
+                LayerKind::Reference(_) => {}
+            }
         }
         buf
     }
@@ -295,37 +302,55 @@ impl Document {
     /// Returns [`PixelCanvasError::OutOfBounds`] when `(x, y)` is outside the
     /// document's `width × height`.
     pub fn get_pixel(&self, x: u32, y: u32) -> Result<Color, PixelCanvasError> {
-        self.active_layer().pixels.get_pixel(x, y)
+        match &self.active_layer().kind {
+            LayerKind::Pixel(canvas) => canvas.get_pixel(x, y),
+            LayerKind::Reference(_) => unreachable!("active layer must be a Pixel Layer"),
+        }
     }
 
     /// Writes `color` to `(x, y)` on the active layer. Other layers are
     /// unaffected.
     pub fn set_pixel(&mut self, x: u32, y: u32, color: Color) -> Result<(), PixelCanvasError> {
-        self.active_layer_mut().pixels.set_pixel(x, y, color)
+        match &mut self.active_layer_mut().kind {
+            LayerKind::Pixel(canvas) => canvas.set_pixel(x, y, color),
+            LayerKind::Reference(_) => unreachable!("active layer must be a Pixel Layer"),
+        }
     }
 
     /// Applies `tool` at `(x, y)` to the active layer. Returns `true` when a
     /// pixel was written, `false` when the coordinates are out of bounds.
     pub fn apply_tool(&mut self, tool: ToolType, x: i32, y: i32, color: Color) -> bool {
-        tool.apply(&mut self.active_layer_mut().pixels, x, y, color)
+        match &mut self.active_layer_mut().kind {
+            LayerKind::Pixel(canvas) => tool.apply(canvas, x, y, color),
+            LayerKind::Reference(_) => unreachable!("active layer must be a Pixel Layer"),
+        }
     }
 
     /// 4-connected flood fill on the active layer starting at `(x, y)`.
     /// Returns `true` when at least one pixel was changed.
     pub fn flood_fill(&mut self, x: u32, y: u32, color: Color) -> bool {
-        self.active_layer_mut().pixels.flood_fill(x, y, color)
+        match &mut self.active_layer_mut().kind {
+            LayerKind::Pixel(canvas) => canvas.flood_fill(x, y, color),
+            LayerKind::Reference(_) => unreachable!("active layer must be a Pixel Layer"),
+        }
     }
 
     /// Clears the active layer to fully transparent. Other layers are
     /// unaffected.
     pub fn clear(&mut self) {
-        self.active_layer_mut().pixels.clear();
+        match &mut self.active_layer_mut().kind {
+            LayerKind::Pixel(canvas) => canvas.clear(),
+            LayerKind::Reference(_) => unreachable!("active layer must be a Pixel Layer"),
+        }
     }
 
     /// Returns the RGBA pixel buffer of the layer at `index`, or `None` when
-    /// `index` is out of range.
+    /// `index` is out of range or the layer is not a Pixel Layer.
     pub fn layer_pixels_at(&self, index: usize) -> Option<&[u8]> {
-        self.layers.get(index).map(|l| l.pixels.pixels())
+        match &self.layers.get(index)?.kind {
+            LayerKind::Pixel(canvas) => Some(canvas.pixels()),
+            LayerKind::Reference(_) => None,
+        }
     }
 
     /// Overwrites the active layer's pixel buffer with `data`. Used by tools
@@ -335,11 +360,16 @@ impl Document {
     /// Returns [`PixelCanvasError::InvalidBufferLength`] when `data.len()` is
     /// not exactly `width * height * 4`.
     pub fn restore_active_layer_pixels(&mut self, data: &[u8]) -> Result<(), PixelCanvasError> {
-        self.active_layer_mut().pixels.restore_pixels(data)
+        match &mut self.active_layer_mut().kind {
+            LayerKind::Pixel(canvas) => canvas.restore_pixels(data),
+            LayerKind::Reference(_) => unreachable!("active layer must be a Pixel Layer"),
+        }
     }
 
-    /// Resizes every layer to `new_width × new_height` using the same
+    /// Resizes every Pixel Layer to `new_width × new_height` using the same
     /// `anchor`, preserving each layer's id, name, visibility, and opacity.
+    /// Reference Layers are carried through unchanged: their source buffer,
+    /// natural dimensions, and placement are not affected by document resize.
     /// The active layer pointer is preserved.
     pub fn resize(
         &mut self,
@@ -350,17 +380,20 @@ impl Document {
         let resized = self
             .layers
             .iter()
-            .map(|layer| {
-                layer
-                    .pixels
-                    .resize_with_anchor(new_width, new_height, anchor)
-                    .map(|pixels| Layer {
-                        id: layer.id,
-                        name: layer.name.clone(),
-                        pixels,
-                        visible: layer.visible,
-                        opacity: layer.opacity,
-                    })
+            .map(|layer| -> Result<Layer, PixelCanvasError> {
+                let kind = match &layer.kind {
+                    LayerKind::Pixel(canvas) => {
+                        LayerKind::Pixel(canvas.resize_with_anchor(new_width, new_height, anchor)?)
+                    }
+                    LayerKind::Reference(data) => LayerKind::Reference(data.clone()),
+                };
+                Ok(Layer {
+                    id: layer.id,
+                    name: layer.name.clone(),
+                    visible: layer.visible,
+                    opacity: layer.opacity,
+                    kind,
+                })
             })
             .collect::<Result<Vec<_>, _>>()?;
         self.layers = resized;
@@ -386,12 +419,12 @@ impl Document {
     }
 }
 
-/// Source-over alpha composite of `layer` onto `dst` (straight RGBA, u8 per channel).
+/// Source-over alpha composite of `canvas` onto `dst` (straight RGBA, u8 per channel).
 ///
-/// `dst` must already match the layer's `width * height * 4` byte length.
-fn blend_layer_over(dst: &mut [u8], layer: &Layer) {
-    let opacity = layer.opacity.clamp(0.0, 1.0);
-    for (chunk, src) in dst.chunks_exact_mut(4).zip(layer.pixels.pixels().chunks_exact(4)) {
+/// `dst` must already match `canvas.width() * canvas.height() * 4` bytes.
+fn blend_pixel_canvas_over(dst: &mut [u8], canvas: &PixelCanvas, opacity: f32) {
+    let opacity = opacity.clamp(0.0, 1.0);
+    for (chunk, src) in dst.chunks_exact_mut(4).zip(canvas.pixels().chunks_exact(4)) {
         let src_a = (src[3] as f32 / 255.0) * opacity;
         if src_a == 0.0 {
             continue;
@@ -413,9 +446,19 @@ mod tests {
     use super::*;
     use uuid::Uuid;
 
+    fn pixel_canvas(layer: &Layer) -> &PixelCanvas {
+        let LayerKind::Pixel(canvas) = &layer.kind else {
+            panic!("layer is not Pixel-kind");
+        };
+        canvas
+    }
+
+    fn set_pixel_canvas(layer: &mut Layer, canvas: PixelCanvas) {
+        layer.kind = LayerKind::Pixel(canvas);
+    }
+
     #[test]
     fn layer_pixels_at_returns_buffer_for_each_layer_or_none_for_out_of_range() {
-        use crate::canvas::PixelCanvas;
         use crate::color::Color;
 
         let a = Uuid::new_v4();
@@ -424,9 +467,9 @@ mod tests {
         let green = Color::new(0, 255, 0, 255);
 
         let mut doc = Document::new(1, 1, a, "A".to_string()).unwrap();
-        doc.layers[0].pixels = PixelCanvas::with_color(1, 1, red).unwrap();
+        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(1, 1, red).unwrap());
         doc.add_layer(b, "B".to_string());
-        doc.layers[1].pixels = PixelCanvas::with_color(1, 1, green).unwrap();
+        set_pixel_canvas(&mut doc.layers[1], PixelCanvas::with_color(1, 1, green).unwrap());
 
         assert_eq!(doc.layer_pixels_at(0), Some([255, 0, 0, 255].as_slice()));
         assert_eq!(doc.layer_pixels_at(1), Some([0, 255, 0, 255].as_slice()));
@@ -435,7 +478,6 @@ mod tests {
 
     #[test]
     fn clear_resets_only_active_layer_to_transparent() {
-        use crate::canvas::PixelCanvas;
         use crate::color::Color;
 
         let a = Uuid::new_v4();
@@ -444,17 +486,17 @@ mod tests {
         let green = Color::new(0, 255, 0, 255);
 
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
-        doc.layers[0].pixels = PixelCanvas::with_color(2, 2, red).unwrap();
+        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(2, 2, red).unwrap());
         doc.add_layer(b, "B".to_string()); // active = B
-        doc.layers[1].pixels = PixelCanvas::with_color(2, 2, green).unwrap();
+        set_pixel_canvas(&mut doc.layers[1], PixelCanvas::with_color(2, 2, green).unwrap());
 
         doc.clear();
 
         for y in 0..2 {
             for x in 0..2 {
-                assert_eq!(doc.layers[0].pixels.get_pixel(x, y).unwrap(), red);
+                assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(x, y).unwrap(), red);
                 assert_eq!(
-                    doc.layers[1].pixels.get_pixel(x, y).unwrap(),
+                    pixel_canvas(&doc.layers[1]).get_pixel(x, y).unwrap(),
                     Color::TRANSPARENT
                 );
             }
@@ -463,7 +505,6 @@ mod tests {
 
     #[test]
     fn flood_fill_writes_only_to_active_layer() {
-        use crate::canvas::PixelCanvas;
         use crate::color::Color;
 
         let a = Uuid::new_v4();
@@ -473,7 +514,7 @@ mod tests {
 
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
         // Bottom (a): solid red — must remain red.
-        doc.layers[0].pixels = PixelCanvas::with_color(2, 2, red).unwrap();
+        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(2, 2, red).unwrap());
         // Top (b, active): transparent — flood_fill should turn it solid blue.
         doc.add_layer(b, "B".to_string());
 
@@ -482,8 +523,8 @@ mod tests {
         assert!(painted);
         for y in 0..2 {
             for x in 0..2 {
-                assert_eq!(doc.layers[1].pixels.get_pixel(x, y).unwrap(), blue);
-                assert_eq!(doc.layers[0].pixels.get_pixel(x, y).unwrap(), red);
+                assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(x, y).unwrap(), blue);
+                assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(x, y).unwrap(), red);
             }
         }
     }
@@ -502,9 +543,9 @@ mod tests {
         let drew = doc.apply_tool(ToolType::Pencil, 0, 0, red);
 
         assert!(drew);
-        assert_eq!(doc.layers[1].pixels.get_pixel(0, 0).unwrap(), red);
+        assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(0, 0).unwrap(), red);
         assert_eq!(
-            doc.layers[0].pixels.get_pixel(0, 0).unwrap(),
+            pixel_canvas(&doc.layers[0]).get_pixel(0, 0).unwrap(),
             Color::TRANSPARENT
         );
     }
@@ -562,6 +603,60 @@ mod tests {
         let dummy_id = Uuid::new_v4();
         let result = Document::from_layers(8, 8, vec![], dummy_id, 1, false);
         assert_eq!(result.unwrap_err(), DocumentBuildError::EmptyLayers);
+    }
+
+    #[test]
+    fn from_layers_preserves_kind_and_data_in_mixed_document() {
+        use crate::color::Color;
+        use crate::layer::{LayerKind, ReferenceData};
+        use crate::reference_placement::ReferencePlacement;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let b = Uuid::new_v4();
+
+        let red_canvas = PixelCanvas::with_color(4, 4, Color::new(255, 0, 0, 255)).unwrap();
+        let pixel_a = Layer {
+            id: a,
+            name: "A".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Pixel(red_canvas.clone()),
+        };
+
+        // Reference Layer has its own natural dimensions (different from document)
+        // and a non-trivial placement — both must survive round-trip.
+        let placement = ReferencePlacement { x: 1.5, y: -2.0, scale: 0.75 };
+        let ref_rgba = vec![10u8, 20, 30, 40, 50, 60, 70, 80];
+        let reference = ReferenceData::new(ref_rgba.clone(), 2, 1, placement).unwrap();
+        let reference_layer = Layer {
+            id: r,
+            name: "Ref".to_string(),
+            visible: false,
+            opacity: 0.5,
+            kind: LayerKind::Reference(reference.clone()),
+        };
+
+        let green_canvas = PixelCanvas::with_color(4, 4, Color::new(0, 255, 0, 255)).unwrap();
+        let pixel_b = Layer {
+            id: b,
+            name: "B".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Pixel(green_canvas.clone()),
+        };
+
+        let layers = vec![pixel_a.clone(), reference_layer.clone(), pixel_b.clone()];
+        let doc = Document::from_layers(4, 4, layers, b, 4, false).unwrap();
+
+        assert_eq!(doc.layers(), &[pixel_a, reference_layer, pixel_b]);
+        let LayerKind::Reference(restored) = &doc.layers()[1].kind else {
+            panic!("middle layer must remain Reference-kind after from_layers");
+        };
+        assert_eq!(restored.source_rgba(), ref_rgba.as_slice());
+        assert_eq!(restored.natural_width(), 2);
+        assert_eq!(restored.natural_height(), 1);
+        assert_eq!(restored.placement(), placement);
     }
 
     #[test]
@@ -658,7 +753,7 @@ mod tests {
         for y in 0..2 {
             for x in 0..2 {
                 assert_eq!(
-                    new_layer.pixels.get_pixel(x, y).unwrap(),
+                    pixel_canvas(new_layer).get_pixel(x, y).unwrap(),
                     Color::TRANSPARENT
                 );
             }
@@ -847,14 +942,13 @@ mod tests {
 
     #[test]
     fn composite_of_single_opaque_layer_returns_layer_pixels() {
-        use crate::canvas::PixelCanvas;
         use crate::color::Color;
 
         let id = Uuid::new_v4();
         let mut doc = Document::new(2, 2, id, "L1".to_string()).unwrap();
         // Replace the active layer's pixels with solid red.
         let red = Color::new(255, 0, 0, 255);
-        doc.layers[0].pixels = PixelCanvas::with_color(2, 2, red).unwrap();
+        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(2, 2, red).unwrap());
 
         let expected: Vec<u8> = std::iter::repeat_n([255, 0, 0, 255], 4).flatten().collect();
         assert_eq!(doc.composite(), expected);
@@ -862,19 +956,22 @@ mod tests {
 
     #[test]
     fn composite_blends_top_layer_source_over_bottom() {
-        use crate::canvas::PixelCanvas;
         use crate::color::Color;
 
         let a = Uuid::new_v4();
         let b = Uuid::new_v4();
         let mut doc = Document::new(1, 1, a, "A".to_string()).unwrap();
         // Bottom: opaque red.
-        doc.layers[0].pixels =
-            PixelCanvas::with_color(1, 1, Color::new(255, 0, 0, 255)).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(1, 1, Color::new(255, 0, 0, 255)).unwrap(),
+        );
         // Top: 50%-alpha blue (alpha = 128).
         doc.add_layer(b, "B".to_string());
-        doc.layers[1].pixels =
-            PixelCanvas::with_color(1, 1, Color::new(0, 0, 255, 128)).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[1],
+            PixelCanvas::with_color(1, 1, Color::new(0, 0, 255, 128)).unwrap(),
+        );
 
         // src_a = 128/255, dst_a = 1.0 → out_a = 1.0 (255).
         // R: 0*128/255 + 255*1*(1 - 128/255) = 255 - 128 = 127
@@ -884,19 +981,22 @@ mod tests {
 
     #[test]
     fn composite_skips_invisible_layers() {
-        use crate::canvas::PixelCanvas;
         use crate::color::Color;
 
         let a = Uuid::new_v4();
         let b = Uuid::new_v4();
         let mut doc = Document::new(1, 1, a, "A".to_string()).unwrap();
         // Bottom: opaque red, visible.
-        doc.layers[0].pixels =
-            PixelCanvas::with_color(1, 1, Color::new(255, 0, 0, 255)).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(1, 1, Color::new(255, 0, 0, 255)).unwrap(),
+        );
         // Top: opaque green, hidden — should not affect composite.
         doc.add_layer(b, "B".to_string());
-        doc.layers[1].pixels =
-            PixelCanvas::with_color(1, 1, Color::new(0, 255, 0, 255)).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[1],
+            PixelCanvas::with_color(1, 1, Color::new(0, 255, 0, 255)).unwrap(),
+        );
         doc.layers[1].visible = false;
 
         assert_eq!(doc.composite(), vec![255, 0, 0, 255]);
@@ -904,18 +1004,47 @@ mod tests {
 
     #[test]
     fn composite_multiplies_layer_opacity_into_source_alpha() {
-        use crate::canvas::PixelCanvas;
         use crate::color::Color;
 
         let id = Uuid::new_v4();
         let mut doc = Document::new(1, 1, id, "L1".to_string()).unwrap();
-        doc.layers[0].pixels =
-            PixelCanvas::with_color(1, 1, Color::new(255, 0, 0, 255)).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(1, 1, Color::new(255, 0, 0, 255)).unwrap(),
+        );
         doc.layers[0].opacity = 0.5;
 
         // src_a = 1.0 * 0.5 = 0.5 → out_a = 0.5 → alpha byte = 128
         // RGB unchanged (only red has color, divided by out_a).
         assert_eq!(doc.composite(), vec![255, 0, 0, 128]);
+    }
+
+    #[test]
+    fn composite_excludes_reference_layers() {
+        use crate::color::Color;
+        use crate::layer::ReferenceData;
+        use crate::reference_placement::ReferencePlacement;
+
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        // A Reference Layer holding solid opaque green pixels — were it composited
+        // like a Pixel Layer, it would overwrite the bottom red.
+        let green_rgba = vec![0u8, 255, 0, 255];
+        let reference = ReferenceData::new(green_rgba, 1, 1, placement).unwrap();
+
+        let mut doc = Document::new(1, 1, a, "A".to_string()).unwrap();
+        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(1, 1, red).unwrap());
+        doc.layers.push(Layer {
+            id: b,
+            name: "Reference".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Reference(reference),
+        });
+
+        assert_eq!(doc.composite(), vec![255, 0, 0, 255]);
     }
 
     #[test]
@@ -958,9 +1087,9 @@ mod tests {
         doc.set_pixel(0, 0, red).unwrap();
 
         // Active (B) is changed.
-        assert_eq!(doc.layers[1].pixels.get_pixel(0, 0).unwrap(), red);
+        assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(0, 0).unwrap(), red);
         // Inactive (A) is unchanged.
-        assert_eq!(doc.layers[0].pixels.get_pixel(0, 0).unwrap(), Color::TRANSPARENT);
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(0, 0).unwrap(), Color::TRANSPARENT);
     }
 
     #[test]
@@ -976,13 +1105,72 @@ mod tests {
         let red = Color::new(255, 0, 0, 255);
         doc.set_pixel(0, 0, red).unwrap();
 
-        assert_eq!(doc.layers[0].pixels.get_pixel(0, 0).unwrap(), red);
-        assert_eq!(doc.layers[1].pixels.get_pixel(0, 0).unwrap(), Color::TRANSPARENT);
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(0, 0).unwrap(), red);
+        assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(0, 0).unwrap(), Color::TRANSPARENT);
+    }
+
+    #[test]
+    fn layer_pixels_at_returns_none_for_reference_layer() {
+        use crate::layer::ReferenceData;
+        use crate::reference_placement::ReferencePlacement;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let reference = ReferenceData::new(vec![0u8; 4], 1, 1, placement).unwrap();
+
+        let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
+        doc.layers.push(Layer {
+            id: r,
+            name: "Ref".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Reference(reference),
+        });
+
+        assert!(doc.layer_pixels_at(0).is_some());
+        assert_eq!(doc.layer_pixels_at(1), None);
+    }
+
+    #[test]
+    fn resize_carries_reference_layers_through_unchanged() {
+        use crate::canvas::ResizeAnchor;
+        use crate::color::Color;
+        use crate::layer::ReferenceData;
+        use crate::reference_placement::ReferencePlacement;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let placement = ReferencePlacement { x: 3.0, y: -1.5, scale: 2.0 };
+        let ref_rgba = vec![1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+        let reference = ReferenceData::new(ref_rgba.clone(), 2, 2, placement).unwrap();
+
+        let mut doc = Document::new(4, 4, a, "A".to_string()).unwrap();
+        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(4, 4, red).unwrap());
+        doc.layers.push(Layer {
+            id: r,
+            name: "Ref".to_string(),
+            visible: true,
+            opacity: 0.8,
+            kind: LayerKind::Reference(reference),
+        });
+
+        doc.resize(8, 8, ResizeAnchor::Center).unwrap();
+
+        assert_eq!(doc.width(), 8);
+        let LayerKind::Reference(after) = &doc.layers()[1].kind else {
+            panic!("Reference Layer must remain Reference-kind after resize");
+        };
+        assert_eq!(after.source_rgba(), ref_rgba.as_slice());
+        assert_eq!(after.natural_width(), 2);
+        assert_eq!(after.natural_height(), 2);
+        assert_eq!(after.placement(), placement);
     }
 
     #[test]
     fn resize_applies_same_anchor_to_every_layer() {
-        use crate::canvas::{PixelCanvas, ResizeAnchor};
+        use crate::canvas::ResizeAnchor;
         use crate::color::Color;
 
         let a = Uuid::new_v4();
@@ -991,9 +1179,9 @@ mod tests {
         let green = Color::new(0, 255, 0, 255);
 
         let mut doc = Document::new(4, 4, a, "A".to_string()).unwrap();
-        doc.layers[0].pixels = PixelCanvas::with_color(4, 4, red).unwrap();
+        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(4, 4, red).unwrap());
         doc.add_layer(b, "B".to_string());
-        doc.layers[1].pixels = PixelCanvas::with_color(4, 4, green).unwrap();
+        set_pixel_canvas(&mut doc.layers[1], PixelCanvas::with_color(4, 4, green).unwrap());
 
         doc.resize(8, 8, ResizeAnchor::Center).unwrap();
 
@@ -1007,12 +1195,12 @@ mod tests {
                 let expected_a = if in_anchor { red } else { Color::TRANSPARENT };
                 let expected_b = if in_anchor { green } else { Color::TRANSPARENT };
                 assert_eq!(
-                    doc.layers[0].pixels.get_pixel(x, y).unwrap(),
+                    pixel_canvas(&doc.layers[0]).get_pixel(x, y).unwrap(),
                     expected_a,
                     "layer A at ({x}, {y})"
                 );
                 assert_eq!(
-                    doc.layers[1].pixels.get_pixel(x, y).unwrap(),
+                    pixel_canvas(&doc.layers[1]).get_pixel(x, y).unwrap(),
                     expected_b,
                     "layer B at ({x}, {y})"
                 );

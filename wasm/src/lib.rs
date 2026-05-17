@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use dotorixel_core::canvas::{PixelCanvas, ResizeAnchor};
 use dotorixel_core::color::Color;
 use dotorixel_core::document::Document;
-use dotorixel_core::layer::Layer;
+use dotorixel_core::layer::{Layer, LayerKind};
 use dotorixel_core::export::{PngExport, SvgExport};
 use dotorixel_core::history::{HistoryManager, Snapshot};
 use dotorixel_core::pixel_perfect::{
@@ -470,9 +470,9 @@ impl WasmDocumentBuilder {
         self.layers.push(Layer {
             id: layer_id,
             name,
-            pixels: pixel_canvas,
             visible,
             opacity,
+            kind: LayerKind::Pixel(pixel_canvas),
         });
         Ok(())
     }

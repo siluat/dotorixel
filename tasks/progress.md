@@ -2,15 +2,14 @@
 
 ## Currently Working On
 
-Reference Layer type — tracing reference for pixel artwork ([PRD](../issues/105-reference-layer-type.md)). 2/20 sub-issues done (106 UX, 107 `LayerKind` umbrella); 18 implementation slices (108–125) remain. Two root Rust slices (108, 109) still unblocked in parallel; 110 (composite/sampling integration) now ready since 107 landed the Reference variant.
+Reference Layer type — tracing reference for pixel artwork ([PRD](../issues/105-reference-layer-type.md)). 3/20 sub-issues done (106 UX, 107 umbrella, 108 placement value type); 17 implementation slices (109–125) remain. 109 (sampler) and 110 (Document add/composite) are the parallel-ready Rust root slices.
 
 ## Last Completed
 
-[107 — Rust core: `Layer` umbrella refactor (`LayerKind::Pixel | Reference`)](../issues/107-reference-layer-kind-umbrella-refactor.md). Reference variant is structurally present but dead-code at the shell — wasm/TS still see Pixel-only. Pixel-active invariant guarded by `unreachable!` until UI surfaces Reference Layers.
+[108 — Rust core: `ReferencePlacement` value type](../issues/108-reference-placement-value-type.md). Three value-pure builders (`with_position`, `with_scale`, `restore_to_natural`) with center-preservation locked in by inline tests. Still dead-code at the shell — first user-visible callers arrive in 110/111/119.
 
 ## Next Up
 
-- 108 — Rust core: `ReferencePlacement` value type (deep-module tests)
 - 109 — Rust core: nearest-neighbor sampler (deep-module tests)
 - 110 — Rust core: `Document` add/composite paths for Reference Layers
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)

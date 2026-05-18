@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 98 | 73 | 25 | 85 | 74% | 46% |
+| greptile-apps[bot] | 99 | 73 | 26 | 85 | 74% | 46% |
 | cubic-dev-ai[bot] | 62 | 50 | 12 | 105 | 81% | 32% |
-| coderabbitai[bot] | 144 | 99 | 45 | 54 | 69% | 65% |
+| coderabbitai[bot] | 145 | 99 | 46 | 54 | 68% | 65% |
 
 ## Log
 
@@ -562,3 +562,5 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #206 | cubic-dev-ai[bot] | Reject | `unreachable!` on Reference-active pixel APIs (`document.rs:307`) — intentional guard per #107 Key Decisions; `WasmDocumentBuilder::add_layer` is Pixel-only, no shell path reaches it; boundary validation deferred to #110 |
 | #206 | greptile-apps[bot] | Reject | `from_layers` does not enforce Pixel-active (outside-diff, `document.rs:140-142`) — paired with #107's intentional `unreachable!` design; deferred to #110 with Reference UI |
 | #205 | cubic-dev-ai[bot] | Reject | Suggested reverting `collapsed={false}` mobile guard as a regression — would re-introduce the lock-in coderabbit flagged earlier in the same PR; PRD-086 makes the LAYERS tab the sole mobile toggle |
+| #207 | greptile-apps[bot] | Reject | `debug_assert!(scale > 0.0)` on `with_scale` — interior value type per "fail at the boundary"; 8×8 min projected size enforced at placement overlay (issues 120-122); claimed scale=0 round-trip shift is incorrect (center invariant holds even at the pathological input) |
+| #207 | coderabbitai[bot] | Reject | Parameters/Returns/"Error conditions: None" doc blocks on builders — rust-conventions explicitly skip when signature speaks and forbid restating Result/Option semantics; `restore_to_natural`'s non-obvious center-preserving behavior is already documented |

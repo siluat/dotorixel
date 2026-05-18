@@ -192,8 +192,17 @@ impl Default for HistoryManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::canvas::PixelCanvas;
     use crate::document::Document;
+    use crate::layer::{Layer, LayerKind};
     use uuid::Uuid;
+
+    fn pixel_canvas(layer: &Layer) -> &PixelCanvas {
+        let LayerKind::Pixel(canvas) = &layer.kind else {
+            panic!("layer is not Pixel-kind");
+        };
+        canvas
+    }
 
     // -- initial state --
 
@@ -564,7 +573,7 @@ mod tests {
         let ids: Vec<Uuid> = restored.layers().iter().map(|l| l.id).collect();
         assert_eq!(ids, vec![a, b]);
         assert_eq!(restored.layers()[1].name, "B");
-        assert_eq!(restored.layers()[1].pixels.get_pixel(0, 0).unwrap(), red);
+        assert_eq!(pixel_canvas(&restored.layers()[1]).get_pixel(0, 0).unwrap(), red);
     }
 
     #[test]
@@ -598,7 +607,7 @@ mod tests {
         let restored = history.undo_document(&doc).unwrap();
 
         assert_eq!(
-            restored.layers()[0].pixels.get_pixel(0, 0).unwrap(),
+            pixel_canvas(&restored.layers()[0]).get_pixel(0, 0).unwrap(),
             Color::TRANSPARENT
         );
     }

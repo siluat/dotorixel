@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 96 | 72 | 24 | 85 | 75% | 46% |
-| cubic-dev-ai[bot] | 60 | 49 | 11 | 105 | 82% | 32% |
-| coderabbitai[bot] | 143 | 98 | 45 | 54 | 69% | 64% |
+| greptile-apps[bot] | 98 | 73 | 25 | 85 | 74% | 46% |
+| cubic-dev-ai[bot] | 62 | 50 | 12 | 105 | 81% | 32% |
+| coderabbitai[bot] | 144 | 99 | 45 | 54 | 69% | 65% |
 
 ## Log
 
@@ -556,4 +556,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #205 | coderabbitai[bot] | Accept | Mobile honors persisted `collapsed` flag while chevron is hidden under `@media (max-width: 1023px)` — collapsed document renders header-only with no in-UI path to expand. Fixed by forcing `collapsed={false}` at the mobile call site (PRD-086 makes the LAYERS tab the sole mobile toggle) |
 | #205 | greptile-apps[bot] | Miss | Did not flag mobile collapse lock-in (chevron hidden + persisted flag honored at the mobile call site) |
 | #205 | cubic-dev-ai[bot] | Miss | Did not flag mobile collapse lock-in (chevron hidden + persisted flag honored at the mobile call site) |
+| #206 | greptile-apps[bot] | Accept | `ReferenceData::new` `usize` overflow on wasm32 — `u32×u32×4` cast to `usize` silently wraps on 32-bit; mis-sized `source_rgba` could pass validation. Fix uses `checked_mul` + new `DimensionsTooLarge` variant |
+| #206 | cubic-dev-ai[bot] | Accept | Same `usize` overflow as greptile (duplicate finding on `layer.rs:104`) |
+| #206 | coderabbitai[bot] | Accept | Same `usize` overflow as greptile (nit, duplicate finding on `layer.rs:104`) |
+| #206 | cubic-dev-ai[bot] | Reject | `unreachable!` on Reference-active pixel APIs (`document.rs:307`) — intentional guard per #107 Key Decisions; `WasmDocumentBuilder::add_layer` is Pixel-only, no shell path reaches it; boundary validation deferred to #110 |
+| #206 | greptile-apps[bot] | Reject | `from_layers` does not enforce Pixel-active (outside-diff, `document.rs:140-142`) — paired with #107's intentional `unreachable!` design; deferred to #110 with Reference UI |
 | #205 | cubic-dev-ai[bot] | Reject | Suggested reverting `collapsed={false}` mobile guard as a regression — would re-introduce the lock-in coderabbit flagged earlier in the same PR; PRD-086 makes the LAYERS tab the sole mobile toggle |

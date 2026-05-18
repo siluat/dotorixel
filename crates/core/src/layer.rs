@@ -52,6 +52,7 @@ impl Layer {
 pub enum ReferenceDataError {
     InvalidDimension { value: u32 },
     InvalidBufferLength { expected: usize, actual: usize },
+    DimensionsTooLarge { natural_width: u32, natural_height: u32 },
 }
 
 impl fmt::Display for ReferenceDataError {
@@ -64,6 +65,12 @@ impl fmt::Display for ReferenceDataError {
                 write!(
                     f,
                     "Reference Layer source buffer length must be {expected} bytes (natural_width × natural_height × 4); got {actual}.",
+                )
+            }
+            Self::DimensionsTooLarge { natural_width, natural_height } => {
+                write!(
+                    f,
+                    "Reference Layer natural dimensions {natural_width}×{natural_height} exceed this platform's usize range.",
                 )
             }
         }
@@ -101,7 +108,13 @@ impl ReferenceData {
         if natural_height == 0 {
             return Err(ReferenceDataError::InvalidDimension { value: natural_height });
         }
-        let expected = (natural_width as usize) * (natural_height as usize) * 4;
+        let expected = (natural_width as usize)
+            .checked_mul(natural_height as usize)
+            .and_then(|n| n.checked_mul(4))
+            .ok_or(ReferenceDataError::DimensionsTooLarge {
+                natural_width,
+                natural_height,
+            })?;
         if source_rgba.len() != expected {
             return Err(ReferenceDataError::InvalidBufferLength {
                 expected,
@@ -185,5 +198,19 @@ mod tests {
         let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
         let err = ReferenceData::new(vec![], 0, 4, placement).unwrap_err();
         assert_eq!(err, ReferenceDataError::InvalidDimension { value: 0 });
+    }
+
+    #[test]
+    #[cfg(target_pointer_width = "32")]
+    fn reference_data_new_rejects_dimensions_that_overflow_usize_on_32_bit() {
+        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let err = ReferenceData::new(vec![], 65536, 65536, placement).unwrap_err();
+        assert_eq!(
+            err,
+            ReferenceDataError::DimensionsTooLarge {
+                natural_width: 65536,
+                natural_height: 65536,
+            }
+        );
     }
 }

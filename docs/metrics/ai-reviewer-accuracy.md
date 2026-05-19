@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 99 | 73 | 26 | 85 | 74% | 46% |
-| cubic-dev-ai[bot] | 62 | 50 | 12 | 105 | 81% | 32% |
-| coderabbitai[bot] | 145 | 99 | 46 | 54 | 68% | 65% |
+| greptile-apps[bot] | 102 | 75 | 27 | 85 | 74% | 47% |
+| cubic-dev-ai[bot] | 63 | 50 | 13 | 107 | 79% | 32% |
+| coderabbitai[bot] | 147 | 99 | 48 | 56 | 67% | 64% |
 
 ## Log
 
@@ -564,3 +564,13 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #205 | cubic-dev-ai[bot] | Reject | Suggested reverting `collapsed={false}` mobile guard as a regression — would re-introduce the lock-in coderabbit flagged earlier in the same PR; PRD-086 makes the LAYERS tab the sole mobile toggle |
 | #207 | greptile-apps[bot] | Reject | `debug_assert!(scale > 0.0)` on `with_scale` — interior value type per "fail at the boundary"; 8×8 min projected size enforced at placement overlay (issues 120-122); claimed scale=0 round-trip shift is incorrect (center invariant holds even at the pathological input) |
 | #207 | coderabbitai[bot] | Reject | Parameters/Returns/"Error conditions: None" doc blocks on builders — rust-conventions explicitly skip when signature speaks and forbid restating Result/Option semantics; `restore_to_natural`'s non-obvious center-preserving behavior is already documented |
+| #208 | greptile-apps[bot] | Reject | `placement.scale = 0/NaN/∞` guard — type-level concern; fix belongs in `ReferencePlacement` constructor per "type system over runtime validation" + "trust the core". Filed in todo backlog. Also NaN→u32 is well-defined saturating cast (NaN→0) since Rust 1.45, not UB |
+| #208 | greptile-apps[bot] | Accept | Widen `source_y * width` index math to usize before the multiply — canvas's u32 pattern is safe under `MAX_DIMENSION=256` but sampler operates on arbitrary source dims |
+| #208 | greptile-apps[bot] | Accept | Add y-axis OOB test (`y >= height`) symmetric with the right-edge test — defends against a future width/height swap in the guard |
+| #208 | coderabbitai[bot] | Reject | `placement.scale` guard (duplicate of greptile P1) — fix belongs in `ReferencePlacement` constructor per type-system rule |
+| #208 | coderabbitai[bot] | Reject | Validate `source_rgba.len()` before indexing — violates "trust the core"; Document maintains the dims-vs-buffer-length invariant via `add_reference_layer` |
+| #208 | coderabbitai[bot] | Miss | Did not flag `source_y * width` u32 overflow on large source dims |
+| #208 | coderabbitai[bot] | Miss | Did not flag missing y-axis OOB test |
+| #208 | cubic-dev-ai[bot] | Reject | `placement.scale` guard (duplicate of greptile P1) — fix belongs in `ReferencePlacement` constructor per type-system rule |
+| #208 | cubic-dev-ai[bot] | Miss | Did not flag `source_y * width` u32 overflow on large source dims |
+| #208 | cubic-dev-ai[bot] | Miss | Did not flag missing y-axis OOB test |

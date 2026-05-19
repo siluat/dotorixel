@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 109 | [Reference Layer: Rust core — nearest-neighbor sampler](../issues/109-reference-layer-nearest-neighbor-sampler.md) | 2026-05-18 |
 | 108 | [Reference Layer: Rust core — `ReferencePlacement` value type](../issues/108-reference-placement-value-type.md) | 2026-05-18 |
 | 107 | [Reference Layer: Rust core — `Layer` umbrella refactor (`LayerKind::Pixel \| Reference`)](../issues/107-reference-layer-kind-umbrella-refactor.md) | 2026-05-17 |
 | 106 | [Reference Layer: UX detail design](../issues/106-reference-layer-ux-design.md) | 2026-05-16 |

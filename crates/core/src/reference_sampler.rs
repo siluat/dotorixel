@@ -25,7 +25,7 @@ pub fn sample_reference(
         return None;
     }
 
-    let idx = ((source_y * width + source_x) * 4) as usize;
+    let idx = (source_y as usize * width as usize + source_x as usize) * 4;
     Some(Color::new(
         source_rgba[idx],
         source_rgba[idx + 1],
@@ -162,6 +162,16 @@ mod tests {
         let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
 
         let sampled = sample_reference(&source, (4, 4), &placement, 4, 0);
+
+        assert_eq!(sampled, None);
+    }
+
+    #[test]
+    fn returns_none_when_document_coord_is_past_source_bottom_edge() {
+        let source = solid_rgba(4, 4, Color::new(10, 20, 30, 255));
+        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+
+        let sampled = sample_reference(&source, (4, 4), &placement, 0, 4);
 
         assert_eq!(sampled, None);
     }

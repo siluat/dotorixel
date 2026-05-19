@@ -61,6 +61,7 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 - Document rename — allow renaming documents from tab and saved work browser
 - Canvas resize via border drag — drag canvas edges to change canvas dimensions
 - Timelapse recording — capture drawing process for playback/export
+- Validate `ReferencePlacement.scale` invariant (strictly positive, finite) via a constructor — currently `pub f32` field permits `0.0`, negative, NaN, and `±∞`, which `sample_reference` cannot defend against without violating "trust the core". Flagged by greptile/coderabbit/cubic on PR #208
 
 ## Future triggers
 

@@ -6,7 +6,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 104 | 77 | 27 | 86 | 74% | 47% |
+| greptile-apps[bot] | 105 | 77 | 28 | 86 | 73% | 47% |
 | cubic-dev-ai[bot] | 64 | 51 | 13 | 109 | 80% | 32% |
 | coderabbitai[bot] | 150 | 101 | 49 | 57 | 67% | 64% |
 
@@ -584,3 +584,4 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #212 | coderabbitai[bot] | Accept | Pixel branch in optional sampler swallowed impossible in-bounds canvas read failures |
 | #212 | greptile-apps[bot] | Miss | Did not flag swallowed Pixel Layer invariant break in optional sampler |
 | #212 | cubic-dev-ai[bot] | Miss | Did not flag swallowed Pixel Layer invariant break in optional sampler |
+| #212 | greptile-apps[bot] | Reject | Claimed PR #212 metrics rows were fabricated before reviews occurred |

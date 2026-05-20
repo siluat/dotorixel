@@ -1,6 +1,6 @@
 ---
 title: "Reference Layer: WASM facade + TS `canvas-model.ts` interface"
-status: needs-triage
+status: done
 created: 2026-05-16
 parent: 105-reference-layer-type.md
 ---
@@ -37,3 +37,21 @@ Scope:
 ## User stories addressed
 
 - Bridge layer; no user-observable change yet.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `wasm/src/lib.rs` | Added the Reference Layer WASM facade surface, placement wrapper, and smoke tests for add/accessor/sampling/composite behavior. |
+| `src/lib/canvas/canvas-model.ts` | Extended the structural `Document` contract with Reference Layer bridge methods and placement shape. |
+| `src/lib/canvas/fake-drawing-ops.ts` | Updated the fake document test double to satisfy the expanded `Document` contract. |
+
+### Key Decisions
+
+- Accepted source RGBA as a borrowed byte slice in the WASM method, matching the existing pixel-buffer binding precedent while keeping ownership conversion inside the facade.
+- Returned placement as a small WASM wrapper object instead of a loose numeric tuple so TS callers get named fields.
+
+### Notes
+
+- This remains bridge-only work; there is still no user-visible Reference Layer creation or manipulation flow.
+- Workspace-level Rust formatting remains blocked by the pre-existing `wasm/src/lib.rs` formatting debt already tracked in `tasks/todo.md`.

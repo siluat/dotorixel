@@ -134,10 +134,16 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 		width,
 		height,
 		composite: () => new Uint8Array(pixels),
+		composite_for_export: () => new Uint8Array(pixels),
 		get_pixel: (x, y) => {
 			if (x < 0 || y < 0 || x >= width || y >= height) {
 				return { r: 0, g: 0, b: 0, a: 0 };
 			}
+			const i = (y * width + x) * 4;
+			return { r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: pixels[i + 3] };
+		},
+		try_get_pixel: (x, y) => {
+			if (x < 0 || y < 0 || x >= width || y >= height) return undefined;
 			const i = (y * width + x) * 4;
 			return { r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: pixels[i + 3] };
 		},
@@ -160,6 +166,9 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 		add_layer: () => {
 			throw new Error('createFakeDocument: add_layer not implemented');
 		},
+		add_reference_layer: () => {
+			throw new Error('createFakeDocument: add_reference_layer not implemented');
+		},
 		remove_layer: () => {
 			throw new Error('createFakeDocument: remove_layer not implemented');
 		},
@@ -171,9 +180,16 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 		reorder_layer: () => {
 			throw new Error('createFakeDocument: reorder_layer not implemented');
 		},
+		set_reference_placement: () => {
+			throw new Error('createFakeDocument: set_reference_placement not implemented');
+		},
 		set_layer_visibility: () => {
 			throw new Error('createFakeDocument: set_layer_visibility not implemented');
 		},
+		layer_kind_at: (index) => (index === 0 ? 'pixel' : undefined),
+		layer_source_pixels_at: () => undefined,
+		layer_source_dimensions_at: () => undefined,
+		layer_placement_at: () => undefined,
 		get restoreActiveLayerCalls() {
 			return restoreCalls;
 		}

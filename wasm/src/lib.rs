@@ -4,12 +4,13 @@ use wasm_bindgen::prelude::*;
 use dotorixel_core::canvas::{PixelCanvas, ResizeAnchor};
 use dotorixel_core::color::Color;
 use dotorixel_core::document::Document;
-use dotorixel_core::layer::{Layer, LayerKind};
 use dotorixel_core::export::{PngExport, SvgExport};
 use dotorixel_core::history::{HistoryManager, Snapshot};
+use dotorixel_core::layer::{Layer, LayerKind, LayerKindTag};
 use dotorixel_core::pixel_perfect::{
     Action, FilterResult, TailState, pixel_perfect_filter,
 };
+use dotorixel_core::reference_placement::ReferencePlacement;
 use dotorixel_core::tool::{
     ToolType, ellipse_outline, interpolate_pixels, rectangle_outline,
 };
@@ -75,6 +76,46 @@ impl WasmColor {
     pub fn from_hex(hex: &str) -> Result<WasmColor, JsError> {
         let color = Color::from_hex(hex).map_err(|e| JsError::new(&e.to_string()))?;
         Ok(WasmColor { inner: color })
+    }
+}
+
+// ---------------------------------------------------------------------------
+// WasmReferencePlacement
+// ---------------------------------------------------------------------------
+
+#[wasm_bindgen]
+pub struct WasmReferencePlacement {
+    inner: ReferencePlacement,
+}
+
+#[wasm_bindgen]
+impl WasmReferencePlacement {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: f32, y: f32, scale: f32) -> WasmReferencePlacement {
+        WasmReferencePlacement {
+            inner: ReferencePlacement { x, y, scale },
+        }
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn x(&self) -> f32 {
+        self.inner.x
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn y(&self) -> f32 {
+        self.inner.y
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn scale(&self) -> f32 {
+        self.inner.scale
+    }
+}
+
+impl From<ReferencePlacement> for WasmReferencePlacement {
+    fn from(inner: ReferencePlacement) -> Self {
+        Self { inner }
     }
 }
 
@@ -275,6 +316,25 @@ impl WasmDocument {
         Ok(())
     }
 
+    /// Inserts a Reference Layer directly above the active layer and makes it
+    /// active. The core computes its initial auto-fit placement.
+    pub fn add_reference_layer(
+        &mut self,
+        new_id: String,
+        name: String,
+        source_rgba: &[u8],
+        source_width: u32,
+        source_height: u32,
+    ) -> Result<(), JsError> {
+        let id = Uuid::parse_str(&new_id).map_err(|e| JsError::new(&e.to_string()))?;
+        if self.inner.layers().iter().any(|l| l.id == id) {
+            return Err(JsError::new(&format!("Layer with id {id} already exists")));
+        }
+        self.inner
+            .add_reference_layer(id, name, source_rgba.to_vec(), source_width, source_height)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
     /// Removes the layer with `id`. Errors when the layer does not exist or
     /// when removing it would empty the document (a document must always
     /// contain at least one layer). When the removed layer was active, the
@@ -292,6 +352,12 @@ impl WasmDocument {
         self.inner.composite()
     }
 
+    /// RGBA row-major composite buffer that excludes Reference Layers,
+    /// suitable for export and saved-work thumbnails.
+    pub fn composite_for_export(&self) -> Vec<u8> {
+        self.inner.composite_for_export()
+    }
+
     /// Reads the pixel color at `(x, y)` on the active layer.
     ///
     /// Returns `Err(JsError)` when `(x, y)` is outside the document's
@@ -301,6 +367,15 @@ impl WasmDocument {
             .get_pixel(x, y)
             .map(|c| WasmColor { inner: c })
             .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// Reads the active layer at `(x, y)`, returning `None` when no pixel is
+    /// available (out of document bounds, or outside a Reference Layer's
+    /// projected source footprint).
+    pub fn try_get_pixel(&self, x: u32, y: u32) -> Option<WasmColor> {
+        self.inner
+            .try_get_pixel(x, y)
+            .map(|inner| WasmColor { inner })
     }
 
     /// Writes `color` to `(x, y)` on the active layer.
@@ -346,6 +421,25 @@ impl WasmDocument {
             .map_err(|e| JsError::new(&e.to_string()))
     }
 
+    /// Updates the placement of the Reference Layer with `id`.
+    pub fn set_reference_placement(
+        &mut self,
+        id: String,
+        x: f32,
+        y: f32,
+        scale: f32,
+    ) -> Result<(), JsError> {
+        let layer_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
+        if !is_valid_reference_scale(scale) {
+            return Err(JsError::new(
+                "Reference placement scale must be finite and greater than 0",
+            ));
+        }
+        self.inner
+            .set_reference_placement(layer_id, ReferencePlacement { x, y, scale })
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
     /// Resizes every layer to `new_width × new_height` using the same
     /// `anchor`, preserving each layer's id, name, visibility, and opacity.
     /// The active layer pointer is preserved.
@@ -384,10 +478,39 @@ impl WasmDocument {
         self.inner.layers().get(index).map(|l| l.opacity)
     }
 
+    /// Returns `"pixel"` or `"reference"` for the layer at `index`, or
+    /// `None` when `index` is out of range.
+    pub fn layer_kind_at(&self, index: usize) -> Option<String> {
+        self.inner.layer_kind_at(index).map(|kind| match kind {
+            LayerKindTag::Pixel => "pixel".to_string(),
+            LayerKindTag::Reference => "reference".to_string(),
+        })
+    }
+
     /// Returns a copy of the RGBA pixel buffer of the layer at `index`, or
     /// `None` when `index` is out of range.
     pub fn layer_pixels_at(&self, index: usize) -> Option<Vec<u8>> {
         self.inner.layer_pixels_at(index).map(|p| p.to_vec())
+    }
+
+    /// Returns a copy of a Reference Layer's source RGBA buffer, or `None`
+    /// when `index` is out of range or points at a Pixel Layer.
+    pub fn layer_source_pixels_at(&self, index: usize) -> Option<Vec<u8>> {
+        self.inner.layer_source_pixels_at(index).map(|p| p.to_vec())
+    }
+
+    /// Returns `[natural_width, natural_height]` for a Reference Layer, or
+    /// `None` when `index` is out of range or points at a Pixel Layer.
+    pub fn layer_source_dimensions_at(&self, index: usize) -> Option<Vec<u32>> {
+        self.inner
+            .layer_source_dimensions_at(index)
+            .map(|(width, height)| vec![width, height])
+    }
+
+    /// Returns a Reference Layer's placement, or `None` when `index` is out
+    /// of range or points at a Pixel Layer.
+    pub fn layer_placement_at(&self, index: usize) -> Option<WasmReferencePlacement> {
+        self.inner.layer_placement_at(index).map(Into::into)
     }
 
     /// Overwrites the active layer's pixel buffer with `data`. Used by tools
@@ -423,6 +546,10 @@ impl WasmDocument {
     pub fn clear(&mut self) {
         self.inner.clear();
     }
+}
+
+fn is_valid_reference_scale(scale: f32) -> bool {
+    scale.is_finite() && scale > 0.0
 }
 
 // ---------------------------------------------------------------------------
@@ -1091,6 +1218,86 @@ mod tests {
         assert_eq!(doc.layer_count(), 2);
         assert_eq!(doc.next_layer_number(), 3);
         assert_eq!(doc.active_layer_id(), second.to_string());
+    }
+
+    #[test]
+    fn wasm_document_add_reference_layer_exposes_reference_accessors() {
+        let first = Uuid::new_v4();
+        let reference = Uuid::new_v4();
+        let mut doc = WasmDocument::new(4, 4, first.to_string(), "Layer 1".into()).unwrap();
+        let source_rgba = vec![10, 20, 30, 255, 40, 50, 60, 255];
+
+        doc.add_reference_layer(
+            reference.to_string(),
+            "Reference".into(),
+            &source_rgba,
+            2,
+            1,
+        )
+        .unwrap();
+
+        assert_eq!(doc.layer_count(), 2);
+        assert_eq!(doc.active_layer_id(), reference.to_string());
+        assert_eq!(doc.layer_kind_at(0).as_deref(), Some("pixel"));
+        assert_eq!(doc.layer_kind_at(1).as_deref(), Some("reference"));
+        assert_eq!(doc.layer_kind_at(2), None);
+        assert_eq!(doc.layer_source_pixels_at(0), None);
+        assert_eq!(doc.layer_source_pixels_at(1), Some(source_rgba));
+        assert_eq!(doc.layer_source_dimensions_at(1), Some(vec![2, 1]));
+
+        let placement = doc.layer_placement_at(1).unwrap();
+        assert_eq!(placement.x(), 1.0);
+        assert_eq!(placement.y(), 1.5);
+        assert_eq!(placement.scale(), 1.0);
+    }
+
+    #[test]
+    fn wasm_document_reference_layer_smoke_tests_sampling_and_export_composite() {
+        let first = Uuid::new_v4();
+        let reference = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 2, first.to_string(), "Layer 1".into()).unwrap();
+        let red = WasmColor::new(255, 0, 0, 255);
+        doc.set_pixel(0, 0, &red).unwrap();
+
+        doc.add_reference_layer(
+            reference.to_string(),
+            "Reference".into(),
+            &[0, 255, 0, 255],
+            1,
+            1,
+        )
+        .unwrap();
+        doc.set_reference_placement(reference.to_string(), 0.0, 0.0, 1.0)
+            .unwrap();
+
+        let sampled = doc
+            .try_get_pixel(0, 0)
+            .expect("reference footprint covers 0,0");
+        assert_eq!(sampled.inner, Color::new(0, 255, 0, 255));
+        assert!(doc.try_get_pixel(1, 1).is_none());
+        assert_eq!(&doc.composite()[..4], &[0, 255, 0, 255]);
+        assert_eq!(&doc.composite_for_export()[..4], &[255, 0, 0, 255]);
+
+        doc.set_reference_placement(reference.to_string(), 1.0, 0.0, 1.0)
+            .unwrap();
+        let placement = doc.layer_placement_at(1).unwrap();
+        assert_eq!(placement.x(), 1.0);
+        assert!(doc.try_get_pixel(0, 0).is_none());
+        assert_eq!(
+            doc.try_get_pixel(1, 0).unwrap().inner,
+            Color::new(0, 255, 0, 255)
+        );
+    }
+
+    #[test]
+    fn reference_scale_boundary_validation_accepts_only_positive_finite_values() {
+        assert!(is_valid_reference_scale(0.1));
+        assert!(is_valid_reference_scale(1.0));
+        assert!(!is_valid_reference_scale(0.0));
+        assert!(!is_valid_reference_scale(-1.0));
+        assert!(!is_valid_reference_scale(f32::NAN));
+        assert!(!is_valid_reference_scale(f32::INFINITY));
+        assert!(!is_valid_reference_scale(f32::NEG_INFINITY));
     }
 
     // -- WasmDocumentBuilder --

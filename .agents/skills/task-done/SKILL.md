@@ -1,7 +1,7 @@
 ---
 description: Complete the current task. Update issue file, done.md, todo.md, progress.md, platform-status.md, and commit.
 user_invocable: true
-# model: sonnet  # blocked by anthropics/claude-code#34912
+# model: sonnet  # blocked by anthropics/Codex#34912
 # effort: medium
 ---
 

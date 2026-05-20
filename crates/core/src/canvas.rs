@@ -51,6 +51,24 @@ impl ResizeAnchor {
         };
         (dw * fx / 2, dh * fy / 2)
     }
+
+    /// Returns the `(x, y)` axis factors used to translate a Reference Layer's
+    /// placement under a document resize. Each axis factor is `0.0` (anchor
+    /// hugs the start edge), `0.5` (centered), or `1.0` (anchor hugs the end
+    /// edge); `placement_delta = (new_size − old_size) × factor`.
+    pub fn placement_factor(self) -> (f32, f32) {
+        match self {
+            Self::TopLeft => (0.0, 0.0),
+            Self::TopCenter => (0.5, 0.0),
+            Self::TopRight => (1.0, 0.0),
+            Self::MiddleLeft => (0.0, 0.5),
+            Self::Center => (0.5, 0.5),
+            Self::MiddleRight => (1.0, 0.5),
+            Self::BottomLeft => (0.0, 1.0),
+            Self::BottomCenter => (0.5, 1.0),
+            Self::BottomRight => (1.0, 1.0),
+        }
+    }
 }
 
 /// Canvas pixel coordinates.

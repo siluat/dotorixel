@@ -13,6 +13,11 @@ use crate::tool::ToolType;
 pub enum LayerError {
     LayerNotFound { id: Uuid },
     RemoveLastLayer,
+    LayerKindMismatch {
+        id: Uuid,
+        expected: LayerKindTag,
+        actual: LayerKindTag,
+    },
 }
 
 impl fmt::Display for LayerError {
@@ -22,6 +27,10 @@ impl fmt::Display for LayerError {
             Self::RemoveLastLayer => write!(
                 f,
                 "Cannot remove the last remaining layer. A document must contain at least one layer."
+            ),
+            Self::LayerKindMismatch { id, expected, actual } => write!(
+                f,
+                "Layer {id} is {actual:?}; this operation requires a {expected:?} Layer.",
             ),
         }
     }
@@ -329,6 +338,34 @@ impl Document {
         Ok(())
     }
 
+    /// Updates the [`ReferencePlacement`] of the Reference Layer with `id`.
+    ///
+    /// Returns [`LayerError::LayerNotFound`] for an unknown id and
+    /// [`LayerError::LayerKindMismatch`] when the addressed layer is a Pixel
+    /// Layer. On error, no document state is mutated.
+    pub fn set_reference_placement(
+        &mut self,
+        id: Uuid,
+        placement: ReferencePlacement,
+    ) -> Result<(), LayerError> {
+        let layer = self
+            .layers
+            .iter_mut()
+            .find(|l| l.id == id)
+            .ok_or(LayerError::LayerNotFound { id })?;
+        match &mut layer.kind {
+            LayerKind::Reference(data) => {
+                data.set_placement(placement);
+                Ok(())
+            }
+            LayerKind::Pixel(_) => Err(LayerError::LayerKindMismatch {
+                id,
+                expected: LayerKindTag::Reference,
+                actual: LayerKindTag::Pixel,
+            }),
+        }
+    }
+
     /// Moves the layer with `id` to `new_index`.
     ///
     /// `new_index` is silently clamped to `[0, layers.len() - 1]`. Returns
@@ -513,16 +550,19 @@ impl Document {
     }
 
     /// Resizes every Pixel Layer to `new_width × new_height` using the same
-    /// `anchor`, preserving each layer's id, name, visibility, and opacity.
-    /// Reference Layers are carried through unchanged: their source buffer,
-    /// natural dimensions, and placement are not affected by document resize.
-    /// The active layer pointer is preserved.
+    /// `anchor`. Each Reference Layer's placement is translated by the
+    /// `anchor`'s placement factor (`placement.x += (new_w − old_w) × fx`,
+    /// `placement.y += (new_h − old_h) × fy`); scale, source buffer, and
+    /// natural dimensions are unchanged. The active layer pointer is preserved.
     pub fn resize(
         &mut self,
         new_width: u32,
         new_height: u32,
         anchor: ResizeAnchor,
     ) -> Result<(), PixelCanvasError> {
+        let (fx, fy) = anchor.placement_factor();
+        let dw = new_width as f32 - self.width as f32;
+        let dh = new_height as f32 - self.height as f32;
         let resized = self
             .layers
             .iter()
@@ -531,7 +571,14 @@ impl Document {
                     LayerKind::Pixel(canvas) => {
                         LayerKind::Pixel(canvas.resize_with_anchor(new_width, new_height, anchor)?)
                     }
-                    LayerKind::Reference(data) => LayerKind::Reference(data.clone()),
+                    LayerKind::Reference(data) => {
+                        let current = data.placement();
+                        let translated_placement =
+                            current.with_position(current.x + dw * fx, current.y + dh * fy);
+                        let mut translated = data.clone();
+                        translated.set_placement(translated_placement);
+                        LayerKind::Reference(translated)
+                    }
                 };
                 Ok(Layer {
                     id: layer.id,
@@ -1654,42 +1701,6 @@ mod tests {
     }
 
     #[test]
-    fn resize_carries_reference_layers_through_unchanged() {
-        use crate::canvas::ResizeAnchor;
-        use crate::color::Color;
-        use crate::layer::ReferenceData;
-        use crate::reference_placement::ReferencePlacement;
-
-        let a = Uuid::new_v4();
-        let r = Uuid::new_v4();
-        let red = Color::new(255, 0, 0, 255);
-        let placement = ReferencePlacement { x: 3.0, y: -1.5, scale: 2.0 };
-        let ref_rgba = vec![1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
-        let reference = ReferenceData::new(ref_rgba.clone(), 2, 2, placement).unwrap();
-
-        let mut doc = Document::new(4, 4, a, "A".to_string()).unwrap();
-        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(4, 4, red).unwrap());
-        doc.layers.push(Layer {
-            id: r,
-            name: "Ref".to_string(),
-            visible: true,
-            opacity: 0.8,
-            kind: LayerKind::Reference(reference),
-        });
-
-        doc.resize(8, 8, ResizeAnchor::Center).unwrap();
-
-        assert_eq!(doc.width(), 8);
-        let LayerKind::Reference(after) = &doc.layers()[1].kind else {
-            panic!("Reference Layer must remain Reference-kind after resize");
-        };
-        assert_eq!(after.source_rgba(), ref_rgba.as_slice());
-        assert_eq!(after.natural_width(), 2);
-        assert_eq!(after.natural_height(), 2);
-        assert_eq!(after.placement(), placement);
-    }
-
-    #[test]
     fn add_reference_layer_appends_layer_sets_active_and_centers_at_scale_one_when_source_fits() {
         use crate::layer::ReferenceData;
         use crate::reference_placement::ReferencePlacement;
@@ -1782,6 +1793,160 @@ mod tests {
         assert_eq!(doc.layers().len(), 1);
         assert_eq!(doc.active_layer_id(), a);
         assert_eq!(doc.next_layer_number(), 2);
+    }
+
+    #[test]
+    fn set_reference_placement_updates_placement_on_named_reference_layer() {
+        use crate::reference_placement::ReferencePlacement;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let mut doc = Document::new(4, 4, a, "A".to_string()).unwrap();
+        doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
+            .unwrap();
+
+        let target = ReferencePlacement { x: 3.5, y: -1.0, scale: 2.0 };
+        doc.set_reference_placement(r, target).unwrap();
+
+        assert_eq!(doc.layer_placement_at(1), Some(target));
+    }
+
+    #[test]
+    fn set_reference_placement_returns_layer_not_found_for_unknown_id() {
+        use crate::reference_placement::ReferencePlacement;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let unknown = Uuid::new_v4();
+        let mut doc = Document::new(4, 4, a, "A".to_string()).unwrap();
+        doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
+            .unwrap();
+        let before = doc.layer_placement_at(1).unwrap();
+
+        let err = doc
+            .set_reference_placement(unknown, ReferencePlacement { x: 9.0, y: 9.0, scale: 9.0 })
+            .unwrap_err();
+        assert_eq!(err, LayerError::LayerNotFound { id: unknown });
+
+        // Existing Reference Layer's placement must be untouched.
+        assert_eq!(doc.layer_placement_at(1), Some(before));
+    }
+
+    #[test]
+    fn set_reference_placement_returns_layer_kind_mismatch_when_target_is_pixel_layer() {
+        use crate::layer::LayerKindTag;
+        use crate::reference_placement::ReferencePlacement;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let mut doc = Document::new(4, 4, a, "A".to_string()).unwrap();
+        doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
+            .unwrap();
+        let ref_before = doc.layer_placement_at(1).unwrap();
+
+        // Target the Pixel Layer `a`, not the Reference Layer `r`.
+        let err = doc
+            .set_reference_placement(a, ReferencePlacement { x: 9.0, y: 9.0, scale: 9.0 })
+            .unwrap_err();
+        assert_eq!(
+            err,
+            LayerError::LayerKindMismatch {
+                id: a,
+                expected: LayerKindTag::Reference,
+                actual: LayerKindTag::Pixel,
+            }
+        );
+        // The Reference Layer's placement is untouched (we addressed the wrong layer).
+        assert_eq!(doc.layer_placement_at(1), Some(ref_before));
+    }
+
+    #[test]
+    fn resize_translates_reference_placement_by_anchor_factor_across_all_anchors_grow_and_shrink() {
+        use crate::canvas::ResizeAnchor;
+        use crate::layer::ReferenceData;
+        use crate::reference_placement::ReferencePlacement;
+
+        let anchors: &[(ResizeAnchor, (f32, f32))] = &[
+            (ResizeAnchor::TopLeft, (0.0, 0.0)),
+            (ResizeAnchor::TopCenter, (0.5, 0.0)),
+            (ResizeAnchor::TopRight, (1.0, 0.0)),
+            (ResizeAnchor::MiddleLeft, (0.0, 0.5)),
+            (ResizeAnchor::Center, (0.5, 0.5)),
+            (ResizeAnchor::MiddleRight, (1.0, 0.5)),
+            (ResizeAnchor::BottomLeft, (0.0, 1.0)),
+            (ResizeAnchor::BottomCenter, (0.5, 1.0)),
+            (ResizeAnchor::BottomRight, (1.0, 1.0)),
+        ];
+        // (label, new_w, new_h, delta_w, delta_h). Source canvas is 4x4.
+        let directions: &[(&str, u32, u32, f32, f32)] = &[
+            ("grow", 8, 8, 4.0, 4.0),
+            ("shrink", 2, 2, -2.0, -2.0),
+        ];
+
+        let original = ReferencePlacement { x: 1.0, y: 0.5, scale: 1.5 };
+
+        for &(anchor, (fx, fy)) in anchors {
+            for &(label, new_w, new_h, dw, dh) in directions {
+                let a = Uuid::new_v4();
+                let r = Uuid::new_v4();
+                let mut doc = Document::new(4, 4, a, "A".to_string()).unwrap();
+                let reference = ReferenceData::new(vec![0u8; 4], 1, 1, original).unwrap();
+                doc.layers.push(Layer {
+                    id: r,
+                    name: "Ref".to_string(),
+                    visible: true,
+                    opacity: 1.0,
+                    kind: LayerKind::Reference(reference),
+                });
+
+                doc.resize(new_w, new_h, anchor).unwrap();
+
+                let expected = ReferencePlacement {
+                    x: original.x + dw * fx,
+                    y: original.y + dh * fy,
+                    scale: original.scale,
+                };
+                assert_eq!(
+                    doc.layer_placement_at(1),
+                    Some(expected),
+                    "anchor={anchor:?} direction={label}",
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn resize_preserves_reference_source_rgba_and_natural_dimensions_under_placement_transform() {
+        use crate::canvas::ResizeAnchor;
+        use crate::layer::ReferenceData;
+        use crate::reference_placement::ReferencePlacement;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let placement = ReferencePlacement { x: 3.0, y: -1.5, scale: 2.0 };
+        let ref_rgba = vec![1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+        let reference = ReferenceData::new(ref_rgba.clone(), 2, 2, placement).unwrap();
+
+        let mut doc = Document::new(4, 4, a, "A".to_string()).unwrap();
+        doc.layers.push(Layer {
+            id: r,
+            name: "Ref".to_string(),
+            visible: true,
+            opacity: 0.8,
+            kind: LayerKind::Reference(reference),
+        });
+
+        doc.resize(8, 8, ResizeAnchor::Center).unwrap();
+
+        let LayerKind::Reference(after) = &doc.layers()[1].kind else {
+            panic!("Reference Layer must remain Reference-kind after resize");
+        };
+        // Source buffer is bit-identical; natural dimensions unchanged.
+        assert_eq!(after.source_rgba(), ref_rgba.as_slice());
+        assert_eq!(after.natural_width(), 2);
+        assert_eq!(after.natural_height(), 2);
+        // Scale is unchanged by the transform.
+        assert_eq!(after.placement().scale, placement.scale);
     }
 
     #[test]

@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 111 | [Reference Layer: Rust core — `set_reference_placement` + `resize` 9-anchor placement transform](../issues/111-reference-layer-set-placement-and-resize-anchor-transform.md) | 2026-05-20 |
 | 110 | [Reference Layer: Rust core — `add_reference_layer` + composite paths + kind-aware accessors](../issues/110-reference-layer-document-add-and-composite-paths.md) | 2026-05-20 |
 | 109 | [Reference Layer: Rust core — nearest-neighbor sampler](../issues/109-reference-layer-nearest-neighbor-sampler.md) | 2026-05-18 |
 | 108 | [Reference Layer: Rust core — `ReferencePlacement` value type](../issues/108-reference-placement-value-type.md) | 2026-05-18 |

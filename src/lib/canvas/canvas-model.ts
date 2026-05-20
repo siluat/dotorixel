@@ -6,6 +6,13 @@ export interface CanvasCoords {
 	readonly y: number;
 }
 
+/** Reference Layer source-to-document placement. */
+export interface ReferencePlacement {
+	readonly x: number;
+	readonly y: number;
+	readonly scale: number;
+}
+
 /** Anchor point for canvas resize operations. */
 export type ResizeAnchor =
 	| 'top-left'
@@ -51,8 +58,12 @@ export interface Document {
 	readonly width: number;
 	readonly height: number;
 	composite(): Uint8Array;
+	/** Pixel-only composite for export and saved-work thumbnails. */
+	composite_for_export(): Uint8Array;
 	/** Reads the active-layer pixel at `(x, y)`. Throws when `(x, y)` is outside `width × height`. */
 	get_pixel(x: number, y: number): Color;
+	/** Reads the active layer at `(x, y)`, or returns `undefined` when no pixel is available. */
+	try_get_pixel(x: number, y: number): Color | undefined;
 	active_layer_id(): string;
 	next_layer_number(): number;
 	is_timeline_panel_collapsed(): boolean;
@@ -84,6 +95,17 @@ export interface Document {
 	 */
 	add_layer(new_id: string, name: string): void;
 	/**
+	 * Appends a Reference Layer with decoded source RGBA bytes. The core
+	 * computes the initial auto-fit placement and makes the new layer active.
+	 */
+	add_reference_layer(
+		new_id: string,
+		name: string,
+		source_rgba: Uint8Array,
+		source_width: number,
+		source_height: number
+	): void;
+	/**
 	 * Removes the layer with `id`. Throws when the layer does not exist or
 	 * when removing it would empty the document (a document must always
 	 * contain at least one layer). When the removed layer was active, the
@@ -103,8 +125,21 @@ export interface Document {
 	 */
 	reorder_layer(id: string, new_index: number): void;
 	/**
+	 * Updates a Reference Layer's placement. Throws when `id` does not exist
+	 * or points at a Pixel Layer.
+	 */
+	set_reference_placement(id: string, x: number, y: number, scale: number): void;
+	/**
 	 * Sets the visibility flag of the layer with `id`. Throws if no layer
 	 * with this id exists; previous visibility is preserved on error.
 	 */
 	set_layer_visibility(id: string, visible: boolean): void;
+	/** Returns `"pixel"` or `"reference"`, or `undefined` when `index` is out of range. */
+	layer_kind_at(index: number): string | undefined;
+	/** Returns a Reference Layer's source RGBA buffer, or `undefined` for Pixel Layers / out of range. */
+	layer_source_pixels_at(index: number): Uint8Array | undefined;
+	/** Returns `[natural_width, natural_height]`, or `undefined` for Pixel Layers / out of range. */
+	layer_source_dimensions_at(index: number): Uint32Array | undefined;
+	/** Returns a Reference Layer's placement, or `undefined` for Pixel Layers / out of range. */
+	layer_placement_at(index: number): ReferencePlacement | undefined;
 }

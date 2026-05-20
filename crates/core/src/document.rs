@@ -455,7 +455,9 @@ impl Document {
             return None;
         }
         match &self.active_layer().kind {
-            LayerKind::Pixel(canvas) => canvas.get_pixel(x, y).ok(),
+            LayerKind::Pixel(canvas) => Some(canvas.get_pixel(x, y).unwrap_or_else(|err| {
+                panic!("active Pixel Layer read failed inside document bounds at ({x}, {y}): {err}")
+            })),
             LayerKind::Reference(data) => {
                 let placement = data.placement();
                 crate::reference_sampler::sample_reference(

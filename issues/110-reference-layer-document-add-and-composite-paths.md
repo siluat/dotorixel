@@ -1,6 +1,6 @@
 ---
 title: "Reference Layer: Rust core — `add_reference_layer` + composite paths + kind-aware accessors"
-status: needs-triage
+status: done
 created: 2026-05-16
 parent: 105-reference-layer-type.md
 ---
@@ -43,3 +43,26 @@ Scope:
 ## User stories addressed
 
 - #2, #10, #15, #16, #23.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/document.rs` | `add_reference_layer` with aspect-preserving auto-fit placement; `composite()` extended to blend visible Reference Layers via `sample_reference`; new `composite_for_export()` (Pixel-only); 4 kind-aware accessors (`layer_kind_at`, `layer_source_pixels_at`, `layer_source_dimensions_at`, `layer_placement_at`); new `DrawError { OutOfBounds(PixelCanvasError), LayerKindMismatch }`; drawing methods (`set_pixel`/`get_pixel` → `DrawError`, `apply_tool`/`flood_fill` → `false`, `clear`/`restore_active_layer_pixels` → no-op) defend against Reference-active instead of panicking. Two private helpers: `auto_fit_placement`, `blend_reference_over`. 13 new inline tests, 1 retargeted (`composite_excludes_reference_layers` → `composite_for_export_excludes_...`). |
+| `crates/core/src/layer.rs` | New `LayerKindTag { Pixel, Reference }` (Copy + Eq + Hash) discriminant enum; `LayerKind::tag()` accessor. |
+| `crates/core/src/lib.rs` | Re-export `DrawError`. |
+
+### Key Decisions
+
+- **New `DrawError` enum at document level instead of extending `PixelCanvasError`.** Keeps canvas-layer concerns separate; `From<PixelCanvasError> for DrawError` preserves `?` propagation. Wasm binding's `JsError::new(&e.to_string())` works unchanged thanks to `Display`.
+- **`apply_tool` / `flood_fill` keep `bool` return.** `false` is the natural "no pixels mutated" signal; TS tool runner translates this to a silent no-op in 124.
+- **`clear` / `restore_active_layer_pixels` use no-op on Reference-active.** Signature unchanged; `restore` returns `Ok(())`. Avoids forcing all callers through a new error type for an operation that's semantically meaningless on Reference Layers.
+- **New `LayerKindTag` discriminant enum (not `&LayerKind`).** Shells need a cheap, FFI-friendly kind tag for dispatch — exposing `&LayerKind` would leak per-variant payload across the boundary.
+- **Sampler stays as a free function in `reference_sampler.rs`.** 109's design (raw buffers/dims/placement) was deliberate for testability. `blend_reference_over` adapts to it without modifying 109's surface.
+
+### Notes
+
+- `cargo fmt --check` flags pre-existing format debt in `wasm/src/lib.rs` (out of scope for 110). Added to review backlog.
+- Potential follow-up: collapse sampler into a `ReferenceData::sample_at(x, y)` method (Rust convention: behavior on the type). Out of scope for 110 to preserve 109's deliberate testability design — added to review backlog.
+- Apple shell unaffected — its UniFFI bindings wrap `PixelCanvas` directly, not `Document`.
+- 112 (`try_get_pixel`) now unblocked. 111 (`set_placement` / `resize_anchor_transform`), 113 (WASM facade), 114 (V4 schema), 117/118 (Timeline Panel kind icons + add flow) all become parallel-ready.

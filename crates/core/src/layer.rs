@@ -27,6 +27,23 @@ pub enum LayerKind {
     Reference(ReferenceData),
 }
 
+/// Lightweight discriminant of [`LayerKind`] for shell-facing accessors that
+/// must report a layer's kind without exposing the per-variant payload.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum LayerKindTag {
+    Pixel,
+    Reference,
+}
+
+impl LayerKind {
+    pub fn tag(&self) -> LayerKindTag {
+        match self {
+            LayerKind::Pixel(_) => LayerKindTag::Pixel,
+            LayerKind::Reference(_) => LayerKindTag::Reference,
+        }
+    }
+}
+
 impl Layer {
     /// Creates a fully-transparent Pixel Layer of `width × height`. New
     /// layers start `visible = true` and `opacity = 1.0`.

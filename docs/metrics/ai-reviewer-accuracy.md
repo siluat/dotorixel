@@ -8,7 +8,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 102 | 75 | 27 | 85 | 74% | 47% |
 | cubic-dev-ai[bot] | 63 | 50 | 13 | 107 | 79% | 32% |
-| coderabbitai[bot] | 147 | 99 | 48 | 56 | 67% | 64% |
+| coderabbitai[bot] | 148 | 99 | 49 | 56 | 67% | 64% |
 
 ## Log
 
@@ -574,3 +574,4 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #208 | cubic-dev-ai[bot] | Reject | `placement.scale` guard (duplicate of greptile P1) — fix belongs in `ReferencePlacement` constructor per type-system rule |
 | #208 | cubic-dev-ai[bot] | Miss | Did not flag `source_y * width` u32 overflow on large source dims |
 | #208 | cubic-dev-ai[bot] | Miss | Did not flag missing y-axis OOB test |
+| #209 | coderabbitai[bot] | Reject | `debug_assert!` → `assert!` on `add_reference_layer` duplicate-ID guard — internal mutation path with caller-supplied fresh `Uuid::new_v4()`; "trust the core" precondition. Boundary check already lives in `Document::from_layers` (`DocumentBuildError::DuplicateLayerId`); sibling `add_layer` uses same `debug_assert!` since layer system landed |

@@ -14,7 +14,7 @@ pub mod tool;
 pub mod viewport;
 pub use canvas::{PixelCanvasError, ResizeAnchor};
 pub use color::ColorParseError;
-pub use document::{Document, LayerError};
+pub use document::{Document, DrawError, LayerError};
 pub use export::{ExportError, PngExport, SvgExport};
 pub use history::{HistoryManager, Snapshot};
 pub use layer::Layer;

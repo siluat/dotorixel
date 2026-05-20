@@ -430,6 +430,11 @@ impl WasmDocument {
         scale: f32,
     ) -> Result<(), JsError> {
         let layer_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
+        if !is_valid_reference_scale(scale) {
+            return Err(JsError::new(
+                "Reference placement scale must be finite and greater than 0",
+            ));
+        }
         self.inner
             .set_reference_placement(layer_id, ReferencePlacement { x, y, scale })
             .map_err(|e| JsError::new(&e.to_string()))
@@ -541,6 +546,10 @@ impl WasmDocument {
     pub fn clear(&mut self) {
         self.inner.clear();
     }
+}
+
+fn is_valid_reference_scale(scale: f32) -> bool {
+    scale.is_finite() && scale > 0.0
 }
 
 // ---------------------------------------------------------------------------
@@ -1278,6 +1287,17 @@ mod tests {
             doc.try_get_pixel(1, 0).unwrap().inner,
             Color::new(0, 255, 0, 255)
         );
+    }
+
+    #[test]
+    fn reference_scale_boundary_validation_accepts_only_positive_finite_values() {
+        assert!(is_valid_reference_scale(0.1));
+        assert!(is_valid_reference_scale(1.0));
+        assert!(!is_valid_reference_scale(0.0));
+        assert!(!is_valid_reference_scale(-1.0));
+        assert!(!is_valid_reference_scale(f32::NAN));
+        assert!(!is_valid_reference_scale(f32::INFINITY));
+        assert!(!is_valid_reference_scale(f32::NEG_INFINITY));
     }
 
     // -- WasmDocumentBuilder --

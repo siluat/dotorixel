@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 105 | 77 | 28 | 86 | 73% | 47% |
-| cubic-dev-ai[bot] | 64 | 51 | 13 | 109 | 80% | 32% |
-| coderabbitai[bot] | 150 | 101 | 49 | 57 | 67% | 64% |
+| greptile-apps[bot] | 109 | 77 | 32 | 87 | 71% | 47% |
+| cubic-dev-ai[bot] | 65 | 52 | 13 | 109 | 80% | 32% |
+| coderabbitai[bot] | 151 | 101 | 50 | 58 | 67% | 64% |
 
 ## Log
 
@@ -585,3 +585,11 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #212 | greptile-apps[bot] | Miss | Did not flag swallowed Pixel Layer invariant break in optional sampler |
 | #212 | cubic-dev-ai[bot] | Miss | Did not flag swallowed Pixel Layer invariant break in optional sampler |
 | #212 | greptile-apps[bot] | Reject | Claimed PR #212 metrics rows were fabricated before reviews occurred |
+| #213 | greptile-apps[bot] | Reject | Narrow `layer_kind_at` TS return type — generated wasm-bindgen type is `string | undefined`, and structural compatibility is the binding contract |
+| #213 | greptile-apps[bot] | Reject | Fake document `layer_kind_at(0)` should return undefined — fake models a single Pixel Layer, so `"pixel"` is faithful |
+| #213 | greptile-apps[bot] | Reject | Validate `source_rgba` length in WASM facade — core already validates and facade maps the error to `JsError` |
+| #213 | greptile-apps[bot] | Reject | Issue-level duplicate of WASM `source_rgba` length validation finding |
+| #213 | greptile-apps[bot] | Miss | Did not flag invalid placement scale at the new WASM boundary |
+| #213 | coderabbitai[bot] | Reject | Narrow `layer_kind_at` TS return type — generated wasm-bindgen type prevents literal-union structural compatibility |
+| #213 | coderabbitai[bot] | Miss | Did not flag invalid placement scale at the new WASM boundary |
+| #213 | cubic-dev-ai[bot] | Accept | Validate Reference Layer placement scale at the WASM boundary before writing it into core state |

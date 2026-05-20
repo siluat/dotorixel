@@ -1,6 +1,6 @@
 ---
 title: "Reference Layer: Rust core — `Document.try_get_pixel` (sampling-aware accessor)"
-status: needs-triage
+status: done
 created: 2026-05-16
 parent: 105-reference-layer-type.md
 ---
@@ -35,3 +35,19 @@ This is the contract that eyedropper and Canvas Sampling Sessions consume in 125
 ## User stories addressed
 
 - Foundation for #14, #32.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/document.rs` | Added a sampling-aware active-layer accessor and inline regression tests for Pixel Layer and Reference Layer behavior. |
+
+### Key Decisions
+
+- Kept the existing strict pixel accessor unchanged, and added the sampling-aware path as a separate API so callers can choose between erroring in-bounds reads and optional sampling reads.
+- Reused the existing nearest-neighbor Reference Layer sampler so Reference sampling matches the on-screen composite path.
+
+### Notes
+
+- WASM/TypeScript exposure remains in 113.
+- Eyedropper and Canvas Sampling Session adoption remains in 125.

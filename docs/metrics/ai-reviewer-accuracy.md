@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 104 | 77 | 27 | 85 | 74% | 48% |
-| cubic-dev-ai[bot] | 64 | 51 | 13 | 108 | 80% | 32% |
-| coderabbitai[bot] | 149 | 100 | 49 | 57 | 67% | 64% |
+| greptile-apps[bot] | 105 | 77 | 28 | 86 | 73% | 47% |
+| cubic-dev-ai[bot] | 64 | 51 | 13 | 109 | 80% | 32% |
+| coderabbitai[bot] | 150 | 101 | 49 | 57 | 67% | 64% |
 
 ## Log
 
@@ -581,3 +581,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #211 | greptile-apps[bot] | Accept | Incorrect `anthropics/Codex#34912` issue reference in task-done skill |
 | #211 | cubic-dev-ai[bot] | Miss | Did not flag incorrect `anthropics/Codex#34912` issue reference |
 | #211 | coderabbitai[bot] | Miss | Did not flag incorrect `anthropics/Codex#34912` issue reference |
+| #212 | coderabbitai[bot] | Accept | Pixel branch in optional sampler swallowed impossible in-bounds canvas read failures |
+| #212 | greptile-apps[bot] | Miss | Did not flag swallowed Pixel Layer invariant break in optional sampler |
+| #212 | cubic-dev-ai[bot] | Miss | Did not flag swallowed Pixel Layer invariant break in optional sampler |
+| #212 | greptile-apps[bot] | Reject | Claimed PR #212 metrics rows were fabricated before reviews occurred |

@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 102 | 75 | 27 | 85 | 74% | 47% |
-| cubic-dev-ai[bot] | 63 | 50 | 13 | 107 | 79% | 32% |
-| coderabbitai[bot] | 148 | 99 | 49 | 56 | 67% | 64% |
+| greptile-apps[bot] | 104 | 77 | 27 | 85 | 74% | 48% |
+| cubic-dev-ai[bot] | 64 | 51 | 13 | 108 | 80% | 32% |
+| coderabbitai[bot] | 149 | 100 | 49 | 57 | 67% | 64% |
 
 ## Log
 
@@ -575,3 +575,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #208 | cubic-dev-ai[bot] | Miss | Did not flag `source_y * width` u32 overflow on large source dims |
 | #208 | cubic-dev-ai[bot] | Miss | Did not flag missing y-axis OOB test |
 | #209 | coderabbitai[bot] | Reject | `debug_assert!` → `assert!` on `add_reference_layer` duplicate-ID guard — internal mutation path with caller-supplied fresh `Uuid::new_v4()`; "trust the core" precondition. Boundary check already lives in `Document::from_layers` (`DocumentBuildError::DuplicateLayerId`); sibling `add_layer` uses same `debug_assert!` since layer system landed |
+| #211 | greptile-apps[bot] | Accept | Stale `.Codex/skills/` branch-rule exception path |
+| #211 | cubic-dev-ai[bot] | Accept | Stale `.Codex/skills/` branch-rule exception path (duplicate of greptile) |
+| #211 | coderabbitai[bot] | Accept | Stale `.Codex/skills/` branch-rule exception path (duplicate of greptile) |
+| #211 | greptile-apps[bot] | Accept | Incorrect `anthropics/Codex#34912` issue reference in task-done skill |
+| #211 | cubic-dev-ai[bot] | Miss | Did not flag incorrect `anthropics/Codex#34912` issue reference |
+| #211 | coderabbitai[bot] | Miss | Did not flag incorrect `anthropics/Codex#34912` issue reference |

@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 112 | [Reference Layer: Rust core — `Document.try_get_pixel` (sampling-aware accessor)](../issues/112-reference-layer-document-try-get-pixel.md) | 2026-05-20 |
 | 111 | [Reference Layer: Rust core — `set_reference_placement` + `resize` 9-anchor placement transform](../issues/111-reference-layer-set-placement-and-resize-anchor-transform.md) | 2026-05-20 |
 | 110 | [Reference Layer: Rust core — `add_reference_layer` + composite paths + kind-aware accessors](../issues/110-reference-layer-document-add-and-composite-paths.md) | 2026-05-20 |
 | 109 | [Reference Layer: Rust core — nearest-neighbor sampler](../issues/109-reference-layer-nearest-neighbor-sampler.md) | 2026-05-18 |

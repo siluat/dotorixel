@@ -445,6 +445,30 @@ impl Document {
         }
     }
 
+    /// Sampling-aware active-layer read used by non-mutating tools.
+    ///
+    /// Pixel Layers return the active layer's color inside document bounds and
+    /// `None` outside bounds. Reference Layers sample their projected source
+    /// footprint.
+    pub fn try_get_pixel(&self, x: u32, y: u32) -> Option<Color> {
+        if x >= self.width || y >= self.height {
+            return None;
+        }
+        match &self.active_layer().kind {
+            LayerKind::Pixel(canvas) => canvas.get_pixel(x, y).ok(),
+            LayerKind::Reference(data) => {
+                let placement = data.placement();
+                crate::reference_sampler::sample_reference(
+                    data.source_rgba(),
+                    (data.natural_width(), data.natural_height()),
+                    &placement,
+                    x,
+                    y,
+                )
+            }
+        }
+    }
+
     /// Writes `color` to `(x, y)` on the active layer. Other layers are
     /// unaffected.
     ///
@@ -1404,6 +1428,61 @@ mod tests {
         let doc = Document::new(2, 2, id, "A".to_string()).unwrap();
         assert!(doc.get_pixel(2, 0).is_err());
         assert!(doc.get_pixel(0, 2).is_err());
+    }
+
+    #[test]
+    fn try_get_pixel_reads_active_pixel_layer_and_returns_none_out_of_bounds() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
+        doc.add_layer(b, "B".to_string()); // active=B
+
+        let red = Color::new(255, 0, 0, 255);
+        doc.set_pixel(1, 0, red).unwrap();
+
+        assert_eq!(doc.try_get_pixel(1, 0), Some(red));
+        assert_eq!(doc.try_get_pixel(2, 0), None);
+        assert_eq!(doc.try_get_pixel(0, 2), None);
+
+        doc.set_active_layer(a).unwrap();
+        assert_eq!(doc.try_get_pixel(1, 0), Some(Color::TRANSPARENT));
+    }
+
+    #[test]
+    fn try_get_pixel_samples_active_reference_layer_and_returns_none_outside_available_pixels() {
+        use crate::color::Color;
+        use crate::reference_placement::ReferencePlacement;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let mut source_rgba = Vec::with_capacity(4 * 4 * 4);
+        for y in 0..4 {
+            for x in 0..4 {
+                source_rgba.extend_from_slice(&[x, y, 0, 255]);
+            }
+        }
+
+        let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
+        doc.add_reference_layer(r, "Ref".to_string(), source_rgba, 4, 4)
+            .unwrap();
+        doc.set_reference_placement(
+            r,
+            ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 },
+        )
+        .unwrap();
+
+        assert_eq!(doc.try_get_pixel(1, 1), Some(Color::new(1, 1, 0, 255)));
+        assert_eq!(doc.try_get_pixel(2, 0), None);
+        assert_eq!(doc.try_get_pixel(0, 2), None);
+
+        doc.set_reference_placement(
+            r,
+            ReferencePlacement { x: 1.0, y: 1.0, scale: 1.0 },
+        )
+        .unwrap();
+        assert_eq!(doc.try_get_pixel(0, 0), None);
     }
 
     #[test]

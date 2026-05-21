@@ -20,7 +20,10 @@ export interface DocumentSchemaV2 extends DocumentSchemaV1 {
 	saved: boolean;
 }
 
-/** What IndexedDB may contain — union of all historical versions */
+/**
+ * What IndexedDB may contain — union of all versions wired into storage.
+ * V4 joins this union in issue 115 alongside the DB_VERSION=4 upgrade path.
+ */
 export type StoredDocument = DocumentSchemaV1 | DocumentSchemaV2 | DocumentSchemaV3;
 
 /** App-facing document type — latest version wired into persistence call sites. */

@@ -137,6 +137,8 @@
 	"layer_default_name": "Layer {n}",
 	"layer_panel_title": "Layers",
 	"layer_panel_collapsed_label": "Layers · {name}",
+	"layer_kind_pixel": "Pixel Layer",
+	"layer_kind_reference": "Reference Layer",
 	"aria_addLayer": "Add layer",
 	"aria_removeLayer": "Delete {name}",
 	"aria_reorderLayer": "Reorder {name}",

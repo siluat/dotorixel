@@ -91,14 +91,26 @@
 		const tab = editor.workspace.activeTab;
 		void tab.renderVersion;
 		const doc = tab.document;
-		const out: { id: string; name: string; visible: boolean }[] = [];
+		const out: { id: string; name: string; visible: boolean; kind: 'pixel' | 'reference' }[] =
+			[];
 		const count = doc.layer_count();
 		for (let i = count - 1; i >= 0; i--) {
 			const id = doc.layer_id_at(i);
 			const name = doc.layer_name_at(i);
 			const visible = doc.layer_visible_at(i);
-			if (id !== undefined && name !== undefined && visible !== undefined) {
-				out.push({ id, name, visible });
+			const kind = doc.layer_kind_at(i);
+			if (
+				id !== undefined &&
+				name !== undefined &&
+				visible !== undefined &&
+				kind !== undefined
+			) {
+				out.push({
+					id,
+					name,
+					visible,
+					kind: kind === 'reference' ? 'reference' : 'pixel'
+				});
 			}
 		}
 		return out;

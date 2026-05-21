@@ -137,6 +137,8 @@
 	"layer_default_name": "레이어 {n}",
 	"layer_panel_title": "레이어",
 	"layer_panel_collapsed_label": "레이어 · {name}",
+	"layer_kind_pixel": "픽셀 레이어",
+	"layer_kind_reference": "참조 레이어",
 	"aria_addLayer": "레이어 추가",
 	"aria_removeLayer": "{name} 삭제",
 	"aria_reorderLayer": "{name} 순서 변경",

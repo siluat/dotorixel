@@ -1,6 +1,6 @@
 ---
 title: "Reference Layer: Timeline Panel — per-row kind icon + activation across kinds"
-status: needs-triage
+status: done
 created: 2026-05-16
 parent: 105-reference-layer-type.md
 ---
@@ -38,3 +38,25 @@ Scope:
 ## User stories addressed
 
 - #11, #12, #15, #20.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/ui-editor/TimelinePanel.svelte` | Added per-row Pixel/Reference kind icons, required layer kind input, and accessible i18n labels. |
+| `src/routes/editor/+page.svelte` | Passed each document layer's kind from the active document into `TimelinePanel`. |
+| `messages/en.json` | Added Pixel Layer / Reference Layer labels for Timeline kind icons. |
+| `messages/ko.json` | Added Korean Pixel/Reference Layer labels for Timeline kind icons. |
+| `messages/ja.json` | Added Japanese Pixel/Reference Layer labels for Timeline kind icons. |
+| `src/lib/ui-editor/TimelinePanel.svelte.test.ts` | Covered Pixel vs Reference kind icon rendering, accessible labels, and Reference row activation. |
+| `src/lib/canvas/editor-session/tab-state.svelte.test.ts` | Added mixed Pixel/Reference stack regression coverage for add → reorder → visibility toggle → delete. |
+
+### Key Decisions
+
+- Layer kind is required at the Timeline Panel boundary instead of defaulting missing values to Pixel, so kind-specific UI cannot silently misrepresent a Reference Layer.
+- The kind icon is semantic, not decorative: screen readers receive localized Pixel Layer / Reference Layer labels while the SVG glyphs remain hidden.
+- Existing activation, reorder, visibility, and delete pathways handle Reference Layers without kind-specific exceptions; tests pin that behavior through the public TabState calls.
+
+### Notes
+
+- Reference Layer add/import UI, restore-original-size action, placement overlay, drawing-tool no-op cursor, and sampling updates remain follow-up slices.

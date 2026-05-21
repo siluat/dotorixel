@@ -20,10 +20,13 @@ export interface DocumentSchemaV2 extends DocumentSchemaV1 {
 	saved: boolean;
 }
 
-/** What IndexedDB may contain — union of all historical versions */
+/**
+ * What IndexedDB may contain — union of all versions wired into storage.
+ * V4 joins this union in issue 115 alongside the DB_VERSION=4 upgrade path.
+ */
 export type StoredDocument = DocumentSchemaV1 | DocumentSchemaV2 | DocumentSchemaV3;
 
-/** App-facing document type — always the latest version */
+/** App-facing document type — latest version wired into persistence call sites. */
 export type DocumentRecord = DocumentSchemaV3;
 
 /** Lightweight summary for browsing saved documents (excludes schemaVersion, saved, createdAt) */
@@ -41,7 +44,7 @@ export function migrateDocumentToV2(doc: DocumentSchemaV1): DocumentSchemaV2 {
 }
 
 /** Schema V3 — single canvas replaced by a Document with a layer stack */
-export interface LayerRecord {
+export interface PixelLayerRecordV3 {
 	id: string;
 	name: string;
 	pixels: Uint8Array;
@@ -55,7 +58,7 @@ export interface DocumentSchemaV3 {
 	name: string;
 	width: number;
 	height: number;
-	layers: LayerRecord[];
+	layers: PixelLayerRecordV3[];
 	activeLayerId: string;
 	nextLayerNumber: number;
 	timelinePanelCollapsed: boolean;
@@ -63,6 +66,36 @@ export interface DocumentSchemaV3 {
 	createdAt: Date;
 	updatedAt: Date;
 }
+
+export interface ReferencePlacementRecord {
+	x: number;
+	y: number;
+	scale: number;
+}
+
+export interface PixelLayerRecord extends PixelLayerRecordV3 {
+	kind: 'pixel';
+}
+
+export interface ReferenceLayerRecord {
+	kind: 'reference';
+	id: string;
+	name: string;
+	visible: boolean;
+	opacity: number;
+	sourceBlob: Blob;
+	naturalWidth: number;
+	naturalHeight: number;
+	placement: ReferencePlacementRecord;
+}
+
+export type LayerRecord = PixelLayerRecord | ReferenceLayerRecord;
+
+/** Schema V4 — mixed Pixel + Reference layer persistence. */
+export type DocumentSchemaV4 = Omit<DocumentSchemaV3, 'schemaVersion' | 'layers'> & {
+	schemaVersion: 4;
+	layers: LayerRecord[];
+};
 
 /**
  * Wraps a V2 single-canvas document as a V3 Document with one "Layer 1".
@@ -89,6 +122,38 @@ export function migrateV2ToV3(doc: DocumentSchemaV2): DocumentSchemaV3 {
 		activeLayerId: layerId,
 		nextLayerNumber: 2,
 		timelinePanelCollapsed: false,
+		saved: doc.saved,
+		createdAt: doc.createdAt,
+		updatedAt: doc.updatedAt
+	};
+}
+
+/**
+ * Wraps every V3 layer as a V4 Pixel Layer.
+ * History stays absent because legacy V3 snapshots have no layer-kind data.
+ */
+export function migrateV3ToV4(doc: DocumentSchemaV3 | DocumentSchemaV4): DocumentSchemaV4 {
+	if (doc.schemaVersion === 4) return doc;
+	if (doc.layers.length === 0) {
+		throw new Error('Cannot migrate a V3 document with no layers');
+	}
+	return {
+		schemaVersion: 4,
+		id: doc.id,
+		name: doc.name,
+		width: doc.width,
+		height: doc.height,
+		layers: doc.layers.map((layer) => ({
+			kind: 'pixel',
+			id: layer.id,
+			name: layer.name,
+			pixels: layer.pixels.slice(),
+			visible: layer.visible,
+			opacity: layer.opacity
+		})),
+		activeLayerId: doc.activeLayerId,
+		nextLayerNumber: doc.nextLayerNumber,
+		timelinePanelCollapsed: doc.timelinePanelCollapsed,
 		saved: doc.saved,
 		createdAt: doc.createdAt,
 		updatedAt: doc.updatedAt

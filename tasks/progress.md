@@ -2,15 +2,15 @@
 
 ## Currently Working On
 
-Reference Layer type — tracing reference for pixel artwork ([PRD](../issues/105-reference-layer-type.md)). 8/20 sub-issues done; the web bridge is now in place, so persistence, export, timeline, overlay, and sampling shell slices can start.
+Reference Layer type — tracing reference for pixel artwork ([PRD](../issues/105-reference-layer-type.md)). 9/20 sub-issues done; the V4 schema foundation is in place, so end-to-end Reference Layer persistence can start.
 
 ## Last Completed
 
-[113 — Reference Layer WASM facade + TS interface](../issues/113-reference-layer-wasm-facade-and-ts-interface.md). Reference Layer core behavior is now reachable from the web shell contract; still no user-visible import or placement flow.
+[114 — Reference Layer: TS V4 schema + V3→V4 migration](../issues/114-reference-layer-v4-schema-and-migration.md). V4 mixed-layer schema and migration are tested but not wired; IndexedDB/session integration remains in 115.
 
 ## Next Up
 
-- 114 — Reference Layer: TS V4 schema + V3→V4 migration
+- 115 — Reference Layer: V4 persistence end-to-end
 - 116 — Reference Layer: export call sites use the export-only composite
 - 117 — Reference Layer: Timeline Panel kind icons + activation
 - 120 — Reference Layer: placement overlay shell

@@ -22,7 +22,7 @@ import {
 } from '$wasm/dotorixel_wasm';
 import type { Document, PixelCanvas, ResizeAnchor } from './canvas-model';
 import type { CanvasFactory, CanvasConstraints, HistoryManager } from './adapter-types';
-import type { LayerRecord } from '$lib/session/session-storage-types';
+import type { PixelLayerRecordV3 } from '$lib/session/session-storage-types';
 import type { ViewportData, ViewportOps } from './viewport';
 import type { DrawingOps, DrawingToolType } from './drawing-ops';
 import type { CanvasBackend } from './editor-session/canvas-backend';
@@ -381,7 +381,7 @@ export function createHistoryManager(): HistoryManager {
 export interface DocumentLayerSource {
 	readonly width: number;
 	readonly height: number;
-	readonly layers: readonly LayerRecord[];
+	readonly layers: readonly PixelLayerRecordV3[];
 	readonly activeLayerId: string;
 	readonly nextLayerNumber: number;
 	readonly timelinePanelCollapsed: boolean;

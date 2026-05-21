@@ -1,7 +1,7 @@
 import type { ViewportData } from './viewport';
 import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 import type { DisplayState } from '$lib/reference-images/display-state-types';
-import type { LayerRecord } from '$lib/session/session-storage-types';
+import type { PixelLayerRecordV3 } from '$lib/session/session-storage-types';
 
 export interface SharedStateSnapshot {
 	readonly activeTool: string;
@@ -43,7 +43,7 @@ export interface TabSnapshot {
 	readonly name: string;
 	readonly width: number;
 	readonly height: number;
-	readonly layers: readonly LayerRecord[];
+	readonly layers: readonly PixelLayerRecordV3[];
 	readonly activeLayerId: string;
 	readonly nextLayerNumber: number;
 	readonly timelinePanelCollapsed: boolean;

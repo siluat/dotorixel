@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 114 | [Reference Layer: TS V4 schema + V3→V4 migration (not yet wired)](../issues/114-reference-layer-v4-schema-and-migration.md) | 2026-05-21 |
 | 113 | [Reference Layer: WASM facade + TS `canvas-model.ts` interface](../issues/113-reference-layer-wasm-facade-and-ts-interface.md) | 2026-05-20 |
 | 112 | [Reference Layer: Rust core — `Document.try_get_pixel` (sampling-aware accessor)](../issues/112-reference-layer-document-try-get-pixel.md) | 2026-05-20 |
 | 111 | [Reference Layer: Rust core — `set_reference_placement` + `resize` 9-anchor placement transform](../issues/111-reference-layer-set-placement-and-resize-anchor-transform.md) | 2026-05-20 |

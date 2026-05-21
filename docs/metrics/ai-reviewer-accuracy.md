@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 109 | 77 | 32 | 87 | 71% | 47% |
-| cubic-dev-ai[bot] | 65 | 52 | 13 | 109 | 80% | 32% |
-| coderabbitai[bot] | 151 | 101 | 50 | 58 | 67% | 64% |
+| greptile-apps[bot] | 110 | 78 | 32 | 88 | 71% | 47% |
+| cubic-dev-ai[bot] | 65 | 52 | 13 | 111 | 80% | 32% |
+| coderabbitai[bot] | 153 | 102 | 51 | 59 | 67% | 63% |
 
 ## Log
 
@@ -593,3 +593,10 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #213 | coderabbitai[bot] | Reject | Narrow `layer_kind_at` TS return type — generated wasm-bindgen type prevents literal-union structural compatibility |
 | #213 | coderabbitai[bot] | Miss | Did not flag invalid placement scale at the new WASM boundary |
 | #213 | cubic-dev-ai[bot] | Accept | Validate Reference Layer placement scale at the WASM boundary before writing it into core state |
+| #214 | greptile-apps[bot] | Accept | Add `StoredDocument` comment for V4 storage wiring dependency |
+| #214 | coderabbitai[bot] | Accept | Remove erroneous `Closes #114` keyword that targets an unrelated GitHub PR |
+| #214 | coderabbitai[bot] | Reject | Docstring coverage threshold — repo has no such gate; required checks pass |
+| #214 | coderabbitai[bot] | Miss | Did not flag V4 `StoredDocument` storage-wiring dependency |
+| #214 | greptile-apps[bot] | Miss | Did not flag PR body closing an unrelated GitHub PR |
+| #214 | cubic-dev-ai[bot] | Miss | Did not flag V4 `StoredDocument` storage-wiring dependency |
+| #214 | cubic-dev-ai[bot] | Miss | Did not flag PR body closing an unrelated GitHub PR |

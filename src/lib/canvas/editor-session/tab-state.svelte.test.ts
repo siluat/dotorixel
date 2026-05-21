@@ -92,7 +92,7 @@ function getPixel(tab: TabState, x: number, y: number): Color {
 	return { r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: pixels[i + 3] };
 }
 
-function pixel(color: Color): Uint8Array {
+function makePixelRgba(color: Color): Uint8Array {
 	return new Uint8Array([color.r, color.g, color.b, color.a]);
 }
 
@@ -892,7 +892,7 @@ describe('TabState — mixed Pixel and Reference Layer stack operations', () => 
 					kind: 'pixel',
 					id: bottomId,
 					name: 'Bottom paint',
-					pixels: pixel(BLUE),
+					pixels: makePixelRgba(BLUE),
 					visible: true,
 					opacity: 1
 				}
@@ -903,7 +903,7 @@ describe('TabState — mixed Pixel and Reference Layer stack operations', () => 
 		});
 		const { tab, shared } = makeTab({ document });
 
-		tab.document.add_reference_layer(referenceId, 'Sketch reference', pixel(RED), 1, 1);
+		tab.document.add_reference_layer(referenceId, 'Sketch reference', makePixelRgba(RED), 1, 1);
 		tab.addLayer('Top paint');
 		const topId = tab.document.active_layer_id();
 		expect([

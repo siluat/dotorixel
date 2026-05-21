@@ -1,6 +1,6 @@
 ---
 title: "Reference Layer: export call sites use `composite_for_export()`"
-status: needs-triage
+status: done
 created: 2026-05-16
 parent: 105-reference-layer-type.md
 ---
@@ -37,3 +37,18 @@ The rationale is recorded in `docs/decisions/reference-layer-excluded-from-expor
 ## User stories addressed
 
 - #3, #4.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Export snapshots now use the Pixel-only composite path shared by PNG and SVG export. |
+| `src/lib/canvas/editor-session/tab-state.svelte.test.ts` | Added a mixed Pixel + Reference Layer regression test proving export pixels exclude visible Reference Layers while the on-screen composite still includes them. |
+
+### Key Decisions
+
+- Kept PNG and SVG behind the existing export snapshot boundary, so the export-only behavior is centralized instead of duplicated per format.
+
+### Notes
+
+- Saved-work thumbnails already used the Pixel-only summary path from 115; the existing thumbnail regression test was re-run with this task.

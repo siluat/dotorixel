@@ -22,12 +22,15 @@ export interface DocumentSchemaV2 extends DocumentSchemaV1 {
 
 /**
  * What IndexedDB may contain — union of all versions wired into storage.
- * V4 joins this union in issue 115 alongside the DB_VERSION=4 upgrade path.
  */
-export type StoredDocument = DocumentSchemaV1 | DocumentSchemaV2 | DocumentSchemaV3;
+export type StoredDocument =
+	| DocumentSchemaV1
+	| DocumentSchemaV2
+	| DocumentSchemaV3
+	| DocumentSchemaV4;
 
 /** App-facing document type — latest version wired into persistence call sites. */
-export type DocumentRecord = DocumentSchemaV3;
+export type DocumentRecord = DocumentSchemaV4;
 
 /** Lightweight summary for browsing saved documents (excludes schemaVersion, saved, createdAt) */
 export interface SavedDocumentSummary {
@@ -185,6 +188,15 @@ export function compositeV3(doc: DocumentSchemaV3): Uint8Array {
 		}
 	}
 	return out;
+}
+
+/** Pixel-only composite for persistence summaries; Reference Layers are excluded. */
+export function compositeForExportSummary(doc: DocumentSchemaV3 | DocumentSchemaV4): Uint8Array {
+	const pixelLayers =
+		doc.schemaVersion === 4
+			? doc.layers.filter((layer): layer is PixelLayerRecord => layer.kind === 'pixel')
+			: doc.layers;
+	return compositeV3({ ...doc, schemaVersion: 3, layers: pixelLayers });
 }
 
 export interface SharedStateRecord {

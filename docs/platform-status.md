@@ -100,7 +100,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Tab management (Workspace) | — | ✅ | ⬜ | Workspace model, page wiring, TabStrip UI complete |
-| Session persistence | — | ✅ | ⬜ | Multi-tab save/restore via IndexedDB; debounced auto-save with per-doc dirty tracking; versioned schema (V1/V2/V3) with `saved` flag — saved docs survive tab close. V3 persists the full layer stack — see Layers > Document/Layer model |
+| Session persistence | — | ✅ | ⬜ | Multi-tab IndexedDB restore, debounced auto-save, saved-doc retention, and V4 mixed-layer persistence with Reference source blobs |
 | Save dialog on tab close | — | ✅ | ⬜ | Blank canvas detection, save/delete/cancel modal, focus trap, keyboard accessible |
 | Saved work browser (desktop) | — | ✅ | ⬜ | Browse/open/delete saved documents; card grid with thumbnails, empty state, delete confirmation |
 | Saved work browser (mobile) | — | ✅ | — | Bottom sheet (vaul-svelte); shared card grid, AppBar trigger, responsive 2/3 column grid |
@@ -109,9 +109,9 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Document/Layer model | 🔧 | 🔧 | ⬜ | `Document` owns ordered layer stack + active-layer UUID + monotonic `next_layer_number` + `timelinePanelCollapsed`. `Layer` is `(id, name, visible, opacity, kind: Pixel \| Reference)`. `composite()` blends visible layers source-over with opacity multiplied into source alpha — Pixel via direct RGBA copy, Reference via nearest-neighbor sampler. `composite_for_export()` is the Pixel-only path for PNG/SVG/thumbnail. Web: Document is single source of truth — tools/history/sampling/export/persistence all route through it; V3 schema persists the full Pixel stack. Apple: preserved as single-canvas (see ADR `docs/decisions/web-document-layer-apple-preserved.en.md`) |
-| Reference Layer (timeline kind) | 🔧 | ⬜ | ⬜ | Core: tracing kind, export exclusion, auto-fit placement, resize-aware placement, active-layer sampling. Web/Apple shell wiring pending |
-| Timeline panel | — | 🔧 | ⬜ | Top-z first. Per-row activate/remove/reorder/visibility (hidden = dim+italic, excluded from composite, undoable). Header `+` adds. Reorder via PointerEvents (mouse + touch) or ArrowUp/Down. Mobile: LAYERS tab (3rd of 4) shows panel under canvas; ToolStrip/ColorBar hidden in that tab. Desktop chevron in header toggles expanded (h=180) / collapsed (h=32); state is per-document, persisted via V3, and not undoable. Frame column is an M4 placeholder |
+| Document/Layer model | 🔧 | 🔧 | ⬜ | Ordered mixed-kind stack with active layer, visibility, opacity, Timeline collapse state, source-over composite, and Pixel-only export composite. Apple remains single-canvas |
+| Reference Layer (timeline kind) | 🔧 | 🔧 | ⬜ | Core supports tracing, export exclusion, placement, and sampling. Web round-trips persisted Reference Layers; import UI and placement overlay pending |
+| Timeline panel | — | 🔧 | ⬜ | Top-z first; activate/remove/reorder/visibility are undoable. Desktop collapse state is persisted per document and not undoable. Frame column is an M4 placeholder |
 
 ## Reference Images
 

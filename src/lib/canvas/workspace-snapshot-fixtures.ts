@@ -37,6 +37,7 @@ export function tabSnapshotFixture(opts: TabSnapshotFixtureOpts = {}): TabSnapsh
 		height,
 		layers: [
 			{
+				kind: 'pixel',
 				id: layerId,
 				name: opts.layerName ?? 'Layer 1',
 				pixels: opts.pixels ?? new Uint8Array(width * height * 4),

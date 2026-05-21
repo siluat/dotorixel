@@ -6,7 +6,7 @@ use dotorixel_core::color::Color;
 use dotorixel_core::document::Document;
 use dotorixel_core::export::{PngExport, SvgExport};
 use dotorixel_core::history::{HistoryManager, Snapshot};
-use dotorixel_core::layer::{Layer, LayerKind, LayerKindTag};
+use dotorixel_core::layer::{Layer, LayerKind, LayerKindTag, ReferenceData};
 use dotorixel_core::pixel_perfect::{
     Action, FilterResult, TailState, pixel_perfect_filter,
 };
@@ -600,6 +600,45 @@ impl WasmDocumentBuilder {
             visible,
             opacity,
             kind: LayerKind::Pixel(pixel_canvas),
+        });
+        Ok(())
+    }
+
+    /// Appends an existing Reference Layer to the in-progress stack. This is
+    /// used by persistence hydration, where placement and display state must
+    /// be restored exactly rather than recomputed through auto-fit.
+    pub fn add_reference_layer(
+        &mut self,
+        id: String,
+        name: String,
+        source_rgba: Vec<u8>,
+        source_width: u32,
+        source_height: u32,
+        x: f32,
+        y: f32,
+        scale: f32,
+        visible: bool,
+        opacity: f32,
+    ) -> Result<(), JsError> {
+        let layer_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
+        if !is_valid_reference_scale(scale) {
+            return Err(JsError::new(
+                "Reference placement scale must be finite and greater than 0",
+            ));
+        }
+        let data = ReferenceData::new(
+            source_rgba,
+            source_width,
+            source_height,
+            ReferencePlacement { x, y, scale },
+        )
+        .map_err(|e| JsError::new(&e.to_string()))?;
+        self.layers.push(Layer {
+            id: layer_id,
+            name,
+            visible,
+            opacity,
+            kind: LayerKind::Reference(data),
         });
         Ok(())
     }

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi } from 'vitest';
 import { TabState, type TabStateDeps } from './tab-state.svelte';
-import { wasmBackend, singleLayerDocument } from '../wasm-backend';
+import { wasmBackend, singleLayerDocument, documentFromLayerSource } from '../wasm-backend';
 import { createFakeDirtyNotifier } from './fake-dirty-notifier';
 import { SharedState } from '../shared-state.svelte';
 import type { CanvasCoords } from '../canvas-model';
@@ -61,6 +61,18 @@ function makeTab(overrides: Omit<Partial<TabStateDeps>, 'notifier'> = {}) {
 		...overrides
 	});
 	return { tab, shared, notifier };
+}
+
+function expectPixelLayer(layer: ReturnType<TabState['toSnapshot']>['layers'][number]) {
+	expect(layer.kind).toBe('pixel');
+	if (layer.kind !== 'pixel') throw new Error('Expected Pixel Layer');
+	return layer;
+}
+
+function expectReferenceLayer(layer: ReturnType<TabState['toSnapshot']>['layers'][number]) {
+	expect(layer.kind).toBe('reference');
+	if (layer.kind !== 'reference') throw new Error('Expected Reference Layer');
+	return layer;
 }
 
 function drawLine(tab: TabState, from: CanvasCoords, to: CanvasCoords) {
@@ -262,12 +274,13 @@ describe('TabState — snapshot', () => {
 		expect(snap.height).toBe(8);
 		expect(snap.viewport.zoom).toBe(tab.viewport.zoom);
 		expect(snap.layers).toHaveLength(1);
-		expect(snap.layers[0].name).toBe('Layer 1');
-		expect(snap.layers[0].pixels).toBeInstanceOf(Uint8Array);
-		expect(snap.layers[0].pixels.length).toBe(8 * 8 * 4);
-		expect(snap.layers[0].visible).toBe(true);
-		expect(snap.layers[0].opacity).toBe(1);
-		expect(snap.activeLayerId).toBe(snap.layers[0].id);
+		const layer = expectPixelLayer(snap.layers[0]);
+		expect(layer.name).toBe('Layer 1');
+		expect(layer.pixels).toBeInstanceOf(Uint8Array);
+		expect(layer.pixels.length).toBe(8 * 8 * 4);
+		expect(layer.visible).toBe(true);
+		expect(layer.opacity).toBe(1);
+		expect(snap.activeLayerId).toBe(layer.id);
 		expect(snap.nextLayerNumber).toBe(2);
 		expect(snap.timelinePanelCollapsed).toBe(false);
 	});
@@ -278,7 +291,7 @@ describe('TabState — snapshot', () => {
 		drawLine(tab, { x: 0, y: 0 }, { x: 3, y: 0 });
 
 		const snap = tab.toSnapshot();
-		expect(snap.layers[0].pixels).toEqual(tab.document.layer_pixels_at(0));
+		expect(expectPixelLayer(snap.layers[0]).pixels).toEqual(tab.document.layer_pixels_at(0));
 		expect(getPixel(tab, 0, 0)).toEqual(BLACK);
 	});
 
@@ -295,7 +308,7 @@ describe('TabState — snapshot', () => {
 			expect(snap.layers[i].id).toBe(tab.document.layer_id_at(i));
 			expect(snap.layers[i].visible).toBe(tab.document.layer_visible_at(i));
 			expect(snap.layers[i].opacity).toBe(tab.document.layer_opacity_at(i));
-			expect(snap.layers[i].pixels).toEqual(tab.document.layer_pixels_at(i));
+			expect(expectPixelLayer(snap.layers[i]).pixels).toEqual(tab.document.layer_pixels_at(i));
 		}
 		expect(snap.activeLayerId).toBe(tab.document.active_layer_id());
 		expect(snap.nextLayerNumber).toBe(tab.document.next_layer_number());
@@ -353,7 +366,7 @@ describe('TabState — toSnapshot derives from document', () => {
 		const snap = tab.toSnapshot();
 		expect(snap.width).toBe(tab.document.width);
 		expect(snap.height).toBe(tab.document.height);
-		expect(snap.layers[0].pixels).toEqual(tab.document.layer_pixels_at(0));
+		expect(expectPixelLayer(snap.layers[0]).pixels).toEqual(tab.document.layer_pixels_at(0));
 	});
 });
 
@@ -665,6 +678,57 @@ describe('TabState — removeLayer', () => {
 
 		expect(tab.document.layer_count()).toBe(beforeCount);
 		expect(tab.document.active_layer_id()).toBe(beforeActive);
+	});
+
+	it('keeps a Reference Layer source blob available when removing it is undone', () => {
+		const pixelId = crypto.randomUUID();
+		const referenceId = crypto.randomUUID();
+		const sourceBlob = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' });
+		const sourceRgba = new Uint8Array([
+			10, 20, 30, 255,
+			40, 50, 60, 255
+		]);
+		const document = documentFromLayerSource({
+			width: 2,
+			height: 1,
+			layers: [
+				{
+					kind: 'pixel',
+					id: pixelId,
+					name: 'Paint',
+					pixels: new Uint8Array(2 * 1 * 4),
+					visible: true,
+					opacity: 1
+				},
+				{
+					kind: 'reference',
+					id: referenceId,
+					name: 'Reference',
+					visible: true,
+					opacity: 1,
+					sourceBlob,
+					sourceRgba,
+					naturalWidth: 2,
+					naturalHeight: 1,
+					placement: { x: 0, y: 0, scale: 1 }
+				}
+			],
+			activeLayerId: referenceId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false
+		});
+		const { tab } = makeTab({
+			document,
+			referenceLayerBlobs: new Map([[referenceId, sourceBlob]])
+		});
+
+		tab.removeLayer(referenceId);
+		tab.undo();
+
+		const snapshot = tab.toSnapshot();
+		const referenceLayer = expectReferenceLayer(snapshot.layers[1]);
+		expect(referenceLayer.sourceBlob).toBe(sourceBlob);
+		expect(Array.from(referenceLayer.sourceRgba)).toEqual(Array.from(sourceRgba));
 	});
 
 	it('bumps renderVersion and emits markDirty', () => {

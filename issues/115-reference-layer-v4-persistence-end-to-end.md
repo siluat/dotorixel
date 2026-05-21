@@ -1,6 +1,6 @@
 ---
 title: "Reference Layer: V4 persistence end-to-end (Reference Layer round-trip)"
-status: needs-triage
+status: done
 created: 2026-05-16
 parent: 105-reference-layer-type.md
 ---
@@ -37,3 +37,28 @@ Scope:
 ## User stories addressed
 
 - #17, #22.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/session/session-storage-types.ts` | Added V4 document records and Pixel-only saved-work thumbnail compositing. |
+| `src/lib/session/session-storage.ts` | Bumped IndexedDB to V4 and normalized legacy V1/V2/V3 records through the V4 migration path. |
+| `src/lib/session/session-persistence.ts` | Serialized mixed Pixel/Reference layers, persisted Reference source blobs, and re-decoded them on restore. |
+| `src/lib/canvas/workspace-snapshot.ts` | Extended workspace snapshots to carry Reference Layer records alongside Pixel layers. |
+| `src/lib/canvas/wasm-backend.ts` | Hydrated mixed-layer documents by routing Pixel and Reference layer sources through the appropriate document builder path. |
+| `wasm/src/lib.rs` | Added a Reference Layer restore entry point that preserves source size, placement, visibility, and opacity. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Preserved Reference source blobs as a session sidecar so snapshots remain possible after undo restores a removed layer. |
+| `src/lib/canvas/editor-session/workspace.svelte.ts` | Reattached hydrated Reference source blobs when restoring workspace tabs. |
+| `src/lib/session/*.test.ts`, `src/lib/canvas/*.test.ts` | Covered V3→V4 migration, Reference round-trip restore, mixed-layer hydration, thumbnail exclusion, and undo/snapshot regression cases. |
+
+### Key Decisions
+
+- Reference Layers persist the original `sourceBlob` and re-decode it during hydrate instead of storing decoded RGBA buffers.
+- Reference source blobs remain in the tab sidecar after layer removal so undo history can restore the layer and still produce a valid persistence snapshot.
+- Saved-work thumbnails use the export-only Pixel composite so Reference Layers stay excluded from thumbnail output.
+
+### Notes
+
+- User-facing Reference Layer import is still owned by 118; this slice proves the storage/session/hydration path with mixed-layer fixtures.
+- Timeline kind affordances remain in 117, so the parent PRD remains open.

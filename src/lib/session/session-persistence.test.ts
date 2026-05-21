@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { WorkspaceSnapshot, TabSnapshot } from '$lib/canvas/workspace-snapshot';
 import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 import type { DisplayState } from '$lib/reference-images/display-state-types';
+import { decodeReferenceBlob } from '$lib/reference-images/decode-reference-blob';
 import {
 	tabSnapshotFixture,
 	type TabSnapshotFixtureOpts
@@ -13,6 +14,11 @@ import { wasmBackend } from '$lib/canvas/wasm-backend';
 import { createFakeDirtyNotifier } from '$lib/canvas/editor-session/fake-dirty-notifier';
 import { SessionPersistence } from './session-persistence';
 import { SessionStorage } from './session-storage';
+import type { DocumentRecord } from './session-storage-types';
+
+vi.mock('$lib/reference-images/decode-reference-blob', () => ({
+	decodeReferenceBlob: vi.fn()
+}));
 
 function makeRef(id: string): ReferenceImage {
 	return {
@@ -30,6 +36,18 @@ function makeRef(id: string): ReferenceImage {
 
 function makeTab(overrides: TabSnapshotFixtureOpts = {}): TabSnapshot {
 	return tabSnapshotFixture({ name: 'Untitled 1', width: 16, height: 16, ...overrides });
+}
+
+function expectPixelLayer(layer: TabSnapshot['layers'][number]) {
+	expect(layer.kind).toBe('pixel');
+	if (layer.kind !== 'pixel') throw new Error('Expected Pixel Layer');
+	return layer;
+}
+
+function expectReferenceLayer(layer: TabSnapshot['layers'][number]) {
+	expect(layer.kind).toBe('reference');
+	if (layer.kind !== 'reference') throw new Error('Expected Reference Layer');
+	return layer;
 }
 
 function makeSnapshot(
@@ -54,6 +72,7 @@ describe('SessionPersistence', () => {
 	let persistence: SessionPersistence;
 
 	beforeEach(async () => {
+		vi.mocked(decodeReferenceBlob).mockReset();
 		storage = await SessionStorage.open();
 		persistence = new SessionPersistence(storage);
 	});
@@ -85,7 +104,7 @@ describe('SessionPersistence', () => {
 		expect(restored!.tabs[0].width).toBe(16);
 		expect(restored!.tabs[0].height).toBe(16);
 		// Verify pixel data includes the red pixel
-		const restoredPixels = restored!.tabs[0].layers[0].pixels;
+		const restoredPixels = expectPixelLayer(restored!.tabs[0].layers[0]).pixels;
 		expect(restoredPixels[0]).toBe(255); // R
 		expect(restoredPixels[1]).toBe(0);   // G
 		expect(restoredPixels[2]).toBe(0);   // B
@@ -115,8 +134,8 @@ describe('SessionPersistence', () => {
 			width: 2,
 			height: 2,
 			layers: [
-				{ id: bottomId, name: 'Background', pixels: bottomPixels, visible: true, opacity: 1 },
-				{ id: topId, name: 'Sketch', pixels: topPixels, visible: false, opacity: 0.5 }
+				{ kind: 'pixel', id: bottomId, name: 'Background', pixels: bottomPixels, visible: true, opacity: 1 },
+				{ kind: 'pixel', id: topId, name: 'Sketch', pixels: topPixels, visible: false, opacity: 0.5 }
 			],
 			activeLayerId: topId,
 			nextLayerNumber: 7,
@@ -138,17 +157,173 @@ describe('SessionPersistence', () => {
 		expect(tab.timelinePanelCollapsed).toBe(true);
 		expect(tab.layers).toHaveLength(2);
 
-		expect(tab.layers[0].id).toBe(bottomId);
-		expect(tab.layers[0].name).toBe('Background');
-		expect(tab.layers[0].visible).toBe(true);
-		expect(tab.layers[0].opacity).toBe(1);
-		expect(Array.from(tab.layers[0].pixels)).toEqual(Array.from(bottomPixels));
+		const bottomLayer = expectPixelLayer(tab.layers[0]);
+		expect(bottomLayer.id).toBe(bottomId);
+		expect(bottomLayer.name).toBe('Background');
+		expect(bottomLayer.visible).toBe(true);
+		expect(bottomLayer.opacity).toBe(1);
+		expect(Array.from(bottomLayer.pixels)).toEqual(Array.from(bottomPixels));
 
-		expect(tab.layers[1].id).toBe(topId);
-		expect(tab.layers[1].name).toBe('Sketch');
-		expect(tab.layers[1].visible).toBe(false);
-		expect(tab.layers[1].opacity).toBeCloseTo(0.5);
-		expect(Array.from(tab.layers[1].pixels)).toEqual(Array.from(topPixels));
+		const topLayer = expectPixelLayer(tab.layers[1]);
+		expect(topLayer.id).toBe(topId);
+		expect(topLayer.name).toBe('Sketch');
+		expect(topLayer.visible).toBe(false);
+		expect(topLayer.opacity).toBeCloseTo(0.5);
+		expect(Array.from(topLayer.pixels)).toEqual(Array.from(topPixels));
+	});
+
+	it('restores Reference Layer records by decoding source blobs for document hydration', async () => {
+		const pixelId = crypto.randomUUID();
+		const referenceId = crypto.randomUUID();
+		const sourceBlob = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' });
+		const sourceRgba = new Uint8ClampedArray([
+			10, 20, 30, 255,
+			40, 50, 60, 255
+		]);
+		vi.mocked(decodeReferenceBlob).mockResolvedValue({
+			width: 2,
+			height: 1,
+			data: sourceRgba
+		});
+		const doc: DocumentRecord = {
+			schemaVersion: 4,
+			id: 'doc-reference',
+			name: 'Reference doc',
+			width: 2,
+			height: 2,
+			layers: [
+				{
+					kind: 'pixel',
+					id: pixelId,
+					name: 'Paint',
+					pixels: new Uint8Array(2 * 2 * 4),
+					visible: true,
+					opacity: 1
+				},
+				{
+					kind: 'reference',
+					id: referenceId,
+					name: 'Sketch.png',
+					visible: false,
+					opacity: 0.5,
+					sourceBlob,
+					naturalWidth: 2,
+					naturalHeight: 1,
+					placement: { x: 3, y: 4, scale: 2 }
+				}
+			],
+			activeLayerId: referenceId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: true,
+			saved: false,
+			createdAt: new Date('2026-05-01T00:00:00Z'),
+			updatedAt: new Date('2026-05-02T00:00:00Z')
+		};
+		await storage.putDocument(doc);
+		await storage.putWorkspace({
+			id: 'current',
+			tabOrder: ['doc-reference'],
+			activeTabIndex: 0,
+			sharedState: {
+				activeTool: 'pencil',
+				foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
+				backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+				recentColors: []
+			},
+			viewports: {}
+		});
+
+		const restored = await persistence.restore();
+
+		expect(restored).not.toBeNull();
+		expect(decodeReferenceBlob).toHaveBeenCalledOnce();
+		const restoredReference = expectReferenceLayer(restored!.tabs[0].layers[1]);
+		expect(restoredReference.sourceBlob.type).toBe('image/png');
+		expect(Array.from(restoredReference.sourceRgba)).toEqual(Array.from(sourceRgba));
+		expect(restoredReference.naturalWidth).toBe(2);
+		expect(restoredReference.naturalHeight).toBe(1);
+		expect(restoredReference.placement).toEqual({ x: 3, y: 4, scale: 2 });
+	});
+
+	it('hydrates a Workspace with Reference Layers and can snapshot them back for persistence', async () => {
+		const pixelId = crypto.randomUUID();
+		const referenceId = crypto.randomUUID();
+		const sourceBlob = new Blob([new Uint8Array([9, 8, 7])], { type: 'image/png' });
+		const sourceRgba = new Uint8ClampedArray([
+			90, 80, 70, 255,
+			60, 50, 40, 255
+		]);
+		vi.mocked(decodeReferenceBlob).mockResolvedValue({
+			width: 2,
+			height: 1,
+			data: sourceRgba
+		});
+		await storage.putDocument({
+			schemaVersion: 4,
+			id: 'doc-reference-workspace',
+			name: 'Reference workspace',
+			width: 2,
+			height: 2,
+			layers: [
+				{
+					kind: 'pixel',
+					id: pixelId,
+					name: 'Paint',
+					pixels: new Uint8Array(2 * 2 * 4),
+					visible: true,
+					opacity: 1
+				},
+				{
+					kind: 'reference',
+					id: referenceId,
+					name: 'Sketch.png',
+					visible: true,
+					opacity: 0.75,
+					sourceBlob,
+					naturalWidth: 2,
+					naturalHeight: 1,
+					placement: { x: 1, y: 2, scale: 3 }
+				}
+			],
+			activeLayerId: referenceId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false,
+			saved: false,
+			createdAt: new Date('2026-05-01T00:00:00Z'),
+			updatedAt: new Date('2026-05-02T00:00:00Z')
+		});
+		await storage.putWorkspace({
+			id: 'current',
+			tabOrder: ['doc-reference-workspace'],
+			activeTabIndex: 0,
+			sharedState: {
+				activeTool: 'pencil',
+				foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
+				backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+				recentColors: []
+			},
+			viewports: {}
+		});
+
+		const restored = await persistence.restore();
+		const workspace = new Workspace({
+			backend: wasmBackend,
+			notifier: createFakeDirtyNotifier(),
+			keyboard: { getShiftHeld: () => false },
+			restored: restored!
+		});
+
+		expect(workspace.activeTab.document.layer_kind_at(1)).toBe('reference');
+		const placement = workspace.activeTab.document.layer_placement_at(1)!;
+		expect(placement.x).toBe(1);
+		expect(placement.y).toBe(2);
+		expect(placement.scale).toBe(3);
+
+		const snapshot = workspace.toSnapshot();
+		const referenceLayer = expectReferenceLayer(snapshot.tabs[0].layers[1]);
+		expect(referenceLayer.sourceBlob.type).toBe('image/png');
+		expect(Array.from(referenceLayer.sourceRgba)).toEqual(Array.from(sourceRgba));
+		expect(referenceLayer.placement).toEqual({ x: 1, y: 2, scale: 3 });
 	});
 
 	it('returns null when no saved data exists', async () => {
@@ -176,13 +351,15 @@ describe('SessionPersistence', () => {
 		expect(restored!.tabs).toHaveLength(2);
 		expect(restored!.tabs[0].name).toBe('Untitled 1');
 		expect(restored!.tabs[1].name).toBe('Untitled 2');
+		const restoredTab0Layer = expectPixelLayer(restored!.tabs[0].layers[0]);
+		const restoredTab1Layer = expectPixelLayer(restored!.tabs[1].layers[0]);
 		// Tab 0: red at (0,0)
-		expect(restored!.tabs[0].layers[0].pixels[0]).toBe(255);
-		expect(restored!.tabs[0].layers[0].pixels[1]).toBe(0);
+		expect(restoredTab0Layer.pixels[0]).toBe(255);
+		expect(restoredTab0Layer.pixels[1]).toBe(0);
 		// Tab 1: blue at (1,0)
-		expect(restored!.tabs[1].layers[0].pixels[4]).toBe(0);
-		expect(restored!.tabs[1].layers[0].pixels[5]).toBe(0);
-		expect(restored!.tabs[1].layers[0].pixels[6]).toBe(255);
+		expect(restoredTab1Layer.pixels[4]).toBe(0);
+		expect(restoredTab1Layer.pixels[5]).toBe(0);
+		expect(restoredTab1Layer.pixels[6]).toBe(255);
 	});
 
 	it('preserves activeTabIndex when middle tab is active', async () => {
@@ -380,14 +557,15 @@ describe('SessionPersistence', () => {
 	it('clamps activeTabIndex when saved value exceeds tab count', async () => {
 		// Simulate corrupted data: activeTabIndex beyond the tab count
 		const layerId = crypto.randomUUID();
-		const doc = {
-			schemaVersion: 3 as const,
+		const doc: DocumentRecord = {
+			schemaVersion: 4,
 			id: 'doc-1',
 			name: 'Tab',
 			width: 1,
 			height: 1,
 			layers: [
 				{
+					kind: 'pixel',
 					id: layerId,
 					name: 'Layer 1',
 					pixels: new Uint8Array([0, 0, 0, 255]),

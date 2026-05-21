@@ -31,6 +31,7 @@ export interface CreateTabConfig {
 	readonly documentId?: string;
 	readonly name?: string;
 	readonly document?: Document;
+	readonly referenceLayerBlobs?: ReadonlyMap<string, Blob>;
 	readonly viewport?: ViewportData;
 	readonly canvasWidth?: number;
 	readonly canvasHeight?: number;
@@ -120,6 +121,7 @@ export class Workspace {
 			documentId,
 			name,
 			document: config.document,
+			referenceLayerBlobs: config.referenceLayerBlobs,
 			viewport: config.viewport,
 			canvasWidth: config.canvasWidth,
 			canvasHeight: config.canvasHeight,
@@ -222,10 +224,16 @@ export class Workspace {
 
 		for (const tabSnap of snapshot.tabs) {
 			const document = documentFromLayerSource(tabSnap);
+			const referenceLayerBlobs = new Map(
+				tabSnap.layers
+					.filter((layer) => 'kind' in layer && layer.kind === 'reference')
+					.map((layer) => [layer.id, layer.sourceBlob])
+			);
 			const tab = this.createTab({
 				documentId: tabSnap.id,
 				name: tabSnap.name,
 				document,
+				referenceLayerBlobs,
 				viewport: tabSnap.viewport
 			});
 			this.tabs.push(tab);

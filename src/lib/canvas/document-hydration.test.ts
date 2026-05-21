@@ -70,6 +70,64 @@ describe('documentFromLayerSource', () => {
 		// Layer 1 was transparent and hidden — composite should equal layer 0.
 		expect(Array.from(doc.composite())).toEqual(Array.from(redPixels));
 	});
+
+	it('hydrates a mixed Pixel and Reference layer stack with placement metadata intact', () => {
+		const pixelId = crypto.randomUUID();
+		const referenceId = crypto.randomUUID();
+		const pixels = new Uint8Array(2 * 2 * 4);
+		pixels[0] = 255;
+		pixels[3] = 255;
+		const sourceRgba = new Uint8Array([
+			10, 20, 30, 255,
+			40, 50, 60, 255
+		]);
+		const sourceBlob = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' });
+
+		const doc = documentFromLayerSource({
+			width: 2,
+			height: 2,
+			layers: [
+				{
+					kind: 'pixel',
+					id: pixelId,
+					name: 'Paint',
+					pixels,
+					visible: true,
+					opacity: 1
+				},
+				{
+					kind: 'reference',
+					id: referenceId,
+					name: 'Reference',
+					visible: false,
+					opacity: 0.5,
+					sourceBlob,
+					sourceRgba,
+					naturalWidth: 2,
+					naturalHeight: 1,
+					placement: { x: 3, y: 4, scale: 2 }
+				}
+			],
+			activeLayerId: referenceId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: true
+		});
+
+		expect(doc.layer_count()).toBe(2);
+		expect(doc.layer_kind_at(0)).toBe('pixel');
+		expect(doc.layer_kind_at(1)).toBe('reference');
+		expect(doc.layer_id_at(1)).toBe(referenceId);
+		expect(doc.layer_visible_at(1)).toBe(false);
+		expect(doc.layer_opacity_at(1)).toBeCloseTo(0.5);
+		expect(doc.layer_source_pixels_at(1)).toEqual(sourceRgba);
+		expect(Array.from(doc.layer_source_dimensions_at(1)!)).toEqual([2, 1]);
+		const placement = doc.layer_placement_at(1)!;
+		expect(placement.x).toBe(3);
+		expect(placement.y).toBe(4);
+		expect(placement.scale).toBe(2);
+		expect(doc.active_layer_id()).toBe(referenceId);
+		expect(doc.is_timeline_panel_collapsed()).toBe(true);
+	});
 });
 
 describe('HistoryManager document path', () => {

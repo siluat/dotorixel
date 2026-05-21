@@ -6,9 +6,10 @@ import type {
 	WorkspaceRecord
 } from './session-storage-types';
 import {
-	compositeV3,
+	compositeForExportSummary,
 	migrateDocumentToV2,
-	migrateV2ToV3
+	migrateV2ToV3,
+	migrateV3ToV4
 } from './session-storage-types';
 
 interface DotorixelDB {
@@ -24,17 +25,18 @@ interface DotorixelDB {
 }
 
 const DB_NAME = 'dotorixel';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
-function normalizeToV3(stored: StoredDocument): DocumentRecord {
+function normalizeToV4(stored: StoredDocument): DocumentRecord {
 	if ('schemaVersion' in stored) {
-		if (stored.schemaVersion === 3) return stored;
-		if (stored.schemaVersion === 2) return migrateV2ToV3(stored);
+		if (stored.schemaVersion === 4) return stored;
+		if (stored.schemaVersion === 3) return migrateV3ToV4(stored);
+		if (stored.schemaVersion === 2) return migrateV3ToV4(migrateV2ToV3(stored));
 		throw new Error(
 			`Unsupported document schemaVersion: ${(stored as { schemaVersion: number }).schemaVersion}`
 		);
 	}
-	return migrateV2ToV3(migrateDocumentToV2(stored));
+	return migrateV3ToV4(migrateV2ToV3(migrateDocumentToV2(stored)));
 }
 
 export class SessionStorage {
@@ -74,6 +76,17 @@ export class SessionStorage {
 						cursor = await cursor.continue();
 					}
 				}
+				if (oldVersion < 4) {
+					const store = tx.objectStore('documents');
+					let cursor = await store.openCursor();
+					while (cursor) {
+						const doc = cursor.value;
+						if ('schemaVersion' in doc && doc.schemaVersion === 3) {
+							await cursor.update(migrateV3ToV4(doc));
+						}
+						cursor = await cursor.continue();
+					}
+				}
 			}
 		});
 		return new SessionStorage(db);
@@ -83,7 +96,7 @@ export class SessionStorage {
 	async getDocument(id: string): Promise<DocumentRecord | undefined> {
 		const stored = await this.#db.get('documents', id);
 		if (!stored) return undefined;
-		return normalizeToV3(stored);
+		return normalizeToV4(stored);
 	}
 
 	async putDocument(doc: DocumentRecord): Promise<void> {
@@ -95,14 +108,14 @@ export class SessionStorage {
 		const all = await this.#db.getAllFromIndex('documents', 'updatedAt');
 		const saved: SavedDocumentSummary[] = [];
 		for (const doc of all) {
-			const record = normalizeToV3(doc);
+			const record = normalizeToV4(doc);
 			if (!record.saved) continue;
 			saved.push({
 				id: record.id,
 				name: record.name,
 				width: record.width,
 				height: record.height,
-				pixels: compositeV3(record),
+				pixels: compositeForExportSummary(record),
 				updatedAt: record.updatedAt
 			});
 		}

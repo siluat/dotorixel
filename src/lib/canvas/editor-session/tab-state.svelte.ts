@@ -14,7 +14,7 @@ import type { LoupeInputSource } from '../sampling/types';
 import { createToolRunner, type ToolRunner, type EditorEffects } from '../tool-runner.svelte';
 import { exportAsPng } from '../export';
 import type { PointerType } from '../canvas-interaction.svelte';
-import type { TabSnapshot } from '../workspace-snapshot';
+import type { ReferenceLayerSnapshot, TabSnapshot } from '../workspace-snapshot';
 import type { CanvasBackend } from './canvas-backend';
 import type { DirtyNotifier } from './dirty-notifier';
 import { TabViewport } from './tab-viewport.svelte';
@@ -32,6 +32,7 @@ export interface TabStateDeps {
 	readonly name: string;
 	/** When provided, the tab adopts this document; otherwise a fresh empty document is created from `canvasWidth`/`canvasHeight`. The Document is the single source of truth for pixel data. */
 	readonly document?: Document;
+	readonly referenceLayerBlobs?: ReadonlyMap<string, Blob>;
 	/** When provided, the tab adopts this viewport; otherwise a fitted viewport is computed from the canvas dimensions. */
 	readonly viewport?: ViewportData;
 	readonly canvasWidth?: number;
@@ -108,6 +109,7 @@ export class TabState {
 	#notifier: DirtyNotifier;
 	#toolRunner: ToolRunner;
 	#tabViewport: TabViewport;
+	#referenceLayerBlobs: Map<string, Blob>;
 
 	get viewport(): ViewportData {
 		return this.#tabViewport.viewport;
@@ -139,6 +141,7 @@ export class TabState {
 		this.shared = deps.shared;
 		this.documentId = deps.documentId;
 		this.name = deps.name;
+		this.#referenceLayerBlobs = new Map(deps.referenceLayerBlobs ?? []);
 
 		if (deps.document) {
 			this.document = deps.document;
@@ -473,13 +476,41 @@ export class TabState {
 	toSnapshot = (): TabSnapshot => {
 		const doc = this.document;
 		const layerCount = doc.layer_count();
-		const layers = Array.from({ length: layerCount }, (_, i) => ({
-			id: doc.layer_id_at(i)!,
-			name: doc.layer_name_at(i)!,
-			pixels: doc.layer_pixels_at(i)!.slice(),
-			visible: doc.layer_visible_at(i)!,
-			opacity: doc.layer_opacity_at(i)!
-		}));
+		const layers = Array.from({ length: layerCount }, (_, i) => {
+			const id = doc.layer_id_at(i)!;
+			const common = {
+				id,
+				name: doc.layer_name_at(i)!,
+				visible: doc.layer_visible_at(i)!,
+				opacity: doc.layer_opacity_at(i)!
+			};
+			if (doc.layer_kind_at(i) === 'reference') {
+				const sourceBlob = this.#referenceLayerBlobs.get(id);
+				if (!sourceBlob) {
+					throw new Error(`Missing source blob for Reference Layer ${id}`);
+				}
+				const dimensions = doc.layer_source_dimensions_at(i)!;
+				const placement = doc.layer_placement_at(i)!;
+				return {
+					kind: 'reference',
+					...common,
+					sourceBlob,
+					sourceRgba: doc.layer_source_pixels_at(i)!.slice(),
+					naturalWidth: dimensions[0],
+					naturalHeight: dimensions[1],
+					placement: {
+						x: placement.x,
+						y: placement.y,
+						scale: placement.scale
+					}
+				} satisfies ReferenceLayerSnapshot;
+			}
+			return {
+				kind: 'pixel' as const,
+				...common,
+				pixels: doc.layer_pixels_at(i)!.slice()
+			};
+		});
 		return {
 			id: this.documentId,
 			name: this.name,

@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { openDB } from 'idb';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SessionStorage } from './session-storage';
-import { migrateDocumentToV2, migrateV2ToV3 } from './session-storage-types';
+import { migrateDocumentToV2, migrateV2ToV3, migrateV3ToV4 } from './session-storage-types';
 import type {
 	DocumentRecord,
 	DocumentSchemaV1,
@@ -11,9 +11,9 @@ import type {
 	WorkspaceRecord
 } from './session-storage-types';
 
-function makeSingleLayerV3(overrides: Partial<DocumentRecord> = {}): DocumentRecord {
+function makeSingleLayerV3(overrides: Partial<DocumentSchemaV3> = {}): DocumentRecord {
 	const layerId = crypto.randomUUID();
-	const merged: DocumentRecord = {
+	const merged: DocumentSchemaV3 = {
 		schemaVersion: 3,
 		id: 'doc-1',
 		name: 'Untitled 1',
@@ -39,7 +39,13 @@ function makeSingleLayerV3(overrides: Partial<DocumentRecord> = {}): DocumentRec
 	if (overrides.layers && !overrides.activeLayerId) {
 		merged.activeLayerId = overrides.layers[0].id;
 	}
-	return merged;
+	return migrateV3ToV4(merged);
+}
+
+function expectPixelLayer(layer: DocumentRecord['layers'][number]) {
+	expect(layer.kind).toBe('pixel');
+	if (layer.kind !== 'pixel') throw new Error('Expected Pixel Layer');
+	return layer;
 }
 
 describe('SessionStorage', () => {
@@ -74,7 +80,7 @@ describe('SessionStorage', () => {
 		it('stores and retrieves a document with pixel data', async () => {
 			const pixels = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]);
 			const layerId = crypto.randomUUID();
-			const doc: DocumentRecord = {
+			const doc = migrateV3ToV4({
 				schemaVersion: 3,
 				id: 'doc-1',
 				name: 'Untitled 1',
@@ -89,7 +95,7 @@ describe('SessionStorage', () => {
 				saved: false,
 				createdAt: new Date('2026-04-06T00:00:00Z'),
 				updatedAt: new Date('2026-04-06T00:00:00Z')
-			};
+			});
 
 			await storage.putDocument(doc);
 			const retrieved = await storage.getDocument('doc-1');
@@ -99,7 +105,7 @@ describe('SessionStorage', () => {
 			expect(retrieved!.name).toBe('Untitled 1');
 			expect(retrieved!.width).toBe(2);
 			expect(retrieved!.height).toBe(1);
-			expect(retrieved!.layers[0].pixels).toEqual(pixels);
+			expect(expectPixelLayer(retrieved!.layers[0]).pixels).toEqual(pixels);
 			expect(retrieved!.createdAt).toEqual(new Date('2026-04-06T00:00:00Z'));
 		});
 
@@ -109,7 +115,7 @@ describe('SessionStorage', () => {
 			const retrieved = await storage.getDocument('doc-v3');
 
 			expect(retrieved).toBeDefined();
-			expect(retrieved!.schemaVersion).toBe(3);
+			expect(retrieved!.schemaVersion).toBe(4);
 			expect(retrieved!.saved).toBe(true);
 		});
 
@@ -118,7 +124,7 @@ describe('SessionStorage', () => {
 			const v1Pixels = new Uint8Array(4 * 4 * 4);
 			v1Pixels[0] = 200; // distinctive signature
 			v1Pixels[3] = 255;
-			const rawDb = await openDB('dotorixel', 3);
+			const rawDb = await openDB('dotorixel', 4);
 			await rawDb.put('documents', {
 				id: 'doc-v1',
 				name: 'Old doc',
@@ -133,15 +139,17 @@ describe('SessionStorage', () => {
 			const retrieved = await storage.getDocument('doc-v1');
 
 			expect(retrieved).toBeDefined();
-			expect(retrieved!.schemaVersion).toBe(3);
+			expect(retrieved!.schemaVersion).toBe(4);
+			expect(retrieved!.layers[0].kind).toBe('pixel');
 			expect(retrieved!.saved).toBe(true);
 			expect(retrieved!.name).toBe('Old doc');
 			expect(retrieved!.layers).toHaveLength(1);
-			expect(retrieved!.layers[0].name).toBe('Layer 1');
-			expect(retrieved!.layers[0].pixels).toEqual(v1Pixels);
-			expect(retrieved!.layers[0].visible).toBe(true);
-			expect(retrieved!.layers[0].opacity).toBe(1);
-			expect(retrieved!.activeLayerId).toBe(retrieved!.layers[0].id);
+			const layer = expectPixelLayer(retrieved!.layers[0]);
+			expect(layer.name).toBe('Layer 1');
+			expect(layer.pixels).toEqual(v1Pixels);
+			expect(layer.visible).toBe(true);
+			expect(layer.opacity).toBe(1);
+			expect(retrieved!.activeLayerId).toBe(layer.id);
 			expect(retrieved!.nextLayerNumber).toBe(2);
 			expect(retrieved!.timelinePanelCollapsed).toBe(false);
 		});
@@ -181,7 +189,7 @@ describe('SessionStorage', () => {
 				updatedAt: new Date('2026-05-02T00:00:00Z')
 			};
 
-			await storage.putDocument(doc);
+			await storage.putDocument(migrateV3ToV4(doc));
 			const retrieved = await storage.getDocument('doc-multi');
 
 			expect(retrieved).toBeDefined();
@@ -190,9 +198,9 @@ describe('SessionStorage', () => {
 			expect(retrieved!.layers.map((l) => l.name)).toEqual(['Bottom', 'Middle', 'Top']);
 			expect(retrieved!.layers.map((l) => l.visible)).toEqual([true, false, true]);
 			expect(retrieved!.layers.map((l) => l.opacity)).toEqual([1, 0.5, 0.75]);
-			expect(retrieved!.layers[0].pixels).toEqual(bottomPixels);
-			expect(retrieved!.layers[1].pixels).toEqual(middlePixels);
-			expect(retrieved!.layers[2].pixels).toEqual(topPixels);
+			expect(expectPixelLayer(retrieved!.layers[0]).pixels).toEqual(bottomPixels);
+			expect(expectPixelLayer(retrieved!.layers[1]).pixels).toEqual(middlePixels);
+			expect(expectPixelLayer(retrieved!.layers[2]).pixels).toEqual(topPixels);
 			expect(retrieved!.activeLayerId).toBe(middleId);
 			expect(retrieved!.nextLayerNumber).toBe(4);
 			expect(retrieved!.timelinePanelCollapsed).toBe(true);
@@ -220,20 +228,22 @@ describe('SessionStorage', () => {
 				updatedAt: new Date('2026-05-01T00:00:00Z')
 			};
 
-			await storage.putDocument(doc);
+			await storage.putDocument(migrateV3ToV4(doc));
 			const retrieved = await storage.getDocument('doc-v3');
 
 			expect(retrieved).toBeDefined();
-			expect(retrieved!.schemaVersion).toBe(3);
+			expect(retrieved!.schemaVersion).toBe(4);
+			expect(retrieved!.layers[0].kind).toBe('pixel');
 			expect(retrieved!.id).toBe('doc-v3');
 			expect(retrieved!.width).toBe(2);
 			expect(retrieved!.height).toBe(2);
 			expect(retrieved!.layers).toHaveLength(1);
-			expect(retrieved!.layers[0].id).toBe(layerId);
-			expect(retrieved!.layers[0].name).toBe('Layer 1');
-			expect(retrieved!.layers[0].pixels).toEqual(pixels);
-			expect(retrieved!.layers[0].visible).toBe(true);
-			expect(retrieved!.layers[0].opacity).toBe(1);
+			const layer = expectPixelLayer(retrieved!.layers[0]);
+			expect(layer.id).toBe(layerId);
+			expect(layer.name).toBe('Layer 1');
+			expect(layer.pixels).toEqual(pixels);
+			expect(layer.visible).toBe(true);
+			expect(layer.opacity).toBe(1);
 			expect(retrieved!.activeLayerId).toBe(layerId);
 			expect(retrieved!.nextLayerNumber).toBe(2);
 			expect(retrieved!.timelinePanelCollapsed).toBe(false);
@@ -241,7 +251,7 @@ describe('SessionStorage', () => {
 	});
 
 	describe('schema migration', () => {
-		it('upgrades V1 documents to V2 on DB open', async () => {
+			it('upgrades V1 documents to V4 on DB open', async () => {
 			// Close the V2 DB opened by beforeEach
 			storage.close();
 			await new Promise<void>((resolve, reject) => {
@@ -269,11 +279,12 @@ describe('SessionStorage', () => {
 			});
 			v1Db.close();
 
-			// Re-open with SessionStorage — triggers V1→V3 migration
+			// Re-open with SessionStorage — triggers V1→V4 migration
 			storage = await SessionStorage.open();
 
 			// Verify migration wrote to the raw store (not just read-time normalization)
-			const rawDb = await openDB('dotorixel', 3);
+			storage.close();
+			const rawDb = await openDB('dotorixel', 4);
 			const stored = await rawDb.get('documents', 'old-doc');
 			rawDb.close();
 
@@ -281,13 +292,14 @@ describe('SessionStorage', () => {
 			expect(stored).toMatchObject({
 				id: 'old-doc',
 				name: 'Pre-migration',
-				schemaVersion: 3,
+				schemaVersion: 4,
 				saved: true
 			});
+			expect(stored!.layers[0].kind).toBe('pixel');
 			expect(stored!.createdAt).toEqual(new Date('2026-02-01'));
 		});
 
-		it('upgrades V2 documents to V3 on DB open', async () => {
+		it('upgrades V2 documents to V4 on DB open', async () => {
 			// Close the V3 DB opened by beforeEach
 			storage.close();
 			await new Promise<void>((resolve, reject) => {
@@ -320,25 +332,91 @@ describe('SessionStorage', () => {
 			});
 			v2Db.close();
 
-			// Re-open with SessionStorage — triggers V2→V3 migration
+			// Re-open with SessionStorage — triggers V2→V4 migration
 			storage = await SessionStorage.open();
 
-			// Verify the raw store now holds a V3 record
-			const rawDb = await openDB('dotorixel', 3);
+			// Verify the raw store now holds a V4 record
+			storage.close();
+			const rawDb = await openDB('dotorixel', 4);
 			const stored = await rawDb.get('documents', 'v2-doc');
 			rawDb.close();
 
 			expect(stored).toBeDefined();
-			expect(stored!.schemaVersion).toBe(3);
+			expect(stored!.schemaVersion).toBe(4);
 			expect(stored!.name).toBe('V2 saved');
 			expect(stored!.saved).toBe(true);
 			// V2 pixels rewrapped as a single Layer 1
 			expect(stored!.layers).toHaveLength(1);
+			expect(stored!.layers[0].kind).toBe('pixel');
 			expect(stored!.layers[0].name).toBe('Layer 1');
 			expect(stored!.layers[0].pixels).toEqual(v2Pixels);
 			expect(stored!.activeLayerId).toBe(stored!.layers[0].id);
 			expect(stored!.nextLayerNumber).toBe(2);
 			expect(stored!.timelinePanelCollapsed).toBe(false);
+		});
+
+		it('upgrades V3 documents to V4 on DB open', async () => {
+			storage.close();
+			await new Promise<void>((resolve, reject) => {
+				const request = indexedDB.deleteDatabase('dotorixel');
+				request.onsuccess = () => resolve();
+				request.onerror = () => reject(request.error);
+			});
+
+			const layerId = crypto.randomUUID();
+			const v3Pixels = new Uint8Array([11, 22, 33, 255]);
+			const v3Db = await openDB('dotorixel', 3, {
+				upgrade(db) {
+					const store = db.createObjectStore('documents', { keyPath: 'id' });
+					store.createIndex('updatedAt', 'updatedAt');
+					db.createObjectStore('workspace', { keyPath: 'id' });
+				}
+			});
+			await v3Db.put('documents', {
+				schemaVersion: 3,
+				id: 'v3-doc',
+				name: 'V3 saved',
+				width: 1,
+				height: 1,
+				layers: [
+					{
+						id: layerId,
+						name: 'Layer 1',
+						pixels: v3Pixels,
+						visible: true,
+						opacity: 0.75
+					}
+				],
+				activeLayerId: layerId,
+				nextLayerNumber: 2,
+				timelinePanelCollapsed: true,
+				saved: true,
+				createdAt: new Date('2026-05-01'),
+				updatedAt: new Date('2026-05-02')
+			});
+			v3Db.close();
+
+			storage = await SessionStorage.open();
+			storage.close();
+
+			const rawDb = await openDB('dotorixel', 4);
+			const stored = await rawDb.get('documents', 'v3-doc');
+			rawDb.close();
+
+			expect(stored).toBeDefined();
+			expect(stored!.schemaVersion).toBe(4);
+			expect(stored!.layers).toEqual([
+				{
+					kind: 'pixel',
+					id: layerId,
+					name: 'Layer 1',
+					pixels: v3Pixels,
+					visible: true,
+					opacity: 0.75
+				}
+			]);
+			expect(stored!.activeLayerId).toBe(layerId);
+			expect(stored!.timelinePanelCollapsed).toBe(true);
 		});
 	});
 
@@ -428,7 +506,7 @@ describe('SessionStorage', () => {
 			const topId = crypto.randomUUID();
 			const bottomPixels = new Uint8Array([255, 0, 0, 255]);
 			const topPixels = new Uint8Array([0, 0, 255, 255]);
-			const doc: DocumentRecord = {
+			const doc: DocumentSchemaV3 = {
 				schemaVersion: 3,
 				id: 'multi-saved',
 				name: 'Multi saved',
@@ -445,7 +523,7 @@ describe('SessionStorage', () => {
 				createdAt: new Date('2026-05-03'),
 				updatedAt: new Date('2026-05-03')
 			};
-			await storage.putDocument(doc);
+			await storage.putDocument(migrateV3ToV4(doc));
 
 			const summaries = await storage.getAllSavedDocuments();
 
@@ -468,7 +546,7 @@ describe('SessionStorage', () => {
 			const topId = crypto.randomUUID();
 			const bottomPixels = new Uint8Array([255, 0, 0, 255]);
 			const topPixels = new Uint8Array([0, 0, 255, 255]); // would overwrite if visible
-			const doc: DocumentRecord = {
+			const doc: DocumentSchemaV3 = {
 				schemaVersion: 3,
 				id: 'hidden-top',
 				name: 'Hidden top',
@@ -485,11 +563,56 @@ describe('SessionStorage', () => {
 				createdAt: new Date('2026-05-03'),
 				updatedAt: new Date('2026-05-03')
 			};
-			await storage.putDocument(doc);
+			await storage.putDocument(migrateV3ToV4(doc));
 
 			const summaries = await storage.getAllSavedDocuments();
 
 			expect(summaries[0].pixels).toEqual(bottomPixels);
+		});
+
+		it('excludes Reference Layers when building saved-work thumbnails', async () => {
+			const pixelId = crypto.randomUUID();
+			const referenceId = crypto.randomUUID();
+			const paintedPixels = new Uint8Array([255, 0, 0, 255]);
+			await storage.putDocument({
+				schemaVersion: 4,
+				id: 'reference-thumbnail',
+				name: 'Reference thumbnail',
+				width: 1,
+				height: 1,
+				layers: [
+					{
+						kind: 'pixel',
+						id: pixelId,
+						name: 'Paint',
+						pixels: paintedPixels,
+						visible: true,
+						opacity: 1
+					},
+					{
+						kind: 'reference',
+						id: referenceId,
+						name: 'Reference',
+						visible: true,
+						opacity: 1,
+						sourceBlob: new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' }),
+						naturalWidth: 1,
+						naturalHeight: 1,
+						placement: { x: 0, y: 0, scale: 1 }
+					}
+				],
+				activeLayerId: referenceId,
+				nextLayerNumber: 2,
+				timelinePanelCollapsed: false,
+				saved: true,
+				createdAt: new Date('2026-05-03'),
+				updatedAt: new Date('2026-05-03')
+			});
+
+			const summaries = await storage.getAllSavedDocuments();
+
+			expect(summaries).toHaveLength(1);
+			expect(summaries[0].pixels).toEqual(paintedPixels);
 		});
 
 		it('returns empty array when no saved documents exist', async () => {

@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 110 | 78 | 32 | 88 | 71% | 47% |
-| cubic-dev-ai[bot] | 65 | 52 | 13 | 111 | 80% | 32% |
-| coderabbitai[bot] | 153 | 102 | 51 | 59 | 67% | 63% |
+| greptile-apps[bot] | 111 | 79 | 32 | 89 | 71% | 47% |
+| cubic-dev-ai[bot] | 66 | 53 | 13 | 112 | 80% | 32% |
+| coderabbitai[bot] | 153 | 102 | 51 | 61 | 67% | 63% |
 
 ## Log
 
@@ -600,3 +600,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #214 | greptile-apps[bot] | Miss | Did not flag PR body closing an unrelated GitHub PR |
 | #214 | cubic-dev-ai[bot] | Miss | Did not flag V4 `StoredDocument` storage-wiring dependency |
 | #214 | cubic-dev-ai[bot] | Miss | Did not flag PR body closing an unrelated GitHub PR |
+| #215 | cubic-dev-ai[bot] | Accept | Non-finite Reference Layer placement x/y could enter core through the V4 hydration WASM boundary |
+| #215 | greptile-apps[bot] | Accept | Explicit `ReferenceLayerSnapshot` predicate clarifies workspace hydration; compile-failure claim was overstated |
+| #215 | greptile-apps[bot] | Miss | Did not flag non-finite Reference Layer placement x/y at the V4 hydration boundary |
+| #215 | coderabbitai[bot] | Miss | Did not flag non-finite Reference Layer placement x/y at the V4 hydration boundary |
+| #215 | cubic-dev-ai[bot] | Miss | Did not flag explicit `ReferenceLayerSnapshot` predicate clarity in workspace hydration |
+| #215 | coderabbitai[bot] | Miss | Did not flag explicit `ReferenceLayerSnapshot` predicate clarity in workspace hydration |

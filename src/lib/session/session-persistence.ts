@@ -1,9 +1,16 @@
-import type { WorkspaceSnapshot, TabSnapshot } from '$lib/canvas/workspace-snapshot';
+import type {
+	WorkspaceSnapshot,
+	TabSnapshot,
+	LayerSnapshot,
+	ReferenceLayerSnapshot
+} from '$lib/canvas/workspace-snapshot';
 import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 import type { DisplayState } from '$lib/reference-images/display-state-types';
+import { decodeReferenceBlob } from '$lib/reference-images/decode-reference-blob';
 import type { SessionStorage } from './session-storage';
 import type {
 	DisplayStateRecord,
+	LayerRecord,
 	ReferenceImageRecord,
 	SavedDocumentSummary
 } from './session-storage-types';
@@ -16,6 +23,44 @@ const DEFAULT_VIEWPORT = {
 	showGrid: true,
 	gridColor: '#cccccc'
 } as const;
+
+function isReferenceLayer(layer: LayerSnapshot): layer is ReferenceLayerSnapshot {
+	return 'kind' in layer && layer.kind === 'reference';
+}
+
+function serializeLayer(layer: LayerSnapshot): LayerRecord {
+	if (isReferenceLayer(layer)) {
+		return {
+			kind: 'reference',
+			id: layer.id,
+			name: layer.name,
+			visible: layer.visible,
+			opacity: layer.opacity,
+			sourceBlob: layer.sourceBlob,
+			naturalWidth: layer.naturalWidth,
+			naturalHeight: layer.naturalHeight,
+			placement: { ...layer.placement }
+		};
+	}
+	return {
+		kind: 'pixel',
+		id: layer.id,
+		name: layer.name,
+		pixels: layer.pixels.slice(),
+		visible: layer.visible,
+		opacity: layer.opacity
+	};
+}
+
+async function hydrateLayer(layer: LayerRecord): Promise<LayerSnapshot> {
+	if (layer.kind === 'pixel') return { ...layer, pixels: layer.pixels.slice() };
+	const decoded = await decodeReferenceBlob(layer.sourceBlob);
+	return {
+		...layer,
+		placement: { ...layer.placement },
+		sourceRgba: new Uint8Array(decoded.data)
+	};
+}
 
 export class SessionPersistence {
 	#storage: SessionStorage;
@@ -41,12 +86,12 @@ export class SessionPersistence {
 			if (shouldWrite) {
 				const existing = await this.#storage.getDocument(tab.id);
 				await this.#storage.putDocument({
-					schemaVersion: 3,
+					schemaVersion: 4,
 					id: tab.id,
 					name: tab.name,
 					width: tab.width,
 					height: tab.height,
-					layers: tab.layers.map((l) => ({ ...l })),
+					layers: tab.layers.map(serializeLayer),
 					activeLayerId: tab.activeLayerId,
 					nextLayerNumber: tab.nextLayerNumber,
 					timelinePanelCollapsed: tab.timelinePanelCollapsed,
@@ -133,7 +178,7 @@ export class SessionPersistence {
 					name: doc.name,
 					width: doc.width,
 					height: doc.height,
-					layers: doc.layers.map((l) => ({ ...l })),
+					layers: await Promise.all(doc.layers.map(hydrateLayer)),
 					activeLayerId: doc.activeLayerId,
 					nextLayerNumber: doc.nextLayerNumber,
 					timelinePanelCollapsed: doc.timelinePanelCollapsed,

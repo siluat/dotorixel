@@ -22,7 +22,11 @@ import {
 } from '$wasm/dotorixel_wasm';
 import type { Document, PixelCanvas, ResizeAnchor } from './canvas-model';
 import type { CanvasFactory, CanvasConstraints, HistoryManager } from './adapter-types';
-import type { PixelLayerRecordV3 } from '$lib/session/session-storage-types';
+import type {
+	PixelLayerRecord,
+	PixelLayerRecordV3,
+	ReferenceLayerRecord
+} from '$lib/session/session-storage-types';
 import type { ViewportData, ViewportOps } from './viewport';
 import type { DrawingOps, DrawingToolType } from './drawing-ops';
 import type { CanvasBackend } from './editor-session/canvas-backend';
@@ -381,10 +385,23 @@ export function createHistoryManager(): HistoryManager {
 export interface DocumentLayerSource {
 	readonly width: number;
 	readonly height: number;
-	readonly layers: readonly PixelLayerRecordV3[];
+	readonly layers: readonly HydratableLayerRecord[];
 	readonly activeLayerId: string;
 	readonly nextLayerNumber: number;
 	readonly timelinePanelCollapsed: boolean;
+}
+
+export interface HydratedReferenceLayerRecord extends ReferenceLayerRecord {
+	readonly sourceRgba: Uint8Array;
+}
+
+type HydratablePixelLayerRecord = PixelLayerRecordV3 | PixelLayerRecord;
+type HydratableLayerRecord = HydratablePixelLayerRecord | HydratedReferenceLayerRecord;
+
+function isReferenceLayer(
+	layer: HydratableLayerRecord
+): layer is HydratedReferenceLayerRecord {
+	return 'kind' in layer && layer.kind === 'reference';
 }
 
 /**
@@ -396,13 +413,28 @@ export interface DocumentLayerSource {
 export function documentFromLayerSource(source: DocumentLayerSource): Document {
 	const builder = new WasmDocumentBuilder(source.width, source.height);
 	for (const layer of source.layers) {
-		builder.add_layer(
-			layer.id,
-			layer.name,
-			layer.pixels.slice(),
-			layer.visible,
-			layer.opacity
-		);
+		if (isReferenceLayer(layer)) {
+			builder.add_reference_layer(
+				layer.id,
+				layer.name,
+				layer.sourceRgba.slice(),
+				layer.naturalWidth,
+				layer.naturalHeight,
+				layer.placement.x,
+				layer.placement.y,
+				layer.placement.scale,
+				layer.visible,
+				layer.opacity
+			);
+		} else {
+			builder.add_layer(
+				layer.id,
+				layer.name,
+				layer.pixels.slice(),
+				layer.visible,
+				layer.opacity
+			);
+		}
 	}
 	return builder.build(
 		source.activeLayerId,

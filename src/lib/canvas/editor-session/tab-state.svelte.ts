@@ -453,15 +453,15 @@ export class TabState {
 	};
 
 	/**
-	 * Builds a fresh `PixelCanvas` from `document.composite()` — used by
-	 * exporters that need `encode_png` / `encode_svg`. The buffer is a
+	 * Builds a fresh `PixelCanvas` from `document.composite_for_export()` —
+	 * used by exporters that need `encode_png` / `encode_svg`. The buffer is a
 	 * one-shot snapshot; callers must not retain it across mutations.
 	 */
 	exportableSnapshot = (): PixelCanvas => {
 		return this.#backend.canvasFactory.fromPixels(
 			this.document.width,
 			this.document.height,
-			this.document.composite()
+			this.document.composite_for_export()
 		);
 	};
 

@@ -370,31 +370,57 @@ describe('TabState — toSnapshot derives from document', () => {
 	});
 });
 
-describe('TabState — exportPng uses document.composite()', () => {
-	it('passes a canvas whose pixels match document.composite()', async () => {
+describe('TabState — export snapshot', () => {
+	it('passes a Pixel-only canvas to PNG export when Reference Layers are visible', async () => {
 		const exportModule = await import('../export');
 		const exportSpy = vi.mocked(exportModule.exportAsPng);
 		exportSpy.mockClear();
 
-		const { tab } = makeTab();
-		const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
-		const w = tab.document.width;
-		const h = tab.document.height;
-		const docPixels = new Uint8Array(w * h * 4);
-		const i = (3 * w + 3) * 4;
-		docPixels[i] = RED.r;
-		docPixels[i + 1] = RED.g;
-		docPixels[i + 2] = RED.b;
-		docPixels[i + 3] = RED.a;
-		tab.document = singleLayerDocument(w, h, docPixels);
+		const pixelId = crypto.randomUUID();
+		const referenceId = crypto.randomUUID();
+		const paintedPixels = new Uint8Array([255, 0, 0, 255]);
+		const referencePixels = new Uint8Array([0, 255, 0, 255]);
+		const sourceBlob = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' });
+		const document = documentFromLayerSource({
+			width: 1,
+			height: 1,
+			layers: [
+				{
+					kind: 'pixel',
+					id: pixelId,
+					name: 'Paint',
+					pixels: paintedPixels,
+					visible: true,
+					opacity: 1
+				},
+				{
+					kind: 'reference',
+					id: referenceId,
+					name: 'Reference',
+					visible: true,
+					opacity: 1,
+					sourceBlob,
+					sourceRgba: referencePixels,
+					naturalWidth: 1,
+					naturalHeight: 1,
+					placement: { x: 0, y: 0, scale: 1 }
+				}
+			],
+			activeLayerId: referenceId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false
+		});
+		const { tab } = makeTab({ document });
 
 		tab.exportPng();
 
 		expect(exportSpy).toHaveBeenCalledTimes(1);
 		const passed = exportSpy.mock.calls[0][0] as { width: number; height: number; pixels(): Uint8Array };
-		expect(passed.width).toBe(w);
-		expect(passed.height).toBe(h);
-		expect(passed.pixels()).toEqual(tab.document.composite());
+		expect(passed.width).toBe(1);
+		expect(passed.height).toBe(1);
+		expect(tab.document.composite()).toEqual(referencePixels);
+		expect(passed.pixels()).toEqual(tab.document.composite_for_export());
+		expect(passed.pixels()).toEqual(paintedPixels);
 	});
 });
 

@@ -2,15 +2,14 @@
 
 ## Currently Working On
 
-Reference Layer type — tracing reference for pixel artwork ([PRD](../issues/105-reference-layer-type.md)). 10/20 sub-issues done; V4 persistence now round-trips Reference Layers through storage/session hydration, so export and UI slices can build on persisted mixed layers.
+Reference Layer type — tracing reference for pixel artwork ([PRD](../issues/105-reference-layer-type.md)). 11/20 sub-issues done; export output now uses the Pixel-only path, so Reference Layers stay visible in the editor while staying absent from exports and saved-work thumbnails.
 
 ## Last Completed
 
-[115 — Reference Layer: V4 persistence end-to-end (Reference Layer round-trip)](../issues/115-reference-layer-v4-persistence-end-to-end.md). V4 storage/session hydration now preserves Pixel + Reference layer order, placement, natural dimensions, and source blobs across reload. Import UI remains in 118.
+[116 — Reference Layer export call sites](../issues/116-reference-layer-export-call-sites.md). Export output now excludes Reference Layers while on-screen rendering remains unchanged; import UI and placement work remain pending.
 
 ## Next Up
 
-- 116 — Reference Layer: export call sites use the export-only composite
 - 117 — Reference Layer: Timeline Panel kind icons + activation
 - 120 — Reference Layer: placement overlay shell
 - 125 — Reference Layer: eyedropper + sampling use active-layer optional reads

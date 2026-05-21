@@ -110,7 +110,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Document/Layer model | 🔧 | 🔧 | ⬜ | Ordered mixed-kind stack with active layer, visibility, opacity, Timeline collapse state, source-over composite, and Pixel-only export composite. Apple remains single-canvas |
-| Reference Layer (timeline kind) | 🔧 | 🔧 | ⬜ | Core supports tracing, placement, and sampling. Web persists Reference Layers and excludes them from exports/thumbnails; import UI and overlay pending |
+| Reference Layer (timeline kind) | 🔧 | 🔧 | ⬜ | Core supports tracing, placement, and sampling. Web persists Reference Layers, excludes exports/thumbnails, and shows kind icons; import UI/overlay pending |
 | Timeline panel | — | 🔧 | ⬜ | Top-z first; activate/remove/reorder/visibility are undoable. Desktop collapse state is persisted per document and not undoable. Frame column is an M4 placeholder |
 
 ## Reference Images

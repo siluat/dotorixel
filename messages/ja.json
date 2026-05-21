@@ -137,6 +137,8 @@
 	"layer_default_name": "レイヤー {n}",
 	"layer_panel_title": "レイヤー",
 	"layer_panel_collapsed_label": "レイヤー · {name}",
+	"layer_kind_pixel": "ピクセルレイヤー",
+	"layer_kind_reference": "参照レイヤー",
 	"aria_addLayer": "レイヤーを追加",
 	"aria_removeLayer": "{name}を削除",
 	"aria_reorderLayer": "{name}を並べ替え",

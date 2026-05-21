@@ -45,6 +45,9 @@ function decodedImageBy(
 
 const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
 const WHITE: Color = { r: 255, g: 255, b: 255, a: 255 };
+const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
+const GREEN: Color = { r: 0, g: 255, b: 0, a: 255 };
+const BLUE: Color = { r: 0, g: 0, b: 255, a: 255 };
 
 function makeTab(overrides: Omit<Partial<TabStateDeps>, 'notifier'> = {}) {
 	const shared = overrides.shared ?? new SharedState();
@@ -87,6 +90,10 @@ function getPixel(tab: TabState, x: number, y: number): Color {
 	const pixels = tab.document.composite();
 	const i = (y * tab.document.width + x) * 4;
 	return { r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: pixels[i + 3] };
+}
+
+function makePixelRgba(color: Color): Uint8Array {
+	return new Uint8Array([color.r, color.g, color.b, color.a]);
 }
 
 describe('TabState — ownership', () => {
@@ -870,6 +877,64 @@ describe('TabState — setActiveLayer', () => {
 
 		const layer2Pixels = tab.document.layer_pixels_at(layer2Idx)!;
 		expect(layer2Pixels[i + 3]).toBe(0);
+	});
+});
+
+describe('TabState — mixed Pixel and Reference Layer stack operations', () => {
+	it('supports activating, reordering, hiding, and deleting a Reference Layer through the same public calls', () => {
+		const bottomId = crypto.randomUUID();
+		const referenceId = crypto.randomUUID();
+		const document = documentFromLayerSource({
+			width: 1,
+			height: 1,
+			layers: [
+				{
+					kind: 'pixel',
+					id: bottomId,
+					name: 'Bottom paint',
+					pixels: makePixelRgba(BLUE),
+					visible: true,
+					opacity: 1
+				}
+			],
+			activeLayerId: bottomId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false
+		});
+		const { tab, shared } = makeTab({ document });
+
+		tab.document.add_reference_layer(referenceId, 'Sketch reference', makePixelRgba(RED), 1, 1);
+		tab.addLayer('Top paint');
+		const topId = tab.document.active_layer_id();
+		expect([
+			tab.document.layer_kind_at(0),
+			tab.document.layer_kind_at(1),
+			tab.document.layer_kind_at(2)
+		]).toEqual(['pixel', 'reference', 'pixel']);
+		shared.foregroundColor = GREEN;
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 0, y: 0 }, null);
+		tab.drawEnd();
+
+		tab.setActiveLayer(referenceId);
+		expect(tab.document.active_layer_id()).toBe(referenceId);
+
+		tab.reorderLayer(referenceId, 0);
+		expect(tab.document.layer_id_at(2)).toBe(referenceId);
+		expect(getPixel(tab, 0, 0)).toEqual(RED);
+
+		tab.setLayerVisibility(referenceId, false);
+		expect(tab.document.layer_visible_at(2)).toBe(false);
+		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
+
+		tab.removeLayer(referenceId);
+		const remainingIds = Array.from({ length: tab.document.layer_count() }, (_, i) =>
+			tab.document.layer_id_at(i)
+		);
+		expect(remainingIds).toEqual([bottomId, topId]);
+		expect(tab.document.active_layer_id()).toBe(topId);
+		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
 	});
 });
 

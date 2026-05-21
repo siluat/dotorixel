@@ -1,11 +1,14 @@
 <script lang="ts">
-	import { ChevronDown } from 'lucide-svelte';
+	import { ChevronDown, Grid2x2, Image } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
+
+	type LayerKind = 'pixel' | 'reference';
 
 	interface LayerSummary {
 		readonly id: string;
 		readonly name: string;
 		readonly visible?: boolean;
+		readonly kind: LayerKind;
 	}
 
 	interface Props {
@@ -158,6 +161,7 @@
 				{#each layers as layer, visualIndex (layer.id)}
 					{@const isActive = layer.id === activeLayerId}
 					{@const isVisible = layer.visible ?? true}
+					{@const kind = layer.kind}
 					<div
 						class="row"
 						class:row--active={isActive}
@@ -195,6 +199,19 @@
 							{isVisible ? '◉' : '◎'}
 						</button>
 						<span class="bar"></span>
+						<span
+							class="kind-icon"
+							data-layer-kind-icon
+							data-layer-kind={kind}
+							role="img"
+							aria-label={kind === 'reference' ? m.layer_kind_reference() : m.layer_kind_pixel()}
+						>
+							{#if kind === 'reference'}
+								<Image size={14} strokeWidth={1.75} aria-hidden="true" />
+							{:else}
+								<Grid2x2 size={14} strokeWidth={1.75} aria-hidden="true" />
+							{/if}
+						</span>
 						<span class="name">{layer.name}</span>
 						<button
 							type="button"
@@ -447,6 +464,20 @@
 		height: var(--row-height);
 	}
 
+	.kind-icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		color: var(--ds-text-secondary);
+		flex: none;
+	}
+
+	.row--active .kind-icon {
+		color: var(--ds-text-primary);
+	}
+
 	.name {
 		flex: 1;
 		padding: 0 var(--ds-space-3);
@@ -503,6 +534,10 @@
 	.row--hidden .name {
 		opacity: 0.45;
 		font-style: italic;
+	}
+
+	.row--hidden .kind-icon {
+		opacity: 0.45;
 	}
 
 	.reorder-handle {

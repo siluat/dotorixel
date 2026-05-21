@@ -24,9 +24,13 @@ const defaultProps = {
 	onToggleCollapsed: noopToggleCollapsed
 };
 
+function pixelLayer(id: string, name: string, opts: { visible?: boolean } = {}) {
+	return { id, name, kind: 'pixel' as const, ...opts };
+}
+
 describe('TimelinePanel', () => {
 	it('renders a single row showing the layer name when one layer is provided', () => {
-		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const layers = [pixelLayer('a', 'Layer 1')];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps }
 		});
@@ -38,9 +42,9 @@ describe('TimelinePanel', () => {
 
 	it('renders one row per layer with each layer name visible', () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' },
-			{ id: 'c', name: 'Hair' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('c', 'Hair')
 		];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps }
@@ -52,11 +56,41 @@ describe('TimelinePanel', () => {
 		expect(names).toEqual(expect.arrayContaining(['Layer 1', 'Layer 2', 'Hair']));
 	});
 
+	it('renders distinct kind icons for Pixel and Reference Layer rows', () => {
+		const layers = [
+			pixelLayer('paint', 'Paint'),
+			{ id: 'reference', name: 'Sketch reference', kind: 'reference' as const }
+		];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'paint', ...defaultProps }
+		});
+
+		const paintRow = container.querySelector(
+			'[data-layer-row][data-layer-id="paint"]'
+		) as HTMLElement;
+		const referenceRow = container.querySelector(
+			'[data-layer-row][data-layer-id="reference"]'
+		) as HTMLElement;
+
+		expect(paintRow.querySelector('[data-layer-kind-icon]')?.getAttribute('data-layer-kind')).toBe(
+			'pixel'
+		);
+		expect(paintRow.querySelector('[data-layer-kind-icon]')?.getAttribute('aria-label')).toBe(
+			'Pixel Layer'
+		);
+		expect(
+			referenceRow.querySelector('[data-layer-kind-icon]')?.getAttribute('data-layer-kind')
+		).toBe('reference');
+		expect(referenceRow.querySelector('[data-layer-kind-icon]')?.getAttribute('aria-label')).toBe(
+			'Reference Layer'
+		);
+	});
+
 	it('marks the active layer row with aria-current and leaves others unmarked', () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' },
-			{ id: 'c', name: 'Layer 3' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('c', 'Layer 3')
 		];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'b', ...defaultProps }
@@ -72,7 +106,7 @@ describe('TimelinePanel', () => {
 	});
 
 	it('renders an add-layer button in the header', () => {
-		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const layers = [pixelLayer('a', 'Layer 1')];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps }
 		});
@@ -83,7 +117,7 @@ describe('TimelinePanel', () => {
 	});
 
 	it('invokes onAddLayer when the add-layer button is clicked', async () => {
-		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const layers = [pixelLayer('a', 'Layer 1')];
 		const onAddLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps, onAddLayer }
@@ -97,8 +131,8 @@ describe('TimelinePanel', () => {
 
 	it('invokes onActivateLayer with the layer id when a non-active row is clicked', async () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2')
 		];
 		const onActivateLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -112,11 +146,30 @@ describe('TimelinePanel', () => {
 		expect(onActivateLayer).toHaveBeenCalledTimes(1);
 	});
 
+	it('invokes onActivateLayer when a Reference Layer row is clicked', async () => {
+		const layers = [
+			pixelLayer('paint', 'Paint'),
+			{ id: 'reference', name: 'Sketch reference', kind: 'reference' as const }
+		];
+		const onActivateLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'paint', ...defaultProps, onActivateLayer }
+		});
+
+		const referenceRow = container.querySelector(
+			'[data-layer-row][data-layer-id="reference"]'
+		) as HTMLElement;
+		await fireEvent.click(referenceRow);
+
+		expect(onActivateLayer).toHaveBeenCalledWith('reference');
+		expect(onActivateLayer).toHaveBeenCalledTimes(1);
+	});
+
 	it('renders a remove affordance on every layer row', () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' },
-			{ id: 'c', name: 'Layer 3' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('c', 'Layer 3')
 		];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps }
@@ -131,8 +184,8 @@ describe('TimelinePanel', () => {
 
 	it('invokes onRemoveLayer with that row’s layer id when its remove button is clicked', async () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2')
 		];
 		const onRemoveLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -149,8 +202,8 @@ describe('TimelinePanel', () => {
 
 	it('clicking the remove button does not also activate that row', async () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2')
 		];
 		const onActivateLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -169,8 +222,8 @@ describe('TimelinePanel', () => {
 		['Space', ' ']
 	])('pressing %s on the remove button does not activate the row', async (_label, key) => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2')
 		];
 		const onActivateLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -186,7 +239,7 @@ describe('TimelinePanel', () => {
 	});
 
 	it('disables the remove button when only one layer remains', () => {
-		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const layers = [pixelLayer('a', 'Layer 1')];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps }
 		});
@@ -197,8 +250,8 @@ describe('TimelinePanel', () => {
 
 	it('enables the remove button on every row when two or more layers are present', () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2')
 		];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps }
@@ -211,9 +264,9 @@ describe('TimelinePanel', () => {
 
 	it('renders a reorder handle on every layer row', () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' },
-			{ id: 'c', name: 'Layer 3' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('c', 'Layer 3')
 		];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps }
@@ -227,7 +280,7 @@ describe('TimelinePanel', () => {
 	});
 
 	it('disables the reorder handle when only one layer remains', () => {
-		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const layers = [pixelLayer('a', 'Layer 1')];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps }
 		});
@@ -238,8 +291,8 @@ describe('TimelinePanel', () => {
 
 	it('enables the reorder handle on every row when two or more layers are present', () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2')
 		];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps }
@@ -251,8 +304,8 @@ describe('TimelinePanel', () => {
 
 	it('clicking the reorder handle does not activate the row', async () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2')
 		];
 		const onActivateLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -271,8 +324,8 @@ describe('TimelinePanel', () => {
 		['Space', ' ']
 	])('pressing %s on the reorder handle does not activate the row', async (_label, key) => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2')
 		];
 		const onActivateLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -290,9 +343,9 @@ describe('TimelinePanel', () => {
 	it('ArrowUp on a focused reorder handle moves the layer up one visual position', async () => {
 		// Panel order (top→bottom): [Layer 3 (id c), Layer 2 (id b), Layer 1 (id a)]
 		const layers = [
-			{ id: 'c', name: 'Layer 3' },
-			{ id: 'b', name: 'Layer 2' },
-			{ id: 'a', name: 'Layer 1' }
+			pixelLayer('c', 'Layer 3'),
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('a', 'Layer 1')
 		];
 		const onReorderLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -311,9 +364,9 @@ describe('TimelinePanel', () => {
 
 	it('ArrowDown on a focused reorder handle moves the layer down one visual position', async () => {
 		const layers = [
-			{ id: 'c', name: 'Layer 3' },
-			{ id: 'b', name: 'Layer 2' },
-			{ id: 'a', name: 'Layer 1' }
+			pixelLayer('c', 'Layer 3'),
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('a', 'Layer 1')
 		];
 		const onReorderLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -331,9 +384,9 @@ describe('TimelinePanel', () => {
 
 	it('ArrowUp on the top-row reorder handle is a no-op', async () => {
 		const layers = [
-			{ id: 'c', name: 'Layer 3' },
-			{ id: 'b', name: 'Layer 2' },
-			{ id: 'a', name: 'Layer 1' }
+			pixelLayer('c', 'Layer 3'),
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('a', 'Layer 1')
 		];
 		const onReorderLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -350,9 +403,9 @@ describe('TimelinePanel', () => {
 
 	it('ArrowDown on the bottom-row reorder handle is a no-op', async () => {
 		const layers = [
-			{ id: 'c', name: 'Layer 3' },
-			{ id: 'b', name: 'Layer 2' },
-			{ id: 'a', name: 'Layer 1' }
+			pixelLayer('c', 'Layer 3'),
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('a', 'Layer 1')
 		];
 		const onReorderLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -369,9 +422,9 @@ describe('TimelinePanel', () => {
 
 	it('pointer-dragging row C downward by two row-heights and releasing calls onReorderLayer with the dropped visual index', async () => {
 		const layers = [
-			{ id: 'c', name: 'Layer 3' },
-			{ id: 'b', name: 'Layer 2' },
-			{ id: 'a', name: 'Layer 1' }
+			pixelLayer('c', 'Layer 3'),
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('a', 'Layer 1')
 		];
 		const onReorderLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -390,9 +443,9 @@ describe('TimelinePanel', () => {
 
 	it('pointer cancel during a drag does not call onReorderLayer', async () => {
 		const layers = [
-			{ id: 'c', name: 'Layer 3' },
-			{ id: 'b', name: 'Layer 2' },
-			{ id: 'a', name: 'Layer 1' }
+			pixelLayer('c', 'Layer 3'),
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('a', 'Layer 1')
 		];
 		const onReorderLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -411,9 +464,9 @@ describe('TimelinePanel', () => {
 
 	it('pointer release at a Y different from the last pointermove uses the release Y for the target', async () => {
 		const layers = [
-			{ id: 'c', name: 'Layer 3' },
-			{ id: 'b', name: 'Layer 2' },
-			{ id: 'a', name: 'Layer 1' }
+			pixelLayer('c', 'Layer 3'),
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('a', 'Layer 1')
 		];
 		const onReorderLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -432,9 +485,9 @@ describe('TimelinePanel', () => {
 
 	it('a second pointer landing during an active drag does not steal or reset it', async () => {
 		const layers = [
-			{ id: 'c', name: 'Layer 3' },
-			{ id: 'b', name: 'Layer 2' },
-			{ id: 'a', name: 'Layer 1' }
+			pixelLayer('c', 'Layer 3'),
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('a', 'Layer 1')
 		];
 		const onReorderLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -465,9 +518,9 @@ describe('TimelinePanel', () => {
 
 	it('pointer release at the original Y does not call onReorderLayer', async () => {
 		const layers = [
-			{ id: 'c', name: 'Layer 3' },
-			{ id: 'b', name: 'Layer 2' },
-			{ id: 'a', name: 'Layer 1' }
+			pixelLayer('c', 'Layer 3'),
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('a', 'Layer 1')
 		];
 		const onReorderLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -486,9 +539,9 @@ describe('TimelinePanel', () => {
 
 	it('renders a visibility toggle on every layer row', () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' },
-			{ id: 'c', name: 'Layer 3' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('c', 'Layer 3')
 		];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps }
@@ -503,8 +556,8 @@ describe('TimelinePanel', () => {
 
 	it('clicking a visible row’s visibility toggle invokes onToggleLayerVisibility(id, false)', async () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1', visible: true },
-			{ id: 'b', name: 'Layer 2', visible: true }
+			pixelLayer('a', 'Layer 1', { visible: true }),
+			pixelLayer('b', 'Layer 2', { visible: true })
 		];
 		const onToggleLayerVisibility = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -521,8 +574,8 @@ describe('TimelinePanel', () => {
 
 	it('clicking a hidden row’s visibility toggle invokes onToggleLayerVisibility(id, true)', async () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1', visible: true },
-			{ id: 'b', name: 'Layer 2', visible: false }
+			pixelLayer('a', 'Layer 1', { visible: true }),
+			pixelLayer('b', 'Layer 2', { visible: false })
 		];
 		const onToggleLayerVisibility = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -539,8 +592,8 @@ describe('TimelinePanel', () => {
 
 	it('clicking the visibility toggle does not also activate the row', async () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2')
 		];
 		const onActivateLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -559,8 +612,8 @@ describe('TimelinePanel', () => {
 		['Space', ' ']
 	])('pressing %s on the visibility toggle does not activate the row', async (_label, key) => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2')
 		];
 		const onActivateLayer = vi.fn();
 		const { container } = render(TimelinePanel, {
@@ -581,8 +634,8 @@ describe('TimelinePanel', () => {
 		// pairing a dynamic label with aria-pressed produces conflicting state
 		// announcements (WAI-ARIA APG: the label must not change when state does).
 		const layers = [
-			{ id: 'a', name: 'Layer 1', visible: true },
-			{ id: 'b', name: 'Layer 2', visible: false }
+			pixelLayer('a', 'Layer 1', { visible: true }),
+			pixelLayer('b', 'Layer 2', { visible: false })
 		];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps }
@@ -601,8 +654,8 @@ describe('TimelinePanel', () => {
 
 	it('marks hidden rows with a class that is absent on visible rows', () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1', visible: true },
-			{ id: 'b', name: 'Layer 2', visible: false }
+			pixelLayer('a', 'Layer 1', { visible: true }),
+			pixelLayer('b', 'Layer 2', { visible: false })
 		];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps }
@@ -616,7 +669,7 @@ describe('TimelinePanel', () => {
 	});
 
 	it('renders a collapse toggle button in the header', () => {
-		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const layers = [pixelLayer('a', 'Layer 1')];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps }
 		});
@@ -627,7 +680,7 @@ describe('TimelinePanel', () => {
 	});
 
 	it('renders expanded when collapsed=false', () => {
-		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const layers = [pixelLayer('a', 'Layer 1')];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps, collapsed: false }
 		});
@@ -637,7 +690,7 @@ describe('TimelinePanel', () => {
 	});
 
 	it('renders collapsed when collapsed=true', () => {
-		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const layers = [pixelLayer('a', 'Layer 1')];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps, collapsed: true }
 		});
@@ -648,7 +701,7 @@ describe('TimelinePanel', () => {
 
 	it('calls onToggleCollapsed when the collapse toggle is clicked', async () => {
 		const onToggleCollapsed = vi.fn();
-		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const layers = [pixelLayer('a', 'Layer 1')];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps, onToggleCollapsed }
 		});
@@ -660,7 +713,7 @@ describe('TimelinePanel', () => {
 	});
 
 	it('does not internally update collapsed when the toggle is clicked (controlled component)', async () => {
-		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const layers = [pixelLayer('a', 'Layer 1')];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps, collapsed: false }
 		});
@@ -676,8 +729,8 @@ describe('TimelinePanel', () => {
 
 	it('shows the active layer name in the header when collapsed=true', () => {
 		const layers = [
-			{ id: 'a', name: 'Sky' },
-			{ id: 'b', name: 'Mountains' }
+			pixelLayer('a', 'Sky'),
+			pixelLayer('b', 'Mountains')
 		];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'b', ...defaultProps, collapsed: true }
@@ -689,8 +742,8 @@ describe('TimelinePanel', () => {
 
 	it('does not render the layer rows when collapsed=true', () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2')
 		];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps, collapsed: true }
@@ -701,7 +754,7 @@ describe('TimelinePanel', () => {
 	});
 
 	it('switches the collapse toggle aria-label between Collapse and Expand by prop', () => {
-		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const layers = [pixelLayer('a', 'Layer 1')];
 		const { container: expandedContainer } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps, collapsed: false }
 		});
@@ -720,7 +773,7 @@ describe('TimelinePanel', () => {
 	});
 
 	it('reflects the collapsed prop via aria-expanded on the collapse toggle', () => {
-		const layers = [{ id: 'a', name: 'Layer 1' }];
+		const layers = [pixelLayer('a', 'Layer 1')];
 		const { container: expandedContainer } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'a', ...defaultProps, collapsed: false }
 		});
@@ -742,8 +795,8 @@ describe('TimelinePanel', () => {
 
 	it('activates the row when Enter or Space is pressed on a focused row', async () => {
 		const layers = [
-			{ id: 'a', name: 'Layer 1' },
-			{ id: 'b', name: 'Layer 2' }
+			pixelLayer('a', 'Layer 1'),
+			pixelLayer('b', 'Layer 2')
 		];
 		const onActivateLayer = vi.fn();
 		const { container } = render(TimelinePanel, {

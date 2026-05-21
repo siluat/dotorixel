@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 111 | 79 | 32 | 89 | 71% | 47% |
-| cubic-dev-ai[bot] | 66 | 53 | 13 | 112 | 80% | 32% |
-| coderabbitai[bot] | 153 | 102 | 51 | 61 | 67% | 63% |
+| greptile-apps[bot] | 111 | 79 | 32 | 91 | 71% | 46% |
+| cubic-dev-ai[bot] | 67 | 54 | 13 | 113 | 81% | 32% |
+| coderabbitai[bot] | 154 | 103 | 51 | 62 | 67% | 62% |
 
 ## Log
 
@@ -606,3 +606,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #215 | coderabbitai[bot] | Miss | Did not flag non-finite Reference Layer placement x/y at the V4 hydration boundary |
 | #215 | cubic-dev-ai[bot] | Miss | Did not flag explicit `ReferenceLayerSnapshot` predicate clarity in workspace hydration |
 | #215 | coderabbitai[bot] | Miss | Did not flag explicit `ReferenceLayerSnapshot` predicate clarity in workspace hydration |
+| #217 | cubic-dev-ai[bot] | Accept | Restore Reference Layer thumbnail exclusion note in platform status |
+| #217 | coderabbitai[bot] | Accept | Rename noun-style test helper to action-style `makePixelRgba` |
+| #217 | coderabbitai[bot] | Miss | Did not flag platform-status thumbnail exclusion wording regression |
+| #217 | greptile-apps[bot] | Miss | Did not flag platform-status thumbnail exclusion wording regression |
+| #217 | cubic-dev-ai[bot] | Miss | Did not flag noun-style `pixel` test helper name |
+| #217 | greptile-apps[bot] | Miss | Did not flag noun-style `pixel` test helper name |

@@ -1,6 +1,6 @@
 ---
 title: "Reference Layer: TS V4 schema + V3→V4 migration (not yet wired)"
-status: needs-triage
+status: done
 created: 2026-05-16
 parent: 105-reference-layer-type.md
 ---
@@ -46,3 +46,22 @@ Scope:
 ## User stories addressed
 
 - Foundation for #18.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/session/session-storage-types.ts` | Added the V4 mixed-layer schema types and the V3→V4 migration helper. |
+| `src/lib/session/session-storage-types.test.ts` | Added migration coverage for Pixel Layer wrapping, metadata preservation, idempotent V4 input, and empty-layer rejection. |
+| `src/lib/canvas/workspace-snapshot.ts` | Kept runtime tab snapshots on the V3 Pixel-layer-only record type until V4 persistence is wired. |
+| `src/lib/canvas/wasm-backend.ts` | Kept Document hydration on the V3 Pixel-layer-only record type until Reference Layer hydration lands. |
+
+### Key Decisions
+
+- `DocumentRecord` remains V3 for now because this slice defines the V4 schema but does not wire IndexedDB or TabState to it; issue 115 owns that integration.
+- The existing V3 layer shape was renamed to `PixelLayerRecordV3`, leaving the new `LayerRecord` name for the V4 `kind: 'pixel' | 'reference'` union.
+
+### Notes
+
+- `migrateV3ToV4()` is intentionally unused outside tests in this slice.
+- V3 documents with no layers are rejected defensively instead of silently producing an invalid V4 document.

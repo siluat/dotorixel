@@ -4,7 +4,11 @@ import type { ViewportData } from '../viewport';
 import type { ToolType } from '../tool-registry';
 import { isValidToolType } from '../tool-registry';
 import { SharedState } from '../shared-state.svelte';
-import type { WorkspaceSnapshot, TabSnapshot } from '../workspace-snapshot';
+import type {
+	WorkspaceSnapshot,
+	TabSnapshot,
+	ReferenceLayerSnapshot
+} from '../workspace-snapshot';
 import { documentFromLayerSource, singleLayerDocument } from '../wasm-backend';
 import { References } from '$lib/reference-images/references.svelte';
 import type { CanvasBackend } from './canvas-backend';
@@ -226,7 +230,7 @@ export class Workspace {
 			const document = documentFromLayerSource(tabSnap);
 			const referenceLayerBlobs = new Map(
 				tabSnap.layers
-					.filter((layer) => 'kind' in layer && layer.kind === 'reference')
+					.filter((layer): layer is ReferenceLayerSnapshot => layer.kind === 'reference')
 					.map((layer) => [layer.id, layer.sourceBlob])
 			);
 			const tab = this.createTab({

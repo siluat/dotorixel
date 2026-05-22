@@ -13,6 +13,8 @@ export interface RenderableCanvas {
 }
 
 export interface ReferenceUnderlay {
+	/** Stable identity for the source pixels; must change when the source image changes. */
+	readonly sourceKey: string;
 	readonly sourceRgba: Uint8Array;
 	readonly naturalWidth: number;
 	readonly naturalHeight: number;
@@ -23,6 +25,13 @@ export interface ReferenceUnderlay {
 const MIN_CHECKER_SIZE = 4;
 const CHECKER_LIGHT = '#ffffff';
 const CHECKER_DARK = '#e0e0e0';
+
+interface CachedReferenceRaster {
+	readonly key: string;
+	readonly canvas: OffscreenCanvas;
+}
+
+let cachedReferenceRaster: CachedReferenceRaster | undefined;
 
 function effectivePixelSize(viewport: ViewportData): number {
 	return Math.round(viewport.pixelSize * viewport.zoom);
@@ -92,6 +101,33 @@ function renderPixels(
 	ctx.drawImage(offscreen, 0, 0, displayWidth, displayHeight);
 }
 
+function referenceRasterKey(reference: ReferenceUnderlay): string {
+	return [
+		reference.sourceKey,
+		reference.naturalWidth,
+		reference.naturalHeight,
+		reference.sourceRgba.byteLength
+	].join(':');
+}
+
+function referenceRaster(reference: ReferenceUnderlay): OffscreenCanvas {
+	const key = referenceRasterKey(reference);
+	if (cachedReferenceRaster?.key === key) {
+		return cachedReferenceRaster.canvas;
+	}
+
+	const offscreen = new OffscreenCanvas(reference.naturalWidth, reference.naturalHeight);
+	const offCtx = offscreen.getContext('2d')!;
+	const imageData = new ImageData(
+		new Uint8ClampedArray(reference.sourceRgba),
+		reference.naturalWidth,
+		reference.naturalHeight
+	);
+	offCtx.putImageData(imageData, 0, 0);
+	cachedReferenceRaster = { key, canvas: offscreen };
+	return offscreen;
+}
+
 function renderReferenceUnderlay(
 	ctx: CanvasRenderingContext2D,
 	canvas: RenderableCanvas,
@@ -109,15 +145,7 @@ function renderReferenceUnderlay(
 	const projectedY = y * scaledPixel;
 	const projectedWidth = reference.naturalWidth * scale * scaledPixel;
 	const projectedHeight = reference.naturalHeight * scale * scaledPixel;
-
-	const offscreen = new OffscreenCanvas(reference.naturalWidth, reference.naturalHeight);
-	const offCtx = offscreen.getContext('2d')!;
-	const imageData = new ImageData(
-		new Uint8ClampedArray(reference.sourceRgba),
-		reference.naturalWidth,
-		reference.naturalHeight
-	);
-	offCtx.putImageData(imageData, 0, 0);
+	const sourceRaster = referenceRaster(reference);
 
 	ctx.save();
 	ctx.beginPath();
@@ -127,7 +155,7 @@ function renderReferenceUnderlay(
 	ctx.globalAlpha = Math.min(Math.max(opacity, 0), 1);
 	ctx.imageSmoothingEnabled = true;
 	ctx.drawImage(
-		offscreen,
+		sourceRaster,
 		0,
 		0,
 		reference.naturalWidth,

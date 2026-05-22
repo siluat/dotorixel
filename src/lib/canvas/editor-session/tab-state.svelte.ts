@@ -26,6 +26,15 @@ import type { CanvasBackend } from './canvas-backend';
 import type { DirtyNotifier } from './dirty-notifier';
 import { TabViewport } from './tab-viewport.svelte';
 
+function fingerprintRgba(bytes: Uint8Array): string {
+	let hash = 0x811c9dc5;
+	for (const byte of bytes) {
+		hash ^= byte;
+		hash = Math.imul(hash, 0x01000193);
+	}
+	return (hash >>> 0).toString(16);
+}
+
 function assertNever(x: never): never {
 	throw new Error(`Unhandled effect type: ${(x as { type: string }).type}`);
 }
@@ -107,6 +116,7 @@ export class TabState {
 			const opacity = doc.layer_opacity_at(i);
 			if (!sourceRgba || !dimensions || !placement || opacity === undefined) return undefined;
 			return {
+				sourceKey: `${doc.layer_id_at(i)!}:${fingerprintRgba(sourceRgba)}`,
 				sourceRgba,
 				naturalWidth: dimensions[0],
 				naturalHeight: dimensions[1],

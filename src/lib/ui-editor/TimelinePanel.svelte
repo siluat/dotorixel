@@ -49,13 +49,34 @@
 	let dragBaseIndex = 0;
 	let dragRowHeight = DEFAULT_ROW_HEIGHT_PX;
 
+	const pixelVisualIndices = $derived.by(() =>
+		layers.flatMap((layer, index) => (layer.kind === 'pixel' ? [index] : []))
+	);
+	const canReorderPixels = $derived(pixelVisualIndices.length > 1);
+
+	function pixelReorderTarget(visualIndex: number, direction: -1 | 1): number | null {
+		const current = pixelVisualIndices.indexOf(visualIndex);
+		if (current === -1) return null;
+		return pixelVisualIndices[current + direction] ?? null;
+	}
+
+	function clampToPixelReorderTarget(candidate: number): number {
+		const bounded = Math.max(0, Math.min(layers.length - 1, candidate));
+		for (const index of pixelVisualIndices) {
+			if (bounded <= index) return index;
+		}
+		return pixelVisualIndices.at(-1) ?? bounded;
+	}
+
 	function handleReorderKey(event: KeyboardEvent, id: string, visualIndex: number) {
 		if (event.key === 'ArrowUp') {
 			event.preventDefault();
-			if (visualIndex > 0) onReorderLayer(id, visualIndex - 1);
+			const target = pixelReorderTarget(visualIndex, -1);
+			if (target !== null) onReorderLayer(id, target);
 		} else if (event.key === 'ArrowDown') {
 			event.preventDefault();
-			if (visualIndex < layers.length - 1) onReorderLayer(id, visualIndex + 1);
+			const target = pixelReorderTarget(visualIndex, 1);
+			if (target !== null) onReorderLayer(id, target);
 		} else if (event.key === 'Enter' || event.key === ' ') {
 			// Stop the row's Enter/Space activation handler from firing; the
 			// handle is for reordering, not activation.
@@ -77,14 +98,14 @@
 		const deltaY = clientY - dragStartY;
 		const offset = Math.round(deltaY / dragRowHeight);
 		const candidate = dragBaseIndex + offset;
-		return Math.max(0, Math.min(layers.length - 1, candidate));
+		return clampToPixelReorderTarget(candidate);
 	}
 
 	function handlePointerDown(event: PointerEvent, id: string, visualIndex: number) {
 		// Ignore secondary pointers (e.g. a second finger on a multi-touch device)
 		// while a drag is in progress — only the initiating pointer drives it.
 		if (draggingId !== null) return;
-		if (layers.length < 2) return;
+		if (!canReorderPixels) return;
 		if (event.button !== 0) return;
 		const target = event.currentTarget as HTMLElement;
 		const row = target.closest('[data-layer-row]') as HTMLElement | null;
@@ -237,7 +258,7 @@
 								class="reorder-handle"
 								data-reorder-handle
 								aria-label={m.aria_reorderLayer({ name: layer.name })}
-								disabled={layers.length === 1}
+								disabled={!canReorderPixels}
 								onclick={(e) => e.stopPropagation()}
 								onkeydown={(e) => handleReorderKey(e, layer.id, visualIndex)}
 								onpointerdown={(e) => handlePointerDown(e, layer.id, visualIndex)}

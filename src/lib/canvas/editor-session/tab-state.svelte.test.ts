@@ -471,6 +471,7 @@ describe('TabState — Reference underlay render source', () => {
 
 		expect(tab.compositeBuffer.pixels()).toEqual(paintedPixels);
 		expect(tab.referenceUnderlay).toEqual({
+			sourceKey: expect.stringMatching(`^${referenceId}:`),
 			sourceRgba: referencePixels,
 			naturalWidth: 2,
 			naturalHeight: 1,
@@ -481,6 +482,47 @@ describe('TabState — Reference underlay render source', () => {
 		tab.setLayerVisibility(referenceId, false);
 
 		expect(tab.referenceUnderlay).toBeUndefined();
+	});
+
+	it('changes the Reference source key when source pixels change under the same layer id', () => {
+		const pixelId = crypto.randomUUID();
+		const referenceId = crypto.randomUUID();
+		const sourceBlob = new Blob([new Uint8Array([1])], { type: 'image/png' });
+		const makeDocument = (sourceRgba: Uint8Array) =>
+			documentFromLayerSource({
+				width: 1,
+				height: 1,
+				layers: [
+					{
+						kind: 'pixel',
+						id: pixelId,
+						name: 'Paint',
+						pixels: new Uint8Array([255, 0, 0, 255]),
+						visible: true,
+						opacity: 1
+					},
+					{
+						kind: 'reference',
+						id: referenceId,
+						name: 'Reference',
+						visible: true,
+						opacity: 1,
+						sourceBlob,
+						sourceRgba,
+						naturalWidth: 1,
+						naturalHeight: 1,
+						placement: { x: 0, y: 0, scale: 1 }
+					}
+				],
+				activeLayerId: referenceId,
+				nextLayerNumber: 2,
+				timelinePanelCollapsed: false
+			});
+
+		const { tab: first } = makeTab({ document: makeDocument(new Uint8Array([0, 255, 0, 255])) });
+		const { tab: second } = makeTab({ document: makeDocument(new Uint8Array([0, 0, 255, 255])) });
+
+		expect(first.referenceUnderlay?.sourceKey).not.toBe(second.referenceUnderlay?.sourceKey);
 	});
 
 	it('updates renderVersion and dirty state when committing Reference placement', () => {

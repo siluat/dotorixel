@@ -28,6 +28,10 @@ function pixelLayer(id: string, name: string, opts: { visible?: boolean } = {}) 
 	return { id, name, kind: 'pixel' as const, ...opts };
 }
 
+function referenceLayer(id: string, name: string, opts: { visible?: boolean } = {}) {
+	return { id, name, kind: 'reference' as const, ...opts };
+}
+
 describe('TimelinePanel', () => {
 	it('renders a single row showing the layer name when one layer is provided', () => {
 		const layers = [pixelLayer('a', 'Layer 1')];
@@ -57,10 +61,7 @@ describe('TimelinePanel', () => {
 	});
 
 	it('renders distinct kind icons for Pixel and Reference Layer rows', () => {
-		const layers = [
-			pixelLayer('paint', 'Paint'),
-			{ id: 'reference', name: 'Sketch reference', kind: 'reference' as const }
-		];
+		const layers = [pixelLayer('paint', 'Paint'), referenceLayer('reference', 'Sketch reference')];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'paint', ...defaultProps }
 		});
@@ -86,11 +87,8 @@ describe('TimelinePanel', () => {
 		);
 	});
 
-	it('omits the reorder handle for the fixed-bottom Reference Layer row', () => {
-		const layers = [
-			pixelLayer('paint', 'Paint'),
-			{ id: 'reference', name: 'Sketch reference', kind: 'reference' as const }
-		];
+	it('omits the reorder handle for the fixed-bottom Reference row and disables the sole Pixel handle', () => {
+		const layers = [pixelLayer('paint', 'Paint'), referenceLayer('reference', 'Sketch reference')];
 		const { container } = render(TimelinePanel, {
 			props: { layers, activeLayerId: 'paint', ...defaultProps }
 		});
@@ -102,7 +100,9 @@ describe('TimelinePanel', () => {
 			'[data-layer-row][data-layer-id="reference"]'
 		) as HTMLElement;
 
-		expect(paintRow.querySelector('[data-reorder-handle]')).not.toBeNull();
+		const paintHandle = paintRow.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+		expect(paintHandle).not.toBeNull();
+		expect(paintHandle.disabled).toBe(true);
 		expect(referenceRow.querySelector('[data-reorder-handle]')).toBeNull();
 	});
 
@@ -309,7 +309,7 @@ describe('TimelinePanel', () => {
 		expect(handle.disabled).toBe(true);
 	});
 
-	it('enables the reorder handle on every row when two or more layers are present', () => {
+	it('enables the reorder handle on every Pixel row when two or more Pixel Layers are present', () => {
 		const layers = [
 			pixelLayer('a', 'Layer 1'),
 			pixelLayer('b', 'Layer 2')
@@ -440,6 +440,25 @@ describe('TimelinePanel', () => {
 		expect(onReorderLayer).not.toHaveBeenCalled();
 	});
 
+	it('ArrowDown on the bottom Pixel row above a Reference row is a no-op', async () => {
+		const layers = [
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('a', 'Layer 1'),
+			referenceLayer('reference', 'Sketch reference')
+		];
+		const onReorderLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
+		});
+
+		const rowA = container.querySelector('[data-layer-row][data-layer-id="a"]') as HTMLElement;
+		const handle = rowA.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+		handle.focus();
+		await fireEvent.keyDown(handle, { key: 'ArrowDown' });
+
+		expect(onReorderLayer).not.toHaveBeenCalled();
+	});
+
 	it('pointer-dragging row C downward by two row-heights and releasing calls onReorderLayer with the dropped visual index', async () => {
 		const layers = [
 			pixelLayer('c', 'Layer 3'),
@@ -457,6 +476,27 @@ describe('TimelinePanel', () => {
 		await fireEvent.pointerDown(handleC, { clientY: 0, pointerId: 1 });
 		await fireEvent.pointerMove(handleC, { clientY: 64, pointerId: 1 });
 		await fireEvent.pointerUp(handleC, { clientY: 64, pointerId: 1 });
+
+		expect(onReorderLayer).toHaveBeenCalledWith('c', 2);
+	});
+
+	it('pointer-dragging cannot target the fixed Reference row', async () => {
+		const layers = [
+			pixelLayer('c', 'Layer 3'),
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('a', 'Layer 1'),
+			referenceLayer('reference', 'Sketch reference')
+		];
+		const onReorderLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
+		});
+
+		const rowC = container.querySelector('[data-layer-row][data-layer-id="c"]') as HTMLElement;
+		const handleC = rowC.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+
+		await fireEvent.pointerDown(handleC, { clientY: 0, pointerId: 1 });
+		await fireEvent.pointerUp(handleC, { clientY: 96, pointerId: 1 });
 
 		expect(onReorderLayer).toHaveBeenCalledWith('c', 2);
 	});

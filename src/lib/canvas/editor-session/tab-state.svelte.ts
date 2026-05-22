@@ -1,8 +1,15 @@
-import type { Document, PixelCanvas, CanvasCoords, ResizeAnchor } from '../canvas-model';
+import type {
+	Document,
+	PixelCanvas,
+	CanvasCoords,
+	ResizeAnchor,
+	ReferencePlacement
+} from '../canvas-model';
 import { resizeDocumentWithAnchor, singleLayerDocument } from '../wasm-backend';
 import { isBlankCanvas } from '../blank-detection';
 import type { ViewportData, ViewportSize } from '../viewport';
 import { addRecentColor } from '../color';
+import type { ReferenceUnderlay } from '../renderer';
 import type { SharedState } from '../shared-state.svelte';
 import { decodeReferenceBlob } from '../../reference-images/decode-reference-blob';
 import {
@@ -72,8 +79,9 @@ export class TabState {
 
 	/**
 	 * Renderer-facing view of the document. `pixels()` returns the full
-	 * source-over composite of every visible layer — the main canvas reads
-	 * this so all layers are visible, not just the active one.
+	 * source-over composite of every visible Pixel Layer. Reference Layers are
+	 * exposed separately through `referenceUnderlay` so the renderer can draw
+	 * the original image before the Pixel composite.
 	 */
 	get compositeBuffer(): { readonly width: number; readonly height: number; pixels(): Uint8Array } {
 		const self = this;
@@ -86,6 +94,31 @@ export class TabState {
 			},
 			pixels: () => self.document.composite()
 		};
+	}
+
+	get referenceUnderlay(): ReferenceUnderlay | undefined {
+		const doc = this.document;
+		for (let i = 0; i < doc.layer_count(); i++) {
+			if (doc.layer_kind_at(i) !== 'reference') continue;
+			if (!doc.layer_visible_at(i)) return undefined;
+			const sourceRgba = doc.layer_source_pixels_at(i);
+			const dimensions = doc.layer_source_dimensions_at(i);
+			const placement = doc.layer_placement_at(i);
+			const opacity = doc.layer_opacity_at(i);
+			if (!sourceRgba || !dimensions || !placement || opacity === undefined) return undefined;
+			return {
+				sourceRgba,
+				naturalWidth: dimensions[0],
+				naturalHeight: dimensions[1],
+				placement: {
+					x: placement.x,
+					y: placement.y,
+					scale: placement.scale
+				},
+				opacity
+			};
+		}
+		return undefined;
 	}
 
 	/**
@@ -357,9 +390,12 @@ export class TabState {
 		const count = this.document.layer_count();
 		const targetStackIdx = count - 1 - newVisualIndex;
 		const currentStackIdx = this.#stackIndexOf(id);
-		if (currentStackIdx === targetStackIdx) return;
+		if (this.document.layer_kind_at(currentStackIdx) === 'reference') return;
+		const effectiveTargetStackIdx =
+			this.document.layer_kind_at(0) === 'reference' ? Math.max(1, targetStackIdx) : targetStackIdx;
+		if (currentStackIdx === effectiveTargetStackIdx) return;
 		this.#toolRunner.pushSnapshot();
-		this.document.reorder_layer(id, targetStackIdx);
+		this.document.reorder_layer(id, effectiveTargetStackIdx);
 		this.renderVersion++;
 		this.#notifier.markDirty(this.documentId);
 	};
@@ -377,6 +413,25 @@ export class TabState {
 		if (this.document.layer_visible_at(stackIdx) === visible) return;
 		this.#toolRunner.pushSnapshot();
 		this.document.set_layer_visibility(id, visible);
+		this.renderVersion++;
+		this.#notifier.markDirty(this.documentId);
+	};
+
+	setReferencePlacement = (id: string, placement: ReferencePlacement): void => {
+		const stackIdx = this.#stackIndexOf(id);
+		const current = this.document.layer_placement_at(stackIdx);
+		if (!current) {
+			throw new Error(`Layer with id ${id} is not a Reference Layer`);
+		}
+		if (
+			current.x === placement.x &&
+			current.y === placement.y &&
+			current.scale === placement.scale
+		) {
+			return;
+		}
+		this.#toolRunner.pushSnapshot();
+		this.document.set_reference_placement(id, placement.x, placement.y, placement.scale);
 		this.renderVersion++;
 		this.#notifier.markDirty(this.documentId);
 	};

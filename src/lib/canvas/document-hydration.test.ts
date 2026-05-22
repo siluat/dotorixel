@@ -114,14 +114,14 @@ describe('documentFromLayerSource', () => {
 		});
 
 		expect(doc.layer_count()).toBe(2);
-		expect(doc.layer_kind_at(0)).toBe('pixel');
-		expect(doc.layer_kind_at(1)).toBe('reference');
-		expect(doc.layer_id_at(1)).toBe(referenceId);
-		expect(doc.layer_visible_at(1)).toBe(false);
-		expect(doc.layer_opacity_at(1)).toBeCloseTo(0.5);
-		expect(doc.layer_source_pixels_at(1)).toEqual(sourceRgba);
-		expect(Array.from(doc.layer_source_dimensions_at(1)!)).toEqual([2, 1]);
-		const placement = doc.layer_placement_at(1)!;
+		expect(doc.layer_kind_at(0)).toBe('reference');
+		expect(doc.layer_kind_at(1)).toBe('pixel');
+		expect(doc.layer_id_at(0)).toBe(referenceId);
+		expect(doc.layer_visible_at(0)).toBe(false);
+		expect(doc.layer_opacity_at(0)).toBeCloseTo(0.5);
+		expect(doc.layer_source_pixels_at(0)).toEqual(sourceRgba);
+		expect(Array.from(doc.layer_source_dimensions_at(0)!)).toEqual([2, 1]);
+		const placement = doc.layer_placement_at(0)!;
 		expect(placement.x).toBe(3);
 		expect(placement.y).toBe(4);
 		expect(placement.scale).toBe(2);

@@ -308,7 +308,9 @@ impl PixelCanvas {
             return false;
         }
 
-        let target_color = self.get_pixel(start_x, start_y).expect("bounds already validated");
+        let target_color = self
+            .get_pixel(start_x, start_y)
+            .expect("bounds already validated");
         if target_color == fill_color {
             return false;
         }
@@ -1029,7 +1031,11 @@ mod tests {
         let green = Color::new(0, 255, 0, 255);
         assert!(canvas.flood_fill(0, 0, green));
         assert_eq!(canvas.get_pixel(0, 0).unwrap(), green);
-        assert_eq!(canvas.get_pixel(1, 1).unwrap(), RED, "diagonal should not be filled");
+        assert_eq!(
+            canvas.get_pixel(1, 1).unwrap(),
+            RED,
+            "diagonal should not be filled"
+        );
     }
 
     #[test]

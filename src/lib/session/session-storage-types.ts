@@ -100,6 +100,42 @@ export type DocumentSchemaV4 = Omit<DocumentSchemaV3, 'schemaVersion' | 'layers'
 	layers: LayerRecord[];
 };
 
+function isReferenceLayerRecord(layer: LayerRecord): layer is ReferenceLayerRecord {
+	return layer.kind === 'reference';
+}
+
+function normalizeV4ReferenceLayer(doc: DocumentSchemaV4): DocumentSchemaV4 {
+	let keptReferenceIndex = -1;
+	for (let i = doc.layers.length - 1; i >= 0; i--) {
+		if (isReferenceLayerRecord(doc.layers[i])) {
+			keptReferenceIndex = i;
+			break;
+		}
+	}
+	if (keptReferenceIndex === -1) return doc;
+
+	const keptReference = doc.layers[keptReferenceIndex] as ReferenceLayerRecord;
+	const pixelLayers = doc.layers.filter(
+		(layer): layer is PixelLayerRecord => layer.kind === 'pixel'
+	);
+	const normalizedLayers: LayerRecord[] = [keptReference, ...pixelLayers];
+	const activeWasReference = doc.layers.some(
+		(layer) => layer.id === doc.activeLayerId && layer.kind === 'reference'
+	);
+	const normalizedActiveLayerId = activeWasReference ? keptReference.id : doc.activeLayerId;
+	const alreadyNormalized =
+		normalizedActiveLayerId === doc.activeLayerId &&
+		normalizedLayers.length === doc.layers.length &&
+		normalizedLayers.every((layer, index) => layer === doc.layers[index]);
+
+	if (alreadyNormalized) return doc;
+	return {
+		...doc,
+		layers: normalizedLayers,
+		activeLayerId: normalizedActiveLayerId
+	};
+}
+
 /**
  * Wraps a V2 single-canvas document as a V3 Document with one "Layer 1".
  * History is dropped — V2 single-canvas snapshots are incompatible with the
@@ -136,7 +172,7 @@ export function migrateV2ToV3(doc: DocumentSchemaV2): DocumentSchemaV3 {
  * History stays absent because legacy V3 snapshots have no layer-kind data.
  */
 export function migrateV3ToV4(doc: DocumentSchemaV3 | DocumentSchemaV4): DocumentSchemaV4 {
-	if (doc.schemaVersion === 4) return doc;
+	if (doc.schemaVersion === 4) return normalizeV4ReferenceLayer(doc);
 	if (doc.layers.length === 0) {
 		throw new Error('Cannot migrate a V3 document with no layers');
 	}

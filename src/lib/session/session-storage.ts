@@ -29,7 +29,7 @@ const DB_VERSION = 4;
 
 function normalizeToV4(stored: StoredDocument): DocumentRecord {
 	if ('schemaVersion' in stored) {
-		if (stored.schemaVersion === 4) return stored;
+		if (stored.schemaVersion === 4) return migrateV3ToV4(stored);
 		if (stored.schemaVersion === 3) return migrateV3ToV4(stored);
 		if (stored.schemaVersion === 2) return migrateV3ToV4(migrateV2ToV3(stored));
 		throw new Error(

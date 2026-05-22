@@ -120,6 +120,44 @@ describe('migrateV3ToV4', () => {
 		expect(migrateV3ToV4(v4)).toBe(v4);
 	});
 
+	it('normalizes already-V4 Reference Layers to one bottom-most underlay', () => {
+		const v4 = migrateV3ToV4(makeV3());
+		const oldReference: ReferenceLayerRecord = {
+			kind: 'reference',
+			id: 'old-reference',
+			name: 'Old reference',
+			visible: true,
+			opacity: 1,
+			sourceBlob: new Blob(['old'], { type: 'image/png' }),
+			naturalWidth: 1,
+			naturalHeight: 1,
+			placement: { x: 0, y: 0, scale: 1 }
+		};
+		const keptReference: ReferenceLayerRecord = {
+			kind: 'reference',
+			id: 'kept-reference',
+			name: 'Kept reference',
+			visible: false,
+			opacity: 0.5,
+			sourceBlob: new Blob(['kept'], { type: 'image/png' }),
+			naturalWidth: 2,
+			naturalHeight: 1,
+			placement: { x: 3, y: 4, scale: 2 }
+		};
+		const mixed: DocumentSchemaV4 = {
+			...v4,
+			layers: [v4.layers[0], oldReference, v4.layers[1], keptReference],
+			activeLayerId: oldReference.id
+		};
+
+		const normalized = migrateV3ToV4(mixed);
+
+		expect(normalized.layers).toHaveLength(3);
+		expect(normalized.layers[0]).toBe(keptReference);
+		expect(normalized.layers.map((layer) => layer.kind)).toEqual(['reference', 'pixel', 'pixel']);
+		expect(normalized.activeLayerId).toBe(keptReference.id);
+	});
+
 	it('rejects a V3 document with no layers', () => {
 		const empty = makeV3({ layers: [] });
 

@@ -47,8 +47,9 @@ export interface PixelCanvas {
 
 /**
  * Document with a stack of layers, an active-layer pointer, and presentation
- * state. The `composite()` method returns a row-major RGBA buffer of all
- * visible layers blended bottom-to-top.
+ * state. The `composite()` method returns a row-major RGBA buffer of visible
+ * Pixel Layers blended bottom-to-top; Reference Layers are rendered separately
+ * as viewport underlays.
  *
  * Structurally satisfied by WasmDocument. Method names are snake_case to
  * match the WASM bindings; the structural-compatibility check in
@@ -95,8 +96,9 @@ export interface Document {
 	 */
 	add_layer(new_id: string, name: string): void;
 	/**
-	 * Appends a Reference Layer with decoded source RGBA bytes. The core
-	 * computes the initial auto-fit placement and makes the new layer active.
+	 * Sets the singleton Reference Layer with decoded source RGBA bytes. The
+	 * core computes the initial auto-fit placement, keeps the Reference
+	 * bottom-most, and makes it active.
 	 */
 	add_reference_layer(
 		new_id: string,
@@ -118,10 +120,11 @@ export interface Document {
 	 */
 	set_active_layer(id: string): void;
 	/**
-	 * Moves the layer with `id` to `new_index` in the stack (0 = z-bottom).
-	 * `new_index` is silently clamped to `[0, layer_count - 1]`. The active
-	 * layer pointer is preserved across reordering — it's tracked by id, not
-	 * by index. Throws if no layer with this id exists.
+	 * Moves a Pixel Layer with `id` to `new_index` in the stack (0 = z-bottom).
+	 * `new_index` is silently clamped to `[0, layer_count - 1]`, and cannot
+	 * place Pixel Layers below a Reference Layer. Reference reorder attempts
+	 * are no-ops. The active layer pointer is preserved across reordering —
+	 * it's tracked by id, not by index. Throws if no layer with this id exists.
 	 */
 	reorder_layer(id: string, new_index: number): void;
 	/**

@@ -47,12 +47,7 @@ impl LayerKind {
 impl Layer {
     /// Creates a fully-transparent Pixel Layer of `width × height`. New
     /// layers start `visible = true` and `opacity = 1.0`.
-    pub fn new(
-        id: Uuid,
-        name: String,
-        width: u32,
-        height: u32,
-    ) -> Result<Self, PixelCanvasError> {
+    pub fn new(id: Uuid, name: String, width: u32, height: u32) -> Result<Self, PixelCanvasError> {
         Ok(Self {
             id,
             name,
@@ -67,16 +62,27 @@ impl Layer {
 /// is inconsistent with the declared natural dimensions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReferenceDataError {
-    InvalidDimension { value: u32 },
-    InvalidBufferLength { expected: usize, actual: usize },
-    DimensionsTooLarge { natural_width: u32, natural_height: u32 },
+    InvalidDimension {
+        value: u32,
+    },
+    InvalidBufferLength {
+        expected: usize,
+        actual: usize,
+    },
+    DimensionsTooLarge {
+        natural_width: u32,
+        natural_height: u32,
+    },
 }
 
 impl fmt::Display for ReferenceDataError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidDimension { value } => {
-                write!(f, "Reference Layer natural dimension must be at least 1; got {value}.")
+                write!(
+                    f,
+                    "Reference Layer natural dimension must be at least 1; got {value}."
+                )
             }
             Self::InvalidBufferLength { expected, actual } => {
                 write!(
@@ -84,7 +90,10 @@ impl fmt::Display for ReferenceDataError {
                     "Reference Layer source buffer length must be {expected} bytes (natural_width × natural_height × 4); got {actual}.",
                 )
             }
-            Self::DimensionsTooLarge { natural_width, natural_height } => {
+            Self::DimensionsTooLarge {
+                natural_width,
+                natural_height,
+            } => {
                 write!(
                     f,
                     "Reference Layer natural dimensions {natural_width}×{natural_height} exceed this platform's usize range.",
@@ -120,10 +129,14 @@ impl ReferenceData {
         placement: ReferencePlacement,
     ) -> Result<Self, ReferenceDataError> {
         if natural_width == 0 {
-            return Err(ReferenceDataError::InvalidDimension { value: natural_width });
+            return Err(ReferenceDataError::InvalidDimension {
+                value: natural_width,
+            });
         }
         if natural_height == 0 {
-            return Err(ReferenceDataError::InvalidDimension { value: natural_height });
+            return Err(ReferenceDataError::InvalidDimension {
+                value: natural_height,
+            });
         }
         let expected = (natural_width as usize)
             .checked_mul(natural_height as usize)
@@ -192,7 +205,11 @@ mod tests {
     #[test]
     fn reference_data_new_accepts_buffer_matching_dimensions() {
         let rgba = vec![0u8; 4 * 4 * 4];
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 1.0,
+        };
         let data = ReferenceData::new(rgba, 4, 4, placement).unwrap();
         assert_eq!(data.natural_width(), 4);
         assert_eq!(data.natural_height(), 4);
@@ -202,17 +219,28 @@ mod tests {
 
     #[test]
     fn reference_data_new_rejects_buffer_length_mismatch() {
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 1.0,
+        };
         let err = ReferenceData::new(vec![0u8; 10], 4, 4, placement).unwrap_err();
         assert_eq!(
             err,
-            ReferenceDataError::InvalidBufferLength { expected: 64, actual: 10 }
+            ReferenceDataError::InvalidBufferLength {
+                expected: 64,
+                actual: 10
+            }
         );
     }
 
     #[test]
     fn reference_data_new_rejects_zero_dimension() {
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 1.0,
+        };
         let err = ReferenceData::new(vec![], 0, 4, placement).unwrap_err();
         assert_eq!(err, ReferenceDataError::InvalidDimension { value: 0 });
     }
@@ -220,7 +248,11 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "32")]
     fn reference_data_new_rejects_dimensions_that_overflow_usize_on_32_bit() {
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 1.0,
+        };
         let err = ReferenceData::new(vec![], 65536, 65536, placement).unwrap_err();
         assert_eq!(
             err,

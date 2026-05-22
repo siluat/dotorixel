@@ -573,7 +573,10 @@ mod tests {
         let ids: Vec<Uuid> = restored.layers().iter().map(|l| l.id).collect();
         assert_eq!(ids, vec![a, b]);
         assert_eq!(restored.layers()[1].name, "B");
-        assert_eq!(pixel_canvas(&restored.layers()[1]).get_pixel(0, 0).unwrap(), red);
+        assert_eq!(
+            pixel_canvas(&restored.layers()[1]).get_pixel(0, 0).unwrap(),
+            red
+        );
     }
 
     #[test]

@@ -86,6 +86,26 @@ describe('TimelinePanel', () => {
 		);
 	});
 
+	it('omits the reorder handle for the fixed-bottom Reference Layer row', () => {
+		const layers = [
+			pixelLayer('paint', 'Paint'),
+			{ id: 'reference', name: 'Sketch reference', kind: 'reference' as const }
+		];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'paint', ...defaultProps }
+		});
+
+		const paintRow = container.querySelector(
+			'[data-layer-row][data-layer-id="paint"]'
+		) as HTMLElement;
+		const referenceRow = container.querySelector(
+			'[data-layer-row][data-layer-id="reference"]'
+		) as HTMLElement;
+
+		expect(paintRow.querySelector('[data-reorder-handle]')).not.toBeNull();
+		expect(referenceRow.querySelector('[data-reorder-handle]')).toBeNull();
+	});
+
 	it('marks the active layer row with aria-current and leaves others unmarked', () => {
 		const layers = [
 			pixelLayer('a', 'Layer 1'),
@@ -262,7 +282,7 @@ describe('TimelinePanel', () => {
 		for (const b of btns) expect(b.disabled).toBe(false);
 	});
 
-	it('renders a reorder handle on every layer row', () => {
+	it('renders a reorder handle on every Pixel Layer row', () => {
 		const layers = [
 			pixelLayer('a', 'Layer 1'),
 			pixelLayer('b', 'Layer 2'),

@@ -237,7 +237,7 @@ describe('SessionPersistence', () => {
 
 		expect(restored).not.toBeNull();
 		expect(decodeReferenceBlob).toHaveBeenCalledOnce();
-		const restoredReference = expectReferenceLayer(restored!.tabs[0].layers[1]);
+		const restoredReference = expectReferenceLayer(restored!.tabs[0].layers[0]);
 		expect(restoredReference.sourceBlob.type).toBe('image/png');
 		expect(Array.from(restoredReference.sourceRgba)).toEqual(Array.from(sourceRgba));
 		expect(restoredReference.naturalWidth).toBe(2);
@@ -313,14 +313,14 @@ describe('SessionPersistence', () => {
 			restored: restored!
 		});
 
-		expect(workspace.activeTab.document.layer_kind_at(1)).toBe('reference');
-		const placement = workspace.activeTab.document.layer_placement_at(1)!;
+		expect(workspace.activeTab.document.layer_kind_at(0)).toBe('reference');
+		const placement = workspace.activeTab.document.layer_placement_at(0)!;
 		expect(placement.x).toBe(1);
 		expect(placement.y).toBe(2);
 		expect(placement.scale).toBe(3);
 
 		const snapshot = workspace.toSnapshot();
-		const referenceLayer = expectReferenceLayer(snapshot.tabs[0].layers[1]);
+		const referenceLayer = expectReferenceLayer(snapshot.tabs[0].layers[0]);
 		expect(referenceLayer.sourceBlob.type).toBe('image/png');
 		expect(Array.from(referenceLayer.sourceRgba)).toEqual(Array.from(sourceRgba));
 		expect(referenceLayer.placement).toEqual({ x: 1, y: 2, scale: 3 });

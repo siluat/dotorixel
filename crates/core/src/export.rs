@@ -164,9 +164,7 @@ mod tests {
     #[test]
     fn svg_opaque_pixel_produces_rect() {
         let mut canvas = PixelCanvas::new(2, 2).unwrap();
-        canvas
-            .set_pixel(1, 0, Color::new(255, 0, 0, 255))
-            .unwrap();
+        canvas.set_pixel(1, 0, Color::new(255, 0, 0, 255)).unwrap();
 
         let svg = canvas.encode_svg().unwrap();
 
@@ -226,9 +224,7 @@ mod tests {
     fn svg_semi_transparent_pixel_has_fill_opacity() {
         let mut canvas = PixelCanvas::new(1, 1).unwrap();
         // alpha 128 → opacity 128/255 ≈ 0.502
-        canvas
-            .set_pixel(0, 0, Color::new(255, 0, 0, 128))
-            .unwrap();
+        canvas.set_pixel(0, 0, Color::new(255, 0, 0, 128)).unwrap();
 
         let svg = canvas.encode_svg().unwrap();
 
@@ -239,9 +235,7 @@ mod tests {
     fn svg_transparent_pixels_omitted() {
         let mut canvas = PixelCanvas::new(2, 2).unwrap();
         // Only set one pixel; the other three remain transparent
-        canvas
-            .set_pixel(0, 0, Color::new(0, 0, 255, 255))
-            .unwrap();
+        canvas.set_pixel(0, 0, Color::new(0, 0, 255, 255)).unwrap();
 
         let svg = canvas.encode_svg().unwrap();
 

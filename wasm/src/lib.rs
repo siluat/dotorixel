@@ -316,7 +316,7 @@ impl WasmDocument {
         Ok(())
     }
 
-    /// Inserts a Reference Layer directly above the active layer and makes it
+    /// Sets the singleton Reference Layer, keeps it bottom-most, and makes it
     /// active. The core computes its initial auto-fit placement.
     pub fn add_reference_layer(
         &mut self,
@@ -346,8 +346,8 @@ impl WasmDocument {
             .map_err(|e| JsError::new(&e.to_string()))
     }
 
-    /// RGBA row-major composite buffer (`width * height * 4` bytes), suitable
-    /// for `ImageData`.
+    /// RGBA row-major Pixel-only composite buffer (`width * height * 4`
+    /// bytes), suitable for `ImageData`.
     pub fn composite(&self) -> Vec<u8> {
         self.inner.composite()
     }
@@ -402,8 +402,9 @@ impl WasmDocument {
             .map_err(|e| JsError::new(&e.to_string()))
     }
 
-    /// Moves the layer with `id` to `new_index`. `new_index` is silently
-    /// clamped to `[0, layer_count - 1]`. The active layer pointer is
+    /// Moves a Pixel Layer with `id` to `new_index`. `new_index` is silently
+    /// clamped to `[0, layer_count - 1]` and never below a Reference Layer.
+    /// Reference reorder attempts are no-ops. The active layer pointer is
     /// preserved across reordering (tracked by id, not by index).
     pub fn reorder_layer(&mut self, id: String, new_index: usize) -> Result<(), JsError> {
         let layer_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
@@ -618,7 +619,8 @@ impl WasmDocumentBuilder {
 
     /// Appends an existing Reference Layer to the in-progress stack. This is
     /// used by persistence hydration, where placement and display state must
-    /// be restored exactly rather than recomputed through auto-fit.
+    /// be restored exactly rather than recomputed through auto-fit. The final
+    /// Document build normalizes Reference data to one bottom-most underlay.
     pub fn add_reference_layer(
         &mut self,
         id: String,
@@ -1285,14 +1287,14 @@ mod tests {
 
         assert_eq!(doc.layer_count(), 2);
         assert_eq!(doc.active_layer_id(), reference.to_string());
-        assert_eq!(doc.layer_kind_at(0).as_deref(), Some("pixel"));
-        assert_eq!(doc.layer_kind_at(1).as_deref(), Some("reference"));
+        assert_eq!(doc.layer_kind_at(0).as_deref(), Some("reference"));
+        assert_eq!(doc.layer_kind_at(1).as_deref(), Some("pixel"));
         assert_eq!(doc.layer_kind_at(2), None);
-        assert_eq!(doc.layer_source_pixels_at(0), None);
-        assert_eq!(doc.layer_source_pixels_at(1), Some(source_rgba));
-        assert_eq!(doc.layer_source_dimensions_at(1), Some(vec![2, 1]));
+        assert_eq!(doc.layer_source_pixels_at(0), Some(source_rgba));
+        assert_eq!(doc.layer_source_pixels_at(1), None);
+        assert_eq!(doc.layer_source_dimensions_at(0), Some(vec![2, 1]));
 
-        let placement = doc.layer_placement_at(1).unwrap();
+        let placement = doc.layer_placement_at(0).unwrap();
         assert_eq!(placement.x(), 1.0);
         assert_eq!(placement.y(), 1.5);
         assert_eq!(placement.scale(), 1.0);
@@ -1322,12 +1324,12 @@ mod tests {
             .expect("reference footprint covers 0,0");
         assert_eq!(sampled.inner, Color::new(0, 255, 0, 255));
         assert!(doc.try_get_pixel(1, 1).is_none());
-        assert_eq!(&doc.composite()[..4], &[0, 255, 0, 255]);
+        assert_eq!(&doc.composite()[..4], &[255, 0, 0, 255]);
         assert_eq!(&doc.composite_for_export()[..4], &[255, 0, 0, 255]);
 
         doc.set_reference_placement(reference.to_string(), 1.0, 0.0, 1.0)
             .unwrap();
-        let placement = doc.layer_placement_at(1).unwrap();
+        let placement = doc.layer_placement_at(0).unwrap();
         assert_eq!(placement.x(), 1.0);
         assert!(doc.try_get_pixel(0, 0).is_none());
         assert_eq!(

@@ -231,20 +231,22 @@
 						>
 							✕
 						</button>
-						<button
-							type="button"
-							class="reorder-handle"
-							data-reorder-handle
-							aria-label={m.aria_reorderLayer({ name: layer.name })}
-							disabled={layers.length === 1}
-							onclick={(e) => e.stopPropagation()}
-							onkeydown={(e) => handleReorderKey(e, layer.id, visualIndex)}
-							onpointerdown={(e) => handlePointerDown(e, layer.id, visualIndex)}
-							onpointerup={(e) => handlePointerUp(e, layer.id)}
-							onpointercancel={(e) => handlePointerCancel(e, layer.id)}
-						>
-							≡
-						</button>
+						{#if kind === 'pixel'}
+							<button
+								type="button"
+								class="reorder-handle"
+								data-reorder-handle
+								aria-label={m.aria_reorderLayer({ name: layer.name })}
+								disabled={layers.length === 1}
+								onclick={(e) => e.stopPropagation()}
+								onkeydown={(e) => handleReorderKey(e, layer.id, visualIndex)}
+								onpointerdown={(e) => handlePointerDown(e, layer.id, visualIndex)}
+								onpointerup={(e) => handlePointerUp(e, layer.id)}
+								onpointercancel={(e) => handlePointerCancel(e, layer.id)}
+							>
+								≡
+							</button>
+						{/if}
 					</div>
 				{/each}
 			</div>

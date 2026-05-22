@@ -5,7 +5,11 @@
 	import type { SamplingSession } from './sampling/session.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { createWheelInputClassifier } from './wheel-input.ts';
-	import { renderPixelCanvas, type RenderableCanvas } from './renderer.ts';
+	import {
+		renderPixelCanvas,
+		type ReferenceUnderlay,
+		type RenderableCanvas
+	} from './renderer.ts';
 	import {
 		createCanvasInteraction,
 		normalizePointerType,
@@ -15,6 +19,7 @@
 
 	interface Props {
 		pixelCanvas: RenderableCanvas;
+		referenceUnderlay?: ReferenceUnderlay;
 		viewport: ViewportData;
 		viewportSize?: ViewportSize;
 		renderVersion?: number;
@@ -38,6 +43,7 @@
 
 	let {
 		pixelCanvas,
+		referenceUnderlay,
 		viewport,
 		viewportSize = { width: 512, height: 512 },
 		renderVersion = 0,
@@ -90,7 +96,7 @@
 		canvasEl.width = viewportSize.width;
 		canvasEl.height = viewportSize.height;
 
-		renderPixelCanvas(ctx, pixelCanvas, viewport, viewportSize);
+		renderPixelCanvas(ctx, pixelCanvas, viewport, viewportSize, referenceUnderlay);
 	});
 
 	// Register wheel listener with { passive: false } to allow preventDefault

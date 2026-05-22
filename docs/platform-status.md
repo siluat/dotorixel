@@ -59,7 +59,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Pixel rendering | — | ✅ | ✅ | Canvas2D / Metal |
-| Multi-layer composite | ✅ | ✅ | ⬜ | All visible layers blended bottom-to-top with source-over alpha. Recomputed per `renderVersion` bump — caching deferred until measurement justifies it |
+| Multi-layer composite | ✅ | ✅ | ⬜ | Visible Pixel Layers blended bottom-to-top; Reference is drawn separately as a viewport underlay |
 | Checkerboard transparency | — | ✅ | ✅ | |
 | Grid overlay + toggle | — | ✅ | ✅ | Auto-hidden below 4px |
 
@@ -109,8 +109,8 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Document/Layer model | 🔧 | 🔧 | ⬜ | Ordered mixed-kind stack with active layer, visibility, opacity, Timeline collapse state, source-over composite, and Pixel-only export composite. Apple remains single-canvas |
-| Reference Layer (timeline kind) | 🔧 | 🔧 | ⬜ | Core supports tracing, placement, and sampling. Web persists Reference Layers, excludes exports/thumbnails, and shows kind icons; import UI/overlay pending |
+| Document/Layer model | 🔧 | 🔧 | ⬜ | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple remains single-canvas |
+| Reference Layer (timeline kind) | 🔧 | 🔧 | ⬜ | Singleton fixed-bottom original-image underlay; persisted and excluded from exports/thumbnails. Import UI/overlay pending |
 | Timeline panel | — | 🔧 | ⬜ | Top-z first; activate/remove/reorder/visibility are undoable. Desktop collapse state is persisted per document and not undoable. Frame column is an M4 placeholder |
 
 ## Reference Images

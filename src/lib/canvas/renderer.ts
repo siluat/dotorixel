@@ -1,4 +1,5 @@
 import type { ViewportData, ViewportSize } from './viewport';
+import type { ReferencePlacement } from './canvas-model';
 
 /**
  * Minimal shape the renderer needs from a pixel buffer source — width,
@@ -9,6 +10,14 @@ export interface RenderableCanvas {
 	readonly width: number;
 	readonly height: number;
 	pixels(): Uint8Array;
+}
+
+export interface ReferenceUnderlay {
+	readonly sourceRgba: Uint8Array;
+	readonly naturalWidth: number;
+	readonly naturalHeight: number;
+	readonly placement: ReferencePlacement;
+	readonly opacity: number;
 }
 
 const MIN_CHECKER_SIZE = 4;
@@ -83,6 +92,55 @@ function renderPixels(
 	ctx.drawImage(offscreen, 0, 0, displayWidth, displayHeight);
 }
 
+function renderReferenceUnderlay(
+	ctx: CanvasRenderingContext2D,
+	canvas: RenderableCanvas,
+	reference: ReferenceUnderlay,
+	viewport: ViewportData
+): void {
+	const opacity = reference.opacity;
+	if (opacity <= 0) return;
+
+	const scaledPixel = effectivePixelSize(viewport);
+	const displayWidth = canvas.width * scaledPixel;
+	const displayHeight = canvas.height * scaledPixel;
+	const { x, y, scale } = reference.placement;
+	const projectedX = x * scaledPixel;
+	const projectedY = y * scaledPixel;
+	const projectedWidth = reference.naturalWidth * scale * scaledPixel;
+	const projectedHeight = reference.naturalHeight * scale * scaledPixel;
+
+	const offscreen = new OffscreenCanvas(reference.naturalWidth, reference.naturalHeight);
+	const offCtx = offscreen.getContext('2d')!;
+	const imageData = new ImageData(
+		new Uint8ClampedArray(reference.sourceRgba),
+		reference.naturalWidth,
+		reference.naturalHeight
+	);
+	offCtx.putImageData(imageData, 0, 0);
+
+	ctx.save();
+	ctx.beginPath();
+	ctx.rect(0, 0, displayWidth, displayHeight);
+	ctx.clip();
+	const previousAlpha = ctx.globalAlpha;
+	ctx.globalAlpha = Math.min(Math.max(opacity, 0), 1);
+	ctx.imageSmoothingEnabled = true;
+	ctx.drawImage(
+		offscreen,
+		0,
+		0,
+		reference.naturalWidth,
+		reference.naturalHeight,
+		projectedX,
+		projectedY,
+		projectedWidth,
+		projectedHeight
+	);
+	ctx.globalAlpha = previousAlpha;
+	ctx.restore();
+}
+
 function renderGrid(
 	ctx: CanvasRenderingContext2D,
 	canvas: RenderableCanvas,
@@ -119,7 +177,8 @@ export function renderPixelCanvas(
 	ctx: CanvasRenderingContext2D,
 	canvas: RenderableCanvas,
 	viewport: ViewportData,
-	viewportSize: ViewportSize
+	viewportSize: ViewportSize,
+	referenceUnderlay?: ReferenceUnderlay
 ): void {
 	ctx.clearRect(0, 0, viewportSize.width, viewportSize.height);
 
@@ -128,6 +187,9 @@ export function renderPixelCanvas(
 	// and the grid's +0.5 trick produces sharp 1px lines.
 	ctx.translate(Math.round(viewport.panX), Math.round(viewport.panY));
 	renderCheckerboard(ctx, canvas, viewport);
+	if (referenceUnderlay) {
+		renderReferenceUnderlay(ctx, canvas, referenceUnderlay, viewport);
+	}
 	renderPixels(ctx, canvas, viewport);
 	renderGrid(ctx, canvas, viewport);
 	ctx.restore();

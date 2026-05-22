@@ -1,6 +1,6 @@
 ---
 title: "Reference Layer: singleton fixed-bottom underlay rework"
-status: needs-triage
+status: done
 created: 2026-05-22
 parent: 105-reference-layer-type.md
 ---
@@ -66,3 +66,26 @@ None — this is the correction slice unblocking amended PRD-105.
 ## User Stories Addressed
 
 - #2, #3, #6, #8, #9, #10, #15, #17, #18, #19.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/document.rs` | Reworked Reference Layer as a singleton fixed-bottom underlay, normalized hydrated stacks, made `Document.composite()` Pixel-only, and locked reorder behavior around the Reference underlay. |
+| `crates/core/src/canvas.rs`, `crates/core/src/export.rs`, `crates/core/src/history.rs`, `crates/core/src/layer.rs`, `crates/core/src/pixel_perfect.rs`, `crates/core/src/reference_placement.rs`, `crates/core/src/reference_sampler.rs`, `crates/core/src/tool.rs` | Applied rustfmt cleanup required for `cargo fmt --check -p dotorixel-core`. |
+| `wasm/src/lib.rs` | Updated WASM contract docs and tests for singleton bottom Reference semantics and Pixel-only composite buffers. |
+| `src/lib/canvas/renderer.ts`, `src/lib/canvas/renderer.test.ts`, `src/lib/canvas/PixelCanvasView.svelte`, `src/routes/editor/+page.svelte` | Added a distinct original-image Reference underlay render path below the Pixel composite. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts`, `src/lib/canvas/editor-session/editor-controller.svelte.ts`, `src/lib/canvas/editor-session/tab-state.svelte.test.ts` | Exposed renderer-facing Reference underlay data, committed Reference placement changes with undo/dirty/render invalidation, and guarded Reference reorder no-ops. |
+| `src/lib/session/session-storage-types.ts`, `src/lib/session/session-storage.ts`, `src/lib/session/session-storage-types.test.ts`, `src/lib/session/session-persistence.test.ts`, `src/lib/canvas/document-hydration.test.ts` | Normalized V4 persistence and hydration to one bottom-most Reference Layer while preserving source data and placement. |
+| `src/lib/ui-editor/TimelinePanel.svelte`, `src/lib/ui-editor/TimelinePanel.svelte.test.ts` | Removed the reorder affordance from Reference rows while preserving Pixel Layer reorder controls. |
+| `src/lib/canvas/canvas-model.ts`, `CONTEXT.md`, `docs/platform-status.md` | Updated public contracts and domain/platform docs to describe Reference as a singleton viewport underlay outside document-pixel buffers. |
+
+### Key Decisions
+
+- Kept the newest persisted Reference Layer when normalizing invalid multi-Reference stacks so replacement semantics are deterministic.
+- Collapsed `composite_for_export()` to an explicit alias of Pixel-only `composite()` because Reference pixels no longer enter document-pixel buffers.
+- Drew Reference with the original source RGBA in the shell renderer instead of rasterizing it through the Rust composite path.
+
+### Notes
+
+- The parent PRD remains open; import UI, placement overlay interaction, drawing cursor feedback, and sampling no-op follow-ups are separate remaining slices.

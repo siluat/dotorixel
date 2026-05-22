@@ -11,27 +11,28 @@ parent: 105-reference-layer-type.md
 
 ## What to build
 
-Add a Shift-modifier behavior to corner-handle drags: while Shift is held, the effective scale snaps to integer multiples (`1.0, 2.0, 3.0, ...`). Useful for pixel-aligned reference renders under nearest-neighbor sampling.
+Add a Shift-modifier behavior to corner-handle drags: while Shift is held, the effective placement scale snaps to integer multiples (`1.0, 2.0, 3.0, ...`). This is a placement precision aid only; it does not imply that the Reference source is rasterized into `Document.composite()`.
 
 Scope:
 
 - During a corner-handle drag, when Shift is held, the live preview's effective scale snaps to the nearest integer multiple.
 - Releasing Shift mid-drag returns to continuous scale.
-- The commit on release uses whatever scale the preview is showing at that moment (snapped if Shift is still held; continuous if not).
-- Shift has no effect on body-drag (translate).
+- Re-pressing Shift mid-drag re-snaps to the nearest integer multiple.
+- The release commit uses the scale shown by the preview at that moment.
+- Shift has no effect on body-drag translation.
 
-## Acceptance criteria
+## Acceptance Criteria
 
-- Shift + corner drag → scale snaps to integer multiples in the preview.
+- Shift + corner drag snaps scale to integer multiples in the preview.
 - Releasing Shift mid-drag immediately returns to continuous scale.
-- Re-pressing Shift mid-drag immediately re-snaps to the nearest integer multiple.
+- Re-pressing Shift mid-drag immediately re-snaps.
 - The release commit uses the in-flight previewed scale.
-- Shift + body drag has no special behavior (translation is unaffected).
+- Shift + body drag has no special behavior.
 
-## Blocked by
+## Blocked By
 
 - [121 — placement overlay drag interaction](121-reference-layer-placement-overlay-drag.md)
 
-## User stories addressed
+## User Stories Addressed
 
-- #26.
+- #21.

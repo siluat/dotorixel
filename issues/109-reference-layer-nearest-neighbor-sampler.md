@@ -55,3 +55,7 @@ None — can start immediately.
 
 - The function trusts its caller for `source_rgba` length (≥ `width × height × 4`). Document is the only intended call site and will pass correctly-sized buffers. Aligns with project rule "fail at the boundary, trust the core".
 - Still dead code at the shell — first user-visible caller arrives with #110 (Document add/composite paths).
+
+### Amendment (2026-05-22)
+
+PRD-105 was corrected: Reference Layer display must preserve the original image as a viewport underlay and must not be resampled into `Document.composite()`. This sampler is therefore no longer part of the v1 on-screen render path. It may be removed during rework, or kept only if a future explicit Reference source-sampling feature needs it.

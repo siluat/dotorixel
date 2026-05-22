@@ -103,3 +103,12 @@ Frame **`106 — Reference Layer UX detail design`** in `docs/pencil-dotorixel.p
 - §5 dark variant uses the same overlay treatment as §4 dark (square accent handles, 1px `--bg-base` border, dashed `--accent` outline; only `--canvas-bg` and `--accent-text` swap to the dark palette). This is documented in the §5 description text inside the `.pen` rather than rendered as a separate stage — there is no unique dark-mode behavior to communicate beyond what §4 already shows.
 - Loading skeleton uses Lucide `loader-circle` for the spinner glyph (consistent in both the kind-slot skeleton and the busy header button).
 - Implementation sub-issues (107–125) can pick handle/outline/cursor specifications directly from §4 and §5 light stages, and apply the row anatomy + kind icons from §2.
+
+### Amendment (2026-05-22)
+
+PRD-105 was corrected after implementation review: Reference Layer is now a singleton fixed-bottom underlay, not a reorderable layer in the composited pixel stack. The visual design remains useful for the import icon, kind icon, restore action, loading state, and placement overlay, but implementation must adapt the Timeline row anatomy:
+
+- Reference row has no drag/reorder handle.
+- Reference row is always fixed at the bottom of the layer list.
+- Import is set/replace singleton Reference image, not append another Reference row.
+- Overlay aligns to the viewport-native image underlay, not to Reference pixels in `Document.composite()`.

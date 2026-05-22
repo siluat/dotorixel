@@ -55,3 +55,12 @@ Scope:
 
 - This remains bridge-only work; there is still no user-visible Reference Layer creation or manipulation flow.
 - Workspace-level Rust formatting remains blocked by the pre-existing `wasm/src/lib.rs` formatting debt already tracked in `tasks/todo.md`.
+
+### Amendment (2026-05-22)
+
+PRD-105 was corrected: Reference Layer is a singleton fixed-bottom viewport underlay, and `Document.composite()` must be Pixel-only. The facade surface should be reviewed before 118 proceeds:
+
+- expose set/replace singleton semantics rather than append-only Reference creation;
+- avoid requiring Reference-source `try_get_pixel` for v1;
+- keep placement/source accessors needed by the shell underlay renderer;
+- treat `composite_for_export()` as Pixel-only and do not depend on `composite()` containing Reference pixels.

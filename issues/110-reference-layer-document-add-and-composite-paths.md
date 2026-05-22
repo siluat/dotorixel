@@ -66,3 +66,14 @@ Scope:
 - Potential follow-up: collapse sampler into a `ReferenceData::sample_at(x, y)` method (Rust convention: behavior on the type). Out of scope for 110 to preserve 109's deliberate testability design — added to review backlog.
 - Apple shell unaffected — its UniFFI bindings wrap `PixelCanvas` directly, not `Document`.
 - 112 (`try_get_pixel`) now unblocked. 111 (`set_placement` / `resize_anchor_transform`), 113 (WASM facade), 114 (V4 schema), 117/118 (Timeline Panel kind icons + add flow) all become parallel-ready.
+
+### Amendment (2026-05-22)
+
+PRD-105 was corrected after implementation review. The behavior implemented here is now partially superseded:
+
+- `Document.composite()` must be Pixel-only; Reference pixels should not be blended into the document pixel buffer.
+- Reference Layer must be singleton and fixed bottom-most.
+- Import should set/replace the singleton Reference image instead of appending another Reference Layer.
+- The on-screen renderer should draw the original source image as a viewport underlay below the Pixel composite.
+
+This issue should be treated as requiring a rework follow-up before 118 proceeds.

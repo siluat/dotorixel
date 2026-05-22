@@ -65,3 +65,12 @@ Scope:
 
 - `migrateV3ToV4()` is intentionally unused outside tests in this slice.
 - V3 documents with no layers are rejected defensively instead of silently producing an invalid V4 document.
+
+### Amendment (2026-05-22)
+
+PRD-105 was corrected: a Document can contain at most one Reference Layer, always fixed below Pixel Layers. The V4 schema should be reviewed before further implementation:
+
+- either model Reference as a singleton document field, or validate that the discriminated layer union contains at most one Reference;
+- migration from V3 remains Pixel-only and is still valid;
+- hydrate/dehydrate must not preserve or create multiple Reference records;
+- any stored order must normalize Reference to bottom-most.

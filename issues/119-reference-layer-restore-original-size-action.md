@@ -11,30 +11,32 @@ parent: 105-reference-layer-type.md
 
 ## What to build
 
-A single-click action on the active Reference Layer that resets the placement to the source's natural pixel dimensions (`scale = 1.0`) while preserving the current center point. The action is undoable. Placement (on row vs. near placement overlay) is whatever the 106 design decided.
+A single-click action on the active Reference Layer that resets the viewport-underlay placement to the source image's natural pixel dimensions (`scale = 1.0`) while preserving the current center point. The action is undoable.
 
 Scope:
 
-- Inline action wired to `placement.restore_to_natural(natural_width, natural_height)` → `Document.set_reference_placement(id, new_placement)`.
-- Pushes a single Document snapshot through `HistoryManager` (undoable / redoable).
-- After a canvas resize: the action re-centers at the **current** canvas center (consistent with "center preserved" — the placement field already encodes the current center after the resize transform from 111).
-- Visible only when the active layer is a Reference Layer.
+- Inline action wired to `placement.restore_to_natural(natural_width, natural_height)` -> `Document.set_reference_placement(id, new_placement)`.
+- Pushes a single Document snapshot through `HistoryManager`.
+- After a canvas resize, the action preserves the current placement center after the resize transform from 111.
+- Visible only when the active layer is the singleton Reference Layer.
+- The Reference row remains fixed at the bottom of the Timeline Panel; this action does not imply reorderability.
 - Wording and a11y label via Paraglide.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - Single click resets `scale = 1.0` while preserving the current center point.
-- Action is visible only when the active layer is Reference.
+- The viewport underlay and placement overlay update together.
+- Action is visible only when the Reference Layer is active.
 - Pushes a single Document snapshot; the change is undoable and redoable.
-- After resizing the canvas (which transforms the Reference Layer's placement per the 9-anchor rule) the action still recenters at the current canvas center.
+- After resizing the canvas, the action still preserves the current post-resize center.
 - Pixel Layer rows do not show the action.
 
-## Blocked by
+## Blocked By
 
 - [113 — WASM facade + TS canvas-model interface](113-reference-layer-wasm-facade-and-ts-interface.md)
 - [117 — Timeline Panel kind icons](117-reference-layer-timeline-panel-kind-icons.md)
-- [106 — Reference Layer UX detail design](106-reference-layer-ux-design.md)
+- [106 — Reference Layer UX detail design](106-reference-layer-ux-design.md) must be read with the 2026-05-22 amendment.
 
-## User stories addressed
+## User Stories Addressed
 
-- #8, #9.
+- #12, #13.

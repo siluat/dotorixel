@@ -60,3 +60,7 @@ Scope:
 ### Notes
 
 - Reference Layer add/import UI, restore-original-size action, placement overlay, drawing-tool no-op cursor, and sampling updates remain follow-up slices.
+
+### Amendment (2026-05-22)
+
+PRD-105 was corrected: Reference Layer is a singleton fixed-bottom underlay, not a fully reorderable layer in the mixed stack. The kind icon and activation work remain valid, but the reorder behavior described above is superseded. Follow-up implementation must remove the Reference row's reorder affordance and prevent Pixel reorder operations from moving below Reference.

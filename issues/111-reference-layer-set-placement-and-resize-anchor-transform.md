@@ -69,3 +69,7 @@ The source RGBA buffer is never modified — when the new canvas is smaller and 
 - The `placement_factor` axis values match the user-facing PRD spec exactly (`0`, `0.5`, `1.0`) — center anchor keeps the reference center stationary, bottom-right shifts by the full delta, top-left leaves placement untouched.
 - `cargo test -p dotorixel-core` → 324 passed / 0 failed. `cargo check --workspace --all-targets` clean. `cargo clippy -p dotorixel-core --all-targets` introduces no new warnings (the 3 pre-existing warnings in `pixel_perfect.rs` and `tool.rs` are unrelated).
 - Pre-existing `cargo fmt --check` debt in `wasm/src/lib.rs` (tracked in todo.md "Review backlog") was not addressed here.
+
+### Amendment (2026-05-22)
+
+PRD-105 was corrected: Document now has at most one Reference Layer. The placement and resize-anchor transform behavior remains valid, but future code should express it against the singleton Reference underlay rather than "every Reference Layer."

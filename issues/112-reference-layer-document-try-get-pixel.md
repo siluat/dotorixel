@@ -51,3 +51,7 @@ This is the contract that eyedropper and Canvas Sampling Sessions consume in 125
 
 - WASM/TypeScript exposure remains in 113.
 - Eyedropper and Canvas Sampling Session adoption remains in 125.
+
+### Amendment (2026-05-22)
+
+PRD-105 was corrected: Reference Layer is a viewport underlay and not part of document pixel composition. Reference-active source sampling is no longer v1 scope. `try_get_pixel` may still be useful as an optional Pixel-layer read API, but the Reference-source behavior described above should be removed or left unused until a future explicit source-sampling decision is made.

@@ -11,32 +11,35 @@ parent: 105-reference-layer-type.md
 
 ## What to build
 
-Arrow-key translation of the active Reference Layer's placement. `↑ ↓ ← →` nudge by 1 pixel; `Shift + arrow` nudge by 10 pixels. Each nudge pushes a separate Document snapshot — nudges are **not** coalesced.
+Arrow-key translation of the active singleton Reference Layer's placement. `Up/Down/Left/Right` nudge by 1 pixel; `Shift + arrow` nudge by 10 pixels. Each nudge pushes a separate Document snapshot; nudges are not coalesced.
 
 Scope:
 
-- Focus rule: active layer must be a Reference Layer, and focus must be on the canvas / overlay (not on the Timeline Panel or other UI).
+- Focus rule: active layer must be Reference, and focus must be on the canvas / overlay, not the Timeline Panel or another UI control.
 - Key bindings:
-  - `↑ ↓ ← →` — translate placement by 1 pixel in the respective direction.
-  - `Shift + ↑ ↓ ← →` — translate by 10 pixels.
-- Per-key commit: each fire pushes one snapshot via `set_reference_placement`. Auto-repeat fires multiple snapshots (one per repeat event).
+  - `Up/Down/Left/Right`: translate placement by 1 pixel.
+  - `Shift + Up/Down/Left/Right`: translate by 10 pixels.
+- Per-key commit: each fire pushes one snapshot via `set_reference_placement`.
+- Auto-repeat fires multiple snapshots, one per repeat event.
 - Does not affect Pixel Layers.
-- Does not affect drag-in-progress (no overlap with 121's drag preview).
+- Does not affect drag-in-progress from 121.
+- Updates the viewport underlay and overlay together.
 
-## Acceptance criteria
+## Acceptance Criteria
 
-- With a Reference Layer active and canvas focused, arrow keys translate placement by 1 pixel per fire.
+- With Reference active and canvas focused, arrow keys translate placement by 1 pixel per fire.
 - With Shift held, arrow keys translate by 10 pixels per fire.
-- Each fire pushes a single snapshot (verified with consecutive nudges → undo step count matches the number of nudges).
-- With a Pixel Layer active, the arrow keys retain whatever existing behavior they have (no Reference-style translation).
-- Focus on a non-canvas / non-overlay element (e.g., a Timeline Panel input) does not trigger the nudge.
+- Each fire pushes one snapshot; undo step count matches the number of nudges.
+- With a Pixel Layer active, arrow keys retain existing behavior and do not translate Reference.
+- Focus on a non-canvas / non-overlay element does not trigger the nudge.
+- The Reference underlay and overlay remain aligned after each nudge.
 
-## Blocked by
+## Blocked By
 
 - [113 — WASM facade + TS canvas-model interface](113-reference-layer-wasm-facade-and-ts-interface.md)
 - [117 — Timeline Panel kind icons](117-reference-layer-timeline-panel-kind-icons.md)
 - [120 — placement overlay shell](120-reference-layer-placement-overlay-shell.md)
 
-## User stories addressed
+## User Stories Addressed
 
-- #25, #9.
+- #20, #13.

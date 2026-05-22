@@ -1,81 +1,82 @@
-# Reference Layer is persisted in Document but excluded from exports
+# Reference Layer is a persisted underlay but excluded from pixel outputs
 
 ## Status
 
 Accepted (2026-05-16)
 
+Amended (2026-05-22): Reference Layer is rendered as a viewport underlay, not through `Document.composite()`.
+
 ## Context
 
-Reference Layer is a new Layer variant introduced in PRD-105. It admits a decoded source image into the Document layer stack so the user can trace over it while drawing. Two questions follow:
+Reference Layer is introduced in PRD-105. It lets the user keep a tracing reference with the Document so the reference survives reload, tab switching, and undo/redo.
 
-1. Does it belong to the Document the user persists and reloads?
-2. Does it appear in the rendered/exported output the user shares (PNG, SVG, saved-work thumbnails)?
+Two questions are separate:
 
-The two answers are independent and the natural choice is not the same on both.
+1. Does the reference belong to the persisted Document?
+2. Does the reference become part of artwork pixels, exports, or saved-work thumbnails?
 
-PRD-053 (Floating reference window) carved out the role split between Reference Window and Reference Layer, stating that Reference Layer "will live inside the layer system and be part of the document". The natural implication at that time was that, being part of the document, the reference would also travel with exports — the same way every other layer does.
+The answer to the first is yes: tracing setup is long-running state. The answer to the second is no: the reference is input, not artwork.
 
-User intent during PRD-105 grilling contradicted that implication: a Reference Layer is a *tracing aid*, not artwork. Including the reference image in exports would defeat its purpose — the user wants the result, not the input. At the same time, Reference Layer must survive reload, tab switching, and undo/redo (it is a Document construct, not an ephemeral overlay like Reference Window). Persistence in Document is therefore required, but export inclusion is not.
-
-PRD-053 already noted the worry of "leak[ing] references when documents are shared or exported" (in the context of rejecting Document-scoped persistence for Reference Window). The same worry now applies to Reference Layer — but is solved at the composite layer rather than by avoiding Document scope.
+The original version of this ADR solved export exclusion by adding two Rust composite paths: an on-screen composite that included Reference Layers and an export composite that excluded them. That was technically coherent, but it violated the later clarified product expectation: the Reference Layer should display the original image as-is behind the pixel canvas, not be resampled into the document pixel buffer.
 
 ## Decision
 
-Reference Layer is persisted in the Document layer stack and participates in the on-screen composite, **but is excluded from exports**.
+Reference Layer is persisted with the Document and is visible in the editor, but it is not part of any document pixel output.
 
 To make this work:
 
-- The Rust core exposes **two composite paths**:
-  - `composite()` — every visible layer, used for on-screen rendering.
-  - `composite_for_export()` — only Pixel Layers, used by PNG export, SVG export, and the saved-work thumbnail.
-- The TS/Svelte export flow calls `composite_for_export()` everywhere the purpose is export, never `composite()`.
-- The V4 schema persists Reference Layers as a discriminated-union variant so they round-trip through save/load.
+- The web renderer draws the Reference Layer source image as a viewport underlay using its placement.
+- The renderer then draws the Pixel Layer composite over that underlay.
+- `Document.composite()` returns Pixel Layers only.
+- `composite_for_export()` may remain as an explicit export path, but it is also Pixel-only.
+- PNG export, SVG export, and saved-work thumbnails never include Reference pixels.
+- V4 persistence stores the singleton Reference Layer data so it round-trips through save/load.
 
-The split is established at the composite level, not at the call site. A future caller cannot accidentally export the wrong composite by forgetting a flag — the export-only composite simply does not contain Reference Layer pixels.
+The split is now at the render-path level, not only the composite-function level. Reference is Document state for editing, but it is not document-pixel state.
 
 ## Considered Alternatives
 
 ### Alternative A: Reference Layer is a workspace overlay, not part of Document
 
-Treat Reference Layer like Reference Window — workspace-scoped, not in the Document.
+Treat Reference Layer like Reference Window: workspace-scoped and not persisted with the Document.
 
-**Rejected because**: persistence is required. Tracing is a long-running activity that survives reloads and tab switches, and the user expects undo/redo over placement changes. A workspace overlay loses all of those properties.
+**Rejected because**: persistence is required. Tracing is a long-running activity that survives reloads and tab switches, and placement changes should participate in undo/redo.
 
-### Alternative B: include Reference Layer in exports, gate by a per-layer "exported" flag
+### Alternative B: include Reference Layer in exports
 
-Reference Layer ships with `exported: false` by default; the user can opt-in.
+Reference is visible while editing and ships in PNG/SVG/thumbnails.
 
-**Rejected because**: opt-in is a footgun (forget to disable → reference image in shipped artwork). The default already matches the user's intent. The flag concept also leaks into Pixel Layer for no real reason, complicating the schema for a constraint only one variant needs.
+**Rejected because**: a Reference Layer is a tracing aid, not artwork. Including it in exports would leak the input image into the user's output.
 
-### Alternative C: Reference Layer visibility doubles as export inclusion
+### Alternative C: Reference Layer participates in `Document.composite()`, export uses `composite_for_export()`
 
-If the reference is visible during edit, it ships in the export.
+Blend Reference into the on-screen document RGBA buffer, but keep exports Pixel-only.
 
-**Rejected because**: the user wants the reference visible *while* tracing. The whole point is to see it while drawing the artwork. Conflating "visible during edit" with "included in export" forces the user to toggle visibility off before every export — error-prone and disruptive to the tracing workflow.
+**Rejected because**: this resamples the original source image into the document's pixel grid before it reaches the viewport. On small pixel canvases, the reference becomes visibly pixelated/downsampled. The user's expectation is an original-image underlay behind the pixel art, not a sampled layer inside the artwork buffer.
 
-### Alternative D: keep one composite path, filter the result post-hoc at each export call site
+### Alternative D: keep one composite path, filter Reference pixels at export call sites
 
-`encode_png` reads `composite()` then masks out Reference Layer pixels after blending.
+`encode_png` reads a mixed composite and tries to remove Reference pixels afterward.
 
-**Rejected because**: post-hoc masking is incorrect under alpha compositing. A partly transparent Pixel Layer on top of a Reference Layer would already have mixed reference pixels into its blended output; removing them after the fact cannot recover the underlying Pixel-only result. The split must happen *during* composition, not after.
+**Rejected because**: post-hoc masking is incorrect under alpha compositing. A partly transparent Pixel Layer over a Reference Layer would already have mixed reference colors into the blended output.
 
 ## Consequences
 
 ### Benefits
 
-- The user's tracing workflow works out of the box — they can keep the reference visible while drawing and the final export is clean.
-- Persistence guarantees the reference survives reload, tab switch, and history navigation.
-- The split is encoded in two pure composite functions, both testable as unit tests against fixture documents.
-- The export composite is decoupled from any per-layer flag, so future Reference Layer changes (e.g., new Reference data variants) inherit the exclusion automatically.
+- The editor displays the original reference image rather than a pixel-grid resample.
+- Export and thumbnail paths stay clean because Reference pixels never enter artwork pixel buffers.
+- Persistence still gives the user durable tracing setup.
+- The render contract is easier to reason about: Reference underlay first, Pixel composite second.
 
 ### Trade-offs
 
-- Two composite paths in the Rust core. The duplication is mild — both reuse the same source-over blend kernel; the difference is purely which layer kinds the iterator yields.
-- The implication in PRD-053 ("Reference Layer will be part of the document") that exports would also include the reference is now overridden. PRD-053 should be read against this ADR.
-- A user might be surprised that a visible Reference Layer is not in the PNG. The Timeline Panel kind icon and (future) export-preview UI mitigate this; revisit if confusion is reported.
+- On-screen rendering needs one additional shell-level draw step before the Pixel composite.
+- Existing Rust composite work that included Reference Layers must be reworked or removed.
+- Tests must distinguish viewport rendering from document-pixel composition.
 
-### Follow-up triggers
+### Follow-up Triggers
 
-- If the user reports wanting to publish the reference *with* the artwork (e.g., for a tutorial GIF), revisit by adding a per-layer "in export" toggle rather than promoting the variant — default still off.
-- The next time the Apple shell migrates to Document/Layer, propagate the two-composite split unchanged.
-- If a third Layer variant arrives, the composite-iteration rule generalizes naturally — Pixel-only or kind-aware predicates per composite path.
+- If users ask to publish a reference together with artwork, revisit with an explicit export option. Default remains off.
+- If users ask to sample colors from the Reference source, add an explicit source-image sampling service rather than routing through `Document.composite()`.
+- When the Apple shell adopts Document/Layer, port the same underlay-first render contract instead of a Reference-in-composite path.

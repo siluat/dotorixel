@@ -52,3 +52,7 @@ The rationale is recorded in `docs/decisions/reference-layer-excluded-from-expor
 ### Notes
 
 - Saved-work thumbnails already used the Pixel-only summary path from 115; the existing thumbnail regression test was re-run with this task.
+
+### Amendment (2026-05-22)
+
+PRD-105 was corrected: Reference Layer is no longer part of the on-screen `Document.composite()` path. The export exclusion remains correct, but tests and descriptions should not assume that `composite()` includes Reference pixels. Export, thumbnail, and `Document.composite()` are all Pixel-only under the corrected model; viewport rendering draws Reference separately as an underlay.

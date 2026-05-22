@@ -62,3 +62,13 @@ Scope:
 
 - User-facing Reference Layer import is still owned by 118; this slice proves the storage/session/hydration path with mixed-layer fixtures.
 - Timeline kind affordances remain in 117, so the parent PRD remains open.
+
+### Amendment (2026-05-22)
+
+PRD-105 was corrected: Reference Layer is singleton and fixed bottom-most. Persistence remains required, but round-trip expectations should be updated before 118 proceeds:
+
+- documents must hydrate with at most one Reference Layer;
+- saving should not write multiple Reference records;
+- loading legacy or malformed V4 data with multiple Reference records should normalize or reject according to the chosen boundary policy;
+- restored Timeline order should keep Reference below all Pixel Layers;
+- thumbnail exclusion remains correct.

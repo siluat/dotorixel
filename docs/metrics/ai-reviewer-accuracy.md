@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 116 | 84 | 32 | 97 | 72% | 46% |
-| cubic-dev-ai[bot] | 68 | 54 | 14 | 124 | 79% | 30% |
-| coderabbitai[bot] | 161 | 109 | 52 | 67 | 68% | 62% |
+| greptile-apps[bot] | 118 | 86 | 32 | 97 | 73% | 47% |
+| cubic-dev-ai[bot] | 69 | 55 | 14 | 124 | 80% | 31% |
+| coderabbitai[bot] | 162 | 110 | 52 | 67 | 68% | 62% |
 
 ## Log
 
@@ -647,3 +647,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #220 | coderabbitai[bot] | Miss | Did not flag non-zero fit-to-canvas dimension precondition |
 | #220 | cubic-dev-ai[bot] | Miss | Did not flag non-zero fit-to-canvas dimension precondition |
 | #220 | cubic-dev-ai[bot] | Reject | `assert!` would duplicate boundary validation inside trusted core geometry helper |
+| #221 | greptile-apps[bot] | Accept | `touch-action: none` missing on Reference placement overlay |
+| #221 | coderabbitai[bot] | Accept | `touch-action: none` missing on Reference placement overlay (duplicate of greptile) |
+| #221 | cubic-dev-ai[bot] | Accept | `touch-action: none` missing on Reference placement overlay (duplicate of greptile) |
+| #221 | greptile-apps[bot] | Accept | Issue-level duplicate of Reference placement overlay `touch-action: none` finding |

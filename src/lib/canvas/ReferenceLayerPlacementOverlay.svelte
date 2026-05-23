@@ -99,6 +99,7 @@
 		border: 1px dashed var(--ds-accent);
 		box-shadow: 0 0 0 1px var(--ds-bg-base);
 		z-index: 20;
+		touch-action: none;
 	}
 
 	.reference-placement-handle {

@@ -113,46 +113,8 @@
 	// Register wheel listener with { passive: false } to allow preventDefault
 	$effect(() => {
 		if (!canvasEl) return;
-		const vp = viewport;
-		const handler = (event: WheelEvent) => {
-			if (event.deltaX === 0 && event.deltaY === 0) return;
-			event.preventDefault();
-
-			const inputType = classifyWheelInput(
-				event.deltaX,
-				event.deltaY,
-				event.deltaMode,
-				event.ctrlKey
-			);
-
-			if (inputType === 'trackpadPan') {
-				onViewportChange?.(viewportOps.pan(vp, -event.deltaX, -event.deltaY));
-				return;
-			}
-
-			const rect = canvasEl!.getBoundingClientRect();
-			const screenX = event.clientX - rect.left;
-			const screenY = event.clientY - rect.top;
-
-			if (inputType === 'pinchZoom') {
-				const newZoom = viewportOps.computePinchZoom(vp.zoom, event.deltaY);
-				if (newZoom !== vp.zoom) {
-					onViewportChange?.(viewportOps.zoomAtPoint(vp, screenX, screenY, newZoom));
-				}
-				return;
-			}
-
-			// wheelZoom: discrete level stepping (mouse wheel)
-			const isZoomIn = event.deltaY < 0;
-			const newZoom = isZoomIn
-				? viewportOps.nextZoomLevel(vp.zoom)
-				: viewportOps.prevZoomLevel(vp.zoom);
-			if (newZoom !== vp.zoom) {
-				onViewportChange?.(viewportOps.zoomAtPoint(vp, screenX, screenY, newZoom));
-			}
-		};
-		canvasEl.addEventListener('wheel', handler, { passive: false });
-		return () => canvasEl?.removeEventListener('wheel', handler);
+		canvasEl.addEventListener('wheel', handleWheel, { passive: false });
+		return () => canvasEl?.removeEventListener('wheel', handleWheel);
 	});
 
 	const cursorStyle = $derived(
@@ -166,6 +128,45 @@
 	function toLocal(event: PointerEvent): { x: number; y: number } {
 		const rect = canvasEl!.getBoundingClientRect();
 		return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+	}
+
+	function handleWheel(event: WheelEvent): void {
+		if (!canvasEl) return;
+		if (event.deltaX === 0 && event.deltaY === 0) return;
+		event.preventDefault();
+
+		const inputType = classifyWheelInput(
+			event.deltaX,
+			event.deltaY,
+			event.deltaMode,
+			event.ctrlKey
+		);
+
+		if (inputType === 'trackpadPan') {
+			onViewportChange?.(viewportOps.pan(viewport, -event.deltaX, -event.deltaY));
+			return;
+		}
+
+		const rect = canvasEl.getBoundingClientRect();
+		const screenX = event.clientX - rect.left;
+		const screenY = event.clientY - rect.top;
+
+		if (inputType === 'pinchZoom') {
+			const newZoom = viewportOps.computePinchZoom(viewport.zoom, event.deltaY);
+			if (newZoom !== viewport.zoom) {
+				onViewportChange?.(viewportOps.zoomAtPoint(viewport, screenX, screenY, newZoom));
+			}
+			return;
+		}
+
+		// wheelZoom: discrete level stepping (mouse wheel)
+		const isZoomIn = event.deltaY < 0;
+		const newZoom = isZoomIn
+			? viewportOps.nextZoomLevel(viewport.zoom)
+			: viewportOps.prevZoomLevel(viewport.zoom);
+		if (newZoom !== viewport.zoom) {
+			onViewportChange?.(viewportOps.zoomAtPoint(viewport, screenX, screenY, newZoom));
+		}
 	}
 
 	function pushPointerToSession(event: PointerEvent): void {
@@ -236,6 +237,16 @@
 	function handlePointerCancel(event: PointerEvent): void {
 		forwardedOverlayPointerIds.delete(event.pointerId);
 		if (pendingOverlayTouch?.id === event.pointerId) pendingOverlayTouch = null;
+		canvasInteraction.pointerCancel(event.pointerId);
+	}
+
+	function handleWindowPointerCancel(event: PointerEvent): void {
+		if (pendingOverlayTouch?.id === event.pointerId) {
+			pendingOverlayTouch = null;
+			return;
+		}
+		if (!forwardedOverlayPointerIds.has(event.pointerId)) return;
+		forwardedOverlayPointerIds.delete(event.pointerId);
 		canvasInteraction.pointerCancel(event.pointerId);
 	}
 
@@ -345,7 +356,7 @@
 <svelte:window
 	onpointermove={handleWindowPointerMove}
 	onpointerup={handlePointerUp}
-	onpointercancel={handlePointerCancel}
+	onpointercancel={handleWindowPointerCancel}
 	onblur={handleWindowBlur}
 	onresize={handleWindowResize}
 />
@@ -375,6 +386,7 @@
 	onReadOnlyPointerMove={handleOverlayPointerMove}
 	onReadOnlyPointerUp={handleOverlayPointerUp}
 	onReadOnlyPointerCancel={handleOverlayPointerCancel}
+	onReadOnlyWheel={handleWheel}
 />
 
 {#if samplingSession?.position}

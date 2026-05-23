@@ -15,6 +15,7 @@
 		onReadOnlyPointerMove?: (event: PointerEvent) => void;
 		onReadOnlyPointerUp?: (event: PointerEvent) => void;
 		onReadOnlyPointerCancel?: (event: PointerEvent) => void;
+		onReadOnlyWheel?: (event: WheelEvent) => void;
 	}
 
 	let {
@@ -25,7 +26,8 @@
 		onReadOnlyPointerDown,
 		onReadOnlyPointerMove,
 		onReadOnlyPointerUp,
-		onReadOnlyPointerCancel
+		onReadOnlyPointerCancel,
+		onReadOnlyWheel
 	}: Props = $props();
 
 	const projectedRect = $derived.by(() => {
@@ -64,6 +66,14 @@
 		event.preventDefault();
 		event.stopPropagation();
 	}
+
+	function handleReadOnlyWheelEvent(event: WheelEvent): void {
+		onReadOnlyWheel?.(event);
+		if (!event.defaultPrevented) {
+			event.preventDefault();
+		}
+		event.stopPropagation();
+	}
 </script>
 
 {#if projectedRect}
@@ -83,6 +93,7 @@
 		onpointermove={(event) => handleReadOnlyPointerEvent(event, onReadOnlyPointerMove)}
 		onpointerup={(event) => handleReadOnlyPointerEvent(event, onReadOnlyPointerUp)}
 		onpointercancel={(event) => handleReadOnlyPointerEvent(event, onReadOnlyPointerCancel)}
+		onwheel={handleReadOnlyWheelEvent}
 		oncontextmenu={blockContextMenuEvent}
 	>
 		<div class="reference-placement-handle handle-nw" data-testid="reference-placement-handle"></div>

@@ -324,4 +324,70 @@ describe('PixelCanvasView', () => {
 		expect(onDrawStart).toHaveBeenCalledTimes(1);
 		expect(onDraw).toHaveBeenCalledTimes(1);
 	});
+
+	it('ignores unrelated window pointer cancellations during an active canvas draw', async () => {
+		const onDrawStart = vi.fn();
+		const onDraw = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				onDrawStart,
+				onDraw
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.pointerDown(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 10,
+			clientY: 10
+		});
+		onDraw.mockClear();
+
+		await fireEvent.pointerCancel(window, {
+			pointerId: 99,
+			pointerType: 'touch'
+		});
+		await fireEvent.pointerMove(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			clientX: 20,
+			clientY: 10
+		});
+
+		expect(onDrawStart).toHaveBeenCalledTimes(1);
+		expect(onDraw).toHaveBeenCalledTimes(1);
+	});
+
+	it('keeps trackpad panning available from the read-only overlay', () => {
+		const onViewportChange = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				onViewportChange
+			}
+		});
+
+		const event = new WheelEvent('wheel', {
+			bubbles: true,
+			cancelable: true,
+			deltaX: 8,
+			deltaY: 2,
+			deltaMode: 0,
+			clientX: 24,
+			clientY: 32
+		});
+		screen.getByTestId('reference-placement-overlay').dispatchEvent(event);
+
+		expect(event.defaultPrevented).toBe(true);
+		expect(onViewportChange).toHaveBeenCalledTimes(1);
+	});
 });

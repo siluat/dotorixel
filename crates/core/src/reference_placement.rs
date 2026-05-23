@@ -24,6 +24,10 @@ impl ReferencePlacement {
         natural_width: u32,
         natural_height: u32,
     ) -> Self {
+        debug_assert!(
+            canvas_width > 0 && canvas_height > 0 && natural_width > 0 && natural_height > 0,
+            "fit_to_canvas requires non-zero canvas and source dimensions"
+        );
         let scale = (canvas_width as f32 / natural_width as f32)
             .min(canvas_height as f32 / natural_height as f32);
         let projected_width = natural_width as f32 * scale;

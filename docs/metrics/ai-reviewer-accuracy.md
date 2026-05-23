@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 115 | 83 | 32 | 97 | 72% | 46% |
-| cubic-dev-ai[bot] | 67 | 54 | 13 | 123 | 81% | 31% |
-| coderabbitai[bot] | 160 | 109 | 51 | 66 | 68% | 62% |
+| greptile-apps[bot] | 116 | 84 | 32 | 97 | 72% | 46% |
+| cubic-dev-ai[bot] | 67 | 54 | 13 | 124 | 81% | 30% |
+| coderabbitai[bot] | 161 | 109 | 52 | 67 | 68% | 62% |
 
 ## Log
 
@@ -642,3 +642,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #219 | cubic-dev-ai[bot] | Miss | Did not flag unstable Reference Layer toast keys and dismissal ids |
 | #219 | greptile-apps[bot] | Miss | Did not flag `ReferenceLayerSource` public doc contract gap |
 | #219 | cubic-dev-ai[bot] | Miss | Did not flag `ReferenceLayerSource` public doc contract gap |
+| #220 | coderabbitai[bot] | Reject | Completion date uses project-local Asia/Seoul date, not GitHub UTC timeline |
+| #220 | greptile-apps[bot] | Accept | Add debug assertion for non-zero fit-to-canvas dimensions |
+| #220 | coderabbitai[bot] | Miss | Did not flag non-zero fit-to-canvas dimension precondition |
+| #220 | cubic-dev-ai[bot] | Miss | Did not flag non-zero fit-to-canvas dimension precondition |

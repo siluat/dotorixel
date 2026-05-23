@@ -272,4 +272,56 @@ describe('PixelCanvasView', () => {
 		expect(onDrawStart).not.toHaveBeenCalled();
 		expect(onViewportChange).toHaveBeenCalled();
 	});
+
+	it('clears pending overlay touches when the Reference overlay unmounts', async () => {
+		const onDrawStart = vi.fn();
+		const onDraw = vi.fn();
+		const { rerender } = render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				onDrawStart,
+				onDraw
+			}
+		});
+
+		await fireEvent.pointerDown(screen.getAllByTestId('reference-placement-handle')[0], {
+			pointerId: 1,
+			pointerType: 'touch',
+			button: 0,
+			clientX: 10,
+			clientY: 10
+		});
+
+		await rerender({
+			pixelCanvas,
+			referenceUnderlay,
+			viewport,
+			viewportSize: { width: 100, height: 100 },
+			isReferenceLayerActive: false,
+			onDrawStart,
+			onDraw
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.pointerDown(canvas, {
+			pointerId: 2,
+			pointerType: 'touch',
+			button: 0,
+			clientX: 80,
+			clientY: 10
+		});
+		await fireEvent.pointerMove(canvas, {
+			pointerId: 2,
+			pointerType: 'touch',
+			clientX: 82,
+			clientY: 10
+		});
+
+		expect(onDrawStart).toHaveBeenCalledTimes(1);
+		expect(onDraw).toHaveBeenCalledTimes(1);
+	});
 });

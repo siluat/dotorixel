@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 118 | 86 | 32 | 97 | 73% | 47% |
-| cubic-dev-ai[bot] | 69 | 55 | 14 | 124 | 80% | 31% |
-| coderabbitai[bot] | 162 | 110 | 52 | 67 | 68% | 62% |
+| greptile-apps[bot] | 120 | 88 | 32 | 97 | 73% | 48% |
+| cubic-dev-ai[bot] | 69 | 55 | 14 | 125 | 80% | 31% |
+| coderabbitai[bot] | 162 | 110 | 52 | 68 | 68% | 62% |
 
 ## Log
 
@@ -651,3 +651,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #221 | coderabbitai[bot] | Accept | `touch-action: none` missing on Reference placement overlay (duplicate of greptile) |
 | #221 | cubic-dev-ai[bot] | Accept | `touch-action: none` missing on Reference placement overlay (duplicate of greptile) |
 | #221 | greptile-apps[bot] | Accept | Issue-level duplicate of Reference placement overlay `touch-action: none` finding |
+| #221 | greptile-apps[bot] | Accept | Stale `pendingOverlayTouch` could inject a ghost pointer after overlay unmount |
+| #221 | greptile-apps[bot] | Accept | Issue-level duplicate of stale `pendingOverlayTouch` ghost pointer finding |
+| #221 | coderabbitai[bot] | Miss | Did not flag stale `pendingOverlayTouch` ghost pointer |
+| #221 | cubic-dev-ai[bot] | Miss | Did not flag stale `pendingOverlayTouch` ghost pointer |

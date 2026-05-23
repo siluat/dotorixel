@@ -105,6 +105,11 @@
 		renderPixelCanvas(ctx, pixelCanvas, viewport, viewportSize, referenceUnderlay);
 	});
 
+	$effect(() => {
+		if (isReferenceLayerActive && referenceUnderlay) return;
+		cancelOverlayPointerState();
+	});
+
 	// Register wheel listener with { passive: false } to allow preventDefault
 	$effect(() => {
 		if (!canvasEl) return;
@@ -235,9 +240,21 @@
 	}
 
 	function handleWindowBlur(): void {
+		clearOverlayPointerState();
+		canvasInteraction.blur();
+	}
+
+	function clearOverlayPointerState(): void {
 		pendingOverlayTouch = null;
 		forwardedOverlayPointerIds.clear();
-		canvasInteraction.blur();
+	}
+
+	function cancelOverlayPointerState(): void {
+		pendingOverlayTouch = null;
+		for (const pointerId of forwardedOverlayPointerIds) {
+			canvasInteraction.pointerCancel(pointerId);
+		}
+		forwardedOverlayPointerIds.clear();
 	}
 
 	function blockOverlayPointerEvent(event: PointerEvent): void {
@@ -328,6 +345,7 @@
 <svelte:window
 	onpointermove={handleWindowPointerMove}
 	onpointerup={handlePointerUp}
+	onpointercancel={handlePointerCancel}
 	onblur={handleWindowBlur}
 	onresize={handleWindowResize}
 />

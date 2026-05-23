@@ -148,6 +148,7 @@
 	"reference_layer_import_storage_failed": "{name}: could not save the Reference Layer. Free up browser storage and try again.",
 	"aria_addLayer": "Add layer",
 	"aria_setReferenceLayer": "Set Reference Layer",
+	"aria_fitReferenceLayerToCanvas": "Fit {name} to canvas",
 	"aria_removeLayer": "Delete {name}",
 	"aria_reorderLayer": "Reorder {name}",
 	"aria_hideLayer": "Hide {name}",

@@ -18,7 +18,7 @@ Scope:
 - `Layer { id: Uuid, name: String, visible: bool, opacity: f32, kind: LayerKind }`
 - `LayerKind::Pixel(PixelData) | LayerKind::Reference(ReferenceData)`
 - `PixelData` owns the current `PixelCanvas` pixel buffer (preserves existing behavior).
-- `ReferenceData` carries the decoded source RGBA buffer, the natural width/height (preserved for "Restore original size"), and a `ReferencePlacement` (forward declaration — full type lives in 108).
+- `ReferenceData` carries the decoded source RGBA buffer, the natural width/height, and a `ReferencePlacement` (forward declaration — full type lives in 108).
 - `Document::composite()` keeps its existing behavior: Pixel Layers blend source-over; Reference Layers contribute nothing yet (placeholder branch). All existing composite tests still pass.
 - All existing Document/Layer tests still pass, with mechanical updates to constructor calls if needed.
 - Inline unit tests verify mixed-kind documents preserve every layer's kind across snapshot round-trips.

@@ -13,7 +13,7 @@ parent: 105-reference-layer-type.md
 
 Two `Document` extensions that together let placements move and follow canvas resizes:
 
-- `set_reference_placement(id, placement)` — atomic placement update used by drag-release commits, keyboard nudges, and "Restore original size".
+- `set_reference_placement(id, placement)` — atomic placement update used by drag-release commits, keyboard nudges, and fit-to-canvas.
 - `Document::resize(width, height, anchor)` extended (or paired with a new `resize_with_placement`) so that every Reference Layer's placement transforms by the same 9-anchor factor used for Pixel Layers' crop/extend.
 
 The transform on each Reference placement:

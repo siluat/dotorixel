@@ -16,15 +16,26 @@ impl ReferencePlacement {
         Self { scale, ..self }
     }
 
-    /// Resets `scale` to `1.0`, repositioning so the projected footprint's
-    /// center stays at its current document coordinate.
-    pub fn restore_to_natural(self, natural_width: u32, natural_height: u32) -> Self {
-        let center_x = self.x + (natural_width as f32) * self.scale / 2.0;
-        let center_y = self.y + (natural_height as f32) * self.scale / 2.0;
+    /// Scales the source image aspect-preservingly so it fits entirely inside
+    /// the document canvas, then centers the projected footprint.
+    pub fn fit_to_canvas(
+        canvas_width: u32,
+        canvas_height: u32,
+        natural_width: u32,
+        natural_height: u32,
+    ) -> Self {
+        debug_assert!(
+            canvas_width > 0 && canvas_height > 0 && natural_width > 0 && natural_height > 0,
+            "fit_to_canvas requires non-zero canvas and source dimensions"
+        );
+        let scale = (canvas_width as f32 / natural_width as f32)
+            .min(canvas_height as f32 / natural_height as f32);
+        let projected_width = natural_width as f32 * scale;
+        let projected_height = natural_height as f32 * scale;
         Self {
-            x: center_x - (natural_width as f32) / 2.0,
-            y: center_y - (natural_height as f32) / 2.0,
-            scale: 1.0,
+            x: (canvas_width as f32 - projected_width) / 2.0,
+            y: (canvas_height as f32 - projected_height) / 2.0,
+            scale,
         }
     }
 }
@@ -70,44 +81,29 @@ mod tests {
     }
 
     #[test]
-    fn restore_to_natural_resets_scale_to_one_and_preserves_center_when_scaled_up() {
-        let original = ReferencePlacement {
-            x: 10.0,
-            y: 20.0,
-            scale: 2.0,
-        };
-        let center_before = projected_center(original, 16, 8);
-
-        let restored = original.restore_to_natural(16, 8);
-
-        assert_eq!(restored.scale, 1.0);
-        assert_eq!(projected_center(restored, 16, 8), center_before);
+    fn fit_to_canvas_downscales_and_centers_large_sources() {
+        let fitted = ReferencePlacement::fit_to_canvas(10, 10, 20, 5);
+        assert_eq!(
+            fitted,
+            ReferencePlacement {
+                x: 0.0,
+                y: 3.75,
+                scale: 0.5
+            }
+        );
     }
 
     #[test]
-    fn restore_to_natural_preserves_center_when_scaled_down() {
-        let original = ReferencePlacement {
-            x: 0.0,
-            y: 0.0,
-            scale: 0.5,
-        };
-        let center_before = projected_center(original, 200, 100);
-
-        let restored = original.restore_to_natural(200, 100);
-
-        assert_eq!(restored.scale, 1.0);
-        assert_eq!(projected_center(restored, 200, 100), center_before);
-    }
-
-    fn projected_center(
-        p: ReferencePlacement,
-        natural_width: u32,
-        natural_height: u32,
-    ) -> (f32, f32) {
-        (
-            p.x + (natural_width as f32) * p.scale / 2.0,
-            p.y + (natural_height as f32) * p.scale / 2.0,
-        )
+    fn fit_to_canvas_upscales_and_centers_small_sources() {
+        let fitted = ReferencePlacement::fit_to_canvas(20, 20, 4, 2);
+        assert_eq!(
+            fitted,
+            ReferencePlacement {
+                x: 0.0,
+                y: 5.0,
+                scale: 5.0
+            }
+        );
     }
 
     #[test]
@@ -119,7 +115,7 @@ mod tests {
         };
         let _ = original.with_position(99.0, 99.0);
         let _ = original.with_scale(99.0);
-        let _ = original.restore_to_natural(16, 8);
+        let _ = ReferencePlacement::fit_to_canvas(16, 16, 16, 8);
         assert_eq!(
             original,
             ReferencePlacement {

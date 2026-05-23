@@ -148,6 +148,7 @@
 	"reference_layer_import_storage_failed": "{name}: 참조 레이어를 저장할 수 없습니다. 브라우저 저장 공간을 비운 뒤 다시 시도하세요.",
 	"aria_addLayer": "레이어 추가",
 	"aria_setReferenceLayer": "참조 레이어 설정",
+	"aria_fitReferenceLayerToCanvas": "{name}을(를) 캔버스에 맞추기",
 	"aria_removeLayer": "{name} 삭제",
 	"aria_reorderLayer": "{name} 순서 변경",
 	"aria_hideLayer": "{name} 숨기기",

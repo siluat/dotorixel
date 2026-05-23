@@ -198,6 +198,10 @@
 		editor.workspace.activeTab.setLayerVisibility(id, newVisible);
 	}
 
+	function handleFitReferenceLayerToCanvas(id: string) {
+		editor.workspace.activeTab.fitReferenceLayerToCanvas(id);
+	}
+
 	function handleToggleTimelinePanelCollapsed() {
 		const tab = editor.workspace.activeTab;
 		tab.setTimelinePanelCollapsed(!tab.document.is_timeline_panel_collapsed());
@@ -652,6 +656,7 @@
 			onReorderLayer={handleReorderLayer}
 			onToggleLayerVisibility={handleToggleLayerVisibility}
 			onToggleCollapsed={handleToggleTimelinePanelCollapsed}
+			onFitReferenceLayerToCanvas={handleFitReferenceLayerToCanvas}
 			isReferenceLayerImporting={isReferenceLayerImporting}
 			referenceLayerImportName={referenceLayerImport?.name}
 		/>
@@ -789,6 +794,7 @@
 				onReorderLayer={handleReorderLayer}
 				onToggleLayerVisibility={handleToggleLayerVisibility}
 				onToggleCollapsed={handleToggleTimelinePanelCollapsed}
+				onFitReferenceLayerToCanvas={handleFitReferenceLayerToCanvas}
 				isReferenceLayerImporting={isReferenceLayerImporting}
 				referenceLayerImportName={referenceLayerImport?.name}
 			/>

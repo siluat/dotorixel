@@ -14,6 +14,7 @@ const noopRemoveLayer = (_id: string) => {};
 const noopReorderLayer = (_id: string, _newVisualIndex: number) => {};
 const noopToggleLayerVisibility = (_id: string, _visible: boolean) => {};
 const noopToggleCollapsed = () => {};
+const noopFitReferenceLayerToCanvas = (_id: string) => {};
 
 const defaultProps = {
 	collapsed: false,
@@ -23,7 +24,8 @@ const defaultProps = {
 	onRemoveLayer: noopRemoveLayer,
 	onReorderLayer: noopReorderLayer,
 	onToggleLayerVisibility: noopToggleLayerVisibility,
-	onToggleCollapsed: noopToggleCollapsed
+	onToggleCollapsed: noopToggleCollapsed,
+	onFitReferenceLayerToCanvas: noopFitReferenceLayerToCanvas
 };
 
 function pixelLayer(id: string, name: string, opts: { visible?: boolean } = {}) {
@@ -236,6 +238,72 @@ describe('TimelinePanel', () => {
 
 		expect(onActivateLayer).toHaveBeenCalledWith('reference');
 		expect(onActivateLayer).toHaveBeenCalledTimes(1);
+	});
+
+	it('shows the fit-to-canvas action only on the active Reference Layer row', () => {
+		const layers = [
+			pixelLayer('paint', 'Paint'),
+			referenceLayer('reference', 'Sketch reference')
+		];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'reference', ...defaultProps }
+		});
+
+		const paintRow = container.querySelector(
+			'[data-layer-row][data-layer-id="paint"]'
+		) as HTMLElement;
+		const referenceRow = container.querySelector(
+			'[data-layer-row][data-layer-id="reference"]'
+		) as HTMLElement;
+
+		expect(paintRow.querySelector('[data-fit-reference-layer-to-canvas]')).toBeNull();
+		const fitButton = referenceRow.querySelector(
+			'[data-fit-reference-layer-to-canvas]'
+		) as HTMLButtonElement;
+		expect(fitButton).not.toBeNull();
+		expect(fitButton.getAttribute('aria-label')).toBe('Fit Sketch reference to canvas');
+	});
+
+	it('hides the fit-to-canvas action when the Reference Layer row is inactive', () => {
+		const layers = [
+			pixelLayer('paint', 'Paint'),
+			referenceLayer('reference', 'Sketch reference')
+		];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'paint', ...defaultProps }
+		});
+
+		const referenceRow = container.querySelector(
+			'[data-layer-row][data-layer-id="reference"]'
+		) as HTMLElement;
+		expect(referenceRow.querySelector('[data-fit-reference-layer-to-canvas]')).toBeNull();
+	});
+
+	it('invokes fit-to-canvas without activating the row again', async () => {
+		const layers = [
+			pixelLayer('paint', 'Paint'),
+			referenceLayer('reference', 'Sketch reference')
+		];
+		const onActivateLayer = vi.fn();
+		const onFitReferenceLayerToCanvas = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: {
+				layers,
+				activeLayerId: 'reference',
+				...defaultProps,
+				onActivateLayer,
+				onFitReferenceLayerToCanvas
+			}
+		});
+
+		const fitButton = container.querySelector(
+			'[data-layer-row][data-layer-id="reference"] [data-fit-reference-layer-to-canvas]'
+		) as HTMLButtonElement;
+		await fireEvent.click(fitButton);
+
+		expect(onFitReferenceLayerToCanvas).toHaveBeenCalledWith('reference');
+		expect(onFitReferenceLayerToCanvas).toHaveBeenCalledTimes(1);
+		expect(onActivateLayer).not.toHaveBeenCalled();
 	});
 
 	it('renders a remove affordance on every layer row', () => {

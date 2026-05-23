@@ -106,8 +106,7 @@ impl fmt::Display for ReferenceDataError {
 impl std::error::Error for ReferenceDataError {}
 
 /// A Reference Layer's data: the decoded source RGBA buffer, its natural
-/// pixel dimensions (preserved for "Restore original size"), and the current
-/// [`ReferencePlacement`].
+/// pixel dimensions, and the current [`ReferencePlacement`].
 ///
 /// The source buffer is immutable after construction — only the placement
 /// changes during the layer's lifetime.

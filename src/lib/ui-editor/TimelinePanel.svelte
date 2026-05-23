@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ChevronDown, Grid2x2, Image, LoaderCircle } from 'lucide-svelte';
+	import { ChevronDown, Grid2x2, Image, LoaderCircle, Maximize2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 
 	type LayerKind = 'pixel' | 'reference';
@@ -22,6 +22,7 @@
 		onReorderLayer: (id: string, newVisualIndex: number) => void;
 		onToggleLayerVisibility: (id: string, newVisible: boolean) => void;
 		onToggleCollapsed: () => void;
+		onFitReferenceLayerToCanvas: (id: string) => void;
 		isReferenceLayerImporting?: boolean;
 		referenceLayerImportName?: string;
 	}
@@ -37,6 +38,7 @@
 		onReorderLayer,
 		onToggleLayerVisibility,
 		onToggleCollapsed,
+		onFitReferenceLayerToCanvas,
 		isReferenceLayerImporting = false,
 		referenceLayerImportName
 	}: Props = $props();
@@ -261,6 +263,25 @@
 							{/if}
 						</span>
 						<span class="name">{layer.name}</span>
+						{#if kind === 'reference' && isActive}
+							<button
+								type="button"
+								class="fit-canvas-btn"
+								data-fit-reference-layer-to-canvas
+								aria-label={m.aria_fitReferenceLayerToCanvas({ name: layer.name })}
+								onkeydown={(e) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.stopPropagation();
+									}
+								}}
+								onclick={(e) => {
+									e.stopPropagation();
+									onFitReferenceLayerToCanvas(layer.id);
+								}}
+							>
+								<Maximize2 size={14} strokeWidth={1.75} aria-hidden="true" />
+							</button>
+						{/if}
 						<button
 							type="button"
 							class="remove-btn"
@@ -570,7 +591,8 @@
 
 	.remove-btn,
 	.reorder-handle,
-	.visibility-toggle {
+	.visibility-toggle,
+	.fit-canvas-btn {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -589,14 +611,16 @@
 
 	.remove-btn:hover:not(:disabled),
 	.reorder-handle:hover:not(:disabled),
-	.visibility-toggle:hover:not(:disabled) {
+	.visibility-toggle:hover:not(:disabled),
+	.fit-canvas-btn:hover:not(:disabled) {
 		background: var(--ds-bg-hover);
 		color: var(--ds-text-primary);
 	}
 
 	.remove-btn:focus-visible,
 	.reorder-handle:focus-visible,
-	.visibility-toggle:focus-visible {
+	.visibility-toggle:focus-visible,
+	.fit-canvas-btn:focus-visible {
 		outline: var(--ds-border-width-thick) solid var(--ds-accent);
 		outline-offset: 1px;
 	}

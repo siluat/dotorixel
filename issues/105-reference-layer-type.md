@@ -32,7 +32,7 @@ Reference Window remains unchanged: file drops onto the canvas create Reference 
 - **Type model**: the Document distinguishes drawable **Pixel Layers** from an optional singleton **Reference Layer**. Implementation may keep an umbrella `LayerKind`, but the invariant is strict: at most one Reference Layer, always below all Pixel Layers.
 - **Rendering model**: `Document.composite()` is Pixel-only. The web shell draws the Reference Layer as a viewport-native underlay, then draws the Pixel Layer composite over it. Reference pixels are never baked into the document RGBA buffer.
 - **Export model**: export paths use Pixel-only data. `composite_for_export()` may remain as an explicit export API, but it must be equivalent to Pixel-only composition.
-- **Timeline Panel**: Reference appears as a fixed bottom row when present. It has a kind icon, visibility/delete controls, active selection for placement, and Restore original size. It has no reorder affordance.
+- **Timeline Panel**: Reference appears as a fixed bottom row when present. It has a kind icon, visibility/delete controls, active selection for placement, and Fit to canvas. It has no reorder affordance.
 - **Import flow**: the dedicated Reference icon sets or replaces the singleton Reference Layer. If one exists, show a confirmation before opening/replacing. The Pixel `+` path remains unchanged.
 - **Viewport overlay**: when the Reference Layer is active, an overlay with handles lets the user move and resize its placement. The overlay traces the viewport underlay, not a composited document-pixel footprint.
 
@@ -49,12 +49,12 @@ Reference Window remains unchanged: file drops onto the canvas create Reference 
 9. As a pixel artist, I want Reference Layer ordering to be fixed, so that I cannot accidentally move the reference above my artwork.
 10. As a pixel artist, I want to hide/show or delete the Reference Layer, so that I can inspect the artwork cleanly or remove the tracing aid entirely.
 11. As a pixel artist, I want to drag the Reference Layer handles to move and resize it, so that I can align it visually with the work.
-12. As a pixel artist, I want one click on Restore original size to return the reference to its natural image dimensions while preserving the center point.
+12. As a pixel artist, I want one click on Fit to canvas to make the reference fill as much of the canvas as possible without cropping, so that I can quickly return to a useful tracing baseline.
 13. As a pixel artist, I want placement changes to be undoable, so that I can experiment freely.
 14. As a pixel artist, I want each layer row in the Timeline Panel to show a distinct icon for Pixel vs Reference, so that I can tell at a glance which is which.
 15. As a pixel artist, I want to activate the Reference Layer for placement edits, so that the same selection model works across the panel.
 16. As a pixel artist, when the Reference Layer is active and I select a drawing tool, I want the tool to silently no-op with clear passive UI feedback, so that mis-clicks are harmless.
-17. As a pixel artist, I want my Reference Layer's source dimensions and natural size to survive reload, so that Restore original size always returns to the same baseline.
+17. As a pixel artist, I want my Reference Layer's source dimensions to survive reload, so that Fit to canvas always uses the same source-image baseline.
 18. As a pixel artist importing a reference much larger than my canvas, I want the initial placement to auto-fit aspect-preservingly so I can see the whole reference at once.
 19. As a pixel artist resizing my canvas while a Reference Layer is in place, I want the placement to follow the chosen anchor, so that anchor selection means the same thing for the underlay.
 20. As a pixel artist using a precise reference, I want to nudge the active Reference Layer 1 pixel at a time with arrow keys, so that I can align it without mouse precision.
@@ -144,7 +144,7 @@ center = (canvas_width / 2, canvas_height / 2)
 
 - Source smaller than canvas: `scale = 1.0`, centered.
 - Source larger than canvas: scaled down so the full source is visible, centered.
-- Restore original size later sets `scale = 1.0` while preserving the current center point.
+- Fit to canvas later sets `scale = min(canvas_width / source_width, canvas_height / source_height)` without the `1.0` cap, then centers the projected source footprint.
 
 ### Canvas Resize × Placement
 
@@ -168,7 +168,7 @@ Reference appears as a fixed bottom row whenever present:
 - It shows the Reference kind icon.
 - It can be selected/activated for placement.
 - It can be hidden or deleted.
-- It can show Restore original size when active.
+- It can show Fit to canvas when active.
 - It does not show a reorder handle.
 - Pixel Layer reorder operations cannot move any Pixel Layer below the Reference row.
 
@@ -225,7 +225,7 @@ Test observable contracts, not internal layout.
 
 ### Deep-Module Unit Tests
 
-- `ReferencePlacement`: restore natural size preserves center; builders are value-pure; resize anchor transform updates position without mutating source size.
+- `ReferencePlacement`: fit-to-canvas computes an aspect-preserving centered placement; builders are value-pure; resize anchor transform updates position without mutating source size.
 - Document singleton invariant: setting a Reference Layer twice replaces the existing one; no second Reference layer is appended.
 - Document z-order invariant: Reference is always below Pixel Layers; reorder operations cannot move it.
 - Document composite contract: `Document.composite()` contains Pixel Layers only.

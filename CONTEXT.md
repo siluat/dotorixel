@@ -23,7 +23,7 @@ A singleton Layer that holds a decoded source image plus a Reference Layer Place
 _Avoid_: imported image, tracing layer, reference image (Reference Window's term).
 
 **Reference Layer Placement**:
-A Reference Layer's source-to-document geometry — the position and uniform scale that map the source image onto the Document canvas. On import the placement starts at the source's natural pixel size centered on the canvas; "Restore original size" resets the size back to natural while preserving the center point. Composite sampling is nearest-neighbor.
+A Reference Layer's source-to-document geometry — the position and uniform scale that map the source image onto the Document canvas. On import, large sources are aspect-fit into the canvas while smaller sources stay at natural size; "Fit to canvas" aspect-fits the source into the current canvas, allows upscaling, and centers the result. Composite sampling is nearest-neighbor.
 _Avoid_: position, transform, geometry, viewport (all overloaded).
 
 ### Sampling

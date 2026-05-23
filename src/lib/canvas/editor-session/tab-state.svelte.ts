@@ -26,17 +26,18 @@ import type { CanvasBackend } from './canvas-backend';
 import type { DirtyNotifier } from './dirty-notifier';
 import { TabViewport } from './tab-viewport.svelte';
 
-function fingerprintRgba(bytes: Uint8Array): string {
-	let hash = 0x811c9dc5;
-	for (const byte of bytes) {
-		hash ^= byte;
-		hash = Math.imul(hash, 0x01000193);
-	}
-	return (hash >>> 0).toString(16);
-}
-
 function assertNever(x: never): never {
 	throw new Error(`Unhandled effect type: ${(x as { type: string }).type}`);
+}
+
+interface CachedReferenceUnderlaySource {
+	readonly document: Document;
+	readonly layerId: string;
+	readonly sourceFingerprint: string;
+	readonly naturalWidth: number;
+	readonly naturalHeight: number;
+	readonly sourceKey: string;
+	readonly sourceRgba: Uint8Array;
 }
 
 export interface TabStateDeps {
@@ -110,16 +111,44 @@ export class TabState {
 		for (let i = 0; i < doc.layer_count(); i++) {
 			if (doc.layer_kind_at(i) !== 'reference') continue;
 			if (!doc.layer_visible_at(i)) return undefined;
-			const sourceRgba = doc.layer_source_pixels_at(i);
+			const layerId = doc.layer_id_at(i);
+			const sourceFingerprint = doc.layer_source_fingerprint_at(i);
 			const dimensions = doc.layer_source_dimensions_at(i);
 			const placement = doc.layer_placement_at(i);
 			const opacity = doc.layer_opacity_at(i);
-			if (!sourceRgba || !dimensions || !placement || opacity === undefined) return undefined;
+			if (!layerId || !sourceFingerprint || !dimensions || !placement || opacity === undefined) {
+				return undefined;
+			}
+			const naturalWidth = dimensions[0];
+			const naturalHeight = dimensions[1];
+			const cached = this.#referenceUnderlaySource;
+			let source =
+				cached?.document === doc &&
+				cached.layerId === layerId &&
+				cached.sourceFingerprint === sourceFingerprint &&
+				cached.naturalWidth === naturalWidth &&
+				cached.naturalHeight === naturalHeight
+					? cached
+					: undefined;
+			if (!source) {
+				const sourceRgba = doc.layer_source_pixels_at(i);
+				if (!sourceRgba) return undefined;
+				source = {
+					document: doc,
+					layerId,
+					sourceFingerprint,
+					naturalWidth,
+					naturalHeight,
+					sourceKey: `${layerId}:${naturalWidth}x${naturalHeight}:${sourceFingerprint}`,
+					sourceRgba
+				};
+				this.#referenceUnderlaySource = source;
+			}
 			return {
-				sourceKey: `${doc.layer_id_at(i)!}:${fingerprintRgba(sourceRgba)}`,
-				sourceRgba,
-				naturalWidth: dimensions[0],
-				naturalHeight: dimensions[1],
+				sourceKey: source.sourceKey,
+				sourceRgba: source.sourceRgba,
+				naturalWidth,
+				naturalHeight,
 				placement: {
 					x: placement.x,
 					y: placement.y,
@@ -153,6 +182,7 @@ export class TabState {
 	#toolRunner: ToolRunner;
 	#tabViewport: TabViewport;
 	#referenceLayerBlobs: Map<string, Blob>;
+	#referenceUnderlaySource?: CachedReferenceUnderlaySource;
 
 	get viewport(): ViewportData {
 		return this.#tabViewport.viewport;

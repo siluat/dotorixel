@@ -116,6 +116,7 @@ pub struct ReferenceData {
     source_rgba: Vec<u8>,
     natural_width: u32,
     natural_height: u32,
+    source_fingerprint: u64,
     placement: ReferencePlacement,
 }
 
@@ -151,16 +152,22 @@ impl ReferenceData {
                 actual: source_rgba.len(),
             });
         }
+        let source_fingerprint = fingerprint_rgba(&source_rgba);
         Ok(Self {
             source_rgba,
             natural_width,
             natural_height,
+            source_fingerprint,
             placement,
         })
     }
 
     pub fn source_rgba(&self) -> &[u8] {
         &self.source_rgba
+    }
+
+    pub fn source_fingerprint(&self) -> u64 {
+        self.source_fingerprint
     }
 
     pub fn natural_width(&self) -> u32 {
@@ -178,6 +185,12 @@ impl ReferenceData {
     pub fn set_placement(&mut self, placement: ReferencePlacement) {
         self.placement = placement;
     }
+}
+
+fn fingerprint_rgba(bytes: &[u8]) -> u64 {
+    bytes.iter().fold(0xcbf29ce484222325, |hash, byte| {
+        (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
+    })
 }
 
 #[cfg(test)]

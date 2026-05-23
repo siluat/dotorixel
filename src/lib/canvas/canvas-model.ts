@@ -141,6 +141,8 @@ export interface Document {
 	layer_kind_at(index: number): string | undefined;
 	/** Returns a Reference Layer's source RGBA buffer, or `undefined` for Pixel Layers / out of range. */
 	layer_source_pixels_at(index: number): Uint8Array | undefined;
+	/** Returns a stable source RGBA fingerprint, or `undefined` for Pixel Layers / out of range. */
+	layer_source_fingerprint_at(index: number): string | undefined;
 	/** Returns `[natural_width, natural_height]`, or `undefined` for Pixel Layers / out of range. */
 	layer_source_dimensions_at(index: number): Uint32Array | undefined;
 	/** Returns a Reference Layer's placement, or `undefined` for Pixel Layers / out of range. */

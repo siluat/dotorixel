@@ -549,6 +549,16 @@ impl Document {
         }
     }
 
+    /// Returns a stable fingerprint of the immutable source RGBA buffer of the
+    /// Reference Layer at `index`. `None` when `index` is out of range or the
+    /// layer is a Pixel Layer.
+    pub fn layer_source_fingerprint_at(&self, index: usize) -> Option<u64> {
+        match &self.layers.get(index)?.kind {
+            LayerKind::Reference(data) => Some(data.source_fingerprint()),
+            LayerKind::Pixel(_) => None,
+        }
+    }
+
     /// Returns the natural (pre-placement) dimensions of the Reference Layer
     /// at `index`. `None` when `index` is out of range or the layer is a Pixel
     /// Layer.

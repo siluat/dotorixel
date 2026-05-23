@@ -1,6 +1,6 @@
 ---
 title: "Reference Layer: placement overlay shell — read-only render"
-status: needs-triage
+status: done
 created: 2026-05-16
 parent: 105-reference-layer-type.md
 ---
@@ -46,3 +46,23 @@ Scope:
 ## User Stories Addressed
 
 - Visual feedback for #16 and #25.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/ReferenceLayerPlacementOverlay.svelte` | Added the read-only Reference placement overlay that projects the active Reference underlay into viewport space and renders four constant-size corner handles. |
+| `src/lib/canvas/PixelCanvasView.svelte` | Wires the overlay into the canvas view, tracks pointer source for desktop/touch handle sizing, blocks draw fallthrough, and forwards viewport gestures from the overlay. |
+| `src/routes/editor/+page.svelte` | Derives whether the active layer is the singleton Reference Layer and passes that state to both canvas view placements. |
+| `src/lib/canvas/ReferenceLayerPlacementOverlay.svelte.test.ts` | Covers projection, active-state visibility, handle count/size, touch sizing, and read-only pointer blocking. |
+| `src/lib/canvas/PixelCanvasView.svelte.test.ts` | Covers canvas-view integration, Reference/Pixels active-state switching, overlay read-only behavior, and viewport pan/pinch passthrough. |
+
+### Key Decisions
+
+- The overlay uses the renderer-facing `ReferenceUnderlay` rather than `Document.composite()` so the rectangle follows the original-image viewport underlay.
+- Overlay pointer handling blocks draw-start fallthrough, while middle-drag, Space-drag, and touch pinch are forwarded to the existing canvas interaction path so viewport navigation still works.
+- Handle sizes are fixed in screen pixels: 12px for desktop/pen and 16px after a touch pointer signal.
+
+### Notes
+
+- Drag-to-move, drag-to-scale, Shift snapping, keyboard nudge, and Reference-active drawing-tool cursor/no-op behavior remain in follow-up slices.

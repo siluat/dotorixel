@@ -10,6 +10,7 @@
 		type ReferenceUnderlay,
 		type RenderableCanvas
 	} from './renderer.ts';
+	import ReferenceLayerPlacementOverlay from './ReferenceLayerPlacementOverlay.svelte';
 	import {
 		createCanvasInteraction,
 		normalizePointerType,
@@ -20,6 +21,7 @@
 	interface Props {
 		pixelCanvas: RenderableCanvas;
 		referenceUnderlay?: ReferenceUnderlay;
+		isReferenceLayerActive?: boolean;
 		viewport: ViewportData;
 		viewportSize?: ViewportSize;
 		renderVersion?: number;
@@ -44,6 +46,7 @@
 	let {
 		pixelCanvas,
 		referenceUnderlay,
+		isReferenceLayerActive = false,
 		viewport,
 		viewportSize = { width: 512, height: 512 },
 		renderVersion = 0,
@@ -61,6 +64,9 @@
 	}: Props = $props();
 
 	let canvasEl: HTMLCanvasElement | undefined = $state();
+	let placementOverlayPointerType = $state<PointerType>('mouse');
+	let pendingOverlayTouch: { id: number; x: number; y: number } | null = null;
+	const forwardedOverlayPointerIds = new Set<number>();
 	// Last pointer screen coords. Cached so a window resize during an active
 	// sampling session can re-fire updatePointer with fresh viewport dimensions
 	// without waiting for the next pointer event.
@@ -99,49 +105,16 @@
 		renderPixelCanvas(ctx, pixelCanvas, viewport, viewportSize, referenceUnderlay);
 	});
 
+	$effect(() => {
+		if (isReferenceLayerActive && referenceUnderlay) return;
+		cancelOverlayPointerState();
+	});
+
 	// Register wheel listener with { passive: false } to allow preventDefault
 	$effect(() => {
 		if (!canvasEl) return;
-		const vp = viewport;
-		const handler = (event: WheelEvent) => {
-			if (event.deltaX === 0 && event.deltaY === 0) return;
-			event.preventDefault();
-
-			const inputType = classifyWheelInput(
-				event.deltaX,
-				event.deltaY,
-				event.deltaMode,
-				event.ctrlKey
-			);
-
-			if (inputType === 'trackpadPan') {
-				onViewportChange?.(viewportOps.pan(vp, -event.deltaX, -event.deltaY));
-				return;
-			}
-
-			const rect = canvasEl!.getBoundingClientRect();
-			const screenX = event.clientX - rect.left;
-			const screenY = event.clientY - rect.top;
-
-			if (inputType === 'pinchZoom') {
-				const newZoom = viewportOps.computePinchZoom(vp.zoom, event.deltaY);
-				if (newZoom !== vp.zoom) {
-					onViewportChange?.(viewportOps.zoomAtPoint(vp, screenX, screenY, newZoom));
-				}
-				return;
-			}
-
-			// wheelZoom: discrete level stepping (mouse wheel)
-			const isZoomIn = event.deltaY < 0;
-			const newZoom = isZoomIn
-				? viewportOps.nextZoomLevel(vp.zoom)
-				: viewportOps.prevZoomLevel(vp.zoom);
-			if (newZoom !== vp.zoom) {
-				onViewportChange?.(viewportOps.zoomAtPoint(vp, screenX, screenY, newZoom));
-			}
-		};
-		canvasEl.addEventListener('wheel', handler, { passive: false });
-		return () => canvasEl?.removeEventListener('wheel', handler);
+		canvasEl.addEventListener('wheel', handleWheel, { passive: false });
+		return () => canvasEl?.removeEventListener('wheel', handleWheel);
 	});
 
 	const cursorStyle = $derived(
@@ -155,6 +128,45 @@
 	function toLocal(event: PointerEvent): { x: number; y: number } {
 		const rect = canvasEl!.getBoundingClientRect();
 		return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+	}
+
+	function handleWheel(event: WheelEvent): void {
+		if (!canvasEl) return;
+		if (event.deltaX === 0 && event.deltaY === 0) return;
+		event.preventDefault();
+
+		const inputType = classifyWheelInput(
+			event.deltaX,
+			event.deltaY,
+			event.deltaMode,
+			event.ctrlKey
+		);
+
+		if (inputType === 'trackpadPan') {
+			onViewportChange?.(viewportOps.pan(viewport, -event.deltaX, -event.deltaY));
+			return;
+		}
+
+		const rect = canvasEl.getBoundingClientRect();
+		const screenX = event.clientX - rect.left;
+		const screenY = event.clientY - rect.top;
+
+		if (inputType === 'pinchZoom') {
+			const newZoom = viewportOps.computePinchZoom(viewport.zoom, event.deltaY);
+			if (newZoom !== viewport.zoom) {
+				onViewportChange?.(viewportOps.zoomAtPoint(viewport, screenX, screenY, newZoom));
+			}
+			return;
+		}
+
+		// wheelZoom: discrete level stepping (mouse wheel)
+		const isZoomIn = event.deltaY < 0;
+		const newZoom = isZoomIn
+			? viewportOps.nextZoomLevel(viewport.zoom)
+			: viewportOps.prevZoomLevel(viewport.zoom);
+		if (newZoom !== viewport.zoom) {
+			onViewportChange?.(viewportOps.zoomAtPoint(viewport, screenX, screenY, newZoom));
+		}
 	}
 
 	function pushPointerToSession(event: PointerEvent): void {
@@ -175,18 +187,28 @@
 
 	function handlePointerDown(event: PointerEvent): void {
 		if (event.button === 1 || event.button === 2) event.preventDefault();
+		const pointerType = normalizePointerType(event.pointerType);
+		placementOverlayPointerType = pointerType;
 		pushPointerToSession(event);
 		const { x, y } = toLocal(event);
+		if (
+			pointerType === 'touch' &&
+			pendingOverlayTouch &&
+			pendingOverlayTouch.id !== event.pointerId
+		) {
+			forwardPendingOverlayTouch();
+		}
 		canvasInteraction.pointerDown(
 			event.pointerId,
 			x,
 			y,
-			normalizePointerType(event.pointerType),
+			pointerType,
 			event.button
 		);
 	}
 
 	function handlePointerMove(event: PointerEvent): void {
+		placementOverlayPointerType = normalizePointerType(event.pointerType);
 		pushPointerToSession(event);
 		const { x, y } = toLocal(event);
 		canvasInteraction.pointerMove(x, y);
@@ -201,6 +223,8 @@
 
 	function handlePointerUp(event: PointerEvent): void {
 		if (!canvasEl) return;
+		forwardedOverlayPointerIds.delete(event.pointerId);
+		if (pendingOverlayTouch?.id === event.pointerId) pendingOverlayTouch = null;
 		const { x, y } = toLocal(event);
 		canvasInteraction.pointerUp(event.pointerId, x, y);
 	}
@@ -211,17 +235,128 @@
 	}
 
 	function handlePointerCancel(event: PointerEvent): void {
+		forwardedOverlayPointerIds.delete(event.pointerId);
+		if (pendingOverlayTouch?.id === event.pointerId) pendingOverlayTouch = null;
+		canvasInteraction.pointerCancel(event.pointerId);
+	}
+
+	function handleWindowPointerCancel(event: PointerEvent): void {
+		if (pendingOverlayTouch?.id === event.pointerId) {
+			pendingOverlayTouch = null;
+			return;
+		}
+		if (!forwardedOverlayPointerIds.has(event.pointerId)) return;
+		forwardedOverlayPointerIds.delete(event.pointerId);
 		canvasInteraction.pointerCancel(event.pointerId);
 	}
 
 	function handleWindowBlur(): void {
+		clearOverlayPointerState();
 		canvasInteraction.blur();
+	}
+
+	function clearOverlayPointerState(): void {
+		pendingOverlayTouch = null;
+		forwardedOverlayPointerIds.clear();
+	}
+
+	function cancelOverlayPointerState(): void {
+		pendingOverlayTouch = null;
+		for (const pointerId of forwardedOverlayPointerIds) {
+			canvasInteraction.pointerCancel(pointerId);
+		}
+		forwardedOverlayPointerIds.clear();
+	}
+
+	function blockOverlayPointerEvent(event: PointerEvent): void {
+		event.preventDefault();
+		event.stopPropagation();
+	}
+
+	function forwardPendingOverlayTouch(): void {
+		if (!pendingOverlayTouch) return;
+		canvasInteraction.pointerDown(
+			pendingOverlayTouch.id,
+			pendingOverlayTouch.x,
+			pendingOverlayTouch.y,
+			'touch',
+			0
+		);
+		forwardedOverlayPointerIds.add(pendingOverlayTouch.id);
+		pendingOverlayTouch = null;
+	}
+
+	function handleOverlayPointerDown(event: PointerEvent): void {
+		if (!canvasEl) {
+			blockOverlayPointerEvent(event);
+			return;
+		}
+		const pointerType = normalizePointerType(event.pointerType);
+		placementOverlayPointerType = pointerType;
+		const { x, y } = toLocal(event);
+
+		if (pointerType === 'touch') {
+			if (pendingOverlayTouch && pendingOverlayTouch.id !== event.pointerId) {
+				forwardPendingOverlayTouch();
+				canvasInteraction.pointerDown(event.pointerId, x, y, pointerType, event.button);
+				forwardedOverlayPointerIds.add(event.pointerId);
+			} else if (canvasInteraction.interactionType !== 'idle') {
+				canvasInteraction.pointerDown(event.pointerId, x, y, pointerType, event.button);
+				forwardedOverlayPointerIds.add(event.pointerId);
+			} else {
+				pendingOverlayTouch = { id: event.pointerId, x, y };
+			}
+			blockOverlayPointerEvent(event);
+			return;
+		}
+
+		if (event.button === 1 || isSpaceHeld) {
+			canvasInteraction.pointerDown(event.pointerId, x, y, pointerType, event.button);
+			forwardedOverlayPointerIds.add(event.pointerId);
+		}
+		blockOverlayPointerEvent(event);
+	}
+
+	function handleOverlayPointerMove(event: PointerEvent): void {
+		if (!canvasEl) {
+			blockOverlayPointerEvent(event);
+			return;
+		}
+		placementOverlayPointerType = normalizePointerType(event.pointerType);
+		const { x, y } = toLocal(event);
+		if (pendingOverlayTouch?.id === event.pointerId) {
+			pendingOverlayTouch = { id: event.pointerId, x, y };
+		}
+		if (forwardedOverlayPointerIds.has(event.pointerId)) {
+			canvasInteraction.windowPointerMove(event.pointerId, x, y, event.buttons);
+		}
+		blockOverlayPointerEvent(event);
+	}
+
+	function handleOverlayPointerUp(event: PointerEvent): void {
+		if (pendingOverlayTouch?.id === event.pointerId) pendingOverlayTouch = null;
+		if (canvasEl && forwardedOverlayPointerIds.has(event.pointerId)) {
+			const { x, y } = toLocal(event);
+			canvasInteraction.pointerUp(event.pointerId, x, y);
+			forwardedOverlayPointerIds.delete(event.pointerId);
+		}
+		blockOverlayPointerEvent(event);
+	}
+
+	function handleOverlayPointerCancel(event: PointerEvent): void {
+		if (pendingOverlayTouch?.id === event.pointerId) pendingOverlayTouch = null;
+		if (forwardedOverlayPointerIds.has(event.pointerId)) {
+			canvasInteraction.pointerCancel(event.pointerId);
+			forwardedOverlayPointerIds.delete(event.pointerId);
+		}
+		blockOverlayPointerEvent(event);
 	}
 </script>
 
 <svelte:window
 	onpointermove={handleWindowPointerMove}
 	onpointerup={handlePointerUp}
+	onpointercancel={handleWindowPointerCancel}
 	onblur={handleWindowBlur}
 	onresize={handleWindowResize}
 />
@@ -241,6 +376,18 @@
 	onpointercancel={handlePointerCancel}
 	oncontextmenu={(e) => e.preventDefault()}
 ></canvas>
+
+<ReferenceLayerPlacementOverlay
+	{referenceUnderlay}
+	{viewport}
+	{isReferenceLayerActive}
+	pointerType={placementOverlayPointerType}
+	onReadOnlyPointerDown={handleOverlayPointerDown}
+	onReadOnlyPointerMove={handleOverlayPointerMove}
+	onReadOnlyPointerUp={handleOverlayPointerUp}
+	onReadOnlyPointerCancel={handleOverlayPointerCancel}
+	onReadOnlyWheel={handleWheel}
+/>
 
 {#if samplingSession?.position}
 	<Loupe grid={samplingSession.grid} position={samplingSession.position} />

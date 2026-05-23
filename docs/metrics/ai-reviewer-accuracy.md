@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 116 | 84 | 32 | 97 | 72% | 46% |
-| cubic-dev-ai[bot] | 68 | 54 | 14 | 124 | 79% | 30% |
-| coderabbitai[bot] | 161 | 109 | 52 | 67 | 68% | 62% |
+| greptile-apps[bot] | 121 | 89 | 32 | 98 | 74% | 48% |
+| cubic-dev-ai[bot] | 70 | 56 | 14 | 126 | 80% | 31% |
+| coderabbitai[bot] | 162 | 110 | 52 | 70 | 68% | 61% |
 
 ## Log
 
@@ -647,3 +647,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #220 | coderabbitai[bot] | Miss | Did not flag non-zero fit-to-canvas dimension precondition |
 | #220 | cubic-dev-ai[bot] | Miss | Did not flag non-zero fit-to-canvas dimension precondition |
 | #220 | cubic-dev-ai[bot] | Reject | `assert!` would duplicate boundary validation inside trusted core geometry helper |
+| #221 | greptile-apps[bot] | Accept | `touch-action: none` missing on Reference placement overlay |
+| #221 | coderabbitai[bot] | Accept | `touch-action: none` missing on Reference placement overlay (duplicate of greptile) |
+| #221 | cubic-dev-ai[bot] | Accept | `touch-action: none` missing on Reference placement overlay (duplicate of greptile) |
+| #221 | greptile-apps[bot] | Accept | Issue-level duplicate of Reference placement overlay `touch-action: none` finding |
+| #221 | greptile-apps[bot] | Accept | Stale `pendingOverlayTouch` could inject a ghost pointer after overlay unmount |
+| #221 | greptile-apps[bot] | Accept | Issue-level duplicate of stale `pendingOverlayTouch` ghost pointer finding |
+| #221 | coderabbitai[bot] | Miss | Did not flag stale `pendingOverlayTouch` ghost pointer |
+| #221 | cubic-dev-ai[bot] | Miss | Did not flag stale `pendingOverlayTouch` ghost pointer |
+| #221 | cubic-dev-ai[bot] | Accept | Window-level `pointercancel` could cancel unrelated active canvas interaction |
+| #221 | greptile-apps[bot] | Accept | Overlay blocked wheel/trackpad viewport navigation while Reference Layer was active |
+| #221 | greptile-apps[bot] | Miss | Did not flag unrelated window `pointercancel` cancelling active canvas interaction |
+| #221 | coderabbitai[bot] | Miss | Did not flag unrelated window `pointercancel` cancelling active canvas interaction |
+| #221 | coderabbitai[bot] | Miss | Did not flag overlay wheel/trackpad viewport navigation gap |
+| #221 | cubic-dev-ai[bot] | Miss | Did not flag overlay wheel/trackpad viewport navigation gap |

@@ -71,7 +71,7 @@
 	let browserDocuments: SavedDocumentSummary[] | null = $state(null);
 	let isReferencesOpen = $state(false);
 	let referenceErrors = $state<string[]>([]);
-	let referenceLayerErrors = $state<string[]>([]);
+	let referenceLayerErrors = $state<{ id: string; message: string }[]>([]);
 	let referenceFileInputEl = $state<HTMLInputElement>();
 	let referenceLayerFileInputEl = $state<HTMLInputElement>();
 	let referenceLayerImport = $state<{ name: string } | null>(null);
@@ -162,7 +162,6 @@
 	}
 
 	function hasReferenceLayer(tab: TabState): boolean {
-		void tab.renderVersion;
 		const doc = tab.document;
 		for (let i = 0; i < doc.layer_count(); i++) {
 			if (doc.layer_kind_at(i) === 'reference') return true;
@@ -311,17 +310,15 @@
 	}
 
 	function pushReferenceLayerError(message: string) {
-		referenceLayerErrors = [...referenceLayerErrors, message];
+		const id = crypto.randomUUID();
+		referenceLayerErrors = [...referenceLayerErrors, { id, message }];
 		window.setTimeout(() => {
-			const index = referenceLayerErrors.indexOf(message);
-			if (index >= 0) {
-				referenceLayerErrors = referenceLayerErrors.filter((_, i) => i !== index);
-			}
+			referenceLayerErrors = referenceLayerErrors.filter((error) => error.id !== id);
 		}, 5000);
 	}
 
-	function handleDismissReferenceLayerError(index: number) {
-		referenceLayerErrors = referenceLayerErrors.filter((_, i) => i !== index);
+	function handleDismissReferenceLayerError(id: string) {
+		referenceLayerErrors = referenceLayerErrors.filter((error) => error.id !== id);
 	}
 
 	function handleReferenceLayerReplaceCancel() {
@@ -875,14 +872,14 @@
 
 {#if referenceLayerErrors.length > 0}
 	<div class="toast-stack" aria-live="polite">
-		{#each referenceLayerErrors as message, i (i)}
+		{#each referenceLayerErrors as error (error.id)}
 			<div class="toast" role="alert">
-				<span>{message}</span>
+				<span>{error.message}</span>
 				<button
 					type="button"
 					class="toast-dismiss"
 					aria-label={m.references_error_dismiss()}
-					onclick={() => handleDismissReferenceLayerError(i)}
+					onclick={() => handleDismissReferenceLayerError(error.id)}
 				>
 					×
 				</button>

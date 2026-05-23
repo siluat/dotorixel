@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 113 | 81 | 32 | 96 | 72% | 46% |
-| cubic-dev-ai[bot] | 67 | 54 | 13 | 120 | 81% | 31% |
-| coderabbitai[bot] | 159 | 108 | 51 | 64 | 68% | 63% |
+| greptile-apps[bot] | 115 | 83 | 32 | 97 | 72% | 46% |
+| cubic-dev-ai[bot] | 67 | 54 | 13 | 123 | 81% | 31% |
+| coderabbitai[bot] | 160 | 109 | 51 | 66 | 68% | 62% |
 
 ## Log
 
@@ -633,3 +633,12 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #218 | coderabbitai[bot] | Accept | `clearReferenceRasterCache` missing public cache-clearing contract doc |
 | #218 | greptile-apps[bot] | Miss | Did not flag `clearReferenceRasterCache` public doc contract gap |
 | #218 | cubic-dev-ai[bot] | Miss | Did not flag `clearReferenceRasterCache` public doc contract gap |
+| #219 | greptile-apps[bot] | Accept | Misleading non-reactive `void tab.renderVersion` read in event-handler helper |
+| #219 | greptile-apps[bot] | Accept | Reference Layer error toasts used index keys and message-based timeout dismissal |
+| #219 | coderabbitai[bot] | Accept | `ReferenceLayerSource` missing public API contract doc |
+| #219 | coderabbitai[bot] | Miss | Did not flag non-reactive `renderVersion` read |
+| #219 | coderabbitai[bot] | Miss | Did not flag unstable Reference Layer toast keys and dismissal ids |
+| #219 | cubic-dev-ai[bot] | Miss | Did not flag non-reactive `renderVersion` read |
+| #219 | cubic-dev-ai[bot] | Miss | Did not flag unstable Reference Layer toast keys and dismissal ids |
+| #219 | greptile-apps[bot] | Miss | Did not flag `ReferenceLayerSource` public doc contract gap |
+| #219 | cubic-dev-ai[bot] | Miss | Did not flag `ReferenceLayerSource` public doc contract gap |

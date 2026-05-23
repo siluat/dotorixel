@@ -57,6 +57,13 @@ export interface TabStateDeps {
 	readonly gridColor?: string;
 }
 
+/**
+ * Decoded image payload used to set or replace a document's singleton Reference
+ * Layer. Callers provide a human-readable name, the original source `Blob` for
+ * persistence, and an RGBA buffer whose byte length must equal
+ * `naturalWidth * naturalHeight * 4`; dimensions must be positive image-pixel
+ * sizes before `setReferenceLayer` accepts the source.
+ */
 export interface ReferenceLayerSource {
 	readonly name: string;
 	readonly sourceBlob: Blob;

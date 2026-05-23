@@ -8,6 +8,7 @@ afterEach(() => {
 });
 
 const noopAddLayer = () => {};
+const noopAddReferenceLayer = () => {};
 const noopActivateLayer = (_id: string) => {};
 const noopRemoveLayer = (_id: string) => {};
 const noopReorderLayer = (_id: string, _newVisualIndex: number) => {};
@@ -17,6 +18,7 @@ const noopToggleCollapsed = () => {};
 const defaultProps = {
 	collapsed: false,
 	onAddLayer: noopAddLayer,
+	onAddReferenceLayer: noopAddReferenceLayer,
 	onActivateLayer: noopActivateLayer,
 	onRemoveLayer: noopRemoveLayer,
 	onReorderLayer: noopReorderLayer,
@@ -147,6 +149,57 @@ describe('TimelinePanel', () => {
 		await fireEvent.click(button);
 
 		expect(onAddLayer).toHaveBeenCalledTimes(1);
+	});
+
+	it('renders a Reference Layer import button beside the Pixel add button', () => {
+		const layers = [pixelLayer('a', 'Layer 1')];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps }
+		});
+
+		const pixelButton = container.querySelector('[data-add-layer]');
+		const referenceButton = container.querySelector('[data-add-reference-layer]');
+		expect(pixelButton).not.toBeNull();
+		expect(referenceButton).not.toBeNull();
+		expect(referenceButton?.getAttribute('aria-label')).toBe('Set Reference Layer');
+	});
+
+	it('invokes onAddReferenceLayer when the Reference import button is clicked', async () => {
+		const layers = [pixelLayer('a', 'Layer 1')];
+		const onAddReferenceLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onAddReferenceLayer }
+		});
+
+		const button = container.querySelector('[data-add-reference-layer]') as HTMLButtonElement;
+		await fireEvent.click(button);
+
+		expect(onAddReferenceLayer).toHaveBeenCalledTimes(1);
+	});
+
+	it('shows a busy Reference row and disables the import button during Reference import', () => {
+		const layers = [pixelLayer('paint', 'Paint'), referenceLayer('reference', 'Old reference')];
+		const { container } = render(TimelinePanel, {
+			props: {
+				layers,
+				activeLayerId: 'paint',
+				...defaultProps,
+				isReferenceLayerImporting: true,
+				referenceLayerImportName: 'sketch.png'
+			}
+		});
+
+		const button = container.querySelector('[data-add-reference-layer]') as HTMLButtonElement;
+		expect(button.disabled).toBe(true);
+		expect(button.getAttribute('data-busy')).toBe('true');
+
+		expect(container.querySelector('[data-layer-row][data-layer-id="reference"]')).toBeNull();
+		const busyRow = container.querySelector('[data-reference-layer-import-row]');
+		expect(busyRow).not.toBeNull();
+		expect(busyRow?.getAttribute('aria-busy')).toBe('true');
+		expect(busyRow?.textContent).toContain('sketch.png');
+		expect(busyRow?.querySelector('[data-remove-layer]')).toBeNull();
+		expect(busyRow?.querySelector('[data-reorder-handle]')).toBeNull();
 	});
 
 	it('invokes onActivateLayer with the layer id when a non-active row is clicked', async () => {

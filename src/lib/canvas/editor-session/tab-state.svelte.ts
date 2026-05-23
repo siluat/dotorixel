@@ -57,6 +57,21 @@ export interface TabStateDeps {
 	readonly gridColor?: string;
 }
 
+/**
+ * Decoded image payload used to set or replace a document's singleton Reference
+ * Layer. Callers provide a human-readable name, the original source `Blob` for
+ * persistence, and an RGBA buffer whose byte length must equal
+ * `naturalWidth * naturalHeight * 4`; dimensions must be positive image-pixel
+ * sizes before `setReferenceLayer` accepts the source.
+ */
+export interface ReferenceLayerSource {
+	readonly name: string;
+	readonly sourceBlob: Blob;
+	readonly sourceRgba: Uint8Array | Uint8ClampedArray;
+	readonly naturalWidth: number;
+	readonly naturalHeight: number;
+}
+
 const DEFAULT_CANVAS_DIMENSION = 16;
 const DEFAULT_VIEWPORT_SIZE: ViewportSize = { width: 512, height: 512 };
 
@@ -391,6 +406,34 @@ export class TabState {
 		this.document.add_layer(crypto.randomUUID(), name);
 		this.renderVersion++;
 		this.#notifier.markDirty(this.documentId);
+	};
+
+	/**
+	 * Sets or replaces the document's singleton Reference Layer from a decoded
+	 * source image. The previous Reference document state remains undoable, so
+	 * old source blobs stay cached even after a successful replacement.
+	 */
+	setReferenceLayer = (source: ReferenceLayerSource): string => {
+		if (source.naturalWidth <= 0 || source.naturalHeight <= 0) {
+			throw new Error('Reference Layer source dimensions must be positive');
+		}
+		if (source.sourceRgba.length !== source.naturalWidth * source.naturalHeight * 4) {
+			throw new Error('Reference Layer source RGBA length must match dimensions');
+		}
+		const id = crypto.randomUUID();
+		this.#toolRunner.pushSnapshot();
+		this.document.add_reference_layer(
+			id,
+			source.name,
+			new Uint8Array(source.sourceRgba),
+			source.naturalWidth,
+			source.naturalHeight
+		);
+		this.#referenceLayerBlobs.set(id, source.sourceBlob);
+		this.#referenceUnderlaySource = undefined;
+		this.renderVersion++;
+		this.#notifier.markDirty(this.documentId);
+		return id;
 	};
 
 	/**

@@ -432,6 +432,102 @@ describe('TabState — export snapshot', () => {
 });
 
 describe('TabState — Reference underlay render source', () => {
+	it('sets a decoded image as the singleton active Reference Layer and preserves its source blob for snapshots', () => {
+		const { tab, notifier } = makeTab({ canvasWidth: 8, canvasHeight: 8 });
+		const sourceBlob = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' });
+		const sourceRgba = new Uint8Array([
+			10, 20, 30, 255,
+			40, 50, 60, 255
+		]);
+		const beforeVersion = tab.renderVersion;
+		notifier.reset();
+
+		const referenceId = tab.setReferenceLayer({
+			name: 'sketch.png',
+			sourceBlob,
+			sourceRgba,
+			naturalWidth: 2,
+			naturalHeight: 1
+		});
+
+		expect(tab.document.layer_count()).toBe(2);
+		expect(tab.document.layer_id_at(0)).toBe(referenceId);
+		expect(tab.document.layer_kind_at(0)).toBe('reference');
+		expect(tab.document.active_layer_id()).toBe(referenceId);
+		expect(tab.referenceUnderlay).toMatchObject({
+			sourceRgba,
+			naturalWidth: 2,
+			naturalHeight: 1,
+			placement: { x: 3, y: 3.5, scale: 1 },
+			opacity: 1
+		});
+		expect(tab.renderVersion).toBe(beforeVersion + 1);
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+
+		const referenceLayer = expectReferenceLayer(tab.toSnapshot().layers[0]);
+		expect(referenceLayer.name).toBe('sketch.png');
+		expect(referenceLayer.sourceBlob).toBe(sourceBlob);
+		expect(referenceLayer.sourceRgba).toEqual(sourceRgba);
+	});
+
+	it('replaces an existing Reference Layer without appending a second one and resets placement for the new source', () => {
+		const { tab } = makeTab({ canvasWidth: 8, canvasHeight: 8 });
+		const firstId = tab.setReferenceLayer({
+			name: 'first.png',
+			sourceBlob: new Blob([new Uint8Array([1])], { type: 'image/png' }),
+			sourceRgba: makePixelRgba(RED),
+			naturalWidth: 1,
+			naturalHeight: 1
+		});
+		tab.setReferencePlacement(firstId, { x: 2, y: 3, scale: 4 });
+
+		const secondBlob = new Blob([new Uint8Array([2])], { type: 'image/png' });
+		const secondId = tab.setReferenceLayer({
+			name: 'second.png',
+			sourceBlob: secondBlob,
+			sourceRgba: new Uint8Array(8 * 8 * 4),
+			naturalWidth: 8,
+			naturalHeight: 8
+		});
+
+		const kinds = Array.from({ length: tab.document.layer_count() }, (_, i) =>
+			tab.document.layer_kind_at(i)
+		);
+		expect(kinds).toEqual(['reference', 'pixel']);
+		expect(secondId).not.toBe(firstId);
+		expect(tab.document.active_layer_id()).toBe(secondId);
+		expect(tab.document.layer_name_at(0)).toBe('second.png');
+		expect(tab.referenceUnderlay?.placement).toEqual({ x: 0, y: 0, scale: 1 });
+		expect(expectReferenceLayer(tab.toSnapshot().layers[0]).sourceBlob).toBe(secondBlob);
+	});
+
+	it('keeps the old Reference source blob available when replacement is undone', () => {
+		const { tab } = makeTab({ canvasWidth: 8, canvasHeight: 8 });
+		const firstBlob = new Blob([new Uint8Array([1])], { type: 'image/png' });
+		const firstId = tab.setReferenceLayer({
+			name: 'first.png',
+			sourceBlob: firstBlob,
+			sourceRgba: makePixelRgba(RED),
+			naturalWidth: 1,
+			naturalHeight: 1
+		});
+
+		tab.setReferenceLayer({
+			name: 'second.png',
+			sourceBlob: new Blob([new Uint8Array([2])], { type: 'image/png' }),
+			sourceRgba: makePixelRgba(GREEN),
+			naturalWidth: 1,
+			naturalHeight: 1
+		});
+		tab.undo();
+
+		expect(tab.document.active_layer_id()).toBe(firstId);
+		const referenceLayer = expectReferenceLayer(tab.toSnapshot().layers[0]);
+		expect(referenceLayer.name).toBe('first.png');
+		expect(referenceLayer.sourceBlob).toBe(firstBlob);
+		expect(Array.from(referenceLayer.sourceRgba)).toEqual(Array.from(makePixelRgba(RED)));
+	});
+
 	it('exposes visible Reference source data separately from the Pixel-only composite', () => {
 		const pixelId = crypto.randomUUID();
 		const referenceId = crypto.randomUUID();

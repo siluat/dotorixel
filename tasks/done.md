@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 118 | [Reference Layer: Timeline Panel — set/replace Reference image import flow](../issues/118-reference-layer-timeline-panel-add-icon-and-import-flow.md) | 2026-05-23 |
 | 126 | [Reference Layer: singleton fixed-bottom underlay rework](../issues/126-reference-layer-singleton-underlay-rework.md) | 2026-05-22 |
 | 117 | [Reference Layer: Timeline Panel — per-row kind icon + activation across kinds](../issues/117-reference-layer-timeline-panel-kind-icons.md) | 2026-05-21 |
 | 116 | [Reference Layer: export call sites use `composite_for_export()`](../issues/116-reference-layer-export-call-sites.md) | 2026-05-21 |

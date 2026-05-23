@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ChevronDown, Grid2x2, Image } from 'lucide-svelte';
+	import { ChevronDown, Grid2x2, Image, LoaderCircle } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 
 	type LayerKind = 'pixel' | 'reference';
@@ -16,11 +16,14 @@
 		activeLayerId: string;
 		collapsed: boolean;
 		onAddLayer: () => void;
+		onAddReferenceLayer: () => void;
 		onActivateLayer: (id: string) => void;
 		onRemoveLayer: (id: string) => void;
 		onReorderLayer: (id: string, newVisualIndex: number) => void;
 		onToggleLayerVisibility: (id: string, newVisible: boolean) => void;
 		onToggleCollapsed: () => void;
+		isReferenceLayerImporting?: boolean;
+		referenceLayerImportName?: string;
 	}
 
 	let {
@@ -28,11 +31,14 @@
 		activeLayerId,
 		collapsed,
 		onAddLayer,
+		onAddReferenceLayer,
 		onActivateLayer,
 		onRemoveLayer,
 		onReorderLayer,
 		onToggleLayerVisibility,
-		onToggleCollapsed
+		onToggleCollapsed,
+		isReferenceLayerImporting = false,
+		referenceLayerImportName
 	}: Props = $props();
 
 	// Fallback row height used when the DOM has no layout (e.g. headless test
@@ -42,6 +48,10 @@
 	const activeLayerName = $derived(
 		layers.find((l) => l.id === activeLayerId)?.name ?? ''
 	);
+	const renderedLayers = $derived(
+		isReferenceLayerImporting ? layers.filter((layer) => layer.kind !== 'reference') : layers
+	);
+	const busyReferenceName = $derived(referenceLayerImportName || m.reference_layer_loading());
 
 	let draggingId: string | null = null;
 	let draggingPointerId: number | null = null;
@@ -50,7 +60,7 @@
 	let dragRowHeight = DEFAULT_ROW_HEIGHT_PX;
 
 	const pixelVisualIndices = $derived.by(() =>
-		layers.flatMap((layer, index) => (layer.kind === 'pixel' ? [index] : []))
+		renderedLayers.flatMap((layer, index) => (layer.kind === 'pixel' ? [index] : []))
 	);
 	const canReorderPixels = $derived(pixelVisualIndices.length > 1);
 
@@ -61,7 +71,7 @@
 	}
 
 	function clampToPixelReorderTarget(candidate: number): number {
-		const bounded = Math.max(0, Math.min(layers.length - 1, candidate));
+		const bounded = Math.max(0, Math.min(renderedLayers.length - 1, candidate));
 		for (const index of pixelVisualIndices) {
 			if (bounded <= index) return index;
 		}
@@ -161,6 +171,23 @@
 		>
 			+
 		</button>
+		<button
+			type="button"
+			class="add-btn"
+			data-add-reference-layer
+			data-busy={isReferenceLayerImporting ? 'true' : 'false'}
+			aria-label={m.aria_setReferenceLayer()}
+			disabled={isReferenceLayerImporting}
+			onclick={onAddReferenceLayer}
+		>
+			{#if isReferenceLayerImporting}
+				<span class="spinner">
+					<LoaderCircle size={14} strokeWidth={1.75} aria-hidden="true" />
+				</span>
+			{:else}
+				<Image size={14} strokeWidth={1.75} aria-hidden="true" />
+			{/if}
+		</button>
 		<span class="header-label">
 			{collapsed ? m.layer_panel_collapsed_label({ name: activeLayerName }) : m.layer_panel_title()}
 		</span>
@@ -179,7 +206,7 @@
 		<div class="divider"></div>
 		<div class="body">
 			<div class="sidebar">
-				{#each layers as layer, visualIndex (layer.id)}
+				{#each renderedLayers as layer, visualIndex (layer.id)}
 					{@const isActive = layer.id === activeLayerId}
 					{@const isVisible = layer.visible ?? true}
 					{@const kind = layer.kind}
@@ -270,13 +297,33 @@
 						{/if}
 					</div>
 				{/each}
+				{#if isReferenceLayerImporting}
+					<div
+						class="row row--busy"
+						data-reference-layer-import-row
+						aria-busy="true"
+						aria-live="polite"
+					>
+						<span class="visibility-placeholder"></span>
+						<span class="bar"></span>
+						<span class="kind-icon" role="img" aria-label={m.layer_kind_reference()}>
+							<span class="spinner">
+								<LoaderCircle size={14} strokeWidth={1.75} aria-hidden="true" />
+							</span>
+						</span>
+						<span class="name">{busyReferenceName}</span>
+					</div>
+				{/if}
 			</div>
 			<div class="vdiv"></div>
 			<div class="frame-area">
 				<div class="frame-col">
-					{#each layers as layer (layer.id)}
+					{#each renderedLayers as layer (layer.id)}
 						<div class="frame-cell"></div>
 					{/each}
+					{#if isReferenceLayerImporting}
+						<div class="frame-cell"></div>
+					{/if}
 				</div>
 				<div class="empty-axis">
 					<span class="empty-axis-hint">M3 placeholder — frame ruler grows here in M4</span>
@@ -352,6 +399,16 @@
 	.add-btn:focus-visible {
 		outline: var(--ds-border-width-thick) solid var(--ds-accent);
 		outline-offset: 1px;
+	}
+
+	.add-btn:disabled {
+		opacity: 0.55;
+		cursor: default;
+	}
+
+	.add-btn:disabled:hover {
+		background: none;
+		color: var(--ds-text-secondary);
 	}
 
 	.collapse-toggle {
@@ -554,6 +611,13 @@
 		margin-left: var(--ds-space-2);
 	}
 
+	.visibility-placeholder {
+		width: 24px;
+		height: 24px;
+		margin-left: var(--ds-space-2);
+		flex: none;
+	}
+
 	.row--hidden .name {
 		opacity: 0.45;
 		font-style: italic;
@@ -571,5 +635,30 @@
 
 	.reorder-handle:active:not(:disabled) {
 		cursor: grabbing;
+	}
+
+	.row--busy {
+		cursor: default;
+		color: var(--ds-text-secondary);
+	}
+
+	.row--busy .name {
+		color: var(--ds-text-secondary);
+	}
+
+	.spinner {
+		animation: spin 800ms linear infinite;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.spinner {
+			animation: none;
+		}
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
 	}
 </style>

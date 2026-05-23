@@ -1,4 +1,10 @@
 import { test, expect } from './fixtures';
+import type { Page } from '@playwright/test';
+
+const TINY_PNG_BUFFER = Buffer.from(
+	'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+	'base64'
+);
 
 test.describe('Layer panel — add layer', () => {
 	test('clicking the add-layer button appends a new active layer with a localized default name at the top of the panel', async ({
@@ -49,6 +55,86 @@ test.describe('Layer panel — add layer', () => {
 
 		await history.redo();
 		await expect(page.locator('[data-layer-row]')).toHaveCount(2);
+	});
+});
+
+test.describe('Layer panel — Reference Layer import', () => {
+	async function importReferenceLayer(page: Page, name: string) {
+		const chooserPromise = page.waitForEvent('filechooser');
+		await page.locator('[data-add-reference-layer]').click();
+		const chooser = await chooserPromise;
+		await chooser.setFiles({
+			name,
+			mimeType: 'image/png',
+			buffer: TINY_PNG_BUFFER
+		});
+	}
+
+	test('imports a Reference Layer as the active fixed-bottom row without changing the Pixel add flow', async ({
+		editorPage
+	}) => {
+		const { page } = editorPage;
+
+		await importReferenceLayer(page, 'sketch.png');
+
+		const rows = page.locator('[data-layer-row]');
+		await expect(rows).toHaveCount(2);
+		await expect(rows.nth(0)).toHaveText(/Layer 1/);
+		await expect(rows.nth(0).locator('[data-layer-kind-icon]')).toHaveAttribute(
+			'data-layer-kind',
+			'pixel'
+		);
+		await expect(rows.nth(1)).toHaveText(/sketch\.png/);
+		await expect(rows.nth(1)).toHaveAttribute('aria-current', 'true');
+		await expect(rows.nth(1).locator('[data-layer-kind-icon]')).toHaveAttribute(
+			'data-layer-kind',
+			'reference'
+		);
+		await expect(rows.nth(1).locator('[data-reorder-handle]')).toHaveCount(0);
+
+		await page.locator('[data-add-layer]').click();
+		await expect(rows).toHaveCount(3);
+		await expect(rows.nth(0)).toHaveText(/Layer 1/);
+		await expect(rows.nth(1)).toHaveText(/Layer \d+/);
+		await expect(rows.nth(1).locator('[data-layer-kind-icon]')).toHaveAttribute(
+			'data-layer-kind',
+			'pixel'
+		);
+		await expect(rows.nth(1)).toHaveAttribute('aria-current', 'true');
+		await expect(rows.nth(2)).toHaveText(/sketch\.png/);
+	});
+
+	test('asks before replacing an existing Reference Layer and keeps the document singleton', async ({
+		editorPage
+	}) => {
+		const { page } = editorPage;
+
+		await importReferenceLayer(page, 'first.png');
+
+		await page.locator('[data-add-reference-layer]').click();
+		const dialog = page.getByRole('alertdialog', { name: 'Replace Reference Layer?' });
+		await expect(dialog).toBeVisible();
+		await dialog.getByRole('button', { name: 'Cancel' }).click();
+		await expect(dialog).not.toBeVisible();
+		await expect(page.locator('[data-layer-row]')).toHaveCount(2);
+		await expect(page.locator('[data-layer-row]').nth(1)).toHaveText(/first\.png/);
+
+		await page.locator('[data-add-reference-layer]').click();
+		await expect(dialog).toBeVisible();
+		const chooserPromise = page.waitForEvent('filechooser');
+		await dialog.getByRole('button', { name: 'Replace' }).click();
+		const chooser = await chooserPromise;
+		await chooser.setFiles({
+			name: 'second.png',
+			mimeType: 'image/png',
+			buffer: TINY_PNG_BUFFER
+		});
+
+		const rows = page.locator('[data-layer-row]');
+		await expect(rows).toHaveCount(2);
+		await expect(rows.nth(1)).toHaveText(/second\.png/);
+		await expect(rows.nth(1)).not.toHaveText(/first\.png/);
+		await expect(rows.nth(1)).toHaveAttribute('aria-current', 'true');
 	});
 });
 

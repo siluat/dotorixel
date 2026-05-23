@@ -11,6 +11,7 @@
 	import RightPanel from '$lib/ui-editor/RightPanel.svelte';
 	import StatusBar from '$lib/ui-editor/StatusBar.svelte';
 	import TimelinePanel from '$lib/ui-editor/TimelinePanel.svelte';
+	import ReferenceLayerReplaceDialog from '$lib/ui-editor/ReferenceLayerReplaceDialog.svelte';
 	import AppBar from '$lib/ui-editor/AppBar.svelte';
 	import ToolStrip from '$lib/ui-editor/ToolStrip.svelte';
 	import ColorBar from '$lib/ui-editor/ColorBar.svelte';
@@ -29,6 +30,8 @@
 	import Loupe from '$lib/ui-editor/Loupe.svelte';
 	import type { ImportError } from '$lib/reference-images/references.svelte';
 	import { canvasDropzone } from '$lib/reference-images/canvas-dropzone';
+	import { decodeReferenceBlob } from '$lib/reference-images/decode-reference-blob';
+	import { validateFile } from '$lib/reference-images/import-validator';
 	import * as m from '$lib/paraglide/messages';
 	import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 	import { openSession, type SessionHandle } from '$lib/session/session';
@@ -68,7 +71,12 @@
 	let browserDocuments: SavedDocumentSummary[] | null = $state(null);
 	let isReferencesOpen = $state(false);
 	let referenceErrors = $state<string[]>([]);
+	let referenceLayerErrors = $state<string[]>([]);
 	let referenceFileInputEl = $state<HTMLInputElement>();
+	let referenceLayerFileInputEl = $state<HTMLInputElement>();
+	let referenceLayerImport = $state<{ name: string } | null>(null);
+	let isReferenceReplaceDialogOpen = $state(false);
+	const isReferenceLayerImporting = $derived(referenceLayerImport !== null);
 	const activeReferences = $derived(
 		editor.workspace.references.forDoc(editor.workspace.activeTab.documentId)
 	);
@@ -151,6 +159,28 @@
 		const tab = editor.workspace.activeTab;
 		const n = tab.document.next_layer_number();
 		tab.addLayer(m.layer_default_name({ n }));
+	}
+
+	function hasReferenceLayer(tab: TabState): boolean {
+		void tab.renderVersion;
+		const doc = tab.document;
+		for (let i = 0; i < doc.layer_count(); i++) {
+			if (doc.layer_kind_at(i) === 'reference') return true;
+		}
+		return false;
+	}
+
+	function openReferenceLayerFilePicker() {
+		referenceLayerFileInputEl?.click();
+	}
+
+	function handleAddReferenceLayerRequest() {
+		if (isReferenceLayerImporting) return;
+		if (hasReferenceLayer(editor.workspace.activeTab)) {
+			isReferenceReplaceDialogOpen = true;
+			return;
+		}
+		openReferenceLayerFilePicker();
 	}
 
 	function handleActivateLayer(id: string) {
@@ -276,6 +306,33 @@
 		}
 	}
 
+	function referenceLayerDisplayName(file: File): string {
+		return file.name.trim() || m.reference_layer_default_name();
+	}
+
+	function pushReferenceLayerError(message: string) {
+		referenceLayerErrors = [...referenceLayerErrors, message];
+		window.setTimeout(() => {
+			const index = referenceLayerErrors.indexOf(message);
+			if (index >= 0) {
+				referenceLayerErrors = referenceLayerErrors.filter((_, i) => i !== index);
+			}
+		}, 5000);
+	}
+
+	function handleDismissReferenceLayerError(index: number) {
+		referenceLayerErrors = referenceLayerErrors.filter((_, i) => i !== index);
+	}
+
+	function handleReferenceLayerReplaceCancel() {
+		isReferenceReplaceDialogOpen = false;
+	}
+
+	function handleReferenceLayerReplaceConfirm() {
+		isReferenceReplaceDialogOpen = false;
+		openReferenceLayerFilePicker();
+	}
+
 	async function importToGallery(files: Iterable<File>): Promise<void> {
 		const docId = editor.workspace.activeTab.documentId;
 		const { errors } = await editor.workspace.references.importToGallery(files, docId);
@@ -290,6 +347,53 @@
 		if (!files || files.length === 0) return;
 		await importToGallery(files);
 		input.value = '';
+	}
+
+	async function handleReferenceLayerFileChange(event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		input.value = '';
+		if (!file) return;
+
+		const displayName = referenceLayerDisplayName(file);
+		const validation = validateFile({ type: file.type, size: file.size });
+		if (!validation.ok) {
+			pushReferenceLayerError(importErrorMessage(file, { kind: validation.reason }));
+			return;
+		}
+
+		const targetTab = editor.workspace.activeTab;
+		referenceLayerImport = { name: displayName };
+		try {
+			const decoded = await decodeReferenceBlob(file);
+			let didMutate = false;
+			try {
+				targetTab.setReferenceLayer({
+					name: displayName,
+					sourceBlob: file,
+					sourceRgba: decoded.data,
+					naturalWidth: decoded.width,
+					naturalHeight: decoded.height
+				});
+				didMutate = true;
+				await session?.flush();
+			} catch (error) {
+				if (didMutate) {
+					targetTab.undo();
+					try {
+						await session?.flush();
+					} catch {
+						// The in-memory rollback is the user-visible recovery.
+					}
+				}
+				console.error('Reference Layer import could not be persisted:', error);
+				pushReferenceLayerError(m.reference_layer_import_storage_failed({ name: displayName }));
+			}
+		} catch {
+			pushReferenceLayerError(m.references_error_decode_failed({ name: displayName }));
+		} finally {
+			referenceLayerImport = null;
+		}
 	}
 
 	async function handleReferenceModalDrop(files: File[]) {
@@ -350,12 +454,22 @@
 	}
 
 	function handleEditorKeyDown(event: KeyboardEvent) {
-		if (saveDialogTabIndex !== null || browserDocuments !== null || isReferencesOpen) return;
+		if (
+			saveDialogTabIndex !== null ||
+			browserDocuments !== null ||
+			isReferencesOpen ||
+			isReferenceReplaceDialogOpen
+		) return;
 		editor.handleKeyDown(event);
 	}
 
 	function handleEditorKeyUp(event: KeyboardEvent) {
-		if (saveDialogTabIndex !== null || browserDocuments !== null || isReferencesOpen) return;
+		if (
+			saveDialogTabIndex !== null ||
+			browserDocuments !== null ||
+			isReferencesOpen ||
+			isReferenceReplaceDialogOpen
+		) return;
 		editor.handleKeyUp(event);
 	}
 
@@ -535,11 +649,14 @@
 			activeLayerId={activeLayerId}
 			collapsed={isTimelinePanelCollapsed}
 			onAddLayer={handleAddLayer}
+			onAddReferenceLayer={handleAddReferenceLayerRequest}
 			onActivateLayer={handleActivateLayer}
 			onRemoveLayer={handleRemoveLayer}
 			onReorderLayer={handleReorderLayer}
 			onToggleLayerVisibility={handleToggleLayerVisibility}
 			onToggleCollapsed={handleToggleTimelinePanelCollapsed}
+			isReferenceLayerImporting={isReferenceLayerImporting}
+			referenceLayerImportName={referenceLayerImport?.name}
 		/>
 
 		<RightPanel
@@ -669,11 +786,14 @@
 				activeLayerId={activeLayerId}
 				collapsed={false}
 				onAddLayer={handleAddLayer}
+				onAddReferenceLayer={handleAddReferenceLayerRequest}
 				onActivateLayer={handleActivateLayer}
 				onRemoveLayer={handleRemoveLayer}
 				onReorderLayer={handleReorderLayer}
 				onToggleLayerVisibility={handleToggleLayerVisibility}
 				onToggleCollapsed={handleToggleTimelinePanelCollapsed}
+				isReferenceLayerImporting={isReferenceLayerImporting}
+				referenceLayerImportName={referenceLayerImport?.name}
 			/>
 		{/if}
 
@@ -744,6 +864,39 @@
 	onchange={handleReferenceFileChange}
 	style="display: none"
 />
+
+<input
+	type="file"
+	accept="image/png,image/jpeg,image/webp,image/gif"
+	bind:this={referenceLayerFileInputEl}
+	onchange={handleReferenceLayerFileChange}
+	style="display: none"
+/>
+
+{#if referenceLayerErrors.length > 0}
+	<div class="toast-stack" aria-live="polite">
+		{#each referenceLayerErrors as message, i (i)}
+			<div class="toast" role="alert">
+				<span>{message}</span>
+				<button
+					type="button"
+					class="toast-dismiss"
+					aria-label={m.references_error_dismiss()}
+					onclick={() => handleDismissReferenceLayerError(i)}
+				>
+					×
+				</button>
+			</div>
+		{/each}
+	</div>
+{/if}
+
+{#if isReferenceReplaceDialogOpen}
+	<ReferenceLayerReplaceDialog
+		onConfirm={handleReferenceLayerReplaceConfirm}
+		onCancel={handleReferenceLayerReplaceCancel}
+	/>
+{/if}
 
 {#if layout.isDocked && browserDocuments !== null}
 	<SavedWorkBrowser
@@ -874,5 +1027,58 @@
 		-webkit-touch-callout: default;
 		-webkit-user-select: text;
 		user-select: text;
+	}
+
+	.toast-stack {
+		position: fixed;
+		right: max(16px, env(safe-area-inset-right, 0px) + 16px);
+		bottom: max(16px, env(safe-area-inset-bottom, 0px) + 16px);
+		z-index: 220;
+		display: flex;
+		flex-direction: column;
+		gap: var(--ds-space-2);
+		max-width: min(360px, calc(100vw - 32px));
+	}
+
+	.toast {
+		display: flex;
+		align-items: center;
+		gap: var(--ds-space-3);
+		padding: 10px 12px;
+		background: var(--ds-bg-elevated);
+		border: var(--ds-border-width) solid var(--ds-border-subtle);
+		border-radius: var(--ds-radius-md);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+		color: var(--ds-text-primary);
+		font-family: var(--ds-font-body);
+		font-size: var(--ds-font-size-md);
+		line-height: 1.4;
+	}
+
+	.toast span {
+		min-width: 0;
+	}
+
+	.toast-dismiss {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		padding: 0;
+		border: none;
+		border-radius: var(--ds-radius-sm);
+		background: none;
+		color: var(--ds-text-secondary);
+		font-family: inherit;
+		font-size: var(--ds-font-size-lg);
+		line-height: 1;
+		cursor: pointer;
+		flex: none;
+	}
+
+	.toast-dismiss:hover {
+		background: var(--ds-bg-hover);
+		color: var(--ds-text-primary);
 	}
 </style>

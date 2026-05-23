@@ -1,6 +1,6 @@
 ---
 title: "Reference Layer: Timeline Panel — set/replace Reference image import flow"
-status: needs-triage
+status: done
 created: 2026-05-16
 parent: 105-reference-layer-type.md
 ---
@@ -56,3 +56,28 @@ Scope:
 ## User Stories Addressed
 
 - #1, #4, #5, #6, #7, #14, #18, #22, #23, #24.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/ui-editor/TimelinePanel.svelte` | Added the Reference Layer import button, busy state, and fixed-bottom import row behavior. |
+| `src/routes/editor/+page.svelte` | Wired set/replace file picking, confirmation, decode, persistence flush, rollback, and localized import errors. |
+| `src/lib/ui-editor/ReferenceLayerReplaceDialog.svelte` | Added the localized replacement confirmation alert dialog with modal focus behavior. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Added a tab-level set/replace entry point that preserves Reference source blobs for snapshots and undo. |
+| `messages/en.json` | Added English strings for Reference Layer import, replacement, loading, and error states. |
+| `messages/ko.json` | Added Korean strings for Reference Layer import, replacement, loading, and error states. |
+| `messages/ja.json` | Added Japanese strings for Reference Layer import, replacement, loading, and error states. |
+| `src/lib/ui-editor/TimelinePanel.svelte.test.ts` | Covered the Reference import button and Timeline busy row behavior. |
+| `src/lib/canvas/editor-session/tab-state.svelte.test.ts` | Covered singleton set/replace, placement reset, snapshot source blobs, and undo restoration. |
+| `e2e/editor/layers.test.ts` | Covered first import, replacement confirmation/cancel/accept, singleton preservation, and Pixel add flow parity. |
+
+### Key Decisions
+
+- Reused the existing Reference image validation/decode path for file handling, then committed through the Document singleton Reference Layer API so the Pixel `+` path stays unchanged.
+- Kept the Reference Layer import rollback at the page boundary because persistence failure is a shell concern; the tab-level API remains focused on document mutation and undo snapshots.
+
+### Notes
+
+- Reference Window drag-and-drop remains unchanged and still creates Reference Windows, not Reference Layers.
+- Clipboard paste remains out of scope for this v1 import flow.

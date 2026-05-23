@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 119 | [Reference Layer: Fit to canvas inline action](../issues/119-reference-layer-fit-to-canvas-action.md) | 2026-05-24 |
 | 118 | [Reference Layer: Timeline Panel — set/replace Reference image import flow](../issues/118-reference-layer-timeline-panel-add-icon-and-import-flow.md) | 2026-05-23 |
 | 126 | [Reference Layer: singleton fixed-bottom underlay rework](../issues/126-reference-layer-singleton-underlay-rework.md) | 2026-05-22 |
 | 117 | [Reference Layer: Timeline Panel — per-row kind icon + activation across kinds](../issues/117-reference-layer-timeline-panel-kind-icons.md) | 2026-05-21 |

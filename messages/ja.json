@@ -148,6 +148,7 @@
 	"reference_layer_import_storage_failed": "{name}: 参照レイヤーを保存できませんでした。ブラウザの保存領域を空けてからもう一度試してください。",
 	"aria_addLayer": "レイヤーを追加",
 	"aria_setReferenceLayer": "参照レイヤーを設定",
+	"aria_fitReferenceLayerToCanvas": "{name}をキャンバスに合わせる",
 	"aria_removeLayer": "{name}を削除",
 	"aria_reorderLayer": "{name}を並べ替え",
 	"aria_hideLayer": "{name}を隠す",

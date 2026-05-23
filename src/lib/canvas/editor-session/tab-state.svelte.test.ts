@@ -96,6 +96,43 @@ function makePixelRgba(color: Color): Uint8Array {
 	return new Uint8Array([color.r, color.g, color.b, color.a]);
 }
 
+function makeReferenceDocumentWithPlacement(placement: { x: number; y: number; scale: number }) {
+	const pixelId = crypto.randomUUID();
+	const referenceId = crypto.randomUUID();
+	return {
+		referenceId,
+		document: documentFromLayerSource({
+			width: 20,
+			height: 20,
+			layers: [
+				{
+					kind: 'pixel',
+					id: pixelId,
+					name: 'Paint',
+					pixels: new Uint8Array(20 * 20 * 4),
+					visible: true,
+					opacity: 1
+				},
+				{
+					kind: 'reference',
+					id: referenceId,
+					name: 'Reference',
+					visible: true,
+					opacity: 1,
+					sourceBlob: new Blob([new Uint8Array([1])], { type: 'image/png' }),
+					sourceRgba: new Uint8Array(4 * 2 * 4),
+					naturalWidth: 4,
+					naturalHeight: 2,
+					placement
+				}
+			],
+			activeLayerId: referenceId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false
+		})
+	};
+}
+
 describe('TabState — ownership', () => {
 	it('owns its own document and viewport; two tabs do not share them', () => {
 		const { tab: a } = makeTab({ documentId: 'a' });
@@ -704,6 +741,56 @@ describe('TabState — Reference underlay render source', () => {
 		expect(tab.referenceUnderlay?.placement).toEqual({ x: 2, y: 3, scale: 4 });
 		expect(tab.renderVersion).toBe(beforeVersion + 1);
 		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+	});
+
+	it('fits a Reference Layer to the canvas while preserving source aspect ratio', () => {
+		const { document, referenceId } = makeReferenceDocumentWithPlacement({
+			x: 5,
+			y: 6,
+			scale: 3
+		});
+		const { tab, notifier } = makeTab({ document });
+		const beforeVersion = tab.renderVersion;
+		notifier.reset();
+
+		tab.fitReferenceLayerToCanvas(referenceId);
+
+		expect(tab.referenceUnderlay?.placement).toEqual({ x: 0, y: 5, scale: 5 });
+		expect(tab.renderVersion).toBe(beforeVersion + 1);
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+	});
+
+	it('fitting a Reference Layer to canvas is undoable and redoable', () => {
+		const { document, referenceId } = makeReferenceDocumentWithPlacement({
+			x: 5,
+			y: 6,
+			scale: 3
+		});
+		const { tab } = makeTab({ document });
+
+		tab.fitReferenceLayerToCanvas(referenceId);
+		expect(tab.referenceUnderlay?.placement).toEqual({ x: 0, y: 5, scale: 5 });
+
+		tab.undo();
+		expect(tab.referenceUnderlay?.placement).toEqual({ x: 5, y: 6, scale: 3 });
+
+		tab.redo();
+		expect(tab.referenceUnderlay?.placement).toEqual({ x: 0, y: 5, scale: 5 });
+	});
+
+	it('fits to the current canvas dimensions after resize', () => {
+		const { document, referenceId } = makeReferenceDocumentWithPlacement({
+			x: 5,
+			y: 6,
+			scale: 3
+		});
+		const { tab } = makeTab({ document });
+		tab.resizeAnchor = 'center';
+
+		tab.resize(24, 30);
+		tab.fitReferenceLayerToCanvas(referenceId);
+
+		expect(tab.referenceUnderlay?.placement).toEqual({ x: 0, y: 9, scale: 6 });
 	});
 });
 

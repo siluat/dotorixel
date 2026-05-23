@@ -59,7 +59,7 @@ Scope:
 
 ### Notes
 
-- Reference Layer add/import UI, restore-original-size action, placement overlay, drawing-tool no-op cursor, and sampling updates remain follow-up slices.
+- Reference Layer add/import UI, fit-to-canvas action, placement overlay, drawing-tool no-op cursor, and sampling updates remain follow-up slices.
 
 ### Amendment (2026-05-22)
 

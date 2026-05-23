@@ -107,6 +107,21 @@ impl WasmReferencePlacement {
     pub fn scale(&self) -> f32 {
         self.inner.scale
     }
+
+    pub fn fit_to_canvas(
+        canvas_width: u32,
+        canvas_height: u32,
+        natural_width: u32,
+        natural_height: u32,
+    ) -> WasmReferencePlacement {
+        ReferencePlacement::fit_to_canvas(
+            canvas_width,
+            canvas_height,
+            natural_width,
+            natural_height,
+        )
+        .into()
+    }
 }
 
 impl From<ReferencePlacement> for WasmReferencePlacement {
@@ -1262,6 +1277,15 @@ mod tests {
         assert_eq!(doc.layer_count(), 2);
         assert_eq!(doc.next_layer_number(), 3);
         assert_eq!(doc.active_layer_id(), second.to_string());
+    }
+
+    #[test]
+    fn wasm_reference_placement_fit_to_canvas_centers_projected_source() {
+        let fitted = WasmReferencePlacement::fit_to_canvas(20, 20, 4, 2);
+
+        assert_eq!(fitted.x(), 0.0);
+        assert_eq!(fitted.y(), 5.0);
+        assert_eq!(fitted.scale(), 5.0);
     }
 
     #[test]

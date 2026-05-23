@@ -5,7 +5,11 @@ import type {
 	ResizeAnchor,
 	ReferencePlacement
 } from '../canvas-model';
-import { resizeDocumentWithAnchor, singleLayerDocument } from '../wasm-backend';
+import {
+	fitReferencePlacementToCanvas,
+	resizeDocumentWithAnchor,
+	singleLayerDocument
+} from '../wasm-backend';
 import { isBlankCanvas } from '../blank-detection';
 import type { ViewportData, ViewportSize } from '../viewport';
 import { addRecentColor } from '../color';
@@ -524,6 +528,24 @@ export class TabState {
 		this.document.set_reference_placement(id, placement.x, placement.y, placement.scale);
 		this.renderVersion++;
 		this.#notifier.markDirty(this.documentId);
+	};
+
+	fitReferenceLayerToCanvas = (id: string): void => {
+		const stackIdx = this.#stackIndexOf(id);
+		const current = this.document.layer_placement_at(stackIdx);
+		const dimensions = this.document.layer_source_dimensions_at(stackIdx);
+		if (!current || !dimensions) {
+			throw new Error(`Layer with id ${id} is not a Reference Layer`);
+		}
+		this.setReferencePlacement(
+			id,
+			fitReferencePlacementToCanvas(
+				this.document.width,
+				this.document.height,
+				dimensions[0],
+				dimensions[1]
+			)
+		);
 	};
 
 	#stackIndexOf(id: string): number {

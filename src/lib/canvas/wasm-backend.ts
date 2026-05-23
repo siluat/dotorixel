@@ -13,6 +13,7 @@ import {
 	WasmViewport,
 	WasmHistoryManager,
 	WasmResizeAnchor,
+	WasmReferencePlacement,
 	WasmToolType,
 	apply_tool,
 	wasm_interpolate_pixels,
@@ -20,7 +21,7 @@ import {
 	wasm_ellipse_outline,
 	wasm_flood_fill
 } from '$wasm/dotorixel_wasm';
-import type { Document, PixelCanvas, ResizeAnchor } from './canvas-model';
+import type { Document, PixelCanvas, ResizeAnchor, ReferencePlacement } from './canvas-model';
 import type { CanvasFactory, CanvasConstraints, HistoryManager } from './adapter-types';
 import type {
 	PixelLayerRecord,
@@ -157,6 +158,23 @@ export const viewportOps: ViewportOps = {
 		return WasmViewport.max_zoom();
 	}
 };
+
+// ── ReferencePlacement ──────────────────────────────────────────────
+
+export function fitReferencePlacementToCanvas(
+	canvasWidth: number,
+	canvasHeight: number,
+	naturalWidth: number,
+	naturalHeight: number
+): ReferencePlacement {
+	const placement = WasmReferencePlacement.fit_to_canvas(
+		canvasWidth,
+		canvasHeight,
+		naturalWidth,
+		naturalHeight
+	);
+	return { x: placement.x, y: placement.y, scale: placement.scale };
+}
 
 // ── DrawingOps ──────────────────────────────────────────────────────
 

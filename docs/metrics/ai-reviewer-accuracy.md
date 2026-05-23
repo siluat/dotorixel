@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 113 | 81 | 32 | 95 | 72% | 46% |
-| cubic-dev-ai[bot] | 67 | 54 | 13 | 119 | 81% | 31% |
-| coderabbitai[bot] | 158 | 107 | 51 | 64 | 68% | 63% |
+| greptile-apps[bot] | 113 | 81 | 32 | 96 | 72% | 46% |
+| cubic-dev-ai[bot] | 67 | 54 | 13 | 120 | 81% | 31% |
+| coderabbitai[bot] | 159 | 108 | 51 | 64 | 68% | 63% |
 
 ## Log
 
@@ -630,3 +630,6 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #218 | cubic-dev-ai[bot] | Miss | Did not flag `ReferenceUnderlay` interface doc contract gap |
 | #218 | cubic-dev-ai[bot] | Miss | Did not flag `setReferencePlacement` doc contract gap |
 | #218 | cubic-dev-ai[bot] | Miss | Did not flag V4 normalization Pixel order assertion gap |
+| #218 | coderabbitai[bot] | Accept | `clearReferenceRasterCache` missing public cache-clearing contract doc |
+| #218 | greptile-apps[bot] | Miss | Did not flag `clearReferenceRasterCache` public doc contract gap |
+| #218 | cubic-dev-ai[bot] | Miss | Did not flag `clearReferenceRasterCache` public doc contract gap |

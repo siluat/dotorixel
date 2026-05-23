@@ -34,6 +34,12 @@ const CHECKER_DARK = '#e0e0e0';
 
 const cachedReferenceRasters = new Map<string, OffscreenCanvas>();
 
+/**
+ * Clears the module-level `cachedReferenceRasters` lookup used by Reference underlay rendering.
+ *
+ * Takes no arguments, returns no value, and does not throw. Subsequent Reference raster
+ * lookups will rebuild their cached `OffscreenCanvas` entries from source pixels.
+ */
 export function clearReferenceRasterCache(): void {
 	cachedReferenceRasters.clear();
 }

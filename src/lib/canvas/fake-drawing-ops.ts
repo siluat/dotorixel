@@ -188,6 +188,7 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 		},
 		layer_kind_at: (index) => (index === 0 ? 'pixel' : undefined),
 		layer_source_pixels_at: () => undefined,
+		layer_source_fingerprint_at: () => undefined,
 		layer_source_dimensions_at: () => undefined,
 		layer_placement_at: () => undefined,
 		get restoreActiveLayerCalls() {

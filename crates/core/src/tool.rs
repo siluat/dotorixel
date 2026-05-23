@@ -692,5 +692,4 @@ mod tests {
             PixelCanvas::MAX_DIMENSION
         );
     }
-
 }

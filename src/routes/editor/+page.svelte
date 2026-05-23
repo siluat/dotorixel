@@ -502,6 +502,7 @@
 		>
 			<PixelCanvasView
 				pixelCanvas={editor.compositeBuffer}
+				referenceUnderlay={editor.referenceUnderlay}
 				viewport={editor.viewport}
 				viewportSize={editor.viewportSize}
 				renderVersion={editor.renderVersion}
@@ -597,6 +598,7 @@
 				>
 					<PixelCanvasView
 						pixelCanvas={editor.compositeBuffer}
+						referenceUnderlay={editor.referenceUnderlay}
 						viewport={editor.viewport}
 						viewportSize={editor.viewportSize}
 						renderVersion={editor.renderVersion}

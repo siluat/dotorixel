@@ -59,7 +59,11 @@ mod tests {
     #[test]
     fn identity_placement_maps_document_pixel_to_same_source_pixel() {
         let source = solid_rgba(4, 4, Color::new(10, 20, 30, 255));
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 1.0,
+        };
 
         let sampled = sample_reference(&source, (4, 4), &placement, 2, 1);
 
@@ -69,7 +73,11 @@ mod tests {
     #[test]
     fn scale_up_by_2x_maps_consecutive_document_pixels_to_same_source_pixel() {
         let source = positional_rgba(4, 4);
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 2.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 2.0,
+        };
 
         let s00 = sample_reference(&source, (4, 4), &placement, 0, 0);
         let s10 = sample_reference(&source, (4, 4), &placement, 1, 0);
@@ -85,7 +93,11 @@ mod tests {
     #[test]
     fn scale_up_by_3x_uses_three_consecutive_document_pixels_per_source_pixel() {
         let source = positional_rgba(4, 4);
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 3.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 3.0,
+        };
 
         let footprint: Vec<_> = (0..6)
             .map(|x| sample_reference(&source, (4, 4), &placement, x, 0))
@@ -107,7 +119,11 @@ mod tests {
     #[test]
     fn scale_down_by_half_floors_to_every_second_source_pixel() {
         let source = positional_rgba(4, 4);
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 0.5 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 0.5,
+        };
 
         let row: Vec<_> = (0..2)
             .map(|x| sample_reference(&source, (4, 4), &placement, x, 0))
@@ -125,7 +141,11 @@ mod tests {
     #[test]
     fn sub_pixel_placement_offsets_snap_to_integer_source_coords() {
         let source = positional_rgba(4, 4);
-        let placement = ReferencePlacement { x: -0.3, y: 0.7, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: -0.3,
+            y: 0.7,
+            scale: 1.0,
+        };
 
         let sampled = sample_reference(&source, (4, 4), &placement, 2, 1);
 
@@ -135,7 +155,11 @@ mod tests {
     #[test]
     fn last_row_and_last_column_pixels_are_reachable() {
         let source = positional_rgba(4, 4);
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 1.0,
+        };
 
         let bottom_right = sample_reference(&source, (4, 4), &placement, 3, 3);
         let last_column = sample_reference(&source, (4, 4), &placement, 3, 0);
@@ -149,7 +173,11 @@ mod tests {
     #[test]
     fn returns_none_when_document_coord_falls_before_shifted_source_origin() {
         let source = positional_rgba(4, 4);
-        let placement = ReferencePlacement { x: 2.0, y: 0.0, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: 2.0,
+            y: 0.0,
+            scale: 1.0,
+        };
 
         let sampled = sample_reference(&source, (4, 4), &placement, 0, 0);
 
@@ -159,7 +187,11 @@ mod tests {
     #[test]
     fn returns_none_when_document_coord_is_past_source_right_edge() {
         let source = solid_rgba(4, 4, Color::new(10, 20, 30, 255));
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 1.0,
+        };
 
         let sampled = sample_reference(&source, (4, 4), &placement, 4, 0);
 
@@ -169,7 +201,11 @@ mod tests {
     #[test]
     fn returns_none_when_document_coord_is_past_source_bottom_edge() {
         let source = solid_rgba(4, 4, Color::new(10, 20, 30, 255));
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 1.0,
+        };
 
         let sampled = sample_reference(&source, (4, 4), &placement, 0, 4);
 

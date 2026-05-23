@@ -425,9 +425,189 @@ describe('TabState — export snapshot', () => {
 		const passed = exportSpy.mock.calls[0][0] as { width: number; height: number; pixels(): Uint8Array };
 		expect(passed.width).toBe(1);
 		expect(passed.height).toBe(1);
-		expect(tab.document.composite()).toEqual(referencePixels);
+		expect(tab.document.composite()).toEqual(paintedPixels);
 		expect(passed.pixels()).toEqual(tab.document.composite_for_export());
 		expect(passed.pixels()).toEqual(paintedPixels);
+	});
+});
+
+describe('TabState — Reference underlay render source', () => {
+	it('exposes visible Reference source data separately from the Pixel-only composite', () => {
+		const pixelId = crypto.randomUUID();
+		const referenceId = crypto.randomUUID();
+		const paintedPixels = new Uint8Array([255, 0, 0, 255]);
+		const referencePixels = new Uint8Array([0, 255, 0, 255, 0, 0, 255, 255]);
+		const sourceBlob = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' });
+		const document = documentFromLayerSource({
+			width: 1,
+			height: 1,
+			layers: [
+				{
+					kind: 'pixel',
+					id: pixelId,
+					name: 'Paint',
+					pixels: paintedPixels,
+					visible: true,
+					opacity: 1
+				},
+				{
+					kind: 'reference',
+					id: referenceId,
+					name: 'Reference',
+					visible: true,
+					opacity: 0.5,
+					sourceBlob,
+					sourceRgba: referencePixels,
+					naturalWidth: 2,
+					naturalHeight: 1,
+					placement: { x: 3, y: 4, scale: 2 }
+				}
+			],
+			activeLayerId: pixelId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false
+		});
+		const { tab } = makeTab({ document });
+
+		expect(tab.compositeBuffer.pixels()).toEqual(paintedPixels);
+		expect(tab.referenceUnderlay).toEqual({
+			sourceKey: expect.stringMatching(`^${referenceId}:`),
+			sourceRgba: referencePixels,
+			naturalWidth: 2,
+			naturalHeight: 1,
+			placement: { x: 3, y: 4, scale: 2 },
+			opacity: 0.5
+		});
+
+		tab.setLayerVisibility(referenceId, false);
+
+		expect(tab.referenceUnderlay).toBeUndefined();
+	});
+
+	it('changes the Reference source key when source pixels change under the same layer id', () => {
+		const pixelId = crypto.randomUUID();
+		const referenceId = crypto.randomUUID();
+		const sourceBlob = new Blob([new Uint8Array([1])], { type: 'image/png' });
+		const makeDocument = (sourceRgba: Uint8Array) =>
+			documentFromLayerSource({
+				width: 1,
+				height: 1,
+				layers: [
+					{
+						kind: 'pixel',
+						id: pixelId,
+						name: 'Paint',
+						pixels: new Uint8Array([255, 0, 0, 255]),
+						visible: true,
+						opacity: 1
+					},
+					{
+						kind: 'reference',
+						id: referenceId,
+						name: 'Reference',
+						visible: true,
+						opacity: 1,
+						sourceBlob,
+						sourceRgba,
+						naturalWidth: 1,
+						naturalHeight: 1,
+						placement: { x: 0, y: 0, scale: 1 }
+					}
+				],
+				activeLayerId: referenceId,
+				nextLayerNumber: 2,
+				timelinePanelCollapsed: false
+			});
+
+		const { tab: first } = makeTab({ document: makeDocument(new Uint8Array([0, 255, 0, 255])) });
+		const { tab: second } = makeTab({ document: makeDocument(new Uint8Array([0, 0, 255, 255])) });
+
+		expect(first.referenceUnderlay?.sourceKey).not.toBe(second.referenceUnderlay?.sourceKey);
+	});
+
+	it('does not recopy the Reference source when the render-facing getter is read again', () => {
+		const pixelId = crypto.randomUUID();
+		const referenceId = crypto.randomUUID();
+		const document = documentFromLayerSource({
+			width: 1,
+			height: 1,
+			layers: [
+				{
+					kind: 'pixel',
+					id: pixelId,
+					name: 'Paint',
+					pixels: new Uint8Array([255, 0, 0, 255]),
+					visible: true,
+					opacity: 1
+				},
+				{
+					kind: 'reference',
+					id: referenceId,
+					name: 'Reference',
+					visible: true,
+					opacity: 1,
+					sourceBlob: new Blob([new Uint8Array([1])], { type: 'image/png' }),
+					sourceRgba: new Uint8Array([0, 255, 0, 255]),
+					naturalWidth: 1,
+					naturalHeight: 1,
+					placement: { x: 0, y: 0, scale: 1 }
+				}
+			],
+			activeLayerId: referenceId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false
+		});
+		const { tab } = makeTab({ document });
+		const sourceSpy = vi.spyOn(tab.document, 'layer_source_pixels_at');
+
+		const first = tab.referenceUnderlay;
+		const second = tab.referenceUnderlay;
+
+		expect(sourceSpy).toHaveBeenCalledOnce();
+		expect(second?.sourceKey).toBe(first?.sourceKey);
+		expect(second?.sourceRgba).toBe(first?.sourceRgba);
+	});
+
+	it('updates renderVersion and dirty state when committing Reference placement', () => {
+		const pixelId = crypto.randomUUID();
+		const referenceId = crypto.randomUUID();
+		const document = documentFromLayerSource({
+			width: 1,
+			height: 1,
+			layers: [
+				{
+					kind: 'pixel',
+					id: pixelId,
+					name: 'Paint',
+					pixels: new Uint8Array([255, 0, 0, 255]),
+					visible: true,
+					opacity: 1
+				},
+				{
+					kind: 'reference',
+					id: referenceId,
+					name: 'Reference',
+					visible: true,
+					opacity: 1,
+					sourceBlob: new Blob([new Uint8Array([1])], { type: 'image/png' }),
+					sourceRgba: new Uint8Array([0, 255, 0, 255]),
+					naturalWidth: 1,
+					naturalHeight: 1,
+					placement: { x: 0, y: 0, scale: 1 }
+				}
+			],
+			activeLayerId: referenceId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false
+		});
+		const { tab, notifier } = makeTab({ document });
+		const beforeVersion = tab.renderVersion;
+
+		tab.setReferencePlacement(referenceId, { x: 2, y: 3, scale: 4 });
+
+		expect(tab.referenceUnderlay?.placement).toEqual({ x: 2, y: 3, scale: 4 });
+		expect(tab.renderVersion).toBe(beforeVersion + 1);
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
 	});
 });
 
@@ -759,7 +939,7 @@ describe('TabState — removeLayer', () => {
 		tab.undo();
 
 		const snapshot = tab.toSnapshot();
-		const referenceLayer = expectReferenceLayer(snapshot.layers[1]);
+		const referenceLayer = expectReferenceLayer(snapshot.layers[0]);
 		expect(referenceLayer.sourceBlob).toBe(sourceBlob);
 		expect(Array.from(referenceLayer.sourceRgba)).toEqual(Array.from(sourceRgba));
 	});
@@ -904,13 +1084,14 @@ describe('TabState — mixed Pixel and Reference Layer stack operations', () => 
 		const { tab, shared } = makeTab({ document });
 
 		tab.document.add_reference_layer(referenceId, 'Sketch reference', makePixelRgba(RED), 1, 1);
+		tab.setActiveLayer(bottomId);
 		tab.addLayer('Top paint');
 		const topId = tab.document.active_layer_id();
 		expect([
 			tab.document.layer_kind_at(0),
 			tab.document.layer_kind_at(1),
 			tab.document.layer_kind_at(2)
-		]).toEqual(['pixel', 'reference', 'pixel']);
+		]).toEqual(['reference', 'pixel', 'pixel']);
 		shared.foregroundColor = GREEN;
 		shared.activeTool = 'pencil';
 		tab.drawStart(0, 'mouse');
@@ -921,11 +1102,11 @@ describe('TabState — mixed Pixel and Reference Layer stack operations', () => 
 		expect(tab.document.active_layer_id()).toBe(referenceId);
 
 		tab.reorderLayer(referenceId, 0);
-		expect(tab.document.layer_id_at(2)).toBe(referenceId);
-		expect(getPixel(tab, 0, 0)).toEqual(RED);
+		expect(tab.document.layer_id_at(0)).toBe(referenceId);
+		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
 
 		tab.setLayerVisibility(referenceId, false);
-		expect(tab.document.layer_visible_at(2)).toBe(false);
+		expect(tab.document.layer_visible_at(0)).toBe(false);
 		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
 
 		tab.removeLayer(referenceId);
@@ -933,7 +1114,7 @@ describe('TabState — mixed Pixel and Reference Layer stack operations', () => 
 			tab.document.layer_id_at(i)
 		);
 		expect(remainingIds).toEqual([bottomId, topId]);
-		expect(tab.document.active_layer_id()).toBe(topId);
+		expect(tab.document.active_layer_id()).toBe(bottomId);
 		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
 	});
 });

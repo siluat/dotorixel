@@ -11,7 +11,9 @@ use crate::tool::ToolType;
 /// Errors that can occur during layer-stack operations on a [`Document`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LayerError {
-    LayerNotFound { id: Uuid },
+    LayerNotFound {
+        id: Uuid,
+    },
     RemoveLastLayer,
     LayerKindMismatch {
         id: Uuid,
@@ -28,7 +30,11 @@ impl fmt::Display for LayerError {
                 f,
                 "Cannot remove the last remaining layer. A document must contain at least one layer."
             ),
-            Self::LayerKindMismatch { id, expected, actual } => write!(
+            Self::LayerKindMismatch {
+                id,
+                expected,
+                actual,
+            } => write!(
                 f,
                 "Layer {id} is {actual:?}; this operation requires a {expected:?} Layer.",
             ),
@@ -88,7 +94,10 @@ impl fmt::Display for DocumentBuildError {
                 write!(f, "Document must contain at least one layer.")
             }
             Self::DuplicateLayerId(id) => {
-                write!(f, "Layer id {id} appears more than once in the supplied layer stack.")
+                write!(
+                    f,
+                    "Layer id {id} appears more than once in the supplied layer stack."
+                )
             }
             Self::LayerDimensionsMismatch {
                 layer_id,
@@ -101,7 +110,10 @@ impl fmt::Display for DocumentBuildError {
                 )
             }
             Self::UnknownActiveLayer(id) => {
-                write!(f, "Active layer id {id} is not present in the supplied layer stack.")
+                write!(
+                    f,
+                    "Active layer id {id} is not present in the supplied layer stack."
+                )
             }
         }
     }
@@ -176,6 +188,7 @@ impl Document {
                 }
             }
         }
+        let (layers, active_layer_id) = normalize_reference_underlay(layers, active_layer_id);
         if !layers.iter().any(|l| l.id == active_layer_id) {
             return Err(DocumentBuildError::UnknownActiveLayer(active_layer_id));
         }
@@ -240,11 +253,15 @@ impl Document {
         self.next_layer_number += 1;
     }
 
-    /// Appends a Reference Layer above the current active layer, computes
-    /// the aspect-preserving auto-fit placement (centered, `scale = min(canvas_w
-    /// / source_w, canvas_h / source_h, 1.0)`), and makes the new layer active.
-    /// Returns [`ReferenceDataError`] when the supplied buffer does not match
-    /// `source_width × source_height × 4` bytes or either dimension is zero.
+    /// Sets the singleton Reference Layer, replacing the existing Reference
+    /// when one is already present. The Reference Layer is always kept at the
+    /// bottom of the stack, below every Pixel Layer.
+    ///
+    /// Computes the aspect-preserving auto-fit placement (centered,
+    /// `scale = min(canvas_w / source_w, canvas_h / source_h, 1.0)`) and makes
+    /// the Reference active. Returns [`ReferenceDataError`] when the supplied
+    /// buffer does not match `source_width × source_height × 4` bytes or either
+    /// dimension is zero.
     pub fn add_reference_layer(
         &mut self,
         new_id: Uuid,
@@ -254,23 +271,26 @@ impl Document {
         source_height: u32,
     ) -> Result<(), ReferenceDataError> {
         debug_assert!(
-            !self.layers.iter().any(|l| l.id == new_id),
-            "add_reference_layer called with a UUID already present in the stack"
+            !self
+                .layers
+                .iter()
+                .any(|l| l.id == new_id && !matches!(l.kind, LayerKind::Reference(_))),
+            "add_reference_layer called with a UUID already present in the Pixel stack"
         );
-        let placement = auto_fit_placement(
-            self.width,
-            self.height,
-            source_width,
-            source_height,
-        );
+        let placement = auto_fit_placement(self.width, self.height, source_width, source_height);
         let data = ReferenceData::new(source_rgba, source_width, source_height, placement)?;
-        let active_idx = self
+        let replaced_existing = if let Some(reference_idx) = self
             .layers
             .iter()
-            .position(|l| l.id == self.active_layer_id)
-            .expect("active layer id is always present in the stack");
+            .position(|l| matches!(l.kind, LayerKind::Reference(_)))
+        {
+            self.layers.remove(reference_idx);
+            true
+        } else {
+            false
+        };
         self.layers.insert(
-            active_idx + 1,
+            0,
             Layer {
                 id: new_id,
                 name,
@@ -280,7 +300,9 @@ impl Document {
             },
         );
         self.active_layer_id = new_id;
-        self.next_layer_number += 1;
+        if !replaced_existing {
+            self.next_layer_number += 1;
+        }
         Ok(())
     }
 
@@ -368,17 +390,30 @@ impl Document {
 
     /// Moves the layer with `id` to `new_index`.
     ///
-    /// `new_index` is silently clamped to `[0, layers.len() - 1]`. Returns
-    /// [`LayerError::LayerNotFound`] for an unknown id. The active layer
-    /// pointer is preserved across reordering (it's tracked by id, not by
-    /// index).
+    /// Reference Layers are fixed at the bottom of the stack, so reordering one
+    /// is a no-op. Pixel Layers are silently clamped to `[1, layers.len() - 1]`
+    /// when a Reference exists, or `[0, layers.len() - 1]` otherwise. Returns
+    /// [`LayerError::LayerNotFound`] for an unknown id. The active layer pointer
+    /// is preserved across reordering (it's tracked by id, not by index).
     pub fn reorder_layer(&mut self, id: Uuid, new_index: usize) -> Result<(), LayerError> {
         let from = self
             .layers
             .iter()
             .position(|l| l.id == id)
             .ok_or(LayerError::LayerNotFound { id })?;
-        let to = new_index.min(self.layers.len() - 1);
+        if matches!(self.layers[from].kind, LayerKind::Reference(_)) {
+            return Ok(());
+        }
+        let min_index = if self
+            .layers
+            .iter()
+            .any(|l| matches!(l.kind, LayerKind::Reference(_)))
+        {
+            1
+        } else {
+            0
+        };
+        let to = new_index.min(self.layers.len() - 1).max(min_index);
         if from != to {
             let layer = self.layers.remove(from);
             self.layers.insert(to, layer);
@@ -387,27 +422,20 @@ impl Document {
     }
 
     /// Returns a freshly-allocated row-major RGBA byte buffer
-    /// (`width * height * 4`) with all visible layers blended bottom-to-top
+    /// (`width * height * 4`) with visible Pixel Layers blended bottom-to-top
     /// using straight (non-premultiplied) source-over alpha.
     ///
-    /// Each layer's `opacity` is multiplied into its source alpha; layers with
-    /// `visible = false` are skipped entirely. Reference Layers contribute via
-    /// the nearest-neighbor sampler — they appear on-screen as a tracing aid.
-    /// For exports (PNG, SVG, project-file thumbnail), use
-    /// [`composite_for_export`](Self::composite_for_export) instead.
+    /// Each Pixel Layer's `opacity` is multiplied into its source alpha; layers
+    /// with `visible = false` are skipped entirely. Reference Layers are
+    /// viewport underlays and never contribute to document-pixel buffers.
     pub fn composite(&self) -> Vec<u8> {
         let mut buf = vec![0u8; (self.width * self.height * 4) as usize];
         for layer in &self.layers {
             if !layer.visible {
                 continue;
             }
-            match &layer.kind {
-                LayerKind::Pixel(canvas) => {
-                    blend_pixel_canvas_over(&mut buf, canvas, layer.opacity)
-                }
-                LayerKind::Reference(data) => {
-                    blend_reference_over(&mut buf, self.width, self.height, data, layer.opacity)
-                }
+            if let LayerKind::Pixel(canvas) = &layer.kind {
+                blend_pixel_canvas_over(&mut buf, canvas, layer.opacity);
             }
         }
         buf
@@ -419,16 +447,7 @@ impl Document {
     /// SVG, project-file thumbnail) where the tracing reference must not
     /// appear in the user-facing artifact.
     pub fn composite_for_export(&self) -> Vec<u8> {
-        let mut buf = vec![0u8; (self.width * self.height * 4) as usize];
-        for layer in &self.layers {
-            if !layer.visible {
-                continue;
-            }
-            if let LayerKind::Pixel(canvas) = &layer.kind {
-                blend_pixel_canvas_over(&mut buf, canvas, layer.opacity);
-            }
-        }
-        buf
+        self.composite()
     }
 
     /// Reads the color at `(x, y)` on the active layer.
@@ -527,6 +546,16 @@ impl Document {
     pub fn layer_source_pixels_at(&self, index: usize) -> Option<&[u8]> {
         match &self.layers.get(index)?.kind {
             LayerKind::Reference(data) => Some(data.source_rgba()),
+            LayerKind::Pixel(_) => None,
+        }
+    }
+
+    /// Returns a stable fingerprint of the immutable source RGBA buffer of the
+    /// Reference Layer at `index`. `None` when `index` is out of range or the
+    /// layer is a Pixel Layer.
+    pub fn layer_source_fingerprint_at(&self, index: usize) -> Option<u64> {
+        match &self.layers.get(index)?.kind {
+            LayerKind::Reference(data) => Some(data.source_fingerprint()),
             LayerKind::Pixel(_) => None,
         }
     }
@@ -638,6 +667,38 @@ impl Document {
     }
 }
 
+fn normalize_reference_underlay(
+    mut layers: Vec<Layer>,
+    active_layer_id: Uuid,
+) -> (Vec<Layer>, Uuid) {
+    let kept_reference_idx = layers
+        .iter()
+        .rposition(|l| matches!(l.kind, LayerKind::Reference(_)));
+    let Some(kept_reference_idx) = kept_reference_idx else {
+        return (layers, active_layer_id);
+    };
+
+    let active_layer_was_reference = layers
+        .iter()
+        .any(|l| l.id == active_layer_id && matches!(l.kind, LayerKind::Reference(_)));
+    let kept_reference = layers.remove(kept_reference_idx);
+    let kept_reference_id = kept_reference.id;
+    let mut normalized = Vec::with_capacity(layers.len() + 1);
+    normalized.push(kept_reference);
+    normalized.extend(
+        layers
+            .into_iter()
+            .filter(|layer| matches!(layer.kind, LayerKind::Pixel(_))),
+    );
+
+    let normalized_active_id = if active_layer_was_reference {
+        kept_reference_id
+    } else {
+        active_layer_id
+    };
+    (normalized, normalized_active_id)
+}
+
 /// Aspect-preserving auto-fit: scales the source down so the longest axis fits
 /// the canvas, never enlarges (`scale ≤ 1.0`), and centers the projected
 /// footprint within the canvas.
@@ -656,49 +717,6 @@ fn auto_fit_placement(
         x: (canvas_width as f32 - projected_w) / 2.0,
         y: (canvas_height as f32 - projected_h) / 2.0,
         scale,
-    }
-}
-
-/// Source-over alpha composite of a Reference Layer onto `dst`. The source
-/// is sampled at each `(x, y)` via the nearest-neighbor sampler; pixels outside
-/// the projected footprint contribute nothing.
-fn blend_reference_over(
-    dst: &mut [u8],
-    width: u32,
-    height: u32,
-    data: &ReferenceData,
-    opacity: f32,
-) {
-    let opacity = opacity.clamp(0.0, 1.0);
-    let source_dims = (data.natural_width(), data.natural_height());
-    let placement = data.placement();
-    for y in 0..height {
-        for x in 0..width {
-            let Some(sample) = crate::reference_sampler::sample_reference(
-                data.source_rgba(),
-                source_dims,
-                &placement,
-                x,
-                y,
-            ) else {
-                continue;
-            };
-            let idx = ((y * width + x) * 4) as usize;
-            let chunk = &mut dst[idx..idx + 4];
-            let src_a = (sample.a as f32 / 255.0) * opacity;
-            if src_a == 0.0 {
-                continue;
-            }
-            let dst_a = chunk[3] as f32 / 255.0;
-            let out_a = src_a + dst_a * (1.0 - src_a);
-            for (c, src_byte) in [sample.r, sample.g, sample.b].into_iter().enumerate() {
-                let s = src_byte as f32 / 255.0;
-                let d = chunk[c] as f32 / 255.0;
-                let out = (s * src_a + d * dst_a * (1.0 - src_a)) / out_a;
-                chunk[c] = (out * 255.0).round() as u8;
-            }
-            chunk[3] = (out_a * 255.0).round() as u8;
-        }
     }
 }
 
@@ -750,9 +768,15 @@ mod tests {
         let green = Color::new(0, 255, 0, 255);
 
         let mut doc = Document::new(1, 1, a, "A".to_string()).unwrap();
-        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(1, 1, red).unwrap());
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(1, 1, red).unwrap(),
+        );
         doc.add_layer(b, "B".to_string());
-        set_pixel_canvas(&mut doc.layers[1], PixelCanvas::with_color(1, 1, green).unwrap());
+        set_pixel_canvas(
+            &mut doc.layers[1],
+            PixelCanvas::with_color(1, 1, green).unwrap(),
+        );
 
         assert_eq!(doc.layer_pixels_at(0), Some([255, 0, 0, 255].as_slice()));
         assert_eq!(doc.layer_pixels_at(1), Some([0, 255, 0, 255].as_slice()));
@@ -769,9 +793,15 @@ mod tests {
         let green = Color::new(0, 255, 0, 255);
 
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
-        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(2, 2, red).unwrap());
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(2, 2, red).unwrap(),
+        );
         doc.add_layer(b, "B".to_string()); // active = B
-        set_pixel_canvas(&mut doc.layers[1], PixelCanvas::with_color(2, 2, green).unwrap());
+        set_pixel_canvas(
+            &mut doc.layers[1],
+            PixelCanvas::with_color(2, 2, green).unwrap(),
+        );
 
         doc.clear();
 
@@ -797,7 +827,10 @@ mod tests {
 
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
         // Bottom (a): solid red — must remain red.
-        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(2, 2, red).unwrap());
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(2, 2, red).unwrap(),
+        );
         // Top (b, active): transparent — flood_fill should turn it solid blue.
         doc.add_layer(b, "B".to_string());
 
@@ -909,7 +942,11 @@ mod tests {
 
         // Reference Layer has its own natural dimensions (different from document)
         // and a non-trivial placement — both must survive round-trip.
-        let placement = ReferencePlacement { x: 1.5, y: -2.0, scale: 0.75 };
+        let placement = ReferencePlacement {
+            x: 1.5,
+            y: -2.0,
+            scale: 0.75,
+        };
         let ref_rgba = vec![10u8, 20, 30, 40, 50, 60, 70, 80];
         let reference = ReferenceData::new(ref_rgba.clone(), 2, 1, placement).unwrap();
         let reference_layer = Layer {
@@ -932,14 +969,104 @@ mod tests {
         let layers = vec![pixel_a.clone(), reference_layer.clone(), pixel_b.clone()];
         let doc = Document::from_layers(4, 4, layers, b, 4, false).unwrap();
 
-        assert_eq!(doc.layers(), &[pixel_a, reference_layer, pixel_b]);
-        let LayerKind::Reference(restored) = &doc.layers()[1].kind else {
-            panic!("middle layer must remain Reference-kind after from_layers");
+        assert_eq!(doc.layers(), &[reference_layer, pixel_a, pixel_b]);
+        let LayerKind::Reference(restored) = &doc.layers()[0].kind else {
+            panic!("bottom layer must be Reference-kind after from_layers");
         };
         assert_eq!(restored.source_rgba(), ref_rgba.as_slice());
         assert_eq!(restored.natural_width(), 2);
         assert_eq!(restored.natural_height(), 1);
         assert_eq!(restored.placement(), placement);
+    }
+
+    #[test]
+    fn from_layers_normalizes_reference_to_singleton_bottom_underlay() {
+        use crate::color::Color;
+        use crate::layer::ReferenceData;
+        use crate::reference_placement::ReferencePlacement;
+
+        let pixel_a_id = Uuid::new_v4();
+        let old_reference_id = Uuid::new_v4();
+        let pixel_b_id = Uuid::new_v4();
+        let kept_reference_id = Uuid::new_v4();
+
+        let pixel_a = Layer {
+            id: pixel_a_id,
+            name: "Paint A".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Pixel(
+                PixelCanvas::with_color(4, 4, Color::new(255, 0, 0, 255)).unwrap(),
+            ),
+        };
+        let old_reference = Layer {
+            id: old_reference_id,
+            name: "Old reference".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Reference(
+                ReferenceData::new(
+                    vec![1u8; 4],
+                    1,
+                    1,
+                    ReferencePlacement {
+                        x: 1.0,
+                        y: 1.0,
+                        scale: 1.0,
+                    },
+                )
+                .unwrap(),
+            ),
+        };
+        let pixel_b = Layer {
+            id: pixel_b_id,
+            name: "Paint B".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Pixel(
+                PixelCanvas::with_color(4, 4, Color::new(0, 0, 255, 255)).unwrap(),
+            ),
+        };
+        let kept_reference = Layer {
+            id: kept_reference_id,
+            name: "Kept reference".to_string(),
+            visible: false,
+            opacity: 0.5,
+            kind: LayerKind::Reference(
+                ReferenceData::new(
+                    vec![2u8; 8],
+                    2,
+                    1,
+                    ReferencePlacement {
+                        x: 3.0,
+                        y: 4.0,
+                        scale: 2.0,
+                    },
+                )
+                .unwrap(),
+            ),
+        };
+
+        let doc = Document::from_layers(
+            4,
+            4,
+            vec![
+                pixel_a.clone(),
+                old_reference,
+                pixel_b.clone(),
+                kept_reference.clone(),
+            ],
+            old_reference_id,
+            7,
+            false,
+        )
+        .unwrap();
+
+        assert_eq!(doc.layers().len(), 3);
+        assert_eq!(doc.layers()[0], kept_reference);
+        assert_eq!(doc.layers()[1], pixel_a);
+        assert_eq!(doc.layers()[2], pixel_b);
+        assert_eq!(doc.active_layer_id(), kept_reference_id);
     }
 
     #[test]
@@ -1115,7 +1242,11 @@ mod tests {
         assert_eq!(doc.next_layer_number(), 4);
 
         doc.remove_layer(b).unwrap();
-        assert_eq!(doc.next_layer_number(), 4, "delete must not decrement counter");
+        assert_eq!(
+            doc.next_layer_number(),
+            4,
+            "delete must not decrement counter"
+        );
 
         doc.add_layer(d, "D".to_string());
         assert_eq!(doc.next_layer_number(), 5);
@@ -1175,6 +1306,35 @@ mod tests {
     }
 
     #[test]
+    fn reorder_layer_keeps_reference_fixed_below_pixel_layers() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let mut doc = Document::new(8, 8, a, "A".to_string()).unwrap();
+        doc.add_layer(b, "B".to_string());
+        doc.add_reference_layer(r, "Reference".to_string(), vec![0u8; 4], 1, 1)
+            .unwrap();
+        assert_eq!(
+            doc.layers().iter().map(|l| l.id).collect::<Vec<_>>(),
+            vec![r, a, b]
+        );
+
+        doc.reorder_layer(r, 2).unwrap();
+        assert_eq!(
+            doc.layers().iter().map(|l| l.id).collect::<Vec<_>>(),
+            vec![r, a, b],
+            "Reference remains bottom-most"
+        );
+
+        doc.reorder_layer(b, 0).unwrap();
+        assert_eq!(
+            doc.layers().iter().map(|l| l.id).collect::<Vec<_>>(),
+            vec![r, b, a],
+            "Pixel target below Reference is clamped above the Reference row"
+        );
+    }
+
+    #[test]
     fn set_active_layer_returns_layer_not_found_for_unknown_id() {
         let a = Uuid::new_v4();
         let unknown = Uuid::new_v4();
@@ -1184,7 +1344,11 @@ mod tests {
             doc.set_active_layer(unknown),
             Err(LayerError::LayerNotFound { id: unknown })
         );
-        assert_eq!(doc.active_layer_id(), a, "active must remain unchanged on error");
+        assert_eq!(
+            doc.active_layer_id(),
+            a,
+            "active must remain unchanged on error"
+        );
     }
 
     #[test]
@@ -1231,7 +1395,10 @@ mod tests {
         let mut doc = Document::new(2, 2, id, "L1".to_string()).unwrap();
         // Replace the active layer's pixels with solid red.
         let red = Color::new(255, 0, 0, 255);
-        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(2, 2, red).unwrap());
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(2, 2, red).unwrap(),
+        );
 
         let expected: Vec<u8> = std::iter::repeat_n([255, 0, 0, 255], 4).flatten().collect();
         assert_eq!(doc.composite(), expected);
@@ -1303,7 +1470,7 @@ mod tests {
     }
 
     #[test]
-    fn composite_blends_visible_reference_layer_via_sampler_on_top_of_pixel_layer() {
+    fn composite_excludes_visible_reference_layer() {
         use crate::color::Color;
         use crate::layer::ReferenceData;
         use crate::reference_placement::ReferencePlacement;
@@ -1312,12 +1479,19 @@ mod tests {
         let r = Uuid::new_v4();
         let red = Color::new(255, 0, 0, 255);
         // Identity placement, 1x1 fully opaque green reference covering the doc.
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 1.0,
+        };
         let green_rgba = vec![0u8, 255, 0, 255];
         let reference = ReferenceData::new(green_rgba, 1, 1, placement).unwrap();
 
         let mut doc = Document::new(1, 1, a, "A".to_string()).unwrap();
-        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(1, 1, red).unwrap());
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(1, 1, red).unwrap(),
+        );
         doc.layers.push(Layer {
             id: r,
             name: "Reference".to_string(),
@@ -1326,8 +1500,8 @@ mod tests {
             kind: LayerKind::Reference(reference),
         });
 
-        // Reference on top, opaque → composite shows green.
-        assert_eq!(doc.composite(), vec![0, 255, 0, 255]);
+        // Reference is a viewport underlay, not document-pixel state.
+        assert_eq!(doc.composite(), vec![255, 0, 0, 255]);
     }
 
     #[test]
@@ -1339,12 +1513,19 @@ mod tests {
         let a = Uuid::new_v4();
         let r = Uuid::new_v4();
         let red = Color::new(255, 0, 0, 255);
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 1.0,
+        };
         let green_rgba = vec![0u8, 255, 0, 255];
         let reference = ReferenceData::new(green_rgba, 1, 1, placement).unwrap();
 
         let mut doc = Document::new(1, 1, a, "A".to_string()).unwrap();
-        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(1, 1, red).unwrap());
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(1, 1, red).unwrap(),
+        );
         doc.layers.push(Layer {
             id: r,
             name: "Reference".to_string(),
@@ -1366,14 +1547,21 @@ mod tests {
         let a = Uuid::new_v4();
         let b = Uuid::new_v4();
         let red = Color::new(255, 0, 0, 255);
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 1.0,
+        };
         // A visible Reference Layer holding solid opaque green pixels — must NOT
-        // contribute to the export buffer, even though composite() would blend it.
+        // contribute to the export buffer or the Pixel-only composite.
         let green_rgba = vec![0u8, 255, 0, 255];
         let reference = ReferenceData::new(green_rgba, 1, 1, placement).unwrap();
 
         let mut doc = Document::new(1, 1, a, "A".to_string()).unwrap();
-        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(1, 1, red).unwrap());
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(1, 1, red).unwrap(),
+        );
         doc.layers.push(Layer {
             id: b,
             name: "Reference".to_string(),
@@ -1471,7 +1659,11 @@ mod tests {
             .unwrap();
         doc.set_reference_placement(
             r,
-            ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 },
+            ReferencePlacement {
+                x: 0.0,
+                y: 0.0,
+                scale: 1.0,
+            },
         )
         .unwrap();
 
@@ -1481,7 +1673,11 @@ mod tests {
 
         doc.set_reference_placement(
             r,
-            ReferencePlacement { x: 1.0, y: 1.0, scale: 1.0 },
+            ReferencePlacement {
+                x: 1.0,
+                y: 1.0,
+                scale: 1.0,
+            },
         )
         .unwrap();
         assert_eq!(doc.try_get_pixel(0, 0), None);
@@ -1502,7 +1698,10 @@ mod tests {
         // Active (B) is changed.
         assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(0, 0).unwrap(), red);
         // Inactive (A) is unchanged.
-        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(0, 0).unwrap(), Color::TRANSPARENT);
+        assert_eq!(
+            pixel_canvas(&doc.layers[0]).get_pixel(0, 0).unwrap(),
+            Color::TRANSPARENT
+        );
     }
 
     #[test]
@@ -1519,7 +1718,10 @@ mod tests {
         doc.set_pixel(0, 0, red).unwrap();
 
         assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(0, 0).unwrap(), red);
-        assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(0, 0).unwrap(), Color::TRANSPARENT);
+        assert_eq!(
+            pixel_canvas(&doc.layers[1]).get_pixel(0, 0).unwrap(),
+            Color::TRANSPARENT
+        );
     }
 
     #[test]
@@ -1530,7 +1732,10 @@ mod tests {
         let r = Uuid::new_v4();
         let red = Color::new(255, 0, 0, 255);
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
-        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(2, 2, red).unwrap());
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(2, 2, red).unwrap(),
+        );
         doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
             .unwrap();
 
@@ -1539,7 +1744,7 @@ mod tests {
 
         for y in 0..2 {
             for x in 0..2 {
-                assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(x, y).unwrap(), red);
+                assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(x, y).unwrap(), red);
             }
         }
     }
@@ -1552,7 +1757,10 @@ mod tests {
         let r = Uuid::new_v4();
         let red = Color::new(255, 0, 0, 255);
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
-        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(2, 2, red).unwrap());
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(2, 2, red).unwrap(),
+        );
         doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
             .unwrap();
 
@@ -1564,7 +1772,7 @@ mod tests {
         // Pixel Layer beneath untouched.
         for y in 0..2 {
             for x in 0..2 {
-                assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(x, y).unwrap(), red);
+                assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(x, y).unwrap(), red);
             }
         }
     }
@@ -1577,7 +1785,10 @@ mod tests {
         let r = Uuid::new_v4();
         let red = Color::new(255, 0, 0, 255);
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
-        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(2, 2, red).unwrap());
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(2, 2, red).unwrap(),
+        );
         doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
             .unwrap();
 
@@ -1587,7 +1798,7 @@ mod tests {
         // Pixel Layer beneath must be untouched.
         for y in 0..2 {
             for x in 0..2 {
-                assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(x, y).unwrap(), red);
+                assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(x, y).unwrap(), red);
             }
         }
     }
@@ -1624,7 +1835,10 @@ mod tests {
         let r = Uuid::new_v4();
         let red = Color::new(255, 0, 0, 255);
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
-        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(2, 2, red).unwrap());
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(2, 2, red).unwrap(),
+        );
         doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
             .unwrap();
 
@@ -1634,7 +1848,7 @@ mod tests {
         // Pixel Layer beneath must be untouched.
         for y in 0..2 {
             for x in 0..2 {
-                assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(x, y).unwrap(), red);
+                assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(x, y).unwrap(), red);
             }
         }
     }
@@ -1647,7 +1861,10 @@ mod tests {
         let r = Uuid::new_v4();
         let red = Color::new(255, 0, 0, 255);
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
-        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(2, 2, red).unwrap());
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(2, 2, red).unwrap(),
+        );
         doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
             .unwrap();
 
@@ -1656,7 +1873,7 @@ mod tests {
         assert!(!painted);
         for y in 0..2 {
             for x in 0..2 {
-                assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(x, y).unwrap(), red);
+                assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(x, y).unwrap(), red);
             }
         }
     }
@@ -1668,7 +1885,11 @@ mod tests {
 
         let a = Uuid::new_v4();
         let r = Uuid::new_v4();
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 1.0,
+        };
         let reference = ReferenceData::new(vec![0u8; 4], 1, 1, placement).unwrap();
 
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
@@ -1693,7 +1914,11 @@ mod tests {
         let a = Uuid::new_v4();
         let r = Uuid::new_v4();
         let source_rgba = vec![10u8, 20, 30, 40, 50, 60, 70, 80];
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 1.0,
+        };
         let reference = ReferenceData::new(source_rgba.clone(), 2, 1, placement).unwrap();
 
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
@@ -1717,7 +1942,11 @@ mod tests {
 
         let a = Uuid::new_v4();
         let r = Uuid::new_v4();
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 1.0,
+        };
         let reference = ReferenceData::new(vec![0u8; 8], 2, 1, placement).unwrap();
 
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
@@ -1741,7 +1970,11 @@ mod tests {
 
         let a = Uuid::new_v4();
         let r = Uuid::new_v4();
-        let placement = ReferencePlacement { x: 1.5, y: -2.0, scale: 0.75 };
+        let placement = ReferencePlacement {
+            x: 1.5,
+            y: -2.0,
+            scale: 0.75,
+        };
         let reference = ReferenceData::new(vec![0u8; 8], 2, 1, placement).unwrap();
 
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
@@ -1765,7 +1998,11 @@ mod tests {
 
         let a = Uuid::new_v4();
         let r = Uuid::new_v4();
-        let placement = ReferencePlacement { x: 0.0, y: 0.0, scale: 1.0 };
+        let placement = ReferencePlacement {
+            x: 0.0,
+            y: 0.0,
+            scale: 1.0,
+        };
         let reference = ReferenceData::new(vec![0u8; 4], 1, 1, placement).unwrap();
 
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
@@ -1782,7 +2019,65 @@ mod tests {
     }
 
     #[test]
-    fn add_reference_layer_appends_layer_sets_active_and_centers_at_scale_one_when_source_fits() {
+    fn add_reference_layer_replaces_singleton_and_keeps_it_bottom_most() {
+        use crate::reference_placement::ReferencePlacement;
+
+        let pixel = Uuid::new_v4();
+        let first_reference = Uuid::new_v4();
+        let second_reference = Uuid::new_v4();
+        let mut doc = Document::new(4, 4, pixel, "Paint".to_string()).unwrap();
+
+        doc.add_reference_layer(
+            first_reference,
+            "First reference".to_string(),
+            vec![1u8; 2 * 2 * 4],
+            2,
+            2,
+        )
+        .unwrap();
+        doc.set_reference_placement(
+            first_reference,
+            ReferencePlacement {
+                x: 9.0,
+                y: 9.0,
+                scale: 2.0,
+            },
+        )
+        .unwrap();
+
+        doc.add_reference_layer(
+            second_reference,
+            "Second reference".to_string(),
+            vec![2u8; 8 * 4 * 4],
+            8,
+            4,
+        )
+        .unwrap();
+
+        assert_eq!(doc.layers().len(), 2);
+        assert_eq!(doc.layers()[0].id, second_reference);
+        assert_eq!(doc.layers()[0].name, "Second reference");
+        assert_eq!(doc.layers()[1].id, pixel);
+        assert_eq!(doc.active_layer_id(), second_reference);
+
+        let LayerKind::Reference(data) = &doc.layers()[0].kind else {
+            panic!("bottom layer must be Reference-kind");
+        };
+        assert_eq!(data.source_rgba(), vec![2u8; 8 * 4 * 4].as_slice());
+        assert_eq!(data.natural_width(), 8);
+        assert_eq!(data.natural_height(), 4);
+        assert_eq!(
+            data.placement(),
+            ReferencePlacement {
+                x: 0.0,
+                y: 1.0,
+                scale: 0.5
+            }
+        );
+    }
+
+    #[test]
+    fn add_reference_layer_sets_bottom_underlay_active_and_centers_at_scale_one_when_source_fits() {
         use crate::layer::ReferenceData;
         use crate::reference_placement::ReferencePlacement;
 
@@ -1796,12 +2091,13 @@ mod tests {
             .unwrap();
 
         assert_eq!(doc.layers().len(), 2);
-        assert_eq!(doc.layers()[1].id, r);
-        assert_eq!(doc.layers()[1].name, "Ref");
+        assert_eq!(doc.layers()[0].id, r);
+        assert_eq!(doc.layers()[0].name, "Ref");
+        assert_eq!(doc.layers()[1].id, a);
         assert_eq!(doc.active_layer_id(), r);
         assert_eq!(doc.next_layer_number(), 3);
 
-        let LayerKind::Reference(data) = &doc.layers()[1].kind else {
+        let LayerKind::Reference(data) = &doc.layers()[0].kind else {
             panic!("add_reference_layer must produce a Reference-kind layer");
         };
         let _: &ReferenceData = data;
@@ -1810,7 +2106,11 @@ mod tests {
         assert_eq!(data.source_rgba(), source_rgba.as_slice());
         assert_eq!(
             data.placement(),
-            ReferencePlacement { x: 1.0, y: 1.0, scale: 1.0 }
+            ReferencePlacement {
+                x: 1.0,
+                y: 1.0,
+                scale: 1.0
+            }
         );
     }
 
@@ -1826,17 +2126,22 @@ mod tests {
         doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 8 * 4 * 4], 8, 4)
             .unwrap();
 
-        let LayerKind::Reference(data) = &doc.layers()[1].kind else {
+        let LayerKind::Reference(data) = &doc.layers()[0].kind else {
             panic!("Reference Layer expected");
         };
         assert_eq!(
             data.placement(),
-            ReferencePlacement { x: 0.0, y: 1.0, scale: 0.5 }
+            ReferencePlacement {
+                x: 0.0,
+                y: 1.0,
+                scale: 0.5
+            }
         );
     }
 
     #[test]
-    fn add_reference_layer_scales_down_to_longest_axis_when_source_exceeds_both_axes_with_different_aspect() {
+    fn add_reference_layer_scales_down_to_longest_axis_when_source_exceeds_both_axes_with_different_aspect()
+     {
         use crate::reference_placement::ReferencePlacement;
 
         let a = Uuid::new_v4();
@@ -1847,12 +2152,16 @@ mod tests {
         doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 16 * 16 * 4], 16, 16)
             .unwrap();
 
-        let LayerKind::Reference(data) = &doc.layers()[1].kind else {
+        let LayerKind::Reference(data) = &doc.layers()[0].kind else {
             panic!("Reference Layer expected");
         };
         assert_eq!(
             data.placement(),
-            ReferencePlacement { x: 2.0, y: 0.0, scale: 0.25 }
+            ReferencePlacement {
+                x: 2.0,
+                y: 0.0,
+                scale: 0.25
+            }
         );
     }
 
@@ -1868,7 +2177,10 @@ mod tests {
             .unwrap_err();
         assert_eq!(
             err,
-            ReferenceDataError::InvalidBufferLength { expected: 16, actual: 10 }
+            ReferenceDataError::InvalidBufferLength {
+                expected: 16,
+                actual: 10
+            }
         );
         // Document state must be unchanged on rejection.
         assert_eq!(doc.layers().len(), 1);
@@ -1886,10 +2198,14 @@ mod tests {
         doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
             .unwrap();
 
-        let target = ReferencePlacement { x: 3.5, y: -1.0, scale: 2.0 };
+        let target = ReferencePlacement {
+            x: 3.5,
+            y: -1.0,
+            scale: 2.0,
+        };
         doc.set_reference_placement(r, target).unwrap();
 
-        assert_eq!(doc.layer_placement_at(1), Some(target));
+        assert_eq!(doc.layer_placement_at(0), Some(target));
     }
 
     #[test]
@@ -1902,15 +2218,22 @@ mod tests {
         let mut doc = Document::new(4, 4, a, "A".to_string()).unwrap();
         doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
             .unwrap();
-        let before = doc.layer_placement_at(1).unwrap();
+        let before = doc.layer_placement_at(0).unwrap();
 
         let err = doc
-            .set_reference_placement(unknown, ReferencePlacement { x: 9.0, y: 9.0, scale: 9.0 })
+            .set_reference_placement(
+                unknown,
+                ReferencePlacement {
+                    x: 9.0,
+                    y: 9.0,
+                    scale: 9.0,
+                },
+            )
             .unwrap_err();
         assert_eq!(err, LayerError::LayerNotFound { id: unknown });
 
         // Existing Reference Layer's placement must be untouched.
-        assert_eq!(doc.layer_placement_at(1), Some(before));
+        assert_eq!(doc.layer_placement_at(0), Some(before));
     }
 
     #[test]
@@ -1923,11 +2246,18 @@ mod tests {
         let mut doc = Document::new(4, 4, a, "A".to_string()).unwrap();
         doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
             .unwrap();
-        let ref_before = doc.layer_placement_at(1).unwrap();
+        let ref_before = doc.layer_placement_at(0).unwrap();
 
         // Target the Pixel Layer `a`, not the Reference Layer `r`.
         let err = doc
-            .set_reference_placement(a, ReferencePlacement { x: 9.0, y: 9.0, scale: 9.0 })
+            .set_reference_placement(
+                a,
+                ReferencePlacement {
+                    x: 9.0,
+                    y: 9.0,
+                    scale: 9.0,
+                },
+            )
             .unwrap_err();
         assert_eq!(
             err,
@@ -1938,7 +2268,7 @@ mod tests {
             }
         );
         // The Reference Layer's placement is untouched (we addressed the wrong layer).
-        assert_eq!(doc.layer_placement_at(1), Some(ref_before));
+        assert_eq!(doc.layer_placement_at(0), Some(ref_before));
     }
 
     #[test]
@@ -1959,12 +2289,14 @@ mod tests {
             (ResizeAnchor::BottomRight, (1.0, 1.0)),
         ];
         // (label, new_w, new_h, delta_w, delta_h). Source canvas is 4x4.
-        let directions: &[(&str, u32, u32, f32, f32)] = &[
-            ("grow", 8, 8, 4.0, 4.0),
-            ("shrink", 2, 2, -2.0, -2.0),
-        ];
+        let directions: &[(&str, u32, u32, f32, f32)] =
+            &[("grow", 8, 8, 4.0, 4.0), ("shrink", 2, 2, -2.0, -2.0)];
 
-        let original = ReferencePlacement { x: 1.0, y: 0.5, scale: 1.5 };
+        let original = ReferencePlacement {
+            x: 1.0,
+            y: 0.5,
+            scale: 1.5,
+        };
 
         for &(anchor, (fx, fy)) in anchors {
             for &(label, new_w, new_h, dw, dh) in directions {
@@ -2004,7 +2336,11 @@ mod tests {
 
         let a = Uuid::new_v4();
         let r = Uuid::new_v4();
-        let placement = ReferencePlacement { x: 3.0, y: -1.5, scale: 2.0 };
+        let placement = ReferencePlacement {
+            x: 3.0,
+            y: -1.5,
+            scale: 2.0,
+        };
         let ref_rgba = vec![1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
         let reference = ReferenceData::new(ref_rgba.clone(), 2, 2, placement).unwrap();
 
@@ -2041,9 +2377,15 @@ mod tests {
         let green = Color::new(0, 255, 0, 255);
 
         let mut doc = Document::new(4, 4, a, "A".to_string()).unwrap();
-        set_pixel_canvas(&mut doc.layers[0], PixelCanvas::with_color(4, 4, red).unwrap());
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(4, 4, red).unwrap(),
+        );
         doc.add_layer(b, "B".to_string());
-        set_pixel_canvas(&mut doc.layers[1], PixelCanvas::with_color(4, 4, green).unwrap());
+        set_pixel_canvas(
+            &mut doc.layers[1],
+            PixelCanvas::with_color(4, 4, green).unwrap(),
+        );
 
         doc.resize(8, 8, ResizeAnchor::Center).unwrap();
 

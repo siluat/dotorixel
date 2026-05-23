@@ -1,4 +1,5 @@
 import type { ViewportData, ViewportSize } from './viewport';
+import type { ReferencePlacement } from './canvas-model';
 
 /**
  * Minimal shape the renderer needs from a pixel buffer source — width,
@@ -11,9 +12,37 @@ export interface RenderableCanvas {
 	pixels(): Uint8Array;
 }
 
+export interface ReferenceUnderlay {
+	/** Stable identity for the source pixels; must change when the source image changes. */
+	readonly sourceKey: string;
+	/** Tightly packed row-major RGBA bytes; length must equal `naturalWidth * naturalHeight * 4`. */
+	readonly sourceRgba: Uint8Array;
+	/** Positive intrinsic source-image width in pixels. */
+	readonly naturalWidth: number;
+	/** Positive intrinsic source-image height in pixels. */
+	readonly naturalHeight: number;
+	/** Source-to-document placement in canvas pixel coordinates. */
+	readonly placement: ReferencePlacement;
+	/** Normalized underlay opacity in `[0, 1]`, applied when drawing the source raster. */
+	readonly opacity: number;
+}
+
 const MIN_CHECKER_SIZE = 4;
+const MAX_REFERENCE_RASTER_CACHE_ENTRIES = 4;
 const CHECKER_LIGHT = '#ffffff';
 const CHECKER_DARK = '#e0e0e0';
+
+const cachedReferenceRasters = new Map<string, OffscreenCanvas>();
+
+/**
+ * Clears the module-level `cachedReferenceRasters` lookup used by Reference underlay rendering.
+ *
+ * Takes no arguments, returns no value, and does not throw. Subsequent Reference raster
+ * lookups will rebuild their cached `OffscreenCanvas` entries from source pixels.
+ */
+export function clearReferenceRasterCache(): void {
+	cachedReferenceRasters.clear();
+}
 
 function effectivePixelSize(viewport: ViewportData): number {
 	return Math.round(viewport.pixelSize * viewport.zoom);
@@ -83,6 +112,81 @@ function renderPixels(
 	ctx.drawImage(offscreen, 0, 0, displayWidth, displayHeight);
 }
 
+function referenceRasterKey(reference: ReferenceUnderlay): string {
+	return [
+		reference.sourceKey,
+		reference.naturalWidth,
+		reference.naturalHeight,
+		reference.sourceRgba.byteLength
+	].join(':');
+}
+
+function referenceRaster(reference: ReferenceUnderlay): OffscreenCanvas {
+	const key = referenceRasterKey(reference);
+	const cached = cachedReferenceRasters.get(key);
+	if (cached) {
+		cachedReferenceRasters.delete(key);
+		cachedReferenceRasters.set(key, cached);
+		return cached;
+	}
+
+	const offscreen = new OffscreenCanvas(reference.naturalWidth, reference.naturalHeight);
+	const offCtx = offscreen.getContext('2d')!;
+	const imageData = new ImageData(
+		new Uint8ClampedArray(reference.sourceRgba),
+		reference.naturalWidth,
+		reference.naturalHeight
+	);
+	offCtx.putImageData(imageData, 0, 0);
+	cachedReferenceRasters.set(key, offscreen);
+	if (cachedReferenceRasters.size > MAX_REFERENCE_RASTER_CACHE_ENTRIES) {
+		const oldestKey = cachedReferenceRasters.keys().next().value;
+		if (oldestKey !== undefined) cachedReferenceRasters.delete(oldestKey);
+	}
+	return offscreen;
+}
+
+function renderReferenceUnderlay(
+	ctx: CanvasRenderingContext2D,
+	canvas: RenderableCanvas,
+	reference: ReferenceUnderlay,
+	viewport: ViewportData
+): void {
+	const opacity = reference.opacity;
+	if (opacity <= 0) return;
+
+	const scaledPixel = effectivePixelSize(viewport);
+	const displayWidth = canvas.width * scaledPixel;
+	const displayHeight = canvas.height * scaledPixel;
+	const { x, y, scale } = reference.placement;
+	const projectedX = x * scaledPixel;
+	const projectedY = y * scaledPixel;
+	const projectedWidth = reference.naturalWidth * scale * scaledPixel;
+	const projectedHeight = reference.naturalHeight * scale * scaledPixel;
+	const sourceRaster = referenceRaster(reference);
+
+	ctx.save();
+	ctx.beginPath();
+	ctx.rect(0, 0, displayWidth, displayHeight);
+	ctx.clip();
+	const previousAlpha = ctx.globalAlpha;
+	ctx.globalAlpha = Math.min(Math.max(opacity, 0), 1);
+	ctx.imageSmoothingEnabled = true;
+	ctx.drawImage(
+		sourceRaster,
+		0,
+		0,
+		reference.naturalWidth,
+		reference.naturalHeight,
+		projectedX,
+		projectedY,
+		projectedWidth,
+		projectedHeight
+	);
+	ctx.globalAlpha = previousAlpha;
+	ctx.restore();
+}
+
 function renderGrid(
 	ctx: CanvasRenderingContext2D,
 	canvas: RenderableCanvas,
@@ -119,7 +223,8 @@ export function renderPixelCanvas(
 	ctx: CanvasRenderingContext2D,
 	canvas: RenderableCanvas,
 	viewport: ViewportData,
-	viewportSize: ViewportSize
+	viewportSize: ViewportSize,
+	referenceUnderlay?: ReferenceUnderlay
 ): void {
 	ctx.clearRect(0, 0, viewportSize.width, viewportSize.height);
 
@@ -128,6 +233,9 @@ export function renderPixelCanvas(
 	// and the grid's +0.5 trick produces sharp 1px lines.
 	ctx.translate(Math.round(viewport.panX), Math.round(viewport.panY));
 	renderCheckerboard(ctx, canvas, viewport);
+	if (referenceUnderlay) {
+		renderReferenceUnderlay(ctx, canvas, referenceUnderlay, viewport);
+	}
 	renderPixels(ctx, canvas, viewport);
 	renderGrid(ctx, canvas, viewport);
 	ctx.restore();

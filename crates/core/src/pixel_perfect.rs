@@ -59,10 +59,7 @@ pub struct FilterResult {
 /// the effective path so it can't participate in further 3-window
 /// judgments; otherwise a staircase of successive L-corners cascades and
 /// wipes out the diagonal pixels the filter is meant to preserve.
-pub fn pixel_perfect_filter(
-    points: &[(i32, i32)],
-    prev_tail: TailState,
-) -> FilterResult {
+pub fn pixel_perfect_filter(points: &[(i32, i32)], prev_tail: TailState) -> FilterResult {
     let mut actions: Vec<Action> = Vec::with_capacity(points.len() * 2);
 
     let mut effective: Vec<(i32, i32)> = Vec::with_capacity(2 + points.len());
@@ -146,7 +143,10 @@ mod tests {
             let expected: Vec<_> = points.iter().map(|&(x, y)| Action::Paint(x, y)).collect();
             assert_eq!(result.actions, expected, "case: {name}");
             assert!(
-                result.actions.iter().all(|a| matches!(a, Action::Paint(_, _))),
+                result
+                    .actions
+                    .iter()
+                    .all(|a| matches!(a, Action::Paint(_, _))),
                 "case: {name} — unexpected Revert"
             );
         }

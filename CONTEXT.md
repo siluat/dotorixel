@@ -11,7 +11,7 @@ The artifact a user edits and saves — a single piece of pixel art with its own
 _Avoid_: artwork (too vague — also used for portfolio sharing), composition (overlaps with the rendering term), image (used for reference images and exports).
 
 **Layer**:
-The umbrella term for a named, ordered slot inside a Document. A Layer is one of two kinds — **Pixel Layer** or **Reference Layer** — and carries per-layer display flags (visibility, opacity) regardless of kind. Drawing tools operate against the active Layer when it is a Pixel Layer; on a Reference Layer they silently no-op. Rendering composites the full stack to screen, but exports include only Pixel Layers.
+The umbrella term for a named slot inside a Document. A Layer is one of two kinds — **Pixel Layer** or **Reference Layer** — and carries per-layer display flags (visibility, opacity) regardless of kind. Drawing tools operate against the active Layer when it is a Pixel Layer; on a Reference Layer they silently no-op. Pixel Layers form the reorderable artwork stack; the singleton Reference Layer, when present, is fixed below every Pixel Layer and rendered separately as a viewport underlay.
 _Avoid_: frame (animation term), tile, slice, stack (the *collection* of layers; an individual entry is a Layer).
 
 **Pixel Layer**:
@@ -19,7 +19,7 @@ A Layer that owns a pixel buffer matching the Document's canvas dimensions. The 
 _Avoid_: paint layer, draw layer, raster layer.
 
 **Reference Layer**:
-A Layer that holds a decoded source image plus a Reference Layer Placement, used as a tracing reference inside the Document. The user can adjust its visibility, opacity, position, and scale, but cannot draw on it. Visible in the on-screen composite but **excluded from exports and saved-work thumbnails**. Persisted in the Document so it survives reload and undo/redo, but never published as part of the artwork. Distinct from a Reference Window (workspace-scoped, sampling-oriented).
+A singleton Layer that holds a decoded source image plus a Reference Layer Placement, used as a tracing reference inside the Document. The user can adjust its visibility, opacity, position, and scale, but cannot draw on it or reorder it above Pixel Layers. Rendered by the shell as an original-image viewport underlay and **excluded from `Document.composite()`, exports, and saved-work thumbnails**. Persisted in the Document so it survives reload and undo/redo, but never published as part of the artwork. Distinct from a Reference Window (workspace-scoped, sampling-oriented).
 _Avoid_: imported image, tracing layer, reference image (Reference Window's term).
 
 **Reference Layer Placement**:
@@ -80,7 +80,7 @@ _Avoid_: drop group, drop session.
 - An *at-point* **Placement Intent** belongs to a **Drop Batch**, which determines its intra-batch stagger from the drop anchor.
 - A **Layer** is exactly one of **Pixel Layer** or **Reference Layer**; both share id, name, visibility, and opacity.
 - A **Reference Layer** has exactly one **Reference Layer Placement**.
-- Drawing tools mutate only the active **Pixel Layer**; the on-screen composite includes both kinds, but **exports include only Pixel Layers**.
+- Drawing tools mutate only the active **Pixel Layer**; `Document.composite()` and exports include only Pixel Layers, while the shell draws a visible **Reference Layer** as a viewport underlay before the Pixel composite.
 - A **Reference Window** is workspace-scoped and never enters the Document; a **Reference Layer** is Document-scoped and persisted alongside the artwork. The two are independent — neither converts to the other.
 
 ## Example dialogue

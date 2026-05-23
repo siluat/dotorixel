@@ -7,13 +7,9 @@ use dotorixel_core::document::Document;
 use dotorixel_core::export::{PngExport, SvgExport};
 use dotorixel_core::history::{HistoryManager, Snapshot};
 use dotorixel_core::layer::{Layer, LayerKind, LayerKindTag, ReferenceData};
-use dotorixel_core::pixel_perfect::{
-    Action, FilterResult, TailState, pixel_perfect_filter,
-};
+use dotorixel_core::pixel_perfect::{Action, FilterResult, TailState, pixel_perfect_filter};
 use dotorixel_core::reference_placement::ReferencePlacement;
-use dotorixel_core::tool::{
-    ToolType, ellipse_outline, interpolate_pixels, rectangle_outline,
-};
+use dotorixel_core::tool::{ToolType, ellipse_outline, interpolate_pixels, rectangle_outline};
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
 
 // ---------------------------------------------------------------------------
@@ -146,11 +142,7 @@ impl WasmPixelCanvas {
         Ok(WasmPixelCanvas { inner: canvas })
     }
 
-    pub fn from_pixels(
-        width: u32,
-        height: u32,
-        pixels: &[u8],
-    ) -> Result<WasmPixelCanvas, JsError> {
+    pub fn from_pixels(width: u32, height: u32, pixels: &[u8]) -> Result<WasmPixelCanvas, JsError> {
         let canvas = PixelCanvas::from_pixels(width, height, pixels.to_vec())
             .map_err(|e| JsError::new(&e.to_string()))?;
         Ok(WasmPixelCanvas { inner: canvas })
@@ -308,15 +300,13 @@ impl WasmDocument {
     pub fn add_layer(&mut self, new_id: String, name: String) -> Result<(), JsError> {
         let id = Uuid::parse_str(&new_id).map_err(|e| JsError::new(&e.to_string()))?;
         if self.inner.layers().iter().any(|l| l.id == id) {
-            return Err(JsError::new(&format!(
-                "Layer with id {id} already exists"
-            )));
+            return Err(JsError::new(&format!("Layer with id {id} already exists")));
         }
         self.inner.add_layer(id, name);
         Ok(())
     }
 
-    /// Inserts a Reference Layer directly above the active layer and makes it
+    /// Sets the singleton Reference Layer, keeps it bottom-most, and makes it
     /// active. The core computes its initial auto-fit placement.
     pub fn add_reference_layer(
         &mut self,
@@ -346,8 +336,8 @@ impl WasmDocument {
             .map_err(|e| JsError::new(&e.to_string()))
     }
 
-    /// RGBA row-major composite buffer (`width * height * 4` bytes), suitable
-    /// for `ImageData`.
+    /// RGBA row-major Pixel-only composite buffer (`width * height * 4`
+    /// bytes), suitable for `ImageData`.
     pub fn composite(&self) -> Vec<u8> {
         self.inner.composite()
     }
@@ -402,8 +392,9 @@ impl WasmDocument {
             .map_err(|e| JsError::new(&e.to_string()))
     }
 
-    /// Moves the layer with `id` to `new_index`. `new_index` is silently
-    /// clamped to `[0, layer_count - 1]`. The active layer pointer is
+    /// Moves a Pixel Layer with `id` to `new_index`. `new_index` is silently
+    /// clamped to `[0, layer_count - 1]` and never below a Reference Layer.
+    /// Reference reorder attempts are no-ops. The active layer pointer is
     /// preserved across reordering (tracked by id, not by index).
     pub fn reorder_layer(&mut self, id: String, new_index: usize) -> Result<(), JsError> {
         let layer_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
@@ -495,6 +486,15 @@ impl WasmDocument {
         self.inner.layer_source_pixels_at(index).map(|p| p.to_vec())
     }
 
+    /// Returns a stable hex fingerprint of a Reference Layer's source RGBA
+    /// buffer, or `None` when `index` is out of range or points at a Pixel
+    /// Layer.
+    pub fn layer_source_fingerprint_at(&self, index: usize) -> Option<String> {
+        self.inner
+            .layer_source_fingerprint_at(index)
+            .map(|fingerprint| format!("{fingerprint:016x}"))
+    }
+
     /// Returns `[natural_width, natural_height]` for a Reference Layer, or
     /// `None` when `index` is out of range or points at a Pixel Layer.
     pub fn layer_source_dimensions_at(&self, index: usize) -> Option<Vec<u32>> {
@@ -555,7 +555,9 @@ fn is_valid_reference_placement(x: f32, y: f32, scale: f32) -> bool {
 fn validate_reference_placement(x: f32, y: f32, scale: f32) -> Result<(), JsError> {
     if !is_valid_reference_placement(x, y, scale) {
         if !x.is_finite() || !y.is_finite() {
-            return Err(JsError::new("Reference placement coordinates must be finite"));
+            return Err(JsError::new(
+                "Reference placement coordinates must be finite",
+            ));
         }
         return Err(JsError::new(
             "Reference placement scale must be finite and greater than 0",
@@ -618,7 +620,8 @@ impl WasmDocumentBuilder {
 
     /// Appends an existing Reference Layer to the in-progress stack. This is
     /// used by persistence hydration, where placement and display state must
-    /// be restored exactly rather than recomputed through auto-fit.
+    /// be restored exactly rather than recomputed through auto-fit. The final
+    /// Document build normalizes Reference data to one bottom-most underlay.
     pub fn add_reference_layer(
         &mut self,
         id: String,
@@ -975,18 +978,12 @@ pub fn wasm_pixel_perfect_filter(
     if points.len() % 2 != 0 {
         return Err(JsError::new("points length must be even"));
     }
-    let point_vec: Vec<(i32, i32)> =
-        points.chunks_exact(2).map(|c| (c[0], c[1])).collect();
+    let point_vec: Vec<(i32, i32)> = points.chunks_exact(2).map(|c| (c[0], c[1])).collect();
 
     let tail = match prev_tail.len() {
         0 => TailState::Empty,
         2 => TailState::One(prev_tail[0], prev_tail[1]),
-        4 => TailState::Two(
-            prev_tail[0],
-            prev_tail[1],
-            prev_tail[2],
-            prev_tail[3],
-        ),
+        4 => TailState::Two(prev_tail[0], prev_tail[1], prev_tail[2], prev_tail[3]),
         _ => return Err(JsError::new("prev_tail must have 0, 2, or 4 elements")),
     };
 
@@ -1285,14 +1282,16 @@ mod tests {
 
         assert_eq!(doc.layer_count(), 2);
         assert_eq!(doc.active_layer_id(), reference.to_string());
-        assert_eq!(doc.layer_kind_at(0).as_deref(), Some("pixel"));
-        assert_eq!(doc.layer_kind_at(1).as_deref(), Some("reference"));
+        assert_eq!(doc.layer_kind_at(0).as_deref(), Some("reference"));
+        assert_eq!(doc.layer_kind_at(1).as_deref(), Some("pixel"));
         assert_eq!(doc.layer_kind_at(2), None);
-        assert_eq!(doc.layer_source_pixels_at(0), None);
-        assert_eq!(doc.layer_source_pixels_at(1), Some(source_rgba));
-        assert_eq!(doc.layer_source_dimensions_at(1), Some(vec![2, 1]));
+        assert_eq!(doc.layer_source_pixels_at(0), Some(source_rgba));
+        assert_eq!(doc.layer_source_pixels_at(1), None);
+        assert_eq!(doc.layer_source_fingerprint_at(0).unwrap().len(), 16);
+        assert_eq!(doc.layer_source_fingerprint_at(1), None);
+        assert_eq!(doc.layer_source_dimensions_at(0), Some(vec![2, 1]));
 
-        let placement = doc.layer_placement_at(1).unwrap();
+        let placement = doc.layer_placement_at(0).unwrap();
         assert_eq!(placement.x(), 1.0);
         assert_eq!(placement.y(), 1.5);
         assert_eq!(placement.scale(), 1.0);
@@ -1322,12 +1321,12 @@ mod tests {
             .expect("reference footprint covers 0,0");
         assert_eq!(sampled.inner, Color::new(0, 255, 0, 255));
         assert!(doc.try_get_pixel(1, 1).is_none());
-        assert_eq!(&doc.composite()[..4], &[0, 255, 0, 255]);
+        assert_eq!(&doc.composite()[..4], &[255, 0, 0, 255]);
         assert_eq!(&doc.composite_for_export()[..4], &[255, 0, 0, 255]);
 
         doc.set_reference_placement(reference.to_string(), 1.0, 0.0, 1.0)
             .unwrap();
-        let placement = doc.layer_placement_at(1).unwrap();
+        let placement = doc.layer_placement_at(0).unwrap();
         assert_eq!(placement.x(), 1.0);
         assert!(doc.try_get_pixel(0, 0).is_none());
         assert_eq!(
@@ -1366,7 +1365,9 @@ mod tests {
         let mut builder = WasmDocumentBuilder::new(2, 2);
 
         // Layer A: solid red, visible, full opacity.
-        let red_pixels: Vec<u8> = std::iter::repeat_n([255u8, 0, 0, 255], 4).flatten().collect();
+        let red_pixels: Vec<u8> = std::iter::repeat_n([255u8, 0, 0, 255], 4)
+            .flatten()
+            .collect();
         builder
             .add_layer(bottom.to_string(), "Bottom".into(), red_pixels, true, 1.0)
             .unwrap();
@@ -1375,7 +1376,13 @@ mod tests {
         // metadata propagation).
         let transparent_pixels = vec![0u8; 16];
         builder
-            .add_layer(top.to_string(), "Top".into(), transparent_pixels, false, 0.5)
+            .add_layer(
+                top.to_string(),
+                "Top".into(),
+                transparent_pixels,
+                false,
+                0.5,
+            )
             .unwrap();
 
         let doc = builder.build(top.to_string(), 7, true).unwrap();
@@ -1471,7 +1478,9 @@ mod tests {
         history.push_document(&doc);
         doc.add_layer(second.to_string(), "B".into()).unwrap(); // mutate
 
-        let restored = history.undo_document(&doc).expect("undo should yield prior doc");
+        let restored = history
+            .undo_document(&doc)
+            .expect("undo should yield prior doc");
         assert_eq!(restored.layer_count(), 1);
         assert_eq!(restored.active_layer_id(), first.to_string());
         assert_eq!(restored.next_layer_number(), 2);

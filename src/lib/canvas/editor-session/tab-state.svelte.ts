@@ -1,8 +1,15 @@
-import type { Document, PixelCanvas, CanvasCoords, ResizeAnchor } from '../canvas-model';
+import type {
+	Document,
+	PixelCanvas,
+	CanvasCoords,
+	ResizeAnchor,
+	ReferencePlacement
+} from '../canvas-model';
 import { resizeDocumentWithAnchor, singleLayerDocument } from '../wasm-backend';
 import { isBlankCanvas } from '../blank-detection';
 import type { ViewportData, ViewportSize } from '../viewport';
 import { addRecentColor } from '../color';
+import type { ReferenceUnderlay } from '../renderer';
 import type { SharedState } from '../shared-state.svelte';
 import { decodeReferenceBlob } from '../../reference-images/decode-reference-blob';
 import {
@@ -21,6 +28,16 @@ import { TabViewport } from './tab-viewport.svelte';
 
 function assertNever(x: never): never {
 	throw new Error(`Unhandled effect type: ${(x as { type: string }).type}`);
+}
+
+interface CachedReferenceUnderlaySource {
+	readonly document: Document;
+	readonly layerId: string;
+	readonly sourceFingerprint: string;
+	readonly naturalWidth: number;
+	readonly naturalHeight: number;
+	readonly sourceKey: string;
+	readonly sourceRgba: Uint8Array;
 }
 
 export interface TabStateDeps {
@@ -72,8 +89,9 @@ export class TabState {
 
 	/**
 	 * Renderer-facing view of the document. `pixels()` returns the full
-	 * source-over composite of every visible layer — the main canvas reads
-	 * this so all layers are visible, not just the active one.
+	 * source-over composite of every visible Pixel Layer. Reference Layers are
+	 * exposed separately through `referenceUnderlay` so the renderer can draw
+	 * the original image before the Pixel composite.
 	 */
 	get compositeBuffer(): { readonly width: number; readonly height: number; pixels(): Uint8Array } {
 		const self = this;
@@ -86,6 +104,60 @@ export class TabState {
 			},
 			pixels: () => self.document.composite()
 		};
+	}
+
+	get referenceUnderlay(): ReferenceUnderlay | undefined {
+		const doc = this.document;
+		for (let i = 0; i < doc.layer_count(); i++) {
+			if (doc.layer_kind_at(i) !== 'reference') continue;
+			if (!doc.layer_visible_at(i)) return undefined;
+			const layerId = doc.layer_id_at(i);
+			const sourceFingerprint = doc.layer_source_fingerprint_at(i);
+			const dimensions = doc.layer_source_dimensions_at(i);
+			const placement = doc.layer_placement_at(i);
+			const opacity = doc.layer_opacity_at(i);
+			if (!layerId || !sourceFingerprint || !dimensions || !placement || opacity === undefined) {
+				return undefined;
+			}
+			const naturalWidth = dimensions[0];
+			const naturalHeight = dimensions[1];
+			const cached = this.#referenceUnderlaySource;
+			let source =
+				cached?.document === doc &&
+				cached.layerId === layerId &&
+				cached.sourceFingerprint === sourceFingerprint &&
+				cached.naturalWidth === naturalWidth &&
+				cached.naturalHeight === naturalHeight
+					? cached
+					: undefined;
+			if (!source) {
+				const sourceRgba = doc.layer_source_pixels_at(i);
+				if (!sourceRgba) return undefined;
+				source = {
+					document: doc,
+					layerId,
+					sourceFingerprint,
+					naturalWidth,
+					naturalHeight,
+					sourceKey: `${layerId}:${naturalWidth}x${naturalHeight}:${sourceFingerprint}`,
+					sourceRgba
+				};
+				this.#referenceUnderlaySource = source;
+			}
+			return {
+				sourceKey: source.sourceKey,
+				sourceRgba: source.sourceRgba,
+				naturalWidth,
+				naturalHeight,
+				placement: {
+					x: placement.x,
+					y: placement.y,
+					scale: placement.scale
+				},
+				opacity
+			};
+		}
+		return undefined;
 	}
 
 	/**
@@ -110,6 +182,7 @@ export class TabState {
 	#toolRunner: ToolRunner;
 	#tabViewport: TabViewport;
 	#referenceLayerBlobs: Map<string, Blob>;
+	#referenceUnderlaySource?: CachedReferenceUnderlaySource;
 
 	get viewport(): ViewportData {
 		return this.#tabViewport.viewport;
@@ -357,9 +430,12 @@ export class TabState {
 		const count = this.document.layer_count();
 		const targetStackIdx = count - 1 - newVisualIndex;
 		const currentStackIdx = this.#stackIndexOf(id);
-		if (currentStackIdx === targetStackIdx) return;
+		if (this.document.layer_kind_at(currentStackIdx) === 'reference') return;
+		const effectiveTargetStackIdx =
+			this.document.layer_kind_at(0) === 'reference' ? Math.max(1, targetStackIdx) : targetStackIdx;
+		if (currentStackIdx === effectiveTargetStackIdx) return;
 		this.#toolRunner.pushSnapshot();
-		this.document.reorder_layer(id, targetStackIdx);
+		this.document.reorder_layer(id, effectiveTargetStackIdx);
 		this.renderVersion++;
 		this.#notifier.markDirty(this.documentId);
 	};
@@ -377,6 +453,32 @@ export class TabState {
 		if (this.document.layer_visible_at(stackIdx) === visible) return;
 		this.#toolRunner.pushSnapshot();
 		this.document.set_layer_visibility(id, visible);
+		this.renderVersion++;
+		this.#notifier.markDirty(this.documentId);
+	};
+
+	/**
+	 * Moves a Reference Layer's source image in canvas pixel space. `placement.x`
+	 * and `placement.y` are document-pixel coordinates; `placement.scale` must
+	 * be finite and positive. No-ops when unchanged. On a real change, records an
+	 * undo snapshot, updates the document, bumps `renderVersion`, and marks this
+	 * tab dirty. Throws when `id` does not exist or is not a Reference Layer.
+	 */
+	setReferencePlacement = (id: string, placement: ReferencePlacement): void => {
+		const stackIdx = this.#stackIndexOf(id);
+		const current = this.document.layer_placement_at(stackIdx);
+		if (!current) {
+			throw new Error(`Layer with id ${id} is not a Reference Layer`);
+		}
+		if (
+			current.x === placement.x &&
+			current.y === placement.y &&
+			current.scale === placement.scale
+		) {
+			return;
+		}
+		this.#toolRunner.pushSnapshot();
+		this.document.set_reference_placement(id, placement.x, placement.y, placement.scale);
 		this.renderVersion++;
 		this.#notifier.markDirty(this.documentId);
 	};

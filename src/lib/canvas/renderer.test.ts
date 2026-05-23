@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { renderPixelCanvas, type ReferenceUnderlay } from './renderer';
+import { clearReferenceRasterCache, renderPixelCanvas, type ReferenceUnderlay } from './renderer';
 import type { RenderableCanvas } from './renderer';
 import type { ViewportData, ViewportSize } from './viewport';
 
@@ -30,6 +30,7 @@ class FakeOffscreenCanvas {
 }
 
 afterEach(() => {
+	clearReferenceRasterCache();
 	FakeOffscreenCanvas.instances = [];
 	vi.unstubAllGlobals();
 });
@@ -152,5 +153,52 @@ describe('renderPixelCanvas', () => {
 		expect(referenceRasters[0].putImageData).toHaveBeenCalledOnce();
 		const drawCalls = ctx.calls.filter((call) => call[0] === 'drawImage');
 		expect(drawCalls[0][1]).toBe(drawCalls[2][1]);
+	});
+
+	it('keeps multiple Reference sources warm across alternating renders', () => {
+		vi.stubGlobal('OffscreenCanvas', FakeOffscreenCanvas);
+		vi.stubGlobal('ImageData', FakeImageData);
+
+		const canvas: RenderableCanvas = {
+			width: 4,
+			height: 4,
+			pixels: () => new Uint8Array(4 * 4 * 4)
+		};
+		const viewport: ViewportData = {
+			pixelSize: 10,
+			zoom: 1,
+			panX: 0,
+			panY: 0,
+			showGrid: false,
+			gridColor: '#000000'
+		};
+		const viewportSize: ViewportSize = { width: 100, height: 100 };
+		const referenceA: ReferenceUnderlay = {
+			sourceKey: 'reference-a',
+			sourceRgba: new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]),
+			naturalWidth: 2,
+			naturalHeight: 1,
+			placement: { x: 0, y: 0, scale: 1 },
+			opacity: 1
+		};
+		const referenceB: ReferenceUnderlay = {
+			...referenceA,
+			sourceKey: 'reference-b',
+			sourceRgba: new Uint8Array([0, 0, 255, 255, 255, 255, 0, 255])
+		};
+		const ctx = createContext();
+
+		renderPixelCanvas(ctx as unknown as CanvasRenderingContext2D, canvas, viewport, viewportSize, referenceA);
+		renderPixelCanvas(ctx as unknown as CanvasRenderingContext2D, canvas, viewport, viewportSize, referenceB);
+		renderPixelCanvas(ctx as unknown as CanvasRenderingContext2D, canvas, viewport, viewportSize, referenceA);
+
+		const referenceRasters = FakeOffscreenCanvas.instances.filter(
+			(instance) => instance.width === 2 && instance.height === 1
+		);
+		expect(referenceRasters).toHaveLength(2);
+		expect(referenceRasters.every((raster) => raster.putImageData.mock.calls.length === 1)).toBe(true);
+		const drawCalls = ctx.calls.filter((call) => call[0] === 'drawImage');
+		expect(drawCalls[0][1]).toBe(drawCalls[4][1]);
+		expect(drawCalls[0][1]).not.toBe(drawCalls[2][1]);
 	});
 });

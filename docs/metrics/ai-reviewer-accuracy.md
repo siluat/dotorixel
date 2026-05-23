@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 111 | 79 | 32 | 91 | 71% | 46% |
-| cubic-dev-ai[bot] | 67 | 54 | 13 | 113 | 81% | 32% |
-| coderabbitai[bot] | 154 | 103 | 51 | 62 | 67% | 62% |
+| greptile-apps[bot] | 113 | 81 | 32 | 95 | 72% | 46% |
+| cubic-dev-ai[bot] | 67 | 54 | 13 | 119 | 81% | 31% |
+| coderabbitai[bot] | 158 | 107 | 51 | 64 | 68% | 63% |
 
 ## Log
 
@@ -612,3 +612,21 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #217 | greptile-apps[bot] | Miss | Did not flag platform-status thumbnail exclusion wording regression |
 | #217 | cubic-dev-ai[bot] | Miss | Did not flag noun-style `pixel` test helper name |
 | #217 | greptile-apps[bot] | Miss | Did not flag noun-style `pixel` test helper name |
+| #218 | greptile-apps[bot] | Accept | Multi-tab Reference raster cache single-entry thrashes across alternating tabs |
+| #218 | greptile-apps[bot] | Accept | Renderer tests did not reset module-level Reference raster cache |
+| #218 | coderabbitai[bot] | Miss | Did not flag multi-tab Reference raster cache thrash |
+| #218 | coderabbitai[bot] | Miss | Did not flag renderer test cache reset gap |
+| #218 | cubic-dev-ai[bot] | Miss | Did not flag multi-tab Reference raster cache thrash |
+| #218 | cubic-dev-ai[bot] | Miss | Did not flag renderer test cache reset gap |
+| #218 | coderabbitai[bot] | Accept | `Document::reorder_layer` docs missing Reference fixed-bottom clamp contract |
+| #218 | coderabbitai[bot] | Accept | `ReferenceUnderlay` interface docs missing source and opacity invariants |
+| #218 | coderabbitai[bot] | Accept | `TabState.setReferencePlacement` missing public contract doc |
+| #218 | coderabbitai[bot] | Accept | V4 Reference normalization test did not assert Pixel Layer order preservation |
+| #218 | greptile-apps[bot] | Miss | Did not flag `reorder_layer` doc contract gap |
+| #218 | greptile-apps[bot] | Miss | Did not flag `ReferenceUnderlay` interface doc contract gap |
+| #218 | greptile-apps[bot] | Miss | Did not flag `setReferencePlacement` doc contract gap |
+| #218 | greptile-apps[bot] | Miss | Did not flag V4 normalization Pixel order assertion gap |
+| #218 | cubic-dev-ai[bot] | Miss | Did not flag `reorder_layer` doc contract gap |
+| #218 | cubic-dev-ai[bot] | Miss | Did not flag `ReferenceUnderlay` interface doc contract gap |
+| #218 | cubic-dev-ai[bot] | Miss | Did not flag `setReferencePlacement` doc contract gap |
+| #218 | cubic-dev-ai[bot] | Miss | Did not flag V4 normalization Pixel order assertion gap |

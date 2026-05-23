@@ -457,6 +457,13 @@ export class TabState {
 		this.#notifier.markDirty(this.documentId);
 	};
 
+	/**
+	 * Moves a Reference Layer's source image in canvas pixel space. `placement.x`
+	 * and `placement.y` are document-pixel coordinates; `placement.scale` must
+	 * be finite and positive. No-ops when unchanged. On a real change, records an
+	 * undo snapshot, updates the document, bumps `renderVersion`, and marks this
+	 * tab dirty. Throws when `id` does not exist or is not a Reference Layer.
+	 */
 	setReferencePlacement = (id: string, placement: ReferencePlacement): void => {
 		const stackIdx = this.#stackIndexOf(id);
 		const current = this.document.layer_placement_at(stackIdx);

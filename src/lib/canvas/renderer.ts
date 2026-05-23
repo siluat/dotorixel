@@ -15,23 +15,28 @@ export interface RenderableCanvas {
 export interface ReferenceUnderlay {
 	/** Stable identity for the source pixels; must change when the source image changes. */
 	readonly sourceKey: string;
+	/** Tightly packed row-major RGBA bytes; length must equal `naturalWidth * naturalHeight * 4`. */
 	readonly sourceRgba: Uint8Array;
+	/** Positive intrinsic source-image width in pixels. */
 	readonly naturalWidth: number;
+	/** Positive intrinsic source-image height in pixels. */
 	readonly naturalHeight: number;
+	/** Source-to-document placement in canvas pixel coordinates. */
 	readonly placement: ReferencePlacement;
+	/** Normalized underlay opacity in `[0, 1]`, applied when drawing the source raster. */
 	readonly opacity: number;
 }
 
 const MIN_CHECKER_SIZE = 4;
+const MAX_REFERENCE_RASTER_CACHE_ENTRIES = 4;
 const CHECKER_LIGHT = '#ffffff';
 const CHECKER_DARK = '#e0e0e0';
 
-interface CachedReferenceRaster {
-	readonly key: string;
-	readonly canvas: OffscreenCanvas;
-}
+const cachedReferenceRasters = new Map<string, OffscreenCanvas>();
 
-let cachedReferenceRaster: CachedReferenceRaster | undefined;
+export function clearReferenceRasterCache(): void {
+	cachedReferenceRasters.clear();
+}
 
 function effectivePixelSize(viewport: ViewportData): number {
 	return Math.round(viewport.pixelSize * viewport.zoom);
@@ -112,8 +117,11 @@ function referenceRasterKey(reference: ReferenceUnderlay): string {
 
 function referenceRaster(reference: ReferenceUnderlay): OffscreenCanvas {
 	const key = referenceRasterKey(reference);
-	if (cachedReferenceRaster?.key === key) {
-		return cachedReferenceRaster.canvas;
+	const cached = cachedReferenceRasters.get(key);
+	if (cached) {
+		cachedReferenceRasters.delete(key);
+		cachedReferenceRasters.set(key, cached);
+		return cached;
 	}
 
 	const offscreen = new OffscreenCanvas(reference.naturalWidth, reference.naturalHeight);
@@ -124,7 +132,11 @@ function referenceRaster(reference: ReferenceUnderlay): OffscreenCanvas {
 		reference.naturalHeight
 	);
 	offCtx.putImageData(imageData, 0, 0);
-	cachedReferenceRaster = { key, canvas: offscreen };
+	cachedReferenceRasters.set(key, offscreen);
+	if (cachedReferenceRasters.size > MAX_REFERENCE_RASTER_CACHE_ENTRIES) {
+		const oldestKey = cachedReferenceRasters.keys().next().value;
+		if (oldestKey !== undefined) cachedReferenceRasters.delete(oldestKey);
+	}
 	return offscreen;
 }
 

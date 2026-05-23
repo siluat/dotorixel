@@ -154,6 +154,8 @@ describe('migrateV3ToV4', () => {
 
 		expect(normalized.layers).toHaveLength(3);
 		expect(normalized.layers[0]).toBe(keptReference);
+		expect(normalized.layers[1]).toBe(v4.layers[0]);
+		expect(normalized.layers[2]).toBe(v4.layers[1]);
 		expect(normalized.layers.map((layer) => layer.kind)).toEqual(['reference', 'pixel', 'pixel']);
 		expect(normalized.activeLayerId).toBe(keptReference.id);
 	});

@@ -390,10 +390,11 @@ impl Document {
 
     /// Moves the layer with `id` to `new_index`.
     ///
-    /// `new_index` is silently clamped to `[0, layers.len() - 1]`. Returns
-    /// [`LayerError::LayerNotFound`] for an unknown id. The active layer
-    /// pointer is preserved across reordering (it's tracked by id, not by
-    /// index).
+    /// Reference Layers are fixed at the bottom of the stack, so reordering one
+    /// is a no-op. Pixel Layers are silently clamped to `[1, layers.len() - 1]`
+    /// when a Reference exists, or `[0, layers.len() - 1]` otherwise. Returns
+    /// [`LayerError::LayerNotFound`] for an unknown id. The active layer pointer
+    /// is preserved across reordering (it's tracked by id, not by index).
     pub fn reorder_layer(&mut self, id: Uuid, new_index: usize) -> Result<(), LayerError> {
         let from = self
             .layers

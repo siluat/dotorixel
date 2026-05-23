@@ -7,7 +7,7 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 116 | 84 | 32 | 97 | 72% | 46% |
-| cubic-dev-ai[bot] | 67 | 54 | 13 | 124 | 81% | 30% |
+| cubic-dev-ai[bot] | 68 | 54 | 14 | 124 | 79% | 30% |
 | coderabbitai[bot] | 161 | 109 | 52 | 67 | 68% | 62% |
 
 ## Log
@@ -646,3 +646,4 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #220 | greptile-apps[bot] | Accept | Add debug assertion for non-zero fit-to-canvas dimensions |
 | #220 | coderabbitai[bot] | Miss | Did not flag non-zero fit-to-canvas dimension precondition |
 | #220 | cubic-dev-ai[bot] | Miss | Did not flag non-zero fit-to-canvas dimension precondition |
+| #220 | cubic-dev-ai[bot] | Reject | `assert!` would duplicate boundary validation inside trusted core geometry helper |

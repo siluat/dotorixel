@@ -87,6 +87,16 @@
 		void tab.renderVersion;
 		return tab.document.active_layer_id();
 	});
+	const isReferenceLayerActive = $derived.by(() => {
+		const tab = editor.workspace.activeTab;
+		void tab.renderVersion;
+		const doc = tab.document;
+		const activeId = doc.active_layer_id();
+		for (let i = 0; i < doc.layer_count(); i++) {
+			if (doc.layer_id_at(i) === activeId) return doc.layer_kind_at(i) === 'reference';
+		}
+		return false;
+	});
 	const isTimelinePanelCollapsed = $derived.by(() => {
 		const tab = editor.workspace.activeTab;
 		void tab.renderVersion;
@@ -618,6 +628,7 @@
 			<PixelCanvasView
 				pixelCanvas={editor.compositeBuffer}
 				referenceUnderlay={editor.referenceUnderlay}
+				isReferenceLayerActive={isReferenceLayerActive}
 				viewport={editor.viewport}
 				viewportSize={editor.viewportSize}
 				renderVersion={editor.renderVersion}
@@ -718,6 +729,7 @@
 					<PixelCanvasView
 						pixelCanvas={editor.compositeBuffer}
 						referenceUnderlay={editor.referenceUnderlay}
+						isReferenceLayerActive={isReferenceLayerActive}
 						viewport={editor.viewport}
 						viewportSize={editor.viewportSize}
 						renderVersion={editor.renderVersion}

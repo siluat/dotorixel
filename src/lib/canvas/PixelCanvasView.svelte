@@ -151,7 +151,10 @@
 
 	$effect(() => {
 		void renderVersion;
-		if (!placementDrag) draftReferencePlacement = null;
+		if (!draftReferencePlacement || placementDrag || !referenceUnderlay) return;
+		if (isSameReferencePlacement(referenceUnderlay.placement, draftReferencePlacement)) {
+			draftReferencePlacement = null;
+		}
 	});
 
 	// Register wheel listener with { passive: false } to allow preventDefault
@@ -633,6 +636,10 @@
 			default:
 				return null;
 		}
+	}
+
+	function isSameReferencePlacement(a: ReferencePlacement, b: ReferencePlacement): boolean {
+		return a.x === b.x && a.y === b.y && a.scale === b.scale;
 	}
 
 	function isPlacementKeyboardTarget(target: EventTarget | null): boolean {

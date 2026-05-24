@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 122 | 90 | 32 | 98 | 74% | 48% |
-| cubic-dev-ai[bot] | 70 | 56 | 14 | 127 | 80% | 31% |
-| coderabbitai[bot] | 162 | 110 | 52 | 71 | 68% | 61% |
+| greptile-apps[bot] | 123 | 91 | 32 | 98 | 74% | 48% |
+| cubic-dev-ai[bot] | 70 | 56 | 14 | 128 | 80% | 30% |
+| coderabbitai[bot] | 162 | 110 | 52 | 72 | 68% | 60% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #223 | greptile-apps[bot] | Accept | renderVersion could clear draft before parent placement sync |
+| #223 | coderabbitai[bot] | Miss | Did not flag draft clear race |
+| #223 | cubic-dev-ai[bot] | Miss | Did not flag draft clear race |
 | #131 | greptile-apps[bot] | Accept | Scoped CSS custom property for repeated #8a5d20 |
 | #131 | cubic-dev-ai[bot] | Reject | Suggested `on:click` — Svelte 4 syntax, project uses Svelte 5 |
 | #131 | cubic-dev-ai[bot] | Reject | Suggested `on:keydown` — same Svelte 4/5 confusion |

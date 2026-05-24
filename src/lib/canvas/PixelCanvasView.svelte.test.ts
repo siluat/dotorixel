@@ -308,6 +308,37 @@ describe('PixelCanvasView', () => {
 		expect(onReferencePlacementCommit).toHaveBeenNthCalledWith(2, { x: 2.5, y: 1, scale: 2 });
 	});
 
+	it('keeps accumulating repeated Reference placement nudges across unrelated renderVersion bumps', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		const { rerender } = render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				renderVersion: 0,
+				isReferenceLayerActive: true,
+				onReferencePlacementCommit
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.keyDown(canvas, { code: 'ArrowRight', key: 'ArrowRight' });
+		await rerender({
+			pixelCanvas,
+			referenceUnderlay,
+			viewport,
+			viewportSize: { width: 100, height: 100 },
+			renderVersion: 1,
+			isReferenceLayerActive: true,
+			onReferencePlacementCommit
+		});
+		await fireEvent.keyDown(canvas, { code: 'ArrowRight', key: 'ArrowRight', repeat: true });
+
+		expect(onReferencePlacementCommit).toHaveBeenNthCalledWith(1, { x: 1.5, y: 1, scale: 2 });
+		expect(onReferencePlacementCommit).toHaveBeenNthCalledWith(2, { x: 2.5, y: 1, scale: 2 });
+	});
+
 	it('previews the nudged Reference placement in the overlay immediately', async () => {
 		const onReferencePlacementCommit = vi.fn();
 		render(PixelCanvasView, {

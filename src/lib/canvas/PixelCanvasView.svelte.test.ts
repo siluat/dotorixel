@@ -384,6 +384,7 @@ describe('PixelCanvasView', () => {
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
+				activeTool: 'move',
 				onReferencePlacementCommit
 			}
 		});
@@ -403,6 +404,11 @@ describe('PixelCanvasView', () => {
 			clientX: 30,
 			clientY: 10
 		});
+		await tick();
+
+		expect(overlay.style.left).toBe('28px');
+		expect(overlay.style.top).toBe('5px');
+
 		await fireEvent.keyDown(window, { key: 'Escape' });
 		await tick();
 
@@ -420,6 +426,7 @@ describe('PixelCanvasView', () => {
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
+				activeTool: 'move',
 				onReferencePlacementCommit
 			}
 		});
@@ -439,6 +446,11 @@ describe('PixelCanvasView', () => {
 			clientX: 30,
 			clientY: 10
 		});
+		await tick();
+
+		expect(overlay.style.left).toBe('28px');
+		expect(overlay.style.top).toBe('5px');
+
 		await fireEvent.pointerCancel(overlay, { pointerId: 1, pointerType: 'mouse' });
 		await tick();
 

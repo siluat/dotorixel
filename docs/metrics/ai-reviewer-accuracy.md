@@ -6,9 +6,9 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 121 | 89 | 32 | 98 | 74% | 48% |
-| cubic-dev-ai[bot] | 70 | 56 | 14 | 126 | 80% | 31% |
-| coderabbitai[bot] | 162 | 110 | 52 | 70 | 68% | 61% |
+| greptile-apps[bot] | 122 | 90 | 32 | 98 | 74% | 48% |
+| cubic-dev-ai[bot] | 70 | 56 | 14 | 127 | 80% | 31% |
+| coderabbitai[bot] | 162 | 110 | 52 | 71 | 68% | 61% |
 
 ## Log
 
@@ -661,3 +661,6 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | #221 | coderabbitai[bot] | Miss | Did not flag unrelated window `pointercancel` cancelling active canvas interaction |
 | #221 | coderabbitai[bot] | Miss | Did not flag overlay wheel/trackpad viewport navigation gap |
 | #221 | cubic-dev-ai[bot] | Miss | Did not flag overlay wheel/trackpad viewport navigation gap |
+| #222 | greptile-apps[bot] | Accept | Escape/pointercancel tests did not start an active Reference body drag |
+| #222 | coderabbitai[bot] | Miss | Did not flag inactive Reference body drag cancel tests |
+| #222 | cubic-dev-ai[bot] | Miss | Did not flag inactive Reference body drag cancel tests |

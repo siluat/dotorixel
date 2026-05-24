@@ -1,6 +1,6 @@
 ---
 title: "Reference Layer: drawing tools silently no-op + `not-allowed` cursor"
-status: needs-triage
+status: done
 created: 2026-05-16
 parent: 105-reference-layer-type.md
 ---
@@ -44,3 +44,24 @@ Scope:
 ## User Stories Addressed
 
 - #16.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/stroke-engine.ts` | Short-circuits Pixel-mutating tool strokes when the active layer is Reference. |
+| `src/lib/canvas/tool-registry.ts` | Defines drawing-tool and Pixel-mutation tool classification for runner/cursor policy. |
+| `src/lib/canvas/PixelCanvasView.svelte` | Applies the desktop `not-allowed` cursor for Reference-active drawing tools and forwards the final cursor to the Reference overlay. |
+| `src/lib/canvas/ReferenceLayerPlacementOverlay.svelte` | Renders the owner-provided body cursor so overlay hit-testing stays visually consistent with the canvas. |
+| `src/lib/canvas/tool-runner.svelte.test.ts` | Covers Reference-active drawing and Move no-op behavior without pixel mutation, effects, or undo snapshots. |
+| `src/lib/canvas/PixelCanvasView.svelte.test.ts` | Covers canvas/overlay cursor behavior for drawing tools, Move, Pixel-layer return, touch, and pan states. |
+| `src/lib/canvas/ReferenceLayerPlacementOverlay.svelte.test.ts` | Covers default and owner-provided overlay body cursor behavior. |
+
+### Key Decisions
+
+- Reference-active Pixel-mutation tools are blocked before opening a stroke session, so history snapshots, recent-color effects, and preview snapshots are skipped together.
+- Cursor priority is centralized in `PixelCanvasView`: panning and Space-pan override tool cursors, and the Reference overlay mirrors the final cursor.
+
+### Notes
+
+- Parent PRD 105 remains open because issue 125 still covers eyedropper and sampling behavior.

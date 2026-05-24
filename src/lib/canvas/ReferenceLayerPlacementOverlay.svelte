@@ -15,7 +15,7 @@
 		viewport: ViewportData;
 		isReferenceLayerActive?: boolean;
 		pointerType?: PointerType;
-		canMoveBody?: boolean;
+		bodyCursor?: string;
 		onReadOnlyPointerDown?: (event: PointerEvent) => void;
 		onReadOnlyPointerMove?: (event: PointerEvent) => void;
 		onReadOnlyPointerUp?: (event: PointerEvent) => void;
@@ -28,7 +28,7 @@
 		viewport,
 		isReferenceLayerActive = false,
 		pointerType = 'mouse',
-		canMoveBody = false,
+		bodyCursor = 'auto',
 		onReadOnlyPointerDown,
 		onReadOnlyPointerMove,
 		onReadOnlyPointerUp,
@@ -99,7 +99,7 @@
 		style:--handle-hit-size={`${HANDLE_HIT_SIZE}px`}
 		style:--handle-hit-offset={`${handleHitOffset}px`}
 		style:pointer-events="auto"
-		style:cursor={canMoveBody ? 'move' : 'auto'}
+		style:cursor={bodyCursor}
 		onpointerdown={(event) => handleReadOnlyPointerEvent(event, onReadOnlyPointerDown)}
 		onpointermove={(event) => handleReadOnlyPointerEvent(event, onReadOnlyPointerMove)}
 		onpointerup={(event) => handleReadOnlyPointerEvent(event, onReadOnlyPointerUp)}

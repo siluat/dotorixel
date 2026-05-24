@@ -17,6 +17,7 @@
 		normalizePointerType,
 		type PointerType
 	} from './canvas-interaction.svelte';
+	import { isDrawingTool } from './tool-registry';
 	import Loupe from '$lib/ui-editor/Loupe.svelte';
 
 	type ReferencePlacementHandle = 'nw' | 'ne' | 'se' | 'sw';
@@ -164,12 +165,17 @@
 		return () => canvasEl?.removeEventListener('wheel', handleWheel);
 	});
 
+	const toolCursorStyle = $derived(
+		isReferenceLayerActive && isDrawingTool(activeTool) && placementOverlayPointerType !== 'touch'
+			? 'not-allowed'
+			: toolCursor
+	);
 	const cursorStyle = $derived(
 		canvasInteraction.interactionType === 'panning'
 			? 'grabbing'
 			: isSpaceHeld
 				? 'grab'
-				: toolCursor
+				: toolCursorStyle
 	);
 
 	function toLocal(event: PointerEvent): { x: number; y: number } {
@@ -696,7 +702,7 @@
 	{viewport}
 	{isReferenceLayerActive}
 	pointerType={placementOverlayPointerType}
-	canMoveBody={canMoveReferencePlacementBody}
+	bodyCursor={cursorStyle}
 	onReadOnlyPointerDown={handleOverlayPointerDown}
 	onReadOnlyPointerMove={handleOverlayPointerMove}
 	onReadOnlyPointerUp={handleOverlayPointerUp}

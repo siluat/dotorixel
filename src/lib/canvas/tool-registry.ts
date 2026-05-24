@@ -79,9 +79,28 @@ export type ToolType = keyof typeof TOOL_DEFS;
 /** All tool types in display order. */
 export const TOOL_TYPES: readonly ToolType[] = Object.keys(TOOL_DEFS) as ToolType[];
 
+const DRAWING_TOOL_TYPES = new Set<ToolType>([
+	'pencil',
+	'eraser',
+	'line',
+	'rectangle',
+	'ellipse',
+	'floodfill'
+]);
+
 /** Look up a single tool's static definition. */
 export function getToolDef(type: ToolType): ToolDef {
 	return TOOL_DEFS[type];
+}
+
+/** Drawing tools paint, erase, fill, or preview pixels on a Pixel Layer. */
+export function isDrawingTool(type: ToolType): boolean {
+	return DRAWING_TOOL_TYPES.has(type);
+}
+
+/** Tools whose canvas stroke path mutates Pixel Layer pixels. */
+export function isPixelMutationTool(type: ToolType): boolean {
+	return isDrawingTool(type) || type === 'move';
 }
 
 /** Collect all DrawTool instances. Called once at engine construction. */

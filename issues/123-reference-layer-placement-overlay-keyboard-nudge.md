@@ -1,6 +1,6 @@
 ---
 title: "Reference Layer: keyboard nudge for placement"
-status: needs-triage
+status: done
 created: 2026-05-16
 parent: 105-reference-layer-type.md
 ---
@@ -43,3 +43,21 @@ Scope:
 ## User Stories Addressed
 
 - #20, #13.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/PixelCanvasView.svelte` | Added focused canvas/overlay arrow-key nudge handling for the active Reference Layer, including Shift-step and repeat accumulation. |
+| `src/lib/canvas/ReferenceLayerPlacementOverlay.svelte` | Added a stable overlay marker for keyboard target filtering. |
+| `src/lib/canvas/PixelCanvasView.svelte.test.ts` | Covered arrow directions, Shift-step, repeat, focus filtering, Pixel Layer no-op behavior, drag-in-progress blocking, and immediate overlay preview. |
+| `src/lib/canvas/editor-session/tab-state.svelte.test.ts` | Locked in that separate placement commits remain separate undo steps. |
+
+### Key Decisions
+
+- Kept keyboard nudge at the canvas view boundary because that layer already owns Reference underlay rendering, overlay focus, drag state, and placement commit callbacks.
+- Used a local draft placement during key repeat so consecutive keydown events accumulate immediately even before the parent document projection re-renders.
+
+### Notes
+
+- Parent PRD remains open: issues 124 and 125 are still uncompleted sibling sub-issues; issue 122 remains cancelled.

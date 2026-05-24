@@ -20,6 +20,7 @@
 	import Loupe from '$lib/ui-editor/Loupe.svelte';
 
 	type ReferencePlacementHandle = 'nw' | 'ne' | 'se' | 'sw';
+	type PlacementNudge = { x: number; y: number };
 	type PlacementDragKind =
 		| { type: 'move' }
 		| {
@@ -148,6 +149,14 @@
 		cancelOverlayPointerState();
 	});
 
+	$effect(() => {
+		void renderVersion;
+		if (!draftReferencePlacement || placementDrag || !referenceUnderlay) return;
+		if (isSameReferencePlacement(referenceUnderlay.placement, draftReferencePlacement)) {
+			draftReferencePlacement = null;
+		}
+	});
+
 	// Register wheel listener with { passive: false } to allow preventDefault
 	$effect(() => {
 		if (!canvasEl) return;
@@ -224,6 +233,7 @@
 	}
 
 	function handlePointerDown(event: PointerEvent): void {
+		focusCanvas();
 		if (event.button === 1 || event.button === 2) event.preventDefault();
 		const pointerType = normalizePointerType(event.pointerType);
 		placementOverlayPointerType = pointerType;
@@ -304,9 +314,18 @@
 	}
 
 	function handleWindowKeyDown(event: KeyboardEvent): void {
-		if (event.key !== 'Escape' || !placementDrag) return;
-		event.preventDefault();
-		cancelPlacementDrag();
+		if (event.key === 'Escape' && placementDrag) {
+			event.preventDefault();
+			cancelPlacementDrag();
+			return;
+		}
+		if (commitReferencePlacementNudge(event)) {
+			event.preventDefault();
+		}
+	}
+
+	function focusCanvas(): void {
+		canvasEl?.focus({ preventScroll: true });
 	}
 
 	function clearOverlayPointerState(): void {
@@ -512,6 +531,7 @@
 	}
 
 	function handleOverlayPointerDown(event: PointerEvent): void {
+		focusCanvas();
 		if (!canvasEl) {
 			blockOverlayPointerEvent(event);
 			return;
@@ -600,6 +620,49 @@
 		}
 		blockOverlayPointerEvent(event);
 	}
+
+	function placementNudgeForKey(event: KeyboardEvent): PlacementNudge | null {
+		if (event.ctrlKey || event.metaKey || event.altKey) return null;
+		const step = event.shiftKey ? 10 : 1;
+		switch (event.code) {
+			case 'ArrowUp':
+				return { x: 0, y: -step };
+			case 'ArrowDown':
+				return { x: 0, y: step };
+			case 'ArrowLeft':
+				return { x: -step, y: 0 };
+			case 'ArrowRight':
+				return { x: step, y: 0 };
+			default:
+				return null;
+		}
+	}
+
+	function isSameReferencePlacement(a: ReferencePlacement, b: ReferencePlacement): boolean {
+		return a.x === b.x && a.y === b.y && a.scale === b.scale;
+	}
+
+	function isPlacementKeyboardTarget(target: EventTarget | null): boolean {
+		if (!canvasEl || !(target instanceof Element)) return false;
+		return target === canvasEl || target.closest('[data-reference-placement-overlay]') !== null;
+	}
+
+	function commitReferencePlacementNudge(event: KeyboardEvent): boolean {
+		const delta = placementNudgeForKey(event);
+		if (!delta) return false;
+		if (!referenceUnderlay || !isReferenceLayerActive || placementDrag) return false;
+		if (!isPlacementKeyboardTarget(event.target)) return false;
+		if (!onReferencePlacementCommit) return false;
+		const placement = draftReferencePlacement ?? referenceUnderlay.placement;
+		const next = {
+			x: placement.x + delta.x,
+			y: placement.y + delta.y,
+			scale: placement.scale
+		};
+		draftReferencePlacement = next;
+		onReferencePlacementCommit(next);
+		return true;
+	}
 </script>
 
 <svelte:window
@@ -619,6 +682,7 @@
 	class="pixel-canvas"
 	role="application"
 	aria-label={m.aria_pixelCanvas()}
+	tabindex="0"
 	style:cursor={cursorStyle}
 	onpointerdown={handlePointerDown}
 	onpointermove={handlePointerMove}

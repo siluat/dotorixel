@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 121 | [Reference Layer: placement overlay — drag-to-move (body) + drag-to-scale (corner handles)](../issues/121-reference-layer-placement-overlay-drag.md) | 2026-05-24 |
 | 120 | [Reference Layer: placement overlay shell — read-only render](../issues/120-reference-layer-placement-overlay-shell.md) | 2026-05-24 |
 | 119 | [Reference Layer: Fit to canvas inline action](../issues/119-reference-layer-fit-to-canvas-action.md) | 2026-05-24 |
 | 118 | [Reference Layer: Timeline Panel — set/replace Reference image import flow](../issues/118-reference-layer-timeline-panel-add-icon-and-import-flow.md) | 2026-05-23 |

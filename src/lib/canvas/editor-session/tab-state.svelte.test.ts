@@ -743,6 +743,61 @@ describe('TabState — Reference underlay render source', () => {
 		expect(notifier.dirtyCalls).toEqual(['doc-test']);
 	});
 
+	it('expands viewport pan bounds to the active visible Reference footprint', () => {
+		const { document } = makeReferenceDocumentWithPlacement({
+			x: 30,
+			y: 0,
+			scale: 20
+		});
+		const { tab } = makeTab({ document });
+		const requested = { ...tab.viewport, panX: -9999, panY: -9999 };
+
+		tab.setViewport(requested);
+
+		const expected = wasmBackend.viewportOps.clampPanToDocumentBounds(
+			requested,
+			0,
+			0,
+			110,
+			40,
+			tab.viewportSize.width,
+			tab.viewportSize.height
+		);
+		const canvasOnly = wasmBackend.viewportOps.clampPan(
+			requested,
+			tab.document.width,
+			tab.document.height,
+			tab.viewportSize.width,
+			tab.viewportSize.height
+		);
+		expect(tab.viewport.panX).toBe(expected.panX);
+		expect(tab.viewport.panY).toBe(expected.panY);
+		expect(tab.viewport.panX).toBeLessThan(canvasOnly.panX);
+		expect(tab.viewport.panY).toBeLessThan(canvasOnly.panY);
+	});
+
+	it('reclamps viewport pan to the canvas when leaving the Reference Layer', () => {
+		const { document, referenceId } = makeReferenceDocumentWithPlacement({
+			x: 30,
+			y: 0,
+			scale: 20
+		});
+		const { tab } = makeTab({ document });
+		const pixelId = Array.from({ length: tab.document.layer_count() }, (_, i) => ({
+			id: tab.document.layer_id_at(i)!,
+			kind: tab.document.layer_kind_at(i)
+		})).find((layer) => layer.kind === 'pixel')!.id;
+		expect(tab.document.active_layer_id()).toBe(referenceId);
+
+		tab.setViewport({ ...tab.viewport, panX: -9999, panY: -9999 });
+		expect(tab.viewport.panX).toBeLessThan(0);
+
+		tab.setActiveLayer(pixelId);
+
+		expect(tab.viewport.panX).toBe(0);
+		expect(tab.viewport.panY).toBe(0);
+	});
+
 	it('fits a Reference Layer to the canvas while preserving source aspect ratio', () => {
 		const { document, referenceId } = makeReferenceDocumentWithPlacement({
 			x: 5,

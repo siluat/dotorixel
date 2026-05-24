@@ -5,12 +5,17 @@
 
 	const DESKTOP_HANDLE_SIZE = 12;
 	const TOUCH_HANDLE_SIZE = 16;
+	const HANDLE_HIT_SIZE = 44;
+
+	type ReferencePlacementHandle = 'nw' | 'ne' | 'se' | 'sw';
+	const placementHandles: ReferencePlacementHandle[] = ['nw', 'ne', 'se', 'sw'];
 
 	interface Props {
 		referenceUnderlay?: ReferenceUnderlay;
 		viewport: ViewportData;
 		isReferenceLayerActive?: boolean;
 		pointerType?: PointerType;
+		canMoveBody?: boolean;
 		onReadOnlyPointerDown?: (event: PointerEvent) => void;
 		onReadOnlyPointerMove?: (event: PointerEvent) => void;
 		onReadOnlyPointerUp?: (event: PointerEvent) => void;
@@ -23,6 +28,7 @@
 		viewport,
 		isReferenceLayerActive = false,
 		pointerType = 'mouse',
+		canMoveBody = false,
 		onReadOnlyPointerDown,
 		onReadOnlyPointerMove,
 		onReadOnlyPointerUp,
@@ -46,6 +52,7 @@
 
 	const handleSize = $derived(pointerType === 'touch' ? TOUCH_HANDLE_SIZE : DESKTOP_HANDLE_SIZE);
 	const handleOffset = $derived(handleSize / 2);
+	const handleHitOffset = $derived((HANDLE_HIT_SIZE - handleSize) / 2);
 
 	function blockReadOnlyPointerEvent(event: PointerEvent): void {
 		event.preventDefault();
@@ -88,7 +95,10 @@
 		style:height={`${projectedRect.height}px`}
 		style:--handle-size={`${handleSize}px`}
 		style:--handle-offset={`${handleOffset}px`}
+		style:--handle-hit-size={`${HANDLE_HIT_SIZE}px`}
+		style:--handle-hit-offset={`${handleHitOffset}px`}
 		style:pointer-events="auto"
+		style:cursor={canMoveBody ? 'move' : 'auto'}
 		onpointerdown={(event) => handleReadOnlyPointerEvent(event, onReadOnlyPointerDown)}
 		onpointermove={(event) => handleReadOnlyPointerEvent(event, onReadOnlyPointerMove)}
 		onpointerup={(event) => handleReadOnlyPointerEvent(event, onReadOnlyPointerUp)}
@@ -96,10 +106,13 @@
 		onwheel={handleReadOnlyWheelEvent}
 		oncontextmenu={blockContextMenuEvent}
 	>
-		<div class="reference-placement-handle handle-nw" data-testid="reference-placement-handle"></div>
-		<div class="reference-placement-handle handle-ne" data-testid="reference-placement-handle"></div>
-		<div class="reference-placement-handle handle-se" data-testid="reference-placement-handle"></div>
-		<div class="reference-placement-handle handle-sw" data-testid="reference-placement-handle"></div>
+		{#each placementHandles as handle}
+			<div
+				class={`reference-placement-handle handle-${handle}`}
+				data-testid="reference-placement-handle"
+				data-reference-placement-handle={handle}
+			></div>
+		{/each}
 	</div>
 {/if}
 
@@ -122,6 +135,15 @@
 		border: 1px solid var(--ds-bg-base);
 	}
 
+	.reference-placement-handle::before {
+		content: '';
+		position: absolute;
+		left: calc(-1 * var(--handle-hit-offset));
+		top: calc(-1 * var(--handle-hit-offset));
+		width: var(--handle-hit-size);
+		height: var(--handle-hit-size);
+	}
+
 	.handle-nw {
 		left: calc(-1 * var(--handle-offset));
 		top: calc(-1 * var(--handle-offset));
@@ -132,6 +154,11 @@
 		top: calc(-1 * var(--handle-offset));
 	}
 
+	.handle-nw,
+	.handle-se {
+		cursor: nwse-resize;
+	}
+
 	.handle-se {
 		right: calc(-1 * var(--handle-offset));
 		bottom: calc(-1 * var(--handle-offset));
@@ -140,5 +167,10 @@
 	.handle-sw {
 		left: calc(-1 * var(--handle-offset));
 		bottom: calc(-1 * var(--handle-offset));
+	}
+
+	.handle-ne,
+	.handle-sw {
+		cursor: nesw-resize;
 	}
 </style>

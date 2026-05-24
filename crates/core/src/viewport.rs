@@ -171,29 +171,72 @@ impl Viewport {
         canvas_height: u32,
         viewport_size: ViewportSize,
     ) -> Self {
+        self.clamp_pan_to_document_bounds(
+            0.0,
+            0.0,
+            canvas_width as f64,
+            canvas_height as f64,
+            viewport_size,
+        )
+    }
+
+    /// Clamps pan so an arbitrary document-space content rectangle stays reachable.
+    ///
+    /// The bounds are expressed in document-pixel coordinates. This is useful
+    /// for viewport-only overlays, such as Reference Layers, whose projected
+    /// footprint can extend outside the pixel canvas while still needing to be
+    /// reachable through normal pan gestures.
+    pub fn clamp_pan_to_document_bounds(
+        &self,
+        min_x: f64,
+        min_y: f64,
+        max_x: f64,
+        max_y: f64,
+        viewport_size: ViewportSize,
+    ) -> Self {
         let scaled_pixel = self.effective_pixel_size();
         let margin = scaled_pixel.max(Self::MIN_VISIBLE_MARGIN);
-        let canvas_display_width = canvas_width as f64 * scaled_pixel;
-        let canvas_display_height = canvas_height as f64 * scaled_pixel;
-
-        let (min_pan_x, max_pan_x) = if canvas_display_width <= viewport_size.width {
-            (0.0, viewport_size.width - canvas_display_width)
+        let (min_x, max_x) = if min_x <= max_x {
+            (min_x, max_x)
         } else {
-            (margin - canvas_display_width, viewport_size.width - margin)
+            (max_x, min_x)
         };
+        let (min_y, max_y) = if min_y <= max_y {
+            (min_y, max_y)
+        } else {
+            (max_y, min_y)
+        };
+        let content_display_width = (max_x - min_x) * scaled_pixel;
+        let content_display_height = (max_y - min_y) * scaled_pixel;
+        let display_min_x = min_x * scaled_pixel;
+        let display_min_y = min_y * scaled_pixel;
+        let display_max_x = max_x * scaled_pixel;
+        let display_max_y = max_y * scaled_pixel;
 
-        let (min_pan_y, max_pan_y) = if canvas_display_height <= viewport_size.height {
-            (0.0, viewport_size.height - canvas_display_height)
+        let (min_pan_x, max_pan_x) = if content_display_width <= viewport_size.width {
+            (-display_min_x, viewport_size.width - display_max_x)
         } else {
             (
-                margin - canvas_display_height,
-                viewport_size.height - margin,
+                margin - display_max_x,
+                viewport_size.width - margin - display_min_x,
             )
         };
 
+        let (min_pan_y, max_pan_y) = if content_display_height <= viewport_size.height {
+            (-display_min_y, viewport_size.height - display_max_y)
+        } else {
+            (
+                margin - display_max_y,
+                viewport_size.height - margin - display_min_y,
+            )
+        };
+
+        let pan_x = self.pan_x.clamp(min_pan_x, max_pan_x);
+        let pan_y = self.pan_y.clamp(min_pan_y, max_pan_y);
+
         Self {
-            pan_x: self.pan_x.clamp(min_pan_x, max_pan_x),
-            pan_y: self.pan_y.clamp(min_pan_y, max_pan_y),
+            pan_x: if pan_x == 0.0 { 0.0 } else { pan_x },
+            pan_y: if pan_y == 0.0 { 0.0 } else { pan_y },
             ..*self
         }
     }
@@ -626,6 +669,24 @@ mod tests {
         let result = vp.clamp_pan(16, 16, VP_SIZE);
         assert_eq!(result.pixel_size, 32);
         assert_eq!(result.zoom, 2.0);
+    }
+
+    #[test]
+    fn clamp_pan_to_document_bounds_reaches_negative_content() {
+        let vp = make_viewport(32, 1.0, 9999.0, 9999.0);
+        let result = vp.clamp_pan_to_document_bounds(-10.0, -4.0, 16.0, 16.0, VP_SIZE);
+
+        assert_eq!(result.pan_x, 1088.0);
+        assert_eq!(result.pan_y, 696.0);
+    }
+
+    #[test]
+    fn clamp_pan_to_document_bounds_reaches_positive_content_beyond_canvas() {
+        let vp = make_viewport(32, 1.0, -9999.0, -9999.0);
+        let result = vp.clamp_pan_to_document_bounds(0.0, 0.0, 48.0, 24.0, VP_SIZE);
+
+        assert_eq!(result.pan_x, -1504.0);
+        assert_eq!(result.pan_y, -736.0);
     }
 
     // ── fit_to_viewport ─────────────────────────────────────────

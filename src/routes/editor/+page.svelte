@@ -32,6 +32,7 @@
 	import { canvasDropzone } from '$lib/reference-images/canvas-dropzone';
 	import { decodeReferenceBlob } from '$lib/reference-images/decode-reference-blob';
 	import { validateFile } from '$lib/reference-images/import-validator';
+	import type { ReferencePlacement } from '$lib/canvas/canvas-model';
 	import * as m from '$lib/paraglide/messages';
 	import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 	import { openSession, type SessionHandle } from '$lib/session/session';
@@ -210,6 +211,11 @@
 
 	function handleFitReferenceLayerToCanvas(id: string) {
 		editor.workspace.activeTab.fitReferenceLayerToCanvas(id);
+	}
+
+	function handleReferencePlacementCommit(placement: ReferencePlacement) {
+		const tab = editor.workspace.activeTab;
+		tab.setReferencePlacement(tab.document.active_layer_id(), placement);
 	}
 
 	function handleToggleTimelinePanelCollapsed() {
@@ -640,6 +646,8 @@
 				onSampleUpdate={editor.handleSampleUpdate}
 				onSampleEnd={editor.handleSampleEnd}
 				onSampleCancel={editor.handleSampleCancel}
+				onReferencePlacementCommit={handleReferencePlacementCommit}
+				activeTool={editor.activeTool}
 				toolCursor={editor.toolCursor}
 				isSpaceHeld={editor.isSpaceHeld}
 				samplingSession={editor.samplingSession}
@@ -741,6 +749,8 @@
 						onSampleUpdate={editor.handleSampleUpdate}
 						onSampleEnd={editor.handleSampleEnd}
 						onSampleCancel={editor.handleSampleCancel}
+						onReferencePlacementCommit={handleReferencePlacementCommit}
+						activeTool={editor.activeTool}
 						toolCursor={editor.toolCursor}
 						isSpaceHeld={editor.isSpaceHeld}
 						samplingSession={editor.samplingSession}

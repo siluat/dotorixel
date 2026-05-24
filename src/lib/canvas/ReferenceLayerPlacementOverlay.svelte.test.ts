@@ -79,6 +79,26 @@ describe('ReferenceLayerPlacementOverlay', () => {
 		);
 	});
 
+	it('marks corner resize zones and exposes an invisible 44px handle hit area', () => {
+		render(ReferenceLayerPlacementOverlay, {
+			referenceUnderlay,
+			viewport,
+			isReferenceLayerActive: true,
+			pointerType: 'touch'
+		});
+
+		const overlay = screen.getByTestId('reference-placement-overlay');
+		const handles = screen.getAllByTestId('reference-placement-handle');
+
+		expect(overlay.style.getPropertyValue('--handle-hit-size')).toBe('44px');
+		expect(handles.map((handle) => handle.getAttribute('data-reference-placement-handle'))).toEqual([
+			'nw',
+			'ne',
+			'se',
+			'sw'
+		]);
+	});
+
 	it('receives read-only pointer starts instead of letting hit-testing fall through', () => {
 		render(ReferenceLayerPlacementOverlay, {
 			referenceUnderlay,
@@ -92,5 +112,26 @@ describe('ReferenceLayerPlacementOverlay', () => {
 
 		expect(overlay.style.pointerEvents).toBe('auto');
 		expect(event.defaultPrevented).toBe(true);
+	});
+
+	it('shows the body move cursor only when body movement is enabled', () => {
+		const { rerender } = render(ReferenceLayerPlacementOverlay, {
+			referenceUnderlay,
+			viewport,
+			isReferenceLayerActive: true,
+			canMoveBody: false
+		});
+
+		const overlay = screen.getByTestId('reference-placement-overlay');
+		expect(overlay.style.cursor).toBe('auto');
+
+		rerender({
+			referenceUnderlay,
+			viewport,
+			isReferenceLayerActive: true,
+			canMoveBody: true
+		});
+
+		expect(overlay.style.cursor).toBe('move');
 	});
 });

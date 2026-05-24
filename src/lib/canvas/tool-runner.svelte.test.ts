@@ -50,8 +50,8 @@ function createRunner(canvas?: PixelCanvas, fg?: Color, bg?: Color, doc?: Docume
 	return { host, shared, runner, samplingSession };
 }
 
-function createReferenceActiveDocument(): Document {
-	const doc = singleLayerDocument(8, 8, new Uint8Array(8 * 8 * 4));
+function createReferenceActiveDocument(pixelLayerPixels?: Uint8Array): Document {
+	const doc = singleLayerDocument(8, 8, pixelLayerPixels ?? new Uint8Array(8 * 8 * 4));
 	doc.add_reference_layer(
 		crypto.randomUUID(),
 		'Reference',
@@ -60,6 +60,18 @@ function createReferenceActiveDocument(): Document {
 		1
 	);
 	return doc;
+}
+
+function getFirstPixelLayerPixels(doc: Document): Uint8Array {
+	for (let i = 0; i < doc.layer_count(); i++) {
+		if (doc.layer_kind_at(i) !== 'pixel') continue;
+
+		const pixels = doc.layer_pixels_at(i);
+		if (!pixels) throw new Error(`Layer ${i} is Pixel-kind but has no pixel buffer`);
+		return pixels;
+	}
+
+	throw new Error('Reference-active test document has no Pixel Layer');
 }
 
 function getDocPixel(doc: Document, x: number, y: number) {
@@ -126,10 +138,13 @@ describe('ToolRunner — Reference Layer active', () => {
 	});
 
 	it('move silently no-ops instead of shifting Pixel Layer pixels', () => {
-		const doc = createReferenceActiveDocument();
+		const pixelLayerPixels = new Uint8Array(8 * 8 * 4);
+		pixelLayerPixels.set([0, 0, 0, 255], 0);
+		const doc = createReferenceActiveDocument(pixelLayerPixels);
 		const { runner, shared } = createRunner(undefined, BLACK, WHITE, doc);
 		shared.activeTool = 'move';
 		const beforeComposite = Array.from(doc.composite());
+		const beforePixelLayer = Array.from(getFirstPixelLayerPixels(doc));
 
 		const startEffects = runner.drawStart(0, 'mouse');
 		const firstDrawEffects = runner.draw({ x: 0, y: 0 }, null);
@@ -141,6 +156,7 @@ describe('ToolRunner — Reference Layer active', () => {
 		expect(dragEffects).toEqual([]);
 		expect(endEffects).toEqual([]);
 		expect(Array.from(doc.composite())).toEqual(beforeComposite);
+		expect(Array.from(getFirstPixelLayerPixels(doc))).toEqual(beforePixelLayer);
 		expect(runner.canUndo).toBe(false);
 	});
 });

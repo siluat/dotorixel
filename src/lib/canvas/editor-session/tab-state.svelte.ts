@@ -44,6 +44,13 @@ interface CachedReferenceUnderlaySource {
 	readonly sourceRgba: Uint8Array;
 }
 
+interface DocumentNavigationBounds {
+	readonly minX: number;
+	readonly minY: number;
+	readonly maxX: number;
+	readonly maxY: number;
+}
+
 export interface TabStateDeps {
 	readonly backend: CanvasBackend;
 	readonly shared: SharedState;
@@ -126,6 +133,10 @@ export class TabState {
 	}
 
 	get referenceUnderlay(): ReferenceUnderlay | undefined {
+		// WASM Document internals are opaque to Svelte. Tie this projection to
+		// renderVersion so import, fit-to-canvas, drag commits, undo/redo, and
+		// visibility changes immediately refresh renderer consumers.
+		void this.renderVersion;
 		const doc = this.document;
 		for (let i = 0; i < doc.layer_count(); i++) {
 			if (doc.layer_kind_at(i) !== 'reference') continue;
@@ -301,7 +312,7 @@ export class TabState {
 					this.document = effect.document;
 					this.canvasWidth = effect.document.width;
 					this.canvasHeight = effect.document.height;
-					this.#tabViewport.reclamp();
+					this.#reclampViewport();
 					this.renderVersion++;
 					persistableChanged = true;
 					break;
@@ -435,6 +446,7 @@ export class TabState {
 		);
 		this.#referenceLayerBlobs.set(id, source.sourceBlob);
 		this.#referenceUnderlaySource = undefined;
+		this.#reclampViewport();
 		this.renderVersion++;
 		this.#notifier.markDirty(this.documentId);
 		return id;
@@ -452,6 +464,7 @@ export class TabState {
 		if (this.document.layer_count() === 1) return;
 		this.#toolRunner.pushSnapshot();
 		this.document.remove_layer(id);
+		this.#reclampViewport();
 		this.renderVersion++;
 		this.#notifier.markDirty(this.documentId);
 	};
@@ -459,6 +472,7 @@ export class TabState {
 	setActiveLayer = (id: string): void => {
 		if (id === this.document.active_layer_id()) return;
 		this.document.set_active_layer(id);
+		this.#reclampViewport();
 		this.renderVersion++;
 		this.#notifier.markDirty(this.documentId);
 	};
@@ -500,6 +514,7 @@ export class TabState {
 		if (this.document.layer_visible_at(stackIdx) === visible) return;
 		this.#toolRunner.pushSnapshot();
 		this.document.set_layer_visibility(id, visible);
+		this.#reclampViewport();
 		this.renderVersion++;
 		this.#notifier.markDirty(this.documentId);
 	};
@@ -526,6 +541,7 @@ export class TabState {
 		}
 		this.#toolRunner.pushSnapshot();
 		this.document.set_reference_placement(id, placement.x, placement.y, placement.scale);
+		this.#reclampViewport();
 		this.renderVersion++;
 		this.#notifier.markDirty(this.documentId);
 	};
@@ -557,16 +573,58 @@ export class TabState {
 		throw new Error(`Layer with id ${id} not found`);
 	}
 
-	setViewport = (newViewport: ViewportData): void => {
-		this.#tabViewport.apply(
-			this.#backend.viewportOps.clampPan(
-				newViewport,
-				this.document.width,
-				this.document.height,
-				this.viewportSize.width,
-				this.viewportSize.height
-			)
+	#navigationBounds(): DocumentNavigationBounds {
+		const canvasBounds: DocumentNavigationBounds = {
+			minX: 0,
+			minY: 0,
+			maxX: this.document.width,
+			maxY: this.document.height
+		};
+		const activeLayerId = this.document.active_layer_id();
+		for (let i = 0; i < this.document.layer_count(); i++) {
+			if (this.document.layer_id_at(i) !== activeLayerId) continue;
+			if (this.document.layer_kind_at(i) !== 'reference') return canvasBounds;
+			if (!this.document.layer_visible_at(i)) return canvasBounds;
+			const dimensions = this.document.layer_source_dimensions_at(i);
+			const placement = this.document.layer_placement_at(i);
+			if (!dimensions || !placement) return canvasBounds;
+			const referenceBounds = {
+				minX: placement.x,
+				minY: placement.y,
+				maxX: placement.x + dimensions[0] * placement.scale,
+				maxY: placement.y + dimensions[1] * placement.scale
+			};
+			return {
+				minX: Math.min(canvasBounds.minX, referenceBounds.minX),
+				minY: Math.min(canvasBounds.minY, referenceBounds.minY),
+				maxX: Math.max(canvasBounds.maxX, referenceBounds.maxX),
+				maxY: Math.max(canvasBounds.maxY, referenceBounds.maxY)
+			};
+		}
+		return canvasBounds;
+	}
+
+	#clampViewportToNavigationBounds(viewport: ViewportData): ViewportData {
+		const bounds = this.#navigationBounds();
+		return this.#backend.viewportOps.clampPanToDocumentBounds(
+			viewport,
+			bounds.minX,
+			bounds.minY,
+			bounds.maxX,
+			bounds.maxY,
+			this.viewportSize.width,
+			this.viewportSize.height
 		);
+	}
+
+	#reclampViewport(): void {
+		const clamped = this.#clampViewportToNavigationBounds(this.viewport);
+		if (clamped.panX === this.viewport.panX && clamped.panY === this.viewport.panY) return;
+		this.#tabViewport.apply(clamped);
+	}
+
+	setViewport = (newViewport: ViewportData): void => {
+		this.#tabViewport.apply(this.#clampViewportToNavigationBounds(newViewport));
 	};
 
 	setViewportSize = (size: ViewportSize): void => {
@@ -599,8 +657,9 @@ export class TabState {
 		resizeDocumentWithAnchor(this.document, newWidth, newHeight, this.resizeAnchor);
 		this.canvasWidth = newWidth;
 		this.canvasHeight = newHeight;
-		this.#tabViewport.reclamp();
+		this.#reclampViewport();
 		this.renderVersion++;
+		this.#notifier.markDirty(this.documentId);
 	};
 
 	toggleExportUI = (): void => {

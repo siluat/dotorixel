@@ -39,6 +39,15 @@ export interface ViewportOps {
 		viewportWidth: number,
 		viewportHeight: number
 	): ViewportData;
+	clampPanToDocumentBounds(
+		vd: ViewportData,
+		minX: number,
+		minY: number,
+		maxX: number,
+		maxY: number,
+		viewportWidth: number,
+		viewportHeight: number
+	): ViewportData;
 	fitToViewport(
 		vd: ViewportData,
 		canvasWidth: number,

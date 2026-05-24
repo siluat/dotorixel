@@ -109,6 +109,17 @@ export const viewportOps: ViewportOps = {
 		const result = toWasm(vd).clamp_pan(canvasWidth, canvasHeight, viewportWidth, viewportHeight);
 		return { ...vd, panX: result.pan_x, panY: result.pan_y };
 	},
+	clampPanToDocumentBounds(vd, minX, minY, maxX, maxY, viewportWidth, viewportHeight) {
+		const result = toWasm(vd).clamp_pan_to_document_bounds(
+			minX,
+			minY,
+			maxX,
+			maxY,
+			viewportWidth,
+			viewportHeight
+		);
+		return { ...vd, panX: result.pan_x, panY: result.pan_y };
+	},
 	fitToViewport(vd, canvasWidth, canvasHeight, viewportWidth, viewportHeight, maxZoom) {
 		const result = toWasm(vd).fit_to_viewport(
 			canvasWidth,

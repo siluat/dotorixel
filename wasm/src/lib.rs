@@ -1144,6 +1144,26 @@ impl WasmViewport {
         }
     }
 
+    pub fn clamp_pan_to_document_bounds(
+        &self,
+        min_x: f64,
+        min_y: f64,
+        max_x: f64,
+        max_y: f64,
+        viewport_width: f64,
+        viewport_height: f64,
+    ) -> WasmViewport {
+        let vs = ViewportSize {
+            width: viewport_width,
+            height: viewport_height,
+        };
+        WasmViewport {
+            inner: self
+                .inner
+                .clamp_pan_to_document_bounds(min_x, min_y, max_x, max_y, vs),
+        }
+    }
+
     pub fn fit_to_viewport(
         &self,
         canvas_width: u32,

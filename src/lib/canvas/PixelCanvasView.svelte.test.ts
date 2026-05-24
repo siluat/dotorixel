@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
+import { tick } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import PixelCanvasView from './PixelCanvasView.svelte';
 import type { ReferenceUnderlay, RenderableCanvas } from './renderer';
@@ -66,6 +67,21 @@ const referenceUnderlay: ReferenceUnderlay = {
 	naturalHeight: 1,
 	placement: { x: 0.5, y: 1, scale: 2 },
 	opacity: 1
+};
+
+const squareReferenceUnderlay: ReferenceUnderlay = {
+	sourceKey: 'reference-overlay-square',
+	sourceRgba: new Uint8Array(4 * 4 * 4),
+	naturalWidth: 4,
+	naturalHeight: 4,
+	placement: { x: 1, y: 1, scale: 2 },
+	opacity: 1
+};
+
+const largeSquareReferenceUnderlay: ReferenceUnderlay = {
+	...squareReferenceUnderlay,
+	sourceKey: 'reference-overlay-large-square',
+	placement: { x: 1, y: 1, scale: 3 }
 };
 
 const viewport: ViewportData = {
@@ -159,6 +175,329 @@ describe('PixelCanvasView', () => {
 		});
 
 		expect(onDrawStart).not.toHaveBeenCalled();
+	});
+
+	it('commits a body drag as a translated Reference placement on release', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				activeTool: 'move',
+				onReferencePlacementCommit
+			}
+		});
+
+		const overlay = screen.getByTestId('reference-placement-overlay');
+		await fireEvent.pointerDown(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 10,
+			clientY: 20
+		});
+		await fireEvent.pointerMove(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			buttons: 1,
+			clientX: 30,
+			clientY: 10
+		});
+		await fireEvent.pointerUp(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 30,
+			clientY: 10
+		});
+
+		expect(onReferencePlacementCommit).toHaveBeenCalledTimes(1);
+		expect(onReferencePlacementCommit).toHaveBeenCalledWith({ x: 2.5, y: 0, scale: 2 });
+	});
+
+	it('does not move the Reference placement from the overlay body unless the Move tool is active', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				activeTool: 'pencil',
+				onReferencePlacementCommit
+			}
+		});
+
+		const overlay = screen.getByTestId('reference-placement-overlay');
+		await fireEvent.pointerDown(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 10,
+			clientY: 20
+		});
+		await fireEvent.pointerMove(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			buttons: 1,
+			clientX: 30,
+			clientY: 10
+		});
+		await fireEvent.pointerUp(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 30,
+			clientY: 10
+		});
+
+		expect(overlay.style.left).toBe('8px');
+		expect(overlay.style.top).toBe('15px');
+		expect(onReferencePlacementCommit).not.toHaveBeenCalled();
+	});
+
+	it('previews a body drag before committing the Reference placement', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				activeTool: 'move',
+				onReferencePlacementCommit
+			}
+		});
+
+		const overlay = screen.getByTestId('reference-placement-overlay');
+		await fireEvent.pointerDown(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 10,
+			clientY: 20
+		});
+		await fireEvent.pointerMove(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			buttons: 1,
+			clientX: 30,
+			clientY: 10
+		});
+		await tick();
+
+		expect(overlay.style.left).toBe('28px');
+		expect(overlay.style.top).toBe('5px');
+		expect(onReferencePlacementCommit).not.toHaveBeenCalled();
+	});
+
+	it('commits a corner-handle drag as a uniform Reference scale around the opposite corner', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay: squareReferenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				onReferencePlacementCommit
+			}
+		});
+
+		const southeastHandle = screen.getAllByTestId('reference-placement-handle')[2];
+		await fireEvent.pointerDown(southeastHandle, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 45,
+			clientY: 30
+		});
+		await fireEvent.pointerMove(southeastHandle, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			buttons: 1,
+			clientX: 65,
+			clientY: 50
+		});
+		await fireEvent.pointerUp(southeastHandle, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 65,
+			clientY: 50
+		});
+
+		expect(onReferencePlacementCommit).toHaveBeenCalledTimes(1);
+		expect(onReferencePlacementCommit).toHaveBeenCalledWith({ x: 1, y: 1, scale: 2.5 });
+	});
+
+	it('clamps corner-handle scaling to an 8x8 document-pixel footprint', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay: largeSquareReferenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				onReferencePlacementCommit
+			}
+		});
+
+		const southeastHandle = screen.getAllByTestId('reference-placement-handle')[2];
+		await fireEvent.pointerDown(southeastHandle, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 45,
+			clientY: 30
+		});
+		await fireEvent.pointerMove(southeastHandle, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			buttons: 1,
+			clientX: -55,
+			clientY: -70
+		});
+		await fireEvent.pointerUp(southeastHandle, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: -55,
+			clientY: -70
+		});
+
+		expect(onReferencePlacementCommit).toHaveBeenCalledWith({ x: 1, y: 1, scale: 2 });
+	});
+
+	it('cancels an in-flight Reference placement drag on Escape without committing', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				activeTool: 'move',
+				onReferencePlacementCommit
+			}
+		});
+
+		const overlay = screen.getByTestId('reference-placement-overlay');
+		await fireEvent.pointerDown(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 10,
+			clientY: 20
+		});
+		await fireEvent.pointerMove(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			buttons: 1,
+			clientX: 30,
+			clientY: 10
+		});
+		await tick();
+
+		expect(overlay.style.left).toBe('28px');
+		expect(overlay.style.top).toBe('5px');
+
+		await fireEvent.keyDown(window, { key: 'Escape' });
+		await tick();
+
+		expect(overlay.style.left).toBe('8px');
+		expect(overlay.style.top).toBe('15px');
+		expect(onReferencePlacementCommit).not.toHaveBeenCalled();
+	});
+
+	it('cancels an in-flight Reference placement drag on pointer cancel without committing', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				activeTool: 'move',
+				onReferencePlacementCommit
+			}
+		});
+
+		const overlay = screen.getByTestId('reference-placement-overlay');
+		await fireEvent.pointerDown(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 10,
+			clientY: 20
+		});
+		await fireEvent.pointerMove(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			buttons: 1,
+			clientX: 30,
+			clientY: 10
+		});
+		await tick();
+
+		expect(overlay.style.left).toBe('28px');
+		expect(overlay.style.top).toBe('5px');
+
+		await fireEvent.pointerCancel(overlay, { pointerId: 1, pointerType: 'mouse' });
+		await tick();
+
+		expect(overlay.style.left).toBe('8px');
+		expect(overlay.style.top).toBe('15px');
+		expect(onReferencePlacementCommit).not.toHaveBeenCalled();
+	});
+
+	it('commits a one-touch body drag as a translated Reference placement', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				activeTool: 'move',
+				onReferencePlacementCommit
+			}
+		});
+
+		const overlay = screen.getByTestId('reference-placement-overlay');
+		await fireEvent.pointerDown(overlay, {
+			pointerId: 1,
+			pointerType: 'touch',
+			button: 0,
+			clientX: 10,
+			clientY: 20
+		});
+		await fireEvent.pointerMove(overlay, {
+			pointerId: 1,
+			pointerType: 'touch',
+			buttons: 1,
+			clientX: 30,
+			clientY: 10
+		});
+		await fireEvent.pointerUp(overlay, {
+			pointerId: 1,
+			pointerType: 'touch',
+			button: 0,
+			clientX: 30,
+			clientY: 10
+		});
+
+		expect(onReferencePlacementCommit).toHaveBeenCalledTimes(1);
+		expect(onReferencePlacementCommit).toHaveBeenCalledWith({ x: 2.5, y: 0, scale: 2 });
 	});
 
 	it('keeps middle-drag panning available from the read-only overlay', async () => {

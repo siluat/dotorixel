@@ -176,8 +176,8 @@ The row's fixed position is part of the model, not only CSS.
 
 ### Tool Behavior
 
-- Drawing tools (pencil, brush, eraser, bucket, shape, move) silently no-op when the Reference Layer is active. The canvas cursor switches to `not-allowed` on desktop; no toast and no disabled toolbar buttons.
-- Placement tools are the Reference overlay itself: body drag moves, corner drag uniformly scales, Shift snaps scale to integer multiples, arrows nudge placement.
+- Drawing tools (pencil, brush, eraser, bucket, shape) silently no-op when the Reference Layer is active. The canvas cursor switches to `not-allowed` on desktop; no toast and no disabled toolbar buttons.
+- The Move tool is the only selected tool that can translate the Reference overlay body. Corner handles remain direct placement controls regardless of the selected tool: corner drag uniformly scales, Shift snaps scale to integer multiples, arrows nudge placement.
 - Eyedropper and Canvas Sampling Sessions remain Pixel Layer sampling flows for v1. Sampling from the Reference source image is out of scope until the product deliberately decides whether reference color sampling should be part of this feature. This avoids reintroducing a hidden "reference as pixel buffer" assumption.
 
 ### Viewport Placement Overlay
@@ -187,10 +187,11 @@ When the active layer is Reference, the viewport renders:
 | Zone | Pointer action | Cursor |
 |---|---|---|
 | Four corner handles | Drag: uniform scale around opposite corner | `nwse-resize` / `nesw-resize` |
-| Body | Drag: translate | `move` |
+| Body | Move tool active: drag to translate. Other tools: no placement movement | `move` only while Move tool is active |
 | Outside placement | Tool default | Tool cursor |
 
 Edge-midpoint handles are omitted because placement is uniform-scale only.
+If the active Reference footprint overflows the visible document frame, viewport pan bounds expand to include that projected footprint so the actual corner handles remain reachable by panning.
 
 Commit semantics:
 

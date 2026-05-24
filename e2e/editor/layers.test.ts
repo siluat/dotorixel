@@ -136,6 +136,28 @@ test.describe('Layer panel — Reference Layer import', () => {
 		await expect(rows.nth(1)).not.toHaveText(/first\.png/);
 		await expect(rows.nth(1)).toHaveAttribute('aria-current', 'true');
 	});
+
+	test('fit-to-canvas updates the visible Reference placement immediately', async ({
+		editorPage
+	}) => {
+		const { page } = editorPage;
+
+		await importReferenceLayer(page, 'sketch.png');
+
+		const overlay = page.getByTestId('reference-placement-overlay');
+		await expect(overlay).toBeVisible();
+		const before = await overlay.boundingBox();
+		if (!before) throw new Error('Reference placement overlay has no bounding box');
+
+		await page.locator('[data-fit-reference-layer-to-canvas]').click();
+
+		await expect
+			.poll(async () => {
+				const after = await overlay.boundingBox();
+				return Math.round(after?.width ?? 0);
+			})
+			.toBeGreaterThan(Math.round(before.width * 8));
+	});
 });
 
 test.describe('Layer panel — remove layer', () => {

@@ -1,8 +1,9 @@
 <script lang="ts">
-	import type { CanvasCoords } from './canvas-model';
+	import type { CanvasCoords, ReferencePlacement } from './canvas-model';
 	import { viewportOps } from './wasm-backend';
 	import type { ViewportData, ViewportSize } from './viewport';
 	import type { SamplingSession } from './sampling/session.svelte';
+	import type { ToolType } from './tool-registry';
 	import * as m from '$lib/paraglide/messages';
 	import { createWheelInputClassifier } from './wheel-input.ts';
 	import {
@@ -17,6 +18,18 @@
 		type PointerType
 	} from './canvas-interaction.svelte';
 	import Loupe from '$lib/ui-editor/Loupe.svelte';
+
+	type ReferencePlacementHandle = 'nw' | 'ne' | 'se' | 'sw';
+	type PlacementDragKind =
+		| { type: 'move' }
+		| {
+				type: 'scale';
+				handle: ReferencePlacementHandle;
+				naturalWidth: number;
+				naturalHeight: number;
+		  };
+
+	const MIN_REFERENCE_PROJECTED_SIZE = 8;
 
 	interface Props {
 		pixelCanvas: RenderableCanvas;
@@ -33,6 +46,8 @@
 		onSampleUpdate?: (coords: CanvasCoords) => void;
 		onSampleEnd?: () => void;
 		onSampleCancel?: () => void;
+		onReferencePlacementCommit?: (placement: ReferencePlacement) => void;
+		activeTool?: ToolType;
 		toolCursor?: string;
 		isSpaceHeld?: boolean;
 		/**
@@ -58,6 +73,8 @@
 		onSampleUpdate,
 		onSampleEnd,
 		onSampleCancel,
+		onReferencePlacementCommit,
+		activeTool = 'pencil',
 		toolCursor = 'crosshair',
 		isSpaceHeld = false,
 		samplingSession
@@ -65,6 +82,20 @@
 
 	let canvasEl: HTMLCanvasElement | undefined = $state();
 	let placementOverlayPointerType = $state<PointerType>('mouse');
+	let draftReferencePlacement = $state<ReferencePlacement | null>(null);
+	let placementDrag:
+		| {
+				pointerId: number;
+				startClientX: number;
+				startClientY: number;
+				currentLocalX: number;
+				currentLocalY: number;
+				startPlacement: ReferencePlacement;
+				currentPlacement: ReferencePlacement;
+				pointerType: PointerType;
+				kind: PlacementDragKind;
+		  }
+		| null = $state(null);
 	let pendingOverlayTouch: { id: number; x: number; y: number } | null = null;
 	const forwardedOverlayPointerIds = new Set<number>();
 	// Last pointer screen coords. Cached so a window resize during an active
@@ -72,6 +103,12 @@
 	// without waiting for the next pointer event.
 	let lastScreen: { x: number; y: number } | null = null;
 	const classifyWheelInput = createWheelInputClassifier();
+	const displayedReferenceUnderlay = $derived(
+		referenceUnderlay && draftReferencePlacement
+			? { ...referenceUnderlay, placement: draftReferencePlacement }
+			: referenceUnderlay
+	);
+	const canMoveReferencePlacementBody = $derived(activeTool === 'move');
 
 	const canvasInteraction = createCanvasInteraction(
 		{
@@ -102,11 +139,12 @@
 		canvasEl.width = viewportSize.width;
 		canvasEl.height = viewportSize.height;
 
-		renderPixelCanvas(ctx, pixelCanvas, viewport, viewportSize, referenceUnderlay);
+		renderPixelCanvas(ctx, pixelCanvas, viewport, viewportSize, displayedReferenceUnderlay);
 	});
 
 	$effect(() => {
 		if (isReferenceLayerActive && referenceUnderlay) return;
+		cancelPlacementDrag();
 		cancelOverlayPointerState();
 	});
 
@@ -216,6 +254,10 @@
 
 	function handleWindowPointerMove(event: PointerEvent): void {
 		if (!canvasEl) return;
+		if (updatePlacementDrag(event)) {
+			event.preventDefault();
+			return;
+		}
 		pushPointerToSession(event);
 		const { x, y } = toLocal(event);
 		canvasInteraction.windowPointerMove(event.pointerId, x, y, event.buttons);
@@ -223,6 +265,7 @@
 
 	function handlePointerUp(event: PointerEvent): void {
 		if (!canvasEl) return;
+		if (commitPlacementDrag(event)) return;
 		forwardedOverlayPointerIds.delete(event.pointerId);
 		if (pendingOverlayTouch?.id === event.pointerId) pendingOverlayTouch = null;
 		const { x, y } = toLocal(event);
@@ -241,6 +284,10 @@
 	}
 
 	function handleWindowPointerCancel(event: PointerEvent): void {
+		if (placementDrag?.pointerId === event.pointerId) {
+			cancelPlacementDrag();
+			return;
+		}
 		if (pendingOverlayTouch?.id === event.pointerId) {
 			pendingOverlayTouch = null;
 			return;
@@ -251,8 +298,15 @@
 	}
 
 	function handleWindowBlur(): void {
+		cancelPlacementDrag();
 		clearOverlayPointerState();
 		canvasInteraction.blur();
+	}
+
+	function handleWindowKeyDown(event: KeyboardEvent): void {
+		if (event.key !== 'Escape' || !placementDrag) return;
+		event.preventDefault();
+		cancelPlacementDrag();
 	}
 
 	function clearOverlayPointerState(): void {
@@ -266,6 +320,177 @@
 			canvasInteraction.pointerCancel(pointerId);
 		}
 		forwardedOverlayPointerIds.clear();
+	}
+
+	function scaledCanvasPixel(): number {
+		return Math.round(viewport.pixelSize * viewport.zoom);
+	}
+
+	function documentDeltaFromDrag(event: PointerEvent): { x: number; y: number } | null {
+		if (!placementDrag) return null;
+		const pixel = scaledCanvasPixel();
+		return {
+			x: (event.clientX - placementDrag.startClientX) / pixel,
+			y: (event.clientY - placementDrag.startClientY) / pixel
+		};
+	}
+
+	function placementFromBodyDrag(event: PointerEvent): ReferencePlacement | null {
+		if (!placementDrag) return null;
+		const delta = documentDeltaFromDrag(event);
+		if (!delta) return null;
+		return {
+			x: placementDrag.startPlacement.x + delta.x,
+			y: placementDrag.startPlacement.y + delta.y,
+			scale: placementDrag.startPlacement.scale
+		};
+	}
+
+	function scaleDragSigns(handle: ReferencePlacementHandle): { x: -1 | 1; y: -1 | 1 } {
+		switch (handle) {
+			case 'nw':
+				return { x: -1, y: -1 };
+			case 'ne':
+				return { x: 1, y: -1 };
+			case 'se':
+				return { x: 1, y: 1 };
+			case 'sw':
+				return { x: -1, y: 1 };
+		}
+	}
+
+	function placementFromScaleDrag(event: PointerEvent): ReferencePlacement | null {
+		if (!placementDrag || placementDrag.kind.type !== 'scale') return null;
+		const delta = documentDeltaFromDrag(event);
+		if (!delta) return null;
+
+		const { handle, naturalWidth, naturalHeight } = placementDrag.kind;
+		const start = placementDrag.startPlacement;
+		const signs = scaleDragSigns(handle);
+		const basisX = signs.x * naturalWidth;
+		const basisY = signs.y * naturalHeight;
+		const candidateX = signs.x * naturalWidth * start.scale + delta.x;
+		const candidateY = signs.y * naturalHeight * start.scale + delta.y;
+		const rawScale =
+			(candidateX * basisX + candidateY * basisY) / (basisX * basisX + basisY * basisY);
+		const minScale = Math.max(
+			MIN_REFERENCE_PROJECTED_SIZE / naturalWidth,
+			MIN_REFERENCE_PROJECTED_SIZE / naturalHeight
+		);
+		const scale = Math.max(rawScale, minScale);
+		const width = naturalWidth * scale;
+		const height = naturalHeight * scale;
+		const startRight = start.x + naturalWidth * start.scale;
+		const startBottom = start.y + naturalHeight * start.scale;
+
+		switch (handle) {
+			case 'nw':
+				return { x: startRight - width, y: startBottom - height, scale };
+			case 'ne':
+				return { x: start.x, y: startBottom - height, scale };
+			case 'se':
+				return { x: start.x, y: start.y, scale };
+			case 'sw':
+				return { x: startRight - width, y: start.y, scale };
+		}
+	}
+
+	function placementFromDrag(event: PointerEvent): ReferencePlacement | null {
+		if (placementDrag?.kind.type === 'scale') return placementFromScaleDrag(event);
+		return placementFromBodyDrag(event);
+	}
+
+	function placementHandleFromEvent(event: PointerEvent): ReferencePlacementHandle | null {
+		if (!(event.target instanceof Element)) return null;
+		const handleEl = event.target.closest('[data-reference-placement-handle]');
+		const handle = handleEl?.getAttribute('data-reference-placement-handle');
+		if (handle === 'nw' || handle === 'ne' || handle === 'se' || handle === 'sw') {
+			return handle;
+		}
+		return null;
+	}
+
+	function capturePlacementPointer(event: PointerEvent): void {
+		if (!(event.currentTarget instanceof HTMLElement)) return;
+		if (typeof event.currentTarget.setPointerCapture !== 'function') return;
+		try {
+			event.currentTarget.setPointerCapture(event.pointerId);
+		} catch {
+			// Drag still works through window handlers when capture is unavailable.
+		}
+	}
+
+	function startPlacementDrag(event: PointerEvent, local: { x: number; y: number }): boolean {
+		if (!referenceUnderlay || !isReferenceLayerActive || isSpaceHeld || event.button !== 0) {
+			return false;
+		}
+		const startPlacement = referenceUnderlay.placement;
+		const handle = placementHandleFromEvent(event);
+		if (!handle && !canMoveReferencePlacementBody) return false;
+		placementDrag = {
+			pointerId: event.pointerId,
+			startClientX: event.clientX,
+			startClientY: event.clientY,
+			currentLocalX: local.x,
+			currentLocalY: local.y,
+			startPlacement,
+			currentPlacement: startPlacement,
+			pointerType: normalizePointerType(event.pointerType),
+			kind: handle
+				? {
+						type: 'scale',
+						handle,
+						naturalWidth: referenceUnderlay.naturalWidth,
+						naturalHeight: referenceUnderlay.naturalHeight
+					}
+				: { type: 'move' }
+		};
+		draftReferencePlacement = startPlacement;
+		capturePlacementPointer(event);
+		return true;
+	}
+
+	function updatePlacementDrag(event: PointerEvent): boolean {
+		if (!placementDrag || placementDrag.pointerId !== event.pointerId) return false;
+		const next = placementFromDrag(event);
+		if (!next) return false;
+		const { x, y } = toLocal(event);
+		placementDrag = {
+			...placementDrag,
+			currentPlacement: next,
+			currentLocalX: x,
+			currentLocalY: y
+		};
+		draftReferencePlacement = next;
+		return true;
+	}
+
+	function commitPlacementDrag(event: PointerEvent): boolean {
+		if (!placementDrag || placementDrag.pointerId !== event.pointerId) return false;
+		const placement = placementDrag.currentPlacement;
+		placementDrag = null;
+		draftReferencePlacement = null;
+		onReferencePlacementCommit?.(placement);
+		return true;
+	}
+
+	function cancelPlacementDrag(): void {
+		placementDrag = null;
+		draftReferencePlacement = null;
+	}
+
+	function forwardActiveTouchPlacementDrag(): void {
+		if (!placementDrag || placementDrag.pointerType !== 'touch') return;
+		const activeDrag = placementDrag;
+		cancelPlacementDrag();
+		canvasInteraction.pointerDown(
+			activeDrag.pointerId,
+			activeDrag.currentLocalX,
+			activeDrag.currentLocalY,
+			'touch',
+			0
+		);
+		forwardedOverlayPointerIds.add(activeDrag.pointerId);
 	}
 
 	function blockOverlayPointerEvent(event: PointerEvent): void {
@@ -295,14 +520,25 @@
 		placementOverlayPointerType = pointerType;
 		const { x, y } = toLocal(event);
 
+		if (pointerType !== 'touch' && startPlacementDrag(event, { x, y })) {
+			blockOverlayPointerEvent(event);
+			return;
+		}
+
 		if (pointerType === 'touch') {
-			if (pendingOverlayTouch && pendingOverlayTouch.id !== event.pointerId) {
+			if (placementDrag?.pointerType === 'touch' && placementDrag.pointerId !== event.pointerId) {
+				forwardActiveTouchPlacementDrag();
+				canvasInteraction.pointerDown(event.pointerId, x, y, pointerType, event.button);
+				forwardedOverlayPointerIds.add(event.pointerId);
+			} else if (pendingOverlayTouch && pendingOverlayTouch.id !== event.pointerId) {
 				forwardPendingOverlayTouch();
 				canvasInteraction.pointerDown(event.pointerId, x, y, pointerType, event.button);
 				forwardedOverlayPointerIds.add(event.pointerId);
 			} else if (canvasInteraction.interactionType !== 'idle') {
 				canvasInteraction.pointerDown(event.pointerId, x, y, pointerType, event.button);
 				forwardedOverlayPointerIds.add(event.pointerId);
+			} else if (startPlacementDrag(event, { x, y })) {
+				pendingOverlayTouch = null;
 			} else {
 				pendingOverlayTouch = { id: event.pointerId, x, y };
 			}
@@ -323,6 +559,10 @@
 			return;
 		}
 		placementOverlayPointerType = normalizePointerType(event.pointerType);
+		if (updatePlacementDrag(event)) {
+			blockOverlayPointerEvent(event);
+			return;
+		}
 		const { x, y } = toLocal(event);
 		if (pendingOverlayTouch?.id === event.pointerId) {
 			pendingOverlayTouch = { id: event.pointerId, x, y };
@@ -334,6 +574,10 @@
 	}
 
 	function handleOverlayPointerUp(event: PointerEvent): void {
+		if (commitPlacementDrag(event)) {
+			blockOverlayPointerEvent(event);
+			return;
+		}
 		if (pendingOverlayTouch?.id === event.pointerId) pendingOverlayTouch = null;
 		if (canvasEl && forwardedOverlayPointerIds.has(event.pointerId)) {
 			const { x, y } = toLocal(event);
@@ -344,6 +588,11 @@
 	}
 
 	function handleOverlayPointerCancel(event: PointerEvent): void {
+		if (placementDrag?.pointerId === event.pointerId) {
+			cancelPlacementDrag();
+			blockOverlayPointerEvent(event);
+			return;
+		}
 		if (pendingOverlayTouch?.id === event.pointerId) pendingOverlayTouch = null;
 		if (forwardedOverlayPointerIds.has(event.pointerId)) {
 			canvasInteraction.pointerCancel(event.pointerId);
@@ -357,6 +606,7 @@
 	onpointermove={handleWindowPointerMove}
 	onpointerup={handlePointerUp}
 	onpointercancel={handleWindowPointerCancel}
+	onkeydown={handleWindowKeyDown}
 	onblur={handleWindowBlur}
 	onresize={handleWindowResize}
 />
@@ -378,10 +628,11 @@
 ></canvas>
 
 <ReferenceLayerPlacementOverlay
-	{referenceUnderlay}
+	referenceUnderlay={displayedReferenceUnderlay}
 	{viewport}
 	{isReferenceLayerActive}
 	pointerType={placementOverlayPointerType}
+	canMoveBody={canMoveReferencePlacementBody}
 	onReadOnlyPointerDown={handleOverlayPointerDown}
 	onReadOnlyPointerMove={handleOverlayPointerMove}
 	onReadOnlyPointerUp={handleOverlayPointerUp}

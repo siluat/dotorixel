@@ -76,6 +76,38 @@ describe('ViewportOps camera transforms', () => {
 		expect(clamped.panY).toBe(0);
 	});
 
+	it('clampPanToDocumentBounds lets negative document-space content stay reachable', () => {
+		const requested = { ...defaultVd, panX: 10000, panY: 10000 };
+		const clamped = viewportOps.clampPanToDocumentBounds(
+			requested,
+			-10,
+			-4,
+			16,
+			16,
+			512,
+			512
+		);
+
+		expect(clamped.panX).toBe(800);
+		expect(clamped.panY).toBe(608);
+	});
+
+	it('clampPanToDocumentBounds lets positive out-of-canvas content stay reachable', () => {
+		const requested = { ...defaultVd, panX: -10000, panY: -10000 };
+		const clamped = viewportOps.clampPanToDocumentBounds(
+			requested,
+			0,
+			0,
+			48,
+			24,
+			512,
+			512
+		);
+
+		expect(clamped.panX).toBe(-1504);
+		expect(clamped.panY).toBe(-736);
+	});
+
 	it('fitToViewport fits canvas within viewport', () => {
 		// Use a 512×512 viewport where 16×16 canvas (pixelSize=32) fits exactly at zoom=1.0
 		const fitted = viewportOps.fitToViewport(defaultVd, 16, 16, 512, 512, Infinity);

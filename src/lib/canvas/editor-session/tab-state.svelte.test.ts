@@ -743,6 +743,24 @@ describe('TabState — Reference underlay render source', () => {
 		expect(notifier.dirtyCalls).toEqual(['doc-test']);
 	});
 
+	it('commits each Reference placement change as a separate undo step', () => {
+		const { document, referenceId } = makeReferenceDocumentWithPlacement({
+			x: 0,
+			y: 0,
+			scale: 1
+		});
+		const { tab } = makeTab({ document });
+
+		tab.setReferencePlacement(referenceId, { x: 1, y: 0, scale: 1 });
+		tab.setReferencePlacement(referenceId, { x: 2, y: 0, scale: 1 });
+
+		tab.undo();
+		expect(tab.referenceUnderlay?.placement).toEqual({ x: 1, y: 0, scale: 1 });
+
+		tab.undo();
+		expect(tab.referenceUnderlay?.placement).toEqual({ x: 0, y: 0, scale: 1 });
+	});
+
 	it('expands viewport pan bounds to the active visible Reference footprint', () => {
 		const { document } = makeReferenceDocumentWithPlacement({
 			x: 30,

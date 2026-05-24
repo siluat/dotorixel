@@ -218,6 +218,216 @@ describe('PixelCanvasView', () => {
 		expect(onReferencePlacementCommit).toHaveBeenCalledWith({ x: 2.5, y: 0, scale: 2 });
 	});
 
+	it('commits a one-pixel Reference placement nudge from ArrowRight when the canvas is focused', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				onReferencePlacementCommit
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.keyDown(canvas, { code: 'ArrowRight', key: 'ArrowRight' });
+
+		expect(onReferencePlacementCommit).toHaveBeenCalledTimes(1);
+		expect(onReferencePlacementCommit).toHaveBeenCalledWith({ x: 1.5, y: 1, scale: 2 });
+	});
+
+	it('maps every arrow key to a one-pixel Reference placement nudge', async () => {
+		const cases = [
+			['ArrowUp', { x: 0.5, y: 0, scale: 2 }],
+			['ArrowDown', { x: 0.5, y: 2, scale: 2 }],
+			['ArrowLeft', { x: -0.5, y: 1, scale: 2 }],
+			['ArrowRight', { x: 1.5, y: 1, scale: 2 }]
+		] as const;
+
+		for (const [code, expected] of cases) {
+			cleanup();
+			const onReferencePlacementCommit = vi.fn();
+			render(PixelCanvasView, {
+				props: {
+					pixelCanvas,
+					referenceUnderlay,
+					viewport,
+					viewportSize: { width: 100, height: 100 },
+					isReferenceLayerActive: true,
+					onReferencePlacementCommit
+				}
+			});
+
+			const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+			await fireEvent.keyDown(canvas, { code, key: code });
+
+			expect(onReferencePlacementCommit).toHaveBeenCalledWith(expected);
+		}
+	});
+
+	it('commits a ten-pixel Reference placement nudge from Shift+ArrowUp', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				onReferencePlacementCommit
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.keyDown(canvas, { code: 'ArrowUp', key: 'ArrowUp', shiftKey: true });
+
+		expect(onReferencePlacementCommit).toHaveBeenCalledTimes(1);
+		expect(onReferencePlacementCommit).toHaveBeenCalledWith({ x: 0.5, y: -9, scale: 2 });
+	});
+
+	it('commits repeated Reference placement nudges as separate accumulated placements', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				onReferencePlacementCommit
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.keyDown(canvas, { code: 'ArrowRight', key: 'ArrowRight' });
+		await fireEvent.keyDown(canvas, { code: 'ArrowRight', key: 'ArrowRight', repeat: true });
+
+		expect(onReferencePlacementCommit).toHaveBeenNthCalledWith(1, { x: 1.5, y: 1, scale: 2 });
+		expect(onReferencePlacementCommit).toHaveBeenNthCalledWith(2, { x: 2.5, y: 1, scale: 2 });
+	});
+
+	it('previews the nudged Reference placement in the overlay immediately', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				onReferencePlacementCommit
+			}
+		});
+
+		const overlay = screen.getByTestId('reference-placement-overlay');
+		expect(overlay.style.left).toBe('8px');
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.keyDown(canvas, { code: 'ArrowRight', key: 'ArrowRight' });
+		await tick();
+
+		expect(overlay.style.left).toBe('18px');
+		expect(overlay.style.top).toBe('15px');
+	});
+
+	it('allows Reference placement nudge after the overlay gives focus back to the canvas', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				activeTool: 'pencil',
+				onReferencePlacementCommit
+			}
+		});
+
+		const overlay = screen.getByTestId('reference-placement-overlay');
+		await fireEvent.pointerDown(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 10,
+			clientY: 20
+		});
+		await fireEvent.keyDown(document.activeElement ?? document.body, {
+			code: 'ArrowRight',
+			key: 'ArrowRight'
+		});
+
+		expect(onReferencePlacementCommit).toHaveBeenCalledWith({ x: 1.5, y: 1, scale: 2 });
+	});
+
+	it('does not nudge Reference placement from a non-canvas keyboard target', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				onReferencePlacementCommit
+			}
+		});
+
+		await fireEvent.keyDown(document.body, { code: 'ArrowRight', key: 'ArrowRight' });
+
+		expect(onReferencePlacementCommit).not.toHaveBeenCalled();
+	});
+
+	it('does not nudge Reference placement while a Pixel Layer is active', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: false,
+				onReferencePlacementCommit
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.keyDown(canvas, { code: 'ArrowRight', key: 'ArrowRight' });
+
+		expect(onReferencePlacementCommit).not.toHaveBeenCalled();
+	});
+
+	it('does not nudge Reference placement during an active placement drag', async () => {
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				activeTool: 'move',
+				onReferencePlacementCommit
+			}
+		});
+
+		const overlay = screen.getByTestId('reference-placement-overlay');
+		await fireEvent.pointerDown(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 10,
+			clientY: 20
+		});
+		await fireEvent.keyDown(screen.getByRole('application', { name: 'Pixel art canvas' }), {
+			code: 'ArrowRight',
+			key: 'ArrowRight'
+		});
+
+		expect(onReferencePlacementCommit).not.toHaveBeenCalled();
+	});
+
 	it('does not move the Reference placement from the overlay body unless the Move tool is active', async () => {
 		const onReferencePlacementCommit = vi.fn();
 		render(PixelCanvasView, {

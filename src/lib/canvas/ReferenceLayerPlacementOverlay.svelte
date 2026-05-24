@@ -88,6 +88,7 @@
 	<div
 		class="reference-placement-overlay"
 		data-testid="reference-placement-overlay"
+		data-reference-placement-overlay
 		aria-hidden="true"
 		style:left={`${projectedRect.left}px`}
 		style:top={`${projectedRect.top}px`}

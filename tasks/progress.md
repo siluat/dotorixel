@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-Reference Layer type — tracing reference for pixel artwork ([PRD](../issues/105-reference-layer-type.md)). Placement drag controls are complete; 17 sub-issues are done and 4 remain. Shift-snap scale is now unblocked.
+Reference Layer type — tracing reference for pixel artwork ([PRD](../issues/105-reference-layer-type.md)). Placement drag controls are complete; 17 sub-issues are done, issue 122 is cancelled, and 3 implementation sub-issues remain.
 
 ## Last Completed
 
@@ -10,7 +10,6 @@ Reference Layer type — tracing reference for pixel artwork ([PRD](../issues/10
 
 ## Next Up
 
-- 122 — Reference Layer: placement overlay Shift-snap to integer scale
 - 123 — Reference Layer: keyboard nudge for placement
 - 124 — Reference Layer: drawing tools no-op + not-allowed cursor
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)

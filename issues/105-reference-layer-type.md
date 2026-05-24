@@ -58,7 +58,7 @@ Reference Window remains unchanged: file drops onto the canvas create Reference 
 18. As a pixel artist importing a reference much larger than my canvas, I want the initial placement to auto-fit aspect-preservingly so I can see the whole reference at once.
 19. As a pixel artist resizing my canvas while a Reference Layer is in place, I want the placement to follow the chosen anchor, so that anchor selection means the same thing for the underlay.
 20. As a pixel artist using a precise reference, I want to nudge the active Reference Layer 1 pixel at a time with arrow keys, so that I can align it without mouse precision.
-21. As a pixel artist who wants a clean scale, I want Shift while dragging a corner handle to snap to integer scale multiples.
+21. Cancelled on 2026-05-24: Shift while dragging a corner handle does not snap to absolute integer scale multiples in v1.
 22. As a pixel artist importing a large file, I want the Reference row to show a loading state and the import button to become busy, so that I get immediate feedback.
 23. As a pixel artist who picked an unsupported or corrupt file, I want a brief error toast and no leftover row.
 24. As a pixel artist whose storage quota is near full, I want failed import or replacement to roll back cleanly with a clear toast.
@@ -177,7 +177,7 @@ The row's fixed position is part of the model, not only CSS.
 ### Tool Behavior
 
 - Drawing tools (pencil, brush, eraser, bucket, shape) silently no-op when the Reference Layer is active. The canvas cursor switches to `not-allowed` on desktop; no toast and no disabled toolbar buttons.
-- The Move tool is the only selected tool that can translate the Reference overlay body. Corner handles remain direct placement controls regardless of the selected tool: corner drag uniformly scales, Shift snaps scale to integer multiples, arrows nudge placement.
+- The Move tool is the only selected tool that can translate the Reference overlay body. Corner handles remain direct placement controls regardless of the selected tool: corner drag uniformly scales, and arrows nudge placement.
 - Eyedropper and Canvas Sampling Sessions remain Pixel Layer sampling flows for v1. Sampling from the Reference source image is out of scope until the product deliberately decides whether reference color sampling should be part of this feature. This avoids reintroducing a hidden "reference as pixel buffer" assumption.
 
 ### Viewport Placement Overlay
@@ -285,6 +285,12 @@ Make dropping files on the canvas set the document Reference Layer.
 
 **Rejected because**: drops already belong to Reference Window's low-commitment preview/sampling workflow. Reference Layer is deliberate trace setup and uses the Timeline Panel icon.
 
+### Shift snaps placement scale to absolute integer multiples
+
+While corner-dragging the Reference placement overlay, snap `placement.scale` to `1.0, 2.0, 3.0, ...` when Shift is held.
+
+**Rejected for v1**: `ReferencePlacement.scale` is absolute source-image-to-document-pixel scale. Large references fit into small canvases with useful fractional scales far below `1.0`; snapping to `1.0` makes the reference image jump to a huge footprint. This is not the intended clean-scale behavior. Future clean-placement constraints should be designed explicitly, likely as relative-to-fit snapping, numeric placement controls, or source-pixel alignment.
+
 ## Out of Scope
 
 - Rasterize Reference Layer into a Pixel Layer.
@@ -312,6 +318,7 @@ This PRD was corrected on 2026-05-22 after implementation review revealed the ol
 - 117's kind icon and activation remain useful, but reorder support for Reference is superseded. The Timeline row must remove Reference reorder affordances.
 - 118 now implements set/replace with confirmation rather than append-new-layer import.
 - 126 is the correction slice that brings the already-landed core/render/persistence foundation back in line before 118 proceeds.
+- 122 is cancelled: absolute integer-scale snapping is not part of Reference Layer v1.
 
 ## Further Notes
 

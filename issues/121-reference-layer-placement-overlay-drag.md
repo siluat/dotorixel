@@ -70,4 +70,4 @@ Scope:
 
 ### Notes
 
-- Shift integer-scale snapping, keyboard nudge, and non-Move drawing-tool cursor/no-op polish remain in sibling issues.
+- Keyboard nudge and non-Move drawing-tool cursor/no-op polish remain in sibling issues. Shift integer-scale snapping was later cancelled in issue 122.

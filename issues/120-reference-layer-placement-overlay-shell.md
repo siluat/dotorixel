@@ -11,7 +11,7 @@ parent: 105-reference-layer-type.md
 
 ## What to build
 
-A viewport overlay that renders the active Reference Layer's placement rectangle and four corner handles. Read-only: no interaction yet. Drag-to-move, drag-to-scale, Shift-snap, and keyboard nudge land in subsequent slices.
+A viewport overlay that renders the active Reference Layer's placement rectangle and four corner handles. Read-only: no interaction yet. Drag-to-move, drag-to-scale, and keyboard nudge land in subsequent slices.
 
 The overlay must align with the Reference underlay drawn by the shell renderer. It must not use `Document.composite()` as the source of truth, because Reference pixels are no longer part of the document pixel buffer.
 
@@ -65,4 +65,4 @@ Scope:
 
 ### Notes
 
-- Drag-to-move, drag-to-scale, Shift snapping, keyboard nudge, and Reference-active drawing-tool cursor/no-op behavior remain in follow-up slices.
+- Drag-to-move, drag-to-scale, keyboard nudge, and Reference-active drawing-tool cursor/no-op behavior remain in follow-up slices.

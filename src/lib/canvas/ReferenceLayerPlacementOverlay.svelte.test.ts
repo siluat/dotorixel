@@ -114,24 +114,25 @@ describe('ReferenceLayerPlacementOverlay', () => {
 		expect(event.defaultPrevented).toBe(true);
 	});
 
-	it('shows the body move cursor only when body movement is enabled', () => {
-		const { rerender } = render(ReferenceLayerPlacementOverlay, {
+	it('uses auto as the default body cursor', () => {
+		render(ReferenceLayerPlacementOverlay, {
 			referenceUnderlay,
 			viewport,
-			isReferenceLayerActive: true,
-			canMoveBody: false
+			isReferenceLayerActive: true
 		});
 
 		const overlay = screen.getByTestId('reference-placement-overlay');
 		expect(overlay.style.cursor).toBe('auto');
+	});
 
-		rerender({
+	it('uses the provided body cursor', () => {
+		render(ReferenceLayerPlacementOverlay, {
 			referenceUnderlay,
 			viewport,
 			isReferenceLayerActive: true,
-			canMoveBody: true
+			bodyCursor: 'not-allowed'
 		});
 
-		expect(overlay.style.cursor).toBe('move');
+		expect(screen.getByTestId('reference-placement-overlay').style.cursor).toBe('not-allowed');
 	});
 });

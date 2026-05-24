@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import PixelCanvasView from './PixelCanvasView.svelte';
+import type { ToolType } from './tool-registry';
 import type { ReferenceUnderlay, RenderableCanvas } from './renderer';
 import type { ViewportData } from './viewport';
 
@@ -108,6 +109,121 @@ afterEach(() => {
 });
 
 describe('PixelCanvasView', () => {
+	const drawingTools: readonly ToolType[] = [
+		'pencil',
+		'eraser',
+		'floodfill',
+		'line',
+		'rectangle',
+		'ellipse'
+	];
+
+	it.each(drawingTools)('uses not-allowed cursor for %s while Reference is active', (activeTool) => {
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				activeTool,
+				toolCursor: 'crosshair'
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		expect(canvas.style.cursor).toBe('not-allowed');
+	});
+
+	it('uses not-allowed cursor over the Reference image body for drawing tools', () => {
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				activeTool: 'pencil',
+				toolCursor: 'crosshair'
+			}
+		});
+
+		expect(screen.getByTestId('reference-placement-overlay').style.cursor).toBe('not-allowed');
+	});
+
+	it('keeps the Move cursor while Reference is active', () => {
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				activeTool: 'move',
+				toolCursor: 'move'
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		expect(canvas.style.cursor).toBe('move');
+		expect(screen.getByTestId('reference-placement-overlay').style.cursor).toBe('move');
+	});
+
+	it('keeps the normal drawing cursor after switching back to a Pixel Layer', () => {
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: false,
+				activeTool: 'pencil',
+				toolCursor: 'crosshair'
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		expect(canvas.style.cursor).toBe('crosshair');
+	});
+
+	it('keeps the Space-pan cursor over the Reference image body', () => {
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				activeTool: 'pencil',
+				toolCursor: 'crosshair',
+				isSpaceHeld: true
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		expect(canvas.style.cursor).toBe('grab');
+		expect(screen.getByTestId('reference-placement-overlay').style.cursor).toBe('grab');
+	});
+
+	it('does not apply the desktop blocked cursor after touch input reaches the canvas', async () => {
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				activeTool: 'pencil',
+				toolCursor: 'crosshair'
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.pointerMove(canvas, { pointerType: 'touch', clientX: 1, clientY: 1 });
+
+		expect(canvas.style.cursor).toBe('crosshair');
+	});
+
 	it('renders the Reference placement overlay when the Reference Layer is active', () => {
 		render(PixelCanvasView, {
 			props: {
@@ -771,9 +887,11 @@ describe('PixelCanvasView', () => {
 			clientX: 20,
 			clientY: 25
 		});
+		await tick();
 
 		expect(onDrawStart).not.toHaveBeenCalled();
 		expect(onViewportChange).toHaveBeenCalled();
+		expect(screen.getByTestId('reference-placement-overlay').style.cursor).toBe('grabbing');
 	});
 
 	it('keeps Space-drag panning available from the read-only overlay', async () => {

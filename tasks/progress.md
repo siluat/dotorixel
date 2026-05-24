@@ -2,15 +2,14 @@
 
 ## Currently Working On
 
-Reference Layer type — tracing reference for pixel artwork ([PRD](../issues/105-reference-layer-type.md)). Keyboard placement nudge is complete; 18 sub-issues are done, issue 122 is cancelled, and 2 implementation sub-issues remain.
+Reference Layer type — tracing reference for pixel artwork ([PRD](../issues/105-reference-layer-type.md)). Drawing tools now silently no-op on the active Reference Layer; 19 sub-issues are done, issue 122 is cancelled, and 1 implementation sub-issue remains.
 
 ## Last Completed
 
-[123 — Reference Layer: keyboard nudge for placement](../issues/123-reference-layer-placement-overlay-keyboard-nudge.md). Reference placement now supports arrow-key nudge with Shift-step acceleration, focus filtering, and one undo step per key event.
+[124 — Reference Layer: drawing tools silently no-op + `not-allowed` cursor](../issues/124-reference-layer-drawing-tools-no-op-and-cursor.md). Reference-active drawing tools and Move no-op without mutating pixels, and desktop cursor feedback is consistent over the canvas and Reference overlay.
 
 ## Next Up
 
-- 124 — Reference Layer: drawing tools no-op + not-allowed cursor
 - 125 — Reference Layer: eyedropper and sampling stay Pixel-only
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
 - Apple Phase 1 — Enable clear canvas (existing disabled button)

@@ -6,8 +6,9 @@ import type { SamplingSession } from './sampling/session.svelte';
 import type { SharedState } from './shared-state.svelte';
 import type { SessionHost, StrokeSpec } from './tool-authoring';
 import type { EditorEffects, ToolRunnerHost } from './tool-runner.svelte';
+import { NO_EFFECTS } from './draw-tool';
 import { createDocumentDrawingOps } from './wasm-backend';
-import { createAllTools } from './tool-registry';
+import { createAllTools, isPixelMutationTool } from './tool-registry';
 
 /**
  * Thin per-stroke handle returned from `StrokeEngine.begin()`. Three methods:
@@ -48,6 +49,24 @@ export interface StrokeEngine {
 	};
 }
 
+function noOpStroke(): ActiveStroke {
+	return {
+		sample: () => NO_EFFECTS,
+		refresh: () => NO_EFFECTS,
+		end: () => NO_EFFECTS
+	};
+}
+
+function isActiveLayerReference(document: ToolRunnerHost['document']): boolean {
+	const activeId = document.active_layer_id();
+	for (let i = 0; i < document.layer_count(); i++) {
+		if (document.layer_id_at(i) === activeId) {
+			return document.layer_kind_at(i) === 'reference';
+		}
+	}
+	return false;
+}
+
 /**
  * Single entry point the tool runner uses to drive a stroke. On each `begin()`:
  *
@@ -68,7 +87,12 @@ export function createStrokeEngine(deps: StrokeEngineDeps): StrokeEngine {
 
 	return {
 		begin({ button, pointerType }) {
-			const tool = tools[deps.shared.activeTool];
+			const activeTool = deps.shared.activeTool;
+			if (isPixelMutationTool(activeTool) && isActiveLayerReference(deps.host.document)) {
+				return { stroke: noOpStroke(), effects: NO_EFFECTS };
+			}
+
+			const tool = tools[activeTool];
 			const drawColor: Color =
 				button === 2 ? deps.host.backgroundColor : deps.host.foregroundColor;
 			const inputSource: LoupeInputSource = pointerType === 'touch' ? 'touch' : 'mouse';

@@ -52,6 +52,8 @@ export interface ToolDef {
 	readonly cursor: string;
 	readonly shortcutKey: string;
 	readonly tool: DrawTool;
+	readonly isDrawingTool: boolean;
+	readonly isPixelMutationTool: boolean;
 }
 
 // ── Registry ───────────────────────────────────────────────────────
@@ -61,14 +63,62 @@ export interface ToolDef {
  * Keys determine ToolType union and toolbar display order.
  */
 const TOOL_DEFS = {
-	pencil:     { cursor: 'crosshair', shortcutKey: 'P', tool: pencilTool },
-	eraser:     { cursor: 'crosshair', shortcutKey: 'E', tool: eraserTool },
-	line:       { cursor: 'crosshair', shortcutKey: 'L', tool: lineTool },
-	rectangle:  { cursor: 'crosshair', shortcutKey: 'U', tool: rectangleTool },
-	ellipse:    { cursor: 'crosshair', shortcutKey: 'O', tool: ellipseTool },
-	floodfill:  { cursor: 'crosshair', shortcutKey: 'F', tool: floodfillTool },
-	eyedropper: { cursor: 'crosshair', shortcutKey: 'I', tool: eyedropperTool },
-	move:       { cursor: 'move',      shortcutKey: 'V', tool: moveTool }
+	pencil: {
+		cursor: 'crosshair',
+		shortcutKey: 'P',
+		tool: pencilTool,
+		isDrawingTool: true,
+		isPixelMutationTool: true
+	},
+	eraser: {
+		cursor: 'crosshair',
+		shortcutKey: 'E',
+		tool: eraserTool,
+		isDrawingTool: true,
+		isPixelMutationTool: true
+	},
+	line: {
+		cursor: 'crosshair',
+		shortcutKey: 'L',
+		tool: lineTool,
+		isDrawingTool: true,
+		isPixelMutationTool: true
+	},
+	rectangle: {
+		cursor: 'crosshair',
+		shortcutKey: 'U',
+		tool: rectangleTool,
+		isDrawingTool: true,
+		isPixelMutationTool: true
+	},
+	ellipse: {
+		cursor: 'crosshair',
+		shortcutKey: 'O',
+		tool: ellipseTool,
+		isDrawingTool: true,
+		isPixelMutationTool: true
+	},
+	floodfill: {
+		cursor: 'crosshair',
+		shortcutKey: 'F',
+		tool: floodfillTool,
+		isDrawingTool: true,
+		isPixelMutationTool: true
+	},
+	eyedropper: {
+		cursor: 'crosshair',
+		shortcutKey: 'I',
+		tool: eyedropperTool,
+		isDrawingTool: false,
+		isPixelMutationTool: false
+	},
+	move: {
+		cursor: 'move',
+		shortcutKey: 'V',
+		tool: moveTool,
+		isDrawingTool: false,
+		isPixelMutationTool: true
+	}
 } as const satisfies Record<string, ToolDef>;
 
 // ── Derived exports ────────────────────────────────────────────────
@@ -82,6 +132,16 @@ export const TOOL_TYPES: readonly ToolType[] = Object.keys(TOOL_DEFS) as ToolTyp
 /** Look up a single tool's static definition. */
 export function getToolDef(type: ToolType): ToolDef {
 	return TOOL_DEFS[type];
+}
+
+/** Drawing tools paint, erase, fill, or preview pixels on a Pixel Layer. */
+export function isDrawingTool(type: ToolType): boolean {
+	return TOOL_DEFS[type].isDrawingTool;
+}
+
+/** Tools whose canvas stroke path mutates Pixel Layer pixels. */
+export function isPixelMutationTool(type: ToolType): boolean {
+	return TOOL_DEFS[type].isPixelMutationTool;
 }
 
 /** Collect all DrawTool instances. Called once at engine construction. */

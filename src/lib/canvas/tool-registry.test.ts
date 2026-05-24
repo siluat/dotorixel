@@ -8,7 +8,9 @@ import {
 	TOOL_SHORTCUTS,
 	getToolDef,
 	createAllTools,
-	isValidToolType
+	isValidToolType,
+	isDrawingTool,
+	isPixelMutationTool
 } from './tool-registry';
 
 // ── constrainLine ──────────────────────────────────────────────────
@@ -119,5 +121,28 @@ describe('tool registry', () => {
 			expect(isValidToolType(type)).toBe(true);
 		}
 		expect(isValidToolType('nonexistent')).toBe(false);
+	});
+
+	it('classifies drawing tools from registry metadata', () => {
+		expect(TOOL_TYPES.filter(isDrawingTool)).toEqual([
+			'pencil',
+			'eraser',
+			'line',
+			'rectangle',
+			'ellipse',
+			'floodfill'
+		]);
+	});
+
+	it('classifies Pixel Layer mutation tools from registry metadata', () => {
+		expect(TOOL_TYPES.filter(isPixelMutationTool)).toEqual([
+			'pencil',
+			'eraser',
+			'line',
+			'rectangle',
+			'ellipse',
+			'floodfill',
+			'move'
+		]);
 	});
 });

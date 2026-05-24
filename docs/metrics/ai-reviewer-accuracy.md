@@ -6,14 +6,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 123 | 91 | 32 | 98 | 74% | 48% |
-| cubic-dev-ai[bot] | 70 | 56 | 14 | 128 | 80% | 30% |
-| coderabbitai[bot] | 162 | 110 | 52 | 72 | 68% | 60% |
+| greptile-apps[bot] | 124 | 92 | 32 | 99 | 74% | 48% |
+| cubic-dev-ai[bot] | 70 | 56 | 14 | 130 | 80% | 30% |
+| coderabbitai[bot] | 163 | 111 | 52 | 73 | 68% | 60% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #224 | greptile-apps[bot] | Accept | Tool classification should derive from `TOOL_DEFS` |
+| #224 | coderabbitai[bot] | Accept | Move no-op test needed non-empty Pixel Layer fixture |
+| #224 | coderabbitai[bot] | Miss | Did not flag manual drawing-tool set divergence |
+| #224 | greptile-apps[bot] | Miss | Did not flag weak Move no-op fixture |
+| #224 | cubic-dev-ai[bot] | Miss | Did not flag manual drawing-tool set divergence |
+| #224 | cubic-dev-ai[bot] | Miss | Did not flag weak Move no-op fixture |
 | #223 | greptile-apps[bot] | Accept | renderVersion could clear draft before parent placement sync |
 | #223 | coderabbitai[bot] | Miss | Did not flag draft clear race |
 | #223 | cubic-dev-ai[bot] | Miss | Did not flag draft clear race |

@@ -5,6 +5,7 @@ import { createSamplingSession } from './sampling/session.svelte';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
 import type { Document, PixelCanvas } from './canvas-model';
+import type { ToolType } from './tool-registry';
 import { canvasFactory, singleLayerDocument } from './wasm-backend';
 
 const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
@@ -49,6 +50,30 @@ function createRunner(canvas?: PixelCanvas, fg?: Color, bg?: Color, doc?: Docume
 	return { host, shared, runner, samplingSession };
 }
 
+function createReferenceActiveDocument(pixelLayerPixels?: Uint8Array): Document {
+	const doc = singleLayerDocument(8, 8, pixelLayerPixels ?? new Uint8Array(8 * 8 * 4));
+	doc.add_reference_layer(
+		crypto.randomUUID(),
+		'Reference',
+		new Uint8Array([255, 0, 0, 255]),
+		1,
+		1
+	);
+	return doc;
+}
+
+function getFirstPixelLayerPixels(doc: Document): Uint8Array {
+	for (let i = 0; i < doc.layer_count(); i++) {
+		if (doc.layer_kind_at(i) !== 'pixel') continue;
+
+		const pixels = doc.layer_pixels_at(i);
+		if (!pixels) throw new Error(`Layer ${i} is Pixel-kind but has no pixel buffer`);
+		return pixels;
+	}
+
+	throw new Error('Reference-active test document has no Pixel Layer');
+}
+
 function getDocPixel(doc: Document, x: number, y: number) {
 	const p = doc.get_pixel(x, y);
 	return { r: p.r, g: p.g, b: p.b, a: p.a };
@@ -80,6 +105,59 @@ describe('ToolRunner — pencil tool', () => {
 		runner.drawEnd();
 
 		expect(getDocPixel(host.document, 3, 3)).toEqual(BLACK);
+	});
+});
+
+describe('ToolRunner — Reference Layer active', () => {
+	const drawingTools: readonly ToolType[] = [
+		'pencil',
+		'eraser',
+		'floodfill',
+		'line',
+		'rectangle',
+		'ellipse'
+	];
+
+	it.each(drawingTools)('%s silently no-ops without mutating pixels', (tool) => {
+		const doc = createReferenceActiveDocument();
+		const { runner, shared } = createRunner(undefined, BLACK, WHITE, doc);
+		shared.activeTool = tool;
+		const beforeComposite = Array.from(doc.composite());
+
+		const startEffects = runner.drawStart(0, 'mouse');
+		const firstDrawEffects = runner.draw({ x: 1, y: 1 }, null);
+		const dragEffects = runner.draw({ x: 3, y: 3 }, { x: 1, y: 1 });
+		const endEffects = runner.drawEnd();
+
+		expect(startEffects).toEqual([]);
+		expect(firstDrawEffects).toEqual([]);
+		expect(dragEffects).toEqual([]);
+		expect(endEffects).toEqual([]);
+		expect(Array.from(doc.composite())).toEqual(beforeComposite);
+		expect(runner.canUndo).toBe(false);
+	});
+
+	it('move silently no-ops instead of shifting Pixel Layer pixels', () => {
+		const pixelLayerPixels = new Uint8Array(8 * 8 * 4);
+		pixelLayerPixels.set([0, 0, 0, 255], 0);
+		const doc = createReferenceActiveDocument(pixelLayerPixels);
+		const { runner, shared } = createRunner(undefined, BLACK, WHITE, doc);
+		shared.activeTool = 'move';
+		const beforeComposite = Array.from(doc.composite());
+		const beforePixelLayer = Array.from(getFirstPixelLayerPixels(doc));
+
+		const startEffects = runner.drawStart(0, 'mouse');
+		const firstDrawEffects = runner.draw({ x: 0, y: 0 }, null);
+		const dragEffects = runner.draw({ x: 2, y: 3 }, { x: 0, y: 0 });
+		const endEffects = runner.drawEnd();
+
+		expect(startEffects).toEqual([]);
+		expect(firstDrawEffects).toEqual([]);
+		expect(dragEffects).toEqual([]);
+		expect(endEffects).toEqual([]);
+		expect(Array.from(doc.composite())).toEqual(beforeComposite);
+		expect(Array.from(getFirstPixelLayerPixels(doc))).toEqual(beforePixelLayer);
+		expect(runner.canUndo).toBe(false);
 	});
 });
 
@@ -552,4 +630,3 @@ describe('ToolRunner — shift constraint', () => {
 		runner.drawEnd();
 	});
 });
-

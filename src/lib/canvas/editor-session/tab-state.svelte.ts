@@ -142,6 +142,14 @@ export class TabState {
 		};
 	}
 
+	/**
+	 * Projects the current visible Reference Layer into the shell-facing underlay
+	 * consumed by rendering, placement UI, and source-image sampling. Returns
+	 * `undefined` when the document has no visible, readable Reference Layer; the
+	 * getter does not mutate the document. The read is tied to `renderVersion` so
+	 * consumers refresh after Reference placement, visibility, import, undo, or
+	 * redo changes.
+	 */
 	get referenceLayerUnderlay(): ReferenceLayerUnderlay | undefined {
 		// WASM Document internals are opaque to Svelte. Tie this projection to
 		// renderVersion so import, fit-to-canvas, drag commits, undo/redo, and

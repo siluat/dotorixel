@@ -16,7 +16,7 @@ const reference: ReferenceLayerUnderlay = {
 	opacity: 1
 };
 
-describe('Reference underlay Sampling Port', () => {
+describe('Reference Layer Underlay Sampling Port', () => {
 	it('reads colors in source-image coordinates', () => {
 		const port = createReferenceLayerUnderlaySamplingPort(reference);
 

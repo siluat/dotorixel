@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { documentFromLayerSource, singleLayerDocument } from './wasm-backend';
 import {
 	ReferenceLayerUnderlayProjector,
@@ -107,6 +107,21 @@ describe('ReferenceLayerUnderlayProjector', () => {
 		const second = projector.project(document)!;
 
 		expect(second.sourceRgba).toBe(first.sourceRgba);
+		expect(second.sourceKey).toBe(first.sourceKey);
+	});
+
+	it('clears cached source RGBA when the underlay becomes unavailable', () => {
+		const { document, referenceId } = makeReferenceDocument();
+		const projector = new ReferenceLayerUnderlayProjector();
+		const sourceSpy = vi.spyOn(document, 'layer_source_pixels_at');
+
+		const first = projector.project(document)!;
+		document.set_layer_visibility(referenceId, false);
+		expect(projector.project(document)).toBeUndefined();
+		document.set_layer_visibility(referenceId, true);
+		const second = projector.project(document)!;
+
+		expect(sourceSpy).toHaveBeenCalledTimes(2);
 		expect(second.sourceKey).toBe(first.sourceKey);
 	});
 });

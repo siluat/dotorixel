@@ -52,10 +52,15 @@ interface CachedReferenceLayerSource {
 export class ReferenceLayerUnderlayProjector {
 	#source?: CachedReferenceLayerSource;
 
+	#clear(): undefined {
+		this.#source = undefined;
+		return undefined;
+	}
+
 	project(document: Document): ReferenceLayerUnderlay | undefined {
 		for (let i = 0; i < document.layer_count(); i++) {
 			if (document.layer_kind_at(i) !== 'reference') continue;
-			if (!document.layer_visible_at(i)) return undefined;
+			if (!document.layer_visible_at(i)) return this.#clear();
 
 			const layerId = document.layer_id_at(i);
 			const sourceFingerprint = document.layer_source_fingerprint_at(i);
@@ -63,7 +68,7 @@ export class ReferenceLayerUnderlayProjector {
 			const placement = document.layer_placement_at(i);
 			const opacity = document.layer_opacity_at(i);
 			if (!layerId || !sourceFingerprint || !dimensions || !placement || opacity === undefined) {
-				return undefined;
+				return this.#clear();
 			}
 
 			const naturalWidth = dimensions[0];
@@ -79,7 +84,7 @@ export class ReferenceLayerUnderlayProjector {
 
 			if (!source) {
 				const sourceRgba = document.layer_source_pixels_at(i);
-				if (!sourceRgba) return undefined;
+				if (!sourceRgba) return this.#clear();
 				source = {
 					document,
 					layerId,
@@ -105,7 +110,7 @@ export class ReferenceLayerUnderlayProjector {
 				opacity
 			};
 		}
-		return undefined;
+		return this.#clear();
 	}
 }
 

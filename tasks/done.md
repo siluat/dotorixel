@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 129 | [Deepen Document change procedure into a Document Change Journal](../issues/129-deepen-document-change-journal.md) | 2026-05-25 |
 | 128 | [Deepen Reference Layer Placement Interaction](../issues/128-deepen-reference-layer-placement-interaction.md) | 2026-05-25 |
 | 127 | [Deepen Reference Layer Underlay projection](../issues/127-deepen-reference-layer-underlay-projection.md) | 2026-05-25 |
 | 125 | [Reference Layer: eyedropper and Canvas Sampling sample active layers explicitly](../issues/125-reference-layer-eyedropper-and-sampling-try-get-pixel.md) | 2026-05-25 |

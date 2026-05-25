@@ -6,7 +6,7 @@ None.
 
 ## Last Completed
 
-[127 — Deepen Reference Layer Underlay projection](../issues/127-deepen-reference-layer-underlay-projection.md). Reference Layer Underlay is now a named web-shell projection shared by rendering, placement UI, and source-coordinate sampling; platform feature status is unchanged.
+[128 — Deepen Reference Layer Placement Interaction](../issues/128-deepen-reference-layer-placement-interaction.md). Reference Layer Placement Interaction is now a named web-shell interaction Module for draft placement, drag/nudge, cancel, and commit semantics; platform feature status is unchanged.
 
 ## Next Up
 

@@ -30,6 +30,10 @@ _Avoid_: overlay (ambiguous with UI chrome), render layer, reference image.
 A Reference Layer's source-to-document geometry — the position and uniform scale that map the source image onto the Document canvas. On import, large sources are aspect-fit into the canvas while smaller sources stay at natural size; "Fit to canvas" aspect-fits the source into the current canvas, allows upscaling, and centers the result. Composite sampling is nearest-neighbor.
 _Avoid_: position, transform, geometry, viewport (all overloaded).
 
+**Reference Layer Placement Interaction**:
+The pointer- and keyboard-driven lifecycle for editing a Reference Layer Placement in the canvas viewport, covering draft placement, drag/nudge updates, cancel, and commit semantics.
+_Avoid_: placement drag, overlay edit, transform interaction.
+
 ### Sampling
 
 **Sampling Session**:
@@ -85,6 +89,7 @@ _Avoid_: drop group, drop session.
 - A **Layer** is exactly one of **Pixel Layer** or **Reference Layer**; both share id, name, visibility, and opacity.
 - A **Reference Layer** has exactly one **Reference Layer Placement**.
 - A **Reference Layer Underlay** is derived from the visible **Reference Layer** and shares its **Reference Layer Placement**.
+- A **Reference Layer Placement Interaction** edits exactly one active **Reference Layer Placement** at a time.
 - Drawing tools mutate only the active **Pixel Layer**; `Document.composite()` and exports include only Pixel Layers, while the shell draws a visible **Reference Layer** as a viewport underlay before the Pixel composite.
 - A **Reference Window** is workspace-scoped and never enters the Document; a **Reference Layer** is Document-scoped and persisted alongside the artwork. The two are independent — neither converts to the other.
 
@@ -95,3 +100,6 @@ _Avoid_: drop group, drop session.
 
 > **Dev:** "After the user drops three files on the canvas, then opens a fourth from the gallery, where does the fourth land?"
 > **Domain expert:** "The drop produced three *at-point* **Placement Intents** — they cascaded only within that batch and didn't touch the **Cascade Index**. The gallery open is a *centered* **Placement Intent**, so it consumes the next **Cascade Index** for that document, which is still 0 if no gallery opens preceded the drop."
+
+> **Dev:** "When the user drags a Reference Layer corner and then presses Escape, did the Reference Layer Placement change?"
+> **Domain expert:** "No — that was an in-flight **Reference Layer Placement Interaction**. Escape cancels its draft placement, so only a clean commit updates the **Reference Layer Placement**."

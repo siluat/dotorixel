@@ -11,6 +11,10 @@
 		type RenderableCanvas
 	} from './renderer.ts';
 	import type { ReferenceLayerUnderlay } from './reference-layer-underlay';
+	import {
+		createReferenceLayerPlacementInteraction,
+		type ReferencePlacementHandle
+	} from './reference-layer-placement-interaction.svelte';
 	import ReferenceLayerPlacementOverlay from './ReferenceLayerPlacementOverlay.svelte';
 	import {
 		createCanvasInteraction,
@@ -19,19 +23,6 @@
 	} from './canvas-interaction.svelte';
 	import { isDrawingTool } from './tool-registry';
 	import Loupe from '$lib/ui-editor/Loupe.svelte';
-
-	type ReferencePlacementHandle = 'nw' | 'ne' | 'se' | 'sw';
-	type PlacementNudge = { x: number; y: number };
-	type PlacementDragKind =
-		| { type: 'move' }
-		| {
-				type: 'scale';
-				handle: ReferencePlacementHandle;
-				naturalWidth: number;
-				naturalHeight: number;
-		  };
-
-	const MIN_REFERENCE_PROJECTED_SIZE = 8;
 
 	interface Props {
 		pixelCanvas: RenderableCanvas;
@@ -84,20 +75,6 @@
 
 	let canvasEl: HTMLCanvasElement | undefined = $state();
 	let placementOverlayPointerType = $state<PointerType>('mouse');
-	let draftReferencePlacement = $state<ReferencePlacement | null>(null);
-	let placementDrag:
-		| {
-				pointerId: number;
-				startClientX: number;
-				startClientY: number;
-				currentLocalX: number;
-				currentLocalY: number;
-				startPlacement: ReferencePlacement;
-				currentPlacement: ReferencePlacement;
-				pointerType: PointerType;
-				kind: PlacementDragKind;
-		  }
-		| null = $state(null);
 	let pendingOverlayTouch: { id: number; x: number; y: number } | null = null;
 	const forwardedOverlayPointerIds = new Set<number>();
 	const forwardedOverlayDrawPointerIds = new Set<number>();
@@ -106,10 +83,9 @@
 	// without waiting for the next pointer event.
 	let lastScreen: { x: number; y: number } | null = null;
 	const classifyWheelInput = createWheelInputClassifier();
+	const placementInteraction = createReferenceLayerPlacementInteraction();
 	const displayedReferenceLayerUnderlay = $derived(
-		referenceLayerUnderlay && draftReferencePlacement
-			? { ...referenceLayerUnderlay, placement: draftReferencePlacement }
-			: referenceLayerUnderlay
+		placementInteraction.displayedUnderlay(referenceLayerUnderlay)
 	);
 	const canMoveReferencePlacementBody = $derived(activeTool === 'move');
 
@@ -155,16 +131,13 @@
 
 	$effect(() => {
 		if (isReferenceLayerActive && referenceLayerUnderlay) return;
-		cancelPlacementDrag();
+		placementInteraction.cancelAll();
 		cancelOverlayPointerState();
 	});
 
 	$effect(() => {
 		void renderVersion;
-		if (!draftReferencePlacement || placementDrag || !referenceLayerUnderlay) return;
-		if (isSameReferencePlacement(referenceLayerUnderlay.placement, draftReferencePlacement)) {
-			draftReferencePlacement = null;
-		}
+		placementInteraction.reconcileCommittedPlacement(referenceLayerUnderlay);
 	});
 
 	// Register wheel listener with { passive: false } to allow preventDefault
@@ -311,8 +284,7 @@
 	}
 
 	function handleWindowPointerCancel(event: PointerEvent): void {
-		if (placementDrag?.pointerId === event.pointerId) {
-			cancelPlacementDrag();
+		if (placementInteraction.cancelDrag(event.pointerId)) {
 			return;
 		}
 		if (pendingOverlayTouch?.id === event.pointerId) {
@@ -326,15 +298,15 @@
 	}
 
 	function handleWindowBlur(): void {
-		cancelPlacementDrag();
+		placementInteraction.cancelAll();
 		clearOverlayPointerState();
 		canvasInteraction.blur();
 	}
 
 	function handleWindowKeyDown(event: KeyboardEvent): void {
-		if (event.key === 'Escape' && placementDrag) {
+		if (event.key === 'Escape' && placementInteraction.isDragging) {
 			event.preventDefault();
-			cancelPlacementDrag();
+			placementInteraction.cancelAll();
 			return;
 		}
 		if (commitReferencePlacementNudge(event)) {
@@ -365,80 +337,6 @@
 		return Math.round(viewport.pixelSize * viewport.zoom);
 	}
 
-	function documentDeltaFromDrag(event: PointerEvent): { x: number; y: number } | null {
-		if (!placementDrag) return null;
-		const pixel = scaledCanvasPixel();
-		return {
-			x: (event.clientX - placementDrag.startClientX) / pixel,
-			y: (event.clientY - placementDrag.startClientY) / pixel
-		};
-	}
-
-	function placementFromBodyDrag(event: PointerEvent): ReferencePlacement | null {
-		if (!placementDrag) return null;
-		const delta = documentDeltaFromDrag(event);
-		if (!delta) return null;
-		return {
-			x: placementDrag.startPlacement.x + delta.x,
-			y: placementDrag.startPlacement.y + delta.y,
-			scale: placementDrag.startPlacement.scale
-		};
-	}
-
-	function scaleDragSigns(handle: ReferencePlacementHandle): { x: -1 | 1; y: -1 | 1 } {
-		switch (handle) {
-			case 'nw':
-				return { x: -1, y: -1 };
-			case 'ne':
-				return { x: 1, y: -1 };
-			case 'se':
-				return { x: 1, y: 1 };
-			case 'sw':
-				return { x: -1, y: 1 };
-		}
-	}
-
-	function placementFromScaleDrag(event: PointerEvent): ReferencePlacement | null {
-		if (!placementDrag || placementDrag.kind.type !== 'scale') return null;
-		const delta = documentDeltaFromDrag(event);
-		if (!delta) return null;
-
-		const { handle, naturalWidth, naturalHeight } = placementDrag.kind;
-		const start = placementDrag.startPlacement;
-		const signs = scaleDragSigns(handle);
-		const basisX = signs.x * naturalWidth;
-		const basisY = signs.y * naturalHeight;
-		const candidateX = signs.x * naturalWidth * start.scale + delta.x;
-		const candidateY = signs.y * naturalHeight * start.scale + delta.y;
-		const rawScale =
-			(candidateX * basisX + candidateY * basisY) / (basisX * basisX + basisY * basisY);
-		const minScale = Math.max(
-			MIN_REFERENCE_PROJECTED_SIZE / naturalWidth,
-			MIN_REFERENCE_PROJECTED_SIZE / naturalHeight
-		);
-		const scale = Math.max(rawScale, minScale);
-		const width = naturalWidth * scale;
-		const height = naturalHeight * scale;
-		const startRight = start.x + naturalWidth * start.scale;
-		const startBottom = start.y + naturalHeight * start.scale;
-
-		switch (handle) {
-			case 'nw':
-				return { x: startRight - width, y: startBottom - height, scale };
-			case 'ne':
-				return { x: start.x, y: startBottom - height, scale };
-			case 'se':
-				return { x: start.x, y: start.y, scale };
-			case 'sw':
-				return { x: startRight - width, y: start.y, scale };
-		}
-	}
-
-	function placementFromDrag(event: PointerEvent): ReferencePlacement | null {
-		if (placementDrag?.kind.type === 'scale') return placementFromScaleDrag(event);
-		return placementFromBodyDrag(event);
-	}
-
 	function placementHandleFromEvent(event: PointerEvent): ReferencePlacementHandle | null {
 		if (!(event.target instanceof Element)) return null;
 		const handleEl = event.target.closest('[data-reference-placement-handle]');
@@ -460,72 +358,51 @@
 	}
 
 	function startPlacementDrag(event: PointerEvent, local: { x: number; y: number }): boolean {
-		if (!referenceLayerUnderlay || !isReferenceLayerActive || isSpaceHeld || event.button !== 0) {
-			return false;
-		}
-		const startPlacement = referenceLayerUnderlay.placement;
 		const handle = placementHandleFromEvent(event);
-		if (!handle && !canMoveReferencePlacementBody) return false;
-		placementDrag = {
+		const started = placementInteraction.beginDrag({
 			pointerId: event.pointerId,
-			startClientX: event.clientX,
-			startClientY: event.clientY,
-			currentLocalX: local.x,
-			currentLocalY: local.y,
-			startPlacement,
-			currentPlacement: startPlacement,
 			pointerType: normalizePointerType(event.pointerType),
-			kind: handle
-				? {
-						type: 'scale',
-						handle,
-						naturalWidth: referenceLayerUnderlay.naturalWidth,
-						naturalHeight: referenceLayerUnderlay.naturalHeight
-					}
-				: { type: 'move' }
-		};
-		draftReferencePlacement = startPlacement;
-		capturePlacementPointer(event);
-		return true;
+			button: event.button,
+			clientX: event.clientX,
+			clientY: event.clientY,
+			localX: local.x,
+			localY: local.y,
+			referenceLayerUnderlay,
+			isReferenceLayerActive,
+			isSpaceHeld,
+			handle,
+			canMoveBody: canMoveReferencePlacementBody
+		});
+		if (started) capturePlacementPointer(event);
+		return started;
 	}
 
 	function updatePlacementDrag(event: PointerEvent): boolean {
-		if (!placementDrag || placementDrag.pointerId !== event.pointerId) return false;
-		const next = placementFromDrag(event);
-		if (!next) return false;
 		const { x, y } = toLocal(event);
-		placementDrag = {
-			...placementDrag,
-			currentPlacement: next,
-			currentLocalX: x,
-			currentLocalY: y
-		};
-		draftReferencePlacement = next;
-		return true;
+		return placementInteraction.updateDrag({
+			pointerId: event.pointerId,
+			clientX: event.clientX,
+			clientY: event.clientY,
+			localX: x,
+			localY: y,
+			scaledCanvasPixel: scaledCanvasPixel()
+		});
 	}
 
 	function commitPlacementDrag(event: PointerEvent): boolean {
-		if (!placementDrag || placementDrag.pointerId !== event.pointerId) return false;
-		const placement = placementDrag.currentPlacement;
-		placementDrag = null;
-		draftReferencePlacement = null;
+		const placement = placementInteraction.commitDrag(event.pointerId);
+		if (!placement) return false;
 		onReferencePlacementCommit?.(placement);
 		return true;
 	}
 
-	function cancelPlacementDrag(): void {
-		placementDrag = null;
-		draftReferencePlacement = null;
-	}
-
 	function forwardActiveTouchPlacementDrag(): void {
-		if (!placementDrag || placementDrag.pointerType !== 'touch') return;
-		const activeDrag = placementDrag;
-		cancelPlacementDrag();
+		const activeDrag = placementInteraction.cancelActiveTouchDrag();
+		if (!activeDrag) return;
 		canvasInteraction.pointerDown(
 			activeDrag.pointerId,
-			activeDrag.currentLocalX,
-			activeDrag.currentLocalY,
+			activeDrag.localX,
+			activeDrag.localY,
 			'touch',
 			0
 		);
@@ -576,7 +453,8 @@
 		}
 
 		if (pointerType === 'touch') {
-			if (placementDrag?.pointerType === 'touch' && placementDrag.pointerId !== event.pointerId) {
+			const activeTouchDrag = placementInteraction.activeTouchDrag();
+			if (activeTouchDrag && activeTouchDrag.pointerId !== event.pointerId) {
 				forwardActiveTouchPlacementDrag();
 				canvasInteraction.pointerDown(event.pointerId, x, y, pointerType, event.button);
 				forwardedOverlayPointerIds.add(event.pointerId);
@@ -645,8 +523,7 @@
 	}
 
 	function handleOverlayPointerCancel(event: PointerEvent): void {
-		if (placementDrag?.pointerId === event.pointerId) {
-			cancelPlacementDrag();
+		if (placementInteraction.cancelDrag(event.pointerId)) {
 			blockOverlayPointerEvent(event);
 			return;
 		}
@@ -659,45 +536,24 @@
 		blockOverlayPointerEvent(event);
 	}
 
-	function placementNudgeForKey(event: KeyboardEvent): PlacementNudge | null {
-		if (event.ctrlKey || event.metaKey || event.altKey) return null;
-		const step = event.shiftKey ? 10 : 1;
-		switch (event.code) {
-			case 'ArrowUp':
-				return { x: 0, y: -step };
-			case 'ArrowDown':
-				return { x: 0, y: step };
-			case 'ArrowLeft':
-				return { x: -step, y: 0 };
-			case 'ArrowRight':
-				return { x: step, y: 0 };
-			default:
-				return null;
-		}
-	}
-
-	function isSameReferencePlacement(a: ReferencePlacement, b: ReferencePlacement): boolean {
-		return a.x === b.x && a.y === b.y && a.scale === b.scale;
-	}
-
 	function isPlacementKeyboardTarget(target: EventTarget | null): boolean {
 		if (!canvasEl || !(target instanceof Element)) return false;
 		return target === canvasEl || target.closest('[data-reference-placement-overlay]') !== null;
 	}
 
 	function commitReferencePlacementNudge(event: KeyboardEvent): boolean {
-		const delta = placementNudgeForKey(event);
-		if (!delta) return false;
-		if (!referenceLayerUnderlay || !isReferenceLayerActive || placementDrag) return false;
-		if (!isPlacementKeyboardTarget(event.target)) return false;
 		if (!onReferencePlacementCommit) return false;
-		const placement = draftReferencePlacement ?? referenceLayerUnderlay.placement;
-		const next = {
-			x: placement.x + delta.x,
-			y: placement.y + delta.y,
-			scale: placement.scale
-		};
-		draftReferencePlacement = next;
+		const next = placementInteraction.nudge({
+			code: event.code,
+			shiftKey: event.shiftKey,
+			ctrlKey: event.ctrlKey,
+			metaKey: event.metaKey,
+			altKey: event.altKey,
+			isKeyboardTarget: isPlacementKeyboardTarget(event.target),
+			referenceLayerUnderlay,
+			isReferenceLayerActive
+		});
+		if (!next) return false;
 		onReferencePlacementCommit(next);
 		return true;
 	}

@@ -34,6 +34,10 @@ _Avoid_: position, transform, geometry, viewport (all overloaded).
 The pointer- and keyboard-driven lifecycle for editing a Reference Layer Placement in the canvas viewport, covering draft placement, drag/nudge updates, cancel, and commit semantics.
 _Avoid_: placement drag, overlay edit, transform interaction.
 
+**Document Change Journal**:
+The web-shell module that applies classified changes to the active Document and owns the shell-side follow-up sequence: undo snapshot capture when appropriate, canvas dimension mirrors, viewport reclamp, render invalidation, and dirty notification. It distinguishes undoable Document changes (Layer edits, Reference Layer Placement commits, resize, clear), persisted UI state changes (active Layer, timeline panel collapsed), and transient UI state changes (dialogs, import busy state, resize anchor). The Rust core Document remains the authority for Document invariants; the journal owns only the web shell's change procedure around it.
+_Avoid_: document transaction (implies database semantics), change manager (too vague), history wrapper (too narrow).
+
 ### Sampling
 
 **Sampling Session**:
@@ -90,6 +94,7 @@ _Avoid_: drop group, drop session.
 - A **Reference Layer** has exactly one **Reference Layer Placement**.
 - A **Reference Layer Underlay** is derived from the visible **Reference Layer** and shares its **Reference Layer Placement**.
 - A **Reference Layer Placement Interaction** edits exactly one active **Reference Layer Placement** at a time.
+- A **Document Change Journal** applies web-shell changes to the active **Document** and centralizes undo, render invalidation, viewport reclamp, and dirty notification side effects.
 - Drawing tools mutate only the active **Pixel Layer**; `Document.composite()` and exports include only Pixel Layers, while the shell draws a visible **Reference Layer** as a viewport underlay before the Pixel composite.
 - A **Reference Window** is workspace-scoped and never enters the Document; a **Reference Layer** is Document-scoped and persisted alongside the artwork. The two are independent — neither converts to the other.
 

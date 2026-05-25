@@ -39,6 +39,7 @@ import {
 } from '../reference-layer-underlay';
 import type { CanvasBackend } from './canvas-backend';
 import type { DirtyNotifier } from './dirty-notifier';
+import { DocumentChangeJournal } from './document-change-journal.svelte';
 import { TabViewport } from './tab-viewport.svelte';
 
 function assertNever(x: never): never {
@@ -179,6 +180,7 @@ export class TabState {
 	#notifier: DirtyNotifier;
 	#toolRunner: ToolRunner;
 	#tabViewport: TabViewport;
+	#documentChangeJournal: DocumentChangeJournal;
 	#referenceLayerBlobs: Map<string, Blob>;
 	#referenceLayerUnderlayProjector = new ReferenceLayerUnderlayProjector();
 
@@ -279,6 +281,19 @@ export class TabState {
 			shared: this.shared,
 			getShiftHeld: deps.keyboard.getShiftHeld,
 			samplingSession: this.samplingSession
+		});
+		this.#documentChangeJournal = new DocumentChangeJournal({
+			getDocument: () => this.document,
+			captureUndoSnapshot: () => this.#toolRunner.pushSnapshot(),
+			syncDocumentMetrics: () => {
+				this.canvasWidth = this.document.width;
+				this.canvasHeight = this.document.height;
+			},
+			reclampViewport: () => this.#reclampViewport(),
+			invalidateRender: () => {
+				this.renderVersion++;
+			},
+			markDirty: () => this.#notifier.markDirty(this.documentId)
 		});
 	}
 
@@ -399,10 +414,10 @@ export class TabState {
 	};
 
 	addLayer = (name: string): void => {
-		this.#toolRunner.pushSnapshot();
-		this.document.add_layer(crypto.randomUUID(), name);
-		this.renderVersion++;
-		this.#notifier.markDirty(this.documentId);
+		this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'add-pixel-layer', name }
+		});
 	};
 
 	/**

@@ -50,7 +50,6 @@ describe('DocumentChangeJournal', () => {
 		expect(events).toEqual([
 			'snapshot',
 			'add:layer-2:Layer 2',
-			'sync',
 			'reclamp',
 			'render',
 			'dirty'
@@ -101,7 +100,29 @@ describe('DocumentChangeJournal', () => {
 		expect(events).toEqual([]);
 	});
 
-	it('applies persisted Document UI changes without an undo snapshot', () => {
+	it('applies reorder changes without reclamping unchanged navigation bounds', () => {
+		const events: string[] = [];
+		const ids = ['layer-1', 'layer-2'];
+		const document = {
+			width: 16,
+			height: 16,
+			layer_count: () => ids.length,
+			layer_id_at: (index: number) => ids[index],
+			layer_kind_at: () => 'pixel',
+			reorder_layer: (id: string, index: number) => events.push(`reorder:${id}:${index}`)
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'reorder-layer', id: 'layer-2', newVisualIndex: 1 }
+		});
+
+		expect(result).toEqual({ changed: true });
+		expect(events).toEqual(['snapshot', 'reorder:layer-2:0', 'render', 'dirty']);
+	});
+
+	it('applies active-layer changes without an undo snapshot or metric sync', () => {
 		const events: string[] = [];
 		const document = {
 			width: 16,
@@ -117,7 +138,26 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: true });
-		expect(events).toEqual(['active:layer-2', 'sync', 'reclamp', 'render', 'dirty']);
+		expect(events).toEqual(['active:layer-2', 'reclamp', 'render', 'dirty']);
+	});
+
+	it('applies timeline collapsed changes without metric sync or viewport reclamp', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			is_timeline_panel_collapsed: () => false,
+			set_timeline_panel_collapsed: (collapsed: boolean) => events.push(`timeline:${collapsed}`)
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'persisted-document-ui',
+			intent: { type: 'set-timeline-panel-collapsed', collapsed: true }
+		});
+
+		expect(result).toEqual({ changed: true });
+		expect(events).toEqual(['timeline:true', 'render', 'dirty']);
 	});
 
 	it('skips persisted Document UI no-op changes', () => {
@@ -199,7 +239,6 @@ describe('DocumentChangeJournal', () => {
 			'snapshot',
 			'reference:layer-2:sketch.png:4:1x1',
 			'remember:layer-2',
-			'sync',
 			'reclamp',
 			'render',
 			'dirty'

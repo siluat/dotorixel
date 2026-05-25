@@ -6,14 +6,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 127 | 95 | 32 | 103 | 75% | 48% |
-| cubic-dev-ai[bot] | 70 | 56 | 14 | 137 | 80% | 29% |
-| coderabbitai[bot] | 169 | 115 | 54 | 76 | 68% | 60% |
+| greptile-apps[bot] | 129 | 97 | 32 | 103 | 75% | 49% |
+| cubic-dev-ai[bot] | 70 | 56 | 14 | 139 | 80% | 29% |
+| coderabbitai[bot] | 169 | 115 | 54 | 78 | 68% | 60% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #229 | greptile-apps[bot] | Accept | Reorder Layer should not reclamp viewport after journal routing |
+| #229 | greptile-apps[bot] | Accept | Persisted document UI changes should not sync metrics through shared follow-up |
+| #229 | coderabbitai[bot] | Miss | Did not flag Reorder Layer viewport reclamp contract widening |
+| #229 | cubic-dev-ai[bot] | Miss | Did not flag Reorder Layer viewport reclamp contract widening |
+| #229 | coderabbitai[bot] | Miss | Did not flag persisted UI metric-sync contract widening |
+| #229 | cubic-dev-ai[bot] | Miss | Did not flag persisted UI metric-sync contract widening |
 | #226 | greptile-apps[bot] | Accept | Stale Reference underlay test describe title |
 | #226 | coderabbitai[bot] | Accept | Projector retained source cache after no-underlay projection |
 | #226 | coderabbitai[bot] | Reject | Sampling adapter out-of-bounds guard conflicts with SamplingPort contract |

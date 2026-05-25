@@ -79,7 +79,7 @@ export class DocumentChangeJournal {
 		if (!this.#willChangeUndoableDocument(intent)) return { changed: false };
 		this.#deps.captureUndoSnapshot();
 		const result = this.#applyUndoableDocumentIntent(intent);
-		this.#afterDocumentChanged();
+		this.#afterUndoableDocumentChanged(intent);
 		return result;
 	}
 
@@ -137,7 +137,7 @@ export class DocumentChangeJournal {
 				document.set_timeline_panel_collapsed(intent.collapsed);
 				break;
 		}
-		this.#afterDocumentChanged();
+		this.#afterPersistedDocumentUiChanged(intent);
 		return { changed: true };
 	}
 
@@ -214,9 +214,42 @@ export class DocumentChangeJournal {
 		}
 	}
 
-	#afterDocumentChanged(): void {
-		this.#deps.syncDocumentMetrics();
+	#afterUndoableDocumentChanged(intent: UndoableDocumentIntent): void {
+		switch (intent.type) {
+			case 'reorder-layer':
+				this.#invalidateRenderAndMarkDirty();
+				break;
+			case 'resize-document':
+				this.#deps.syncDocumentMetrics();
+				this.#reclampViewportInvalidateRenderAndMarkDirty();
+				break;
+			case 'add-pixel-layer':
+			case 'set-reference-layer':
+			case 'remove-layer':
+			case 'set-layer-visibility':
+			case 'set-reference-placement':
+				this.#reclampViewportInvalidateRenderAndMarkDirty();
+				break;
+		}
+	}
+
+	#afterPersistedDocumentUiChanged(intent: PersistedDocumentUiIntent): void {
+		switch (intent.type) {
+			case 'set-active-layer':
+				this.#reclampViewportInvalidateRenderAndMarkDirty();
+				break;
+			case 'set-timeline-panel-collapsed':
+				this.#invalidateRenderAndMarkDirty();
+				break;
+		}
+	}
+
+	#reclampViewportInvalidateRenderAndMarkDirty(): void {
 		this.#deps.reclampViewport();
+		this.#invalidateRenderAndMarkDirty();
+	}
+
+	#invalidateRenderAndMarkDirty(): void {
 		this.#deps.invalidateRender();
 		this.#deps.markDirty();
 	}

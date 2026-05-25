@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { CanvasCoords, ReferencePlacement } from './canvas-model';
+	import type { CanvasPoint, ReferencePlacement } from './canvas-model';
 	import { viewportOps } from './wasm-backend';
 	import type { ViewportData, ViewportSize } from './viewport';
 	import type { SamplingSession } from './sampling/session.svelte';
@@ -40,12 +40,12 @@
 		viewport: ViewportData;
 		viewportSize?: ViewportSize;
 		renderVersion?: number;
-		onDraw?: (current: CanvasCoords, previous: CanvasCoords | null) => void;
+		onDraw?: (current: CanvasPoint, previous: CanvasPoint | null) => void;
 		onDrawStart?: (button: number, pointerType: PointerType) => void;
 		onDrawEnd?: () => void;
 		onViewportChange?: (viewport: ViewportData) => void;
-		onSampleStart?: (coords: CanvasCoords, button: number, pointerType: PointerType) => boolean;
-		onSampleUpdate?: (coords: CanvasCoords) => void;
+		onSampleStart?: (coords: CanvasPoint, button: number, pointerType: PointerType) => boolean;
+		onSampleUpdate?: (coords: CanvasPoint) => void;
 		onSampleEnd?: () => void;
 		onSampleCancel?: () => void;
 		onReferencePlacementCommit?: (placement: ReferencePlacement) => void;
@@ -100,6 +100,7 @@
 		| null = $state(null);
 	let pendingOverlayTouch: { id: number; x: number; y: number } | null = null;
 	const forwardedOverlayPointerIds = new Set<number>();
+	const forwardedOverlayDrawPointerIds = new Set<number>();
 	// Last pointer screen coords. Cached so a window resize during an active
 	// sampling session can re-fire updatePointer with fresh viewport dimensions
 	// without waiting for the next pointer event.
@@ -115,6 +116,14 @@
 	const canvasInteraction = createCanvasInteraction(
 		{
 			screenToCanvas: (x, y) => viewportOps.screenToCanvas(viewport, x, y),
+			screenToDrawTarget: (x, y) =>
+				isReferenceLayerActive && activeTool === 'eyedropper'
+					? viewportOps.screenToCanvasPoint(viewport, x, y)
+					: viewportOps.screenToCanvas(viewport, x, y),
+			screenToSamplingTarget: (x, y) =>
+				isReferenceLayerActive
+					? viewportOps.screenToCanvasPoint(viewport, x, y)
+					: viewportOps.screenToCanvas(viewport, x, y),
 			getViewport: () => viewport,
 			isSpaceHeld: () => isSpaceHeld
 		},
@@ -283,6 +292,7 @@
 		if (!canvasEl) return;
 		if (commitPlacementDrag(event)) return;
 		forwardedOverlayPointerIds.delete(event.pointerId);
+		forwardedOverlayDrawPointerIds.delete(event.pointerId);
 		if (pendingOverlayTouch?.id === event.pointerId) pendingOverlayTouch = null;
 		const { x, y } = toLocal(event);
 		canvasInteraction.pointerUp(event.pointerId, x, y);
@@ -295,6 +305,7 @@
 
 	function handlePointerCancel(event: PointerEvent): void {
 		forwardedOverlayPointerIds.delete(event.pointerId);
+		forwardedOverlayDrawPointerIds.delete(event.pointerId);
 		if (pendingOverlayTouch?.id === event.pointerId) pendingOverlayTouch = null;
 		canvasInteraction.pointerCancel(event.pointerId);
 	}
@@ -310,6 +321,7 @@
 		}
 		if (!forwardedOverlayPointerIds.has(event.pointerId)) return;
 		forwardedOverlayPointerIds.delete(event.pointerId);
+		forwardedOverlayDrawPointerIds.delete(event.pointerId);
 		canvasInteraction.pointerCancel(event.pointerId);
 	}
 
@@ -337,6 +349,7 @@
 	function clearOverlayPointerState(): void {
 		pendingOverlayTouch = null;
 		forwardedOverlayPointerIds.clear();
+		forwardedOverlayDrawPointerIds.clear();
 	}
 
 	function cancelOverlayPointerState(): void {
@@ -345,6 +358,7 @@
 			canvasInteraction.pointerCancel(pointerId);
 		}
 		forwardedOverlayPointerIds.clear();
+		forwardedOverlayDrawPointerIds.clear();
 	}
 
 	function scaledCanvasPixel(): number {
@@ -536,6 +550,16 @@
 		pendingOverlayTouch = null;
 	}
 
+	function forwardOverlayDrawPointer(
+		event: PointerEvent,
+		local: { x: number; y: number },
+		pointerType: PointerType
+	): void {
+		canvasInteraction.pointerDown(event.pointerId, local.x, local.y, pointerType, event.button);
+		forwardedOverlayPointerIds.add(event.pointerId);
+		forwardedOverlayDrawPointerIds.add(event.pointerId);
+	}
+
 	function handleOverlayPointerDown(event: PointerEvent): void {
 		focusCanvas();
 		if (!canvasEl) {
@@ -575,6 +599,8 @@
 		if (event.button === 1 || isSpaceHeld) {
 			canvasInteraction.pointerDown(event.pointerId, x, y, pointerType, event.button);
 			forwardedOverlayPointerIds.add(event.pointerId);
+		} else if (activeTool === 'eyedropper' && (event.button === 0 || event.button === 2)) {
+			forwardOverlayDrawPointer(event, { x, y }, pointerType);
 		}
 		blockOverlayPointerEvent(event);
 	}
@@ -594,7 +620,11 @@
 			pendingOverlayTouch = { id: event.pointerId, x, y };
 		}
 		if (forwardedOverlayPointerIds.has(event.pointerId)) {
-			canvasInteraction.windowPointerMove(event.pointerId, x, y, event.buttons);
+			if (forwardedOverlayDrawPointerIds.has(event.pointerId)) {
+				canvasInteraction.pointerMove(x, y);
+			} else {
+				canvasInteraction.windowPointerMove(event.pointerId, x, y, event.buttons);
+			}
 		}
 		blockOverlayPointerEvent(event);
 	}
@@ -609,6 +639,7 @@
 			const { x, y } = toLocal(event);
 			canvasInteraction.pointerUp(event.pointerId, x, y);
 			forwardedOverlayPointerIds.delete(event.pointerId);
+			forwardedOverlayDrawPointerIds.delete(event.pointerId);
 		}
 		blockOverlayPointerEvent(event);
 	}
@@ -623,6 +654,7 @@
 		if (forwardedOverlayPointerIds.has(event.pointerId)) {
 			canvasInteraction.pointerCancel(event.pointerId);
 			forwardedOverlayPointerIds.delete(event.pointerId);
+			forwardedOverlayDrawPointerIds.delete(event.pointerId);
 		}
 		blockOverlayPointerEvent(event);
 	}

@@ -1,4 +1,4 @@
-import type { CanvasCoords, Document } from './canvas-model';
+import type { CanvasCoords, CanvasPoint, Document } from './canvas-model';
 import { colorToHex, type Color } from './color';
 import type { DrawingOps } from './drawing-ops';
 import {
@@ -65,7 +65,7 @@ export interface StrokeSpec {
  */
 export interface StrokeSession {
 	start(): EditorEffects;
-	draw(current: CanvasCoords, previous: CanvasCoords | null): EditorEffects;
+	draw(current: CanvasPoint, previous: CanvasPoint | null): EditorEffects;
 	modifierChanged(): EditorEffects;
 	end(): EditorEffects;
 }

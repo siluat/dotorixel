@@ -2,6 +2,7 @@ import type {
 	Document,
 	PixelCanvas,
 	CanvasCoords,
+	CanvasPoint,
 	ResizeAnchor,
 	ReferencePlacement
 } from '../canvas-model';
@@ -20,6 +21,12 @@ import {
 	createReferenceSamplingSession,
 	type ReferenceSamplingSession
 } from '../../reference-images/reference-sampling-session.svelte';
+import { createDocumentSamplingPort } from '../sampling/adapters/document';
+import {
+	createNoReadableSamplingPort,
+	createReferenceUnderlaySamplingPort,
+	documentToReferenceSourceCoords
+} from '../sampling/adapters/reference-underlay';
 import { createSamplingSession, type SamplingSession } from '../sampling/session.svelte';
 import type { LoupeInputSource } from '../sampling/types';
 import { createToolRunner, type ToolRunner, type EditorEffects } from '../tool-runner.svelte';
@@ -32,6 +39,15 @@ import { TabViewport } from './tab-viewport.svelte';
 
 function assertNever(x: never): never {
 	throw new Error(`Unhandled effect type: ${(x as { type: string }).type}`);
+}
+
+function isActiveLayerReference(document: Document): boolean {
+	const activeId = document.active_layer_id();
+	for (let i = 0; i < document.layer_count(); i++) {
+		if (document.layer_id_at(i) !== activeId) continue;
+		return document.layer_kind_at(i) === 'reference';
+	}
+	return false;
 }
 
 interface CachedReferenceUnderlaySource {
@@ -277,7 +293,21 @@ export class TabState {
 			documentId: this.documentId
 		});
 
-		this.samplingSession = createSamplingSession({ getSamplingPort: () => self.document });
+		this.samplingSession = createSamplingSession({
+			getSamplingPort: () => {
+				if (!isActiveLayerReference(self.document)) return createDocumentSamplingPort(self.document);
+				const reference = self.referenceUnderlay;
+				if (!reference) {
+					return createNoReadableSamplingPort(self.document.width, self.document.height);
+				}
+				return createReferenceUnderlaySamplingPort(reference);
+			},
+			mapTarget: (coords) => {
+				if (!isActiveLayerReference(self.document)) return coords;
+				const reference = self.referenceUnderlay;
+				return reference ? documentToReferenceSourceCoords(reference, coords) : coords;
+			}
+		});
 		this.referenceSamplingSession = createReferenceSamplingSession({
 			decode: decodeReferenceBlob
 		});
@@ -341,7 +371,7 @@ export class TabState {
 		this.#applyEffects(this.#toolRunner.drawStart(button, pointerType));
 	};
 
-	draw = (current: CanvasCoords, previous: CanvasCoords | null): void => {
+	draw = (current: CanvasPoint, previous: CanvasPoint | null): void => {
 		this.#applyEffects(this.#toolRunner.draw(current, previous));
 	};
 
@@ -354,7 +384,7 @@ export class TabState {
 	};
 
 	sampleStart = (
-		coords: CanvasCoords,
+		coords: CanvasPoint,
 		button: number,
 		pointerType: PointerType
 	): boolean => {
@@ -369,7 +399,7 @@ export class TabState {
 		return true;
 	};
 
-	sampleUpdate = (coords: CanvasCoords): void => {
+	sampleUpdate = (coords: CanvasPoint): void => {
 		this.samplingSession.update(coords);
 	};
 

@@ -1,6 +1,6 @@
 ---
 title: "Reference Layer type — tracing reference for pixel artwork"
-status: needs-triage
+status: done
 created: 2026-05-16
 ---
 
@@ -178,7 +178,7 @@ The row's fixed position is part of the model, not only CSS.
 
 - Drawing tools (pencil, brush, eraser, bucket, shape) silently no-op when the Reference Layer is active. The canvas cursor switches to `not-allowed` on desktop; no toast and no disabled toolbar buttons.
 - The Move tool is the only selected tool that can translate the Reference overlay body. Corner handles remain direct placement controls regardless of the selected tool: corner drag uniformly scales, and arrows nudge placement.
-- Eyedropper and Canvas Sampling Sessions remain Pixel Layer sampling flows for v1. Sampling from the Reference source image is out of scope until the product deliberately decides whether reference color sampling should be part of this feature. This avoids reintroducing a hidden "reference as pixel buffer" assumption.
+- Eyedropper and Canvas Sampling Sessions are read-only active-layer sampling flows. Pixel Layers sample document pixels; Reference Layers sample the placed source image explicitly in original source-image coordinates. UI sampling uses sub-document-pixel pointer targets so the Loupe tracks the source image smoothly, not in document-pixel jumps. This does not make Reference pixels part of the artwork buffer or `Document.composite()`.
 
 ### Viewport Placement Overlay
 
@@ -244,7 +244,7 @@ Test observable contracts, not internal layout.
 
 ### Deferred
 
-- Reference source color sampling. If added later, it should use an explicit source-image sampling service rather than `Document.composite()` and must not imply Reference pixels are part of artwork pixels.
+- Advanced Reference source sampling controls, such as lock/disable toggles or numeric sample-space readouts.
 - Public E2E can be added before release: import reference -> trace pixel layer -> export -> assert reference absent -> reload -> reference restored.
 
 ## Rejected Alternatives
@@ -296,7 +296,7 @@ While corner-dragging the Reference placement overlay, snap `placement.scale` to
 - Rasterize Reference Layer into a Pixel Layer.
 - Multiple Reference Layers.
 - Reordering Reference relative to Pixel Layers.
-- Reference source color sampling.
+- Advanced Reference source color sampling controls beyond Eyedropper and Loupe sampling.
 - Reference Layer rename beyond using the imported file name.
 - Opacity slider UI beyond existing shared layer opacity support.
 - Apple shell Reference Layer support.
@@ -311,9 +311,9 @@ While corner-dragging the Reference placement overlay, snap `placement.scale` to
 
 This PRD was corrected on 2026-05-22 after implementation review revealed the old model was compositing Reference into the document pixel buffer.
 
-- 109's nearest-neighbor sampler is no longer part of on-screen Reference display. It may be removed or kept only if a future source-sampling feature needs it.
+- 109's nearest-neighbor sampler is no longer part of on-screen Reference display, but remains useful for explicit Reference source color sampling.
 - 110 must be reworked: `Document.composite()` must become Pixel-only, Reference must be singleton/fixed-bottom, and import must replace instead of append.
-- 112/125's Reference-source `try_get_pixel` behavior is no longer v1 scope.
+- 112/125's Reference-source `try_get_pixel` behavior is v1 scope for Eyedropper and Canvas Sampling only; it must not feed composition or export.
 - 116's export exclusion remains directionally correct, but tests should not assume on-screen `composite()` includes Reference pixels.
 - 117's kind icon and activation remain useful, but reorder support for Reference is superseded. The Timeline row must remove Reference reorder affordances.
 - 118 now implements set/replace with confirmation rather than append-new-layer import.

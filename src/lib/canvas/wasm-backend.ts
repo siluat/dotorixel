@@ -54,6 +54,10 @@ const TOOL_MAP: Record<DrawingToolType, WasmToolType> = {
 	ellipse: WasmToolType.Ellipse
 };
 
+function roundLikeRust(value: number): number {
+	return value < 0 ? -Math.round(-value) : Math.round(value);
+}
+
 // ── CanvasFactory ───────────────────────────────────────────────────
 
 export const canvasFactory: CanvasFactory = {
@@ -96,6 +100,13 @@ export const viewportOps: ViewportOps = {
 	screenToCanvas(vd, screenX, screenY) {
 		const coords = toWasm(vd).screen_to_canvas(screenX, screenY);
 		return { x: coords.x, y: coords.y };
+	},
+	screenToCanvasPoint(vd, screenX, screenY) {
+		const scaledPixel = toWasm(vd).effective_pixel_size();
+		return {
+			x: (screenX - roundLikeRust(vd.panX)) / scaledPixel,
+			y: (screenY - roundLikeRust(vd.panY)) / scaledPixel
+		};
 	},
 	zoomAtPoint(vd, screenX, screenY, newZoom) {
 		const result = toWasm(vd).zoom_at_point(screenX, screenY, newZoom);

@@ -61,6 +61,16 @@ describe('drawing', () => {
 		expect(callbacks.onDraw).toHaveBeenLastCalledWith({ x: 1, y: 0 }, { x: 0, y: 0 });
 	});
 
+	it('uses the optional draw target mapper for drawing callbacks', () => {
+		const { interaction, callbacks } = setup({
+			options: { screenToDrawTarget: (x, y) => ({ x: x / 10, y: y / 10 }) }
+		});
+
+		interaction.pointerDown(1, 5, 15, 'mouse', 0);
+
+		expect(callbacks.onDraw).toHaveBeenCalledWith({ x: 0.5, y: 1.5 }, null);
+	});
+
 	it('skips duplicate coordinates', () => {
 		const { interaction, callbacks } = setup();
 		interaction.pointerDown(1, 0, 0, 'mouse', 0);
@@ -338,6 +348,22 @@ describe('touch deferral', () => {
 		expect(callbacks.onDraw).toHaveBeenCalledTimes(2);
 	});
 
+	it('uses the optional draw target mapper for deferred touch drawing', () => {
+		const { interaction, callbacks } = setup({
+			options: { screenToDrawTarget: (x, y) => ({ x: x / 10, y: y / 10 }) }
+		});
+		interaction.pointerDown(1, 5, 15, 'touch', 0);
+
+		interaction.pointerMove(25, 15);
+
+		expect(callbacks.onDraw).toHaveBeenNthCalledWith(1, { x: 0.5, y: 1.5 }, null);
+		expect(callbacks.onDraw).toHaveBeenNthCalledWith(
+			2,
+			{ x: 2.5, y: 1.5 },
+			{ x: 0.5, y: 1.5 }
+		);
+	});
+
 	it('touch pointerDown + pointerUp draws as tap', () => {
 		const { interaction, callbacks } = setup();
 		interaction.pointerDown(1, 50, 50, 'touch', 0);
@@ -479,6 +505,17 @@ describe('sampling — long-press entry', () => {
 		expect(callbacks.onSampleStart).toHaveBeenCalledWith({ x: 0, y: 0 }, 0, 'touch');
 	});
 
+	it('uses the optional sampling target mapper for long-press start', () => {
+		const { interaction, callbacks } = setup({
+			options: { screenToSamplingTarget: (x, y) => ({ x: x / 10, y: y / 10 }) }
+		});
+		interaction.pointerDown(1, 5, 15, 'touch', 0);
+
+		vi.advanceTimersByTime(400);
+
+		expect(callbacks.onSampleStart).toHaveBeenCalledWith({ x: 0.5, y: 1.5 }, 0, 'touch');
+	});
+
 	it('does not fire before 400ms', () => {
 		const { interaction, callbacks } = setup();
 		interaction.pointerDown(1, 50, 50, 'touch', 0);
@@ -595,6 +632,18 @@ describe('sampling — during session', () => {
 
 		expect(callbacks.onSampleUpdate).toHaveBeenCalledOnce();
 		expect(callbacks.onSampleUpdate).toHaveBeenCalledWith({ x: 1, y: 0 });
+	});
+
+	it('uses the optional sampling target mapper for sampling updates', () => {
+		const { interaction, callbacks } = setup({
+			options: { screenToSamplingTarget: (x, y) => ({ x: x / 10, y: y / 10 }) }
+		});
+		interaction.pointerDown(1, 0, 0, 'touch', 0);
+		vi.advanceTimersByTime(400);
+
+		interaction.pointerMove(15, 25);
+
+		expect(callbacks.onSampleUpdate).toHaveBeenCalledWith({ x: 1.5, y: 2.5 });
 	});
 
 	it('pointer move during sampling does not fire onDraw', () => {

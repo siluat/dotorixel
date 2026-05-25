@@ -1,6 +1,6 @@
 import type { ViewportData } from './viewport';
 import { viewportOps } from './wasm-backend';
-import type { CanvasCoords } from './canvas-model';
+import type { CanvasCoords, CanvasPoint } from './canvas-model';
 
 const MIN_PINCH_DISTANCE = 10;
 const LONG_PRESS_DELAY = 400;
@@ -23,8 +23,8 @@ type InteractionMode =
 	| { readonly type: 'idle' }
 	| {
 			type: 'drawing';
-			lastPixel: CanvasCoords | null;
-			pendingCoords: CanvasCoords | null;
+			lastPixel: CanvasPoint | null;
+			pendingCoords: CanvasPoint | null;
 			button: number;
 			pointerType: PointerType;
 		}
@@ -40,6 +40,10 @@ type InteractionMode =
 
 export interface CanvasInteractionOptions {
 	screenToCanvas: (localX: number, localY: number) => CanvasCoords;
+	/** Optional precise target for tools that can read fractional document positions. */
+	screenToDrawTarget?: (localX: number, localY: number) => CanvasPoint;
+	/** Optional precise target for Loupe sampling; pixel ports floor in `sampleGrid`. */
+	screenToSamplingTarget?: (localX: number, localY: number) => CanvasPoint;
 	getViewport: () => ViewportData;
 	isSpaceHeld: () => boolean;
 }
@@ -50,7 +54,7 @@ export interface CanvasInteractionCallbacks {
 	 * loupe) can pick the right offset preset for the current input source.
 	 */
 	onDrawStart: (button: number, pointerType: PointerType) => void;
-	onDraw: (current: CanvasCoords, previous: CanvasCoords | null) => void;
+	onDraw: (current: CanvasPoint, previous: CanvasPoint | null) => void;
 	onDrawEnd: () => void;
 	onViewportChange: (viewport: ViewportData) => void;
 	/**
@@ -60,9 +64,9 @@ export interface CanvasInteractionCallbacks {
 	 * the pending touch draw intact — used to short-circuit when the active
 	 * tool already drives sampling through the normal drawing flow.
 	 */
-	onSampleStart: (coords: CanvasCoords, button: number, pointerType: PointerType) => boolean;
+	onSampleStart: (coords: CanvasPoint, button: number, pointerType: PointerType) => boolean;
 	/** Called on each pointer move during a sampling session — drives the loupe overlay's live grid. */
-	onSampleUpdate: (coords: CanvasCoords) => void;
+	onSampleUpdate: (coords: CanvasPoint) => void;
 	/** Called when the pointer lifts cleanly over the canvas — commit the picked color. */
 	onSampleEnd: () => void;
 	/**
@@ -97,7 +101,7 @@ export function createCanvasInteraction(
 	const activePointers = new Map<number, { x: number; y: number; pointerType: PointerType }>();
 	let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
-	function startLongPressTimer(coords: CanvasCoords, button: number): void {
+	function startLongPressTimer(coords: CanvasPoint, button: number): void {
 		clearLongPressTimer();
 		longPressTimer = setTimeout(() => {
 			longPressTimer = null;
@@ -117,12 +121,20 @@ export function createCanvasInteraction(
 		}
 	}
 
-	function drawAt(coords: CanvasCoords): void {
+	function drawAt(coords: CanvasPoint): void {
 		if (interaction.type !== 'drawing') return;
 		const lastPixel = interaction.lastPixel;
 		if (lastPixel && coords.x === lastPixel.x && coords.y === lastPixel.y) return;
 		interaction.lastPixel = coords;
 		callbacks.onDraw(coords, lastPixel);
+	}
+
+	function drawTarget(x: number, y: number): CanvasPoint {
+		return (options.screenToDrawTarget ?? options.screenToCanvas)(x, y);
+	}
+
+	function samplingTarget(x: number, y: number): CanvasPoint {
+		return (options.screenToSamplingTarget ?? options.screenToCanvas)(x, y);
 	}
 
 	function pointerDistance(a: { x: number; y: number }, b: { x: number; y: number }): number {
@@ -217,7 +229,8 @@ export function createCanvasInteraction(
 			}
 
 			if (pointerType === 'touch') {
-				const pendingCoords = options.screenToCanvas(x, y);
+				const pendingCoords = drawTarget(x, y);
+				const pendingSampleTarget = samplingTarget(x, y);
 				interaction = {
 					type: 'drawing',
 					lastPixel: null,
@@ -225,7 +238,7 @@ export function createCanvasInteraction(
 					button,
 					pointerType
 				};
-				startLongPressTimer(pendingCoords, button);
+				startLongPressTimer(pendingSampleTarget, button);
 				return;
 			}
 
@@ -237,18 +250,18 @@ export function createCanvasInteraction(
 				pointerType
 			};
 			callbacks.onDrawStart(button, pointerType);
-			drawAt(options.screenToCanvas(x, y));
+			drawAt(drawTarget(x, y));
 		},
 
 		pointerMove(x: number, y: number): void {
 			if (interaction.type === 'sampling') {
-				callbacks.onSampleUpdate(options.screenToCanvas(x, y));
+				callbacks.onSampleUpdate(samplingTarget(x, y));
 				return;
 			}
 			if (interaction.type !== 'drawing') return;
 			clearLongPressTimer();
 			commitPending();
-			drawAt(options.screenToCanvas(x, y));
+			drawAt(drawTarget(x, y));
 		},
 
 		windowPointerMove(id: number, x: number, y: number, buttons: number): void {
@@ -321,7 +334,7 @@ export function createCanvasInteraction(
 				if (interaction.pendingCoords !== null) {
 					// Touch tap: commit the deferred pixel
 					callbacks.onDrawStart(interaction.button, interaction.pointerType);
-					drawAt(options.screenToCanvas(x, y));
+					drawAt(drawTarget(x, y));
 				}
 				callbacks.onDrawEnd();
 			}
@@ -344,7 +357,7 @@ export function createCanvasInteraction(
 					interaction = { type: 'idle' };
 					return;
 				}
-				drawAt(options.screenToCanvas(x, y));
+				drawAt(drawTarget(x, y));
 				callbacks.onDrawEnd();
 				interaction = { type: 'idle' };
 			}

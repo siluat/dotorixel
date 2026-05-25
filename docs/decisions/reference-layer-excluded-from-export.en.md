@@ -78,5 +78,5 @@ Blend Reference into the on-screen document RGBA buffer, but keep exports Pixel-
 ### Follow-up Triggers
 
 - If users ask to publish a reference together with artwork, revisit with an explicit export option. Default remains off.
-- If users ask to sample colors from the Reference source, add an explicit source-image sampling service rather than routing through `Document.composite()`.
+- Reference color sampling must continue to use explicit source-image sampling paths rather than `Document.composite()`.
 - When the Apple shell adopts Document/Layer, port the same underlay-first render contract instead of a Reference-in-composite path.

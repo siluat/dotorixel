@@ -61,7 +61,7 @@ None — this is the correction slice unblocking amended PRD-105.
 - [118 — Timeline Panel set/replace Reference image import flow](118-reference-layer-timeline-panel-add-icon-and-import-flow.md)
 - [120 — placement overlay shell](120-reference-layer-placement-overlay-shell.md)
 - [124 — drawing tools no-op + cursor](124-reference-layer-drawing-tools-no-op-and-cursor.md)
-- [125 — eyedropper and Canvas Sampling remain Pixel-layer reads](125-reference-layer-eyedropper-and-sampling-try-get-pixel.md)
+- [125 — eyedropper and Canvas Sampling sample active layers explicitly](125-reference-layer-eyedropper-and-sampling-try-get-pixel.md)
 
 ## User Stories Addressed
 

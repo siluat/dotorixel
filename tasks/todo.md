@@ -2,7 +2,6 @@
 
 ## Milestone 3: Editor for Serious Work
 
-- Reference Layer type ([PRD](../issues/105-reference-layer-type.md)) — tracing reference, excluded from export
 - Layer properties (visibility toggle, opacity control)
 - Selection tool (rectangle select + move)
 - Copy/paste

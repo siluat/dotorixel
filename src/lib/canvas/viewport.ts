@@ -1,4 +1,4 @@
-import type { CanvasCoords } from './canvas-model';
+import type { CanvasCoords, CanvasPoint } from './canvas-model';
 
 export interface ViewportSize {
 	readonly width: number;
@@ -25,6 +25,8 @@ export interface ViewportData {
 export interface ViewportOps {
 	// Camera queries and transforms
 	screenToCanvas(vd: ViewportData, screenX: number, screenY: number): CanvasCoords;
+	/** Continuous document-space point for precise sampling and overlays. */
+	screenToCanvasPoint(vd: ViewportData, screenX: number, screenY: number): CanvasPoint;
 	zoomAtPoint(
 		vd: ViewportData,
 		screenX: number,

@@ -1,6 +1,5 @@
-import type { CanvasCoords, ResizeAnchor } from '../canvas-model';
+import type { CanvasPoint, Document, PixelCanvas, ResizeAnchor } from '../canvas-model';
 import type { ViewportData, ViewportSize } from '../viewport';
-import type { Document, PixelCanvas } from '../canvas-model';
 import type { Color } from '../color';
 import { colorToHex, hexToColor } from '../color';
 import { TOOL_CURSORS, type ToolType } from '../tool-registry';
@@ -140,7 +139,7 @@ export class EditorController {
 		this.workspace.activeTab.drawStart(button, pointerType);
 	};
 
-	handleDraw = (current: CanvasCoords, previous: CanvasCoords | null): void => {
+	handleDraw = (current: CanvasPoint, previous: CanvasPoint | null): void => {
 		if (this.keyboard.isShortcutHintsVisible) return;
 		this.workspace.activeTab.draw(current, previous);
 	};
@@ -155,14 +154,14 @@ export class EditorController {
 
 	// Sampling handlers
 	handleSampleStart = (
-		coords: CanvasCoords,
+		coords: CanvasPoint,
 		button: number,
 		pointerType: PointerType
 	): boolean => {
 		return this.workspace.activeTab.sampleStart(coords, button, pointerType);
 	};
 
-	handleSampleUpdate = (coords: CanvasCoords): void => {
+	handleSampleUpdate = (coords: CanvasPoint): void => {
 		this.workspace.activeTab.sampleUpdate(coords);
 	};
 

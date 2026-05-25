@@ -110,7 +110,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Document/Layer model | 🔧 | 🔧 | ⬜ | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple remains single-canvas |
-| Reference Layer (timeline kind) | 🔧 | 🔧 | ⬜ | Singleton underlay with import/replace, fit, placement drag/scale/nudge, and draw-tool no-op cursor. Sampling polish remains |
+| Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and source-coordinate eyedropper/Loupe sampling |
 | Timeline panel | — | 🔧 | ⬜ | Top-z first; activate/remove/reorder/visibility are undoable. Desktop collapse state is persisted per document and not undoable. Frame column is an M4 placeholder |
 
 ## Reference Images

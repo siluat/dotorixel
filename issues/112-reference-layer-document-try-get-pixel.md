@@ -45,13 +45,13 @@ This is the contract that eyedropper and Canvas Sampling Sessions consume in 125
 ### Key Decisions
 
 - Kept the existing strict pixel accessor unchanged, and added the sampling-aware path as a separate API so callers can choose between erroring in-bounds reads and optional sampling reads.
-- Reused the existing nearest-neighbor Reference Layer sampler so Reference sampling matches the on-screen composite path.
+- Reused the existing nearest-neighbor Reference Layer sampler for document-coordinate reads while keeping Reference sampling separate from `Document.composite()`.
 
 ### Notes
 
 - WASM/TypeScript exposure remains in 113.
 - Eyedropper and Canvas Sampling Session adoption remains in 125.
 
-### Amendment (2026-05-22)
+### Amendment (2026-05-25)
 
-PRD-105 was corrected: Reference Layer is a viewport underlay and not part of document pixel composition. Reference-active source sampling is no longer v1 scope. `try_get_pixel` may still be useful as an optional Pixel-layer read API, but the Reference-source behavior described above should be removed or left unused until a future explicit source-sampling decision is made.
+PRD-105 was corrected again after product review: Reference Layer is still a viewport underlay and not part of document pixel composition, but Reference source color sampling is in v1 scope. `try_get_pixel` remains the explicit active-layer sampling accessor for document-coordinate reads; Reference-active reads sample the placed source image and never use `Document.composite()`. The web Loupe path maps pointer positions to original source-image coordinates in the shell so Reference sampling can move with sub-document-pixel precision.

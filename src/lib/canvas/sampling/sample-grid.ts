@@ -1,32 +1,41 @@
-import type { CanvasCoords } from '../canvas-model';
+import type { CanvasPoint } from '../canvas-model';
 import type { Color } from '../color';
 import type { SamplingPort } from './ports';
 
 /**
  * Returns a row-major flat array of length `size × size` for an N×N pixel
  * grid centered on `center`. Cells whose pixel coordinates fall outside
- * `[0, width) × [0, height)` are returned as `null`, distinguishing
- * "no pixel here" from transparent pixels (which return RGBA with `a = 0`).
+ * `[0, width) × [0, height)`, or whose port has no readable pixel, are
+ * returned as `null`, distinguishing "no pixel here" from transparent pixels
+ * (which return RGBA with `a = 0`).
+ * Fractional centers are floored before grid sampling so ports only receive
+ * discrete pixel coordinates.
  *
  * `size` is expected to be an odd positive integer; the center cell is at
  * index `(size² - 1) / 2` in the returned array.
  */
 export function sampleGrid(
 	port: SamplingPort,
-	center: CanvasCoords,
+	center: CanvasPoint,
 	size: number
 ): (Color | null)[] {
 	const result: (Color | null)[] = [];
 	const half = Math.floor(size / 2);
+	const centerX = Math.floor(center.x);
+	const centerY = Math.floor(center.y);
 	for (let dy = -half; dy <= half; dy++) {
 		for (let dx = -half; dx <= half; dx++) {
-			const cx = center.x + dx;
-			const cy = center.y + dy;
+			const cx = centerX + dx;
+			const cy = centerY + dy;
 			if (cx < 0 || cy < 0 || cx >= port.width || cy >= port.height) {
 				result.push(null);
 				continue;
 			}
 			const p = port.get_pixel(cx, cy);
+			if (p === null) {
+				result.push(null);
+				continue;
+			}
 			result.push({ r: p.r, g: p.g, b: p.b, a: p.a });
 		}
 	}

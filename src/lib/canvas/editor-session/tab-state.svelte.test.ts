@@ -6,6 +6,7 @@ import { createFakeDirtyNotifier } from './fake-dirty-notifier';
 import { SharedState } from '../shared-state.svelte';
 import type { CanvasCoords } from '../canvas-model';
 import type { Color } from '../color';
+import { LOUPE_CENTER_INDEX } from '../sampling/loupe-config';
 import { decodeReferenceBlob as samplerDecodeReferenceBlob } from '../../reference-images/decode-reference-blob';
 import type { DecodedImage } from '../../reference-images/sample-pixel';
 
@@ -120,7 +121,10 @@ function makeReferenceDocumentWithPlacement(placement: { x: number; y: number; s
 					visible: true,
 					opacity: 1,
 					sourceBlob: new Blob([new Uint8Array([1])], { type: 'image/png' }),
-					sourceRgba: new Uint8Array(4 * 2 * 4),
+					sourceRgba: new Uint8Array([
+						255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255,
+						255, 255, 0, 255, 255, 0, 255, 255, 0, 255, 255, 255, 32, 32, 32, 255
+					]),
 					naturalWidth: 4,
 					naturalHeight: 2,
 					placement
@@ -273,6 +277,42 @@ describe('TabState — sample gating', () => {
 		const { tab, shared } = makeTab();
 		shared.activeTool = 'eyedropper';
 		expect(tab.sampleStart({ x: 0, y: 0 }, 0, 'mouse')).toBe(false);
+	});
+
+	it('samples the Reference source image when the active layer is Reference', () => {
+		const { document } = makeReferenceDocumentWithPlacement({ x: 0, y: 0, scale: 1 });
+		const { tab, shared, notifier } = makeTab({ document });
+		shared.foregroundColor = BLACK;
+		shared.recentColors = [];
+
+		const started = tab.sampleStart({ x: 0, y: 0 }, 0, 'touch');
+		tab.sampleUpdate({ x: 0, y: 0 });
+		tab.sampleEnd();
+
+		expect(started).toBe(true);
+		expect(tab.samplingSession.isActive).toBe(false);
+		expect(shared.foregroundColor).toEqual(RED);
+		expect(shared.recentColors).toEqual(['#ff0000']);
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+	});
+
+	it('builds the Reference loupe grid in source-image coordinates, not document pixels', () => {
+		const { document } = makeReferenceDocumentWithPlacement({ x: 0, y: 0, scale: 2 });
+		const { tab } = makeTab({ document });
+
+		tab.sampleStart({ x: 2, y: 0 }, 0, 'touch');
+
+		expect(tab.samplingSession.grid[LOUPE_CENTER_INDEX]).toEqual(GREEN);
+		expect(tab.samplingSession.grid[LOUPE_CENTER_INDEX + 1]).toEqual(BLUE);
+	});
+
+	it('uses sub-document-pixel targets for Reference source sampling', () => {
+		const { document } = makeReferenceDocumentWithPlacement({ x: 0, y: 0, scale: 0.5 });
+		const { tab } = makeTab({ document });
+
+		tab.sampleStart({ x: 0.9, y: 0 }, 0, 'touch');
+
+		expect(tab.samplingSession.grid[LOUPE_CENTER_INDEX]).toEqual(GREEN);
 	});
 });
 

@@ -8,9 +8,9 @@
 	import { createWheelInputClassifier } from './wheel-input.ts';
 	import {
 		renderPixelCanvas,
-		type ReferenceUnderlay,
 		type RenderableCanvas
 	} from './renderer.ts';
+	import type { ReferenceLayerUnderlay } from './reference-layer-underlay';
 	import ReferenceLayerPlacementOverlay from './ReferenceLayerPlacementOverlay.svelte';
 	import {
 		createCanvasInteraction,
@@ -35,7 +35,7 @@
 
 	interface Props {
 		pixelCanvas: RenderableCanvas;
-		referenceUnderlay?: ReferenceUnderlay;
+		referenceLayerUnderlay?: ReferenceLayerUnderlay;
 		isReferenceLayerActive?: boolean;
 		viewport: ViewportData;
 		viewportSize?: ViewportSize;
@@ -62,7 +62,7 @@
 
 	let {
 		pixelCanvas,
-		referenceUnderlay,
+		referenceLayerUnderlay,
 		isReferenceLayerActive = false,
 		viewport,
 		viewportSize = { width: 512, height: 512 },
@@ -106,10 +106,10 @@
 	// without waiting for the next pointer event.
 	let lastScreen: { x: number; y: number } | null = null;
 	const classifyWheelInput = createWheelInputClassifier();
-	const displayedReferenceUnderlay = $derived(
-		referenceUnderlay && draftReferencePlacement
-			? { ...referenceUnderlay, placement: draftReferencePlacement }
-			: referenceUnderlay
+	const displayedReferenceLayerUnderlay = $derived(
+		referenceLayerUnderlay && draftReferencePlacement
+			? { ...referenceLayerUnderlay, placement: draftReferencePlacement }
+			: referenceLayerUnderlay
 	);
 	const canMoveReferencePlacementBody = $derived(activeTool === 'move');
 
@@ -150,19 +150,19 @@
 		canvasEl.width = viewportSize.width;
 		canvasEl.height = viewportSize.height;
 
-		renderPixelCanvas(ctx, pixelCanvas, viewport, viewportSize, displayedReferenceUnderlay);
+		renderPixelCanvas(ctx, pixelCanvas, viewport, viewportSize, displayedReferenceLayerUnderlay);
 	});
 
 	$effect(() => {
-		if (isReferenceLayerActive && referenceUnderlay) return;
+		if (isReferenceLayerActive && referenceLayerUnderlay) return;
 		cancelPlacementDrag();
 		cancelOverlayPointerState();
 	});
 
 	$effect(() => {
 		void renderVersion;
-		if (!draftReferencePlacement || placementDrag || !referenceUnderlay) return;
-		if (isSameReferencePlacement(referenceUnderlay.placement, draftReferencePlacement)) {
+		if (!draftReferencePlacement || placementDrag || !referenceLayerUnderlay) return;
+		if (isSameReferencePlacement(referenceLayerUnderlay.placement, draftReferencePlacement)) {
 			draftReferencePlacement = null;
 		}
 	});
@@ -460,10 +460,10 @@
 	}
 
 	function startPlacementDrag(event: PointerEvent, local: { x: number; y: number }): boolean {
-		if (!referenceUnderlay || !isReferenceLayerActive || isSpaceHeld || event.button !== 0) {
+		if (!referenceLayerUnderlay || !isReferenceLayerActive || isSpaceHeld || event.button !== 0) {
 			return false;
 		}
-		const startPlacement = referenceUnderlay.placement;
+		const startPlacement = referenceLayerUnderlay.placement;
 		const handle = placementHandleFromEvent(event);
 		if (!handle && !canMoveReferencePlacementBody) return false;
 		placementDrag = {
@@ -479,8 +479,8 @@
 				? {
 						type: 'scale',
 						handle,
-						naturalWidth: referenceUnderlay.naturalWidth,
-						naturalHeight: referenceUnderlay.naturalHeight
+						naturalWidth: referenceLayerUnderlay.naturalWidth,
+						naturalHeight: referenceLayerUnderlay.naturalHeight
 					}
 				: { type: 'move' }
 		};
@@ -688,10 +688,10 @@
 	function commitReferencePlacementNudge(event: KeyboardEvent): boolean {
 		const delta = placementNudgeForKey(event);
 		if (!delta) return false;
-		if (!referenceUnderlay || !isReferenceLayerActive || placementDrag) return false;
+		if (!referenceLayerUnderlay || !isReferenceLayerActive || placementDrag) return false;
 		if (!isPlacementKeyboardTarget(event.target)) return false;
 		if (!onReferencePlacementCommit) return false;
-		const placement = draftReferencePlacement ?? referenceUnderlay.placement;
+		const placement = draftReferencePlacement ?? referenceLayerUnderlay.placement;
 		const next = {
 			x: placement.x + delta.x,
 			y: placement.y + delta.y,
@@ -730,7 +730,7 @@
 ></canvas>
 
 <ReferenceLayerPlacementOverlay
-	referenceUnderlay={displayedReferenceUnderlay}
+	referenceLayerUnderlay={displayedReferenceLayerUnderlay}
 	{viewport}
 	{isReferenceLayerActive}
 	pointerType={placementOverlayPointerType}

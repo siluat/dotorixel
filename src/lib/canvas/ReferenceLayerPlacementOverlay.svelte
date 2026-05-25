@@ -1,5 +1,8 @@
 <script lang="ts">
-	import type { ReferenceUnderlay } from './renderer';
+	import {
+		referenceLayerUnderlayViewportRect,
+		type ReferenceLayerUnderlay
+	} from './reference-layer-underlay';
 	import type { ViewportData } from './viewport';
 	import type { PointerType } from './canvas-interaction.svelte';
 
@@ -11,7 +14,7 @@
 	const placementHandles: ReferencePlacementHandle[] = ['nw', 'ne', 'se', 'sw'];
 
 	interface Props {
-		referenceUnderlay?: ReferenceUnderlay;
+		referenceLayerUnderlay?: ReferenceLayerUnderlay;
 		viewport: ViewportData;
 		isReferenceLayerActive?: boolean;
 		pointerType?: PointerType;
@@ -24,7 +27,7 @@
 	}
 
 	let {
-		referenceUnderlay,
+		referenceLayerUnderlay,
 		viewport,
 		isReferenceLayerActive = false,
 		pointerType = 'mouse',
@@ -37,17 +40,8 @@
 	}: Props = $props();
 
 	const projectedRect = $derived.by(() => {
-		if (!referenceUnderlay || !isReferenceLayerActive) return null;
-		const scaledPixel = Math.round(viewport.pixelSize * viewport.zoom);
-		const panX = Math.round(viewport.panX);
-		const panY = Math.round(viewport.panY);
-		const { x, y, scale } = referenceUnderlay.placement;
-		return {
-			left: panX + x * scaledPixel,
-			top: panY + y * scaledPixel,
-			width: referenceUnderlay.naturalWidth * scale * scaledPixel,
-			height: referenceUnderlay.naturalHeight * scale * scaledPixel
-		};
+		if (!referenceLayerUnderlay || !isReferenceLayerActive) return null;
+		return referenceLayerUnderlayViewportRect(referenceLayerUnderlay, viewport);
 	});
 
 	const handleSize = $derived(pointerType === 'touch' ? TOUCH_HANDLE_SIZE : DESKTOP_HANDLE_SIZE);

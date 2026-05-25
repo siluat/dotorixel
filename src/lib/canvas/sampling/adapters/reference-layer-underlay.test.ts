@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { ReferenceUnderlay } from '../../renderer';
 import {
-	createReferenceUnderlaySamplingPort,
-	documentToReferenceSourceCoords
-} from './reference-underlay';
+	referenceLayerUnderlaySourceCoords,
+	type ReferenceLayerUnderlay
+} from '../../reference-layer-underlay';
+import { createReferenceLayerUnderlaySamplingPort } from './reference-layer-underlay';
 
-const reference: ReferenceUnderlay = {
+const reference: ReferenceLayerUnderlay = {
 	sourceKey: 'reference',
 	sourceRgba: new Uint8Array([
 		255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255
@@ -18,7 +18,7 @@ const reference: ReferenceUnderlay = {
 
 describe('Reference underlay Sampling Port', () => {
 	it('reads colors in source-image coordinates', () => {
-		const port = createReferenceUnderlaySamplingPort(reference);
+		const port = createReferenceLayerUnderlaySamplingPort(reference);
 
 		expect(port.width).toBe(4);
 		expect(port.height).toBe(1);
@@ -26,11 +26,17 @@ describe('Reference underlay Sampling Port', () => {
 	});
 
 	it('maps document coordinates into source-image coordinates', () => {
-		expect(documentToReferenceSourceCoords(reference, { x: 6, y: 1 })).toEqual({ x: 2, y: 0 });
+		expect(referenceLayerUnderlaySourceCoords(reference, { x: 6, y: 1 })).toEqual({ x: 2, y: 0 });
 	});
 
 	it('preserves sub-document-pixel precision before flooring to the source pixel', () => {
-		expect(documentToReferenceSourceCoords(reference, { x: 5.9, y: 1 })).toEqual({ x: 1, y: 0 });
-		expect(documentToReferenceSourceCoords(reference, { x: 6.1, y: 1 })).toEqual({ x: 2, y: 0 });
+		expect(referenceLayerUnderlaySourceCoords(reference, { x: 5.9, y: 1 })).toEqual({
+			x: 1,
+			y: 0
+		});
+		expect(referenceLayerUnderlaySourceCoords(reference, { x: 6.1, y: 1 })).toEqual({
+			x: 2,
+			y: 0
+		});
 	});
 });

@@ -45,7 +45,7 @@ This is the contract that eyedropper and Canvas Sampling Sessions consume in 125
 ### Key Decisions
 
 - Kept the existing strict pixel accessor unchanged, and added the sampling-aware path as a separate API so callers can choose between erroring in-bounds reads and optional sampling reads.
-- Reused the existing nearest-neighbor Reference Layer sampler so Reference sampling matches the on-screen composite path.
+- Reused the existing nearest-neighbor Reference Layer sampler for document-coordinate reads while keeping Reference sampling separate from `Document.composite()`.
 
 ### Notes
 

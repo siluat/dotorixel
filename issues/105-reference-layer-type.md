@@ -296,7 +296,7 @@ While corner-dragging the Reference placement overlay, snap `placement.scale` to
 - Rasterize Reference Layer into a Pixel Layer.
 - Multiple Reference Layers.
 - Reordering Reference relative to Pixel Layers.
-- Reference source color sampling.
+- Advanced Reference source color sampling controls beyond Eyedropper and Loupe sampling.
 - Reference Layer rename beyond using the imported file name.
 - Opacity slider UI beyond existing shared layer opacity support.
 - Apple shell Reference Layer support.

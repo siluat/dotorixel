@@ -348,6 +348,22 @@ describe('touch deferral', () => {
 		expect(callbacks.onDraw).toHaveBeenCalledTimes(2);
 	});
 
+	it('uses the optional draw target mapper for deferred touch drawing', () => {
+		const { interaction, callbacks } = setup({
+			options: { screenToDrawTarget: (x, y) => ({ x: x / 10, y: y / 10 }) }
+		});
+		interaction.pointerDown(1, 5, 15, 'touch', 0);
+
+		interaction.pointerMove(25, 15);
+
+		expect(callbacks.onDraw).toHaveBeenNthCalledWith(1, { x: 0.5, y: 1.5 }, null);
+		expect(callbacks.onDraw).toHaveBeenNthCalledWith(
+			2,
+			{ x: 2.5, y: 1.5 },
+			{ x: 0.5, y: 1.5 }
+		);
+	});
+
 	it('touch pointerDown + pointerUp draws as tap', () => {
 		const { interaction, callbacks } = setup();
 		interaction.pointerDown(1, 50, 50, 'touch', 0);

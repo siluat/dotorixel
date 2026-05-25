@@ -229,7 +229,7 @@ export function createCanvasInteraction(
 			}
 
 			if (pointerType === 'touch') {
-				const pendingCoords = options.screenToCanvas(x, y);
+				const pendingCoords = drawTarget(x, y);
 				const pendingSampleTarget = samplingTarget(x, y);
 				interaction = {
 					type: 'drawing',

@@ -6,14 +6,26 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 124 | 92 | 32 | 99 | 74% | 48% |
-| cubic-dev-ai[bot] | 70 | 56 | 14 | 130 | 80% | 30% |
-| coderabbitai[bot] | 163 | 111 | 52 | 73 | 68% | 60% |
+| greptile-apps[bot] | 126 | 94 | 32 | 101 | 75% | 48% |
+| cubic-dev-ai[bot] | 70 | 56 | 14 | 134 | 80% | 29% |
+| coderabbitai[bot] | 165 | 113 | 52 | 75 | 68% | 60% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #225 | coderabbitai[bot] | Accept | PRD out-of-scope still listed Reference source color sampling |
+| #225 | coderabbitai[bot] | Accept | try_get_pixel issue claimed Reference sampling matched composite path |
+| #225 | greptile-apps[bot] | Accept | screenToCanvasPoint JS rounding could drift from Rust viewport transform |
+| #225 | greptile-apps[bot] | Accept | touch pending draw used integer screenToCanvas instead of precise draw target |
+| #225 | greptile-apps[bot] | Miss | Did not flag PRD out-of-scope contradiction |
+| #225 | cubic-dev-ai[bot] | Miss | Did not flag PRD out-of-scope contradiction |
+| #225 | greptile-apps[bot] | Miss | Did not flag stale try_get_pixel composite-path decision |
+| #225 | cubic-dev-ai[bot] | Miss | Did not flag stale try_get_pixel composite-path decision |
+| #225 | coderabbitai[bot] | Miss | Did not flag screenToCanvasPoint rounding drift |
+| #225 | cubic-dev-ai[bot] | Miss | Did not flag screenToCanvasPoint rounding drift |
+| #225 | coderabbitai[bot] | Miss | Did not flag touch pending draw integer target |
+| #225 | cubic-dev-ai[bot] | Miss | Did not flag touch pending draw integer target |
 | #224 | greptile-apps[bot] | Accept | Tool classification should derive from `TOOL_DEFS` |
 | #224 | coderabbitai[bot] | Accept | Move no-op test needed non-empty Pixel Layer fixture |
 | #224 | coderabbitai[bot] | Miss | Did not flag manual drawing-tool set divergence |

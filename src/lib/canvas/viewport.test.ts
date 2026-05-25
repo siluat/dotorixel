@@ -35,6 +35,19 @@ describe('ViewportOps camera transforms', () => {
 		expect(coords).toEqual({ x: 0.7, y: 1.5 });
 	});
 
+	it('screenToCanvasPoint floors to screenToCanvas across half-pan boundaries', () => {
+		for (const vd of [
+			{ ...defaultVd, pixelSize: 10, zoom: 1, panX: 3.5, panY: 4.5 },
+			{ ...defaultVd, pixelSize: 10, zoom: 1, panX: -0.5, panY: -1.5 }
+		]) {
+			const point = viewportOps.screenToCanvasPoint(vd, 9, 8);
+
+			expect({ x: Math.floor(point.x), y: Math.floor(point.y) }).toEqual(
+				viewportOps.screenToCanvas(vd, 9, 8)
+			);
+		}
+	});
+
 	it('zoomAtPoint changes zoom and preserves anchor point', () => {
 		const before = viewportOps.screenToCanvas(defaultVd, 100, 100);
 		const zoomed = viewportOps.zoomAtPoint(defaultVd, 100, 100, 2.0);

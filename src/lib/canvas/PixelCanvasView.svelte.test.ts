@@ -617,6 +617,56 @@ describe('PixelCanvasView', () => {
 		expect(onReferencePlacementCommit).not.toHaveBeenCalled();
 	});
 
+	it('forwards Eyedropper clicks from the Reference overlay body to the draw lifecycle', async () => {
+		const onDrawStart = vi.fn();
+		const onDraw = vi.fn();
+		const onDrawEnd = vi.fn();
+		const onReferencePlacementCommit = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				referenceUnderlay,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				isReferenceLayerActive: true,
+				activeTool: 'eyedropper',
+				onDrawStart,
+				onDraw,
+				onDrawEnd,
+				onReferencePlacementCommit
+			}
+		});
+
+		const overlay = screen.getByTestId('reference-placement-overlay');
+		await fireEvent.pointerDown(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 10,
+			clientY: 20
+		});
+		await fireEvent.pointerMove(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			buttons: 1,
+			clientX: 20,
+			clientY: 20
+		});
+		await fireEvent.pointerUp(overlay, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 20,
+			clientY: 20
+		});
+
+		expect(onDrawStart).toHaveBeenCalledWith(0, 'mouse');
+		expect(onDraw).toHaveBeenNthCalledWith(1, { x: 0.7, y: 1.5 }, null);
+		expect(onDraw).toHaveBeenNthCalledWith(2, { x: 1.7, y: 1.5 }, { x: 0.7, y: 1.5 });
+		expect(onDrawEnd).toHaveBeenCalledTimes(1);
+		expect(onReferencePlacementCommit).not.toHaveBeenCalled();
+	});
+
 	it('previews a body drag before committing the Reference placement', async () => {
 		const onReferencePlacementCommit = vi.fn();
 		render(PixelCanvasView, {

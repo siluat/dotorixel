@@ -97,6 +97,13 @@ export const viewportOps: ViewportOps = {
 		const coords = toWasm(vd).screen_to_canvas(screenX, screenY);
 		return { x: coords.x, y: coords.y };
 	},
+	screenToCanvasPoint(vd, screenX, screenY) {
+		const scaledPixel = toWasm(vd).effective_pixel_size();
+		return {
+			x: (screenX - Math.round(vd.panX)) / scaledPixel,
+			y: (screenY - Math.round(vd.panY)) / scaledPixel
+		};
+	},
 	zoomAtPoint(vd, screenX, screenY, newZoom) {
 		const result = toWasm(vd).zoom_at_point(screenX, screenY, newZoom);
 		return { ...vd, zoom: result.zoom, panX: result.pan_x, panY: result.pan_y };

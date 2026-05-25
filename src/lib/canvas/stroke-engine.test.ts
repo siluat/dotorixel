@@ -4,6 +4,7 @@ import { createStrokeEngine, type StrokeEngineDeps } from './stroke-engine';
 import { canvasFactory, singleLayerDocument } from './wasm-backend';
 import { SharedState } from './shared-state.svelte';
 import { createSamplingSession } from './sampling/session.svelte';
+import { createDocumentSamplingPort } from './sampling/adapters/document';
 import type { Color } from './color';
 import type { Document, PixelCanvas } from './canvas-model';
 import type { EditorEffects, ToolRunnerHost } from './tool-runner.svelte';
@@ -45,7 +46,9 @@ function createSetup(opts?: {
 		}
 	};
 	const shared = new SharedState();
-	const samplingSession = createSamplingSession({ getSamplingPort: () => document });
+	const samplingSession = createSamplingSession({
+		getSamplingPort: () => createDocumentSamplingPort(document)
+	});
 	const pushSnapshot = vi.fn();
 	const deps: StrokeEngineDeps = {
 		host,

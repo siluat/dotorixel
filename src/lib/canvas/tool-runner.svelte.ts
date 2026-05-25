@@ -1,4 +1,4 @@
-import type { Document, CanvasCoords } from './canvas-model';
+import type { Document, CanvasPoint } from './canvas-model';
 import type { Color } from './color';
 import type { SharedState } from './shared-state.svelte';
 import { CANVAS_CHANGED, NO_EFFECTS, type ToolEffect } from './draw-tool';
@@ -37,7 +37,7 @@ export interface ToolRunner {
 	 * share the mouse offset preset.
 	 */
 	drawStart(button: number, pointerType: PointerType): EditorEffects;
-	draw(current: CanvasCoords, previous: CanvasCoords | null): EditorEffects;
+	draw(current: CanvasPoint, previous: CanvasPoint | null): EditorEffects;
 	drawEnd(): EditorEffects;
 	modifierChanged(): EditorEffects;
 
@@ -117,7 +117,7 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 			return effects;
 		},
 
-		draw(current: CanvasCoords, previous: CanvasCoords | null): EditorEffects {
+		draw(current: CanvasPoint, previous: CanvasPoint | null): EditorEffects {
 			if (!isDrawing || !activeStroke) return NO_EFFECTS;
 			return activeStroke.sample(current, previous);
 		},

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { sampleGrid } from './sample-grid';
 import { canvasFactory } from '../wasm-backend';
+import { createInMemorySamplingPort } from './adapters/in-memory';
 import type { Color } from '../color';
 
 const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
@@ -46,6 +47,39 @@ describe('sampleGrid', () => {
 		//   (-1,-1)→null  (0,-1)→null  (1,-1)→null
 		//   (-1, 0)→null  (0, 0)→TL    (1, 0)→TR
 		//   (-1, 1)→null  (0, 1)→BL    (1, 1)→BR
+		expect(grid).toEqual([
+			null, null, null,
+			null, TL,   TR,
+			null, BL,   BR
+		]);
+	});
+
+	it('returns null for in-bounds cells whose port has no readable pixel', () => {
+		const TL: Color = { r: 10, g: 0, b: 0, a: 255 };
+		const BR: Color = { r: 40, g: 0, b: 0, a: 255 };
+		const port = createInMemorySamplingPort([
+			[TL, null],
+			[null, BR]
+		]);
+
+		const grid = sampleGrid(port, { x: 0, y: 0 }, 3);
+
+		expect(grid).toEqual([
+			null, null, null,
+			null, TL,   null,
+			null, null, BR
+		]);
+	});
+
+	it('floors fractional centers before reading the port', () => {
+		const TL: Color = { r: 10, g: 0, b: 0, a: 255 };
+		const TR: Color = { r: 20, g: 0, b: 0, a: 255 };
+		const BL: Color = { r: 30, g: 0, b: 0, a: 255 };
+		const BR: Color = { r: 40, g: 0, b: 0, a: 255 };
+		const canvas = canvasFactory.fromPixels(2, 2, encodePixels([TL, TR, BL, BR]));
+
+		const grid = sampleGrid(canvas, { x: 0.9, y: 0.9 }, 3);
+
 		expect(grid).toEqual([
 			null, null, null,
 			null, TL,   TR,

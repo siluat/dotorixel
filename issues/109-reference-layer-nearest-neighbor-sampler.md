@@ -58,4 +58,4 @@ None — can start immediately.
 
 ### Amendment (2026-05-22)
 
-PRD-105 was corrected: Reference Layer display must preserve the original image as a viewport underlay and must not be resampled into `Document.composite()`. This sampler is therefore no longer part of the v1 on-screen render path. It may be removed during rework, or kept only if a future explicit Reference source-sampling feature needs it.
+PRD-105 was corrected: Reference Layer display must preserve the original image as a viewport underlay and must not be resampled into `Document.composite()`. This sampler is therefore not part of the on-screen render path. It remains a document-coordinate helper for explicit Reference source color reads; UI Loupe sampling uses a shell-side source-image port so it can track original image pixels with sub-document-pixel pointer precision.

@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { createToolRunner, type ToolRunnerHost, type ToolRunnerDeps, type EditorEffects } from './tool-runner.svelte';
 import { createSamplingSession } from './sampling/session.svelte';
+import { createDocumentSamplingPort } from './sampling/adapters/document';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
 import type { Document, PixelCanvas } from './canvas-model';
@@ -45,20 +46,24 @@ function createHost(
 function createRunner(canvas?: PixelCanvas, fg?: Color, bg?: Color, doc?: Document) {
 	const host = createHost(canvas, fg, bg, doc);
 	const shared = new SharedState();
-	const samplingSession = createSamplingSession({ getSamplingPort: () => host.document });
+	const samplingSession = createSamplingSession({
+		getSamplingPort: () => createDocumentSamplingPort(host.document)
+	});
 	const runner = createToolRunner({ host, shared, getShiftHeld: () => false, samplingSession });
 	return { host, shared, runner, samplingSession };
 }
 
 function createReferenceActiveDocument(pixelLayerPixels?: Uint8Array): Document {
 	const doc = singleLayerDocument(8, 8, pixelLayerPixels ?? new Uint8Array(8 * 8 * 4));
+	const referenceId = crypto.randomUUID();
 	doc.add_reference_layer(
-		crypto.randomUUID(),
+		referenceId,
 		'Reference',
 		new Uint8Array([255, 0, 0, 255]),
 		1,
 		1
 	);
+	doc.set_reference_placement(referenceId, 0, 0, 1);
 	return doc;
 }
 
@@ -159,6 +164,30 @@ describe('ToolRunner — Reference Layer active', () => {
 		expect(Array.from(getFirstPixelLayerPixels(doc))).toEqual(beforePixelLayer);
 		expect(runner.canUndo).toBe(false);
 	});
+
+	it('eyedropper samples the Reference source without mutating Pixel Layer pixels', () => {
+		const doc = createReferenceActiveDocument();
+		const { runner, shared, samplingSession } = createRunner(undefined, BLACK, WHITE, doc);
+		shared.activeTool = 'eyedropper';
+		const beforeComposite = Array.from(doc.composite());
+		const beforePixelLayer = Array.from(getFirstPixelLayerPixels(doc));
+
+		const startEffects = runner.drawStart(0, 'mouse');
+		const drawEffects = runner.draw({ x: 0, y: 0 }, null);
+		expect(samplingSession.isActive).toBe(true);
+		const endEffects = runner.drawEnd();
+
+		expect(startEffects).toEqual([]);
+		expect(drawEffects).toEqual([]);
+		expect(endEffects).toEqual([
+			{ type: 'colorPick', target: 'foreground', color: RED },
+			{ type: 'addRecentColor', hex: '#ff0000' }
+		]);
+		expect(samplingSession.isActive).toBe(false);
+		expect(Array.from(doc.composite())).toEqual(beforeComposite);
+		expect(Array.from(getFirstPixelLayerPixels(doc))).toEqual(beforePixelLayer);
+		expect(runner.canUndo).toBe(false);
+	});
 });
 
 describe('ToolRunner — eyedropper tool', () => {
@@ -167,7 +196,9 @@ describe('ToolRunner — eyedropper tool', () => {
 		// Paint a red pixel at (2,2) using a separate runner with red foreground
 		const host = createHost(canvas, RED, WHITE);
 		const shared2 = new SharedState();
-		const samplingSession2 = createSamplingSession({ getSamplingPort: () => host.document });
+		const samplingSession2 = createSamplingSession({
+			getSamplingPort: () => createDocumentSamplingPort(host.document)
+		});
 		const runner2 = createToolRunner({ host, shared: shared2, getShiftHeld: () => false, samplingSession: samplingSession2 });
 		runner2.drawStart(0, 'mouse');
 		runner2.draw({ x: 2, y: 2 }, null);
@@ -193,7 +224,9 @@ describe('ToolRunner — eyedropper tool', () => {
 		// Fill the canvas with red at (5,5) using pencil with red foreground
 		const redHost = createHost(canvas, RED, WHITE);
 		const redShared = new SharedState();
-		const redSession = createSamplingSession({ getSamplingPort: () => redHost.document });
+		const redSession = createSamplingSession({
+			getSamplingPort: () => createDocumentSamplingPort(redHost.document)
+		});
 		const redRunner = createToolRunner({ host: redHost, shared: redShared, getShiftHeld: () => false, samplingSession: redSession });
 		redRunner.drawStart(0, 'mouse');
 		redRunner.draw({ x: 5, y: 5 }, null);
@@ -495,7 +528,9 @@ describe('ToolRunner — documentReplaced on undo with dimension change', () => 
 			}
 		};
 		const shared = new SharedState();
-		const samplingSession = createSamplingSession({ getSamplingPort: () => host.document });
+		const samplingSession = createSamplingSession({
+			getSamplingPort: () => createDocumentSamplingPort(host.document)
+		});
 		const runner = createToolRunner({ host, shared, getShiftHeld: () => false, samplingSession });
 
 		runner.pushSnapshot();
@@ -589,7 +624,9 @@ describe('ToolRunner — shift constraint', () => {
 		const shared = new SharedState();
 		shared.activeTool = 'line';
 		let shiftHeld = false;
-		const samplingSession = createSamplingSession({ getSamplingPort: () => host.document });
+		const samplingSession = createSamplingSession({
+			getSamplingPort: () => createDocumentSamplingPort(host.document)
+		});
 		const runner = createToolRunner({ host, shared, getShiftHeld: () => shiftHeld, samplingSession });
 
 		shiftHeld = true;
@@ -608,7 +645,9 @@ describe('ToolRunner — shift constraint', () => {
 		const shared = new SharedState();
 		shared.activeTool = 'line';
 		let shiftHeld = false;
-		const samplingSession = createSamplingSession({ getSamplingPort: () => host.document });
+		const samplingSession = createSamplingSession({
+			getSamplingPort: () => createDocumentSamplingPort(host.document)
+		});
 		const runner = createToolRunner({ host, shared, getShiftHeld: () => shiftHeld, samplingSession });
 
 		runner.drawStart(0, 'mouse');

@@ -1,4 +1,4 @@
-import type { CanvasCoords } from '../canvas-model';
+import type { CanvasCoords, CanvasPoint } from '../canvas-model';
 import { colorToHex, type Color } from '../color';
 import { NO_EFFECTS, type ToolEffects } from '../draw-tool';
 import { computeLoupePosition } from './loupe-position';
@@ -19,7 +19,7 @@ function isValidOpaque(cell: Color | null): cell is Color {
 }
 
 export interface SamplingSessionStartParams {
-	readonly targetPixel: CanvasCoords;
+	readonly targetPixel: CanvasPoint;
 	readonly commitTarget: 'foreground' | 'background';
 	readonly inputSource: LoupeInputSource;
 }
@@ -41,7 +41,7 @@ export interface SamplingSession {
 	/** Window-coord top-left of the loupe overlay; null when inactive or before any pointer push. */
 	readonly position: { readonly x: number; readonly y: number } | null;
 	start(params: SamplingSessionStartParams): void;
-	update(targetPixel: CanvasCoords): void;
+	update(targetPixel: CanvasPoint): void;
 	/** Always safe to call — pointer state caches even when the session is inactive. */
 	updatePointer(params: SamplingSessionUpdatePointerParams): void;
 	commit(): ToolEffects;
@@ -50,6 +50,7 @@ export interface SamplingSession {
 
 export function createSamplingSession(opts: {
 	getSamplingPort: () => SamplingPort;
+	mapTarget?: (target: CanvasPoint) => CanvasCoords;
 }): SamplingSession {
 	let isActive = $state(false);
 	let grid = $state<(Color | null)[]>([]);
@@ -81,6 +82,12 @@ export function createSamplingSession(opts: {
 		inputSource = null;
 	}
 
+	function sampleTarget(target: CanvasPoint): (Color | null)[] {
+		const port = opts.getSamplingPort();
+		const center = opts.mapTarget?.(target) ?? target;
+		return sampleGrid(port, center, GRID_SIZE);
+	}
+
 	return {
 		get isActive() {
 			return isActive;
@@ -92,15 +99,13 @@ export function createSamplingSession(opts: {
 			return position;
 		},
 		start(params: SamplingSessionStartParams): void {
-			const port = opts.getSamplingPort();
-			grid = sampleGrid(port, params.targetPixel, GRID_SIZE);
+			grid = sampleTarget(params.targetPixel);
 			commitTarget = params.commitTarget;
 			inputSource = params.inputSource;
 			isActive = true;
 		},
-		update(target: CanvasCoords): void {
-			const port = opts.getSamplingPort();
-			grid = sampleGrid(port, target, GRID_SIZE);
+		update(target: CanvasPoint): void {
+			grid = sampleTarget(target);
 		},
 		updatePointer(params: SamplingSessionUpdatePointerParams): void {
 			screen = { x: params.screen.x, y: params.screen.y };
@@ -122,4 +127,3 @@ export function createSamplingSession(opts: {
 		}
 	};
 }
-

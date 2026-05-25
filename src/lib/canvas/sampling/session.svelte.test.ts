@@ -2,7 +2,13 @@
 import { describe, it, expect } from 'vitest';
 import { createSamplingSession } from './session.svelte';
 import { createInMemorySamplingPort } from './adapters/in-memory';
-import { LOUPE_HEIGHT, LOUPE_WIDTH, MOUSE_OFFSET, TOUCH_OFFSET } from './loupe-config';
+import {
+	LOUPE_CENTER_INDEX,
+	LOUPE_HEIGHT,
+	LOUPE_WIDTH,
+	MOUSE_OFFSET,
+	TOUCH_OFFSET
+} from './loupe-config';
 import type { Color } from '../color';
 
 const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
@@ -87,6 +93,22 @@ describe('samplingSession — start', () => {
 		});
 
 		expect(session.position).toBeNull();
+	});
+
+	it('applies an optional target mapper before sampling the grid', () => {
+		const port = createInMemorySamplingPort(splitGrid(16, 16, RED, BLUE));
+		const session = createSamplingSession({
+			getSamplingPort: () => port,
+			mapTarget: (target) => ({ x: target.x + 8, y: target.y })
+		});
+
+		session.start({
+			targetPixel: { x: 0, y: 8 },
+			commitTarget: 'foreground',
+			inputSource: 'mouse'
+		});
+
+		expect(session.grid[LOUPE_CENTER_INDEX]).toEqual(BLUE);
 	});
 });
 

@@ -33,7 +33,7 @@ A pointer-driven color-pick lifecycle — the user opens a session at a target p
 _Avoid_: color picker session, eyedropper session (eyedropper is a tool, not a session).
 
 **Sampling Port**:
-The narrow `width / height / get_pixel(x, y)` surface a sampling session reads from. The pixel canvas satisfies it directly; reference images satisfy it through a decoded RGBA buffer.
+The narrow `width / height / get_pixel(x, y)` surface a sampling session reads from. `get_pixel` returns a color or `null` when an in-bounds coordinate has no readable pixel. Pixel canvases satisfy it directly; Canvas Sampling Sessions adapt the active Document's active-layer sampling path; reference images satisfy it through a decoded RGBA buffer.
 _Avoid_: pixel source, image data.
 
 **Loupe**:
@@ -41,7 +41,7 @@ The on-screen overlay shown during a sampling session — a magnified grid cente
 _Avoid_: zoom preview, magnifier.
 
 **Canvas Sampling Session**:
-A sampling session against the active pixel canvas. The port is always available, so `start` is synchronous; there is no press-time foreground preview — only commit-on-release.
+A sampling session against the active Document's sampled layer data. The port is always available, so `start` is synchronous; there is no press-time foreground preview — only commit-on-release. Pixel Layers sample document pixels; Reference Layers sample the placed source image in original image coordinates.
 
 **Reference Sampling Session**:
 A sampling session against an imported reference image. The port becomes available only after the blob is decoded, so `start` is asynchronous; emits a press-time foreground preview and tracks the foreground in real time during the drag, with the recent-color entry deferred until release.
@@ -72,7 +72,7 @@ _Avoid_: drop group, drop session.
 ## Relationships
 
 - A **Sampling Session** drives a **Loupe** and reads through a **Sampling Port**.
-- A **Canvas Sampling Session** holds a synchronous reference to the active canvas as its **Sampling Port**.
+- A **Canvas Sampling Session** holds a synchronous **Sampling Port** adapted from the active Document's active-layer sampling path.
 - A **Reference Sampling Session** binds its **Sampling Port** asynchronously through a blob decode and discards the bound port on release.
 - A **Reference Window** has exactly one **Reference Window Placement**.
 - A **Reference Window Placement** is produced by applying a **Placement Intent** under the current viewport.

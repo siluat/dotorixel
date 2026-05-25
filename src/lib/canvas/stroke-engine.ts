@@ -1,4 +1,4 @@
-import type { CanvasCoords } from './canvas-model';
+import type { CanvasPoint } from './canvas-model';
 import type { Color } from './color';
 import type { PointerType } from './canvas-interaction.svelte';
 import type { LoupeInputSource } from './sampling/types';
@@ -23,7 +23,7 @@ import { createAllTools, isPixelMutationTool } from './tool-registry';
  * callers never see an "opened but not started" phase.
  */
 export interface ActiveStroke {
-	sample(current: CanvasCoords, previous: CanvasCoords | null): EditorEffects;
+	sample(current: CanvasPoint, previous: CanvasPoint | null): EditorEffects;
 	refresh(): EditorEffects;
 	end(): EditorEffects;
 }

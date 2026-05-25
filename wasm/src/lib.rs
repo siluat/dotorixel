@@ -1368,6 +1368,11 @@ mod tests {
         assert_eq!(&doc.composite()[..4], &[255, 0, 0, 255]);
         assert_eq!(&doc.composite_for_export()[..4], &[255, 0, 0, 255]);
 
+        doc.set_active_layer(first.to_string()).unwrap();
+        let pixel_sampled = doc.try_get_pixel(0, 0).expect("Pixel Layer contains 0,0");
+        assert_eq!(pixel_sampled.inner, Color::new(255, 0, 0, 255));
+
+        doc.set_active_layer(reference.to_string()).unwrap();
         doc.set_reference_placement(reference.to_string(), 1.0, 0.0, 1.0)
             .unwrap();
         let placement = doc.layer_placement_at(0).unwrap();

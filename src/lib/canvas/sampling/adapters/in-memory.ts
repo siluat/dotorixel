@@ -1,13 +1,11 @@
 import type { Color } from '../../color';
 import type { SamplingPort } from '../ports';
 
-const TRANSPARENT: Color = { r: 0, g: 0, b: 0, a: 0 };
-
 /**
  * In-memory `SamplingPort` for unit tests. `grid[y][x]` is the pixel at
- * coordinate `(x, y)`. `null` cells are returned as fully transparent —
- * the port itself is bounds-trusting per its contract; out-of-bounds
- * handling is the caller's job (see `sample-grid.ts`).
+ * coordinate `(x, y)`. `null` cells mean no readable pixel at that in-bounds
+ * coordinate. The port itself is bounds-trusting per its contract;
+ * out-of-bounds handling is the caller's job (see `sample-grid.ts`).
  */
 export function createInMemorySamplingPort(grid: (Color | null)[][]): SamplingPort {
 	const height = grid.length;
@@ -16,7 +14,7 @@ export function createInMemorySamplingPort(grid: (Color | null)[][]): SamplingPo
 		width,
 		height,
 		get_pixel(x, y) {
-			return grid[y][x] ?? TRANSPARENT;
+			return grid[y][x] ?? null;
 		}
 	};
 }

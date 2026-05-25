@@ -468,7 +468,8 @@ impl Document {
     ///
     /// Pixel Layers return the active layer's color inside document bounds and
     /// `None` outside bounds. Reference Layers sample their projected source
-    /// footprint.
+    /// footprint; this does not make Reference pixels part of
+    /// [`Document::composite`].
     pub fn try_get_pixel(&self, x: u32, y: u32) -> Option<Color> {
         if x >= self.width || y >= self.height {
             return None;

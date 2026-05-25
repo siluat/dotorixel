@@ -28,6 +28,13 @@ describe('ViewportOps camera transforms', () => {
 		expect(coords.y).toBeLessThan(0);
 	});
 
+	it('screenToCanvasPoint preserves fractional canvas coordinates', () => {
+		const vd = { ...defaultVd, pixelSize: 10, zoom: 1, panX: 3.2, panY: 4.6 };
+		const coords = viewportOps.screenToCanvasPoint(vd, 10, 20);
+
+		expect(coords).toEqual({ x: 0.7, y: 1.5 });
+	});
+
 	it('zoomAtPoint changes zoom and preserves anchor point', () => {
 		const before = viewportOps.screenToCanvas(defaultVd, 100, 100);
 		const zoomed = viewportOps.zoomAtPoint(defaultVd, 100, 100, 2.0);

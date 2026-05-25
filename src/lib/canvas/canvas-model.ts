@@ -1,10 +1,13 @@
 import type { Color } from './color';
 
-/** Discrete pixel position on the art canvas. */
-export interface CanvasCoords {
+/** Continuous point in document canvas space. May contain fractional values. */
+export interface CanvasPoint {
 	readonly x: number;
 	readonly y: number;
 }
+
+/** Discrete pixel position on the art canvas. */
+export interface CanvasCoords extends CanvasPoint {}
 
 /** Reference Layer source-to-document placement. */
 export interface ReferencePlacement {
@@ -63,7 +66,7 @@ export interface Document {
 	composite_for_export(): Uint8Array;
 	/** Reads the active-layer pixel at `(x, y)`. Throws when `(x, y)` is outside `width × height`. */
 	get_pixel(x: number, y: number): Color;
-	/** Reads the active layer at `(x, y)`, or returns `undefined` when no pixel is available. */
+	/** Reads the active layer for sampling, or returns `undefined` when no pixel is available. */
 	try_get_pixel(x: number, y: number): Color | undefined;
 	active_layer_id(): string;
 	next_layer_number(): number;

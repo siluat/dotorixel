@@ -6,7 +6,7 @@ None.
 
 ## Last Completed
 
-[129 — Deepen Document change procedure into a Document Change Journal](../issues/129-deepen-document-change-journal.md). Document Change Journal is now the named web-shell seam for classified Document changes and follow-up effects; the first tracer bullet routes add-layer through it while leaving async persistence rollback out of scope.
+[130 — Deepen Document Change Journal coverage beyond add-layer](../issues/130-deepen-document-change-journal-coverage.md). Document Change Journal now owns the shared web-shell follow-up sequence for Layer, Reference Layer, resize, and persisted Document UI changes; tool drawing and async persistence rollback remain separate.
 
 ## Next Up
 

@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 127 | [Deepen Reference Layer Underlay projection](../issues/127-deepen-reference-layer-underlay-projection.md) | 2026-05-25 |
 | 125 | [Reference Layer: eyedropper and Canvas Sampling sample active layers explicitly](../issues/125-reference-layer-eyedropper-and-sampling-try-get-pixel.md) | 2026-05-25 |
 | 124 | [Reference Layer: drawing tools silently no-op + `not-allowed` cursor](../issues/124-reference-layer-drawing-tools-no-op-and-cursor.md) | 2026-05-25 |
 | 123 | [Reference Layer: keyboard nudge for placement](../issues/123-reference-layer-placement-overlay-keyboard-nudge.md) | 2026-05-24 |

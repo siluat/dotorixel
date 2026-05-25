@@ -4,7 +4,8 @@ import { tick } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import PixelCanvasView from './PixelCanvasView.svelte';
 import type { ToolType } from './tool-registry';
-import type { ReferenceUnderlay, RenderableCanvas } from './renderer';
+import type { RenderableCanvas } from './renderer';
+import type { ReferenceLayerUnderlay } from './reference-layer-underlay';
 import type { ViewportData } from './viewport';
 
 class FakeImageData {
@@ -61,7 +62,7 @@ const pixelCanvas: RenderableCanvas = {
 	pixels: () => new Uint8Array(4 * 4 * 4)
 };
 
-const referenceUnderlay: ReferenceUnderlay = {
+const referenceLayerUnderlay: ReferenceLayerUnderlay = {
 	sourceKey: 'reference-overlay',
 	sourceRgba: new Uint8Array(2 * 1 * 4),
 	naturalWidth: 2,
@@ -70,7 +71,7 @@ const referenceUnderlay: ReferenceUnderlay = {
 	opacity: 1
 };
 
-const squareReferenceUnderlay: ReferenceUnderlay = {
+const squareReferenceLayerUnderlay: ReferenceLayerUnderlay = {
 	sourceKey: 'reference-overlay-square',
 	sourceRgba: new Uint8Array(4 * 4 * 4),
 	naturalWidth: 4,
@@ -79,8 +80,8 @@ const squareReferenceUnderlay: ReferenceUnderlay = {
 	opacity: 1
 };
 
-const largeSquareReferenceUnderlay: ReferenceUnderlay = {
-	...squareReferenceUnderlay,
+const largeSquareReferenceLayerUnderlay: ReferenceLayerUnderlay = {
+	...squareReferenceLayerUnderlay,
 	sourceKey: 'reference-overlay-large-square',
 	placement: { x: 1, y: 1, scale: 3 }
 };
@@ -122,7 +123,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -139,7 +140,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -155,7 +156,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -173,7 +174,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: false,
@@ -190,7 +191,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -209,7 +210,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -228,7 +229,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true
@@ -242,7 +243,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: false
@@ -256,7 +257,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true
@@ -276,7 +277,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -298,7 +299,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -339,7 +340,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -368,7 +369,7 @@ describe('PixelCanvasView', () => {
 			render(PixelCanvasView, {
 				props: {
 					pixelCanvas,
-					referenceUnderlay,
+					referenceLayerUnderlay,
 					viewport,
 					viewportSize: { width: 100, height: 100 },
 					isReferenceLayerActive: true,
@@ -388,7 +389,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -408,7 +409,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -429,7 +430,7 @@ describe('PixelCanvasView', () => {
 		const { rerender } = render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				renderVersion: 0,
@@ -442,7 +443,7 @@ describe('PixelCanvasView', () => {
 		await fireEvent.keyDown(canvas, { code: 'ArrowRight', key: 'ArrowRight' });
 		await rerender({
 			pixelCanvas,
-			referenceUnderlay,
+			referenceLayerUnderlay,
 			viewport,
 			viewportSize: { width: 100, height: 100 },
 			renderVersion: 1,
@@ -460,7 +461,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -483,7 +484,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -513,7 +514,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -531,7 +532,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: false,
@@ -550,7 +551,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -580,7 +581,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -625,7 +626,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -672,7 +673,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -708,7 +709,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay: squareReferenceUnderlay,
+				referenceLayerUnderlay: squareReferenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -748,7 +749,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay: largeSquareReferenceUnderlay,
+				referenceLayerUnderlay: largeSquareReferenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -787,7 +788,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -829,7 +830,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -871,7 +872,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -913,7 +914,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -950,7 +951,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -986,7 +987,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -1027,7 +1028,7 @@ describe('PixelCanvasView', () => {
 		const { rerender } = render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,
@@ -1046,7 +1047,7 @@ describe('PixelCanvasView', () => {
 
 		await rerender({
 			pixelCanvas,
-			referenceUnderlay,
+			referenceLayerUnderlay,
 			viewport,
 			viewportSize: { width: 100, height: 100 },
 			isReferenceLayerActive: false,
@@ -1116,7 +1117,7 @@ describe('PixelCanvasView', () => {
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
-				referenceUnderlay,
+				referenceLayerUnderlay,
 				viewport,
 				viewportSize: { width: 100, height: 100 },
 				isReferenceLayerActive: true,

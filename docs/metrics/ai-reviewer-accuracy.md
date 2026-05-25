@@ -6,14 +6,25 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 126 | 94 | 32 | 101 | 75% | 48% |
-| cubic-dev-ai[bot] | 70 | 56 | 14 | 134 | 80% | 29% |
-| coderabbitai[bot] | 165 | 113 | 52 | 75 | 68% | 60% |
+| greptile-apps[bot] | 127 | 95 | 32 | 103 | 75% | 48% |
+| cubic-dev-ai[bot] | 70 | 56 | 14 | 137 | 80% | 29% |
+| coderabbitai[bot] | 169 | 115 | 54 | 76 | 68% | 60% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #226 | greptile-apps[bot] | Accept | Stale Reference underlay test describe title |
+| #226 | coderabbitai[bot] | Accept | Projector retained source cache after no-underlay projection |
+| #226 | coderabbitai[bot] | Reject | Sampling adapter out-of-bounds guard conflicts with SamplingPort contract |
+| #226 | coderabbitai[bot] | Reject | Adapter out-of-bounds regression test conflicts with SamplingPort contract |
+| #226 | coderabbitai[bot] | Accept | Public getter contract for Reference Layer Underlay was undocumented |
+| #226 | coderabbitai[bot] | Miss | Did not flag stale Reference underlay test describe title |
+| #226 | greptile-apps[bot] | Miss | Did not flag projector cache retention after no-underlay projection |
+| #226 | cubic-dev-ai[bot] | Miss | Did not flag stale Reference underlay test describe title |
+| #226 | cubic-dev-ai[bot] | Miss | Did not flag projector cache retention after no-underlay projection |
+| #226 | greptile-apps[bot] | Miss | Did not flag public getter contract documentation gap |
+| #226 | cubic-dev-ai[bot] | Miss | Did not flag public getter contract documentation gap |
 | #225 | coderabbitai[bot] | Accept | PRD out-of-scope still listed Reference source color sampling |
 | #225 | coderabbitai[bot] | Accept | try_get_pixel issue claimed Reference sampling matched composite path |
 | #225 | greptile-apps[bot] | Accept | screenToCanvasPoint JS rounding could drift from Rust viewport transform |

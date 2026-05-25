@@ -531,7 +531,7 @@ describe('TabState — Reference underlay render source', () => {
 		expect(tab.document.layer_id_at(0)).toBe(referenceId);
 		expect(tab.document.layer_kind_at(0)).toBe('reference');
 		expect(tab.document.active_layer_id()).toBe(referenceId);
-		expect(tab.referenceUnderlay).toMatchObject({
+		expect(tab.referenceLayerUnderlay).toMatchObject({
 			sourceRgba,
 			naturalWidth: 2,
 			naturalHeight: 1,
@@ -574,7 +574,7 @@ describe('TabState — Reference underlay render source', () => {
 		expect(secondId).not.toBe(firstId);
 		expect(tab.document.active_layer_id()).toBe(secondId);
 		expect(tab.document.layer_name_at(0)).toBe('second.png');
-		expect(tab.referenceUnderlay?.placement).toEqual({ x: 0, y: 0, scale: 1 });
+		expect(tab.referenceLayerUnderlay?.placement).toEqual({ x: 0, y: 0, scale: 1 });
 		expect(expectReferenceLayer(tab.toSnapshot().layers[0]).sourceBlob).toBe(secondBlob);
 	});
 
@@ -643,7 +643,7 @@ describe('TabState — Reference underlay render source', () => {
 		const { tab } = makeTab({ document });
 
 		expect(tab.compositeBuffer.pixels()).toEqual(paintedPixels);
-		expect(tab.referenceUnderlay).toEqual({
+		expect(tab.referenceLayerUnderlay).toEqual({
 			sourceKey: expect.stringMatching(`^${referenceId}:`),
 			sourceRgba: referencePixels,
 			naturalWidth: 2,
@@ -654,7 +654,7 @@ describe('TabState — Reference underlay render source', () => {
 
 		tab.setLayerVisibility(referenceId, false);
 
-		expect(tab.referenceUnderlay).toBeUndefined();
+		expect(tab.referenceLayerUnderlay).toBeUndefined();
 	});
 
 	it('changes the Reference source key when source pixels change under the same layer id', () => {
@@ -695,7 +695,7 @@ describe('TabState — Reference underlay render source', () => {
 		const { tab: first } = makeTab({ document: makeDocument(new Uint8Array([0, 255, 0, 255])) });
 		const { tab: second } = makeTab({ document: makeDocument(new Uint8Array([0, 0, 255, 255])) });
 
-		expect(first.referenceUnderlay?.sourceKey).not.toBe(second.referenceUnderlay?.sourceKey);
+		expect(first.referenceLayerUnderlay?.sourceKey).not.toBe(second.referenceLayerUnderlay?.sourceKey);
 	});
 
 	it('does not recopy the Reference source when the render-facing getter is read again', () => {
@@ -733,8 +733,8 @@ describe('TabState — Reference underlay render source', () => {
 		const { tab } = makeTab({ document });
 		const sourceSpy = vi.spyOn(tab.document, 'layer_source_pixels_at');
 
-		const first = tab.referenceUnderlay;
-		const second = tab.referenceUnderlay;
+		const first = tab.referenceLayerUnderlay;
+		const second = tab.referenceLayerUnderlay;
 
 		expect(sourceSpy).toHaveBeenCalledOnce();
 		expect(second?.sourceKey).toBe(first?.sourceKey);
@@ -778,7 +778,7 @@ describe('TabState — Reference underlay render source', () => {
 
 		tab.setReferencePlacement(referenceId, { x: 2, y: 3, scale: 4 });
 
-		expect(tab.referenceUnderlay?.placement).toEqual({ x: 2, y: 3, scale: 4 });
+		expect(tab.referenceLayerUnderlay?.placement).toEqual({ x: 2, y: 3, scale: 4 });
 		expect(tab.renderVersion).toBe(beforeVersion + 1);
 		expect(notifier.dirtyCalls).toEqual(['doc-test']);
 	});
@@ -795,10 +795,10 @@ describe('TabState — Reference underlay render source', () => {
 		tab.setReferencePlacement(referenceId, { x: 2, y: 0, scale: 1 });
 
 		tab.undo();
-		expect(tab.referenceUnderlay?.placement).toEqual({ x: 1, y: 0, scale: 1 });
+		expect(tab.referenceLayerUnderlay?.placement).toEqual({ x: 1, y: 0, scale: 1 });
 
 		tab.undo();
-		expect(tab.referenceUnderlay?.placement).toEqual({ x: 0, y: 0, scale: 1 });
+		expect(tab.referenceLayerUnderlay?.placement).toEqual({ x: 0, y: 0, scale: 1 });
 	});
 
 	it('expands viewport pan bounds to the active visible Reference footprint', () => {
@@ -868,7 +868,7 @@ describe('TabState — Reference underlay render source', () => {
 
 		tab.fitReferenceLayerToCanvas(referenceId);
 
-		expect(tab.referenceUnderlay?.placement).toEqual({ x: 0, y: 5, scale: 5 });
+		expect(tab.referenceLayerUnderlay?.placement).toEqual({ x: 0, y: 5, scale: 5 });
 		expect(tab.renderVersion).toBe(beforeVersion + 1);
 		expect(notifier.dirtyCalls).toEqual(['doc-test']);
 	});
@@ -882,13 +882,13 @@ describe('TabState — Reference underlay render source', () => {
 		const { tab } = makeTab({ document });
 
 		tab.fitReferenceLayerToCanvas(referenceId);
-		expect(tab.referenceUnderlay?.placement).toEqual({ x: 0, y: 5, scale: 5 });
+		expect(tab.referenceLayerUnderlay?.placement).toEqual({ x: 0, y: 5, scale: 5 });
 
 		tab.undo();
-		expect(tab.referenceUnderlay?.placement).toEqual({ x: 5, y: 6, scale: 3 });
+		expect(tab.referenceLayerUnderlay?.placement).toEqual({ x: 5, y: 6, scale: 3 });
 
 		tab.redo();
-		expect(tab.referenceUnderlay?.placement).toEqual({ x: 0, y: 5, scale: 5 });
+		expect(tab.referenceLayerUnderlay?.placement).toEqual({ x: 0, y: 5, scale: 5 });
 	});
 
 	it('fits to the current canvas dimensions after resize', () => {
@@ -903,7 +903,7 @@ describe('TabState — Reference underlay render source', () => {
 		tab.resize(24, 30);
 		tab.fitReferenceLayerToCanvas(referenceId);
 
-		expect(tab.referenceUnderlay?.placement).toEqual({ x: 0, y: 9, scale: 6 });
+		expect(tab.referenceLayerUnderlay?.placement).toEqual({ x: 0, y: 9, scale: 6 });
 	});
 });
 

@@ -22,6 +22,10 @@ _Avoid_: paint layer, draw layer, raster layer.
 A singleton Layer that holds a decoded source image plus a Reference Layer Placement, used as a tracing reference inside the Document. The user can adjust its visibility, opacity, position, and scale, but cannot draw on it or reorder it above Pixel Layers. Rendered by the shell as an original-image viewport underlay and **excluded from `Document.composite()`, exports, and saved-work thumbnails**. Persisted in the Document so it survives reload and undo/redo, but never published as part of the artwork. Distinct from a Reference Window (workspace-scoped, sampling-oriented).
 _Avoid_: imported image, tracing layer, reference image (Reference Window's term).
 
+**Reference Layer Underlay**:
+A shell-facing projection of a visible Reference Layer used to draw the original source image in the viewport and interpret placement-based source sampling.
+_Avoid_: overlay (ambiguous with UI chrome), render layer, reference image.
+
 **Reference Layer Placement**:
 A Reference Layer's source-to-document geometry — the position and uniform scale that map the source image onto the Document canvas. On import, large sources are aspect-fit into the canvas while smaller sources stay at natural size; "Fit to canvas" aspect-fits the source into the current canvas, allows upscaling, and centers the result. Composite sampling is nearest-neighbor.
 _Avoid_: position, transform, geometry, viewport (all overloaded).
@@ -80,6 +84,7 @@ _Avoid_: drop group, drop session.
 - An *at-point* **Placement Intent** belongs to a **Drop Batch**, which determines its intra-batch stagger from the drop anchor.
 - A **Layer** is exactly one of **Pixel Layer** or **Reference Layer**; both share id, name, visibility, and opacity.
 - A **Reference Layer** has exactly one **Reference Layer Placement**.
+- A **Reference Layer Underlay** is derived from the visible **Reference Layer** and shares its **Reference Layer Placement**.
 - Drawing tools mutate only the active **Pixel Layer**; `Document.composite()` and exports include only Pixel Layers, while the shell draws a visible **Reference Layer** as a viewport underlay before the Pixel composite.
 - A **Reference Window** is workspace-scoped and never enters the Document; a **Reference Layer** is Document-scoped and persisted alongside the artwork. The two are independent — neither converts to the other.
 

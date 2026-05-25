@@ -8,7 +8,7 @@ import type { ReferenceSamplingSession } from '../../reference-images/reference-
 import type { SamplingSession } from '../sampling/session.svelte';
 import type { LoupeInputSource } from '../sampling/types';
 import type { PointerType } from '../canvas-interaction.svelte';
-import type { ReferenceUnderlay } from '../renderer';
+import type { ReferenceLayerUnderlay } from '../reference-layer-underlay';
 import type { Workspace } from './workspace.svelte';
 
 /**
@@ -71,8 +71,8 @@ export class EditorController {
 	get compositeBuffer(): { readonly width: number; readonly height: number; pixels(): Uint8Array } {
 		return this.workspace.activeTab.compositeBuffer;
 	}
-	get referenceUnderlay(): ReferenceUnderlay | undefined {
-		return this.workspace.activeTab.referenceUnderlay;
+	get referenceLayerUnderlay(): ReferenceLayerUnderlay | undefined {
+		return this.workspace.activeTab.referenceLayerUnderlay;
 	}
 	exportableSnapshot(): PixelCanvas {
 		return this.workspace.activeTab.exportableSnapshot();

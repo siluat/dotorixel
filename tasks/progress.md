@@ -6,7 +6,7 @@ None.
 
 ## Last Completed
 
-[125 — Reference Layer: eyedropper and Canvas Sampling sample active layers explicitly](../issues/125-reference-layer-eyedropper-and-sampling-try-get-pixel.md). Sampling now reads Pixel Layers or the placed Reference source image in source coordinates without using the export/composite buffer, and the Reference Layer PRD is complete.
+[127 — Deepen Reference Layer Underlay projection](../issues/127-deepen-reference-layer-underlay-projection.md). Reference Layer Underlay is now a named web-shell projection shared by rendering, placement UI, and source-coordinate sampling; platform feature status is unchanged.
 
 ## Next Up
 

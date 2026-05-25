@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { clearReferenceRasterCache, renderPixelCanvas, type ReferenceUnderlay } from './renderer';
+import { clearReferenceRasterCache, renderPixelCanvas } from './renderer';
+import type { ReferenceLayerUnderlay } from './reference-layer-underlay';
 import type { RenderableCanvas } from './renderer';
 import type { ViewportData, ViewportSize } from './viewport';
 
@@ -79,8 +80,8 @@ describe('renderPixelCanvas', () => {
 			height: 4,
 			pixels: () => new Uint8Array(4 * 4 * 4)
 		};
-		const reference: ReferenceUnderlay = {
-			sourceKey: 'reference-underlay-order',
+		const reference: ReferenceLayerUnderlay = {
+			sourceKey: 'reference-layer-underlay-order',
 			sourceRgba: new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]),
 			naturalWidth: 2,
 			naturalHeight: 1,
@@ -130,7 +131,7 @@ describe('renderPixelCanvas', () => {
 			gridColor: '#000000'
 		};
 		const viewportSize: ViewportSize = { width: 100, height: 100 };
-		const reference: ReferenceUnderlay = {
+		const reference: ReferenceLayerUnderlay = {
 			sourceKey: 'reference-raster-cache',
 			sourceRgba: new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]),
 			naturalWidth: 2,
@@ -173,7 +174,7 @@ describe('renderPixelCanvas', () => {
 			gridColor: '#000000'
 		};
 		const viewportSize: ViewportSize = { width: 100, height: 100 };
-		const referenceA: ReferenceUnderlay = {
+		const referenceA: ReferenceLayerUnderlay = {
 			sourceKey: 'reference-a',
 			sourceRgba: new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]),
 			naturalWidth: 2,
@@ -181,7 +182,7 @@ describe('renderPixelCanvas', () => {
 			placement: { x: 0, y: 0, scale: 1 },
 			opacity: 1
 		};
-		const referenceB: ReferenceUnderlay = {
+		const referenceB: ReferenceLayerUnderlay = {
 			...referenceA,
 			sourceKey: 'reference-b',
 			sourceRgba: new Uint8Array([0, 0, 255, 255, 255, 255, 0, 255])

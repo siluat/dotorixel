@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import ReferenceLayerPlacementOverlay from './ReferenceLayerPlacementOverlay.svelte';
-import type { ReferenceUnderlay } from './renderer';
+import type { ReferenceLayerUnderlay } from './reference-layer-underlay';
 import type { ViewportData } from './viewport';
 
 afterEach(() => cleanup());
@@ -16,7 +16,7 @@ const viewport: ViewportData = {
 	gridColor: '#000000'
 };
 
-const referenceUnderlay: ReferenceUnderlay = {
+const referenceLayerUnderlay: ReferenceLayerUnderlay = {
 	sourceKey: 'reference-overlay',
 	sourceRgba: new Uint8Array(2 * 1 * 4),
 	naturalWidth: 2,
@@ -28,7 +28,7 @@ const referenceUnderlay: ReferenceUnderlay = {
 describe('ReferenceLayerPlacementOverlay', () => {
 	it('projects the active Reference Layer footprint with the same viewport transform as the underlay', () => {
 		render(ReferenceLayerPlacementOverlay, {
-			referenceUnderlay,
+			referenceLayerUnderlay,
 			viewport,
 			isReferenceLayerActive: true
 		});
@@ -43,7 +43,7 @@ describe('ReferenceLayerPlacementOverlay', () => {
 
 	it('renders nothing when the Reference Layer is not active', () => {
 		render(ReferenceLayerPlacementOverlay, {
-			referenceUnderlay,
+			referenceLayerUnderlay,
 			viewport,
 			isReferenceLayerActive: false
 		});
@@ -53,7 +53,7 @@ describe('ReferenceLayerPlacementOverlay', () => {
 
 	it('renders exactly four constant-size corner handles for desktop input', () => {
 		render(ReferenceLayerPlacementOverlay, {
-			referenceUnderlay,
+			referenceLayerUnderlay,
 			viewport: { ...viewport, zoom: 4 },
 			isReferenceLayerActive: true,
 			pointerType: 'mouse'
@@ -68,7 +68,7 @@ describe('ReferenceLayerPlacementOverlay', () => {
 
 	it('uses the larger constant handle size for touch input', () => {
 		render(ReferenceLayerPlacementOverlay, {
-			referenceUnderlay,
+			referenceLayerUnderlay,
 			viewport,
 			isReferenceLayerActive: true,
 			pointerType: 'touch'
@@ -81,7 +81,7 @@ describe('ReferenceLayerPlacementOverlay', () => {
 
 	it('marks corner resize zones and exposes an invisible 44px handle hit area', () => {
 		render(ReferenceLayerPlacementOverlay, {
-			referenceUnderlay,
+			referenceLayerUnderlay,
 			viewport,
 			isReferenceLayerActive: true,
 			pointerType: 'touch'
@@ -101,7 +101,7 @@ describe('ReferenceLayerPlacementOverlay', () => {
 
 	it('receives read-only pointer starts instead of letting hit-testing fall through', () => {
 		render(ReferenceLayerPlacementOverlay, {
-			referenceUnderlay,
+			referenceLayerUnderlay,
 			viewport,
 			isReferenceLayerActive: true
 		});
@@ -116,7 +116,7 @@ describe('ReferenceLayerPlacementOverlay', () => {
 
 	it('uses auto as the default body cursor', () => {
 		render(ReferenceLayerPlacementOverlay, {
-			referenceUnderlay,
+			referenceLayerUnderlay,
 			viewport,
 			isReferenceLayerActive: true
 		});
@@ -127,7 +127,7 @@ describe('ReferenceLayerPlacementOverlay', () => {
 
 	it('uses the provided body cursor', () => {
 		render(ReferenceLayerPlacementOverlay, {
-			referenceUnderlay,
+			referenceLayerUnderlay,
 			viewport,
 			isReferenceLayerActive: true,
 			bodyCursor: 'not-allowed'

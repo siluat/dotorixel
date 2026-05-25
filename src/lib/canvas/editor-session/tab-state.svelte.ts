@@ -14,7 +14,6 @@ import {
 import { isBlankCanvas } from '../blank-detection';
 import type { ViewportData, ViewportSize } from '../viewport';
 import { addRecentColor } from '../color';
-import type { ReferenceUnderlay } from '../renderer';
 import type { SharedState } from '../shared-state.svelte';
 import { decodeReferenceBlob } from '../../reference-images/decode-reference-blob';
 import {
@@ -24,15 +23,20 @@ import {
 import { createDocumentSamplingPort } from '../sampling/adapters/document';
 import {
 	createNoReadableSamplingPort,
-	createReferenceUnderlaySamplingPort,
-	documentToReferenceSourceCoords
-} from '../sampling/adapters/reference-underlay';
+	createReferenceLayerUnderlaySamplingPort
+} from '../sampling/adapters/reference-layer-underlay';
 import { createSamplingSession, type SamplingSession } from '../sampling/session.svelte';
 import type { LoupeInputSource } from '../sampling/types';
 import { createToolRunner, type ToolRunner, type EditorEffects } from '../tool-runner.svelte';
 import { exportAsPng } from '../export';
 import type { PointerType } from '../canvas-interaction.svelte';
 import type { ReferenceLayerSnapshot, TabSnapshot } from '../workspace-snapshot';
+import {
+	ReferenceLayerUnderlayProjector,
+	referenceLayerUnderlayBounds,
+	referenceLayerUnderlaySourceCoords,
+	type ReferenceLayerUnderlay
+} from '../reference-layer-underlay';
 import type { CanvasBackend } from './canvas-backend';
 import type { DirtyNotifier } from './dirty-notifier';
 import { TabViewport } from './tab-viewport.svelte';
@@ -48,16 +52,6 @@ function isActiveLayerReference(document: Document): boolean {
 		return document.layer_kind_at(i) === 'reference';
 	}
 	return false;
-}
-
-interface CachedReferenceUnderlaySource {
-	readonly document: Document;
-	readonly layerId: string;
-	readonly sourceFingerprint: string;
-	readonly naturalWidth: number;
-	readonly naturalHeight: number;
-	readonly sourceKey: string;
-	readonly sourceRgba: Uint8Array;
 }
 
 interface DocumentNavigationBounds {
@@ -132,7 +126,7 @@ export class TabState {
 	/**
 	 * Renderer-facing view of the document. `pixels()` returns the full
 	 * source-over composite of every visible Pixel Layer. Reference Layers are
-	 * exposed separately through `referenceUnderlay` so the renderer can draw
+	 * exposed separately through `referenceLayerUnderlay` so the renderer can draw
 	 * the original image before the Pixel composite.
 	 */
 	get compositeBuffer(): { readonly width: number; readonly height: number; pixels(): Uint8Array } {
@@ -148,62 +142,20 @@ export class TabState {
 		};
 	}
 
-	get referenceUnderlay(): ReferenceUnderlay | undefined {
+	/**
+	 * Projects the current visible Reference Layer into the shell-facing underlay
+	 * consumed by rendering, placement UI, and source-image sampling. Returns
+	 * `undefined` when the document has no visible, readable Reference Layer; the
+	 * getter does not mutate the document. The read is tied to `renderVersion` so
+	 * consumers refresh after Reference placement, visibility, import, undo, or
+	 * redo changes.
+	 */
+	get referenceLayerUnderlay(): ReferenceLayerUnderlay | undefined {
 		// WASM Document internals are opaque to Svelte. Tie this projection to
 		// renderVersion so import, fit-to-canvas, drag commits, undo/redo, and
 		// visibility changes immediately refresh renderer consumers.
 		void this.renderVersion;
-		const doc = this.document;
-		for (let i = 0; i < doc.layer_count(); i++) {
-			if (doc.layer_kind_at(i) !== 'reference') continue;
-			if (!doc.layer_visible_at(i)) return undefined;
-			const layerId = doc.layer_id_at(i);
-			const sourceFingerprint = doc.layer_source_fingerprint_at(i);
-			const dimensions = doc.layer_source_dimensions_at(i);
-			const placement = doc.layer_placement_at(i);
-			const opacity = doc.layer_opacity_at(i);
-			if (!layerId || !sourceFingerprint || !dimensions || !placement || opacity === undefined) {
-				return undefined;
-			}
-			const naturalWidth = dimensions[0];
-			const naturalHeight = dimensions[1];
-			const cached = this.#referenceUnderlaySource;
-			let source =
-				cached?.document === doc &&
-				cached.layerId === layerId &&
-				cached.sourceFingerprint === sourceFingerprint &&
-				cached.naturalWidth === naturalWidth &&
-				cached.naturalHeight === naturalHeight
-					? cached
-					: undefined;
-			if (!source) {
-				const sourceRgba = doc.layer_source_pixels_at(i);
-				if (!sourceRgba) return undefined;
-				source = {
-					document: doc,
-					layerId,
-					sourceFingerprint,
-					naturalWidth,
-					naturalHeight,
-					sourceKey: `${layerId}:${naturalWidth}x${naturalHeight}:${sourceFingerprint}`,
-					sourceRgba
-				};
-				this.#referenceUnderlaySource = source;
-			}
-			return {
-				sourceKey: source.sourceKey,
-				sourceRgba: source.sourceRgba,
-				naturalWidth,
-				naturalHeight,
-				placement: {
-					x: placement.x,
-					y: placement.y,
-					scale: placement.scale
-				},
-				opacity
-			};
-		}
-		return undefined;
+		return this.#referenceLayerUnderlayProjector.project(this.document);
 	}
 
 	/**
@@ -228,7 +180,7 @@ export class TabState {
 	#toolRunner: ToolRunner;
 	#tabViewport: TabViewport;
 	#referenceLayerBlobs: Map<string, Blob>;
-	#referenceUnderlaySource?: CachedReferenceUnderlaySource;
+	#referenceLayerUnderlayProjector = new ReferenceLayerUnderlayProjector();
 
 	get viewport(): ViewportData {
 		return this.#tabViewport.viewport;
@@ -296,16 +248,16 @@ export class TabState {
 		this.samplingSession = createSamplingSession({
 			getSamplingPort: () => {
 				if (!isActiveLayerReference(self.document)) return createDocumentSamplingPort(self.document);
-				const reference = self.referenceUnderlay;
+				const reference = self.referenceLayerUnderlay;
 				if (!reference) {
 					return createNoReadableSamplingPort(self.document.width, self.document.height);
 				}
-				return createReferenceUnderlaySamplingPort(reference);
+				return createReferenceLayerUnderlaySamplingPort(reference);
 			},
 			mapTarget: (coords) => {
 				if (!isActiveLayerReference(self.document)) return coords;
-				const reference = self.referenceUnderlay;
-				return reference ? documentToReferenceSourceCoords(reference, coords) : coords;
+				const reference = self.referenceLayerUnderlay;
+				return reference ? referenceLayerUnderlaySourceCoords(reference, coords) : coords;
 			}
 		});
 		this.referenceSamplingSession = createReferenceSamplingSession({
@@ -475,7 +427,6 @@ export class TabState {
 			source.naturalHeight
 		);
 		this.#referenceLayerBlobs.set(id, source.sourceBlob);
-		this.#referenceUnderlaySource = undefined;
 		this.#reclampViewport();
 		this.renderVersion++;
 		this.#notifier.markDirty(this.documentId);
@@ -614,16 +565,9 @@ export class TabState {
 		for (let i = 0; i < this.document.layer_count(); i++) {
 			if (this.document.layer_id_at(i) !== activeLayerId) continue;
 			if (this.document.layer_kind_at(i) !== 'reference') return canvasBounds;
-			if (!this.document.layer_visible_at(i)) return canvasBounds;
-			const dimensions = this.document.layer_source_dimensions_at(i);
-			const placement = this.document.layer_placement_at(i);
-			if (!dimensions || !placement) return canvasBounds;
-			const referenceBounds = {
-				minX: placement.x,
-				minY: placement.y,
-				maxX: placement.x + dimensions[0] * placement.scale,
-				maxY: placement.y + dimensions[1] * placement.scale
-			};
+			const underlay = this.referenceLayerUnderlay;
+			if (!underlay) return canvasBounds;
+			const referenceBounds = referenceLayerUnderlayBounds(underlay);
 			return {
 				minX: Math.min(canvasBounds.minX, referenceBounds.minX),
 				minY: Math.min(canvasBounds.minY, referenceBounds.minY),

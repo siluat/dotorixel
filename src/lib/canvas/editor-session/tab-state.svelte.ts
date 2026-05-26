@@ -39,8 +39,13 @@ import {
 } from '../reference-layer-underlay';
 import type { CanvasBackend } from './canvas-backend';
 import type { DirtyNotifier } from './dirty-notifier';
-import { DocumentChangeJournal } from './document-change-journal.svelte';
+import {
+	DocumentChangeJournal,
+	type ReferenceLayerSource
+} from './document-change-journal.svelte';
 import { TabViewport } from './tab-viewport.svelte';
+
+export type { ReferenceLayerSource } from './document-change-journal.svelte';
 
 function assertNever(x: never): never {
 	throw new Error(`Unhandled effect type: ${(x as { type: string }).type}`);
@@ -77,21 +82,6 @@ export interface TabStateDeps {
 	readonly canvasWidth?: number;
 	readonly canvasHeight?: number;
 	readonly gridColor?: string;
-}
-
-/**
- * Decoded image payload used to set or replace a document's singleton Reference
- * Layer. Callers provide a human-readable name, the original source `Blob` for
- * persistence, and an RGBA buffer whose byte length must equal
- * `naturalWidth * naturalHeight * 4`; dimensions must be positive image-pixel
- * sizes before `setReferenceLayer` accepts the source.
- */
-export interface ReferenceLayerSource {
-	readonly name: string;
-	readonly sourceBlob: Blob;
-	readonly sourceRgba: Uint8Array | Uint8ClampedArray;
-	readonly naturalWidth: number;
-	readonly naturalHeight: number;
 }
 
 const DEFAULT_CANVAS_DIMENSION = 16;
@@ -285,6 +275,10 @@ export class TabState {
 		this.#documentChangeJournal = new DocumentChangeJournal({
 			getDocument: () => this.document,
 			captureUndoSnapshot: () => this.#toolRunner.pushSnapshot(),
+			rememberReferenceLayerBlob: (layerId, sourceBlob) => {
+				this.#referenceLayerBlobs.set(layerId, sourceBlob);
+			},
+			resizeDocument: resizeDocumentWithAnchor,
 			syncDocumentMetrics: () => {
 				this.canvasWidth = this.document.width;
 				this.canvasHeight = this.document.height;
@@ -426,26 +420,14 @@ export class TabState {
 	 * old source blobs stay cached even after a successful replacement.
 	 */
 	setReferenceLayer = (source: ReferenceLayerSource): string => {
-		if (source.naturalWidth <= 0 || source.naturalHeight <= 0) {
-			throw new Error('Reference Layer source dimensions must be positive');
+		const result = this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'set-reference-layer', source }
+		});
+		if (!result.changed || !result.layerId) {
+			throw new Error('Reference Layer change did not produce a layer id');
 		}
-		if (source.sourceRgba.length !== source.naturalWidth * source.naturalHeight * 4) {
-			throw new Error('Reference Layer source RGBA length must match dimensions');
-		}
-		const id = crypto.randomUUID();
-		this.#toolRunner.pushSnapshot();
-		this.document.add_reference_layer(
-			id,
-			source.name,
-			new Uint8Array(source.sourceRgba),
-			source.naturalWidth,
-			source.naturalHeight
-		);
-		this.#referenceLayerBlobs.set(id, source.sourceBlob);
-		this.#reclampViewport();
-		this.renderVersion++;
-		this.#notifier.markDirty(this.documentId);
-		return id;
+		return result.layerId;
 	};
 
 	/**
@@ -457,20 +439,17 @@ export class TabState {
 	 * if `id` does not refer to an existing layer.
 	 */
 	removeLayer = (id: string): void => {
-		if (this.document.layer_count() === 1) return;
-		this.#toolRunner.pushSnapshot();
-		this.document.remove_layer(id);
-		this.#reclampViewport();
-		this.renderVersion++;
-		this.#notifier.markDirty(this.documentId);
+		this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'remove-layer', id }
+		});
 	};
 
 	setActiveLayer = (id: string): void => {
-		if (id === this.document.active_layer_id()) return;
-		this.document.set_active_layer(id);
-		this.#reclampViewport();
-		this.renderVersion++;
-		this.#notifier.markDirty(this.documentId);
+		this.#documentChangeJournal.commit({
+			kind: 'persisted-document-ui',
+			intent: { type: 'set-active-layer', id }
+		});
 	};
 
 	/**
@@ -484,17 +463,10 @@ export class TabState {
 	 * to an existing layer.
 	 */
 	reorderLayer = (id: string, newVisualIndex: number): void => {
-		const count = this.document.layer_count();
-		const targetStackIdx = count - 1 - newVisualIndex;
-		const currentStackIdx = this.#stackIndexOf(id);
-		if (this.document.layer_kind_at(currentStackIdx) === 'reference') return;
-		const effectiveTargetStackIdx =
-			this.document.layer_kind_at(0) === 'reference' ? Math.max(1, targetStackIdx) : targetStackIdx;
-		if (currentStackIdx === effectiveTargetStackIdx) return;
-		this.#toolRunner.pushSnapshot();
-		this.document.reorder_layer(id, effectiveTargetStackIdx);
-		this.renderVersion++;
-		this.#notifier.markDirty(this.documentId);
+		this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'reorder-layer', id, newVisualIndex }
+		});
 	};
 
 	/**
@@ -506,13 +478,10 @@ export class TabState {
 	 * to an existing layer.
 	 */
 	setLayerVisibility = (id: string, visible: boolean): void => {
-		const stackIdx = this.#stackIndexOf(id);
-		if (this.document.layer_visible_at(stackIdx) === visible) return;
-		this.#toolRunner.pushSnapshot();
-		this.document.set_layer_visibility(id, visible);
-		this.#reclampViewport();
-		this.renderVersion++;
-		this.#notifier.markDirty(this.documentId);
+		this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'set-layer-visibility', id, visible }
+		});
 	};
 
 	/**
@@ -523,23 +492,10 @@ export class TabState {
 	 * tab dirty. Throws when `id` does not exist or is not a Reference Layer.
 	 */
 	setReferencePlacement = (id: string, placement: ReferencePlacement): void => {
-		const stackIdx = this.#stackIndexOf(id);
-		const current = this.document.layer_placement_at(stackIdx);
-		if (!current) {
-			throw new Error(`Layer with id ${id} is not a Reference Layer`);
-		}
-		if (
-			current.x === placement.x &&
-			current.y === placement.y &&
-			current.scale === placement.scale
-		) {
-			return;
-		}
-		this.#toolRunner.pushSnapshot();
-		this.document.set_reference_placement(id, placement.x, placement.y, placement.scale);
-		this.#reclampViewport();
-		this.renderVersion++;
-		this.#notifier.markDirty(this.documentId);
+		this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'set-reference-placement', id, placement }
+		});
 	};
 
 	fitReferenceLayerToCanvas = (id: string): void => {
@@ -641,14 +597,15 @@ export class TabState {
 	};
 
 	resize = (newWidth: number, newHeight: number): void => {
-		if (newWidth === this.document.width && newHeight === this.document.height) return;
-		this.#toolRunner.pushSnapshot();
-		resizeDocumentWithAnchor(this.document, newWidth, newHeight, this.resizeAnchor);
-		this.canvasWidth = newWidth;
-		this.canvasHeight = newHeight;
-		this.#reclampViewport();
-		this.renderVersion++;
-		this.#notifier.markDirty(this.documentId);
+		this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent: {
+				type: 'resize-document',
+				width: newWidth,
+				height: newHeight,
+				anchor: this.resizeAnchor
+			}
+		});
 	};
 
 	toggleExportUI = (): void => {
@@ -661,10 +618,10 @@ export class TabState {
 	 * change is **not** undoable — panel layout is incidental to the artwork.
 	 */
 	setTimelinePanelCollapsed = (collapsed: boolean): void => {
-		if (this.document.is_timeline_panel_collapsed() === collapsed) return;
-		this.document.set_timeline_panel_collapsed(collapsed);
-		this.renderVersion++;
-		this.#notifier.markDirty(this.documentId);
+		this.#documentChangeJournal.commit({
+			kind: 'persisted-document-ui',
+			intent: { type: 'set-timeline-panel-collapsed', collapsed }
+		});
 	};
 
 	/**

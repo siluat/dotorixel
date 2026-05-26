@@ -6,11 +6,10 @@ None.
 
 ## Last Completed
 
-[130 — Deepen Document Change Journal coverage beyond add-layer](../issues/130-deepen-document-change-journal-coverage.md). Document Change Journal now owns the shared web-shell follow-up sequence for Layer, Reference Layer, resize, and persisted Document UI changes; tool drawing and async persistence rollback remain separate.
+Planning cleanup — removed the stale Layer properties task after confirming visibility is already complete in [097 — Layer system: visibility toggle](../issues/097-layer-system-visibility-toggle.md). Layer opacity slider UI remains deferred until there is clear product demand.
 
 ## Next Up
 
-- Layer properties (visibility toggle, opacity control)
 - Selection tool (rectangle select + move)
 - Project file format (JSON-based) + save/load
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)

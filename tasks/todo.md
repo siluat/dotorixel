@@ -2,7 +2,6 @@
 
 ## Milestone 3: Editor for Serious Work
 
-- Layer properties (visibility toggle, opacity control)
 - Selection tool (rectangle select + move)
 - Copy/paste
 - Flip/transform

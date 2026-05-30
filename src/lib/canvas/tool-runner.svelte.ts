@@ -39,6 +39,7 @@ export interface ToolRunner {
 	drawStart(button: number, pointerType: PointerType): EditorEffects;
 	draw(current: CanvasPoint, previous: CanvasPoint | null): EditorEffects;
 	drawEnd(): EditorEffects;
+	drawCancel(): EditorEffects;
 	modifierChanged(): EditorEffects;
 
 	undo(): EditorEffects;
@@ -128,6 +129,14 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 			activeStroke = null;
 			isDrawing = false;
 			return endEffects;
+		},
+
+		drawCancel(): EditorEffects {
+			if (!isDrawing) return NO_EFFECTS;
+			const cancelEffects = activeStroke ? activeStroke.cancel() : NO_EFFECTS;
+			activeStroke = null;
+			isDrawing = false;
+			return cancelEffects;
 		},
 
 		modifierChanged(): EditorEffects {

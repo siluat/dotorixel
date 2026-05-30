@@ -7,6 +7,7 @@
 	"tool_floodfill": "塗りつぶし",
 	"tool_eyedropper": "スポイト",
 	"tool_move": "移動",
+	"tool_selection": "選択",
 
 	"action_undo": "元に戻す",
 	"action_redo": "やり直す",

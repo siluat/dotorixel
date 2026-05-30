@@ -1,6 +1,6 @@
 ---
 title: "Selection foundation — MarqueeRegion + tool registration + DefineMarquee + marching ants"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -44,3 +44,34 @@ Scope:
 ## Blocked by
 
 None — can start immediately.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/selection.rs` | Added `MarqueeRegion` with drag normalization, contains, translate, clipping, and edge-case unit coverage. |
+| `crates/core/src/document.rs` | Added Document-scoped optional Marquee state with round-trip tests. |
+| `wasm/src/lib.rs` | Exposed Marquee bindings and Document getter/setter through the WASM facade. |
+| `src/lib/canvas/canvas-model.ts` | Added the shell-facing Marquee interface and Document contract. |
+| `src/lib/canvas/wasm-backend.ts` | Added Marquee construction/copy helpers for shell code that must avoid consuming WASM handles. |
+| `src/lib/canvas/tools/selection-tool.ts` | Added DefineMarquee stroke behavior with live preview and undoable commit effect. |
+| `src/lib/canvas/SelectionOverlay.svelte` | Added marching-ants Marquee rendering with canvas-bound clipping and reduced-motion fallback. |
+| `src/lib/canvas/editor-session/document-change-journal.svelte.ts` | Added undoable `set-marquee` document intent. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Routed Marquee previews, commits, clears, and reactive projection through active tab state. |
+| `src/lib/canvas/keyboard-input.svelte.ts` | Added Escape-to-clear behavior while idle. |
+| `src/lib/canvas/tool-registry.ts` | Registered the Selection tool with shortcut `M` and crosshair cursor. |
+| `src/lib/ui-editor/tool-ui.ts` | Added the Selection toolbar icon and localized label. |
+| `messages/en.json`, `messages/ko.json`, `messages/ja.json` | Added Selection label translations. |
+| `src/routes/editor/+page.svelte`, `src/lib/canvas/PixelCanvasView.svelte` | Mounted the Marquee overlay in the editor canvas for desktop and mobile layouts. |
+| `src/lib/canvas/*selection*test.ts`, `src/lib/canvas/editor-session/*test.ts`, `src/lib/canvas/keyboard-input.svelte.test.ts`, `src/lib/canvas/tool-registry.test.ts` | Added regression coverage for DefineMarquee, overlay projection, journal commits, Escape clear, toolbar shortcut, and reactive rendering. |
+
+### Key Decisions
+
+- The first Selection slice implements DefineMarquee only: move/copy/paste, clipping-mask behavior, persistence, and action bar work remain in their dedicated follow-up issues.
+- Click-only strokes do not create a 1×1 Marquee. Full click-without-drag deselect behavior remains in issue 135.
+- The overlay uses the same rounded effective pixel size as the canvas renderer so fractional zoom does not drift from the pixel grid.
+
+### Notes
+
+- Marquee state is Document-scoped and undoable in memory, but is not persisted yet; issue 134 owns the v5 storage migration.
+- Reference Layer and region-pixel mutation semantics are intentionally deferred to issues 136 and 138.

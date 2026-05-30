@@ -12,6 +12,7 @@ function createHost(overrides?: Partial<KeyboardInputHost>): KeyboardInputHost {
 		redo: vi.fn(),
 		toggleGrid: vi.fn(),
 		swapColors: vi.fn(),
+		clearMarquee: vi.fn(),
 		notifyModifierChange: vi.fn(),
 		...overrides
 	};
@@ -249,7 +250,8 @@ describe('tool shortcuts', () => {
 			['KeyO', 'ellipse'],
 			['KeyF', 'floodfill'],
 			['KeyI', 'eyedropper'],
-			['KeyV', 'move']
+			['KeyV', 'move'],
+			['KeyM', 'selection']
 		];
 		for (const [code, tool] of mappings) {
 			kb.handleKeyDown(keyDown(code));
@@ -298,6 +300,30 @@ describe('tool shortcuts', () => {
 		const kb = createKeyboardInput(host);
 		kb.handleKeyDown(keyDown('KeyE', { shiftKey: true }));
 		expect(host.setActiveTool).not.toHaveBeenCalled();
+	});
+});
+
+// ── Selection dismissal ───────────────────────────────────────────
+
+describe('selection dismissal', () => {
+	it('clears the active Marquee on Escape while idle', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		const event = keyDown('Escape');
+
+		kb.handleKeyDown(event);
+
+		expect(event.preventDefault).toHaveBeenCalled();
+		expect(host.clearMarquee).toHaveBeenCalledOnce();
+	});
+
+	it('does not clear the active Marquee while drawing', () => {
+		const host = createHost({ isDrawing: vi.fn(() => true) });
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('Escape'));
+
+		expect(host.clearMarquee).not.toHaveBeenCalled();
 	});
 });
 

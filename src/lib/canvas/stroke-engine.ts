@@ -11,14 +11,16 @@ import { createDocumentDrawingOps } from './wasm-backend';
 import { createAllTools, isPixelMutationTool } from './tool-registry';
 
 /**
- * Thin per-stroke handle returned from `StrokeEngine.begin()`. Three methods:
+ * Thin per-stroke handle returned from `StrokeEngine.begin()`. Four methods:
  *
  * - `sample(current, previous)` — one pointer sample; `previous` is `null`
  *   on the first sample of the stroke.
  * - `refresh()` — re-run preview/render after a modifier change (shift).
  * - `end()` — tear down; return any deferred effects (e.g. color-pick commit).
+ * - `cancel()` — tear down after an interrupted pointer sequence without
+ *   committing deferred effects.
  *
- * The sugar's internal 4-method `StrokeSession` adds a `start()` that the
+ * The sugar's internal `StrokeSession` adds a `start()` that the
  * engine fires eagerly at `begin()` and folds into the returned effects, so
  * callers never see an "opened but not started" phase.
  */
@@ -26,6 +28,7 @@ export interface ActiveStroke {
 	sample(current: CanvasPoint, previous: CanvasPoint | null): EditorEffects;
 	refresh(): EditorEffects;
 	end(): EditorEffects;
+	cancel(): EditorEffects;
 }
 
 /**
@@ -53,7 +56,8 @@ function noOpStroke(): ActiveStroke {
 	return {
 		sample: () => NO_EFFECTS,
 		refresh: () => NO_EFFECTS,
-		end: () => NO_EFFECTS
+		end: () => NO_EFFECTS,
+		cancel: () => NO_EFFECTS
 	};
 }
 
@@ -115,7 +119,8 @@ export function createStrokeEngine(deps: StrokeEngineDeps): StrokeEngine {
 			const stroke: ActiveStroke = {
 				sample: (current, previous) => session.draw(current, previous),
 				refresh: () => session.modifierChanged(),
-				end: () => session.end()
+				end: () => session.end(),
+				cancel: () => session.cancel()
 			};
 
 			return { stroke, effects };

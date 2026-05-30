@@ -16,6 +16,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Flood fill | ✅ | ✅ | ⬜ | BFS, 4-connectivity |
 | Eyedropper | — | ✅ | ⬜ | Drag-and-commit with live 9×9 loupe; releases to FG (left-click) or BG (right-click); skips transparent pixels |
 | Move | — | ✅ | ⬜ | Drag to reposition canvas content, snapshot-restore preview |
+| Selection / Marquee | 🔧 | 🔧 | ⬜ | Defines and clears a Document-scoped Marquee with marching ants; persistence, region ops, and clipboard pending |
 | Right-click background color | — | ✅ | ⬜ | All tools draw with BG color on right-click; eraser unchanged |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |
 | Pixel-perfect filter | ✅ | ✅ | ⬜ | L-corner 3-window rule (Aseprite-style). Web: topBar/mAppBar toggle, default ON, persisted; disabled on non-freehand tools |
@@ -79,7 +80,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Mouse / trackpad | — | ✅ | ✅ | |
 | Touch | — | ✅ | ✅ | Pointer Events / UITouch; Web: pinch-zoom + two-finger pan + touch deferral + long-press eyedropper |
 | Apple Pencil | — | — | ✅ | |
-| Keyboard shortcuts | — | ✅ | ✅ | Web: tool switch (P/E/L/U/O/F/I/V) + grid toggle (G) + undo/redo (Ctrl+Z/Y) + Alt eyedropper + Space pan + X swap colors + Shift constrain + `/` shortcut hints; Apple: undo/redo only |
+| Keyboard shortcuts | — | ✅ | ✅ | Web: tools P/E/L/U/O/F/I/V/M, grid G, undo/redo, Alt eyedropper, Space pan, X swap, Shift constrain, `/` hints; Apple: undo/redo only |
 
 ## i18n
 

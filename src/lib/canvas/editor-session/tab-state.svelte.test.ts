@@ -170,6 +170,89 @@ describe('TabState — effect dispatcher', () => {
 		expect(notifier.dirtyCalls.every((id) => id === 'doc-test')).toBe(true);
 	});
 
+	it('selection drag previews transiently and marks dirty only on commit', () => {
+		const { tab, notifier, shared } = makeTab();
+		shared.activeTool = 'selection';
+		const before = tab.renderVersion;
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: -2, y: 1 }, null);
+		tab.draw({ x: 3, y: 4 }, { x: -2, y: 1 });
+
+		expect(tab.renderVersion).toBeGreaterThan(before);
+		expect(notifier.dirtyCalls).toEqual([]);
+
+		tab.drawEnd();
+
+		expect(tab.document.marquee()).toMatchObject({ x: 0, y: 1, width: 4, height: 4 });
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+	});
+
+	it('selection drawCancel restores the previous Marquee without a dirty commit', () => {
+		const { tab, notifier, shared } = makeTab();
+		shared.activeTool = 'selection';
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 3, y: 3 }, { x: 1, y: 1 });
+		tab.drawEnd();
+		notifier.reset();
+		const beforeCancelPreview = tab.renderVersion;
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 5, y: 5 }, null);
+		tab.draw({ x: 6, y: 6 }, { x: 5, y: 5 });
+		expect(tab.document.marquee()).toMatchObject({ x: 5, y: 5, width: 2, height: 2 });
+
+		tab.drawCancel();
+
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 3, height: 3 });
+		expect(tab.renderVersion).toBeGreaterThan(beforeCancelPreview);
+		expect(notifier.dirtyCalls).toEqual([]);
+		expect(tab.drawEnd()).toBeUndefined();
+	});
+
+	it('off-canvas-only selection drag restores the previous Marquee without a dirty commit', () => {
+		const { tab, notifier, shared } = makeTab();
+		shared.activeTool = 'selection';
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 3, y: 3 }, { x: 1, y: 1 });
+		tab.drawEnd();
+		notifier.reset();
+		const beforeInvalidSelection = tab.renderVersion;
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: -5, y: -5 }, null);
+		tab.draw({ x: -2, y: -2 }, { x: -5, y: -5 });
+		expect(tab.document.marquee()).toBeUndefined();
+
+		tab.drawEnd();
+
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 3, height: 3 });
+		expect(tab.renderVersion).toBeGreaterThan(beforeInvalidSelection);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('clearMarquee removes the Marquee through an undoable document change', () => {
+		const { tab, notifier, shared } = makeTab();
+		shared.activeTool = 'selection';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 3, y: 3 }, { x: 1, y: 1 });
+		tab.drawEnd();
+		notifier.reset();
+
+		tab.clearMarquee();
+
+		expect(tab.document.marquee()).toBeUndefined();
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+
+		tab.undo();
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 3, height: 3 });
+	});
+
 	it('canvas resize triggers viewport reclamp against the new canvas dimensions', () => {
 		const { tab } = makeTab({ canvasWidth: 32, canvasHeight: 32 });
 		tab.setViewport({ ...tab.viewport, panX: 5000, panY: 5000 });

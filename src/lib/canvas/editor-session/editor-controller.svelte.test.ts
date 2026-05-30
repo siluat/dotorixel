@@ -129,6 +129,21 @@ describe('EditorController — active-tab projections', () => {
 		expect(editor.renderVersion).toBeGreaterThan(before);
 	});
 
+	it('marquee projects the active tab selection state', () => {
+		const { editor } = makeController();
+		editor.setTool('selection');
+
+		editor.handleDrawStart(0, 'mouse');
+		editor.handleDraw({ x: 1, y: 2 }, null);
+		editor.handleDraw({ x: 3, y: 4 }, { x: 1, y: 2 });
+		editor.handleDrawEnd();
+
+		expect(editor.marquee?.x).toBe(1);
+		expect(editor.marquee?.y).toBe(2);
+		expect(editor.marquee?.width).toBe(3);
+		expect(editor.marquee?.height).toBe(3);
+	});
+
 	it('resizeAnchor projects the active tab', () => {
 		const { editor } = makeController();
 		editor.workspace.activeTab.resizeAnchor = 'bottom-right';

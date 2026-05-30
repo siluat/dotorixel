@@ -3,6 +3,7 @@ import type {
 	PixelCanvas,
 	CanvasCoords,
 	CanvasPoint,
+	MarqueeRegion,
 	ResizeAnchor,
 	ReferencePlacement
 } from '../canvas-model';
@@ -194,6 +195,14 @@ export class TabState {
 		return Math.round(this.viewport.zoom * 100);
 	}
 
+	get marquee(): MarqueeRegion | undefined {
+		// WASM Document internals are opaque to Svelte. Tie this projection to
+		// renderVersion so marquee previews, commits, undo, and clear actions
+		// refresh renderer consumers.
+		void this.renderVersion;
+		return this.document.marquee();
+	}
+
 	get isDrawing(): boolean {
 		return this.#toolRunner.isDrawing;
 	}
@@ -299,6 +308,15 @@ export class TabState {
 					this.renderVersion++;
 					persistableChanged = true;
 					break;
+				case 'marqueePreviewChanged':
+					this.renderVersion++;
+					break;
+				case 'setMarquee':
+					this.#documentChangeJournal.commit({
+						kind: 'undoable-document',
+						intent: { type: 'set-marquee', region: effect.region }
+					});
+					break;
 				case 'documentReplaced':
 					this.document = effect.document;
 					this.canvasWidth = effect.document.width;
@@ -338,6 +356,10 @@ export class TabState {
 
 	drawEnd = (): void => {
 		this.#applyEffects(this.#toolRunner.drawEnd());
+	};
+
+	drawCancel = (): void => {
+		this.#applyEffects(this.#toolRunner.drawCancel());
 	};
 
 	modifierChanged = (): void => {
@@ -401,6 +423,13 @@ export class TabState {
 
 	clear = (): void => {
 		this.#applyEffects(this.#toolRunner.clear());
+	};
+
+	clearMarquee = (): void => {
+		this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'set-marquee', region: null }
+		});
 	};
 
 	pushHistorySnapshot = (): void => {

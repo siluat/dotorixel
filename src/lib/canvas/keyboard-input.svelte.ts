@@ -19,6 +19,8 @@ export interface KeyboardInputHost {
 	toggleGrid(): void;
 	/** Swap foreground/background colors. */
 	swapColors(): void;
+	/** Clear the active Marquee selection if one exists. */
+	clearMarquee(): void;
 	/** Notify that a modifier key changed mid-stroke. */
 	notifyModifierChange(): void;
 }
@@ -39,7 +41,7 @@ export interface KeyboardInput {
 	readonly isShortcutHintsVisible: boolean;
 
 	/**
-	 * Called by EditorController.handleDrawEnd to restore a temporary tool switch.
+	 * Called by EditorController when a draw stroke ends or is canceled to restore a temporary tool switch.
 	 * Returns the tool to restore, or null if no restoration is needed.
 	 * Consumes the internal state — subsequent calls return null until the next temporary switch.
 	 */
@@ -94,6 +96,14 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 				if (host.isDrawing()) {
 					host.notifyModifierChange();
 				}
+				return;
+			}
+
+			if (event.code === 'Escape') {
+				event.preventDefault();
+				if (event.repeat) return;
+				if (host.isDrawing()) return;
+				host.clearMarquee();
 				return;
 			}
 

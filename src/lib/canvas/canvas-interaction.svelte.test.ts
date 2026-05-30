@@ -14,6 +14,7 @@ function setup(overrides?: {
 		onDrawStart: vi.fn(),
 		onDraw: vi.fn(),
 		onDrawEnd: vi.fn(),
+		onDrawCancel: vi.fn(),
 		onViewportChange: vi.fn(),
 		onSampleStart: vi.fn(() => true),
 		onSampleUpdate: vi.fn(),
@@ -484,6 +485,29 @@ describe('edge cases', () => {
 
 		expect(callbacks.onDrawStart).not.toHaveBeenCalled();
 		expect(callbacks.onDraw).not.toHaveBeenCalled();
+		expect(callbacks.onDrawEnd).not.toHaveBeenCalled();
+		expect(interaction.interactionType).toBe('idle');
+	});
+
+	it('pointer cancel during drawing cancels without ending the stroke', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'mouse', 0);
+
+		interaction.pointerCancel(1);
+
+		expect(callbacks.onDrawCancel).toHaveBeenCalledOnce();
+		expect(callbacks.onDrawEnd).not.toHaveBeenCalled();
+		expect(interaction.interactionType).toBe('idle');
+	});
+
+	it('pointer cancel during pending touch drawing does not cancel an unstarted stroke', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'touch', 0);
+
+		interaction.pointerCancel(1);
+
+		expect(callbacks.onDrawStart).not.toHaveBeenCalled();
+		expect(callbacks.onDrawCancel).not.toHaveBeenCalled();
 		expect(callbacks.onDrawEnd).not.toHaveBeenCalled();
 		expect(interaction.interactionType).toBe('idle');
 	});

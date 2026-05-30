@@ -1,4 +1,10 @@
-import type { CanvasPoint, Document, PixelCanvas, ResizeAnchor } from '../canvas-model';
+import type {
+	CanvasPoint,
+	Document,
+	MarqueeRegion,
+	PixelCanvas,
+	ResizeAnchor
+} from '../canvas-model';
 import type { ViewportData, ViewportSize } from '../viewport';
 import type { Color } from '../color';
 import { colorToHex, hexToColor } from '../color';
@@ -74,6 +80,9 @@ export class EditorController {
 	get referenceLayerUnderlay(): ReferenceLayerUnderlay | undefined {
 		return this.workspace.activeTab.referenceLayerUnderlay;
 	}
+	get marquee(): MarqueeRegion | undefined {
+		return this.workspace.activeTab.marquee;
+	}
 	exportableSnapshot(): PixelCanvas {
 		return this.workspace.activeTab.exportableSnapshot();
 	}
@@ -146,6 +155,14 @@ export class EditorController {
 
 	handleDrawEnd = (): void => {
 		this.workspace.activeTab.drawEnd();
+		const restored = this.keyboard.consumePendingToolRestore();
+		if (restored !== null) {
+			this.setTool(restored);
+		}
+	};
+
+	handleDrawCancel = (): void => {
+		this.workspace.activeTab.drawCancel();
 		const restored = this.keyboard.consumePendingToolRestore();
 		if (restored !== null) {
 			this.setTool(restored);

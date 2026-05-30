@@ -59,8 +59,8 @@ export interface StrokeSpec {
 }
 
 /**
- * Internal 4-method stroke contract. The engine bridges this to the
- * 3-method external `ActiveStroke` — `start()` fires eagerly at `begin()`
+ * Internal 5-method stroke contract. The engine bridges this to the
+ * external `ActiveStroke` — `start()` fires eagerly at `begin()`
  * and its effects fold into the returned effects.
  */
 export interface StrokeSession {
@@ -68,6 +68,7 @@ export interface StrokeSession {
 	draw(current: CanvasPoint, previous: CanvasPoint | null): EditorEffects;
 	modifierChanged(): EditorEffects;
 	end(): EditorEffects;
+	cancel(): EditorEffects;
 }
 
 /**
@@ -132,6 +133,9 @@ export function continuousTool(spec: {
 				},
 				end() {
 					return NO_EFFECTS;
+				},
+				cancel() {
+					return NO_EFFECTS;
 				}
 			};
 		}
@@ -191,6 +195,11 @@ export function shapeTool(spec: {
 				},
 				end() {
 					return NO_EFFECTS;
+				},
+				cancel() {
+					if (!snapshot || !lastCurrent) return NO_EFFECTS;
+					restoreActiveLayerPixels(host.document, snapshot);
+					return CANVAS_CHANGED;
 				}
 			};
 		}
@@ -231,6 +240,9 @@ export function oneShotTool(spec: {
 					return NO_EFFECTS;
 				},
 				end() {
+					return NO_EFFECTS;
+				},
+				cancel() {
 					return NO_EFFECTS;
 				}
 			};

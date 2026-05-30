@@ -14,6 +14,7 @@ import {
 	WasmHistoryManager,
 	WasmResizeAnchor,
 	WasmReferencePlacement,
+	WasmMarqueeRegion,
 	WasmToolType,
 	apply_tool,
 	wasm_interpolate_pixels,
@@ -21,7 +22,13 @@ import {
 	wasm_ellipse_outline,
 	wasm_flood_fill
 } from '$wasm/dotorixel_wasm';
-import type { Document, PixelCanvas, ResizeAnchor, ReferencePlacement } from './canvas-model';
+import type {
+	Document,
+	MarqueeRegion,
+	PixelCanvas,
+	ResizeAnchor,
+	ReferencePlacement
+} from './canvas-model';
 import type { CanvasFactory, CanvasConstraints, HistoryManager } from './adapter-types';
 import type {
 	PixelLayerRecord,
@@ -196,6 +203,26 @@ export function fitReferencePlacementToCanvas(
 		naturalHeight
 	);
 	return { x: placement.x, y: placement.y, scale: placement.scale };
+}
+
+// ── MarqueeRegion ─────────────────────────────────────────────────
+
+export function marqueeRegionFromDrag(
+	x0: number,
+	y0: number,
+	x1: number,
+	y1: number
+): MarqueeRegion {
+	return WasmMarqueeRegion.from_drag(x0, y0, x1, y1);
+}
+
+export function copyMarqueeRegion(region: MarqueeRegion): MarqueeRegion {
+	return WasmMarqueeRegion.from_drag(
+		region.x,
+		region.y,
+		region.x + region.width - 1,
+		region.y + region.height - 1
+	);
 }
 
 // ── DrawingOps ──────────────────────────────────────────────────────

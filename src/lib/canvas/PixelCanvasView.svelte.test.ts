@@ -116,7 +116,8 @@ describe('PixelCanvasView', () => {
 		'floodfill',
 		'line',
 		'rectangle',
-		'ellipse'
+		'ellipse',
+		'selection'
 	];
 
 	it.each(drawingTools)('uses not-allowed cursor for %s while Reference is active', (activeTool) => {
@@ -134,6 +135,27 @@ describe('PixelCanvasView', () => {
 
 		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
 		expect(canvas.style.cursor).toBe('not-allowed');
+	});
+
+	it('mounts the Selection overlay when a Marquee is active', () => {
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				marquee: {
+					x: 1,
+					y: 1,
+					width: 2,
+					height: 2,
+					contains: () => false,
+					translate: () => null!,
+					clip_to: () => undefined
+				},
+				viewport,
+				viewportSize: { width: 100, height: 100 }
+			}
+		});
+
+		expect(screen.getByTestId('selection-overlay')).toBeTruthy();
 	});
 
 	it('uses not-allowed cursor over the Reference image body for drawing tools', () => {
@@ -666,6 +688,39 @@ describe('PixelCanvasView', () => {
 		expect(onDraw).toHaveBeenNthCalledWith(2, { x: 1.7, y: 1.5 }, { x: 0.7, y: 1.5 });
 		expect(onDrawEnd).toHaveBeenCalledTimes(1);
 		expect(onReferencePlacementCommit).not.toHaveBeenCalled();
+	});
+
+	it('forwards canvas pointer cancel to the draw cancel lifecycle', async () => {
+		const onDrawStart = vi.fn();
+		const onDrawEnd = vi.fn();
+		const onDrawCancel = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				onDrawStart,
+				onDrawEnd,
+				onDrawCancel
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.pointerDown(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 10,
+			clientY: 10
+		});
+		await fireEvent.pointerCancel(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse'
+		});
+
+		expect(onDrawStart).toHaveBeenCalledTimes(1);
+		expect(onDrawCancel).toHaveBeenCalledTimes(1);
+		expect(onDrawEnd).not.toHaveBeenCalled();
 	});
 
 	it('previews a body drag before committing the Reference placement', async () => {

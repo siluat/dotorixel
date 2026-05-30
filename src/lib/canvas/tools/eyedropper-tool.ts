@@ -36,6 +36,10 @@ export const eyedropperTool = customTool({
 			},
 			end() {
 				return host.sampling.commit();
+			},
+			cancel() {
+				host.sampling.cancel();
+				return NO_EFFECTS;
 			}
 		};
 	}

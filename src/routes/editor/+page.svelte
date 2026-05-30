@@ -634,6 +634,7 @@
 			<PixelCanvasView
 				pixelCanvas={editor.compositeBuffer}
 				referenceLayerUnderlay={editor.referenceLayerUnderlay}
+				marquee={editor.marquee}
 				isReferenceLayerActive={isReferenceLayerActive}
 				viewport={editor.viewport}
 				viewportSize={editor.viewportSize}
@@ -641,6 +642,7 @@
 				onDraw={editor.handleDraw}
 				onDrawStart={editor.handleDrawStart}
 				onDrawEnd={editor.handleDrawEnd}
+				onDrawCancel={editor.handleDrawCancel}
 				onViewportChange={editor.handleViewportChange}
 				onSampleStart={editor.handleSampleStart}
 				onSampleUpdate={editor.handleSampleUpdate}
@@ -737,6 +739,7 @@
 					<PixelCanvasView
 						pixelCanvas={editor.compositeBuffer}
 						referenceLayerUnderlay={editor.referenceLayerUnderlay}
+						marquee={editor.marquee}
 						isReferenceLayerActive={isReferenceLayerActive}
 						viewport={editor.viewport}
 						viewportSize={editor.viewportSize}
@@ -744,6 +747,7 @@
 						onDraw={editor.handleDraw}
 						onDrawStart={editor.handleDrawStart}
 						onDrawEnd={editor.handleDrawEnd}
+						onDrawCancel={editor.handleDrawCancel}
 						onViewportChange={editor.handleViewportChange}
 						onSampleStart={editor.handleSampleStart}
 						onSampleUpdate={editor.handleSampleUpdate}

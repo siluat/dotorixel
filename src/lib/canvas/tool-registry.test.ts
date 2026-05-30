@@ -130,7 +130,8 @@ describe('tool registry', () => {
 			'line',
 			'rectangle',
 			'ellipse',
-			'floodfill'
+			'floodfill',
+			'selection'
 		]);
 	});
 
@@ -142,7 +143,16 @@ describe('tool registry', () => {
 			'rectangle',
 			'ellipse',
 			'floodfill',
-			'move'
+			'move',
+			'selection'
 		]);
+	});
+
+	it('registers Selection on the M shortcut with a crosshair cursor', () => {
+		const def = getToolDef('selection');
+
+		expect(def.shortcutKey).toBe('M');
+		expect(def.cursor).toBe('crosshair');
+		expect(TOOL_SHORTCUTS.KeyM).toBe('selection');
 	});
 });

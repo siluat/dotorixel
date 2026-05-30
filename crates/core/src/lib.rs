@@ -10,6 +10,7 @@ pub mod layer;
 pub mod pixel_perfect;
 pub mod reference_placement;
 pub mod reference_sampler;
+pub mod selection;
 pub mod tool;
 pub mod viewport;
 pub use canvas::{PixelCanvasError, ResizeAnchor};

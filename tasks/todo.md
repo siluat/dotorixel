@@ -4,7 +4,6 @@
 
 - Touch modifier alternatives (Shift-constrain, Alt-eyedropper UI for touchscreen) — **blocks** Shift-related Selection sub-issues
 - Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
-  - [132 — Selection foundation](../issues/132-selection-foundation.md)
   - [133 — Action Bar UX design (.pen, HITL)](../issues/133-selection-action-bar-design.md)
   - [134 — Marquee persistence v5](../issues/134-marquee-persistence-v5.md)
   - [135 — Click-without-drag deselects](../issues/135-selection-click-without-drag-deselects.md)

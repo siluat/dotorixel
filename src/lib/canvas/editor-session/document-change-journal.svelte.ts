@@ -1,4 +1,4 @@
-import type { Document, ReferencePlacement, ResizeAnchor } from '../canvas-model';
+import type { Document, MarqueeRegion, ReferencePlacement, ResizeAnchor } from '../canvas-model';
 
 export interface ReferenceLayerSource {
 	readonly name: string;
@@ -24,7 +24,8 @@ export type UndoableDocumentIntent =
 			readonly width: number;
 			readonly height: number;
 			readonly anchor: ResizeAnchor;
-	  };
+	  }
+	| { readonly type: 'set-marquee'; readonly region: MarqueeRegion | null };
 
 export type PersistedDocumentUiIntent =
 	| { readonly type: 'set-active-layer'; readonly id: string }
@@ -53,6 +54,14 @@ export interface DocumentChangeJournalDeps {
 	readonly reclampViewport: () => void;
 	readonly invalidateRender: () => void;
 	readonly markDirty: () => void;
+}
+
+function sameMarqueeRegion(
+	a: MarqueeRegion | null | undefined,
+	b: MarqueeRegion | null | undefined
+): boolean {
+	if (!a || !b) return !a && !b;
+	return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
 }
 
 /**
@@ -123,6 +132,9 @@ export class DocumentChangeJournal {
 			case 'resize-document':
 				this.#deps.resizeDocument(document, intent.width, intent.height, intent.anchor);
 				return { changed: true };
+			case 'set-marquee':
+				document.set_marquee(intent.region);
+				return { changed: true };
 		}
 	}
 
@@ -173,6 +185,8 @@ export class DocumentChangeJournal {
 			}
 			case 'resize-document':
 				return intent.width !== document.width || intent.height !== document.height;
+			case 'set-marquee':
+				return !sameMarqueeRegion(document.marquee(), intent.region);
 		}
 	}
 
@@ -217,6 +231,7 @@ export class DocumentChangeJournal {
 	#afterUndoableDocumentChanged(intent: UndoableDocumentIntent): void {
 		switch (intent.type) {
 			case 'reorder-layer':
+			case 'set-marquee':
 				this.#invalidateRenderAndMarkDirty();
 				break;
 			case 'resize-document':

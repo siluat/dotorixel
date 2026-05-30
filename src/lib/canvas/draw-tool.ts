@@ -1,5 +1,6 @@
 import type { Color } from './color';
 import type { DrawingOps } from './drawing-ops';
+import type { MarqueeRegion } from './canvas-model';
 
 // ── ToolEffect: what drawing tools report back ────────────────────
 
@@ -7,12 +8,16 @@ import type { DrawingOps } from './drawing-ops';
 export type ToolEffect =
 	| { readonly type: 'canvasChanged' }
 	| { readonly type: 'colorPick'; readonly target: 'foreground' | 'background'; readonly color: Color }
-	| { readonly type: 'addRecentColor'; readonly hex: string };
+	| { readonly type: 'addRecentColor'; readonly hex: string }
+	| { readonly type: 'marqueePreviewChanged' }
+	| { readonly type: 'setMarquee'; readonly region: MarqueeRegion | null };
 
 export type ToolEffects = readonly ToolEffect[];
 
 /** Pre-allocated constant for the most common return: canvas pixels changed. */
 export const CANVAS_CHANGED: ToolEffects = [{ type: 'canvasChanged' }];
+
+export const MARQUEE_PREVIEW_CHANGED: ToolEffects = [{ type: 'marqueePreviewChanged' }];
 
 /** Pre-allocated constant for no-op returns. */
 export const NO_EFFECTS: ToolEffects = [];

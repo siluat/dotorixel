@@ -16,6 +16,17 @@ export interface ReferencePlacement {
 	readonly scale: number;
 }
 
+/** Document-scoped rectangular Marquee region in pixel coordinates. */
+export interface MarqueeRegion {
+	readonly x: number;
+	readonly y: number;
+	readonly width: number;
+	readonly height: number;
+	contains(x: number, y: number): boolean;
+	translate(dx: number, dy: number): MarqueeRegion;
+	clip_to(canvas_w: number, canvas_h: number): MarqueeRegion | undefined;
+}
+
 /** Anchor point for canvas resize operations. */
 export type ResizeAnchor =
 	| 'top-left'
@@ -69,6 +80,8 @@ export interface Document {
 	/** Reads the active layer for sampling, or returns `undefined` when no pixel is available. */
 	try_get_pixel(x: number, y: number): Color | undefined;
 	active_layer_id(): string;
+	marquee(): MarqueeRegion | undefined;
+	set_marquee(region: MarqueeRegion | null | undefined): void;
 	next_layer_number(): number;
 	is_timeline_panel_collapsed(): boolean;
 	/**

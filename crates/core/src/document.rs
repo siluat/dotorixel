@@ -6,6 +6,7 @@ use crate::canvas::{PixelCanvas, PixelCanvasError, ResizeAnchor};
 use crate::color::Color;
 use crate::layer::{Layer, LayerKind, LayerKindTag, ReferenceData, ReferenceDataError};
 use crate::reference_placement::ReferencePlacement;
+use crate::selection::MarqueeRegion;
 use crate::tool::ToolType;
 
 /// Errors that can occur during layer-stack operations on a [`Document`].
@@ -132,6 +133,7 @@ pub struct Document {
     height: u32,
     layers: Vec<Layer>,
     active_layer_id: Uuid,
+    marquee: Option<MarqueeRegion>,
     next_layer_number: u32,
     timeline_panel_collapsed: bool,
 }
@@ -152,6 +154,7 @@ impl Document {
             height,
             layers: vec![layer],
             active_layer_id: first_layer_id,
+            marquee: None,
             next_layer_number: 2,
             timeline_panel_collapsed: false,
         })
@@ -197,6 +200,7 @@ impl Document {
             height,
             layers,
             active_layer_id,
+            marquee: None,
             next_layer_number,
             timeline_panel_collapsed,
         })
@@ -216,6 +220,14 @@ impl Document {
 
     pub fn active_layer_id(&self) -> Uuid {
         self.active_layer_id
+    }
+
+    pub fn marquee(&self) -> Option<MarqueeRegion> {
+        self.marquee
+    }
+
+    pub fn set_marquee(&mut self, marquee: Option<MarqueeRegion>) {
+        self.marquee = marquee;
     }
 
     pub fn next_layer_number(&self) -> u32 {
@@ -757,6 +769,21 @@ mod tests {
 
     fn set_pixel_canvas(layer: &mut Layer, canvas: PixelCanvas) {
         layer.kind = LayerKind::Pixel(canvas);
+    }
+
+    #[test]
+    fn marquee_round_trips_through_document_state() {
+        let first = Uuid::new_v4();
+        let mut doc = Document::new(8, 8, first, "Layer 1".to_string()).unwrap();
+        let region = crate::selection::MarqueeRegion::from_drag(1, 2, 4, 5);
+
+        assert_eq!(doc.marquee(), None);
+
+        doc.set_marquee(Some(region));
+        assert_eq!(doc.marquee(), Some(region));
+
+        doc.set_marquee(None);
+        assert_eq!(doc.marquee(), None);
     }
 
     #[test]

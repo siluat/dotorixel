@@ -634,6 +634,7 @@
 			<PixelCanvasView
 				pixelCanvas={editor.compositeBuffer}
 				referenceLayerUnderlay={editor.referenceLayerUnderlay}
+				marquee={editor.marquee}
 				isReferenceLayerActive={isReferenceLayerActive}
 				viewport={editor.viewport}
 				viewportSize={editor.viewportSize}
@@ -737,6 +738,7 @@
 					<PixelCanvasView
 						pixelCanvas={editor.compositeBuffer}
 						referenceLayerUnderlay={editor.referenceLayerUnderlay}
+						marquee={editor.marquee}
 						isReferenceLayerActive={isReferenceLayerActive}
 						viewport={editor.viewport}
 						viewportSize={editor.viewportSize}

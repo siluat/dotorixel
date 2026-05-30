@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { CanvasPoint, ReferencePlacement } from './canvas-model';
+	import type { CanvasPoint, MarqueeRegion, ReferencePlacement } from './canvas-model';
 	import { viewportOps } from './wasm-backend';
 	import type { ViewportData, ViewportSize } from './viewport';
 	import type { SamplingSession } from './sampling/session.svelte';
@@ -16,6 +16,7 @@
 		type ReferencePlacementHandle
 	} from './reference-layer-placement-interaction.svelte';
 	import ReferenceLayerPlacementOverlay from './ReferenceLayerPlacementOverlay.svelte';
+	import SelectionOverlay from './SelectionOverlay.svelte';
 	import {
 		createCanvasInteraction,
 		normalizePointerType,
@@ -27,6 +28,7 @@
 	interface Props {
 		pixelCanvas: RenderableCanvas;
 		referenceLayerUnderlay?: ReferenceLayerUnderlay;
+		marquee?: MarqueeRegion | null;
 		isReferenceLayerActive?: boolean;
 		viewport: ViewportData;
 		viewportSize?: ViewportSize;
@@ -54,6 +56,7 @@
 	let {
 		pixelCanvas,
 		referenceLayerUnderlay,
+		marquee,
 		isReferenceLayerActive = false,
 		viewport,
 		viewportSize = { width: 512, height: 512 },
@@ -596,6 +599,13 @@
 	onReadOnlyPointerUp={handleOverlayPointerUp}
 	onReadOnlyPointerCancel={handleOverlayPointerCancel}
 	onReadOnlyWheel={handleWheel}
+/>
+
+<SelectionOverlay
+	{marquee}
+	canvasWidth={pixelCanvas.width}
+	canvasHeight={pixelCanvas.height}
+	{viewport}
 />
 
 {#if samplingSession?.position}

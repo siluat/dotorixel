@@ -9,6 +9,7 @@ use dotorixel_core::history::{HistoryManager, Snapshot};
 use dotorixel_core::layer::{Layer, LayerKind, LayerKindTag, ReferenceData};
 use dotorixel_core::pixel_perfect::{Action, FilterResult, TailState, pixel_perfect_filter};
 use dotorixel_core::reference_placement::ReferencePlacement;
+use dotorixel_core::selection::MarqueeRegion;
 use dotorixel_core::tool::{ToolType, ellipse_outline, interpolate_pixels, rectangle_outline};
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
 
@@ -127,6 +128,60 @@ impl WasmReferencePlacement {
 impl From<ReferencePlacement> for WasmReferencePlacement {
     fn from(inner: ReferencePlacement) -> Self {
         Self { inner }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// WasmMarqueeRegion
+// ---------------------------------------------------------------------------
+
+#[wasm_bindgen]
+pub struct WasmMarqueeRegion {
+    inner: MarqueeRegion,
+}
+
+impl From<MarqueeRegion> for WasmMarqueeRegion {
+    fn from(inner: MarqueeRegion) -> Self {
+        Self { inner }
+    }
+}
+
+#[wasm_bindgen]
+impl WasmMarqueeRegion {
+    pub fn from_drag(x0: i32, y0: i32, x1: i32, y1: i32) -> WasmMarqueeRegion {
+        MarqueeRegion::from_drag(x0, y0, x1, y1).into()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn x(&self) -> i32 {
+        self.inner.x()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn y(&self) -> i32 {
+        self.inner.y()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn width(&self) -> u32 {
+        self.inner.width()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn height(&self) -> u32 {
+        self.inner.height()
+    }
+
+    pub fn contains(&self, x: i32, y: i32) -> bool {
+        self.inner.contains(x, y)
+    }
+
+    pub fn translate(&self, dx: i32, dy: i32) -> WasmMarqueeRegion {
+        self.inner.translate(dx, dy).into()
+    }
+
+    pub fn clip_to(&self, canvas_w: u32, canvas_h: u32) -> Option<WasmMarqueeRegion> {
+        self.inner.clip_to(canvas_w, canvas_h).map(Into::into)
     }
 }
 
@@ -298,6 +353,14 @@ impl WasmDocument {
 
     pub fn active_layer_id(&self) -> String {
         self.inner.active_layer_id().to_string()
+    }
+
+    pub fn marquee(&self) -> Option<WasmMarqueeRegion> {
+        self.inner.marquee().map(Into::into)
+    }
+
+    pub fn set_marquee(&mut self, region: Option<WasmMarqueeRegion>) {
+        self.inner.set_marquee(region.map(|region| region.inner));
     }
 
     pub fn next_layer_number(&self) -> u32 {
@@ -1237,6 +1300,25 @@ mod tests {
         assert_eq!(doc.active_layer_id(), id.to_string());
         assert_eq!(doc.next_layer_number(), 2);
         assert_eq!(doc.layer_count(), 1);
+    }
+
+    #[test]
+    fn wasm_document_marquee_round_trips_region() {
+        let id = Uuid::new_v4();
+        let mut doc = WasmDocument::new(8, 8, id.to_string(), "Layer 1".to_string()).unwrap();
+        let region = WasmMarqueeRegion::from_drag(1, 2, 4, 5);
+
+        assert!(doc.marquee().is_none());
+
+        doc.set_marquee(Some(region));
+        let read = doc.marquee().expect("marquee exists");
+        assert_eq!(read.x(), 1);
+        assert_eq!(read.y(), 2);
+        assert_eq!(read.width(), 4);
+        assert_eq!(read.height(), 4);
+
+        doc.set_marquee(None);
+        assert!(doc.marquee().is_none());
     }
 
     #[test]

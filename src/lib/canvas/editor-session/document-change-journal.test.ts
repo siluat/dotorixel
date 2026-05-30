@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Document, ResizeAnchor } from '../canvas-model';
+import type { Document, MarqueeRegion, ResizeAnchor } from '../canvas-model';
 import {
 	DocumentChangeJournal,
 	type DocumentChangeJournalDeps
@@ -54,6 +54,27 @@ describe('DocumentChangeJournal', () => {
 			'render',
 			'dirty'
 		]);
+	});
+
+	it('applies undoable marquee changes without viewport reclamp', () => {
+		const events: string[] = [];
+		const region = { x: 1, y: 2, width: 3, height: 4 } as MarqueeRegion;
+		const document = {
+			width: 16,
+			height: 16,
+			marquee: () => undefined,
+			set_marquee: (next: MarqueeRegion | null | undefined) =>
+				events.push(`marquee:${next?.x ?? 'none'}`)
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'set-marquee', region }
+		});
+
+		expect(result).toEqual({ changed: true });
+		expect(events).toEqual(['snapshot', 'marquee:1', 'render', 'dirty']);
 	});
 
 	it('does not run follow-up effects when the core Document mutation fails', () => {

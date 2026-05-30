@@ -4,6 +4,7 @@ import { pencilTool, eraserTool } from './tools/pencil-tool';
 import { floodfillTool } from './tools/floodfill-tool';
 import { eyedropperTool } from './tools/eyedropper-tool';
 import { moveTool } from './tools/move-tool';
+import { selectionTool } from './tools/selection-tool';
 import { lineTool, rectangleTool, ellipseTool } from './tools/shape-tool';
 
 // ── Constrain helpers ──────────────────────────────────────────────
@@ -117,6 +118,13 @@ const TOOL_DEFS = {
 		shortcutKey: 'V',
 		tool: moveTool,
 		isDrawingTool: false,
+		isPixelMutationTool: true
+	},
+	selection: {
+		cursor: 'crosshair',
+		shortcutKey: 'M',
+		tool: selectionTool,
+		isDrawingTool: true,
 		isPixelMutationTool: true
 	}
 } as const satisfies Record<string, ToolDef>;

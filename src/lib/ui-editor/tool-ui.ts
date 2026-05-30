@@ -2,6 +2,7 @@ import {
 	Pencil,
 	Slash,
 	Square,
+	SquareDashed,
 	Circle,
 	Eraser,
 	PaintBucket,
@@ -32,6 +33,7 @@ const TOOL_UI: Record<ToolType, { icon: typeof Pencil; label: () => string }> = 
 	floodfill: { icon: PaintBucket, label: m.tool_floodfill },
 	eyedropper: { icon: Pipette, label: m.tool_eyedropper },
 	move: { icon: Move, label: m.tool_move },
+	selection: { icon: SquareDashed, label: m.tool_selection },
 };
 
 /** Ordered tool entries with merged core + UI metadata. */

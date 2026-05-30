@@ -116,7 +116,8 @@ describe('PixelCanvasView', () => {
 		'floodfill',
 		'line',
 		'rectangle',
-		'ellipse'
+		'ellipse',
+		'selection'
 	];
 
 	it.each(drawingTools)('uses not-allowed cursor for %s while Reference is active', (activeTool) => {
@@ -134,6 +135,27 @@ describe('PixelCanvasView', () => {
 
 		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
 		expect(canvas.style.cursor).toBe('not-allowed');
+	});
+
+	it('mounts the Selection overlay when a Marquee is active', () => {
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				marquee: {
+					x: 1,
+					y: 1,
+					width: 2,
+					height: 2,
+					contains: () => false,
+					translate: () => null!,
+					clip_to: () => undefined
+				},
+				viewport,
+				viewportSize: { width: 100, height: 100 }
+			}
+		});
+
+		expect(screen.getByTestId('selection-overlay')).toBeTruthy();
 	});
 
 	it('uses not-allowed cursor over the Reference image body for drawing tools', () => {

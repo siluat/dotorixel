@@ -19,6 +19,8 @@ export interface KeyboardInputHost {
 	toggleGrid(): void;
 	/** Swap foreground/background colors. */
 	swapColors(): void;
+	/** Clear the active Marquee selection if one exists. */
+	clearMarquee(): void;
 	/** Notify that a modifier key changed mid-stroke. */
 	notifyModifierChange(): void;
 }
@@ -94,6 +96,14 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 				if (host.isDrawing()) {
 					host.notifyModifierChange();
 				}
+				return;
+			}
+
+			if (event.code === 'Escape') {
+				event.preventDefault();
+				if (event.repeat) return;
+				if (host.isDrawing()) return;
+				host.clearMarquee();
 				return;
 			}
 

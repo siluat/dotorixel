@@ -1,4 +1,4 @@
-import type { Document, PixelCanvas } from './canvas-model';
+import type { Document, MarqueeRegion, PixelCanvas } from './canvas-model';
 import type { Color } from './color';
 import type { DrawingOps, DrawingToolType } from './drawing-ops';
 
@@ -130,6 +130,7 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 	const pixels = new Uint8Array(width * height * 4);
 	const restoreCalls: Uint8Array[] = [];
 	let timelinePanelCollapsed = false;
+	let marquee: MarqueeRegion | undefined;
 	return {
 		width,
 		height,
@@ -148,6 +149,10 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 			return { r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: pixels[i + 3] };
 		},
 		active_layer_id: () => 'active',
+		marquee: () => marquee,
+		set_marquee(region) {
+			marquee = region ?? undefined;
+		},
 		next_layer_number: () => 2,
 		is_timeline_panel_collapsed: () => timelinePanelCollapsed,
 		set_timeline_panel_collapsed(collapsed) {

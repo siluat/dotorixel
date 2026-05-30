@@ -38,6 +38,20 @@ _Avoid_: placement drag, overlay edit, transform interaction.
 The web-shell module that applies classified changes to the active Document and owns the shell-side follow-up sequence: undo snapshot capture when appropriate, canvas dimension mirrors, viewport reclamp, render invalidation, and dirty notification. It distinguishes undoable Document changes (Layer edits, Reference Layer Placement commits, resize, clear), persisted UI state changes (active Layer, timeline panel collapsed), and transient UI state changes (dialogs, import busy state, resize anchor). The Rust core Document remains the authority for Document invariants; the journal owns only the web shell's change procedure around it.
 _Avoid_: document transaction (implies database semantics), change manager (too vague), history wrapper (too narrow).
 
+### Selection
+
+**Marquee**:
+A rectangular region on the active Pixel Layer that bounds subsequent pixel operations — both Selection-tool operations (move, nudge, delete, copy/cut) and the clipping mask that confines every drawing tool's output to its bounds. Document-scoped and persistent: survives reload, tab switch, active-layer change, and undo/redo (per Photoshop/GIMP/Aseprite convention, it operates against whichever Pixel Layer is currently active). Always non-empty — a degenerate drag collapses to 1×1, matching `rectangle_outline` — and clipped to canvas bounds. Silently no-ops when the active layer is a Reference Layer. Backed by the core `MarqueeRegion` value type; rendered as a marching-ants outline.
+_Avoid_: selection (names the tool/feature, not the region), selection rectangle (verbose), bounding box (geometry term), region (used generically for pixel-buffer slices in the core's `lift_region` / `clear_region` / `composite_region`).
+
+**Floating Selection**:
+A transient pixel buffer lifted from the active Pixel Layer together with its current translation offset. Created by dragging inside a Marquee, by arrow-key nudge, or by paste; the source region vacates to transparent the moment the lift begins, so the move preview matches the committed result. Committed back onto the layer as a single undoable step on release, tool switch, Cmd+V, Clear Canvas, or Delete Layer (each commits the in-flight buffer first, by intent). Reverted by Escape mid-drag. Never persisted — discarded on tab close or window unload. The marching-ants Marquee outline travels with it so the ants always wrap the visible floating pixels.
+_Avoid_: floating layer (it is not a Layer and never enters the layer stack), lifted pixels (names only the buffer, not the offset), selection buffer (ambiguous with Selection Clipboard), pasted layer.
+
+**Selection Clipboard**:
+A workspace-shared, single-slot buffer holding `{ pixels, width, height }` — the most recent Copy or Cut of a Marquee region (or of an active Floating Selection's buffer). One slot across all open tabs, persisted with workspace state, so copy-from-tab-A → paste-to-tab-B works within and across sessions. Internal-only: no integration with the OS clipboard. Paste materializes its contents as a Floating Selection centered on (viewport ∩ canvas), falling back to canvas center on empty intersection.
+_Avoid_: system clipboard (OS-level interop, explicitly out of scope), copy buffer (vague), per-document clipboard (rejected — the buffer is workspace-scoped so cross-tab reuse works).
+
 ### Sampling
 
 **Sampling Session**:
@@ -95,6 +109,11 @@ _Avoid_: drop group, drop session.
 - A **Reference Layer Underlay** is derived from the visible **Reference Layer** and shares its **Reference Layer Placement**.
 - A **Reference Layer Placement Interaction** edits exactly one active **Reference Layer Placement** at a time.
 - A **Document Change Journal** applies web-shell changes to the active **Document** and centralizes undo, render invalidation, viewport reclamp, and dirty notification side effects.
+- A **Marquee** belongs to a **Document** and targets whichever **Pixel Layer** is active; it persists across active-layer changes and no-ops against a **Reference Layer**.
+- A **Marquee** clips the output of every drawing tool to its bounds, while the **Move tool** (full-layer translate) and the **Eyedropper** (read-only sample) ignore it.
+- A **Floating Selection** is lifted from the active **Pixel Layer** within a **Marquee** and commits back onto it in one undoable step; it never becomes a **Layer**, and the **Marquee** outline tracks its offset while it exists.
+- A **Selection Clipboard** is workspace-scoped (like the active tool, draw colors, and recent colors), shared across all tabs; pasting it produces a **Floating Selection**.
+- A **Document Change Journal** records Marquee changes, region clears, and **Floating Selection** commits as undoable intents; transient lift/drag previews bypass the journal to keep history clean.
 - Drawing tools mutate only the active **Pixel Layer**; `Document.composite()` and exports include only Pixel Layers, while the shell draws a visible **Reference Layer** as a viewport underlay before the Pixel composite.
 - A **Reference Window** is workspace-scoped and never enters the Document; a **Reference Layer** is Document-scoped and persisted alongside the artwork. The two are independent — neither converts to the other.
 
@@ -108,3 +127,9 @@ _Avoid_: drop group, drop session.
 
 > **Dev:** "When the user drags a Reference Layer corner and then presses Escape, did the Reference Layer Placement change?"
 > **Domain expert:** "No — that was an in-flight **Reference Layer Placement Interaction**. Escape cancels its draft placement, so only a clean commit updates the **Reference Layer Placement**."
+
+> **Dev:** "The user drags inside the Marquee to move some pixels, then switches to the Pencil mid-drag. Do we lose the move?"
+> **Domain expert:** "No — switching tools commits the **Floating Selection** at its current offset, by intent. Only Escape mid-drag reverts the lift. The **Marquee** itself survives the switch and now clips the Pencil's strokes to its bounds."
+
+> **Dev:** "Copy a region in tab A, switch to tab B, paste. Where does the buffer come from, and where does it land?"
+> **Domain expert:** "From the **Selection Clipboard** — it's workspace-scoped, one slot shared across every tab, so tab A's copy is visible in tab B. Paste materializes it as a **Floating Selection** centered on the visible canvas, ready to position before you commit."

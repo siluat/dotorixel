@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| — | Planning — Selection tool [PRD-131](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md) authored, grilled (usability + mobile/touch), decomposed into 21 sub-issues (132–152), triaged | 2026-05-30 |
 | — | Planning cleanup — remove stale Layer properties task; visibility covered by [097](../issues/097-layer-system-visibility-toggle.md) | 2026-05-26 |
 | 130 | [Deepen Document Change Journal coverage beyond add-layer](../issues/130-deepen-document-change-journal-coverage.md) | 2026-05-25 |
 | 129 | [Deepen Document change procedure into a Document Change Journal](../issues/129-deepen-document-change-journal.md) | 2026-05-25 |

@@ -2,13 +2,35 @@
 
 ## Milestone 3: Editor for Serious Work
 
-- Selection tool (rectangle select + move)
+- Touch modifier alternatives (Shift-constrain, Alt-eyedropper UI for touchscreen) — **blocks** Shift-related Selection sub-issues
+- Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
+  - Pre-work: CONTEXT.md vocabulary update (Marquee / Floating Selection / Selection Clipboard) — direct commit, no issue
+  - [132 — Selection foundation](../issues/132-selection-foundation.md)
+  - [133 — Action Bar UX design (.pen, HITL)](../issues/133-selection-action-bar-design.md)
+  - [134 — Marquee persistence v5](../issues/134-marquee-persistence-v5.md)
+  - [135 — Click-without-drag deselects](../issues/135-selection-click-without-drag-deselects.md)
+  - [136 — Region pixel transformations + Delete](../issues/136-region-pixel-transformations-and-delete.md)
+  - [137 — Marquee clipping mask decorator](../issues/137-marquee-clipping-mask-decorator.md)
+  - [138 — Reference Layer × Marquee no-op](../issues/138-reference-layer-marquee-no-op.md)
+  - [139 — Touch long-press suppression inside Marquee](../issues/139-touch-long-press-suppression.md)
+  - [140 — StatusBar Marquee readout](../issues/140-statusbar-marquee-readout.md)
+  - [141 — Drag-time visual aids](../issues/141-drag-time-visual-aids.md)
+  - [142 — Drag-to-move (LiftAndDrag + commit + Undo)](../issues/142-selection-drag-to-move.md)
+  - [143 — Selection Clipboard + Copy + persistence](../issues/143-selection-clipboard-and-copy.md)
+  - [144 — Escape cancels Floating Selection mid-drag](../issues/144-escape-cancels-floating-selection.md)
+  - [145 — Arrow nudge + Shift 10× multiplier](../issues/145-arrow-nudge-and-shift-multiplier.md)
+  - [146 — Cut (Cmd+X)](../issues/146-cut-cmd-x.md)
+  - [147 — Clear Canvas / Delete Layer × Floating commits-first](../issues/147-clear-canvas-delete-layer-floating-commit.md)
+  - [148 — Paste (Cmd+V)](../issues/148-paste-cmd-v.md)
+  - [149 — Action Bar Idle implementation](../issues/149-selection-action-bar-idle-implementation.md)
+  - [150 — Action Bar Floating state](../issues/150-selection-action-bar-floating-state.md)
+  - [151 — Shift = square define (blocked by external Touch modifier alternatives)](../issues/151-shift-square-define.md)
+  - [152 — Shift = axis lock during Floating drag (blocked by external Touch modifier alternatives)](../issues/152-shift-axis-lock-during-floating-drag.md)
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load
 - (review) Evaluate serde-wasm-bindgen + tsify for WASM↔TS serialization — revisit when project file format requires multi-type Rust↔JSON↔TS conversion
 - Apple Pencil: hover preview + palm rejection
-- Touch modifier alternatives (Shift-constrain, Alt-eyedropper UI for touchscreen)
 - Feature guide page (basic usage instructions)
 - (review) In-editor feedback widget
 

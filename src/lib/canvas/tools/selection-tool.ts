@@ -21,7 +21,7 @@ export const selectionTool = customTool({
 		let initialMarquee: MarqueeRegion | undefined;
 		let anchor: CanvasCoords | null = null;
 		let draftMarquee: MarqueeRegion | null = null;
-		let hasDragged = false;
+		let hasUserDragged = false;
 
 		function preview(region: MarqueeRegion | null): ToolEffects {
 			draftMarquee = region;
@@ -39,16 +39,24 @@ export const selectionTool = customTool({
 					anchor = current;
 					return NO_EFFECTS;
 				}
-				hasDragged = true;
+				hasUserDragged = true;
 				return preview(
 					marqueeFromDrag(anchor, current, host.document.width, host.document.height)
 				);
 			},
 			modifierChanged: () => NO_EFFECTS,
 			end() {
-				if (!anchor || !hasDragged) return NO_EFFECTS;
+				if (!anchor || !hasUserDragged) return NO_EFFECTS;
 				host.document.set_marquee(initialMarquee ? copyMarqueeRegion(initialMarquee) : null);
 				return [{ type: 'setMarquee', region: draftMarquee }];
+			},
+			cancel() {
+				if (!hasUserDragged) return NO_EFFECTS;
+				host.document.set_marquee(initialMarquee ? copyMarqueeRegion(initialMarquee) : null);
+				anchor = null;
+				draftMarquee = null;
+				hasUserDragged = false;
+				return MARQUEE_PREVIEW_CHANGED;
 			}
 		};
 	}

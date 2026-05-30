@@ -308,6 +308,23 @@ describe('ToolRunner — shape tool', () => {
 
 		runner.drawEnd();
 	});
+
+	it('restores shape preview artifacts on drawCancel', () => {
+		const { host, runner, shared } = createRunner();
+		shared.activeTool = 'line';
+
+		runner.drawStart(0, 'mouse');
+		runner.draw({ x: 0, y: 0 }, null);
+		runner.draw({ x: 4, y: 4 }, { x: 0, y: 0 });
+		expect(getDocPixel(host.document, 2, 2)).toEqual(BLACK);
+
+		const cancelEffects = runner.drawCancel();
+
+		expect(hasEffect(cancelEffects, 'canvasChanged')).toBe(true);
+		expect(getDocPixel(host.document, 2, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(runner.isDrawing).toBe(false);
+		expect(runner.drawEnd()).toEqual([]);
+	});
 });
 
 describe('ToolRunner — move tool', () => {
@@ -331,6 +348,27 @@ describe('ToolRunner — move tool', () => {
 
 		expect(getDocPixel(host.document, 2, 3)).toEqual(BLACK);
 		expect(getDocPixel(host.document, 0, 0)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+	});
+
+	it('restores the original pixels on drawCancel after a move preview', () => {
+		const { host, runner, shared } = createRunner();
+
+		shared.activeTool = 'pencil';
+		runner.drawStart(0, 'mouse');
+		runner.draw({ x: 0, y: 0 }, null);
+		runner.drawEnd();
+
+		shared.activeTool = 'move';
+		runner.drawStart(0, 'mouse');
+		runner.draw({ x: 0, y: 0 }, null);
+		runner.draw({ x: 2, y: 3 }, { x: 0, y: 0 });
+		expect(getDocPixel(host.document, 2, 3)).toEqual(BLACK);
+
+		const cancelEffects = runner.drawCancel();
+
+		expect(hasEffect(cancelEffects, 'canvasChanged')).toBe(true);
+		expect(getDocPixel(host.document, 0, 0)).toEqual(BLACK);
+		expect(getDocPixel(host.document, 2, 3)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
 	});
 });
 

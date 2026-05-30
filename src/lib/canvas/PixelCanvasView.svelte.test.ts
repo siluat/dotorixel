@@ -690,6 +690,39 @@ describe('PixelCanvasView', () => {
 		expect(onReferencePlacementCommit).not.toHaveBeenCalled();
 	});
 
+	it('forwards canvas pointer cancel to the draw cancel lifecycle', async () => {
+		const onDrawStart = vi.fn();
+		const onDrawEnd = vi.fn();
+		const onDrawCancel = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				onDrawStart,
+				onDrawEnd,
+				onDrawCancel
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.pointerDown(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 10,
+			clientY: 10
+		});
+		await fireEvent.pointerCancel(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse'
+		});
+
+		expect(onDrawStart).toHaveBeenCalledTimes(1);
+		expect(onDrawCancel).toHaveBeenCalledTimes(1);
+		expect(onDrawEnd).not.toHaveBeenCalled();
+	});
+
 	it('previews a body drag before committing the Reference placement', async () => {
 		const onReferencePlacementCommit = vi.fn();
 		render(PixelCanvasView, {

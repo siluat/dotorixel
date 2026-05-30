@@ -56,6 +56,7 @@ export interface CanvasInteractionCallbacks {
 	onDrawStart: (button: number, pointerType: PointerType) => void;
 	onDraw: (current: CanvasPoint, previous: CanvasPoint | null) => void;
 	onDrawEnd: () => void;
+	onDrawCancel: () => void;
 	onViewportChange: (viewport: ViewportData) => void;
 	/**
 	 * Called when a color-sampling session should open (400ms touch long-press).
@@ -86,7 +87,7 @@ export interface CanvasInteraction {
 	/**
 	 * Browser-level interruption (OS gesture conflict, incoming call, etc.).
 	 * Per W3C Pointer Events, the user never released — treat as cancellation:
-	 * sampling → `onSampleCancel`, drawing → end without committing pending.
+	 * sampling → `onSampleCancel`, drawing → `onDrawCancel`.
 	 */
 	pointerCancel(id: number): void;
 	blur(): void;
@@ -375,7 +376,7 @@ export function createCanvasInteraction(
 
 			if (interaction.type === 'drawing') {
 				if (interaction.pendingCoords === null) {
-					callbacks.onDrawEnd();
+					callbacks.onDrawCancel();
 				}
 				interaction = { type: 'idle' };
 				return;

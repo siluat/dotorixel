@@ -161,6 +161,14 @@ export class EditorController {
 		}
 	};
 
+	handleDrawCancel = (): void => {
+		this.workspace.activeTab.drawCancel();
+		const restored = this.keyboard.consumePendingToolRestore();
+		if (restored !== null) {
+			this.setTool(restored);
+		}
+	};
+
 	// Sampling handlers
 	handleSampleStart = (
 		coords: CanvasPoint,

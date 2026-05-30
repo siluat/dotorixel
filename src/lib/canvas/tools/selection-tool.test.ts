@@ -84,4 +84,22 @@ describe('selectionTool', () => {
 		expect(ctx.setMarquee).not.toHaveBeenCalled();
 		expect(ctx.host.history.pushSnapshot).not.toHaveBeenCalled();
 	});
+
+	it('cancels a drag preview by restoring the initial Marquee without committing', () => {
+		const initial = { x: 1, y: 1, width: 2, height: 2 } as MarqueeRegion;
+		const ctx = createHost();
+		ctx.currentMarquee = initial;
+		const session = selectionTool.open(ctx.host, strokeSpec);
+
+		expect(session.start()).toEqual([]);
+		session.draw({ x: 0, y: 0 }, null);
+		session.draw({ x: 4, y: 4 }, { x: 0, y: 0 });
+		expect(ctx.currentMarquee).toMatchObject({ x: 0, y: 0, width: 5, height: 5 });
+
+		expect(session.cancel()).toEqual([{ type: 'marqueePreviewChanged' }]);
+
+		expect(ctx.currentMarquee).toMatchObject(initial);
+		expect(session.end()).toEqual([]);
+		expect(ctx.host.history.pushSnapshot).not.toHaveBeenCalled();
+	});
 });

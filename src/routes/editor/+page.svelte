@@ -642,6 +642,7 @@
 				onDraw={editor.handleDraw}
 				onDrawStart={editor.handleDrawStart}
 				onDrawEnd={editor.handleDrawEnd}
+				onDrawCancel={editor.handleDrawCancel}
 				onViewportChange={editor.handleViewportChange}
 				onSampleStart={editor.handleSampleStart}
 				onSampleUpdate={editor.handleSampleUpdate}
@@ -746,6 +747,7 @@
 						onDraw={editor.handleDraw}
 						onDrawStart={editor.handleDrawStart}
 						onDrawEnd={editor.handleDrawEnd}
+						onDrawCancel={editor.handleDrawCancel}
 						onViewportChange={editor.handleViewportChange}
 						onSampleStart={editor.handleSampleStart}
 						onSampleUpdate={editor.handleSampleUpdate}

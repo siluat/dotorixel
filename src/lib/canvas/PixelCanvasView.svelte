@@ -36,6 +36,7 @@
 		onDraw?: (current: CanvasPoint, previous: CanvasPoint | null) => void;
 		onDrawStart?: (button: number, pointerType: PointerType) => void;
 		onDrawEnd?: () => void;
+		onDrawCancel?: () => void;
 		onViewportChange?: (viewport: ViewportData) => void;
 		onSampleStart?: (coords: CanvasPoint, button: number, pointerType: PointerType) => boolean;
 		onSampleUpdate?: (coords: CanvasPoint) => void;
@@ -64,6 +65,7 @@
 		onDraw,
 		onDrawStart,
 		onDrawEnd,
+		onDrawCancel,
 		onViewportChange,
 		onSampleStart,
 		onSampleUpdate,
@@ -110,6 +112,7 @@
 			onDrawStart: (button, pointerType) => onDrawStart?.(button, pointerType),
 			onDraw: (c, p) => onDraw?.(c, p),
 			onDrawEnd: () => onDrawEnd?.(),
+			onDrawCancel: () => onDrawCancel?.(),
 			onViewportChange: (vp) => onViewportChange?.(vp),
 			onSampleStart: (coords, button, pointerType) =>
 				onSampleStart?.(coords, button, pointerType) ?? false,

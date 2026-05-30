@@ -147,7 +147,7 @@ export function isDrawingTool(type: ToolType): boolean {
 	return TOOL_DEFS[type].isDrawingTool;
 }
 
-/** Tools whose canvas stroke path mutates Pixel Layer pixels. */
+/** Tools whose stroke lifecycle must be blocked while a Reference Layer is active. */
 export function isPixelMutationTool(type: ToolType): boolean {
 	return TOOL_DEFS[type].isPixelMutationTool;
 }

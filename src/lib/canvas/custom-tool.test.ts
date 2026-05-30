@@ -40,7 +40,8 @@ describe('customTool sugar', () => {
 				start: () => [],
 				draw: () => [],
 				modifierChanged: () => [],
-				end: () => []
+				end: () => [],
+				cancel: () => []
 			})
 		});
 
@@ -55,7 +56,8 @@ describe('customTool sugar', () => {
 			start: () => [],
 			draw: () => [],
 			modifierChanged: () => [],
-			end: () => []
+			end: () => [],
+			cancel: () => []
 		}));
 		const tool = customTool({
 			id: 'eyedropper',
@@ -89,6 +91,10 @@ describe('customTool sugar', () => {
 			end() {
 				calls.push('end');
 				return [{ type: 'colorPick', target: 'foreground', color: BLACK }];
+			},
+			cancel() {
+				calls.push('cancel');
+				return [];
 			}
 		};
 		const tool = customTool({
@@ -101,11 +107,13 @@ describe('customTool sugar', () => {
 		expect(session.draw({ x: 2, y: 3 }, null)).toEqual([{ type: 'canvasChanged' }]);
 		expect(session.modifierChanged()).toEqual([]);
 		expect(session.end()).toEqual([{ type: 'colorPick', target: 'foreground', color: BLACK }]);
+		expect(session.cancel()).toEqual([]);
 		expect(calls).toEqual([
 			'start',
 			'draw(2,3 prev=null)',
 			'modifierChanged',
-			'end'
+			'end',
+			'cancel'
 		]);
 	});
 });

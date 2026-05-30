@@ -188,6 +188,30 @@ describe('TabState — effect dispatcher', () => {
 		expect(notifier.dirtyCalls).toEqual(['doc-test']);
 	});
 
+	it('selection drawCancel restores the previous Marquee without a dirty commit', () => {
+		const { tab, notifier, shared } = makeTab();
+		shared.activeTool = 'selection';
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 3, y: 3 }, { x: 1, y: 1 });
+		tab.drawEnd();
+		notifier.reset();
+		const beforeCancelPreview = tab.renderVersion;
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 5, y: 5 }, null);
+		tab.draw({ x: 6, y: 6 }, { x: 5, y: 5 });
+		expect(tab.document.marquee()).toMatchObject({ x: 5, y: 5, width: 2, height: 2 });
+
+		tab.drawCancel();
+
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 3, height: 3 });
+		expect(tab.renderVersion).toBeGreaterThan(beforeCancelPreview);
+		expect(notifier.dirtyCalls).toEqual([]);
+		expect(tab.drawEnd()).toBeUndefined();
+	});
+
 	it('clearMarquee removes the Marquee through an undoable document change', () => {
 		const { tab, notifier, shared } = makeTab();
 		shared.activeTool = 'selection';

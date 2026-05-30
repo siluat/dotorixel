@@ -358,6 +358,10 @@ export class TabState {
 		this.#applyEffects(this.#toolRunner.drawEnd());
 	};
 
+	drawCancel = (): void => {
+		this.#applyEffects(this.#toolRunner.drawCancel());
+	};
+
 	modifierChanged = (): void => {
 		this.#applyEffects(this.#toolRunner.modifierChanged());
 	};

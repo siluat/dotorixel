@@ -38,10 +38,14 @@ impl MarqueeRegion {
     }
 
     pub fn contains(&self, x: i32, y: i32) -> bool {
-        x >= self.x
-            && y >= self.y
-            && x < self.x + self.width as i32
-            && y < self.y + self.height as i32
+        let left = i64::from(self.x);
+        let top = i64::from(self.y);
+        let right = left + i64::from(self.width);
+        let bottom = top + i64::from(self.height);
+        let x = i64::from(x);
+        let y = i64::from(y);
+
+        x >= left && y >= top && x < right && y < bottom
     }
 
     pub fn translate(&self, dx: i32, dy: i32) -> Self {
@@ -54,18 +58,18 @@ impl MarqueeRegion {
     }
 
     pub fn clip_to(&self, canvas_w: u32, canvas_h: u32) -> Option<Self> {
-        let left = self.x.max(0);
-        let top = self.y.max(0);
-        let right = (self.x + self.width as i32).min(canvas_w as i32);
-        let bottom = (self.y + self.height as i32).min(canvas_h as i32);
+        let left = i64::from(self.x).max(0);
+        let top = i64::from(self.y).max(0);
+        let right = (i64::from(self.x) + i64::from(self.width)).min(i64::from(canvas_w));
+        let bottom = (i64::from(self.y) + i64::from(self.height)).min(i64::from(canvas_h));
 
         if left >= right || top >= bottom {
             return None;
         }
 
         Some(Self {
-            x: left,
-            y: top,
+            x: left as i32,
+            y: top as i32,
             width: (right - left) as u32,
             height: (bottom - top) as u32,
         })
@@ -123,6 +127,38 @@ mod tests {
     fn clip_to_canvas_returns_none_when_region_does_not_overlap() {
         assert_eq!(MarqueeRegion::from_drag(-4, 1, -1, 3).clip_to(4, 4), None);
         assert_eq!(MarqueeRegion::from_drag(1, 4, 3, 7).clip_to(4, 4), None);
+    }
+
+    #[test]
+    fn clip_to_canvas_uses_wide_arithmetic_for_large_regions() {
+        let region = MarqueeRegion {
+            x: i32::MAX - 1,
+            y: 0,
+            width: 4,
+            height: 1,
+        };
+
+        let clipped = region
+            .clip_to(u32::MAX, 1)
+            .expect("wide canvas overlaps the large region");
+
+        assert_eq!(clipped.x(), i32::MAX - 1);
+        assert_eq!(clipped.y(), 0);
+        assert_eq!(clipped.width(), 4);
+        assert_eq!(clipped.height(), 1);
+    }
+
+    #[test]
+    fn contains_uses_wide_arithmetic_for_large_regions() {
+        let region = MarqueeRegion {
+            x: i32::MAX - 1,
+            y: i32::MAX - 1,
+            width: 4,
+            height: 4,
+        };
+
+        assert!(region.contains(i32::MAX, i32::MAX));
+        assert!(!region.contains(i32::MAX - 2, i32::MAX));
     }
 
     #[test]

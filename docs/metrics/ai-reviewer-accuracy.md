@@ -6,14 +6,28 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 129 | 97 | 32 | 103 | 75% | 49% |
-| cubic-dev-ai[bot] | 70 | 56 | 14 | 139 | 80% | 29% |
-| coderabbitai[bot] | 169 | 115 | 54 | 78 | 68% | 60% |
+| greptile-apps[bot] | 130 | 97 | 33 | 107 | 75% | 48% |
+| cubic-dev-ai[bot] | 73 | 58 | 15 | 141 | 79% | 29% |
+| coderabbitai[bot] | 171 | 117 | 54 | 80 | 68% | 59% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #230 | greptile-apps[bot] | Reject | Selection should remain mutation-gated on Reference Layers |
+| #230 | coderabbitai[bot] | Accept | Clarify mutation-gate docs for Selection and Reference Layer semantics |
+| #230 | cubic-dev-ai[bot] | Reject | Selection should remain mutation-gated on Reference Layers |
+| #230 | coderabbitai[bot] | Accept | Rename selection drag boolean to read as user action |
+| #230 | cubic-dev-ai[bot] | Accept | Marquee clipping should avoid i32 narrowing and overflow |
+| #230 | cubic-dev-ai[bot] | Accept | pointercancel should cancel selection preview instead of committing |
+| #230 | greptile-apps[bot] | Miss | Did not flag stroke-gate documentation clarity |
+| #230 | cubic-dev-ai[bot] | Miss | Did not flag stroke-gate documentation clarity |
+| #230 | greptile-apps[bot] | Miss | Did not flag ambiguous selection drag boolean |
+| #230 | cubic-dev-ai[bot] | Miss | Did not flag ambiguous selection drag boolean |
+| #230 | greptile-apps[bot] | Miss | Did not flag Marquee clipping overflow |
+| #230 | coderabbitai[bot] | Miss | Did not flag Marquee clipping overflow |
+| #230 | greptile-apps[bot] | Miss | Did not flag pointercancel committing selection preview |
+| #230 | coderabbitai[bot] | Miss | Did not flag pointercancel committing selection preview |
 | #229 | greptile-apps[bot] | Accept | Reorder Layer should not reclamp viewport after journal routing |
 | #229 | greptile-apps[bot] | Accept | Persisted document UI changes should not sync metrics through shared follow-up |
 | #229 | coderabbitai[bot] | Miss | Did not flag Reorder Layer viewport reclamp contract widening |

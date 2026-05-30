@@ -48,6 +48,7 @@ export const selectionTool = customTool({
 			end() {
 				if (!anchor || !hasUserDragged) return NO_EFFECTS;
 				host.document.set_marquee(initialMarquee ? copyMarqueeRegion(initialMarquee) : null);
+				if (draftMarquee === null) return MARQUEE_PREVIEW_CHANGED;
 				return [{ type: 'setMarquee', region: draftMarquee }];
 			},
 			cancel() {

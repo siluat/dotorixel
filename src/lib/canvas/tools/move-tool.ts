@@ -48,7 +48,7 @@ export const moveTool = customTool({
 	open(host) {
 		let snapshot: Uint8Array | null = null;
 		let anchor: CanvasCoords | null = null;
-		let hasShifted = false;
+		let hasShiftedPixels = false;
 
 		return {
 			start() {
@@ -72,7 +72,7 @@ export const moveTool = customTool({
 					dy
 				);
 				restoreActiveLayerPixels(host.document, shifted);
-				hasShifted = true;
+				hasShiftedPixels = true;
 				return CANVAS_CHANGED;
 			},
 			modifierChanged() {
@@ -82,7 +82,7 @@ export const moveTool = customTool({
 				return NO_EFFECTS;
 			},
 			cancel() {
-				if (!snapshot || !hasShifted) return NO_EFFECTS;
+				if (!snapshot || !hasShiftedPixels) return NO_EFFECTS;
 				restoreActiveLayerPixels(host.document, snapshot);
 				return CANVAS_CHANGED;
 			}

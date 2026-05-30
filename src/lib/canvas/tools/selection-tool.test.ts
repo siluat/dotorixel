@@ -102,4 +102,21 @@ describe('selectionTool', () => {
 		expect(session.end()).toEqual([]);
 		expect(ctx.host.history.pushSnapshot).not.toHaveBeenCalled();
 	});
+
+	it('restores the initial Marquee without committing when drag stays outside the canvas', () => {
+		const initial = { x: 1, y: 1, width: 2, height: 2 } as MarqueeRegion;
+		const ctx = createHost();
+		ctx.currentMarquee = initial;
+		const session = selectionTool.open(ctx.host, strokeSpec);
+
+		expect(session.start()).toEqual([]);
+		session.draw({ x: -5, y: -5 }, null);
+		session.draw({ x: -2, y: -2 }, { x: -5, y: -5 });
+		expect(ctx.currentMarquee).toBeUndefined();
+
+		expect(session.end()).toEqual([{ type: 'marqueePreviewChanged' }]);
+
+		expect(ctx.currentMarquee).toMatchObject(initial);
+		expect(ctx.host.history.pushSnapshot).not.toHaveBeenCalled();
+	});
 });

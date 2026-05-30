@@ -6,14 +6,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 130 | 97 | 33 | 107 | 75% | 48% |
-| cubic-dev-ai[bot] | 73 | 58 | 15 | 141 | 79% | 29% |
-| coderabbitai[bot] | 171 | 117 | 54 | 80 | 68% | 59% |
+| greptile-apps[bot] | 131 | 98 | 33 | 108 | 75% | 48% |
+| cubic-dev-ai[bot] | 74 | 59 | 15 | 142 | 80% | 29% |
+| coderabbitai[bot] | 172 | 118 | 54 | 81 | 69% | 59% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #230 | greptile-apps[bot] | Accept | Off-canvas-only Selection drag should not clear existing Marquee |
+| #230 | cubic-dev-ai[bot] | Accept | Off-canvas-only Selection drag should not clear existing Marquee |
+| #230 | coderabbitai[bot] | Accept | Rename Move cancel tracking boolean to identify shifted pixels |
+| #230 | coderabbitai[bot] | Miss | Did not flag off-canvas-only Selection drag clearing existing Marquee |
+| #230 | greptile-apps[bot] | Miss | Did not flag Move cancel tracking boolean naming |
+| #230 | cubic-dev-ai[bot] | Miss | Did not flag Move cancel tracking boolean naming |
 | #230 | greptile-apps[bot] | Reject | Selection should remain mutation-gated on Reference Layers |
 | #230 | coderabbitai[bot] | Accept | Clarify mutation-gate docs for Selection and Reference Layer semantics |
 | #230 | cubic-dev-ai[bot] | Reject | Selection should remain mutation-gated on Reference Layers |

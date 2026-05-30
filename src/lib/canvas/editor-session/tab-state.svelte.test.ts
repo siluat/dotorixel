@@ -212,6 +212,29 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.drawEnd()).toBeUndefined();
 	});
 
+	it('off-canvas-only selection drag restores the previous Marquee without a dirty commit', () => {
+		const { tab, notifier, shared } = makeTab();
+		shared.activeTool = 'selection';
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 3, y: 3 }, { x: 1, y: 1 });
+		tab.drawEnd();
+		notifier.reset();
+		const beforeInvalidSelection = tab.renderVersion;
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: -5, y: -5 }, null);
+		tab.draw({ x: -2, y: -2 }, { x: -5, y: -5 });
+		expect(tab.document.marquee()).toBeUndefined();
+
+		tab.drawEnd();
+
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 3, height: 3 });
+		expect(tab.renderVersion).toBeGreaterThan(beforeInvalidSelection);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
 	it('clearMarquee removes the Marquee through an undoable document change', () => {
 		const { tab, notifier, shared } = makeTab();
 		shared.activeTool = 'selection';

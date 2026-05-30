@@ -2,15 +2,15 @@
 
 ## Currently Working On
 
-None.
+Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md)).
+2 of 21 sub-issues are done; 133 locked the action bar design spec for downstream implementation.
 
 ## Last Completed
 
-[153 — Deepen Document Change Journal history ownership](../issues/153-deepen-document-change-journal-history-ownership.md): The web shell now centralizes undo/redo and clear follow-up in the Journal. Drawing flows remain behaviorally unchanged and only request snapshot timing.
+[133 — Selection Action Bar — UX detail design (.pen)](../issues/133-selection-action-bar-design.md): The action bar spec now covers Idle/Floating states, responsive variants, icon choices, positioning, touch targets, and motion behavior. No new design tokens were introduced.
 
 ## Next Up
 
-- [133 — Action Bar UX design (.pen, HITL)](../issues/133-selection-action-bar-design.md)
 - [134 — Marquee persistence v5](../issues/134-marquee-persistence-v5.md)
 - [135 — Click-without-drag deselects](../issues/135-selection-click-without-drag-deselects.md)
 - [136 — Region pixel transformations + Delete](../issues/136-region-pixel-transformations-and-delete.md)

@@ -1,6 +1,6 @@
 ---
 title: "Selection Action Bar — UX detail design (.pen)"
-status: ready-for-human
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -63,3 +63,23 @@ Classified `ready-for-human` rather than `ready-for-agent` because:
 - Design choices (icon picks, label phrasing, hidden-mid-drag fade timing, disabled-state styling) are exactly the kind of small calls that a human review benefits from before downstream implementation slices (149, 150) consume them.
 - Mirrors PRD-106 (Reference Layer UX detail design) precedent — HITL `.pen` design slice that produced the spec for implementation sub-issues.
 
+## Results
+
+| File | Description |
+|------|-------------|
+| `docs/pencil-dotorixel.pen` | Added top-level frame `133 — Selection Action Bar UX detail design`, placed as a sibling to the PRD-106 design frame. |
+
+### Key Decisions
+
+- Idle state uses `Copy`, `Cut`, `Paste`, `Delete`, and `Deselect`; Floating Selection state uses `Done`, `Cancel`, and `Copy`.
+- Compact layout is icon-only with 44×44 hit targets; medium+ layout adds labels; wide+ behavior uses tooltip-on-hover.
+- Lucide icons are locked: `copy`, `scissors`, `clipboard-paste`, `trash-2`, `square-dashed-mouse-pointer`, `check`, and `x`.
+- `Deselect` uses `square-dashed-mouse-pointer`, not `x`, so it stays visually distinct from Floating Selection `Cancel`.
+- `Done` is the only accent-filled action; `Delete` uses danger text/icon color; disabled `Paste` preserves footprint with reduced opacity.
+- Positioning is above Marquee by default, below on top overflow, and sticky to the viewport edge when both vertical placements overflow.
+- Mid-drag hide uses 100 ms fade-out and 120 ms fade-back-in; reduced motion uses immediate hide/show.
+
+### Notes
+
+- No new design tokens were introduced.
+- This is a design-spec slice only; platform implementation remains in follow-up issues 149 and 150.

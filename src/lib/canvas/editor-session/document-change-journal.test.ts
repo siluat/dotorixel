@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Document, MarqueeRegion, ResizeAnchor } from '../canvas-model';
+import type { HistoryManager } from '../adapter-types';
+import { clearActiveLayerPixels, singleLayerDocument } from '../wasm-backend';
 import {
 	DocumentChangeJournal,
 	type DocumentChangeJournalDeps
@@ -15,6 +17,49 @@ function createFakeDocument(events: string[]): Document {
 	} as Document;
 }
 
+function createFakeHistoryManager(
+	events: string[],
+	opts: { undoDocument?: Document; redoDocument?: Document } = {}
+): HistoryManager {
+	let canUndo = false;
+	let canRedo = false;
+	return {
+		can_undo: () => canUndo,
+		can_redo: () => canRedo,
+		clear: () => {
+			events.push('history-clear');
+			canUndo = false;
+			canRedo = false;
+		},
+		push_snapshot: () => {
+			events.push('legacy-snapshot');
+			canUndo = true;
+			canRedo = false;
+		},
+		undo: () => undefined,
+		redo: () => undefined,
+		push_document: () => {
+			events.push('snapshot');
+			canUndo = true;
+			canRedo = false;
+		},
+		undo_document: (current) => {
+			events.push(`undo:${current.width}x${current.height}`);
+			if (!opts.undoDocument) return undefined;
+			canUndo = false;
+			canRedo = true;
+			return opts.undoDocument;
+		},
+		redo_document: (current) => {
+			events.push(`redo:${current.width}x${current.height}`);
+			if (!opts.redoDocument) return undefined;
+			canUndo = true;
+			canRedo = false;
+			return opts.redoDocument;
+		}
+	};
+}
+
 function createJournal(
 	events: string[],
 	document: Document,
@@ -22,9 +67,12 @@ function createJournal(
 ): DocumentChangeJournal {
 	return new DocumentChangeJournal({
 		getDocument: () => document,
-		captureUndoSnapshot: () => events.push('snapshot'),
+		replaceDocument: (nextDocument) =>
+			events.push(`replace:${nextDocument.width}x${nextDocument.height}`),
+		createHistoryManager: () => createFakeHistoryManager(events),
 		createLayerId: () => 'layer-2',
 		rememberReferenceLayerBlob: (layerId) => events.push(`remember:${layerId}`),
+		clearActiveLayerPixels: () => events.push('clear-active-layer'),
 		resizeDocument: (_document, width, height, anchor) =>
 			events.push(`resize:${width}:${height}:${anchor}`),
 		syncDocumentMetrics: () => events.push('sync'),
@@ -36,6 +84,76 @@ function createJournal(
 }
 
 describe('DocumentChangeJournal', () => {
+	it('captures undo snapshots and exposes history availability', () => {
+		const events: string[] = [];
+		const document = createFakeDocument(events);
+		const journal = createJournal(events, document);
+
+		expect(journal.canUndo).toBe(false);
+		expect(journal.canRedo).toBe(false);
+
+		journal.captureUndoSnapshot();
+
+		expect(journal.canUndo).toBe(true);
+		expect(journal.canRedo).toBe(false);
+		expect(events).toEqual(['snapshot']);
+	});
+
+	it('restores undo and redo documents through the journal follow-up sequence', () => {
+		const events: string[] = [];
+		const initial = { width: 16, height: 16 } as unknown as Document;
+		const previous = { width: 8, height: 8 } as unknown as Document;
+		const next = { width: 32, height: 24 } as unknown as Document;
+		let current = initial;
+		const history = createFakeHistoryManager(events, {
+			undoDocument: previous,
+			redoDocument: next
+		});
+		const journal = createJournal(events, initial, {
+			getDocument: () => current,
+			replaceDocument: (document) => {
+				current = document;
+				events.push(`replace:${document.width}x${document.height}`);
+			},
+			createHistoryManager: () => history
+		});
+		journal.captureUndoSnapshot();
+
+		expect(journal.undo()).toEqual({ changed: true });
+		expect(current).toBe(previous);
+		expect(journal.canUndo).toBe(false);
+		expect(journal.canRedo).toBe(true);
+
+		expect(journal.redo()).toEqual({ changed: true });
+		expect(current).toBe(next);
+		expect(journal.canUndo).toBe(true);
+		expect(journal.canRedo).toBe(false);
+		expect(events).toEqual([
+			'snapshot',
+			'undo:16x16',
+			'replace:8x8',
+			'sync',
+			'reclamp',
+			'render',
+			'dirty',
+			'redo:8x8',
+			'replace:32x24',
+			'sync',
+			'reclamp',
+			'render',
+			'dirty'
+		]);
+	});
+
+	it('skips follow-up effects when undo has no restored document', () => {
+		const events: string[] = [];
+		const document = createFakeDocument(events);
+		const journal = createJournal(events, document);
+
+		expect(journal.undo()).toEqual({ changed: false });
+		expect(events).toEqual(['undo:16x16']);
+	});
+
 	it('applies an undoable add-layer change through the journal sequence', () => {
 		const events: string[] = [];
 		const document = createFakeDocument(events);
@@ -115,6 +233,44 @@ describe('DocumentChangeJournal', () => {
 		const result = journal.commit({
 			kind: 'undoable-document',
 			intent: { type: 'remove-layer', id: 'only-layer' }
+		});
+
+		expect(result).toEqual({ changed: false });
+		expect(events).toEqual([]);
+	});
+
+	it('clears the active layer as an undoable document change', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array(16 * 16 * 4);
+		pixels.set([0, 0, 0, 255], 0);
+		const document = singleLayerDocument(16, 16, pixels);
+		const journal = createJournal(events, document, { clearActiveLayerPixels });
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'clear-active-layer' }
+		});
+
+		expect(result).toEqual({ changed: true });
+		expect(Array.from(document.layer_pixels_at(0)!.slice(0, 4))).toEqual([0, 0, 0, 0]);
+		expect(events).toEqual(['snapshot', 'render', 'dirty']);
+	});
+
+	it('skips active-layer clear when the active layer is Reference', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			active_layer_id: () => 'reference-1',
+			layer_count: () => 1,
+			layer_id_at: () => 'reference-1',
+			layer_kind_at: () => 'reference'
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'clear-active-layer' }
 		});
 
 		expect(result).toEqual({ changed: false });

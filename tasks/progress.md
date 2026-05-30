@@ -2,11 +2,11 @@
 
 ## Currently Working On
 
-Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md)). 1 of 21 sub-issues is done; the Marquee foundation is now in place and the remaining ready slices can build on it.
+None.
 
 ## Last Completed
 
-[132 — Selection foundation](../issues/132-selection-foundation.md): Selection can now define, preview, commit, and clear a Document-scoped Marquee. Persistence, region pixel operations, move/copy/paste, and action bar UX remain in follow-up sub-issues.
+[153 — Deepen Document Change Journal history ownership](../issues/153-deepen-document-change-journal-history-ownership.md): The web shell now centralizes undo/redo and clear follow-up in the Journal. Drawing flows remain behaviorally unchanged and only request snapshot timing.
 
 ## Next Up
 

@@ -1,5 +1,5 @@
 import type { CanvasCoords } from '../canvas-model';
-import { CANVAS_CHANGED, NO_EFFECTS } from '../draw-tool';
+import { CANVAS_CHANGED, CAPTURE_UNDO_SNAPSHOT, NO_EFFECTS } from '../draw-tool';
 import { customTool } from '../tool-authoring';
 import { activeLayerPixels, restoreActiveLayerPixels } from '../wasm-backend';
 
@@ -52,9 +52,8 @@ export const moveTool = customTool({
 
 		return {
 			start() {
-				host.history.pushSnapshot();
 				snapshot = new Uint8Array(activeLayerPixels(host.document));
-				return NO_EFFECTS;
+				return CAPTURE_UNDO_SNAPSHOT;
 			},
 			draw(current, previous) {
 				if (previous === null) {

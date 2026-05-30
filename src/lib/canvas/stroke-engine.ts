@@ -40,7 +40,6 @@ export interface ActiveStroke {
 export interface StrokeEngineDeps {
 	readonly host: ToolRunnerHost;
 	readonly shared: SharedState;
-	readonly history: { pushSnapshot(): void };
 	readonly sampling: SamplingSession;
 	readonly isShiftHeld: () => boolean;
 }
@@ -107,7 +106,6 @@ export function createStrokeEngine(deps: StrokeEngineDeps): StrokeEngine {
 				foregroundColor: deps.host.foregroundColor,
 				backgroundColor: deps.host.backgroundColor,
 				baseOps,
-				history: deps.history,
 				sampling: deps.sampling,
 				isShiftHeld: deps.isShiftHeld,
 				pixelPerfect: deps.shared.pixelPerfect

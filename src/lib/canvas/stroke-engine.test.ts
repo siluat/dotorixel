@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { createStrokeEngine, type StrokeEngineDeps } from './stroke-engine';
 import { canvasFactory, singleLayerDocument } from './wasm-backend';
 import { SharedState } from './shared-state.svelte';
@@ -19,7 +19,6 @@ interface Setup {
 	document: Document;
 	shared: SharedState;
 	samplingSession: ReturnType<typeof createSamplingSession>;
-	pushSnapshot: ReturnType<typeof vi.fn>;
 }
 
 function createSetup(opts?: {
@@ -49,16 +48,14 @@ function createSetup(opts?: {
 	const samplingSession = createSamplingSession({
 		getSamplingPort: () => createDocumentSamplingPort(document)
 	});
-	const pushSnapshot = vi.fn();
 	const deps: StrokeEngineDeps = {
 		host,
 		shared,
-		history: { pushSnapshot },
 		sampling: samplingSession,
 		isShiftHeld: opts?.getShiftHeld ?? (() => false)
 	};
 	const engine = createStrokeEngine(deps);
-	return { engine, canvas, document, shared, samplingSession, pushSnapshot };
+	return { engine, canvas, document, shared, samplingSession };
 }
 
 function getDocPixel(doc: Document, x: number, y: number): Color {
@@ -215,17 +212,17 @@ describe('stroke-engine — begin effects', () => {
 		expect(effects).toEqual([]);
 	});
 
-	it('pushes history snapshot for pencil at begin', () => {
-		const { engine, pushSnapshot } = createSetup();
-		engine.begin({ button: 0, pointerType: 'mouse' });
-		expect(pushSnapshot).toHaveBeenCalledOnce();
+	it('emits an undo snapshot request for pencil at begin', () => {
+		const { engine } = createSetup();
+		const { effects } = engine.begin({ button: 0, pointerType: 'mouse' });
+		expect(effects).toContainEqual({ type: 'captureUndoSnapshot' });
 	});
 
-	it('does not push history snapshot for eyedropper', () => {
-		const { engine, shared, pushSnapshot } = createSetup();
+	it('does not emit an undo snapshot request for eyedropper', () => {
+		const { engine, shared } = createSetup();
 		shared.activeTool = 'eyedropper';
-		engine.begin({ button: 0, pointerType: 'mouse' });
-		expect(pushSnapshot).not.toHaveBeenCalled();
+		const { effects } = engine.begin({ button: 0, pointerType: 'mouse' });
+		expect(effects).not.toContainEqual({ type: 'captureUndoSnapshot' });
 	});
 });
 
@@ -286,11 +283,11 @@ describe('stroke-engine — ActiveStroke adapter', () => {
 // ── Move tool (dragTransform customTool) ────────────────────────────
 
 describe('stroke-engine — move tool', () => {
-	it('pushes a history snapshot at begin', () => {
-		const { engine, shared, pushSnapshot } = createSetup();
+	it('emits an undo snapshot request at begin', () => {
+		const { engine, shared } = createSetup();
 		shared.activeTool = 'move';
-		engine.begin({ button: 0, pointerType: 'mouse' });
-		expect(pushSnapshot).toHaveBeenCalledOnce();
+		const { effects } = engine.begin({ button: 0, pointerType: 'mouse' });
+		expect(effects).toContainEqual({ type: 'captureUndoSnapshot' });
 	});
 
 	it('first drag sample sets the anchor without shifting the canvas', () => {

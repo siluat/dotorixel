@@ -16,7 +16,6 @@ function makeHost(canvas: PixelCanvas): SessionHost {
 		foregroundColor: BLACK,
 		backgroundColor: WHITE,
 		baseOps: createFakeDrawingOps(8, 8, WHITE),
-		history: { pushSnapshot: vi.fn() },
 		sampling: {} as SamplingSession,
 		isShiftHeld: () => false,
 		pixelPerfect: false

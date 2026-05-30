@@ -1,21 +1,12 @@
 import type { Document, CanvasPoint } from './canvas-model';
 import type { Color } from './color';
 import type { SharedState } from './shared-state.svelte';
-import { CANVAS_CHANGED, NO_EFFECTS, type ToolEffect } from './draw-tool';
+import { NO_EFFECTS, type ToolEffect } from './draw-tool';
 import type { PointerType } from './canvas-interaction.svelte';
 import type { SamplingSession } from './sampling/session.svelte';
-import { clearActiveLayerPixels, createHistoryManager } from './wasm-backend';
 import { createStrokeEngine, type ActiveStroke } from './stroke-engine';
 
-// ── Effects: ToolRunner adds RunnerEffect on top of tool-produced ToolEffect ──
-
-/** Effects that only ToolRunner can produce (undo/redo infrastructure). */
-export type RunnerEffect = { readonly type: 'documentReplaced'; readonly document: Document };
-
-/** Union of all effects TabState must handle. */
-export type EditorEffect = ToolEffect | RunnerEffect;
-
-export type EditorEffects = readonly EditorEffect[];
+export type EditorEffects = readonly ToolEffect[];
 
 // ── ToolRunnerHost: read-only queries ToolRunner needs from TabState ──
 
@@ -25,12 +16,10 @@ export interface ToolRunnerHost {
 	readonly backgroundColor: Color;
 }
 
-// ── ToolRunner: owns tool dispatch, draw state, and history ─────────
+// ── ToolRunner: owns tool dispatch and draw state ───────────────────
 
 export interface ToolRunner {
 	readonly isDrawing: boolean;
-	readonly canUndo: boolean;
-	readonly canRedo: boolean;
 
 	/**
 	 * The engine maps `pen` → `mouse` for the loupe `inputSource` because pens
@@ -41,11 +30,6 @@ export interface ToolRunner {
 	drawEnd(): EditorEffects;
 	drawCancel(): EditorEffects;
 	modifierChanged(): EditorEffects;
-
-	undo(): EditorEffects;
-	redo(): EditorEffects;
-	clear(): EditorEffects;
-	pushSnapshot(): void;
 }
 
 // ── Factory ─────────────────────────────────────────────────────────
@@ -61,37 +45,14 @@ export interface ToolRunnerDeps {
 export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 	const { host, shared, getShiftHeld, samplingSession } = deps;
 
-	// ── History ─────────────────────────────────────────────────────
-	const history = createHistoryManager();
-	let historyVersion = $state(0);
-
 	// ── Draw state ──────────────────────────────────────────────────
 	let isDrawing = $state(false);
 	let activeStroke: ActiveStroke | null = null;
-
-	// ── Derived reactive properties ─────────────────────────────────
-	const canUndo = $derived.by(() => {
-		void historyVersion;
-		return history.can_undo();
-	});
-
-	const canRedo = $derived.by(() => {
-		void historyVersion;
-		return history.can_redo();
-	});
-
-	// ── Internal helpers ────────────────────────────────────────────
-
-	function pushHistorySnapshot(): void {
-		history.push_document(host.document);
-		historyVersion++;
-	}
 
 	// ── Stroke engine: resolves active tool + opens sessions ────────
 	const engine = createStrokeEngine({
 		host,
 		shared,
-		history: { pushSnapshot: pushHistorySnapshot },
 		sampling: samplingSession,
 		isShiftHeld: getShiftHeld
 	});
@@ -101,14 +62,6 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 	return {
 		get isDrawing(): boolean {
 			return isDrawing;
-		},
-
-		get canUndo(): boolean {
-			return canUndo;
-		},
-
-		get canRedo(): boolean {
-			return canRedo;
 		},
 
 		drawStart(button: number, pointerType: PointerType): EditorEffects {
@@ -142,32 +95,6 @@ export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {
 		modifierChanged(): EditorEffects {
 			if (!isDrawing || !activeStroke) return NO_EFFECTS;
 			return activeStroke.refresh();
-		},
-
-		undo(): EditorEffects {
-			if (isDrawing) return NO_EFFECTS;
-			const restored = history.undo_document(host.document);
-			if (!restored) return NO_EFFECTS;
-			historyVersion++;
-			return [{ type: 'documentReplaced', document: restored }];
-		},
-
-		redo(): EditorEffects {
-			if (isDrawing) return NO_EFFECTS;
-			const restored = history.redo_document(host.document);
-			if (!restored) return NO_EFFECTS;
-			historyVersion++;
-			return [{ type: 'documentReplaced', document: restored }];
-		},
-
-		clear(): EditorEffects {
-			pushHistorySnapshot();
-			clearActiveLayerPixels(host.document);
-			return CANVAS_CHANGED;
-		},
-
-		pushSnapshot(): void {
-			pushHistorySnapshot();
 		}
 	};
 }

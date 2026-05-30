@@ -6,6 +6,7 @@ import type { MarqueeRegion } from './canvas-model';
 
 /** Effects that drawing tools can produce. */
 export type ToolEffect =
+	| { readonly type: 'captureUndoSnapshot' }
 	| { readonly type: 'canvasChanged' }
 	| { readonly type: 'colorPick'; readonly target: 'foreground' | 'background'; readonly color: Color }
 	| { readonly type: 'addRecentColor'; readonly hex: string }
@@ -16,6 +17,9 @@ export type ToolEffects = readonly ToolEffect[];
 
 /** Pre-allocated constant for the most common return: canvas pixels changed. */
 export const CANVAS_CHANGED: ToolEffects = [{ type: 'canvasChanged' }];
+
+/** Requests that the Document Change Journal captures the undo baseline now. */
+export const CAPTURE_UNDO_SNAPSHOT: ToolEffects = [{ type: 'captureUndoSnapshot' }];
 
 export const MARQUEE_PREVIEW_CHANGED: ToolEffects = [{ type: 'marqueePreviewChanged' }];
 

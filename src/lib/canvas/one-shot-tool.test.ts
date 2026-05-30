@@ -12,19 +12,13 @@ import type { Color } from './color';
 import type { SamplingSession } from './sampling/session.svelte';
 import type { ToolContext } from './draw-tool';
 
-function makeHost(canvas: PixelCanvas): {
-	host: SessionHost;
-	pushSnapshot: ReturnType<typeof vi.fn>;
-} {
-	const pushSnapshot = vi.fn();
+function makeHost(canvas: PixelCanvas): { host: SessionHost } {
 	return {
-		pushSnapshot,
 		host: {
 			document: createFakeDocument(canvas.width, canvas.height),
 			foregroundColor: BLACK,
 			backgroundColor: WHITE,
 			baseOps: createFakeDrawingOps(8, 8, WHITE),
-			history: { pushSnapshot },
 			sampling: {} as SamplingSession,
 			isShiftHeld: () => false,
 			pixelPerfect: false
@@ -40,20 +34,18 @@ describe('oneShotTool sugar', () => {
 		expect(tool.id).toBe('floodfill');
 	});
 
-	it('pushes history on start by default', () => {
+	it('requests an undo snapshot on start by default', () => {
 		const canvas = createFakePixelCanvas(8, 8);
-		const { host, pushSnapshot } = makeHost(canvas);
+		const { host } = makeHost(canvas);
 		const tool = oneShotTool({ id: 'floodfill', execute: vi.fn(() => []) });
 		const session = tool.open(host, { drawColor: BLACK, drawButton: 0, inputSource: 'mouse' });
 
-		session.start();
-
-		expect(pushSnapshot).toHaveBeenCalledOnce();
+		expect(session.start()).toContainEqual({ type: 'captureUndoSnapshot' });
 	});
 
-	it('opts out of history when capturesHistory is false', () => {
+	it('opts out of undo snapshot requests when capturesHistory is false', () => {
 		const canvas = createFakePixelCanvas(8, 8);
-		const { host, pushSnapshot } = makeHost(canvas);
+		const { host } = makeHost(canvas);
 		const tool = oneShotTool({
 			id: 'floodfill',
 			execute: vi.fn(() => []),
@@ -61,9 +53,7 @@ describe('oneShotTool sugar', () => {
 		});
 		const session = tool.open(host, { drawColor: BLACK, drawButton: 0, inputSource: 'mouse' });
 
-		session.start();
-
-		expect(pushSnapshot).not.toHaveBeenCalled();
+		expect(session.start()).not.toContainEqual({ type: 'captureUndoSnapshot' });
 	});
 
 	it('emits addRecentColor on start by default', () => {
@@ -72,7 +62,10 @@ describe('oneShotTool sugar', () => {
 		const tool = oneShotTool({ id: 'floodfill', execute: vi.fn(() => []) });
 		const session = tool.open(host, { drawColor: RED, drawButton: 0, inputSource: 'mouse' });
 
-		expect(session.start()).toEqual([{ type: 'addRecentColor', hex: '#ff0000' }]);
+		expect(session.start()).toEqual([
+			{ type: 'captureUndoSnapshot' },
+			{ type: 'addRecentColor', hex: '#ff0000' }
+		]);
 	});
 
 	it('opts out of addRecentColor when addsActiveColor is false', () => {
@@ -85,7 +78,7 @@ describe('oneShotTool sugar', () => {
 		});
 		const session = tool.open(host, { drawColor: BLACK, drawButton: 0, inputSource: 'mouse' });
 
-		expect(session.start()).toEqual([]);
+		expect(session.start()).toEqual([{ type: 'captureUndoSnapshot' }]);
 	});
 
 	it('fires execute once on first draw and returns its effects', () => {

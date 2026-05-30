@@ -16,18 +16,15 @@ import type { ToolContext } from './draw-tool';
 function makeHost(
 	canvas: PixelCanvas,
 	opts: { pixelPerfect?: boolean; baseOps?: FakeDrawingOps } = {}
-): { host: SessionHost; pushSnapshot: ReturnType<typeof vi.fn>; baseOps: FakeDrawingOps } {
-	const pushSnapshot = vi.fn();
+): { host: SessionHost; baseOps: FakeDrawingOps } {
 	const baseOps = opts.baseOps ?? createFakeDrawingOps(8, 8, WHITE);
 	return {
-		pushSnapshot,
 		baseOps,
 		host: {
 			document: createFakeDocument(canvas.width, canvas.height),
 			foregroundColor: BLACK,
 			backgroundColor: WHITE,
 			baseOps,
-			history: { pushSnapshot },
 			sampling: {} as SamplingSession,
 			isShiftHeld: () => false,
 			pixelPerfect: opts.pixelPerfect ?? false
@@ -43,9 +40,9 @@ describe('continuousTool sugar', () => {
 		expect(tool.id).toBe('pencil');
 	});
 
-	it('pushes history on start', () => {
+	it('requests an undo snapshot on start', () => {
 		const canvas = createFakePixelCanvas(8, 8);
-		const { host, pushSnapshot } = makeHost(canvas);
+		const { host } = makeHost(canvas);
 		const tool = continuousTool({ id: 'pencil', apply: vi.fn(() => true) });
 		const session = tool.open(host, {
 			drawColor: BLACK,
@@ -53,9 +50,7 @@ describe('continuousTool sugar', () => {
 			inputSource: 'mouse'
 		});
 
-		session.start();
-
-		expect(pushSnapshot).toHaveBeenCalledOnce();
+		expect(session.start()).toContainEqual({ type: 'captureUndoSnapshot' });
 	});
 
 	it('emits addRecentColor on start by default', () => {
@@ -68,7 +63,10 @@ describe('continuousTool sugar', () => {
 			inputSource: 'mouse'
 		});
 
-		expect(session.start()).toEqual([{ type: 'addRecentColor', hex: '#ff0000' }]);
+		expect(session.start()).toEqual([
+			{ type: 'captureUndoSnapshot' },
+			{ type: 'addRecentColor', hex: '#ff0000' }
+		]);
 	});
 
 	it('opts out of addRecentColor when addsActiveColor is false', () => {
@@ -85,7 +83,7 @@ describe('continuousTool sugar', () => {
 			inputSource: 'mouse'
 		});
 
-		expect(session.start()).toEqual([]);
+		expect(session.start()).toEqual([{ type: 'captureUndoSnapshot' }]);
 	});
 
 	it('returns CANVAS_CHANGED from draw when apply returns true', () => {

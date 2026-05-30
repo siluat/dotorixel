@@ -16,18 +16,15 @@ import type { ToolContext } from './draw-tool';
 function makeHost(
 	canvas: PixelCanvas,
 	isShiftHeld: () => boolean = () => false
-): { host: SessionHost; document: FakeDocument; pushSnapshot: ReturnType<typeof vi.fn> } {
-	const pushSnapshot = vi.fn();
+): { host: SessionHost; document: FakeDocument } {
 	const document = createFakeDocument(canvas.width, canvas.height);
 	return {
-		pushSnapshot,
 		document,
 		host: {
 			document,
 			foregroundColor: BLACK,
 			backgroundColor: WHITE,
 			baseOps: createFakeDrawingOps(8, 8, WHITE),
-			history: { pushSnapshot },
 			sampling: {} as SamplingSession,
 			isShiftHeld,
 			pixelPerfect: false
@@ -47,9 +44,9 @@ describe('shapeTool sugar', () => {
 		expect(tool.id).toBe('line');
 	});
 
-	it('pushes history on start and emits addRecentColor by default', () => {
+	it('requests an undo snapshot on start and emits addRecentColor by default', () => {
 		const canvas = createFakePixelCanvas(8, 8);
-		const { host, pushSnapshot } = makeHost(canvas);
+		const { host } = makeHost(canvas);
 		const tool = shapeTool({
 			id: 'line',
 			stroke: vi.fn(),
@@ -59,8 +56,10 @@ describe('shapeTool sugar', () => {
 
 		const effects = session.start();
 
-		expect(pushSnapshot).toHaveBeenCalledOnce();
-		expect(effects).toEqual([{ type: 'addRecentColor', hex: '#ff0000' }]);
+		expect(effects).toEqual([
+			{ type: 'captureUndoSnapshot' },
+			{ type: 'addRecentColor', hex: '#ff0000' }
+		]);
 	});
 
 	it('opts out of addRecentColor when addsActiveColor is false', () => {
@@ -74,7 +73,7 @@ describe('shapeTool sugar', () => {
 		});
 		const session = tool.open(host, { drawColor: BLACK, drawButton: 0, inputSource: 'mouse' });
 
-		expect(session.start()).toEqual([]);
+		expect(session.start()).toEqual([{ type: 'captureUndoSnapshot' }]);
 	});
 
 	it('calls stroke(ctx, start, start) on the first draw (degenerate anchor)', () => {

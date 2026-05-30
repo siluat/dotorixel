@@ -16,7 +16,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Flood fill | ✅ | ✅ | ⬜ | BFS, 4-connectivity |
 | Eyedropper | — | ✅ | ⬜ | Drag-and-commit with live 9×9 loupe; releases to FG (left-click) or BG (right-click); skips transparent pixels |
 | Move | — | ✅ | ⬜ | Drag to reposition canvas content, snapshot-restore preview |
-| Selection / Marquee | 🔧 | 🔧 | ⬜ | Defines and clears a Document-scoped Marquee with marching ants; persistence, region ops, and clipboard pending |
+| Selection / Marquee | 🔧 | 🔧 | ⬜ | Document-scoped Marquee with marching ants; persists through reload/tab switch. Region ops and clipboard pending |
 | Right-click background color | — | ✅ | ⬜ | All tools draw with BG color on right-click; eraser unchanged |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |
 | Pixel-perfect filter | ✅ | ✅ | ⬜ | L-corner 3-window rule (Aseprite-style). Web: topBar/mAppBar toggle, default ON, persisted; disabled on non-freehand tools |
@@ -101,7 +101,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Tab management (Workspace) | — | ✅ | ⬜ | Workspace model, page wiring, TabStrip UI complete |
-| Session persistence | — | ✅ | ⬜ | Multi-tab IndexedDB restore, debounced auto-save, saved-doc retention, and V4 mixed-layer persistence with Reference source blobs |
+| Session persistence | — | ✅ | ⬜ | Multi-tab IndexedDB restore, debounced auto-save, saved-doc retention, and V5 Document persistence with layers, Reference source blobs, and Marquee |
 | Save dialog on tab close | — | ✅ | ⬜ | Blank canvas detection, save/delete/cancel modal, focus trap, keyboard accessible |
 | Saved work browser (desktop) | — | ✅ | ⬜ | Browse/open/delete saved documents; card grid with thumbnails, empty state, delete confirmation |
 | Saved work browser (mobile) | — | ✅ | — | Bottom sheet (vaul-svelte); shared card grid, AppBar trigger, responsive 2/3 column grid |

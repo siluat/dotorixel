@@ -63,6 +63,17 @@ function isActiveLayerReference(document: Document): boolean {
 	return false;
 }
 
+function serializeMarquee(region: MarqueeRegion | undefined) {
+	return region
+		? {
+				x: region.x,
+				y: region.y,
+				width: region.width,
+				height: region.height
+			}
+		: null;
+}
+
 interface DocumentNavigationBounds {
 	readonly minX: number;
 	readonly minY: number;
@@ -724,6 +735,7 @@ export class TabState {
 			name: this.name,
 			width: doc.width,
 			height: doc.height,
+			marquee: serializeMarquee(doc.marquee()),
 			layers,
 			activeLayerId: doc.active_layer_id(),
 			nextLayerNumber: doc.next_layer_number(),

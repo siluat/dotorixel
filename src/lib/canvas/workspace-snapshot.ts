@@ -2,6 +2,7 @@ import type { ViewportData } from './viewport';
 import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 import type { DisplayState } from '$lib/reference-images/display-state-types';
 import type {
+	MarqueeRecord,
 	PixelLayerRecord,
 	ReferenceLayerRecord
 } from '$lib/session/session-storage-types';
@@ -52,6 +53,11 @@ export interface TabSnapshot {
 	readonly name: string;
 	readonly width: number;
 	readonly height: number;
+	/**
+	 * Undefined on snapshots produced before Marquee persistence. Hydration
+	 * should treat absence as "no Marquee".
+	 */
+	readonly marquee?: MarqueeRecord | null;
 	readonly layers: readonly LayerSnapshot[];
 	readonly activeLayerId: string;
 	readonly nextLayerNumber: number;

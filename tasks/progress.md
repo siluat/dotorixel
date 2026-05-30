@@ -3,15 +3,14 @@
 ## Currently Working On
 
 Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md)).
-2 of 21 sub-issues are done; 133 locked the action bar design spec for downstream implementation.
+3 of 21 sub-issues are done; 134 locked Document v5 Marquee persistence for reload and tab-switch continuity.
 
 ## Last Completed
 
-[133 — Selection Action Bar — UX detail design (.pen)](../issues/133-selection-action-bar-design.md): The action bar spec now covers Idle/Floating states, responsive variants, icon choices, positioning, touch targets, and motion behavior. No new design tokens were introduced.
+[134 — Marquee persistence v5](../issues/134-marquee-persistence-v5.md): Document storage now persists Marquee data through v5, reload, and tab switching. Hydration clips stale saved bounds to the loaded canvas.
 
 ## Next Up
 
-- [134 — Marquee persistence v5](../issues/134-marquee-persistence-v5.md)
 - [135 — Click-without-drag deselects](../issues/135-selection-click-without-drag-deselects.md)
 - [136 — Region pixel transformations + Delete](../issues/136-region-pixel-transformations-and-delete.md)
 - [137 — Marquee clipping mask decorator](../issues/137-marquee-clipping-mask-decorator.md)
@@ -23,7 +22,6 @@ Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load
-- (review) Evaluate serde-wasm-bindgen + tsify for WASM↔TS serialization
 - Apple Pencil: hover preview + palm rejection
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
 - Apple Phase 1 — Enable clear canvas (existing disabled button)

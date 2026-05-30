@@ -31,6 +31,7 @@ import type {
 } from './canvas-model';
 import type { CanvasFactory, CanvasConstraints, HistoryManager } from './adapter-types';
 import type {
+	MarqueeRecord,
 	PixelLayerRecord,
 	PixelLayerRecordV3,
 	ReferenceLayerRecord
@@ -452,6 +453,7 @@ export function createHistoryManager(): HistoryManager {
 export interface DocumentLayerSource {
 	readonly width: number;
 	readonly height: number;
+	readonly marquee?: MarqueeRecord | null;
 	readonly layers: readonly HydratableLayerRecord[];
 	readonly activeLayerId: string;
 	readonly nextLayerNumber: number;
@@ -469,6 +471,15 @@ function isReferenceLayer(
 	layer: HydratableLayerRecord
 ): layer is HydratedReferenceLayerRecord {
 	return 'kind' in layer && layer.kind === 'reference';
+}
+
+function marqueeRecordToWasm(region: MarqueeRecord): WasmMarqueeRegion {
+	return WasmMarqueeRegion.from_drag(
+		region.x,
+		region.y,
+		region.x + region.width - 1,
+		region.y + region.height - 1
+	);
 }
 
 /**
@@ -503,11 +514,18 @@ export function documentFromLayerSource(source: DocumentLayerSource): Document {
 			);
 		}
 	}
-	return builder.build(
+	const document = builder.build(
 		source.activeLayerId,
 		source.nextLayerNumber,
 		source.timelinePanelCollapsed
 	);
+	if (source.marquee) {
+		const clipped = marqueeRecordToWasm(source.marquee).clip_to(source.width, source.height);
+		if (clipped) {
+			document.set_marquee(clipped);
+		}
+	}
+	return document;
 }
 
 /**

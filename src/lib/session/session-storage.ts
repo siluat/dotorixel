@@ -9,7 +9,8 @@ import {
 	compositeForExportSummary,
 	migrateDocumentToV2,
 	migrateV2ToV3,
-	migrateV3ToV4
+	migrateV3ToV4,
+	migrateV4ToV5
 } from './session-storage-types';
 
 interface DotorixelDB {
@@ -25,18 +26,19 @@ interface DotorixelDB {
 }
 
 const DB_NAME = 'dotorixel';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
-function normalizeToV4(stored: StoredDocument): DocumentRecord {
+function normalizeToV5(stored: StoredDocument): DocumentRecord {
 	if ('schemaVersion' in stored) {
-		if (stored.schemaVersion === 4) return migrateV3ToV4(stored);
-		if (stored.schemaVersion === 3) return migrateV3ToV4(stored);
-		if (stored.schemaVersion === 2) return migrateV3ToV4(migrateV2ToV3(stored));
+		if (stored.schemaVersion === 5) return migrateV4ToV5(stored);
+		if (stored.schemaVersion === 4) return migrateV4ToV5(stored);
+		if (stored.schemaVersion === 3) return migrateV4ToV5(migrateV3ToV4(stored));
+		if (stored.schemaVersion === 2) return migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(stored)));
 		throw new Error(
 			`Unsupported document schemaVersion: ${(stored as { schemaVersion: number }).schemaVersion}`
 		);
 	}
-	return migrateV3ToV4(migrateV2ToV3(migrateDocumentToV2(stored)));
+	return migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(migrateDocumentToV2(stored))));
 }
 
 export class SessionStorage {
@@ -87,6 +89,17 @@ export class SessionStorage {
 						cursor = await cursor.continue();
 					}
 				}
+				if (oldVersion < 5) {
+					const store = tx.objectStore('documents');
+					let cursor = await store.openCursor();
+					while (cursor) {
+						const doc = cursor.value;
+						if ('schemaVersion' in doc && doc.schemaVersion === 4) {
+							await cursor.update(migrateV4ToV5(doc));
+						}
+						cursor = await cursor.continue();
+					}
+				}
 			}
 		});
 		return new SessionStorage(db);
@@ -96,7 +109,7 @@ export class SessionStorage {
 	async getDocument(id: string): Promise<DocumentRecord | undefined> {
 		const stored = await this.#db.get('documents', id);
 		if (!stored) return undefined;
-		return normalizeToV4(stored);
+		return normalizeToV5(stored);
 	}
 
 	async putDocument(doc: DocumentRecord): Promise<void> {
@@ -108,7 +121,7 @@ export class SessionStorage {
 		const all = await this.#db.getAllFromIndex('documents', 'updatedAt');
 		const saved: SavedDocumentSummary[] = [];
 		for (const doc of all) {
-			const record = normalizeToV4(doc);
+			const record = normalizeToV5(doc);
 			if (!record.saved) continue;
 			saved.push({
 				id: record.id,

@@ -256,6 +256,27 @@ describe('DocumentChangeJournal', () => {
 		expect(events).toEqual(['snapshot', 'render', 'dirty']);
 	});
 
+	it('skips active-layer clear when the active layer is Reference', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			active_layer_id: () => 'reference-1',
+			layer_count: () => 1,
+			layer_id_at: () => 'reference-1',
+			layer_kind_at: () => 'reference'
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'clear-active-layer' }
+		});
+
+		expect(result).toEqual({ changed: false });
+		expect(events).toEqual([]);
+	});
+
 	it('applies reorder changes without reclamping unchanged navigation bounds', () => {
 		const events: string[] = [];
 		const ids = ['layer-1', 'layer-2'];

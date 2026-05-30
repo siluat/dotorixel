@@ -235,7 +235,9 @@ export class DocumentChangeJournal {
 			case 'resize-document':
 				return intent.width !== document.width || intent.height !== document.height;
 			case 'clear-active-layer':
-				return true;
+				return (
+					document.layer_kind_at(this.#stackIndexOf(document.active_layer_id())) === 'pixel'
+				);
 			case 'set-marquee':
 				return !sameMarqueeRegion(document.marquee(), intent.region);
 		}

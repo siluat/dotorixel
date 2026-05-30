@@ -1129,6 +1129,19 @@ describe('TabState — undo/redo', () => {
 		tab.drawCancel();
 	});
 
+	it('ignores clear while a draw stroke is active', () => {
+		const { tab, shared } = makeTab();
+		shared.foregroundColor = BLACK;
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 5, y: 5 }, null);
+
+		tab.clear();
+
+		expect(getPixel(tab, 5, 5)).toEqual(BLACK);
+		tab.drawEnd();
+	});
+
 	it('canUndo/canRedo reflect history availability', () => {
 		const { tab } = makeTab();
 		expect(tab.canUndo).toBe(false);

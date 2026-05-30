@@ -6,14 +6,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 131 | 98 | 33 | 108 | 75% | 48% |
-| cubic-dev-ai[bot] | 74 | 59 | 15 | 142 | 80% | 29% |
-| coderabbitai[bot] | 172 | 118 | 54 | 81 | 69% | 59% |
+| greptile-apps[bot] | 131 | 98 | 33 | 110 | 75% | 47% |
+| cubic-dev-ai[bot] | 76 | 61 | 15 | 142 | 80% | 30% |
+| coderabbitai[bot] | 173 | 119 | 54 | 82 | 69% | 59% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #231 | coderabbitai[bot] | Accept | Clear should be blocked while a draw stroke is active |
+| #231 | cubic-dev-ai[bot] | Accept | Clear should be blocked while a draw stroke is active |
+| #231 | cubic-dev-ai[bot] | Accept | Reference Layer clear no-op should not push undo or dirty state |
+| #231 | greptile-apps[bot] | Miss | Did not flag clear during active draw stroke |
+| #231 | coderabbitai[bot] | Miss | Did not flag Reference Layer clear no-op undo pollution |
+| #231 | greptile-apps[bot] | Miss | Did not flag Reference Layer clear no-op undo pollution |
 | #230 | greptile-apps[bot] | Accept | Off-canvas-only Selection drag should not clear existing Marquee |
 | #230 | cubic-dev-ai[bot] | Accept | Off-canvas-only Selection drag should not clear existing Marquee |
 | #230 | coderabbitai[bot] | Accept | Rename Move cancel tracking boolean to identify shifted pixels |

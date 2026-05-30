@@ -425,6 +425,7 @@ export class TabState {
 	};
 
 	clear = (): void => {
+		if (this.isDrawing) return;
 		this.#documentChangeJournal.commit({
 			kind: 'undoable-document',
 			intent: { type: 'clear-active-layer' }

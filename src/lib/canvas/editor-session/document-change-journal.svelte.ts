@@ -1,4 +1,5 @@
 import type { Document, MarqueeRegion, ReferencePlacement, ResizeAnchor } from '../canvas-model';
+import type { HistoryManager } from '../adapter-types';
 
 export interface ReferenceLayerSource {
 	readonly name: string;
@@ -25,6 +26,7 @@ export type UndoableDocumentIntent =
 			readonly height: number;
 			readonly anchor: ResizeAnchor;
 	  }
+	| { readonly type: 'clear-active-layer' }
 	| { readonly type: 'set-marquee'; readonly region: MarqueeRegion | null };
 
 export type PersistedDocumentUiIntent =
@@ -41,9 +43,11 @@ export type DocumentChangeResult =
 
 export interface DocumentChangeJournalDeps {
 	readonly getDocument: () => Document;
-	readonly captureUndoSnapshot: () => void;
+	readonly replaceDocument: (document: Document) => void;
+	readonly createHistoryManager: () => HistoryManager;
 	readonly createLayerId?: () => string;
 	readonly rememberReferenceLayerBlob: (layerId: string, sourceBlob: Blob) => void;
+	readonly clearActiveLayerPixels: (document: Document) => void;
 	readonly resizeDocument: (
 		document: Document,
 		width: number,
@@ -70,9 +74,22 @@ function sameMarqueeRegion(
  */
 export class DocumentChangeJournal {
 	#deps: DocumentChangeJournalDeps;
+	#history: HistoryManager;
+	#historyVersion = $state(0);
 
 	constructor(deps: DocumentChangeJournalDeps) {
 		this.#deps = deps;
+		this.#history = deps.createHistoryManager();
+	}
+
+	get canUndo(): boolean {
+		void this.#historyVersion;
+		return this.#history.can_undo();
+	}
+
+	get canRedo(): boolean {
+		void this.#historyVersion;
+		return this.#history.can_redo();
 	}
 
 	commit(change: DocumentChange): DocumentChangeResult {
@@ -84,9 +101,38 @@ export class DocumentChangeJournal {
 		}
 	}
 
+	captureUndoSnapshot(): void {
+		this.#history.push_document(this.#deps.getDocument());
+		this.#historyVersion++;
+	}
+
+	recordCanvasChanged(): void {
+		this.#invalidateRenderAndMarkDirty();
+	}
+
+	recordPreviewChanged(): void {
+		this.#deps.invalidateRender();
+	}
+
+	undo(): DocumentChangeResult {
+		const restored = this.#history.undo_document(this.#deps.getDocument());
+		if (!restored) return { changed: false };
+		this.#historyVersion++;
+		this.#replaceDocument(restored);
+		return { changed: true };
+	}
+
+	redo(): DocumentChangeResult {
+		const restored = this.#history.redo_document(this.#deps.getDocument());
+		if (!restored) return { changed: false };
+		this.#historyVersion++;
+		this.#replaceDocument(restored);
+		return { changed: true };
+	}
+
 	#commitUndoableDocument(intent: UndoableDocumentIntent): DocumentChangeResult {
 		if (!this.#willChangeUndoableDocument(intent)) return { changed: false };
-		this.#deps.captureUndoSnapshot();
+		this.captureUndoSnapshot();
 		const result = this.#applyUndoableDocumentIntent(intent);
 		this.#afterUndoableDocumentChanged(intent);
 		return result;
@@ -131,6 +177,9 @@ export class DocumentChangeJournal {
 				return { changed: true };
 			case 'resize-document':
 				this.#deps.resizeDocument(document, intent.width, intent.height, intent.anchor);
+				return { changed: true };
+			case 'clear-active-layer':
+				this.#deps.clearActiveLayerPixels(document);
 				return { changed: true };
 			case 'set-marquee':
 				document.set_marquee(intent.region);
@@ -185,6 +234,8 @@ export class DocumentChangeJournal {
 			}
 			case 'resize-document':
 				return intent.width !== document.width || intent.height !== document.height;
+			case 'clear-active-layer':
+				return true;
 			case 'set-marquee':
 				return !sameMarqueeRegion(document.marquee(), intent.region);
 		}
@@ -238,6 +289,9 @@ export class DocumentChangeJournal {
 				this.#deps.syncDocumentMetrics();
 				this.#reclampViewportInvalidateRenderAndMarkDirty();
 				break;
+			case 'clear-active-layer':
+				this.#invalidateRenderAndMarkDirty();
+				break;
 			case 'add-pixel-layer':
 			case 'set-reference-layer':
 			case 'remove-layer':
@@ -257,6 +311,12 @@ export class DocumentChangeJournal {
 				this.#invalidateRenderAndMarkDirty();
 				break;
 		}
+	}
+
+	#replaceDocument(document: Document): void {
+		this.#deps.replaceDocument(document);
+		this.#deps.syncDocumentMetrics();
+		this.#reclampViewportInvalidateRenderAndMarkDirty();
 	}
 
 	#reclampViewportInvalidateRenderAndMarkDirty(): void {

@@ -2,6 +2,7 @@ import type { CanvasCoords, CanvasPoint, Document } from './canvas-model';
 import { colorToHex, type Color } from './color';
 import type { DrawingOps } from './drawing-ops';
 import {
+	CAPTURE_UNDO_SNAPSHOT,
 	CANVAS_CHANGED,
 	NO_EFFECTS,
 	type ToolContext,
@@ -31,9 +32,8 @@ export type ApplyFn = (
  * `foregroundColor`, `backgroundColor`, `pixelPerfect`.
  *
  * Live references that remain responsive during the stroke:
- * `document`, `baseOps`, `sampling`, `history` (write-only port),
- * `isShiftHeld` (evaluated per call — shape tools rely on this to observe
- * modifier changes via `modifierChanged`).
+ * `document`, `baseOps`, `sampling`, `isShiftHeld` (evaluated per call —
+ * shape tools rely on this to observe modifier changes via `modifierChanged`).
  */
 export interface SessionHost {
 	readonly document: Document;
@@ -41,7 +41,6 @@ export interface SessionHost {
 	readonly backgroundColor: Color;
 	/** Unwrapped ops — sugars decide PP-wrap via their own `pixelPerfect` flag. */
 	readonly baseOps: DrawingOps;
-	readonly history: { pushSnapshot(): void };
 	readonly sampling: SamplingSession;
 	readonly isShiftHeld: () => boolean;
 	/** Pixel-perfect toggle snapshotted from shared state at stroke begin. */
@@ -93,10 +92,16 @@ function toolContext(host: SessionHost, spec: StrokeSpec, ops: DrawingOps): Tool
 	};
 }
 
+function undoableStartEffects(addsActiveColor: boolean, color: Color): EditorEffects {
+	return addsActiveColor
+		? [...CAPTURE_UNDO_SNAPSHOT, { type: 'addRecentColor', hex: colorToHex(color) }]
+		: CAPTURE_UNDO_SNAPSHOT;
+}
+
 /**
  * Common case — paints pixels every sample along the drag path. Defaults:
  * supports pixel-perfect, adds the active draw color to recent colors at
- * stroke start, pushes a history snapshot at start.
+ * stroke start, requests an undo snapshot at start.
  */
 export function continuousTool(spec: {
 	id: ToolType;
@@ -120,10 +125,7 @@ export function continuousTool(spec: {
 
 			return {
 				start() {
-					host.history.pushSnapshot();
-					return addsActiveColor
-						? [{ type: 'addRecentColor', hex: colorToHex(strokeSpec.drawColor) }]
-						: NO_EFFECTS;
+					return undoableStartEffects(addsActiveColor, strokeSpec.drawColor);
 				},
 				draw(current, previous) {
 					return spec.apply(ctx, current, previous) ? CANVAS_CHANGED : NO_EFFECTS;
@@ -174,11 +176,8 @@ export function shapeTool(spec: {
 
 			return {
 				start() {
-					host.history.pushSnapshot();
 					snapshot = new Uint8Array(activeLayerPixels(host.document));
-					return addsActiveColor
-						? [{ type: 'addRecentColor', hex: colorToHex(strokeSpec.drawColor) }]
-						: NO_EFFECTS;
+					return undoableStartEffects(addsActiveColor, strokeSpec.drawColor);
 				},
 				draw(current, previous) {
 					lastCurrent = current;
@@ -208,7 +207,7 @@ export function shapeTool(spec: {
 
 /**
  * Click-once — fires on first sample, ignores subsequent drag. Defaults:
- * captures history before firing, adds active color to recent colors.
+ * requests an undo snapshot before firing, adds active color to recent colors.
  */
 export function oneShotTool(spec: {
 	id: ToolType;
@@ -226,10 +225,12 @@ export function oneShotTool(spec: {
 
 			return {
 				start() {
-					if (capturesHistory) host.history.pushSnapshot();
-					return addsActiveColor
-						? [{ type: 'addRecentColor', hex: colorToHex(strokeSpec.drawColor) }]
-						: NO_EFFECTS;
+					if (!capturesHistory) {
+						return addsActiveColor
+							? [{ type: 'addRecentColor', hex: colorToHex(strokeSpec.drawColor) }]
+							: NO_EFFECTS;
+					}
+					return undoableStartEffects(addsActiveColor, strokeSpec.drawColor);
 				},
 				draw(current) {
 					if (fired) return NO_EFFECTS;

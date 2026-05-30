@@ -270,7 +270,7 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.viewport.panY).toBe(reapplied.panY);
 	});
 
-	it('documentReplaced path: undo after resize swaps the document and bumps renderVersion', () => {
+	it('undo after resize swaps the document and bumps renderVersion', () => {
 		const { tab } = makeTab({ canvasWidth: 8, canvasHeight: 8 });
 		expect(tab.document.width).toBe(8);
 
@@ -1097,6 +1097,36 @@ describe('TabState — undo/redo', () => {
 		tab.undo();
 		tab.redo();
 		expect(tab.document.composite()).toEqual(afterDrawPixels);
+	});
+
+	it('ignores undo while a draw stroke is active', () => {
+		const { tab, shared } = makeTab();
+		drawLine(tab, { x: 0, y: 0 }, { x: 3, y: 0 });
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 5, y: 5 }, null);
+
+		tab.undo();
+
+		expect(getPixel(tab, 5, 5)).toEqual(BLACK);
+		tab.drawEnd();
+	});
+
+	it('ignores redo while a draw stroke is active', () => {
+		const { tab, shared } = makeTab();
+		const beforePixels = tab.document.composite();
+		drawLine(tab, { x: 0, y: 0 }, { x: 3, y: 0 });
+		tab.undo();
+		expect(tab.document.composite()).toEqual(beforePixels);
+
+		shared.activeTool = 'selection';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 2, y: 2 }, { x: 1, y: 1 });
+		tab.redo();
+
+		expect(tab.document.composite()).toEqual(beforePixels);
+		tab.drawCancel();
 	});
 
 	it('canUndo/canRedo reflect history availability', () => {

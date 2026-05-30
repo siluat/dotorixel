@@ -8,6 +8,8 @@ import type {
 	ReferencePlacement
 } from '../canvas-model';
 import {
+	clearActiveLayerPixels,
+	createHistoryManager,
 	fitReferencePlacementToCanvas,
 	resizeDocumentWithAnchor,
 	singleLayerDocument
@@ -89,9 +91,10 @@ const DEFAULT_CANVAS_DIMENSION = 16;
 const DEFAULT_VIEWPORT_SIZE: ViewportSize = { width: 512, height: 512 };
 
 /**
- * Per-tab editor state. Owns canvas, viewport, history, sampling session,
- * and a tab-scoped tool runner. References (does not own) the workspace's
- * `SharedState` so changes to active tool / colors propagate across tabs.
+ * Per-tab editor state. Owns canvas, viewport, document change journal,
+ * sampling session, and a tab-scoped tool runner. References (does not own)
+ * the workspace's `SharedState` so changes to active tool / colors propagate
+ * across tabs.
  *
  * Auto-emits `notifier.markDirty(documentId)` on every persistable mutation —
  * pixel changes, viewport changes, resizes, grid toggle, and shared-state
@@ -184,11 +187,11 @@ export class TabState {
 	}
 
 	get canUndo(): boolean {
-		return this.#toolRunner.canUndo;
+		return this.#documentChangeJournal.canUndo;
 	}
 
 	get canRedo(): boolean {
-		return this.#toolRunner.canRedo;
+		return this.#documentChangeJournal.canRedo;
 	}
 
 	get zoomPercent(): number {
@@ -283,10 +286,14 @@ export class TabState {
 		});
 		this.#documentChangeJournal = new DocumentChangeJournal({
 			getDocument: () => this.document,
-			captureUndoSnapshot: () => this.#toolRunner.pushSnapshot(),
+			replaceDocument: (document) => {
+				this.document = document;
+			},
+			createHistoryManager,
 			rememberReferenceLayerBlob: (layerId, sourceBlob) => {
 				this.#referenceLayerBlobs.set(layerId, sourceBlob);
 			},
+			clearActiveLayerPixels,
 			resizeDocument: resizeDocumentWithAnchor,
 			syncDocumentMetrics: () => {
 				this.canvasWidth = this.document.width;
@@ -304,26 +311,20 @@ export class TabState {
 		let persistableChanged = false;
 		for (const effect of effects) {
 			switch (effect.type) {
+				case 'captureUndoSnapshot':
+					this.#documentChangeJournal.captureUndoSnapshot();
+					break;
 				case 'canvasChanged':
-					this.renderVersion++;
-					persistableChanged = true;
+					this.#documentChangeJournal.recordCanvasChanged();
 					break;
 				case 'marqueePreviewChanged':
-					this.renderVersion++;
+					this.#documentChangeJournal.recordPreviewChanged();
 					break;
 				case 'setMarquee':
 					this.#documentChangeJournal.commit({
 						kind: 'undoable-document',
 						intent: { type: 'set-marquee', region: effect.region }
 					});
-					break;
-				case 'documentReplaced':
-					this.document = effect.document;
-					this.canvasWidth = effect.document.width;
-					this.canvasHeight = effect.document.height;
-					this.#reclampViewport();
-					this.renderVersion++;
-					persistableChanged = true;
 					break;
 				case 'colorPick':
 					if (effect.target === 'foreground') {
@@ -414,15 +415,20 @@ export class TabState {
 	};
 
 	undo = (): void => {
-		this.#applyEffects(this.#toolRunner.undo());
+		if (this.isDrawing) return;
+		this.#documentChangeJournal.undo();
 	};
 
 	redo = (): void => {
-		this.#applyEffects(this.#toolRunner.redo());
+		if (this.isDrawing) return;
+		this.#documentChangeJournal.redo();
 	};
 
 	clear = (): void => {
-		this.#applyEffects(this.#toolRunner.clear());
+		this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'clear-active-layer' }
+		});
 	};
 
 	clearMarquee = (): void => {
@@ -433,7 +439,7 @@ export class TabState {
 	};
 
 	pushHistorySnapshot = (): void => {
-		this.#toolRunner.pushSnapshot();
+		this.#documentChangeJournal.captureUndoSnapshot();
 	};
 
 	addLayer = (name: string): void => {

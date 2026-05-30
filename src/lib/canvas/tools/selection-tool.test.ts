@@ -32,7 +32,6 @@ function createHost(): {
 			foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
 			backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
 			baseOps: {} as SessionHost['baseOps'],
-			history: { pushSnapshot: vi.fn() },
 			sampling: {} as SessionHost['sampling'],
 			isShiftHeld: () => false,
 			pixelPerfect: false
@@ -52,7 +51,6 @@ describe('selectionTool', () => {
 		const session = selectionTool.open(ctx.host, strokeSpec);
 
 		expect(session.start()).toEqual([]);
-		expect(ctx.host.history.pushSnapshot).not.toHaveBeenCalled();
 
 		expect(session.draw({ x: -2, y: 1 }, null)).toEqual([]);
 		expect(ctx.currentMarquee).toBeUndefined();
@@ -82,7 +80,6 @@ describe('selectionTool', () => {
 
 		expect(session.end()).toEqual([]);
 		expect(ctx.setMarquee).not.toHaveBeenCalled();
-		expect(ctx.host.history.pushSnapshot).not.toHaveBeenCalled();
 	});
 
 	it('cancels a drag preview by restoring the initial Marquee without committing', () => {
@@ -100,7 +97,6 @@ describe('selectionTool', () => {
 
 		expect(ctx.currentMarquee).toMatchObject(initial);
 		expect(session.end()).toEqual([]);
-		expect(ctx.host.history.pushSnapshot).not.toHaveBeenCalled();
 	});
 
 	it('restores the initial Marquee without committing when drag stays outside the canvas', () => {
@@ -117,6 +113,5 @@ describe('selectionTool', () => {
 		expect(session.end()).toEqual([{ type: 'marqueePreviewChanged' }]);
 
 		expect(ctx.currentMarquee).toMatchObject(initial);
-		expect(ctx.host.history.pushSnapshot).not.toHaveBeenCalled();
 	});
 });

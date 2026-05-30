@@ -63,7 +63,7 @@ function isActiveLayerReference(document: Document): boolean {
 	return false;
 }
 
-function serializeMarquee(region: MarqueeRegion | undefined) {
+function serializeMarquee(region: MarqueeRegion | undefined): TabSnapshot['marquee'] {
 	return region
 		? {
 				x: region.x,
@@ -188,6 +188,7 @@ export class TabState {
 	#documentChangeJournal: DocumentChangeJournal;
 	#referenceLayerBlobs: Map<string, Blob>;
 	#referenceLayerUnderlayProjector = new ReferenceLayerUnderlayProjector();
+	#selectionPreviewBaselineMarquee: TabSnapshot['marquee'] | undefined = undefined;
 
 	get viewport(): ViewportData {
 		return this.#tabViewport.viewport;
@@ -359,6 +360,8 @@ export class TabState {
 	}
 
 	drawStart = (button: number, pointerType: PointerType): void => {
+		this.#selectionPreviewBaselineMarquee =
+			this.shared.activeTool === 'selection' ? serializeMarquee(this.document.marquee()) : undefined;
 		this.#applyEffects(this.#toolRunner.drawStart(button, pointerType));
 	};
 
@@ -368,10 +371,12 @@ export class TabState {
 
 	drawEnd = (): void => {
 		this.#applyEffects(this.#toolRunner.drawEnd());
+		this.#selectionPreviewBaselineMarquee = undefined;
 	};
 
 	drawCancel = (): void => {
 		this.#applyEffects(this.#toolRunner.drawCancel());
+		this.#selectionPreviewBaselineMarquee = undefined;
 	};
 
 	modifierChanged = (): void => {
@@ -730,12 +735,16 @@ export class TabState {
 				pixels: doc.layer_pixels_at(i)!.slice()
 			};
 		});
+		const marquee =
+			this.#selectionPreviewBaselineMarquee === undefined
+				? serializeMarquee(doc.marquee())
+				: this.#selectionPreviewBaselineMarquee;
 		return {
 			id: this.documentId,
 			name: this.name,
 			width: doc.width,
 			height: doc.height,
-			marquee: serializeMarquee(doc.marquee()),
+			marquee,
 			layers,
 			activeLayerId: doc.active_layer_id(),
 			nextLayerNumber: doc.next_layer_number(),

@@ -213,6 +213,12 @@ export function migrateV3ToV4(doc: DocumentSchemaV3 | DocumentSchemaV4): Documen
 	};
 }
 
+/**
+ * Migrates a V4 or V5 persisted document to schema V5.
+ * V4 input is normalized through `normalizeV4ReferenceLayer` and receives no
+ * Marquee; V5 input is normalized the same way and keeps a cloned Marquee when
+ * one is already present.
+ */
 export function migrateV4ToV5(doc: DocumentSchemaV4 | DocumentSchemaV5): DocumentSchemaV5 {
 	const v4 = normalizeV4ReferenceLayer({ ...doc, schemaVersion: 4 });
 	return {

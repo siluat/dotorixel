@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { Workspace, type WorkspaceDeps } from './workspace.svelte';
 import { marqueeRegionFromDrag, wasmBackend, singleLayerDocument } from '../wasm-backend';
 import { createFakeDirtyNotifier } from './fake-dirty-notifier';
-import type { WorkspaceSnapshot } from '../workspace-snapshot';
+import type { TabSnapshot, WorkspaceSnapshot } from '../workspace-snapshot';
 import { tabSnapshotFixture as makeTabSnap } from '../workspace-snapshot-fixtures';
 
 function makeWorkspace(overrides: Omit<Partial<WorkspaceDeps>, 'notifier'> = {}) {
@@ -188,6 +188,46 @@ describe('Workspace — openDocument', () => {
 		expect(workspace.activeTab.document.width).toBe(2);
 		expect(workspace.activeTab.document.height).toBe(1);
 		expect(workspace.activeTab.document.composite()).toEqual(pixels);
+	});
+
+	it('opens a full tab snapshot without flattening layers', () => {
+		const { workspace } = makeWorkspace();
+		const bottomId = crypto.randomUUID();
+		const topId = crypto.randomUUID();
+		const bottomPixels = new Uint8Array([255, 0, 0, 255, 0, 0, 0, 0]);
+		const topPixels = new Uint8Array([0, 0, 0, 0, 0, 255, 0, 255]);
+		const snapshot: TabSnapshot = {
+			id: 'layered-doc',
+			name: 'Layered',
+			width: 2,
+			height: 1,
+			layers: [
+				{ kind: 'pixel', id: bottomId, name: 'Paint', pixels: bottomPixels, visible: true, opacity: 1 },
+				{ kind: 'pixel', id: topId, name: 'Ink', pixels: topPixels, visible: true, opacity: 1 }
+			],
+			activeLayerId: topId,
+			nextLayerNumber: 4,
+			timelinePanelCollapsed: true,
+			viewport: {
+				pixelSize: 32,
+				zoom: 1.0,
+				panX: 0,
+				panY: 0,
+				showGrid: true,
+				gridColor: '#cccccc'
+			}
+		};
+
+		workspace.openSnapshot(snapshot);
+
+		const opened = workspace.activeTab.document;
+		expect(workspace.activeTab.documentId).toBe('layered-doc');
+		expect(opened.layer_count()).toBe(2);
+		expect(opened.active_layer_id()).toBe(topId);
+		expect(opened.next_layer_number()).toBe(4);
+		expect(opened.is_timeline_panel_collapsed()).toBe(true);
+		expect(opened.layer_pixels_at(0)).toEqual(bottomPixels);
+		expect(opened.layer_pixels_at(1)).toEqual(topPixels);
 	});
 });
 
@@ -594,6 +634,15 @@ describe('Workspace — dirty notifications', () => {
 		});
 
 		expect(notifier.dirtyCalls).toEqual(['opened-doc']);
+	});
+
+	it('openSnapshot emits markDirty for the opened document id', () => {
+		const { workspace, notifier } = makeWorkspace();
+		notifier.reset();
+
+		workspace.openSnapshot(makeTabSnap({ id: 'opened-layered-doc', name: 'Opened' }));
+
+		expect(notifier.dirtyCalls).toEqual(['opened-layered-doc']);
 	});
 
 	it('closeTab emits notifyTabRemoved with the removed tab documentId', () => {

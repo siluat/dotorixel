@@ -212,6 +212,55 @@ describe('SessionPersistence', () => {
 		expect(Array.from(topLayer.pixels)).toEqual(Array.from(topPixels));
 	});
 
+	it('loads a saved document snapshot with its full layer stack for reopening', async () => {
+		const bottomId = crypto.randomUUID();
+		const topId = crypto.randomUUID();
+		const bottomPixels = new Uint8Array(2 * 1 * 4);
+		bottomPixels[0] = 255;
+		bottomPixels[3] = 255;
+		const topPixels = new Uint8Array(2 * 1 * 4);
+		topPixels[4] = 0;
+		topPixels[5] = 255;
+		topPixels[7] = 255;
+
+		const tab: TabSnapshot = {
+			id: 'doc-reopen-layered',
+			name: 'Layered',
+			width: 2,
+			height: 1,
+			layers: [
+				{ kind: 'pixel', id: bottomId, name: 'Paint', pixels: bottomPixels, visible: true, opacity: 1 },
+				{ kind: 'pixel', id: topId, name: 'Ink', pixels: topPixels, visible: false, opacity: 0.5 }
+			],
+			activeLayerId: topId,
+			nextLayerNumber: 6,
+			timelinePanelCollapsed: true,
+			viewport: {
+				pixelSize: 32,
+				zoom: 1.0,
+				panX: 0,
+				panY: 0,
+				showGrid: true,
+				gridColor: '#cccccc'
+			}
+		};
+
+		await persistence.save(makeSnapshot({}, [tab]));
+		await persistence.saveDocumentAs(tab.id, 'Layered Saved');
+
+		const [summary] = await persistence.getAllSavedDocuments();
+		const reopened = await persistence.getSavedDocumentSnapshot(summary.id);
+
+		expect(reopened).not.toBeNull();
+		expect(reopened!.name).toBe('Layered Saved');
+		expect(reopened!.layers).toHaveLength(2);
+		expect(reopened!.activeLayerId).toBe(topId);
+		expect(reopened!.nextLayerNumber).toBe(6);
+		expect(reopened!.timelinePanelCollapsed).toBe(true);
+		expect(Array.from(expectPixelLayer(reopened!.layers[0]).pixels)).toEqual(Array.from(bottomPixels));
+		expect(Array.from(expectPixelLayer(reopened!.layers[1]).pixels)).toEqual(Array.from(topPixels));
+	});
+
 	it('restores Reference Layer records by decoding source blobs for document hydration', async () => {
 		const pixelId = crypto.randomUUID();
 		const referenceId = crypto.randomUUID();

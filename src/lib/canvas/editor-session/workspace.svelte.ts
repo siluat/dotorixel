@@ -49,6 +49,14 @@ export interface OpenDocumentInput {
 	readonly pixels: Uint8Array;
 }
 
+function referenceLayerBlobsFromSnapshot(tabSnap: TabSnapshot): Map<string, Blob> {
+	return new Map(
+		tabSnap.layers
+			.filter((layer): layer is ReferenceLayerSnapshot => layer.kind === 'reference')
+			.map((layer) => [layer.id, layer.sourceBlob])
+	);
+}
+
 /**
  * Workspace owns the tab collection, the single `SharedState` instance, and
  * the two editor-session ports (`CanvasBackend`, `DirtyNotifier`). All tabs
@@ -154,6 +162,20 @@ export class Workspace {
 		return tab;
 	}
 
+	openSnapshot(tabSnap: TabSnapshot): TabState {
+		const tab = this.createTab({
+			documentId: tabSnap.id,
+			name: tabSnap.name,
+			document: documentFromLayerSource(tabSnap),
+			referenceLayerBlobs: referenceLayerBlobsFromSnapshot(tabSnap),
+			viewport: tabSnap.viewport
+		});
+		this.tabs.push(tab);
+		this.activeIndex = this.tabs.length - 1;
+		this.#notifier.markDirty(tab.documentId);
+		return tab;
+	}
+
 	closeTab(index: number): void {
 		if (this.tabs.length <= 1) return;
 		const removed = this.tabs[index];
@@ -227,17 +249,11 @@ export class Workspace {
 		this.shared.pixelPerfect = snapshot.sharedState.pixelPerfect ?? true;
 
 		for (const tabSnap of snapshot.tabs) {
-			const document = documentFromLayerSource(tabSnap);
-			const referenceLayerBlobs = new Map(
-				tabSnap.layers
-					.filter((layer): layer is ReferenceLayerSnapshot => layer.kind === 'reference')
-					.map((layer) => [layer.id, layer.sourceBlob])
-			);
 			const tab = this.createTab({
 				documentId: tabSnap.id,
 				name: tabSnap.name,
-				document,
-				referenceLayerBlobs,
+				document: documentFromLayerSource(tabSnap),
+				referenceLayerBlobs: referenceLayerBlobsFromSnapshot(tabSnap),
 				viewport: tabSnap.viewport
 			});
 			this.tabs.push(tab);

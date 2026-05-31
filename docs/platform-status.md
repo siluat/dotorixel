@@ -103,8 +103,8 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Tab management (Workspace) | — | ✅ | ⬜ | Workspace model, page wiring, TabStrip UI complete |
 | Session persistence | — | ✅ | ⬜ | Multi-tab IndexedDB restore, debounced auto-save, saved-doc retention, and V5 Document persistence with layers, Reference source blobs, and Marquee |
 | Save dialog on tab close | — | ✅ | ⬜ | Blank canvas detection, save/delete/cancel modal, focus trap, keyboard accessible |
-| Saved work browser (desktop) | — | ✅ | ⬜ | Browse/open/delete saved documents; card grid with thumbnails, empty state, delete confirmation |
-| Saved work browser (mobile) | — | ✅ | — | Bottom sheet (vaul-svelte); shared card grid, AppBar trigger, responsive 2/3 column grid |
+| Saved work browser (desktop) | — | ✅ | ⬜ | Browse/open/delete; opens full Document snapshots while cards use composite thumbnails |
+| Saved work browser (mobile) | — | ✅ | — | Bottom sheet; opens full Document snapshots while cards use composite thumbnails |
 
 ## Layers
 

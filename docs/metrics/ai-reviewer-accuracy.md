@@ -8,12 +8,13 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 133 | 100 | 33 | 127 | 75% | 44% |
 | cubic-dev-ai[bot] | 81 | 66 | 15 | 156 | 81% | 30% |
-| coderabbitai[bot] | 186 | 132 | 54 | 88 | 71% | 60% |
+| coderabbitai[bot] | 187 | 132 | 55 | 88 | 71% | 60% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #239 | coderabbitai[bot] | Reject | One-off Marquee containment helper keeps fractional bounds policy readable |
 | #237 | cubic-dev-ai[bot] | Accept | Trust MarqueeRegion non-empty invariant in bounded flood-fill conversion |
 | #237 | coderabbitai[bot] | Miss | Did not flag unreachable MarqueeRegion empty-bounds guard |
 | #237 | greptile-apps[bot] | Miss | Did not flag unreachable MarqueeRegion empty-bounds guard |

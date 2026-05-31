@@ -8,7 +8,7 @@ import {
 	createFakePixelCanvas,
 	type FakeDrawingOps
 } from './fake-drawing-ops';
-import type { PixelCanvas, CanvasCoords } from './canvas-model';
+import type { CanvasCoords, MarqueeRegion, PixelCanvas } from './canvas-model';
 import type { Color } from './color';
 import type { SamplingSession } from './sampling/session.svelte';
 import type { ToolContext } from './draw-tool';
@@ -16,12 +16,14 @@ import type { ToolContext } from './draw-tool';
 function makeHost(
 	canvas: PixelCanvas,
 	opts: { pixelPerfect?: boolean; baseOps?: FakeDrawingOps } = {}
-): { host: SessionHost; baseOps: FakeDrawingOps } {
+): { host: SessionHost; baseOps: FakeDrawingOps; document: ReturnType<typeof createFakeDocument> } {
 	const baseOps = opts.baseOps ?? createFakeDrawingOps(8, 8, WHITE);
+	const document = createFakeDocument(canvas.width, canvas.height);
 	return {
 		baseOps,
+		document,
 		host: {
-			document: createFakeDocument(canvas.width, canvas.height),
+			document,
 			foregroundColor: BLACK,
 			backgroundColor: WHITE,
 			baseOps,
@@ -33,6 +35,24 @@ function makeHost(
 }
 
 const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
+
+function createMarqueeRegion(x: number, y: number, width: number, height: number): MarqueeRegion {
+	return {
+		x,
+		y,
+		width,
+		height,
+		contains(px, py) {
+			return px >= x && py >= y && px < x + width && py < y + height;
+		},
+		translate(dx, dy) {
+			return createMarqueeRegion(x + dx, y + dy, width, height);
+		},
+		clip_to() {
+			return this;
+		}
+	};
+}
 
 describe('continuousTool sugar', () => {
 	it('attaches the id passed in the spec', () => {
@@ -199,6 +219,30 @@ describe('continuousTool sugar', () => {
 		expect(baseOps.getPixel(0, 0)).toEqual(BLACK);
 		expect(baseOps.getPixel(1, 0)).toEqual(WHITE);
 		expect(baseOps.getPixel(1, 1)).toEqual(BLACK);
+	});
+
+	it('clips drawing ops to the stroke-start Marquee', () => {
+		const canvas = createFakePixelCanvas(8, 8);
+		const { host, baseOps, document } = makeHost(canvas);
+		document.set_marquee(createMarqueeRegion(1, 1, 2, 2));
+		const tool = continuousTool({
+			id: 'pencil',
+			apply(ctx) {
+				return ctx.ops.applyStroke(
+					new Int32Array([0, 0, 1, 1, 2, 2, 3, 3]),
+					'pencil',
+					BLACK
+				);
+			}
+		});
+		const session = tool.open(host, { drawColor: BLACK, drawButton: 0, inputSource: 'mouse' });
+		session.start();
+
+		expect(session.draw({ x: 0, y: 0 }, null)).toEqual([{ type: 'canvasChanged' }]);
+		expect(baseOps.getPixel(0, 0)).toEqual(WHITE);
+		expect(baseOps.getPixel(1, 1)).toEqual(BLACK);
+		expect(baseOps.getPixel(2, 2)).toEqual(BLACK);
+		expect(baseOps.getPixel(3, 3)).toEqual(WHITE);
 	});
 
 	it('returns no effects on modifierChanged and end', () => {

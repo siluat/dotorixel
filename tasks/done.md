@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 137 | [Marquee clipping mask — DrawingOps decorator + drawing tool integration](../issues/137-marquee-clipping-mask-decorator.md) | 2026-05-31 |
 | 155 | [Layer panel: drag reorder feedback](../issues/155-layer-reorder-drag-feedback.md) | 2026-05-31 |
 | 154 | [Saved work browser: reopen layered documents without flattening](../issues/154-saved-work-browser-layered-document-reopen.md) | 2026-05-31 |
 | 136 | [Region pixel transformations (lift/clear/composite) + Delete keyboard](../issues/136-region-pixel-transformations-and-delete.md) | 2026-05-31 |

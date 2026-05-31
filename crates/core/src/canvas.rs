@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 use std::fmt;
+use std::num::NonZeroU32;
 
 use crate::color::Color;
 
@@ -82,6 +83,62 @@ pub struct CanvasCoords {
 impl CanvasCoords {
     pub const fn new(x: u32, y: u32) -> Self {
         Self { x, y }
+    }
+}
+
+/// Non-empty rectangle in canvas coordinate space.
+///
+/// The origin may be outside the canvas, but width and height are always
+/// positive. Rectangle membership uses half-open bounds:
+/// `[x, x + width) × [y, y + height)`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CanvasRect {
+    x: i32,
+    y: i32,
+    width: NonZeroU32,
+    height: NonZeroU32,
+}
+
+impl CanvasRect {
+    /// Creates a rectangle, returning `None` when width or height is zero.
+    pub fn new(x: i32, y: i32, width: u32, height: u32) -> Option<Self> {
+        Some(Self {
+            x,
+            y,
+            width: NonZeroU32::new(width)?,
+            height: NonZeroU32::new(height)?,
+        })
+    }
+
+    /// Left edge in canvas pixel coordinates. May be outside the canvas.
+    pub fn x(self) -> i32 {
+        self.x
+    }
+
+    /// Top edge in canvas pixel coordinates. May be outside the canvas.
+    pub fn y(self) -> i32 {
+        self.y
+    }
+
+    /// Positive rectangle width in pixels.
+    pub fn width(self) -> u32 {
+        self.width.get()
+    }
+
+    /// Positive rectangle height in pixels.
+    pub fn height(self) -> u32 {
+        self.height.get()
+    }
+
+    fn contains(self, x: u32, y: u32) -> bool {
+        let left = i64::from(self.x);
+        let top = i64::from(self.y);
+        let right = left + i64::from(self.width.get());
+        let bottom = top + i64::from(self.height.get());
+        let x = i64::from(x);
+        let y = i64::from(y);
+
+        x >= left && y >= top && x < right && y < bottom
     }
 }
 
@@ -304,7 +361,40 @@ impl PixelCanvas {
     /// coordinates are outside canvas bounds or the pixel already has
     /// `fill_color`.
     pub fn flood_fill(&mut self, start_x: u32, start_y: u32, fill_color: Color) -> bool {
+        self.flood_fill_where(start_x, start_y, fill_color, |_, _| true)
+    }
+
+    /// Fills pixels connected to `(start_x, start_y)` with `fill_color`,
+    /// constrained to `bounds`.
+    ///
+    /// The bounds may start outside the canvas; only included in-canvas
+    /// pixels can be filled.
+    pub fn flood_fill_rect(
+        &mut self,
+        start_x: u32,
+        start_y: u32,
+        fill_color: Color,
+        bounds: CanvasRect,
+    ) -> bool {
+        self.flood_fill_where(start_x, start_y, fill_color, |px, py| {
+            bounds.contains(px, py)
+        })
+    }
+
+    pub(crate) fn flood_fill_where<F>(
+        &mut self,
+        start_x: u32,
+        start_y: u32,
+        fill_color: Color,
+        mut includes: F,
+    ) -> bool
+    where
+        F: FnMut(u32, u32) -> bool,
+    {
         if !self.is_inside_bounds(start_x, start_y) {
+            return false;
+        }
+        if !includes(start_x, start_y) {
             return false;
         }
 
@@ -337,6 +427,9 @@ impl PixelCanvas {
                 let nux = nx as u32;
                 let nuy = ny as u32;
                 if !self.is_inside_bounds(nux, nuy) {
+                    continue;
+                }
+                if !includes(nux, nuy) {
                     continue;
                 }
                 let idx = nuy as usize * w + nux as usize;
@@ -1062,5 +1155,37 @@ mod tests {
         let mut canvas = PixelCanvas::new(4, 4).unwrap();
         assert!(!canvas.flood_fill(4, 0, RED));
         assert!(!canvas.flood_fill(0, 4, RED));
+    }
+
+    #[test]
+    fn flood_fill_rect_fills_only_inside_region() {
+        let mut canvas = PixelCanvas::new(4, 4).unwrap();
+        let bounds = CanvasRect::new(1, 1, 2, 2).unwrap();
+
+        assert!(canvas.flood_fill_rect(1, 1, BLACK, bounds));
+
+        assert_eq!(canvas.get_pixel(0, 1).unwrap(), Color::TRANSPARENT);
+        assert_eq!(canvas.get_pixel(1, 1).unwrap(), BLACK);
+        assert_eq!(canvas.get_pixel(2, 1).unwrap(), BLACK);
+        assert_eq!(canvas.get_pixel(1, 2).unwrap(), BLACK);
+        assert_eq!(canvas.get_pixel(2, 2).unwrap(), BLACK);
+        assert_eq!(canvas.get_pixel(3, 2).unwrap(), Color::TRANSPARENT);
+    }
+
+    #[test]
+    fn flood_fill_rect_seed_outside_region_returns_false() {
+        let mut canvas = PixelCanvas::new(4, 4).unwrap();
+        let bounds = CanvasRect::new(1, 1, 2, 2).unwrap();
+
+        assert!(!canvas.flood_fill_rect(0, 0, BLACK, bounds));
+
+        assert_eq!(canvas.get_pixel(0, 0).unwrap(), Color::TRANSPARENT);
+        assert_eq!(canvas.get_pixel(1, 1).unwrap(), Color::TRANSPARENT);
+    }
+
+    #[test]
+    fn canvas_rect_rejects_empty_dimensions() {
+        assert!(CanvasRect::new(0, 0, 0, 1).is_none());
+        assert!(CanvasRect::new(0, 0, 1, 0).is_none());
     }
 }

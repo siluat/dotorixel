@@ -1,6 +1,6 @@
 ---
 title: "Marquee clipping mask — DrawingOps decorator + drawing tool integration"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -50,3 +50,27 @@ Tests:
 ## Blocked by
 
 - [132 — Selection foundation](132-selection-foundation.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/canvas.rs` | Added bounded flood-fill support using rectangular limits while keeping canvas independent of Selection types. |
+| `crates/core/src/document.rs` | Routed active-layer bounded flood fill through Document so selection bounds apply to Pixel Layers and Reference Layers remain no-op. |
+| `wasm/src/lib.rs` | Exposed bounded flood-fill bindings for both Document and raw canvas paths. |
+| `src/lib/canvas/drawing-ops.ts` | Added the Marquee clipping decorator and bounds-aware DrawingOps contract. |
+| `src/lib/canvas/tool-authoring.ts` | Composed per-stroke drawing ops so active Marquees clip drawing tools at stroke start. |
+| `src/lib/canvas/wasm-backend.ts` | Forwarded optional Marquee bounds through WASM-backed DrawingOps and tee operations. |
+| `src/lib/canvas/fake-drawing-ops.ts` | Updated fake DrawingOps to model bounded flood fill for tests. |
+| `src/lib/canvas/marquee-clipped-ops.test.ts` | Covered decorator pass-through, write filtering, stroke filtering, and flood-fill seed behavior. |
+| `src/lib/canvas/continuous-tool.test.ts` | Covered Marquee-aware host composition for continuous tools. |
+| `src/lib/canvas/stroke-engine.test.ts` | Covered Pencil, Eraser, Shape tools, Flood Fill, Move, and Eyedropper behavior with active Marquees. |
+
+### Key Decisions
+
+- Implemented Flood Fill clipping in Rust core/WASM instead of duplicating flood-fill traversal in TypeScript, keeping the drawing algorithm authoritative in core.
+- Kept Move and Eyedropper outside the Marquee clipping path because they intentionally bypass `DrawingOps`: Move translates the full active layer, and Eyedropper is read-only sampling.
+
+### Notes
+
+- The clipping decorator snapshots the Marquee at stroke start, matching the existing pixel-perfect stroke composition behavior.

@@ -1,6 +1,6 @@
 import type { Document, MarqueeRegion, PixelCanvas } from './canvas-model';
 import type { Color } from './color';
-import type { DrawingOps, DrawingToolType } from './drawing-ops';
+import type { DrawingOps, DrawingToolType, MarqueeBounds } from './drawing-ops';
 
 export const WHITE: Color = { r: 255, g: 255, b: 255, a: 255 };
 export const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
@@ -29,12 +29,18 @@ export function createFakeDrawingOps(
 ): FakeDrawingOps {
 	const pixels = new Map<string, Color>();
 	const key = (x: number, y: number) => `${x},${y}`;
-	const inBounds = (x: number, y: number) => x >= 0 && y >= 0 && x < width && y < height;
+	const isInBounds = (x: number, y: number) => x >= 0 && y >= 0 && x < width && y < height;
+	const isInFillBounds = (bounds: MarqueeBounds | undefined, x: number, y: number) =>
+		!bounds ||
+		(x >= bounds.x &&
+			y >= bounds.y &&
+			x < bounds.x + bounds.width &&
+			y < bounds.y + bounds.height);
 	const colorFor = (kind: DrawingToolType, color: Color): Color =>
 		kind === 'eraser' ? TRANSPARENT : color;
 
 	function applyToolImpl(x: number, y: number, kind: DrawingToolType, color: Color): boolean {
-		if (!inBounds(x, y)) return false;
+		if (!isInBounds(x, y)) return false;
 		const before = pixels.get(key(x, y)) ?? initial;
 		const after = colorFor(kind, color);
 		if (colorsEqual(before, after)) return false;
@@ -42,25 +48,63 @@ export function createFakeDrawingOps(
 		return true;
 	}
 
-	return {
-		applyTool: applyToolImpl,
-		setPixel(x, y, color) {
-			if (!inBounds(x, y)) return false;
-			pixels.set(key(x, y), color);
-			return true;
-		},
-		getPixel(x, y) {
-			if (!inBounds(x, y)) return null;
-			return pixels.get(key(x, y)) ?? initial;
-		},
+		return {
+			applyTool: applyToolImpl,
+			setPixel(x, y, color) {
+				if (!isInBounds(x, y)) return false;
+				pixels.set(key(x, y), color);
+				return true;
+			},
+			getPixel(x, y) {
+				if (!isInBounds(x, y)) return null;
+				return pixels.get(key(x, y)) ?? initial;
+			},
 		applyStroke(points, kind, color) {
 			let changed = false;
 			for (let i = 0; i + 1 < points.length; i += 2) {
 				if (applyToolImpl(points[i], points[i + 1], kind, color)) changed = true;
 			}
 			return changed;
+			},
+			floodFill(x, y, color, bounds) {
+				if (!isInBounds(x, y) || !isInFillBounds(bounds, x, y)) return false;
+			const targetColor = pixels.get(key(x, y)) ?? initial;
+			if (colorsEqual(targetColor, color)) return false;
+
+			const queue: Array<readonly [number, number]> = [[x, y]];
+			const visited = new Set<string>([key(x, y)]);
+			let changed = false;
+
+			for (let head = 0; head < queue.length; head++) {
+				const [cx, cy] = queue[head];
+				const before = pixels.get(key(cx, cy)) ?? initial;
+				if (!colorsEqual(before, targetColor)) continue;
+				pixels.set(key(cx, cy), color);
+				changed = true;
+
+				for (const [dx, dy] of [
+					[0, -1],
+					[0, 1],
+					[-1, 0],
+					[1, 0]
+				] as const) {
+					const nx = cx + dx;
+					const ny = cy + dy;
+					const nextKey = key(nx, ny);
+					if (
+						visited.has(nextKey) ||
+						!isInBounds(nx, ny) ||
+						!isInFillBounds(bounds, nx, ny)
+					) {
+						continue;
+					}
+					visited.add(nextKey);
+					queue.push([nx, ny]);
+				}
+			}
+
+			return changed;
 		},
-		floodFill: () => false,
 		interpolatePixels: () => new Int32Array(),
 		rectangleOutline: () => new Int32Array(),
 		ellipseOutline: () => new Int32Array(),

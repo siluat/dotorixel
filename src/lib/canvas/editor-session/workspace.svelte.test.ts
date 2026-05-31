@@ -401,6 +401,33 @@ describe('Workspace — hydration', () => {
 		});
 	});
 
+	it('clears a restored zero-sized Marquee', () => {
+		const restored: WorkspaceSnapshot = {
+			tabs: [
+				{
+					...makeTabSnap({
+						id: 'doc-1',
+						name: 'Tab 1',
+						width: 8,
+						height: 8
+					}),
+					marquee: { x: 1, y: 2, width: 0, height: 3 }
+				}
+			],
+			activeTabIndex: 0,
+			sharedState: {
+				activeTool: 'pencil',
+				foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
+				backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+				recentColors: []
+			}
+		};
+
+		const { workspace } = makeWorkspace({ restored });
+
+		expect(workspace.activeTab.document.marquee()).toBeUndefined();
+	});
+
 	it('clears a restored Marquee when it no longer overlaps the tab canvas', () => {
 		const restored: WorkspaceSnapshot = {
 			tabs: [

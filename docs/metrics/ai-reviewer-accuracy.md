@@ -6,14 +6,44 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 133 | 100 | 33 | 117 | 75% | 46% |
-| cubic-dev-ai[bot] | 78 | 63 | 15 | 149 | 81% | 30% |
-| coderabbitai[bot] | 179 | 125 | 54 | 85 | 70% | 60% |
+| greptile-apps[bot] | 133 | 100 | 33 | 127 | 75% | 44% |
+| cubic-dev-ai[bot] | 81 | 66 | 15 | 156 | 81% | 30% |
+| coderabbitai[bot] | 186 | 132 | 54 | 88 | 71% | 60% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #237 | cubic-dev-ai[bot] | Accept | Trust MarqueeRegion non-empty invariant in bounded flood-fill conversion |
+| #237 | coderabbitai[bot] | Miss | Did not flag unreachable MarqueeRegion empty-bounds guard |
+| #237 | greptile-apps[bot] | Miss | Did not flag unreachable MarqueeRegion empty-bounds guard |
+| #237 | coderabbitai[bot] | Accept | Reject zero-sized Marquee bounds before WASM drag conversion |
+| #237 | cubic-dev-ai[bot] | Accept | Intersect caller flood-fill bounds with active Marquee bounds |
+| #237 | cubic-dev-ai[bot] | Accept | Document `flood_fill_bounded` false cases |
+| #237 | coderabbitai[bot] | Accept | Rename continuous-tool Marquee helper to action-style constructor |
+| #237 | coderabbitai[bot] | Accept | Rename fake fill-bounds predicate to query-style name |
+| #237 | coderabbitai[bot] | Accept | Rename marquee-clipped bounds helper to action-style constructor |
+| #237 | coderabbitai[bot] | Accept | Document DrawingOps Marquee bounds contract |
+| #237 | coderabbitai[bot] | Accept | Rename stroke DrawingOps factory and boolean |
+| #237 | coderabbitai[bot] | Accept | Replace scalar flood-fill rectangle bounds with CanvasRect |
+| #237 | cubic-dev-ai[bot] | Miss | Did not flag zero-sized Marquee bounds conversion |
+| #237 | greptile-apps[bot] | Miss | Did not flag zero-sized Marquee bounds conversion |
+| #237 | coderabbitai[bot] | Miss | Did not flag dropped caller flood-fill bounds |
+| #237 | greptile-apps[bot] | Miss | Did not flag dropped caller flood-fill bounds |
+| #237 | coderabbitai[bot] | Miss | Did not flag incomplete bounded flood-fill rustdoc |
+| #237 | greptile-apps[bot] | Miss | Did not flag incomplete bounded flood-fill rustdoc |
+| #237 | cubic-dev-ai[bot] | Miss | Did not flag continuous-tool helper naming |
+| #237 | greptile-apps[bot] | Miss | Did not flag continuous-tool helper naming |
+| #237 | cubic-dev-ai[bot] | Miss | Did not flag fake fill-bounds predicate naming |
+| #237 | greptile-apps[bot] | Miss | Did not flag fake fill-bounds predicate naming |
+| #237 | cubic-dev-ai[bot] | Miss | Did not flag marquee-clipped helper naming |
+| #237 | greptile-apps[bot] | Miss | Did not flag marquee-clipped helper naming |
+| #237 | cubic-dev-ai[bot] | Miss | Did not flag DrawingOps Marquee bounds documentation gap |
+| #237 | greptile-apps[bot] | Miss | Did not flag DrawingOps Marquee bounds documentation gap |
+| #237 | cubic-dev-ai[bot] | Miss | Did not flag stroke DrawingOps factory naming |
+| #237 | greptile-apps[bot] | Miss | Did not flag stroke DrawingOps factory naming |
+| #237 | cubic-dev-ai[bot] | Miss | Did not flag scalar flood-fill rectangle bounds |
+| #237 | greptile-apps[bot] | Miss | Did not flag scalar flood-fill rectangle bounds |
 | #236 | greptile-apps[bot] | Accept | Source row should not be marked as drag target on pointerdown |
 | #236 | coderabbitai[bot] | Miss | Did not flag source row drag-target semantics |
 | #236 | cubic-dev-ai[bot] | Miss | Did not flag source row drag-target semantics |

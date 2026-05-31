@@ -1,6 +1,6 @@
 ---
 title: "Selection — click-without-drag deselects existing Marquee"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -37,3 +37,19 @@ Scope:
 ## Blocked by
 
 - [132 — Selection foundation](132-selection-foundation.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/tools/selection-tool.ts` | Tracks Selection stroke movement by document pixel and resolves click-without-drag outside an existing Marquee as a clear effect. |
+| `src/lib/canvas/tools/selection-tool.test.ts` | Covers outside-click clear, inside-click no-op, no-Marquee click no-op, and 1+ document-pixel drag defining a new Marquee. |
+
+### Key Decisions
+
+- Treat a Selection stroke as a drag only after the current document pixel differs from the anchor pixel, avoiding accidental 1x1 Marquees from stationary clicks.
+- Return `setMarquee: null` as the stroke effect for outside-click deselect so the Document Change Journal owns the undoable change.
+
+### Notes
+
+- Inside-click remains a no-op until the future drag-to-move work starts using that gesture.

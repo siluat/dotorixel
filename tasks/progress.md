@@ -3,15 +3,14 @@
 ## Currently Working On
 
 Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md)).
-3 of 21 sub-issues are done; 134 locked Document v5 Marquee persistence for reload and tab-switch continuity.
+4 of 21 sub-issues are done; 135 locked click-without-drag deselect without creating accidental 1x1 Marquees.
 
 ## Last Completed
 
-[134 — Marquee persistence v5](../issues/134-marquee-persistence-v5.md): Document storage now persists Marquee data through v5, reload, and tab switching. Hydration clips stale saved bounds to the loaded canvas.
+[135 — Click-without-drag deselects](../issues/135-selection-click-without-drag-deselects.md): Outside clicks now clear an existing Marquee when no document-pixel drag occurs. Inside clicks and empty-state clicks remain no-op; 1+ pixel drags still define a new Marquee.
 
 ## Next Up
 
-- [135 — Click-without-drag deselects](../issues/135-selection-click-without-drag-deselects.md)
 - [136 — Region pixel transformations + Delete](../issues/136-region-pixel-transformations-and-delete.md)
 - [137 — Marquee clipping mask decorator](../issues/137-marquee-clipping-mask-decorator.md)
 - [138 — Reference Layer × Marquee no-op](../issues/138-reference-layer-marquee-no-op.md)

@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 131 | 98 | 33 | 114 | 75% | 46% |
-| cubic-dev-ai[bot] | 77 | 62 | 15 | 145 | 81% | 30% |
-| coderabbitai[bot] | 176 | 122 | 54 | 83 | 69% | 60% |
+| greptile-apps[bot] | 131 | 98 | 33 | 115 | 75% | 46% |
+| cubic-dev-ai[bot] | 78 | 63 | 15 | 145 | 81% | 30% |
+| coderabbitai[bot] | 177 | 123 | 54 | 83 | 69% | 60% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #233 | coderabbitai[bot] | Accept | Returning to anchor after drag should refresh Marquee preview |
+| #233 | cubic-dev-ai[bot] | Accept | Returning to anchor after drag should refresh Marquee preview |
+| #233 | greptile-apps[bot] | Miss | Did not flag stale Marquee preview when returning to anchor after drag |
 | #232 | coderabbitai[bot] | Accept | Clear Marquee preview baseline before commit-side dirty effects |
 | #232 | cubic-dev-ai[bot] | Miss | Did not flag stale preview baseline during commit-side dirty effects |
 | #232 | greptile-apps[bot] | Miss | Did not flag stale preview baseline during commit-side dirty effects |

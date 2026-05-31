@@ -44,7 +44,9 @@ export const selectionTool = customTool({
 					return NO_EFFECTS;
 				}
 				const currentCoords = canvasCoordsFromPoint(current);
-				if (currentCoords.x === anchor.x && currentCoords.y === anchor.y) return NO_EFFECTS;
+				if (!hasUserDragged && currentCoords.x === anchor.x && currentCoords.y === anchor.y) {
+					return NO_EFFECTS;
+				}
 				hasUserDragged = true;
 				return preview(
 					marqueeFromDrag(anchor, currentCoords, host.document.width, host.document.height)

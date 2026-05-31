@@ -150,6 +150,30 @@ describe('selectionTool', () => {
 		]);
 	});
 
+	it('updates the draft Marquee when a drag returns to the anchor pixel', () => {
+		const ctx = createHost();
+		const session = selectionTool.open(ctx.host, strokeSpec);
+
+		expect(session.start()).toEqual([]);
+		expect(session.draw({ x: 5, y: 5 }, null)).toEqual([]);
+		expect(session.draw({ x: 6, y: 5 }, { x: 5, y: 5 })).toEqual([
+			{ type: 'marqueePreviewChanged' }
+		]);
+		expect(ctx.currentMarquee).toMatchObject({ x: 5, y: 5, width: 2, height: 1 });
+		expect(session.draw({ x: 5, y: 5 }, { x: 6, y: 5 })).toEqual([
+			{ type: 'marqueePreviewChanged' }
+		]);
+
+		const effects = session.end();
+
+		expect(effects).toEqual([
+			{
+				type: 'setMarquee',
+				region: expect.objectContaining({ x: 5, y: 5, width: 1, height: 1 })
+			}
+		]);
+	});
+
 	it('cancels a drag preview by restoring the initial Marquee without committing', () => {
 		const initial = region(1, 1, 2, 2);
 		const ctx = createHost();

@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 136 | [Region pixel transformations (lift/clear/composite) + Delete keyboard](../issues/136-region-pixel-transformations-and-delete.md) | 2026-05-31 |
 | 135 | [Selection — click-without-drag deselects existing Marquee](../issues/135-selection-click-without-drag-deselects.md) | 2026-05-31 |
 | 134 | [Marquee persistence — Document storage v4 → v5 migration](../issues/134-marquee-persistence-v5.md) | 2026-05-31 |
 | 133 | [Selection Action Bar — UX detail design (.pen)](../issues/133-selection-action-bar-design.md) | 2026-05-31 |

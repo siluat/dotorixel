@@ -37,6 +37,7 @@ export function createEditorController(
 		toggleGrid: () => workspaceRef?.activeTab.toggleGrid(),
 		swapColors: () => workspaceRef?.swapColors(),
 		clearMarquee: () => workspaceRef?.activeTab.clearMarquee(),
+		clearMarqueePixels: () => workspaceRef?.activeTab.clearMarqueePixels(),
 		notifyModifierChange: () => workspaceRef?.activeTab.modifierChanged()
 	});
 

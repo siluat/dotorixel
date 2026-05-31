@@ -21,6 +21,8 @@ export interface KeyboardInputHost {
 	swapColors(): void;
 	/** Clear the active Marquee selection if one exists. */
 	clearMarquee(): void;
+	/** Clear pixels inside the active Marquee if one exists. */
+	clearMarqueePixels(): void;
 	/** Notify that a modifier key changed mid-stroke. */
 	notifyModifierChange(): void;
 }
@@ -104,6 +106,14 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 				if (event.repeat) return;
 				if (host.isDrawing()) return;
 				host.clearMarquee();
+				return;
+			}
+
+			if (event.code === 'Delete' || event.code === 'Backspace') {
+				event.preventDefault();
+				if (event.repeat) return;
+				if (host.isDrawing()) return;
+				host.clearMarqueePixels();
 				return;
 			}
 

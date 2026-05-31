@@ -153,6 +153,9 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 		set_marquee(region) {
 			marquee = region ?? undefined;
 		},
+		lift_marquee_pixels: () => new Uint8Array(),
+		clear_marquee_pixels() {},
+		composite_buffer_at() {},
 		next_layer_number: () => 2,
 		is_timeline_panel_collapsed: () => timelinePanelCollapsed,
 		set_timeline_panel_collapsed(collapsed) {

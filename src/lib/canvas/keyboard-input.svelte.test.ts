@@ -13,6 +13,7 @@ function createHost(overrides?: Partial<KeyboardInputHost>): KeyboardInputHost {
 		toggleGrid: vi.fn(),
 		swapColors: vi.fn(),
 		clearMarquee: vi.fn(),
+		clearMarqueePixels: vi.fn(),
 		notifyModifierChange: vi.fn(),
 		...overrides
 	};
@@ -324,6 +325,31 @@ describe('selection dismissal', () => {
 		kb.handleKeyDown(keyDown('Escape'));
 
 		expect(host.clearMarquee).not.toHaveBeenCalled();
+	});
+});
+
+// ── Marquee pixel clear ───────────────────────────────────────────
+
+describe('Marquee pixel clear', () => {
+	it.each(['Delete', 'Backspace'])('clears pixels inside the Marquee on %s while idle', (code) => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		const event = keyDown(code);
+
+		kb.handleKeyDown(event);
+
+		expect(event.preventDefault).toHaveBeenCalled();
+		expect(host.clearMarqueePixels).toHaveBeenCalledOnce();
+		expect(host.clearMarquee).not.toHaveBeenCalled();
+	});
+
+	it('does not clear Marquee pixels while drawing', () => {
+		const host = createHost({ isDrawing: vi.fn(() => true) });
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('Delete'));
+
+		expect(host.clearMarqueePixels).not.toHaveBeenCalled();
 	});
 });
 

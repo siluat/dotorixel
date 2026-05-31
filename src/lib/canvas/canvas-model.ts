@@ -82,6 +82,9 @@ export interface Document {
 	active_layer_id(): string;
 	marquee(): MarqueeRegion | undefined;
 	set_marquee(region: MarqueeRegion | null | undefined): void;
+	lift_marquee_pixels(): Uint8Array;
+	clear_marquee_pixels(): void;
+	composite_buffer_at(buffer: Uint8Array, region: MarqueeRegion): void;
 	next_layer_number(): number;
 	is_timeline_panel_collapsed(): boolean;
 	/**

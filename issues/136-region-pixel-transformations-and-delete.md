@@ -1,6 +1,6 @@
 ---
 title: "Region pixel transformations (lift/clear/composite) + Delete keyboard"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -47,3 +47,26 @@ Tests:
 ## Blocked by
 
 - [132 — Selection foundation](132-selection-foundation.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/selection.rs` | Added Marquee region lift, clear, and source-over composite operations with edge-case coverage. |
+| `crates/core/src/document.rs` | Added Document-level Marquee pixel mutators that no-op on Reference Layers. |
+| `wasm/src/lib.rs` | Exposed the Document mutators through WASM and validated composite buffer length at the boundary. |
+| `src/lib/canvas/editor-session/document-change-journal.svelte.ts` | Added an undoable clear-Marquee-pixels intent that preserves the Marquee. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Routed Marquee pixel clearing through the active tab while drawing is idle. |
+| `src/lib/canvas/keyboard-input.svelte.ts` | Wired Delete and Backspace to clear selected Pixel Layer pixels when a Marquee is active. |
+| `src/lib/canvas/**/*.test.ts` | Covered journal, keyboard, tab state, and WASM boundary behavior for Marquee pixel clearing. |
+
+### Key Decisions
+
+- Region pixel operations live in the Rust core because the logic is pixel-domain, cross-platform, and reused by later move/copy/cut/paste slices.
+- Delete clears pixels but leaves the Marquee intact, matching the PRD contract and keeping Undo focused on pixel data restoration.
+- Invalid composite buffer sizes fail at the WASM boundary with an actionable error instead of relying on caller correctness from TypeScript.
+
+### Notes
+
+- Floating Selection behavior remains out of scope for this slice and starts in 142.
+- Downstream cut/copy/paste work can reuse the core lift, clear, and composite operations added here.

@@ -370,8 +370,8 @@ export class TabState {
 	};
 
 	drawEnd = (): void => {
-		this.#applyEffects(this.#toolRunner.drawEnd());
 		this.#selectionPreviewBaselineMarquee = undefined;
+		this.#applyEffects(this.#toolRunner.drawEnd());
 	};
 
 	drawCancel = (): void => {

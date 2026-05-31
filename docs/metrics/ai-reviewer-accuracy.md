@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 131 | 98 | 33 | 113 | 75% | 46% |
-| cubic-dev-ai[bot] | 77 | 62 | 15 | 144 | 81% | 30% |
-| coderabbitai[bot] | 175 | 121 | 54 | 83 | 69% | 59% |
+| greptile-apps[bot] | 131 | 98 | 33 | 114 | 75% | 46% |
+| cubic-dev-ai[bot] | 77 | 62 | 15 | 145 | 81% | 30% |
+| coderabbitai[bot] | 176 | 122 | 54 | 83 | 69% | 60% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #232 | coderabbitai[bot] | Accept | Clear Marquee preview baseline before commit-side dirty effects |
+| #232 | cubic-dev-ai[bot] | Miss | Did not flag stale preview baseline during commit-side dirty effects |
+| #232 | greptile-apps[bot] | Miss | Did not flag stale preview baseline during commit-side dirty effects |
 | #232 | cubic-dev-ai[bot] | Accept | Selection preview should not be persisted before commit |
 | #232 | coderabbitai[bot] | Accept | Add already-V5 Marquee preservation test |
 | #232 | coderabbitai[bot] | Accept | Document migrateV4ToV5 public contract |

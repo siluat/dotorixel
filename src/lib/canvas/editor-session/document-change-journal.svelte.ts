@@ -239,16 +239,14 @@ export class DocumentChangeJournal {
 			case 'resize-document':
 				return intent.width !== document.width || intent.height !== document.height;
 			case 'clear-active-layer':
-				return (
-					document.layer_kind_at(this.#stackIndexOf(document.active_layer_id())) === 'pixel'
-				);
+				return this.#activeLayerKind() === 'pixel';
 			case 'clear-marquee-pixels':
-				return (
-					Boolean(document.marquee()) &&
-					document.layer_kind_at(this.#stackIndexOf(document.active_layer_id())) === 'pixel'
-				);
+				return Boolean(document.marquee()) && this.#activeLayerKind() === 'pixel';
 			case 'set-marquee':
-				return !sameMarqueeRegion(document.marquee(), intent.region);
+				return (
+					this.#activeLayerKind() === 'pixel' &&
+					!sameMarqueeRegion(document.marquee(), intent.region)
+				);
 		}
 	}
 
@@ -279,6 +277,11 @@ export class DocumentChangeJournal {
 			if (document.layer_id_at(i) === id) return i;
 		}
 		throw new Error(`Layer with id ${id} not found`);
+	}
+
+	#activeLayerKind(): string | undefined {
+		const document = this.#deps.getDocument();
+		return document.layer_kind_at(this.#stackIndexOf(document.active_layer_id()));
 	}
 
 	#assertValidReferenceLayerSource(source: ReferenceLayerSource): void {

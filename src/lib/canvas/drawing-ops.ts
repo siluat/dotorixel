@@ -1,6 +1,12 @@
 import type { Color } from './color';
 import type { MarqueeRegion } from './canvas-model';
 
+/**
+ * Rectangular bounds in canvas pixel coordinates.
+ *
+ * Bounds use half-open membership: `[x, x + width) x [y, y + height)`.
+ * Empty bounds are valid data at this layer and represent a no-op fill region.
+ */
 export type MarqueeBounds = Pick<MarqueeRegion, 'x' | 'y' | 'width' | 'height'>;
 
 /**
@@ -40,7 +46,14 @@ export interface DrawingOps {
 	/** Read the color at (x, y). Returns null if out of bounds. */
 	getPixel(x: number, y: number): Color | null;
 
-	/** Fill connected same-color region. Returns true if any pixel changed. */
+	/**
+	 * Fill the connected same-color region from `(x, y)`.
+	 *
+	 * When `bounds` is provided, pixels outside that rectangle are ignored as
+	 * fill candidates. Returns true if any pixel changed, false when the seed is
+	 * outside the canvas or bounds, the target color already matches, or no
+	 * writable pixel is available.
+	 */
 	floodFill(x: number, y: number, color: Color, bounds?: MarqueeBounds): boolean;
 
 	/** Bresenham interpolation between two points. Returns flat [x0,y0, x1,y1, ...]. */
@@ -62,6 +75,29 @@ function isInsideMarquee(marquee: MarqueeBounds, x: number, y: number): boolean 
 	);
 }
 
+function isNonEmptyBounds(bounds: MarqueeBounds): boolean {
+	return bounds.width > 0 && bounds.height > 0;
+}
+
+function getBoundsIntersection(a: MarqueeBounds, b: MarqueeBounds): MarqueeBounds | null {
+	const x = Math.max(a.x, b.x);
+	const y = Math.max(a.y, b.y);
+	const right = Math.min(a.x + a.width, b.x + b.width);
+	const bottom = Math.min(a.y + a.height, b.y + b.height);
+	const width = right - x;
+	const height = bottom - y;
+
+	return width > 0 && height > 0 ? { x, y, width, height } : null;
+}
+
+/**
+ * Wrap drawing operations so writes and bounded fills are clipped to `marquee`.
+ *
+ * When no Marquee is active, this returns `baseOps` unchanged. When a caller
+ * already provides flood-fill bounds, the effective fill region is the
+ * intersection of those bounds and the active Marquee. Empty intersections and
+ * seeds outside the effective region return false without touching `baseOps`.
+ */
 export function createMarqueeClippedOps(
 	baseOps: DrawingOps,
 	marquee: MarqueeBounds | null | undefined
@@ -88,9 +124,14 @@ export function createMarqueeClippedOps(
 			return baseOps.setPixel(x, y, color);
 		},
 		getPixel: baseOps.getPixel.bind(baseOps),
-		floodFill(x, y, color) {
-			if (!isInsideMarquee(marquee, x, y)) return false;
-			return baseOps.floodFill(x, y, color, marquee);
+		floodFill(x, y, color, bounds) {
+			const effectiveBounds = bounds
+				? getBoundsIntersection(marquee, bounds)
+				: isNonEmptyBounds(marquee)
+					? marquee
+					: null;
+			if (!effectiveBounds || !isInsideMarquee(effectiveBounds, x, y)) return false;
+			return baseOps.floodFill(x, y, color, effectiveBounds);
 		},
 		interpolatePixels: baseOps.interpolatePixels.bind(baseOps),
 		rectangleOutline: baseOps.rectangleOutline.bind(baseOps),

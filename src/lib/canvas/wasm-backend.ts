@@ -63,7 +63,8 @@ const TOOL_MAP: Record<DrawingToolType, WasmToolType> = {
 	ellipse: WasmToolType.Ellipse
 };
 
-function marqueeBoundsToWasm(region: MarqueeBounds): WasmMarqueeRegion {
+function marqueeBoundsToWasm(region: MarqueeBounds): WasmMarqueeRegion | null {
+	if (region.width <= 0 || region.height <= 0) return null;
 	return WasmMarqueeRegion.from_drag(
 		region.x,
 		region.y,
@@ -288,7 +289,10 @@ export function createDrawingOps(getCanvas: () => PixelCanvas): DrawingOps {
 			const canvas = resolveWasmCanvas(getCanvas());
 			const wasmColor = new WasmColor(color.r, color.g, color.b, color.a);
 			if (bounds) {
-				return wasm_flood_fill_bounded(canvas, x, y, wasmColor, marqueeBoundsToWasm(bounds));
+				const wasmBounds = marqueeBoundsToWasm(bounds);
+				return wasmBounds
+					? wasm_flood_fill_bounded(canvas, x, y, wasmColor, wasmBounds)
+					: false;
 			}
 			return wasm_flood_fill(canvas, x, y, wasmColor);
 		},
@@ -403,7 +407,10 @@ export function createDocumentDrawingOps(getDocument: () => Document): DrawingOp
 			const document = resolveWasmDocument(getDocument());
 			const wasmColor = new WasmColor(color.r, color.g, color.b, color.a);
 			if (bounds) {
-				return document.flood_fill_bounded(x, y, wasmColor, marqueeBoundsToWasm(bounds));
+				const wasmBounds = marqueeBoundsToWasm(bounds);
+				return wasmBounds
+					? document.flood_fill_bounded(x, y, wasmColor, wasmBounds)
+					: false;
 			}
 			return document.flood_fill(x, y, wasmColor);
 		},
@@ -522,7 +529,7 @@ export function documentFromLayerSource(source: DocumentLayerSource): Document {
 		source.timelinePanelCollapsed
 	);
 	if (source.marquee) {
-		const clipped = marqueeBoundsToWasm(source.marquee).clip_to(source.width, source.height);
+		const clipped = marqueeBoundsToWasm(source.marquee)?.clip_to(source.width, source.height);
 		if (clipped) {
 			document.set_marquee(clipped);
 		}

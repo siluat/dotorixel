@@ -36,7 +36,7 @@ function makeHost(
 
 const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
 
-function marquee(x: number, y: number, width: number, height: number): MarqueeRegion {
+function createMarqueeRegion(x: number, y: number, width: number, height: number): MarqueeRegion {
 	return {
 		x,
 		y,
@@ -46,7 +46,7 @@ function marquee(x: number, y: number, width: number, height: number): MarqueeRe
 			return px >= x && py >= y && px < x + width && py < y + height;
 		},
 		translate(dx, dy) {
-			return marquee(x + dx, y + dy, width, height);
+			return createMarqueeRegion(x + dx, y + dy, width, height);
 		},
 		clip_to() {
 			return this;
@@ -224,7 +224,7 @@ describe('continuousTool sugar', () => {
 	it('clips drawing ops to the stroke-start Marquee', () => {
 		const canvas = createFakePixelCanvas(8, 8);
 		const { host, baseOps, document } = makeHost(canvas);
-		document.set_marquee(marquee(1, 1, 2, 2));
+		document.set_marquee(createMarqueeRegion(1, 1, 2, 2));
 		const tool = continuousTool({
 			id: 'pencil',
 			apply(ctx) {

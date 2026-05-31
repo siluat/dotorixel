@@ -29,8 +29,8 @@ export function createFakeDrawingOps(
 ): FakeDrawingOps {
 	const pixels = new Map<string, Color>();
 	const key = (x: number, y: number) => `${x},${y}`;
-	const inBounds = (x: number, y: number) => x >= 0 && y >= 0 && x < width && y < height;
-	const inFillBounds = (bounds: MarqueeBounds | undefined, x: number, y: number) =>
+	const isInBounds = (x: number, y: number) => x >= 0 && y >= 0 && x < width && y < height;
+	const isInFillBounds = (bounds: MarqueeBounds | undefined, x: number, y: number) =>
 		!bounds ||
 		(x >= bounds.x &&
 			y >= bounds.y &&
@@ -40,7 +40,7 @@ export function createFakeDrawingOps(
 		kind === 'eraser' ? TRANSPARENT : color;
 
 	function applyToolImpl(x: number, y: number, kind: DrawingToolType, color: Color): boolean {
-		if (!inBounds(x, y)) return false;
+		if (!isInBounds(x, y)) return false;
 		const before = pixels.get(key(x, y)) ?? initial;
 		const after = colorFor(kind, color);
 		if (colorsEqual(before, after)) return false;
@@ -48,26 +48,26 @@ export function createFakeDrawingOps(
 		return true;
 	}
 
-	return {
-		applyTool: applyToolImpl,
-		setPixel(x, y, color) {
-			if (!inBounds(x, y)) return false;
-			pixels.set(key(x, y), color);
-			return true;
-		},
-		getPixel(x, y) {
-			if (!inBounds(x, y)) return null;
-			return pixels.get(key(x, y)) ?? initial;
-		},
+		return {
+			applyTool: applyToolImpl,
+			setPixel(x, y, color) {
+				if (!isInBounds(x, y)) return false;
+				pixels.set(key(x, y), color);
+				return true;
+			},
+			getPixel(x, y) {
+				if (!isInBounds(x, y)) return null;
+				return pixels.get(key(x, y)) ?? initial;
+			},
 		applyStroke(points, kind, color) {
 			let changed = false;
 			for (let i = 0; i + 1 < points.length; i += 2) {
 				if (applyToolImpl(points[i], points[i + 1], kind, color)) changed = true;
 			}
 			return changed;
-		},
-		floodFill(x, y, color, bounds) {
-			if (!inBounds(x, y) || !inFillBounds(bounds, x, y)) return false;
+			},
+			floodFill(x, y, color, bounds) {
+				if (!isInBounds(x, y) || !isInFillBounds(bounds, x, y)) return false;
 			const targetColor = pixels.get(key(x, y)) ?? initial;
 			if (colorsEqual(targetColor, color)) return false;
 
@@ -91,7 +91,11 @@ export function createFakeDrawingOps(
 					const nx = cx + dx;
 					const ny = cy + dy;
 					const nextKey = key(nx, ny);
-					if (visited.has(nextKey) || !inBounds(nx, ny) || !inFillBounds(bounds, nx, ny)) {
+					if (
+						visited.has(nextKey) ||
+						!isInBounds(nx, ny) ||
+						!isInFillBounds(bounds, nx, ny)
+					) {
 						continue;
 					}
 					visited.add(nextKey);

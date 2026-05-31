@@ -1,7 +1,7 @@
 use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 
-use dotorixel_core::canvas::{PixelCanvas, ResizeAnchor};
+use dotorixel_core::canvas::{CanvasRect, PixelCanvas, ResizeAnchor};
 use dotorixel_core::color::Color;
 use dotorixel_core::document::Document;
 use dotorixel_core::export::{PngExport, SvgExport};
@@ -942,15 +942,17 @@ pub fn wasm_flood_fill_bounded(
     if x < 0 || y < 0 {
         return false;
     }
-    canvas.inner.flood_fill_rect(
-        x as u32,
-        y as u32,
-        color.inner,
+    let Some(bounds) = CanvasRect::new(
         bounds.inner.x(),
         bounds.inner.y(),
         bounds.inner.width(),
         bounds.inner.height(),
-    )
+    ) else {
+        return false;
+    };
+    canvas
+        .inner
+        .flood_fill_rect(x as u32, y as u32, color.inner, bounds)
 }
 
 // ---------------------------------------------------------------------------

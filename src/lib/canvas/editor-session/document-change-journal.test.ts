@@ -185,6 +185,10 @@ describe('DocumentChangeJournal', () => {
 		const document = {
 			width: 16,
 			height: 16,
+			active_layer_id: () => 'layer-1',
+			layer_count: () => 1,
+			layer_id_at: () => 'layer-1',
+			layer_kind_at: () => 'pixel',
 			marquee: () => undefined,
 			set_marquee: (next: MarqueeRegion | null | undefined) =>
 				events.push(`marquee:${next?.x ?? 'none'}`)
@@ -198,6 +202,40 @@ describe('DocumentChangeJournal', () => {
 
 		expect(result).toEqual({ changed: true });
 		expect(events).toEqual(['snapshot', 'marquee:1', 'render', 'dirty']);
+	});
+
+	it.each([
+		[
+			'define',
+			undefined,
+			{ x: 1, y: 2, width: 3, height: 4 } as MarqueeRegion
+		],
+		[
+			'clear',
+			{ x: 1, y: 2, width: 3, height: 4 } as MarqueeRegion,
+			null
+		]
+	])('skips Marquee %s on a Reference-active document', (_case, current, next) => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			active_layer_id: () => 'reference-1',
+			marquee: () => current,
+			set_marquee: () => events.push('marquee'),
+			layer_count: () => 1,
+			layer_id_at: () => 'reference-1',
+			layer_kind_at: () => 'reference'
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'set-marquee', region: next }
+		});
+
+		expect(result).toEqual({ changed: false });
+		expect(events).toEqual([]);
 	});
 
 	it('does not run follow-up effects when the core Document mutation fails', () => {

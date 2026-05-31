@@ -1,6 +1,6 @@
 ---
 title: "Reference Layer × Marquee — visual preserved, all operations no-op"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -42,3 +42,22 @@ Tests:
 ## Blocked by
 
 - [132 — Selection foundation](132-selection-foundation.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/tools/selection-tool.ts` | Selection strokes now silently no-op while the active layer is Reference, preserving the existing Marquee. |
+| `src/lib/canvas/editor-session/document-change-journal.svelte.ts` | Marquee mutations are rejected in the will-change phase unless the active layer is Pixel. |
+| `src/lib/canvas/PixelCanvasView.svelte.test.ts` | Locks in that the Marquee overlay geometry stays unchanged when Reference is active. |
+| `src/lib/canvas/tools/selection-tool.test.ts` | Covers Reference-active Selection drag no-op behavior. |
+| `src/lib/canvas/editor-session/document-change-journal.test.ts` | Covers Reference-active Marquee define and clear no-op behavior. |
+
+### Key Decisions
+
+- Kept the visual Marquee path independent from active-layer kind, while blocking mutations at both the Selection stroke boundary and the Document Change Journal boundary.
+- Centralized active-layer-kind lookup in the journal so existing and future Marquee mutation intents can share the same guard.
+
+### Notes
+
+- Cmd+C/X/V, arrow nudge, and Floating Selection intents are still pending in later Selection sub-issues; their Reference-active no-op checks should be added with those handlers.

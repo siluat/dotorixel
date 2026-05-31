@@ -1,10 +1,19 @@
-import type { CanvasCoords, MarqueeRegion } from '../canvas-model';
+import type { CanvasCoords, Document, MarqueeRegion } from '../canvas-model';
 import { MARQUEE_PREVIEW_CHANGED, NO_EFFECTS, type ToolEffects } from '../draw-tool';
 import { customTool } from '../tool-authoring';
 import { copyMarqueeRegion, marqueeRegionFromDrag } from '../wasm-backend';
 
 function canvasCoordsFromPoint(point: CanvasCoords): CanvasCoords {
 	return { x: Math.floor(point.x), y: Math.floor(point.y) };
+}
+
+function isReferenceLayerActive(document: Document): boolean {
+	const activeLayerId = document.active_layer_id();
+	for (let index = 0; index < document.layer_count(); index++) {
+		if (document.layer_id_at(index) !== activeLayerId) continue;
+		return document.layer_kind_at(index) === 'reference';
+	}
+	return false;
 }
 
 function marqueeFromDrag(
@@ -39,6 +48,7 @@ export const selectionTool = customTool({
 				return NO_EFFECTS;
 			},
 			draw(current, previous) {
+				if (isReferenceLayerActive(host.document)) return NO_EFFECTS;
 				if (previous === null || anchor === null) {
 					anchor = canvasCoordsFromPoint(current);
 					return NO_EFFECTS;
@@ -54,6 +64,7 @@ export const selectionTool = customTool({
 			},
 			modifierChanged: () => NO_EFFECTS,
 			end() {
+				if (isReferenceLayerActive(host.document)) return NO_EFFECTS;
 				if (!anchor) return NO_EFFECTS;
 				if (!hasUserDragged) {
 					if (initialMarquee && !initialMarquee.contains(anchor.x, anchor.y)) {

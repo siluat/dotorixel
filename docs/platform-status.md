@@ -16,7 +16,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Flood fill | ✅ | ✅ | ⬜ | BFS, 4-connectivity |
 | Eyedropper | — | ✅ | ⬜ | Drag-and-commit with live 9×9 loupe; releases to FG (left-click) or BG (right-click); skips transparent pixels |
 | Move | — | ✅ | ⬜ | Drag to reposition canvas content, snapshot-restore preview |
-| Selection / Marquee | 🔧 | 🔧 | ⬜ | Document-scoped Marquee with marching ants, persistence, pixel clearing, and drawing-tool clipping. Move/copy/paste pending |
+| Selection / Marquee | 🔧 | 🔧 | ⬜ | Document-scoped Marquee with persistence, pixel clear, drawing-tool clipping; Reference-active keeps ants but ops no-op. Move/copy/paste pending |
 | Right-click background color | — | ✅ | ⬜ | All tools draw with BG color on right-click; eraser unchanged |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |
 | Pixel-perfect filter | ✅ | ✅ | ⬜ | L-corner 3-window rule (Aseprite-style). Web: topBar/mAppBar toggle, default ON, persisted; disabled on non-freehand tools |

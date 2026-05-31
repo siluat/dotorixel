@@ -158,6 +158,55 @@ describe('PixelCanvasView', () => {
 		expect(screen.getByTestId('selection-overlay')).toBeTruthy();
 	});
 
+	it('keeps the Selection overlay geometry unchanged while Reference is active', () => {
+		const marquee = {
+			x: 1,
+			y: 1,
+			width: 2,
+			height: 2,
+			contains: () => false,
+			translate: () => null!,
+			clip_to: () => undefined
+		};
+		const commonProps = {
+			pixelCanvas,
+			marquee,
+			viewport,
+			viewportSize: { width: 100, height: 100 }
+		};
+
+		const first = render(PixelCanvasView, {
+			props: {
+				...commonProps,
+				isReferenceLayerActive: false
+			}
+		});
+		const pixelOverlay = screen.getByTestId('selection-overlay');
+		const pixelGeometry = {
+			left: pixelOverlay.style.left,
+			top: pixelOverlay.style.top,
+			width: pixelOverlay.style.width,
+			height: pixelOverlay.style.height
+		};
+		first.unmount();
+
+		render(PixelCanvasView, {
+			props: {
+				...commonProps,
+				referenceLayerUnderlay,
+				isReferenceLayerActive: true
+			}
+		});
+		const referenceOverlay = screen.getByTestId('selection-overlay');
+
+		expect({
+			left: referenceOverlay.style.left,
+			top: referenceOverlay.style.top,
+			width: referenceOverlay.style.width,
+			height: referenceOverlay.style.height
+		}).toEqual(pixelGeometry);
+	});
+
 	it('uses not-allowed cursor over the Reference image body for drawing tools', () => {
 		render(PixelCanvasView, {
 			props: {

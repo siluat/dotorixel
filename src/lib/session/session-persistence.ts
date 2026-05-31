@@ -11,6 +11,7 @@ import type { SessionStorage } from './session-storage';
 import type {
 	DisplayStateRecord,
 	LayerRecord,
+	MarqueeRecord,
 	ReferenceImageRecord,
 	SavedDocumentSummary
 } from './session-storage-types';
@@ -52,6 +53,10 @@ function serializeLayer(layer: LayerSnapshot): LayerRecord {
 	};
 }
 
+function copyMarquee(marquee: MarqueeRecord | null | undefined): MarqueeRecord | null {
+	return marquee ? { ...marquee } : null;
+}
+
 async function hydrateLayer(layer: LayerRecord): Promise<LayerSnapshot> {
 	if (layer.kind === 'pixel') return { ...layer, pixels: layer.pixels.slice() };
 	const decoded = await decodeReferenceBlob(layer.sourceBlob);
@@ -86,11 +91,12 @@ export class SessionPersistence {
 			if (shouldWrite) {
 				const existing = await this.#storage.getDocument(tab.id);
 				await this.#storage.putDocument({
-					schemaVersion: 4,
+					schemaVersion: 5,
 					id: tab.id,
 					name: tab.name,
 					width: tab.width,
 					height: tab.height,
+					marquee: copyMarquee(tab.marquee),
 					layers: tab.layers.map(serializeLayer),
 					activeLayerId: tab.activeLayerId,
 					nextLayerNumber: tab.nextLayerNumber,
@@ -178,6 +184,7 @@ export class SessionPersistence {
 					name: doc.name,
 					width: doc.width,
 					height: doc.height,
+					marquee: copyMarquee(doc.marquee),
 					layers: await Promise.all(doc.layers.map(hydrateLayer)),
 					activeLayerId: doc.activeLayerId,
 					nextLayerNumber: doc.nextLayerNumber,

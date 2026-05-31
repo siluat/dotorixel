@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { Workspace, type WorkspaceDeps } from './workspace.svelte';
-import { wasmBackend, singleLayerDocument } from '../wasm-backend';
+import { marqueeRegionFromDrag, wasmBackend, singleLayerDocument } from '../wasm-backend';
 import { createFakeDirtyNotifier } from './fake-dirty-notifier';
 import type { WorkspaceSnapshot } from '../workspace-snapshot';
 import { tabSnapshotFixture as makeTabSnap } from '../workspace-snapshot-fixtures';
@@ -109,6 +109,29 @@ describe('Workspace — tab lifecycle', () => {
 		workspace.setActiveTab(0);
 
 		expect(workspace.activeTab.name).toBe('Untitled 1');
+	});
+
+	it('switching tabs preserves each tab Marquee', () => {
+		const { workspace } = makeWorkspace();
+		workspace.activeTab.document.set_marquee(marqueeRegionFromDrag(1, 1, 3, 3));
+		workspace.addTab();
+		workspace.activeTab.document.set_marquee(marqueeRegionFromDrag(4, 0, 5, 2));
+
+		workspace.setActiveTab(0);
+		expect(workspace.activeTab.document.marquee()).toMatchObject({
+			x: 1,
+			y: 1,
+			width: 3,
+			height: 3
+		});
+
+		workspace.setActiveTab(1);
+		expect(workspace.activeTab.document.marquee()).toMatchObject({
+			x: 4,
+			y: 0,
+			width: 2,
+			height: 3
+		});
 	});
 
 	it('reuses the smallest available number after closing a tab', () => {
@@ -278,6 +301,93 @@ describe('Workspace — hydration', () => {
 		expect(workspace.shared.pixelPerfect).toBe(false);
 	});
 
+	it('hydrates a restored Marquee into the active tab Document', () => {
+		const marquee = { x: 1, y: 2, width: 3, height: 4 };
+		const restored: WorkspaceSnapshot = {
+			tabs: [
+				{
+					...makeTabSnap({
+						id: 'doc-1',
+						name: 'Tab 1',
+						width: 8,
+						height: 8
+					}),
+					marquee
+				}
+			],
+			activeTabIndex: 0,
+			sharedState: {
+				activeTool: 'pencil',
+				foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
+				backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+				recentColors: []
+			}
+		};
+
+		const { workspace } = makeWorkspace({ restored });
+
+		expect(workspace.activeTab.document.marquee()).toMatchObject(marquee);
+	});
+
+	it('clips a restored Marquee to the tab canvas bounds', () => {
+		const restored: WorkspaceSnapshot = {
+			tabs: [
+				{
+					...makeTabSnap({
+						id: 'doc-1',
+						name: 'Tab 1',
+						width: 8,
+						height: 8
+					}),
+					marquee: { x: 6, y: 5, width: 4, height: 5 }
+				}
+			],
+			activeTabIndex: 0,
+			sharedState: {
+				activeTool: 'pencil',
+				foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
+				backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+				recentColors: []
+			}
+		};
+
+		const { workspace } = makeWorkspace({ restored });
+
+		expect(workspace.activeTab.document.marquee()).toMatchObject({
+			x: 6,
+			y: 5,
+			width: 2,
+			height: 3
+		});
+	});
+
+	it('clears a restored Marquee when it no longer overlaps the tab canvas', () => {
+		const restored: WorkspaceSnapshot = {
+			tabs: [
+				{
+					...makeTabSnap({
+						id: 'doc-1',
+						name: 'Tab 1',
+						width: 8,
+						height: 8
+					}),
+					marquee: { x: 8, y: 2, width: 3, height: 3 }
+				}
+			],
+			activeTabIndex: 0,
+			sharedState: {
+				activeTool: 'pencil',
+				foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
+				backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+				recentColors: []
+			}
+		};
+
+		const { workspace } = makeWorkspace({ restored });
+
+		expect(workspace.activeTab.document.marquee()).toBeUndefined();
+	});
+
 	it('defaults pixelPerfect to true when absent from a legacy snapshot', () => {
 		const restored: WorkspaceSnapshot = {
 			tabs: [
@@ -402,6 +512,15 @@ describe('Workspace — toSnapshot', () => {
 		const snapshot = workspace.toSnapshot();
 
 		expect(snapshot.sharedState.pixelPerfect).toBe(false);
+	});
+
+	it('captures the active tab Marquee as plain snapshot data', () => {
+		const { workspace } = makeWorkspace({ gridColor: '#ECE5D9' });
+		workspace.activeTab.document.set_marquee(marqueeRegionFromDrag(1, 2, 3, 5));
+
+		const snapshot = workspace.toSnapshot();
+
+		expect(snapshot.tabs[0].marquee).toEqual({ x: 1, y: 2, width: 3, height: 4 });
 	});
 
 	it('snapshot arrays are copies independent from workspace state', () => {

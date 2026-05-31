@@ -27,10 +27,11 @@ export type StoredDocument =
 	| DocumentSchemaV1
 	| DocumentSchemaV2
 	| DocumentSchemaV3
-	| DocumentSchemaV4;
+	| DocumentSchemaV4
+	| DocumentSchemaV5;
 
 /** App-facing document type — latest version wired into persistence call sites. */
-export type DocumentRecord = DocumentSchemaV4;
+export type DocumentRecord = DocumentSchemaV5;
 
 /** Lightweight summary for browsing saved documents (excludes schemaVersion, saved, createdAt) */
 export interface SavedDocumentSummary {
@@ -98,6 +99,19 @@ export type LayerRecord = PixelLayerRecord | ReferenceLayerRecord;
 export type DocumentSchemaV4 = Omit<DocumentSchemaV3, 'schemaVersion' | 'layers'> & {
 	schemaVersion: 4;
 	layers: LayerRecord[];
+};
+
+export interface MarqueeRecord {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
+/** Schema V5 — persists the Document-scoped Marquee. */
+export type DocumentSchemaV5 = Omit<DocumentSchemaV4, 'schemaVersion'> & {
+	schemaVersion: 5;
+	marquee: MarqueeRecord | null;
 };
 
 function isReferenceLayerRecord(layer: LayerRecord): layer is ReferenceLayerRecord {
@@ -200,6 +214,21 @@ export function migrateV3ToV4(doc: DocumentSchemaV3 | DocumentSchemaV4): Documen
 }
 
 /**
+ * Migrates a V4 or V5 persisted document to schema V5.
+ * V4 input is normalized through `normalizeV4ReferenceLayer` and receives no
+ * Marquee; V5 input is normalized the same way and keeps a cloned Marquee when
+ * one is already present.
+ */
+export function migrateV4ToV5(doc: DocumentSchemaV4 | DocumentSchemaV5): DocumentSchemaV5 {
+	const v4 = normalizeV4ReferenceLayer({ ...doc, schemaVersion: 4 });
+	return {
+		...v4,
+		schemaVersion: 5,
+		marquee: doc.schemaVersion === 5 && doc.marquee ? { ...doc.marquee } : null
+	};
+}
+
+/**
  * Source-over composite of every visible layer at its declared opacity.
  * Used to build a single thumbnail buffer for the saved-work browser — the
  * Rust core renders the in-editor canvas via a parallel implementation, so
@@ -227,11 +256,13 @@ export function compositeV3(doc: DocumentSchemaV3): Uint8Array {
 }
 
 /** Pixel-only composite for persistence summaries; Reference Layers are excluded. */
-export function compositeForExportSummary(doc: DocumentSchemaV3 | DocumentSchemaV4): Uint8Array {
-	const pixelLayers =
-		doc.schemaVersion === 4
-			? doc.layers.filter((layer): layer is PixelLayerRecord => layer.kind === 'pixel')
-			: doc.layers;
+export function compositeForExportSummary(
+	doc: DocumentSchemaV3 | DocumentSchemaV4 | DocumentSchemaV5
+): Uint8Array {
+	if (doc.schemaVersion === 3) return compositeV3(doc);
+	const pixelLayers = doc.layers.filter(
+		(layer): layer is PixelLayerRecord => layer.kind === 'pixel'
+	);
 	return compositeV3({ ...doc, schemaVersion: 3, layers: pixelLayers });
 }
 

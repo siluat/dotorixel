@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 134 | [Marquee persistence — Document storage v4 → v5 migration](../issues/134-marquee-persistence-v5.md) | 2026-05-31 |
 | 133 | [Selection Action Bar — UX detail design (.pen)](../issues/133-selection-action-bar-design.md) | 2026-05-31 |
 | 153 | [Deepen Document Change Journal history ownership](../issues/153-deepen-document-change-journal-history-ownership.md) | 2026-05-30 |
 | 132 | [Selection foundation — MarqueeRegion + tool registration + DefineMarquee + marching ants](../issues/132-selection-foundation.md) | 2026-05-30 |

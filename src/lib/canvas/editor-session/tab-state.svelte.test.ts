@@ -188,6 +188,65 @@ describe('TabState — effect dispatcher', () => {
 		expect(notifier.dirtyCalls).toEqual(['doc-test']);
 	});
 
+	it('toSnapshot keeps the committed Marquee while a selection preview is live', () => {
+		const { tab, shared } = makeTab();
+		shared.activeTool = 'selection';
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 3, y: 3 }, { x: 1, y: 1 });
+		tab.drawEnd();
+
+		expect(tab.toSnapshot().marquee).toEqual({ x: 1, y: 1, width: 3, height: 3 });
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 5, y: 5 }, null);
+		tab.draw({ x: 6, y: 6 }, { x: 5, y: 5 });
+
+		expect(tab.document.marquee()).toMatchObject({ x: 5, y: 5, width: 2, height: 2 });
+		expect(tab.toSnapshot().marquee).toEqual({ x: 1, y: 1, width: 3, height: 3 });
+
+		tab.drawEnd();
+
+		expect(tab.toSnapshot().marquee).toEqual({ x: 5, y: 5, width: 2, height: 2 });
+	});
+
+	it('drawEnd exposes the committed Marquee to synchronous dirty snapshots', () => {
+		const shared = new SharedState();
+		shared.activeTool = 'selection';
+		let tab: TabState | undefined;
+		const dirtySnapshots: Array<ReturnType<TabState['toSnapshot']>['marquee']> = [];
+		tab = new TabState({
+			backend: wasmBackend,
+			shared,
+			keyboard: { getShiftHeld: () => false },
+			notifier: {
+				markDirty() {
+					if (!tab) throw new Error('Expected TabState to be initialized');
+					dirtySnapshots.push(tab.toSnapshot().marquee);
+				},
+				notifyTabRemoved() {}
+			},
+			documentId: 'doc-test',
+			name: 'Untitled 1',
+			canvasWidth: 8,
+			canvasHeight: 8
+		});
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 3, y: 3 }, { x: 1, y: 1 });
+		tab.drawEnd();
+		dirtySnapshots.length = 0;
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 5, y: 5 }, null);
+		tab.draw({ x: 6, y: 6 }, { x: 5, y: 5 });
+		tab.drawEnd();
+
+		expect(dirtySnapshots).toEqual([{ x: 5, y: 5, width: 2, height: 2 }]);
+	});
+
 	it('selection drawCancel restores the previous Marquee without a dirty commit', () => {
 		const { tab, notifier, shared } = makeTab();
 		shared.activeTool = 'selection';

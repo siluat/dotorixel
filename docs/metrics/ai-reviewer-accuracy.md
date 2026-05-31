@@ -6,14 +6,26 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 131 | 98 | 33 | 110 | 75% | 47% |
-| cubic-dev-ai[bot] | 76 | 61 | 15 | 142 | 80% | 30% |
-| coderabbitai[bot] | 173 | 119 | 54 | 82 | 69% | 59% |
+| greptile-apps[bot] | 131 | 98 | 33 | 114 | 75% | 46% |
+| cubic-dev-ai[bot] | 77 | 62 | 15 | 145 | 81% | 30% |
+| coderabbitai[bot] | 176 | 122 | 54 | 83 | 69% | 60% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #232 | coderabbitai[bot] | Accept | Clear Marquee preview baseline before commit-side dirty effects |
+| #232 | cubic-dev-ai[bot] | Miss | Did not flag stale preview baseline during commit-side dirty effects |
+| #232 | greptile-apps[bot] | Miss | Did not flag stale preview baseline during commit-side dirty effects |
+| #232 | cubic-dev-ai[bot] | Accept | Selection preview should not be persisted before commit |
+| #232 | coderabbitai[bot] | Accept | Add already-V5 Marquee preservation test |
+| #232 | coderabbitai[bot] | Accept | Document migrateV4ToV5 public contract |
+| #232 | coderabbitai[bot] | Miss | Did not flag selection preview persistence before commit |
+| #232 | greptile-apps[bot] | Miss | Did not flag selection preview persistence before commit |
+| #232 | cubic-dev-ai[bot] | Miss | Did not flag already-V5 Marquee preservation test gap |
+| #232 | greptile-apps[bot] | Miss | Did not flag already-V5 Marquee preservation test gap |
+| #232 | cubic-dev-ai[bot] | Miss | Did not flag migrateV4ToV5 public contract documentation gap |
+| #232 | greptile-apps[bot] | Miss | Did not flag migrateV4ToV5 public contract documentation gap |
 | #231 | coderabbitai[bot] | Accept | Clear should be blocked while a draw stroke is active |
 | #231 | cubic-dev-ai[bot] | Accept | Clear should be blocked while a draw stroke is active |
 | #231 | cubic-dev-ai[bot] | Accept | Reference Layer clear no-op should not push undo or dirty state |

@@ -10,7 +10,7 @@ import {
 	type TabSnapshotFixtureOpts
 } from '$lib/canvas/workspace-snapshot-fixtures';
 import { Workspace } from '$lib/canvas/editor-session/workspace.svelte';
-import { wasmBackend } from '$lib/canvas/wasm-backend';
+import { marqueeRegionFromDrag, wasmBackend } from '$lib/canvas/wasm-backend';
 import { createFakeDirtyNotifier } from '$lib/canvas/editor-session/fake-dirty-notifier';
 import { SessionPersistence } from './session-persistence';
 import { SessionStorage } from './session-storage';
@@ -115,6 +115,46 @@ describe('SessionPersistence', () => {
 		expect(restored!.activeTabIndex).toBe(0);
 	});
 
+	it('round-trips a tab Marquee through document persistence', async () => {
+		const marquee = { x: 1, y: 2, width: 3, height: 4 };
+		const tab = {
+			...makeTab({ width: 8, height: 8 }),
+			marquee
+		} as TabSnapshot;
+
+		await persistence.save(makeSnapshot({}, [tab]));
+		const restored = await persistence.restore();
+
+		expect(restored).not.toBeNull();
+		expect(restored!.tabs[0].marquee).toEqual(marquee);
+	});
+
+	it('reloads a saved Workspace Marquee into Document.marquee()', async () => {
+		const notifier = createFakeDirtyNotifier();
+		const workspace = new Workspace({
+			backend: wasmBackend,
+			notifier,
+			keyboard: { getShiftHeld: () => false }
+		});
+		workspace.activeTab.document.set_marquee(marqueeRegionFromDrag(2, 1, 5, 3));
+
+		await persistence.save(workspace.toSnapshot());
+		const restored = await persistence.restore();
+		const reloaded = new Workspace({
+			backend: wasmBackend,
+			notifier: createFakeDirtyNotifier(),
+			keyboard: { getShiftHeld: () => false },
+			restored: restored!
+		});
+
+		expect(reloaded.activeTab.document.marquee()).toMatchObject({
+			x: 2,
+			y: 1,
+			width: 4,
+			height: 3
+		});
+	});
+
 	it('round-trips every layer (id, name, pixels, visibility, opacity) and document state', async () => {
 		const bottomId = crypto.randomUUID();
 		const topId = crypto.randomUUID();
@@ -186,11 +226,12 @@ describe('SessionPersistence', () => {
 			data: sourceRgba
 		});
 		const doc: DocumentRecord = {
-			schemaVersion: 4,
+			schemaVersion: 5,
 			id: 'doc-reference',
 			name: 'Reference doc',
 			width: 2,
 			height: 2,
+			marquee: null,
 			layers: [
 				{
 					kind: 'pixel',
@@ -259,11 +300,12 @@ describe('SessionPersistence', () => {
 			data: sourceRgba
 		});
 		await storage.putDocument({
-			schemaVersion: 4,
+			schemaVersion: 5,
 			id: 'doc-reference-workspace',
 			name: 'Reference workspace',
 			width: 2,
 			height: 2,
+			marquee: null,
 			layers: [
 				{
 					kind: 'pixel',
@@ -558,11 +600,12 @@ describe('SessionPersistence', () => {
 		// Simulate corrupted data: activeTabIndex beyond the tab count
 		const layerId = crypto.randomUUID();
 		const doc: DocumentRecord = {
-			schemaVersion: 4,
+			schemaVersion: 5,
 			id: 'doc-1',
 			name: 'Tab',
 			width: 1,
 			height: 1,
+			marquee: null,
 			layers: [
 				{
 					kind: 'pixel',

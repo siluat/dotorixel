@@ -1,6 +1,6 @@
 ---
 title: "Marquee persistence — Document storage v4 → v5 migration"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -39,3 +39,24 @@ Implementation notes:
 ## Blocked by
 
 - [132 — Selection foundation](132-selection-foundation.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/session/session-storage-types.ts` | Added Document schema v5 with persisted Marquee data and v4→v5 migration. |
+| `src/lib/session/session-storage.ts` | Bumped IndexedDB to v5 and normalized legacy documents to the current schema. |
+| `src/lib/session/session-persistence.ts` | Saved and restored tab Marquee data through document persistence. |
+| `src/lib/canvas/workspace-snapshot.ts` | Added optional Marquee data to tab snapshots. |
+| `src/lib/canvas/wasm-backend.ts` | Hydrated persisted Marquee data into the WASM Document, clipping stale bounds to the loaded canvas. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Serialized the active Document Marquee into workspace snapshots. |
+| `src/lib/session/*.test.ts`, `src/lib/canvas/editor-session/workspace.svelte.test.ts` | Covered v4→v5 migration, save→restore round-trip, reload hydration, tab switching, and stale-bound clipping. |
+
+### Key Decisions
+
+- Persisted the Marquee as Document v5 data rather than workspace state because the Marquee is document-scoped and follows the Document across reloads and tab switches.
+- Clipped persisted Marquee bounds during hydration so documents resized before reload cannot restore an out-of-canvas Marquee.
+
+### Notes
+
+- A persisted Marquee that no longer overlaps the loaded canvas is cleared on hydration.

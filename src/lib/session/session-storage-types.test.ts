@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { migrateV3ToV4 } from './session-storage-types';
+import { migrateV3ToV4, migrateV4ToV5 } from './session-storage-types';
 import type {
 	DocumentSchemaV3,
 	DocumentSchemaV4,
+	DocumentSchemaV5,
 	PixelLayerRecord,
 	ReferenceLayerRecord
 } from './session-storage-types';
@@ -164,5 +165,32 @@ describe('migrateV3ToV4', () => {
 		const empty = makeV3({ layers: [] });
 
 		expect(() => migrateV3ToV4(empty)).toThrow('Cannot migrate a V3 document with no layers');
+	});
+});
+
+describe('migrateV4ToV5', () => {
+	it('adds a null Marquee to legacy V4 documents', () => {
+		const v4 = migrateV3ToV4(makeV3());
+
+		const v5 = migrateV4ToV5(v4);
+
+		expect(v5.schemaVersion).toBe(5);
+		expect(v5.marquee).toBeNull();
+		expect(v5.layers).toEqual(v4.layers);
+		expect(v5.activeLayerId).toBe(v4.activeLayerId);
+	});
+
+	it('preserves a Marquee when input is already V5', () => {
+		const v4 = migrateV3ToV4(makeV3());
+		const marquee = { x: 1, y: 2, width: 3, height: 4 };
+		const seeded: DocumentSchemaV5 = { ...migrateV4ToV5(v4), marquee };
+
+		const v5 = migrateV4ToV5(seeded);
+
+		expect(v5.schemaVersion).toBe(5);
+		expect(v5.marquee).toEqual(marquee);
+		expect(v5.marquee).not.toBe(marquee);
+		expect(v5.layers).toEqual(seeded.layers);
+		expect(v5.activeLayerId).toBe(seeded.activeLayerId);
 	});
 });

@@ -14,6 +14,7 @@ import type { SamplingSession } from './sampling/session.svelte';
 import type { ToolType } from './tool-registry';
 import type { EditorEffects } from './tool-runner.svelte';
 import { activeLayerPixels, restoreActiveLayerPixels } from './wasm-backend';
+import { createMarqueeClippedOps } from './drawing-ops';
 
 /**
  * Per-sample drawing step for continuous tools (pencil, eraser).
@@ -92,6 +93,13 @@ function toolContext(host: SessionHost, spec: StrokeSpec, ops: DrawingOps): Tool
 	};
 }
 
+function strokeDrawingOps(host: SessionHost, opts: { pixelPerfect?: boolean } = {}): DrawingOps {
+	const pixelPerfect = opts.pixelPerfect ?? false;
+	const ops = pixelPerfect ? createPixelPerfectOps(host.baseOps) : host.baseOps;
+	const marquee = host.document.marquee();
+	return createMarqueeClippedOps(ops, marquee);
+}
+
 function undoableStartEffects(addsActiveColor: boolean, color: Color): EditorEffects {
 	return addsActiveColor
 		? [...CAPTURE_UNDO_SNAPSHOT, { type: 'addRecentColor', hex: colorToHex(color) }]
@@ -117,10 +125,9 @@ export function continuousTool(spec: {
 			// PP wraps the base ops only when both the tool opts in and the user
 			// has the feature enabled. The wrapper carries a per-stroke cache +
 			// tail, so it must be scoped to this session.
-			const strokeOps: DrawingOps =
-				supportsPixelPerfect && host.pixelPerfect
-					? createPixelPerfectOps(host.baseOps)
-					: host.baseOps;
+			const strokeOps = strokeDrawingOps(host, {
+				pixelPerfect: supportsPixelPerfect && host.pixelPerfect
+			});
 			const ctx = toolContext(host, strokeSpec, strokeOps);
 
 			return {
@@ -159,7 +166,7 @@ export function shapeTool(spec: {
 	return {
 		id: spec.id,
 		open(host, strokeSpec): StrokeSession {
-			const ctx = toolContext(host, strokeSpec, host.baseOps);
+			const ctx = toolContext(host, strokeSpec, strokeDrawingOps(host));
 			let snapshot: Uint8Array | null = null;
 			let anchor: CanvasCoords | null = null;
 			let lastCurrent: CanvasCoords | null = null;
@@ -220,7 +227,7 @@ export function oneShotTool(spec: {
 	return {
 		id: spec.id,
 		open(host, strokeSpec): StrokeSession {
-			const ctx = toolContext(host, strokeSpec, host.baseOps);
+			const ctx = toolContext(host, strokeSpec, strokeDrawingOps(host));
 			let fired = false;
 
 			return {

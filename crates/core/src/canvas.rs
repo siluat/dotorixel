@@ -304,7 +304,50 @@ impl PixelCanvas {
     /// coordinates are outside canvas bounds or the pixel already has
     /// `fill_color`.
     pub fn flood_fill(&mut self, start_x: u32, start_y: u32, fill_color: Color) -> bool {
+        self.flood_fill_where(start_x, start_y, fill_color, |_, _| true)
+    }
+
+    /// Fills pixels connected to `(start_x, start_y)` with `fill_color`,
+    /// constrained to the rectangular bounds `(x, y, width, height)`.
+    ///
+    /// The bounds may start outside the canvas; only included in-canvas
+    /// pixels can be filled.
+    pub fn flood_fill_rect(
+        &mut self,
+        start_x: u32,
+        start_y: u32,
+        fill_color: Color,
+        x: i32,
+        y: i32,
+        width: u32,
+        height: u32,
+    ) -> bool {
+        let left = i64::from(x);
+        let top = i64::from(y);
+        let right = left + i64::from(width);
+        let bottom = top + i64::from(height);
+
+        self.flood_fill_where(start_x, start_y, fill_color, |px, py| {
+            let px = i64::from(px);
+            let py = i64::from(py);
+            px >= left && py >= top && px < right && py < bottom
+        })
+    }
+
+    pub(crate) fn flood_fill_where<F>(
+        &mut self,
+        start_x: u32,
+        start_y: u32,
+        fill_color: Color,
+        mut includes: F,
+    ) -> bool
+    where
+        F: FnMut(u32, u32) -> bool,
+    {
         if !self.is_inside_bounds(start_x, start_y) {
+            return false;
+        }
+        if !includes(start_x, start_y) {
             return false;
         }
 
@@ -337,6 +380,9 @@ impl PixelCanvas {
                 let nux = nx as u32;
                 let nuy = ny as u32;
                 if !self.is_inside_bounds(nux, nuy) {
+                    continue;
+                }
+                if !includes(nux, nuy) {
                     continue;
                 }
                 let idx = nuy as usize * w + nux as usize;
@@ -1062,5 +1108,29 @@ mod tests {
         let mut canvas = PixelCanvas::new(4, 4).unwrap();
         assert!(!canvas.flood_fill(4, 0, RED));
         assert!(!canvas.flood_fill(0, 4, RED));
+    }
+
+    #[test]
+    fn flood_fill_rect_fills_only_inside_region() {
+        let mut canvas = PixelCanvas::new(4, 4).unwrap();
+
+        assert!(canvas.flood_fill_rect(1, 1, BLACK, 1, 1, 2, 2));
+
+        assert_eq!(canvas.get_pixel(0, 1).unwrap(), Color::TRANSPARENT);
+        assert_eq!(canvas.get_pixel(1, 1).unwrap(), BLACK);
+        assert_eq!(canvas.get_pixel(2, 1).unwrap(), BLACK);
+        assert_eq!(canvas.get_pixel(1, 2).unwrap(), BLACK);
+        assert_eq!(canvas.get_pixel(2, 2).unwrap(), BLACK);
+        assert_eq!(canvas.get_pixel(3, 2).unwrap(), Color::TRANSPARENT);
+    }
+
+    #[test]
+    fn flood_fill_rect_seed_outside_region_returns_false() {
+        let mut canvas = PixelCanvas::new(4, 4).unwrap();
+
+        assert!(!canvas.flood_fill_rect(0, 0, BLACK, 1, 1, 2, 2));
+
+        assert_eq!(canvas.get_pixel(0, 0).unwrap(), Color::TRANSPARENT);
+        assert_eq!(canvas.get_pixel(1, 1).unwrap(), Color::TRANSPARENT);
     }
 }

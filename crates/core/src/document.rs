@@ -538,6 +538,30 @@ impl Document {
         }
     }
 
+    /// 4-connected flood fill on the active layer starting at `(x, y)`,
+    /// constrained to `bounds`. Returns `true` when at least one pixel was
+    /// changed, `false` when the active layer is a Reference Layer.
+    pub fn flood_fill_bounded(
+        &mut self,
+        x: u32,
+        y: u32,
+        color: Color,
+        bounds: MarqueeRegion,
+    ) -> bool {
+        match &mut self.active_layer_mut().kind {
+            LayerKind::Pixel(canvas) => canvas.flood_fill_rect(
+                x,
+                y,
+                color,
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+            ),
+            LayerKind::Reference(_) => false,
+        }
+    }
+
     /// Clears the active layer to fully transparent. Other layers are
     /// unaffected. No-op when the active layer is a Reference Layer.
     pub fn clear(&mut self) {
@@ -1037,6 +1061,33 @@ mod tests {
                 assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(x, y).unwrap(), red);
             }
         }
+    }
+
+    #[test]
+    fn flood_fill_bounded_writes_only_inside_bounds_on_active_layer() {
+        let a = Uuid::new_v4();
+        let mut doc = Document::new(4, 4, a, "A".to_string()).unwrap();
+        let bounds = MarqueeRegion::from_drag(1, 1, 2, 2);
+
+        let painted = doc.flood_fill_bounded(1, 1, Color::new(0, 0, 255, 255), bounds);
+
+        assert!(painted);
+        assert_eq!(
+            pixel_canvas(&doc.layers[0]).get_pixel(0, 1).unwrap(),
+            Color::TRANSPARENT
+        );
+        assert_eq!(
+            pixel_canvas(&doc.layers[0]).get_pixel(1, 1).unwrap(),
+            Color::new(0, 0, 255, 255)
+        );
+        assert_eq!(
+            pixel_canvas(&doc.layers[0]).get_pixel(2, 2).unwrap(),
+            Color::new(0, 0, 255, 255)
+        );
+        assert_eq!(
+            pixel_canvas(&doc.layers[0]).get_pixel(3, 2).unwrap(),
+            Color::TRANSPARENT
+        );
     }
 
     #[test]

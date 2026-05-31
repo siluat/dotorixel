@@ -20,7 +20,8 @@ import {
 	wasm_interpolate_pixels,
 	wasm_rectangle_outline,
 	wasm_ellipse_outline,
-	wasm_flood_fill
+	wasm_flood_fill,
+	wasm_flood_fill_bounded
 } from '$wasm/dotorixel_wasm';
 import type {
 	Document,
@@ -37,7 +38,7 @@ import type {
 	ReferenceLayerRecord
 } from '$lib/session/session-storage-types';
 import type { ViewportData, ViewportOps } from './viewport';
-import type { DrawingOps, DrawingToolType } from './drawing-ops';
+import type { DrawingOps, DrawingToolType, MarqueeBounds } from './drawing-ops';
 import type { CanvasBackend } from './editor-session/canvas-backend';
 
 // ── Internal mappings ───────────────────────────────────────────────
@@ -61,6 +62,15 @@ const TOOL_MAP: Record<DrawingToolType, WasmToolType> = {
 	rectangle: WasmToolType.Rectangle,
 	ellipse: WasmToolType.Ellipse
 };
+
+function marqueeBoundsToWasm(region: MarqueeBounds): WasmMarqueeRegion {
+	return WasmMarqueeRegion.from_drag(
+		region.x,
+		region.y,
+		region.x + region.width - 1,
+		region.y + region.height - 1
+	);
+}
 
 function roundLikeRust(value: number): number {
 	return value < 0 ? -Math.round(-value) : Math.round(value);
@@ -274,13 +284,13 @@ export function createDrawingOps(getCanvas: () => PixelCanvas): DrawingOps {
 			const c = canvas.get_pixel(x, y);
 			return { r: c.r, g: c.g, b: c.b, a: c.a };
 		},
-		floodFill(x, y, color) {
-			return wasm_flood_fill(
-				resolveWasmCanvas(getCanvas()),
-				x,
-				y,
-				new WasmColor(color.r, color.g, color.b, color.a)
-			);
+		floodFill(x, y, color, bounds) {
+			const canvas = resolveWasmCanvas(getCanvas());
+			const wasmColor = new WasmColor(color.r, color.g, color.b, color.a);
+			if (bounds) {
+				return wasm_flood_fill_bounded(canvas, x, y, wasmColor, marqueeBoundsToWasm(bounds));
+			}
+			return wasm_flood_fill(canvas, x, y, wasmColor);
 		},
 		interpolatePixels: wasm_interpolate_pixels,
 		rectangleOutline: wasm_rectangle_outline,
@@ -389,12 +399,13 @@ export function createDocumentDrawingOps(getDocument: () => Document): DrawingOp
 				return null;
 			}
 		},
-		floodFill(x, y, color) {
-			return resolveWasmDocument(getDocument()).flood_fill(
-				x,
-				y,
-				new WasmColor(color.r, color.g, color.b, color.a)
-			);
+		floodFill(x, y, color, bounds) {
+			const document = resolveWasmDocument(getDocument());
+			const wasmColor = new WasmColor(color.r, color.g, color.b, color.a);
+			if (bounds) {
+				return document.flood_fill_bounded(x, y, wasmColor, marqueeBoundsToWasm(bounds));
+			}
+			return document.flood_fill(x, y, wasmColor);
 		},
 		interpolatePixels: wasm_interpolate_pixels,
 		rectangleOutline: wasm_rectangle_outline,
@@ -431,9 +442,9 @@ export function teeDrawingOps(primary: DrawingOps, secondary: DrawingOps): Drawi
 		getPixel(x, y) {
 			return primary.getPixel(x, y);
 		},
-		floodFill(x, y, color) {
-			const result = primary.floodFill(x, y, color);
-			secondary.floodFill(x, y, color);
+		floodFill(x, y, color, bounds) {
+			const result = primary.floodFill(x, y, color, bounds);
+			secondary.floodFill(x, y, color, bounds);
 			return result;
 		},
 		interpolatePixels: primary.interpolatePixels,
@@ -471,15 +482,6 @@ function isReferenceLayer(
 	layer: HydratableLayerRecord
 ): layer is HydratedReferenceLayerRecord {
 	return 'kind' in layer && layer.kind === 'reference';
-}
-
-function marqueeRecordToWasm(region: MarqueeRecord): WasmMarqueeRegion {
-	return WasmMarqueeRegion.from_drag(
-		region.x,
-		region.y,
-		region.x + region.width - 1,
-		region.y + region.height - 1
-	);
 }
 
 /**
@@ -520,7 +522,7 @@ export function documentFromLayerSource(source: DocumentLayerSource): Document {
 		source.timelinePanelCollapsed
 	);
 	if (source.marquee) {
-		const clipped = marqueeRecordToWasm(source.marquee).clip_to(source.width, source.height);
+		const clipped = marqueeBoundsToWasm(source.marquee).clip_to(source.width, source.height);
 		if (clipped) {
 			document.set_marquee(clipped);
 		}

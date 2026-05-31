@@ -615,6 +615,22 @@ impl WasmDocument {
         self.inner.flood_fill(x as u32, y as u32, color.inner)
     }
 
+    /// 4-connected flood fill on the active layer, constrained to `bounds`.
+    /// Negative coordinates short-circuit to `false`.
+    pub fn flood_fill_bounded(
+        &mut self,
+        x: i32,
+        y: i32,
+        color: &WasmColor,
+        bounds: &WasmMarqueeRegion,
+    ) -> bool {
+        if x < 0 || y < 0 {
+            return false;
+        }
+        self.inner
+            .flood_fill_bounded(x as u32, y as u32, color.inner, bounds.inner)
+    }
+
     /// Clears the active layer to fully transparent. Other layers are
     /// unaffected.
     pub fn clear(&mut self) {
@@ -911,6 +927,30 @@ pub fn wasm_flood_fill(canvas: &mut WasmPixelCanvas, x: i32, y: i32, color: &Was
         return false;
     }
     canvas.inner.flood_fill(x as u32, y as u32, color.inner)
+}
+
+/// Fills all pixels connected to `(x, y)` with the given color using 4-connectivity,
+/// constrained to `bounds`.
+#[wasm_bindgen]
+pub fn wasm_flood_fill_bounded(
+    canvas: &mut WasmPixelCanvas,
+    x: i32,
+    y: i32,
+    color: &WasmColor,
+    bounds: &WasmMarqueeRegion,
+) -> bool {
+    if x < 0 || y < 0 {
+        return false;
+    }
+    canvas.inner.flood_fill_rect(
+        x as u32,
+        y as u32,
+        color.inner,
+        bounds.inner.x(),
+        bounds.inner.y(),
+        bounds.inner.width(),
+        bounds.inner.height(),
+    )
 }
 
 // ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
 import { createStrokeEngine, type StrokeEngineDeps } from './stroke-engine';
-import { canvasFactory, singleLayerDocument } from './wasm-backend';
+import { canvasFactory, marqueeRegionFromDrag, singleLayerDocument } from './wasm-backend';
 import { SharedState } from './shared-state.svelte';
 import { createSamplingSession } from './sampling/session.svelte';
 import { createDocumentSamplingPort } from './sampling/adapters/document';
@@ -65,6 +65,10 @@ function getDocPixel(doc: Document, x: number, y: number): Color {
 
 function hasEffect(effects: EditorEffects, type: string): boolean {
 	return effects.some((e) => e.type === type);
+}
+
+function setMarquee(document: Document, x0: number, y0: number, x1: number, y1: number): void {
+	document.set_marquee(marqueeRegionFromDrag(x0, y0, x1, y1));
 }
 
 // ── input-source mapping ─────────────────────────────────────────────
@@ -405,5 +409,141 @@ describe('stroke-engine — pencil pixel-perfect', () => {
 		stroke.end();
 
 		expect(getDocPixel(document, 1, 0)).toEqual(fgWhite);
+	});
+});
+
+// ── Marquee clipping ───────────────────────────────────────────────
+
+describe('stroke-engine — Marquee clipping', () => {
+	it('clips pencil strokes to the active Marquee', () => {
+		const { engine, shared, document } = createSetup();
+		setMarquee(document, 1, 1, 2, 2);
+		shared.activeTool = 'pencil';
+
+		const { stroke } = engine.begin({ button: 0, pointerType: 'mouse' });
+		stroke.sample({ x: 0, y: 0 }, null);
+		stroke.sample({ x: 1, y: 1 }, { x: 0, y: 0 });
+		stroke.sample({ x: 3, y: 3 }, { x: 1, y: 1 });
+		stroke.end();
+
+		expect(getDocPixel(document, 0, 0)).toEqual(TRANSPARENT);
+		expect(getDocPixel(document, 1, 1)).toEqual(BLACK);
+		expect(getDocPixel(document, 2, 2)).toEqual(BLACK);
+		expect(getDocPixel(document, 3, 3)).toEqual(TRANSPARENT);
+	});
+
+	it('clips eraser strokes to the active Marquee', () => {
+		const { engine, shared, document } = createSetup();
+		shared.activeTool = 'pencil';
+		let active = engine.begin({ button: 0, pointerType: 'mouse' }).stroke;
+		active.sample({ x: 0, y: 0 }, null);
+		active.sample({ x: 1, y: 1 }, { x: 0, y: 0 });
+		active.end();
+		expect(getDocPixel(document, 0, 0)).toEqual(BLACK);
+		expect(getDocPixel(document, 1, 1)).toEqual(BLACK);
+
+		setMarquee(document, 1, 1, 2, 2);
+		shared.activeTool = 'eraser';
+		active = engine.begin({ button: 0, pointerType: 'mouse' }).stroke;
+		active.sample({ x: 0, y: 0 }, null);
+		active.sample({ x: 1, y: 1 }, { x: 0, y: 0 });
+		active.end();
+
+		expect(getDocPixel(document, 0, 0)).toEqual(BLACK);
+		expect(getDocPixel(document, 1, 1)).toEqual(TRANSPARENT);
+	});
+
+	it('clips line strokes to the active Marquee', () => {
+		const { engine, shared, document } = createSetup();
+		setMarquee(document, 1, 1, 2, 2);
+		shared.activeTool = 'line';
+
+		const { stroke } = engine.begin({ button: 0, pointerType: 'mouse' });
+		stroke.sample({ x: 0, y: 1 }, null);
+		stroke.sample({ x: 3, y: 1 }, { x: 0, y: 1 });
+		stroke.end();
+
+		expect(getDocPixel(document, 0, 1)).toEqual(TRANSPARENT);
+		expect(getDocPixel(document, 1, 1)).toEqual(BLACK);
+		expect(getDocPixel(document, 2, 1)).toEqual(BLACK);
+		expect(getDocPixel(document, 3, 1)).toEqual(TRANSPARENT);
+	});
+
+	it('clips rectangle strokes to the active Marquee', () => {
+		const { engine, shared, document } = createSetup();
+		setMarquee(document, 1, 1, 2, 2);
+		shared.activeTool = 'rectangle';
+
+		const { stroke } = engine.begin({ button: 0, pointerType: 'mouse' });
+		stroke.sample({ x: 1, y: 1 }, null);
+		stroke.sample({ x: 3, y: 3 }, { x: 1, y: 1 });
+		stroke.end();
+
+		expect(getDocPixel(document, 1, 1)).toEqual(BLACK);
+		expect(getDocPixel(document, 2, 1)).toEqual(BLACK);
+		expect(getDocPixel(document, 1, 2)).toEqual(BLACK);
+		expect(getDocPixel(document, 3, 1)).toEqual(TRANSPARENT);
+	});
+
+	it('clips ellipse strokes to the active Marquee', () => {
+		const { engine, shared, document } = createSetup();
+		setMarquee(document, 1, 1, 2, 2);
+		shared.activeTool = 'ellipse';
+
+		const { stroke } = engine.begin({ button: 0, pointerType: 'mouse' });
+		stroke.sample({ x: 1, y: 1 }, null);
+		stroke.sample({ x: 3, y: 3 }, { x: 1, y: 1 });
+		stroke.end();
+
+		expect(getDocPixel(document, 2, 1)).toEqual(BLACK);
+		expect(getDocPixel(document, 1, 2)).toEqual(BLACK);
+		expect(getDocPixel(document, 3, 2)).toEqual(TRANSPARENT);
+	});
+
+	it('clips flood fill to the active Marquee', () => {
+		const { engine, shared, document } = createSetup();
+		setMarquee(document, 1, 1, 2, 2);
+		shared.activeTool = 'floodfill';
+
+		const { stroke } = engine.begin({ button: 0, pointerType: 'mouse' });
+		stroke.sample({ x: 1, y: 1 }, null);
+		stroke.end();
+
+		expect(getDocPixel(document, 0, 1)).toEqual(TRANSPARENT);
+		expect(getDocPixel(document, 1, 1)).toEqual(BLACK);
+		expect(getDocPixel(document, 2, 2)).toEqual(BLACK);
+		expect(getDocPixel(document, 3, 2)).toEqual(TRANSPARENT);
+	});
+
+	it('keeps move tool as a full-layer translation when a Marquee is active', () => {
+		const { engine, shared, document } = createSetup();
+		shared.activeTool = 'pencil';
+		engine.begin({ button: 0, pointerType: 'mouse' }).stroke.sample({ x: 0, y: 0 }, null);
+		expect(getDocPixel(document, 0, 0)).toEqual(BLACK);
+
+		setMarquee(document, 2, 2, 3, 3);
+		shared.activeTool = 'move';
+		const { stroke } = engine.begin({ button: 0, pointerType: 'mouse' });
+		stroke.sample({ x: 0, y: 0 }, null);
+		stroke.sample({ x: 2, y: 0 }, { x: 0, y: 0 });
+		stroke.end();
+
+		expect(getDocPixel(document, 0, 0)).toEqual(TRANSPARENT);
+		expect(getDocPixel(document, 2, 0)).toEqual(BLACK);
+	});
+
+	it('keeps eyedropper sampling outside the Marquee', () => {
+		const red: Color = { r: 255, g: 0, b: 0, a: 255 };
+		const { engine: seed, document } = createSetup({ foregroundColor: red });
+		seed.begin({ button: 0, pointerType: 'mouse' }).stroke.sample({ x: 0, y: 0 }, null);
+
+		const { engine, shared } = createSetup({ document });
+		setMarquee(document, 2, 2, 3, 3);
+		shared.activeTool = 'eyedropper';
+		const { stroke } = engine.begin({ button: 0, pointerType: 'mouse' });
+		stroke.sample({ x: 0, y: 0 }, null);
+		const colorPick = stroke.end().find((e) => e.type === 'colorPick');
+
+		expect(colorPick).toEqual({ type: 'colorPick', target: 'foreground', color: red });
 	});
 });

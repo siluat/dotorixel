@@ -259,7 +259,10 @@
 					{@const kind = layer.kind}
 					{@const rowDragY = dragTranslateY(layer.id, visualIndex)}
 					{@const isDraggingLayer = draggingId === layer.id}
-					{@const isDragTarget = dragTargetIndex === visualIndex}
+					{@const isDragTarget =
+						dragTargetIndex !== null &&
+						dragTargetIndex !== dragBaseIndex &&
+						dragTargetIndex === visualIndex}
 					<div
 						class="row"
 						class:row--active={isActive}

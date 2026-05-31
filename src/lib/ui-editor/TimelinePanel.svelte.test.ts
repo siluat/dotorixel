@@ -618,6 +618,10 @@ describe('TimelinePanel', () => {
 		const handleC = rowC.querySelector('[data-reorder-handle]') as HTMLButtonElement;
 
 		await fireEvent.pointerDown(handleC, { clientY: 0, pointerId: 1 });
+
+		expect(rowC.getAttribute('data-dragging')).toBe('true');
+		expect(rowC.hasAttribute('data-drag-target')).toBe(false);
+
 		await fireEvent.pointerMove(handleC, { clientY: 64, pointerId: 1 });
 
 		expect(rowC.getAttribute('data-dragging')).toBe('true');

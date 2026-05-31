@@ -549,10 +549,8 @@ impl Document {
         color: Color,
         bounds: MarqueeRegion,
     ) -> bool {
-        let Some(bounds) = CanvasRect::new(bounds.x(), bounds.y(), bounds.width(), bounds.height())
-        else {
-            return false;
-        };
+        let bounds = CanvasRect::new(bounds.x(), bounds.y(), bounds.width(), bounds.height())
+            .expect("MarqueeRegion bounds are always non-empty");
 
         match &mut self.active_layer_mut().kind {
             LayerKind::Pixel(canvas) => canvas.flood_fill_rect(x, y, color, bounds),

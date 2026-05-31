@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 133 | 100 | 33 | 126 | 75% | 44% |
-| cubic-dev-ai[bot] | 80 | 65 | 15 | 156 | 81% | 29% |
-| coderabbitai[bot] | 186 | 132 | 54 | 87 | 71% | 60% |
+| greptile-apps[bot] | 133 | 100 | 33 | 127 | 75% | 44% |
+| cubic-dev-ai[bot] | 81 | 66 | 15 | 156 | 81% | 30% |
+| coderabbitai[bot] | 186 | 132 | 54 | 88 | 71% | 60% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #237 | cubic-dev-ai[bot] | Accept | Trust MarqueeRegion non-empty invariant in bounded flood-fill conversion |
+| #237 | coderabbitai[bot] | Miss | Did not flag unreachable MarqueeRegion empty-bounds guard |
+| #237 | greptile-apps[bot] | Miss | Did not flag unreachable MarqueeRegion empty-bounds guard |
 | #237 | coderabbitai[bot] | Accept | Reject zero-sized Marquee bounds before WASM drag conversion |
 | #237 | cubic-dev-ai[bot] | Accept | Intersect caller flood-fill bounds with active Marquee bounds |
 | #237 | cubic-dev-ai[bot] | Accept | Document `flood_fill_bounded` false cases |

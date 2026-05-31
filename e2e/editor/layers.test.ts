@@ -253,6 +253,59 @@ test.describe('Layer panel — remove layer', () => {
 	});
 });
 
+test.describe('Layer panel — reorder drag feedback', () => {
+	test('dragging a reorder handle previews the moving row and displaced rows before drop', async ({
+		editorPage
+	}) => {
+		const { page } = editorPage;
+
+		await page.locator('[data-add-layer]').click();
+		await page.locator('[data-add-layer]').click();
+
+		const rows = page.locator('[data-layer-row]');
+		await expect(rows).toHaveCount(3);
+		await expect(rows.nth(0)).toHaveText(/Layer 3/);
+		await expect(rows.nth(1)).toHaveText(/Layer 2/);
+		await expect(rows.nth(2)).toHaveText(/Layer 1/);
+
+		const sourceRow = rows.nth(0);
+		const middleRow = rows.nth(1);
+		const targetRow = rows.nth(2);
+		const handle = sourceRow.locator('[data-reorder-handle]');
+		const sourceBox = await sourceRow.boundingBox();
+		const handleBox = await handle.boundingBox();
+		if (!sourceBox || !handleBox) throw new Error('Layer row drag handle not found');
+
+		const rowHeight = Math.round(sourceBox.height);
+		const start = {
+			x: handleBox.x + handleBox.width / 2,
+			y: handleBox.y + handleBox.height / 2
+		};
+
+		await page.mouse.move(start.x, start.y);
+		await page.mouse.down();
+		await page.mouse.move(start.x, start.y + rowHeight * 2, { steps: 4 });
+
+		await expect(sourceRow).toHaveAttribute('data-dragging', 'true');
+		await expect(targetRow).toHaveAttribute('data-drag-target', 'true');
+		await expect
+			.poll(() => sourceRow.evaluate((row) => row.style.getPropertyValue('--layer-drag-y')))
+			.toBe(`${rowHeight * 2}px`);
+		await expect
+			.poll(() => middleRow.evaluate((row) => row.style.getPropertyValue('--layer-drag-y')))
+			.toBe(`-${rowHeight}px`);
+		await expect
+			.poll(() => targetRow.evaluate((row) => row.style.getPropertyValue('--layer-drag-y')))
+			.toBe(`-${rowHeight}px`);
+
+		await page.mouse.up();
+
+		await expect(rows.nth(0)).toHaveText(/Layer 2/);
+		await expect(rows.nth(1)).toHaveText(/Layer 1/);
+		await expect(rows.nth(2)).toHaveText(/Layer 3/);
+	});
+});
+
 test.describe('Layer panel — activate layer on row click', () => {
 	test('clicking a non-active row makes it active, and the activation is not in history', async ({
 		editorPage

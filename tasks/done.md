@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 155 | [Layer panel: drag reorder feedback](../issues/155-layer-reorder-drag-feedback.md) | 2026-05-31 |
 | 154 | [Saved work browser: reopen layered documents without flattening](../issues/154-saved-work-browser-layered-document-reopen.md) | 2026-05-31 |
 | 136 | [Region pixel transformations (lift/clear/composite) + Delete keyboard](../issues/136-region-pixel-transformations-and-delete.md) | 2026-05-31 |
 | 135 | [Selection — click-without-drag deselects existing Marquee](../issues/135-selection-click-without-drag-deselects.md) | 2026-05-31 |

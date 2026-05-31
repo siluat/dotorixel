@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 132 | 99 | 33 | 117 | 75% | 46% |
-| cubic-dev-ai[bot] | 78 | 63 | 15 | 148 | 81% | 30% |
-| coderabbitai[bot] | 179 | 125 | 54 | 84 | 70% | 60% |
+| greptile-apps[bot] | 133 | 100 | 33 | 117 | 75% | 46% |
+| cubic-dev-ai[bot] | 78 | 63 | 15 | 149 | 81% | 30% |
+| coderabbitai[bot] | 179 | 125 | 54 | 85 | 70% | 60% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #236 | greptile-apps[bot] | Accept | Source row should not be marked as drag target on pointerdown |
+| #236 | coderabbitai[bot] | Miss | Did not flag source row drag-target semantics |
+| #236 | cubic-dev-ai[bot] | Miss | Did not flag source row drag-target semantics |
 | #234 | greptile-apps[bot] | Accept | Release builds should enforce `composite_region` buffer length |
 | #234 | coderabbitai[bot] | Accept | Document public selection region APIs with rustdoc |
 | #234 | coderabbitai[bot] | Accept | Document TS Marquee methods with TSDoc |

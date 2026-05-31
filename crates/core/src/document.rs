@@ -575,6 +575,8 @@ impl Document {
 
     /// Source-over composites a row-major RGBA buffer at `region` on the
     /// active Pixel Layer. No-op when the active layer is a Reference Layer.
+    ///
+    /// Panics when `buffer.len()` is not `region.width * region.height * 4`.
     pub fn composite_buffer_at(&mut self, buffer: &[u8], region: MarqueeRegion) {
         match &mut self.active_layer_mut().kind {
             LayerKind::Pixel(canvas) => composite_region(canvas, buffer, region),

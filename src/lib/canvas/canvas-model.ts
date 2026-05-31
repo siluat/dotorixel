@@ -82,8 +82,21 @@ export interface Document {
 	active_layer_id(): string;
 	marquee(): MarqueeRegion | undefined;
 	set_marquee(region: MarqueeRegion | null | undefined): void;
+	/**
+	 * Returns the current Marquee's active-layer pixels as row-major RGBA bytes.
+	 * The result is empty when no Marquee exists or no pixel data is available.
+	 */
 	lift_marquee_pixels(): Uint8Array;
+	/**
+	 * Clears active-layer pixels inside the current Marquee. No-op when no
+	 * Marquee exists or no pixel data is available.
+	 */
 	clear_marquee_pixels(): void;
+	/**
+	 * Source-over composites row-major RGBA `buffer` at `region`. `buffer`
+	 * must contain `region.width × region.height × 4` bytes; implementations
+	 * throw when that length is invalid.
+	 */
 	composite_buffer_at(buffer: Uint8Array, region: MarqueeRegion): void;
 	next_layer_number(): number;
 	is_timeline_panel_collapsed(): boolean;

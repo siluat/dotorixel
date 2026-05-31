@@ -79,8 +79,21 @@ impl MarqueeRegion {
     }
 }
 
+fn region_buffer_len(region: MarqueeRegion) -> usize {
+    let width = usize::try_from(region.width).expect("region width fits usize");
+    let height = usize::try_from(region.height).expect("region height fits usize");
+    width
+        .checked_mul(height)
+        .and_then(|pixels| pixels.checked_mul(4))
+        .expect("region byte length fits usize")
+}
+
+/// Extracts `region` from `canvas` as row-major RGBA bytes.
+///
+/// Pixels outside the canvas are returned as [`Color::TRANSPARENT`], so the
+/// returned buffer always has `region.width * region.height * 4` bytes.
 pub fn lift_region(canvas: &PixelCanvas, region: MarqueeRegion) -> Vec<u8> {
-    let mut buffer = Vec::with_capacity((region.width * region.height * 4) as usize);
+    let mut buffer = Vec::with_capacity(region_buffer_len(region));
     for row in 0..region.height {
         for col in 0..region.width {
             let x = i64::from(region.x) + i64::from(col);
@@ -102,6 +115,10 @@ pub fn lift_region(canvas: &PixelCanvas, region: MarqueeRegion) -> Vec<u8> {
     buffer
 }
 
+/// Clears the overlapping portion of `region` on `canvas` to transparent.
+///
+/// The region is clipped to the canvas bounds; a fully out-of-bounds region is
+/// a no-op.
 pub fn clear_region(canvas: &mut PixelCanvas, region: MarqueeRegion) {
     let Some(overlap) = region.clip_to(canvas.width(), canvas.height()) else {
         return;
@@ -116,10 +133,15 @@ pub fn clear_region(canvas: &mut PixelCanvas, region: MarqueeRegion) {
     }
 }
 
+/// Source-over composites row-major RGBA `buffer` into `canvas` at `dest_region`.
+///
+/// Pixels outside the canvas are skipped. Panics when `buffer.len()` is not
+/// exactly `dest_region.width * dest_region.height * 4`.
 pub fn composite_region(canvas: &mut PixelCanvas, buffer: &[u8], dest_region: MarqueeRegion) {
-    debug_assert_eq!(
+    assert_eq!(
         buffer.len(),
-        (dest_region.width * dest_region.height * 4) as usize
+        region_buffer_len(dest_region),
+        "region buffer length must match dest_region.width * dest_region.height * 4"
     );
 
     for row in 0..dest_region.height {
@@ -356,6 +378,20 @@ mod tests {
         assert_eq!(
             canvas.get_pixel(0, 0).unwrap(),
             Color::new(127, 0, 128, 255)
+        );
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "region buffer length must match dest_region.width * dest_region.height * 4"
+    )]
+    fn composite_region_panics_when_buffer_size_does_not_match_region() {
+        let mut canvas = PixelCanvas::new(1, 1).unwrap();
+
+        super::composite_region(
+            &mut canvas,
+            &[0, 0, 0, 0],
+            MarqueeRegion::from_drag(0, 0, 1, 1),
         );
     }
 

@@ -27,6 +27,8 @@
 	"canvas_height": "캔버스 높이",
 	"canvas_size": "캔버스 크기",
 	"canvas_current": "현재:",
+	"status_marquee": "선택 영역: {width}×{height} ({x}, {y})",
+	"status_marqueeCompact": "{width}×{height}",
 
 	"color_recent": "최근 색상",
 	"color_hexCode": "HEX 색상 코드",

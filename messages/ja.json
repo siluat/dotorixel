@@ -27,6 +27,8 @@
 	"canvas_height": "キャンバス高さ",
 	"canvas_size": "キャンバスサイズ",
 	"canvas_current": "現在:",
+	"status_marquee": "選択範囲: {width}×{height} ({x}, {y})",
+	"status_marqueeCompact": "{width}×{height}",
 
 	"color_recent": "最近の色",
 	"color_hexCode": "HEXカラーコード",

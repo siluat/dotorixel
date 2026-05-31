@@ -4,16 +4,15 @@
 
 Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
 
-8 of 21 sub-issues are done; touch long-press inside the Marquee now keeps the sampling loupe closed while outside-Marquee sampling still works. Move/copy/paste and action-bar flows remain.
+9 of 21 sub-issues are done; the active Marquee now has a persistent StatusBar readout. Drag-time visual aids, move/copy/paste, and action-bar flows remain.
 
 ## Last Completed
 
-[139 — Touch long-press inside Marquee body suppresses Sampling Session](../issues/139-touch-long-press-suppression.md): Touch long-press inside the active Marquee is reserved for Selection behavior; outside the Marquee, the color-sampling loupe still opens normally.
+[140 — StatusBar Marquee readout — persistent W×H + origin display](../issues/140-statusbar-marquee-readout.md): Active Marquee dimensions and origin now appear in the StatusBar, with compact layouts showing dimensions only.
 
 ## Next Up
 
 - Touch modifier alternatives (unblocks Selection sub-issues 151 + 152)
-- [140 — StatusBar Marquee readout](../issues/140-statusbar-marquee-readout.md)
 - [141 — Drag-time visual aids](../issues/141-drag-time-visual-aids.md)
 - [142 — Drag-to-move (LiftAndDrag + commit + Undo)](../issues/142-selection-drag-to-move.md)
 - [143 — Selection Clipboard + Copy + persistence](../issues/143-selection-clipboard-and-copy.md)

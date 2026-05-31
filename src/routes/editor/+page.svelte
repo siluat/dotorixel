@@ -720,6 +720,8 @@
 			canvasWidth={editor.canvasWidth}
 			canvasHeight={editor.canvasHeight}
 			activeTool={editor.activeTool}
+			layoutMode={layout.mode}
+			marquee={editor.marquee}
 		/>
 	</div>
 {:else}
@@ -811,6 +813,15 @@
 				/>
 			{/if}
 		</div>
+
+		<StatusBar
+			canvasWidth={editor.canvasWidth}
+			canvasHeight={editor.canvasHeight}
+			activeTool={editor.activeTool}
+			layoutMode={layout.mode}
+			marquee={editor.marquee}
+			includeBottomSafeArea={false}
+		/>
 
 		{#if activeTab === 'draw'}
 			<ToolStrip

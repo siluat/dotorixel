@@ -74,6 +74,15 @@ function serializeMarquee(region: MarqueeRegion | undefined): TabSnapshot['marqu
 		: null;
 }
 
+function isPointInsideMarquee(point: CanvasPoint, marquee: MarqueeRegion): boolean {
+	return (
+		point.x >= marquee.x &&
+		point.y >= marquee.y &&
+		point.x < marquee.x + marquee.width &&
+		point.y < marquee.y + marquee.height
+	);
+}
+
 interface DocumentNavigationBounds {
 	readonly minX: number;
 	readonly minY: number;
@@ -391,6 +400,15 @@ export class TabState {
 		// Eyedropper already runs sampling through its draw lifecycle, so a
 		// long-press on top of it would double-start.
 		if (this.shared.activeTool === 'eyedropper') return false;
+		const activeMarquee = this.document.marquee();
+		if (
+			pointerType === 'touch' &&
+			this.shared.activeTool === 'selection' &&
+			activeMarquee &&
+			isPointInsideMarquee(coords, activeMarquee)
+		) {
+			return false;
+		}
 		this.samplingSession.start({
 			targetPixel: coords,
 			commitTarget: button === 2 ? 'background' : 'foreground',

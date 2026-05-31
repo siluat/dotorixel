@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 139 | [Touch long-press inside Marquee body suppresses Sampling Session](../issues/139-touch-long-press-suppression.md) | 2026-05-31 |
 | 138 | [Reference Layer × Marquee — visual preserved, all operations no-op](../issues/138-reference-layer-marquee-no-op.md) | 2026-05-31 |
 | 137 | [Marquee clipping mask — DrawingOps decorator + drawing tool integration](../issues/137-marquee-clipping-mask-decorator.md) | 2026-05-31 |
 | 155 | [Layer panel: drag reorder feedback](../issues/155-layer-reorder-drag-feedback.md) | 2026-05-31 |

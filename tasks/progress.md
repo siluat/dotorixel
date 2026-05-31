@@ -4,16 +4,15 @@
 
 Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
 
-7 of 21 sub-issues are done; Reference-active Marquee no-op behavior is now locked in. Move/copy/paste and action-bar flows remain.
+8 of 21 sub-issues are done; touch long-press inside the Marquee now keeps the sampling loupe closed while outside-Marquee sampling still works. Move/copy/paste and action-bar flows remain.
 
 ## Last Completed
 
-[138 — Reference Layer × Marquee no-op](../issues/138-reference-layer-marquee-no-op.md): The Marquee stays visible while Reference is active, but Selection mutations silently no-op until the user returns to a Pixel Layer.
+[139 — Touch long-press inside Marquee body suppresses Sampling Session](../issues/139-touch-long-press-suppression.md): Touch long-press inside the active Marquee is reserved for Selection behavior; outside the Marquee, the color-sampling loupe still opens normally.
 
 ## Next Up
 
 - Touch modifier alternatives (unblocks Selection sub-issues 151 + 152)
-- [139 — Touch long-press suppression inside Marquee](../issues/139-touch-long-press-suppression.md)
 - [140 — StatusBar Marquee readout](../issues/140-statusbar-marquee-readout.md)
 - [141 — Drag-time visual aids](../issues/141-drag-time-visual-aids.md)
 - [142 — Drag-to-move (LiftAndDrag + commit + Undo)](../issues/142-selection-drag-to-move.md)

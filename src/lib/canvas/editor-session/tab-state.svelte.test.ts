@@ -458,6 +458,50 @@ describe('TabState — sample gating', () => {
 		expect(tab.sampleStart({ x: 0, y: 0 }, 0, 'mouse')).toBe(false);
 	});
 
+	it('touch long-press inside an active Marquee does not start sampling while Selection is active', () => {
+		const { tab, shared } = makeTab();
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 3, 3));
+
+		expect(tab.sampleStart({ x: 2, y: 2 }, 0, 'touch')).toBe(false);
+		expect(tab.samplingSession.isActive).toBe(false);
+	});
+
+	it('touch long-press outside an active Marquee still starts sampling while Selection is active', () => {
+		const { tab, shared } = makeTab();
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 3, 3));
+
+		expect(tab.sampleStart({ x: 5, y: 5 }, 0, 'touch')).toBe(true);
+		expect(tab.samplingSession.isActive).toBe(true);
+	});
+
+	it('touch long-press with no active Marquee still starts sampling while Selection is active', () => {
+		const { tab, shared } = makeTab();
+		shared.activeTool = 'selection';
+
+		expect(tab.sampleStart({ x: 2, y: 2 }, 0, 'touch')).toBe(true);
+		expect(tab.samplingSession.isActive).toBe(true);
+	});
+
+	it('touch long-press inside a Marquee still starts sampling when Selection is not active', () => {
+		const { tab, shared } = makeTab();
+		shared.activeTool = 'pencil';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 3, 3));
+
+		expect(tab.sampleStart({ x: 2, y: 2 }, 0, 'touch')).toBe(true);
+		expect(tab.samplingSession.isActive).toBe(true);
+	});
+
+	it('non-touch sampleStart inside a Marquee still starts sampling while Selection is active', () => {
+		const { tab, shared } = makeTab();
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 3, 3));
+
+		expect(tab.sampleStart({ x: 2, y: 2 }, 0, 'mouse')).toBe(true);
+		expect(tab.samplingSession.isActive).toBe(true);
+	});
+
 	it('samples the Reference source image when the active layer is Reference', () => {
 		const { document } = makeReferenceDocumentWithPlacement({ x: 0, y: 0, scale: 1 });
 		const { tab, shared, notifier } = makeTab({ document });

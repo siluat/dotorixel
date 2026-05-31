@@ -1,6 +1,6 @@
 ---
 title: "StatusBar Marquee readout — persistent W×H + origin display"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -43,3 +43,23 @@ Tests:
 ## Blocked by
 
 - [132 — Selection foundation](132-selection-foundation.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/ui-editor/StatusBar.svelte` | Renders an active Marquee readout, with full medium+ text and compact dimensions-only text. |
+| `src/routes/editor/+page.svelte` | Wires the active Marquee into the StatusBar in docked and non-docked layouts. |
+| `messages/en.json` | Adds English full and compact Marquee readout templates. |
+| `messages/ko.json` | Adds Korean full and compact Marquee readout templates. |
+| `messages/ja.json` | Adds Japanese full and compact Marquee readout templates. |
+| `src/lib/ui-editor/StatusBar.svelte.test.ts` | Covers hidden, full, compact, and locale-specific Marquee readout behavior. |
+
+### Key Decisions
+
+- Render the StatusBar in the non-docked editor layout too, so the compact breakpoint is exercised in production rather than only in component tests.
+- Keep bottom safe-area padding enabled only for bottom-anchored StatusBar placements; the mobile StatusBar sits above the tool/tab controls.
+
+### Notes
+
+- The readout reflects committed Marquee state. Drag-time transient sizing remains scoped to issue 141.

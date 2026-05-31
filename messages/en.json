@@ -27,6 +27,8 @@
 	"canvas_height": "Canvas height",
 	"canvas_size": "Canvas Size",
 	"canvas_current": "Current:",
+	"status_marquee": "Marquee: {width}×{height} at ({x}, {y})",
+	"status_marqueeCompact": "{width}×{height}",
 
 	"color_recent": "Recent",
 	"color_hexCode": "Hex color code",

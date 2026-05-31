@@ -3,6 +3,10 @@ import { MARQUEE_PREVIEW_CHANGED, NO_EFFECTS, type ToolEffects } from '../draw-t
 import { customTool } from '../tool-authoring';
 import { copyMarqueeRegion, marqueeRegionFromDrag } from '../wasm-backend';
 
+function canvasCoordsFromPoint(point: CanvasCoords): CanvasCoords {
+	return { x: Math.floor(point.x), y: Math.floor(point.y) };
+}
+
 function marqueeFromDrag(
 	start: CanvasCoords,
 	current: CanvasCoords,
@@ -36,17 +40,25 @@ export const selectionTool = customTool({
 			},
 			draw(current, previous) {
 				if (previous === null || anchor === null) {
-					anchor = current;
+					anchor = canvasCoordsFromPoint(current);
 					return NO_EFFECTS;
 				}
+				const currentCoords = canvasCoordsFromPoint(current);
+				if (currentCoords.x === anchor.x && currentCoords.y === anchor.y) return NO_EFFECTS;
 				hasUserDragged = true;
 				return preview(
-					marqueeFromDrag(anchor, current, host.document.width, host.document.height)
+					marqueeFromDrag(anchor, currentCoords, host.document.width, host.document.height)
 				);
 			},
 			modifierChanged: () => NO_EFFECTS,
 			end() {
-				if (!anchor || !hasUserDragged) return NO_EFFECTS;
+				if (!anchor) return NO_EFFECTS;
+				if (!hasUserDragged) {
+					if (initialMarquee && !initialMarquee.contains(anchor.x, anchor.y)) {
+						return [{ type: 'setMarquee', region: null }];
+					}
+					return NO_EFFECTS;
+				}
 				host.document.set_marquee(initialMarquee ? copyMarqueeRegion(initialMarquee) : null);
 				if (draftMarquee === null) return MARQUEE_PREVIEW_CHANGED;
 				return [{ type: 'setMarquee', region: draftMarquee }];

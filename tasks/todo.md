@@ -4,7 +4,6 @@
 
 - Touch modifier alternatives (Shift-constrain, Alt-eyedropper UI for touchscreen) — **blocks** Shift-related Selection sub-issues
 - Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
-  - [135 — Click-without-drag deselects](../issues/135-selection-click-without-drag-deselects.md)
   - [136 — Region pixel transformations + Delete](../issues/136-region-pixel-transformations-and-delete.md)
   - [137 — Marquee clipping mask decorator](../issues/137-marquee-clipping-mask-decorator.md)
   - [138 — Reference Layer × Marquee no-op](../issues/138-reference-layer-marquee-no-op.md)

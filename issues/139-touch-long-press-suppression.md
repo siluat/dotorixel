@@ -1,6 +1,6 @@
 ---
 title: "Touch long-press inside Marquee body suppresses Sampling Session"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -36,3 +36,14 @@ Tests:
 ## Blocked by
 
 - [132 — Selection foundation](132-selection-foundation.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Suppresses touch long-press Sampling Sessions when Selection is active and the target falls inside the active Marquee. |
+| `src/lib/canvas/editor-session/tab-state.svelte.test.ts` | Covers inside-Marquee suppression plus outside-Marquee, no-Marquee, non-Selection, and non-touch regressions. |
+
+### Key Decisions
+
+- Kept the gate in the tab-level `sampleStart` host callback, preserving the existing interaction-state contract where `onSampleStart` returning `false` prevents entry into sampling mode.

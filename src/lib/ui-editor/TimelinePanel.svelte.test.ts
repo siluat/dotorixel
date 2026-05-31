@@ -601,6 +601,33 @@ describe('TimelinePanel', () => {
 		expect(onReorderLayer).toHaveBeenCalledWith('c', 2);
 	});
 
+	it('pointer-dragging previews the moving row and displaced rows before release', async () => {
+		const layers = [
+			pixelLayer('c', 'Layer 3'),
+			pixelLayer('b', 'Layer 2'),
+			pixelLayer('a', 'Layer 1')
+		];
+		const onReorderLayer = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
+		});
+
+		const rowC = container.querySelector('[data-layer-row][data-layer-id="c"]') as HTMLElement;
+		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
+		const rowA = container.querySelector('[data-layer-row][data-layer-id="a"]') as HTMLElement;
+		const handleC = rowC.querySelector('[data-reorder-handle]') as HTMLButtonElement;
+
+		await fireEvent.pointerDown(handleC, { clientY: 0, pointerId: 1 });
+		await fireEvent.pointerMove(handleC, { clientY: 64, pointerId: 1 });
+
+		expect(rowC.getAttribute('data-dragging')).toBe('true');
+		expect(rowA.getAttribute('data-drag-target')).toBe('true');
+		expect(rowC.style.getPropertyValue('--layer-drag-y')).toBe('64px');
+		expect(rowB.style.getPropertyValue('--layer-drag-y')).toBe('-32px');
+		expect(rowA.style.getPropertyValue('--layer-drag-y')).toBe('-32px');
+		expect(onReorderLayer).not.toHaveBeenCalled();
+	});
+
 	it('pointer-dragging cannot target the fixed Reference row', async () => {
 		const layers = [
 			pixelLayer('c', 'Layer 3'),

@@ -55,11 +55,13 @@
 	);
 	const busyReferenceName = $derived(referenceLayerImportName || m.reference_layer_loading());
 
-	let draggingId: string | null = null;
-	let draggingPointerId: number | null = null;
-	let dragStartY = 0;
-	let dragBaseIndex = 0;
-	let dragRowHeight = DEFAULT_ROW_HEIGHT_PX;
+	let draggingId = $state<string | null>(null);
+	let draggingPointerId = $state<number | null>(null);
+	let dragStartY = $state(0);
+	let dragBaseIndex = $state(0);
+	let dragTargetIndex = $state<number | null>(null);
+	let dragOffsetY = $state(0);
+	let dragRowHeight = $state(DEFAULT_ROW_HEIGHT_PX);
 
 	const pixelVisualIndices = $derived.by(() =>
 		renderedLayers.flatMap((layer, index) => (layer.kind === 'pixel' ? [index] : []))
@@ -113,6 +115,43 @@
 		return clampToPixelReorderTarget(candidate);
 	}
 
+	function clampDragOffsetY(clientY: number): number {
+		const deltaY = clientY - dragStartY;
+		const firstPixelIndex = pixelVisualIndices[0] ?? dragBaseIndex;
+		const lastPixelIndex = pixelVisualIndices.at(-1) ?? dragBaseIndex;
+		const minOffset = (firstPixelIndex - dragBaseIndex) * dragRowHeight;
+		const maxOffset = (lastPixelIndex - dragBaseIndex) * dragRowHeight;
+		return Math.max(minOffset, Math.min(maxOffset, deltaY));
+	}
+
+	function updateDragPreview(clientY: number) {
+		dragOffsetY = clampDragOffsetY(clientY);
+		dragTargetIndex = computeTargetIndex(clientY);
+	}
+
+	function resetDrag() {
+		draggingId = null;
+		draggingPointerId = null;
+		dragTargetIndex = null;
+		dragOffsetY = 0;
+	}
+
+	function dragTranslateY(id: string, visualIndex: number): number {
+		if (draggingId === null || dragTargetIndex === null) return 0;
+		if (id === draggingId) return dragOffsetY;
+		if (dragBaseIndex < dragTargetIndex) {
+			return visualIndex > dragBaseIndex && visualIndex <= dragTargetIndex ? -dragRowHeight : 0;
+		}
+		if (dragBaseIndex > dragTargetIndex) {
+			return visualIndex >= dragTargetIndex && visualIndex < dragBaseIndex ? dragRowHeight : 0;
+		}
+		return 0;
+	}
+
+	function dragStyle(offsetY: number): string | undefined {
+		return offsetY === 0 ? undefined : `--layer-drag-y: ${offsetY}px;`;
+	}
+
 	function handlePointerDown(event: PointerEvent, id: string, visualIndex: number) {
 		// Ignore secondary pointers (e.g. a second finger on a multi-touch device)
 		// while a drag is in progress — only the initiating pointer drives it.
@@ -127,6 +166,8 @@
 		draggingPointerId = event.pointerId;
 		dragStartY = event.clientY;
 		dragBaseIndex = visualIndex;
+		dragTargetIndex = visualIndex;
+		dragOffsetY = 0;
 		dragRowHeight = measured > 0 ? measured : DEFAULT_ROW_HEIGHT_PX;
 
 		try {
@@ -137,12 +178,17 @@
 		event.preventDefault();
 	}
 
+	function handlePointerMove(event: PointerEvent, id: string) {
+		if (draggingId !== id || event.pointerId !== draggingPointerId) return;
+		updateDragPreview(event.clientY);
+		event.preventDefault();
+	}
+
 	function handlePointerUp(event: PointerEvent, id: string) {
 		if (draggingId !== id || event.pointerId !== draggingPointerId) return;
 		const target = computeTargetIndex(event.clientY);
 		const base = dragBaseIndex;
-		draggingId = null;
-		draggingPointerId = null;
+		resetDrag();
 		releaseCapture(event.currentTarget as Element, event.pointerId);
 		if (target !== base) {
 			onReorderLayer(id, target);
@@ -151,8 +197,7 @@
 
 	function handlePointerCancel(event: PointerEvent, id: string) {
 		if (draggingId !== id || event.pointerId !== draggingPointerId) return;
-		draggingId = null;
-		draggingPointerId = null;
+		resetDrag();
 		releaseCapture(event.currentTarget as Element, event.pointerId);
 	}
 </script>
@@ -212,14 +257,22 @@
 					{@const isActive = layer.id === activeLayerId}
 					{@const isVisible = layer.visible ?? true}
 					{@const kind = layer.kind}
+					{@const rowDragY = dragTranslateY(layer.id, visualIndex)}
+					{@const isDraggingLayer = draggingId === layer.id}
+					{@const isDragTarget = dragTargetIndex === visualIndex}
 					<div
 						class="row"
 						class:row--active={isActive}
 						class:row--hidden={!isVisible}
+						class:row--dragging={isDraggingLayer}
+						class:row--drag-shifted={rowDragY !== 0 && !isDraggingLayer}
+						style={dragStyle(rowDragY)}
 						role="button"
 						tabindex="0"
 						data-layer-row
 						data-layer-id={layer.id}
+						data-dragging={isDraggingLayer ? 'true' : undefined}
+						data-drag-target={isDragTarget ? 'true' : undefined}
 						aria-current={isActive ? 'true' : undefined}
 						onclick={() => onActivateLayer(layer.id)}
 						onkeydown={(e) => {
@@ -310,6 +363,7 @@
 								onclick={(e) => e.stopPropagation()}
 								onkeydown={(e) => handleReorderKey(e, layer.id, visualIndex)}
 								onpointerdown={(e) => handlePointerDown(e, layer.id, visualIndex)}
+								onpointermove={(e) => handlePointerMove(e, layer.id)}
 								onpointerup={(e) => handlePointerUp(e, layer.id)}
 								onpointercancel={(e) => handlePointerCancel(e, layer.id)}
 							>
@@ -339,8 +393,14 @@
 			<div class="vdiv"></div>
 			<div class="frame-area">
 				<div class="frame-col">
-					{#each renderedLayers as layer (layer.id)}
-						<div class="frame-cell"></div>
+					{#each renderedLayers as layer, visualIndex (layer.id)}
+						{@const cellDragY = dragTranslateY(layer.id, visualIndex)}
+						<div
+							class="frame-cell"
+							class:frame-cell--dragging={draggingId === layer.id}
+							class:frame-cell--drag-shifted={cellDragY !== 0 && draggingId !== layer.id}
+							style={dragStyle(cellDragY)}
+						></div>
 					{/each}
 					{#if isReferenceLayerImporting}
 						<div class="frame-cell"></div>
@@ -518,6 +578,19 @@
 		background: var(--ds-bg-base);
 		border: var(--ds-border-width) solid var(--ds-border-subtle);
 		box-sizing: border-box;
+		transform: translateY(var(--layer-drag-y, 0));
+		transition: transform 120ms ease;
+	}
+
+	.frame-cell--dragging {
+		position: relative;
+		z-index: 2;
+		transition: none;
+	}
+
+	.frame-cell--drag-shifted {
+		position: relative;
+		z-index: 1;
 	}
 
 	.empty-axis {
@@ -541,6 +614,12 @@
 		align-items: center;
 		height: var(--row-height);
 		cursor: pointer;
+		position: relative;
+		transform: translateY(var(--layer-drag-y, 0));
+		transition:
+			transform 120ms ease,
+			box-shadow 120ms ease,
+			background-color 120ms ease;
 	}
 
 	.row:focus-visible {
@@ -651,6 +730,18 @@
 		opacity: 0.45;
 	}
 
+	.row--dragging {
+		z-index: 2;
+		cursor: grabbing;
+		background: var(--ds-bg-active);
+		box-shadow: 0 4px 14px rgb(0 0 0 / 0.18);
+		transition: none;
+	}
+
+	.row--drag-shifted {
+		z-index: 1;
+	}
+
 	.reorder-handle {
 		margin-right: var(--ds-space-2);
 		cursor: grab;
@@ -675,6 +766,11 @@
 	}
 
 	@media (prefers-reduced-motion: reduce) {
+		.row,
+		.frame-cell {
+			transition: none;
+		}
+
 		.spinner {
 			animation: none;
 		}

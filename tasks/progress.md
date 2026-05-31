@@ -6,7 +6,7 @@ None.
 
 ## Last Completed
 
-[154 — Saved work browser layered-document reopen](../issues/154-saved-work-browser-layered-document-reopen.md): Saved work browser thumbnails remain composite summaries, but opening a saved document now hydrates the full layer stack and guards duplicate async opens.
+[155 — Layer panel drag reorder feedback](../issues/155-layer-reorder-drag-feedback.md): Pixel Layer reorder now shows a live row-displacement preview while keeping the actual document reorder commit on drop.
 
 ## Next Up
 

@@ -70,6 +70,7 @@
 	let session: SessionHandle | undefined;
 	let saveDialogTabIndex: number | null = $state(null);
 	let browserDocuments: SavedDocumentSummary[] | null = $state(null);
+	let openingSavedDocumentId: string | null = $state(null);
 	let isReferencesOpen = $state(false);
 	let referenceErrors = $state<string[]>([]);
 	let referenceLayerErrors = $state<{ id: string; message: string }[]>([]);
@@ -284,12 +285,29 @@
 		browserDocuments = docs.filter((d) => !openIds.has(d.id));
 	}
 
-	function handleBrowserSelect(doc: SavedDocumentSummary) {
-		editor.workspace.openDocument(doc);
-		browserDocuments = null;
+	async function handleBrowserSelect(doc: SavedDocumentSummary) {
+		if (openingSavedDocumentId !== null) return;
+		openingSavedDocumentId = doc.id;
+		try {
+			const snapshot = await session?.getSavedDocumentSnapshot(doc.id);
+			if (openingSavedDocumentId !== doc.id) return;
+			if (!snapshot) {
+				browserDocuments = browserDocuments?.filter((candidate) => candidate.id !== doc.id) ?? null;
+				return;
+			}
+			editor.workspace.openSnapshot(snapshot);
+			browserDocuments = null;
+		} finally {
+			if (openingSavedDocumentId === doc.id) {
+				openingSavedDocumentId = null;
+			}
+		}
 	}
 
 	async function handleBrowserDelete(id: string) {
+		if (openingSavedDocumentId === id) {
+			openingSavedDocumentId = null;
+		}
 		editor.workspace.references.removeDoc(id);
 		await session?.deleteDocument(id);
 		if (browserDocuments) {
@@ -298,6 +316,7 @@
 	}
 
 	function handleBrowserClose() {
+		openingSavedDocumentId = null;
 		browserDocuments = null;
 	}
 

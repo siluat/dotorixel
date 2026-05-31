@@ -2,15 +2,15 @@
 
 ## Currently Working On
 
-Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md)).
-5 of 21 sub-issues are done; 136 added Marquee pixel-region operations and Delete/Backspace clearing, unlocking downstream move/copy/cut/paste slices.
+None.
 
 ## Last Completed
 
-[136 — Region pixel transformations + Delete](../issues/136-region-pixel-transformations-and-delete.md): Delete/Backspace now clears selected Pixel Layer pixels without moving or removing the Marquee. Reference-active documents stay no-op, and Undo restores the cleared pixels.
+[154 — Saved work browser layered-document reopen](../issues/154-saved-work-browser-layered-document-reopen.md): Saved work browser thumbnails remain composite summaries, but opening a saved document now hydrates the full layer stack and guards duplicate async opens.
 
 ## Next Up
 
+- Touch modifier alternatives (unblocks Selection sub-issues 151 + 152)
 - [137 — Marquee clipping mask decorator](../issues/137-marquee-clipping-mask-decorator.md)
 - [138 — Reference Layer × Marquee no-op](../issues/138-reference-layer-marquee-no-op.md)
 - [139 — Touch long-press suppression inside Marquee](../issues/139-touch-long-press-suppression.md)
@@ -18,7 +18,6 @@ Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../
 - [141 — Drag-time visual aids](../issues/141-drag-time-visual-aids.md)
 - [142 — Drag-to-move (LiftAndDrag + commit + Undo)](../issues/142-selection-drag-to-move.md)
 - [143 — Selection Clipboard + Copy + persistence](../issues/143-selection-clipboard-and-copy.md)
-- Touch modifier alternatives (unblocks Selection sub-issues 151 + 152)
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load

@@ -1,5 +1,6 @@
 import type { Color } from '$lib/canvas/color';
 import type { CanvasBackend } from '$lib/canvas/editor-session/canvas-backend';
+import type { TabSnapshot } from '$lib/canvas/workspace-snapshot';
 import { createAutoSaveDirtyNotifier } from '$lib/canvas/editor-session/dirty-notifier';
 import { createEditorController } from '$lib/canvas/editor-session/create-editor-controller';
 import type { EditorController } from '$lib/canvas/editor-session/editor-controller.svelte';
@@ -33,6 +34,8 @@ export interface SessionHandle {
 	deleteDocument(documentId: string): Promise<void>;
 	/** Return all explicitly saved documents, sorted by most recently modified. */
 	getAllSavedDocuments(): Promise<SavedDocumentSummary[]>;
+	/** Return the full saved document snapshot used when reopening a saved document. */
+	getSavedDocumentSnapshot(documentId: string): Promise<TabSnapshot | null>;
 	/** Tear down timers and close the storage connection. */
 	dispose(): void;
 }
@@ -45,6 +48,7 @@ const NO_OP_SESSION: SessionHandle = {
 	async saveDocumentAs() {},
 	async deleteDocument() {},
 	async getAllSavedDocuments() { return []; },
+	async getSavedDocumentSnapshot() { return null; },
 	dispose() {}
 };
 
@@ -97,6 +101,7 @@ export async function openSession(
 			saveDocumentAs: (docId, name) => persistence.saveDocumentAs(docId, name),
 			deleteDocument: (docId) => persistence.deleteDocument(docId),
 			getAllSavedDocuments: () => persistence.getAllSavedDocuments(),
+			getSavedDocumentSnapshot: (docId) => persistence.getSavedDocumentSnapshot(docId),
 			dispose: () => {
 				autoSave.dispose();
 				storage!.close();

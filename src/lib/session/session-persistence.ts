@@ -163,6 +163,23 @@ export class SessionPersistence {
 		return this.#storage.getAllSavedDocuments();
 	}
 
+	async getSavedDocumentSnapshot(id: string): Promise<TabSnapshot | null> {
+		const doc = await this.#storage.getDocument(id);
+		if (!doc || !doc.saved) return null;
+		return {
+			id: doc.id,
+			name: doc.name,
+			width: doc.width,
+			height: doc.height,
+			marquee: copyMarquee(doc.marquee),
+			layers: await Promise.all(doc.layers.map(hydrateLayer)),
+			activeLayerId: doc.activeLayerId,
+			nextLayerNumber: doc.nextLayerNumber,
+			timelinePanelCollapsed: doc.timelinePanelCollapsed,
+			viewport: DEFAULT_VIEWPORT
+		};
+	}
+
 	async deleteDocument(id: string): Promise<void> {
 		await this.#storage.deleteDocument(id);
 	}

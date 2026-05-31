@@ -1,7 +1,12 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi } from 'vitest';
 import { TabState, type TabStateDeps } from './tab-state.svelte';
-import { wasmBackend, singleLayerDocument, documentFromLayerSource } from '../wasm-backend';
+import {
+	wasmBackend,
+	singleLayerDocument,
+	documentFromLayerSource,
+	marqueeRegionFromDrag
+} from '../wasm-backend';
 import { createFakeDirtyNotifier } from './fake-dirty-notifier';
 import { SharedState } from '../shared-state.svelte';
 import type { CanvasCoords } from '../canvas-model';
@@ -310,6 +315,38 @@ describe('TabState — effect dispatcher', () => {
 
 		tab.undo();
 		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 3, height: 3 });
+	});
+
+	it('clearMarqueePixels clears selected pixels without removing the Marquee', () => {
+		const pixels = new Uint8Array(8 * 8 * 4);
+		pixels.set(makePixelRgba(RED), 0);
+		pixels.set(makePixelRgba(GREEN), (1 * 8 + 1) * 4);
+		const { tab, notifier } = makeTab({ document: singleLayerDocument(8, 8, pixels) });
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 1, 1));
+		notifier.reset();
+
+		tab.clearMarqueePixels();
+
+		expect(getPixel(tab, 0, 0)).toEqual(RED);
+		expect(getPixel(tab, 1, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 1, height: 1 });
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+
+		tab.undo();
+		expect(getPixel(tab, 1, 1)).toEqual(GREEN);
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 1, height: 1 });
+	});
+
+	it('clearMarqueePixels is silent when no Marquee exists', () => {
+		const pixels = new Uint8Array(8 * 8 * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 8 + 1) * 4);
+		const { tab, notifier } = makeTab({ document: singleLayerDocument(8, 8, pixels) });
+		notifier.reset();
+
+		tab.clearMarqueePixels();
+
+		expect(getPixel(tab, 1, 1)).toEqual(GREEN);
+		expect(notifier.dirtyCalls).toEqual([]);
 	});
 
 	it('canvas resize triggers viewport reclamp against the new canvas dimensions', () => {

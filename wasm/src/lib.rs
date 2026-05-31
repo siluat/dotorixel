@@ -620,6 +620,42 @@ impl WasmDocument {
     pub fn clear(&mut self) {
         self.inner.clear();
     }
+
+    /// Copies the current Marquee region from the active Pixel Layer as a
+    /// row-major RGBA buffer. Returns an empty buffer when no Marquee exists
+    /// or when the active layer is a Reference Layer.
+    pub fn lift_marquee_pixels(&self) -> Vec<u8> {
+        self.inner.lift_marquee_pixels()
+    }
+
+    /// Clears pixels inside the current Marquee on the active Pixel Layer.
+    /// The Marquee itself is preserved.
+    pub fn clear_marquee_pixels(&mut self) {
+        self.inner.clear_marquee_pixels();
+    }
+
+    /// Source-over composites `buffer` at `region` on the active Pixel Layer.
+    ///
+    /// Returns `Err(JsError)` when the buffer length does not match
+    /// `region.width × region.height × 4`.
+    pub fn composite_buffer_at(
+        &mut self,
+        buffer: &[u8],
+        region: &WasmMarqueeRegion,
+    ) -> Result<(), JsError> {
+        let expected = (region.inner.width() as usize)
+            .checked_mul(region.inner.height() as usize)
+            .and_then(|pixels| pixels.checked_mul(4))
+            .ok_or_else(|| JsError::new("Region buffer dimensions are too large"))?;
+        if buffer.len() != expected {
+            return Err(JsError::new(&format!(
+                "Region buffer length must be {expected} bytes (width × height × 4); got {}",
+                buffer.len()
+            )));
+        }
+        self.inner.composite_buffer_at(buffer, region.inner);
+        Ok(())
+    }
 }
 
 fn is_valid_reference_scale(scale: f32) -> bool {
@@ -1319,6 +1355,28 @@ mod tests {
 
         doc.set_marquee(None);
         assert!(doc.marquee().is_none());
+    }
+
+    #[test]
+    fn wasm_document_region_pixel_methods_round_trip_marquee_pixels() {
+        let id = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 2, id.to_string(), "Layer 1".to_string()).unwrap();
+        let red = WasmColor::new(255, 0, 0, 255);
+        let blue = WasmColor::new(0, 0, 255, 255);
+        let region = WasmMarqueeRegion::from_drag(0, 0, 1, 0);
+        doc.set_pixel(0, 0, &red).unwrap();
+        doc.set_pixel(1, 0, &blue).unwrap();
+        doc.set_marquee(Some(region));
+
+        let lifted = doc.lift_marquee_pixels();
+        doc.clear_marquee_pixels();
+        let region = WasmMarqueeRegion::from_drag(0, 0, 1, 0);
+        doc.composite_buffer_at(&lifted, &region).unwrap();
+
+        assert_eq!(&doc.composite()[0..8], &[255, 0, 0, 255, 0, 0, 255, 255]);
+        let marquee = doc.marquee().expect("marquee is preserved");
+        assert_eq!(marquee.x(), 0);
+        assert_eq!(marquee.width(), 2);
     }
 
     #[test]

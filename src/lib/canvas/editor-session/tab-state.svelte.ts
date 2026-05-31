@@ -455,6 +455,14 @@ export class TabState {
 		});
 	};
 
+	clearMarqueePixels = (): void => {
+		if (this.isDrawing) return;
+		this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'clear-marquee-pixels' }
+		});
+	};
+
 	pushHistorySnapshot = (): void => {
 		this.#documentChangeJournal.captureUndoSnapshot();
 	};

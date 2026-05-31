@@ -6,7 +6,7 @@ use crate::canvas::{PixelCanvas, PixelCanvasError, ResizeAnchor};
 use crate::color::Color;
 use crate::layer::{Layer, LayerKind, LayerKindTag, ReferenceData, ReferenceDataError};
 use crate::reference_placement::ReferencePlacement;
-use crate::selection::MarqueeRegion;
+use crate::selection::{MarqueeRegion, clear_region, composite_region, lift_region};
 use crate::tool::ToolType;
 
 /// Errors that can occur during layer-stack operations on a [`Document`].
@@ -547,6 +547,43 @@ impl Document {
         }
     }
 
+    /// Clears pixels inside the current Marquee on the active Pixel Layer.
+    /// The Marquee itself is preserved. No-op when no Marquee exists or when
+    /// the active layer is a Reference Layer.
+    pub fn clear_marquee_pixels(&mut self) {
+        let Some(region) = self.marquee else {
+            return;
+        };
+        match &mut self.active_layer_mut().kind {
+            LayerKind::Pixel(canvas) => clear_region(canvas, region),
+            LayerKind::Reference(_) => {}
+        }
+    }
+
+    /// Copies pixels inside the current Marquee from the active Pixel Layer
+    /// into a row-major RGBA buffer. Returns an empty buffer when no Marquee
+    /// exists or when the active layer is a Reference Layer.
+    pub fn lift_marquee_pixels(&self) -> Vec<u8> {
+        let Some(region) = self.marquee else {
+            return Vec::new();
+        };
+        match &self.active_layer().kind {
+            LayerKind::Pixel(canvas) => lift_region(canvas, region),
+            LayerKind::Reference(_) => Vec::new(),
+        }
+    }
+
+    /// Source-over composites a row-major RGBA buffer at `region` on the
+    /// active Pixel Layer. No-op when the active layer is a Reference Layer.
+    ///
+    /// Panics when `buffer.len()` is not `region.width * region.height * 4`.
+    pub fn composite_buffer_at(&mut self, buffer: &[u8], region: MarqueeRegion) {
+        match &mut self.active_layer_mut().kind {
+            LayerKind::Pixel(canvas) => composite_region(canvas, buffer, region),
+            LayerKind::Reference(_) => {}
+        }
+    }
+
     /// Returns the [`LayerKindTag`] of the layer at `index`, or `None` when
     /// `index` is out of range.
     pub fn layer_kind_at(&self, index: usize) -> Option<LayerKindTag> {
@@ -842,6 +879,135 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn clear_marquee_pixels_clears_only_the_active_pixel_layer_region() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+        let mut doc = Document::new(3, 3, a, "A".to_string()).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(3, 3, red).unwrap(),
+        );
+        doc.add_layer(b, "B".to_string());
+        set_pixel_canvas(
+            &mut doc.layers[1],
+            PixelCanvas::with_color(3, 3, green).unwrap(),
+        );
+        let marquee = MarqueeRegion::from_drag(1, 1, 2, 2);
+        doc.set_marquee(Some(marquee));
+
+        doc.clear_marquee_pixels();
+
+        assert_eq!(doc.marquee(), Some(marquee));
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(1, 1).unwrap(), red);
+        assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(0, 0).unwrap(), green);
+        assert_eq!(
+            pixel_canvas(&doc.layers[1]).get_pixel(1, 1).unwrap(),
+            Color::TRANSPARENT
+        );
+        assert_eq!(
+            pixel_canvas(&doc.layers[1]).get_pixel(2, 2).unwrap(),
+            Color::TRANSPARENT
+        );
+    }
+
+    #[test]
+    fn lift_marquee_pixels_reads_only_the_active_pixel_layer_region() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(2, 2, red).unwrap(),
+        );
+        doc.add_layer(b, "B".to_string());
+        let mut active_canvas = PixelCanvas::new(2, 2).unwrap();
+        active_canvas.set_pixel(0, 0, green).unwrap();
+        active_canvas.set_pixel(1, 0, blue).unwrap();
+        set_pixel_canvas(&mut doc.layers[1], active_canvas);
+        doc.set_marquee(Some(MarqueeRegion::from_drag(0, 0, 1, 0)));
+
+        let lifted = doc.lift_marquee_pixels();
+
+        assert_eq!(lifted, vec![0, 255, 0, 255, 0, 0, 255, 255]);
+    }
+
+    #[test]
+    fn composite_buffer_at_writes_to_active_pixel_layer_only() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(2, 2, red).unwrap(),
+        );
+        doc.add_layer(b, "B".to_string());
+        set_pixel_canvas(
+            &mut doc.layers[1],
+            PixelCanvas::with_color(2, 2, Color::TRANSPARENT).unwrap(),
+        );
+
+        doc.composite_buffer_at(
+            &[0, 255, 0, 255, 0, 0, 255, 255],
+            MarqueeRegion::from_drag(0, 0, 1, 0),
+        );
+
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(0, 0).unwrap(), red);
+        assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(0, 0).unwrap(), green);
+        assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(1, 0).unwrap(), blue);
+    }
+
+    #[test]
+    fn region_pixel_mutators_are_no_ops_when_active_layer_is_reference() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(2, 2, red).unwrap(),
+        );
+        doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
+            .unwrap();
+        doc.set_marquee(Some(MarqueeRegion::from_drag(0, 0, 1, 1)));
+
+        assert_eq!(doc.lift_marquee_pixels(), Vec::<u8>::new());
+        doc.clear_marquee_pixels();
+        doc.composite_buffer_at(
+            &[
+                0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255,
+            ],
+            MarqueeRegion::from_drag(0, 0, 1, 1),
+        );
+
+        assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(0, 0).unwrap(), red);
+        assert_eq!(doc.marquee(), Some(MarqueeRegion::from_drag(0, 0, 1, 1)));
+    }
+
+    #[test]
+    fn lift_marquee_pixels_returns_empty_when_no_marquee_exists() {
+        let id = Uuid::new_v4();
+        let doc = Document::new(2, 2, id, "A".to_string()).unwrap();
+
+        assert_eq!(doc.lift_marquee_pixels(), Vec::<u8>::new());
     }
 
     #[test]

@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Document, MarqueeRegion, ResizeAnchor } from '../canvas-model';
 import type { HistoryManager } from '../adapter-types';
-import { clearActiveLayerPixels, singleLayerDocument } from '../wasm-backend';
+import {
+	clearActiveLayerPixels,
+	createHistoryManager,
+	marqueeRegionFromDrag,
+	singleLayerDocument
+} from '../wasm-backend';
 import {
 	DocumentChangeJournal,
 	type DocumentChangeJournalDeps
@@ -256,6 +261,61 @@ describe('DocumentChangeJournal', () => {
 		expect(events).toEqual(['snapshot', 'render', 'dirty']);
 	});
 
+	it('clears Marquee pixels with one undo snapshot and preserves the Marquee', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array(4 * 4 * 4);
+		pixels.set([255, 0, 0, 255], 0);
+		pixels.set([0, 255, 0, 255], (1 * 4 + 1) * 4);
+		const document = singleLayerDocument(4, 4, pixels);
+		const marquee = marqueeRegionFromDrag(1, 1, 2, 2);
+		document.set_marquee(marquee);
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'clear-marquee-pixels' }
+		});
+
+		expect(result).toEqual({ changed: true });
+		expect(Array.from(document.layer_pixels_at(0)!.slice(0, 4))).toEqual([255, 0, 0, 255]);
+		expect(Array.from(document.layer_pixels_at(0)!.slice((1 * 4 + 1) * 4, (1 * 4 + 2) * 4))).toEqual([
+			0, 0, 0, 0
+		]);
+		expect(document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 2 });
+		expect(events).toEqual(['snapshot', 'render', 'dirty']);
+	});
+
+	it('undo restores pixels cleared through the Marquee', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array(4 * 4 * 4);
+		pixels.set([0, 255, 0, 255], (1 * 4 + 1) * 4);
+		let current = singleLayerDocument(4, 4, pixels);
+		current.set_marquee(marqueeRegionFromDrag(1, 1, 1, 1));
+		const journal = createJournal(events, current, {
+			getDocument: () => current,
+			replaceDocument: (document) => {
+				current = document;
+				events.push(`replace:${document.width}x${document.height}`);
+			},
+			createHistoryManager
+		});
+
+		journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'clear-marquee-pixels' }
+		});
+		expect(Array.from(current.layer_pixels_at(0)!.slice((1 * 4 + 1) * 4, (1 * 4 + 2) * 4))).toEqual([
+			0, 0, 0, 0
+		]);
+
+		expect(journal.undo()).toEqual({ changed: true });
+
+		expect(Array.from(current.layer_pixels_at(0)!.slice((1 * 4 + 1) * 4, (1 * 4 + 2) * 4))).toEqual([
+			0, 255, 0, 255
+		]);
+		expect(current.marquee()).toMatchObject({ x: 1, y: 1, width: 1, height: 1 });
+	});
+
 	it('skips active-layer clear when the active layer is Reference', () => {
 		const events: string[] = [];
 		const document = {
@@ -271,6 +331,28 @@ describe('DocumentChangeJournal', () => {
 		const result = journal.commit({
 			kind: 'undoable-document',
 			intent: { type: 'clear-active-layer' }
+		});
+
+		expect(result).toEqual({ changed: false });
+		expect(events).toEqual([]);
+	});
+
+	it('skips Marquee pixel clear on a Reference-active document without invalidating render', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			active_layer_id: () => 'reference-1',
+			marquee: () => ({ x: 1, y: 1, width: 2, height: 2 }),
+			layer_count: () => 1,
+			layer_id_at: () => 'reference-1',
+			layer_kind_at: () => 'reference'
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'clear-marquee-pixels' }
 		});
 
 		expect(result).toEqual({ changed: false });

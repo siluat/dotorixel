@@ -1,3 +1,6 @@
+use crate::canvas::PixelCanvas;
+use crate::color::Color;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MarqueeRegion {
     x: i32,
@@ -76,9 +79,145 @@ impl MarqueeRegion {
     }
 }
 
+fn region_buffer_len(region: MarqueeRegion) -> usize {
+    let width = usize::try_from(region.width).expect("region width fits usize");
+    let height = usize::try_from(region.height).expect("region height fits usize");
+    width
+        .checked_mul(height)
+        .and_then(|pixels| pixels.checked_mul(4))
+        .expect("region byte length fits usize")
+}
+
+/// Extracts `region` from `canvas` as row-major RGBA bytes.
+///
+/// Pixels outside the canvas are returned as [`Color::TRANSPARENT`], so the
+/// returned buffer always has `region.width * region.height * 4` bytes.
+pub fn lift_region(canvas: &PixelCanvas, region: MarqueeRegion) -> Vec<u8> {
+    let mut buffer = Vec::with_capacity(region_buffer_len(region));
+    for row in 0..region.height {
+        for col in 0..region.width {
+            let x = i64::from(region.x) + i64::from(col);
+            let y = i64::from(region.y) + i64::from(row);
+            let color = if x >= 0
+                && y >= 0
+                && x < i64::from(canvas.width())
+                && y < i64::from(canvas.height())
+            {
+                canvas
+                    .get_pixel(x as u32, y as u32)
+                    .expect("region coordinate checked against canvas bounds")
+            } else {
+                Color::TRANSPARENT
+            };
+            buffer.extend([color.r, color.g, color.b, color.a]);
+        }
+    }
+    buffer
+}
+
+/// Clears the overlapping portion of `region` on `canvas` to transparent.
+///
+/// The region is clipped to the canvas bounds; a fully out-of-bounds region is
+/// a no-op.
+pub fn clear_region(canvas: &mut PixelCanvas, region: MarqueeRegion) {
+    let Some(overlap) = region.clip_to(canvas.width(), canvas.height()) else {
+        return;
+    };
+
+    for y in overlap.y..overlap.y + overlap.height as i32 {
+        for x in overlap.x..overlap.x + overlap.width as i32 {
+            canvas
+                .set_pixel(x as u32, y as u32, Color::TRANSPARENT)
+                .expect("region clipped to canvas bounds");
+        }
+    }
+}
+
+/// Source-over composites row-major RGBA `buffer` into `canvas` at `dest_region`.
+///
+/// Pixels outside the canvas are skipped. Panics when `buffer.len()` is not
+/// exactly `dest_region.width * dest_region.height * 4`.
+pub fn composite_region(canvas: &mut PixelCanvas, buffer: &[u8], dest_region: MarqueeRegion) {
+    assert_eq!(
+        buffer.len(),
+        region_buffer_len(dest_region),
+        "region buffer length must match dest_region.width * dest_region.height * 4"
+    );
+
+    for row in 0..dest_region.height {
+        for col in 0..dest_region.width {
+            let dest_x = i64::from(dest_region.x) + i64::from(col);
+            let dest_y = i64::from(dest_region.y) + i64::from(row);
+            if dest_x < 0
+                || dest_y < 0
+                || dest_x >= i64::from(canvas.width())
+                || dest_y >= i64::from(canvas.height())
+            {
+                continue;
+            }
+
+            let src_index = ((row * dest_region.width + col) * 4) as usize;
+            let src = Color::new(
+                buffer[src_index],
+                buffer[src_index + 1],
+                buffer[src_index + 2],
+                buffer[src_index + 3],
+            );
+            if src.a == 0 {
+                continue;
+            }
+
+            let dst = canvas
+                .get_pixel(dest_x as u32, dest_y as u32)
+                .expect("destination coordinate checked against canvas bounds");
+            canvas
+                .set_pixel(dest_x as u32, dest_y as u32, source_over(src, dst))
+                .expect("destination coordinate checked against canvas bounds");
+        }
+    }
+}
+
+fn source_over(src: Color, dst: Color) -> Color {
+    let src_a = src.a as f32 / 255.0;
+    let dst_a = dst.a as f32 / 255.0;
+    let out_a = src_a + dst_a * (1.0 - src_a);
+    if out_a == 0.0 {
+        return Color::TRANSPARENT;
+    }
+
+    let blend_channel = |src_channel: u8, dst_channel: u8| {
+        let src_channel = src_channel as f32 / 255.0;
+        let dst_channel = dst_channel as f32 / 255.0;
+        ((src_channel * src_a + dst_channel * dst_a * (1.0 - src_a)) / out_a * 255.0).round() as u8
+    };
+
+    Color::new(
+        blend_channel(src.r, dst.r),
+        blend_channel(src.g, dst.g),
+        blend_channel(src.b, dst.b),
+        (out_a * 255.0).round() as u8,
+    )
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::canvas::PixelCanvas;
+    use crate::color::Color;
+
     use super::MarqueeRegion;
+
+    const RED: Color = Color::new(255, 0, 0, 255);
+    const GREEN: Color = Color::new(0, 255, 0, 255);
+    const BLUE: Color = Color::new(0, 0, 255, 255);
+    const WHITE: Color = Color::new(255, 255, 255, 255);
+    const SEMI_TRANSPARENT_BLUE: Color = Color::new(0, 0, 255, 128);
+
+    fn rgba(colors: &[Color]) -> Vec<u8> {
+        colors
+            .iter()
+            .flat_map(|color| [color.r, color.g, color.b, color.a])
+            .collect()
+    }
 
     #[test]
     fn from_drag_normalizes_drag_direction_to_inclusive_region() {
@@ -170,5 +309,127 @@ mod tests {
         assert_eq!(region.width(), 1);
         assert_eq!(region.height(), 1);
         assert!(region.contains(3, 5));
+    }
+
+    #[test]
+    fn lift_region_extracts_pixels_in_row_major_order() {
+        let mut canvas = PixelCanvas::new(3, 3).unwrap();
+        canvas.set_pixel(1, 1, RED).unwrap();
+        canvas.set_pixel(2, 1, GREEN).unwrap();
+        canvas.set_pixel(1, 2, BLUE).unwrap();
+        canvas.set_pixel(2, 2, WHITE).unwrap();
+
+        let lifted = super::lift_region(&canvas, MarqueeRegion::from_drag(1, 1, 2, 2));
+
+        assert_eq!(lifted, rgba(&[RED, GREEN, BLUE, WHITE]));
+    }
+
+    #[test]
+    fn lift_region_pads_out_of_bounds_pixels_with_transparency() {
+        let mut canvas = PixelCanvas::new(2, 2).unwrap();
+        canvas.set_pixel(0, 0, RED).unwrap();
+        canvas.set_pixel(1, 0, GREEN).unwrap();
+        canvas.set_pixel(0, 1, BLUE).unwrap();
+        canvas.set_pixel(1, 1, WHITE).unwrap();
+
+        let lifted = super::lift_region(&canvas, MarqueeRegion::from_drag(-1, -1, 1, 1));
+
+        assert_eq!(
+            lifted,
+            rgba(&[
+                Color::TRANSPARENT,
+                Color::TRANSPARENT,
+                Color::TRANSPARENT,
+                Color::TRANSPARENT,
+                RED,
+                GREEN,
+                Color::TRANSPARENT,
+                BLUE,
+                WHITE,
+            ])
+        );
+    }
+
+    #[test]
+    fn clear_region_sets_only_overlapping_pixels_to_transparent() {
+        let mut canvas = PixelCanvas::with_color(3, 3, RED).unwrap();
+
+        super::clear_region(&mut canvas, MarqueeRegion::from_drag(1, 1, 3, 3));
+
+        assert_eq!(canvas.get_pixel(0, 0).unwrap(), RED);
+        assert_eq!(canvas.get_pixel(2, 0).unwrap(), RED);
+        assert_eq!(canvas.get_pixel(0, 2).unwrap(), RED);
+        assert_eq!(canvas.get_pixel(1, 1).unwrap(), Color::TRANSPARENT);
+        assert_eq!(canvas.get_pixel(2, 1).unwrap(), Color::TRANSPARENT);
+        assert_eq!(canvas.get_pixel(1, 2).unwrap(), Color::TRANSPARENT);
+        assert_eq!(canvas.get_pixel(2, 2).unwrap(), Color::TRANSPARENT);
+    }
+
+    #[test]
+    fn composite_region_alpha_blends_buffer_over_destination() {
+        let mut canvas = PixelCanvas::with_color(1, 1, RED).unwrap();
+
+        super::composite_region(
+            &mut canvas,
+            &rgba(&[SEMI_TRANSPARENT_BLUE]),
+            MarqueeRegion::from_drag(0, 0, 0, 0),
+        );
+
+        assert_eq!(
+            canvas.get_pixel(0, 0).unwrap(),
+            Color::new(127, 0, 128, 255)
+        );
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "region buffer length must match dest_region.width * dest_region.height * 4"
+    )]
+    fn composite_region_panics_when_buffer_size_does_not_match_region() {
+        let mut canvas = PixelCanvas::new(1, 1).unwrap();
+
+        super::composite_region(
+            &mut canvas,
+            &[0, 0, 0, 0],
+            MarqueeRegion::from_drag(0, 0, 1, 1),
+        );
+    }
+
+    #[test]
+    fn lift_clear_and_composite_at_same_region_preserves_pixels() {
+        let mut canvas = PixelCanvas::new(3, 3).unwrap();
+        canvas.set_pixel(0, 0, RED).unwrap();
+        canvas.set_pixel(1, 1, GREEN).unwrap();
+        canvas.set_pixel(2, 2, BLUE).unwrap();
+        let before = canvas.pixels().to_vec();
+        let region = MarqueeRegion::from_drag(0, 0, 2, 2);
+
+        let lifted = super::lift_region(&canvas, region);
+        super::clear_region(&mut canvas, region);
+        super::composite_region(&mut canvas, &lifted, region);
+
+        assert_eq!(canvas.pixels(), before);
+    }
+
+    #[test]
+    fn region_operations_treat_fully_out_of_bounds_regions_as_transparent_no_ops() {
+        let mut canvas = PixelCanvas::with_color(2, 2, RED).unwrap();
+        let before = canvas.pixels().to_vec();
+        let region = MarqueeRegion::from_drag(3, 3, 4, 4);
+
+        let lifted = super::lift_region(&canvas, region);
+        super::clear_region(&mut canvas, region);
+        super::composite_region(&mut canvas, &lifted, region);
+
+        assert_eq!(
+            lifted,
+            rgba(&[
+                Color::TRANSPARENT,
+                Color::TRANSPARENT,
+                Color::TRANSPARENT,
+                Color::TRANSPARENT,
+            ])
+        );
+        assert_eq!(canvas.pixels(), before);
     }
 }

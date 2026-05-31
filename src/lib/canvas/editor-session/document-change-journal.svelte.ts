@@ -27,6 +27,7 @@ export type UndoableDocumentIntent =
 			readonly anchor: ResizeAnchor;
 	  }
 	| { readonly type: 'clear-active-layer' }
+	| { readonly type: 'clear-marquee-pixels' }
 	| { readonly type: 'set-marquee'; readonly region: MarqueeRegion | null };
 
 export type PersistedDocumentUiIntent =
@@ -181,6 +182,9 @@ export class DocumentChangeJournal {
 			case 'clear-active-layer':
 				this.#deps.clearActiveLayerPixels(document);
 				return { changed: true };
+			case 'clear-marquee-pixels':
+				document.clear_marquee_pixels();
+				return { changed: true };
 			case 'set-marquee':
 				document.set_marquee(intent.region);
 				return { changed: true };
@@ -238,6 +242,11 @@ export class DocumentChangeJournal {
 				return (
 					document.layer_kind_at(this.#stackIndexOf(document.active_layer_id())) === 'pixel'
 				);
+			case 'clear-marquee-pixels':
+				return (
+					Boolean(document.marquee()) &&
+					document.layer_kind_at(this.#stackIndexOf(document.active_layer_id())) === 'pixel'
+				);
 			case 'set-marquee':
 				return !sameMarqueeRegion(document.marquee(), intent.region);
 		}
@@ -292,6 +301,7 @@ export class DocumentChangeJournal {
 				this.#reclampViewportInvalidateRenderAndMarkDirty();
 				break;
 			case 'clear-active-layer':
+			case 'clear-marquee-pixels':
 				this.#invalidateRenderAndMarkDirty();
 				break;
 			case 'add-pixel-layer':

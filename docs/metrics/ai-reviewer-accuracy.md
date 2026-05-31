@@ -6,14 +6,23 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 131 | 98 | 33 | 115 | 75% | 46% |
-| cubic-dev-ai[bot] | 78 | 63 | 15 | 145 | 81% | 30% |
-| coderabbitai[bot] | 177 | 123 | 54 | 83 | 69% | 60% |
+| greptile-apps[bot] | 132 | 99 | 33 | 117 | 75% | 46% |
+| cubic-dev-ai[bot] | 78 | 63 | 15 | 148 | 81% | 30% |
+| coderabbitai[bot] | 179 | 125 | 54 | 84 | 70% | 60% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #234 | greptile-apps[bot] | Accept | Release builds should enforce `composite_region` buffer length |
+| #234 | coderabbitai[bot] | Accept | Document public selection region APIs with rustdoc |
+| #234 | coderabbitai[bot] | Accept | Document TS Marquee methods with TSDoc |
+| #234 | coderabbitai[bot] | Miss | Did not flag release-only missing `composite_region` buffer guard |
+| #234 | cubic-dev-ai[bot] | Miss | Did not flag release-only missing `composite_region` buffer guard |
+| #234 | greptile-apps[bot] | Miss | Did not flag Rust selection region API documentation gap |
+| #234 | cubic-dev-ai[bot] | Miss | Did not flag Rust selection region API documentation gap |
+| #234 | greptile-apps[bot] | Miss | Did not flag TS Document Marquee method documentation gap |
+| #234 | cubic-dev-ai[bot] | Miss | Did not flag TS Document Marquee method documentation gap |
 | #233 | coderabbitai[bot] | Accept | Returning to anchor after drag should refresh Marquee preview |
 | #233 | cubic-dev-ai[bot] | Accept | Returning to anchor after drag should refresh Marquee preview |
 | #233 | greptile-apps[bot] | Miss | Did not flag stale Marquee preview when returning to anchor after drag |

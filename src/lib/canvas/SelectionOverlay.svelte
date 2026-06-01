@@ -1,7 +1,9 @@
 <script lang="ts">
 	import type { MarqueeRegion } from './canvas-model';
 	import {
+		clampSelectionDragPointerToViewport,
 		computeSelectionDragTooltipPosition,
+		formatSelectionDragDimensions,
 		type SelectionDragAid
 	} from './selection-drag-aids';
 	import type { ViewportData, ViewportSize } from './viewport';
@@ -45,14 +47,20 @@
 	const defineMarqueeAid = $derived(
 		projectedRect && marquee && dragAid?.phase === 'defineMarquee' ? dragAid : null
 	);
-	const tooltipPosition = $derived(
+	const dragAidPointer = $derived(
 		defineMarqueeAid
-			? computeSelectionDragTooltipPosition(defineMarqueeAid.pointer, viewportSize)
+			? clampSelectionDragPointerToViewport(defineMarqueeAid.pointer, viewportSize)
 			: null
+	);
+	const tooltipPosition = $derived(
+		dragAidPointer ? computeSelectionDragTooltipPosition(dragAidPointer, viewportSize) : null
+	);
+	const marqueeDimensions = $derived(
+		marquee ? formatSelectionDragDimensions(marquee.width, marquee.height) : null
 	);
 </script>
 
-{#if defineMarqueeAid}
+{#if dragAidPointer}
 	<svg
 		class="selection-drag-guides"
 		data-testid="selection-drag-guides"
@@ -63,26 +71,26 @@
 	>
 		<line
 			x1="0"
-			y1={defineMarqueeAid.pointer.y}
-			x2={defineMarqueeAid.pointer.x}
-			y2={defineMarqueeAid.pointer.y}
+			y1={dragAidPointer.y}
+			x2={dragAidPointer.x}
+			y2={dragAidPointer.y}
 		/>
 		<line
-			x1={defineMarqueeAid.pointer.x}
-			y1={defineMarqueeAid.pointer.y}
+			x1={dragAidPointer.x}
+			y1={dragAidPointer.y}
 			x2={viewportSize.width}
-			y2={defineMarqueeAid.pointer.y}
+			y2={dragAidPointer.y}
 		/>
 		<line
-			x1={defineMarqueeAid.pointer.x}
+			x1={dragAidPointer.x}
 			y1="0"
-			x2={defineMarqueeAid.pointer.x}
-			y2={defineMarqueeAid.pointer.y}
+			x2={dragAidPointer.x}
+			y2={dragAidPointer.y}
 		/>
 		<line
-			x1={defineMarqueeAid.pointer.x}
-			y1={defineMarqueeAid.pointer.y}
-			x2={defineMarqueeAid.pointer.x}
+			x1={dragAidPointer.x}
+			y1={dragAidPointer.y}
+			x2={dragAidPointer.x}
 			y2={viewportSize.height}
 		/>
 	</svg>
@@ -116,7 +124,7 @@
 	</svg>
 {/if}
 
-{#if defineMarqueeAid && tooltipPosition && marquee}
+{#if dragAidPointer && tooltipPosition && marqueeDimensions}
 	<div
 		class="selection-drag-tooltip"
 		data-testid="selection-drag-tooltip"
@@ -124,7 +132,7 @@
 		style:left={`${tooltipPosition.x}px`}
 		style:top={`${tooltipPosition.y}px`}
 	>
-		{marquee.width}×{marquee.height}
+		{marqueeDimensions}
 	</div>
 {/if}
 
@@ -157,8 +165,10 @@
 		z-index: 16;
 		pointer-events: none;
 		box-sizing: border-box;
-		width: 64px;
+		min-width: 64px;
 		height: 28px;
+		width: max-content;
+		padding: 0 var(--ds-space-2);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -168,6 +178,7 @@
 		color: var(--ds-text-primary);
 		box-shadow: var(--ds-shadow-md);
 		font: 600 12px/1 var(--ds-font-body);
+		white-space: nowrap;
 	}
 
 	.selection-wash,

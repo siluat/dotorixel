@@ -99,6 +99,22 @@ describe('SelectionOverlay', () => {
 		expect(tooltip.style.top).toBe('36px');
 	});
 
+	it('formats DefineMarquee dimensions as integer pixel counts', () => {
+		render(SelectionOverlay, {
+			marquee: region({ width: 150.30000000000001, height: 75.5 }),
+			canvasWidth: 512,
+			canvasHeight: 512,
+			viewport,
+			viewportSize: { width: 240, height: 180 },
+			dragAid: {
+				phase: 'defineMarquee',
+				pointer: { x: 120, y: 80 }
+			}
+		});
+
+		expect(screen.getByTestId('selection-drag-tooltip').textContent).toBe('150×76');
+	});
+
 	it('renders DefineMarquee crosshair guides from the live pointer to the viewport edges', () => {
 		render(SelectionOverlay, {
 			marquee: region(),
@@ -135,6 +151,32 @@ describe('SelectionOverlay', () => {
 		expect(lines[3].getAttribute('y2')).toBe('180');
 	});
 
+	it('clamps DefineMarquee crosshair guides to the viewport bounds', () => {
+		render(SelectionOverlay, {
+			marquee: region(),
+			canvasWidth: 8,
+			canvasHeight: 8,
+			viewport,
+			viewportSize: { width: 240, height: 180 },
+			dragAid: {
+				phase: 'defineMarquee',
+				pointer: { x: -20, y: 220 }
+			}
+		});
+
+		const guides = screen.getByTestId('selection-drag-guides');
+		const lines = guides.querySelectorAll('line');
+
+		expect(lines[0].getAttribute('x2')).toBe('0');
+		expect(lines[0].getAttribute('y1')).toBe('180');
+		expect(lines[1].getAttribute('x1')).toBe('0');
+		expect(lines[1].getAttribute('y2')).toBe('180');
+		expect(lines[2].getAttribute('x1')).toBe('0');
+		expect(lines[2].getAttribute('y2')).toBe('180');
+		expect(lines[3].getAttribute('x1')).toBe('0');
+		expect(lines[3].getAttribute('y1')).toBe('180');
+	});
+
 	it('does not render drag aids during LiftAndDrag', () => {
 		render(SelectionOverlay, {
 			marquee: region(),
@@ -161,6 +203,12 @@ describe('SelectionOverlay', () => {
 		});
 
 		expect(screen.queryByTestId('selection-overlay')).toBeNull();
+	});
+
+	it('lets the drag tooltip grow beyond its minimum width', () => {
+		expect(selectionOverlaySource).toContain('min-width: 64px;');
+		expect(selectionOverlaySource).toContain('width: max-content;');
+		expect(selectionOverlaySource).not.toContain('\t\twidth: 64px;');
 	});
 
 	it('documents the marching-ants cadence and reduced-motion fallback in CSS', () => {

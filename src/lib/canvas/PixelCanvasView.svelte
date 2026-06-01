@@ -30,6 +30,7 @@
 		pixelCanvas: RenderableCanvas;
 		referenceLayerUnderlay?: ReferenceLayerUnderlay;
 		marquee?: MarqueeRegion | null;
+		floatingSelectionOffset?: { readonly dx: number; readonly dy: number } | null;
 		isReferenceLayerActive?: boolean;
 		viewport: ViewportData;
 		viewportSize?: ViewportSize;
@@ -60,6 +61,7 @@
 		pixelCanvas,
 		referenceLayerUnderlay,
 		marquee,
+		floatingSelectionOffset,
 		isReferenceLayerActive = false,
 		viewport,
 		viewportSize = { width: 512, height: 512 },
@@ -84,6 +86,7 @@
 	let canvasEl: HTMLCanvasElement | undefined = $state();
 	let placementOverlayPointerType = $state<PointerType>('mouse');
 	let selectionDragAid = $state<SelectionDragAid | null>(null);
+	let selectionHoverCoords = $state<CanvasPoint | null>(null);
 	let pendingOverlayTouch: { id: number; x: number; y: number } | null = null;
 	const forwardedOverlayPointerIds = new Set<number>();
 	const forwardedOverlayDrawPointerIds = new Set<number>();
@@ -97,6 +100,9 @@
 		placementInteraction.displayedUnderlay(referenceLayerUnderlay)
 	);
 	const canMoveReferencePlacementBody = $derived(activeTool === 'move');
+	const activeSelectionDragPhase = $derived(
+		floatingSelectionOffset ? 'liftAndDrag' : selectionDragPhase
+	);
 
 	const canvasInteraction = createCanvasInteraction(
 		{
@@ -167,12 +173,20 @@
 			? 'not-allowed'
 			: toolCursor
 	);
+	const selectionCursorStyle = $derived.by(() => {
+		if (activeTool !== 'selection' || toolCursorStyle === 'not-allowed') return toolCursorStyle;
+		if (floatingSelectionOffset) return 'grabbing';
+		if (!marquee || !selectionHoverCoords) return toolCursorStyle;
+		return marquee.contains(Math.floor(selectionHoverCoords.x), Math.floor(selectionHoverCoords.y))
+			? 'move'
+			: toolCursorStyle;
+	});
 	const cursorStyle = $derived(
 		canvasInteraction.interactionType === 'panning'
 			? 'grabbing'
 			: isSpaceHeld
 				? 'grab'
-				: toolCursorStyle
+				: selectionCursorStyle
 	);
 
 	function toLocal(event: PointerEvent): { x: number; y: number } {
@@ -231,13 +245,17 @@
 		if (activeTool !== 'selection') return;
 		if (canvasInteraction.interactionType !== 'drawing') return;
 		selectionDragAid = {
-			phase: selectionDragPhase,
+			phase: activeSelectionDragPhase,
 			pointer: point
 		};
 	}
 
 	function clearSelectionDragAid(): void {
 		selectionDragAid = null;
+	}
+
+	function updateSelectionHover(point: { x: number; y: number }): void {
+		selectionHoverCoords = viewportOps.screenToCanvasPoint(viewport, point.x, point.y);
 	}
 
 	function handleWindowResize(): void {
@@ -269,6 +287,7 @@
 			pointerType,
 			event.button
 		);
+		updateSelectionHover({ x, y });
 	}
 
 	function handlePointerMove(event: PointerEvent): void {
@@ -276,6 +295,7 @@
 		pushPointerToSession(event);
 		const { x, y } = toLocal(event);
 		canvasInteraction.pointerMove(x, y);
+		updateSelectionHover({ x, y });
 		updateSelectionDragAid({ x, y });
 	}
 
@@ -288,6 +308,7 @@
 		pushPointerToSession(event);
 		const { x, y } = toLocal(event);
 		canvasInteraction.windowPointerMove(event.pointerId, x, y, event.buttons);
+		updateSelectionHover({ x, y });
 		updateSelectionDragAid({ x, y });
 	}
 
@@ -308,6 +329,7 @@
 	function handlePointerLeave(event: PointerEvent): void {
 		const { x, y } = toLocal(event);
 		canvasInteraction.pointerLeave(x, y);
+		selectionHoverCoords = null;
 		clearSelectionDragAid();
 	}
 
@@ -640,6 +662,7 @@
 
 <SelectionOverlay
 	{marquee}
+	{floatingSelectionOffset}
 	canvasWidth={pixelCanvas.width}
 	canvasHeight={pixelCanvas.height}
 	{viewport}

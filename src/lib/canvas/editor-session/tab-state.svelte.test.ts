@@ -98,6 +98,17 @@ function getPixel(tab: TabState, x: number, y: number): Color {
 	return { r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: pixels[i + 3] };
 }
 
+function getRenderedPixel(tab: TabState, x: number, y: number): Color {
+	const pixels = tab.compositeBuffer.pixels();
+	const i = (y * tab.compositeBuffer.width + x) * 4;
+	return { r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: pixels[i + 3] };
+}
+
+function getPixelFromBuffer(pixels: Uint8Array, width: number, x: number, y: number): Color {
+	const i = (y * width + x) * 4;
+	return { r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: pixels[i + 3] };
+}
+
 function makePixelRgba(color: Color): Uint8Array {
 	return new Uint8Array([color.r, color.g, color.b, color.a]);
 }
@@ -347,6 +358,170 @@ describe('TabState — effect dispatcher', () => {
 
 		expect(getPixel(tab, 1, 1)).toEqual(GREEN);
 		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('dragging inside the Marquee lifts, commits, and undoes a Floating Selection move', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
+		pixels.set(makePixelRgba(BLUE), (2 * 5 + 2) * 4);
+		const { tab, notifier, shared } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		notifier.reset();
+		const beforeDragRenderVersion = tab.renderVersion;
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 2, y: 2 }, { x: 1, y: 1 });
+
+		expect(getPixel(tab, 1, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 2, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 2, 2)).toEqual(BLUE);
+		expect(getRenderedPixel(tab, 2, 2)).toEqual(RED);
+		expect(getRenderedPixel(tab, 3, 2)).toEqual(GREEN);
+		expect(tab.renderVersion).toBeGreaterThan(beforeDragRenderVersion);
+		expect(notifier.dirtyCalls).toEqual([]);
+
+		tab.drawEnd();
+
+		expect(getPixel(tab, 2, 2)).toEqual(RED);
+		expect(getPixel(tab, 3, 2)).toEqual(GREEN);
+		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 2, width: 2, height: 1 });
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+
+		tab.undo();
+
+		expect(getPixel(tab, 1, 1)).toEqual(RED);
+		expect(getPixel(tab, 2, 1)).toEqual(GREEN);
+		expect(getPixel(tab, 2, 2)).toEqual(BLUE);
+		expect(getPixel(tab, 3, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+	});
+
+	it('renders a Floating Selection preview at the active layer stack position', () => {
+		const bottomPixels = new Uint8Array(5 * 5 * 4);
+		bottomPixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		const topPixels = new Uint8Array(5 * 5 * 4);
+		topPixels.set(makePixelRgba(BLUE), (2 * 5 + 2) * 4);
+		const bottomId = crypto.randomUUID();
+		const topId = crypto.randomUUID();
+		const { tab, shared } = makeTab({
+			document: documentFromLayerSource({
+				width: 5,
+				height: 5,
+				layers: [
+					{
+						kind: 'pixel',
+						id: bottomId,
+						name: 'Paint',
+						pixels: bottomPixels,
+						visible: true,
+						opacity: 1
+					},
+					{
+						kind: 'pixel',
+						id: topId,
+						name: 'Ink',
+						pixels: topPixels,
+						visible: true,
+						opacity: 1
+					}
+				],
+				activeLayerId: bottomId,
+				nextLayerNumber: 3,
+				timelinePanelCollapsed: false
+			})
+		});
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 1, 1));
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 2, y: 2 }, { x: 1, y: 1 });
+
+		expect(getRenderedPixel(tab, 2, 2)).toEqual(BLUE);
+
+		tab.drawEnd();
+		expect(getPixel(tab, 2, 2)).toEqual(BLUE);
+	});
+
+	it('toSnapshot serializes source pixels while a Floating Selection is live', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
+		pixels.set(makePixelRgba(BLUE), (2 * 5 + 2) * 4);
+		const { tab, shared } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 2, y: 2 }, { x: 1, y: 1 });
+
+		expect(getPixel(tab, 1, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getRenderedPixel(tab, 2, 2)).toEqual(RED);
+
+		const snap = tab.toSnapshot();
+		const layer = expectPixelLayer(snap.layers[0]);
+		expect(getPixelFromBuffer(layer.pixels, snap.width, 1, 1)).toEqual(RED);
+		expect(getPixelFromBuffer(layer.pixels, snap.width, 2, 1)).toEqual(GREEN);
+		expect(getPixelFromBuffer(layer.pixels, snap.width, 2, 2)).toEqual(BLUE);
+		expect(snap.marquee).toEqual({ x: 1, y: 1, width: 2, height: 1 });
+	});
+
+	it('drawCancel restores a lifted Floating Selection without marking the tab dirty', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
+		const { tab, notifier, shared } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		notifier.reset();
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 2, y: 2 }, { x: 1, y: 1 });
+		expect(getPixel(tab, 1, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+
+		tab.drawCancel();
+
+		expect(getPixel(tab, 1, 1)).toEqual(RED);
+		expect(getPixel(tab, 2, 1)).toEqual(GREEN);
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('starts the next Marquee move from the committed Floating Selection position', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
+		const { tab, shared } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 2, y: 2 }, { x: 1, y: 1 });
+		tab.drawEnd();
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 2, y: 2 }, null);
+		tab.draw({ x: 3, y: 2 }, { x: 2, y: 2 });
+		tab.drawEnd();
+
+		expect(getPixel(tab, 2, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 3, 2)).toEqual(RED);
+		expect(getPixel(tab, 4, 2)).toEqual(GREEN);
+		expect(tab.document.marquee()).toMatchObject({ x: 3, y: 2, width: 2, height: 1 });
 	});
 
 	it('canvas resize triggers viewport reclamp against the new canvas dimensions', () => {

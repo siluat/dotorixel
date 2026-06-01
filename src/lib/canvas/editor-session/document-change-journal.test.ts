@@ -88,6 +88,11 @@ function createJournal(
 	});
 }
 
+function pixelAt(document: Document, x: number, y: number): readonly number[] {
+	const start = (y * document.width + x) * 4;
+	return Array.from(document.layer_pixels_at(0)!.slice(start, start + 4));
+}
+
 describe('DocumentChangeJournal', () => {
 	it('captures undo snapshots and exposes history availability', () => {
 		const events: string[] = [];
@@ -352,6 +357,87 @@ describe('DocumentChangeJournal', () => {
 			0, 255, 0, 255
 		]);
 		expect(current.marquee()).toMatchObject({ x: 1, y: 1, width: 1, height: 1 });
+	});
+
+	it('commits a Floating Selection move as one undoable document change', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array(4 * 4 * 4);
+		pixels.set([255, 0, 0, 255], (0 * 4 + 0) * 4);
+		pixels.set([0, 255, 0, 255], (0 * 4 + 1) * 4);
+		pixels.set([0, 0, 255, 255], (2 * 4 + 2) * 4);
+		let current = singleLayerDocument(4, 4, pixels);
+		const sourceRegion = marqueeRegionFromDrag(0, 0, 1, 0);
+		current.set_marquee(sourceRegion);
+		const committedSourceRegion = current.marquee()!;
+		const buffer = current.lift_marquee_pixels();
+		const journal = createJournal(events, current, {
+			getDocument: () => current,
+			replaceDocument: (document) => {
+				current = document;
+				events.push(`replace:${document.width}x${document.height}`);
+			},
+			createHistoryManager
+		});
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: {
+				type: 'commit-floating-selection',
+				sourceRegion: committedSourceRegion,
+				destOffset: { dx: 1, dy: 1 },
+				buffer
+			}
+		});
+
+		expect(result).toEqual({ changed: true });
+		expect(pixelAt(current, 0, 0)).toEqual([0, 0, 0, 0]);
+		expect(pixelAt(current, 1, 0)).toEqual([0, 0, 0, 0]);
+		expect(pixelAt(current, 1, 1)).toEqual([255, 0, 0, 255]);
+		expect(pixelAt(current, 2, 1)).toEqual([0, 255, 0, 255]);
+		expect(pixelAt(current, 2, 2)).toEqual([0, 0, 255, 255]);
+		expect(current.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+
+		expect(journal.undo()).toEqual({ changed: true });
+		expect(pixelAt(current, 0, 0)).toEqual([255, 0, 0, 255]);
+		expect(pixelAt(current, 1, 0)).toEqual([0, 255, 0, 255]);
+		expect(pixelAt(current, 1, 1)).toEqual([0, 0, 0, 0]);
+		expect(pixelAt(current, 2, 1)).toEqual([0, 0, 0, 0]);
+		expect(pixelAt(current, 2, 2)).toEqual([0, 0, 255, 255]);
+		expect(current.marquee()).toMatchObject({ x: 0, y: 0, width: 2, height: 1 });
+
+		expect(journal.redo()).toEqual({ changed: true });
+		expect(pixelAt(current, 1, 1)).toEqual([255, 0, 0, 255]);
+		expect(pixelAt(current, 2, 1)).toEqual([0, 255, 0, 255]);
+		expect(current.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+	});
+
+	it('clips a Floating Selection commit when the destination leaves the canvas', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array(3 * 3 * 4);
+		pixels.set([255, 0, 0, 255], (1 * 3 + 1) * 4);
+		pixels.set([0, 255, 0, 255], (1 * 3 + 2) * 4);
+		const document = singleLayerDocument(3, 3, pixels);
+		const sourceRegion = marqueeRegionFromDrag(1, 1, 2, 1);
+		document.set_marquee(sourceRegion);
+		const committedSourceRegion = document.marquee()!;
+		const buffer = document.lift_marquee_pixels();
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: {
+				type: 'commit-floating-selection',
+				sourceRegion: committedSourceRegion,
+				destOffset: { dx: -2, dy: 0 },
+				buffer
+			}
+		});
+
+		expect(result).toEqual({ changed: true });
+		expect(pixelAt(document, 0, 1)).toEqual([0, 255, 0, 255]);
+		expect(pixelAt(document, 1, 1)).toEqual([0, 0, 0, 0]);
+		expect(pixelAt(document, 2, 1)).toEqual([0, 0, 0, 0]);
+		expect(document.marquee()).toMatchObject({ x: -1, y: 1, width: 2, height: 1 });
 	});
 
 	it('skips active-layer clear when the active layer is Reference', () => {

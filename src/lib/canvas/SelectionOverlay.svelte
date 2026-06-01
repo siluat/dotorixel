@@ -11,6 +11,7 @@
 
 	interface Props {
 		marquee?: MarqueeRegion | null;
+		floatingSelectionOffset?: { readonly dx: number; readonly dy: number } | null;
 		canvasWidth: number;
 		canvasHeight: number;
 		viewport: ViewportData;
@@ -20,6 +21,7 @@
 
 	let {
 		marquee,
+		floatingSelectionOffset,
 		canvasWidth,
 		canvasHeight,
 		viewport,
@@ -27,13 +29,23 @@
 		dragAid
 	}: Props = $props();
 
-	const projectedRect = $derived.by(() => {
+	const displayMarquee = $derived.by(() => {
 		if (!marquee) return null;
+		return {
+			x: marquee.x + (floatingSelectionOffset?.dx ?? 0),
+			y: marquee.y + (floatingSelectionOffset?.dy ?? 0),
+			width: marquee.width,
+			height: marquee.height
+		};
+	});
 
-		const left = Math.max(0, marquee.x);
-		const top = Math.max(0, marquee.y);
-		const right = Math.min(canvasWidth, marquee.x + marquee.width);
-		const bottom = Math.min(canvasHeight, marquee.y + marquee.height);
+	const projectedRect = $derived.by(() => {
+		if (!displayMarquee) return null;
+
+		const left = Math.max(0, displayMarquee.x);
+		const top = Math.max(0, displayMarquee.y);
+		const right = Math.min(canvasWidth, displayMarquee.x + displayMarquee.width);
+		const bottom = Math.min(canvasHeight, displayMarquee.y + displayMarquee.height);
 		if (left >= right || top >= bottom) return null;
 
 		const scaledPixel = Math.round(viewport.pixelSize * viewport.zoom);

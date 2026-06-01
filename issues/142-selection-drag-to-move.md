@@ -1,6 +1,6 @@
 ---
 title: "Selection drag-to-move — LiftAndDrag + commit + Undo restores Marquee position"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -46,3 +46,28 @@ Tests:
 ## Blocked by
 
 - [136 — Region pixel transformations (lift/clear/composite) + Delete keyboard](136-region-pixel-transformations-and-delete.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/tools/selection-tool.ts` | Added drag-from-inside Marquee mode that starts, moves, commits, or cancels a Floating Selection through tool effects. |
+| `src/lib/canvas/draw-tool.ts` | Added Floating Selection effects to the tool effect contract. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Owns transient Floating Selection state, clears source pixels during drag, renders live preview, restores on cancel, commits through the journal, and keeps snapshots free of in-flight transient pixels. |
+| `src/lib/canvas/editor-session/document-change-journal.svelte.ts` | Added one-step undoable Floating Selection commit that restores source pixels and Marquee position on undo. |
+| `src/lib/canvas/SelectionOverlay.svelte` | Projects the marching-ants overlay at the active Floating Selection offset while dragging. |
+| `src/lib/canvas/PixelCanvasView.svelte` | Wires Floating Selection offset into overlay and cursor affordances. |
+| `src/lib/canvas/editor-session/editor-controller.svelte.ts` | Exposes the active tab Floating Selection offset to the editor route. |
+| `src/routes/editor/+page.svelte` | Passes Floating Selection offset into desktop and mobile canvas views. |
+| `src/lib/canvas/**/*.{test.ts,svelte.test.ts}` | Added coverage for selection stroke effects, commit/undo/redo, off-canvas clipping, live preview layer order, snapshot safety, overlay projection, cursor affordances, and Reference Layer no-op behavior. |
+
+### Key Decisions
+
+- Floating Selection state stays web-shell transient instead of being persisted; `toSnapshot()` serializes the pre-lift source pixels if a session flush happens mid-drag.
+- Live preview is composited at the active Pixel Layer's stack position so upper visible layers can cover the moving selection.
+- Commit restores the pre-lift baseline before capturing history, then clears the source and composites the buffer at the destination as one undoable document change.
+
+### Notes
+
+- Escape cancel, axis lock, keyboard nudge, clipboard, cut, paste, and Selection action bar states remain in follow-up Selection sub-issues.
+- The live-preview blend path is currently implemented in the web shell; move it into shared/core rendering if Apple parity needs the same Floating Selection preview.

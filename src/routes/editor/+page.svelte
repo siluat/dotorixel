@@ -654,6 +654,7 @@
 				pixelCanvas={editor.compositeBuffer}
 				referenceLayerUnderlay={editor.referenceLayerUnderlay}
 				marquee={editor.marquee}
+				floatingSelectionOffset={editor.floatingSelectionOffset}
 				isReferenceLayerActive={isReferenceLayerActive}
 				viewport={editor.viewport}
 				viewportSize={editor.viewportSize}
@@ -761,6 +762,7 @@
 						pixelCanvas={editor.compositeBuffer}
 						referenceLayerUnderlay={editor.referenceLayerUnderlay}
 						marquee={editor.marquee}
+						floatingSelectionOffset={editor.floatingSelectionOffset}
 						isReferenceLayerActive={isReferenceLayerActive}
 						viewport={editor.viewport}
 						viewportSize={editor.viewportSize}

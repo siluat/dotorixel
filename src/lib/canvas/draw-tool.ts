@@ -11,7 +11,14 @@ export type ToolEffect =
 	| { readonly type: 'colorPick'; readonly target: 'foreground' | 'background'; readonly color: Color }
 	| { readonly type: 'addRecentColor'; readonly hex: string }
 	| { readonly type: 'marqueePreviewChanged' }
-	| { readonly type: 'setMarquee'; readonly region: MarqueeRegion | null };
+	| { readonly type: 'setMarquee'; readonly region: MarqueeRegion | null }
+	| { readonly type: 'beginFloatingSelection'; readonly sourceRegion: MarqueeRegion }
+	| {
+			readonly type: 'moveFloatingSelection';
+			readonly offset: { readonly dx: number; readonly dy: number };
+	  }
+	| { readonly type: 'commitFloatingSelection' }
+	| { readonly type: 'cancelFloatingSelection' };
 
 export type ToolEffects = readonly ToolEffect[];
 

@@ -28,6 +28,13 @@ export type UndoableDocumentIntent =
 	  }
 	| { readonly type: 'clear-active-layer' }
 	| { readonly type: 'clear-marquee-pixels' }
+	| {
+			readonly type: 'commit-floating-selection';
+			readonly sourceRegion: MarqueeRegion;
+			readonly destOffset: { readonly dx: number; readonly dy: number };
+			readonly buffer: Uint8Array;
+			readonly sourceLayerPixelsBeforeLift?: Uint8Array;
+	  }
 	| { readonly type: 'set-marquee'; readonly region: MarqueeRegion | null };
 
 export type PersistedDocumentUiIntent =
@@ -67,6 +74,13 @@ function sameMarqueeRegion(
 ): boolean {
 	if (!a || !b) return !a && !b;
 	return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+}
+
+function translateMarqueeRegion(
+	region: MarqueeRegion,
+	offset: { readonly dx: number; readonly dy: number }
+): MarqueeRegion {
+	return region.translate(offset.dx, offset.dy);
 }
 
 /**
@@ -133,10 +147,20 @@ export class DocumentChangeJournal {
 
 	#commitUndoableDocument(intent: UndoableDocumentIntent): DocumentChangeResult {
 		if (!this.#willChangeUndoableDocument(intent)) return { changed: false };
+		this.#restoreFloatingSelectionBaselineForSnapshot(intent);
 		this.captureUndoSnapshot();
 		const result = this.#applyUndoableDocumentIntent(intent);
 		this.#afterUndoableDocumentChanged(intent);
 		return result;
+	}
+
+	#restoreFloatingSelectionBaselineForSnapshot(intent: UndoableDocumentIntent): void {
+		if (intent.type !== 'commit-floating-selection') return;
+		if (!intent.sourceLayerPixelsBeforeLift) return;
+
+		const document = this.#deps.getDocument();
+		document.restore_active_layer_pixels(intent.sourceLayerPixelsBeforeLift);
+		document.set_marquee(intent.sourceRegion.translate(0, 0));
 	}
 
 	#applyUndoableDocumentIntent(intent: UndoableDocumentIntent): DocumentChangeResult {
@@ -185,6 +209,15 @@ export class DocumentChangeJournal {
 			case 'clear-marquee-pixels':
 				document.clear_marquee_pixels();
 				return { changed: true };
+			case 'commit-floating-selection': {
+				const destRegion = translateMarqueeRegion(intent.sourceRegion, intent.destOffset);
+				const destMarquee = translateMarqueeRegion(intent.sourceRegion, intent.destOffset);
+				document.set_marquee(intent.sourceRegion.translate(0, 0));
+				document.clear_marquee_pixels();
+				document.composite_buffer_at(intent.buffer, destRegion);
+				document.set_marquee(destMarquee);
+				return { changed: true };
+			}
 			case 'set-marquee':
 				document.set_marquee(intent.region);
 				return { changed: true };
@@ -242,6 +275,8 @@ export class DocumentChangeJournal {
 				return this.#activeLayerKind() === 'pixel';
 			case 'clear-marquee-pixels':
 				return Boolean(document.marquee()) && this.#activeLayerKind() === 'pixel';
+			case 'commit-floating-selection':
+				return this.#activeLayerKind() === 'pixel' && intent.buffer.length > 0;
 			case 'set-marquee':
 				return (
 					this.#activeLayerKind() === 'pixel' &&
@@ -305,6 +340,7 @@ export class DocumentChangeJournal {
 				break;
 			case 'clear-active-layer':
 			case 'clear-marquee-pixels':
+			case 'commit-floating-selection':
 				this.#invalidateRenderAndMarkDirty();
 				break;
 			case 'add-pixel-layer':

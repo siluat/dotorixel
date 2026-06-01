@@ -10,10 +10,12 @@ export interface SelectionDragAid {
 	};
 }
 
-const TOOLTIP_WIDTH = 64;
+const TOOLTIP_MIN_WIDTH = 64;
 const TOOLTIP_HEIGHT = 28;
 const TOOLTIP_OFFSET = 16;
 const VIEWPORT_PADDING = 8;
+const TOOLTIP_CHARACTER_WIDTH = 8;
+const TOOLTIP_HORIZONTAL_PADDING = 16;
 
 export function clampSelectionDragPointerToViewport(
 	pointer: SelectionDragAid['pointer'],
@@ -27,14 +29,24 @@ export function clampSelectionDragPointerToViewport(
 
 export function computeSelectionDragTooltipPosition(
 	pointer: SelectionDragAid['pointer'],
-	viewportSize: ViewportSize
+	viewportSize: ViewportSize,
+	tooltipWidth = TOOLTIP_MIN_WIDTH
 ): { readonly x: number; readonly y: number } {
-	const maxX = Math.max(VIEWPORT_PADDING, viewportSize.width - TOOLTIP_WIDTH - VIEWPORT_PADDING);
+	const maxX = Math.max(VIEWPORT_PADDING, viewportSize.width - tooltipWidth - VIEWPORT_PADDING);
 	const maxY = Math.max(VIEWPORT_PADDING, viewportSize.height - TOOLTIP_HEIGHT - VIEWPORT_PADDING);
 	return {
-		x: clamp(pointer.x - TOOLTIP_WIDTH / 2, VIEWPORT_PADDING, maxX),
+		x: clamp(pointer.x - tooltipWidth / 2, VIEWPORT_PADDING, maxX),
 		y: clamp(pointer.y - TOOLTIP_HEIGHT - TOOLTIP_OFFSET, VIEWPORT_PADDING, maxY)
 	};
+}
+
+export function estimateSelectionDragTooltipWidth(label: string, viewportSize: ViewportSize): number {
+	const maxWidth = Math.max(0, viewportSize.width - VIEWPORT_PADDING * 2);
+	const desiredWidth = Math.max(
+		TOOLTIP_MIN_WIDTH,
+		label.length * TOOLTIP_CHARACTER_WIDTH + TOOLTIP_HORIZONTAL_PADDING
+	);
+	return Math.min(desiredWidth, maxWidth);
 }
 
 export function formatSelectionDragDimensions(width: number, height: number): string {

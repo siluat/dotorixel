@@ -3,6 +3,7 @@
 	import {
 		clampSelectionDragPointerToViewport,
 		computeSelectionDragTooltipPosition,
+		estimateSelectionDragTooltipWidth,
 		formatSelectionDragDimensions,
 		type SelectionDragAid
 	} from './selection-drag-aids';
@@ -52,11 +53,16 @@
 			? clampSelectionDragPointerToViewport(defineMarqueeAid.pointer, viewportSize)
 			: null
 	);
-	const tooltipPosition = $derived(
-		dragAidPointer ? computeSelectionDragTooltipPosition(dragAidPointer, viewportSize) : null
-	);
 	const marqueeDimensions = $derived(
 		marquee ? formatSelectionDragDimensions(marquee.width, marquee.height) : null
+	);
+	const tooltipWidth = $derived(
+		marqueeDimensions ? estimateSelectionDragTooltipWidth(marqueeDimensions, viewportSize) : null
+	);
+	const tooltipPosition = $derived(
+		dragAidPointer && tooltipWidth !== null
+			? computeSelectionDragTooltipPosition(dragAidPointer, viewportSize, tooltipWidth)
+			: null
 	);
 </script>
 
@@ -124,13 +130,14 @@
 	</svg>
 {/if}
 
-{#if dragAidPointer && tooltipPosition && marqueeDimensions}
+{#if dragAidPointer && tooltipPosition && marqueeDimensions && tooltipWidth !== null}
 	<div
 		class="selection-drag-tooltip"
 		data-testid="selection-drag-tooltip"
 		aria-hidden="true"
 		style:left={`${tooltipPosition.x}px`}
 		style:top={`${tooltipPosition.y}px`}
+		style:width={`${tooltipWidth}px`}
 	>
 		{marqueeDimensions}
 	</div>
@@ -165,9 +172,8 @@
 		z-index: 16;
 		pointer-events: none;
 		box-sizing: border-box;
-		min-width: 64px;
 		height: 28px;
-		width: max-content;
+		max-width: calc(100% - 16px);
 		padding: 0 var(--ds-space-2);
 		display: flex;
 		align-items: center;

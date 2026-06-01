@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 133 | 100 | 33 | 130 | 75% | 43% |
-| cubic-dev-ai[bot] | 84 | 69 | 15 | 156 | 82% | 31% |
-| coderabbitai[bot] | 187 | 132 | 55 | 91 | 71% | 59% |
+| greptile-apps[bot] | 133 | 100 | 33 | 131 | 75% | 43% |
+| cubic-dev-ai[bot] | 85 | 70 | 15 | 156 | 82% | 31% |
+| coderabbitai[bot] | 187 | 132 | 55 | 92 | 71% | 59% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #241 | cubic-dev-ai[bot] | Accept | Clamp tooltip position using computed dynamic width |
+| #241 | coderabbitai[bot] | Miss | Did not flag fixed-width tooltip positioning after dynamic width |
+| #241 | greptile-apps[bot] | Miss | Did not flag fixed-width tooltip positioning after dynamic width |
 | #241 | cubic-dev-ai[bot] | Accept | Clamp drag-aid guide coordinates to viewport bounds |
 | #241 | cubic-dev-ai[bot] | Accept | Format drag tooltip dimensions as integer pixel counts |
 | #241 | cubic-dev-ai[bot] | Accept | Let drag tooltip width expand beyond fixed 64px minimum |

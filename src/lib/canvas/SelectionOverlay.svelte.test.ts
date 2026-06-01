@@ -115,6 +115,26 @@ describe('SelectionOverlay', () => {
 		expect(screen.getByTestId('selection-drag-tooltip').textContent).toBe('150×76');
 	});
 
+	it('clamps a wide DefineMarquee tooltip using its computed width', () => {
+		render(SelectionOverlay, {
+			marquee: region({ width: 123456, height: 7890 }),
+			canvasWidth: 200000,
+			canvasHeight: 200000,
+			viewport,
+			viewportSize: { width: 240, height: 180 },
+			dragAid: {
+				phase: 'defineMarquee',
+				pointer: { x: 230, y: 80 }
+			}
+		});
+
+		const tooltip = screen.getByTestId('selection-drag-tooltip');
+
+		expect(tooltip.textContent).toBe('123456×7890');
+		expect(tooltip.style.width).toBe('104px');
+		expect(tooltip.style.left).toBe('128px');
+	});
+
 	it('renders DefineMarquee crosshair guides from the live pointer to the viewport edges', () => {
 		render(SelectionOverlay, {
 			marquee: region(),
@@ -205,10 +225,9 @@ describe('SelectionOverlay', () => {
 		expect(screen.queryByTestId('selection-overlay')).toBeNull();
 	});
 
-	it('lets the drag tooltip grow beyond its minimum width', () => {
-		expect(selectionOverlaySource).toContain('min-width: 64px;');
-		expect(selectionOverlaySource).toContain('width: max-content;');
-		expect(selectionOverlaySource).not.toContain('\t\twidth: 64px;');
+	it('caps the drag tooltip width to the viewport-safe range', () => {
+		expect(selectionOverlaySource).toContain('max-width: calc(100% - 16px);');
+		expect(selectionOverlaySource).not.toContain('width: max-content;');
 	});
 
 	it('documents the marching-ants cadence and reduced-motion fallback in CSS', () => {

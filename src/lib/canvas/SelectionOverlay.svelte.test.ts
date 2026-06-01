@@ -79,6 +79,79 @@ describe('SelectionOverlay', () => {
 		expect(overlay.style.height).toBe('52px');
 	});
 
+	it('renders the DefineMarquee dimension tooltip above the live pointer', () => {
+		render(SelectionOverlay, {
+			marquee: region(),
+			canvasWidth: 8,
+			canvasHeight: 8,
+			viewport,
+			viewportSize: { width: 240, height: 180 },
+			dragAid: {
+				phase: 'defineMarquee',
+				pointer: { x: 120, y: 80 }
+			}
+		});
+
+		const tooltip = screen.getByTestId('selection-drag-tooltip');
+
+		expect(tooltip.textContent).toBe('3×4');
+		expect(tooltip.style.left).toBe('88px');
+		expect(tooltip.style.top).toBe('36px');
+	});
+
+	it('renders DefineMarquee crosshair guides from the live pointer to the viewport edges', () => {
+		render(SelectionOverlay, {
+			marquee: region(),
+			canvasWidth: 8,
+			canvasHeight: 8,
+			viewport,
+			viewportSize: { width: 240, height: 180 },
+			dragAid: {
+				phase: 'defineMarquee',
+				pointer: { x: 120, y: 80 }
+			}
+		});
+
+		const guides = screen.getByTestId('selection-drag-guides');
+		const lines = guides.querySelectorAll('line');
+
+		expect(guides.getAttribute('viewBox')).toBe('0 0 240 180');
+		expect(lines).toHaveLength(4);
+		expect(lines[0].getAttribute('x1')).toBe('0');
+		expect(lines[0].getAttribute('x2')).toBe('120');
+		expect(lines[0].getAttribute('y1')).toBe('80');
+		expect(lines[0].getAttribute('y2')).toBe('80');
+		expect(lines[1].getAttribute('x1')).toBe('120');
+		expect(lines[1].getAttribute('x2')).toBe('240');
+		expect(lines[1].getAttribute('y1')).toBe('80');
+		expect(lines[1].getAttribute('y2')).toBe('80');
+		expect(lines[2].getAttribute('x1')).toBe('120');
+		expect(lines[2].getAttribute('x2')).toBe('120');
+		expect(lines[2].getAttribute('y1')).toBe('0');
+		expect(lines[2].getAttribute('y2')).toBe('80');
+		expect(lines[3].getAttribute('x1')).toBe('120');
+		expect(lines[3].getAttribute('x2')).toBe('120');
+		expect(lines[3].getAttribute('y1')).toBe('80');
+		expect(lines[3].getAttribute('y2')).toBe('180');
+	});
+
+	it('does not render drag aids during LiftAndDrag', () => {
+		render(SelectionOverlay, {
+			marquee: region(),
+			canvasWidth: 8,
+			canvasHeight: 8,
+			viewport,
+			viewportSize: { width: 240, height: 180 },
+			dragAid: {
+				phase: 'liftAndDrag',
+				pointer: { x: 120, y: 80 }
+			}
+		});
+
+		expect(screen.queryByTestId('selection-drag-tooltip')).toBeNull();
+		expect(screen.queryByTestId('selection-drag-guides')).toBeNull();
+	});
+
 	it('renders nothing when the Marquee is outside the canvas', () => {
 		render(SelectionOverlay, {
 			marquee: region({ x: -4, y: 1, width: 2, height: 2 }),

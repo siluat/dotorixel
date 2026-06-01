@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import PixelCanvasView from './PixelCanvasView.svelte';
+import type { MarqueeRegion } from './canvas-model';
 import type { ToolType } from './tool-registry';
 import type { RenderableCanvas } from './renderer';
 import type { ReferenceLayerUnderlay } from './reference-layer-underlay';
@@ -95,6 +96,19 @@ const viewport: ViewportData = {
 	gridColor: '#000000'
 };
 
+function marqueeRegion(overrides: Partial<MarqueeRegion> = {}): MarqueeRegion {
+	return {
+		x: 1,
+		y: 1,
+		width: 2,
+		height: 2,
+		contains: () => false,
+		translate: () => marqueeRegion(),
+		clip_to: () => undefined,
+		...overrides
+	};
+}
+
 beforeEach(() => {
 	vi.stubGlobal('OffscreenCanvas', FakeOffscreenCanvas);
 	vi.stubGlobal('ImageData', FakeImageData);
@@ -156,6 +170,127 @@ describe('PixelCanvasView', () => {
 		});
 
 		expect(screen.getByTestId('selection-overlay')).toBeTruthy();
+	});
+
+	it.each(['mouse', 'pen', 'touch'] as const)(
+		'renders Selection drag aids only while defining a Marquee with %s input',
+		async (pointerType) => {
+			const props = {
+				pixelCanvas,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				activeTool: 'selection' as const
+			};
+			const { rerender } = render(PixelCanvasView, {
+				props: {
+					...props,
+					marquee: null
+				}
+			});
+
+			const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+			await fireEvent.pointerDown(canvas, {
+				pointerId: 1,
+				pointerType,
+				button: 0,
+				clientX: 30,
+				clientY: 40
+			});
+			await fireEvent.pointerMove(canvas, {
+				pointerId: 1,
+				pointerType,
+				buttons: 1,
+				clientX: 60,
+				clientY: 70
+			});
+			await rerender({
+				...props,
+				marquee: marqueeRegion({ width: 3, height: 2 })
+			});
+
+			expect(screen.getByTestId('selection-drag-tooltip').textContent).toBe('3×2');
+			expect(screen.getByTestId('selection-drag-guides').getAttribute('viewBox')).toBe(
+				'0 0 100 100'
+			);
+
+			await fireEvent.pointerUp(window, {
+				pointerId: 1,
+				pointerType,
+				button: 0,
+				clientX: 60,
+				clientY: 70
+			});
+			await rerender({
+				...props,
+				marquee: marqueeRegion({ width: 3, height: 2 })
+			});
+
+			expect(screen.queryByTestId('selection-drag-tooltip')).toBeNull();
+			expect(screen.queryByTestId('selection-drag-guides')).toBeNull();
+		}
+	);
+
+	it('does not render Selection drag aids during LiftAndDrag', async () => {
+		const props = {
+			pixelCanvas,
+			viewport,
+			viewportSize: { width: 100, height: 100 },
+			activeTool: 'selection' as const,
+			selectionDragPhase: 'liftAndDrag' as const
+		};
+		const { rerender } = render(PixelCanvasView, {
+			props: {
+				...props,
+				marquee: null
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.pointerDown(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 30,
+			clientY: 40
+		});
+		await fireEvent.pointerMove(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			buttons: 1,
+			clientX: 60,
+			clientY: 70
+		});
+		await rerender({
+			...props,
+			marquee: marqueeRegion({ width: 3, height: 2 })
+		});
+
+		expect(screen.queryByTestId('selection-drag-tooltip')).toBeNull();
+		expect(screen.queryByTestId('selection-drag-guides')).toBeNull();
+	});
+
+	it('does not render Selection drag aids on pointer down before a drag begins', async () => {
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				marquee: marqueeRegion({ width: 3, height: 2 }),
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				activeTool: 'selection'
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.pointerDown(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 30,
+			clientY: 40
+		});
+
+		expect(screen.queryByTestId('selection-drag-tooltip')).toBeNull();
+		expect(screen.queryByTestId('selection-drag-guides')).toBeNull();
 	});
 
 	it('keeps the Selection overlay geometry unchanged while Reference is active', () => {

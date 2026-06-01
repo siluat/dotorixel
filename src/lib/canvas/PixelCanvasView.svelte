@@ -22,6 +22,7 @@
 		normalizePointerType,
 		type PointerType
 	} from './canvas-interaction.svelte';
+	import type { SelectionDragAid, SelectionDragPhase } from './selection-drag-aids';
 	import { isDrawingTool } from './tool-registry';
 	import Loupe from '$lib/ui-editor/Loupe.svelte';
 
@@ -45,6 +46,7 @@
 		onReferencePlacementCommit?: (placement: ReferencePlacement) => void;
 		activeTool?: ToolType;
 		toolCursor?: string;
+		selectionDragPhase?: SelectionDragPhase;
 		isSpaceHeld?: boolean;
 		/**
 		 * Provided by the owning editor when a color-sampling session is available.
@@ -74,12 +76,14 @@
 		onReferencePlacementCommit,
 		activeTool = 'pencil',
 		toolCursor = 'crosshair',
+		selectionDragPhase = 'defineMarquee',
 		isSpaceHeld = false,
 		samplingSession
 	}: Props = $props();
 
 	let canvasEl: HTMLCanvasElement | undefined = $state();
 	let placementOverlayPointerType = $state<PointerType>('mouse');
+	let selectionDragAid = $state<SelectionDragAid | null>(null);
 	let pendingOverlayTouch: { id: number; x: number; y: number } | null = null;
 	const forwardedOverlayPointerIds = new Set<number>();
 	const forwardedOverlayDrawPointerIds = new Set<number>();
@@ -153,6 +157,11 @@
 		return () => canvasEl?.removeEventListener('wheel', handleWheel);
 	});
 
+	$effect(() => {
+		if (activeTool === 'selection' && canvasInteraction.interactionType === 'drawing') return;
+		selectionDragAid = null;
+	});
+
 	const toolCursorStyle = $derived(
 		isReferenceLayerActive && isDrawingTool(activeTool) && placementOverlayPointerType !== 'touch'
 			? 'not-allowed'
@@ -218,6 +227,19 @@
 		});
 	}
 
+	function updateSelectionDragAid(point: { x: number; y: number }): void {
+		if (activeTool !== 'selection') return;
+		if (canvasInteraction.interactionType !== 'drawing') return;
+		selectionDragAid = {
+			phase: selectionDragPhase,
+			pointer: point
+		};
+	}
+
+	function clearSelectionDragAid(): void {
+		selectionDragAid = null;
+	}
+
 	function handleWindowResize(): void {
 		if (!samplingSession || !lastScreen) return;
 		samplingSession.updatePointer({
@@ -254,6 +276,7 @@
 		pushPointerToSession(event);
 		const { x, y } = toLocal(event);
 		canvasInteraction.pointerMove(x, y);
+		updateSelectionDragAid({ x, y });
 	}
 
 	function handleWindowPointerMove(event: PointerEvent): void {
@@ -265,21 +288,27 @@
 		pushPointerToSession(event);
 		const { x, y } = toLocal(event);
 		canvasInteraction.windowPointerMove(event.pointerId, x, y, event.buttons);
+		updateSelectionDragAid({ x, y });
 	}
 
 	function handlePointerUp(event: PointerEvent): void {
 		if (!canvasEl) return;
-		if (commitPlacementDrag(event)) return;
+		if (commitPlacementDrag(event)) {
+			clearSelectionDragAid();
+			return;
+		}
 		forwardedOverlayPointerIds.delete(event.pointerId);
 		forwardedOverlayDrawPointerIds.delete(event.pointerId);
 		if (pendingOverlayTouch?.id === event.pointerId) pendingOverlayTouch = null;
 		const { x, y } = toLocal(event);
 		canvasInteraction.pointerUp(event.pointerId, x, y);
+		clearSelectionDragAid();
 	}
 
 	function handlePointerLeave(event: PointerEvent): void {
 		const { x, y } = toLocal(event);
 		canvasInteraction.pointerLeave(x, y);
+		clearSelectionDragAid();
 	}
 
 	function handlePointerCancel(event: PointerEvent): void {
@@ -287,26 +316,31 @@
 		forwardedOverlayDrawPointerIds.delete(event.pointerId);
 		if (pendingOverlayTouch?.id === event.pointerId) pendingOverlayTouch = null;
 		canvasInteraction.pointerCancel(event.pointerId);
+		clearSelectionDragAid();
 	}
 
 	function handleWindowPointerCancel(event: PointerEvent): void {
 		if (placementInteraction.cancelDrag(event.pointerId)) {
+			clearSelectionDragAid();
 			return;
 		}
 		if (pendingOverlayTouch?.id === event.pointerId) {
 			pendingOverlayTouch = null;
+			clearSelectionDragAid();
 			return;
 		}
 		if (!forwardedOverlayPointerIds.has(event.pointerId)) return;
 		forwardedOverlayPointerIds.delete(event.pointerId);
 		forwardedOverlayDrawPointerIds.delete(event.pointerId);
 		canvasInteraction.pointerCancel(event.pointerId);
+		clearSelectionDragAid();
 	}
 
 	function handleWindowBlur(): void {
 		placementInteraction.cancelAll();
 		clearOverlayPointerState();
 		canvasInteraction.blur();
+		clearSelectionDragAid();
 	}
 
 	function handleWindowKeyDown(event: KeyboardEvent): void {
@@ -609,6 +643,8 @@
 	canvasWidth={pixelCanvas.width}
 	canvasHeight={pixelCanvas.height}
 	{viewport}
+	{viewportSize}
+	dragAid={selectionDragAid}
 />
 
 {#if samplingSession?.position}

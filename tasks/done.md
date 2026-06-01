@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 141 | [Drag-time visual aids — dimension tooltip + crosshair guides](../issues/141-drag-time-visual-aids.md) | 2026-06-01 |
 | 140 | [StatusBar Marquee readout — persistent W×H + origin display](../issues/140-statusbar-marquee-readout.md) | 2026-05-31 |
 | 139 | [Touch long-press inside Marquee body suppresses Sampling Session](../issues/139-touch-long-press-suppression.md) | 2026-05-31 |
 | 138 | [Reference Layer × Marquee — visual preserved, all operations no-op](../issues/138-reference-layer-marquee-no-op.md) | 2026-05-31 |

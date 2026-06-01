@@ -1,6 +1,6 @@
 ---
 title: "Drag-time visual aids — dimension tooltip + crosshair guides"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -44,3 +44,22 @@ Tests:
 ## Blocked by
 
 - [132 — Selection foundation](132-selection-foundation.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/SelectionOverlay.svelte` | Renders DefineMarquee-only dimension tooltip and crosshair guides, with display-only pointer behavior. |
+| `src/lib/canvas/selection-drag-aids.ts` | Centralizes tooltip placement and viewport-edge clamping constants. |
+| `src/lib/canvas/PixelCanvasView.svelte` | Tracks live pointer position during Selection drags and clears drag aids on release, cancel, leave, blur, or tool-state exit. |
+| `src/lib/canvas/SelectionOverlay.svelte.test.ts` | Covers tooltip dimensions and position, crosshair edge geometry, and LiftAndDrag exclusion. |
+| `src/lib/canvas/PixelCanvasView.svelte.test.ts` | Covers mouse/pen/touch parity, release cleanup, LiftAndDrag exclusion, and no pointer-down-only display. |
+
+### Key Decisions
+
+- Kept the visual aids in the web overlay layer because they are pointer-position UI chrome, not shared pixel-domain behavior.
+- Used one drag-aid input with an explicit phase gate so future Floating Selection work can opt out without pointer-type branching.
+
+### Notes
+
+- LiftAndDrag behavior itself remains owned by issue 142; this slice only reserves the non-rendering phase path.

@@ -98,13 +98,6 @@ function blendSourceOver(
 
 	const dstA = target[targetIndex + 3] / 255;
 	const outA = srcA + dstA * (1 - srcA);
-	if (outA === 0) {
-		target[targetIndex] = 0;
-		target[targetIndex + 1] = 0;
-		target[targetIndex + 2] = 0;
-		target[targetIndex + 3] = 0;
-		return;
-	}
 
 	for (let channel = 0; channel < 3; channel++) {
 		const src = source[sourceIndex + channel] / 255;
@@ -159,14 +152,13 @@ function compositeDocumentWithFloatingSelectionPreview(
 	if (!floating) return document.composite();
 
 	const output = new Uint8Array(document.width * document.height * 4);
-	const activeLayerId = document.active_layer_id();
 	for (let layerIndex = 0; layerIndex < document.layer_count(); layerIndex++) {
 		if (!document.layer_visible_at(layerIndex)) continue;
 		const layerPixels = document.layer_pixels_at(layerIndex);
 		if (!layerPixels) continue;
 
 		const previewPixels =
-			document.layer_id_at(layerIndex) === activeLayerId ? layerPixels.slice() : layerPixels;
+			document.layer_id_at(layerIndex) === floating.sourceLayerId ? layerPixels.slice() : layerPixels;
 		if (previewPixels !== layerPixels) {
 			compositeFloatingSelectionIntoLayer(
 				previewPixels,
@@ -178,6 +170,24 @@ function compositeDocumentWithFloatingSelectionPreview(
 		blendLayerPixelsOver(output, previewPixels, document.layer_opacity_at(layerIndex));
 	}
 	return output;
+}
+
+function withDocumentActiveLayer<T>(
+	document: Document,
+	layerId: string,
+	callback: () => T
+): T {
+	const previousLayerId = document.active_layer_id();
+	if (previousLayerId !== layerId) {
+		document.set_active_layer(layerId);
+	}
+	try {
+		return callback();
+	} finally {
+		if (document.active_layer_id() !== previousLayerId) {
+			document.set_active_layer(previousLayerId);
+		}
+	}
 }
 
 interface DocumentNavigationBounds {
@@ -533,6 +543,7 @@ export class TabState {
 			kind: 'undoable-document',
 			intent: {
 				type: 'commit-floating-selection',
+				sourceLayerId: floating.sourceLayerId,
 				sourceRegion: floating.sourceRegion,
 				destOffset: floating.offset,
 				buffer: floating.buffer,
@@ -544,7 +555,9 @@ export class TabState {
 	#cancelFloatingSelection(): void {
 		const floating = this.#floatingSelection;
 		if (!floating) return;
-		restoreActiveLayerPixels(this.document, floating.sourceLayerPixelsBeforeLift);
+		withDocumentActiveLayer(this.document, floating.sourceLayerId, () => {
+			restoreActiveLayerPixels(this.document, floating.sourceLayerPixelsBeforeLift);
+		});
 		this.document.set_marquee(copyMarqueeRegion(floating.sourceRegion));
 		this.#floatingSelection = null;
 		this.#documentChangeJournal.recordPreviewChanged();

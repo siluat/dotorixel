@@ -30,6 +30,7 @@ export type UndoableDocumentIntent =
 	| { readonly type: 'clear-marquee-pixels' }
 	| {
 			readonly type: 'commit-floating-selection';
+			readonly sourceLayerId: string;
 			readonly sourceRegion: MarqueeRegion;
 			readonly destOffset: { readonly dx: number; readonly dy: number };
 			readonly buffer: Uint8Array;
@@ -156,11 +157,13 @@ export class DocumentChangeJournal {
 
 	#restoreFloatingSelectionBaselineForSnapshot(intent: UndoableDocumentIntent): void {
 		if (intent.type !== 'commit-floating-selection') return;
-		if (!intent.sourceLayerPixelsBeforeLift) return;
+		const baseline = intent.sourceLayerPixelsBeforeLift;
+		if (!baseline) return;
 
-		const document = this.#deps.getDocument();
-		document.restore_active_layer_pixels(intent.sourceLayerPixelsBeforeLift);
-		document.set_marquee(intent.sourceRegion.translate(0, 0));
+		this.#withActiveLayer(intent.sourceLayerId, (document) => {
+			document.restore_active_layer_pixels(baseline);
+			document.set_marquee(intent.sourceRegion.translate(0, 0));
+		});
 	}
 
 	#applyUndoableDocumentIntent(intent: UndoableDocumentIntent): DocumentChangeResult {
@@ -211,11 +214,12 @@ export class DocumentChangeJournal {
 				return { changed: true };
 			case 'commit-floating-selection': {
 				const destRegion = translateMarqueeRegion(intent.sourceRegion, intent.destOffset);
-				const destMarquee = translateMarqueeRegion(intent.sourceRegion, intent.destOffset);
-				document.set_marquee(intent.sourceRegion.translate(0, 0));
-				document.clear_marquee_pixels();
-				document.composite_buffer_at(intent.buffer, destRegion);
-				document.set_marquee(destMarquee);
+				this.#withActiveLayer(intent.sourceLayerId, (document) => {
+					document.set_marquee(intent.sourceRegion.translate(0, 0));
+					document.clear_marquee_pixels();
+					document.composite_buffer_at(intent.buffer, destRegion);
+					document.set_marquee(destRegion);
+				});
 				return { changed: true };
 			}
 			case 'set-marquee':
@@ -276,7 +280,7 @@ export class DocumentChangeJournal {
 			case 'clear-marquee-pixels':
 				return Boolean(document.marquee()) && this.#activeLayerKind() === 'pixel';
 			case 'commit-floating-selection':
-				return this.#activeLayerKind() === 'pixel' && intent.buffer.length > 0;
+				return this.#layerKindOf(intent.sourceLayerId) === 'pixel' && intent.buffer.length > 0;
 			case 'set-marquee':
 				return (
 					this.#activeLayerKind() === 'pixel' &&
@@ -317,6 +321,26 @@ export class DocumentChangeJournal {
 	#activeLayerKind(): string | undefined {
 		const document = this.#deps.getDocument();
 		return document.layer_kind_at(this.#stackIndexOf(document.active_layer_id()));
+	}
+
+	#layerKindOf(id: string): string | undefined {
+		const document = this.#deps.getDocument();
+		return document.layer_kind_at(this.#stackIndexOf(id));
+	}
+
+	#withActiveLayer<T>(layerId: string, callback: (document: Document) => T): T {
+		const document = this.#deps.getDocument();
+		const previousLayerId = document.active_layer_id();
+		if (previousLayerId !== layerId) {
+			document.set_active_layer(layerId);
+		}
+		try {
+			return callback(document);
+		} finally {
+			if (document.active_layer_id() !== previousLayerId) {
+				document.set_active_layer(previousLayerId);
+			}
+		}
 	}
 
 	#assertValidReferenceLayerSource(source: ReferenceLayerSource): void {

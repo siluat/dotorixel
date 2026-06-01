@@ -4,6 +4,7 @@ import type { HistoryManager } from '../adapter-types';
 import {
 	clearActiveLayerPixels,
 	createHistoryManager,
+	documentFromLayerSource,
 	marqueeRegionFromDrag,
 	singleLayerDocument
 } from '../wasm-backend';
@@ -88,9 +89,18 @@ function createJournal(
 	});
 }
 
-function pixelAt(document: Document, x: number, y: number): readonly number[] {
+function getPixelAt(document: Document, x: number, y: number): readonly number[] {
+	return getLayerPixelAt(document, 0, x, y);
+}
+
+function getLayerPixelAt(
+	document: Document,
+	layerIndex: number,
+	x: number,
+	y: number
+): readonly number[] {
 	const start = (y * document.width + x) * 4;
-	return Array.from(document.layer_pixels_at(0)!.slice(start, start + 4));
+	return Array.from(document.layer_pixels_at(layerIndex)!.slice(start, start + 4));
 }
 
 describe('DocumentChangeJournal', () => {
@@ -369,6 +379,8 @@ describe('DocumentChangeJournal', () => {
 		const sourceRegion = marqueeRegionFromDrag(0, 0, 1, 0);
 		current.set_marquee(sourceRegion);
 		const committedSourceRegion = current.marquee()!;
+		const sourceLayerId = current.active_layer_id();
+		const sourceLayerPixelsBeforeLift = current.layer_pixels_at(0)!.slice();
 		const buffer = current.lift_marquee_pixels();
 		const journal = createJournal(events, current, {
 			getDocument: () => current,
@@ -383,32 +395,112 @@ describe('DocumentChangeJournal', () => {
 			kind: 'undoable-document',
 			intent: {
 				type: 'commit-floating-selection',
+				sourceLayerId,
 				sourceRegion: committedSourceRegion,
 				destOffset: { dx: 1, dy: 1 },
-				buffer
+				buffer,
+				sourceLayerPixelsBeforeLift
 			}
 		});
 
 		expect(result).toEqual({ changed: true });
-		expect(pixelAt(current, 0, 0)).toEqual([0, 0, 0, 0]);
-		expect(pixelAt(current, 1, 0)).toEqual([0, 0, 0, 0]);
-		expect(pixelAt(current, 1, 1)).toEqual([255, 0, 0, 255]);
-		expect(pixelAt(current, 2, 1)).toEqual([0, 255, 0, 255]);
-		expect(pixelAt(current, 2, 2)).toEqual([0, 0, 255, 255]);
+		expect(getPixelAt(current, 0, 0)).toEqual([0, 0, 0, 0]);
+		expect(getPixelAt(current, 1, 0)).toEqual([0, 0, 0, 0]);
+		expect(getPixelAt(current, 1, 1)).toEqual([255, 0, 0, 255]);
+		expect(getPixelAt(current, 2, 1)).toEqual([0, 255, 0, 255]);
+		expect(getPixelAt(current, 2, 2)).toEqual([0, 0, 255, 255]);
 		expect(current.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
 
 		expect(journal.undo()).toEqual({ changed: true });
-		expect(pixelAt(current, 0, 0)).toEqual([255, 0, 0, 255]);
-		expect(pixelAt(current, 1, 0)).toEqual([0, 255, 0, 255]);
-		expect(pixelAt(current, 1, 1)).toEqual([0, 0, 0, 0]);
-		expect(pixelAt(current, 2, 1)).toEqual([0, 0, 0, 0]);
-		expect(pixelAt(current, 2, 2)).toEqual([0, 0, 255, 255]);
+		expect(getPixelAt(current, 0, 0)).toEqual([255, 0, 0, 255]);
+		expect(getPixelAt(current, 1, 0)).toEqual([0, 255, 0, 255]);
+		expect(getPixelAt(current, 1, 1)).toEqual([0, 0, 0, 0]);
+		expect(getPixelAt(current, 2, 1)).toEqual([0, 0, 0, 0]);
+		expect(getPixelAt(current, 2, 2)).toEqual([0, 0, 255, 255]);
 		expect(current.marquee()).toMatchObject({ x: 0, y: 0, width: 2, height: 1 });
 
 		expect(journal.redo()).toEqual({ changed: true });
-		expect(pixelAt(current, 1, 1)).toEqual([255, 0, 0, 255]);
-		expect(pixelAt(current, 2, 1)).toEqual([0, 255, 0, 255]);
+		expect(getPixelAt(current, 1, 1)).toEqual([255, 0, 0, 255]);
+		expect(getPixelAt(current, 2, 1)).toEqual([0, 255, 0, 255]);
 		expect(current.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+	});
+
+	it('commits a Floating Selection to its source layer after the active layer changes', () => {
+		const events: string[] = [];
+		const sourceId = crypto.randomUUID();
+		const topId = crypto.randomUUID();
+		const sourcePixels = new Uint8Array(4 * 4 * 4);
+		sourcePixels.set([255, 0, 0, 255], (0 * 4 + 0) * 4);
+		sourcePixels.set([0, 255, 0, 255], (0 * 4 + 1) * 4);
+		const topPixels = new Uint8Array(4 * 4 * 4);
+		topPixels.set([0, 0, 255, 255], (1 * 4 + 1) * 4);
+		let current = documentFromLayerSource({
+			width: 4,
+			height: 4,
+			layers: [
+				{
+					kind: 'pixel',
+					id: sourceId,
+					name: 'Source',
+					pixels: sourcePixels,
+					visible: true,
+					opacity: 1
+				},
+				{
+					kind: 'pixel',
+					id: topId,
+					name: 'Top',
+					pixels: topPixels,
+					visible: true,
+					opacity: 1
+				}
+			],
+			activeLayerId: sourceId,
+			nextLayerNumber: 3,
+			timelinePanelCollapsed: false
+		});
+		const sourceRegion = marqueeRegionFromDrag(0, 0, 1, 0);
+		current.set_marquee(sourceRegion);
+		const committedSourceRegion = current.marquee()!;
+		const sourceLayerPixelsBeforeLift = current.layer_pixels_at(0)!.slice();
+		const buffer = current.lift_marquee_pixels();
+		current.clear_marquee_pixels();
+		current.set_active_layer(topId);
+		const journal = createJournal(events, current, {
+			getDocument: () => current,
+			replaceDocument: (document) => {
+				current = document;
+				events.push(`replace:${document.width}x${document.height}`);
+			},
+			createHistoryManager
+		});
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: {
+				type: 'commit-floating-selection',
+				sourceLayerId: sourceId,
+				sourceRegion: committedSourceRegion,
+				destOffset: { dx: 1, dy: 1 },
+				buffer,
+				sourceLayerPixelsBeforeLift
+			}
+		});
+
+		expect(result).toEqual({ changed: true });
+		expect(current.active_layer_id()).toBe(topId);
+		expect(getLayerPixelAt(current, 0, 0, 0)).toEqual([0, 0, 0, 0]);
+		expect(getLayerPixelAt(current, 0, 1, 0)).toEqual([0, 0, 0, 0]);
+		expect(getLayerPixelAt(current, 0, 1, 1)).toEqual([255, 0, 0, 255]);
+		expect(getLayerPixelAt(current, 0, 2, 1)).toEqual([0, 255, 0, 255]);
+		expect(getLayerPixelAt(current, 1, 1, 1)).toEqual([0, 0, 255, 255]);
+		expect(current.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+
+		expect(journal.undo()).toEqual({ changed: true });
+		expect(current.active_layer_id()).toBe(topId);
+		expect(getLayerPixelAt(current, 0, 0, 0)).toEqual([255, 0, 0, 255]);
+		expect(getLayerPixelAt(current, 0, 1, 0)).toEqual([0, 255, 0, 255]);
+		expect(getLayerPixelAt(current, 1, 1, 1)).toEqual([0, 0, 255, 255]);
 	});
 
 	it('clips a Floating Selection commit when the destination leaves the canvas', () => {
@@ -420,6 +512,8 @@ describe('DocumentChangeJournal', () => {
 		const sourceRegion = marqueeRegionFromDrag(1, 1, 2, 1);
 		document.set_marquee(sourceRegion);
 		const committedSourceRegion = document.marquee()!;
+		const sourceLayerId = document.active_layer_id();
+		const sourceLayerPixelsBeforeLift = document.layer_pixels_at(0)!.slice();
 		const buffer = document.lift_marquee_pixels();
 		const journal = createJournal(events, document);
 
@@ -427,16 +521,18 @@ describe('DocumentChangeJournal', () => {
 			kind: 'undoable-document',
 			intent: {
 				type: 'commit-floating-selection',
+				sourceLayerId,
 				sourceRegion: committedSourceRegion,
 				destOffset: { dx: -2, dy: 0 },
-				buffer
+				buffer,
+				sourceLayerPixelsBeforeLift
 			}
 		});
 
 		expect(result).toEqual({ changed: true });
-		expect(pixelAt(document, 0, 1)).toEqual([0, 255, 0, 255]);
-		expect(pixelAt(document, 1, 1)).toEqual([0, 0, 0, 0]);
-		expect(pixelAt(document, 2, 1)).toEqual([0, 0, 0, 0]);
+		expect(getPixelAt(document, 0, 1)).toEqual([0, 255, 0, 255]);
+		expect(getPixelAt(document, 1, 1)).toEqual([0, 0, 0, 0]);
+		expect(getPixelAt(document, 2, 1)).toEqual([0, 0, 0, 0]);
 		expect(document.marquee()).toMatchObject({ x: -1, y: 1, width: 2, height: 1 });
 	});
 

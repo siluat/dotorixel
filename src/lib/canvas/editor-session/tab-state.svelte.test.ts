@@ -401,7 +401,7 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
 	});
 
-	it('renders a Floating Selection preview at the active layer stack position', () => {
+	it('renders a Floating Selection preview at the source layer stack position', () => {
 		const bottomPixels = new Uint8Array(5 * 5 * 4);
 		bottomPixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
 		const topPixels = new Uint8Array(5 * 5 * 4);
@@ -446,6 +446,64 @@ describe('TabState — effect dispatcher', () => {
 
 		tab.drawEnd();
 		expect(getPixel(tab, 2, 2)).toEqual(BLUE);
+	});
+
+	it('keeps Floating Selection preview and commit on the source layer after active layer changes', () => {
+		const bottomPixels = new Uint8Array(5 * 5 * 4);
+		bottomPixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		const topPixels = new Uint8Array(5 * 5 * 4);
+		topPixels.set(makePixelRgba(BLUE), (2 * 5 + 2) * 4);
+		const bottomId = crypto.randomUUID();
+		const topId = crypto.randomUUID();
+		const { tab, shared } = makeTab({
+			document: documentFromLayerSource({
+				width: 5,
+				height: 5,
+				layers: [
+					{
+						kind: 'pixel',
+						id: bottomId,
+						name: 'Paint',
+						pixels: bottomPixels,
+						visible: true,
+						opacity: 1
+					},
+					{
+						kind: 'pixel',
+						id: topId,
+						name: 'Ink',
+						pixels: topPixels,
+						visible: true,
+						opacity: 1
+					}
+				],
+				activeLayerId: bottomId,
+				nextLayerNumber: 3,
+				timelinePanelCollapsed: false
+			})
+		});
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 1, 1));
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 2, y: 2 }, { x: 1, y: 1 });
+		tab.setActiveLayer(topId);
+
+		expect(getRenderedPixel(tab, 2, 2)).toEqual(BLUE);
+
+		tab.drawEnd();
+
+		expect(tab.document.active_layer_id()).toBe(topId);
+		expect(getPixelFromBuffer(tab.document.layer_pixels_at(0)!, 5, 1, 1)).toEqual({
+			r: 0,
+			g: 0,
+			b: 0,
+			a: 0
+		});
+		expect(getPixelFromBuffer(tab.document.layer_pixels_at(0)!, 5, 2, 2)).toEqual(RED);
+		expect(getPixelFromBuffer(tab.document.layer_pixels_at(1)!, 5, 2, 2)).toEqual(BLUE);
+		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 2, width: 1, height: 1 });
 	});
 
 	it('toSnapshot serializes source pixels while a Floating Selection is live', () => {
@@ -494,6 +552,61 @@ describe('TabState — effect dispatcher', () => {
 
 		expect(getPixel(tab, 1, 1)).toEqual(RED);
 		expect(getPixel(tab, 2, 1)).toEqual(GREEN);
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('drawCancel restores a lifted Floating Selection source layer after active layer changes', () => {
+		const bottomPixels = new Uint8Array(5 * 5 * 4);
+		bottomPixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		bottomPixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
+		const topPixels = new Uint8Array(5 * 5 * 4);
+		topPixels.set(makePixelRgba(BLUE), (2 * 5 + 2) * 4);
+		const bottomId = crypto.randomUUID();
+		const topId = crypto.randomUUID();
+		const { tab, notifier, shared } = makeTab({
+			document: documentFromLayerSource({
+				width: 5,
+				height: 5,
+				layers: [
+					{
+						kind: 'pixel',
+						id: bottomId,
+						name: 'Paint',
+						pixels: bottomPixels,
+						visible: true,
+						opacity: 1
+					},
+					{
+						kind: 'pixel',
+						id: topId,
+						name: 'Ink',
+						pixels: topPixels,
+						visible: true,
+						opacity: 1
+					}
+				],
+				activeLayerId: bottomId,
+				nextLayerNumber: 3,
+				timelinePanelCollapsed: false
+			})
+		});
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		notifier.reset();
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 2, y: 2 }, { x: 1, y: 1 });
+		tab.setActiveLayer(topId);
+		notifier.reset();
+
+		tab.drawCancel();
+
+		expect(tab.document.active_layer_id()).toBe(topId);
+		expect(getPixelFromBuffer(tab.document.layer_pixels_at(0)!, 5, 1, 1)).toEqual(RED);
+		expect(getPixelFromBuffer(tab.document.layer_pixels_at(0)!, 5, 2, 1)).toEqual(GREEN);
+		expect(getPixelFromBuffer(tab.document.layer_pixels_at(1)!, 5, 2, 2)).toEqual(BLUE);
 		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
 		expect(notifier.dirtyCalls).toEqual([]);
 	});

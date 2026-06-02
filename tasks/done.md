@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 142 | [Selection drag-to-move — LiftAndDrag + commit + Undo restores Marquee position](../issues/142-selection-drag-to-move.md) | 2026-06-01 |
 | 141 | [Drag-time visual aids — dimension tooltip + crosshair guides](../issues/141-drag-time-visual-aids.md) | 2026-06-01 |
 | 140 | [StatusBar Marquee readout — persistent W×H + origin display](../issues/140-statusbar-marquee-readout.md) | 2026-05-31 |
 | 139 | [Touch long-press inside Marquee body suppresses Sampling Session](../issues/139-touch-long-press-suppression.md) | 2026-05-31 |

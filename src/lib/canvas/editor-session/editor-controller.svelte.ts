@@ -83,6 +83,9 @@ export class EditorController {
 	get marquee(): MarqueeRegion | undefined {
 		return this.workspace.activeTab.marquee;
 	}
+	get floatingSelectionOffset(): { readonly dx: number; readonly dy: number } | undefined {
+		return this.workspace.activeTab.floatingSelectionOffset;
+	}
 	exportableSnapshot(): PixelCanvas {
 		return this.workspace.activeTab.exportableSnapshot();
 	}

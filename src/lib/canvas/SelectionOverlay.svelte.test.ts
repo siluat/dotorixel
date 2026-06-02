@@ -47,6 +47,23 @@ describe('SelectionOverlay', () => {
 		expect(overlay.style.height).toBe('80px');
 	});
 
+	it('projects the Marquee at the active Floating Selection offset', () => {
+		render(SelectionOverlay, {
+			marquee: region(),
+			floatingSelectionOffset: { dx: 2, dy: -1 },
+			canvasWidth: 8,
+			canvasHeight: 8,
+			viewport
+		});
+
+		const overlay = screen.getByTestId('selection-overlay');
+
+		expect(overlay.style.left).toBe('63px');
+		expect(overlay.style.top).toBe('25px');
+		expect(overlay.style.width).toBe('60px');
+		expect(overlay.style.height).toBe('80px');
+	});
+
 	it('clips partially off-canvas Marquees to the visible document bounds', () => {
 		render(SelectionOverlay, {
 			marquee: region({ x: -2, y: 1, width: 5, height: 5 }),

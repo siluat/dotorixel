@@ -121,7 +121,8 @@ describe('ToolRunner — Reference Layer active', () => {
 		'floodfill',
 		'line',
 		'rectangle',
-		'ellipse'
+		'ellipse',
+		'selection'
 	];
 
 	it.each(drawingTools)('%s silently no-ops without mutating pixels', (tool) => {

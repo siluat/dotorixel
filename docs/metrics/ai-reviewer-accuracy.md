@@ -6,14 +6,34 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 133 | 100 | 33 | 131 | 75% | 43% |
-| cubic-dev-ai[bot] | 85 | 70 | 15 | 156 | 82% | 31% |
-| coderabbitai[bot] | 187 | 132 | 55 | 92 | 71% | 59% |
+| greptile-apps[bot] | 135 | 102 | 33 | 135 | 76% | 43% |
+| cubic-dev-ai[bot] | 91 | 75 | 16 | 158 | 82% | 32% |
+| coderabbitai[bot] | 191 | 136 | 55 | 94 | 71% | 59% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #242 | coderabbitai[bot] | Accept | Pin Floating Selection preview, restore, and commit to the source layer |
+| #242 | cubic-dev-ai[bot] | Accept | Pin Floating Selection preview to the source layer after active layer changes |
+| #242 | cubic-dev-ai[bot] | Accept | Commit Floating Selection against the source layer after active layer changes |
+| #242 | greptile-apps[bot] | Miss | Did not flag active-layer drift for Floating Selection source layer |
+| #242 | greptile-apps[bot] | Accept | Remove unreachable `outA === 0` branch after nonzero source alpha |
+| #242 | cubic-dev-ai[bot] | Accept | Remove unreachable `outA === 0` branch after nonzero source alpha |
+| #242 | coderabbitai[bot] | Miss | Did not flag unreachable source-over alpha branch |
+| #242 | greptile-apps[bot] | Accept | Collapse duplicate Floating Selection destination region computation |
+| #242 | cubic-dev-ai[bot] | Accept | Collapse duplicate Floating Selection destination region computation |
+| #242 | coderabbitai[bot] | Miss | Did not flag duplicate Floating Selection destination region computation |
+| #242 | coderabbitai[bot] | Accept | Include lifted-source baseline in Floating Selection journal commit test |
+| #242 | cubic-dev-ai[bot] | Accept | Include lifted-source baseline in Floating Selection journal commit test |
+| #242 | greptile-apps[bot] | Miss | Did not flag missing Floating Selection lifted-source test baseline |
+| #242 | coderabbitai[bot] | Accept | Include lifted-source baseline in off-canvas Floating Selection test |
+| #242 | greptile-apps[bot] | Miss | Did not flag missing off-canvas Floating Selection lifted-source baseline |
+| #242 | cubic-dev-ai[bot] | Miss | Did not flag missing off-canvas Floating Selection lifted-source baseline |
+| #242 | coderabbitai[bot] | Accept | Rename pixel test helper to query-style `getPixelAt` |
+| #242 | greptile-apps[bot] | Miss | Did not flag query-style pixel helper naming |
+| #242 | cubic-dev-ai[bot] | Miss | Did not flag query-style pixel helper naming |
+| #242 | cubic-dev-ai[bot] | Reject | Floating Selection cursor does not persist after pointer-up in this PR |
 | #241 | cubic-dev-ai[bot] | Accept | Clamp tooltip position using computed dynamic width |
 | #241 | coderabbitai[bot] | Miss | Did not flag fixed-width tooltip positioning after dynamic width |
 | #241 | greptile-apps[bot] | Miss | Did not flag fixed-width tooltip positioning after dynamic width |

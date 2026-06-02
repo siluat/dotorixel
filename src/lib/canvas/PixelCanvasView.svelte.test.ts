@@ -172,6 +172,25 @@ describe('PixelCanvasView', () => {
 		expect(screen.getByTestId('selection-overlay')).toBeTruthy();
 	});
 
+	it('passes Floating Selection offset to the Selection overlay', () => {
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				marquee: marqueeRegion(),
+				floatingSelectionOffset: { dx: 1, dy: -1 },
+				viewport,
+				viewportSize: { width: 100, height: 100 }
+			}
+		});
+
+		const overlay = screen.getByTestId('selection-overlay');
+
+		expect(overlay.style.left).toBe('23px');
+		expect(overlay.style.top).toBe('5px');
+		expect(overlay.style.width).toBe('20px');
+		expect(overlay.style.height).toBe('20px');
+	});
+
 	it.each(['mouse', 'pen', 'touch'] as const)(
 		'renders Selection drag aids only while defining a Marquee with %s input',
 		async (pointerType) => {
@@ -267,6 +286,85 @@ describe('PixelCanvasView', () => {
 
 		expect(screen.queryByTestId('selection-drag-tooltip')).toBeNull();
 		expect(screen.queryByTestId('selection-drag-guides')).toBeNull();
+	});
+
+	it('treats an active Floating Selection offset as LiftAndDrag for drag aids', async () => {
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				marquee: marqueeRegion({ width: 3, height: 2 }),
+				floatingSelectionOffset: { dx: 1, dy: 1 },
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				activeTool: 'selection'
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.pointerDown(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 30,
+			clientY: 40
+		});
+		await fireEvent.pointerMove(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			buttons: 1,
+			clientX: 60,
+			clientY: 70
+		});
+
+		expect(screen.queryByTestId('selection-drag-tooltip')).toBeNull();
+		expect(screen.queryByTestId('selection-drag-guides')).toBeNull();
+	});
+
+	it('uses move and grabbing cursors for Selection move affordances', async () => {
+		const selectionViewport = {
+			...viewport,
+			panX: 0,
+			panY: 0,
+			pixelSize: 10,
+			zoom: 1
+		};
+		const props = {
+			pixelCanvas,
+			marquee: marqueeRegion({
+				contains: (x, y) => x >= 1 && y >= 1 && x < 3 && y < 3
+			}),
+			viewport: selectionViewport,
+			viewportSize: { width: 100, height: 100 },
+			activeTool: 'selection' as const,
+			toolCursor: 'crosshair'
+		};
+		const { rerender } = render(PixelCanvasView, { props });
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+
+		await fireEvent.pointerMove(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			clientX: 15,
+			clientY: 15
+		});
+		await tick();
+		expect(canvas.style.cursor).toBe('move');
+
+		await fireEvent.pointerMove(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			clientX: 35,
+			clientY: 35
+		});
+		await tick();
+		expect(canvas.style.cursor).toBe('crosshair');
+
+		await rerender({
+			...props,
+			floatingSelectionOffset: { dx: 1, dy: 0 }
+		});
+		await tick();
+		expect(canvas.style.cursor).toBe('grabbing');
 	});
 
 	it('does not render Selection drag aids on pointer down before a drag begins', async () => {

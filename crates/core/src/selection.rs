@@ -2,6 +2,10 @@ use crate::canvas::PixelCanvas;
 use crate::color::Color;
 use serde::{Deserialize, Serialize};
 
+/// Captured row-major RGBA pixels for the active Marquee clipboard.
+///
+/// Producers and FFI boundaries must preserve the invariant that
+/// `pixels.len() == width * height * 4`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SelectionClipboard {
     pub pixels: Vec<u8>,

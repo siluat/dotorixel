@@ -123,7 +123,7 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 			const isCKey = event.code === 'KeyC';
 			const isZKey = event.key.toLowerCase() === 'z';
 			const isYKey = event.key.toLowerCase() === 'y';
-			if (isCtrlOrCmd && isCKey) {
+			if (isCtrlOrCmd && !event.altKey && isCKey) {
 				event.preventDefault();
 				if (event.repeat) return;
 				if (host.isDrawing()) return;

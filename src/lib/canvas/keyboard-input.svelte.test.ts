@@ -380,6 +380,17 @@ describe('Selection copy', () => {
 		expect(host.copySelection).toHaveBeenCalledOnce();
 	});
 
+	it('does not treat AltGr-style Ctrl+Alt+C as a copy shortcut', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		const event = keyDown('KeyC', { key: 'c', ctrlKey: true, altKey: true });
+
+		kb.handleKeyDown(event);
+
+		expect(event.preventDefault).not.toHaveBeenCalled();
+		expect(host.copySelection).not.toHaveBeenCalled();
+	});
+
 	it('does not copy while drawing', () => {
 		const host = createHost({ isDrawing: vi.fn(() => true) });
 		const kb = createKeyboardInput(host);

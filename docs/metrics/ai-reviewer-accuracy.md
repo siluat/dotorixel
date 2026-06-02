@@ -6,14 +6,24 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 135 | 102 | 33 | 135 | 76% | 43% |
-| cubic-dev-ai[bot] | 91 | 75 | 16 | 158 | 82% | 32% |
-| coderabbitai[bot] | 191 | 136 | 55 | 94 | 71% | 59% |
+| greptile-apps[bot] | 135 | 102 | 33 | 138 | 76% | 43% |
+| cubic-dev-ai[bot] | 92 | 76 | 16 | 160 | 83% | 32% |
+| coderabbitai[bot] | 194 | 138 | 56 | 95 | 71% | 59% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #243 | cubic-dev-ai[bot] | Accept | Guard selection copy shortcut while Alt is held |
+| #243 | coderabbitai[bot] | Accept | Document SelectionClipboard buffer-length invariant |
+| #243 | coderabbitai[bot] | Reject | Keep SelectionClipboard as a plain value without constructor or custom serde validation |
+| #243 | coderabbitai[bot] | Accept | Remove GitHub issue auto-close keyword from local issue reference |
+| #243 | coderabbitai[bot] | Miss | Did not flag Alt-modified selection copy shortcut |
+| #243 | greptile-apps[bot] | Miss | Did not flag Alt-modified selection copy shortcut |
+| #243 | cubic-dev-ai[bot] | Miss | Did not flag SelectionClipboard buffer-length invariant documentation gap |
+| #243 | greptile-apps[bot] | Miss | Did not flag SelectionClipboard buffer-length invariant documentation gap |
+| #243 | cubic-dev-ai[bot] | Miss | Did not flag GitHub issue auto-close keyword mismatch |
+| #243 | greptile-apps[bot] | Miss | Did not flag GitHub issue auto-close keyword mismatch |
 | #242 | coderabbitai[bot] | Accept | Pin Floating Selection preview, restore, and commit to the source layer |
 | #242 | cubic-dev-ai[bot] | Accept | Pin Floating Selection preview to the source layer after active layer changes |
 | #242 | cubic-dev-ai[bot] | Accept | Commit Floating Selection against the source layer after active layer changes |

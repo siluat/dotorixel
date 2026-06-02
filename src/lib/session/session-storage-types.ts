@@ -276,6 +276,17 @@ export interface SharedStateRecord {
 	 * treat absence as "use the default (ON)".
 	 */
 	pixelPerfect?: boolean;
+	/**
+	 * Absent on records written before this field existed. Hydration should
+	 * treat absence as "empty clipboard".
+	 */
+	selectionClipboard?: SelectionClipboardRecord | null;
+}
+
+export interface SelectionClipboardRecord {
+	pixels: Uint8Array;
+	width: number;
+	height: number;
 }
 
 export interface ViewportRecord {

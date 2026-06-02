@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 143 | [Selection Clipboard + Copy (Cmd+C) + workspace persistence](../issues/143-selection-clipboard-and-copy.md) | 2026-06-02 |
 | 142 | [Selection drag-to-move — LiftAndDrag + commit + Undo restores Marquee position](../issues/142-selection-drag-to-move.md) | 2026-06-01 |
 | 141 | [Drag-time visual aids — dimension tooltip + crosshair guides](../issues/141-drag-time-visual-aids.md) | 2026-06-01 |
 | 140 | [StatusBar Marquee readout — persistent W×H + origin display](../issues/140-statusbar-marquee-readout.md) | 2026-05-31 |

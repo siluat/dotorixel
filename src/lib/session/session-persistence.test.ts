@@ -129,6 +129,36 @@ describe('SessionPersistence', () => {
 		expect(restored!.tabs[0].marquee).toEqual(marquee);
 	});
 
+	it('round-trips the shared Selection Clipboard through workspace persistence', async () => {
+		const clipboard = {
+			pixels: new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]),
+			width: 2,
+			height: 1
+		};
+
+		await persistence.save(
+			makeSnapshot({
+				sharedState: {
+					activeTool: 'pencil',
+					foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
+					backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+					recentColors: [],
+					selectionClipboard: clipboard
+				}
+			})
+		);
+		clipboard.pixels[0] = 0;
+
+		const restored = await persistence.restore();
+
+		expect(restored).not.toBeNull();
+		expect(restored!.sharedState.selectionClipboard).toEqual({
+			pixels: new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]),
+			width: 2,
+			height: 1
+		});
+	});
+
 	it('reloads a saved Workspace Marquee into Document.marquee()', async () => {
 		const notifier = createFakeDirtyNotifier();
 		const workspace = new Workspace({

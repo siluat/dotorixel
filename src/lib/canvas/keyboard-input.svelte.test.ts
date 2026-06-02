@@ -14,6 +14,7 @@ function createHost(overrides?: Partial<KeyboardInputHost>): KeyboardInputHost {
 		swapColors: vi.fn(),
 		clearMarquee: vi.fn(),
 		clearMarqueePixels: vi.fn(),
+		copySelection: vi.fn(),
 		notifyModifierChange: vi.fn(),
 		...overrides
 	};
@@ -350,6 +351,51 @@ describe('Marquee pixel clear', () => {
 		kb.handleKeyDown(keyDown('Delete'));
 
 		expect(host.clearMarqueePixels).not.toHaveBeenCalled();
+	});
+});
+
+// ── Selection copy ───────────────────────────────────────────
+
+describe('Selection copy', () => {
+	it.each([
+		['Ctrl+C', { ctrlKey: true }],
+		['Cmd+C', { metaKey: true }]
+	])('copies the active selection on %s while idle', (_label, modifiers) => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		const event = keyDown('KeyC', { key: 'c', ...modifiers });
+
+		kb.handleKeyDown(event);
+
+		expect(event.preventDefault).toHaveBeenCalled();
+		expect(host.copySelection).toHaveBeenCalledOnce();
+	});
+
+	it('works regardless of IME input language', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('KeyC', { key: 'ㅊ', metaKey: true }));
+
+		expect(host.copySelection).toHaveBeenCalledOnce();
+	});
+
+	it('does not copy while drawing', () => {
+		const host = createHost({ isDrawing: vi.fn(() => true) });
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('KeyC', { key: 'c', metaKey: true }));
+
+		expect(host.copySelection).not.toHaveBeenCalled();
+	});
+
+	it('ignores repeat copy shortcuts', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('KeyC', { key: 'c', metaKey: true, repeat: true }));
+
+		expect(host.copySelection).not.toHaveBeenCalled();
 	});
 });
 

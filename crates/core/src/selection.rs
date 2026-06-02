@@ -1,5 +1,13 @@
 use crate::canvas::PixelCanvas;
 use crate::color::Color;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct SelectionClipboard {
+    pub pixels: Vec<u8>,
+    pub width: u32,
+    pub height: u32,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MarqueeRegion {
@@ -204,7 +212,7 @@ mod tests {
     use crate::canvas::PixelCanvas;
     use crate::color::Color;
 
-    use super::MarqueeRegion;
+    use super::{MarqueeRegion, SelectionClipboard};
 
     const RED: Color = Color::new(255, 0, 0, 255);
     const GREEN: Color = Color::new(0, 255, 0, 255);
@@ -217,6 +225,21 @@ mod tests {
             .iter()
             .flat_map(|color| [color.r, color.g, color.b, color.a])
             .collect()
+    }
+
+    #[test]
+    fn selection_clipboard_round_trips_through_serialization() {
+        let clipboard = SelectionClipboard {
+            pixels: rgba(&[RED, GREEN, BLUE, WHITE]),
+            width: 2,
+            height: 2,
+        };
+
+        let encoded = serde_json::to_vec(&clipboard).expect("clipboard serializes");
+        let decoded: SelectionClipboard =
+            serde_json::from_slice(&encoded).expect("clipboard deserializes");
+
+        assert_eq!(decoded, clipboard);
     }
 
     #[test]

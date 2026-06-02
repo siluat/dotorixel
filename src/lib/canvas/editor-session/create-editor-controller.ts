@@ -38,6 +38,7 @@ export function createEditorController(
 		swapColors: () => workspaceRef?.swapColors(),
 		clearMarquee: () => workspaceRef?.activeTab.clearMarquee(),
 		clearMarqueePixels: () => workspaceRef?.activeTab.clearMarqueePixels(),
+		copySelection: () => workspaceRef?.copySelection(),
 		notifyModifierChange: () => workspaceRef?.activeTab.modifierChanged()
 	});
 

@@ -1,6 +1,6 @@
 ---
 title: "Selection Clipboard + Copy (Cmd+C) + workspace persistence"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -49,3 +49,25 @@ Tests:
 ## Blocked by
 
 - [136 — Region pixel transformations (lift/clear/composite) + Delete keyboard](136-region-pixel-transformations-and-delete.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/selection.rs` | Added the serializable `SelectionClipboard` value type and round-trip coverage. |
+| `wasm/src/lib.rs` | Exposed a WASM clipboard facade with dimension validation and copied pixel access. |
+| `src/lib/canvas/shared-state.svelte.ts` | Added the workspace-shared clipboard slot. |
+| `src/lib/canvas/editor-session/workspace.svelte.ts` | Added read-only Marquee copy into the shared clipboard and snapshot-safe clipboard cloning. |
+| `src/lib/canvas/keyboard-input.svelte.ts` | Wired Cmd/Ctrl+C to copy selection while idle, using code-based key matching for IME stability. |
+| `src/lib/session/session-persistence.ts` | Persisted and restored the shared clipboard through workspace state. |
+| `src/lib/canvas/*test.ts`, `src/lib/session/*test.ts`, `src/lib/wasm/*test.ts` | Covered copy, no-op, cross-tab, persistence, keyboard, and WASM facade behavior. |
+
+### Key Decisions
+
+- Store Selection Clipboard in workspace-shared state, not tab state, because paste is intended to work from a single slot across tabs.
+- Treat empty lifted buffers as silent no-op so Reference-active documents match the existing Reference Layer no-op behavior.
+- Use `event.code === 'KeyC'` for copy shortcuts so IME-localized `event.key` values do not break Cmd/Ctrl+C.
+
+### Notes
+
+- Paste remains out of scope and is tracked by [148 — Paste (Cmd+V)](148-paste-cmd-v.md).

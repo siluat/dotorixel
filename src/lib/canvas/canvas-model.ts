@@ -27,6 +27,13 @@ export interface MarqueeRegion {
 	clip_to(canvas_w: number, canvas_h: number): MarqueeRegion | undefined;
 }
 
+/** Workspace-shared clipboard snapshot captured from a Marquee region. */
+export interface SelectionClipboardData {
+	readonly pixels: Uint8Array;
+	readonly width: number;
+	readonly height: number;
+}
+
 /** Anchor point for canvas resize operations. */
 export type ResizeAnchor =
 	| 'top-left'

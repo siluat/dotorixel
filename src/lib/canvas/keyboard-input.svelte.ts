@@ -23,6 +23,8 @@ export interface KeyboardInputHost {
 	clearMarquee(): void;
 	/** Clear pixels inside the active Marquee if one exists. */
 	clearMarqueePixels(): void;
+	/** Copy pixels inside the active Marquee into the workspace Selection Clipboard. */
+	copySelection(): void;
 	/** Notify that a modifier key changed mid-stroke. */
 	notifyModifierChange(): void;
 }
@@ -118,8 +120,16 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 			}
 
 			const isCtrlOrCmd = event.ctrlKey || event.metaKey;
+			const isCKey = event.code === 'KeyC';
 			const isZKey = event.key.toLowerCase() === 'z';
 			const isYKey = event.key.toLowerCase() === 'y';
+			if (isCtrlOrCmd && isCKey) {
+				event.preventDefault();
+				if (event.repeat) return;
+				if (host.isDrawing()) return;
+				host.copySelection();
+				return;
+			}
 			if (isCtrlOrCmd && isZKey && !event.shiftKey) {
 				event.preventDefault();
 				host.undo();

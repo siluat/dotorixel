@@ -9,7 +9,7 @@ use dotorixel_core::history::{HistoryManager, Snapshot};
 use dotorixel_core::layer::{Layer, LayerKind, LayerKindTag, ReferenceData};
 use dotorixel_core::pixel_perfect::{Action, FilterResult, TailState, pixel_perfect_filter};
 use dotorixel_core::reference_placement::ReferencePlacement;
-use dotorixel_core::selection::MarqueeRegion;
+use dotorixel_core::selection::{MarqueeRegion, SelectionClipboard};
 use dotorixel_core::tool::{ToolType, ellipse_outline, interpolate_pixels, rectangle_outline};
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
 
@@ -128,6 +128,54 @@ impl WasmReferencePlacement {
 impl From<ReferencePlacement> for WasmReferencePlacement {
     fn from(inner: ReferencePlacement) -> Self {
         Self { inner }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// WasmSelectionClipboard
+// ---------------------------------------------------------------------------
+
+#[wasm_bindgen]
+pub struct WasmSelectionClipboard {
+    inner: SelectionClipboard,
+}
+
+#[wasm_bindgen]
+impl WasmSelectionClipboard {
+    #[wasm_bindgen(constructor)]
+    pub fn new(pixels: &[u8], width: u32, height: u32) -> Result<WasmSelectionClipboard, JsError> {
+        let expected = (width as usize)
+            .checked_mul(height as usize)
+            .and_then(|pixel_count| pixel_count.checked_mul(4))
+            .ok_or_else(|| JsError::new("Selection Clipboard dimensions are too large"))?;
+        if pixels.len() != expected {
+            return Err(JsError::new(&format!(
+                "Selection Clipboard pixels must be {expected} bytes (width × height × 4); got {}",
+                pixels.len()
+            )));
+        }
+
+        Ok(WasmSelectionClipboard {
+            inner: SelectionClipboard {
+                pixels: pixels.to_vec(),
+                width,
+                height,
+            },
+        })
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn width(&self) -> u32 {
+        self.inner.width
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn height(&self) -> u32 {
+        self.inner.height
+    }
+
+    pub fn pixels(&self) -> Vec<u8> {
+        self.inner.pixels.clone()
     }
 }
 

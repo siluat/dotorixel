@@ -8,10 +8,12 @@ description = "Core logic for the DOTORIXEL pixel art editor"
 
 [dependencies]
 png = "0.17"
+serde = { version = "1", features = ["derive"] }
 uniffi = { version = "0.31", optional = true }
 uuid = "1"
 
 [dev-dependencies]
+serde_json = "1"
 uuid = { version = "1", features = ["v4"] }
 
 [features]

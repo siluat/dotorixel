@@ -441,6 +441,17 @@ describe('Marquee nudge', () => {
 		expect(host.nudgeMarquee).toHaveBeenCalledWith(10, 0);
 	});
 
+	it('allows key repeat so holding an arrow continuously nudges', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		const event = keyDown('ArrowDown', { key: 'ArrowDown', repeat: true });
+
+		kb.handleKeyDown(event);
+
+		expect(event.preventDefault).toHaveBeenCalled();
+		expect(host.nudgeMarquee).toHaveBeenCalledWith(0, 1);
+	});
+
 	it('does not nudge while drawing', () => {
 		const host = createHost({ isDrawing: vi.fn(() => true) });
 		const kb = createKeyboardInput(host);

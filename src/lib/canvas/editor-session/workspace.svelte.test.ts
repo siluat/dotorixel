@@ -204,6 +204,35 @@ describe('Workspace — shared state propagation', () => {
 		expect(notifier.dirtyCalls).toEqual(['copy-doc']);
 	});
 
+	it('copySelection stores Floating Selection pixels after an uncommitted nudge', () => {
+		const source = new Uint8Array(5 * 5 * 4);
+		source.set(rgba([255, 0, 0, 255]), (1 * 5 + 1) * 4);
+		source.set(rgba([0, 255, 0, 255]), (1 * 5 + 2) * 4);
+		const { workspace, notifier } = makeWorkspace();
+		const tab = workspace.openDocument({
+			id: 'copy-floating-doc',
+			name: 'Copy Floating',
+			width: 5,
+			height: 5,
+			pixels: source
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		tab.nudgeMarquee(1, 1);
+		notifier.reset();
+
+		workspace.copySelection();
+
+		expect(workspace.shared.selectionClipboard).toEqual({
+			pixels: rgba([255, 0, 0, 255, 0, 255, 0, 255]),
+			width: 2,
+			height: 1
+		});
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 1 });
+		expect(pixelAt(tab.document, 1, 1)).toEqual([0, 0, 0, 0]);
+		expect(pixelAt(tab.document, 2, 2)).toEqual([0, 0, 0, 0]);
+		expect(notifier.dirtyCalls).toEqual(['copy-floating-doc']);
+	});
+
 	it('switching tabs preserves the shared Selection Clipboard', () => {
 		const source = rgba([1, 0, 0, 255, 2, 0, 0, 255]);
 		const { workspace } = makeWorkspace();

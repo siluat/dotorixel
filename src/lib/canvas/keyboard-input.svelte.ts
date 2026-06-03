@@ -132,6 +132,7 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 			if (arrowNudge && !event.ctrlKey && !event.metaKey && !event.altKey) {
 				event.preventDefault();
 				if (host.isDrawing()) return;
+				// Allow key repeat so holding an arrow continuously nudges the selection.
 				const multiplier = event.shiftKey ? 10 : 1;
 				host.nudgeMarquee(arrowNudge.dx * multiplier, arrowNudge.dy * multiplier);
 				return;

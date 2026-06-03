@@ -240,17 +240,9 @@ export class Workspace {
 	}
 
 	copySelection(): void {
-		const marquee = this.activeTab.document.marquee();
-		if (!marquee) return;
-
-		const pixels = this.activeTab.document.lift_marquee_pixels();
-		if (pixels.length === 0) return;
-
-		this.setSelectionClipboard({
-			pixels,
-			width: marquee.width,
-			height: marquee.height
-		});
+		const selection = this.activeTab.selectionClipboardSnapshot();
+		if (!selection) return;
+		this.setSelectionClipboard(selection);
 	}
 
 	setActiveResizeAnchor(anchor: ResizeAnchor): void {

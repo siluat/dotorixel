@@ -299,7 +299,7 @@ describe('EditorController — handler delegation', () => {
 		expect(editor.canUndo).toBe(true);
 	});
 
-	it('Escape cancels an in-flight Floating Selection through the wired keyboard host', () => {
+	it('Escape does not clear an in-flight Floating Selection through the wired keyboard host', () => {
 		const { editor, notifier } = makeController();
 		const pixels = new Uint8Array(editor.canvasWidth * editor.canvasHeight * 4);
 		pixels.set(makePixelRgba(RED), (1 * editor.canvasWidth + 1) * 4);
@@ -317,11 +317,11 @@ describe('EditorController — handler delegation', () => {
 
 		editor.handleKeyDown(new KeyboardEvent('keydown', { code: 'Escape' }));
 
-		expect(getPixel(editor, 1, 1)).toEqual(RED);
-		expect(getPixel(editor, 2, 1)).toEqual(WHITE);
+		expect(getPixel(editor, 1, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(editor, 2, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
 		expect(editor.marquee).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
-		expect(editor.floatingSelectionOffset).toBeUndefined();
-		expect(editor.workspace.activeTab.isDrawing).toBe(false);
+		expect(editor.floatingSelectionOffset).toEqual({ dx: 1, dy: 1 });
+		expect(editor.workspace.activeTab.isDrawing).toBe(true);
 		expect(notifier.dirtyCalls).toEqual([]);
 	});
 

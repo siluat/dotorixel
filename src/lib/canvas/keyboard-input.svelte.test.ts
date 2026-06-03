@@ -319,13 +319,13 @@ describe('selection dismissal', () => {
 		expect(host.clearMarqueeOrFloating).toHaveBeenCalledOnce();
 	});
 
-	it('delegates Escape while drawing so the host can cancel an active Floating Selection', () => {
+	it('ignores Escape while drawing so the active canvas view interaction can cancel itself', () => {
 		const host = createHost({ isDrawing: vi.fn(() => true) });
 		const kb = createKeyboardInput(host);
 
 		kb.handleKeyDown(keyDown('Escape'));
 
-		expect(host.clearMarqueeOrFloating).toHaveBeenCalledOnce();
+		expect(host.clearMarqueeOrFloating).not.toHaveBeenCalled();
 	});
 });
 

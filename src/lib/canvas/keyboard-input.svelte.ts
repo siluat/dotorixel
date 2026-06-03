@@ -106,6 +106,7 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 			if (event.code === 'Escape') {
 				event.preventDefault();
 				if (event.repeat) return;
+				if (host.isDrawing()) return;
 				host.clearMarqueeOrFloating();
 				return;
 			}

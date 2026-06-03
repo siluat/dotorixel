@@ -21,6 +21,12 @@ function rgba(values: readonly number[]): Uint8Array {
 	return new Uint8Array(values);
 }
 
+function pixelAt(document: ReturnType<typeof singleLayerDocument>, x: number, y: number) {
+	const pixels = document.composite();
+	const i = (y * document.width + x) * 4;
+	return Array.from(pixels.slice(i, i + 4));
+}
+
 describe('Workspace — initialization', () => {
 	it('starts with a single "Untitled 1" tab', () => {
 		const { workspace } = makeWorkspace();
@@ -300,6 +306,40 @@ describe('Workspace — shared state propagation', () => {
 
 		expect(workspace.shared.selectionClipboard).toEqual(existing);
 		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('setActiveTool commits an active Floating Selection nudge as one undoable document change', () => {
+		const source = new Uint8Array(5 * 5 * 4);
+		source.set(rgba([255, 0, 0, 255]), (1 * 5 + 1) * 4);
+		source.set(rgba([0, 255, 0, 255]), (1 * 5 + 2) * 4);
+		const { workspace, notifier } = makeWorkspace();
+		const tab = workspace.openDocument({
+			id: 'nudge-doc',
+			name: 'Nudge',
+			width: 5,
+			height: 5,
+			pixels: source
+		});
+		workspace.setActiveTool('selection');
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		notifier.reset();
+
+		tab.nudgeMarquee(1, 0);
+		tab.nudgeMarquee(0, 1);
+		workspace.setActiveTool('pencil');
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(pixelAt(tab.document, 2, 2)).toEqual([255, 0, 0, 255]);
+		expect(pixelAt(tab.document, 3, 2)).toEqual([0, 255, 0, 255]);
+		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 2, width: 2, height: 1 });
+
+		tab.undo();
+
+		expect(pixelAt(tab.document, 1, 1)).toEqual([255, 0, 0, 255]);
+		expect(pixelAt(tab.document, 2, 1)).toEqual([0, 255, 0, 255]);
+		expect(pixelAt(tab.document, 2, 2)).toEqual([0, 0, 0, 0]);
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+		expect(notifier.dirtyCalls.length).toBeGreaterThan(0);
 	});
 });
 

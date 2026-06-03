@@ -205,6 +205,9 @@ export class Workspace {
 	}
 
 	setActiveTool(tool: ToolType): void {
+		if (this.shared.activeTool !== tool) {
+			this.activeTab.commitFloatingSelection();
+		}
 		this.shared.activeTool = tool;
 		this.#notifier.markDirty(this.activeTab.documentId);
 	}

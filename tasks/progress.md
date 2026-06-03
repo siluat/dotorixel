@@ -4,16 +4,15 @@
 
 Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
 
-13 of 21 sub-issues are done; Escape now cancels in-flight Floating Selection without creating undo history. Nudge, cut/paste, action bar, and Shift follow-ups remain.
+14 of 21 sub-issues are done; Arrow nudge now resolves cleanly with Floating Selection preview and Undo. Cut/paste, action bar, and Shift follow-ups remain.
 
 ## Last Completed
 
-[144 — Escape cancels Floating Selection mid-drag](../issues/144-escape-cancels-floating-selection.md): Escape now restores the lifted source pixels and original Marquee position during a Floating Selection drag without adding an undo entry.
+[145 — Arrow nudge + Shift 10× multiplier](../issues/145-arrow-nudge-and-shift-multiplier.md): Arrow keys now nudge selected pixels as a transient Floating Selection, with Shift using a 10px step and Undo canceling uncommitted nudges before document history.
 
 ## Next Up
 
 - Touch modifier alternatives (unblocks Selection sub-issues 151 + 152)
-- [145 — Arrow nudge + Shift 10× multiplier](../issues/145-arrow-nudge-and-shift-multiplier.md)
 - [146 — Cut (Cmd+X)](../issues/146-cut-cmd-x.md)
 - [147 — Clear Canvas / Delete Layer × Floating commits-first](../issues/147-clear-canvas-delete-layer-floating-commit.md)
 - [148 — Paste (Cmd+V)](../issues/148-paste-cmd-v.md)

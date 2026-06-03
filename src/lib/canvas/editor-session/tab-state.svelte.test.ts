@@ -378,6 +378,264 @@ describe('TabState — effect dispatcher', () => {
 		expect(notifier.dirtyCalls).toEqual([]);
 	});
 
+	it('nudgeMarquee auto-lifts the active Marquee into a one-pixel Floating Selection preview', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
+		const { tab, notifier } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		notifier.reset();
+
+		tab.nudgeMarquee(1, 0);
+
+		expect(getPixel(tab, 1, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 2, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getRenderedPixel(tab, 2, 1)).toEqual(RED);
+		expect(getRenderedPixel(tab, 3, 1)).toEqual(GREEN);
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 0 });
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('nudgeMarquee stacks repeated translations into the same Floating Selection', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
+		const { tab, notifier } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		notifier.reset();
+
+		tab.nudgeMarquee(1, 0);
+		tab.nudgeMarquee(0, 1);
+
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 1 });
+		expect(getRenderedPixel(tab, 2, 2)).toEqual(RED);
+		expect(getRenderedPixel(tab, 3, 2)).toEqual(GREEN);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('nudgeMarquee is a silent no-op when no Marquee exists', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		const { tab, notifier } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		notifier.reset();
+		const beforeRenderVersion = tab.renderVersion;
+
+		tab.nudgeMarquee(1, 0);
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(getPixel(tab, 1, 1)).toEqual(RED);
+		expect(tab.renderVersion).toBe(beforeRenderVersion);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('nudgeMarquee is a silent no-op when a Reference Layer is active', () => {
+		const { document } = makeReferenceDocumentWithPlacement({ x: 0, y: 0, scale: 1 });
+		const { tab, notifier } = makeTab({ document });
+		tab.document.set_marquee(marqueeRegionFromDrag(0, 0, 1, 1));
+		notifier.reset();
+		const beforeRenderVersion = tab.renderVersion;
+
+		tab.nudgeMarquee(1, 0);
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(tab.document.marquee()).toMatchObject({ x: 0, y: 0, width: 2, height: 2 });
+		expect(tab.renderVersion).toBe(beforeRenderVersion);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('commitFloatingSelection clips an off-canvas Marquee nudge and keeps the commit undoable', () => {
+		const pixels = new Uint8Array(3 * 3 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 3 + 1) * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 3 + 2) * 4);
+		const { tab, notifier } = makeTab({
+			document: singleLayerDocument(3, 3, pixels)
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		notifier.reset();
+
+		tab.nudgeMarquee(-2, 0);
+		tab.commitFloatingSelection();
+
+		expect(getPixel(tab, 0, 1)).toEqual(GREEN);
+		expect(getPixel(tab, 1, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 2, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(tab.document.marquee()).toMatchObject({ x: -1, y: 1, width: 2, height: 1 });
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+
+		tab.undo();
+
+		expect(getPixel(tab, 1, 1)).toEqual(RED);
+		expect(getPixel(tab, 2, 1)).toEqual(GREEN);
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+	});
+
+	it('commits an idle Floating Selection before the next selection pointer interaction', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
+		const { tab, notifier, shared } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		tab.nudgeMarquee(1, 1);
+		notifier.reset();
+
+		tab.drawStart(0, 'mouse');
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(getPixel(tab, 2, 2)).toEqual(RED);
+		expect(getPixel(tab, 3, 2)).toEqual(GREEN);
+		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 2, width: 2, height: 1 });
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+
+		tab.drawCancel();
+		tab.undo();
+
+		expect(getPixel(tab, 1, 1)).toEqual(RED);
+		expect(getPixel(tab, 2, 1)).toEqual(GREEN);
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+	});
+
+	it('undo cancels an uncommitted Floating Selection nudge before touching document history', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
+		const { tab, notifier, shared } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		shared.activeTool = 'selection';
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 2, y: 1 }, { x: 1, y: 1 });
+		tab.drawEnd();
+		tab.nudgeMarquee(1, 1);
+		notifier.reset();
+
+		tab.undo();
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(getPixel(tab, 1, 1)).toEqual(RED);
+		expect(getPixel(tab, 2, 1)).toEqual(GREEN);
+		expect(getRenderedPixel(tab, 2, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getRenderedPixel(tab, 3, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+		expect(notifier.dirtyCalls).toEqual([]);
+
+		tab.undo();
+
+		expect(tab.document.marquee()).toBeUndefined();
+	});
+
+	it('clear commits an idle Floating Selection nudge before clearing the active layer', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
+		const { tab, notifier } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		tab.nudgeMarquee(1, 1);
+		notifier.reset();
+
+		tab.clear();
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(getPixel(tab, 1, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 2, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 2, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 3, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(notifier.dirtyCalls).toEqual(['doc-test', 'doc-test']);
+
+		tab.undo();
+
+		expect(getPixel(tab, 2, 2)).toEqual(RED);
+		expect(getPixel(tab, 3, 2)).toEqual(GREEN);
+		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 2, width: 2, height: 1 });
+	});
+
+	it('clearMarqueePixels commits an idle Floating Selection nudge before clearing moved pixels', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
+		const { tab } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		tab.nudgeMarquee(1, 1);
+
+		tab.clearMarqueePixels();
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(getPixel(tab, 1, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 2, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 2, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 3, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 2, width: 2, height: 1 });
+
+		tab.undo();
+
+		expect(getPixel(tab, 2, 2)).toEqual(RED);
+		expect(getPixel(tab, 3, 2)).toEqual(GREEN);
+	});
+
+	it('removeLayer commits an idle Floating Selection nudge before deleting the source layer', () => {
+		const sourceId = crypto.randomUUID();
+		const otherId = crypto.randomUUID();
+		const sourcePixels = new Uint8Array(5 * 5 * 4);
+		sourcePixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		sourcePixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
+		const { tab } = makeTab({
+			document: documentFromLayerSource({
+				width: 5,
+				height: 5,
+				layers: [
+					{
+						kind: 'pixel',
+						id: sourceId,
+						name: 'Paint',
+						pixels: sourcePixels,
+						visible: true,
+						opacity: 1
+					},
+					{
+						kind: 'pixel',
+						id: otherId,
+						name: 'Ink',
+						pixels: new Uint8Array(5 * 5 * 4),
+						visible: true,
+						opacity: 1
+					}
+				],
+				activeLayerId: sourceId,
+				nextLayerNumber: 3,
+				timelinePanelCollapsed: false
+			})
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		tab.nudgeMarquee(1, 1);
+
+		tab.removeLayer(sourceId);
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(tab.document.layer_count()).toBe(1);
+
+		tab.undo();
+
+		expect(tab.document.layer_count()).toBe(2);
+		expect(getPixelFromBuffer(tab.document.layer_pixels_at(0)!, 5, 2, 2)).toEqual(RED);
+		expect(getPixelFromBuffer(tab.document.layer_pixels_at(0)!, 5, 3, 2)).toEqual(GREEN);
+		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 2, width: 2, height: 1 });
+	});
+
 	it('dragging inside the Marquee lifts, commits, and undoes a Floating Selection move', () => {
 		const pixels = new Uint8Array(5 * 5 * 4);
 		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
@@ -2270,6 +2528,28 @@ describe('TabState — setTimelinePanelCollapsed', () => {
 		// One undo reverts the pencil stroke (no orphan snapshot pushed by toggles).
 		tab.undo();
 		expect(getPixel(tab, 2, 2).a).toBe(0);
+	});
+
+	it('does not commit an idle Floating Selection nudge when toggling panel state', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		const { tab } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 1, 1));
+		tab.nudgeMarquee(1, 1);
+
+		tab.setTimelinePanelCollapsed(true);
+
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 1 });
+		expect(getPixel(tab, 1, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getRenderedPixel(tab, 2, 2)).toEqual(RED);
+
+		tab.undo();
+
+		expect(tab.document.is_timeline_panel_collapsed()).toBe(true);
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(getPixel(tab, 1, 1)).toEqual(RED);
 	});
 
 	it('is reflected in toSnapshot', () => {

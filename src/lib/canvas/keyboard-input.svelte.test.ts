@@ -15,6 +15,7 @@ function createHost(overrides?: Partial<KeyboardInputHost>): KeyboardInputHost {
 		clearMarqueeOrFloating: vi.fn(),
 		clearMarqueePixels: vi.fn(),
 		copySelection: vi.fn(),
+		nudgeMarquee: vi.fn(),
 		notifyModifierChange: vi.fn(),
 		...overrides
 	};
@@ -407,6 +408,58 @@ describe('Selection copy', () => {
 		kb.handleKeyDown(keyDown('KeyC', { key: 'c', metaKey: true, repeat: true }));
 
 		expect(host.copySelection).not.toHaveBeenCalled();
+	});
+});
+
+// ── Marquee nudge ───────────────────────────────────────────
+
+describe('Marquee nudge', () => {
+	it.each([
+		['ArrowUp', 0, -1],
+		['ArrowDown', 0, 1],
+		['ArrowLeft', -1, 0],
+		['ArrowRight', 1, 0]
+	])('nudges the active Marquee on %s', (code, dx, dy) => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		const event = keyDown(code, { key: code });
+
+		kb.handleKeyDown(event);
+
+		expect(event.preventDefault).toHaveBeenCalled();
+		expect(host.nudgeMarquee).toHaveBeenCalledWith(dx, dy);
+	});
+
+	it('applies a 10x multiplier for Shift+Arrow', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		const event = keyDown('ArrowRight', { key: 'ArrowRight', shiftKey: true });
+
+		kb.handleKeyDown(event);
+
+		expect(event.preventDefault).toHaveBeenCalled();
+		expect(host.nudgeMarquee).toHaveBeenCalledWith(10, 0);
+	});
+
+	it('does not nudge while drawing', () => {
+		const host = createHost({ isDrawing: vi.fn(() => true) });
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('ArrowRight', { key: 'ArrowRight' }));
+
+		expect(host.nudgeMarquee).not.toHaveBeenCalled();
+	});
+
+	it('does not nudge from a text input target', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		const input = document.createElement('input');
+		document.body.appendChild(input);
+
+		kb.handleKeyDown(keyDown('ArrowRight', { key: 'ArrowRight', target: input }));
+
+		expect(host.nudgeMarquee).not.toHaveBeenCalled();
+		document.body.removeChild(input);
 	});
 });
 

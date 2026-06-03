@@ -555,6 +555,324 @@ describe('Workspace — shared state propagation', () => {
 		expect(notifier.dirtyCalls).toEqual([]);
 	});
 
+	it('pasteSelectionClipboard starts a Floating Selection centered on the visible canvas area', () => {
+		const source = new Uint8Array(8 * 8 * 4);
+		const clipboard = {
+			pixels: rgba([
+				255, 0, 0, 255, 0, 255, 0, 255,
+				0, 0, 255, 255, 255, 255, 0, 255
+			]),
+			width: 2,
+			height: 2
+		};
+		const { workspace, notifier } = makeWorkspace();
+		const tab = workspace.openDocument({
+			id: 'paste-doc',
+			name: 'Paste',
+			width: 8,
+			height: 8,
+			pixels: source.slice()
+		});
+		workspace.setSelectionClipboard(clipboard);
+		tab.setViewportSize({ width: 40, height: 40 });
+		tab.setViewport({
+			pixelSize: 10,
+			zoom: 1,
+			panX: -20,
+			panY: -10,
+			showGrid: true,
+			gridColor: '#cccccc'
+		});
+		notifier.reset();
+
+		workspace.pasteSelectionClipboard();
+
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 0, dy: 0 });
+		expect(tab.document.marquee()).toMatchObject({ x: 3, y: 2, width: 2, height: 2 });
+		expect(tab.document.layer_pixels_at(0)).toEqual(source);
+		const preview = tab.compositeBuffer.pixels();
+		expect(Array.from(preview.slice((2 * 8 + 3) * 4, (2 * 8 + 5) * 4))).toEqual(
+			Array.from(clipboard.pixels.slice(0, 8))
+		);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('undo after committing a pasted Floating Selection restores pre-paste pixels and Marquee', () => {
+		const source = new Uint8Array(4 * 4 * 4);
+		source.set(rgba([255, 0, 0, 255]), (1 * 4 + 1) * 4);
+		const { workspace } = makeWorkspace();
+		const tab = workspace.openDocument({
+			id: 'paste-undo-doc',
+			name: 'Paste Undo',
+			width: 4,
+			height: 4,
+			pixels: source.slice()
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(0, 0, 0, 0));
+		workspace.setSelectionClipboard({
+			pixels: rgba([0, 255, 0, 255, 0, 0, 255, 255]),
+			width: 2,
+			height: 1
+		});
+
+		workspace.pasteSelectionClipboard();
+		tab.commitFloatingSelection();
+
+		expect(pixelAt(tab.document, 1, 1)).toEqual([0, 255, 0, 255]);
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+
+		tab.undo();
+
+		expect(tab.document.layer_pixels_at(0)).toEqual(source);
+		expect(tab.document.marquee()).toMatchObject({ x: 0, y: 0, width: 1, height: 1 });
+	});
+
+	it('undo after committing a paste restores the absence of a pre-paste Marquee', () => {
+		const source = new Uint8Array(4 * 4 * 4);
+		const { workspace } = makeWorkspace();
+		const tab = workspace.openDocument({
+			id: 'paste-undo-no-marquee-doc',
+			name: 'Paste Undo Without Marquee',
+			width: 4,
+			height: 4,
+			pixels: source.slice()
+		});
+		workspace.setSelectionClipboard({
+			pixels: rgba([0, 255, 0, 255, 0, 0, 255, 255]),
+			width: 2,
+			height: 1
+		});
+
+		workspace.pasteSelectionClipboard();
+		tab.commitFloatingSelection();
+
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+
+		tab.undo();
+
+		expect(tab.document.layer_pixels_at(0)).toEqual(source);
+		expect(tab.document.marquee()).toBeUndefined();
+	});
+
+	it('canceling a pasted Floating Selection restores pre-paste pixels and Marquee', () => {
+		const source = new Uint8Array(4 * 4 * 4);
+		source.set(rgba([255, 0, 0, 255]), (1 * 4 + 1) * 4);
+		const { workspace } = makeWorkspace();
+		const tab = workspace.openDocument({
+			id: 'paste-cancel-doc',
+			name: 'Paste Cancel',
+			width: 4,
+			height: 4,
+			pixels: source.slice()
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(0, 0, 0, 0));
+		workspace.setSelectionClipboard({
+			pixels: rgba([0, 255, 0, 255]),
+			width: 1,
+			height: 1
+		});
+
+		workspace.pasteSelectionClipboard();
+		tab.clearMarqueeOrFloating();
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(tab.document.layer_pixels_at(0)).toEqual(source);
+		expect(tab.document.marquee()).toMatchObject({ x: 0, y: 0, width: 1, height: 1 });
+	});
+
+	it('pasteSelectionClipboard falls back to canvas center when the viewport misses the canvas', () => {
+		const layerId = crypto.randomUUID();
+		const { workspace } = makeWorkspace();
+		workspace.openSnapshot({
+			id: 'paste-offscreen-doc',
+			name: 'Paste Offscreen',
+			width: 8,
+			height: 8,
+			marquee: null,
+			layers: [
+				{
+					kind: 'pixel',
+					id: layerId,
+					name: 'Layer 1',
+					pixels: new Uint8Array(8 * 8 * 4),
+					visible: true,
+					opacity: 1
+				}
+			],
+			activeLayerId: layerId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false,
+			viewport: {
+				pixelSize: 10,
+				zoom: 1,
+				panX: 1000,
+				panY: 1000,
+				showGrid: true,
+				gridColor: '#cccccc'
+			}
+		});
+		workspace.setSelectionClipboard({
+			pixels: rgba([
+				255, 0, 0, 255, 0, 255, 0, 255,
+				0, 0, 255, 255, 255, 255, 0, 255
+			]),
+			width: 2,
+			height: 2
+		});
+
+		workspace.pasteSelectionClipboard();
+
+		expect(workspace.activeTab.document.marquee()).toMatchObject({
+			x: 3,
+			y: 3,
+			width: 2,
+			height: 2
+		});
+	});
+
+	it('pasteSelectionClipboard commits an active Floating Selection before pasting', () => {
+		const source = new Uint8Array(5 * 5 * 4);
+		source.set(rgba([255, 0, 0, 255]), (1 * 5 + 1) * 4);
+		source.set(rgba([0, 255, 0, 255]), (1 * 5 + 2) * 4);
+		const { workspace } = makeWorkspace();
+		const tab = workspace.openDocument({
+			id: 'paste-after-floating-doc',
+			name: 'Paste After Floating',
+			width: 5,
+			height: 5,
+			pixels: source
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		tab.nudgeMarquee(1, 1);
+		workspace.setSelectionClipboard({
+			pixels: rgba([255, 255, 0, 255]),
+			width: 1,
+			height: 1
+		});
+
+		workspace.pasteSelectionClipboard();
+
+		expect(pixelAt(tab.document, 2, 2)).toEqual([255, 0, 0, 255]);
+		expect(pixelAt(tab.document, 3, 2)).toEqual([0, 255, 0, 255]);
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 0, dy: 0 });
+		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 2, width: 1, height: 1 });
+	});
+
+	it('pasteSelectionClipboard is a silent no-op when the Selection Clipboard is empty', () => {
+		const source = new Uint8Array(4 * 4 * 4);
+		source.set(rgba([255, 0, 0, 255]), 0);
+		const { workspace, notifier } = makeWorkspace();
+		const tab = workspace.openDocument({
+			id: 'paste-empty-doc',
+			name: 'Paste Empty',
+			width: 4,
+			height: 4,
+			pixels: source.slice()
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(0, 0, 0, 0));
+		notifier.reset();
+
+		workspace.pasteSelectionClipboard();
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(tab.document.layer_pixels_at(0)).toEqual(source);
+		expect(tab.document.marquee()).toMatchObject({ x: 0, y: 0, width: 1, height: 1 });
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('pasteSelectionClipboard is a silent no-op on a Reference-active document', () => {
+		const referenceId = crypto.randomUUID();
+		const pixelId = crypto.randomUUID();
+		const pixelLayer = rgba([
+			1, 0, 0, 255, 2, 0, 0, 255,
+			3, 0, 0, 255, 4, 0, 0, 255
+		]);
+		const clipboard = {
+			pixels: rgba([9, 0, 0, 255]),
+			width: 1,
+			height: 1
+		};
+		const { workspace, notifier } = makeWorkspace();
+		workspace.openSnapshot({
+			id: 'paste-reference-active-doc',
+			name: 'Paste Reference Active',
+			width: 2,
+			height: 2,
+			marquee: null,
+			layers: [
+				{
+					kind: 'reference',
+					id: referenceId,
+					name: 'Reference',
+					visible: true,
+					opacity: 1,
+					sourceBlob: new Blob([new ArrayBuffer(4)], { type: 'image/png' }),
+					sourceRgba: rgba([1, 2, 3, 4]),
+					naturalWidth: 1,
+					naturalHeight: 1,
+					placement: { x: 0, y: 0, scale: 1 }
+				},
+				{
+					kind: 'pixel',
+					id: pixelId,
+					name: 'Paint',
+					pixels: pixelLayer.slice(),
+					visible: true,
+					opacity: 1
+				}
+			],
+			activeLayerId: referenceId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false,
+			viewport: {
+				pixelSize: 32,
+				zoom: 1,
+				panX: 0,
+				panY: 0,
+				showGrid: true,
+				gridColor: '#cccccc'
+			}
+		});
+		workspace.setSelectionClipboard(clipboard);
+		workspace.activeTab.document.set_marquee(marqueeRegionFromDrag(0, 0, 0, 0));
+		notifier.reset();
+
+		workspace.pasteSelectionClipboard();
+
+		expect(workspace.shared.selectionClipboard).toEqual(clipboard);
+		expect(workspace.activeTab.floatingSelectionOffset).toBeUndefined();
+		expect(workspace.activeTab.document.layer_pixels_at(1)).toEqual(pixelLayer);
+		expect(workspace.activeTab.document.marquee()).toMatchObject({ x: 0, y: 0, width: 1, height: 1 });
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('committing an off-canvas pasted Floating Selection clips to the canvas bounds', () => {
+		const clipboardPixels = new Uint8Array(4 * 4 * 4);
+		for (let index = 0; index < 16; index++) {
+			clipboardPixels.set(rgba([index, 0, 0, 255]), index * 4);
+		}
+		const { workspace } = makeWorkspace();
+		const tab = workspace.openDocument({
+			id: 'paste-off-canvas-doc',
+			name: 'Paste Off Canvas',
+			width: 3,
+			height: 3,
+			pixels: new Uint8Array(3 * 3 * 4)
+		});
+		workspace.setSelectionClipboard({
+			pixels: clipboardPixels,
+			width: 4,
+			height: 4
+		});
+
+		workspace.pasteSelectionClipboard();
+		tab.commitFloatingSelection();
+
+		expect(tab.document.marquee()).toMatchObject({ x: -1, y: -1, width: 4, height: 4 });
+		expect(pixelAt(tab.document, 0, 0)).toEqual([5, 0, 0, 255]);
+		expect(pixelAt(tab.document, 2, 2)).toEqual([15, 0, 0, 255]);
+	});
+
 	it('setActiveTool commits an active Floating Selection nudge as one undoable document change', () => {
 		const source = new Uint8Array(5 * 5 * 4);
 		source.set(rgba([255, 0, 0, 255]), (1 * 5 + 1) * 4);

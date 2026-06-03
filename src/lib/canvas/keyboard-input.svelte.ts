@@ -27,6 +27,8 @@ export interface KeyboardInputHost {
 	copySelection(): void;
 	/** Cut pixels inside the active Marquee into the workspace Selection Clipboard. */
 	cutSelection(): void;
+	/** Paste the workspace Selection Clipboard into the active document. */
+	pasteSelectionClipboard(): void;
 	/** Translate the active Marquee or Floating Selection by document pixels. */
 	nudgeMarquee(dx: number, dy: number): void;
 	/** Notify that a modifier key changed mid-stroke. */
@@ -142,6 +144,7 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 
 			const isCtrlOrCmd = event.ctrlKey || event.metaKey;
 			const isCKey = event.code === 'KeyC';
+			const isVKey = event.code === 'KeyV';
 			const isXKey = event.code === 'KeyX';
 			const isZKey = event.key.toLowerCase() === 'z';
 			const isYKey = event.key.toLowerCase() === 'y';
@@ -150,6 +153,13 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 				if (event.repeat) return;
 				if (host.isDrawing()) return;
 				host.copySelection();
+				return;
+			}
+			if (isCtrlOrCmd && !event.altKey && isVKey) {
+				event.preventDefault();
+				if (event.repeat) return;
+				if (host.isDrawing()) return;
+				host.pasteSelectionClipboard();
 				return;
 			}
 			if (isCtrlOrCmd && !event.altKey && isXKey) {

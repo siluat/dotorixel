@@ -14,6 +14,7 @@ import {
 	copyMarqueeRegion,
 	createHistoryManager,
 	fitReferencePlacementToCanvas,
+	marqueeRegionFromDrag,
 	restoreActiveLayerPixels,
 	resizeDocumentWithAnchor,
 	singleLayerDocument
@@ -198,6 +199,13 @@ interface DocumentNavigationBounds {
 	readonly maxY: number;
 }
 
+interface DocumentRect {
+	readonly minX: number;
+	readonly minY: number;
+	readonly maxX: number;
+	readonly maxY: number;
+}
+
 interface FloatingSelectionOffset {
 	readonly dx: number;
 	readonly dy: number;
@@ -209,6 +217,8 @@ interface FloatingSelection {
 	readonly sourceRegion: MarqueeRegion;
 	readonly offset: FloatingSelectionOffset;
 	readonly sourceLayerPixelsBeforeLift: Uint8Array;
+	readonly snapshotMarquee: MarqueeRegion | null;
+	readonly clearSourceRegionOnCommit: boolean;
 }
 
 interface SelectionCutSnapshot {
@@ -528,7 +538,9 @@ export class TabState {
 			sourceLayerId,
 			sourceRegion: stateRegion,
 			offset: { dx: 0, dy: 0 },
-			sourceLayerPixelsBeforeLift
+			sourceLayerPixelsBeforeLift,
+			snapshotMarquee: copyMarqueeRegion(sourceRegion),
+			clearSourceRegionOnCommit: true
 		};
 		this.#documentChangeJournal.recordPreviewChanged();
 	}
@@ -553,6 +565,8 @@ export class TabState {
 				sourceRegion: floating.sourceRegion,
 				destOffset: floating.offset,
 				buffer: floating.buffer,
+				clearSourceRegion: floating.clearSourceRegionOnCommit,
+				snapshotMarquee: floating.snapshotMarquee,
 				sourceLayerPixelsBeforeLift: floating.sourceLayerPixelsBeforeLift
 			}
 		});
@@ -563,13 +577,66 @@ export class TabState {
 		this.#commitFloatingSelection();
 	}
 
+	#beginFloatingSelectionFromClipboard(
+		clipboard: SelectionClipboardData,
+		sourceRegion: MarqueeRegion
+	): void {
+		const sourceLayerId = this.document.active_layer_id();
+		const sourceLayerPixelsBeforeLift = activeLayerPixels(this.document).slice();
+		const marqueeBeforePaste = this.document.marquee();
+		this.document.set_marquee(copyMarqueeRegion(sourceRegion));
+		this.#floatingSelection = {
+			buffer: clipboard.pixels.slice(),
+			sourceLayerId,
+			sourceRegion: copyMarqueeRegion(sourceRegion),
+			offset: { dx: 0, dy: 0 },
+			sourceLayerPixelsBeforeLift,
+			snapshotMarquee: marqueeBeforePaste ? copyMarqueeRegion(marqueeBeforePaste) : null,
+			clearSourceRegionOnCommit: false
+		};
+		this.#documentChangeJournal.recordPreviewChanged();
+	}
+
+	#visibleCanvasRect(): DocumentRect | null {
+		const topLeft = this.#backend.viewportOps.screenToCanvasPoint(this.viewport, 0, 0);
+		const bottomRight = this.#backend.viewportOps.screenToCanvasPoint(
+			this.viewport,
+			this.viewportSize.width,
+			this.viewportSize.height
+		);
+		const minX = Math.max(0, Math.min(topLeft.x, bottomRight.x));
+		const minY = Math.max(0, Math.min(topLeft.y, bottomRight.y));
+		const maxX = Math.min(this.document.width, Math.max(topLeft.x, bottomRight.x));
+		const maxY = Math.min(this.document.height, Math.max(topLeft.y, bottomRight.y));
+
+		return minX < maxX && minY < maxY ? { minX, minY, maxX, maxY } : null;
+	}
+
+	#pasteDestinationRegion(width: number, height: number): MarqueeRegion {
+		const visible = this.#visibleCanvasRect();
+		const center = visible
+			? {
+					x: (visible.minX + visible.maxX) / 2,
+					y: (visible.minY + visible.maxY) / 2
+				}
+			: {
+					x: this.document.width / 2,
+					y: this.document.height / 2
+				};
+		const x = Math.floor(center.x - width / 2);
+		const y = Math.floor(center.y - height / 2);
+		return marqueeRegionFromDrag(x, y, x + width - 1, y + height - 1);
+	}
+
 	#cancelFloatingSelection(): void {
 		const floating = this.#floatingSelection;
 		if (!floating) return;
 		withDocumentActiveLayer(this.document, floating.sourceLayerId, () => {
 			restoreActiveLayerPixels(this.document, floating.sourceLayerPixelsBeforeLift);
 		});
-		this.document.set_marquee(copyMarqueeRegion(floating.sourceRegion));
+		this.document.set_marquee(
+			floating.snapshotMarquee ? copyMarqueeRegion(floating.snapshotMarquee) : null
+		);
 		this.#floatingSelection = null;
 		this.#documentChangeJournal.recordPreviewChanged();
 	}
@@ -729,6 +796,17 @@ export class TabState {
 	commitFloatingSelection = (): void => {
 		if (this.isDrawing) return;
 		this.#commitFloatingSelection();
+	};
+
+	pasteSelectionClipboard = (clipboard: SelectionClipboardData): void => {
+		if (this.isDrawing) return;
+		if (isActiveLayerReference(this.document)) return;
+		if (clipboard.width <= 0 || clipboard.height <= 0 || clipboard.pixels.length === 0) return;
+		if (clipboard.pixels.length !== clipboard.width * clipboard.height * 4) return;
+
+		this.#commitIdleFloatingSelection();
+		const sourceRegion = this.#pasteDestinationRegion(clipboard.width, clipboard.height);
+		this.#beginFloatingSelectionFromClipboard(clipboard, sourceRegion);
 	};
 
 	selectionClipboardSnapshot = (): SelectionClipboardData | null => {

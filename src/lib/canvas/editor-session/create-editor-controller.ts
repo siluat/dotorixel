@@ -40,6 +40,7 @@ export function createEditorController(
 		clearMarqueePixels: () => workspaceRef?.activeTab.clearMarqueePixels(),
 		copySelection: () => workspaceRef?.copySelection(),
 		cutSelection: () => workspaceRef?.cutSelection(),
+		pasteSelectionClipboard: () => workspaceRef?.pasteSelectionClipboard(),
 		nudgeMarquee: (dx, dy) => workspaceRef?.activeTab.nudgeMarquee(dx, dy),
 		notifyModifierChange: () => workspaceRef?.activeTab.modifierChanged()
 	});

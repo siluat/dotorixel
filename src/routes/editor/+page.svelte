@@ -669,6 +669,12 @@
 				onSampleEnd={editor.handleSampleEnd}
 				onSampleCancel={editor.handleSampleCancel}
 				onReferencePlacementCommit={handleReferencePlacementCommit}
+				canPasteSelection={editor.canPasteSelection}
+				onCopySelection={editor.copySelection}
+				onCutSelection={editor.cutSelection}
+				onPasteSelectionClipboard={editor.pasteSelectionClipboard}
+				onDeleteMarqueePixels={editor.deleteMarqueePixels}
+				onClearMarqueeOrFloating={editor.clearMarqueeOrFloating}
 				activeTool={editor.activeTool}
 				toolCursor={editor.toolCursor}
 				isSpaceHeld={editor.isSpaceHeld}
@@ -777,6 +783,12 @@
 						onSampleEnd={editor.handleSampleEnd}
 						onSampleCancel={editor.handleSampleCancel}
 						onReferencePlacementCommit={handleReferencePlacementCommit}
+						canPasteSelection={editor.canPasteSelection}
+						onCopySelection={editor.copySelection}
+						onCutSelection={editor.cutSelection}
+						onPasteSelectionClipboard={editor.pasteSelectionClipboard}
+						onDeleteMarqueePixels={editor.deleteMarqueePixels}
+						onClearMarqueeOrFloating={editor.clearMarqueeOrFloating}
 						activeTool={editor.activeTool}
 						toolCursor={editor.toolCursor}
 						isSpaceHeld={editor.isSpaceHeld}

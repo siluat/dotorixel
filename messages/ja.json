@@ -22,6 +22,11 @@
 	"action_pixelPerfectOn": "ピクセルパーフェクト: オン",
 	"action_pixelPerfectOff": "ピクセルパーフェクト: オフ",
 	"action_pixelPerfectDisabled": "ピクセルパーフェクト (ペンシル/消しゴム専用)",
+	"action_selectionCopy": "コピー",
+	"action_selectionCut": "切り取り",
+	"action_selectionPaste": "貼り付け",
+	"action_selectionDelete": "削除",
+	"action_selectionDeselect": "選択解除",
 
 	"canvas_width": "キャンバス幅",
 	"canvas_height": "キャンバス高さ",
@@ -40,6 +45,7 @@
 	"color_saturationBrightness": "彩度と明度",
 
 	"aria_pixelCanvas": "ピクセルアートキャンバス",
+	"aria_selectionActions": "選択操作",
 	"aria_saturationValue": "彩度 {s}%、明度 {v}%",
 	"aria_fgBgGroup": "前景色 {fg}、背景色 {bg}",
 

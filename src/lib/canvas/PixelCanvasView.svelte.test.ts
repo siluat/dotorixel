@@ -172,6 +172,83 @@ describe('PixelCanvasView', () => {
 		expect(screen.getByTestId('selection-overlay')).toBeTruthy();
 	});
 
+	it('mounts the Selection Action Bar for an idle Marquee', () => {
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				marquee: marqueeRegion(),
+				viewport,
+				viewportSize: { width: 180, height: 180 },
+				canPasteSelection: true
+			}
+		});
+
+		expect(screen.getByRole('toolbar', { name: 'Selection actions' })).toBeTruthy();
+	});
+
+	it('does not mount the idle Selection Action Bar during a Floating Selection', () => {
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				marquee: marqueeRegion(),
+				floatingSelectionOffset: { dx: 1, dy: -1 },
+				viewport,
+				viewportSize: { width: 180, height: 180 },
+				canPasteSelection: true
+			}
+		});
+
+		expect(screen.queryByRole('toolbar', { name: 'Selection actions' })).toBeNull();
+	});
+
+	it('hides the Selection Action Bar during canvas pointer drag', async () => {
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				marquee: marqueeRegion({ width: 3, height: 2 }),
+				viewport,
+				viewportSize: { width: 180, height: 180 },
+				activeTool: 'selection'
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.pointerDown(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 30,
+			clientY: 40
+		});
+		await fireEvent.pointerMove(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			buttons: 1,
+			clientX: 60,
+			clientY: 70
+		});
+
+		expect(
+			screen
+				.getByTestId('selection-action-bar')
+				.classList.contains('selection-action-bar--hidden')
+		).toBe(true);
+
+		await fireEvent.pointerUp(window, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 60,
+			clientY: 70
+		});
+
+		expect(
+			screen
+				.getByTestId('selection-action-bar')
+				.classList.contains('selection-action-bar--hidden')
+		).toBe(false);
+	});
+
 	it('passes Floating Selection offset to the Selection overlay', () => {
 		render(PixelCanvasView, {
 			props: {

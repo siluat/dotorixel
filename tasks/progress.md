@@ -4,16 +4,15 @@
 
 Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
 
-17 of 21 sub-issues are done; Paste now creates a commit-on-dismiss Floating Selection centered on the visible canvas area. Action bar and Shift follow-ups remain.
+18 of 21 sub-issues are done; Idle Marquee now has touch-accessible Copy/Cut/Paste/Delete/Deselect actions. Floating Action Bar and Shift follow-ups remain.
 
 ## Last Completed
 
-[148 — Paste (Cmd+V) — Floating Selection at viewport ∩ canvas center](../issues/148-paste-cmd-v.md): Cmd/Ctrl+V now pastes the Selection Clipboard as a Floating Selection. Undo and cancel restore the pre-paste pixels and Marquee.
+[149 — Selection Action Bar — Idle state implementation](../issues/149-selection-action-bar-idle-implementation.md): Idle Marquee now exposes touch-accessible selection actions wired to the keyboard command paths. Floating Selection controls remain in 150.
 
 ## Next Up
 
 - Touch modifier alternatives (unblocks Selection sub-issues 151 + 152)
-- [149 — Action Bar Idle implementation](../issues/149-selection-action-bar-idle-implementation.md)
 - [150 — Action Bar Floating state](../issues/150-selection-action-bar-floating-state.md)
 - Copy/paste
 - Flip/transform

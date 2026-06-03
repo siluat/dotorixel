@@ -22,6 +22,11 @@
 	"action_pixelPerfectOn": "픽셀 퍼펙트: 켜짐",
 	"action_pixelPerfectOff": "픽셀 퍼펙트: 꺼짐",
 	"action_pixelPerfectDisabled": "픽셀 퍼펙트 (연필/지우개 전용)",
+	"action_selectionCopy": "복사",
+	"action_selectionCut": "잘라내기",
+	"action_selectionPaste": "붙여넣기",
+	"action_selectionDelete": "삭제",
+	"action_selectionDeselect": "선택 해제",
 
 	"canvas_width": "캔버스 너비",
 	"canvas_height": "캔버스 높이",
@@ -40,6 +45,7 @@
 	"color_saturationBrightness": "채도와 명도",
 
 	"aria_pixelCanvas": "픽셀 아트 캔버스",
+	"aria_selectionActions": "선택 작업",
 	"aria_saturationValue": "채도 {s}%, 명도 {v}%",
 	"aria_fgBgGroup": "전경색 {fg}, 배경색 {bg}",
 

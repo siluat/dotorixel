@@ -2,10 +2,10 @@
 
 ## Milestone 3: Editor for Serious Work
 
-- Touch modifier alternatives (Shift-constrain, Alt-eyedropper UI for touchscreen) — **blocks** Shift-related Selection sub-issues
+- Touch modifier alternatives (touch Shift-constrain, Selection axis lock, Alt-eyedropper UI for touchscreen)
 - Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
-  - [151 — Shift = square define (blocked by external Touch modifier alternatives)](../issues/151-shift-square-define.md)
-  - [152 — Shift = axis lock during Floating drag (blocked by external Touch modifier alternatives)](../issues/152-shift-axis-lock-during-floating-drag.md)
+  - [151 — Shift = square define](../issues/151-shift-square-define.md)
+  - [152 — Shift = axis lock during Floating drag](../issues/152-shift-axis-lock-during-floating-drag.md)
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load

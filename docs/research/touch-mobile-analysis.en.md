@@ -77,9 +77,9 @@ This document captures the results of a systematic analysis of touch and mobile 
 - Shift handling: lines 361–368 (keydown), lines 412–417 (keyup)
 - Alt handling: lines 343–350 (keydown), lines 419–426 (keyup)
 
-**Current behavior:** On touch devices without a physical keyboard, users cannot constrain shapes to squares/circles (Shift) or temporarily switch to eyedropper (Alt). These features are completely inaccessible.
+**Current behavior:** On touch devices without a physical keyboard, users cannot constrain shapes to squares/circles (Shift), engage Selection's Shift-equivalent constraints (square define / axis-lock drag), or temporarily switch to eyedropper (Alt). These features are completely inaccessible.
 
-**Fix strategy:** Add toggle buttons in the toolbar for these modifiers. A "constrain" toggle and an eyedropper-mode toggle that mirror the keyboard modifier behavior. This is a Milestone 2 task since it requires UI design decisions.
+**Fix strategy:** Add project-wide modifier controls. A "constrain" toggle and an eyedropper-mode toggle should mirror the keyboard modifier behavior across shape tools and Selection, rather than introducing Selection-local controls. This is a Milestone 2 task since it requires UI design decisions.
 
 ---
 

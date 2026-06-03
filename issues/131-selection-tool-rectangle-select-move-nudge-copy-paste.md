@@ -130,7 +130,7 @@ The Selection Clipboard is **workspace-shared** (one slot across all open tabs) 
 56. As a pixel artist defining a Marquee, I want a dimension tooltip (e.g., "12×8") and crosshair guides aligned with my pointer, so that I can size a rectangular selection precisely without keyboard nudging.
 57. As a pixel artist, I want the StatusBar to display the current Marquee dimensions and origin (e.g., "Marquee: 12×8 at (3, 5)") while one is active, so that I can confirm the exact selection at a glance.
 58. As a pixel artist on a small phone, I want the Selection action bar to show icons only when screen space is scarce (compact breakpoint) and icon + label on larger screens, so that the bar adapts to the available space.
-59. As a pixel artist using Selection on touch, I want Shift-equivalent constraints (square define / axis-lock drag) to be reachable through a project-wide modifier toggle UI, so that touch users get the same precision shortcuts as keyboard users (depends on the project-wide *Touch modifier alternatives* task).
+59. As a pixel artist using Selection on touch, I want the project-wide *Touch modifier alternatives* task to provide Shift-equivalent constraints (square define / axis-lock drag), so that touch users get the same precision shortcuts as keyboard users without Selection-local modifier controls.
 60. As a pixel artist using an Apple Pencil, I want Selection to work with the same touch affordances as a finger in v1, so that Pencil users are not blocked while the Pencil-specific optimization arrives separately.
 
 ### Edge cases and consistency
@@ -179,7 +179,7 @@ Single reference table covering the cross-cutting decisions resolved during gril
 | Move tool (V) × Marquee | Move ignores Marquee; full-layer translate. Clean Move/Selection separation. |
 | Eyedropper × Marquee | Eyedropper ignores Marquee; samples anywhere. |
 | All other drawing tools × Marquee | Clipped to Marquee bounds via the marquee-clip DrawingOps decorator. |
-| Touch parity policy for v1 | Full parity — every keyboard-shortcut feature reachable through a touch path. |
+| Touch parity policy for v1 | Selection-local commands have touch paths in this PRD. Physical keyboard modifier parity is tracked by the project-wide *Touch modifier alternatives* task. |
 | Touch action bar location | Floats near Marquee top edge; auto-reposition when crossing the viewport boundary. |
 | Touch action bar visibility | Always visible when a Marquee is active (desktop + touch); hidden mid-drag, fades back on release. |
 | Touch action bar buttons (Idle) | Copy, Cut, Paste (disabled when clipboard empty), Delete, Deselect. |
@@ -191,7 +191,7 @@ Single reference table covering the cross-cutting decisions resolved during gril
 | Apple Pencil (`pointerType: 'pen'`) | Treated as touch in v1. Pencil-specific optimizations (hover preview, precision-only affordances) deferred to the dedicated Pencil task. |
 | Marquee dimensions readout | StatusBar shows "Marquee: W×H at (x, y)" while Marquee is active. |
 | Responsive action bar | compact (<600px) icon-only; medium+ icon + label. Visual sizing covered by a separate `.pen` design slice. |
-| Shift constraint touch path | Provided through the project-wide *Touch modifier alternatives* task — that task is a blocker for the Shift-related Selection sub-issues. |
+| Shift constraint touch path | Provided through the project-wide *Touch modifier alternatives* task. Keyboard Shift behavior remains in the Shift-related Selection sub-issues. |
 
 ### Modules
 
@@ -254,7 +254,7 @@ This composition keeps the clipping mask invisible to individual tool implementa
 
 ### Touch and mobile UX
 
-v1 ships with **full touch parity** — every keyboard-shortcut feature is reachable from a touch device. The mechanism is a small Svelte component, a StatusBar slot, and two drag-time visual aids; together they replace cursor states, keyboard shortcuts, and physical Esc/Delete keys for touch users without losing anything for keyboard users.
+v1 ships touch paths for Selection-local commands and visual feedback. The mechanism is a small Svelte component, a StatusBar slot, and two drag-time visual aids; together they replace cursor states, Selection keyboard commands, and physical Esc/Delete keys for touch users without losing anything for keyboard users. Physical modifier parity (Shift-equivalent constraints and Alt-eyedropper) belongs to the project-wide *Touch modifier alternatives* task so every tool shares the same modifier UI.
 
 #### Selection action bar (`SelectionActionBar.svelte`, new)
 
@@ -300,7 +300,7 @@ Both helpers disappear on pointer release. They render identically across pointe
 
 #### Dependency on *Touch modifier alternatives*
 
-The Shift modifier in this PRD has three roles: square constraint during define, axis-lock during Floating Selection drag, and 10× multiplier during arrow nudge. Only the third is keyboard-only; the first two need a touch path under the v1 full-parity commitment. Rather than introduce a Selection-local "Constrain" toggle that would need to be removed when the project-wide *Touch modifier alternatives* task lands, this PRD **declares that task a blocker for the Shift-related Selection sub-issues**. Other sub-issues (action bar, clipping mask, drag aids, StatusBar) are independent and can proceed in parallel.
+The Shift modifier in this PRD has three roles: square constraint during define, axis-lock during Floating Selection drag, and 10× multiplier during arrow nudge. The Shift-related Selection sub-issues implement the physical keyboard behavior only. Touch-reachable Shift-equivalent behavior is part of the project-wide *Touch modifier alternatives* task, alongside the Alt-eyedropper alternative, so the modifier UI is shared across shape tools and Selection rather than duplicated locally.
 
 ### Interaction state machine
 
@@ -456,7 +456,7 @@ These are validated through the dev server with the canvas focused, per `CLAUDE.
 
 ### Dependencies and ordering
 
-- **`Touch modifier alternatives`** (project-wide Shift/Alt toggle, currently a Milestone-3 backlog item) is a **blocker** for the Shift-related Selection sub-issues (square define, axis-lock drag). Other Selection sub-issues (action bar, clipping mask, drag aids, StatusBar) are independent and can proceed in parallel. `tasks/todo.md` reflects this ordering.
+- **`Touch modifier alternatives`** (project-wide Shift/Alt toggle, currently a Milestone-3 backlog item) owns touch access to Shift-equivalent Selection constraints and Alt-eyedropper behavior. The Shift-related Selection sub-issues own only the physical keyboard behavior, so they can proceed independently. `tasks/todo.md` reflects this split.
 
 ### Follow-up items (v1.1 or later)
 

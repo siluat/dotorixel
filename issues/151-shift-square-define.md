@@ -15,9 +15,9 @@ When Shift is held during `DefineMarquee`, constrain the rectangle to a square â
 
 Scope:
 
-- **Selection stroke session** (`tools/selection-tool.ts`): during `DefineMarquee`, read the Shift modifier state from the host (`host.isShiftHeld()`). When held, apply `constrainSquare(anchor, current)` (already exported from `tool-registry.ts`) to the draft region before previewing / committing.
+- **Selection stroke session** (`tools/selection-tool.ts`): during `DefineMarquee`, read the physical keyboard Shift modifier state from the host (`host.isShiftHeld()`). When held, apply `constrainSquare(anchor, current)` (already exported from `tool-registry.ts`) to the draft region before previewing / committing.
 - **Mid-drag modifier change**: the existing `modifierChanged` callback in the stroke session updates the draft preview when Shift is pressed or released mid-drag.
-- **Touch path**: depends on the **Touch modifier alternatives** project-wide task that exposes Shift as a touch-reachable toggle. When that toggle is on (in the global modifier system), the constraint applies.
+- **Touch path**: out of scope for this issue. Touch-reachable Shift-equivalent behavior belongs to the project-wide **Touch modifier alternatives** task, which will connect its global modifier state to this same Selection behavior.
 
 Implementation notes:
 
@@ -29,15 +29,12 @@ Tests:
 - Shift-held drag during DefineMarquee produces a square Marquee.
 - Releasing Shift mid-drag returns the preview to free-form rectangle.
 - Pressing Shift mid-drag re-applies the constraint.
-- Touch with Shift toggle on (from Touch modifier alternatives) produces a square Marquee.
 
 ## Acceptance criteria
 
-- Shift held during DefineMarquee constrains the Marquee to a square.
-- Mid-drag press/release of Shift updates the preview appropriately.
-- Once Touch modifier alternatives lands, touch users can engage the same square constraint via the project-wide modifier toggle.
+- Physical keyboard Shift held during DefineMarquee constrains the Marquee to a square.
+- Mid-drag physical Shift press/release updates the preview appropriately.
 
 ## Blocked by
 
 - [132 â€” Selection foundation](132-selection-foundation.md)
-- **External**: `Touch modifier alternatives` project-wide task (currently in `tasks/todo.md`, no issue yet). The touch path of this slice depends on that task's PRD/issues materializing first.

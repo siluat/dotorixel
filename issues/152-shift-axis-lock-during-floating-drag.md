@@ -15,10 +15,10 @@ When Shift is held during a Floating Selection drag, constrain the translation t
 
 Scope:
 
-- **Selection stroke session** (`tools/selection-tool.ts`): during `LiftAndDrag`, when `host.isShiftHeld()` is true, apply a new `constrainAxis(anchor, current)` helper to the live offset.
+- **Selection stroke session** (`tools/selection-tool.ts`): during `LiftAndDrag`, when physical keyboard Shift makes `host.isShiftHeld()` true, apply a new `constrainAxis(anchor, current)` helper to the live offset.
 - **`constrainAxis` helper** (`tool-registry.ts`, new): given an anchor and current point, returns a point on the axis (horizontal or vertical from anchor) with the larger absolute delta. Mirrors the `constrainSquare` pattern.
 - **Mid-drag modifier change**: the existing `modifierChanged` callback updates the floating offset when Shift is pressed or released mid-drag.
-- **Touch path**: depends on the **Touch modifier alternatives** project-wide task.
+- **Touch path**: out of scope for this issue. Touch-reachable Shift-equivalent behavior belongs to the project-wide **Touch modifier alternatives** task, which will connect its global modifier state to this same Selection behavior.
 
 Implementation notes:
 
@@ -30,15 +30,12 @@ Tests:
 - Shift held during LiftAndDrag constrains the offset to a single axis.
 - Mid-drag press/release of Shift updates the offset constraint.
 - Whichever axis (horizontal vs vertical) has the larger absolute delta at the time Shift is held wins.
-- Touch with Shift toggle on (from Touch modifier alternatives) constrains the offset.
 
 ## Acceptance criteria
 
-- Shift held during LiftAndDrag constrains the Floating Selection offset to one axis.
-- Mid-drag modifier changes update the offset constraint reactively.
-- Once Touch modifier alternatives lands, touch users can engage the axis lock via the project-wide modifier toggle.
+- Physical keyboard Shift held during LiftAndDrag constrains the Floating Selection offset to one axis.
+- Mid-drag physical Shift changes update the offset constraint reactively.
 
 ## Blocked by
 
 - [142 — Selection drag-to-move](142-selection-drag-to-move.md)
-- **External**: `Touch modifier alternatives` project-wide task. The touch path of this slice depends on that task's PRD/issues materializing first.

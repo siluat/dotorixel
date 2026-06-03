@@ -211,6 +211,11 @@ interface FloatingSelection {
 	readonly sourceLayerPixelsBeforeLift: Uint8Array;
 }
 
+interface SelectionCutSnapshot {
+	readonly clipboard: SelectionClipboardData | null;
+	readonly shouldClearPixels: boolean;
+}
+
 export interface TabStateDeps {
 	readonly backend: CanvasBackend;
 	readonly shared: SharedState;
@@ -746,6 +751,26 @@ export class TabState {
 			pixels,
 			width: marquee.width,
 			height: marquee.height
+		};
+	};
+
+	selectionCutSnapshot = (): SelectionCutSnapshot | null => {
+		if (isActiveLayerReference(this.document)) return null;
+
+		const marquee = this.document.marquee();
+		if (!marquee) return null;
+
+		if (!marquee.clip_to(this.document.width, this.document.height)) {
+			return { clipboard: null, shouldClearPixels: false };
+		}
+
+		return {
+			clipboard: {
+				pixels: this.document.lift_marquee_pixels(),
+				width: marquee.width,
+				height: marquee.height
+			},
+			shouldClearPixels: true
 		};
 	};
 

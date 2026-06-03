@@ -15,6 +15,7 @@ function createHost(overrides?: Partial<KeyboardInputHost>): KeyboardInputHost {
 		clearMarqueeOrFloating: vi.fn(),
 		clearMarqueePixels: vi.fn(),
 		copySelection: vi.fn(),
+		cutSelection: vi.fn(),
 		nudgeMarquee: vi.fn(),
 		notifyModifierChange: vi.fn(),
 		...overrides
@@ -408,6 +409,25 @@ describe('Selection copy', () => {
 		kb.handleKeyDown(keyDown('KeyC', { key: 'c', metaKey: true, repeat: true }));
 
 		expect(host.copySelection).not.toHaveBeenCalled();
+	});
+});
+
+// ── Selection cut ───────────────────────────────────────────
+
+describe('Selection cut', () => {
+	it.each([
+		['Ctrl+X', { ctrlKey: true }],
+		['Cmd+X', { metaKey: true }]
+	])('cuts the active selection on %s while idle', (_label, modifiers) => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		const event = keyDown('KeyX', { key: 'x', ...modifiers });
+
+		kb.handleKeyDown(event);
+
+		expect(event.preventDefault).toHaveBeenCalled();
+		expect(host.cutSelection).toHaveBeenCalledOnce();
+		expect(host.swapColors).not.toHaveBeenCalled();
 	});
 });
 

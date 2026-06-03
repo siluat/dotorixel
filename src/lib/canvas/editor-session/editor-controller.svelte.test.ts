@@ -325,6 +325,25 @@ describe('EditorController — handler delegation', () => {
 		expect(notifier.dirtyCalls).toEqual([]);
 	});
 
+	it('Cmd+X cuts the active Marquee through the wired keyboard host', () => {
+		const { editor } = makeController();
+		const pixels = new Uint8Array(editor.canvasWidth * editor.canvasHeight * 4);
+		pixels.set(makePixelRgba(RED), (1 * editor.canvasWidth + 1) * 4);
+		pixels.set(makePixelRgba(WHITE), (1 * editor.canvasWidth + 2) * 4);
+		editor.document.restore_active_layer_pixels(pixels);
+		editor.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+
+		editor.handleKeyDown(new KeyboardEvent('keydown', { code: 'KeyX', key: 'x', metaKey: true }));
+
+		expect(editor.workspace.shared.selectionClipboard).toEqual({
+			pixels: new Uint8Array([...makePixelRgba(RED), ...makePixelRgba(WHITE)]),
+			width: 2,
+			height: 1
+		});
+		expect(getPixel(editor, 1, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(editor, 2, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+	});
+
 	it('handleDrawStart is suppressed while shortcut hints are visible', () => {
 		const { editor } = makeController();
 		editor.handleKeyDown(new KeyboardEvent('keydown', { code: 'Slash' }));

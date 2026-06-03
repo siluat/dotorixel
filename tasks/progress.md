@@ -4,16 +4,15 @@
 
 Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
 
-14 of 21 sub-issues are done; Arrow nudge now resolves cleanly with Floating Selection preview and Undo. Cut/paste, action bar, and Shift follow-ups remain.
+15 of 21 sub-issues are done; Cut now copies selected pixels into the workspace clipboard and clears the Marquee region with undo coverage. Clear/delete Floating commit, paste, action bar, and Shift follow-ups remain.
 
 ## Last Completed
 
-[145 — Arrow nudge + Shift 10× multiplier](../issues/145-arrow-nudge-and-shift-multiplier.md): Arrow keys now nudge selected pixels as a transient Floating Selection, with Shift using a 10px step and Undo canceling uncommitted nudges before document history.
+[146 — Cut (Cmd+X) — Copy followed by Delete](../issues/146-cut-cmd-x.md): Cmd/Ctrl+X now cuts the active Marquee, commits Floating Selection first when needed, and treats fully off-canvas moved selections as an empty clipboard update.
 
 ## Next Up
 
 - Touch modifier alternatives (unblocks Selection sub-issues 151 + 152)
-- [146 — Cut (Cmd+X)](../issues/146-cut-cmd-x.md)
 - [147 — Clear Canvas / Delete Layer × Floating commits-first](../issues/147-clear-canvas-delete-layer-floating-commit.md)
 - [148 — Paste (Cmd+V)](../issues/148-paste-cmd-v.md)
 - [149 — Action Bar Idle implementation](../issues/149-selection-action-bar-idle-implementation.md)
@@ -21,7 +20,6 @@ Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load
-- (review) Evaluate serde-wasm-bindgen + tsify for WASM↔TS serialization
 - Apple Pencil: hover preview + palm rejection
 - Feature guide page (basic usage instructions)
 - (review) In-editor feedback widget
@@ -32,7 +30,6 @@ Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../
 - Animation preview (play/pause in editor)
 - GIF/spritesheet export
 - Feedback link to Google Form
-- (review) Public roadmap & feature voting system
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
 - Apple Phase 1 — Enable clear canvas (existing disabled button)
 - Apple Phase 1 — Enable PNG export (existing disabled button)

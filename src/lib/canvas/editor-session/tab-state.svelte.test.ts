@@ -553,6 +553,7 @@ describe('TabState — effect dispatcher', () => {
 		expect(getPixel(tab, 2, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
 		expect(getPixel(tab, 2, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
 		expect(getPixel(tab, 3, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 2, width: 2, height: 1 });
 		expect(notifier.dirtyCalls).toEqual(['doc-test', 'doc-test']);
 
 		tab.undo();
@@ -560,6 +561,14 @@ describe('TabState — effect dispatcher', () => {
 		expect(getPixel(tab, 2, 2)).toEqual(RED);
 		expect(getPixel(tab, 3, 2)).toEqual(GREEN);
 		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 2, width: 2, height: 1 });
+
+		tab.undo();
+
+		expect(getPixel(tab, 1, 1)).toEqual(RED);
+		expect(getPixel(tab, 2, 1)).toEqual(GREEN);
+		expect(getPixel(tab, 2, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 3, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
 	});
 
 	it('clearMarqueePixels commits an idle Floating Selection nudge before clearing moved pixels', () => {
@@ -627,6 +636,7 @@ describe('TabState — effect dispatcher', () => {
 
 		expect(tab.floatingSelectionOffset).toBeUndefined();
 		expect(tab.document.layer_count()).toBe(1);
+		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 2, width: 2, height: 1 });
 
 		tab.undo();
 
@@ -634,6 +644,25 @@ describe('TabState — effect dispatcher', () => {
 		expect(getPixelFromBuffer(tab.document.layer_pixels_at(0)!, 5, 2, 2)).toEqual(RED);
 		expect(getPixelFromBuffer(tab.document.layer_pixels_at(0)!, 5, 3, 2)).toEqual(GREEN);
 		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 2, width: 2, height: 1 });
+
+		tab.undo();
+
+		expect(tab.document.layer_count()).toBe(2);
+		expect(getPixelFromBuffer(tab.document.layer_pixels_at(0)!, 5, 1, 1)).toEqual(RED);
+		expect(getPixelFromBuffer(tab.document.layer_pixels_at(0)!, 5, 2, 1)).toEqual(GREEN);
+		expect(getPixelFromBuffer(tab.document.layer_pixels_at(0)!, 5, 2, 2)).toEqual({
+			r: 0,
+			g: 0,
+			b: 0,
+			a: 0
+		});
+		expect(getPixelFromBuffer(tab.document.layer_pixels_at(0)!, 5, 3, 2)).toEqual({
+			r: 0,
+			g: 0,
+			b: 0,
+			a: 0
+		});
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
 	});
 
 	it('dragging inside the Marquee lifts, commits, and undoes a Floating Selection move', () => {

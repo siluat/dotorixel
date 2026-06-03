@@ -371,6 +371,18 @@
 			placementInteraction.cancelAll();
 			return;
 		}
+		if (
+			event.key === 'Escape' &&
+			activeTool === 'selection' &&
+			floatingSelectionOffset &&
+			canvasInteraction.interactionType === 'drawing'
+		) {
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			canvasInteraction.cancelDrawing();
+			clearSelectionDragAid();
+			return;
+		}
 		if (commitReferencePlacementNudge(event)) {
 			event.preventDefault();
 		}

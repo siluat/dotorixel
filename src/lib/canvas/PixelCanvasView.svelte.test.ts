@@ -1005,6 +1005,84 @@ describe('PixelCanvasView', () => {
 		expect(onDrawEnd).not.toHaveBeenCalled();
 	});
 
+	it('cancels active Floating Selection drawing on Escape and ignores the later pointer up', async () => {
+		const onDrawStart = vi.fn();
+		const onDrawEnd = vi.fn();
+		const onDrawCancel = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				marquee: marqueeRegion(),
+				floatingSelectionOffset: { dx: 1, dy: 1 },
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				activeTool: 'selection',
+				onDrawStart,
+				onDrawEnd,
+				onDrawCancel
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.pointerDown(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 10,
+			clientY: 10
+		});
+		await fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' });
+		await fireEvent.pointerUp(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 10,
+			clientY: 10
+		});
+
+		expect(onDrawStart).toHaveBeenCalledTimes(1);
+		expect(onDrawCancel).toHaveBeenCalledTimes(1);
+		expect(onDrawEnd).not.toHaveBeenCalled();
+	});
+
+	it('does not cancel non-selection drawing on Escape', async () => {
+		const onDrawStart = vi.fn();
+		const onDrawEnd = vi.fn();
+		const onDrawCancel = vi.fn();
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				viewport,
+				viewportSize: { width: 100, height: 100 },
+				activeTool: 'pencil',
+				onDrawStart,
+				onDrawEnd,
+				onDrawCancel
+			}
+		});
+
+		const canvas = screen.getByRole('application', { name: 'Pixel art canvas' });
+		await fireEvent.pointerDown(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 10,
+			clientY: 10
+		});
+		await fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' });
+		await fireEvent.pointerUp(canvas, {
+			pointerId: 1,
+			pointerType: 'mouse',
+			button: 0,
+			clientX: 10,
+			clientY: 10
+		});
+
+		expect(onDrawStart).toHaveBeenCalledTimes(1);
+		expect(onDrawCancel).not.toHaveBeenCalled();
+		expect(onDrawEnd).toHaveBeenCalledTimes(1);
+	});
+
 	it('previews a body drag before committing the Reference placement', async () => {
 		const onReferencePlacementCommit = vi.fn();
 		render(PixelCanvasView, {

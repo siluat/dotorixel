@@ -19,8 +19,8 @@ export interface KeyboardInputHost {
 	toggleGrid(): void;
 	/** Swap foreground/background colors. */
 	swapColors(): void;
-	/** Clear the active Marquee selection if one exists. */
-	clearMarquee(): void;
+	/** Cancel an active Floating Selection, otherwise clear the active Marquee selection. */
+	clearMarqueeOrFloating(): void;
 	/** Clear pixels inside the active Marquee if one exists. */
 	clearMarqueePixels(): void;
 	/** Copy pixels inside the active Marquee into the workspace Selection Clipboard. */
@@ -107,7 +107,7 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 				event.preventDefault();
 				if (event.repeat) return;
 				if (host.isDrawing()) return;
-				host.clearMarquee();
+				host.clearMarqueeOrFloating();
 				return;
 			}
 

@@ -91,6 +91,18 @@ describe('drawing', () => {
 		expect(interaction.interactionType).toBe('idle');
 	});
 
+	it('external draw cancellation resets drawing and ignores the later pointer up', () => {
+		const { interaction, callbacks } = setup();
+		interaction.pointerDown(1, 50, 50, 'mouse', 0);
+
+		interaction.cancelDrawing();
+		interaction.pointerUp(1, 50, 50);
+
+		expect(callbacks.onDrawCancel).toHaveBeenCalledOnce();
+		expect(callbacks.onDrawEnd).not.toHaveBeenCalled();
+		expect(interaction.interactionType).toBe('idle');
+	});
+
 	it('pointer leave draws final pixel and ends drawing', () => {
 		const { interaction, callbacks } = setup();
 		interaction.pointerDown(1, 0, 0, 'mouse', 0);

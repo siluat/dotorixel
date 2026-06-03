@@ -668,6 +668,19 @@ export class TabState {
 		});
 	};
 
+	clearMarqueeOrFloating = (): void => {
+		if (this.#floatingSelection) {
+			if (this.isDrawing) {
+				this.drawCancel();
+			} else {
+				this.#cancelFloatingSelection();
+			}
+			return;
+		}
+		if (this.isDrawing) return;
+		this.clearMarquee();
+	};
+
 	clearMarqueePixels = (): void => {
 		if (this.isDrawing) return;
 		this.#documentChangeJournal.commit({

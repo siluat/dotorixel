@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 135 | 102 | 33 | 138 | 76% | 43% |
-| cubic-dev-ai[bot] | 92 | 76 | 16 | 160 | 83% | 32% |
-| coderabbitai[bot] | 194 | 138 | 56 | 95 | 71% | 59% |
+| greptile-apps[bot] | 136 | 103 | 33 | 138 | 76% | 43% |
+| cubic-dev-ai[bot] | 92 | 76 | 16 | 161 | 83% | 32% |
+| coderabbitai[bot] | 194 | 138 | 56 | 96 | 71% | 59% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #244 | greptile-apps[bot] | Accept | Page-level Escape ordering can leave Floating Selection canvas interaction stale |
+| #244 | coderabbitai[bot] | Miss | Did not flag page-level Escape ordering stale canvas interaction |
+| #244 | cubic-dev-ai[bot] | Miss | Did not flag page-level Escape ordering stale canvas interaction |
 | #243 | cubic-dev-ai[bot] | Accept | Guard selection copy shortcut while Alt is held |
 | #243 | coderabbitai[bot] | Accept | Document SelectionClipboard buffer-length invariant |
 | #243 | coderabbitai[bot] | Reject | Keep SelectionClipboard as a plain value without constructor or custom serde validation |

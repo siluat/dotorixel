@@ -6,14 +6,24 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 136 | 103 | 33 | 138 | 76% | 43% |
-| cubic-dev-ai[bot] | 92 | 76 | 16 | 161 | 83% | 32% |
-| coderabbitai[bot] | 194 | 138 | 56 | 96 | 71% | 59% |
+| greptile-apps[bot] | 139 | 105 | 34 | 139 | 76% | 43% |
+| cubic-dev-ai[bot] | 94 | 78 | 16 | 162 | 83% | 33% |
+| coderabbitai[bot] | 195 | 139 | 56 | 98 | 71% | 59% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #245 | greptile-apps[bot] | Reject | Keep arrow-key preventDefault before drawing guard to suppress native scroll |
+| #245 | greptile-apps[bot] | Accept | Document intentional key-repeat behavior for arrow nudge |
+| #245 | greptile-apps[bot] | Accept | Rename idle Floating Selection commit helper to match UI and document call sites |
+| #245 | coderabbitai[bot] | Accept | Copy after uncommitted nudge should read the Floating Selection buffer |
+| #245 | cubic-dev-ai[bot] | Accept | Copy after uncommitted nudge should read the Floating Selection buffer |
+| #245 | cubic-dev-ai[bot] | Accept | Rename idle Floating Selection commit helper to match UI and document call sites |
+| #245 | greptile-apps[bot] | Miss | Did not flag copy-after-nudge Floating Selection clipboard bug |
+| #245 | coderabbitai[bot] | Miss | Did not flag idle Floating Selection helper naming mismatch |
+| #245 | coderabbitai[bot] | Miss | Did not flag arrow nudge key-repeat intentionality documentation |
+| #245 | cubic-dev-ai[bot] | Miss | Did not flag arrow nudge key-repeat intentionality documentation |
 | #244 | greptile-apps[bot] | Accept | Page-level Escape ordering can leave Floating Selection canvas interaction stale |
 | #244 | coderabbitai[bot] | Miss | Did not flag page-level Escape ordering stale canvas interaction |
 | #244 | cubic-dev-ai[bot] | Miss | Did not flag page-level Escape ordering stale canvas interaction |

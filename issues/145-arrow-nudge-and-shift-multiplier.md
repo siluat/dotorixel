@@ -1,6 +1,6 @@
 ---
 title: "Arrow nudge + Shift 10× multiplier — auto-lift, stack into one buffer"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -50,3 +50,26 @@ Tests:
 ## Blocked by
 
 - [142 — Selection drag-to-move](142-selection-drag-to-move.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/keyboard-input.svelte.ts` | Added arrow-key Marquee nudge routing with Shift as a 10× multiplier while preserving text-input and modifier-key guards. |
+| `src/lib/canvas/editor-session/create-editor-controller.ts` | Wired keyboard nudge events into the active tab session. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Added Marquee auto-lift nudge, stacked Floating Selection offsets, Undo cancel behavior, and commit-before-document-change safeguards. |
+| `src/lib/canvas/editor-session/workspace.svelte.ts` | Commits an active Floating Selection before switching tools. |
+| `src/lib/canvas/keyboard-input.svelte.test.ts` | Covered arrow directions, Shift multiplier, drawing guard, and text-input guard. |
+| `src/lib/canvas/editor-session/tab-state.svelte.test.ts` | Covered auto-lift, stacked nudges, silent no-ops, off-canvas clipping, Undo cancel, commit boundaries, and UI-state non-commit behavior. |
+| `src/lib/canvas/editor-session/workspace.svelte.test.ts` | Covered tool-switch commit and undo restoration after an accumulated nudge. |
+
+### Key Decisions
+
+- Nudge is a transient Floating Selection preview until a real resolving action commits it, so repeated arrow presses do not create per-key undo snapshots.
+- Undo cancels an uncommitted Floating Selection before touching document history; Escape continues to use the same cancel path.
+- Document-changing commands commit a live Floating Selection first, while pure UI state changes do not.
+
+### Notes
+
+- `bun run check` and `bun run test` passed. The full test run covered 75 files and 1259 tests.
+- Cut, paste, and action-bar flows remain follow-up Selection PRD slices.

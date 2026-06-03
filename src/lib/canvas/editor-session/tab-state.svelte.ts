@@ -5,7 +5,8 @@ import type {
 	CanvasPoint,
 	MarqueeRegion,
 	ResizeAnchor,
-	ReferencePlacement
+	ReferencePlacement,
+	SelectionClipboardData
 } from '../canvas-model';
 import {
 	activeLayerPixels,
@@ -552,6 +553,11 @@ export class TabState {
 		});
 	}
 
+	#commitIdleFloatingSelection(): void {
+		if (this.isDrawing) return;
+		this.#commitFloatingSelection();
+	}
+
 	#cancelFloatingSelection(): void {
 		const floating = this.#floatingSelection;
 		if (!floating) return;
@@ -564,6 +570,7 @@ export class TabState {
 	}
 
 	drawStart = (button: number, pointerType: PointerType): void => {
+		this.#commitFloatingSelection();
 		this.#selectionPreviewBaselineMarquee =
 			this.shared.activeTool === 'selection' ? serializeMarquee(this.document.marquee()) : undefined;
 		this.#applyEffects(this.#toolRunner.drawStart(button, pointerType));
@@ -645,16 +652,22 @@ export class TabState {
 
 	undo = (): void => {
 		if (this.isDrawing) return;
+		if (this.#floatingSelection) {
+			this.#cancelFloatingSelection();
+			return;
+		}
 		this.#documentChangeJournal.undo();
 	};
 
 	redo = (): void => {
 		if (this.isDrawing) return;
+		if (this.#floatingSelection) return;
 		this.#documentChangeJournal.redo();
 	};
 
 	clear = (): void => {
 		if (this.isDrawing) return;
+		this.#commitIdleFloatingSelection();
 		this.#documentChangeJournal.commit({
 			kind: 'undoable-document',
 			intent: { type: 'clear-active-layer' }
@@ -662,6 +675,7 @@ export class TabState {
 	};
 
 	clearMarquee = (): void => {
+		this.#commitIdleFloatingSelection();
 		this.#documentChangeJournal.commit({
 			kind: 'undoable-document',
 			intent: { type: 'set-marquee', region: null }
@@ -683,10 +697,56 @@ export class TabState {
 
 	clearMarqueePixels = (): void => {
 		if (this.isDrawing) return;
+		this.#commitIdleFloatingSelection();
 		this.#documentChangeJournal.commit({
 			kind: 'undoable-document',
 			intent: { type: 'clear-marquee-pixels' }
 		});
+	};
+
+	nudgeMarquee = (dx: number, dy: number): void => {
+		if (this.isDrawing) return;
+		if (isActiveLayerReference(this.document)) return;
+		if (this.#floatingSelection) {
+			this.#moveFloatingSelection({
+				dx: this.#floatingSelection.offset.dx + dx,
+				dy: this.#floatingSelection.offset.dy + dy
+			});
+			return;
+		}
+
+		const marquee = this.document.marquee();
+		if (!marquee) return;
+		this.#beginFloatingSelection(marquee);
+		this.#moveFloatingSelection({ dx, dy });
+	};
+
+	commitFloatingSelection = (): void => {
+		if (this.isDrawing) return;
+		this.#commitFloatingSelection();
+	};
+
+	selectionClipboardSnapshot = (): SelectionClipboardData | null => {
+		const floating = this.#floatingSelection;
+		if (floating) {
+			return {
+				pixels: floating.buffer.slice(),
+				width: floating.sourceRegion.width,
+				height: floating.sourceRegion.height
+			};
+		}
+
+		const marquee = this.document.marquee();
+		if (!marquee) return null;
+
+		const pixels = this.document.lift_marquee_pixels();
+		if (pixels.length === 0) return null;
+
+		return {
+			pixels,
+			width: marquee.width,
+			height: marquee.height
+		};
 	};
 
 	pushHistorySnapshot = (): void => {
@@ -694,6 +754,7 @@ export class TabState {
 	};
 
 	addLayer = (name: string): void => {
+		this.#commitIdleFloatingSelection();
 		this.#documentChangeJournal.commit({
 			kind: 'undoable-document',
 			intent: { type: 'add-pixel-layer', name }
@@ -706,6 +767,7 @@ export class TabState {
 	 * old source blobs stay cached even after a successful replacement.
 	 */
 	setReferenceLayer = (source: ReferenceLayerSource): string => {
+		this.#commitIdleFloatingSelection();
 		const result = this.#documentChangeJournal.commit({
 			kind: 'undoable-document',
 			intent: { type: 'set-reference-layer', source }
@@ -725,6 +787,7 @@ export class TabState {
 	 * if `id` does not refer to an existing layer.
 	 */
 	removeLayer = (id: string): void => {
+		this.#commitIdleFloatingSelection();
 		this.#documentChangeJournal.commit({
 			kind: 'undoable-document',
 			intent: { type: 'remove-layer', id }
@@ -732,6 +795,7 @@ export class TabState {
 	};
 
 	setActiveLayer = (id: string): void => {
+		this.#commitIdleFloatingSelection();
 		this.#documentChangeJournal.commit({
 			kind: 'persisted-document-ui',
 			intent: { type: 'set-active-layer', id }
@@ -749,6 +813,7 @@ export class TabState {
 	 * to an existing layer.
 	 */
 	reorderLayer = (id: string, newVisualIndex: number): void => {
+		this.#commitIdleFloatingSelection();
 		this.#documentChangeJournal.commit({
 			kind: 'undoable-document',
 			intent: { type: 'reorder-layer', id, newVisualIndex }
@@ -764,6 +829,7 @@ export class TabState {
 	 * to an existing layer.
 	 */
 	setLayerVisibility = (id: string, visible: boolean): void => {
+		this.#commitIdleFloatingSelection();
 		this.#documentChangeJournal.commit({
 			kind: 'undoable-document',
 			intent: { type: 'set-layer-visibility', id, visible }
@@ -778,6 +844,7 @@ export class TabState {
 	 * tab dirty. Throws when `id` does not exist or is not a Reference Layer.
 	 */
 	setReferencePlacement = (id: string, placement: ReferencePlacement): void => {
+		this.#commitIdleFloatingSelection();
 		this.#documentChangeJournal.commit({
 			kind: 'undoable-document',
 			intent: { type: 'set-reference-placement', id, placement }
@@ -883,6 +950,7 @@ export class TabState {
 	};
 
 	resize = (newWidth: number, newHeight: number): void => {
+		this.#commitIdleFloatingSelection();
 		this.#documentChangeJournal.commit({
 			kind: 'undoable-document',
 			intent: {

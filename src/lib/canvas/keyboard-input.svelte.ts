@@ -25,6 +25,8 @@ export interface KeyboardInputHost {
 	clearMarqueePixels(): void;
 	/** Copy pixels inside the active Marquee into the workspace Selection Clipboard. */
 	copySelection(): void;
+	/** Translate the active Marquee or Floating Selection by document pixels. */
+	nudgeMarquee(dx: number, dy: number): void;
 	/** Notify that a modifier key changed mid-stroke. */
 	notifyModifierChange(): void;
 }
@@ -56,6 +58,13 @@ function isTextInputTarget(target: EventTarget | null): boolean {
 	if (typeof HTMLElement === 'undefined' || !(target instanceof HTMLElement)) return false;
 	return target.closest('input, select, textarea, [contenteditable]:not([contenteditable="false"])') !== null;
 }
+
+const ARROW_NUDGES: Partial<Record<string, { readonly dx: number; readonly dy: number }>> = {
+	ArrowUp: { dx: 0, dy: -1 },
+	ArrowDown: { dx: 0, dy: 1 },
+	ArrowLeft: { dx: -1, dy: 0 },
+	ArrowRight: { dx: 1, dy: 0 }
+};
 
 export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 	let isSpaceHeld = $state(false);
@@ -116,6 +125,16 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 				if (event.repeat) return;
 				if (host.isDrawing()) return;
 				host.clearMarqueePixels();
+				return;
+			}
+
+			const arrowNudge = ARROW_NUDGES[event.code];
+			if (arrowNudge && !event.ctrlKey && !event.metaKey && !event.altKey) {
+				event.preventDefault();
+				if (host.isDrawing()) return;
+				// Allow key repeat so holding an arrow continuously nudges the selection.
+				const multiplier = event.shiftKey ? 10 : 1;
+				host.nudgeMarquee(arrowNudge.dx * multiplier, arrowNudge.dy * multiplier);
 				return;
 			}
 

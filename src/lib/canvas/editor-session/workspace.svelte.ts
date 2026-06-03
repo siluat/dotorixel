@@ -245,6 +245,19 @@ export class Workspace {
 		this.setSelectionClipboard(selection);
 	}
 
+	cutSelection(): void {
+		if (this.activeTab.floatingSelectionOffset) {
+			this.activeTab.commitFloatingSelection();
+		}
+		const cut = this.activeTab.selectionCutSnapshot();
+		if (!cut) return;
+
+		this.setSelectionClipboard(cut.clipboard);
+		if (cut.shouldClearPixels) {
+			this.activeTab.clearMarqueePixels();
+		}
+	}
+
 	setActiveResizeAnchor(anchor: ResizeAnchor): void {
 		// Resize anchor is a transient per-tab UI parameter; not persistable.
 		this.activeTab.resizeAnchor = anchor;

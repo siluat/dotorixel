@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 146 | [Cut (Cmd+X) — Copy followed by Delete](../issues/146-cut-cmd-x.md) | 2026-06-03 |
 | 145 | [Arrow nudge + Shift 10× multiplier](../issues/145-arrow-nudge-and-shift-multiplier.md) | 2026-06-03 |
 | 144 | [Escape cancels Floating Selection — revert lift mid-drag](../issues/144-escape-cancels-floating-selection.md) | 2026-06-03 |
 | 143 | [Selection Clipboard + Copy (Cmd+C) + workspace persistence](../issues/143-selection-clipboard-and-copy.md) | 2026-06-02 |

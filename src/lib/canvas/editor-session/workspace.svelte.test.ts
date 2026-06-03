@@ -337,6 +337,224 @@ describe('Workspace — shared state propagation', () => {
 		expect(notifier.dirtyCalls).toEqual([]);
 	});
 
+	it('cutSelection stores the active Marquee pixels in the clipboard and clears them from the layer', () => {
+		const source = rgba([
+			1, 0, 0, 255, 2, 0, 0, 255, 3, 0, 0, 255,
+			4, 0, 0, 255, 5, 0, 0, 255, 6, 0, 0, 255
+		]);
+		const { workspace, notifier } = makeWorkspace();
+		const tab = workspace.openDocument({
+			id: 'cut-doc',
+			name: 'Cut',
+			width: 3,
+			height: 2,
+			pixels: source.slice()
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 0, 2, 1));
+		notifier.reset();
+
+		workspace.cutSelection();
+
+		expect(workspace.shared.selectionClipboard).toEqual({
+			pixels: rgba([2, 0, 0, 255, 3, 0, 0, 255, 5, 0, 0, 255, 6, 0, 0, 255]),
+			width: 2,
+			height: 2
+		});
+		expect(tab.document.layer_pixels_at(0)).toEqual(
+			rgba([
+				1, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0,
+				4, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0
+			])
+		);
+		expect(notifier.dirtyCalls).toEqual(['cut-doc', 'cut-doc']);
+	});
+
+	it('undo after cutSelection restores the cleared pixels without reverting the clipboard', () => {
+		const source = rgba([
+			1, 0, 0, 255, 2, 0, 0, 255,
+			3, 0, 0, 255, 4, 0, 0, 255
+		]);
+		const previousClipboard = {
+			pixels: rgba([9, 0, 0, 255]),
+			width: 1,
+			height: 1
+		};
+		const { workspace } = makeWorkspace();
+		const tab = workspace.openDocument({
+			id: 'cut-undo-doc',
+			name: 'Cut Undo',
+			width: 2,
+			height: 2,
+			pixels: source.slice()
+		});
+		workspace.setSelectionClipboard(previousClipboard);
+		tab.document.set_marquee(marqueeRegionFromDrag(0, 0, 1, 0));
+
+		workspace.cutSelection();
+		tab.undo();
+
+		expect(tab.document.layer_pixels_at(0)).toEqual(source);
+		expect(workspace.shared.selectionClipboard).toEqual({
+			pixels: rgba([1, 0, 0, 255, 2, 0, 0, 255]),
+			width: 2,
+			height: 1
+		});
+	});
+
+	it('cutSelection commits a Floating Selection before copying from the moved Marquee', () => {
+		const source = new Uint8Array(3 * 3 * 4);
+		source.set(rgba([255, 0, 0, 255]), (1 * 3 + 1) * 4);
+		source.set(rgba([0, 255, 0, 255]), (1 * 3 + 2) * 4);
+		const { workspace, notifier } = makeWorkspace();
+		const tab = workspace.openDocument({
+			id: 'cut-floating-doc',
+			name: 'Cut Floating',
+			width: 3,
+			height: 3,
+			pixels: source
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		tab.nudgeMarquee(-2, 0);
+		notifier.reset();
+
+		workspace.cutSelection();
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(tab.document.marquee()).toMatchObject({ x: -1, y: 1, width: 2, height: 1 });
+		expect(workspace.shared.selectionClipboard).toEqual({
+			pixels: rgba([0, 0, 0, 0, 0, 255, 0, 255]),
+			width: 2,
+			height: 1
+		});
+		expect(pixelAt(tab.document, 0, 1)).toEqual([0, 0, 0, 0]);
+		expect(pixelAt(tab.document, 1, 1)).toEqual([0, 0, 0, 0]);
+		expect(pixelAt(tab.document, 2, 1)).toEqual([0, 0, 0, 0]);
+		expect(notifier.dirtyCalls).toEqual(['cut-floating-doc', 'cut-floating-doc', 'cut-floating-doc']);
+	});
+
+	it('cutSelection clears the clipboard without a second history entry when the moved Marquee is off-canvas', () => {
+		const source = new Uint8Array(3 * 3 * 4);
+		source.set(rgba([255, 0, 0, 255]), (1 * 3 + 1) * 4);
+		source.set(rgba([0, 255, 0, 255]), (1 * 3 + 2) * 4);
+		const existing = {
+			pixels: rgba([9, 0, 0, 255]),
+			width: 1,
+			height: 1
+		};
+		const { workspace, notifier } = makeWorkspace();
+		const tab = workspace.openDocument({
+			id: 'cut-floating-empty-doc',
+			name: 'Cut Floating Empty',
+			width: 3,
+			height: 3,
+			pixels: source
+		});
+		workspace.setSelectionClipboard(existing);
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		tab.nudgeMarquee(-3, 0);
+		notifier.reset();
+
+		workspace.cutSelection();
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(tab.document.marquee()).toMatchObject({ x: -2, y: 1, width: 2, height: 1 });
+		expect(workspace.shared.selectionClipboard).toBeNull();
+		expect(pixelAt(tab.document, 0, 1)).toEqual([0, 0, 0, 0]);
+		expect(pixelAt(tab.document, 1, 1)).toEqual([0, 0, 0, 0]);
+		expect(pixelAt(tab.document, 2, 1)).toEqual([0, 0, 0, 0]);
+		expect(notifier.dirtyCalls).toEqual(['cut-floating-empty-doc', 'cut-floating-empty-doc']);
+
+		tab.undo();
+
+		expect(pixelAt(tab.document, 1, 1)).toEqual([255, 0, 0, 255]);
+		expect(pixelAt(tab.document, 2, 1)).toEqual([0, 255, 0, 255]);
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+	});
+
+	it('cutSelection is a silent no-op when no Marquee exists', () => {
+		const { workspace, notifier } = makeWorkspace();
+		const existing = {
+			pixels: rgba([9, 0, 0, 255]),
+			width: 1,
+			height: 1
+		};
+		workspace.setSelectionClipboard(existing);
+		notifier.reset();
+
+		workspace.cutSelection();
+
+		expect(workspace.shared.selectionClipboard).toEqual(existing);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('cutSelection is a silent no-op on a Reference-active document', () => {
+		const { workspace, notifier } = makeWorkspace();
+		const referenceId = crypto.randomUUID();
+		const pixelId = crypto.randomUUID();
+		const existing = {
+			pixels: rgba([9, 0, 0, 255]),
+			width: 1,
+			height: 1
+		};
+		workspace.setSelectionClipboard(existing);
+		workspace.openSnapshot({
+			id: 'cut-reference-active-doc',
+			name: 'Cut Reference Active',
+			width: 2,
+			height: 2,
+			marquee: null,
+			layers: [
+				{
+					kind: 'reference',
+					id: referenceId,
+					name: 'Reference',
+					visible: true,
+					opacity: 1,
+					sourceBlob: new Blob([new ArrayBuffer(4)], { type: 'image/png' }),
+					sourceRgba: rgba([1, 2, 3, 4]),
+					naturalWidth: 1,
+					naturalHeight: 1,
+					placement: { x: 0, y: 0, scale: 1 }
+				},
+				{
+					kind: 'pixel',
+					id: pixelId,
+					name: 'Paint',
+					pixels: rgba([
+						1, 0, 0, 255, 2, 0, 0, 255,
+						3, 0, 0, 255, 4, 0, 0, 255
+					]),
+					visible: true,
+					opacity: 1
+				}
+			],
+			activeLayerId: referenceId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false,
+			viewport: {
+				pixelSize: 32,
+				zoom: 1,
+				panX: 0,
+				panY: 0,
+				showGrid: true,
+				gridColor: '#cccccc'
+			}
+		});
+		workspace.activeTab.document.set_marquee(marqueeRegionFromDrag(0, 0, 1, 1));
+		notifier.reset();
+
+		workspace.cutSelection();
+
+		expect(workspace.shared.selectionClipboard).toEqual(existing);
+		expect(workspace.activeTab.document.layer_pixels_at(1)).toEqual(
+			rgba([
+				1, 0, 0, 255, 2, 0, 0, 255,
+				3, 0, 0, 255, 4, 0, 0, 255
+			])
+		);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
 	it('setActiveTool commits an active Floating Selection nudge as one undoable document change', () => {
 		const source = new Uint8Array(5 * 5 * 4);
 		source.set(rgba([255, 0, 0, 255]), (1 * 5 + 1) * 4);

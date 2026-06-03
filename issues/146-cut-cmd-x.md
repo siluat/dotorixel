@@ -1,6 +1,6 @@
 ---
 title: "Cut (Cmd+X) — Copy followed by Delete"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -45,3 +45,24 @@ Tests:
 ## Blocked by
 
 - [143 — Selection Clipboard + Copy (Cmd+C) + workspace persistence](143-selection-clipboard-and-copy.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/keyboard-input.svelte.ts` | Routed Cmd/Ctrl+X to a `cutSelection` keyboard host callback without colliding with plain `X` color swap. |
+| `src/lib/canvas/editor-session/create-editor-controller.ts` | Wired the keyboard host callback into the active workspace. |
+| `src/lib/canvas/editor-session/workspace.svelte.ts` | Added workspace-level Cut orchestration: commit Floating first, update the Selection Clipboard, then clear selected pixels when the Marquee overlaps the canvas. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Added a Cut-specific selection snapshot that distinguishes no-op, off-canvas empty selection, and clearable pixel regions. |
+| `src/lib/canvas/keyboard-input.svelte.test.ts` | Covered Cmd/Ctrl+X dispatch and plain `X` color-swap separation. |
+| `src/lib/canvas/editor-session/editor-controller.svelte.test.ts` | Covered keyboard-to-workspace Cut wiring. |
+| `src/lib/canvas/editor-session/workspace.svelte.test.ts` | Covered clipboard contents, undo behavior, Floating commit ordering, no-Marquee no-op, Reference-active no-op, and off-canvas empty Cut. |
+
+### Key Decisions
+
+- Kept Copy's existing silent no-op contract unchanged and added Cut-specific snapshot logic, because Cut must distinguish an empty/off-canvas selection from no selection.
+- Treated a fully off-canvas moved Marquee as an empty internal clipboard update with no second document-history entry.
+
+### Notes
+
+- Undo restores document pixels only; Selection Clipboard mutations remain workspace state and are not reverted by document undo.

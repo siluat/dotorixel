@@ -4,7 +4,6 @@
 
 - Touch modifier alternatives (Shift-constrain, Alt-eyedropper UI for touchscreen) — **blocks** Shift-related Selection sub-issues
 - Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
-  - [147 — Clear Canvas / Delete Layer × Floating commits-first](../issues/147-clear-canvas-delete-layer-floating-commit.md)
   - [148 — Paste (Cmd+V)](../issues/148-paste-cmd-v.md)
   - [149 — Action Bar Idle implementation](../issues/149-selection-action-bar-idle-implementation.md)
   - [150 — Action Bar Floating state](../issues/150-selection-action-bar-floating-state.md)

@@ -4,16 +4,15 @@
 
 Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
 
-15 of 21 sub-issues are done; Cut now copies selected pixels into the workspace clipboard and clears the Marquee region with undo coverage. Clear/delete Floating commit, paste, action bar, and Shift follow-ups remain.
+16 of 21 sub-issues are done; Clear Canvas/Delete Layer now have regression coverage for Floating Selection commit-first behavior, Marquee preservation, and two-step undo. Paste, action bar, and Shift follow-ups remain.
 
 ## Last Completed
 
-[146 — Cut (Cmd+X) — Copy followed by Delete](../issues/146-cut-cmd-x.md): Cmd/Ctrl+X now cuts the active Marquee, commits Floating Selection first when needed, and treats fully off-canvas moved selections as an empty clipboard update.
+[147 — Clear Canvas / Delete Layer × Floating commits-first](../issues/147-clear-canvas-delete-layer-floating-commit.md): Clear Canvas/Delete Layer now preserve an active Floating Selection by committing it before the destructive action, with Marquee persistence and two-step undo covered.
 
 ## Next Up
 
 - Touch modifier alternatives (unblocks Selection sub-issues 151 + 152)
-- [147 — Clear Canvas / Delete Layer × Floating commits-first](../issues/147-clear-canvas-delete-layer-floating-commit.md)
 - [148 — Paste (Cmd+V)](../issues/148-paste-cmd-v.md)
 - [149 — Action Bar Idle implementation](../issues/149-selection-action-bar-idle-implementation.md)
 - [150 — Action Bar Floating state](../issues/150-selection-action-bar-floating-state.md)

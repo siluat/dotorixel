@@ -1,6 +1,6 @@
 ---
 title: "Clear Canvas / Delete Layer — commit Floating Selection first"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -46,3 +46,13 @@ Tests:
 ## Blocked by
 
 - [142 — Selection drag-to-move](142-selection-drag-to-move.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/editor-session/tab-state.svelte.test.ts` | Strengthened Clear Canvas and Delete Layer regression coverage for Floating Selection commit-first behavior, Marquee preservation, and two-step undo. |
+
+### Key Decisions
+
+- No production code change was needed because the existing destructive-action paths already committed idle Floating Selections first. The slice was completed by locking the acceptance criteria with more explicit regression coverage.

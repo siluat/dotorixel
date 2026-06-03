@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 142 | 108 | 34 | 141 | 76% | 43% |
-| cubic-dev-ai[bot] | 95 | 79 | 16 | 166 | 83% | 32% |
-| coderabbitai[bot] | 198 | 141 | 57 | 101 | 71% | 58% |
+| greptile-apps[bot] | 142 | 108 | 34 | 142 | 76% | 43% |
+| cubic-dev-ai[bot] | 96 | 80 | 16 | 166 | 83% | 33% |
+| coderabbitai[bot] | 198 | 141 | 57 | 102 | 71% | 58% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #251 | cubic-dev-ai[bot] | Accept | Clear DefineMarquee stroke state after commit to prevent stale modifier preview |
+| #251 | coderabbitai[bot] | Miss | Did not flag stale DefineMarquee modifier preview after stroke end |
+| #251 | greptile-apps[bot] | Miss | Did not flag stale DefineMarquee modifier preview after stroke end |
 | #249 | greptile-apps[bot] | Accept | Use group role for Tab-navigated selection action buttons |
 | #249 | greptile-apps[bot] | Accept | Hide action bar when projected Marquee is smaller than one screen pixel |
 | #249 | coderabbitai[bot] | Accept | Clarify platform status pending scope as Floating-state controls |

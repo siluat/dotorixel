@@ -99,6 +99,16 @@ export const selectionTool = customTool({
 			return preview(region);
 		}
 
+		function resetStrokeState() {
+			initialMarquee = undefined;
+			anchor = null;
+			lastCurrentCoords = null;
+			draftMarquee = null;
+			hasUserDragged = false;
+			mode = 'pending';
+			hasFloatingSelectionStarted = false;
+		}
+
 		return {
 			start() {
 				initialMarquee = host.document.marquee();
@@ -137,37 +147,43 @@ export const selectionTool = customTool({
 				return previewMarqueeFromDrag(lastCurrentCoords);
 			},
 			end() {
-				if (isReferenceLayerActive(host.document)) return NO_EFFECTS;
-				if (!anchor) return NO_EFFECTS;
+				if (isReferenceLayerActive(host.document)) {
+					resetStrokeState();
+					return NO_EFFECTS;
+				}
+				if (!anchor) {
+					resetStrokeState();
+					return NO_EFFECTS;
+				}
 				if (mode === 'liftAndDrag') {
+					resetStrokeState();
 					return NO_EFFECTS;
 				}
 				if (!hasUserDragged) {
-					if (initialMarquee && !initialMarquee.contains(anchor.x, anchor.y)) {
+					const shouldClearMarquee = initialMarquee && !initialMarquee.contains(anchor.x, anchor.y);
+					resetStrokeState();
+					if (shouldClearMarquee) {
 						return [{ type: 'setMarquee', region: null }];
 					}
 					return NO_EFFECTS;
 				}
+				const committedMarquee = draftMarquee;
 				host.document.set_marquee(initialMarquee ? copyMarqueeRegion(initialMarquee) : null);
-				if (draftMarquee === null) return MARQUEE_PREVIEW_CHANGED;
-				return [{ type: 'setMarquee', region: draftMarquee }];
+				resetStrokeState();
+				if (committedMarquee === null) return MARQUEE_PREVIEW_CHANGED;
+				return [{ type: 'setMarquee', region: committedMarquee }];
 			},
 			cancel() {
-				if (!hasUserDragged) return NO_EFFECTS;
+				if (!hasUserDragged) {
+					resetStrokeState();
+					return NO_EFFECTS;
+				}
 				if (mode === 'liftAndDrag') {
-					anchor = null;
-					lastCurrentCoords = null;
-					hasUserDragged = false;
-					mode = 'pending';
-					hasFloatingSelectionStarted = false;
+					resetStrokeState();
 					return [{ type: 'cancelFloatingSelection' }];
 				}
 				host.document.set_marquee(initialMarquee ? copyMarqueeRegion(initialMarquee) : null);
-				anchor = null;
-				lastCurrentCoords = null;
-				draftMarquee = null;
-				hasUserDragged = false;
-				mode = 'pending';
+				resetStrokeState();
 				return MARQUEE_PREVIEW_CHANGED;
 			}
 		};

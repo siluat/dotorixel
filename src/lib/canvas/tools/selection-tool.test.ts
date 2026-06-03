@@ -198,6 +198,34 @@ describe('selectionTool', () => {
 		expect(ctx.currentMarquee).toMatchObject({ x: 1, y: 1, width: 5, height: 5 });
 	});
 
+	it('does not refresh a completed DefineMarquee preview after physical Shift changes', () => {
+		let shiftHeld = false;
+		const ctx = createHost({ isShiftHeld: () => shiftHeld });
+		const session = selectionTool.open(ctx.host, strokeSpec);
+
+		expect(session.start()).toEqual([]);
+		expect(session.draw({ x: 1, y: 1 }, null)).toEqual([]);
+		expect(session.draw({ x: 5, y: 3 }, { x: 1, y: 1 })).toEqual([
+			{ type: 'marqueePreviewChanged' }
+		]);
+		expect(ctx.currentMarquee).toMatchObject({ x: 1, y: 1, width: 5, height: 3 });
+
+		expect(session.end()).toEqual([
+			{
+				type: 'setMarquee',
+				region: expect.objectContaining({ x: 1, y: 1, width: 5, height: 3 })
+			}
+		]);
+		expect(ctx.currentMarquee).toBeUndefined();
+		ctx.setMarquee.mockClear();
+
+		shiftHeld = true;
+
+		expect(session.modifierChanged()).toEqual([]);
+		expect(ctx.setMarquee).not.toHaveBeenCalled();
+		expect(ctx.currentMarquee).toBeUndefined();
+	});
+
 	it('silently no-ops while dragging with a Reference Layer active', () => {
 		const initial = region(1, 1, 2, 2);
 		const ctx = createHost({ activeLayerKind: 'reference' });

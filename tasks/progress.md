@@ -4,15 +4,14 @@
 
 Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
 
-19 of 21 sub-issues are done; Floating Selection now has explicit touch controls. The remaining Selection sub-issues are physical-keyboard Shift follow-ups. Touch modifier parity has moved to the project-wide Touch modifier alternatives task.
+20 of 21 sub-issues are done. Physical-keyboard Shift now constrains DefineMarquee to a square; the remaining Selection sub-issue is Floating Selection axis lock.
 
 ## Last Completed
 
-Planning cleanup: Selection Shift sub-issues now cover physical keyboard behavior only; touch Shift/Alt parity is tracked by the project-wide Touch modifier alternatives task.
+[151 — Shift = square constraint during DefineMarquee](../issues/151-shift-square-define.md): Physical-keyboard Shift constrains Marquee definition to a square, including canvas-edge and outside-in drags. Touch modifier parity remains in the project-wide Touch modifier alternatives task.
 
 ## Next Up
 
-- Selection sub-issue 151 — Shift = square define
 - Selection sub-issue 152 — Shift = axis lock during Floating drag
 - Touch modifier alternatives (touch Shift/Alt modifier parity)
 - Copy/paste

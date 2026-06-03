@@ -3,7 +3,12 @@ import type { Document, MarqueeRegion } from '../canvas-model';
 import type { SessionHost, StrokeSpec } from '../tool-authoring';
 import { selectionTool } from './selection-tool';
 
-function createHost(options: { readonly activeLayerKind?: 'pixel' | 'reference' } = {}): {
+function createHost(
+	options: {
+		readonly activeLayerKind?: 'pixel' | 'reference';
+		readonly isShiftHeld?: () => boolean;
+	} = {}
+): {
 	readonly host: SessionHost;
 	readonly setMarquee: ReturnType<typeof vi.fn>;
 	currentMarquee: MarqueeRegion | undefined;
@@ -38,7 +43,7 @@ function createHost(options: { readonly activeLayerKind?: 'pixel' | 'reference' 
 			backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
 			baseOps: {} as SessionHost['baseOps'],
 			sampling: {} as SessionHost['sampling'],
-			isShiftHeld: () => false,
+			isShiftHeld: options.isShiftHeld ?? (() => false),
 			pixelPerfect: false
 		}
 	};
@@ -92,6 +97,133 @@ describe('selectionTool', () => {
 				region: expect.objectContaining({ x: 0, y: 1, width: 4, height: 4 })
 			}
 		]);
+	});
+
+	it('constrains DefineMarquee to a square while physical Shift is held', () => {
+		const ctx = createHost({ isShiftHeld: () => true });
+		const session = selectionTool.open(ctx.host, strokeSpec);
+
+		expect(session.start()).toEqual([]);
+		expect(session.draw({ x: 1, y: 1 }, null)).toEqual([]);
+		expect(session.draw({ x: 5, y: 3 }, { x: 1, y: 1 })).toEqual([
+			{ type: 'marqueePreviewChanged' }
+		]);
+		expect(ctx.currentMarquee).toMatchObject({ x: 1, y: 1, width: 5, height: 5 });
+
+		const effects = session.end();
+
+		expect(effects).toEqual([
+			{
+				type: 'setMarquee',
+				region: expect.objectContaining({ x: 1, y: 1, width: 5, height: 5 })
+			}
+		]);
+	});
+
+	it('keeps the Shift-constrained DefineMarquee square when the pointer drags beyond the canvas', () => {
+		const ctx = createHost({ isShiftHeld: () => true });
+		const session = selectionTool.open(ctx.host, strokeSpec);
+
+		expect(session.start()).toEqual([]);
+		expect(session.draw({ x: 2, y: 6 }, null)).toEqual([]);
+		expect(session.draw({ x: 9, y: 7 }, { x: 2, y: 6 })).toEqual([
+			{ type: 'marqueePreviewChanged' }
+		]);
+		expect(ctx.currentMarquee).toMatchObject({ x: 2, y: 6, width: 2, height: 2 });
+
+		const effects = session.end();
+
+		expect(effects).toEqual([
+			{
+				type: 'setMarquee',
+				region: expect.objectContaining({ x: 2, y: 6, width: 2, height: 2 })
+			}
+		]);
+	});
+
+	it('keeps the Shift-constrained DefineMarquee square when dragging from outside into the canvas', () => {
+		const ctx = createHost({ isShiftHeld: () => true });
+		const session = selectionTool.open(ctx.host, strokeSpec);
+
+		expect(session.start()).toEqual([]);
+		expect(session.draw({ x: -2, y: 1 }, null)).toEqual([]);
+		expect(session.draw({ x: 3, y: 4 }, { x: -2, y: 1 })).toEqual([
+			{ type: 'marqueePreviewChanged' }
+		]);
+		expect(ctx.currentMarquee).toMatchObject({ x: 0, y: 1, width: 4, height: 4 });
+
+		const effects = session.end();
+
+		expect(effects).toEqual([
+			{
+				type: 'setMarquee',
+				region: expect.objectContaining({ x: 0, y: 1, width: 4, height: 4 })
+			}
+		]);
+	});
+
+	it('returns DefineMarquee preview to a free-form rectangle when physical Shift is released mid-drag', () => {
+		let shiftHeld = true;
+		const ctx = createHost({ isShiftHeld: () => shiftHeld });
+		const session = selectionTool.open(ctx.host, strokeSpec);
+
+		expect(session.start()).toEqual([]);
+		expect(session.draw({ x: 1, y: 1 }, null)).toEqual([]);
+		expect(session.draw({ x: 5, y: 3 }, { x: 1, y: 1 })).toEqual([
+			{ type: 'marqueePreviewChanged' }
+		]);
+		expect(ctx.currentMarquee).toMatchObject({ x: 1, y: 1, width: 5, height: 5 });
+
+		shiftHeld = false;
+
+		expect(session.modifierChanged()).toEqual([{ type: 'marqueePreviewChanged' }]);
+		expect(ctx.currentMarquee).toMatchObject({ x: 1, y: 1, width: 5, height: 3 });
+	});
+
+	it('re-applies the square DefineMarquee constraint when physical Shift is pressed mid-drag', () => {
+		let shiftHeld = false;
+		const ctx = createHost({ isShiftHeld: () => shiftHeld });
+		const session = selectionTool.open(ctx.host, strokeSpec);
+
+		expect(session.start()).toEqual([]);
+		expect(session.draw({ x: 1, y: 1 }, null)).toEqual([]);
+		expect(session.draw({ x: 5, y: 3 }, { x: 1, y: 1 })).toEqual([
+			{ type: 'marqueePreviewChanged' }
+		]);
+		expect(ctx.currentMarquee).toMatchObject({ x: 1, y: 1, width: 5, height: 3 });
+
+		shiftHeld = true;
+
+		expect(session.modifierChanged()).toEqual([{ type: 'marqueePreviewChanged' }]);
+		expect(ctx.currentMarquee).toMatchObject({ x: 1, y: 1, width: 5, height: 5 });
+	});
+
+	it('does not refresh a completed DefineMarquee preview after physical Shift changes', () => {
+		let shiftHeld = false;
+		const ctx = createHost({ isShiftHeld: () => shiftHeld });
+		const session = selectionTool.open(ctx.host, strokeSpec);
+
+		expect(session.start()).toEqual([]);
+		expect(session.draw({ x: 1, y: 1 }, null)).toEqual([]);
+		expect(session.draw({ x: 5, y: 3 }, { x: 1, y: 1 })).toEqual([
+			{ type: 'marqueePreviewChanged' }
+		]);
+		expect(ctx.currentMarquee).toMatchObject({ x: 1, y: 1, width: 5, height: 3 });
+
+		expect(session.end()).toEqual([
+			{
+				type: 'setMarquee',
+				region: expect.objectContaining({ x: 1, y: 1, width: 5, height: 3 })
+			}
+		]);
+		expect(ctx.currentMarquee).toBeUndefined();
+		ctx.setMarquee.mockClear();
+
+		shiftHeld = true;
+
+		expect(session.modifierChanged()).toEqual([]);
+		expect(ctx.setMarquee).not.toHaveBeenCalled();
+		expect(ctx.currentMarquee).toBeUndefined();
 	});
 
 	it('silently no-ops while dragging with a Reference Layer active', () => {

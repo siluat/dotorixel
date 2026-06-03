@@ -1,5 +1,5 @@
 import { shapeTool } from '../tool-authoring';
-import { constrainLine, constrainSquare } from '../tool-registry';
+import { constrainLine, constrainSquare } from '../tool-constraints';
 
 export const lineTool = shapeTool({
 	id: 'line',

@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 151 | [Shift = square constraint during DefineMarquee](../issues/151-shift-square-define.md) | 2026-06-03 |
 | — | Planning cleanup — split Selection keyboard Shift scope from project-wide Touch modifier alternatives | 2026-06-03 |
 | 150 | [Selection Action Bar — Floating Selection state (Done / Cancel / Duplicate)](../issues/150-selection-action-bar-floating-state.md) | 2026-06-03 |
 | 149 | [Selection Action Bar — Idle state implementation](../issues/149-selection-action-bar-idle-implementation.md) | 2026-06-03 |

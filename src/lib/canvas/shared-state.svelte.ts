@@ -1,5 +1,6 @@
 import type { ToolType } from './tool-registry';
 import type { Color } from './color';
+import type { SelectionClipboardData } from './canvas-model';
 
 export class SharedState {
 	activeTool = $state<ToolType>('pencil');
@@ -7,4 +8,5 @@ export class SharedState {
 	backgroundColor = $state<Color>({ r: 255, g: 255, b: 255, a: 255 });
 	recentColors = $state<string[]>([]);
 	pixelPerfect = $state<boolean>(true);
+	selectionClipboard = $state<SelectionClipboardData | null>(null);
 }

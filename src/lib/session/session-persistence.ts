@@ -13,7 +13,9 @@ import type {
 	LayerRecord,
 	MarqueeRecord,
 	ReferenceImageRecord,
-	SavedDocumentSummary
+	SavedDocumentSummary,
+	SelectionClipboardRecord,
+	SharedStateRecord
 } from './session-storage-types';
 
 const DEFAULT_VIEWPORT = {
@@ -55,6 +57,29 @@ function serializeLayer(layer: LayerSnapshot): LayerRecord {
 
 function copyMarquee(marquee: MarqueeRecord | null | undefined): MarqueeRecord | null {
 	return marquee ? { ...marquee } : null;
+}
+
+function copySelectionClipboard(
+	clipboard: SelectionClipboardRecord | null | undefined
+): SelectionClipboardRecord | null {
+	return clipboard
+		? {
+				pixels: clipboard.pixels.slice(),
+				width: clipboard.width,
+				height: clipboard.height
+			}
+		: null;
+}
+
+function copySharedState(sharedState: SharedStateRecord): SharedStateRecord {
+	return {
+		activeTool: sharedState.activeTool,
+		foregroundColor: { ...sharedState.foregroundColor },
+		backgroundColor: { ...sharedState.backgroundColor },
+		recentColors: [...sharedState.recentColors],
+		pixelPerfect: sharedState.pixelPerfect,
+		selectionClipboard: copySelectionClipboard(sharedState.selectionClipboard)
+	};
 }
 
 async function hydrateLayer(layer: LayerRecord): Promise<LayerSnapshot> {
@@ -129,7 +154,8 @@ export class SessionPersistence {
 				foregroundColor: { ...snapshot.sharedState.foregroundColor },
 				backgroundColor: { ...snapshot.sharedState.backgroundColor },
 				recentColors: [...snapshot.sharedState.recentColors],
-				pixelPerfect: snapshot.sharedState.pixelPerfect
+				pixelPerfect: snapshot.sharedState.pixelPerfect,
+				selectionClipboard: copySelectionClipboard(snapshot.sharedState.selectionClipboard)
 			},
 			viewports,
 			references,
@@ -229,7 +255,7 @@ export class SessionPersistence {
 			return {
 				tabs,
 				activeTabIndex: Math.min(ws.activeTabIndex, tabs.length - 1),
-				sharedState: ws.sharedState,
+				sharedState: copySharedState(ws.sharedState),
 				references,
 				displayStates
 			};

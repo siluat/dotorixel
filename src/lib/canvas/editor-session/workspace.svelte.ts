@@ -1,5 +1,5 @@
 import type { Color } from '../color';
-import type { Document, ResizeAnchor } from '../canvas-model';
+import type { Document, ResizeAnchor, SelectionClipboardData } from '../canvas-model';
 import type { ViewportData } from '../viewport';
 import type { ToolType } from '../tool-registry';
 import { isValidToolType } from '../tool-registry';
@@ -55,6 +55,18 @@ function referenceLayerBlobsFromSnapshot(tabSnap: TabSnapshot): Map<string, Blob
 			.filter((layer): layer is ReferenceLayerSnapshot => layer.kind === 'reference')
 			.map((layer) => [layer.id, layer.sourceBlob])
 	);
+}
+
+function copySelectionClipboard(
+	clipboard: SelectionClipboardData | null | undefined
+): SelectionClipboardData | null {
+	return clipboard
+		? {
+				pixels: clipboard.pixels.slice(),
+				width: clipboard.width,
+				height: clipboard.height
+			}
+		: null;
 }
 
 /**
@@ -219,6 +231,25 @@ export class Workspace {
 		this.#notifier.markDirty(this.activeTab.documentId);
 	}
 
+	setSelectionClipboard(value: SelectionClipboardData | null): void {
+		this.shared.selectionClipboard = copySelectionClipboard(value);
+		this.#notifier.markDirty(this.activeTab.documentId);
+	}
+
+	copySelection(): void {
+		const marquee = this.activeTab.document.marquee();
+		if (!marquee) return;
+
+		const pixels = this.activeTab.document.lift_marquee_pixels();
+		if (pixels.length === 0) return;
+
+		this.setSelectionClipboard({
+			pixels,
+			width: marquee.width,
+			height: marquee.height
+		});
+	}
+
 	setActiveResizeAnchor(anchor: ResizeAnchor): void {
 		// Resize anchor is a transient per-tab UI parameter; not persistable.
 		this.activeTab.resizeAnchor = anchor;
@@ -233,7 +264,8 @@ export class Workspace {
 				foregroundColor: { ...this.shared.foregroundColor },
 				backgroundColor: { ...this.shared.backgroundColor },
 				recentColors: [...this.shared.recentColors],
-				pixelPerfect: this.shared.pixelPerfect
+				pixelPerfect: this.shared.pixelPerfect,
+				selectionClipboard: copySelectionClipboard(this.shared.selectionClipboard)
 			},
 			references: this.references.toSnapshot(),
 			displayStates: this.references.displayStatesSnapshot()
@@ -247,6 +279,9 @@ export class Workspace {
 		this.shared.backgroundColor = { ...snapshot.sharedState.backgroundColor };
 		this.shared.recentColors = [...snapshot.sharedState.recentColors];
 		this.shared.pixelPerfect = snapshot.sharedState.pixelPerfect ?? true;
+		this.shared.selectionClipboard = copySelectionClipboard(
+			snapshot.sharedState.selectionClipboard
+		);
 
 		for (const tabSnap of snapshot.tabs) {
 			const tab = this.createTab({

@@ -4,19 +4,20 @@
 
 Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
 
-11 of 21 sub-issues are done; drag-to-move now ships the first Floating Selection commit path. Clipboard, cancel, nudge, paste, and action bar work remain.
+12 of 21 sub-issues are done; Selection Clipboard now captures read-only Cmd/Ctrl+C Marquee snapshots and survives reload/tab switching. Cancel, nudge, cut/paste, action bar, and Shift follow-ups remain.
 
 ## Last Completed
 
-[142 — Selection drag-to-move — LiftAndDrag + commit + Undo restores Marquee position](../issues/142-selection-drag-to-move.md): Dragging inside a Marquee now moves selected pixels with live preview, layer-order awareness, one-step undo/redo, and snapshot-safe transient state. Escape cancel and clipboard flows remain follow-up work.
+[143 — Selection Clipboard + Copy (Cmd+C) + workspace persistence](../issues/143-selection-clipboard-and-copy.md): Cmd/Ctrl+C now copies the active Marquee into a workspace-shared clipboard without mutating pixels, and that clipboard persists across reload/tab switching. Paste remains follow-up work.
 
 ## Next Up
 
 - Touch modifier alternatives (unblocks Selection sub-issues 151 + 152)
-- [143 — Selection Clipboard + Copy + persistence](../issues/143-selection-clipboard-and-copy.md)
 - [144 — Escape cancels Floating Selection mid-drag](../issues/144-escape-cancels-floating-selection.md)
 - [145 — Arrow nudge + Shift 10× multiplier](../issues/145-arrow-nudge-and-shift-multiplier.md)
+- [146 — Cut (Cmd+X)](../issues/146-cut-cmd-x.md)
 - [147 — Clear Canvas / Delete Layer × Floating commits-first](../issues/147-clear-canvas-delete-layer-floating-commit.md)
+- [148 — Paste (Cmd+V)](../issues/148-paste-cmd-v.md)
 - [149 — Action Bar Idle implementation](../issues/149-selection-action-bar-idle-implementation.md)
 - [150 — Action Bar Floating state](../issues/150-selection-action-bar-floating-state.md)
 - Copy/paste

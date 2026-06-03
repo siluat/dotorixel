@@ -1,4 +1,5 @@
 import type { ViewportData } from './viewport';
+import type { SelectionClipboardData } from './canvas-model';
 import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 import type { DisplayState } from '$lib/reference-images/display-state-types';
 import type {
@@ -23,6 +24,11 @@ export interface SharedStateSnapshot {
 	 * should treat absence as "use the default (ON)".
 	 */
 	readonly pixelPerfect?: boolean;
+	/**
+	 * Undefined on snapshots produced before this field existed. Hydration
+	 * should treat absence as "empty clipboard".
+	 */
+	readonly selectionClipboard?: SelectionClipboardData | null;
 }
 
 /**

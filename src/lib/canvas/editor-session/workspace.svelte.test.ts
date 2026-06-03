@@ -17,6 +17,10 @@ function makeWorkspace(overrides: Omit<Partial<WorkspaceDeps>, 'notifier'> = {})
 	return { workspace, notifier };
 }
 
+function rgba(values: readonly number[]): Uint8Array {
+	return new Uint8Array(values);
+}
+
 describe('Workspace — initialization', () => {
 	it('starts with a single "Untitled 1" tab', () => {
 		const { workspace } = makeWorkspace();
@@ -165,6 +169,137 @@ describe('Workspace — shared state propagation', () => {
 
 		expect(workspace.tabs[0].shared.activeTool).toBe('eraser');
 		expect(workspace.tabs[1].shared.activeTool).toBe('eraser');
+	});
+
+	it('copySelection stores the active Marquee pixels in the shared Selection Clipboard', () => {
+		const source = rgba([
+			1, 0, 0, 255, 2, 0, 0, 255, 3, 0, 0, 255,
+			4, 0, 0, 255, 5, 0, 0, 255, 6, 0, 0, 255
+		]);
+		const { workspace, notifier } = makeWorkspace();
+		const tab = workspace.openDocument({
+			id: 'copy-doc',
+			name: 'Copy',
+			width: 3,
+			height: 2,
+			pixels: source.slice()
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 0, 2, 1));
+		notifier.reset();
+
+		workspace.copySelection();
+
+		expect(workspace.shared.selectionClipboard).toEqual({
+			pixels: rgba([2, 0, 0, 255, 3, 0, 0, 255, 5, 0, 0, 255, 6, 0, 0, 255]),
+			width: 2,
+			height: 2
+		});
+		expect(tab.document.layer_pixels_at(0)).toEqual(source);
+		expect(notifier.dirtyCalls).toEqual(['copy-doc']);
+	});
+
+	it('switching tabs preserves the shared Selection Clipboard', () => {
+		const source = rgba([1, 0, 0, 255, 2, 0, 0, 255]);
+		const { workspace } = makeWorkspace();
+		workspace.openDocument({
+			id: 'copy-source',
+			name: 'Copy Source',
+			width: 2,
+			height: 1,
+			pixels: source
+		});
+		workspace.activeTab.document.set_marquee(marqueeRegionFromDrag(0, 0, 1, 0));
+		workspace.copySelection();
+		workspace.addTab();
+
+		expect(workspace.shared.selectionClipboard).toEqual({
+			pixels: source,
+			width: 2,
+			height: 1
+		});
+
+		workspace.setActiveTab(1);
+
+		expect(workspace.shared.selectionClipboard).toEqual({
+			pixels: source,
+			width: 2,
+			height: 1
+		});
+	});
+
+	it('copySelection is a silent no-op when no Marquee exists', () => {
+		const { workspace, notifier } = makeWorkspace();
+		const existing = {
+			pixels: rgba([9, 0, 0, 255]),
+			width: 1,
+			height: 1
+		};
+		workspace.setSelectionClipboard(existing);
+		notifier.reset();
+
+		workspace.copySelection();
+
+		expect(workspace.shared.selectionClipboard).toEqual(existing);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('copySelection is a silent no-op on a Reference-active document', () => {
+		const { workspace, notifier } = makeWorkspace();
+		const referenceId = crypto.randomUUID();
+		const pixelId = crypto.randomUUID();
+		const existing = {
+			pixels: rgba([9, 0, 0, 255]),
+			width: 1,
+			height: 1
+		};
+		workspace.setSelectionClipboard(existing);
+		workspace.openSnapshot({
+			id: 'reference-active-doc',
+			name: 'Reference Active',
+			width: 2,
+			height: 2,
+			marquee: null,
+			layers: [
+				{
+					kind: 'reference',
+					id: referenceId,
+					name: 'Reference',
+					visible: true,
+					opacity: 1,
+					sourceBlob: new Blob([new ArrayBuffer(4)], { type: 'image/png' }),
+					sourceRgba: rgba([1, 2, 3, 4]),
+					naturalWidth: 1,
+					naturalHeight: 1,
+					placement: { x: 0, y: 0, scale: 1 }
+				},
+				{
+					kind: 'pixel',
+					id: pixelId,
+					name: 'Paint',
+					pixels: new Uint8Array(2 * 2 * 4),
+					visible: true,
+					opacity: 1
+				}
+			],
+			activeLayerId: referenceId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false,
+			viewport: {
+				pixelSize: 32,
+				zoom: 1,
+				panX: 0,
+				panY: 0,
+				showGrid: true,
+				gridColor: '#cccccc'
+			}
+		});
+		workspace.activeTab.document.set_marquee(marqueeRegionFromDrag(0, 0, 1, 1));
+		notifier.reset();
+
+		workspace.copySelection();
+
+		expect(workspace.shared.selectionClipboard).toEqual(existing);
+		expect(notifier.dirtyCalls).toEqual([]);
 	});
 });
 
@@ -339,6 +474,40 @@ describe('Workspace — hydration', () => {
 		const { workspace } = makeWorkspace({ restored });
 
 		expect(workspace.shared.pixelPerfect).toBe(false);
+	});
+
+	it('restores the shared Selection Clipboard from a snapshot', () => {
+		const clipboard = {
+			pixels: new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]),
+			width: 2,
+			height: 1
+		};
+		const restored: WorkspaceSnapshot = {
+			tabs: [
+				makeTabSnap({
+					id: 'doc-1',
+					name: 'Tab 1',
+					pixels: new Uint8Array([0, 0, 0, 255])
+				})
+			],
+			activeTabIndex: 0,
+			sharedState: {
+				activeTool: 'pencil',
+				foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
+				backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+				recentColors: [],
+				selectionClipboard: clipboard
+			}
+		};
+
+		const { workspace } = makeWorkspace({ restored });
+		clipboard.pixels[0] = 0;
+
+		expect(workspace.shared.selectionClipboard).toEqual({
+			pixels: new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]),
+			width: 2,
+			height: 1
+		});
 	});
 
 	it('hydrates a restored Marquee into the active tab Document', () => {
@@ -579,6 +748,24 @@ describe('Workspace — toSnapshot', () => {
 		const snapshot = workspace.toSnapshot();
 
 		expect(snapshot.sharedState.pixelPerfect).toBe(false);
+	});
+
+	it('captures the shared Selection Clipboard as plain snapshot data', () => {
+		const { workspace } = makeWorkspace({ gridColor: '#ECE5D9' });
+		workspace.setSelectionClipboard({
+			pixels: new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]),
+			width: 2,
+			height: 1
+		});
+
+		const snapshot = workspace.toSnapshot();
+		workspace.shared.selectionClipboard!.pixels[0] = 0;
+
+		expect(snapshot.sharedState.selectionClipboard).toEqual({
+			pixels: new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]),
+			width: 2,
+			height: 1
+		});
 	});
 
 	it('captures the active tab Marquee as plain snapshot data', () => {

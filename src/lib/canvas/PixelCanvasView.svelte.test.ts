@@ -183,7 +183,7 @@ describe('PixelCanvasView', () => {
 			}
 		});
 
-		expect(screen.getByRole('toolbar', { name: 'Selection actions' })).toBeTruthy();
+		expect(screen.getByRole('group', { name: 'Selection actions' })).toBeTruthy();
 	});
 
 	it('does not mount the idle Selection Action Bar during a Floating Selection', () => {
@@ -198,7 +198,7 @@ describe('PixelCanvasView', () => {
 			}
 		});
 
-		expect(screen.queryByRole('toolbar', { name: 'Selection actions' })).toBeNull();
+		expect(screen.queryByRole('group', { name: 'Selection actions' })).toBeNull();
 	});
 
 	it('hides the Selection Action Bar during canvas pointer drag', async () => {

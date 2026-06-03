@@ -83,6 +83,7 @@
 		if (left >= right || top >= bottom) return null;
 
 		const scaledPixel = Math.round(viewport.pixelSize * viewport.zoom);
+		if (!Number.isFinite(scaledPixel) || scaledPixel < 1) return null;
 		return {
 			left: Math.round(viewport.panX) + left * scaledPixel,
 			top: Math.round(viewport.panY) + top * scaledPixel,
@@ -205,7 +206,7 @@
 		bind:this={actionBarEl}
 		class="selection-action-bar"
 		class:selection-action-bar--hidden={isDragging}
-		role="toolbar"
+		role="group"
 		aria-label={m.aria_selectionActions()}
 		data-testid="selection-action-bar"
 		style:left={`${position.left}px`}

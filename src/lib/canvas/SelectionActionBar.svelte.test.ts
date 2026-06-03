@@ -57,7 +57,7 @@ describe('SelectionActionBar', () => {
 			}
 		});
 
-		expect(screen.getByRole('toolbar', { name: 'Selection actions' })).toBeTruthy();
+		expect(screen.getByRole('group', { name: 'Selection actions' })).toBeTruthy();
 
 		await fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
 		await fireEvent.click(screen.getByRole('button', { name: 'Cut' }));
@@ -108,7 +108,22 @@ describe('SelectionActionBar', () => {
 			}
 		});
 
-		expect(screen.queryByRole('toolbar', { name: 'Selection actions' })).toBeNull();
+		expect(screen.queryByRole('group', { name: 'Selection actions' })).toBeNull();
+	});
+
+	it('does not render when the projected Marquee is smaller than one screen pixel', () => {
+		render(SelectionActionBar, {
+			props: {
+				marquee: region(),
+				canvasWidth: 12,
+				canvasHeight: 12,
+				viewport: { ...viewport, pixelSize: 1, zoom: 0.25 },
+				viewportSize: { width: 180, height: 180 },
+				canPaste: true
+			}
+		});
+
+		expect(screen.queryByRole('group', { name: 'Selection actions' })).toBeNull();
 	});
 
 	it('positions above the Marquee when the viewport has room', () => {

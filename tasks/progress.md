@@ -4,7 +4,7 @@
 
 Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
 
-18 of 21 sub-issues are done; Idle Marquee now has touch-accessible Copy/Cut/Paste/Delete/Deselect actions. Floating Action Bar and Shift follow-ups remain.
+18 of 21 sub-issues are done; Idle Marquee now has touch-accessible Copy/Cut/Paste/Delete/Deselect actions. Floating Selection controls and Shift follow-ups remain.
 
 ## Last Completed
 

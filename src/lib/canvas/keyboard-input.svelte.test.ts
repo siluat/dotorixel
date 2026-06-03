@@ -12,7 +12,7 @@ function createHost(overrides?: Partial<KeyboardInputHost>): KeyboardInputHost {
 		redo: vi.fn(),
 		toggleGrid: vi.fn(),
 		swapColors: vi.fn(),
-		clearMarquee: vi.fn(),
+		clearMarqueeOrFloating: vi.fn(),
 		clearMarqueePixels: vi.fn(),
 		copySelection: vi.fn(),
 		notifyModifierChange: vi.fn(),
@@ -308,7 +308,7 @@ describe('tool shortcuts', () => {
 // ── Selection dismissal ───────────────────────────────────────────
 
 describe('selection dismissal', () => {
-	it('clears the active Marquee on Escape while idle', () => {
+	it('clears the active Marquee or cancels Floating Selection on Escape while idle', () => {
 		const host = createHost();
 		const kb = createKeyboardInput(host);
 		const event = keyDown('Escape');
@@ -316,16 +316,16 @@ describe('selection dismissal', () => {
 		kb.handleKeyDown(event);
 
 		expect(event.preventDefault).toHaveBeenCalled();
-		expect(host.clearMarquee).toHaveBeenCalledOnce();
+		expect(host.clearMarqueeOrFloating).toHaveBeenCalledOnce();
 	});
 
-	it('does not clear the active Marquee while drawing', () => {
+	it('delegates Escape while drawing so the host can cancel an active Floating Selection', () => {
 		const host = createHost({ isDrawing: vi.fn(() => true) });
 		const kb = createKeyboardInput(host);
 
 		kb.handleKeyDown(keyDown('Escape'));
 
-		expect(host.clearMarquee).not.toHaveBeenCalled();
+		expect(host.clearMarqueeOrFloating).toHaveBeenCalledOnce();
 	});
 });
 
@@ -341,7 +341,7 @@ describe('Marquee pixel clear', () => {
 
 		expect(event.preventDefault).toHaveBeenCalled();
 		expect(host.clearMarqueePixels).toHaveBeenCalledOnce();
-		expect(host.clearMarquee).not.toHaveBeenCalled();
+		expect(host.clearMarqueeOrFloating).not.toHaveBeenCalled();
 	});
 
 	it('does not clear Marquee pixels while drawing', () => {

@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { EditorController } from './editor-controller.svelte';
 import { createEditorController, type CreateEditorControllerOptions } from './create-editor-controller';
-import { wasmBackend } from '../wasm-backend';
+import { marqueeRegionFromDrag, wasmBackend } from '../wasm-backend';
 import { createFakeDirtyNotifier } from './fake-dirty-notifier';
 import type { Color } from '../color';
 import type { CanvasCoords } from '../canvas-model';
@@ -27,6 +27,16 @@ function drawLine(editor: EditorController, from: CanvasCoords, to: CanvasCoords
 	editor.handleDraw(from, null);
 	editor.handleDraw(to, from);
 	editor.handleDrawEnd();
+}
+
+function makePixelRgba(color: Color): Uint8Array {
+	return new Uint8Array([color.r, color.g, color.b, color.a]);
+}
+
+function getPixel(editor: EditorController, x: number, y: number): Color {
+	const pixels = editor.document.composite();
+	const i = (y * editor.canvasWidth + x) * 4;
+	return { r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: pixels[i + 3] };
 }
 
 describe('EditorController — construction & escape hatches', () => {
@@ -287,6 +297,32 @@ describe('EditorController — handler delegation', () => {
 		editor.handleDraw({ x: 1, y: 1 }, null);
 		editor.handleDrawEnd();
 		expect(editor.canUndo).toBe(true);
+	});
+
+	it('Escape cancels an in-flight Floating Selection through the wired keyboard host', () => {
+		const { editor, notifier } = makeController();
+		const pixels = new Uint8Array(editor.canvasWidth * editor.canvasHeight * 4);
+		pixels.set(makePixelRgba(RED), (1 * editor.canvasWidth + 1) * 4);
+		pixels.set(makePixelRgba(WHITE), (1 * editor.canvasWidth + 2) * 4);
+		editor.document.restore_active_layer_pixels(pixels);
+		editor.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		editor.setTool('selection');
+		notifier.reset();
+
+		editor.handleDrawStart(0, 'mouse');
+		editor.handleDraw({ x: 1, y: 1 }, null);
+		editor.handleDraw({ x: 2, y: 2 }, { x: 1, y: 1 });
+		expect(getPixel(editor, 1, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(editor.floatingSelectionOffset).toEqual({ dx: 1, dy: 1 });
+
+		editor.handleKeyDown(new KeyboardEvent('keydown', { code: 'Escape' }));
+
+		expect(getPixel(editor, 1, 1)).toEqual(RED);
+		expect(getPixel(editor, 2, 1)).toEqual(WHITE);
+		expect(editor.marquee).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+		expect(editor.floatingSelectionOffset).toBeUndefined();
+		expect(editor.workspace.activeTab.isDrawing).toBe(false);
+		expect(notifier.dirtyCalls).toEqual([]);
 	});
 
 	it('handleDrawStart is suppressed while shortcut hints are visible', () => {

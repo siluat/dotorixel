@@ -165,6 +165,23 @@ describe('selectionTool', () => {
 		expect(session.end()).toEqual([{ type: 'commitFloatingSelection' }]);
 	});
 
+	it('cancels a Floating Selection drag without emitting a commit effect', () => {
+		const initial = region(1, 1, 3, 2);
+		const ctx = createHost();
+		ctx.currentMarquee = initial;
+		const session = selectionTool.open(ctx.host, strokeSpec);
+
+		expect(session.start()).toEqual([]);
+		expect(session.draw({ x: 2, y: 1 }, null)).toEqual([]);
+		expect(session.draw({ x: 4, y: 2 }, { x: 2, y: 1 })).toEqual([
+			{ type: 'beginFloatingSelection', sourceRegion: initial },
+			{ type: 'moveFloatingSelection', offset: { dx: 2, dy: 1 } }
+		]);
+
+		expect(session.cancel()).toEqual([{ type: 'cancelFloatingSelection' }]);
+		expect(session.end()).toEqual([]);
+	});
+
 	it('defines a new Marquee when dragging at least one document pixel outside the existing Marquee', () => {
 		const initial = region(1, 1, 2, 2);
 		const ctx = createHost();

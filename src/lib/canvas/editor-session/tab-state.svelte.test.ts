@@ -328,6 +328,24 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 3, height: 3 });
 	});
 
+	it('clearMarqueeOrFloating clears the Marquee when no Floating Selection exists', () => {
+		const { tab, notifier, shared } = makeTab();
+		shared.activeTool = 'selection';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 3, y: 3 }, { x: 1, y: 1 });
+		tab.drawEnd();
+		notifier.reset();
+
+		tab.clearMarqueeOrFloating();
+
+		expect(tab.document.marquee()).toBeUndefined();
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+
+		tab.undo();
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 3, height: 3 });
+	});
+
 	it('clearMarqueePixels clears selected pixels without removing the Marquee', () => {
 		const pixels = new Uint8Array(8 * 8 * 4);
 		pixels.set(makePixelRgba(RED), 0);
@@ -553,6 +571,33 @@ describe('TabState — effect dispatcher', () => {
 		expect(getPixel(tab, 1, 1)).toEqual(RED);
 		expect(getPixel(tab, 2, 1)).toEqual(GREEN);
 		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('clearMarqueeOrFloating cancels an in-flight Floating Selection instead of committing it', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
+		const { tab, notifier, shared } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		notifier.reset();
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 2, y: 2 }, { x: 1, y: 1 });
+		expect(getPixel(tab, 1, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 1 });
+
+		tab.clearMarqueeOrFloating();
+
+		expect(getPixel(tab, 1, 1)).toEqual(RED);
+		expect(getPixel(tab, 2, 1)).toEqual(GREEN);
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(tab.isDrawing).toBe(false);
 		expect(notifier.dirtyCalls).toEqual([]);
 	});
 

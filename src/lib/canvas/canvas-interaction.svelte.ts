@@ -90,6 +90,12 @@ export interface CanvasInteraction {
 	 * sampling → `onSampleCancel`, drawing → `onDrawCancel`.
 	 */
 	pointerCancel(id: number): void;
+	/**
+	 * External cancellation path for keyboard Escape. This clears the draw
+	 * interaction state so a later pointer-up from the same physical drag
+	 * cannot end or commit the already-canceled stroke.
+	 */
+	cancelDrawing(): void;
 	blur(): void;
 	readonly interactionType: InteractionType;
 }
@@ -385,6 +391,16 @@ export function createCanvasInteraction(
 			if (interaction.type === 'pinching' || interaction.type === 'panning') {
 				interaction = { type: 'idle' };
 			}
+		},
+
+		cancelDrawing(): void {
+			if (interaction.type !== 'drawing') return;
+			clearLongPressTimer();
+			activePointers.clear();
+			if (interaction.pendingCoords === null) {
+				callbacks.onDrawCancel();
+			}
+			interaction = { type: 'idle' };
 		},
 
 		blur(): void {

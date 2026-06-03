@@ -4,7 +4,6 @@
 
 - Touch modifier alternatives (Shift-constrain, Alt-eyedropper UI for touchscreen) — **blocks** Shift-related Selection sub-issues
 - Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
-  - [144 — Escape cancels Floating Selection mid-drag](../issues/144-escape-cancels-floating-selection.md)
   - [145 — Arrow nudge + Shift 10× multiplier](../issues/145-arrow-nudge-and-shift-multiplier.md)
   - [146 — Cut (Cmd+X)](../issues/146-cut-cmd-x.md)
   - [147 — Clear Canvas / Delete Layer × Floating commits-first](../issues/147-clear-canvas-delete-layer-floating-commit.md)

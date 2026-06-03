@@ -16,6 +16,7 @@
 		type ReferencePlacementHandle
 	} from './reference-layer-placement-interaction.svelte';
 	import ReferenceLayerPlacementOverlay from './ReferenceLayerPlacementOverlay.svelte';
+	import SelectionActionBar from './SelectionActionBar.svelte';
 	import SelectionOverlay from './SelectionOverlay.svelte';
 	import {
 		createCanvasInteraction,
@@ -45,6 +46,12 @@
 		onSampleEnd?: () => void;
 		onSampleCancel?: () => void;
 		onReferencePlacementCommit?: (placement: ReferencePlacement) => void;
+		canPasteSelection?: boolean;
+		onCopySelection?: () => void;
+		onCutSelection?: () => void;
+		onPasteSelectionClipboard?: () => void;
+		onDeleteMarqueePixels?: () => void;
+		onClearMarqueeOrFloating?: () => void;
 		activeTool?: ToolType;
 		toolCursor?: string;
 		selectionDragPhase?: SelectionDragPhase;
@@ -76,6 +83,12 @@
 		onSampleEnd,
 		onSampleCancel,
 		onReferencePlacementCommit,
+		canPasteSelection = false,
+		onCopySelection,
+		onCutSelection,
+		onPasteSelectionClipboard,
+		onDeleteMarqueePixels,
+		onClearMarqueeOrFloating,
 		activeTool = 'pencil',
 		toolCursor = 'crosshair',
 		selectionDragPhase = 'defineMarquee',
@@ -131,6 +144,7 @@
 			onSampleCancel: () => onSampleCancel?.()
 		}
 	);
+	const isSelectionActionBarDragging = $derived(canvasInteraction.interactionType !== 'idle');
 
 	$effect(() => {
 		if (!canvasEl) return;
@@ -680,6 +694,22 @@
 	{viewport}
 	{viewportSize}
 	dragAid={selectionDragAid}
+/>
+
+<SelectionActionBar
+	{marquee}
+	{floatingSelectionOffset}
+	canvasWidth={pixelCanvas.width}
+	canvasHeight={pixelCanvas.height}
+	{viewport}
+	{viewportSize}
+	canPaste={canPasteSelection}
+	isDragging={isSelectionActionBarDragging}
+	{onCopySelection}
+	{onCutSelection}
+	{onPasteSelectionClipboard}
+	{onDeleteMarqueePixels}
+	{onClearMarqueeOrFloating}
 />
 
 {#if samplingSession?.position}

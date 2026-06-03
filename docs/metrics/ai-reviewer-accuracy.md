@@ -6,14 +6,26 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 140 | 106 | 34 | 139 | 76% | 43% |
-| cubic-dev-ai[bot] | 95 | 79 | 16 | 162 | 83% | 33% |
-| coderabbitai[bot] | 196 | 139 | 57 | 99 | 71% | 58% |
+| greptile-apps[bot] | 142 | 108 | 34 | 141 | 76% | 43% |
+| cubic-dev-ai[bot] | 95 | 79 | 16 | 166 | 83% | 32% |
+| coderabbitai[bot] | 198 | 141 | 57 | 101 | 71% | 58% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #249 | greptile-apps[bot] | Accept | Use group role for Tab-navigated selection action buttons |
+| #249 | greptile-apps[bot] | Accept | Hide action bar when projected Marquee is smaller than one screen pixel |
+| #249 | coderabbitai[bot] | Accept | Clarify platform status pending scope as Floating-state controls |
+| #249 | coderabbitai[bot] | Accept | Align progress terminology around Floating Selection controls |
+| #249 | coderabbitai[bot] | Miss | Did not flag selection action group role mismatch |
+| #249 | cubic-dev-ai[bot] | Miss | Did not flag selection action group role mismatch |
+| #249 | coderabbitai[bot] | Miss | Did not flag zero-size projected Marquee action bar |
+| #249 | cubic-dev-ai[bot] | Miss | Did not flag zero-size projected Marquee action bar |
+| #249 | greptile-apps[bot] | Miss | Did not flag platform status pending-scope wording |
+| #249 | cubic-dev-ai[bot] | Miss | Did not flag platform status pending-scope wording |
+| #249 | greptile-apps[bot] | Miss | Did not flag progress terminology mismatch |
+| #249 | cubic-dev-ai[bot] | Miss | Did not flag progress terminology mismatch |
 | #248 | greptile-apps[bot] | Accept | Preserve explicit null pre-paste Marquee snapshot during Floating Selection commit undo |
 | #248 | cubic-dev-ai[bot] | Accept | Preserve explicit null pre-paste Marquee snapshot during Floating Selection commit undo |
 | #248 | coderabbitai[bot] | Reject | Paste remains a transient Floating Selection preview until commit marks the document dirty |

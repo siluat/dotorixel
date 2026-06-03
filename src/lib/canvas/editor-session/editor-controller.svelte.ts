@@ -86,6 +86,9 @@ export class EditorController {
 	get floatingSelectionOffset(): { readonly dx: number; readonly dy: number } | undefined {
 		return this.workspace.activeTab.floatingSelectionOffset;
 	}
+	get canPasteSelection(): boolean {
+		return this.workspace.shared.selectionClipboard !== null;
+	}
 	exportableSnapshot(): PixelCanvas {
 		return this.workspace.activeTab.exportableSnapshot();
 	}
@@ -217,6 +220,26 @@ export class EditorController {
 
 	handleRedo = (): void => {
 		this.workspace.activeTab.redo();
+	};
+
+	copySelection = (): void => {
+		this.workspace.copySelection();
+	};
+
+	cutSelection = (): void => {
+		this.workspace.cutSelection();
+	};
+
+	pasteSelectionClipboard = (): void => {
+		this.workspace.pasteSelectionClipboard();
+	};
+
+	deleteMarqueePixels = (): void => {
+		this.workspace.activeTab.clearMarqueePixels();
+	};
+
+	clearMarqueeOrFloating = (): void => {
+		this.workspace.activeTab.clearMarqueeOrFloating();
 	};
 
 	handleClear = (): void => {

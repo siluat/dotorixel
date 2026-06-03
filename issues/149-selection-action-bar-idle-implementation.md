@@ -1,6 +1,6 @@
 ---
 title: "Selection Action Bar — Idle state implementation"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -60,3 +60,24 @@ Tests:
 - [143 — Selection Clipboard + Copy](143-selection-clipboard-and-copy.md)
 - [146 — Cut (Cmd+X)](146-cut-cmd-x.md)
 - [148 — Paste (Cmd+V)](148-paste-cmd-v.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/SelectionActionBar.svelte` | Added the Idle Marquee action bar with Copy, Cut, Paste, Delete, and Deselect controls, responsive labels, tooltip behavior, drag-time hiding, reduced-motion handling, and viewport-aware positioning. |
+| `src/lib/canvas/SelectionActionBar.svelte.test.ts` | Covered command dispatch, disabled Paste behavior, Floating Selection suppression, positioning fallbacks, horizontal clamping, responsive labels, localization, and CSS motion/touch-target invariants. |
+| `src/lib/canvas/PixelCanvasView.svelte` | Mounted the action bar alongside the selection overlay and passed selection command callbacks, clipboard availability, viewport data, and drag visibility state. |
+| `src/lib/canvas/PixelCanvasView.svelte.test.ts` | Added integration coverage for idle Marquee mounting, Floating Selection suppression, and hide/restore behavior during pointer drag. |
+| `src/lib/canvas/editor-session/editor-controller.svelte.ts` | Exposed controller methods for the same selection operations already available through keyboard shortcuts. |
+| `src/routes/editor/+page.svelte` | Wired the editor controller selection operations into desktop and mobile canvas views. |
+| `messages/en.json`, `messages/ko.json`, `messages/ja.json` | Added localized action labels and the action bar ARIA label. |
+
+### Key Decisions
+
+- The action bar stays a UI wrapper over existing selection commands, so keyboard shortcuts and touch/mouse toolbar actions share behavior.
+- Horizontal positioning clamps against the measured toolbar width, with a label-length fallback for initial render and tests.
+
+### Notes
+
+- Floating Selection controls remain in [150](150-selection-action-bar-floating-state.md).

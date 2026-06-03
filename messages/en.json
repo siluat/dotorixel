@@ -22,6 +22,11 @@
 	"action_pixelPerfectOn": "Pixel Perfect: On",
 	"action_pixelPerfectOff": "Pixel Perfect: Off",
 	"action_pixelPerfectDisabled": "Pixel Perfect (Pencil/Eraser only)",
+	"action_selectionCopy": "Copy",
+	"action_selectionCut": "Cut",
+	"action_selectionPaste": "Paste",
+	"action_selectionDelete": "Delete",
+	"action_selectionDeselect": "Deselect",
 
 	"canvas_width": "Canvas width",
 	"canvas_height": "Canvas height",
@@ -40,6 +45,7 @@
 	"color_saturationBrightness": "Saturation and brightness",
 
 	"aria_pixelCanvas": "Pixel art canvas",
+	"aria_selectionActions": "Selection actions",
 	"aria_saturationValue": "Saturation {s}%, Brightness {v}%",
 	"aria_fgBgGroup": "Foreground color {fg}, background color {bg}",
 

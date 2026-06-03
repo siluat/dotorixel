@@ -95,7 +95,13 @@ describe('SelectionActionBar', () => {
 		expect(onPasteSelectionClipboard).not.toHaveBeenCalled();
 	});
 
-	it('does not render for a Floating Selection', () => {
+	it('renders Floating Selection commands when a Floating Selection is active', async () => {
+		const handlers = {
+			onCommitFloatingSelection: vi.fn(),
+			onClearMarqueeOrFloating: vi.fn(),
+			onDuplicateFloatingSelection: vi.fn()
+		};
+
 		render(SelectionActionBar, {
 			props: {
 				marquee: region(),
@@ -104,11 +110,24 @@ describe('SelectionActionBar', () => {
 				canvasHeight: 12,
 				viewport,
 				viewportSize: { width: 180, height: 180 },
-				canPaste: true
+				canPaste: true,
+				...handlers
 			}
 		});
 
-		expect(screen.queryByRole('group', { name: 'Selection actions' })).toBeNull();
+		expect(screen.getByRole('group', { name: 'Selection actions' })).toBeTruthy();
+		expect(screen.queryByRole('button', { name: 'Cut' })).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Paste' })).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Deselect' })).toBeNull();
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+
+		expect(handlers.onCommitFloatingSelection).toHaveBeenCalledOnce();
+		expect(handlers.onClearMarqueeOrFloating).toHaveBeenCalledOnce();
+		expect(handlers.onDuplicateFloatingSelection).toHaveBeenCalledOnce();
 	});
 
 	it('does not render when the projected Marquee is smaller than one screen pixel', () => {
@@ -293,7 +312,31 @@ describe('SelectionActionBar', () => {
 		}
 	);
 
-	it('documents fade timing, reduced motion, and compact touch target CSS', () => {
+	it.each([
+		['en', 'Done', 'Cancel', 'Duplicate'],
+		['ko', '완료', '취소', '복제'],
+		['ja', '完了', 'キャンセル', '複製']
+	] as const)('renders localized Floating Selection labels for %s', (locale, done, cancel, duplicate) => {
+		overwriteGetLocale(() => locale);
+
+		render(SelectionActionBar, {
+			props: {
+				marquee: region(),
+				floatingSelectionOffset: { dx: 1, dy: 1 },
+				canvasWidth: 12,
+				canvasHeight: 12,
+				viewport,
+				viewportSize: { width: 600, height: 180 },
+				canPaste: true
+			}
+		});
+
+		for (const label of [done, cancel, duplicate]) {
+			expect(screen.getByRole('button', { name: label })).toBeTruthy();
+		}
+	});
+
+	it('documents fade timing, reduced motion, and touch target CSS', () => {
 		expect(selectionActionBarSource).toContain('transition: opacity 120ms ease-out');
 		expect(selectionActionBarSource).toContain('transition-duration: 100ms');
 		expect(selectionActionBarSource).toContain('prefers-reduced-motion: reduce');

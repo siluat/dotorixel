@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 150 | [Selection Action Bar — Floating Selection state (Done / Cancel / Duplicate)](../issues/150-selection-action-bar-floating-state.md) | 2026-06-03 |
 | 149 | [Selection Action Bar — Idle state implementation](../issues/149-selection-action-bar-idle-implementation.md) | 2026-06-03 |
 | 148 | [Paste (Cmd+V) — Floating Selection at viewport ∩ canvas center](../issues/148-paste-cmd-v.md) | 2026-06-03 |
 | 147 | [Clear Canvas / Delete Layer — commit Floating Selection first](../issues/147-clear-canvas-delete-layer-floating-commit.md) | 2026-06-03 |

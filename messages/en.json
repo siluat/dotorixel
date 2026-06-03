@@ -27,6 +27,9 @@
 	"action_selectionPaste": "Paste",
 	"action_selectionDelete": "Delete",
 	"action_selectionDeselect": "Deselect",
+	"action_selectionDone": "Done",
+	"action_selectionCancel": "Cancel",
+	"action_selectionDuplicate": "Duplicate",
 
 	"canvas_width": "Canvas width",
 	"canvas_height": "Canvas height",

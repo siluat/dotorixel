@@ -675,6 +675,8 @@
 				onPasteSelectionClipboard={editor.pasteSelectionClipboard}
 				onDeleteMarqueePixels={editor.deleteMarqueePixels}
 				onClearMarqueeOrFloating={editor.clearMarqueeOrFloating}
+				onCommitFloatingSelection={editor.commitFloatingSelection}
+				onDuplicateFloatingSelection={editor.duplicateFloatingSelection}
 				activeTool={editor.activeTool}
 				toolCursor={editor.toolCursor}
 				isSpaceHeld={editor.isSpaceHeld}
@@ -789,6 +791,8 @@
 						onPasteSelectionClipboard={editor.pasteSelectionClipboard}
 						onDeleteMarqueePixels={editor.deleteMarqueePixels}
 						onClearMarqueeOrFloating={editor.clearMarqueeOrFloating}
+						onCommitFloatingSelection={editor.commitFloatingSelection}
+						onDuplicateFloatingSelection={editor.duplicateFloatingSelection}
 						activeTool={editor.activeTool}
 						toolCursor={editor.toolCursor}
 						isSpaceHeld={editor.isSpaceHeld}

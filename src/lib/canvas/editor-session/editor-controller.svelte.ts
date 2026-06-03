@@ -242,6 +242,14 @@ export class EditorController {
 		this.workspace.activeTab.clearMarqueeOrFloating();
 	};
 
+	commitFloatingSelection = (): void => {
+		this.workspace.activeTab.commitFloatingSelection();
+	};
+
+	duplicateFloatingSelection = (): void => {
+		this.workspace.activeTab.duplicateFloatingSelection();
+	};
+
 	handleClear = (): void => {
 		this.workspace.activeTab.clear();
 	};

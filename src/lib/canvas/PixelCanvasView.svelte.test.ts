@@ -186,7 +186,13 @@ describe('PixelCanvasView', () => {
 		expect(screen.getByRole('group', { name: 'Selection actions' })).toBeTruthy();
 	});
 
-	it('does not mount the idle Selection Action Bar during a Floating Selection', () => {
+	it('mounts the Floating Selection Action Bar during a Floating Selection', async () => {
+		const handlers = {
+			onCommitFloatingSelection: vi.fn(),
+			onClearMarqueeOrFloating: vi.fn(),
+			onDuplicateFloatingSelection: vi.fn()
+		};
+
 		render(PixelCanvasView, {
 			props: {
 				pixelCanvas,
@@ -194,11 +200,24 @@ describe('PixelCanvasView', () => {
 				floatingSelectionOffset: { dx: 1, dy: -1 },
 				viewport,
 				viewportSize: { width: 180, height: 180 },
-				canPasteSelection: true
+				canPasteSelection: true,
+				...handlers
 			}
 		});
 
-		expect(screen.queryByRole('group', { name: 'Selection actions' })).toBeNull();
+		expect(screen.getByRole('group', { name: 'Selection actions' })).toBeTruthy();
+		expect(screen.queryByRole('button', { name: 'Cut' })).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Paste' })).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Deselect' })).toBeNull();
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+
+		expect(handlers.onCommitFloatingSelection).toHaveBeenCalledOnce();
+		expect(handlers.onClearMarqueeOrFloating).toHaveBeenCalledOnce();
+		expect(handlers.onDuplicateFloatingSelection).toHaveBeenCalledOnce();
 	});
 
 	it('hides the Selection Action Bar during canvas pointer drag', async () => {

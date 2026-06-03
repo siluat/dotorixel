@@ -226,6 +226,8 @@ interface SelectionCutSnapshot {
 	readonly shouldClearPixels: boolean;
 }
 
+const DUPLICATE_FLOATING_OFFSET: FloatingSelectionOffset = { dx: 1, dy: 1 };
+
 export interface TabStateDeps {
 	readonly backend: CanvasBackend;
 	readonly shared: SharedState;
@@ -336,6 +338,8 @@ export class TabState {
 	#referenceLayerUnderlayProjector = new ReferenceLayerUnderlayProjector();
 	#selectionPreviewBaselineMarquee: TabSnapshot['marquee'] | undefined = undefined;
 	#floatingSelection = $state<FloatingSelection | null>(null);
+	#selectionFloatingDragBaselineOffset: FloatingSelectionOffset | null = null;
+	#selectionFloatingDragProjectedRegion: MarqueeRegion | null = null;
 
 	get viewport(): ViewportData {
 		return this.#tabViewport.viewport;
@@ -494,7 +498,7 @@ export class TabState {
 					this.#beginFloatingSelection(effect.sourceRegion);
 					break;
 				case 'moveFloatingSelection':
-					this.#moveFloatingSelection(effect.offset);
+					this.#moveFloatingSelection(this.#resolveFloatingMoveOffset(effect.offset));
 					break;
 				case 'commitFloatingSelection':
 					this.#commitFloatingSelection();
@@ -551,6 +555,15 @@ export class TabState {
 		if (floating.offset.dx === offset.dx && floating.offset.dy === offset.dy) return;
 		this.#floatingSelection = { ...floating, offset };
 		this.#documentChangeJournal.recordPreviewChanged();
+	}
+
+	#resolveFloatingMoveOffset(offset: FloatingSelectionOffset): FloatingSelectionOffset {
+		const baseline = this.#selectionFloatingDragBaselineOffset;
+		if (!baseline || !this.#floatingSelection) return offset;
+		return {
+			dx: baseline.dx + offset.dx,
+			dy: baseline.dy + offset.dy
+		};
 	}
 
 	#commitFloatingSelection(): void {
@@ -631,6 +644,7 @@ export class TabState {
 	#cancelFloatingSelection(): void {
 		const floating = this.#floatingSelection;
 		if (!floating) return;
+		this.#resetSelectionFloatingDragBaseline();
 		withDocumentActiveLayer(this.document, floating.sourceLayerId, () => {
 			restoreActiveLayerPixels(this.document, floating.sourceLayerPixelsBeforeLift);
 		});
@@ -641,25 +655,69 @@ export class TabState {
 		this.#documentChangeJournal.recordPreviewChanged();
 	}
 
-	drawStart = (button: number, pointerType: PointerType): void => {
+	#prepareSelectionFloatingDragStart(): MarqueeRegion | null | undefined {
+		const floating = this.#floatingSelection;
+		if (!floating || this.shared.activeTool !== 'selection') return undefined;
+
+		const originalMarquee = this.document.marquee();
+		const projectedRegion = floating.sourceRegion.translate(
+			floating.offset.dx,
+			floating.offset.dy
+		);
+		// The selection tool reads document.marquee() for its hit-test, while the
+		// renderer keeps Floating position as source marquee + offset.
+		this.document.set_marquee(copyMarqueeRegion(projectedRegion));
+		this.#selectionFloatingDragBaselineOffset = floating.offset;
+		this.#selectionFloatingDragProjectedRegion = copyMarqueeRegion(projectedRegion);
+		return originalMarquee ? copyMarqueeRegion(originalMarquee) : null;
+	}
+
+	#commitFloatingSelectionIfDragStartsOutside(current: CanvasPoint, previous: CanvasPoint | null): void {
+		const projectedRegion = this.#selectionFloatingDragProjectedRegion;
+		if (!projectedRegion || previous !== null) return;
+		if (isPointInsideMarquee(current, projectedRegion)) return;
+
+		this.#resetSelectionFloatingDragBaseline();
 		this.#commitFloatingSelection();
 		this.#selectionPreviewBaselineMarquee =
 			this.shared.activeTool === 'selection' ? serializeMarquee(this.document.marquee()) : undefined;
-		this.#applyEffects(this.#toolRunner.drawStart(button, pointerType));
+	}
+
+	#resetSelectionFloatingDragBaseline(): void {
+		this.#selectionFloatingDragBaselineOffset = null;
+		this.#selectionFloatingDragProjectedRegion = null;
+	}
+
+	drawStart = (button: number, pointerType: PointerType): void => {
+		this.#resetSelectionFloatingDragBaseline();
+		const restoreMarquee = this.#prepareSelectionFloatingDragStart();
+		if (restoreMarquee === undefined) {
+			this.#commitFloatingSelection();
+		}
+		const effects = this.#toolRunner.drawStart(button, pointerType);
+		if (restoreMarquee !== undefined) {
+			this.document.set_marquee(restoreMarquee ? copyMarqueeRegion(restoreMarquee) : null);
+		}
+		this.#selectionPreviewBaselineMarquee =
+			this.shared.activeTool === 'selection' ? serializeMarquee(this.document.marquee()) : undefined;
+		this.#applyEffects(effects);
 	};
 
 	draw = (current: CanvasPoint, previous: CanvasPoint | null): void => {
+		this.#commitFloatingSelectionIfDragStartsOutside(current, previous);
 		this.#applyEffects(this.#toolRunner.draw(current, previous));
 	};
 
 	drawEnd = (): void => {
 		this.#selectionPreviewBaselineMarquee = undefined;
 		this.#applyEffects(this.#toolRunner.drawEnd());
+		this.#resetSelectionFloatingDragBaseline();
 	};
 
 	drawCancel = (): void => {
 		this.#applyEffects(this.#toolRunner.drawCancel());
 		this.#selectionPreviewBaselineMarquee = undefined;
+		this.#resetSelectionFloatingDragBaseline();
 	};
 
 	modifierChanged = (): void => {
@@ -796,6 +854,38 @@ export class TabState {
 	commitFloatingSelection = (): void => {
 		if (this.isDrawing) return;
 		this.#commitFloatingSelection();
+	};
+
+	duplicateFloatingSelection = (): void => {
+		if (this.isDrawing) return;
+		const floating = this.#floatingSelection;
+		if (!floating) return;
+
+		const duplicateBuffer = floating.buffer.slice();
+		const duplicateRegion = floating.sourceRegion.translate(
+			floating.offset.dx,
+			floating.offset.dy
+		);
+		const sourceLayerId = floating.sourceLayerId;
+
+		this.#commitFloatingSelection();
+
+		const sourceLayerPixelsBeforeDuplicate = withDocumentActiveLayer(
+			this.document,
+			sourceLayerId,
+			() => activeLayerPixels(this.document).slice()
+		);
+		this.document.set_marquee(copyMarqueeRegion(duplicateRegion));
+		this.#floatingSelection = {
+			buffer: duplicateBuffer,
+			sourceLayerId,
+			sourceRegion: copyMarqueeRegion(duplicateRegion),
+			offset: DUPLICATE_FLOATING_OFFSET,
+			sourceLayerPixelsBeforeLift: sourceLayerPixelsBeforeDuplicate,
+			snapshotMarquee: copyMarqueeRegion(duplicateRegion),
+			clearSourceRegionOnCommit: false
+		};
+		this.#documentChangeJournal.recordPreviewChanged();
 	};
 
 	pasteSelectionClipboard = (clipboard: SelectionClipboardData): void => {

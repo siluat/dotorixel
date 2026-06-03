@@ -476,7 +476,96 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
 	});
 
-	it('commits an idle Floating Selection before the next selection pointer interaction', () => {
+	it('duplicateFloatingSelection commits the current Floating and keeps a duplicate Floating offset for touch movement', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		const { tab, notifier } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 1, 1));
+		tab.nudgeMarquee(1, 0);
+		notifier.reset();
+
+		tab.duplicateFloatingSelection();
+
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 1 });
+		expect(getPixel(tab, 1, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 2, 1)).toEqual(RED);
+		expect(getPixel(tab, 3, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getRenderedPixel(tab, 3, 2)).toEqual(RED);
+		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 1, width: 1, height: 1 });
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+
+		tab.commitFloatingSelection();
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(getPixel(tab, 2, 1)).toEqual(RED);
+		expect(getPixel(tab, 3, 2)).toEqual(RED);
+		expect(tab.document.marquee()).toMatchObject({ x: 3, y: 2, width: 1, height: 1 });
+
+		tab.undo();
+
+		expect(getPixel(tab, 2, 1)).toEqual(RED);
+		expect(getPixel(tab, 3, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 1, width: 1, height: 1 });
+	});
+
+	it('clearMarqueeOrFloating cancels only the duplicate Floating after Duplicate', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		const { tab, notifier } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 1, 1));
+		tab.nudgeMarquee(1, 0);
+		notifier.reset();
+
+		tab.duplicateFloatingSelection();
+		tab.clearMarqueeOrFloating();
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(getPixel(tab, 1, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 2, 1)).toEqual(RED);
+		expect(getPixel(tab, 3, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 1, width: 1, height: 1 });
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+	});
+
+	it('keeps a dragged Duplicate Floating cancelable without committing the duplicate', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		const { tab, notifier, shared } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 1, 1));
+		tab.nudgeMarquee(1, 0);
+		notifier.reset();
+
+		tab.duplicateFloatingSelection();
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 1 });
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 3, y: 2 }, null);
+		tab.draw({ x: 4, y: 2 }, { x: 3, y: 2 });
+		tab.drawEnd();
+
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 2, dy: 1 });
+		expect(getPixel(tab, 2, 1)).toEqual(RED);
+		expect(getRenderedPixel(tab, 4, 2)).toEqual(RED);
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+
+		tab.clearMarqueeOrFloating();
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(getPixel(tab, 2, 1)).toEqual(RED);
+		expect(getPixel(tab, 3, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 4, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 1, width: 1, height: 1 });
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+	});
+
+	it('commits an idle Floating Selection when the next selection drag starts outside it', () => {
 		const pixels = new Uint8Array(5 * 5 * 4);
 		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
 		pixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
@@ -490,6 +579,11 @@ describe('TabState — effect dispatcher', () => {
 
 		tab.drawStart(0, 'mouse');
 
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 1 });
+		expect(notifier.dirtyCalls).toEqual([]);
+
+		tab.draw({ x: 0, y: 0 }, null);
+
 		expect(tab.floatingSelectionOffset).toBeUndefined();
 		expect(getPixel(tab, 2, 2)).toEqual(RED);
 		expect(getPixel(tab, 3, 2)).toEqual(GREEN);
@@ -502,6 +596,44 @@ describe('TabState — effect dispatcher', () => {
 		expect(getPixel(tab, 1, 1)).toEqual(RED);
 		expect(getPixel(tab, 2, 1)).toEqual(GREEN);
 		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+	});
+
+	it('keeps repeated Floating Selection drags cancelable until explicit commit', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
+		const { tab, notifier, shared } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		notifier.reset();
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 2, y: 2 }, { x: 1, y: 1 });
+		tab.drawEnd();
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 1 });
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 2, y: 2 }, null);
+		tab.draw({ x: 3, y: 2 }, { x: 2, y: 2 });
+		tab.drawEnd();
+
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 2, dy: 1 });
+		expect(getRenderedPixel(tab, 3, 2)).toEqual(RED);
+		expect(getRenderedPixel(tab, 4, 2)).toEqual(GREEN);
+		expect(notifier.dirtyCalls).toEqual([]);
+
+		tab.clearMarqueeOrFloating();
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(getPixel(tab, 1, 1)).toEqual(RED);
+		expect(getPixel(tab, 2, 1)).toEqual(GREEN);
+		expect(getPixel(tab, 3, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 4, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+		expect(notifier.dirtyCalls).toEqual([]);
 	});
 
 	it('undo cancels an uncommitted Floating Selection nudge before touching document history', () => {
@@ -665,7 +797,7 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
 	});
 
-	it('dragging inside the Marquee lifts, commits, and undoes a Floating Selection move', () => {
+	it('dragging inside the Marquee leaves a Floating Selection for explicit commit', () => {
 		const pixels = new Uint8Array(5 * 5 * 4);
 		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
 		pixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
@@ -691,6 +823,14 @@ describe('TabState — effect dispatcher', () => {
 		expect(notifier.dirtyCalls).toEqual([]);
 
 		tab.drawEnd();
+
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 1 });
+		expect(getPixel(tab, 2, 2)).toEqual(BLUE);
+		expect(getRenderedPixel(tab, 2, 2)).toEqual(RED);
+		expect(getRenderedPixel(tab, 3, 2)).toEqual(GREEN);
+		expect(notifier.dirtyCalls).toEqual([]);
+
+		tab.commitFloatingSelection();
 
 		expect(getPixel(tab, 2, 2)).toEqual(RED);
 		expect(getPixel(tab, 3, 2)).toEqual(GREEN);
@@ -798,6 +938,7 @@ describe('TabState — effect dispatcher', () => {
 		expect(getRenderedPixel(tab, 2, 2)).toEqual(BLUE);
 
 		tab.drawEnd();
+		tab.commitFloatingSelection();
 
 		expect(tab.document.active_layer_id()).toBe(topId);
 		expect(getPixelFromBuffer(tab.document.layer_pixels_at(0)!, 5, 1, 1)).toEqual({
@@ -888,6 +1029,34 @@ describe('TabState — effect dispatcher', () => {
 		expect(notifier.dirtyCalls).toEqual([]);
 	});
 
+	it('clearMarqueeOrFloating cancels a released Floating Selection instead of committing it', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
+		const { tab, notifier, shared } = makeTab({
+			document: singleLayerDocument(5, 5, pixels)
+		});
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		notifier.reset();
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 2, y: 2 }, { x: 1, y: 1 });
+		tab.drawEnd();
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 1 });
+		expect(tab.isDrawing).toBe(false);
+
+		tab.clearMarqueeOrFloating();
+
+		expect(getPixel(tab, 1, 1)).toEqual(RED);
+		expect(getPixel(tab, 2, 1)).toEqual(GREEN);
+		expect(getPixel(tab, 2, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
 	it('drawCancel restores a lifted Floating Selection source layer after active layer changes', () => {
 		const bottomPixels = new Uint8Array(5 * 5 * 4);
 		bottomPixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
@@ -962,6 +1131,7 @@ describe('TabState — effect dispatcher', () => {
 		tab.draw({ x: 2, y: 2 }, null);
 		tab.draw({ x: 3, y: 2 }, { x: 2, y: 2 });
 		tab.drawEnd();
+		tab.commitFloatingSelection();
 
 		expect(getPixel(tab, 2, 2)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
 		expect(getPixel(tab, 3, 2)).toEqual(RED);

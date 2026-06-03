@@ -27,6 +27,9 @@
 	"action_selectionPaste": "貼り付け",
 	"action_selectionDelete": "削除",
 	"action_selectionDeselect": "選択解除",
+	"action_selectionDone": "完了",
+	"action_selectionCancel": "キャンセル",
+	"action_selectionDuplicate": "複製",
 
 	"canvas_width": "キャンバス幅",
 	"canvas_height": "キャンバス高さ",

@@ -1,6 +1,6 @@
 ---
-title: "Selection Action Bar — Floating Selection state (Done / Cancel / Copy)"
-status: ready-for-agent
+title: "Selection Action Bar — Floating Selection state (Done / Cancel / Duplicate)"
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -49,3 +49,28 @@ Tests:
 - [149 — Selection Action Bar — Idle state implementation](149-selection-action-bar-idle-implementation.md)
 - [142 — Selection drag-to-move](142-selection-drag-to-move.md)
 - [144 — Escape cancels Floating Selection](144-escape-cancels-floating-selection.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/SelectionActionBar.svelte` | Added Floating Selection action mode with Done, Cancel, and Duplicate controls, plus projected positioning for live Floating offsets. |
+| `src/lib/canvas/PixelCanvasView.svelte` | Wired Floating action callbacks through the canvas view. |
+| `src/lib/canvas/editor-session/editor-controller.svelte.ts` | Exposed controller handlers for explicit Floating commit and duplicate actions. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Kept Floating Selection active after drag release, added explicit duplicate behavior, and preserved cancelability across repeated drags. |
+| `src/lib/canvas/tools/selection-tool.ts` | Stopped drag release from implicitly committing LiftAndDrag sessions. |
+| `src/routes/editor/+page.svelte` | Connected Floating action handlers in desktop and mobile editor layouts. |
+| `messages/en.json`, `messages/ko.json`, `messages/ja.json` | Added localized Floating Selection action labels. |
+| `src/lib/canvas/*Selection*.test.ts`, `src/lib/canvas/editor-session/*.test.ts`, `src/lib/canvas/tools/selection-tool.test.ts` | Covered Floating action rendering, explicit commit/cancel/duplicate, release behavior, and repeated-drag cancel semantics. |
+
+### Key Decisions
+
+- Replaced the originally planned Floating `Copy` button with `Duplicate`: clipboard copy gives touch users no immediate paste path, while duplicate creates a movable copy in-place.
+- `Duplicate` commits the current Floating Selection, then creates a new Floating copy offset 1 px down-right so it is immediately visible and draggable.
+- Repeated drags inside the live Floating Selection remain transient until Done or another explicit commit path, so Cancel still reverts the uncommitted Floating state.
+
+### Notes
+
+- Shift square define and axis-lock Floating drag remain blocked by the project-wide Touch modifier alternatives task.
+- No Apple shell changes were made.
+- Verified with targeted selection tests, `bun run check`, and browser manual flows for drag/re-drag/Cancel and Duplicate/drag/Cancel.

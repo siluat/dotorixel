@@ -4,16 +4,15 @@
 
 Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
 
-18 of 21 sub-issues are done; Idle Marquee now has touch-accessible Copy/Cut/Paste/Delete/Deselect actions. Floating Selection controls and Shift follow-ups remain.
+19 of 21 sub-issues are done; Floating Selection now has explicit touch controls. The remaining Selection sub-issues are Shift follow-ups blocked by Touch modifier alternatives.
 
 ## Last Completed
 
-[149 — Selection Action Bar — Idle state implementation](../issues/149-selection-action-bar-idle-implementation.md): Idle Marquee now exposes touch-accessible selection actions wired to the keyboard command paths. Floating Selection controls remain in 150.
+[150 — Selection Action Bar — Floating Selection state](../issues/150-selection-action-bar-floating-state.md): Floating Selection now exposes Done, Cancel, and Duplicate for touch users. Repeated drags stay cancelable until explicit commit.
 
 ## Next Up
 
 - Touch modifier alternatives (unblocks Selection sub-issues 151 + 152)
-- [150 — Action Bar Floating state](../issues/150-selection-action-bar-floating-state.md)
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load

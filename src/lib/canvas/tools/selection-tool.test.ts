@@ -147,7 +147,7 @@ describe('selectionTool', () => {
 		expect(ctx.currentMarquee).toBe(initial);
 	});
 
-	it('starts a Floating Selection when dragging inside the existing Marquee', () => {
+	it('keeps a Floating Selection active after dragging inside the existing Marquee', () => {
 		const initial = region(1, 1, 3, 2);
 		const ctx = createHost();
 		ctx.currentMarquee = initial;
@@ -162,7 +162,7 @@ describe('selectionTool', () => {
 		]);
 		expect(ctx.setMarquee).not.toHaveBeenCalled();
 
-		expect(session.end()).toEqual([{ type: 'commitFloatingSelection' }]);
+		expect(session.end()).toEqual([]);
 	});
 
 	it('cancels a Floating Selection drag without emitting a commit effect', () => {

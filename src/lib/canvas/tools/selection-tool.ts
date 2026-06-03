@@ -84,7 +84,7 @@ export const selectionTool = customTool({
 				if (isReferenceLayerActive(host.document)) return NO_EFFECTS;
 				if (!anchor) return NO_EFFECTS;
 				if (mode === 'liftAndDrag') {
-					return hasFloatingSelectionStarted ? [{ type: 'commitFloatingSelection' }] : NO_EFFECTS;
+					return NO_EFFECTS;
 				}
 				if (!hasUserDragged) {
 					if (initialMarquee && !initialMarquee.contains(anchor.x, anchor.y)) {

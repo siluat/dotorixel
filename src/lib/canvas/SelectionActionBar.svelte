@@ -1,10 +1,13 @@
 <script lang="ts">
 	import {
+		Check,
 		ClipboardPaste,
 		Copy,
+		CopyPlus,
 		Scissors,
 		SquareDashedMousePointer,
-		Trash2
+		Trash2,
+		X
 	} from 'lucide-svelte';
 	import type { ComponentType } from 'svelte';
 	import * as m from '$lib/paraglide/messages';
@@ -40,6 +43,8 @@
 		onPasteSelectionClipboard?: () => void;
 		onDeleteMarqueePixels?: () => void;
 		onClearMarqueeOrFloating?: () => void;
+		onCommitFloatingSelection?: () => void;
+		onDuplicateFloatingSelection?: () => void;
 	}
 
 	let {
@@ -55,7 +60,9 @@
 		onCutSelection,
 		onPasteSelectionClipboard,
 		onDeleteMarqueePixels,
-		onClearMarqueeOrFloating
+		onClearMarqueeOrFloating,
+		onCommitFloatingSelection,
+		onDuplicateFloatingSelection
 	}: Props = $props();
 
 	type Rect = {
@@ -74,12 +81,15 @@
 	};
 
 	const projectedRect = $derived.by(() => {
-		if (!marquee || floatingSelectionOffset) return null;
+		if (!marquee) return null;
 
-		const left = Math.max(0, marquee.x);
-		const top = Math.max(0, marquee.y);
-		const right = Math.min(canvasWidth, marquee.x + marquee.width);
-		const bottom = Math.min(canvasHeight, marquee.y + marquee.height);
+		const offset = floatingSelectionOffset ?? { dx: 0, dy: 0 };
+		const marqueeX = marquee.x + offset.dx;
+		const marqueeY = marquee.y + offset.dy;
+		const left = Math.max(0, marqueeX);
+		const top = Math.max(0, marqueeY);
+		const right = Math.min(canvasWidth, marqueeX + marquee.width);
+		const bottom = Math.min(canvasHeight, marqueeY + marquee.height);
 		if (left >= right || top >= bottom) return null;
 
 		const scaledPixel = Math.round(viewport.pixelSize * viewport.zoom);
@@ -94,7 +104,7 @@
 
 	const showLabel = $derived(viewportSize.width >= MEDIUM_VIEWPORT_MIN_WIDTH);
 	const showTooltip = $derived(viewportSize.width >= WIDE_VIEWPORT_MIN_WIDTH);
-	const actions = $derived<SelectionAction[]>([
+	const idleActions = $derived<SelectionAction[]>([
 		{
 			label: m.action_selectionCopy(),
 			icon: Copy,
@@ -123,6 +133,24 @@
 			handler: onClearMarqueeOrFloating
 		}
 	]);
+	const floatingActions = $derived<SelectionAction[]>([
+		{
+			label: m.action_selectionDone(),
+			icon: Check,
+			handler: onCommitFloatingSelection
+		},
+		{
+			label: m.action_selectionCancel(),
+			icon: X,
+			handler: onClearMarqueeOrFloating
+		},
+		{
+			label: m.action_selectionDuplicate(),
+			icon: CopyPlus,
+			handler: onDuplicateFloatingSelection
+		}
+	]);
+	const actions = $derived(floatingSelectionOffset ? floatingActions : idleActions);
 	const estimatedActionBarWidth = $derived(estimateActionBarWidth(actions, showLabel));
 	let actionBarEl: HTMLDivElement | undefined = $state();
 	let measuredActionBarWidth = $state(0);
@@ -290,17 +318,17 @@
 		cursor: default;
 	}
 
+	.selection-action::before {
+		content: '';
+		position: absolute;
+		width: 44px;
+		height: 44px;
+	}
+
 	@media (max-width: 599px) {
 		.selection-action {
 			width: 36px;
 			padding: 0;
-		}
-
-		.selection-action::before {
-			content: '';
-			position: absolute;
-			width: 44px;
-			height: 44px;
 		}
 	}
 

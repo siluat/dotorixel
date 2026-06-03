@@ -52,6 +52,8 @@
 		onPasteSelectionClipboard?: () => void;
 		onDeleteMarqueePixels?: () => void;
 		onClearMarqueeOrFloating?: () => void;
+		onCommitFloatingSelection?: () => void;
+		onDuplicateFloatingSelection?: () => void;
 		activeTool?: ToolType;
 		toolCursor?: string;
 		selectionDragPhase?: SelectionDragPhase;
@@ -89,6 +91,8 @@
 		onPasteSelectionClipboard,
 		onDeleteMarqueePixels,
 		onClearMarqueeOrFloating,
+		onCommitFloatingSelection,
+		onDuplicateFloatingSelection,
 		activeTool = 'pencil',
 		toolCursor = 'crosshair',
 		selectionDragPhase = 'defineMarquee',
@@ -710,6 +714,8 @@
 	{onPasteSelectionClipboard}
 	{onDeleteMarqueePixels}
 	{onClearMarqueeOrFloating}
+	{onCommitFloatingSelection}
+	{onDuplicateFloatingSelection}
 />
 
 {#if samplingSession?.position}

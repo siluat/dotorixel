@@ -4,7 +4,6 @@
 
 - Touch modifier alternatives (Shift-constrain, Alt-eyedropper UI for touchscreen) — **blocks** Shift-related Selection sub-issues
 - Selection tool — Marquee with move/copy/paste and per-tool clipping ([PRD](../issues/131-selection-tool-rectangle-select-move-nudge-copy-paste.md))
-  - [150 — Action Bar Floating state](../issues/150-selection-action-bar-floating-state.md)
   - [151 — Shift = square define (blocked by external Touch modifier alternatives)](../issues/151-shift-square-define.md)
   - [152 — Shift = axis lock during Floating drag (blocked by external Touch modifier alternatives)](../issues/152-shift-axis-lock-during-floating-drag.md)
 - Copy/paste

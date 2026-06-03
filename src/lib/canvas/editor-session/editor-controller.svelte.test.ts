@@ -299,6 +299,33 @@ describe('EditorController — handler delegation', () => {
 		expect(editor.canUndo).toBe(true);
 	});
 
+	it('commitFloatingSelection commits an idle Floating Selection through the controller', () => {
+		const { editor, notifier } = makeController();
+		const pixels = new Uint8Array(editor.canvasWidth * editor.canvasHeight * 4);
+		pixels.set(makePixelRgba(RED), (1 * editor.canvasWidth + 1) * 4);
+		pixels.set(makePixelRgba(WHITE), (1 * editor.canvasWidth + 2) * 4);
+		editor.document.restore_active_layer_pixels(pixels);
+		editor.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 1));
+		notifier.reset();
+
+		editor.workspace.activeTab.nudgeMarquee(1, 1);
+		expect(editor.floatingSelectionOffset).toEqual({ dx: 1, dy: 1 });
+
+		editor.commitFloatingSelection();
+
+		expect(editor.floatingSelectionOffset).toBeUndefined();
+		expect(editor.marquee).toMatchObject({ x: 2, y: 2, width: 2, height: 1 });
+		expect(getPixel(editor, 2, 2)).toEqual(RED);
+		expect(getPixel(editor, 3, 2)).toEqual(WHITE);
+		expect(notifier.dirtyCalls).toEqual([editor.workspace.activeTab.documentId]);
+
+		editor.handleUndo();
+
+		expect(getPixel(editor, 1, 1)).toEqual(RED);
+		expect(getPixel(editor, 2, 1)).toEqual(WHITE);
+		expect(editor.marquee).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+	});
+
 	it('Escape does not clear an in-flight Floating Selection through the wired keyboard host', () => {
 		const { editor, notifier } = makeController();
 		const pixels = new Uint8Array(editor.canvasWidth * editor.canvasHeight * 4);

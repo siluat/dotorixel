@@ -627,6 +627,33 @@ describe('Workspace — shared state propagation', () => {
 		expect(tab.document.marquee()).toMatchObject({ x: 0, y: 0, width: 1, height: 1 });
 	});
 
+	it('undo after committing a paste restores the absence of a pre-paste Marquee', () => {
+		const source = new Uint8Array(4 * 4 * 4);
+		const { workspace } = makeWorkspace();
+		const tab = workspace.openDocument({
+			id: 'paste-undo-no-marquee-doc',
+			name: 'Paste Undo Without Marquee',
+			width: 4,
+			height: 4,
+			pixels: source.slice()
+		});
+		workspace.setSelectionClipboard({
+			pixels: rgba([0, 255, 0, 255, 0, 0, 255, 255]),
+			width: 2,
+			height: 1
+		});
+
+		workspace.pasteSelectionClipboard();
+		tab.commitFloatingSelection();
+
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+
+		tab.undo();
+
+		expect(tab.document.layer_pixels_at(0)).toEqual(source);
+		expect(tab.document.marquee()).toBeUndefined();
+	});
+
 	it('canceling a pasted Floating Selection restores pre-paste pixels and Marquee', () => {
 		const source = new Uint8Array(4 * 4 * 4);
 		source.set(rgba([255, 0, 0, 255]), (1 * 4 + 1) * 4);

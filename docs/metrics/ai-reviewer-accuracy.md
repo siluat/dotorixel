@@ -6,14 +6,18 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 139 | 105 | 34 | 139 | 76% | 43% |
-| cubic-dev-ai[bot] | 94 | 78 | 16 | 162 | 83% | 33% |
-| coderabbitai[bot] | 195 | 139 | 56 | 98 | 71% | 59% |
+| greptile-apps[bot] | 140 | 106 | 34 | 139 | 76% | 43% |
+| cubic-dev-ai[bot] | 95 | 79 | 16 | 162 | 83% | 33% |
+| coderabbitai[bot] | 196 | 139 | 57 | 99 | 71% | 58% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #248 | greptile-apps[bot] | Accept | Preserve explicit null pre-paste Marquee snapshot during Floating Selection commit undo |
+| #248 | cubic-dev-ai[bot] | Accept | Preserve explicit null pre-paste Marquee snapshot during Floating Selection commit undo |
+| #248 | coderabbitai[bot] | Reject | Paste remains a transient Floating Selection preview until commit marks the document dirty |
+| #248 | coderabbitai[bot] | Miss | Did not flag explicit null pre-paste Marquee snapshot fallback |
 | #245 | greptile-apps[bot] | Reject | Keep arrow-key preventDefault before drawing guard to suppress native scroll |
 | #245 | greptile-apps[bot] | Accept | Document intentional key-repeat behavior for arrow nudge |
 | #245 | greptile-apps[bot] | Accept | Rename idle Floating Selection commit helper to match UI and document call sites |

@@ -161,7 +161,8 @@ export class DocumentChangeJournal {
 		if (intent.type !== 'commit-floating-selection') return;
 		const baseline = intent.sourceLayerPixelsBeforeLift;
 		if (!baseline) return;
-		const snapshotMarquee = intent.snapshotMarquee ?? intent.sourceRegion;
+		const snapshotMarquee =
+			intent.snapshotMarquee === undefined ? intent.sourceRegion : intent.snapshotMarquee;
 
 		this.#withActiveLayer(intent.sourceLayerId, (document) => {
 			document.restore_active_layer_pixels(baseline);

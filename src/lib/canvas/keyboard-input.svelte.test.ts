@@ -16,6 +16,7 @@ function createHost(overrides?: Partial<KeyboardInputHost>): KeyboardInputHost {
 		clearMarqueePixels: vi.fn(),
 		copySelection: vi.fn(),
 		cutSelection: vi.fn(),
+		pasteSelectionClipboard: vi.fn(),
 		nudgeMarquee: vi.fn(),
 		notifyModifierChange: vi.fn(),
 		...overrides
@@ -428,6 +429,55 @@ describe('Selection cut', () => {
 		expect(event.preventDefault).toHaveBeenCalled();
 		expect(host.cutSelection).toHaveBeenCalledOnce();
 		expect(host.swapColors).not.toHaveBeenCalled();
+	});
+});
+
+// ── Selection paste ───────────────────────────────────────────
+
+describe('Selection paste', () => {
+	it.each([
+		['Ctrl+V', { ctrlKey: true }],
+		['Cmd+V', { metaKey: true }]
+	])('pastes the Selection Clipboard on %s while idle', (_label, modifiers) => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		const event = keyDown('KeyV', { key: 'v', ...modifiers });
+
+		kb.handleKeyDown(event);
+
+		expect(event.preventDefault).toHaveBeenCalled();
+		expect(host.pasteSelectionClipboard).toHaveBeenCalledOnce();
+		expect(host.setActiveTool).not.toHaveBeenCalled();
+	});
+
+	it('does not treat AltGr-style Ctrl+Alt+V as a paste shortcut', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+		const event = keyDown('KeyV', { key: 'v', ctrlKey: true, altKey: true });
+
+		kb.handleKeyDown(event);
+
+		expect(event.preventDefault).not.toHaveBeenCalled();
+		expect(host.pasteSelectionClipboard).not.toHaveBeenCalled();
+		expect(host.setActiveTool).not.toHaveBeenCalled();
+	});
+
+	it('does not paste while drawing', () => {
+		const host = createHost({ isDrawing: vi.fn(() => true) });
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('KeyV', { key: 'v', metaKey: true }));
+
+		expect(host.pasteSelectionClipboard).not.toHaveBeenCalled();
+	});
+
+	it('ignores repeat paste shortcuts', () => {
+		const host = createHost();
+		const kb = createKeyboardInput(host);
+
+		kb.handleKeyDown(keyDown('KeyV', { key: 'v', metaKey: true, repeat: true }));
+
+		expect(host.pasteSelectionClipboard).not.toHaveBeenCalled();
 	});
 });
 

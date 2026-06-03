@@ -1,6 +1,6 @@
 ---
 title: "Paste (Cmd+V) — Floating Selection at viewport ∩ canvas center"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -56,3 +56,26 @@ Tests:
 
 - [143 — Selection Clipboard + Copy (Cmd+C) + workspace persistence](143-selection-clipboard-and-copy.md)
 - [142 — Selection drag-to-move](142-selection-drag-to-move.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/keyboard-input.svelte.ts` | Routed Cmd/Ctrl+V to a paste host callback with repeat, drawing, and AltGr-style guards. |
+| `src/lib/canvas/editor-session/create-editor-controller.ts` | Connected keyboard paste commands to the workspace session. |
+| `src/lib/canvas/editor-session/workspace.svelte.ts` | Added workspace-level paste orchestration using the shared Selection Clipboard. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Added clipboard-to-Floating paste behavior, visible-canvas centering, canvas-center fallback, Reference-active no-op, and invalid clipboard guards. |
+| `src/lib/canvas/editor-session/document-change-journal.svelte.ts` | Extended Floating Selection commit snapshots so paste can preserve pre-paste Marquee state without clearing a source region. |
+| `src/lib/canvas/keyboard-input.svelte.test.ts` | Covered Ctrl/Cmd+V dispatch and shortcut guard behavior. |
+| `src/lib/canvas/editor-session/workspace.svelte.test.ts` | Covered paste positioning, off-screen fallback, commit-first behavior, empty/Reference-active no-ops, cancel/undo restoration, and off-canvas clipping. |
+
+### Key Decisions
+
+- Reused the existing Floating Selection lifecycle for paste so pasted pixels behave like moved pixels after creation.
+- Kept paste as a preview-only mutation until the Floating Selection commits; undo/cancel restore the pre-paste document pixels and Marquee.
+- Added commit metadata to distinguish drag-origin Floating Selections, which clear the source region, from paste-origin Floating Selections, which do not.
+
+### Notes
+
+- Paste is keyboard-reachable now; touch-accessible paste remains part of the Selection Action Bar follow-up.
+- Validation: `bun run check`; `bun run test`.

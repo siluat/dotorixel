@@ -258,6 +258,12 @@ export class Workspace {
 		}
 	}
 
+	pasteSelectionClipboard(): void {
+		const clipboard = this.shared.selectionClipboard;
+		if (!clipboard) return;
+		this.activeTab.pasteSelectionClipboard(clipboard);
+	}
+
 	setActiveResizeAnchor(anchor: ResizeAnchor): void {
 		// Resize anchor is a transient per-tab UI parameter; not persistable.
 		this.activeTab.resizeAnchor = anchor;

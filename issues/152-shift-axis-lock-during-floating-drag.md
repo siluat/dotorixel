@@ -1,6 +1,6 @@
 ---
 title: "Shift = axis lock during Floating Selection drag"
-status: ready-for-agent
+status: done
 created: 2026-05-30
 parent: 131-selection-tool-rectangle-select-move-nudge-copy-paste.md
 ---
@@ -39,3 +39,22 @@ Tests:
 ## Blocked by
 
 - [142 — Selection drag-to-move](142-selection-drag-to-move.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/tool-constraints.ts` | Added the shared axis constraint helper for horizontal/vertical locking from an anchor point. |
+| `src/lib/canvas/tool-registry.ts` | Re-exported the axis constraint helper alongside the existing line and square constraints. |
+| `src/lib/canvas/tools/selection-tool.ts` | Applied physical-keyboard Shift axis locking to Floating Selection drag offsets and mid-drag modifier refreshes. |
+| `src/lib/canvas/tool-registry.test.ts` | Covered the new axis constraint helper contract. |
+| `src/lib/canvas/tools/selection-tool.test.ts` | Covered Shift-held axis drag, mid-drag press/release, vertical-axis selection, and lock stability while Shift remains held. |
+
+### Key Decisions
+
+- Floating Selection stores the chosen axis while Shift remains held, so the lock does not jump between axes as the pointer crosses the opposite delta.
+- Releasing Shift clears the stored axis; pressing Shift again chooses the axis from the current drag delta.
+
+### Notes
+
+- Touch-reachable Shift parity remains in the project-wide Touch modifier alternatives task.

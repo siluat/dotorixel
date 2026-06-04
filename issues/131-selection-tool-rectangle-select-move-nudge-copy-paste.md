@@ -1,6 +1,6 @@
 ---
 title: "Selection tool — Marquee with move/copy/paste and per-tool clipping"
-status: needs-triage
+status: done
 created: 2026-05-28
 ---
 

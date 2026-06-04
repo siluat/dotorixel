@@ -22,6 +22,14 @@ export function constrainLine(start: CanvasCoords, end: CanvasCoords): CanvasCoo
 	};
 }
 
+/** Locks `end` to the horizontal or vertical axis with the larger movement from `start`. */
+export function constrainAxis(start: CanvasCoords, end: CanvasCoords): CanvasCoords {
+	const dx = end.x - start.x;
+	const dy = end.y - start.y;
+
+	return Math.abs(dx) >= Math.abs(dy) ? { x: end.x, y: start.y } : { x: start.x, y: end.y };
+}
+
 /** Forces the bounding box defined by `start` and `end` into a square. */
 export function constrainSquare(start: CanvasCoords, end: CanvasCoords): CanvasCoords {
 	const dx = end.x - start.x;

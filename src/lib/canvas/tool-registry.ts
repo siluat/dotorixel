@@ -5,7 +5,7 @@ import { eyedropperTool } from './tools/eyedropper-tool';
 import { moveTool } from './tools/move-tool';
 import { selectionTool } from './tools/selection-tool';
 import { lineTool, rectangleTool, ellipseTool } from './tools/shape-tool';
-export { constrainLine, constrainSquare } from './tool-constraints';
+export { constrainAxis, constrainLine, constrainSquare } from './tool-constraints';
 
 // ── ToolDef ────────────────────────────────────────────────────────
 

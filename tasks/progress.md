@@ -6,11 +6,11 @@ None
 
 ## Last Completed
 
-[152 — Shift = axis lock during Floating Selection drag](../issues/152-shift-axis-lock-during-floating-drag.md): Physical-keyboard Shift now axis-locks Floating Selection drags. This completes the Selection PRD's planned web slices; touch modifier parity remains in the project-wide Touch modifier alternatives task.
+[156 — Deepen Floating Selection lifecycle ownership](../issues/156-deepen-floating-selection-lifecycle.md): Floating Selection transient state now has a dedicated web-shell lifecycle owner. The undoable commit boundary remains in the Document Change Journal.
 
 ## Next Up
 
-- Touch modifier alternatives (touch Shift/Alt modifier parity)
+- Touch modifier alternatives (touch Shift-constrain, Selection axis lock, Alt-eyedropper UI)
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load
@@ -18,11 +18,6 @@ None
 - Feature guide page (basic usage instructions)
 - (review) In-editor feedback widget
 - Frame management (add/delete/duplicate/reorder)
-- Per-frame speed control
-- Timeline UI
-- Onion skinning
-- Animation preview (play/pause in editor)
-- GIF/spritesheet export
 - Feedback link to Google Form
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
 - Apple Phase 1 — Enable clear canvas (existing disabled button)

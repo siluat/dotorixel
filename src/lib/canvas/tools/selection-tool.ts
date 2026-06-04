@@ -1,5 +1,6 @@
 import type { CanvasCoords, Document, MarqueeRegion } from '../canvas-model';
 import { MARQUEE_PREVIEW_CHANGED, NO_EFFECTS, type ToolEffects } from '../draw-tool';
+import { constrainAxis } from '../tool-constraints';
 import { customTool } from '../tool-authoring';
 import { copyMarqueeRegion, marqueeRegionFromDrag } from '../wasm-backend';
 
@@ -73,6 +74,7 @@ function squareMarqueeFromDrag(
 }
 
 type SelectionStrokeMode = 'pending' | 'defineMarquee' | 'liftAndDrag';
+type FloatingSelectionAxisLock = 'horizontal' | 'vertical';
 
 export const selectionTool = customTool({
 	id: 'selection',
@@ -84,6 +86,7 @@ export const selectionTool = customTool({
 		let hasUserDragged = false;
 		let mode: SelectionStrokeMode = 'pending';
 		let hasFloatingSelectionStarted = false;
+		let floatingAxisLock: FloatingSelectionAxisLock | null = null;
 
 		function preview(region: MarqueeRegion | null): ToolEffects {
 			draftMarquee = region;
@@ -99,6 +102,32 @@ export const selectionTool = customTool({
 			return preview(region);
 		}
 
+		function applyAxisLock(
+			anchorCoords: CanvasCoords,
+			currentCoords: CanvasCoords,
+			axis: FloatingSelectionAxisLock
+		): CanvasCoords {
+			return axis === 'horizontal'
+				? { x: currentCoords.x, y: anchorCoords.y }
+				: { x: anchorCoords.x, y: currentCoords.y };
+		}
+
+		function resolveFloatingOffsetFromDrag(anchorCoords: CanvasCoords, currentCoords: CanvasCoords) {
+			if (!host.isShiftHeld()) {
+				floatingAxisLock = null;
+				return { dx: currentCoords.x - anchorCoords.x, dy: currentCoords.y - anchorCoords.y };
+			}
+
+			if (!floatingAxisLock) {
+				const constrainedCurrent = constrainAxis(anchorCoords, currentCoords);
+				floatingAxisLock = constrainedCurrent.y === anchorCoords.y ? 'horizontal' : 'vertical';
+				return { dx: constrainedCurrent.x - anchorCoords.x, dy: constrainedCurrent.y - anchorCoords.y };
+			}
+
+			const constrainedCurrent = applyAxisLock(anchorCoords, currentCoords, floatingAxisLock);
+			return { dx: constrainedCurrent.x - anchorCoords.x, dy: constrainedCurrent.y - anchorCoords.y };
+		}
+
 		function resetStrokeState() {
 			initialMarquee = undefined;
 			anchor = null;
@@ -107,6 +136,7 @@ export const selectionTool = customTool({
 			hasUserDragged = false;
 			mode = 'pending';
 			hasFloatingSelectionStarted = false;
+			floatingAxisLock = null;
 		}
 
 		return {
@@ -133,7 +163,7 @@ export const selectionTool = customTool({
 				if (mode === 'liftAndDrag' && initialMarquee) {
 					const moveEffect = {
 						type: 'moveFloatingSelection' as const,
-						offset: { dx: currentCoords.x - anchor.x, dy: currentCoords.y - anchor.y }
+						offset: resolveFloatingOffsetFromDrag(anchor, currentCoords)
 					};
 					if (hasFloatingSelectionStarted) return [moveEffect];
 					hasFloatingSelectionStarted = true;
@@ -143,8 +173,17 @@ export const selectionTool = customTool({
 			},
 			modifierChanged() {
 				if (isReferenceLayerActive(host.document)) return NO_EFFECTS;
-				if (mode !== 'defineMarquee' || !hasUserDragged || !lastCurrentCoords) return NO_EFFECTS;
-				return previewMarqueeFromDrag(lastCurrentCoords);
+				if (!anchor || !hasUserDragged || !lastCurrentCoords) return NO_EFFECTS;
+				if (mode === 'defineMarquee') return previewMarqueeFromDrag(lastCurrentCoords);
+				if (mode === 'liftAndDrag' && hasFloatingSelectionStarted) {
+					return [
+						{
+							type: 'moveFloatingSelection',
+							offset: resolveFloatingOffsetFromDrag(anchor, lastCurrentCoords)
+						}
+					];
+				}
+				return NO_EFFECTS;
 			},
 			end() {
 				if (isReferenceLayerActive(host.document)) {

@@ -297,6 +297,87 @@ describe('selectionTool', () => {
 		expect(session.end()).toEqual([]);
 	});
 
+	it('constrains a Floating Selection drag to the larger axis while physical Shift is held', () => {
+		const initial = region(1, 1, 4, 4);
+		const ctx = createHost({ isShiftHeld: () => true });
+		ctx.currentMarquee = initial;
+		const session = selectionTool.open(ctx.host, strokeSpec);
+
+		expect(session.start()).toEqual([]);
+		expect(session.draw({ x: 2, y: 1 }, null)).toEqual([]);
+
+		expect(session.draw({ x: 5, y: 3 }, { x: 2, y: 1 })).toEqual([
+			{ type: 'beginFloatingSelection', sourceRegion: initial },
+			{ type: 'moveFloatingSelection', offset: { dx: 3, dy: 0 } }
+		]);
+	});
+
+	it('keeps the Floating Selection axis locked while physical Shift remains held', () => {
+		const initial = region(1, 1, 4, 4);
+		const ctx = createHost({ isShiftHeld: () => true });
+		ctx.currentMarquee = initial;
+		const session = selectionTool.open(ctx.host, strokeSpec);
+
+		expect(session.start()).toEqual([]);
+		expect(session.draw({ x: 2, y: 1 }, null)).toEqual([]);
+		expect(session.draw({ x: 5, y: 3 }, { x: 2, y: 1 })).toEqual([
+			{ type: 'beginFloatingSelection', sourceRegion: initial },
+			{ type: 'moveFloatingSelection', offset: { dx: 3, dy: 0 } }
+		]);
+
+		expect(session.draw({ x: 5, y: 6 }, { x: 5, y: 3 })).toEqual([
+			{ type: 'moveFloatingSelection', offset: { dx: 3, dy: 0 } }
+		]);
+	});
+
+	it('updates a Floating Selection drag when physical Shift changes mid-drag', () => {
+		let shiftHeld = false;
+		const initial = region(1, 1, 4, 4);
+		const ctx = createHost({ isShiftHeld: () => shiftHeld });
+		ctx.currentMarquee = initial;
+		const session = selectionTool.open(ctx.host, strokeSpec);
+
+		expect(session.start()).toEqual([]);
+		expect(session.draw({ x: 2, y: 1 }, null)).toEqual([]);
+		expect(session.draw({ x: 5, y: 3 }, { x: 2, y: 1 })).toEqual([
+			{ type: 'beginFloatingSelection', sourceRegion: initial },
+			{ type: 'moveFloatingSelection', offset: { dx: 3, dy: 2 } }
+		]);
+
+		shiftHeld = true;
+
+		expect(session.modifierChanged()).toEqual([
+			{ type: 'moveFloatingSelection', offset: { dx: 3, dy: 0 } }
+		]);
+
+		shiftHeld = false;
+
+		expect(session.modifierChanged()).toEqual([
+			{ type: 'moveFloatingSelection', offset: { dx: 3, dy: 2 } }
+		]);
+	});
+
+	it('uses the vertical axis when it is larger at the time physical Shift is held', () => {
+		let shiftHeld = false;
+		const initial = region(1, 1, 4, 4);
+		const ctx = createHost({ isShiftHeld: () => shiftHeld });
+		ctx.currentMarquee = initial;
+		const session = selectionTool.open(ctx.host, strokeSpec);
+
+		expect(session.start()).toEqual([]);
+		expect(session.draw({ x: 2, y: 1 }, null)).toEqual([]);
+		expect(session.draw({ x: 3, y: 5 }, { x: 2, y: 1 })).toEqual([
+			{ type: 'beginFloatingSelection', sourceRegion: initial },
+			{ type: 'moveFloatingSelection', offset: { dx: 1, dy: 4 } }
+		]);
+
+		shiftHeld = true;
+
+		expect(session.modifierChanged()).toEqual([
+			{ type: 'moveFloatingSelection', offset: { dx: 0, dy: 4 } }
+		]);
+	});
+
 	it('cancels a Floating Selection drag without emitting a commit effect', () => {
 		const initial = region(1, 1, 3, 2);
 		const ctx = createHost();

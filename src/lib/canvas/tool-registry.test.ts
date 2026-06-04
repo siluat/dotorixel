@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+	constrainAxis,
 	constrainLine,
 	constrainSquare,
 	TOOL_TYPES,
@@ -56,6 +57,24 @@ describe('constrainLine', () => {
 
 	it('forces diagonal distance to max(|dx|, |dy|)', () => {
 		expect(constrainLine(start, { x: 7, y: 6 })).toEqual({ x: 7, y: 7 });
+	});
+});
+
+// ── constrainAxis ──────────────────────────────────────────────────
+
+describe('constrainAxis', () => {
+	const start = { x: 4, y: 4 };
+
+	it('keeps the horizontal delta when x is the larger movement', () => {
+		expect(constrainAxis(start, { x: 8, y: 6 })).toEqual({ x: 8, y: 4 });
+	});
+
+	it('keeps the vertical delta when y is the larger movement', () => {
+		expect(constrainAxis(start, { x: 6, y: 9 })).toEqual({ x: 4, y: 9 });
+	});
+
+	it('prefers horizontal on equal deltas', () => {
+		expect(constrainAxis(start, { x: 7, y: 7 })).toEqual({ x: 7, y: 4 });
 	});
 });
 

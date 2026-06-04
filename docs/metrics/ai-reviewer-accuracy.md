@@ -6,14 +6,23 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 142 | 108 | 34 | 142 | 76% | 43% |
-| cubic-dev-ai[bot] | 96 | 80 | 16 | 166 | 83% | 33% |
-| coderabbitai[bot] | 198 | 141 | 57 | 102 | 71% | 58% |
+| greptile-apps[bot] | 144 | 110 | 34 | 143 | 76% | 43% |
+| cubic-dev-ai[bot] | 97 | 81 | 16 | 168 | 84% | 33% |
+| coderabbitai[bot] | 200 | 143 | 57 | 103 | 72% | 58% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #252 | greptile-apps[bot] | Accept | Add vertical constrainAxis helper test |
+| #252 | coderabbitai[bot] | Accept | Add vertical and tie-break constrainAxis helper tests |
+| #252 | cubic-dev-ai[bot] | Miss | Did not flag incomplete constrainAxis helper branch coverage |
+| #252 | greptile-apps[bot] | Accept | Derive stored Floating Selection axis from constrainAxis output |
+| #252 | cubic-dev-ai[bot] | Accept | Derive stored Floating Selection axis from constrainAxis output |
+| #252 | coderabbitai[bot] | Miss | Did not flag duplicated axis-selection logic |
+| #252 | coderabbitai[bot] | Accept | Rename stateful Floating Selection offset helper away from query-style wording |
+| #252 | greptile-apps[bot] | Miss | Did not flag stateful Floating Selection offset helper naming |
+| #252 | cubic-dev-ai[bot] | Miss | Did not flag stateful Floating Selection offset helper naming |
 | #251 | cubic-dev-ai[bot] | Accept | Clear DefineMarquee stroke state after commit to prevent stale modifier preview |
 | #251 | coderabbitai[bot] | Miss | Did not flag stale DefineMarquee modifier preview after stroke end |
 | #251 | greptile-apps[bot] | Miss | Did not flag stale DefineMarquee modifier preview after stroke end |

@@ -68,6 +68,14 @@ describe('constrainAxis', () => {
 	it('keeps the horizontal delta when x is the larger movement', () => {
 		expect(constrainAxis(start, { x: 8, y: 6 })).toEqual({ x: 8, y: 4 });
 	});
+
+	it('keeps the vertical delta when y is the larger movement', () => {
+		expect(constrainAxis(start, { x: 6, y: 9 })).toEqual({ x: 4, y: 9 });
+	});
+
+	it('prefers horizontal on equal deltas', () => {
+		expect(constrainAxis(start, { x: 7, y: 7 })).toEqual({ x: 7, y: 4 });
+	});
 });
 
 // ── constrainSquare ────────────────────────────────────────────────

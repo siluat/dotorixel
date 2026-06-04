@@ -102,15 +102,6 @@ export const selectionTool = customTool({
 			return preview(region);
 		}
 
-		function axisLockFromDrag(
-			anchorCoords: CanvasCoords,
-			currentCoords: CanvasCoords
-		): FloatingSelectionAxisLock {
-			const dx = currentCoords.x - anchorCoords.x;
-			const dy = currentCoords.y - anchorCoords.y;
-			return Math.abs(dx) >= Math.abs(dy) ? 'horizontal' : 'vertical';
-		}
-
 		function applyAxisLock(
 			anchorCoords: CanvasCoords,
 			currentCoords: CanvasCoords,
@@ -121,15 +112,15 @@ export const selectionTool = customTool({
 				: { x: anchorCoords.x, y: currentCoords.y };
 		}
 
-		function floatingOffsetFromDrag(anchorCoords: CanvasCoords, currentCoords: CanvasCoords) {
+		function resolveFloatingOffsetFromDrag(anchorCoords: CanvasCoords, currentCoords: CanvasCoords) {
 			if (!host.isShiftHeld()) {
 				floatingAxisLock = null;
 				return { dx: currentCoords.x - anchorCoords.x, dy: currentCoords.y - anchorCoords.y };
 			}
 
 			if (!floatingAxisLock) {
-				floatingAxisLock = axisLockFromDrag(anchorCoords, currentCoords);
 				const constrainedCurrent = constrainAxis(anchorCoords, currentCoords);
+				floatingAxisLock = constrainedCurrent.y === anchorCoords.y ? 'horizontal' : 'vertical';
 				return { dx: constrainedCurrent.x - anchorCoords.x, dy: constrainedCurrent.y - anchorCoords.y };
 			}
 
@@ -172,7 +163,7 @@ export const selectionTool = customTool({
 				if (mode === 'liftAndDrag' && initialMarquee) {
 					const moveEffect = {
 						type: 'moveFloatingSelection' as const,
-						offset: floatingOffsetFromDrag(anchor, currentCoords)
+						offset: resolveFloatingOffsetFromDrag(anchor, currentCoords)
 					};
 					if (hasFloatingSelectionStarted) return [moveEffect];
 					hasFloatingSelectionStarted = true;
@@ -188,7 +179,7 @@ export const selectionTool = customTool({
 					return [
 						{
 							type: 'moveFloatingSelection',
-							offset: floatingOffsetFromDrag(anchor, lastCurrentCoords)
+							offset: resolveFloatingOffsetFromDrag(anchor, lastCurrentCoords)
 						}
 					];
 				}

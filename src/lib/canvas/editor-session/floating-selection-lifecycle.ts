@@ -31,6 +31,7 @@ interface FloatingSelection {
 
 export interface FloatingSelectionLifecycleDeps {
 	readonly getDocument: () => Document;
+	readonly applyCommit: ApplyFloatingSelectionCommit;
 }
 
 const DUPLICATE_FLOATING_OFFSET: FloatingSelectionOffset = { dx: 1, dy: 1 };
@@ -135,9 +136,10 @@ function isValidClipboard(clipboard: SelectionClipboardData): boolean {
  *
  * The module mutates the active Document only for transient preview state:
  * lift clears the source region, cancel restores it, and preview reads
- * composite pixels with the floating buffer overlaid. Undoable persistence is
- * deliberately outside this module; callers must apply returned commit intents
- * through the Document Change Journal immediately.
+ * composite pixels with the floating buffer overlaid. Undoable persistence
+ * still crosses the Document Change Journal seam through `applyCommit`, but
+ * selection-local policy such as paste-before-commit, duplicate, nudge auto-lift,
+ * and selection drag projection stays behind this interface.
  */
 export class FloatingSelectionLifecycle {
 	#deps: FloatingSelectionLifecycleDeps;
@@ -180,16 +182,9 @@ export class FloatingSelectionLifecycle {
 		return true;
 	}
 
-	materializeFromClipboard(
-		clipboard: SelectionClipboardData,
-		sourceRegion: MarqueeRegion,
-		applyCommit: ApplyFloatingSelectionCommit
-	): boolean {
+	pasteClipboard(clipboard: SelectionClipboardData, sourceRegion: MarqueeRegion): boolean {
 		if (!isValidClipboard(clipboard)) return false;
-		const currentCommit = this.takeCommitIntent();
-		if (currentCommit) {
-			applyCommit(currentCommit);
-		}
+		this.commit();
 
 		const document = this.#deps.getDocument();
 		const sourceLayerId = document.active_layer_id();
@@ -208,6 +203,15 @@ export class FloatingSelectionLifecycle {
 		return true;
 	}
 
+	nudgeMarquee(delta: FloatingSelectionOffset): boolean {
+		if (this.#floating) return this.#moveBy(delta);
+
+		const document = this.#deps.getDocument();
+		const marquee = document.marquee();
+		if (!marquee) return false;
+		return this.liftFromMarquee(marquee) && this.#moveBy(delta);
+	}
+
 	moveTo(offset: FloatingSelectionOffset): boolean {
 		const floating = this.#floating;
 		if (!floating) return false;
@@ -217,7 +221,7 @@ export class FloatingSelectionLifecycle {
 		return true;
 	}
 
-	moveBy(delta: FloatingSelectionOffset): boolean {
+	#moveBy(delta: FloatingSelectionOffset): boolean {
 		const floating = this.#floating;
 		if (!floating) return false;
 		return this.moveTo({
@@ -226,7 +230,7 @@ export class FloatingSelectionLifecycle {
 		});
 	}
 
-	duplicate(applyCommit: ApplyFloatingSelectionCommit): boolean {
+	duplicate(): boolean {
 		const floating = this.#floating;
 		if (!floating) return false;
 
@@ -236,9 +240,7 @@ export class FloatingSelectionLifecycle {
 			floating.offset.dy
 		);
 		const sourceLayerId = floating.sourceLayerId;
-		const currentCommit = this.takeCommitIntent();
-		if (!currentCommit) return false;
-		applyCommit(currentCommit);
+		if (!this.commit()) return false;
 
 		const document = this.#deps.getDocument();
 		const sourceLayerPixelsBeforeDuplicate = withDocumentActiveLayer(
@@ -274,7 +276,7 @@ export class FloatingSelectionLifecycle {
 		return true;
 	}
 
-	takeCommitIntent(): CommitFloatingSelectionIntent | null {
+	#takeCommitIntent(): CommitFloatingSelectionIntent | null {
 		const floating = this.#floating;
 		if (!floating) return null;
 		this.endSelectionDrag();
@@ -289,6 +291,13 @@ export class FloatingSelectionLifecycle {
 			snapshotMarquee: floating.snapshotMarquee,
 			sourceLayerPixelsBeforeLift: floating.sourceLayerPixelsBeforeLift
 		};
+	}
+
+	commit(): boolean {
+		const intent = this.#takeCommitIntent();
+		if (!intent) return false;
+		this.#deps.applyCommit(intent);
+		return true;
 	}
 
 	clipboardSnapshot(): SelectionClipboardData | null {
@@ -348,7 +357,7 @@ export class FloatingSelectionLifecycle {
 			: currentPixels;
 	}
 
-	projectMarqueeForSelectionDrag(): MarqueeRegion | null | undefined {
+	#projectMarqueeForSelectionDrag(): MarqueeRegion | null | undefined {
 		const floating = this.#floating;
 		if (!floating) return undefined;
 
@@ -364,7 +373,7 @@ export class FloatingSelectionLifecycle {
 		return originalMarquee ? copyMarqueeRegion(originalMarquee) : null;
 	}
 
-	restoreMarqueeAfterSelectionDragProjection(
+	#restoreMarqueeAfterSelectionDragProjection(
 		restoreMarquee: MarqueeRegion | null | undefined
 	): void {
 		if (restoreMarquee === undefined) return;
@@ -373,16 +382,28 @@ export class FloatingSelectionLifecycle {
 			.set_marquee(restoreMarquee ? copyMarqueeRegion(restoreMarquee) : null);
 	}
 
-	commitIfSelectionDragStartsOutside(
-		current: CanvasPoint,
-		previous: CanvasPoint | null
-	): CommitFloatingSelectionIntent | null {
+	withDrawStartPolicy<T>(isSelectionTool: boolean, run: () => T): T {
+		this.endSelectionDrag();
+		const restoreMarquee = isSelectionTool ? this.#projectMarqueeForSelectionDrag() : undefined;
+		if (restoreMarquee === undefined) {
+			this.commit();
+			return run();
+		}
+
+		try {
+			return run();
+		} finally {
+			this.#restoreMarqueeAfterSelectionDragProjection(restoreMarquee);
+		}
+	}
+
+	commitIfSelectionDragStartsOutside(current: CanvasPoint, previous: CanvasPoint | null): boolean {
 		const projectedRegion = this.#selectionDragProjectedRegion;
-		if (!projectedRegion || previous !== null) return null;
-		if (isPointInsideMarquee(current, projectedRegion)) return null;
+		if (!projectedRegion || previous !== null) return false;
+		if (isPointInsideMarquee(current, projectedRegion)) return false;
 
 		this.endSelectionDrag();
-		return this.takeCommitIntent();
+		return this.commit();
 	}
 
 	endSelectionDrag(): void {

@@ -229,7 +229,10 @@ export class TabState {
 		readonly read: DocumentLayerProjectionRead;
 	};
 	#selectionPreviewBaselineMarquee: TabSnapshot['marquee'] | undefined = undefined;
-	#floatingSelection = new FloatingSelectionLifecycle({ getDocument: () => this.document });
+	#floatingSelection = new FloatingSelectionLifecycle({
+		getDocument: () => this.document,
+		applyCommit: (intent) => this.#commitFloatingSelectionIntent(intent)
+	});
 
 	get viewport(): ViewportData {
 		return this.#tabViewport.viewport;
@@ -446,9 +449,7 @@ export class TabState {
 	}
 
 	#commitFloatingSelection(): void {
-		const intent = this.#floatingSelection.takeCommitIntent();
-		if (!intent) return;
-		this.#commitFloatingSelectionIntent(intent);
+		this.#floatingSelection.commit();
 	}
 
 	#commitIdleFloatingSelection(): void {
@@ -488,25 +489,17 @@ export class TabState {
 	}
 
 	drawStart = (button: number, pointerType: PointerType): void => {
-		this.#floatingSelection.endSelectionDrag();
-		const restoreMarquee =
-			this.shared.activeTool === 'selection'
-				? this.#floatingSelection.projectMarqueeForSelectionDrag()
-				: undefined;
-		if (restoreMarquee === undefined) {
-			this.#commitFloatingSelection();
-		}
-		const effects = this.#toolRunner.drawStart(button, pointerType);
-		this.#floatingSelection.restoreMarqueeAfterSelectionDragProjection(restoreMarquee);
+		const effects = this.#floatingSelection.withDrawStartPolicy(
+			this.shared.activeTool === 'selection',
+			() => this.#toolRunner.drawStart(button, pointerType)
+		);
 		this.#selectionPreviewBaselineMarquee =
 			this.shared.activeTool === 'selection' ? serializeMarquee(this.document.marquee()) : undefined;
 		this.#applyEffects(effects);
 	};
 
 	draw = (current: CanvasPoint, previous: CanvasPoint | null): void => {
-		const intent = this.#floatingSelection.commitIfSelectionDragStartsOutside(current, previous);
-		if (intent) {
-			this.#commitFloatingSelectionIntent(intent);
+		if (this.#floatingSelection.commitIfSelectionDragStartsOutside(current, previous)) {
 			this.#selectionPreviewBaselineMarquee =
 				this.shared.activeTool === 'selection'
 					? serializeMarquee(this.document.marquee())
@@ -644,15 +637,7 @@ export class TabState {
 	nudgeMarquee = (dx: number, dy: number): void => {
 		if (this.isDrawing) return;
 		if (this.layerProjection.activeLayerKind === 'reference') return;
-		if (this.#floatingSelection.isActive) {
-			this.#recordFloatingPreviewChanged(this.#floatingSelection.moveBy({ dx, dy }));
-			return;
-		}
-
-		const marquee = this.document.marquee();
-		if (!marquee) return;
-		this.#recordFloatingPreviewChanged(this.#floatingSelection.liftFromMarquee(marquee));
-		this.#recordFloatingPreviewChanged(this.#floatingSelection.moveBy({ dx, dy }));
+		this.#recordFloatingPreviewChanged(this.#floatingSelection.nudgeMarquee({ dx, dy }));
 	};
 
 	commitFloatingSelection = (): void => {
@@ -662,9 +647,7 @@ export class TabState {
 
 	duplicateFloatingSelection = (): void => {
 		if (this.isDrawing) return;
-		this.#recordFloatingPreviewChanged(
-			this.#floatingSelection.duplicate((intent) => this.#commitFloatingSelectionIntent(intent))
-		);
+		this.#recordFloatingPreviewChanged(this.#floatingSelection.duplicate());
 	};
 
 	pasteSelectionClipboard = (clipboard: SelectionClipboardData): void => {
@@ -675,9 +658,7 @@ export class TabState {
 
 		const sourceRegion = this.#pasteDestinationRegion(clipboard.width, clipboard.height);
 		this.#recordFloatingPreviewChanged(
-			this.#floatingSelection.materializeFromClipboard(clipboard, sourceRegion, (intent) =>
-				this.#commitFloatingSelectionIntent(intent)
-			)
+			this.#floatingSelection.pasteClipboard(clipboard, sourceRegion)
 		);
 	};
 

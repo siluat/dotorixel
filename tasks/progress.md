@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-[158 — Deepen Floating Selection policy ownership](../issues/158-deepen-floating-selection-policy.md): Floating Selection policy order now lives behind the lifecycle interface. Undoable persistence still belongs to the Document Change Journal.
+[159 — Deepen editor dialog state into a ModalState seam](../issues/159-deepen-editor-modal-state.md): The open editor dialog is now one discriminated-union `ModalState` enforcing "at most one open"; the per-Document export sheet stays tab-scoped. First slice of the editor-route god-orchestrator decomposition — TabCloseFlow and Reference Layer import extraction remain.
 
 ## Next Up
 

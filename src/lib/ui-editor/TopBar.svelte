@@ -31,7 +31,7 @@
 		onExportToggle: () => void;
 		onExportConfirm: (format: ExportFormat, filenameStem: string) => void;
 		onBrowseSavedWork: () => void;
-		isBrowserOpen?: boolean;
+		isSavedWorkOpen?: boolean;
 		onOpenReferences: () => void;
 		isReferencesOpen?: boolean;
 	}
@@ -53,7 +53,7 @@
 		onExportToggle,
 		onExportConfirm,
 		onBrowseSavedWork,
-		isBrowserOpen = false,
+		isSavedWorkOpen = false,
 		onOpenReferences,
 		isReferencesOpen = false
 	}: Props = $props();
@@ -123,11 +123,11 @@
 
 		<button
 			class="toolbar-btn"
-			class:is-on={isBrowserOpen}
+			class:is-on={isSavedWorkOpen}
 			onclick={onBrowseSavedWork}
 			aria-label={m.label_savedWorks()}
 			aria-haspopup="dialog"
-			aria-expanded={isBrowserOpen}
+			aria-expanded={isSavedWorkOpen}
 			use:tooltip={m.label_savedWorks()}
 		>
 			<FolderOpen size={16} />

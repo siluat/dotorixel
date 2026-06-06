@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 144 | 110 | 34 | 146 | 76% | 43% |
-| cubic-dev-ai[bot] | 99 | 83 | 16 | 169 | 84% | 33% |
-| coderabbitai[bot] | 201 | 144 | 57 | 105 | 72% | 58% |
+| greptile-apps[bot] | 144 | 110 | 34 | 147 | 76% | 43% |
+| cubic-dev-ai[bot] | 99 | 83 | 16 | 170 | 84% | 33% |
+| coderabbitai[bot] | 202 | 145 | 57 | 105 | 72% | 58% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #256 | coderabbitai[bot] | Accept | Enforce ModalState read-only contract — ActiveModal variants and saved-work documents readonly |
+| #256 | cubic-dev-ai[bot] | Miss | Did not flag mutable ModalState payload bypassing transitions |
+| #256 | greptile-apps[bot] | Miss | Did not flag mutable ModalState payload bypassing transitions |
 | #255 | cubic-dev-ai[bot] | Accept | Guard Floating Selection outside-drag commit while Reference Layer is active |
 | #255 | coderabbitai[bot] | Miss | Did not flag Reference-active outside-drag Floating Selection commit |
 | #255 | greptile-apps[bot] | Miss | Did not flag Reference-active outside-drag Floating Selection commit |

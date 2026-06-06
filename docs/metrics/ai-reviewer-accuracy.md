@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 144 | 110 | 34 | 145 | 76% | 43% |
-| cubic-dev-ai[bot] | 98 | 82 | 16 | 169 | 84% | 33% |
-| coderabbitai[bot] | 201 | 144 | 57 | 104 | 72% | 58% |
+| greptile-apps[bot] | 144 | 110 | 34 | 146 | 76% | 43% |
+| cubic-dev-ai[bot] | 99 | 83 | 16 | 169 | 84% | 33% |
+| coderabbitai[bot] | 201 | 144 | 57 | 105 | 72% | 58% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #255 | cubic-dev-ai[bot] | Accept | Guard Floating Selection outside-drag commit while Reference Layer is active |
+| #255 | coderabbitai[bot] | Miss | Did not flag Reference-active outside-drag Floating Selection commit |
+| #255 | greptile-apps[bot] | Miss | Did not flag Reference-active outside-drag Floating Selection commit |
 | #254 | coderabbitai[bot] | Accept | Bind test projection to the current Document getter |
 | #254 | cubic-dev-ai[bot] | Miss | Did not flag stale test projection getter |
 | #254 | greptile-apps[bot] | Miss | Did not flag stale test projection getter |

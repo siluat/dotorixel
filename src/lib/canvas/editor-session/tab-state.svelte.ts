@@ -499,7 +499,10 @@ export class TabState {
 	};
 
 	draw = (current: CanvasPoint, previous: CanvasPoint | null): void => {
-		if (this.#floatingSelection.commitIfSelectionDragStartsOutside(current, previous)) {
+		if (
+			this.layerProjection.activeLayerKind !== 'reference' &&
+			this.#floatingSelection.commitIfSelectionDragStartsOutside(current, previous)
+		) {
 			this.#selectionPreviewBaselineMarquee =
 				this.shared.activeTool === 'selection'
 					? serializeMarquee(this.document.marquee())

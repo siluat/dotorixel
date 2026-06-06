@@ -6,7 +6,7 @@
 	import { createModal } from '$lib/ui/modal.svelte';
 
 	interface Props {
-		documents: SavedDocumentSummary[];
+		documents: readonly SavedDocumentSummary[];
 		onSelect: (doc: SavedDocumentSummary) => void;
 		onDelete: (id: string) => void | Promise<void>;
 		onClose: () => void;

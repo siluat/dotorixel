@@ -6,7 +6,7 @@
 
 	interface Props {
 		open: boolean;
-		documents: SavedDocumentSummary[];
+		documents: readonly SavedDocumentSummary[];
 		onSelect: (doc: SavedDocumentSummary) => void;
 		onDelete: (id: string) => void | Promise<void>;
 		onClose: () => void;

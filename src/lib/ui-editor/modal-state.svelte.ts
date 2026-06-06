@@ -18,10 +18,14 @@ import type { SavedDocumentSummary } from '$lib/session/session-storage-types';
  * dialog is open; that owns *how* an open one behaves.
  */
 export type ActiveModal =
-	| { kind: 'save'; tabIndex: number }
-	| { kind: 'savedWork'; documents: SavedDocumentSummary[]; openingId: string | null }
-	| { kind: 'references' }
-	| { kind: 'refReplace' }
+	| { readonly kind: 'save'; readonly tabIndex: number }
+	| {
+		readonly kind: 'savedWork';
+		readonly documents: readonly SavedDocumentSummary[];
+		readonly openingId: string | null;
+	}
+	| { readonly kind: 'references' }
+	| { readonly kind: 'refReplace' }
 	| null;
 
 export class ModalState {
@@ -43,8 +47,8 @@ export class ModalState {
 	}
 
 	/** Open the saved-work browser over `documents`, with no document yet opening. */
-	openSavedWork(documents: SavedDocumentSummary[]): void {
-		this.#active = { kind: 'savedWork', documents, openingId: null };
+	openSavedWork(documents: readonly SavedDocumentSummary[]): void {
+		this.#active = { kind: 'savedWork', documents: [...documents], openingId: null };
 	}
 
 	/** Open the reference gallery browser. */

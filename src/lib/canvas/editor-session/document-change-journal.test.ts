@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Document, MarqueeRegion, ResizeAnchor } from '../canvas-model';
 import type { HistoryManager } from '../adapter-types';
+import type { DocumentLayerProjectionRead } from '../document-layer-projection';
 import {
 	clearActiveLayerPixels,
 	createHistoryManager,
@@ -66,13 +67,60 @@ function createFakeHistoryManager(
 	};
 }
 
+function createTestLayerProjection(document: Document): DocumentLayerProjectionRead {
+	const count = typeof document.layer_count === 'function' ? document.layer_count() : 0;
+	const activeLayerId =
+		typeof document.active_layer_id === 'function' ? document.active_layer_id() : undefined;
+	const stackLayers = Array.from({ length: count }, (_, stackIndex) => {
+		const id =
+			typeof document.layer_id_at === 'function'
+				? (document.layer_id_at(stackIndex) ?? `layer-${stackIndex + 1}`)
+				: `layer-${stackIndex + 1}`;
+		const rawKind =
+			typeof document.layer_kind_at === 'function' ? document.layer_kind_at(stackIndex) : 'pixel';
+		return {
+			id,
+			name:
+				typeof document.layer_name_at === 'function'
+					? (document.layer_name_at(stackIndex) ?? id)
+					: id,
+			visible:
+				typeof document.layer_visible_at === 'function'
+					? (document.layer_visible_at(stackIndex) ?? true)
+					: true,
+			opacity:
+				typeof document.layer_opacity_at === 'function'
+					? (document.layer_opacity_at(stackIndex) ?? 1)
+					: 1,
+			kind: rawKind === 'reference' ? 'reference' : 'pixel',
+			stackIndex,
+			panelIndex: count - 1 - stackIndex
+		} as const;
+	});
+	const layersInPanelOrder = stackLayers.slice().reverse();
+	const layerById = new Map(stackLayers.map((layer) => [layer.id, layer]));
+	const stackIndexById = new Map(stackLayers.map((layer) => [layer.id, layer.stackIndex]));
+	const activeLayer = activeLayerId ? layerById.get(activeLayerId) : undefined;
+	return {
+		layersInStackOrder: stackLayers,
+		layersInPanelOrder,
+		layerById,
+		stackIndexById,
+		activeLayer,
+		activeLayerKind: activeLayer?.kind,
+		referenceLayer: stackLayers.find((layer) => layer.kind === 'reference')
+	};
+}
+
 function createJournal(
 	events: string[],
 	document: Document,
 	overrides: Partial<DocumentChangeJournalDeps> = {}
 ): DocumentChangeJournal {
+	const getDocument = overrides.getDocument ?? (() => document);
 	return new DocumentChangeJournal({
-		getDocument: () => document,
+		getDocument,
+		getLayerProjection: () => createTestLayerProjection(getDocument()),
 		replaceDocument: (nextDocument) =>
 			events.push(`replace:${nextDocument.width}x${nextDocument.height}`),
 		createHistoryManager: () => createFakeHistoryManager(events),

@@ -37,7 +37,10 @@ import { exportAsPng } from '../export';
 import type { PointerType } from '../canvas-interaction.svelte';
 import type { ReferenceLayerSnapshot, TabSnapshot } from '../workspace-snapshot';
 import {
-	ReferenceLayerUnderlayProjector,
+	DocumentLayerProjection,
+	type DocumentLayerProjectionRead
+} from '../document-layer-projection';
+import {
 	referenceLayerUnderlayBounds,
 	referenceLayerUnderlaySourceCoords,
 	type ReferenceLayerUnderlay
@@ -59,15 +62,6 @@ export type { ReferenceLayerSource } from './document-change-journal.svelte';
 
 function assertNever(x: never): never {
 	throw new Error(`Unhandled effect type: ${(x as { type: string }).type}`);
-}
-
-function isActiveLayerReference(document: Document): boolean {
-	const activeId = document.active_layer_id();
-	for (let i = 0; i < document.layer_count(); i++) {
-		if (document.layer_id_at(i) !== activeId) continue;
-		return document.layer_kind_at(i) === 'reference';
-	}
-	return false;
 }
 
 function serializeMarquee(region: MarqueeRegion | undefined): TabSnapshot['marquee'] {
@@ -177,19 +171,32 @@ export class TabState {
 	}
 
 	/**
+	 * Projects the current Document Layer stack into the shell-facing read model.
+	 * The read is tied to `renderVersion` so consumers refresh after Reference
+	 * placement, visibility, import, undo, redo, and layer stack changes.
+	 */
+	get layerProjection(): DocumentLayerProjectionRead {
+		const renderVersion = this.renderVersion;
+		const cached = this.#layerProjectionCache;
+		if (cached?.document === this.document && cached.renderVersion === renderVersion) {
+			return cached.read;
+		}
+		const read = this.#documentLayerProjection.read(this.document);
+		this.#layerProjectionCache = {
+			document: this.document,
+			renderVersion,
+			read
+		};
+		return read;
+	}
+
+	/**
 	 * Projects the current visible Reference Layer into the shell-facing underlay
 	 * consumed by rendering, placement UI, and source-image sampling. Returns
-	 * `undefined` when the document has no visible, readable Reference Layer; the
-	 * getter does not mutate the document. The read is tied to `renderVersion` so
-	 * consumers refresh after Reference placement, visibility, import, undo, or
-	 * redo changes.
+	 * `undefined` when the document has no visible, readable Reference Layer.
 	 */
 	get referenceLayerUnderlay(): ReferenceLayerUnderlay | undefined {
-		// WASM Document internals are opaque to Svelte. Tie this projection to
-		// renderVersion so import, fit-to-canvas, drag commits, undo/redo, and
-		// visibility changes immediately refresh renderer consumers.
-		void this.renderVersion;
-		return this.#referenceLayerUnderlayProjector.project(this.document);
+		return this.layerProjection.referenceLayerUnderlay;
 	}
 
 	/**
@@ -215,7 +222,12 @@ export class TabState {
 	#tabViewport: TabViewport;
 	#documentChangeJournal: DocumentChangeJournal;
 	#referenceLayerBlobs: Map<string, Blob>;
-	#referenceLayerUnderlayProjector = new ReferenceLayerUnderlayProjector();
+	#documentLayerProjection = new DocumentLayerProjection();
+	#layerProjectionCache?: {
+		readonly document: Document;
+		readonly renderVersion: number;
+		readonly read: DocumentLayerProjectionRead;
+	};
 	#selectionPreviewBaselineMarquee: TabSnapshot['marquee'] | undefined = undefined;
 	#floatingSelection = new FloatingSelectionLifecycle({ getDocument: () => this.document });
 
@@ -297,16 +309,20 @@ export class TabState {
 
 		this.samplingSession = createSamplingSession({
 			getSamplingPort: () => {
-				if (!isActiveLayerReference(self.document)) return createDocumentSamplingPort(self.document);
-				const reference = self.referenceLayerUnderlay;
+				const projection = self.layerProjection;
+				if (projection.activeLayerKind !== 'reference') {
+					return createDocumentSamplingPort(self.document);
+				}
+				const reference = projection.referenceLayerUnderlay;
 				if (!reference) {
 					return createNoReadableSamplingPort(self.document.width, self.document.height);
 				}
 				return createReferenceLayerUnderlaySamplingPort(reference);
 			},
 			mapTarget: (coords) => {
-				if (!isActiveLayerReference(self.document)) return coords;
-				const reference = self.referenceLayerUnderlay;
+				const projection = self.layerProjection;
+				if (projection.activeLayerKind !== 'reference') return coords;
+				const reference = projection.referenceLayerUnderlay;
 				return reference ? referenceLayerUnderlaySourceCoords(reference, coords) : coords;
 			}
 		});
@@ -332,6 +348,7 @@ export class TabState {
 		});
 		this.#documentChangeJournal = new DocumentChangeJournal({
 			getDocument: () => this.document,
+			getLayerProjection: () => this.#documentLayerProjection.read(this.document),
 			replaceDocument: (document) => {
 				this.document = document;
 			},
@@ -345,8 +362,12 @@ export class TabState {
 				this.canvasWidth = this.document.width;
 				this.canvasHeight = this.document.height;
 			},
-			reclampViewport: () => this.#reclampViewport(),
+			reclampViewport: () => {
+				this.#clearLayerProjectionCache();
+				this.#reclampViewport();
+			},
 			invalidateRender: () => {
+				this.#clearLayerProjectionCache();
 				this.renderVersion++;
 			},
 			markDirty: () => this.#notifier.markDirty(this.documentId)
@@ -411,6 +432,10 @@ export class TabState {
 		if (changed) {
 			this.#documentChangeJournal.recordPreviewChanged();
 		}
+	}
+
+	#clearLayerProjectionCache(): void {
+		this.#layerProjectionCache = undefined;
 	}
 
 	#commitFloatingSelectionIntent(intent: CommitFloatingSelectionIntent): void {
@@ -618,7 +643,7 @@ export class TabState {
 
 	nudgeMarquee = (dx: number, dy: number): void => {
 		if (this.isDrawing) return;
-		if (isActiveLayerReference(this.document)) return;
+		if (this.layerProjection.activeLayerKind === 'reference') return;
 		if (this.#floatingSelection.isActive) {
 			this.#recordFloatingPreviewChanged(this.#floatingSelection.moveBy({ dx, dy }));
 			return;
@@ -644,7 +669,7 @@ export class TabState {
 
 	pasteSelectionClipboard = (clipboard: SelectionClipboardData): void => {
 		if (this.isDrawing) return;
-		if (isActiveLayerReference(this.document)) return;
+		if (this.layerProjection.activeLayerKind === 'reference') return;
 		if (clipboard.width <= 0 || clipboard.height <= 0 || clipboard.pixels.length === 0) return;
 		if (clipboard.pixels.length !== clipboard.width * clipboard.height * 4) return;
 
@@ -661,7 +686,7 @@ export class TabState {
 	};
 
 	selectionCutSnapshot = (): SelectionCutSnapshot | null => {
-		if (isActiveLayerReference(this.document)) return null;
+		if (this.layerProjection.activeLayerKind === 'reference') return null;
 
 		const marquee = this.document.marquee();
 		if (!marquee) return null;
@@ -783,7 +808,10 @@ export class TabState {
 	};
 
 	fitReferenceLayerToCanvas = (id: string): void => {
-		const stackIdx = this.#stackIndexOf(id);
+		const stackIdx = this.layerProjection.stackIndexById.get(id);
+		if (stackIdx === undefined) {
+			throw new Error(`Layer with id ${id} not found`);
+		}
 		const current = this.document.layer_placement_at(stackIdx);
 		const dimensions = this.document.layer_source_dimensions_at(stackIdx);
 		if (!current || !dimensions) {
@@ -800,15 +828,6 @@ export class TabState {
 		);
 	};
 
-	#stackIndexOf(id: string): number {
-		const doc = this.document;
-		const count = doc.layer_count();
-		for (let i = 0; i < count; i++) {
-			if (doc.layer_id_at(i) === id) return i;
-		}
-		throw new Error(`Layer with id ${id} not found`);
-	}
-
 	#navigationBounds(): DocumentNavigationBounds {
 		const canvasBounds: DocumentNavigationBounds = {
 			minX: 0,
@@ -816,21 +835,17 @@ export class TabState {
 			maxX: this.document.width,
 			maxY: this.document.height
 		};
-		const activeLayerId = this.document.active_layer_id();
-		for (let i = 0; i < this.document.layer_count(); i++) {
-			if (this.document.layer_id_at(i) !== activeLayerId) continue;
-			if (this.document.layer_kind_at(i) !== 'reference') return canvasBounds;
-			const underlay = this.referenceLayerUnderlay;
-			if (!underlay) return canvasBounds;
-			const referenceBounds = referenceLayerUnderlayBounds(underlay);
-			return {
-				minX: Math.min(canvasBounds.minX, referenceBounds.minX),
-				minY: Math.min(canvasBounds.minY, referenceBounds.minY),
-				maxX: Math.max(canvasBounds.maxX, referenceBounds.maxX),
-				maxY: Math.max(canvasBounds.maxY, referenceBounds.maxY)
-			};
-		}
-		return canvasBounds;
+		const projection = this.layerProjection;
+		if (projection.activeLayerKind !== 'reference') return canvasBounds;
+		const underlay = projection.referenceLayerUnderlay;
+		if (!underlay) return canvasBounds;
+		const referenceBounds = referenceLayerUnderlayBounds(underlay);
+		return {
+			minX: Math.min(canvasBounds.minX, referenceBounds.minX),
+			minY: Math.min(canvasBounds.minY, referenceBounds.minY),
+			maxX: Math.max(canvasBounds.maxX, referenceBounds.maxX),
+			maxY: Math.max(canvasBounds.maxY, referenceBounds.maxY)
+		};
 	}
 
 	#clampViewportToNavigationBounds(viewport: ViewportData): ViewportData {

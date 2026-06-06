@@ -1,5 +1,6 @@
 import type { Document, MarqueeRegion, ReferencePlacement, ResizeAnchor } from '../canvas-model';
 import type { HistoryManager } from '../adapter-types';
+import type { DocumentLayerKind, DocumentLayerProjectionRead } from '../document-layer-projection';
 
 export interface ReferenceLayerSource {
 	readonly name: string;
@@ -54,6 +55,7 @@ export type DocumentChangeResult =
 
 export interface DocumentChangeJournalDeps {
 	readonly getDocument: () => Document;
+	readonly getLayerProjection: () => DocumentLayerProjectionRead;
 	readonly replaceDocument: (document: Document) => void;
 	readonly createHistoryManager: () => HistoryManager;
 	readonly createLayerId?: () => string;
@@ -260,16 +262,16 @@ export class DocumentChangeJournal {
 			case 'remove-layer':
 				return document.layer_count() > 1;
 			case 'reorder-layer': {
-				const currentStackIdx = this.#stackIndexOf(intent.id);
-				if (document.layer_kind_at(currentStackIdx) === 'reference') return false;
-				return currentStackIdx !== this.#effectiveReorderStackIndex(intent);
+				const layer = this.#layerOf(intent.id);
+				if (layer.kind === 'reference') return false;
+				return layer.stackIndex !== this.#effectiveReorderStackIndex(intent);
 			}
 			case 'set-layer-visibility': {
-				const current = document.layer_visible_at(this.#stackIndexOf(intent.id));
-				return current !== intent.visible;
+				return this.#layerOf(intent.id).visible !== intent.visible;
 			}
 			case 'set-reference-placement': {
-				const current = document.layer_placement_at(this.#stackIndexOf(intent.id));
+				const layer = this.#layerOf(intent.id);
+				const current = document.layer_placement_at(layer.stackIndex);
 				if (!current) {
 					throw new Error(`Layer with id ${intent.id} is not a Reference Layer`);
 				}
@@ -308,30 +310,25 @@ export class DocumentChangeJournal {
 	#effectiveReorderStackIndex(
 		intent: Extract<UndoableDocumentIntent, { type: 'reorder-layer' }>
 	): number {
-		const document = this.#deps.getDocument();
-		const targetStackIdx = document.layer_count() - 1 - intent.newVisualIndex;
-		return document.layer_kind_at(0) === 'reference'
+		const projection = this.#deps.getLayerProjection();
+		const targetStackIdx = projection.layersInStackOrder.length - 1 - intent.newVisualIndex;
+		return projection.layersInStackOrder[0]?.kind === 'reference'
 			? Math.max(1, targetStackIdx)
 			: targetStackIdx;
 	}
 
-	#stackIndexOf(id: string): number {
-		const document = this.#deps.getDocument();
-		const count = document.layer_count();
-		for (let i = 0; i < count; i++) {
-			if (document.layer_id_at(i) === id) return i;
-		}
+	#layerOf(id: string) {
+		const layer = this.#deps.getLayerProjection().layerById.get(id);
+		if (layer) return layer;
 		throw new Error(`Layer with id ${id} not found`);
 	}
 
-	#activeLayerKind(): string | undefined {
-		const document = this.#deps.getDocument();
-		return document.layer_kind_at(this.#stackIndexOf(document.active_layer_id()));
+	#activeLayerKind(): DocumentLayerKind | undefined {
+		return this.#deps.getLayerProjection().activeLayerKind;
 	}
 
-	#layerKindOf(id: string): string | undefined {
-		const document = this.#deps.getDocument();
-		return document.layer_kind_at(this.#stackIndexOf(id));
+	#layerKindOf(id: string): DocumentLayerKind | undefined {
+		return this.#layerOf(id).kind;
 	}
 
 	#withActiveLayer<T>(layerId: string, callback: (document: Document) => T): T {

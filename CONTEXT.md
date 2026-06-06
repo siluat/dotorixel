@@ -26,6 +26,10 @@ _Avoid_: imported image, tracing layer, reference image (Reference Window's term
 A shell-facing projection of a visible Reference Layer used to draw the original source image in the viewport and interpret placement-based source sampling.
 _Avoid_: overlay (ambiguous with UI chrome), render layer, reference image.
 
+**Document Layer Projection**:
+The web-shell read model that projects a Document's Layer stack into shell-facing Layer views, active Layer facts, stack index lookups, and the visible Reference Layer Underlay. It centralizes Layer traversal knowledge for rendering, timeline UI, sampling, and Document Change Journal callers without changing the Rust core Document invariants.
+_Avoid_: layer view (UI-flavored), layer helper (too vague), document adapter (implies a replaceable seam).
+
 **Reference Layer Placement**:
 A Reference Layer's source-to-document geometry — the position and uniform scale that map the source image onto the Document canvas. On import, large sources are aspect-fit into the canvas while smaller sources stay at natural size; "Fit to canvas" aspect-fits the source into the current canvas, allows upscaling, and centers the result. Composite sampling is nearest-neighbor.
 _Avoid_: position, transform, geometry, viewport (all overloaded).
@@ -107,6 +111,7 @@ _Avoid_: drop group, drop session.
 - A **Layer** is exactly one of **Pixel Layer** or **Reference Layer**; both share id, name, visibility, and opacity.
 - A **Reference Layer** has exactly one **Reference Layer Placement**.
 - A **Reference Layer Underlay** is derived from the visible **Reference Layer** and shares its **Reference Layer Placement**.
+- A **Document Layer Projection** derives shell-facing Layer read models and the visible **Reference Layer Underlay** from a **Document** without mutating it.
 - A **Reference Layer Placement Interaction** edits exactly one active **Reference Layer Placement** at a time.
 - A **Document Change Journal** applies web-shell changes to the active **Document** and centralizes undo, render invalidation, viewport reclamp, and dirty notification side effects.
 - A **Marquee** belongs to a **Document** and targets whichever **Pixel Layer** is active; it persists across active-layer changes and no-ops against a **Reference Layer**.

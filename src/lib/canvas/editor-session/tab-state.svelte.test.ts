@@ -1754,6 +1754,49 @@ describe('TabState — Reference underlay render source', () => {
 		expect(second?.sourceRgba).toBe(first?.sourceRgba);
 	});
 
+	it('reuses the Document Layer Projection within the same render version', () => {
+		const pixelId = crypto.randomUUID();
+		const referenceId = crypto.randomUUID();
+		const document = documentFromLayerSource({
+			width: 1,
+			height: 1,
+			layers: [
+				{
+					kind: 'pixel',
+					id: pixelId,
+					name: 'Paint',
+					pixels: new Uint8Array([255, 0, 0, 255]),
+					visible: true,
+					opacity: 1
+				},
+				{
+					kind: 'reference',
+					id: referenceId,
+					name: 'Reference',
+					visible: true,
+					opacity: 1,
+					sourceBlob: new Blob([new Uint8Array([1])], { type: 'image/png' }),
+					sourceRgba: new Uint8Array([0, 255, 0, 255]),
+					naturalWidth: 1,
+					naturalHeight: 1,
+					placement: { x: 0, y: 0, scale: 1 }
+				}
+			],
+			activeLayerId: referenceId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false
+		});
+		const { tab } = makeTab({ document });
+		const layerCountSpy = vi.spyOn(tab.document, 'layer_count');
+
+		const first = tab.layerProjection;
+		const callCountAfterFirstRead = layerCountSpy.mock.calls.length;
+		const second = tab.layerProjection;
+
+		expect(second).toBe(first);
+		expect(layerCountSpy.mock.calls).toHaveLength(callCountAfterFirstRead);
+	});
+
 	it('updates renderVersion and dirty state when committing Reference placement', () => {
 		const pixelId = crypto.randomUUID();
 		const referenceId = crypto.randomUUID();

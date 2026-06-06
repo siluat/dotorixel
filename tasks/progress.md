@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-[157 — Deepen Document Layer Projection](../issues/157-deepen-document-layer-projection.md): Layer stack reads now have a dedicated web-shell projection. Snapshot serialization remains a raw Document read.
+[158 — Deepen Floating Selection policy ownership](../issues/158-deepen-floating-selection-policy.md): Floating Selection policy order now lives behind the lifecycle interface. Undoable persistence still belongs to the Document Change Journal.
 
 ## Next Up
 

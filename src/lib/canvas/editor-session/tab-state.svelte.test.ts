@@ -598,6 +598,78 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
 	});
 
+	it('keeps outside-drag Selection no-op on Reference-active documents with a Floating Selection', () => {
+		const pixelId = crypto.randomUUID();
+		const referenceId = crypto.randomUUID();
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
+		const { tab, notifier, shared } = makeTab({
+			document: documentFromLayerSource({
+				width: 5,
+				height: 5,
+				layers: [
+					{
+						kind: 'pixel',
+						id: pixelId,
+						name: 'Paint',
+						pixels,
+						visible: true,
+						opacity: 1
+					},
+					{
+						kind: 'reference',
+						id: referenceId,
+						name: 'Reference',
+						visible: true,
+						opacity: 1,
+						sourceBlob: new Blob([new Uint8Array([1])], { type: 'image/png' }),
+						sourceRgba: makePixelRgba(BLUE),
+						naturalWidth: 1,
+						naturalHeight: 1,
+						placement: { x: 0, y: 0, scale: 1 }
+					}
+				],
+				activeLayerId: pixelId,
+				nextLayerNumber: 3,
+				timelinePanelCollapsed: false
+			})
+		});
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 1, 1));
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 2, y: 1 }, { x: 1, y: 1 });
+		tab.setActiveLayer(referenceId);
+		tab.drawEnd();
+		notifier.reset();
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 0, y: 0 }, null);
+
+		expect(tab.document.active_layer_id()).toBe(referenceId);
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 0 });
+		const pixelLayerIndex = Array.from({ length: tab.document.layer_count() }, (_, index) => index).find(
+			(index) => tab.document.layer_id_at(index) === pixelId
+		);
+		expect(pixelLayerIndex).not.toBeUndefined();
+		const pixelLayerPixels = tab.document.layer_pixels_at(pixelLayerIndex!)!;
+		expect(getPixelFromBuffer(pixelLayerPixels, 5, 1, 1)).toEqual({
+			r: 0,
+			g: 0,
+			b: 0,
+			a: 0
+		});
+		expect(getPixelFromBuffer(pixelLayerPixels, 5, 2, 1)).toEqual({
+			r: 0,
+			g: 0,
+			b: 0,
+			a: 0
+		});
+		expect(getRenderedPixel(tab, 2, 1)).toEqual(RED);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
 	it('keeps repeated Floating Selection drags cancelable until explicit commit', () => {
 		const pixels = new Uint8Array(5 * 5 * 4);
 		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);

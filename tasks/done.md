@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 156 | [Deepen Floating Selection lifecycle ownership](../issues/156-deepen-floating-selection-lifecycle.md) | 2026-06-04 |
 | 152 | [Shift = axis lock during Floating Selection drag](../issues/152-shift-axis-lock-during-floating-drag.md) | 2026-06-04 |
 | 151 | [Shift = square constraint during DefineMarquee](../issues/151-shift-square-define.md) | 2026-06-03 |
 | — | Planning cleanup — split Selection keyboard Shift scope from project-wide Touch modifier alternatives | 2026-06-03 |

@@ -9,13 +9,10 @@ import type {
 	SelectionClipboardData
 } from '../canvas-model';
 import {
-	activeLayerPixels,
 	clearActiveLayerPixels,
-	copyMarqueeRegion,
 	createHistoryManager,
 	fitReferencePlacementToCanvas,
 	marqueeRegionFromDrag,
-	restoreActiveLayerPixels,
 	resizeDocumentWithAnchor,
 	singleLayerDocument
 } from '../wasm-backend';
@@ -51,6 +48,11 @@ import {
 	DocumentChangeJournal,
 	type ReferenceLayerSource
 } from './document-change-journal.svelte';
+import {
+	type CommitFloatingSelectionIntent,
+	FloatingSelectionLifecycle,
+	type FloatingSelectionOffset
+} from './floating-selection-lifecycle';
 import { TabViewport } from './tab-viewport.svelte';
 
 export type { ReferenceLayerSource } from './document-change-journal.svelte';
@@ -88,110 +90,6 @@ function isPointInsideMarquee(point: CanvasPoint, marquee: MarqueeRegion): boole
 	);
 }
 
-function blendSourceOver(
-	target: Uint8Array,
-	targetIndex: number,
-	source: Uint8Array,
-	sourceIndex: number,
-	opacity = 1
-): void {
-	const srcA = (source[sourceIndex + 3] / 255) * Math.max(0, Math.min(1, opacity));
-	if (srcA === 0) return;
-
-	const dstA = target[targetIndex + 3] / 255;
-	const outA = srcA + dstA * (1 - srcA);
-
-	for (let channel = 0; channel < 3; channel++) {
-		const src = source[sourceIndex + channel] / 255;
-		const dst = target[targetIndex + channel] / 255;
-		target[targetIndex + channel] = Math.round(
-			((src * srcA + dst * dstA * (1 - srcA)) / outA) * 255
-		);
-	}
-	target[targetIndex + 3] = Math.round(outA * 255);
-}
-
-function compositeFloatingSelectionIntoLayer(
-	layerPixels: Uint8Array,
-	canvasWidth: number,
-	canvasHeight: number,
-	floating: FloatingSelection
-): void {
-	const { sourceRegion, offset, buffer } = floating;
-	const expectedLength = sourceRegion.width * sourceRegion.height * 4;
-	if (buffer.length !== expectedLength) return;
-
-	const destX = sourceRegion.x + offset.dx;
-	const destY = sourceRegion.y + offset.dy;
-	for (let row = 0; row < sourceRegion.height; row++) {
-		const targetY = destY + row;
-		if (targetY < 0 || targetY >= canvasHeight) continue;
-		for (let col = 0; col < sourceRegion.width; col++) {
-			const targetX = destX + col;
-			if (targetX < 0 || targetX >= canvasWidth) continue;
-
-			const sourceIndex = (row * sourceRegion.width + col) * 4;
-			const targetIndex = (targetY * canvasWidth + targetX) * 4;
-			blendSourceOver(layerPixels, targetIndex, buffer, sourceIndex);
-		}
-	}
-}
-
-function blendLayerPixelsOver(
-	target: Uint8Array,
-	layerPixels: Uint8Array,
-	opacity: number | undefined
-): void {
-	for (let sourceIndex = 0; sourceIndex < layerPixels.length; sourceIndex += 4) {
-		blendSourceOver(target, sourceIndex, layerPixels, sourceIndex, opacity ?? 1);
-	}
-}
-
-function compositeDocumentWithFloatingSelectionPreview(
-	document: Document,
-	floating: FloatingSelection | null
-): Uint8Array {
-	if (!floating) return document.composite();
-
-	const output = new Uint8Array(document.width * document.height * 4);
-	for (let layerIndex = 0; layerIndex < document.layer_count(); layerIndex++) {
-		if (!document.layer_visible_at(layerIndex)) continue;
-		const layerPixels = document.layer_pixels_at(layerIndex);
-		if (!layerPixels) continue;
-
-		const previewPixels =
-			document.layer_id_at(layerIndex) === floating.sourceLayerId ? layerPixels.slice() : layerPixels;
-		if (previewPixels !== layerPixels) {
-			compositeFloatingSelectionIntoLayer(
-				previewPixels,
-				document.width,
-				document.height,
-				floating
-			);
-		}
-		blendLayerPixelsOver(output, previewPixels, document.layer_opacity_at(layerIndex));
-	}
-	return output;
-}
-
-function withDocumentActiveLayer<T>(
-	document: Document,
-	layerId: string,
-	callback: () => T
-): T {
-	const previousLayerId = document.active_layer_id();
-	if (previousLayerId !== layerId) {
-		document.set_active_layer(layerId);
-	}
-	try {
-		return callback();
-	} finally {
-		if (document.active_layer_id() !== previousLayerId) {
-			document.set_active_layer(previousLayerId);
-		}
-	}
-}
-
 interface DocumentNavigationBounds {
 	readonly minX: number;
 	readonly minY: number;
@@ -206,27 +104,10 @@ interface DocumentRect {
 	readonly maxY: number;
 }
 
-interface FloatingSelectionOffset {
-	readonly dx: number;
-	readonly dy: number;
-}
-
-interface FloatingSelection {
-	readonly buffer: Uint8Array;
-	readonly sourceLayerId: string;
-	readonly sourceRegion: MarqueeRegion;
-	readonly offset: FloatingSelectionOffset;
-	readonly sourceLayerPixelsBeforeLift: Uint8Array;
-	readonly snapshotMarquee: MarqueeRegion | null;
-	readonly clearSourceRegionOnCommit: boolean;
-}
-
 interface SelectionCutSnapshot {
 	readonly clipboard: SelectionClipboardData | null;
 	readonly shouldClearPixels: boolean;
 }
-
-const DUPLICATE_FLOATING_OFFSET: FloatingSelectionOffset = { dx: 1, dy: 1 };
 
 export interface TabStateDeps {
 	readonly backend: CanvasBackend;
@@ -291,8 +172,7 @@ export class TabState {
 			get height() {
 				return self.document.height;
 			},
-			pixels: () =>
-				compositeDocumentWithFloatingSelectionPreview(self.document, self.#floatingSelection)
+			pixels: () => self.#floatingSelection.previewPixels()
 		};
 	}
 
@@ -337,9 +217,7 @@ export class TabState {
 	#referenceLayerBlobs: Map<string, Blob>;
 	#referenceLayerUnderlayProjector = new ReferenceLayerUnderlayProjector();
 	#selectionPreviewBaselineMarquee: TabSnapshot['marquee'] | undefined = undefined;
-	#floatingSelection = $state<FloatingSelection | null>(null);
-	#selectionFloatingDragBaselineOffset: FloatingSelectionOffset | null = null;
-	#selectionFloatingDragProjectedRegion: MarqueeRegion | null = null;
+	#floatingSelection = new FloatingSelectionLifecycle({ getDocument: () => this.document });
 
 	get viewport(): ViewportData {
 		return this.#tabViewport.viewport;
@@ -371,7 +249,7 @@ export class TabState {
 
 	get floatingSelectionOffset(): FloatingSelectionOffset | undefined {
 		void this.renderVersion;
-		return this.#floatingSelection?.offset;
+		return this.#floatingSelection.offset;
 	}
 
 	get isDrawing(): boolean {
@@ -495,16 +373,18 @@ export class TabState {
 					});
 					break;
 				case 'beginFloatingSelection':
-					this.#beginFloatingSelection(effect.sourceRegion);
+					this.#recordFloatingPreviewChanged(
+						this.#floatingSelection.liftFromMarquee(effect.sourceRegion)
+					);
 					break;
 				case 'moveFloatingSelection':
-					this.#moveFloatingSelection(this.#resolveFloatingMoveOffset(effect.offset));
+					this.#recordFloatingPreviewChanged(this.#floatingSelection.moveTo(effect.offset));
 					break;
 				case 'commitFloatingSelection':
 					this.#commitFloatingSelection();
 					break;
 				case 'cancelFloatingSelection':
-					this.#cancelFloatingSelection();
+					this.#recordFloatingPreviewChanged(this.#floatingSelection.cancel());
 					break;
 				case 'colorPick':
 					if (effect.target === 'foreground') {
@@ -527,87 +407,28 @@ export class TabState {
 		}
 	}
 
-	#beginFloatingSelection(sourceRegion: MarqueeRegion): void {
-		if (this.#floatingSelection) return;
-		const sourceLayerId = this.document.active_layer_id();
-		const sourceLayerPixelsBeforeLift = activeLayerPixels(this.document).slice();
-		const stateRegion = copyMarqueeRegion(sourceRegion);
-		this.document.set_marquee(copyMarqueeRegion(sourceRegion));
-		const buffer = this.document.lift_marquee_pixels();
-		if (buffer.length === 0) return;
-
-		this.document.clear_marquee_pixels();
-		this.#floatingSelection = {
-			buffer,
-			sourceLayerId,
-			sourceRegion: stateRegion,
-			offset: { dx: 0, dy: 0 },
-			sourceLayerPixelsBeforeLift,
-			snapshotMarquee: copyMarqueeRegion(sourceRegion),
-			clearSourceRegionOnCommit: true
-		};
-		this.#documentChangeJournal.recordPreviewChanged();
+	#recordFloatingPreviewChanged(changed: boolean): void {
+		if (changed) {
+			this.#documentChangeJournal.recordPreviewChanged();
+		}
 	}
 
-	#moveFloatingSelection(offset: FloatingSelectionOffset): void {
-		const floating = this.#floatingSelection;
-		if (!floating) return;
-		if (floating.offset.dx === offset.dx && floating.offset.dy === offset.dy) return;
-		this.#floatingSelection = { ...floating, offset };
-		this.#documentChangeJournal.recordPreviewChanged();
-	}
-
-	#resolveFloatingMoveOffset(offset: FloatingSelectionOffset): FloatingSelectionOffset {
-		const baseline = this.#selectionFloatingDragBaselineOffset;
-		if (!baseline || !this.#floatingSelection) return offset;
-		return {
-			dx: baseline.dx + offset.dx,
-			dy: baseline.dy + offset.dy
-		};
+	#commitFloatingSelectionIntent(intent: CommitFloatingSelectionIntent): void {
+		this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent
+		});
 	}
 
 	#commitFloatingSelection(): void {
-		const floating = this.#floatingSelection;
-		if (!floating) return;
-		this.#floatingSelection = null;
-		this.#documentChangeJournal.commit({
-			kind: 'undoable-document',
-			intent: {
-				type: 'commit-floating-selection',
-				sourceLayerId: floating.sourceLayerId,
-				sourceRegion: floating.sourceRegion,
-				destOffset: floating.offset,
-				buffer: floating.buffer,
-				clearSourceRegion: floating.clearSourceRegionOnCommit,
-				snapshotMarquee: floating.snapshotMarquee,
-				sourceLayerPixelsBeforeLift: floating.sourceLayerPixelsBeforeLift
-			}
-		});
+		const intent = this.#floatingSelection.takeCommitIntent();
+		if (!intent) return;
+		this.#commitFloatingSelectionIntent(intent);
 	}
 
 	#commitIdleFloatingSelection(): void {
 		if (this.isDrawing) return;
 		this.#commitFloatingSelection();
-	}
-
-	#beginFloatingSelectionFromClipboard(
-		clipboard: SelectionClipboardData,
-		sourceRegion: MarqueeRegion
-	): void {
-		const sourceLayerId = this.document.active_layer_id();
-		const sourceLayerPixelsBeforeLift = activeLayerPixels(this.document).slice();
-		const marqueeBeforePaste = this.document.marquee();
-		this.document.set_marquee(copyMarqueeRegion(sourceRegion));
-		this.#floatingSelection = {
-			buffer: clipboard.pixels.slice(),
-			sourceLayerId,
-			sourceRegion: copyMarqueeRegion(sourceRegion),
-			offset: { dx: 0, dy: 0 },
-			sourceLayerPixelsBeforeLift,
-			snapshotMarquee: marqueeBeforePaste ? copyMarqueeRegion(marqueeBeforePaste) : null,
-			clearSourceRegionOnCommit: false
-		};
-		this.#documentChangeJournal.recordPreviewChanged();
 	}
 
 	#visibleCanvasRect(): DocumentRect | null {
@@ -641,83 +462,44 @@ export class TabState {
 		return marqueeRegionFromDrag(x, y, x + width - 1, y + height - 1);
 	}
 
-	#cancelFloatingSelection(): void {
-		const floating = this.#floatingSelection;
-		if (!floating) return;
-		this.#resetSelectionFloatingDragBaseline();
-		withDocumentActiveLayer(this.document, floating.sourceLayerId, () => {
-			restoreActiveLayerPixels(this.document, floating.sourceLayerPixelsBeforeLift);
-		});
-		this.document.set_marquee(
-			floating.snapshotMarquee ? copyMarqueeRegion(floating.snapshotMarquee) : null
-		);
-		this.#floatingSelection = null;
-		this.#documentChangeJournal.recordPreviewChanged();
-	}
-
-	#prepareSelectionFloatingDragStart(): MarqueeRegion | null | undefined {
-		const floating = this.#floatingSelection;
-		if (!floating || this.shared.activeTool !== 'selection') return undefined;
-
-		const originalMarquee = this.document.marquee();
-		const projectedRegion = floating.sourceRegion.translate(
-			floating.offset.dx,
-			floating.offset.dy
-		);
-		// The selection tool reads document.marquee() for its hit-test, while the
-		// renderer keeps Floating position as source marquee + offset.
-		this.document.set_marquee(copyMarqueeRegion(projectedRegion));
-		this.#selectionFloatingDragBaselineOffset = floating.offset;
-		this.#selectionFloatingDragProjectedRegion = copyMarqueeRegion(projectedRegion);
-		return originalMarquee ? copyMarqueeRegion(originalMarquee) : null;
-	}
-
-	#commitFloatingSelectionIfDragStartsOutside(current: CanvasPoint, previous: CanvasPoint | null): void {
-		const projectedRegion = this.#selectionFloatingDragProjectedRegion;
-		if (!projectedRegion || previous !== null) return;
-		if (isPointInsideMarquee(current, projectedRegion)) return;
-
-		this.#resetSelectionFloatingDragBaseline();
-		this.#commitFloatingSelection();
-		this.#selectionPreviewBaselineMarquee =
-			this.shared.activeTool === 'selection' ? serializeMarquee(this.document.marquee()) : undefined;
-	}
-
-	#resetSelectionFloatingDragBaseline(): void {
-		this.#selectionFloatingDragBaselineOffset = null;
-		this.#selectionFloatingDragProjectedRegion = null;
-	}
-
 	drawStart = (button: number, pointerType: PointerType): void => {
-		this.#resetSelectionFloatingDragBaseline();
-		const restoreMarquee = this.#prepareSelectionFloatingDragStart();
+		this.#floatingSelection.endSelectionDrag();
+		const restoreMarquee =
+			this.shared.activeTool === 'selection'
+				? this.#floatingSelection.projectMarqueeForSelectionDrag()
+				: undefined;
 		if (restoreMarquee === undefined) {
 			this.#commitFloatingSelection();
 		}
 		const effects = this.#toolRunner.drawStart(button, pointerType);
-		if (restoreMarquee !== undefined) {
-			this.document.set_marquee(restoreMarquee ? copyMarqueeRegion(restoreMarquee) : null);
-		}
+		this.#floatingSelection.restoreMarqueeAfterSelectionDragProjection(restoreMarquee);
 		this.#selectionPreviewBaselineMarquee =
 			this.shared.activeTool === 'selection' ? serializeMarquee(this.document.marquee()) : undefined;
 		this.#applyEffects(effects);
 	};
 
 	draw = (current: CanvasPoint, previous: CanvasPoint | null): void => {
-		this.#commitFloatingSelectionIfDragStartsOutside(current, previous);
+		const intent = this.#floatingSelection.commitIfSelectionDragStartsOutside(current, previous);
+		if (intent) {
+			this.#commitFloatingSelectionIntent(intent);
+			this.#selectionPreviewBaselineMarquee =
+				this.shared.activeTool === 'selection'
+					? serializeMarquee(this.document.marquee())
+					: undefined;
+		}
 		this.#applyEffects(this.#toolRunner.draw(current, previous));
 	};
 
 	drawEnd = (): void => {
 		this.#selectionPreviewBaselineMarquee = undefined;
 		this.#applyEffects(this.#toolRunner.drawEnd());
-		this.#resetSelectionFloatingDragBaseline();
+		this.#floatingSelection.endSelectionDrag();
 	};
 
 	drawCancel = (): void => {
 		this.#applyEffects(this.#toolRunner.drawCancel());
 		this.#selectionPreviewBaselineMarquee = undefined;
-		this.#resetSelectionFloatingDragBaseline();
+		this.#floatingSelection.endSelectionDrag();
 	};
 
 	modifierChanged = (): void => {
@@ -782,8 +564,8 @@ export class TabState {
 
 	undo = (): void => {
 		if (this.isDrawing) return;
-		if (this.#floatingSelection) {
-			this.#cancelFloatingSelection();
+		if (this.#floatingSelection.isActive) {
+			this.#recordFloatingPreviewChanged(this.#floatingSelection.cancel());
 			return;
 		}
 		this.#documentChangeJournal.undo();
@@ -791,7 +573,7 @@ export class TabState {
 
 	redo = (): void => {
 		if (this.isDrawing) return;
-		if (this.#floatingSelection) return;
+		if (this.#floatingSelection.isActive) return;
 		this.#documentChangeJournal.redo();
 	};
 
@@ -813,11 +595,11 @@ export class TabState {
 	};
 
 	clearMarqueeOrFloating = (): void => {
-		if (this.#floatingSelection) {
+		if (this.#floatingSelection.isActive) {
 			if (this.isDrawing) {
 				this.drawCancel();
 			} else {
-				this.#cancelFloatingSelection();
+				this.#recordFloatingPreviewChanged(this.#floatingSelection.cancel());
 			}
 			return;
 		}
@@ -837,18 +619,15 @@ export class TabState {
 	nudgeMarquee = (dx: number, dy: number): void => {
 		if (this.isDrawing) return;
 		if (isActiveLayerReference(this.document)) return;
-		if (this.#floatingSelection) {
-			this.#moveFloatingSelection({
-				dx: this.#floatingSelection.offset.dx + dx,
-				dy: this.#floatingSelection.offset.dy + dy
-			});
+		if (this.#floatingSelection.isActive) {
+			this.#recordFloatingPreviewChanged(this.#floatingSelection.moveBy({ dx, dy }));
 			return;
 		}
 
 		const marquee = this.document.marquee();
 		if (!marquee) return;
-		this.#beginFloatingSelection(marquee);
-		this.#moveFloatingSelection({ dx, dy });
+		this.#recordFloatingPreviewChanged(this.#floatingSelection.liftFromMarquee(marquee));
+		this.#recordFloatingPreviewChanged(this.#floatingSelection.moveBy({ dx, dy }));
 	};
 
 	commitFloatingSelection = (): void => {
@@ -858,34 +637,9 @@ export class TabState {
 
 	duplicateFloatingSelection = (): void => {
 		if (this.isDrawing) return;
-		const floating = this.#floatingSelection;
-		if (!floating) return;
-
-		const duplicateBuffer = floating.buffer.slice();
-		const duplicateRegion = floating.sourceRegion.translate(
-			floating.offset.dx,
-			floating.offset.dy
+		this.#recordFloatingPreviewChanged(
+			this.#floatingSelection.duplicate((intent) => this.#commitFloatingSelectionIntent(intent))
 		);
-		const sourceLayerId = floating.sourceLayerId;
-
-		this.#commitFloatingSelection();
-
-		const sourceLayerPixelsBeforeDuplicate = withDocumentActiveLayer(
-			this.document,
-			sourceLayerId,
-			() => activeLayerPixels(this.document).slice()
-		);
-		this.document.set_marquee(copyMarqueeRegion(duplicateRegion));
-		this.#floatingSelection = {
-			buffer: duplicateBuffer,
-			sourceLayerId,
-			sourceRegion: copyMarqueeRegion(duplicateRegion),
-			offset: DUPLICATE_FLOATING_OFFSET,
-			sourceLayerPixelsBeforeLift: sourceLayerPixelsBeforeDuplicate,
-			snapshotMarquee: copyMarqueeRegion(duplicateRegion),
-			clearSourceRegionOnCommit: false
-		};
-		this.#documentChangeJournal.recordPreviewChanged();
 	};
 
 	pasteSelectionClipboard = (clipboard: SelectionClipboardData): void => {
@@ -894,32 +648,16 @@ export class TabState {
 		if (clipboard.width <= 0 || clipboard.height <= 0 || clipboard.pixels.length === 0) return;
 		if (clipboard.pixels.length !== clipboard.width * clipboard.height * 4) return;
 
-		this.#commitIdleFloatingSelection();
 		const sourceRegion = this.#pasteDestinationRegion(clipboard.width, clipboard.height);
-		this.#beginFloatingSelectionFromClipboard(clipboard, sourceRegion);
+		this.#recordFloatingPreviewChanged(
+			this.#floatingSelection.materializeFromClipboard(clipboard, sourceRegion, (intent) =>
+				this.#commitFloatingSelectionIntent(intent)
+			)
+		);
 	};
 
 	selectionClipboardSnapshot = (): SelectionClipboardData | null => {
-		const floating = this.#floatingSelection;
-		if (floating) {
-			return {
-				pixels: floating.buffer.slice(),
-				width: floating.sourceRegion.width,
-				height: floating.sourceRegion.height
-			};
-		}
-
-		const marquee = this.document.marquee();
-		if (!marquee) return null;
-
-		const pixels = this.document.lift_marquee_pixels();
-		if (pixels.length === 0) return null;
-
-		return {
-			pixels,
-			width: marquee.width,
-			height: marquee.height
-		};
+		return this.#floatingSelection.clipboardSnapshot();
 	};
 
 	selectionCutSnapshot = (): SelectionCutSnapshot | null => {
@@ -1223,17 +961,17 @@ export class TabState {
 						scale: placement.scale
 					}
 				} satisfies ReferenceLayerSnapshot;
-				}
-				const pixels =
-					this.#floatingSelection?.sourceLayerId === id
-						? this.#floatingSelection.sourceLayerPixelsBeforeLift
-						: doc.layer_pixels_at(i)!;
-				return {
-					kind: 'pixel' as const,
-					...common,
-					pixels: pixels.slice()
-				};
-			});
+			}
+			const pixels = this.#floatingSelection.pixelLayerSnapshotPixels(
+				id,
+				doc.layer_pixels_at(i)!
+			);
+			return {
+				kind: 'pixel' as const,
+				...common,
+				pixels: pixels.slice()
+			};
+		});
 		const marquee =
 			this.#selectionPreviewBaselineMarquee === undefined
 				? serializeMarquee(doc.marquee())

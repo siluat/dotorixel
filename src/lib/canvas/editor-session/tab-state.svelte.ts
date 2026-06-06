@@ -176,8 +176,18 @@ export class TabState {
 	 * placement, visibility, import, undo, redo, and layer stack changes.
 	 */
 	get layerProjection(): DocumentLayerProjectionRead {
-		void this.renderVersion;
-		return this.#documentLayerProjection.read(this.document);
+		const renderVersion = this.renderVersion;
+		const cached = this.#layerProjectionCache;
+		if (cached?.document === this.document && cached.renderVersion === renderVersion) {
+			return cached.read;
+		}
+		const read = this.#documentLayerProjection.read(this.document);
+		this.#layerProjectionCache = {
+			document: this.document,
+			renderVersion,
+			read
+		};
+		return read;
 	}
 
 	/**
@@ -213,6 +223,11 @@ export class TabState {
 	#documentChangeJournal: DocumentChangeJournal;
 	#referenceLayerBlobs: Map<string, Blob>;
 	#documentLayerProjection = new DocumentLayerProjection();
+	#layerProjectionCache?: {
+		readonly document: Document;
+		readonly renderVersion: number;
+		readonly read: DocumentLayerProjectionRead;
+	};
 	#selectionPreviewBaselineMarquee: TabSnapshot['marquee'] | undefined = undefined;
 	#floatingSelection = new FloatingSelectionLifecycle({ getDocument: () => this.document });
 
@@ -347,8 +362,12 @@ export class TabState {
 				this.canvasWidth = this.document.width;
 				this.canvasHeight = this.document.height;
 			},
-			reclampViewport: () => this.#reclampViewport(),
+			reclampViewport: () => {
+				this.#clearLayerProjectionCache();
+				this.#reclampViewport();
+			},
 			invalidateRender: () => {
+				this.#clearLayerProjectionCache();
 				this.renderVersion++;
 			},
 			markDirty: () => this.#notifier.markDirty(this.documentId)
@@ -413,6 +432,10 @@ export class TabState {
 		if (changed) {
 			this.#documentChangeJournal.recordPreviewChanged();
 		}
+	}
+
+	#clearLayerProjectionCache(): void {
+		this.#layerProjectionCache = undefined;
 	}
 
 	#commitFloatingSelectionIntent(intent: CommitFloatingSelectionIntent): void {

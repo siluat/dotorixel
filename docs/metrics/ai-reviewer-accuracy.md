@@ -6,14 +6,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 144 | 110 | 34 | 143 | 76% | 43% |
-| cubic-dev-ai[bot] | 97 | 81 | 16 | 168 | 84% | 33% |
-| coderabbitai[bot] | 200 | 143 | 57 | 103 | 72% | 58% |
+| greptile-apps[bot] | 144 | 110 | 34 | 145 | 76% | 43% |
+| cubic-dev-ai[bot] | 98 | 82 | 16 | 169 | 84% | 33% |
+| coderabbitai[bot] | 201 | 144 | 57 | 104 | 72% | 58% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #254 | coderabbitai[bot] | Accept | Bind test projection to the current Document getter |
+| #254 | cubic-dev-ai[bot] | Miss | Did not flag stale test projection getter |
+| #254 | greptile-apps[bot] | Miss | Did not flag stale test projection getter |
+| #254 | cubic-dev-ai[bot] | Accept | Cache Document Layer Projection within render version during sampling |
+| #254 | coderabbitai[bot] | Miss | Did not flag repeated projection rebuild in sampling hot path |
+| #254 | greptile-apps[bot] | Miss | Did not flag repeated projection rebuild in sampling hot path |
 | #252 | greptile-apps[bot] | Accept | Add vertical constrainAxis helper test |
 | #252 | coderabbitai[bot] | Accept | Add vertical and tie-break constrainAxis helper tests |
 | #252 | cubic-dev-ai[bot] | Miss | Did not flag incomplete constrainAxis helper branch coverage |

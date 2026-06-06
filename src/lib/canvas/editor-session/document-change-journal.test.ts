@@ -117,9 +117,10 @@ function createJournal(
 	document: Document,
 	overrides: Partial<DocumentChangeJournalDeps> = {}
 ): DocumentChangeJournal {
+	const getDocument = overrides.getDocument ?? (() => document);
 	return new DocumentChangeJournal({
-		getDocument: () => document,
-		getLayerProjection: () => createTestLayerProjection(document),
+		getDocument,
+		getLayerProjection: () => createTestLayerProjection(getDocument()),
 		replaceDocument: (nextDocument) =>
 			events.push(`replace:${nextDocument.width}x${nextDocument.height}`),
 		createHistoryManager: () => createFakeHistoryManager(events),

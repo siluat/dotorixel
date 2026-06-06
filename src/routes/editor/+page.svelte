@@ -84,56 +84,25 @@
 	);
 	const activeLayerId = $derived.by(() => {
 		const tab = editor.workspace.activeTab;
-		// Subscribe to document mutations — Document is a WASM handle, so its
-		// methods don't trigger Svelte reactivity on their own.
-		void tab.renderVersion;
-		return tab.document.active_layer_id();
+		return tab.layerProjection.activeLayer?.id ?? tab.document.active_layer_id();
 	});
 	const isReferenceLayerActive = $derived.by(() => {
 		const tab = editor.workspace.activeTab;
-		void tab.renderVersion;
-		const doc = tab.document;
-		const activeId = doc.active_layer_id();
-		for (let i = 0; i < doc.layer_count(); i++) {
-			if (doc.layer_id_at(i) === activeId) return doc.layer_kind_at(i) === 'reference';
-		}
-		return false;
+		return tab.layerProjection.activeLayerKind === 'reference';
 	});
 	const isTimelinePanelCollapsed = $derived.by(() => {
 		const tab = editor.workspace.activeTab;
 		void tab.renderVersion;
 		return tab.document.is_timeline_panel_collapsed();
 	});
-	// TimelinePanel shows front-most (z-top) layer at the top, matching the
-	// Aseprite/Photoshop convention. The core stack is bottom-to-top
-	// (`layers[0]` = z-bottom, `layers[N-1]` = z-top), so iterate in reverse.
 	const layers = $derived.by(() => {
 		const tab = editor.workspace.activeTab;
-		void tab.renderVersion;
-		const doc = tab.document;
-		const out: { id: string; name: string; visible: boolean; kind: 'pixel' | 'reference' }[] =
-			[];
-		const count = doc.layer_count();
-		for (let i = count - 1; i >= 0; i--) {
-			const id = doc.layer_id_at(i);
-			const name = doc.layer_name_at(i);
-			const visible = doc.layer_visible_at(i);
-			const kind = doc.layer_kind_at(i);
-			if (
-				id !== undefined &&
-				name !== undefined &&
-				visible !== undefined &&
-				kind !== undefined
-			) {
-				out.push({
-					id,
-					name,
-					visible,
-					kind: kind === 'reference' ? 'reference' : 'pixel'
-				});
-			}
-		}
-		return out;
+		return tab.layerProjection.layersInPanelOrder.map(({ id, name, visible, kind }) => ({
+			id,
+			name,
+			visible,
+			kind
+		}));
 	});
 	const displayedRefIds = $derived(
 		new Set(
@@ -174,11 +143,7 @@
 	}
 
 	function hasReferenceLayer(tab: TabState): boolean {
-		const doc = tab.document;
-		for (let i = 0; i < doc.layer_count(); i++) {
-			if (doc.layer_kind_at(i) === 'reference') return true;
-		}
-		return false;
+		return tab.layerProjection.referenceLayer !== undefined;
 	}
 
 	function openReferenceLayerFilePicker() {

@@ -1,4 +1,4 @@
-import type { CanvasCoords, CanvasPoint, Document, ReferencePlacement } from './canvas-model';
+import type { CanvasCoords, CanvasPoint, ReferencePlacement } from './canvas-model';
 import type { ViewportData } from './viewport';
 
 /**
@@ -32,86 +32,6 @@ export interface ReferenceLayerUnderlayBounds {
 	readonly minY: number;
 	readonly maxX: number;
 	readonly maxY: number;
-}
-
-interface CachedReferenceLayerSource {
-	readonly document: Document;
-	readonly layerId: string;
-	readonly sourceFingerprint: string;
-	readonly naturalWidth: number;
-	readonly naturalHeight: number;
-	readonly sourceKey: string;
-	readonly sourceRgba: Uint8Array;
-}
-
-/**
- * Per-tab Reference Layer Underlay projector. The projector owns the
- * WASM-copy cache for source RGBA bytes while the renderer keeps its own
- * raster cache behind the canvas drawing seam.
- */
-export class ReferenceLayerUnderlayProjector {
-	#source?: CachedReferenceLayerSource;
-
-	#clear(): undefined {
-		this.#source = undefined;
-		return undefined;
-	}
-
-	project(document: Document): ReferenceLayerUnderlay | undefined {
-		for (let i = 0; i < document.layer_count(); i++) {
-			if (document.layer_kind_at(i) !== 'reference') continue;
-			if (!document.layer_visible_at(i)) return this.#clear();
-
-			const layerId = document.layer_id_at(i);
-			const sourceFingerprint = document.layer_source_fingerprint_at(i);
-			const dimensions = document.layer_source_dimensions_at(i);
-			const placement = document.layer_placement_at(i);
-			const opacity = document.layer_opacity_at(i);
-			if (!layerId || !sourceFingerprint || !dimensions || !placement || opacity === undefined) {
-				return this.#clear();
-			}
-
-			const naturalWidth = dimensions[0];
-			const naturalHeight = dimensions[1];
-			let source =
-				this.#source?.document === document &&
-				this.#source.layerId === layerId &&
-				this.#source.sourceFingerprint === sourceFingerprint &&
-				this.#source.naturalWidth === naturalWidth &&
-				this.#source.naturalHeight === naturalHeight
-					? this.#source
-					: undefined;
-
-			if (!source) {
-				const sourceRgba = document.layer_source_pixels_at(i);
-				if (!sourceRgba) return this.#clear();
-				source = {
-					document,
-					layerId,
-					sourceFingerprint,
-					naturalWidth,
-					naturalHeight,
-					sourceKey: `${layerId}:${naturalWidth}x${naturalHeight}:${sourceFingerprint}`,
-					sourceRgba
-				};
-				this.#source = source;
-			}
-
-			return {
-				sourceKey: source.sourceKey,
-				sourceRgba: source.sourceRgba,
-				naturalWidth,
-				naturalHeight,
-				placement: {
-					x: placement.x,
-					y: placement.y,
-					scale: placement.scale
-				},
-				opacity
-			};
-		}
-		return this.#clear();
-	}
 }
 
 export function referenceLayerUnderlaySourceCoords(

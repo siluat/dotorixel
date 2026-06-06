@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-[156 — Deepen Floating Selection lifecycle ownership](../issues/156-deepen-floating-selection-lifecycle.md): Floating Selection transient state now has a dedicated web-shell lifecycle owner. The undoable commit boundary remains in the Document Change Journal.
+[157 — Deepen Document Layer Projection](../issues/157-deepen-document-layer-projection.md): Layer stack reads now have a dedicated web-shell projection. Snapshot serialization remains a raw Document read.
 
 ## Next Up
 

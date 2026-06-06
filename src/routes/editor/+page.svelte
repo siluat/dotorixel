@@ -28,6 +28,7 @@
 	import ReferenceBrowserSheet from '$lib/reference-images/ReferenceBrowserSheet.svelte';
 	import ReferenceWindowOverlay from '$lib/reference-images/ReferenceWindowOverlay.svelte';
 	import Loupe from '$lib/ui-editor/Loupe.svelte';
+	import { ModalState } from '$lib/ui-editor/modal-state.svelte';
 	import type { ImportError } from '$lib/reference-images/references.svelte';
 	import { canvasDropzone } from '$lib/reference-images/canvas-dropzone';
 	import { decodeReferenceBlob } from '$lib/reference-images/decode-reference-blob';
@@ -68,16 +69,13 @@
 	let canvasContainerEl: HTMLDivElement | undefined = $state();
 	const fittedTabs = new WeakSet<TabState>();
 	let session: SessionHandle | undefined;
-	let saveDialogTabIndex: number | null = $state(null);
-	let browserDocuments: SavedDocumentSummary[] | null = $state(null);
-	let openingSavedDocumentId: string | null = $state(null);
-	let isReferencesOpen = $state(false);
+	const modal = new ModalState();
+	const activeModal = $derived(modal.active);
 	let referenceErrors = $state<string[]>([]);
 	let referenceLayerErrors = $state<{ id: string; message: string }[]>([]);
 	let referenceFileInputEl = $state<HTMLInputElement>();
 	let referenceLayerFileInputEl = $state<HTMLInputElement>();
 	let referenceLayerImport = $state<{ name: string } | null>(null);
-	let isReferenceReplaceDialogOpen = $state(false);
 	const isReferenceLayerImporting = $derived(referenceLayerImport !== null);
 	const activeReferences = $derived(
 		editor.workspace.references.forDoc(editor.workspace.activeTab.documentId)
@@ -153,7 +151,7 @@
 	function handleAddReferenceLayerRequest() {
 		if (isReferenceLayerImporting) return;
 		if (hasReferenceLayer(editor.workspace.activeTab)) {
-			isReferenceReplaceDialogOpen = true;
+			modal.openRefReplace();
 			return;
 		}
 		openReferenceLayerFilePicker();
@@ -213,33 +211,35 @@
 			return;
 		}
 
-		saveDialogTabIndex = index;
+		modal.openSave(index);
 	}
 
 	async function handleSaveDialogSave(name: string) {
-		if (saveDialogTabIndex === null) return;
-		const closeIndex = saveDialogTabIndex;
+		const active = modal.active;
+		if (active?.kind !== 'save') return;
+		const closeIndex = active.tabIndex;
 		const tab = editor.workspace.tabs[closeIndex];
 		const docId = tab.documentId;
 		await session?.flush();
 		await session?.saveDocumentAs(docId, name);
-		saveDialogTabIndex = null;
+		modal.close();
 		editor.workspace.closeTab(closeIndex);
 	}
 
 	async function handleSaveDialogDelete() {
-		if (saveDialogTabIndex === null) return;
-		const tab = editor.workspace.tabs[saveDialogTabIndex];
+		const active = modal.active;
+		if (active?.kind !== 'save') return;
+		const closeIndex = active.tabIndex;
+		const tab = editor.workspace.tabs[closeIndex];
 		const docId = tab.documentId;
-		const closeIndex = saveDialogTabIndex;
-		saveDialogTabIndex = null;
+		modal.close();
 		editor.workspace.closeTab(closeIndex);
 		editor.workspace.references.removeDoc(docId);
 		await session?.deleteDocument(docId);
 	}
 
 	function handleSaveDialogCancel() {
-		saveDialogTabIndex = null;
+		modal.close();
 	}
 
 	async function handleBrowseSavedWork() {
@@ -247,50 +247,51 @@
 		await session.flush();
 		const openIds = new Set(editor.workspace.tabs.map((t) => t.documentId));
 		const docs = await session.getAllSavedDocuments();
-		browserDocuments = docs.filter((d) => !openIds.has(d.id));
+		modal.openSavedWork(docs.filter((d) => !openIds.has(d.id)));
 	}
 
-	async function handleBrowserSelect(doc: SavedDocumentSummary) {
-		if (openingSavedDocumentId !== null) return;
-		openingSavedDocumentId = doc.id;
+	async function handleSavedWorkSelect(doc: SavedDocumentSummary) {
+		const opening = modal.active;
+		if (opening?.kind !== 'savedWork' || opening.openingId !== null) return;
+		modal.setSavedWorkOpeningId(doc.id);
 		try {
 			const snapshot = await session?.getSavedDocumentSnapshot(doc.id);
-			if (openingSavedDocumentId !== doc.id) return;
+			const current = modal.active;
+			if (current?.kind !== 'savedWork' || current.openingId !== doc.id) return;
 			if (!snapshot) {
-				browserDocuments = browserDocuments?.filter((candidate) => candidate.id !== doc.id) ?? null;
+				modal.removeSavedWorkDoc(doc.id);
 				return;
 			}
 			editor.workspace.openSnapshot(snapshot);
-			browserDocuments = null;
+			modal.close();
 		} finally {
-			if (openingSavedDocumentId === doc.id) {
-				openingSavedDocumentId = null;
+			const after = modal.active;
+			if (after?.kind === 'savedWork' && after.openingId === doc.id) {
+				modal.setSavedWorkOpeningId(null);
 			}
 		}
 	}
 
-	async function handleBrowserDelete(id: string) {
-		if (openingSavedDocumentId === id) {
-			openingSavedDocumentId = null;
+	async function handleSavedWorkDelete(id: string) {
+		const active = modal.active;
+		if (active?.kind === 'savedWork' && active.openingId === id) {
+			modal.setSavedWorkOpeningId(null);
 		}
 		editor.workspace.references.removeDoc(id);
 		await session?.deleteDocument(id);
-		if (browserDocuments) {
-			browserDocuments = browserDocuments.filter((d) => d.id !== id);
-		}
+		modal.removeSavedWorkDoc(id);
 	}
 
-	function handleBrowserClose() {
-		openingSavedDocumentId = null;
-		browserDocuments = null;
+	function handleSavedWorkClose() {
+		modal.close();
 	}
 
 	function handleOpenReferences() {
-		isReferencesOpen = true;
+		modal.openReferences();
 	}
 
 	function handleCloseReferences() {
-		isReferencesOpen = false;
+		modal.close();
 		referenceErrors = [];
 	}
 
@@ -326,11 +327,11 @@
 	}
 
 	function handleReferenceLayerReplaceCancel() {
-		isReferenceReplaceDialogOpen = false;
+		modal.close();
 	}
 
 	function handleReferenceLayerReplaceConfirm() {
-		isReferenceReplaceDialogOpen = false;
+		modal.close();
 		openReferenceLayerFilePicker();
 	}
 
@@ -455,22 +456,12 @@
 	}
 
 	function handleEditorKeyDown(event: KeyboardEvent) {
-		if (
-			saveDialogTabIndex !== null ||
-			browserDocuments !== null ||
-			isReferencesOpen ||
-			isReferenceReplaceDialogOpen
-		) return;
+		if (modal.isOpen) return;
 		editor.handleKeyDown(event);
 	}
 
 	function handleEditorKeyUp(event: KeyboardEvent) {
-		if (
-			saveDialogTabIndex !== null ||
-			browserDocuments !== null ||
-			isReferencesOpen ||
-			isReferenceReplaceDialogOpen
-		) return;
+		if (modal.isOpen) return;
 		editor.handleKeyUp(event);
 	}
 
@@ -588,9 +579,9 @@
 			onExportToggle={editor.toggleExportUI}
 			onExportConfirm={handleExportConfirm}
 			onBrowseSavedWork={handleBrowseSavedWork}
-			isBrowserOpen={browserDocuments !== null}
+			isSavedWorkOpen={activeModal?.kind === 'savedWork'}
 			onOpenReferences={handleOpenReferences}
-			isReferencesOpen={isReferencesOpen}
+			isReferencesOpen={activeModal?.kind === 'references'}
 		/>
 
 		<TabStrip
@@ -853,15 +844,15 @@
 		/>
 
 		<SavedWorkBrowserSheet
-			open={browserDocuments !== null}
-			documents={browserDocuments ?? []}
-			onSelect={handleBrowserSelect}
-			onDelete={handleBrowserDelete}
-			onClose={handleBrowserClose}
+			open={activeModal?.kind === 'savedWork'}
+			documents={activeModal?.kind === 'savedWork' ? activeModal.documents : []}
+			onSelect={handleSavedWorkSelect}
+			onDelete={handleSavedWorkDelete}
+			onClose={handleSavedWorkClose}
 		/>
 
 		<ReferenceBrowserSheet
-			open={isReferencesOpen}
+			open={activeModal?.kind === 'references'}
 			references={activeReferences}
 			displayedRefIds={displayedRefIds}
 			errors={referenceErrors}
@@ -883,7 +874,7 @@
 	/>
 {/if}
 
-{#if layout.isDocked && isReferencesOpen}
+{#if layout.isDocked && activeModal?.kind === 'references'}
 	<ReferenceBrowser
 		references={activeReferences}
 		displayedRefIds={displayedRefIds}
@@ -933,25 +924,25 @@
 	</div>
 {/if}
 
-{#if isReferenceReplaceDialogOpen}
+{#if activeModal?.kind === 'refReplace'}
 	<ReferenceLayerReplaceDialog
 		onConfirm={handleReferenceLayerReplaceConfirm}
 		onCancel={handleReferenceLayerReplaceCancel}
 	/>
 {/if}
 
-{#if layout.isDocked && browserDocuments !== null}
+{#if layout.isDocked && activeModal?.kind === 'savedWork'}
 	<SavedWorkBrowser
-		documents={browserDocuments}
-		onSelect={handleBrowserSelect}
-		onDelete={handleBrowserDelete}
-		onClose={handleBrowserClose}
+		documents={activeModal.documents}
+		onSelect={handleSavedWorkSelect}
+		onDelete={handleSavedWorkDelete}
+		onClose={handleSavedWorkClose}
 	/>
 {/if}
 
-{#if saveDialogTabIndex !== null}
+{#if activeModal?.kind === 'save'}
 	<SaveDialog
-		documentName={editor.workspace.tabs[saveDialogTabIndex].name}
+		documentName={editor.workspace.tabs[activeModal.tabIndex].name}
 		onSave={handleSaveDialogSave}
 		onDelete={handleSaveDialogDelete}
 		onCancel={handleSaveDialogCancel}

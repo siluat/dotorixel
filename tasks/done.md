@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 159 | [Deepen editor dialog state into a ModalState seam](../issues/159-deepen-editor-modal-state.md) | 2026-06-06 |
 | 158 | [Deepen Floating Selection policy ownership](../issues/158-deepen-floating-selection-policy.md) | 2026-06-06 |
 | 157 | [Deepen Document Layer Projection](../issues/157-deepen-document-layer-projection.md) | 2026-06-06 |
 | 156 | [Deepen Floating Selection lifecycle ownership](../issues/156-deepen-floating-selection-lifecycle.md) | 2026-06-04 |

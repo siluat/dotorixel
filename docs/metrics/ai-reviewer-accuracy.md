@@ -6,14 +6,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 146 | 112 | 34 | 147 | 77% | 43% |
-| cubic-dev-ai[bot] | 100 | 84 | 16 | 171 | 84% | 33% |
-| coderabbitai[bot] | 202 | 145 | 57 | 107 | 72% | 58% |
+| greptile-apps[bot] | 147 | 113 | 34 | 148 | 77% | 43% |
+| cubic-dev-ai[bot] | 102 | 86 | 16 | 171 | 84% | 33% |
+| coderabbitai[bot] | 202 | 145 | 57 | 109 | 72% | 57% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #259 | greptile-apps[bot] | Accept | BORDER_PX JSDoc named the renamed `--loupe-border` property; should be `--loupe-border-width` |
+| #259 | cubic-dev-ai[bot] | Accept | BORDER_PX JSDoc named the renamed `--loupe-border` property; should be `--loupe-border-width` |
+| #259 | coderabbitai[bot] | Miss | Did not flag stale `--loupe-border` JSDoc on BORDER_PX |
+| #259 | cubic-dev-ai[bot] | Accept | progress.md used `LOUPE_WIDTH`/`HEIGHT` shorthand instead of the `LOUPE_HEIGHT` constant |
+| #259 | greptile-apps[bot] | Miss | Did not flag `LOUPE_WIDTH`/`HEIGHT` shorthand in progress.md |
+| #259 | coderabbitai[bot] | Miss | Did not flag `LOUPE_WIDTH`/`HEIGHT` shorthand in progress.md |
 | #258 | greptile-apps[bot] | Accept | Rust-parity test became a tautology after viewportOps shorthand delegation; compare to WASM effective_pixel_size directly |
 | #258 | cubic-dev-ai[bot] | Accept | Rust-parity test became a tautology after viewportOps shorthand delegation; compare to WASM effective_pixel_size directly |
 | #258 | coderabbitai[bot] | Miss | Did not flag tautological Rust-parity test |

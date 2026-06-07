@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { createEditorController } from '$lib/canvas/editor-session/create-editor-controller';
 	import type { EditorController } from '$lib/canvas/editor-session/editor-controller.svelte';
 	import type { TabState } from '$lib/canvas/editor-session/tab-state.svelte';
@@ -515,7 +515,11 @@
 		const w = Math.round(rect.width);
 		const h = Math.round(rect.height);
 		if (w > 0 && h > 0) {
-			initTabViewport(currentTab, w, h);
+			// `initTabViewport` runs `setViewportSize`, which now reclamps and so
+			// reads/writes `viewport` + `viewportSize`. Untrack it so this effect
+			// re-runs only when the active tab (or container) changes — not when
+			// the sync it performs mutates viewport state.
+			untrack(() => initTabViewport(currentTab, w, h));
 		}
 	});
 

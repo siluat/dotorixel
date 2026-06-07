@@ -82,3 +82,9 @@ _Avoid_: stagger index, offset count.
 **Drop Batch**:
 A single drag-and-drop import of one or more files whose *at-point* placements cascade only among themselves and never advance the Cascade Index.
 _Avoid_: drop group, drop session.
+
+### Viewport & Navigation
+
+**Navigation Bounds**:
+The document-space region a tab's viewport pan is clamped to — the union of the canvas rectangle and, when the active Layer is a Reference Layer, its visible underlay footprint. Defined so that **every** viewport mutation (pan, zoom, zoom-fit, viewport-resize, and the post-document-change reclamp) is held to one region; the canvas can never be panned or zoomed entirely out of reach. Owned by a single viewport authority rather than recomputed per trigger.
+_Avoid_: pan limits / scroll bounds (informal), canvas bounds (that is only one input — Navigation Bounds also covers the Reference underlay footprint), viewport bounds (the viewport is the thing being clamped, not the bound).

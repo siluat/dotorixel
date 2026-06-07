@@ -1929,7 +1929,7 @@ describe('TabState — Reference underlay render source', () => {
 		expect(tab.referenceLayerUnderlay?.placement).toEqual({ x: 0, y: 0, scale: 1 });
 	});
 
-	it('expands viewport pan bounds to the active visible Reference footprint', () => {
+	it('supplies the active Reference footprint, expanding pan reach beyond the canvas', () => {
 		const { document } = makeReferenceDocumentWithPlacement({
 			x: 30,
 			y: 0,
@@ -1940,15 +1940,10 @@ describe('TabState — Reference underlay render source', () => {
 
 		tab.setViewport(requested);
 
-		const expected = wasmBackend.viewportOps.clampPanToDocumentBounds(
-			requested,
-			0,
-			0,
-			110,
-			40,
-			tab.viewportSize.width,
-			tab.viewportSize.height
-		);
+		// The active Reference footprint extends the reachable region past the
+		// canvas-only clamp. The detailed bounds math is covered by the
+		// navigation-bounds and tab-viewport tests; here we only assert that
+		// TabState feeds the footprint through to the viewport's clamp.
 		const canvasOnly = wasmBackend.viewportOps.clampPan(
 			requested,
 			tab.document.width,
@@ -1956,8 +1951,6 @@ describe('TabState — Reference underlay render source', () => {
 			tab.viewportSize.width,
 			tab.viewportSize.height
 		);
-		expect(tab.viewport.panX).toBe(expected.panX);
-		expect(tab.viewport.panY).toBe(expected.panY);
 		expect(tab.viewport.panX).toBeLessThan(canvasOnly.panX);
 		expect(tab.viewport.panY).toBeLessThan(canvasOnly.panY);
 	});

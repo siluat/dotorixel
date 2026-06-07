@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-[159 — Deepen editor dialog state into a ModalState seam](../issues/159-deepen-editor-modal-state.md): The open editor dialog is now one discriminated-union `ModalState` enforcing "at most one open"; the per-Document export sheet stays tab-scoped. First slice of the editor-route god-orchestrator decomposition — TabCloseFlow and Reference Layer import extraction remain.
+[160 — Deepen Navigation Bounds into a single viewport owner](../issues/160-deepen-navigation-bounds-ownership.md): Every viewport mutation (pan, zoom, zoom-fit, resize) now clamps to one Navigation Bounds sink — canvas ∪ active-Reference footprint — so zoom/fit/resize respect the footprint like panning already did. Surfaced and fixed a dev-only infinite-effect-loop regression. Follow-up enabled: reference-geometry consolidation (architecture review candidate #4).
 
 ## Next Up
 

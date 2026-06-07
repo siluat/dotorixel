@@ -3,6 +3,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { render, cleanup } from '@testing-library/svelte';
 import Loupe from './Loupe.svelte';
 import type { Color } from '$lib/canvas/color';
+import { LOUPE_HEIGHT, LOUPE_WIDTH } from '$lib/canvas/sampling/loupe-config';
 
 const OPAQUE_BLUE: Color = { r: 0, g: 0, b: 255, a: 255 };
 const TRANSPARENT: Color = { r: 0, g: 0, b: 0, a: 0 };
@@ -161,5 +162,37 @@ describe('Loupe', () => {
 		const firstCell = container.querySelector('.cell') as HTMLElement;
 		// happy-dom normalizes inline color to rgb(...) form.
 		expect(firstCell.style.backgroundColor).toBe('rgb(255, 0, 0)');
+	});
+
+	// The contract: computeLoupePosition places the loupe assuming it renders at
+	// exactly LOUPE_WIDTH × LOUPE_HEIGHT. The rendered box is built from the CSS
+	// custom properties the component emits, so reconstructing the box from those
+	// emitted properties and comparing to the totals guards against the two ever
+	// drifting apart. (happy-dom does no layout — this verifies the geometry
+	// wiring, not pixel-measured size.)
+	it('emits geometry custom properties that reconstruct LOUPE_WIDTH/HEIGHT', () => {
+		const { getByTestId } = render(Loupe, {
+			props: { grid: makeGrid(OPAQUE_BLUE), position: DEFAULT_POSITION }
+		});
+
+		const root = getByTestId('loupe-root') as HTMLElement;
+		const prop = (name: string) => parseFloat(root.style.getPropertyValue(name));
+
+		const cellSize = prop('--cell-size');
+		const gridColumns = prop('--grid-columns');
+		const cellGap = prop('--cell-gap');
+		const border = prop('--loupe-border-width');
+		const padding = prop('--loupe-padding');
+		const gridChipGap = prop('--grid-chip-gap');
+		const swatchSize = prop('--swatch-size');
+		const chipPaddingY = prop('--chip-padding-y');
+
+		const gridPixels = cellSize * gridColumns + cellGap * (gridColumns - 1);
+		const chipHeight = swatchSize + chipPaddingY * 2;
+		const renderedWidth = gridPixels + padding * 2 + border * 2;
+		const renderedHeight = gridPixels + gridChipGap + chipHeight + padding * 2 + border * 2;
+
+		expect(renderedWidth).toBe(LOUPE_WIDTH);
+		expect(renderedHeight).toBe(LOUPE_HEIGHT);
 	});
 });

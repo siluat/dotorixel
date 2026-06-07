@@ -1,6 +1,16 @@
 <script lang="ts">
 	import type { Color } from '$lib/canvas/color';
 	import { colorToHex } from '$lib/canvas/color';
+	import {
+		BORDER_PX,
+		CELL_GAP_PX,
+		CELL_SIZE_PX,
+		CHIP_PADDING_Y_PX,
+		GRID_CHIP_GAP_PX,
+		GRID_SIZE,
+		PADDING_PX,
+		SWATCH_SIZE_PX
+	} from '$lib/canvas/sampling/loupe-config';
 
 	interface Props {
 		/**
@@ -36,6 +46,14 @@
 	role="presentation"
 	style:left="{position.x}px"
 	style:top="{position.y}px"
+	style:--cell-size="{CELL_SIZE_PX}px"
+	style:--grid-columns={GRID_SIZE}
+	style:--cell-gap="{CELL_GAP_PX}px"
+	style:--loupe-border-width="{BORDER_PX}px"
+	style:--loupe-padding="{PADDING_PX}px"
+	style:--grid-chip-gap="{GRID_CHIP_GAP_PX}px"
+	style:--swatch-size="{SWATCH_SIZE_PX}px"
+	style:--chip-padding-y="{CHIP_PADDING_Y_PX}px"
 >
 	<div class="grid" role="presentation">
 		{#each grid as color, i (i)}
@@ -65,11 +83,9 @@
 
 <style>
 	.loupe {
-		/* `left` / `top` are set inline from the sampling session's flipped/clamped
-		   position so the loupe stays fully on-screen near viewport edges. */
-		--cell-size: 24px;
-		--grid-columns: 9;
-
+		/* `left` / `top` and every `--*` geometry token are set inline (see the
+		   `style:` bindings above) from `loupe-config.ts`, so the rendered box
+		   and the position math's LOUPE_WIDTH/HEIGHT share one source. */
 		position: fixed;
 		pointer-events: none;
 		z-index: 1000;
@@ -77,11 +93,11 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: var(--ds-space-3);
-		padding: var(--ds-space-3);
+		gap: var(--grid-chip-gap);
+		padding: var(--loupe-padding);
 
 		background: var(--ds-bg-elevated);
-		border: 1px solid var(--ds-border);
+		border: var(--loupe-border-width) solid var(--ds-border);
 		border-radius: var(--ds-radius-md);
 		box-shadow: var(--ds-shadow-md);
 	}
@@ -91,7 +107,7 @@
 		display: grid;
 		grid-template-columns: repeat(var(--grid-columns), var(--cell-size));
 		grid-template-rows: repeat(var(--grid-columns), var(--cell-size));
-		gap: 1px;
+		gap: var(--cell-gap);
 		background: var(--ds-border);
 	}
 
@@ -156,13 +172,16 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		padding: 4px 8px;
+		/* Vertical padding feeds CHIP_HEIGHT_PX (and thus LOUPE_HEIGHT), so it
+		   comes from loupe-config; horizontal padding is free spacing on the
+		   shared --ds-space-3 token. */
+		padding: var(--chip-padding-y) var(--ds-space-3);
 		border-radius: var(--ds-radius-sm);
 		background: var(--ds-bg-surface);
 	}
 
 	.swatch {
-		--swatch-size: 16px;
+		/* `--swatch-size` is inherited from `.loupe` (set inline from loupe-config). */
 		width: var(--swatch-size);
 		height: var(--swatch-size);
 		border-radius: 3px;
@@ -195,10 +214,10 @@
 	.hex {
 		font-family: var(--ds-font-mono);
 		font-size: var(--ds-font-size-sm);
-		/* Locks to 16px (matches .swatch height) so CHIP_HEIGHT_PX = 24 stays
-		   accurate — default normal line-height (~17px) would add a 1px drift
-		   through the positioning math. */
-		line-height: 16px;
+		/* Locked to the swatch height so the chip row stays exactly
+		   CHIP_HEIGHT_PX — a default normal line-height (~17px) would add ~1px
+		   of drift into the positioning math. */
+		line-height: var(--swatch-size);
 		color: var(--ds-text-primary);
 	}
 

@@ -1,11 +1,14 @@
 /**
- * Loupe geometry — single source of truth shared by the position math
+ * Loupe geometry — the single source of truth shared by the position math
  * (`computeLoupePosition`), the session's `position` derivation, the grid
  * extraction (`sampleGrid`), and the visual component (`Loupe.svelte`).
  *
- * Each public constant maps to a CSS rule in `Loupe.svelte`. Change one
- * here AND in the corresponding rule together — the totals (`LOUPE_WIDTH`,
- * `LOUPE_HEIGHT`) re-derive automatically.
+ * `Loupe.svelte` consumes every geometry value below as a CSS custom property
+ * (`style:--cell-size`, `style:--loupe-padding`, …) instead of re-declaring it
+ * in its stylesheet, so the rendered box and the totals (`LOUPE_WIDTH`,
+ * `LOUPE_HEIGHT`) the position math relies on derive from this one place.
+ * Change a value here and both the math and the rendered box follow — there is
+ * no second CSS copy to keep in sync.
  */
 
 /** Cells per side in the sampled grid (also passed to `sampleGrid`). */
@@ -14,20 +17,30 @@ export const GRID_SIZE = 9;
 /** Index of the centre cell in the sampled grid — the colour the session commits. */
 export const LOUPE_CENTER_INDEX = (GRID_SIZE * GRID_SIZE - 1) / 2;
 
-/** Pixel size of each grid cell. Mirrors `.cell` width/height. */
+/** Side length of each grid cell. Drives `--cell-size`. */
 export const CELL_SIZE_PX = 24;
 
-/** Inner padding around grid + chip. Mirrors `.loupe` `padding`. */
-export const PADDING_PX = 8;
+/** Gap between adjacent grid cells — the rendered gridlines. Drives `--cell-gap`. */
+export const CELL_GAP_PX = 1;
 
-/** Outer border width on the loupe. Mirrors `.loupe` `border` width. */
+/** Outer border width on the loupe. Drives `--loupe-border-width`. */
 export const BORDER_PX = 1;
 
-/** Chip row total height: 4px×2 padding + 16px swatch. Mirrors `.chip`. */
-export const CHIP_HEIGHT_PX = 24;
+/** Inner padding around grid + chip. Drives `--loupe-padding` (one `--ds-space-3` step). */
+export const PADDING_PX = 8;
 
-const CELL_GAP_PX = 1;
-const GRID_CHIP_GAP_PX = 8;
+/** Gap between the grid and the hex chip below it. Drives `--grid-chip-gap` (one `--ds-space-3` step). */
+export const GRID_CHIP_GAP_PX = 8;
+
+/** Side length of the chip's colour swatch; also the hex text's line-height. Drives `--swatch-size`. */
+export const SWATCH_SIZE_PX = 16;
+
+/** Vertical padding above and below the chip's swatch/text row. Drives `--chip-padding-y`. */
+export const CHIP_PADDING_Y_PX = 4;
+
+/** Chip row total height (swatch + vertical padding), folded into `LOUPE_HEIGHT`. */
+export const CHIP_HEIGHT_PX = SWATCH_SIZE_PX + CHIP_PADDING_Y_PX * 2;
+
 const GRID_PIXELS_PX = CELL_SIZE_PX * GRID_SIZE + CELL_GAP_PX * (GRID_SIZE - 1);
 
 /** Outer (border-box) loupe width in px. */

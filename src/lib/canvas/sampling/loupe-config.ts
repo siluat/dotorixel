@@ -23,7 +23,7 @@ export const CELL_SIZE_PX = 24;
 /** Gap between adjacent grid cells — the rendered gridlines. Drives `--cell-gap`. */
 export const CELL_GAP_PX = 1;
 
-/** Outer border width on the loupe. Drives `--loupe-border`. */
+/** Outer border width on the loupe. Drives `--loupe-border-width`. */
 export const BORDER_PX = 1;
 
 /** Inner padding around grid + chip. Drives `--loupe-padding` (one `--ds-space-3` step). */

@@ -13,7 +13,7 @@
 	import * as m from '$lib/paraglide/messages';
 	import { tooltip } from '$lib/tooltip';
 	import type { MarqueeRegion } from './canvas-model';
-	import type { ViewportData, ViewportSize } from './viewport';
+	import { effectivePixelSize, type ViewportData, type ViewportSize } from './viewport';
 
 	const ACTION_BAR_GAP = 8;
 	const ACTION_BAR_HEIGHT = 44;
@@ -92,7 +92,7 @@
 		const bottom = Math.min(canvasHeight, marqueeY + marquee.height);
 		if (left >= right || top >= bottom) return null;
 
-		const scaledPixel = Math.round(viewport.pixelSize * viewport.zoom);
+		const scaledPixel = effectivePixelSize(viewport);
 		if (!Number.isFinite(scaledPixel) || scaledPixel < 1) return null;
 		return {
 			left: Math.round(viewport.panX) + left * scaledPixel,

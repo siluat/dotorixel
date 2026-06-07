@@ -19,6 +19,22 @@ export interface ViewportData {
 }
 
 /**
+ * Display size of one canvas pixel in screen pixels, rounded to an integer to
+ * keep `fillRect`/grid edges subpixel-aligned during continuous zoom.
+ *
+ * The single web-shell authority for this value: renderer, overlays, the
+ * Reference underlay, and the Reference Layer Placement Interaction all derive
+ * from it. Mirrors the Rust core's `Viewport::effective_pixel_size`; the web
+ * keeps a pure-TS twin because the formula is trivial and routing every
+ * render-loop query through WASM would allocate a `WasmViewport` per call.
+ * `pixelSize` and `zoom` are always positive, so `Math.round` (half up) and
+ * Rust's `f64::round` (half away from zero) agree.
+ */
+export function effectivePixelSize(vd: ViewportData): number {
+	return Math.round(vd.pixelSize * vd.zoom);
+}
+
+/**
  * All viewport operations — camera transforms + zoom arithmetic.
  * Implemented by the WASM adapter; consumers import the singleton from wasm-backend.
  */

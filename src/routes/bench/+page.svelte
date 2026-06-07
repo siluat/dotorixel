@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { renderPixelCanvas } from '$lib/canvas/renderer';
+	import { effectivePixelSize } from '$lib/canvas/viewport';
 
 	const CANVAS_SIZES = [8, 16, 32, 64, 128];
 	const ZOOM_LEVELS = [1, 8, 16];
@@ -75,7 +76,7 @@
 
 			for (const zoom of ZOOM_LEVELS) {
 				const viewport = createViewport(size, zoom);
-				const eps = Math.round(viewport.pixelSize * zoom);
+				const eps = effectivePixelSize(viewport);
 				progress = `${size}\u00d7${size} @ ${zoom}\u00d7 (effective pixel: ${eps}px)...`;
 
 				// Yield to let the UI update

@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 161 | [Deepen viewport pixel-scale into a single authority](../issues/161-deepen-viewport-pixel-scale-authority.md) | 2026-06-07 |
 | 160 | [Deepen Navigation Bounds into a single viewport owner](../issues/160-deepen-navigation-bounds-ownership.md) | 2026-06-07 |
 | 159 | [Deepen editor dialog state into a ModalState seam](../issues/159-deepen-editor-modal-state.md) | 2026-06-06 |
 | 158 | [Deepen Floating Selection policy ownership](../issues/158-deepen-floating-selection-policy.md) | 2026-06-06 |

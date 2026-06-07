@@ -37,7 +37,7 @@ import type {
 	PixelLayerRecordV3,
 	ReferenceLayerRecord
 } from '$lib/session/session-storage-types';
-import type { ViewportData, ViewportOps } from './viewport';
+import { effectivePixelSize, type ViewportData, type ViewportOps } from './viewport';
 import type { DrawingOps, DrawingToolType, MarqueeBounds } from './drawing-ops';
 import type { CanvasBackend } from './editor-session/canvas-backend';
 
@@ -121,7 +121,7 @@ export const viewportOps: ViewportOps = {
 		return { x: coords.x, y: coords.y };
 	},
 	screenToCanvasPoint(vd, screenX, screenY) {
-		const scaledPixel = toWasm(vd).effective_pixel_size();
+		const scaledPixel = effectivePixelSize(vd);
 		return {
 			x: (screenX - roundLikeRust(vd.panX)) / scaledPixel,
 			y: (screenY - roundLikeRust(vd.panY)) / scaledPixel
@@ -166,9 +166,7 @@ export const viewportOps: ViewportOps = {
 			panY: result.pan_y
 		};
 	},
-	effectivePixelSize(vd) {
-		return toWasm(vd).effective_pixel_size();
-	},
+	effectivePixelSize,
 	displaySize(vd, canvasWidth, canvasHeight) {
 		const size = toWasm(vd).display_size(canvasWidth, canvasHeight);
 		return { width: size.width, height: size.height };

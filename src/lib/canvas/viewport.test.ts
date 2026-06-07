@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { viewportOps } from './wasm-backend';
+import { effectivePixelSize, type ViewportData } from './viewport';
 
 describe('ViewportOps camera transforms', () => {
 	const defaultVd = viewportOps.forCanvas(16, 16);
@@ -249,5 +250,34 @@ describe('ViewportOps zoom math', () => {
 
 	it('defaultPixelSize uses larger dimension', () => {
 		expect(viewportOps.defaultPixelSize(16, 32)).toBe(viewportOps.defaultPixelSize(32, 16));
+	});
+});
+
+describe('effectivePixelSize', () => {
+	const vd = (pixelSize: number, zoom: number): ViewportData => ({
+		pixelSize,
+		zoom,
+		panX: 0,
+		panY: 0,
+		showGrid: true,
+		gridColor: '#cccccc'
+	});
+
+	it('multiplies pixel size by zoom', () => {
+		expect(effectivePixelSize(vd(32, 2.0))).toBe(64);
+	});
+
+	it('handles fractional zoom', () => {
+		expect(effectivePixelSize(vd(32, 0.5))).toBe(16);
+	});
+
+	it('rounds to an integer so continuous zoom stays subpixel-aligned', () => {
+		expect(effectivePixelSize(vd(32, 1.284))).toBe(41);
+		expect(effectivePixelSize(vd(32, 1.3))).toBe(42);
+	});
+
+	it('agrees with the Rust-backed ViewportOps.effectivePixelSize', () => {
+		const sample = { ...viewportOps.forCanvas(16, 16), pixelSize: 16, zoom: 1.3 };
+		expect(effectivePixelSize(sample)).toBe(viewportOps.effectivePixelSize(sample));
 	});
 });

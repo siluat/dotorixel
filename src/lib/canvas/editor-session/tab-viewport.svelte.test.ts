@@ -33,37 +33,72 @@ describe('TabViewport', () => {
 	});
 
 	describe('zoomIn / zoomOut', () => {
-		it('zoomIn steps to nextZoomLevel centered on viewportSize', () => {
+		it('zoomIn steps to nextZoomLevel and re-centers pan on viewportSize', () => {
 			const initial = viewportOps.forCanvas(16, 16);
 			const { tabViewport, notifier } = makeViewport({ initial });
 
 			tabViewport.zoomIn();
 
 			const expectedZoom = viewportOps.nextZoomLevel(initial.zoom);
+			// zoom centers on the viewport, then the result is clamped to the
+			// Navigation Bounds (canvas-only here, no footprint).
+			const expected = viewportOps.clampPanToDocumentBounds(
+				viewportOps.zoomAtPoint(initial, 256, 256, expectedZoom),
+				0,
+				0,
+				16,
+				16,
+				512,
+				512
+			);
 			expect(tabViewport.viewport.zoom).toBe(expectedZoom);
+			expect(tabViewport.viewport.panX).toBe(expected.panX);
+			expect(tabViewport.viewport.panY).toBe(expected.panY);
 			expect(notifier.dirtyCalls).toEqual(['doc-1']);
 		});
 
-		it('zoomOut steps to prevZoomLevel centered on viewportSize', () => {
+		it('zoomOut steps to prevZoomLevel and re-centers pan on viewportSize', () => {
 			const initial = { ...viewportOps.forCanvas(16, 16), zoom: 4.0 };
 			const { tabViewport, notifier } = makeViewport({ initial });
 
 			tabViewport.zoomOut();
 
 			const expectedZoom = viewportOps.prevZoomLevel(initial.zoom);
+			const expected = viewportOps.clampPanToDocumentBounds(
+				viewportOps.zoomAtPoint(initial, 256, 256, expectedZoom),
+				0,
+				0,
+				16,
+				16,
+				512,
+				512
+			);
 			expect(tabViewport.viewport.zoom).toBe(expectedZoom);
+			expect(tabViewport.viewport.panX).toBe(expected.panX);
+			expect(tabViewport.viewport.panY).toBe(expected.panY);
 			expect(notifier.dirtyCalls).toEqual(['doc-1']);
 		});
 	});
 
 	describe('zoomReset', () => {
-		it('returns zoom to 1.0 centered on viewportSize', () => {
+		it('returns zoom to 1.0 and re-centers pan on viewportSize', () => {
 			const initial = { ...viewportOps.forCanvas(16, 16), zoom: 4.0 };
 			const { tabViewport, notifier } = makeViewport({ initial });
 
 			tabViewport.zoomReset();
 
+			const expected = viewportOps.clampPanToDocumentBounds(
+				viewportOps.zoomAtPoint(initial, 256, 256, 1.0),
+				0,
+				0,
+				16,
+				16,
+				512,
+				512
+			);
 			expect(tabViewport.viewport.zoom).toBe(1.0);
+			expect(tabViewport.viewport.panX).toBe(expected.panX);
+			expect(tabViewport.viewport.panY).toBe(expected.panY);
 			expect(notifier.dirtyCalls).toEqual(['doc-1']);
 		});
 	});
@@ -178,6 +213,23 @@ describe('TabViewport', () => {
 			const expanded = viewportOps.clampPanToDocumentBounds(initial, 0, 0, 200, 200, 512, 512);
 			const canvasOnly = viewportOps.clampPanToDocumentBounds(initial, 0, 0, 16, 16, 512, 512);
 			expect(tabViewport.viewport.panX).toBe(expanded.panX);
+			expect(tabViewport.viewport.panX).toBeLessThan(canvasOnly.panX);
+		});
+
+		it('a zoom gesture clamps the post-zoom pan against the footprint, not the canvas', () => {
+			const footprint = { minX: 0, minY: 0, maxX: 200, maxY: 200 };
+			// An off-center pan is adopted as-is at construction so the post-zoom
+			// pan lands outside the canvas region but within the larger footprint.
+			const initial = { ...viewportOps.forCanvas(16, 16), panX: -5000, panY: -5000, zoom: 4.0 };
+			const { tabViewport } = makeViewport({ initial, getReferenceFootprint: () => footprint });
+
+			tabViewport.zoomReset();
+
+			const zoomed = viewportOps.zoomAtPoint(initial, 256, 256, 1.0);
+			const expected = viewportOps.clampPanToDocumentBounds(zoomed, 0, 0, 200, 200, 512, 512);
+			const canvasOnly = viewportOps.clampPanToDocumentBounds(zoomed, 0, 0, 16, 16, 512, 512);
+			expect(tabViewport.viewport.panX).toBe(expected.panX);
+			expect(tabViewport.viewport.panY).toBe(expected.panY);
 			expect(tabViewport.viewport.panX).toBeLessThan(canvasOnly.panX);
 		});
 	});

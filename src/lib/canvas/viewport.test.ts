@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { viewportOps } from './wasm-backend';
 import { effectivePixelSize, type ViewportData } from './viewport';
+import { WasmViewport } from '$wasm/dotorixel_wasm';
 
 describe('ViewportOps camera transforms', () => {
 	const defaultVd = viewportOps.forCanvas(16, 16);
@@ -276,8 +277,19 @@ describe('effectivePixelSize', () => {
 		expect(effectivePixelSize(vd(32, 1.3))).toBe(42);
 	});
 
-	it('agrees with the Rust-backed ViewportOps.effectivePixelSize', () => {
-		const sample = { ...viewportOps.forCanvas(16, 16), pixelSize: 16, zoom: 1.3 };
-		expect(effectivePixelSize(sample)).toBe(viewportOps.effectivePixelSize(sample));
+	it('agrees with the Rust core effective_pixel_size across zoom levels (guards TS/Rust drift)', () => {
+		// The web shell keeps a pure-TS twin of Rust's Viewport::effective_pixel_size.
+		// Compare against the WASM binding directly — not viewportOps.effectivePixelSize,
+		// which now delegates to the pure fn — so this fails if the two implementations drift.
+		for (const [pixelSize, zoom] of [
+			[16, 2.0],
+			[32, 0.5],
+			[32, 1.284],
+			[32, 1.3],
+			[8, 16]
+		] as const) {
+			const fromRust = new WasmViewport(pixelSize, zoom, 0, 0).effective_pixel_size();
+			expect(effectivePixelSize(vd(pixelSize, zoom))).toBe(fromRust);
+		}
 	});
 });

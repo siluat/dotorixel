@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 144 | 110 | 34 | 147 | 76% | 43% |
-| cubic-dev-ai[bot] | 99 | 83 | 16 | 170 | 84% | 33% |
-| coderabbitai[bot] | 202 | 145 | 57 | 105 | 72% | 58% |
+| greptile-apps[bot] | 145 | 111 | 34 | 147 | 77% | 43% |
+| cubic-dev-ai[bot] | 99 | 83 | 16 | 171 | 84% | 33% |
+| coderabbitai[bot] | 202 | 145 | 57 | 106 | 72% | 58% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #257 | greptile-apps[bot] | Accept | Zoom tests dropped post-zoom pan assertions; restored them and added zoom×footprint clamp coverage |
+| #257 | coderabbitai[bot] | Miss | Did not flag dropped post-zoom pan assertions in viewport zoom tests |
+| #257 | cubic-dev-ai[bot] | Miss | Did not flag dropped post-zoom pan assertions in viewport zoom tests |
 | #256 | coderabbitai[bot] | Accept | Enforce ModalState read-only contract — ActiveModal variants and saved-work documents readonly |
 | #256 | cubic-dev-ai[bot] | Miss | Did not flag mutable ModalState payload bypassing transitions |
 | #256 | greptile-apps[bot] | Miss | Did not flag mutable ModalState payload bypassing transitions |

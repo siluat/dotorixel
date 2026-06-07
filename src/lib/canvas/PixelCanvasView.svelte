@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { CanvasPoint, MarqueeRegion, ReferencePlacement } from './canvas-model';
 	import { viewportOps } from './wasm-backend';
-	import type { ViewportData, ViewportSize } from './viewport';
+	import { effectivePixelSize, type ViewportData, type ViewportSize } from './viewport';
 	import type { SamplingSession } from './sampling/session.svelte';
 	import type { ToolType } from './tool-registry';
 	import * as m from '$lib/paraglide/messages';
@@ -425,10 +425,6 @@
 		forwardedOverlayDrawPointerIds.clear();
 	}
 
-	function scaledCanvasPixel(): number {
-		return Math.round(viewport.pixelSize * viewport.zoom);
-	}
-
 	function placementHandleFromEvent(event: PointerEvent): ReferencePlacementHandle | null {
 		if (!(event.target instanceof Element)) return null;
 		const handleEl = event.target.closest('[data-reference-placement-handle]');
@@ -477,7 +473,7 @@
 			clientY: event.clientY,
 			localX: x,
 			localY: y,
-			scaledCanvasPixel: scaledCanvasPixel()
+			scaledCanvasPixel: effectivePixelSize(viewport)
 		});
 	}
 

@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 145 | 111 | 34 | 147 | 77% | 43% |
-| cubic-dev-ai[bot] | 99 | 83 | 16 | 171 | 84% | 33% |
-| coderabbitai[bot] | 202 | 145 | 57 | 106 | 72% | 58% |
+| greptile-apps[bot] | 146 | 112 | 34 | 147 | 77% | 43% |
+| cubic-dev-ai[bot] | 100 | 84 | 16 | 171 | 84% | 33% |
+| coderabbitai[bot] | 202 | 145 | 57 | 107 | 72% | 58% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #258 | greptile-apps[bot] | Accept | Rust-parity test became a tautology after viewportOps shorthand delegation; compare to WASM effective_pixel_size directly |
+| #258 | cubic-dev-ai[bot] | Accept | Rust-parity test became a tautology after viewportOps shorthand delegation; compare to WASM effective_pixel_size directly |
+| #258 | coderabbitai[bot] | Miss | Did not flag tautological Rust-parity test |
 | #257 | greptile-apps[bot] | Accept | Zoom tests dropped post-zoom pan assertions; restored them and added zoom×footprint clamp coverage |
 | #257 | coderabbitai[bot] | Miss | Did not flag dropped post-zoom pan assertions in viewport zoom tests |
 | #257 | cubic-dev-ai[bot] | Miss | Did not flag dropped post-zoom pan assertions in viewport zoom tests |

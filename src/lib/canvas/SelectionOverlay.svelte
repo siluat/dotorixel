@@ -7,7 +7,7 @@
 		formatSelectionDragDimensions,
 		type SelectionDragAid
 	} from './selection-drag-aids';
-	import type { ViewportData, ViewportSize } from './viewport';
+	import { effectivePixelSize, type ViewportData, type ViewportSize } from './viewport';
 
 	interface Props {
 		marquee?: MarqueeRegion | null;
@@ -48,7 +48,7 @@
 		const bottom = Math.min(canvasHeight, displayMarquee.y + displayMarquee.height);
 		if (left >= right || top >= bottom) return null;
 
-		const scaledPixel = Math.round(viewport.pixelSize * viewport.zoom);
+		const scaledPixel = effectivePixelSize(viewport);
 		return {
 			left: Math.round(viewport.panX) + left * scaledPixel,
 			top: Math.round(viewport.panY) + top * scaledPixel,

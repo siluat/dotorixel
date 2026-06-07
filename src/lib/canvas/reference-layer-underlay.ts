@@ -1,5 +1,5 @@
 import type { CanvasCoords, CanvasPoint, ReferencePlacement } from './canvas-model';
-import type { ViewportData } from './viewport';
+import { effectivePixelSize, type ViewportData } from './viewport';
 
 /**
  * Shell-facing projection of a visible Reference Layer. It carries the source
@@ -49,7 +49,7 @@ export function referenceLayerUnderlayDocumentRect(
 	underlay: ReferenceLayerUnderlay,
 	viewport: ViewportData
 ): ReferenceLayerUnderlayRect {
-	const scaledPixel = Math.round(viewport.pixelSize * viewport.zoom);
+	const scaledPixel = effectivePixelSize(viewport);
 	const { x, y, scale } = underlay.placement;
 	return {
 		left: x * scaledPixel,

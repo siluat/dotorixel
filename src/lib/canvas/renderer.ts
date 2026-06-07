@@ -1,4 +1,4 @@
-import type { ViewportData, ViewportSize } from './viewport';
+import { effectivePixelSize, type ViewportData, type ViewportSize } from './viewport';
 import {
 	referenceLayerUnderlayDocumentRect,
 	type ReferenceLayerUnderlay
@@ -30,10 +30,6 @@ const cachedReferenceRasters = new Map<string, OffscreenCanvas>();
  */
 export function clearReferenceRasterCache(): void {
 	cachedReferenceRasters.clear();
-}
-
-function effectivePixelSize(viewport: ViewportData): number {
-	return Math.round(viewport.pixelSize * viewport.zoom);
 }
 
 function renderCheckerboard(

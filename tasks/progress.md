@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-[161 — Deepen viewport pixel-scale into a single authority](../issues/161-deepen-viewport-pixel-scale-authority.md): One pure-TS `effectivePixelSize` authority in the viewport module now feeds every renderer, overlay, the Reference underlay, and the placement interaction — five inline copies removed, two WASM round-trips dropped, behavior-preserving with a Rust-parity test. Sourced from the architecture review (`/improve-codebase-architecture`, candidate #1); sibling candidates #2 (batch layer metadata) and #3 (seal the Loupe geometry contract) remain open follow-ups.
+[162 — Seal the Loupe geometry contract](../issues/162-seal-loupe-geometry-contract.md): The Loupe's box geometry now has one source — the config drives the rendered box via CSS custom properties, so it can't desync from the `LOUPE_WIDTH`/`HEIGHT` the position math uses (a real-browser e2e measures the box against those totals). Notable: loupe padding/gap were deliberately moved off the shared `--ds-space-3` token (documented, value unchanged). Sourced from the architecture review (candidate #3); sibling candidate #2 (batch layer metadata) remains an open follow-up.
 
 ## Next Up
 

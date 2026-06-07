@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 162 | [Seal the Loupe geometry contract](../issues/162-seal-loupe-geometry-contract.md) | 2026-06-07 |
 | 161 | [Deepen viewport pixel-scale into a single authority](../issues/161-deepen-viewport-pixel-scale-authority.md) | 2026-06-07 |
 | 160 | [Deepen Navigation Bounds into a single viewport owner](../issues/160-deepen-navigation-bounds-ownership.md) | 2026-06-07 |
 | 159 | [Deepen editor dialog state into a ModalState seam](../issues/159-deepen-editor-modal-state.md) | 2026-06-06 |

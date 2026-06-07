@@ -18,6 +18,7 @@ import {
 } from '../wasm-backend';
 import { isBlankCanvas } from '../blank-detection';
 import type { ViewportData, ViewportSize } from '../viewport';
+import type { NavigationBounds } from '../navigation-bounds';
 import { addRecentColor } from '../color';
 import type { SharedState } from '../shared-state.svelte';
 import { decodeReferenceBlob } from '../../reference-images/decode-reference-blob';
@@ -82,13 +83,6 @@ function isPointInsideMarquee(point: CanvasPoint, marquee: MarqueeRegion): boole
 		point.x < marquee.x + marquee.width &&
 		point.y < marquee.y + marquee.height
 	);
-}
-
-interface DocumentNavigationBounds {
-	readonly minX: number;
-	readonly minY: number;
-	readonly maxX: number;
-	readonly maxY: number;
 }
 
 interface DocumentRect {
@@ -305,6 +299,7 @@ export class TabState {
 				width: self.document.width,
 				height: self.document.height
 			}),
+			getReferenceFootprint: () => self.#activeReferenceFootprint(),
 			viewportOps: this.#backend.viewportOps,
 			notifier: this.#notifier,
 			documentId: this.documentId
@@ -367,7 +362,7 @@ export class TabState {
 			},
 			reclampViewport: () => {
 				this.#clearLayerProjectionCache();
-				this.#reclampViewport();
+				this.#tabViewport.reclamp();
 			},
 			invalidateRender: () => {
 				this.#clearLayerProjectionCache();
@@ -812,47 +807,21 @@ export class TabState {
 		);
 	};
 
-	#navigationBounds(): DocumentNavigationBounds {
-		const canvasBounds: DocumentNavigationBounds = {
-			minX: 0,
-			minY: 0,
-			maxX: this.document.width,
-			maxY: this.document.height
-		};
+	/**
+	 * The active Reference Layer's visible underlay footprint in canvas-pixel
+	 * coordinates, or `null` when the active layer is not a visible Reference
+	 * Layer. Supplied to `TabViewport` as the projection-coupled input to
+	 * Navigation Bounds; the viewport module owns the clamp itself.
+	 */
+	#activeReferenceFootprint(): NavigationBounds | null {
 		const projection = this.layerProjection;
-		if (projection.activeLayerKind !== 'reference') return canvasBounds;
+		if (projection.activeLayerKind !== 'reference') return null;
 		const underlay = projection.referenceLayerUnderlay;
-		if (!underlay) return canvasBounds;
-		const referenceBounds = referenceLayerUnderlayBounds(underlay);
-		return {
-			minX: Math.min(canvasBounds.minX, referenceBounds.minX),
-			minY: Math.min(canvasBounds.minY, referenceBounds.minY),
-			maxX: Math.max(canvasBounds.maxX, referenceBounds.maxX),
-			maxY: Math.max(canvasBounds.maxY, referenceBounds.maxY)
-		};
-	}
-
-	#clampViewportToNavigationBounds(viewport: ViewportData): ViewportData {
-		const bounds = this.#navigationBounds();
-		return this.#backend.viewportOps.clampPanToDocumentBounds(
-			viewport,
-			bounds.minX,
-			bounds.minY,
-			bounds.maxX,
-			bounds.maxY,
-			this.viewportSize.width,
-			this.viewportSize.height
-		);
-	}
-
-	#reclampViewport(): void {
-		const clamped = this.#clampViewportToNavigationBounds(this.viewport);
-		if (clamped.panX === this.viewport.panX && clamped.panY === this.viewport.panY) return;
-		this.#tabViewport.apply(clamped);
+		return underlay ? referenceLayerUnderlayBounds(underlay) : null;
 	}
 
 	setViewport = (newViewport: ViewportData): void => {
-		this.#tabViewport.apply(this.#clampViewportToNavigationBounds(newViewport));
+		this.#tabViewport.apply(newViewport);
 	};
 
 	setViewportSize = (size: ViewportSize): void => {

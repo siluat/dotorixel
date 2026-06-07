@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 160 | [Deepen Navigation Bounds into a single viewport owner](../issues/160-deepen-navigation-bounds-ownership.md) | 2026-06-07 |
 | 159 | [Deepen editor dialog state into a ModalState seam](../issues/159-deepen-editor-modal-state.md) | 2026-06-06 |
 | 158 | [Deepen Floating Selection policy ownership](../issues/158-deepen-floating-selection-policy.md) | 2026-06-06 |
 | 157 | [Deepen Document Layer Projection](../issues/157-deepen-document-layer-projection.md) | 2026-06-06 |

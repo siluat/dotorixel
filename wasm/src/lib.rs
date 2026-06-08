@@ -362,6 +362,112 @@ impl WasmPixelCanvas {
 }
 
 // ---------------------------------------------------------------------------
+// WasmLayerMetadata
+// ---------------------------------------------------------------------------
+
+/// One layer's metadata, read in a single crossing via
+/// [`WasmDocument::layers_metadata`]. Every layer carries the common fields;
+/// Reference Layers additionally expose their immutable source fingerprint,
+/// natural (pre-placement) dimensions, and current placement. Bulk pixel
+/// buffers are intentionally excluded — callers fetch those on demand through
+/// [`WasmDocument::layer_pixels_at`] / [`WasmDocument::layer_source_pixels_at`].
+#[wasm_bindgen]
+pub struct WasmLayerMetadata {
+    id: String,
+    name: String,
+    visible: bool,
+    opacity: f32,
+    kind: String,
+    source_fingerprint: Option<String>,
+    natural_width: Option<u32>,
+    natural_height: Option<u32>,
+    placement: Option<ReferencePlacement>,
+}
+
+#[wasm_bindgen]
+impl WasmLayerMetadata {
+    #[wasm_bindgen(getter)]
+    pub fn id(&self) -> String {
+        self.id.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn visible(&self) -> bool {
+        self.visible
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn opacity(&self) -> f32 {
+        self.opacity
+    }
+
+    /// `"pixel"` or `"reference"`.
+    #[wasm_bindgen(getter)]
+    pub fn kind(&self) -> String {
+        self.kind.clone()
+    }
+
+    /// Hex source fingerprint for Reference Layers; `None` for Pixel Layers.
+    #[wasm_bindgen(getter)]
+    pub fn source_fingerprint(&self) -> Option<String> {
+        self.source_fingerprint.clone()
+    }
+
+    /// Natural (pre-placement) source width for Reference Layers; `None` for
+    /// Pixel Layers.
+    #[wasm_bindgen(getter)]
+    pub fn natural_width(&self) -> Option<u32> {
+        self.natural_width
+    }
+
+    /// Natural (pre-placement) source height for Reference Layers; `None` for
+    /// Pixel Layers.
+    #[wasm_bindgen(getter)]
+    pub fn natural_height(&self) -> Option<u32> {
+        self.natural_height
+    }
+
+    /// Current placement for Reference Layers; `None` for Pixel Layers.
+    #[wasm_bindgen(getter)]
+    pub fn placement(&self) -> Option<WasmReferencePlacement> {
+        self.placement.map(Into::into)
+    }
+}
+
+impl WasmLayerMetadata {
+    fn from_layer(layer: &Layer) -> WasmLayerMetadata {
+        let (source_fingerprint, natural_width, natural_height, placement) = match &layer.kind {
+            LayerKind::Reference(data) => (
+                Some(format!("{:016x}", data.source_fingerprint())),
+                Some(data.natural_width()),
+                Some(data.natural_height()),
+                Some(data.placement()),
+            ),
+            LayerKind::Pixel(_) => (None, None, None, None),
+        };
+        WasmLayerMetadata {
+            id: layer.id.to_string(),
+            name: layer.name.clone(),
+            visible: layer.visible,
+            opacity: layer.opacity,
+            kind: match layer.kind.tag() {
+                LayerKindTag::Pixel => "pixel".to_string(),
+                LayerKindTag::Reference => "reference".to_string(),
+            },
+            source_fingerprint,
+            natural_width,
+            natural_height,
+            placement,
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // WasmDocument
 // ---------------------------------------------------------------------------
 
@@ -567,37 +673,17 @@ impl WasmDocument {
             .map_err(|e| JsError::new(&e.to_string()))
     }
 
-    /// Returns the layer id at `index` as a UUID string, or `None` when
-    /// `index` is out of range. `index = 0` is the bottom-most layer.
-    pub fn layer_id_at(&self, index: usize) -> Option<String> {
-        self.inner.layers().get(index).map(|l| l.id.to_string())
-    }
-
-    /// Returns the layer name at `index`, or `None` when `index` is out of
-    /// range.
-    pub fn layer_name_at(&self, index: usize) -> Option<String> {
-        self.inner.layers().get(index).map(|l| l.name.clone())
-    }
-
-    /// Returns the visibility flag of the layer at `index`, or `None` when
-    /// `index` is out of range.
-    pub fn layer_visible_at(&self, index: usize) -> Option<bool> {
-        self.inner.layers().get(index).map(|l| l.visible)
-    }
-
-    /// Returns the opacity (0.0..=1.0) of the layer at `index`, or `None` when
-    /// `index` is out of range.
-    pub fn layer_opacity_at(&self, index: usize) -> Option<f32> {
-        self.inner.layers().get(index).map(|l| l.opacity)
-    }
-
-    /// Returns `"pixel"` or `"reference"` for the layer at `index`, or
-    /// `None` when `index` is out of range.
-    pub fn layer_kind_at(&self, index: usize) -> Option<String> {
-        self.inner.layer_kind_at(index).map(|kind| match kind {
-            LayerKindTag::Pixel => "pixel".to_string(),
-            LayerKindTag::Reference => "reference".to_string(),
-        })
+    /// Returns every layer's metadata in stack order (`index = 0` is the
+    /// bottom-most layer) in a single crossing. Reference-only fields are
+    /// populated only for Reference Layers. Bulk pixel buffers are excluded —
+    /// fetch them on demand via [`Self::layer_pixels_at`] /
+    /// [`Self::layer_source_pixels_at`].
+    pub fn layers_metadata(&self) -> Vec<WasmLayerMetadata> {
+        self.inner
+            .layers()
+            .iter()
+            .map(WasmLayerMetadata::from_layer)
+            .collect()
     }
 
     /// Returns a copy of the RGBA pixel buffer of the layer at `index`, or
@@ -610,29 +696,6 @@ impl WasmDocument {
     /// when `index` is out of range or points at a Pixel Layer.
     pub fn layer_source_pixels_at(&self, index: usize) -> Option<Vec<u8>> {
         self.inner.layer_source_pixels_at(index).map(|p| p.to_vec())
-    }
-
-    /// Returns a stable hex fingerprint of a Reference Layer's source RGBA
-    /// buffer, or `None` when `index` is out of range or points at a Pixel
-    /// Layer.
-    pub fn layer_source_fingerprint_at(&self, index: usize) -> Option<String> {
-        self.inner
-            .layer_source_fingerprint_at(index)
-            .map(|fingerprint| format!("{fingerprint:016x}"))
-    }
-
-    /// Returns `[natural_width, natural_height]` for a Reference Layer, or
-    /// `None` when `index` is out of range or points at a Pixel Layer.
-    pub fn layer_source_dimensions_at(&self, index: usize) -> Option<Vec<u32>> {
-        self.inner
-            .layer_source_dimensions_at(index)
-            .map(|(width, height)| vec![width, height])
-    }
-
-    /// Returns a Reference Layer's placement, or `None` when `index` is out
-    /// of range or points at a Pixel Layer.
-    pub fn layer_placement_at(&self, index: usize) -> Option<WasmReferencePlacement> {
-        self.inner.layer_placement_at(index).map(Into::into)
     }
 
     /// Overwrites the active layer's pixel buffer with `data`. Used by tools
@@ -1530,6 +1593,74 @@ mod tests {
     }
 
     #[test]
+    fn wasm_document_layers_metadata_reports_pixel_and_reference_records() {
+        let pixel_id = Uuid::new_v4();
+        let reference_id = Uuid::new_v4();
+        let mut builder = WasmDocumentBuilder::new(8, 8);
+        builder
+            .add_layer(
+                pixel_id.to_string(),
+                "Paint".into(),
+                vec![0; 8 * 8 * 4],
+                true,
+                1.0,
+            )
+            .unwrap();
+        builder
+            .add_reference_layer(
+                reference_id.to_string(),
+                "Reference".into(),
+                vec![
+                    255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255,
+                ],
+                4,
+                1,
+                0.5,
+                1.0,
+                2.0,
+                true,
+                0.5,
+            )
+            .unwrap();
+        let document = builder.build(reference_id.to_string(), 3, false).unwrap();
+
+        let metadata = document.layers_metadata();
+        assert_eq!(metadata.len(), 2);
+
+        // Reference Layer is normalized bottom-most (stack index 0).
+        let reference = &metadata[0];
+        assert_eq!(reference.id(), reference_id.to_string());
+        assert_eq!(reference.name(), "Reference");
+        assert!(reference.visible());
+        assert_eq!(reference.opacity(), 0.5);
+        assert_eq!(reference.kind(), "reference");
+        assert_eq!(reference.natural_width(), Some(4));
+        assert_eq!(reference.natural_height(), Some(1));
+        assert_eq!(
+            reference
+                .source_fingerprint()
+                .expect("reference fingerprint")
+                .len(),
+            16
+        );
+        let placement = reference.placement().expect("reference placement");
+        assert_eq!(placement.x(), 0.5);
+        assert_eq!(placement.y(), 1.0);
+        assert_eq!(placement.scale(), 2.0);
+
+        let pixel = &metadata[1];
+        assert_eq!(pixel.id(), pixel_id.to_string());
+        assert_eq!(pixel.name(), "Paint");
+        assert!(pixel.visible());
+        assert_eq!(pixel.opacity(), 1.0);
+        assert_eq!(pixel.kind(), "pixel");
+        assert_eq!(pixel.source_fingerprint(), None);
+        assert_eq!(pixel.natural_width(), None);
+        assert_eq!(pixel.natural_height(), None);
+        assert!(pixel.placement().is_none());
+    }
+
+    #[test]
     fn wasm_reference_placement_fit_to_canvas_centers_projected_source() {
         let fitted = WasmReferencePlacement::fit_to_canvas(20, 20, 4, 2);
 
@@ -1539,7 +1670,7 @@ mod tests {
     }
 
     #[test]
-    fn wasm_document_add_reference_layer_exposes_reference_accessors() {
+    fn wasm_document_add_reference_layer_exposes_reference_metadata() {
         let first = Uuid::new_v4();
         let reference = Uuid::new_v4();
         let mut doc = WasmDocument::new(4, 4, first.to_string(), "Layer 1".into()).unwrap();
@@ -1556,16 +1687,18 @@ mod tests {
 
         assert_eq!(doc.layer_count(), 2);
         assert_eq!(doc.active_layer_id(), reference.to_string());
-        assert_eq!(doc.layer_kind_at(0).as_deref(), Some("reference"));
-        assert_eq!(doc.layer_kind_at(1).as_deref(), Some("pixel"));
-        assert_eq!(doc.layer_kind_at(2), None);
+        let metadata = doc.layers_metadata();
+        assert_eq!(metadata.len(), 2);
+        assert_eq!(metadata[0].kind(), "reference");
+        assert_eq!(metadata[1].kind(), "pixel");
         assert_eq!(doc.layer_source_pixels_at(0), Some(source_rgba));
         assert_eq!(doc.layer_source_pixels_at(1), None);
-        assert_eq!(doc.layer_source_fingerprint_at(0).unwrap().len(), 16);
-        assert_eq!(doc.layer_source_fingerprint_at(1), None);
-        assert_eq!(doc.layer_source_dimensions_at(0), Some(vec![2, 1]));
+        assert_eq!(metadata[0].source_fingerprint().unwrap().len(), 16);
+        assert_eq!(metadata[1].source_fingerprint(), None);
+        assert_eq!(metadata[0].natural_width(), Some(2));
+        assert_eq!(metadata[0].natural_height(), Some(1));
 
-        let placement = doc.layer_placement_at(0).unwrap();
+        let placement = metadata[0].placement().unwrap();
         assert_eq!(placement.x(), 1.0);
         assert_eq!(placement.y(), 1.5);
         assert_eq!(placement.scale(), 1.0);
@@ -1605,7 +1738,7 @@ mod tests {
         doc.set_active_layer(reference.to_string()).unwrap();
         doc.set_reference_placement(reference.to_string(), 1.0, 0.0, 1.0)
             .unwrap();
-        let placement = doc.layer_placement_at(0).unwrap();
+        let placement = doc.layers_metadata()[0].placement().unwrap();
         assert_eq!(placement.x(), 1.0);
         assert!(doc.try_get_pixel(0, 0).is_none());
         assert_eq!(
@@ -1669,11 +1802,12 @@ mod tests {
         assert_eq!(doc.width(), 2);
         assert_eq!(doc.height(), 2);
         assert_eq!(doc.layer_count(), 2);
-        assert_eq!(doc.layer_id_at(0), Some(bottom.to_string()));
-        assert_eq!(doc.layer_id_at(1), Some(top.to_string()));
-        assert_eq!(doc.layer_name_at(0), Some("Bottom".into()));
-        assert_eq!(doc.layer_visible_at(1), Some(false));
-        assert_eq!(doc.layer_opacity_at(1), Some(0.5));
+        let metadata = doc.layers_metadata();
+        assert_eq!(metadata[0].id(), bottom.to_string());
+        assert_eq!(metadata[1].id(), top.to_string());
+        assert_eq!(metadata[0].name(), "Bottom");
+        assert!(!metadata[1].visible());
+        assert_eq!(metadata[1].opacity(), 0.5);
         assert_eq!(doc.active_layer_id(), top.to_string());
         assert_eq!(doc.next_layer_number(), 7);
         assert!(doc.is_timeline_panel_collapsed());

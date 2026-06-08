@@ -791,9 +791,12 @@ export class TabState {
 		if (stackIdx === undefined) {
 			throw new Error(`Layer with id ${id} not found`);
 		}
-		const current = this.document.layer_placement_at(stackIdx);
-		const dimensions = this.document.layer_source_dimensions_at(stackIdx);
-		if (!current || !dimensions) {
+		const record = this.document.layers_metadata()[stackIdx];
+		if (
+			record === undefined ||
+			record.natural_width === undefined ||
+			record.natural_height === undefined
+		) {
 			throw new Error(`Layer with id ${id} is not a Reference Layer`);
 		}
 		this.setReferencePlacement(
@@ -801,8 +804,8 @@ export class TabState {
 			fitReferencePlacementToCanvas(
 				this.document.width,
 				this.document.height,
-				dimensions[0],
-				dimensions[1]
+				record.natural_width,
+				record.natural_height
 			)
 		);
 	};
@@ -900,29 +903,27 @@ export class TabState {
 
 	toSnapshot = (): TabSnapshot => {
 		const doc = this.document;
-		const layerCount = doc.layer_count();
-		const layers = Array.from({ length: layerCount }, (_, i) => {
-			const id = doc.layer_id_at(i)!;
+		const layers = doc.layers_metadata().map((record, i) => {
+			const id = record.id;
 			const common = {
 				id,
-				name: doc.layer_name_at(i)!,
-				visible: doc.layer_visible_at(i)!,
-				opacity: doc.layer_opacity_at(i)!
+				name: record.name,
+				visible: record.visible,
+				opacity: record.opacity
 			};
-			if (doc.layer_kind_at(i) === 'reference') {
+			if (record.kind === 'reference') {
 				const sourceBlob = this.#referenceLayerBlobs.get(id);
 				if (!sourceBlob) {
 					throw new Error(`Missing source blob for Reference Layer ${id}`);
 				}
-				const dimensions = doc.layer_source_dimensions_at(i)!;
-				const placement = doc.layer_placement_at(i)!;
+				const placement = record.placement!;
 				return {
 					kind: 'reference',
 					...common,
 					sourceBlob,
 					sourceRgba: doc.layer_source_pixels_at(i)!.slice(),
-					naturalWidth: dimensions[0],
-					naturalHeight: dimensions[1],
+					naturalWidth: record.natural_width!,
+					naturalHeight: record.natural_height!,
 					placement: {
 						x: placement.x,
 						y: placement.y,

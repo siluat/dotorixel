@@ -271,7 +271,7 @@ export class DocumentChangeJournal {
 			}
 			case 'set-reference-placement': {
 				const layer = this.#layerOf(intent.id);
-				const current = document.layer_placement_at(layer.stackIndex);
+				const current = document.layers_metadata()[layer.stackIndex]?.placement;
 				if (!current) {
 					throw new Error(`Layer with id ${intent.id} is not a Reference Layer`);
 				}

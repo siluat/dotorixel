@@ -69,7 +69,7 @@ function createReferenceActiveDocument(pixelLayerPixels?: Uint8Array): Document 
 
 function getFirstPixelLayerPixels(doc: Document): Uint8Array {
 	for (let i = 0; i < doc.layer_count(); i++) {
-		if (doc.layer_kind_at(i) !== 'pixel') continue;
+		if (doc.layers_metadata()[i].kind !== 'pixel') continue;
 
 		const pixels = doc.layer_pixels_at(i);
 		if (!pixels) throw new Error(`Layer ${i} is Pixel-kind but has no pixel buffer`);

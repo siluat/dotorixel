@@ -328,16 +328,16 @@ export class FloatingSelectionLifecycle {
 		const document = this.#deps.getDocument();
 		if (!this.#floating) return document.composite();
 
+		const records = document.layers_metadata();
 		const output = new Uint8Array(document.width * document.height * 4);
-		for (let layerIndex = 0; layerIndex < document.layer_count(); layerIndex++) {
-			if (!document.layer_visible_at(layerIndex)) continue;
+		for (let layerIndex = 0; layerIndex < records.length; layerIndex++) {
+			const record = records[layerIndex];
+			if (!record.visible) continue;
 			const layerPixels = document.layer_pixels_at(layerIndex);
 			if (!layerPixels) continue;
 
 			const previewPixels =
-				document.layer_id_at(layerIndex) === this.#floating.sourceLayerId
-					? layerPixels.slice()
-					: layerPixels;
+				record.id === this.#floating.sourceLayerId ? layerPixels.slice() : layerPixels;
 			if (previewPixels !== layerPixels) {
 				compositeFloatingSelectionIntoLayer(
 					previewPixels,
@@ -346,7 +346,7 @@ export class FloatingSelectionLifecycle {
 					this.#floating
 				);
 			}
-			blendLayerPixelsOver(output, previewPixels, document.layer_opacity_at(layerIndex));
+			blendLayerPixelsOver(output, previewPixels, record.opacity);
 		}
 		return output;
 	}

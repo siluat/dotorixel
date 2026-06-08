@@ -62,12 +62,9 @@ function noOpStroke(): ActiveStroke {
 
 function isActiveLayerReference(document: ToolRunnerHost['document']): boolean {
 	const activeId = document.active_layer_id();
-	for (let i = 0; i < document.layer_count(); i++) {
-		if (document.layer_id_at(i) === activeId) {
-			return document.layer_kind_at(i) === 'reference';
-		}
-	}
-	return false;
+	return (
+		document.layers_metadata().find((record) => record.id === activeId)?.kind === 'reference'
+	);
 }
 
 /**

@@ -22,9 +22,9 @@ function createHost(
 		width: 8,
 		height: 8,
 		active_layer_id: () => 'layer-1',
-		layer_count: () => 1,
-		layer_id_at: () => 'layer-1',
-		layer_kind_at: () => activeLayerKind,
+		layers_metadata: () => [
+			{ id: 'layer-1', name: 'Layer 1', visible: true, opacity: 1, kind: activeLayerKind }
+		],
 		marquee: () => state.currentMarquee,
 		set_marquee: setMarquee
 	} as unknown as Document;

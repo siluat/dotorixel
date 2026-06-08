@@ -10,11 +10,10 @@ function canvasCoordsFromPoint(point: CanvasCoords): CanvasCoords {
 
 function isReferenceLayerActive(document: Document): boolean {
 	const activeLayerId = document.active_layer_id();
-	for (let index = 0; index < document.layer_count(); index++) {
-		if (document.layer_id_at(index) !== activeLayerId) continue;
-		return document.layer_kind_at(index) === 'reference';
-	}
-	return false;
+	return (
+		document.layers_metadata().find((record) => record.id === activeLayerId)?.kind ===
+		'reference'
+	);
 }
 
 function marqueeFromDrag(

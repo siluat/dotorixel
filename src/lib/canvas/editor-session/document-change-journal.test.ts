@@ -68,35 +68,20 @@ function createFakeHistoryManager(
 }
 
 function createTestLayerProjection(document: Document): DocumentLayerProjectionRead {
-	const count = typeof document.layer_count === 'function' ? document.layer_count() : 0;
+	const records =
+		typeof document.layers_metadata === 'function' ? document.layers_metadata() : [];
 	const activeLayerId =
 		typeof document.active_layer_id === 'function' ? document.active_layer_id() : undefined;
-	const stackLayers = Array.from({ length: count }, (_, stackIndex) => {
-		const id =
-			typeof document.layer_id_at === 'function'
-				? (document.layer_id_at(stackIndex) ?? `layer-${stackIndex + 1}`)
-				: `layer-${stackIndex + 1}`;
-		const rawKind =
-			typeof document.layer_kind_at === 'function' ? document.layer_kind_at(stackIndex) : 'pixel';
-		return {
-			id,
-			name:
-				typeof document.layer_name_at === 'function'
-					? (document.layer_name_at(stackIndex) ?? id)
-					: id,
-			visible:
-				typeof document.layer_visible_at === 'function'
-					? (document.layer_visible_at(stackIndex) ?? true)
-					: true,
-			opacity:
-				typeof document.layer_opacity_at === 'function'
-					? (document.layer_opacity_at(stackIndex) ?? 1)
-					: 1,
-			kind: rawKind === 'reference' ? 'reference' : 'pixel',
-			stackIndex,
-			panelIndex: count - 1 - stackIndex
-		} as const;
-	});
+	const count = records.length;
+	const stackLayers = records.map((record, stackIndex) => ({
+		id: record.id,
+		name: record.name,
+		visible: record.visible,
+		opacity: record.opacity,
+		kind: record.kind === 'reference' ? ('reference' as const) : ('pixel' as const),
+		stackIndex,
+		panelIndex: count - 1 - stackIndex
+	}));
 	const layersInPanelOrder = stackLayers.slice().reverse();
 	const layerById = new Map(stackLayers.map((layer) => [layer.id, layer]));
 	const stackIndexById = new Map(stackLayers.map((layer) => [layer.id, layer.stackIndex]));
@@ -250,8 +235,9 @@ describe('DocumentChangeJournal', () => {
 			height: 16,
 			active_layer_id: () => 'layer-1',
 			layer_count: () => 1,
-			layer_id_at: () => 'layer-1',
-			layer_kind_at: () => 'pixel',
+			layers_metadata: () => [
+				{ id: 'layer-1', name: 'Layer 1', visible: true, opacity: 1, kind: 'pixel' }
+			],
 			marquee: () => undefined,
 			set_marquee: (next: MarqueeRegion | null | undefined) =>
 				events.push(`marquee:${next?.x ?? 'none'}`)
@@ -287,8 +273,9 @@ describe('DocumentChangeJournal', () => {
 			marquee: () => current,
 			set_marquee: () => events.push('marquee'),
 			layer_count: () => 1,
-			layer_id_at: () => 'reference-1',
-			layer_kind_at: () => 'reference'
+			layers_metadata: () => [
+				{ id: 'reference-1', name: 'Reference', visible: true, opacity: 1, kind: 'reference' }
+			]
 		} as unknown as Document;
 		const journal = createJournal(events, document);
 
@@ -591,8 +578,9 @@ describe('DocumentChangeJournal', () => {
 			height: 16,
 			active_layer_id: () => 'reference-1',
 			layer_count: () => 1,
-			layer_id_at: () => 'reference-1',
-			layer_kind_at: () => 'reference'
+			layers_metadata: () => [
+				{ id: 'reference-1', name: 'Reference', visible: true, opacity: 1, kind: 'reference' }
+			]
 		} as unknown as Document;
 		const journal = createJournal(events, document);
 
@@ -613,8 +601,9 @@ describe('DocumentChangeJournal', () => {
 			active_layer_id: () => 'reference-1',
 			marquee: () => ({ x: 1, y: 1, width: 2, height: 2 }),
 			layer_count: () => 1,
-			layer_id_at: () => 'reference-1',
-			layer_kind_at: () => 'reference'
+			layers_metadata: () => [
+				{ id: 'reference-1', name: 'Reference', visible: true, opacity: 1, kind: 'reference' }
+			]
 		} as unknown as Document;
 		const journal = createJournal(events, document);
 
@@ -634,8 +623,8 @@ describe('DocumentChangeJournal', () => {
 			width: 16,
 			height: 16,
 			layer_count: () => ids.length,
-			layer_id_at: (index: number) => ids[index],
-			layer_kind_at: () => 'pixel',
+			layers_metadata: () =>
+				ids.map((id) => ({ id, name: id, visible: true, opacity: 1, kind: 'pixel' })),
 			reorder_layer: (id: string, index: number) => events.push(`reorder:${id}:${index}`)
 		} as unknown as Document;
 		const journal = createJournal(events, document);

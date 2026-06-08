@@ -649,11 +649,9 @@ describe('TabState — effect dispatcher', () => {
 
 		expect(tab.document.active_layer_id()).toBe(referenceId);
 		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 0 });
-		const pixelLayerIndex = Array.from({ length: tab.document.layer_count() }, (_, index) => index).find(
-			(index) => tab.document.layers_metadata()[index].id === pixelId
-		);
-		expect(pixelLayerIndex).not.toBeUndefined();
-		const pixelLayerPixels = tab.document.layer_pixels_at(pixelLayerIndex!)!;
+		const pixelLayerIndex = tab.document.layers_metadata().findIndex((record) => record.id === pixelId);
+		expect(pixelLayerIndex).not.toBe(-1);
+		const pixelLayerPixels = tab.document.layer_pixels_at(pixelLayerIndex)!;
 		expect(getPixelFromBuffer(pixelLayerPixels, 5, 1, 1)).toEqual({
 			r: 0,
 			g: 0,
@@ -1473,10 +1471,11 @@ describe('TabState — snapshot', () => {
 
 		expect(snap.layers).toHaveLength(3);
 		expect(snap.layers.map((l) => l.name)).toEqual(['Layer 1', 'Layer 2', 'Layer 3']);
+		const records = tab.document.layers_metadata();
 		for (let i = 0; i < snap.layers.length; i++) {
-			expect(snap.layers[i].id).toBe(tab.document.layers_metadata()[i].id);
-			expect(snap.layers[i].visible).toBe(tab.document.layers_metadata()[i].visible);
-			expect(snap.layers[i].opacity).toBe(tab.document.layers_metadata()[i].opacity);
+			expect(snap.layers[i].id).toBe(records[i].id);
+			expect(snap.layers[i].visible).toBe(records[i].visible);
+			expect(snap.layers[i].opacity).toBe(records[i].opacity);
 			expect(expectPixelLayer(snap.layers[i]).pixels).toEqual(tab.document.layer_pixels_at(i));
 		}
 		expect(snap.activeLayerId).toBe(tab.document.active_layer_id());
@@ -1652,9 +1651,7 @@ describe('TabState — Reference underlay render source', () => {
 			naturalHeight: 8
 		});
 
-		const kinds = Array.from({ length: tab.document.layer_count() }, (_, i) =>
-			tab.document.layers_metadata()[i].kind
-		);
+		const kinds = tab.document.layers_metadata().map((record) => record.kind);
 		expect(kinds).toEqual(['reference', 'pixel']);
 		expect(secondId).not.toBe(firstId);
 		expect(tab.document.active_layer_id()).toBe(secondId);
@@ -1962,10 +1959,7 @@ describe('TabState — Reference underlay render source', () => {
 			scale: 20
 		});
 		const { tab } = makeTab({ document });
-		const pixelId = Array.from({ length: tab.document.layer_count() }, (_, i) => ({
-			id: tab.document.layers_metadata()[i].id,
-			kind: tab.document.layers_metadata()[i].kind
-		})).find((layer) => layer.kind === 'pixel')!.id;
+		const pixelId = tab.document.layers_metadata().find((layer) => layer.kind === 'pixel')!.id;
 		expect(tab.document.active_layer_id()).toBe(referenceId);
 
 		tab.setViewport({ ...tab.viewport, panX: -9999, panY: -9999 });
@@ -2570,9 +2564,7 @@ describe('TabState — mixed Pixel and Reference Layer stack operations', () => 
 		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
 
 		tab.removeLayer(referenceId);
-		const remainingIds = Array.from({ length: tab.document.layer_count() }, (_, i) =>
-			tab.document.layers_metadata()[i].id
-		);
+		const remainingIds = tab.document.layers_metadata().map((record) => record.id);
 		expect(remainingIds).toEqual([bottomId, topId]);
 		expect(tab.document.active_layer_id()).toBe(bottomId);
 		expect(getPixel(tab, 0, 0)).toEqual(GREEN);

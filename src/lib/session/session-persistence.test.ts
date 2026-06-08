@@ -832,10 +832,7 @@ describe('SessionPersistence', () => {
 		const expectedLayerCount = tab.document.layer_count();
 		const expectedActiveId = tab.document.active_layer_id();
 		const expectedNext = tab.document.next_layer_number();
-		const expectedLayerIds = Array.from(
-			{ length: expectedLayerCount },
-			(_, i) => tab.document.layers_metadata()[i].id
-		);
+		const expectedLayerIds = tab.document.layers_metadata().map((record) => record.id);
 
 		await persistence.save(ws1.toSnapshot());
 
@@ -855,9 +852,9 @@ describe('SessionPersistence', () => {
 		expect(restoredTab.document.layer_count()).toBe(expectedLayerCount);
 		expect(restoredTab.document.active_layer_id()).toBe(expectedActiveId);
 		expect(restoredTab.document.next_layer_number()).toBe(expectedNext);
-		for (let i = 0; i < expectedLayerCount; i++) {
-			expect(restoredTab.document.layers_metadata()[i].id).toBe(expectedLayerIds[i]);
-		}
+		expect(restoredTab.document.layers_metadata().map((record) => record.id)).toEqual(
+			expectedLayerIds
+		);
 	});
 
 	it('returns null when workspace references a missing document', async () => {

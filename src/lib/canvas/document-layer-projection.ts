@@ -1,4 +1,4 @@
-import type { Document } from './canvas-model';
+import type { Document, LayerMetadata } from './canvas-model';
 import type { ReferenceLayerUnderlay } from './reference-layer-underlay';
 
 export type DocumentLayerKind = 'pixel' | 'reference';
@@ -53,31 +53,23 @@ export class DocumentLayerProjection {
 
 	read(document: Document): DocumentLayerProjectionRead {
 		const activeLayerId = document.active_layer_id();
+		const records = document.layers_metadata();
 		const stackLayers: StackLayerRead[] = [];
 		let referenceStackIndex: number | undefined;
 		let referenceLayerUnderlay: ReferenceLayerUnderlay | undefined;
 
-		for (let stackIndex = 0; stackIndex < document.layer_count(); stackIndex++) {
-			const id = document.layer_id_at(stackIndex);
-			const name = document.layer_name_at(stackIndex);
-			const visible = document.layer_visible_at(stackIndex);
-			const opacity = document.layer_opacity_at(stackIndex);
-			const kind = normalizeLayerKind(document.layer_kind_at(stackIndex));
-			if (
-				id === undefined ||
-				name === undefined ||
-				visible === undefined ||
-				opacity === undefined ||
-				kind === undefined
-			) {
+		for (let stackIndex = 0; stackIndex < records.length; stackIndex++) {
+			const record = records[stackIndex];
+			const kind = normalizeLayerKind(record.kind);
+			if (kind === undefined) {
 				continue;
 			}
 
 			stackLayers.push({
-				id,
-				name,
-				visible,
-				opacity,
+				id: record.id,
+				name: record.name,
+				visible: record.visible,
+				opacity: record.opacity,
 				kind,
 				stackIndex
 			});
@@ -86,10 +78,8 @@ export class DocumentLayerProjection {
 				referenceStackIndex = stackIndex;
 				referenceLayerUnderlay = this.#projectReferenceLayerUnderlay(
 					document,
-					stackIndex,
-					id,
-					visible,
-					opacity
+					record,
+					stackIndex
 				);
 			}
 		}
@@ -125,22 +115,25 @@ export class DocumentLayerProjection {
 
 	#projectReferenceLayerUnderlay(
 		document: Document,
-		stackIndex: number,
-		layerId: string,
-		visible: boolean,
-		opacity: number
+		record: LayerMetadata,
+		stackIndex: number
 	): ReferenceLayerUnderlay | undefined {
-		if (!visible) return this.#clearReferenceSource();
+		if (!record.visible) return this.#clearReferenceSource();
 
-		const sourceFingerprint = document.layer_source_fingerprint_at(stackIndex);
-		const dimensions = document.layer_source_dimensions_at(stackIndex);
-		const placement = document.layer_placement_at(stackIndex);
-		if (!sourceFingerprint || !dimensions || !placement) {
+		const sourceFingerprint = record.source_fingerprint;
+		const naturalWidth = record.natural_width;
+		const naturalHeight = record.natural_height;
+		const placement = record.placement;
+		if (
+			sourceFingerprint === undefined ||
+			naturalWidth === undefined ||
+			naturalHeight === undefined ||
+			placement === undefined
+		) {
 			return this.#clearReferenceSource();
 		}
 
-		const naturalWidth = dimensions[0];
-		const naturalHeight = dimensions[1];
+		const layerId = record.id;
 		let source =
 			this.#source?.document === document &&
 			this.#source.layerId === layerId &&
@@ -175,7 +168,7 @@ export class DocumentLayerProjection {
 				y: placement.y,
 				scale: placement.scale
 			},
-			opacity
+			opacity: record.opacity
 		};
 	}
 }

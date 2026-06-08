@@ -434,8 +434,8 @@ describe('SessionPersistence', () => {
 			restored: restored!
 		});
 
-		expect(workspace.activeTab.document.layer_kind_at(0)).toBe('reference');
-		const placement = workspace.activeTab.document.layer_placement_at(0)!;
+		expect(workspace.activeTab.document.layers_metadata()[0].kind).toBe('reference');
+		const placement = workspace.activeTab.document.layers_metadata()[0].placement!;
 		expect(placement.x).toBe(1);
 		expect(placement.y).toBe(2);
 		expect(placement.scale).toBe(3);
@@ -832,10 +832,7 @@ describe('SessionPersistence', () => {
 		const expectedLayerCount = tab.document.layer_count();
 		const expectedActiveId = tab.document.active_layer_id();
 		const expectedNext = tab.document.next_layer_number();
-		const expectedLayerIds = Array.from(
-			{ length: expectedLayerCount },
-			(_, i) => tab.document.layer_id_at(i)!
-		);
+		const expectedLayerIds = tab.document.layers_metadata().map((record) => record.id);
 
 		await persistence.save(ws1.toSnapshot());
 
@@ -855,9 +852,9 @@ describe('SessionPersistence', () => {
 		expect(restoredTab.document.layer_count()).toBe(expectedLayerCount);
 		expect(restoredTab.document.active_layer_id()).toBe(expectedActiveId);
 		expect(restoredTab.document.next_layer_number()).toBe(expectedNext);
-		for (let i = 0; i < expectedLayerCount; i++) {
-			expect(restoredTab.document.layer_id_at(i)).toBe(expectedLayerIds[i]);
-		}
+		expect(restoredTab.document.layers_metadata().map((record) => record.id)).toEqual(
+			expectedLayerIds
+		);
 	});
 
 	it('returns null when workspace references a missing document', async () => {

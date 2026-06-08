@@ -649,11 +649,9 @@ describe('TabState — effect dispatcher', () => {
 
 		expect(tab.document.active_layer_id()).toBe(referenceId);
 		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 0 });
-		const pixelLayerIndex = Array.from({ length: tab.document.layer_count() }, (_, index) => index).find(
-			(index) => tab.document.layer_id_at(index) === pixelId
-		);
-		expect(pixelLayerIndex).not.toBeUndefined();
-		const pixelLayerPixels = tab.document.layer_pixels_at(pixelLayerIndex!)!;
+		const pixelLayerIndex = tab.document.layers_metadata().findIndex((record) => record.id === pixelId);
+		expect(pixelLayerIndex).not.toBe(-1);
+		const pixelLayerPixels = tab.document.layer_pixels_at(pixelLayerIndex)!;
 		expect(getPixelFromBuffer(pixelLayerPixels, 5, 1, 1)).toEqual({
 			r: 0,
 			g: 0,
@@ -1473,10 +1471,11 @@ describe('TabState — snapshot', () => {
 
 		expect(snap.layers).toHaveLength(3);
 		expect(snap.layers.map((l) => l.name)).toEqual(['Layer 1', 'Layer 2', 'Layer 3']);
+		const records = tab.document.layers_metadata();
 		for (let i = 0; i < snap.layers.length; i++) {
-			expect(snap.layers[i].id).toBe(tab.document.layer_id_at(i));
-			expect(snap.layers[i].visible).toBe(tab.document.layer_visible_at(i));
-			expect(snap.layers[i].opacity).toBe(tab.document.layer_opacity_at(i));
+			expect(snap.layers[i].id).toBe(records[i].id);
+			expect(snap.layers[i].visible).toBe(records[i].visible);
+			expect(snap.layers[i].opacity).toBe(records[i].opacity);
 			expect(expectPixelLayer(snap.layers[i]).pixels).toEqual(tab.document.layer_pixels_at(i));
 		}
 		expect(snap.activeLayerId).toBe(tab.document.active_layer_id());
@@ -1613,8 +1612,8 @@ describe('TabState — Reference underlay render source', () => {
 		});
 
 		expect(tab.document.layer_count()).toBe(2);
-		expect(tab.document.layer_id_at(0)).toBe(referenceId);
-		expect(tab.document.layer_kind_at(0)).toBe('reference');
+		expect(tab.document.layers_metadata()[0].id).toBe(referenceId);
+		expect(tab.document.layers_metadata()[0].kind).toBe('reference');
 		expect(tab.document.active_layer_id()).toBe(referenceId);
 		expect(tab.referenceLayerUnderlay).toMatchObject({
 			sourceRgba,
@@ -1652,13 +1651,11 @@ describe('TabState — Reference underlay render source', () => {
 			naturalHeight: 8
 		});
 
-		const kinds = Array.from({ length: tab.document.layer_count() }, (_, i) =>
-			tab.document.layer_kind_at(i)
-		);
+		const kinds = tab.document.layers_metadata().map((record) => record.kind);
 		expect(kinds).toEqual(['reference', 'pixel']);
 		expect(secondId).not.toBe(firstId);
 		expect(tab.document.active_layer_id()).toBe(secondId);
-		expect(tab.document.layer_name_at(0)).toBe('second.png');
+		expect(tab.document.layers_metadata()[0].name).toBe('second.png');
 		expect(tab.referenceLayerUnderlay?.placement).toEqual({ x: 0, y: 0, scale: 1 });
 		expect(expectReferenceLayer(tab.toSnapshot().layers[0]).sourceBlob).toBe(secondBlob);
 	});
@@ -1962,10 +1959,7 @@ describe('TabState — Reference underlay render source', () => {
 			scale: 20
 		});
 		const { tab } = makeTab({ document });
-		const pixelId = Array.from({ length: tab.document.layer_count() }, (_, i) => ({
-			id: tab.document.layer_id_at(i)!,
-			kind: tab.document.layer_kind_at(i)
-		})).find((layer) => layer.kind === 'pixel')!.id;
+		const pixelId = tab.document.layers_metadata().find((layer) => layer.kind === 'pixel')!.id;
 		expect(tab.document.active_layer_id()).toBe(referenceId);
 
 		tab.setViewport({ ...tab.viewport, panX: -9999, panY: -9999 });
@@ -2246,7 +2240,7 @@ describe('TabState — addLayer', () => {
 		tab.addLayer('레이어 2');
 
 		const newIndex = tab.document.layer_count() - 1;
-		expect(tab.document.layer_name_at(newIndex)).toBe('레이어 2');
+		expect(tab.document.layers_metadata()[newIndex].name).toBe('레이어 2');
 	});
 
 	it('advances next_layer_number monotonically (never reused)', () => {
@@ -2306,7 +2300,7 @@ describe('TabState — removeLayer', () => {
 	it('decrements document.layer_count by 1', () => {
 		const { tab } = makeTab();
 		tab.addLayer('Layer 2');
-		const layer1Id = tab.document.layer_id_at(0)!;
+		const layer1Id = tab.document.layers_metadata()[0].id;
 		const before = tab.document.layer_count();
 
 		tab.removeLayer(layer1Id);
@@ -2318,7 +2312,7 @@ describe('TabState — removeLayer', () => {
 		const { tab } = makeTab();
 		tab.addLayer('Layer 2');
 		const activeId = tab.document.active_layer_id();
-		const otherId = tab.document.layer_id_at(0)!;
+		const otherId = tab.document.layers_metadata()[0].id;
 		expect(activeId).not.toBe(otherId);
 
 		tab.removeLayer(activeId);
@@ -2330,7 +2324,7 @@ describe('TabState — removeLayer', () => {
 		const { tab } = makeTab();
 		tab.addLayer('Layer 2');
 		const activeId = tab.document.active_layer_id();
-		const otherId = tab.document.layer_id_at(0)!;
+		const otherId = tab.document.layers_metadata()[0].id;
 
 		tab.removeLayer(otherId);
 
@@ -2342,7 +2336,7 @@ describe('TabState — removeLayer', () => {
 		tab.addLayer('Layer 2');
 		const beforeCount = tab.document.layer_count();
 		const beforeActive = tab.document.active_layer_id();
-		const otherId = tab.document.layer_id_at(0)!;
+		const otherId = tab.document.layers_metadata()[0].id;
 
 		tab.removeLayer(otherId);
 		expect(tab.document.layer_count()).toBe(beforeCount - 1);
@@ -2407,7 +2401,7 @@ describe('TabState — removeLayer', () => {
 	it('bumps renderVersion and emits markDirty', () => {
 		const { tab, notifier } = makeTab();
 		tab.addLayer('Layer 2');
-		const otherId = tab.document.layer_id_at(0)!;
+		const otherId = tab.document.layers_metadata()[0].id;
 		const renderBefore = tab.renderVersion;
 		notifier.reset();
 
@@ -2453,7 +2447,7 @@ describe('TabState — setActiveLayer', () => {
 	it('changes active_layer_id, bumps renderVersion, and emits markDirty when called with a different layer id', () => {
 		const { tab, notifier } = makeTab();
 		tab.addLayer('Layer 2');
-		const layer1Id = tab.document.layer_id_at(0)!;
+		const layer1Id = tab.document.layers_metadata()[0].id;
 		const layer2Id = tab.document.active_layer_id();
 		expect(layer1Id).not.toBe(layer2Id);
 
@@ -2485,7 +2479,7 @@ describe('TabState — setActiveLayer', () => {
 	it('is not undoable: undo after several setActiveLayer calls reverts the prior content op in a single step', () => {
 		const { tab } = makeTab();
 		tab.addLayer('Layer 2');
-		const layer1Id = tab.document.layer_id_at(0)!;
+		const layer1Id = tab.document.layers_metadata()[0].id;
 		const layer2Id = tab.document.active_layer_id();
 
 		tab.setActiveLayer(layer1Id);
@@ -2500,7 +2494,7 @@ describe('TabState — setActiveLayer', () => {
 	it('after activating a different layer, subsequent draws apply to that layer', () => {
 		const { tab, shared } = makeTab();
 		tab.addLayer('Layer 2');
-		const layer1Id = tab.document.layer_id_at(0)!;
+		const layer1Id = tab.document.layers_metadata()[0].id;
 		const layer2Idx = tab.document.layer_count() - 1;
 
 		tab.setActiveLayer(layer1Id);
@@ -2548,9 +2542,9 @@ describe('TabState — mixed Pixel and Reference Layer stack operations', () => 
 		tab.addLayer('Top paint');
 		const topId = tab.document.active_layer_id();
 		expect([
-			tab.document.layer_kind_at(0),
-			tab.document.layer_kind_at(1),
-			tab.document.layer_kind_at(2)
+			tab.document.layers_metadata()[0].kind,
+			tab.document.layers_metadata()[1].kind,
+			tab.document.layers_metadata()[2].kind
 		]).toEqual(['reference', 'pixel', 'pixel']);
 		shared.foregroundColor = GREEN;
 		shared.activeTool = 'pencil';
@@ -2562,17 +2556,15 @@ describe('TabState — mixed Pixel and Reference Layer stack operations', () => 
 		expect(tab.document.active_layer_id()).toBe(referenceId);
 
 		tab.reorderLayer(referenceId, 0);
-		expect(tab.document.layer_id_at(0)).toBe(referenceId);
+		expect(tab.document.layers_metadata()[0].id).toBe(referenceId);
 		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
 
 		tab.setLayerVisibility(referenceId, false);
-		expect(tab.document.layer_visible_at(0)).toBe(false);
+		expect(tab.document.layers_metadata()[0].visible).toBe(false);
 		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
 
 		tab.removeLayer(referenceId);
-		const remainingIds = Array.from({ length: tab.document.layer_count() }, (_, i) =>
-			tab.document.layer_id_at(i)
-		);
+		const remainingIds = tab.document.layers_metadata().map((record) => record.id);
 		expect(remainingIds).toEqual([bottomId, topId]);
 		expect(tab.document.active_layer_id()).toBe(bottomId);
 		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
@@ -2591,24 +2583,24 @@ describe('TabState — reorderLayer', () => {
 		tab.addLayer('Layer 3');
 		// Stack (bottom→top): [Layer 1, Layer 2, Layer 3]
 		// Panel (top→bottom): [Layer 3, Layer 2, Layer 1]
-		const layer3Id = tab.document.layer_id_at(2)!;
+		const layer3Id = tab.document.layers_metadata()[2].id;
 
 		tab.reorderLayer(layer3Id, 2); // move Layer 3 to the panel's bottom row
 
 		// Now expected stack: [Layer 3, Layer 1, Layer 2]
-		expect(tab.document.layer_id_at(0)).toBe(layer3Id);
+		expect(tab.document.layers_metadata()[0].id).toBe(layer3Id);
 	});
 
 	it('moving the bottom-of-panel layer (visual layers-1) to the top (visual 0) puts it at stack index layers-1', () => {
 		const { tab } = makeTab();
 		tab.addLayer('Layer 2');
 		tab.addLayer('Layer 3');
-		const layer1Id = tab.document.layer_id_at(0)!;
+		const layer1Id = tab.document.layers_metadata()[0].id;
 
 		tab.reorderLayer(layer1Id, 0); // move Layer 1 (panel bottom) to the panel's top row
 
 		const top = tab.document.layer_count() - 1;
-		expect(tab.document.layer_id_at(top)).toBe(layer1Id);
+		expect(tab.document.layers_metadata()[top].id).toBe(layer1Id);
 	});
 
 	it('preserves the active layer pointer across reordering (it is tracked by id, not index)', () => {
@@ -2626,30 +2618,30 @@ describe('TabState — reorderLayer', () => {
 		const { tab } = makeTab();
 		tab.addLayer('Layer 2');
 		tab.addLayer('Layer 3');
-		const layer1Id = tab.document.layer_id_at(0)!;
-		const layer2Id = tab.document.layer_id_at(1)!;
-		const layer3Id = tab.document.layer_id_at(2)!;
+		const layer1Id = tab.document.layers_metadata()[0].id;
+		const layer2Id = tab.document.layers_metadata()[1].id;
+		const layer3Id = tab.document.layers_metadata()[2].id;
 
 		tab.reorderLayer(layer3Id, 2); // [Layer 3, Layer 1, Layer 2]
 		expect([
-			tab.document.layer_id_at(0),
-			tab.document.layer_id_at(1),
-			tab.document.layer_id_at(2)
+			tab.document.layers_metadata()[0].id,
+			tab.document.layers_metadata()[1].id,
+			tab.document.layers_metadata()[2].id
 		]).toEqual([layer3Id, layer1Id, layer2Id]);
 
 		tab.undo();
 
 		expect([
-			tab.document.layer_id_at(0),
-			tab.document.layer_id_at(1),
-			tab.document.layer_id_at(2)
+			tab.document.layers_metadata()[0].id,
+			tab.document.layers_metadata()[1].id,
+			tab.document.layers_metadata()[2].id
 		]).toEqual([layer1Id, layer2Id, layer3Id]);
 	});
 
 	it('bumps renderVersion and emits markDirty', () => {
 		const { tab, notifier } = makeTab();
 		tab.addLayer('Layer 2');
-		const layer1Id = tab.document.layer_id_at(0)!;
+		const layer1Id = tab.document.layers_metadata()[0].id;
 		const renderBefore = tab.renderVersion;
 		notifier.reset();
 
@@ -2695,30 +2687,30 @@ describe('TabState — setLayerVisibility', () => {
 
 		tab.setLayerVisibility(layerId, false);
 
-		expect(tab.document.layer_visible_at(0)).toBe(false);
+		expect(tab.document.layers_metadata()[0].visible).toBe(false);
 	});
 
 	it('restores Layer.visible to true from a hidden state', () => {
 		const { tab } = makeTab();
 		const layerId = tab.document.active_layer_id();
 		tab.setLayerVisibility(layerId, false);
-		expect(tab.document.layer_visible_at(0)).toBe(false);
+		expect(tab.document.layers_metadata()[0].visible).toBe(false);
 
 		tab.setLayerVisibility(layerId, true);
 
-		expect(tab.document.layer_visible_at(0)).toBe(true);
+		expect(tab.document.layers_metadata()[0].visible).toBe(true);
 	});
 
 	it('affects only the targeted layer; sibling layers retain their visibility', () => {
 		const { tab } = makeTab();
 		tab.addLayer('Layer 2');
-		const layer1Id = tab.document.layer_id_at(0)!;
-		const layer2Id = tab.document.layer_id_at(1)!;
+		const layer1Id = tab.document.layers_metadata()[0].id;
+		const layer2Id = tab.document.layers_metadata()[1].id;
 
 		tab.setLayerVisibility(layer1Id, false);
 
-		expect(tab.document.layer_visible_at(0)).toBe(false);
-		expect(tab.document.layer_visible_at(1)).toBe(true);
+		expect(tab.document.layers_metadata()[0].visible).toBe(false);
+		expect(tab.document.layers_metadata()[1].visible).toBe(true);
 		expect(tab.document.active_layer_id()).toBe(layer2Id);
 	});
 
@@ -2737,26 +2729,26 @@ describe('TabState — setLayerVisibility', () => {
 	it('is undoable: undo restores the prior visibility', () => {
 		const { tab } = makeTab();
 		const layerId = tab.document.active_layer_id();
-		expect(tab.document.layer_visible_at(0)).toBe(true);
+		expect(tab.document.layers_metadata()[0].visible).toBe(true);
 
 		tab.setLayerVisibility(layerId, false);
-		expect(tab.document.layer_visible_at(0)).toBe(false);
+		expect(tab.document.layers_metadata()[0].visible).toBe(false);
 
 		tab.undo();
 
-		expect(tab.document.layer_visible_at(0)).toBe(true);
+		expect(tab.document.layers_metadata()[0].visible).toBe(true);
 	});
 
 	it('is a no-op when called with the current visibility (no renderVersion bump, no markDirty)', () => {
 		const { tab, notifier } = makeTab();
 		const layerId = tab.document.active_layer_id();
-		expect(tab.document.layer_visible_at(0)).toBe(true);
+		expect(tab.document.layers_metadata()[0].visible).toBe(true);
 		const renderBefore = tab.renderVersion;
 		notifier.reset();
 
 		tab.setLayerVisibility(layerId, true);
 
-		expect(tab.document.layer_visible_at(0)).toBe(true);
+		expect(tab.document.layers_metadata()[0].visible).toBe(true);
 		expect(tab.renderVersion).toBe(renderBefore);
 		expect(notifier.dirtyCalls).toEqual([]);
 	});

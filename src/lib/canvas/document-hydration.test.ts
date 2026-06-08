@@ -58,10 +58,10 @@ describe('documentFromLayerSource', () => {
 		expect(doc.width).toBe(2);
 		expect(doc.height).toBe(2);
 		expect(doc.layer_count()).toBe(2);
-		expect(doc.layer_id_at(0)).toBe(bottomId);
-		expect(doc.layer_id_at(1)).toBe(topId);
-		expect(doc.layer_visible_at(1)).toBe(false);
-		expect(doc.layer_opacity_at(1)).toBeCloseTo(0.5);
+		expect(doc.layers_metadata()[0].id).toBe(bottomId);
+		expect(doc.layers_metadata()[1].id).toBe(topId);
+		expect(doc.layers_metadata()[1].visible).toBe(false);
+		expect(doc.layers_metadata()[1].opacity).toBeCloseTo(0.5);
 		expect(doc.active_layer_id()).toBe(topId);
 		expect(doc.next_layer_number()).toBe(7);
 		expect(doc.is_timeline_panel_collapsed()).toBe(true);
@@ -114,14 +114,15 @@ describe('documentFromLayerSource', () => {
 		});
 
 		expect(doc.layer_count()).toBe(2);
-		expect(doc.layer_kind_at(0)).toBe('reference');
-		expect(doc.layer_kind_at(1)).toBe('pixel');
-		expect(doc.layer_id_at(0)).toBe(referenceId);
-		expect(doc.layer_visible_at(0)).toBe(false);
-		expect(doc.layer_opacity_at(0)).toBeCloseTo(0.5);
+		expect(doc.layers_metadata()[0].kind).toBe('reference');
+		expect(doc.layers_metadata()[1].kind).toBe('pixel');
+		expect(doc.layers_metadata()[0].id).toBe(referenceId);
+		expect(doc.layers_metadata()[0].visible).toBe(false);
+		expect(doc.layers_metadata()[0].opacity).toBeCloseTo(0.5);
 		expect(doc.layer_source_pixels_at(0)).toEqual(sourceRgba);
-		expect(Array.from(doc.layer_source_dimensions_at(0)!)).toEqual([2, 1]);
-		const placement = doc.layer_placement_at(0)!;
+		expect(doc.layers_metadata()[0].natural_width).toBe(2);
+		expect(doc.layers_metadata()[0].natural_height).toBe(1);
+		const placement = doc.layers_metadata()[0].placement!;
 		expect(placement.x).toBe(3);
 		expect(placement.y).toBe(4);
 		expect(placement.scale).toBe(2);

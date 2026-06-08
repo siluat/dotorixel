@@ -6,14 +6,18 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 147 | 113 | 34 | 148 | 77% | 43% |
-| cubic-dev-ai[bot] | 102 | 86 | 16 | 171 | 84% | 33% |
-| coderabbitai[bot] | 202 | 145 | 57 | 109 | 72% | 57% |
+| greptile-apps[bot] | 148 | 114 | 34 | 148 | 77% | 44% |
+| cubic-dev-ai[bot] | 103 | 86 | 17 | 172 | 83% | 33% |
+| coderabbitai[bot] | 202 | 145 | 57 | 110 | 72% | 57% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #260 | greptile-apps[bot] | Accept | Hoisted per-iteration `layers_metadata()` out of loops/find (one of seven sites) |
+| #260 | cubic-dev-ai[bot] | Reject | `kind: string` → union breaks `WasmDocument` structural-compat; proper fix needs a `WasmLayerKind` wasm enum (deferred) |
+| #260 | cubic-dev-ai[bot] | Miss | Did not flag per-iteration `layers_metadata()` calls in loops |
+| #260 | coderabbitai[bot] | Miss | Did not flag per-iteration `layers_metadata()` calls in loops |
 | #259 | greptile-apps[bot] | Accept | BORDER_PX JSDoc named the renamed `--loupe-border` property; should be `--loupe-border-width` |
 | #259 | cubic-dev-ai[bot] | Accept | BORDER_PX JSDoc named the renamed `--loupe-border` property; should be `--loupe-border-width` |
 | #259 | coderabbitai[bot] | Miss | Did not flag stale `--loupe-border` JSDoc on BORDER_PX |

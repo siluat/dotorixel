@@ -67,6 +67,30 @@ export interface PixelCanvas {
 }
 
 /**
+ * One layer's metadata as read across the WASM seam in a single
+ * `layers_metadata()` crossing. The common fields are always present; the
+ * Reference-only fields (`source_fingerprint`, `natural_width`,
+ * `natural_height`, `placement`) are populated only for Reference Layers and
+ * `undefined` for Pixel Layers. Bulk pixel buffers are excluded — fetch them on
+ * demand via `layer_pixels_at` / `layer_source_pixels_at`.
+ *
+ * Field names are snake_case to match the WASM binding; consumers map them into
+ * their shell-facing read models.
+ */
+export interface LayerMetadata {
+	readonly id: string;
+	readonly name: string;
+	readonly visible: boolean;
+	readonly opacity: number;
+	/** `"pixel"` or `"reference"`. */
+	readonly kind: string;
+	readonly source_fingerprint: string | undefined;
+	readonly natural_width: number | undefined;
+	readonly natural_height: number | undefined;
+	readonly placement: ReferencePlacement | undefined;
+}
+
+/**
  * Document with a stack of layers, an active-layer pointer, and presentation
  * state. The `composite()` method returns a row-major RGBA buffer of visible
  * Pixel Layers blended bottom-to-top; Reference Layers are rendered separately
@@ -115,10 +139,13 @@ export interface Document {
 	 */
 	set_timeline_panel_collapsed(collapsed: boolean): void;
 	layer_count(): number;
-	layer_id_at(index: number): string | undefined;
-	layer_name_at(index: number): string | undefined;
-	layer_visible_at(index: number): boolean | undefined;
-	layer_opacity_at(index: number): number | undefined;
+	/**
+	 * Returns every layer's metadata in stack order (index 0 = bottom-most) in
+	 * a single crossing. Reference-only fields are populated only for Reference
+	 * Layers. Bulk pixel buffers are excluded — fetch them on demand via
+	 * `layer_pixels_at` / `layer_source_pixels_at`.
+	 */
+	layers_metadata(): LayerMetadata[];
 	layer_pixels_at(index: number): Uint8Array | undefined;
 	/**
 	 * Overwrites the active layer's pixel buffer with `data`. Used by tools
@@ -176,14 +203,6 @@ export interface Document {
 	 * with this id exists; previous visibility is preserved on error.
 	 */
 	set_layer_visibility(id: string, visible: boolean): void;
-	/** Returns `"pixel"` or `"reference"`, or `undefined` when `index` is out of range. */
-	layer_kind_at(index: number): string | undefined;
 	/** Returns a Reference Layer's source RGBA buffer, or `undefined` for Pixel Layers / out of range. */
 	layer_source_pixels_at(index: number): Uint8Array | undefined;
-	/** Returns a stable source RGBA fingerprint, or `undefined` for Pixel Layers / out of range. */
-	layer_source_fingerprint_at(index: number): string | undefined;
-	/** Returns `[natural_width, natural_height]`, or `undefined` for Pixel Layers / out of range. */
-	layer_source_dimensions_at(index: number): Uint32Array | undefined;
-	/** Returns a Reference Layer's placement, or `undefined` for Pixel Layers / out of range. */
-	layer_placement_at(index: number): ReferencePlacement | undefined;
 }

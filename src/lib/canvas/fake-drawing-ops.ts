@@ -206,10 +206,19 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 			timelinePanelCollapsed = collapsed;
 		},
 		layer_count: () => 1,
-		layer_id_at: (index) => (index === 0 ? 'active' : undefined),
-		layer_name_at: (index) => (index === 0 ? 'Layer 1' : undefined),
-		layer_visible_at: (index) => (index === 0 ? true : undefined),
-		layer_opacity_at: (index) => (index === 0 ? 1.0 : undefined),
+		layers_metadata: () => [
+			{
+				id: 'active',
+				name: 'Layer 1',
+				visible: true,
+				opacity: 1.0,
+				kind: 'pixel',
+				source_fingerprint: undefined,
+				natural_width: undefined,
+				natural_height: undefined,
+				placement: undefined
+			}
+		],
 		layer_pixels_at: (index) => (index === 0 ? new Uint8Array(pixels) : undefined),
 		restore_active_layer_pixels(data) {
 			restoreCalls.push(new Uint8Array(data));
@@ -238,11 +247,7 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 		set_layer_visibility: () => {
 			throw new Error('createFakeDocument: set_layer_visibility not implemented');
 		},
-		layer_kind_at: (index) => (index === 0 ? 'pixel' : undefined),
 		layer_source_pixels_at: () => undefined,
-		layer_source_fingerprint_at: () => undefined,
-		layer_source_dimensions_at: () => undefined,
-		layer_placement_at: () => undefined,
 		get restoreActiveLayerCalls() {
 			return restoreCalls;
 		}

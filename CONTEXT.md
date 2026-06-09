@@ -47,7 +47,7 @@ _Avoid_: system clipboard (OS-level interop, explicitly out of scope), copy buff
 ### Sampling
 
 **Sampling Session**:
-A pointer-driven color-pick lifecycle that opens at a target pixel, shows a Loupe, and commits the centered pixel to a draw color slot on release.
+A pointer-driven color-pick lifecycle that opens at a target pixel, shows a Loupe, and commits the centered pixel to a draw color slot on release. Both species share one Loupe-facing observable surface — the sampled grid, the Loupe position, and the pointer feed — distinct from their per-species lifecycle; sealed as the `SamplingSessionView` type ([issue 164](issues/164-seal-sampling-session-view.md)).
 _Avoid_: color picker session, eyedropper session (eyedropper is a tool, not a session).
 
 **Loupe**:

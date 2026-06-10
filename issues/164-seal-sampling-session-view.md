@@ -1,6 +1,6 @@
 ---
 title: "Seal the Sampling Session view and name its species"
-status: ready-for-agent
+status: done
 created: 2026-06-09
 ---
 
@@ -121,3 +121,28 @@ crystallized via a `/grill-me` design session. Standalone refactor. The grilling
 candidate from "unify two duplicated sessions" to "name the genus/species and seal their shared
 view", after confirming the implementations are already shared by composition and the consumers are
 already split.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/sampling/types.ts` | Added the shared Sampling Session view surface and moved pointer-update params to the genus-level sampling types module. |
+| `src/lib/canvas/sampling/session.svelte.ts` | Renamed the Canvas species and its factory, kept the Canvas-specific start params internal, and made the concrete session extend the shared view. |
+| `src/lib/reference-images/reference-sampling-session.svelte.ts` | Made the Reference species extend the shared view and compose the explicitly named Canvas species as its shared lifecycle engine. |
+| `src/lib/canvas/PixelCanvasView.svelte` | Narrowed the Loupe-facing prop to the shared view surface. |
+| `src/lib/canvas/editor-session/editor-controller.svelte.ts` | Narrowed the controller projection to the shared view surface. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Kept the tab owner on the full Canvas species while wiring the renamed factory. |
+| `src/lib/canvas/tool-authoring.ts`, `src/lib/canvas/stroke-engine.ts`, `src/lib/canvas/tool-runner.svelte.ts` | Kept the tool system on the full Canvas species because it drives the lifecycle, not just the Loupe view. |
+| `src/lib/canvas/*test.ts`, `src/lib/canvas/sampling/session.svelte.test.ts` | Updated test identifiers and stubs to the Canvas species name without changing behavioral assertions. |
+| `src/lib/reference-images/sampling-port.ts` | Updated the documentation comment to avoid the old concrete session name. |
+
+### Key Decisions
+
+- Sealed only the shared Loupe-facing view surface, not the lifecycle API, because Canvas and Reference sampling still have deliberately different gesture verbs.
+- Kept the Canvas species as the shared engine that Reference composes; no neutral engine was introduced.
+- Left `isActive` on the concrete species only, matching the existing test-observed lifecycle surface without widening view-only consumers.
+
+### Notes
+
+- No `docs/platform-status.md` update: this was a behavior-preserving web-shell structural refactor, not a feature status change.
+- Verification passed: `bun run check`, targeted sampling/tool/view tests, full unit suite, production build, and full Playwright E2E suite.

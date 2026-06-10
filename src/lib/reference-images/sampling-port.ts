@@ -3,7 +3,7 @@ import { samplePixel, type DecodedImage } from './sample-pixel';
 
 /**
  * Adapt a decoded reference image to the sampling port interface used by
- * `SamplingSession`. This lets the shared loupe machinery — grid extraction,
+ * the Canvas Sampling Session. This lets the shared loupe machinery — grid extraction,
  * position computation, viewport clamping — drive a loupe over a reference
  * window without duplicating any of that logic.
  *

@@ -8,7 +8,7 @@ import {
 	createFakePixelCanvas
 } from './fake-drawing-ops';
 import type { PixelCanvas } from './canvas-model';
-import type { SamplingSession } from './sampling/session.svelte';
+import type { CanvasSamplingSession } from './sampling/session.svelte';
 
 function makeHost(canvas: PixelCanvas): SessionHost {
 	return {
@@ -16,7 +16,7 @@ function makeHost(canvas: PixelCanvas): SessionHost {
 		foregroundColor: BLACK,
 		backgroundColor: WHITE,
 		baseOps: createFakeDrawingOps(8, 8, WHITE),
-		sampling: {} as SamplingSession,
+		sampling: {} as CanvasSamplingSession,
 		isShiftHeld: () => false,
 		pixelPerfect: false
 	};

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
-import { createSamplingSession } from './session.svelte';
+import { createCanvasSamplingSession } from './session.svelte';
 import { createInMemorySamplingPort } from './adapters/in-memory';
 import {
 	LOUPE_CENTER_INDEX,
@@ -27,24 +27,24 @@ function splitGrid(width: number, height: number, left: Color, right: Color): (C
 	);
 }
 
-describe('samplingSession — initial state', () => {
+describe('canvasSamplingSession — initial state', () => {
 	it('is inactive before start is called', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		expect(session.isActive).toBe(false);
 	});
 
 	it('exposes a null position before start', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		expect(session.position).toBeNull();
 	});
 
 	it('exposes a null position even after updatePointer when inactive', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.updatePointer({ screen: { x: 600, y: 400 }, viewport: { width: 1200, height: 800 } });
 
@@ -52,10 +52,10 @@ describe('samplingSession — initial state', () => {
 	});
 });
 
-describe('samplingSession — start', () => {
+describe('canvasSamplingSession — start', () => {
 	it('becomes active after start', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.start({
 			targetPixel: { x: 8, y: 8 },
@@ -68,7 +68,7 @@ describe('samplingSession — start', () => {
 
 	it('populates a 9×9 grid sampled around the target pixel', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.start({
 			targetPixel: { x: 8, y: 8 },
@@ -84,7 +84,7 @@ describe('samplingSession — start', () => {
 
 	it('returns null position until pointer state is also seeded', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.start({
 			targetPixel: { x: 8, y: 8 },
@@ -97,7 +97,7 @@ describe('samplingSession — start', () => {
 
 	it('applies an optional target mapper before sampling the grid', () => {
 		const port = createInMemorySamplingPort(splitGrid(16, 16, RED, BLUE));
-		const session = createSamplingSession({
+		const session = createCanvasSamplingSession({
 			getSamplingPort: () => port,
 			mapTarget: (target) => ({ x: target.x + 8, y: target.y })
 		});
@@ -112,10 +112,10 @@ describe('samplingSession — start', () => {
 	});
 });
 
-describe('samplingSession — commit', () => {
+describe('canvasSamplingSession — commit', () => {
 	it('returns colorPick + addRecentColor effects for the foreground slot when the center is opaque', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.start({
 			targetPixel: { x: 8, y: 8 },
@@ -132,7 +132,7 @@ describe('samplingSession — commit', () => {
 
 	it('routes the colorPick to the background slot when commitTarget is background', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.start({
 			targetPixel: { x: 8, y: 8 },
@@ -149,7 +149,7 @@ describe('samplingSession — commit', () => {
 
 	it('returns no effects when the center pixel is fully transparent', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, TRANSPARENT));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.start({
 			targetPixel: { x: 8, y: 8 },
@@ -163,7 +163,7 @@ describe('samplingSession — commit', () => {
 
 	it('returns no effects when the target pixel is outside the canvas bounds', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.start({
 			targetPixel: { x: -1, y: 8 },
@@ -181,7 +181,7 @@ describe('samplingSession — commit', () => {
 			Array.from({ length: 16 }, (_, x) => (x === 0 ? TRANSPARENT : RED))
 		);
 		const port = createInMemorySamplingPort(grid);
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.start({
 			targetPixel: { x: 8, y: 8 },
@@ -199,7 +199,7 @@ describe('samplingSession — commit', () => {
 			Array.from({ length: 16 }, (_, x) => (x === 0 ? TRANSPARENT : x < 8 ? RED : BLUE))
 		);
 		const port = createInMemorySamplingPort(grid);
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.start({
 			targetPixel: { x: 4, y: 8 },
@@ -217,7 +217,7 @@ describe('samplingSession — commit', () => {
 
 	it('updates the grid when the target pixel moves to a differently colored region', () => {
 		const port = createInMemorySamplingPort(splitGrid(16, 16, RED, BLUE));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.start({
 			targetPixel: { x: 2, y: 8 },
@@ -234,7 +234,7 @@ describe('samplingSession — commit', () => {
 
 	it('deactivates the session after a successful commit', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.start({
 			targetPixel: { x: 8, y: 8 },
@@ -249,7 +249,7 @@ describe('samplingSession — commit', () => {
 
 	it('deactivates the session even when commit produces no effects', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, TRANSPARENT));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.start({
 			targetPixel: { x: 8, y: 8 },
@@ -263,16 +263,16 @@ describe('samplingSession — commit', () => {
 
 	it('returns no effects when commit is called without a prior start', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		expect(session.commit()).toEqual([]);
 	});
 });
 
-describe('samplingSession — cancel', () => {
+describe('canvasSamplingSession — cancel', () => {
 	it('deactivates the session without producing effects', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.start({
 			targetPixel: { x: 8, y: 8 },
@@ -286,7 +286,7 @@ describe('samplingSession — cancel', () => {
 
 	it('returns no effects from a subsequent commit after cancel', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.start({
 			targetPixel: { x: 8, y: 8 },
@@ -300,7 +300,7 @@ describe('samplingSession — cancel', () => {
 
 	it('clears position back to null after cancel', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.updatePointer({ screen: { x: 600, y: 400 }, viewport: { width: 1200, height: 800 } });
 		session.start({
@@ -314,12 +314,12 @@ describe('samplingSession — cancel', () => {
 	});
 });
 
-describe('samplingSession — position', () => {
+describe('canvasSamplingSession — position', () => {
 	const VIEWPORT = { width: 1200, height: 800 };
 
 	it('places the loupe top-right of a centered mouse pointer at MOUSE_OFFSET', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.updatePointer({ screen: { x: 600, y: 400 }, viewport: VIEWPORT });
 		session.start({
@@ -336,7 +336,7 @@ describe('samplingSession — position', () => {
 
 	it('flips horizontally near the right edge for mouse input', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.updatePointer({ screen: { x: 1180, y: 400 }, viewport: VIEWPORT });
 		session.start({
@@ -353,7 +353,7 @@ describe('samplingSession — position', () => {
 
 	it('flips vertically near the top edge for mouse input', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.updatePointer({ screen: { x: 600, y: 100 }, viewport: VIEWPORT });
 		session.start({
@@ -370,7 +370,7 @@ describe('samplingSession — position', () => {
 
 	it('centers horizontally and offsets vertically by TOUCH_OFFSET for touch input', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.updatePointer({ screen: { x: 600, y: 400 }, viewport: VIEWPORT });
 		session.start({
@@ -387,7 +387,7 @@ describe('samplingSession — position', () => {
 
 	it('updates reactively when updatePointer is called during an active session', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.updatePointer({ screen: { x: 600, y: 400 }, viewport: VIEWPORT });
 		session.start({
@@ -408,7 +408,7 @@ describe('samplingSession — position', () => {
 
 	it('returns null position after commit', () => {
 		const port = createInMemorySamplingPort(uniformGrid(16, 16, RED));
-		const session = createSamplingSession({ getSamplingPort: () => port });
+		const session = createCanvasSamplingSession({ getSamplingPort: () => port });
 
 		session.updatePointer({ screen: { x: 600, y: 400 }, viewport: VIEWPORT });
 		session.start({

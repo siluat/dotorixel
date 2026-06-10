@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { createToolRunner, type ToolRunnerHost, type EditorEffects } from './tool-runner.svelte';
-import { createSamplingSession } from './sampling/session.svelte';
+import { createCanvasSamplingSession } from './sampling/session.svelte';
 import { createDocumentSamplingPort } from './sampling/adapters/document';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
@@ -46,7 +46,7 @@ function createHost(
 function createRunner(canvas?: PixelCanvas, fg?: Color, bg?: Color, doc?: Document) {
 	const host = createHost(canvas, fg, bg, doc);
 	const shared = new SharedState();
-	const samplingSession = createSamplingSession({
+	const samplingSession = createCanvasSamplingSession({
 		getSamplingPort: () => createDocumentSamplingPort(host.document)
 	});
 	const runner = createToolRunner({ host, shared, getShiftHeld: () => false, samplingSession });
@@ -196,7 +196,7 @@ describe('ToolRunner — eyedropper tool', () => {
 		// Paint a red pixel at (2,2) using a separate runner with red foreground
 		const host = createHost(canvas, RED, WHITE);
 		const shared2 = new SharedState();
-		const samplingSession2 = createSamplingSession({
+		const samplingSession2 = createCanvasSamplingSession({
 			getSamplingPort: () => createDocumentSamplingPort(host.document)
 		});
 		const runner2 = createToolRunner({ host, shared: shared2, getShiftHeld: () => false, samplingSession: samplingSession2 });
@@ -224,7 +224,7 @@ describe('ToolRunner — eyedropper tool', () => {
 		// Fill the canvas with red at (5,5) using pencil with red foreground
 		const redHost = createHost(canvas, RED, WHITE);
 		const redShared = new SharedState();
-		const redSession = createSamplingSession({
+		const redSession = createCanvasSamplingSession({
 			getSamplingPort: () => createDocumentSamplingPort(redHost.document)
 		});
 		const redRunner = createToolRunner({ host: redHost, shared: redShared, getShiftHeld: () => false, samplingSession: redSession });
@@ -523,7 +523,7 @@ describe('ToolRunner — shift constraint', () => {
 		const shared = new SharedState();
 		shared.activeTool = 'line';
 		let shiftHeld = false;
-		const samplingSession = createSamplingSession({
+		const samplingSession = createCanvasSamplingSession({
 			getSamplingPort: () => createDocumentSamplingPort(host.document)
 		});
 		const runner = createToolRunner({ host, shared, getShiftHeld: () => shiftHeld, samplingSession });
@@ -544,7 +544,7 @@ describe('ToolRunner — shift constraint', () => {
 		const shared = new SharedState();
 		shared.activeTool = 'line';
 		let shiftHeld = false;
-		const samplingSession = createSamplingSession({
+		const samplingSession = createCanvasSamplingSession({
 			getSamplingPort: () => createDocumentSamplingPort(host.document)
 		});
 		const runner = createToolRunner({ host, shared, getShiftHeld: () => shiftHeld, samplingSession });

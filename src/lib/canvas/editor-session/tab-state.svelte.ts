@@ -31,7 +31,7 @@ import {
 	createNoReadableSamplingPort,
 	createReferenceLayerUnderlaySamplingPort
 } from '../sampling/adapters/reference-layer-underlay';
-import { createSamplingSession, type SamplingSession } from '../sampling/session.svelte';
+import { createCanvasSamplingSession, type CanvasSamplingSession } from '../sampling/session.svelte';
 import type { LoupeInputSource } from '../sampling/types';
 import { createToolRunner, type ToolRunner, type EditorEffects } from '../tool-runner.svelte';
 import { exportAsPng } from '../export';
@@ -132,7 +132,7 @@ export class TabState {
 	readonly documentId: string;
 	readonly name: string;
 	readonly shared: SharedState;
-	readonly samplingSession: SamplingSession;
+	readonly samplingSession: CanvasSamplingSession;
 	readonly referenceSamplingSession: ReferenceSamplingSession;
 
 	document = $state<Document>(null!);
@@ -305,7 +305,7 @@ export class TabState {
 			documentId: this.documentId
 		});
 
-		this.samplingSession = createSamplingSession({
+		this.samplingSession = createCanvasSamplingSession({
 			getSamplingPort: () => {
 				const projection = self.layerProjection;
 				if (projection.activeLayerKind !== 'reference') {

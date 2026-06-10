@@ -2,7 +2,7 @@ import type { CanvasPoint } from './canvas-model';
 import type { Color } from './color';
 import type { PointerType } from './canvas-interaction.svelte';
 import type { LoupeInputSource } from './sampling/types';
-import type { SamplingSession } from './sampling/session.svelte';
+import type { CanvasSamplingSession } from './sampling/session.svelte';
 import type { SharedState } from './shared-state.svelte';
 import type { SessionHost, StrokeSpec } from './tool-authoring';
 import type { EditorEffects, ToolRunnerHost } from './tool-runner.svelte';
@@ -40,7 +40,7 @@ export interface ActiveStroke {
 export interface StrokeEngineDeps {
 	readonly host: ToolRunnerHost;
 	readonly shared: SharedState;
-	readonly sampling: SamplingSession;
+	readonly sampling: CanvasSamplingSession;
 	readonly isShiftHeld: () => boolean;
 }
 

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createStrokeEngine, type StrokeEngineDeps } from './stroke-engine';
 import { canvasFactory, marqueeRegionFromDrag, singleLayerDocument } from './wasm-backend';
 import { SharedState } from './shared-state.svelte';
-import { createSamplingSession } from './sampling/session.svelte';
+import { createCanvasSamplingSession } from './sampling/session.svelte';
 import { createDocumentSamplingPort } from './sampling/adapters/document';
 import type { Color } from './color';
 import type { Document, PixelCanvas } from './canvas-model';
@@ -18,7 +18,7 @@ interface Setup {
 	canvas: PixelCanvas;
 	document: Document;
 	shared: SharedState;
-	samplingSession: ReturnType<typeof createSamplingSession>;
+	samplingSession: ReturnType<typeof createCanvasSamplingSession>;
 }
 
 function createSetup(opts?: {
@@ -45,7 +45,7 @@ function createSetup(opts?: {
 		}
 	};
 	const shared = new SharedState();
-	const samplingSession = createSamplingSession({
+	const samplingSession = createCanvasSamplingSession({
 		getSamplingPort: () => createDocumentSamplingPort(document)
 	});
 	const deps: StrokeEngineDeps = {

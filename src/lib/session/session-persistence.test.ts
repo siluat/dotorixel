@@ -3,7 +3,7 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { WorkspaceSnapshot, TabSnapshot } from '$lib/canvas/workspace-snapshot';
 import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
-import type { DisplayState } from '$lib/reference-images/display-state-types';
+import type { ReferenceWindowState } from '$lib/reference-images/reference-window-state-types';
 import { decodeReferenceBlob } from '$lib/reference-images/decode-reference-blob';
 import {
 	tabSnapshotFixture,
@@ -792,7 +792,7 @@ describe('SessionPersistence', () => {
 
 	it('round-trips display states for the open tabs', async () => {
 		const refA = makeRef('ref-a');
-		const displayStates: Record<string, DisplayState[]> = {
+		const displayStates: Record<string, ReferenceWindowState[]> = {
 			'doc-1': [
 				{
 					refId: 'ref-a',

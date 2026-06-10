@@ -6,6 +6,7 @@ import ReferenceWindowOverlay from './ReferenceWindowOverlay.svelte';
 import { References } from './references.svelte';
 import { createFakeDirtyNotifier } from '$lib/canvas/editor-session/fake-dirty-notifier';
 import type { ReferenceImage } from './reference-image-types';
+import type { ReferenceWindowState } from './reference-window-state-types';
 
 afterEach(() => cleanup());
 
@@ -33,6 +34,45 @@ function makeRef(id: string, filename = `${id}.png`): ReferenceImage {
 	};
 }
 
+type WindowSpec = {
+	ref: ReferenceImage;
+	geom: { x: number; y: number; width: number; height: number };
+	docId?: string;
+	visible?: boolean;
+	minimized?: boolean;
+};
+
+/**
+ * Build a References store seeded with reference images and their window
+ * states via the public restore path. Window creation is internal to the
+ * lifecycle verbs, so tests seed already-placed windows rather than calling a
+ * creation method. zOrder follows input order per doc.
+ */
+function seedStore(specs: WindowSpec[]): References {
+	const refsByDoc: Record<string, ReferenceImage[]> = {};
+	const windowsByDoc: Record<string, ReferenceWindowState[]> = {};
+	for (const spec of specs) {
+		const docId = spec.docId ?? 'doc-1';
+		(refsByDoc[docId] ??= []).push(spec.ref);
+		const states = (windowsByDoc[docId] ??= []);
+		states.push({
+			refId: spec.ref.id,
+			visible: spec.visible ?? true,
+			x: spec.geom.x,
+			y: spec.geom.y,
+			width: spec.geom.width,
+			height: spec.geom.height,
+			minimized: spec.minimized ?? false,
+			zOrder: states.length + 1
+		});
+	}
+	return new References({
+		notifier: createFakeDirtyNotifier(),
+		restored: refsByDoc,
+		restoredWindowStates: windowsByDoc
+	});
+}
+
 describe('ReferenceWindowOverlay', () => {
 	let store: References;
 
@@ -40,16 +80,16 @@ describe('ReferenceWindowOverlay', () => {
 		store = new References({ notifier: createFakeDirtyNotifier() });
 	});
 
-	it('renders nothing when no display states are visible', () => {
+	it('renders nothing when no window states are visible', () => {
 		renderOverlay({ store, docId: 'doc-1' });
 		expect(screen.queryByRole('dialog')).toBeNull();
 	});
 
-	it('renders one window per visible display state for the active doc', () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.add(makeRef('ref-2'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
-		store.display('ref-2', 'doc-1', { x: 50, y: 60, width: 80, height: 80 });
+	it('renders one window per visible window state for the active doc', () => {
+		store = seedStore([
+			{ ref: makeRef('ref-1'), geom: { x: 10, y: 20, width: 100, height: 100 } },
+			{ ref: makeRef('ref-2'), geom: { x: 50, y: 60, width: 80, height: 80 } }
+		]);
 
 		renderOverlay({ store, docId: 'doc-1' });
 
@@ -58,10 +98,10 @@ describe('ReferenceWindowOverlay', () => {
 	});
 
 	it('does not render windows from other docs', () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.add(makeRef('ref-2'), 'doc-2');
-		store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
-		store.display('ref-2', 'doc-2', { x: 30, y: 40, width: 80, height: 80 });
+		store = seedStore([
+			{ ref: makeRef('ref-1'), geom: { x: 10, y: 20, width: 100, height: 100 }, docId: 'doc-1' },
+			{ ref: makeRef('ref-2'), geom: { x: 30, y: 40, width: 80, height: 80 }, docId: 'doc-2' }
+		]);
 
 		renderOverlay({ store, docId: 'doc-1' });
 
@@ -71,11 +111,10 @@ describe('ReferenceWindowOverlay', () => {
 	});
 
 	it('hides closed windows but keeps visible ones', () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.add(makeRef('ref-2'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
-		store.display('ref-2', 'doc-1', { x: 50, y: 60, width: 80, height: 80 });
-		store.close('ref-1', 'doc-1');
+		store = seedStore([
+			{ ref: makeRef('ref-1'), geom: { x: 10, y: 20, width: 100, height: 100 }, visible: false },
+			{ ref: makeRef('ref-2'), geom: { x: 50, y: 60, width: 80, height: 80 } }
+		]);
 
 		renderOverlay({ store, docId: 'doc-1' });
 
@@ -85,10 +124,10 @@ describe('ReferenceWindowOverlay', () => {
 	});
 
 	it('marks the highest-zOrder visible window as active', () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.add(makeRef('ref-2'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 100 }); // z=1
-		store.display('ref-2', 'doc-1', { x: 50, y: 60, width: 80, height: 80 }); // z=2
+		store = seedStore([
+			{ ref: makeRef('ref-1'), geom: { x: 10, y: 20, width: 100, height: 100 } }, // z=1
+			{ ref: makeRef('ref-2'), geom: { x: 50, y: 60, width: 80, height: 80 } } // z=2
+		]);
 
 		renderOverlay({ store, docId: 'doc-1' });
 
@@ -99,8 +138,7 @@ describe('ReferenceWindowOverlay', () => {
 	});
 
 	it('clicking close on a window calls store.close for that ref', async () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
+		store = seedStore([{ ref: makeRef('ref-1'), geom: { x: 10, y: 20, width: 100, height: 100 } }]);
 		const spy = vi.spyOn(store, 'close');
 
 		renderOverlay({ store, docId: 'doc-1' });
@@ -112,8 +150,9 @@ describe('ReferenceWindowOverlay', () => {
 	});
 
 	it('renders the stored placement geometry verbatim (refit/clamp is a store-side responsibility, not render-time)', () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 550, y: 350, width: 800, height: 600 });
+		store = seedStore([
+			{ ref: makeRef('ref-1'), geom: { x: 550, y: 350, width: 800, height: 600 } }
+		]);
 
 		render(ReferenceWindowOverlay, {
 			store,
@@ -129,10 +168,10 @@ describe('ReferenceWindowOverlay', () => {
 		expect(win.style.height).toBe('600px');
 	});
 
-	it('writes the new position to the store when a window is dragged by the title bar', async () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 100, y: 100, width: 200, height: 200 });
-		const spy = vi.spyOn(store, 'setDisplayPosition');
+	it('a title-bar drag moves the stored window by the pointer delta through the move gesture', async () => {
+		store = seedStore([
+			{ ref: makeRef('ref-1'), geom: { x: 100, y: 100, width: 200, height: 200 } }
+		]);
 
 		render(ReferenceWindowOverlay, {
 			store,
@@ -144,35 +183,16 @@ describe('ReferenceWindowOverlay', () => {
 		const titleBar = screen.getByText('ref-1.png').parentElement!;
 		await fireEvent.pointerDown(titleBar, { pointerId: 1, clientX: 0, clientY: 0 });
 		await fireEvent.pointerMove(titleBar, { pointerId: 1, clientX: 50, clientY: 30 });
-
-		expect(spy).toHaveBeenLastCalledWith('ref-1', 'doc-1', 150, 130);
-	});
-
-	it('does not write back on drag release when the released position already fits the viewport', async () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 100, y: 100, width: 200, height: 200 });
-		// Drain the markDirty from display() / setDisplayPosition() inside the drag.
-		const spy = vi.spyOn(store, 'setDisplayPosition');
-
-		render(ReferenceWindowOverlay, {
-			store,
-			docId: 'doc-1',
-			viewportWidth: 1000,
-			viewportHeight: 800
-		});
-
-		const titleBar = screen.getByText('ref-1.png').parentElement!;
-		await fireEvent.pointerDown(titleBar, { pointerId: 1, clientX: 0, clientY: 0 });
-		await fireEvent.pointerMove(titleBar, { pointerId: 1, clientX: 50, clientY: 30 });
-		spy.mockClear();
 		await fireEvent.pointerUp(titleBar, { pointerId: 1, clientX: 50, clientY: 30 });
 
-		expect(spy).not.toHaveBeenCalled();
+		// Released inside the viewport → final position is the unclamped delta.
+		expect(store.windowStateFor('ref-1', 'doc-1')).toMatchObject({ x: 150, y: 130 });
 	});
 
 	it('clamps the stored position back into the viewport when the drag is released', async () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 100, y: 100, width: 200, height: 200 });
+		store = seedStore([
+			{ ref: makeRef('ref-1'), geom: { x: 100, y: 100, width: 200, height: 200 } }
+		]);
 
 		render(ReferenceWindowOverlay, {
 			store,
@@ -186,13 +206,14 @@ describe('ReferenceWindowOverlay', () => {
 		await fireEvent.pointerMove(titleBar, { pointerId: 1, clientX: 2000, clientY: 2000 });
 		await fireEvent.pointerUp(titleBar, { pointerId: 1, clientX: 2000, clientY: 2000 });
 
-		const state = store.displayStateFor('ref-1', 'doc-1');
+		const state = store.windowStateFor('ref-1', 'doc-1');
 		expect(state).toMatchObject({ x: 800, y: 600 });
 	});
 
 	it('writes the minimized flag to the store when the minimize button is clicked', async () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 100, y: 100, width: 200, height: 200 });
+		store = seedStore([
+			{ ref: makeRef('ref-1'), geom: { x: 100, y: 100, width: 200, height: 200 } }
+		]);
 		const spy = vi.spyOn(store, 'setMinimized');
 
 		render(ReferenceWindowOverlay, {
@@ -208,10 +229,10 @@ describe('ReferenceWindowOverlay', () => {
 		expect(spy).toHaveBeenLastCalledWith('ref-1', 'doc-1', true);
 	});
 
-	it('writes the new size to the store when a window is resized by the corner handle', async () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 100, y: 100, width: 200, height: 100 });
-		const spy = vi.spyOn(store, 'setDisplaySize');
+	it('a corner-handle drag resizes the stored window with aspect preserved through the resize gesture', async () => {
+		store = seedStore([
+			{ ref: makeRef('ref-1'), geom: { x: 100, y: 100, width: 200, height: 100 } }
+		]);
 
 		render(ReferenceWindowOverlay, {
 			store,
@@ -224,13 +245,13 @@ describe('ReferenceWindowOverlay', () => {
 		await fireEvent.pointerDown(handle, { pointerId: 1, clientX: 300, clientY: 200 });
 		await fireEvent.pointerMove(handle, { pointerId: 1, clientX: 350, clientY: 250 });
 
-		expect(spy).toHaveBeenLastCalledWith('ref-1', 'doc-1', 300, 150);
+		expect(store.windowStateFor('ref-1', 'doc-1')).toMatchObject({ width: 300, height: 150 });
 	});
 
-	it('stops a corner-handle resize at the viewport edge during a drag past the edge (drag-time clamp, aspect preserved)', async () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 100, y: 100, width: 200, height: 100 });
-		const spy = vi.spyOn(store, 'setDisplaySize');
+	it('a corner-handle drag past the viewport edge clamps the stored size live (aspect preserved)', async () => {
+		store = seedStore([
+			{ ref: makeRef('ref-1'), geom: { x: 100, y: 100, width: 200, height: 100 } }
+		]);
 
 		render(ReferenceWindowOverlay, {
 			store,
@@ -244,21 +265,18 @@ describe('ReferenceWindowOverlay', () => {
 		await fireEvent.pointerMove(handle, { pointerId: 1, clientX: 5000, clientY: 5000 });
 
 		// Anchored top-left at (100, 100); viewport 1000x800 leaves 900x700 of room.
-		// Aspect 2:1 → width capped at 900 (which fits 700 vertically since 900/2=450 ≤ 700).
-		const lastCall = spy.mock.calls[spy.mock.calls.length - 1];
-		const [, , width, height] = lastCall;
-		expect(width as number).toBeLessThanOrEqual(900);
-		expect(height as number).toBeLessThanOrEqual(700);
-		expect((width as number) / (height as number)).toBeCloseTo(2, 5);
-		expect(width).toBeCloseTo(900, 5);
-		expect(height).toBeCloseTo(450, 5);
+		// Aspect 2:1 → width capped at 900 (900/2 = 450 ≤ 700 vertically).
+		const state = store.windowStateFor('ref-1', 'doc-1')!;
+		expect(state.width).toBeCloseTo(900, 5);
+		expect(state.height).toBeCloseTo(450, 5);
+		expect(state.width / state.height).toBeCloseTo(2, 5);
 	});
 
 	it('pointerdown on a non-active window raises it to the top of the z-order', async () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.add(makeRef('ref-2'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
-		store.display('ref-2', 'doc-1', { x: 200, y: 220, width: 100, height: 100 });
+		store = seedStore([
+			{ ref: makeRef('ref-1'), geom: { x: 10, y: 20, width: 100, height: 100 } },
+			{ ref: makeRef('ref-2'), geom: { x: 200, y: 220, width: 100, height: 100 } }
+		]);
 
 		render(ReferenceWindowOverlay, {
 			store,
@@ -283,10 +301,10 @@ describe('ReferenceWindowOverlay', () => {
 	});
 
 	it('does not raise a non-active window when its title-bar button is pressed', async () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.add(makeRef('ref-2'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
-		store.display('ref-2', 'doc-1', { x: 200, y: 220, width: 100, height: 100 });
+		store = seedStore([
+			{ ref: makeRef('ref-1'), geom: { x: 10, y: 20, width: 100, height: 100 } },
+			{ ref: makeRef('ref-2'), geom: { x: 200, y: 220, width: 100, height: 100 } }
+		]);
 
 		render(ReferenceWindowOverlay, {
 			store,
@@ -308,10 +326,10 @@ describe('ReferenceWindowOverlay', () => {
 	});
 
 	it('raises a non-active window when its resize handle is pressed', async () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.add(makeRef('ref-2'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
-		store.display('ref-2', 'doc-1', { x: 200, y: 220, width: 100, height: 100 });
+		store = seedStore([
+			{ ref: makeRef('ref-1'), geom: { x: 10, y: 20, width: 100, height: 100 } },
+			{ ref: makeRef('ref-2'), geom: { x: 200, y: 220, width: 100, height: 100 } }
+		]);
 
 		render(ReferenceWindowOverlay, {
 			store,
@@ -334,8 +352,7 @@ describe('ReferenceWindowOverlay', () => {
 
 	it('forwards mouse pointerdown on the image to onSampleStart with (blob, x, y, "mouse") when quickSamplingEnabled', async () => {
 		const ref = makeRef('ref-1');
-		store.add(ref, 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 200, height: 200 });
+		store = seedStore([{ ref, geom: { x: 0, y: 0, width: 200, height: 200 } }]);
 		const onSampleStart = vi.fn();
 
 		render(ReferenceWindowOverlay, {
@@ -373,8 +390,7 @@ describe('ReferenceWindowOverlay', () => {
 	});
 
 	it('does not forward mouse pointerdown when quickSamplingEnabled is false', async () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 200, height: 200 });
+		store = seedStore([{ ref: makeRef('ref-1'), geom: { x: 0, y: 0, width: 200, height: 200 } }]);
 		const onSampleStart = vi.fn();
 
 		render(ReferenceWindowOverlay, {
@@ -411,8 +427,9 @@ describe('ReferenceWindowOverlay', () => {
 	});
 
 	it('preserves the stored placement and uses it when the viewport is large again', () => {
-		store.add(makeRef('ref-1'), 'doc-1');
-		store.display('ref-1', 'doc-1', { x: 550, y: 350, width: 400, height: 300 });
+		store = seedStore([
+			{ ref: makeRef('ref-1'), geom: { x: 550, y: 350, width: 400, height: 300 } }
+		]);
 
 		render(ReferenceWindowOverlay, {
 			store,
@@ -428,7 +445,7 @@ describe('ReferenceWindowOverlay', () => {
 		expect(win.style.height).toBe('300px');
 
 		// Underlying store record stays unchanged
-		const state = store.displayStateFor('ref-1', 'doc-1');
+		const state = store.windowStateFor('ref-1', 'doc-1');
 		expect(state).toMatchObject({ x: 550, y: 350, width: 400, height: 300 });
 	});
 });

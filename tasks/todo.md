@@ -61,7 +61,6 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 - Validate `ReferencePlacement.scale` invariant (strictly positive, finite) via a constructor — currently `pub f32` field permits `0.0`, negative, NaN, and `±∞`, which `sample_reference` cannot defend against without violating "trust the core". Flagged by greptile/coderabbit/cubic on PR #208
 - `cargo fmt` debt in `wasm/src/lib.rs` — sub-issue 110 noted that workspace-level `cargo fmt --check` fails on pre-existing whitespace in the wasm shell; clean up in a focused formatting pass.
 - Collapse `sample_reference` free function into `ReferenceData::sample_at(x, y)` — rust-conventions prefer behavior on the type. Out of scope for 109/110 to preserve testability of raw-buffer signature; revisit once the binding layer (113) settles call sites.
-- Deepen the Reference Window Placement Interaction — gesture lifecycle + intent verbs into the References module, dirty-per-gesture, `ReferenceWindowState` rename ([issue 165](../issues/165-deepen-reference-window-placement-interaction.md))
 
 ## Future triggers
 

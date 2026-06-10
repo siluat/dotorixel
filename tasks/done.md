@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 165 | [Deepen the Reference Window Placement Interaction](../issues/165-deepen-reference-window-placement-interaction.md) | 2026-06-10 |
 | 164 | [Seal the Sampling Session view and name its species](../issues/164-seal-sampling-session-view.md) | 2026-06-10 |
 | 163 | [Batch layer metadata across the WASM seam](../issues/163-batch-layer-metadata-wasm-seam.md) | 2026-06-08 |
 | 162 | [Seal the Loupe geometry contract](../issues/162-seal-loupe-geometry-contract.md) | 2026-06-07 |

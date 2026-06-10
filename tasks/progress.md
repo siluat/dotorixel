@@ -6,11 +6,10 @@ None
 
 ## Last Completed
 
-[164 — Seal the Sampling Session view and name its species](../issues/164-seal-sampling-session-view.md): Canvas and Reference sampling now share a named Loupe-facing view contract while keeping separate lifecycle ownership. Behavior stayed unchanged; typecheck, unit, build, and E2E all pass.
+[165 — Deepen the Reference Window Placement Interaction](../issues/165-deepen-reference-window-placement-interaction.md): The References module now owns the Reference Window move/resize gesture lifecycle end-to-end, and auto-save marks dirty once per completed gesture (a mid-drag flush can no longer persist unclamped positions). Follow-up to evaluate on touch hardware: only one window gesture is active at a time, so two-finger simultaneous window drags no longer move both.
 
 ## Next Up
 
-- Deepen the Reference Window Placement Interaction ([issue 165](../issues/165-deepen-reference-window-placement-interaction.md))
 - Touch modifier alternatives (touch Shift-constrain, Selection axis lock, Alt-eyedropper UI)
 - Copy/paste
 - Flip/transform

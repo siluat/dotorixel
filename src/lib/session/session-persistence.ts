@@ -5,7 +5,7 @@ import type {
 	ReferenceLayerSnapshot
 } from '$lib/canvas/workspace-snapshot';
 import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
-import type { DisplayState } from '$lib/reference-images/display-state-types';
+import type { ReferenceWindowState } from '$lib/reference-images/reference-window-state-types';
 import { decodeReferenceBlob } from '$lib/reference-images/decode-reference-blob';
 import type { SessionStorage } from './session-storage';
 import type {
@@ -245,7 +245,7 @@ export class SessionPersistence {
 				}
 			}
 
-			const displayStates: Record<string, DisplayState[]> = {};
+			const displayStates: Record<string, ReferenceWindowState[]> = {};
 			if (ws.displayStates) {
 				for (const [docId, states] of Object.entries(ws.displayStates)) {
 					displayStates[docId] = states.map((s) => ({ ...s }));

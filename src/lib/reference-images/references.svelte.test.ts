@@ -3,6 +3,41 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createFakeDirtyNotifier, type FakeDirtyNotifier } from '$lib/canvas/editor-session/fake-dirty-notifier';
 import { References } from './references.svelte';
 import type { ReferenceImage } from './reference-image-types';
+import type { ReferenceWindowState } from './reference-window-state-types';
+
+type Geom = { x: number; y: number; width: number; height: number };
+
+/**
+ * Build a Reference Window State for seeding via `restoredWindowStates` — the
+ * public restore path the store offers for already-placed windows. Window
+ * creation itself is internal to the lifecycle verbs, so tests seed state
+ * rather than calling a creation method.
+ */
+function windowState(
+	refId: string,
+	geom: Geom,
+	extras: Partial<Pick<ReferenceWindowState, 'visible' | 'minimized' | 'zOrder'>> = {}
+): ReferenceWindowState {
+	return {
+		refId,
+		visible: extras.visible ?? true,
+		x: geom.x,
+		y: geom.y,
+		width: geom.width,
+		height: geom.height,
+		minimized: extras.minimized ?? false,
+		zOrder: extras.zOrder ?? 1
+	};
+}
+
+/** A store seeded with one doc's window states (zOrder defaults to input order). */
+function storeWithWindows(
+	notifier: FakeDirtyNotifier,
+	docId: string,
+	states: ReferenceWindowState[]
+): References {
+	return new References({ notifier, restoredWindowStates: { [docId]: states } });
+}
 
 type ImportedShape = { width: number; height: number };
 
@@ -134,225 +169,127 @@ describe('References', () => {
 		});
 	});
 
-	describe('display states', () => {
-		it('creates a visible DisplayState on display, with zOrder, and marks the doc dirty', () => {
-			const store = new References({ notifier });
-			const ref = makeRef('ref-1');
-			store.add(ref, 'doc-1');
-			notifier.reset();
-
-			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
-
-			expect(store.displayStatesForDoc('doc-1')).toEqual([
-				{
-					refId: 'ref-1',
-					visible: true,
-					x: 10,
-					y: 20,
-					width: 100,
-					height: 200,
-					minimized: false,
-					zOrder: 1
-				}
+	describe('reference window states', () => {
+		it('round-trips window states via windowStatesSnapshot and restoredWindowStates', () => {
+			const store1 = storeWithWindows(notifier, 'doc-1', [
+				windowState('ref-1', { x: 10, y: 20, width: 100, height: 200 }, { visible: false })
 			]);
-			expect(notifier.dirtyCalls).toEqual(['doc-1']);
-		});
-
-		it('show flips visible back to true, preserves x/y/w/h, and bumps zOrder above the current max', () => {
-			const store = new References({ notifier });
-			store.add(makeRef('ref-1'), 'doc-1');
-			store.add(makeRef('ref-2'), 'doc-1');
-			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
-			store.close('ref-1', 'doc-1');
-			store.display('ref-2', 'doc-1', { x: 50, y: 60, width: 80, height: 80 });
-			notifier.reset();
-
-			store.show('ref-1', 'doc-1');
-
-			const states = store.displayStatesForDoc('doc-1');
-			const ref1 = states.find((s) => s.refId === 'ref-1');
-			expect(ref1).toEqual({
-				refId: 'ref-1',
-				visible: true,
-				x: 10,
-				y: 20,
-				width: 100,
-				height: 200,
-				minimized: false,
-				zOrder: 3
-			});
-			expect(notifier.dirtyCalls).toEqual(['doc-1']);
-		});
-
-		it('round-trips displayStates via displayStatesSnapshot and restoredDisplayStates', () => {
-			const store1 = new References({ notifier });
-			store1.add(makeRef('ref-1'), 'doc-1');
-			store1.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
-			store1.close('ref-1', 'doc-1');
 
 			const store2 = new References({
 				notifier,
 				restored: store1.toSnapshot(),
-				restoredDisplayStates: store1.displayStatesSnapshot()
+				restoredWindowStates: store1.windowStatesSnapshot()
 			});
 
-			expect(store2.displayStatesForDoc('doc-1')).toEqual([
-				{
-					refId: 'ref-1',
-					visible: false,
-					x: 10,
-					y: 20,
-					width: 100,
-					height: 200,
-					minimized: false,
-					zOrder: 1
-				}
+			expect(store2.windowStatesForDoc('doc-1')).toEqual([
+				windowState('ref-1', { x: 10, y: 20, width: 100, height: 200 }, { visible: false })
 			]);
 		});
 
-		it('displayStateFor returns undefined when absent, the DisplayState when present', () => {
+		it('windowStateFor returns undefined when the window is absent', () => {
 			const store = new References({ notifier });
 			store.add(makeRef('ref-1'), 'doc-1');
 
-			expect(store.displayStateFor('ref-1', 'doc-1')).toBeUndefined();
+			expect(store.windowStateFor('ref-1', 'doc-1')).toBeUndefined();
+		});
 
-			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
+		it('windowStateFor returns the Reference Window State when present', () => {
+			const store = storeWithWindows(notifier, 'doc-1', [
+				windowState('ref-1', { x: 10, y: 20, width: 100, height: 200 })
+			]);
 
-			expect(store.displayStateFor('ref-1', 'doc-1')).toMatchObject({
+			expect(store.windowStateFor('ref-1', 'doc-1')).toMatchObject({
 				refId: 'ref-1',
 				visible: true
 			});
 		});
 
-		it('removeDoc clears references and displayStates for that doc', () => {
-			const store = new References({ notifier });
-			store.add(makeRef('ref-1'), 'doc-1');
-			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
+		it('removeDoc clears references and window states for that doc', () => {
+			const store = new References({
+				notifier,
+				restored: { 'doc-1': [makeRef('ref-1')] },
+				restoredWindowStates: {
+					'doc-1': [windowState('ref-1', { x: 0, y: 0, width: 100, height: 100 })]
+				}
+			});
 
 			store.removeDoc('doc-1');
 
 			expect(store.forDoc('doc-1')).toEqual([]);
-			expect(store.displayStatesForDoc('doc-1')).toEqual([]);
+			expect(store.windowStatesForDoc('doc-1')).toEqual([]);
 		});
 
-		it('delete removes the reference and its DisplayState together', () => {
-			const store = new References({ notifier });
-			store.add(makeRef('ref-1'), 'doc-1');
-			store.add(makeRef('ref-2'), 'doc-1');
-			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
-			store.display('ref-2', 'doc-1', { x: 50, y: 60, width: 80, height: 80 });
+		it('delete removes the reference and its window state together', () => {
+			const store = new References({
+				notifier,
+				restored: { 'doc-1': [makeRef('ref-1'), makeRef('ref-2')] },
+				restoredWindowStates: {
+					'doc-1': [
+						windowState('ref-1', { x: 10, y: 20, width: 100, height: 200 }, { zOrder: 1 }),
+						windowState('ref-2', { x: 50, y: 60, width: 80, height: 80 }, { zOrder: 2 })
+					]
+				}
+			});
 			notifier.reset();
 
 			store.delete('ref-1', 'doc-1');
 
 			expect(store.forDoc('doc-1').map((r) => r.id)).toEqual(['ref-2']);
-			expect(store.displayStatesForDoc('doc-1').map((s) => s.refId)).toEqual(['ref-2']);
+			expect(store.windowStatesForDoc('doc-1').map((s) => s.refId)).toEqual(['ref-2']);
 		});
 
-		it('setDisplaySize updates width/height, preserves the rest, and marks the doc dirty', () => {
-			const store = new References({ notifier });
-			store.add(makeRef('ref-1'), 'doc-1');
-			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
-			notifier.reset();
-
-			store.setDisplaySize('ref-1', 'doc-1', 250, 400);
-
-			expect(store.displayStateFor('ref-1', 'doc-1')).toEqual({
-				refId: 'ref-1',
-				visible: true,
-				x: 10,
-				y: 20,
-				width: 250,
-				height: 400,
-				minimized: false,
-				zOrder: 1
-			});
-			expect(notifier.dirtyCalls).toEqual(['doc-1']);
-		});
-
-		it('setDisplayPosition updates x/y, preserves the rest, and marks the doc dirty', () => {
-			const store = new References({ notifier });
-			store.add(makeRef('ref-1'), 'doc-1');
-			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
-			notifier.reset();
-
-			store.setDisplayPosition('ref-1', 'doc-1', 300, 400);
-
-			expect(store.displayStateFor('ref-1', 'doc-1')).toEqual({
-				refId: 'ref-1',
-				visible: true,
-				x: 300,
-				y: 400,
-				width: 100,
-				height: 200,
-				minimized: false,
-				zOrder: 1
-			});
-			expect(notifier.dirtyCalls).toEqual(['doc-1']);
-		});
-
-		it('round-trips the minimized flag via displayStatesSnapshot and restoredDisplayStates', () => {
-			const store1 = new References({ notifier });
-			store1.add(makeRef('ref-1'), 'doc-1');
-			store1.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
-			store1.setMinimized('ref-1', 'doc-1', true);
+		it('round-trips the minimized flag via windowStatesSnapshot and restoredWindowStates', () => {
+			const store1 = storeWithWindows(notifier, 'doc-1', [
+				windowState('ref-1', { x: 10, y: 20, width: 100, height: 200 }, { minimized: true })
+			]);
 
 			const store2 = new References({
 				notifier,
 				restored: store1.toSnapshot(),
-				restoredDisplayStates: store1.displayStatesSnapshot()
+				restoredWindowStates: store1.windowStatesSnapshot()
 			});
 
-			expect(store2.displayStateFor('ref-1', 'doc-1')).toMatchObject({
+			expect(store2.windowStateFor('ref-1', 'doc-1')).toMatchObject({
 				refId: 'ref-1',
 				minimized: true
 			});
 		});
 
 		it('setMinimized flips the minimized flag, preserves the rest, and marks the doc dirty', () => {
-			const store = new References({ notifier });
-			store.add(makeRef('ref-1'), 'doc-1');
-			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
+			const store = storeWithWindows(notifier, 'doc-1', [
+				windowState('ref-1', { x: 10, y: 20, width: 100, height: 200 })
+			]);
 			notifier.reset();
 
 			store.setMinimized('ref-1', 'doc-1', true);
 
-			expect(store.displayStateFor('ref-1', 'doc-1')).toEqual({
-				refId: 'ref-1',
-				visible: true,
-				x: 10,
-				y: 20,
-				width: 100,
-				height: 200,
-				minimized: true,
-				zOrder: 1
-			});
+			expect(store.windowStateFor('ref-1', 'doc-1')).toEqual(
+				windowState('ref-1', { x: 10, y: 20, width: 100, height: 200 }, { minimized: true })
+			);
 			expect(notifier.dirtyCalls).toEqual(['doc-1']);
 		});
 
 		it('refitAll keeps the shrunk size after a viewport regrow (no auto-restoration)', () => {
-			const store = new References({ notifier });
-			store.add(makeRef('ref-1'), 'doc-1');
-			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 800, height: 400 });
+			const store = storeWithWindows(notifier, 'doc-1', [
+				windowState('ref-1', { x: 0, y: 0, width: 800, height: 400 })
+			]);
 
 			store.refitAll('doc-1', { width: 400, height: 400 });
-			const shrunk = store.displayStateFor('ref-1', 'doc-1')!;
+			const shrunk = store.windowStateFor('ref-1', 'doc-1')!;
 			notifier.reset();
 
 			store.refitAll('doc-1', { width: 1600, height: 1200 });
 
-			expect(store.displayStateFor('ref-1', 'doc-1')).toEqual(shrunk);
+			expect(store.windowStateFor('ref-1', 'doc-1')).toEqual(shrunk);
 			expect(notifier.dirtyCalls).toEqual([]);
 		});
 
 		it('refitAll fires one markDirty per actually-changed placement (dirty fan-out matches change count)', () => {
-			const store = new References({ notifier });
-			store.add(makeRef('ref-1'), 'doc-1');
-			store.add(makeRef('ref-2'), 'doc-1');
-			store.add(makeRef('ref-3'), 'doc-1');
-			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 800, height: 400 });
-			store.display('ref-2', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
-			store.display('ref-3', 'doc-1', { x: 0, y: 0, width: 600, height: 300 });
+			const store = storeWithWindows(notifier, 'doc-1', [
+				windowState('ref-1', { x: 0, y: 0, width: 800, height: 400 }, { zOrder: 1 }),
+				windowState('ref-2', { x: 0, y: 0, width: 100, height: 100 }, { zOrder: 2 }),
+				windowState('ref-3', { x: 0, y: 0, width: 600, height: 300 }, { zOrder: 3 })
+			]);
 			notifier.reset();
 
 			store.refitAll('doc-1', { width: 400, height: 400 });
@@ -361,15 +298,14 @@ describe('References', () => {
 		});
 
 		it('refitAll skips closed (invisible) placements and never resizes them', () => {
-			const store = new References({ notifier });
-			store.add(makeRef('ref-1'), 'doc-1');
-			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 800, height: 400 });
-			store.close('ref-1', 'doc-1');
+			const store = storeWithWindows(notifier, 'doc-1', [
+				windowState('ref-1', { x: 0, y: 0, width: 800, height: 400 }, { visible: false })
+			]);
 			notifier.reset();
 
 			store.refitAll('doc-1', { width: 400, height: 400 });
 
-			expect(store.displayStateFor('ref-1', 'doc-1')).toMatchObject({
+			expect(store.windowStateFor('ref-1', 'doc-1')).toMatchObject({
 				visible: false,
 				width: 800,
 				height: 400
@@ -378,19 +314,18 @@ describe('References', () => {
 		});
 
 		it('refitAll shrinks an oversized visible placement (aspect-preserving) and fires markDirty for the changed one only', () => {
-			const store = new References({ notifier });
-			store.add(makeRef('ref-1'), 'doc-1');
-			store.add(makeRef('ref-2'), 'doc-1');
-			// Already fits — should not change.
-			store.display('ref-1', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
-			// Wider than the new viewport — must shrink, aspect-preserving.
-			store.display('ref-2', 'doc-1', { x: 0, y: 0, width: 800, height: 400 });
+			const store = storeWithWindows(notifier, 'doc-1', [
+				// Already fits — should not change.
+				windowState('ref-1', { x: 0, y: 0, width: 100, height: 100 }, { zOrder: 1 }),
+				// Wider than the new viewport — must shrink, aspect-preserving.
+				windowState('ref-2', { x: 0, y: 0, width: 800, height: 400 }, { zOrder: 2 })
+			]);
 			notifier.reset();
 
 			store.refitAll('doc-1', { width: 400, height: 400 });
 
-			const ref1 = store.displayStateFor('ref-1', 'doc-1');
-			const ref2 = store.displayStateFor('ref-2', 'doc-1');
+			const ref1 = store.windowStateFor('ref-1', 'doc-1');
+			const ref2 = store.windowStateFor('ref-2', 'doc-1');
 			expect(ref1).toMatchObject({ x: 0, y: 0, width: 100, height: 100 });
 			expect(ref2!.width).toBeCloseTo(400, 5);
 			expect(ref2!.height).toBeCloseTo(200, 5);
@@ -399,39 +334,29 @@ describe('References', () => {
 		});
 
 		it('refitAll is a no-op (no markDirty, no state change) when every visible placement already fits the viewport', () => {
-			const store = new References({ notifier });
-			store.add(makeRef('ref-1'), 'doc-1');
-			store.add(makeRef('ref-2'), 'doc-1');
-			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 80 });
-			store.display('ref-2', 'doc-1', { x: 200, y: 300, width: 150, height: 100 });
-			const before = store.displayStatesSnapshot();
+			const store = storeWithWindows(notifier, 'doc-1', [
+				windowState('ref-1', { x: 10, y: 20, width: 100, height: 80 }, { zOrder: 1 }),
+				windowState('ref-2', { x: 200, y: 300, width: 150, height: 100 }, { zOrder: 2 })
+			]);
+			const before = store.windowStatesSnapshot();
 			notifier.reset();
 
 			store.refitAll('doc-1', { width: 1000, height: 800 });
 
-			expect(store.displayStatesSnapshot()).toEqual(before);
+			expect(store.windowStatesSnapshot()).toEqual(before);
 			expect(notifier.dirtyCalls).toEqual([]);
 		});
 
 		it('flips visible to false on close, preserving x/y/w/h and zOrder', () => {
-			const store = new References({ notifier });
-			store.add(makeRef('ref-1'), 'doc-1');
-			store.display('ref-1', 'doc-1', { x: 10, y: 20, width: 100, height: 200 });
+			const store = storeWithWindows(notifier, 'doc-1', [
+				windowState('ref-1', { x: 10, y: 20, width: 100, height: 200 })
+			]);
 			notifier.reset();
 
 			store.close('ref-1', 'doc-1');
 
-			expect(store.displayStatesForDoc('doc-1')).toEqual([
-				{
-					refId: 'ref-1',
-					visible: false,
-					x: 10,
-					y: 20,
-					width: 100,
-					height: 200,
-					minimized: false,
-					zOrder: 1
-				}
+			expect(store.windowStatesForDoc('doc-1')).toEqual([
+				windowState('ref-1', { x: 10, y: 20, width: 100, height: 200 }, { visible: false })
 			]);
 			expect(notifier.dirtyCalls).toEqual(['doc-1']);
 		});
@@ -446,7 +371,7 @@ describe('References', () => {
 			vi.unstubAllGlobals();
 		});
 
-		it('decodes and adds every valid file to the doc in input order, with no display state', async () => {
+		it('decodes and adds every valid file to the doc in input order, with no window state', async () => {
 			installFakeImageDecoding([
 				{ width: 100, height: 50 },
 				{ width: 200, height: 80 }
@@ -462,7 +387,7 @@ describe('References', () => {
 			expect(refs.map((r) => r.filename)).toEqual(['a.png', 'b.png']);
 			expect(refs[0].naturalWidth).toBe(100);
 			expect(refs[1].naturalWidth).toBe(200);
-			expect(store.displayStatesForDoc('doc-1')).toEqual([]);
+			expect(store.windowStatesForDoc('doc-1')).toEqual([]);
 			expect(result.errors).toEqual([]);
 		});
 
@@ -541,8 +466,8 @@ describe('References', () => {
 
 			const refs = store.forDoc('doc-1');
 			expect(refs.length).toBe(2);
-			const sA = store.displayStateFor(refs[0].id, 'doc-1')!;
-			const sB = store.displayStateFor(refs[1].id, 'doc-1')!;
+			const sA = store.windowStateFor(refs[0].id, 'doc-1')!;
+			const sB = store.windowStateFor(refs[1].id, 'doc-1')!;
 			expect(sA).toBeDefined();
 			expect(sB).toBeDefined();
 			expect(sB.x - sA.x).toBe(24);
@@ -564,7 +489,7 @@ describe('References', () => {
 
 			const refs = store.forDoc('doc-1');
 			expect(refs.map((r) => r.filename)).toEqual(['ok.png']);
-			expect(store.displayStatesForDoc('doc-1').map((s) => s.refId)).toEqual([refs[0].id]);
+			expect(store.windowStatesForDoc('doc-1').map((s) => s.refId)).toEqual([refs[0].id]);
 			expect(result.errors).toEqual([{ file: bad, error: { kind: 'unsupported-format' } }]);
 		});
 
@@ -596,7 +521,7 @@ describe('References', () => {
 
 			store.openCentered(c.id, 'doc-1', VIEWPORT);
 
-			const cState = store.displayStateFor(c.id, 'doc-1')!;
+			const cState = store.windowStateFor(c.id, 'doc-1')!;
 			// At index 0 the placement is viewport-centered exactly: x = (w - 100)/2.
 			expect(cState.x).toBe((VIEWPORT.width - 100) / 2);
 			expect(cState.y).toBe((VIEWPORT.height - 100) / 2);
@@ -607,31 +532,29 @@ describe('References', () => {
 		const VIEWPORT = { width: 1000, height: 800 };
 
 		it('raises an already-visible reference to the top z-order, leaving it visible', () => {
-			const store = new References({ notifier });
-			store.add(makeRef('a'), 'doc-1');
-			store.add(makeRef('b'), 'doc-1');
-			store.display('a', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
-			store.display('b', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
-			const aBefore = store.displayStateFor('a', 'doc-1')!;
-			const bZ = store.displayStateFor('b', 'doc-1')!.zOrder;
+			const store = storeWithWindows(notifier, 'doc-1', [
+				windowState('a', { x: 0, y: 0, width: 100, height: 100 }, { zOrder: 1 }),
+				windowState('b', { x: 0, y: 0, width: 100, height: 100 }, { zOrder: 2 })
+			]);
+			const aBefore = store.windowStateFor('a', 'doc-1')!;
+			const bZ = store.windowStateFor('b', 'doc-1')!.zOrder;
 
 			store.openCentered('a', 'doc-1', VIEWPORT);
 
-			const aAfter = store.displayStateFor('a', 'doc-1')!;
+			const aAfter = store.windowStateFor('a', 'doc-1')!;
 			expect(aAfter.visible).toBe(true);
 			expect(aAfter.zOrder).toBeGreaterThan(bZ);
 			expect(aAfter.zOrder).toBeGreaterThan(aBefore.zOrder);
 		});
 
 		it('reopens a hidden (visible=false) reference and raises it to the top z-order', () => {
-			const store = new References({ notifier });
-			store.add(makeRef('a'), 'doc-1');
-			store.display('a', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
-			store.close('a', 'doc-1');
+			const store = storeWithWindows(notifier, 'doc-1', [
+				windowState('a', { x: 10, y: 20, width: 100, height: 100 }, { visible: false })
+			]);
 
 			store.openCentered('a', 'doc-1', VIEWPORT);
 
-			const after = store.displayStateFor('a', 'doc-1')!;
+			const after = store.windowStateFor('a', 'doc-1')!;
 			expect(after.visible).toBe(true);
 			expect(after.x).toBe(10); // existing geometry preserved (no fresh placement)
 			expect(after.y).toBe(20);
@@ -645,8 +568,8 @@ describe('References', () => {
 			store.openCentered('a', 'doc-1', VIEWPORT);
 			store.openCentered('b', 'doc-1', VIEWPORT);
 
-			const a = store.displayStateFor('a', 'doc-1')!;
-			const b = store.displayStateFor('b', 'doc-1')!;
+			const a = store.windowStateFor('a', 'doc-1')!;
+			const b = store.windowStateFor('b', 'doc-1')!;
 			expect(a).toBeDefined();
 			expect(b).toBeDefined();
 			expect(b.x - a.x).toBe(24); // centered cascade offset
@@ -658,27 +581,25 @@ describe('References', () => {
 		const VIEWPORT = { width: 1000, height: 800 };
 
 		it('hides a currently visible reference', () => {
-			const store = new References({ notifier });
-			store.add(makeRef('a'), 'doc-1');
-			store.display('a', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
+			const store = storeWithWindows(notifier, 'doc-1', [
+				windowState('a', { x: 10, y: 20, width: 100, height: 100 })
+			]);
 
 			store.toggleDisplay('a', 'doc-1', VIEWPORT);
 
-			expect(store.displayStateFor('a', 'doc-1')!.visible).toBe(false);
+			expect(store.windowStateFor('a', 'doc-1')!.visible).toBe(false);
 		});
 
 		it('reopens a hidden reference and raises it to the top z-order', () => {
-			const store = new References({ notifier });
-			store.add(makeRef('a'), 'doc-1');
-			store.add(makeRef('b'), 'doc-1');
-			store.display('a', 'doc-1', { x: 10, y: 20, width: 100, height: 100 });
-			store.display('b', 'doc-1', { x: 0, y: 0, width: 100, height: 100 });
-			store.close('a', 'doc-1');
-			const bZ = store.displayStateFor('b', 'doc-1')!.zOrder;
+			const store = storeWithWindows(notifier, 'doc-1', [
+				windowState('a', { x: 10, y: 20, width: 100, height: 100 }, { visible: false, zOrder: 1 }),
+				windowState('b', { x: 0, y: 0, width: 100, height: 100 }, { zOrder: 2 })
+			]);
+			const bZ = store.windowStateFor('b', 'doc-1')!.zOrder;
 
 			store.toggleDisplay('a', 'doc-1', VIEWPORT);
 
-			const after = store.displayStateFor('a', 'doc-1')!;
+			const after = store.windowStateFor('a', 'doc-1')!;
 			expect(after.visible).toBe(true);
 			expect(after.x).toBe(10); // existing geometry preserved
 			expect(after.zOrder).toBeGreaterThan(bZ);
@@ -690,9 +611,134 @@ describe('References', () => {
 
 			store.toggleDisplay('a', 'doc-1', VIEWPORT);
 
-			const after = store.displayStateFor('a', 'doc-1');
+			const after = store.windowStateFor('a', 'doc-1');
 			expect(after).toBeDefined();
 			expect(after!.visible).toBe(true);
+		});
+	});
+
+	describe('reference window placement interaction', () => {
+		const VIEWPORT = { width: 1000, height: 800 };
+
+		it('moveTo previews start-plus-delta without clamping and without marking dirty', () => {
+			const store = new References({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.openCentered('ref-1', 'doc-1', VIEWPORT);
+			const before = store.windowStateFor('ref-1', 'doc-1')!;
+			notifier.reset();
+
+			store.beginMove('ref-1', 'doc-1');
+			store.moveTo('ref-1', 'doc-1', 2000, 2000);
+
+			const after = store.windowStateFor('ref-1', 'doc-1')!;
+			expect(after.x).toBe(before.x + 2000); // unclamped — follows the pointer past the viewport
+			expect(after.y).toBe(before.y + 2000);
+			expect(after.width).toBe(before.width); // size untouched
+			expect(after.height).toBe(before.height);
+			expect(notifier.dirtyCalls).toEqual([]); // no persistence mid-gesture
+		});
+
+		it('endMove clamps the released position inside the viewport and marks dirty exactly once', () => {
+			const store = new References({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.openCentered('ref-1', 'doc-1', VIEWPORT);
+			const before = store.windowStateFor('ref-1', 'doc-1')!;
+			notifier.reset();
+
+			store.beginMove('ref-1', 'doc-1');
+			store.moveTo('ref-1', 'doc-1', 5000, 5000);
+			store.endMove('ref-1', 'doc-1', VIEWPORT);
+
+			const after = store.windowStateFor('ref-1', 'doc-1')!;
+			expect(after.x).toBe(VIEWPORT.width - before.width); // snapped fully inside
+			expect(after.y).toBe(VIEWPORT.height - before.height);
+			expect(notifier.dirtyCalls).toEqual(['doc-1']); // one persist for the whole gesture
+		});
+
+		it('endMove that leaves the window where it started does not mark dirty', () => {
+			const store = new References({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.openCentered('ref-1', 'doc-1', VIEWPORT);
+			const before = store.windowStateFor('ref-1', 'doc-1')!;
+			notifier.reset();
+
+			store.beginMove('ref-1', 'doc-1');
+			store.moveTo('ref-1', 'doc-1', 0, 0); // a press-release with no effective drag
+			store.endMove('ref-1', 'doc-1', VIEWPORT);
+
+			const after = store.windowStateFor('ref-1', 'doc-1')!;
+			expect(after.x).toBe(before.x);
+			expect(after.y).toBe(before.y);
+			expect(notifier.dirtyCalls).toEqual([]); // no spurious auto-save
+		});
+
+		it('resizeTo previews an aspect-locked size change, top-left anchored, without marking dirty', () => {
+			const store = new References({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.openCentered('ref-1', 'doc-1', VIEWPORT);
+			const before = store.windowStateFor('ref-1', 'doc-1')!;
+			notifier.reset();
+
+			store.beginResize('ref-1', 'doc-1');
+			store.resizeTo('ref-1', 'doc-1', 50, 50, VIEWPORT);
+
+			const after = store.windowStateFor('ref-1', 'doc-1')!;
+			expect(after.width).toBeGreaterThan(before.width); // grew
+			expect(after.width / after.height).toBeCloseTo(before.width / before.height, 5); // aspect locked
+			expect(after.x).toBe(before.x); // top-left anchored
+			expect(after.y).toBe(before.y);
+			expect(notifier.dirtyCalls).toEqual([]); // no persistence mid-gesture
+		});
+
+		it('endResize marks dirty exactly once after a size change', () => {
+			const store = new References({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.openCentered('ref-1', 'doc-1', VIEWPORT);
+			notifier.reset();
+
+			store.beginResize('ref-1', 'doc-1');
+			store.resizeTo('ref-1', 'doc-1', 50, 50, VIEWPORT);
+			store.endResize('ref-1', 'doc-1');
+
+			expect(notifier.dirtyCalls).toEqual(['doc-1']); // one persist for the whole gesture
+		});
+
+		it('endResize that leaves the size unchanged does not mark dirty', () => {
+			const store = new References({ notifier });
+			store.add(makeRef('ref-1'), 'doc-1');
+			store.openCentered('ref-1', 'doc-1', VIEWPORT);
+			notifier.reset();
+
+			store.beginResize('ref-1', 'doc-1');
+			store.resizeTo('ref-1', 'doc-1', 0, 0, VIEWPORT); // a press-release with no effective drag
+			store.endResize('ref-1', 'doc-1');
+
+			expect(notifier.dirtyCalls).toEqual([]); // no spurious auto-save
+		});
+
+		it('bringToFront raises a window above the current max z-order, leaves visibility untouched, and is idempotent', () => {
+			const store = new References({ notifier });
+			store.add(makeRef('a'), 'doc-1');
+			store.add(makeRef('b'), 'doc-1');
+			store.openCentered('a', 'doc-1', VIEWPORT); // z = 1
+			store.openCentered('b', 'doc-1', VIEWPORT); // z = 2 (on top)
+			const aVisibleBefore = store.windowStateFor('a', 'doc-1')!.visible;
+			notifier.reset();
+
+			store.bringToFront('a', 'doc-1');
+
+			const a = store.windowStateFor('a', 'doc-1')!;
+			const b = store.windowStateFor('b', 'doc-1')!;
+			expect(a.zOrder).toBeGreaterThan(b.zOrder); // now on top
+			expect(a.visible).toBe(aVisibleBefore); // visibility is not bring-to-front's concern
+			expect(notifier.dirtyCalls).toEqual(['doc-1']);
+
+			// Already on top → no change, no dirty.
+			const topZ = a.zOrder;
+			notifier.reset();
+			store.bringToFront('a', 'doc-1');
+			expect(store.windowStateFor('a', 'doc-1')!.zOrder).toBe(topZ);
+			expect(notifier.dirtyCalls).toEqual([]);
 		});
 	});
 });

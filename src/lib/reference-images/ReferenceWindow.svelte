@@ -2,7 +2,6 @@
 	import { ChevronDown, ChevronUp, X } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { ReferenceImage } from './reference-image-types';
-	import { commitResize } from './reference-window-placement';
 	import { windowToImageCoords } from './window-to-image-coords';
 	import {
 		createLongPressDetector,
@@ -19,17 +18,18 @@
 		height: number;
 		isActive: boolean;
 		minimized?: boolean;
-		/**
-		 * Viewport size used for drag-time clamping of corner-handle resizes so
-		 * the bottom-right edge cannot escape past the viewport.
-		 */
-		viewportWidth: number;
-		viewportHeight: number;
 		onClose: () => void;
-		onMove?: (x: number, y: number) => void;
-		onMoveCommit?: () => void;
-		onResize?: (width: number, height: number) => void;
-		onResizeCommit?: () => void;
+		/**
+		 * Move and resize emit pointer deltas against the gesture start, framed
+		 * as begin → delta → end. The store owns the start geometry, clamping,
+		 * and persistence — this component only reports the raw drag.
+		 */
+		onMoveStart?: () => void;
+		onMoveDelta?: (dx: number, dy: number) => void;
+		onMoveEnd?: () => void;
+		onResizeStart?: () => void;
+		onResizeDelta?: (dW: number, dH: number) => void;
+		onResizeEnd?: () => void;
 		onMinimizeChange?: (next: boolean) => void;
 		onActivate?: () => void;
 		/**
@@ -52,13 +52,13 @@
 		height,
 		isActive,
 		minimized = false,
-		viewportWidth,
-		viewportHeight,
 		onClose,
-		onMove,
-		onMoveCommit,
-		onResize,
-		onResizeCommit,
+		onMoveStart,
+		onMoveDelta,
+		onMoveEnd,
+		onResizeStart,
+		onResizeDelta,
+		onResizeEnd,
 		onMinimizeChange,
 		onActivate,
 		quickSamplingEnabled = false,
@@ -67,21 +67,19 @@
 		onSampleEnd
 	}: Props = $props();
 
-	let dragOrigin: { startX: number; startY: number; pointerX: number; pointerY: number } | null =
-		null;
+	let movePointerStart: { x: number; y: number } | null = null;
 
 	function handleTitleBarPointerDown(e: PointerEvent) {
-		if (!onMove) return;
+		if (!onMoveDelta) return;
 		if ((e.target as HTMLElement).closest('button')) return;
 		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-		dragOrigin = { startX: x, startY: y, pointerX: e.clientX, pointerY: e.clientY };
+		movePointerStart = { x: e.clientX, y: e.clientY };
+		onMoveStart?.();
 	}
 
 	function handleTitleBarPointerMove(e: PointerEvent) {
-		if (!dragOrigin || !onMove) return;
-		const nextX = dragOrigin.startX + (e.clientX - dragOrigin.pointerX);
-		const nextY = dragOrigin.startY + (e.clientY - dragOrigin.pointerY);
-		onMove(nextX, nextY);
+		if (!movePointerStart) return;
+		onMoveDelta?.(e.clientX - movePointerStart.x, e.clientY - movePointerStart.y);
 	}
 
 	function handleTitleBarPointerUp() {
@@ -98,20 +96,13 @@
 	}
 
 	function releaseTitleBarDrag() {
-		if (dragOrigin) {
-			dragOrigin = null;
-			onMoveCommit?.();
+		if (movePointerStart) {
+			movePointerStart = null;
+			onMoveEnd?.();
 		}
 	}
 
-	let resizeOrigin: {
-		startX: number;
-		startY: number;
-		startWidth: number;
-		startHeight: number;
-		pointerX: number;
-		pointerY: number;
-	} | null = null;
+	let resizePointerStart: { x: number; y: number } | null = null;
 
 	function handleWindowPointerDown(e: PointerEvent) {
 		if ((e.target as HTMLElement).closest('.title-bar-button')) return;
@@ -119,32 +110,15 @@
 	}
 
 	function handleResizePointerDown(e: PointerEvent) {
-		if (!onResize) return;
+		if (!onResizeDelta) return;
 		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-		resizeOrigin = {
-			startX: x,
-			startY: y,
-			startWidth: width,
-			startHeight: height,
-			pointerX: e.clientX,
-			pointerY: e.clientY
-		};
+		resizePointerStart = { x: e.clientX, y: e.clientY };
+		onResizeStart?.();
 	}
 
 	function handleResizePointerMove(e: PointerEvent) {
-		if (!resizeOrigin || !onResize) return;
-		const next = commitResize(
-			{
-				x: resizeOrigin.startX,
-				y: resizeOrigin.startY,
-				width: resizeOrigin.startWidth,
-				height: resizeOrigin.startHeight
-			},
-			e.clientX - resizeOrigin.pointerX,
-			e.clientY - resizeOrigin.pointerY,
-			{ width: viewportWidth, height: viewportHeight }
-		);
-		onResize(next.width, next.height);
+		if (!resizePointerStart) return;
+		onResizeDelta?.(e.clientX - resizePointerStart.x, e.clientY - resizePointerStart.y);
 	}
 
 	function handleResizePointerUp() {
@@ -156,9 +130,9 @@
 	}
 
 	function releaseResize() {
-		if (resizeOrigin) {
-			resizeOrigin = null;
-			onResizeCommit?.();
+		if (resizePointerStart) {
+			resizePointerStart = null;
+			onResizeEnd?.();
 		}
 	}
 

@@ -107,7 +107,7 @@ export class Workspace {
 					Object.entries(deps.restored.references).map(([id, refs]) => [id, [...refs]])
 				)
 			: undefined;
-		const restoredDisplayStates = deps.restored?.displayStates
+		const restoredWindowStates = deps.restored?.displayStates
 			? Object.fromEntries(
 					Object.entries(deps.restored.displayStates).map(([id, states]) => [id, [...states]])
 				)
@@ -115,7 +115,7 @@ export class Workspace {
 		this.references = new References({
 			notifier: deps.notifier,
 			restored: restoredRefs,
-			restoredDisplayStates
+			restoredWindowStates
 		});
 
 		if (deps.restored) {
@@ -282,7 +282,7 @@ export class Workspace {
 				selectionClipboard: copySelectionClipboard(this.shared.selectionClipboard)
 			},
 			references: this.references.toSnapshot(),
-			displayStates: this.references.displayStatesSnapshot()
+			displayStates: this.references.windowStatesSnapshot()
 		};
 	}
 

@@ -10,6 +10,7 @@ None
 
 ## Next Up
 
+- Deepen the Reference Window Placement Interaction ([issue 165](../issues/165-deepen-reference-window-placement-interaction.md))
 - Touch modifier alternatives (touch Shift-constrain, Selection axis lock, Alt-eyedropper UI)
 - Copy/paste
 - Flip/transform

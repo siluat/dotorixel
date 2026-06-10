@@ -71,6 +71,14 @@ _Avoid_: reference panel, image window, ref overlay.
 A Reference Window's geometry within the canvas viewport — `{x, y, width, height}`, always aspect-fit inside the current viewport.
 _Avoid_: position, geometry, layout.
 
+**Reference Window State**:
+A Reference Window's full per-document record — its Reference Window Placement plus visibility, minimized flag, and stacking order — the single source of truth the shell renders verbatim.
+_Avoid_: display state (legacy code name — "display" collides with rendering vocabulary), placement (names only the geometry subset), window settings.
+
+**Reference Window Placement Interaction**:
+The pointer-driven begin → preview → end lifecycle for editing a Reference Window Placement (title-bar move, corner resize), owned end-to-end by the References module. Preview policy — moves preview unclamped and snap inside the viewport at release; resizes clamp live with aspect locked — and commit clamping are internal decisions of this lifecycle, and auto-save dirty marking fires once per completed gesture.
+_Avoid_: window drag, move/resize handling, gesture handling (names the input, not the lifecycle).
+
 **Placement Intent**:
 The semantic that produces a Reference Window Placement — *centered* (offset from the viewport center by a Cascade Index) or *at-point* (centered on a user-supplied coordinate).
 _Avoid_: placement strategy, placement mode.

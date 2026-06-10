@@ -1,7 +1,6 @@
 <script lang="ts">
 	import ReferenceWindow from './ReferenceWindow.svelte';
 	import type { References } from './references.svelte';
-	import { commitMove } from './reference-window-placement';
 	import type { LoupeInputSource } from '../canvas/sampling/types';
 
 	interface Props {
@@ -37,7 +36,7 @@
 	}: Props = $props();
 
 	const visibleStates = $derived(
-		store.displayStatesForDoc(docId).filter((s) => s.visible)
+		store.windowStatesForDoc(docId).filter((s) => s.visible)
 	);
 
 	const sortedStates = $derived([...visibleStates].sort((a, b) => a.zOrder - b.zOrder));
@@ -50,19 +49,7 @@
 		return store.forDoc(docId).find((r) => r.id === refId);
 	}
 
-	function commitPosition(refId: string) {
-		const state = store.displayStateFor(refId, docId);
-		if (!state) return;
-		const next = commitMove(
-			{ x: state.x, y: state.y, width: state.width, height: state.height },
-			state.x,
-			state.y,
-			{ width: viewportWidth, height: viewportHeight }
-		);
-		if (next.x !== state.x || next.y !== state.y) {
-			store.setDisplayPosition(refId, docId, next.x, next.y);
-		}
-	}
+	const viewport = $derived({ width: viewportWidth, height: viewportHeight });
 </script>
 
 <div class="overlay">
@@ -75,18 +62,17 @@
 				y={state.y}
 				width={state.width}
 				height={state.height}
-				{viewportWidth}
-				{viewportHeight}
 				isActive={state.zOrder === maxZ}
 				minimized={state.minimized}
 				onClose={() => store.close(state.refId, docId)}
-				onMove={(x, y) => store.setDisplayPosition(state.refId, docId, x, y)}
-				onMoveCommit={() => commitPosition(state.refId)}
-				onResize={(width, height) => store.setDisplaySize(state.refId, docId, width, height)}
+				onMoveStart={() => store.beginMove(state.refId, docId)}
+				onMoveDelta={(dx, dy) => store.moveTo(state.refId, docId, dx, dy)}
+				onMoveEnd={() => store.endMove(state.refId, docId, viewport)}
+				onResizeStart={() => store.beginResize(state.refId, docId)}
+				onResizeDelta={(dW, dH) => store.resizeTo(state.refId, docId, dW, dH, viewport)}
+				onResizeEnd={() => store.endResize(state.refId, docId)}
 				onMinimizeChange={(next) => store.setMinimized(state.refId, docId, next)}
-				onActivate={() => {
-					if (state.zOrder !== maxZ) store.show(state.refId, docId);
-				}}
+				onActivate={() => store.bringToFront(state.refId, docId)}
 				{quickSamplingEnabled}
 				onSampleStart={onSampleStart
 					? (imageX, imageY, inputSource) =>

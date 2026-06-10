@@ -1,6 +1,6 @@
 ---
 title: "Deepen the Reference Window Placement Interaction"
-status: ready-for-agent
+status: done
 created: 2026-06-10
 ---
 
@@ -93,3 +93,29 @@ class References {
 | Preview UX | Preserve current asymmetry |
 | Dirty timing | Once per gesture (intentional behavior change) |
 | Naming | `ReferenceWindowState` rename included; CONTEXT.md terms added |
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/reference-images/references.svelte.ts` | Added the Reference Window Placement Interaction verbs (`beginMove`/`moveTo`/`endMove`, `beginResize`/`resizeTo`/`endResize`) and idempotent `bringToFront`. `display`/`show` went private (`#createWindow`/`#reveal`); `setDisplayPosition`/`setDisplaySize` removed. Dirty marking fires once per completed gesture, and no-op gestures skip it. |
+| `src/lib/reference-images/reference-window-state-types.ts` | Renamed from `display-state-types.ts`; `DisplayState` → `ReferenceWindowState` with a contract doc comment. |
+| `src/lib/reference-images/ReferenceWindow.svelte` | Thinned to render + pointer capture + raw delta emission (`onMoveStart/Delta/End`, `onResizeStart/Delta/End`). Dropped the `commitResize` import and the viewport props. |
+| `src/lib/reference-images/ReferenceWindowOverlay.svelte` | Deleted `commitPosition`; events bind directly to store verbs; `onActivate` → `bringToFront`. |
+| `src/lib/canvas/workspace-snapshot.ts`, `src/lib/canvas/editor-session/workspace.svelte.ts`, `src/lib/session/session-persistence.ts` | Runtime type/method renames only; the persisted `displayStates` storage key and `DisplayStateRecord` stay for format compatibility (documented in `workspace-snapshot.ts`). |
+| `src/lib/reference-images/references.svelte.test.ts` | Gesture-lifecycle interface tests (unclamped preview, end-clamp + single dirty, no-op gestures skip dirty, `bringToFront` idempotence). Setups converted to `restoredWindowStates` seeding via `windowState`/`storeWithWindows` helpers. |
+| `src/lib/reference-images/ReferenceWindow.svelte.test.ts`, `ReferenceWindowOverlay.svelte.test.ts` | Window tests assert raw delta emission; clamp/snap-back/resize policy assertions moved to final store state through the gesture path (`seedStore` helper). |
+| `docs/platform-status.md` | "Move + resize" Notes overwritten with the per-gesture dirty semantics and single-gesture constraint. |
+
+### Key Decisions
+
+- The store owns the begin → preview → end gesture lifecycle; the window component emits raw pointer deltas only — start geometry, clamping, and persistence are all behind the `References` seam.
+- Preview UX asymmetry preserved (move follows unclamped and snaps at release; resize live-clamps aspect-locked), now a documented decision inside one module.
+- `markDirty` once per completed gesture (intentional change): a mid-gesture session flush now persists the pre-gesture state instead of an unclamped intermediate one.
+- Rename limited to the runtime model/interface; persisted schema keys unchanged — no storage migration.
+
+### Notes
+
+- Behavior divergence to evaluate on touch hardware: the store holds a single active gesture, so two windows can no longer be dragged simultaneously with two fingers (previously possible because drag origins were component-local). If two-handed iPad use matters, a follow-up can key gestures by `(refId, docId)`.
+- Verified: unit suite 1361 passed, `svelte-check` 0 errors, production build OK, reference-images E2E 6/6 (drag + IndexedDB persistence round-trip).
+- This deepening implements architecture-review candidate 1 (2026-06-10); CONTEXT.md terms **Reference Window State** and **Reference Window Placement Interaction** were added in the planning commit (`87fe68f`).

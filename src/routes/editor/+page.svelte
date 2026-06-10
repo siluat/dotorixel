@@ -105,7 +105,7 @@
 	const displayedRefIds = $derived(
 		new Set(
 			editor.workspace.references
-				.displayStatesForDoc(editor.workspace.activeTab.documentId)
+				.windowStatesForDoc(editor.workspace.activeTab.documentId)
 				.filter((s) => s.visible)
 				.map((s) => s.refId)
 		)

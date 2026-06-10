@@ -12,14 +12,8 @@ afterEach(() => {
 
 type WindowProps = ComponentProps<typeof ReferenceWindow>;
 
-// Tests that don't exercise resize don't care about the viewport — the helper
-// supplies a generous default so each test only declares what it checks.
 function renderWindow(overrides: Partial<WindowProps>) {
-	return render(ReferenceWindow, {
-		viewportWidth: 1000,
-		viewportHeight: 1000,
-		...overrides
-	} as WindowProps);
+	return render(ReferenceWindow, { ...overrides } as WindowProps);
 }
 
 function mockImageRect(img: HTMLElement, width: number, height: number, left = 0, top = 0): void {
@@ -125,9 +119,10 @@ describe('ReferenceWindow', () => {
 		expect(onClose).toHaveBeenCalledTimes(1);
 	});
 
-	it('title-bar drag emits onMove with the new absolute position based on pointer delta', async () => {
+	it('title-bar drag emits onMoveStart then onMoveDelta with the raw pointer delta', async () => {
 		const ref = makeRef('ref-1');
-		const onMove = vi.fn();
+		const onMoveStart = vi.fn();
+		const onMoveDelta = vi.fn();
 
 		renderWindow({
 			reference: ref,
@@ -137,19 +132,23 @@ describe('ReferenceWindow', () => {
 			height: 200,
 			isActive: true,
 			onClose: vi.fn(),
-			onMove
+			onMoveStart,
+			onMoveDelta
 		});
 
 		const titleBar = screen.getByText(ref.filename).parentElement!;
 		await fireEvent.pointerDown(titleBar, { pointerId: 1, clientX: 50, clientY: 60 });
 		await fireEvent.pointerMove(titleBar, { pointerId: 1, clientX: 80, clientY: 110 });
 
-		expect(onMove).toHaveBeenCalledWith(130, 150);
+		expect(onMoveStart).toHaveBeenCalledTimes(1);
+		// Raw pointer delta — the store owns start geometry, clamping, and snap.
+		expect(onMoveDelta).toHaveBeenLastCalledWith(30, 50);
 	});
 
-	it('bottom-right handle drag emits onResize with the aspect ratio preserved', async () => {
+	it('bottom-right handle drag emits onResizeStart then onResizeDelta with the raw pointer delta', async () => {
 		const ref = makeRef('ref-1');
-		const onResize = vi.fn();
+		const onResizeStart = vi.fn();
+		const onResizeDelta = vi.fn();
 
 		renderWindow({
 			reference: ref,
@@ -159,20 +158,24 @@ describe('ReferenceWindow', () => {
 			height: 100,
 			isActive: true,
 			onClose: vi.fn(),
-			onResize
+			onResizeStart,
+			onResizeDelta
 		});
 
 		const handle = screen.getByRole('button', { name: /resize/i });
 		await fireEvent.pointerDown(handle, { pointerId: 1, clientX: 200, clientY: 100 });
 		await fireEvent.pointerMove(handle, { pointerId: 1, clientX: 250, clientY: 150 });
 
-		expect(onResize).toHaveBeenCalledWith(300, 150);
+		expect(onResizeStart).toHaveBeenCalledTimes(1);
+		// Raw pointer delta — aspect lock and viewport clamp are the store's job.
+		expect(onResizeDelta).toHaveBeenLastCalledWith(50, 50);
 	});
 
 	it('does not start a drag when pointerdown originates from a button inside the title bar', async () => {
 		const ref = makeRef('ref-1');
-		const onMove = vi.fn();
-		const onMoveCommit = vi.fn();
+		const onMoveStart = vi.fn();
+		const onMoveDelta = vi.fn();
+		const onMoveEnd = vi.fn();
 
 		renderWindow({
 			reference: ref,
@@ -182,8 +185,9 @@ describe('ReferenceWindow', () => {
 			height: 200,
 			isActive: true,
 			onClose: vi.fn(),
-			onMove,
-			onMoveCommit
+			onMoveStart,
+			onMoveDelta,
+			onMoveEnd
 		});
 
 		const closeButton = screen.getByRole('button', { name: /close/i });
@@ -191,8 +195,9 @@ describe('ReferenceWindow', () => {
 		await fireEvent.pointerMove(closeButton, { pointerId: 1, clientX: 50, clientY: 50 });
 		await fireEvent.pointerUp(closeButton, { pointerId: 1, clientX: 50, clientY: 50 });
 
-		expect(onMove).not.toHaveBeenCalled();
-		expect(onMoveCommit).not.toHaveBeenCalled();
+		expect(onMoveStart).not.toHaveBeenCalled();
+		expect(onMoveDelta).not.toHaveBeenCalled();
+		expect(onMoveEnd).not.toHaveBeenCalled();
 	});
 
 	it('absorbs pointer events so a hit-test inside the window does not pass through to siblings', () => {
@@ -212,10 +217,10 @@ describe('ReferenceWindow', () => {
 		expect(win.style.pointerEvents).toBe('auto');
 	});
 
-	it('cleans up the title-bar drag and commits when pointer capture is lost (e.g., palm rejection)', async () => {
+	it('cleans up the title-bar drag and ends it when pointer capture is lost (e.g., palm rejection)', async () => {
 		const ref = makeRef('ref-1');
-		const onMove = vi.fn();
-		const onMoveCommit = vi.fn();
+		const onMoveDelta = vi.fn();
+		const onMoveEnd = vi.fn();
 
 		renderWindow({
 			reference: ref,
@@ -225,25 +230,25 @@ describe('ReferenceWindow', () => {
 			height: 200,
 			isActive: true,
 			onClose: vi.fn(),
-			onMove,
-			onMoveCommit
+			onMoveDelta,
+			onMoveEnd
 		});
 
 		const titleBar = screen.getByText(ref.filename).parentElement!;
 		await fireEvent.pointerDown(titleBar, { pointerId: 1, clientX: 50, clientY: 60 });
 		await fireEvent(titleBar, new Event('lostpointercapture'));
 
-		expect(onMoveCommit).toHaveBeenCalledTimes(1);
+		expect(onMoveEnd).toHaveBeenCalledTimes(1);
 
-		onMove.mockClear();
+		onMoveDelta.mockClear();
 		await fireEvent.pointerMove(titleBar, { pointerId: 1, clientX: 200, clientY: 200 });
-		expect(onMove).not.toHaveBeenCalled();
+		expect(onMoveDelta).not.toHaveBeenCalled();
 	});
 
-	it('cleans up the resize drag and commits when pointer capture is lost', async () => {
+	it('cleans up the resize drag and ends it when pointer capture is lost', async () => {
 		const ref = makeRef('ref-1');
-		const onResize = vi.fn();
-		const onResizeCommit = vi.fn();
+		const onResizeDelta = vi.fn();
+		const onResizeEnd = vi.fn();
 
 		renderWindow({
 			reference: ref,
@@ -253,19 +258,19 @@ describe('ReferenceWindow', () => {
 			height: 100,
 			isActive: true,
 			onClose: vi.fn(),
-			onResize,
-			onResizeCommit
+			onResizeDelta,
+			onResizeEnd
 		});
 
 		const handle = screen.getByRole('button', { name: /resize/i });
 		await fireEvent.pointerDown(handle, { pointerId: 1, clientX: 200, clientY: 100 });
 		await fireEvent(handle, new Event('lostpointercapture'));
 
-		expect(onResizeCommit).toHaveBeenCalledTimes(1);
+		expect(onResizeEnd).toHaveBeenCalledTimes(1);
 
-		onResize.mockClear();
+		onResizeDelta.mockClear();
 		await fireEvent.pointerMove(handle, { pointerId: 1, clientX: 400, clientY: 200 });
-		expect(onResize).not.toHaveBeenCalled();
+		expect(onResizeDelta).not.toHaveBeenCalled();
 	});
 
 	it('clicking the minimize button when expanded calls onMinimizeChange(true)', async () => {
@@ -407,15 +412,15 @@ describe('ReferenceWindow', () => {
 			isActive: true,
 			minimized: true,
 			onClose: vi.fn(),
-			onResize: vi.fn()
+			onResizeDelta: vi.fn()
 		});
 
 		expect(screen.queryByRole('button', { name: /resize/i })).toBeNull();
 	});
 
-	it('still allows title-bar drag to emit onMove when minimized', async () => {
+	it('still allows title-bar drag to emit onMoveDelta when minimized', async () => {
 		const ref = makeRef('ref-1');
-		const onMove = vi.fn();
+		const onMoveDelta = vi.fn();
 
 		renderWindow({
 			reference: ref,
@@ -426,14 +431,14 @@ describe('ReferenceWindow', () => {
 			isActive: true,
 			minimized: true,
 			onClose: vi.fn(),
-			onMove
+			onMoveDelta
 		});
 
 		const titleBar = screen.getByText(ref.filename).parentElement!;
 		await fireEvent.pointerDown(titleBar, { pointerId: 1, clientX: 50, clientY: 60 });
 		await fireEvent.pointerMove(titleBar, { pointerId: 1, clientX: 80, clientY: 110 });
 
-		expect(onMove).toHaveBeenCalledWith(130, 150);
+		expect(onMoveDelta).toHaveBeenLastCalledWith(30, 50);
 	});
 
 	it('mouse pointerdown when quickSamplingEnabled fires onSampleStart with mouse inputSource', async () => {
@@ -1072,8 +1077,6 @@ describe('ReferenceWindow', () => {
 			width: 100,
 			height: 100,
 			isActive: false,
-			viewportWidth: 1000,
-			viewportHeight: 1000,
 			onClose: vi.fn()
 		});
 

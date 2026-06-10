@@ -23,7 +23,7 @@ A singleton Layer holding a source image and its Reference Layer Placement as an
 _Avoid_: imported image, tracing layer, reference image (Reference Window's term).
 
 **Reference Layer Placement**:
-A Reference Layer's source-to-document geometry — the position and uniform scale that map the source image onto the Document canvas.
+A Reference Layer's source-to-document geometry — the position and uniform scale that map the source image onto the Document canvas. Its invariant — finite position, scale strictly positive and finite — is owned by the core type's validating constructor; adapters only marshal.
 _Avoid_: position, transform, geometry, viewport (all overloaded).
 
 **Reference Layer Placement Interaction**:

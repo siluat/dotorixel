@@ -58,9 +58,8 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 - Document rename — allow renaming documents from tab and saved work browser
 - Canvas resize via border drag — drag canvas edges to change canvas dimensions
 - Timelapse recording — capture drawing process for playback/export
-- Validate `ReferencePlacement.scale` invariant (strictly positive, finite) via a constructor — currently `pub f32` field permits `0.0`, negative, NaN, and `±∞`, which `sample_reference` cannot defend against without violating "trust the core". Flagged by greptile/coderabbit/cubic on PR #208
 - `cargo fmt` debt in `wasm/src/lib.rs` — sub-issue 110 noted that workspace-level `cargo fmt --check` fails on pre-existing whitespace in the wasm shell; clean up in a focused formatting pass.
-- Collapse `sample_reference` free function into `ReferenceData::sample_at(x, y)` — rust-conventions prefer behavior on the type. Out of scope for 109/110 to preserve testability of raw-buffer signature; revisit once the binding layer (113) settles call sites.
+- Seal Reference Layer Placement invariants into the core — validating `ReferencePlacement::new`, `ReferenceData::sample_at`, adapters shrink to marshalling; folds the scale-invariant and `sample_reference` backlog items ([issue 166](../issues/166-seal-reference-placement-invariants-into-core.md))
 
 ## Future triggers
 

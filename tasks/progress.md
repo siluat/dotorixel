@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None
+Seal Reference Layer Placement Invariants into the Core ([issue 166](../issues/166-seal-reference-placement-invariants-into-core.md))
 
 ## Last Completed
 
@@ -33,6 +33,4 @@ None
 - Document rename
 - Canvas resize via border drag
 - Timelapse recording
-- Validate `ReferencePlacement.scale` invariant
 - `cargo fmt` debt in `wasm/src/lib.rs`
-- Collapse `sample_reference` free function into `ReferenceData::sample_at(x, y)`

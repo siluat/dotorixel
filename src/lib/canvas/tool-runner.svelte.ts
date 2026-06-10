@@ -3,7 +3,7 @@ import type { Color } from './color';
 import type { SharedState } from './shared-state.svelte';
 import { NO_EFFECTS, type ToolEffect } from './draw-tool';
 import type { PointerType } from './canvas-interaction.svelte';
-import type { SamplingSession } from './sampling/session.svelte';
+import type { CanvasSamplingSession } from './sampling/session.svelte';
 import { createStrokeEngine, type ActiveStroke } from './stroke-engine';
 
 export type EditorEffects = readonly ToolEffect[];
@@ -39,7 +39,7 @@ export interface ToolRunnerDeps {
 	readonly shared: SharedState;
 	readonly getShiftHeld: () => boolean;
 	/** Session shared with the Loupe overlay; the eyedropper tool delegates to it. */
-	readonly samplingSession: SamplingSession;
+	readonly samplingSession: CanvasSamplingSession;
 }
 
 export function createToolRunner(deps: ToolRunnerDeps): ToolRunner {

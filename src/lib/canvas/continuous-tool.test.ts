@@ -10,7 +10,7 @@ import {
 } from './fake-drawing-ops';
 import type { CanvasCoords, MarqueeRegion, PixelCanvas } from './canvas-model';
 import type { Color } from './color';
-import type { SamplingSession } from './sampling/session.svelte';
+import type { CanvasSamplingSession } from './sampling/session.svelte';
 import type { ToolContext } from './draw-tool';
 
 function makeHost(
@@ -27,7 +27,7 @@ function makeHost(
 			foregroundColor: BLACK,
 			backgroundColor: WHITE,
 			baseOps,
-			sampling: {} as SamplingSession,
+			sampling: {} as CanvasSamplingSession,
 			isShiftHeld: () => false,
 			pixelPerfect: opts.pixelPerfect ?? false
 		}

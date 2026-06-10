@@ -1,12 +1,8 @@
 import type { CanvasCoords } from '../canvas/canvas-model';
-import type { Color } from '../canvas/color';
 import { NO_EFFECTS, type ToolEffects } from '../canvas/draw-tool';
 import { LOUPE_CENTER_INDEX } from '../canvas/sampling/loupe-config';
-import {
-	createSamplingSession,
-	type SamplingSessionUpdatePointerParams
-} from '../canvas/sampling/session.svelte';
-import type { LoupeInputSource } from '../canvas/sampling/types';
+import { createCanvasSamplingSession } from '../canvas/sampling/session.svelte';
+import type { LoupeInputSource, SamplingSessionView } from '../canvas/sampling/types';
 import { createReferenceSamplingPort } from './sampling-port';
 import type { DecodedImage } from './sample-pixel';
 
@@ -20,27 +16,21 @@ export interface ReferenceSamplingSessionDeps {
  * foreground preview, drag-time preview tracking, commit-on-release, and
  * race/stale handling — behind a small lifecycle interface.
  *
- * Effects flow back through return values only; callers apply them. The
- * read-only `isActive` / `grid` / `position` (plus `updatePointer` for the
- * pointer plumbing) match the underlying `SamplingSession` shape so the
- * loupe overlay can read them without knowing about the async wrapper.
+ * Effects flow back through return values only; callers apply them.
  */
-export interface ReferenceSamplingSession {
+export interface ReferenceSamplingSession extends SamplingSessionView {
 	start(blob: Blob, coords: CanvasCoords, src: LoupeInputSource): Promise<ToolEffects>;
 	move(coords: CanvasCoords): ToolEffects;
 	end(): ToolEffects;
 	cancel(): void;
 	readonly isActive: boolean;
-	readonly grid: readonly (Color | null)[];
-	readonly position: { readonly x: number; readonly y: number } | null;
-	updatePointer(params: SamplingSessionUpdatePointerParams): void;
 }
 
 export function createReferenceSamplingSession(
 	deps: ReferenceSamplingSessionDeps
 ): ReferenceSamplingSession {
 	let port: ReturnType<typeof createReferenceSamplingPort> | null = null;
-	const inner = createSamplingSession({
+	const inner = createCanvasSamplingSession({
 		getSamplingPort: () => {
 			if (!port) throw new Error('Reference sampling session is not bound to a port');
 			return port;

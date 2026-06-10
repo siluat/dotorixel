@@ -10,7 +10,7 @@ import {
 } from './draw-tool';
 import type { LoupeInputSource } from './sampling/types';
 import { createPixelPerfectOps } from './pixel-perfect-ops';
-import type { SamplingSession } from './sampling/session.svelte';
+import type { CanvasSamplingSession } from './sampling/session.svelte';
 import type { ToolType } from './tool-registry';
 import type { EditorEffects } from './tool-runner.svelte';
 import { activeLayerPixels, restoreActiveLayerPixels } from './wasm-backend';
@@ -42,7 +42,7 @@ export interface SessionHost {
 	readonly backgroundColor: Color;
 	/** Unwrapped ops — sugars decide PP-wrap via their own `pixelPerfect` flag. */
 	readonly baseOps: DrawingOps;
-	readonly sampling: SamplingSession;
+	readonly sampling: CanvasSamplingSession;
 	readonly isShiftHeld: () => boolean;
 	/** Pixel-perfect toggle snapshotted from shared state at stroke begin. */
 	readonly pixelPerfect: boolean;

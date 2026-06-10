@@ -11,8 +11,7 @@ import { colorToHex, hexToColor } from '../color';
 import { TOOL_CURSORS, type ToolType } from '../tool-registry';
 import type { KeyboardInput } from '../keyboard-input.svelte';
 import type { ReferenceSamplingSession } from '../../reference-images/reference-sampling-session.svelte';
-import type { SamplingSession } from '../sampling/session.svelte';
-import type { LoupeInputSource } from '../sampling/types';
+import type { LoupeInputSource, SamplingSessionView } from '../sampling/types';
 import type { PointerType } from '../canvas-interaction.svelte';
 import type { ReferenceLayerUnderlay } from '../reference-layer-underlay';
 import type { Workspace } from './workspace.svelte';
@@ -107,7 +106,7 @@ export class EditorController {
 	get isExportUIOpen(): boolean {
 		return this.workspace.activeTab.isExportUIOpen;
 	}
-	get samplingSession(): SamplingSession {
+	get samplingSession(): SamplingSessionView {
 		return this.workspace.activeTab.samplingSession;
 	}
 	get referenceSamplingSession(): ReferenceSamplingSession {

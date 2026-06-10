@@ -2,7 +2,7 @@
 	import type { CanvasPoint, MarqueeRegion, ReferencePlacement } from './canvas-model';
 	import { viewportOps } from './wasm-backend';
 	import { effectivePixelSize, type ViewportData, type ViewportSize } from './viewport';
-	import type { SamplingSession } from './sampling/session.svelte';
+	import type { SamplingSessionView } from './sampling/types';
 	import type { ToolType } from './tool-registry';
 	import * as m from '$lib/paraglide/messages';
 	import { createWheelInputClassifier } from './wheel-input.ts';
@@ -63,7 +63,7 @@
 		 * When active, the Loupe overlay renders next to the pointer. Optional so
 		 * Storybook stories and other consumers without a session still render.
 		 */
-		samplingSession?: SamplingSession;
+		samplingSession?: SamplingSessionView;
 	}
 
 	let {

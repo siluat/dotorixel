@@ -12,46 +12,40 @@ import {
 } from './loupe-config';
 import type { SamplingPort } from './ports';
 import { sampleGrid } from './sample-grid';
-import type { LoupeInputSource } from './types';
+import type {
+	LoupeInputSource,
+	SamplingSessionUpdatePointerParams,
+	SamplingSessionView
+} from './types';
 
 function isValidOpaque(cell: Color | null): cell is Color {
 	return cell !== null && cell.a > 0;
 }
 
-export interface SamplingSessionStartParams {
+interface CanvasSamplingSessionStartParams {
 	readonly targetPixel: CanvasPoint;
 	readonly commitTarget: 'foreground' | 'background';
 	readonly inputSource: LoupeInputSource;
 }
 
-export interface SamplingSessionUpdatePointerParams {
-	readonly screen: { readonly x: number; readonly y: number };
-	readonly viewport: { readonly width: number; readonly height: number };
-}
-
 /**
- * Color-sampling session shared by the Eyedropper tool and the long-press
+ * Canvas sampling session shared by the Eyedropper tool and the long-press
  * touch gesture. Owns the sampled grid, the commit target, and the loupe
  * overlay's window-coord position. Disruption (`cancel`) discards without
  * effect; clean release (`commit`) returns the effects to dispatch.
  */
-export interface SamplingSession {
+export interface CanvasSamplingSession extends SamplingSessionView {
 	readonly isActive: boolean;
-	readonly grid: readonly (Color | null)[];
-	/** Window-coord top-left of the loupe overlay; null when inactive or before any pointer push. */
-	readonly position: { readonly x: number; readonly y: number } | null;
-	start(params: SamplingSessionStartParams): void;
+	start(params: CanvasSamplingSessionStartParams): void;
 	update(targetPixel: CanvasPoint): void;
-	/** Always safe to call — pointer state caches even when the session is inactive. */
-	updatePointer(params: SamplingSessionUpdatePointerParams): void;
 	commit(): ToolEffects;
 	cancel(): void;
 }
 
-export function createSamplingSession(opts: {
+export function createCanvasSamplingSession(opts: {
 	getSamplingPort: () => SamplingPort;
 	mapTarget?: (target: CanvasPoint) => CanvasCoords;
-}): SamplingSession {
+}): CanvasSamplingSession {
 	let isActive = $state(false);
 	let grid = $state<(Color | null)[]>([]);
 	let inputSource = $state<LoupeInputSource | null>(null);
@@ -98,7 +92,7 @@ export function createSamplingSession(opts: {
 		get position() {
 			return position;
 		},
-		start(params: SamplingSessionStartParams): void {
+		start(params: CanvasSamplingSessionStartParams): void {
 			grid = sampleTarget(params.targetPixel);
 			commitTarget = params.commitTarget;
 			inputSource = params.inputSource;

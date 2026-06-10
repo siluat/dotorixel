@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-[163 — Batch layer metadata across the WASM seam](../issues/163-batch-layer-metadata-wasm-seam.md): The Document seam now reads all of a layer's metadata in one batched call instead of ~8 per-field crossings, and the fine-grained accessors are gone (bulk pixel buffers stay on-demand). Behavior-preserving — full unit/e2e suites plus a real-browser smoke test (reference layers + draw-on-reference guard) all pass. Sourced from the architecture review (candidate #2); candidates #4 (concentrate undoable intents), #5 (Marquee math), #6 (reference-image lifecycle) remain open follow-ups.
+[164 — Seal the Sampling Session view and name its species](../issues/164-seal-sampling-session-view.md): Canvas and Reference sampling now share a named Loupe-facing view contract while keeping separate lifecycle ownership. Behavior stayed unchanged; typecheck, unit, build, and E2E all pass.
 
 ## Next Up
 

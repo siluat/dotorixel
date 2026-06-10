@@ -104,7 +104,7 @@ class References {
 | `src/lib/reference-images/ReferenceWindowOverlay.svelte` | Deleted `commitPosition`; events bind directly to store verbs; `onActivate` → `bringToFront`. |
 | `src/lib/canvas/workspace-snapshot.ts`, `src/lib/canvas/editor-session/workspace.svelte.ts`, `src/lib/session/session-persistence.ts` | Runtime type/method renames only; the persisted `displayStates` storage key and `DisplayStateRecord` stay for format compatibility (documented in `workspace-snapshot.ts`). |
 | `src/lib/reference-images/references.svelte.test.ts` | Gesture-lifecycle interface tests (unclamped preview, end-clamp + single dirty, no-op gestures skip dirty, `bringToFront` idempotence). Setups converted to `restoredWindowStates` seeding via `windowState`/`storeWithWindows` helpers. |
-| `src/lib/reference-images/ReferenceWindow.svelte.test.ts`, `ReferenceWindowOverlay.svelte.test.ts` | Window tests assert raw delta emission; clamp/snap-back/resize policy assertions moved to final store state through the gesture path (`seedStore` helper). |
+| `src/lib/reference-images/ReferenceWindow.svelte.test.ts`, `src/lib/reference-images/ReferenceWindowOverlay.svelte.test.ts` | Window tests assert raw delta emission; clamp/snap-back/resize policy assertions moved to final store state through the gesture path (`seedStore` helper). |
 | `docs/platform-status.md` | "Move + resize" Notes overwritten with the per-gesture dirty semantics and single-gesture constraint. |
 
 ### Key Decisions

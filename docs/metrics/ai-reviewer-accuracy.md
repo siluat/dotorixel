@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 148 | 114 | 34 | 148 | 77% | 44% |
-| cubic-dev-ai[bot] | 103 | 86 | 17 | 172 | 83% | 33% |
-| coderabbitai[bot] | 202 | 145 | 57 | 110 | 72% | 57% |
+| greptile-apps[bot] | 148 | 114 | 34 | 149 | 77% | 43% |
+| cubic-dev-ai[bot] | 104 | 87 | 17 | 172 | 84% | 34% |
+| coderabbitai[bot] | 202 | 145 | 57 | 111 | 72% | 57% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #262 | cubic-dev-ai[bot] | Accept | Issue 165 Results table abbreviated the ReferenceWindowOverlay test path; expanded to the full path |
+| #262 | coderabbitai[bot] | Miss | Did not flag the abbreviated test file path in issue 165 Results |
+| #262 | greptile-apps[bot] | Miss | Did not flag the abbreviated test file path in issue 165 Results |
 | #260 | greptile-apps[bot] | Accept | Hoisted per-iteration `layers_metadata()` out of loops/find (one of seven sites) |
 | #260 | cubic-dev-ai[bot] | Reject | `kind: string` → union breaks `WasmDocument` structural-compat; proper fix needs a `WasmLayerKind` wasm enum (deferred) |
 | #260 | cubic-dev-ai[bot] | Miss | Did not flag per-iteration `layers_metadata()` calls in loops |

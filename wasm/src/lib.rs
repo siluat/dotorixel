@@ -638,6 +638,10 @@ impl WasmDocument {
     }
 
     /// Updates the placement of the Reference Layer with `id`.
+    ///
+    /// Errors when `id` is not a valid UUID string, when the placement is
+    /// invalid (`x`/`y` non-finite, or `scale` non-finite or ≤ 0), or when
+    /// no Reference Layer with `id` exists.
     pub fn set_reference_placement(
         &mut self,
         id: String,
@@ -835,6 +839,10 @@ impl WasmDocumentBuilder {
     /// used by persistence hydration, where placement and display state must
     /// be restored exactly rather than recomputed through auto-fit. The final
     /// Document build normalizes Reference data to one bottom-most underlay.
+    ///
+    /// Errors when `id` is not a valid UUID string, when the placement is
+    /// invalid (`x`/`y` non-finite, or `scale` non-finite or ≤ 0), or when
+    /// the source buffer is inconsistent with the declared dimensions.
     pub fn add_reference_layer(
         &mut self,
         id: String,

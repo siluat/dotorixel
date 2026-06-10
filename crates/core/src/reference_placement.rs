@@ -84,7 +84,9 @@ impl ReferencePlacement {
         source_width: u32,
         source_height: u32,
     ) -> Self {
-        debug_assert!(
+        // Release-active: a zero dimension would yield scale == 0 and break
+        // the type invariant, so this must hold even when callers are wrong.
+        assert!(
             canvas_width > 0 && canvas_height > 0 && source_width > 0 && source_height > 0,
             "auto_fit requires non-zero canvas and source dimensions"
         );
@@ -108,7 +110,9 @@ impl ReferencePlacement {
         natural_width: u32,
         natural_height: u32,
     ) -> Self {
-        debug_assert!(
+        // Release-active: a zero dimension would yield scale == 0 and break
+        // the type invariant, so this must hold even when callers are wrong.
+        assert!(
             canvas_width > 0 && canvas_height > 0 && natural_width > 0 && natural_height > 0,
             "fit_to_canvas requires non-zero canvas and source dimensions"
         );
@@ -198,6 +202,18 @@ mod tests {
     fn auto_fit_never_enlarges_small_sources() {
         let fitted = ReferencePlacement::auto_fit(20, 20, 4, 2);
         assert_eq!(fitted, ReferencePlacement::new(8.0, 9.0, 1.0).unwrap());
+    }
+
+    #[test]
+    #[should_panic(expected = "auto_fit requires non-zero canvas and source dimensions")]
+    fn auto_fit_panics_on_zero_dimension() {
+        let _ = ReferencePlacement::auto_fit(0, 10, 1, 1);
+    }
+
+    #[test]
+    #[should_panic(expected = "fit_to_canvas requires non-zero canvas and source dimensions")]
+    fn fit_to_canvas_panics_on_zero_dimension() {
+        let _ = ReferencePlacement::fit_to_canvas(0, 10, 1, 1);
     }
 
     #[test]

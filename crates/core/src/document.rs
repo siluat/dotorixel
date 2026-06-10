@@ -289,7 +289,8 @@ impl Document {
                 .any(|l| l.id == new_id && !matches!(l.kind, LayerKind::Reference(_))),
             "add_reference_layer called with a UUID already present in the Pixel stack"
         );
-        let placement = auto_fit_placement(self.width, self.height, source_width, source_height);
+        let placement =
+            ReferencePlacement::auto_fit(self.width, self.height, source_width, source_height);
         let data = ReferenceData::new(source_rgba, source_width, source_height, placement)?;
         let replaced_existing = if let Some(reference_idx) = self
             .layers
@@ -490,16 +491,7 @@ impl Document {
             LayerKind::Pixel(canvas) => Some(canvas.get_pixel(x, y).unwrap_or_else(|err| {
                 panic!("active Pixel Layer read failed inside document bounds at ({x}, {y}): {err}")
             })),
-            LayerKind::Reference(data) => {
-                let placement = data.placement();
-                crate::reference_sampler::sample_reference(
-                    data.source_rgba(),
-                    (data.natural_width(), data.natural_height()),
-                    &placement,
-                    x,
-                    y,
-                )
-            }
+            LayerKind::Reference(data) => data.sample_at(x, y),
         }
     }
 
@@ -699,7 +691,7 @@ impl Document {
                     LayerKind::Reference(data) => {
                         let current = data.placement();
                         let translated_placement =
-                            current.with_position(current.x + dw * fx, current.y + dh * fy);
+                            current.with_position(current.x() + dw * fx, current.y() + dh * fy);
                         let mut translated = data.clone();
                         translated.set_placement(translated_placement);
                         LayerKind::Reference(translated)
@@ -767,27 +759,6 @@ fn normalize_reference_underlay(
         active_layer_id
     };
     (normalized, normalized_active_id)
-}
-
-/// Aspect-preserving auto-fit: scales the source down so the longest axis fits
-/// the canvas, never enlarges (`scale ≤ 1.0`), and centers the projected
-/// footprint within the canvas.
-fn auto_fit_placement(
-    canvas_width: u32,
-    canvas_height: u32,
-    source_width: u32,
-    source_height: u32,
-) -> ReferencePlacement {
-    let fit_x = canvas_width as f32 / source_width as f32;
-    let fit_y = canvas_height as f32 / source_height as f32;
-    let scale = fit_x.min(fit_y).min(1.0);
-    let projected_w = source_width as f32 * scale;
-    let projected_h = source_height as f32 * scale;
-    ReferencePlacement {
-        x: (canvas_width as f32 - projected_w) / 2.0,
-        y: (canvas_height as f32 - projected_h) / 2.0,
-        scale,
-    }
 }
 
 /// Source-over alpha composite of `canvas` onto `dst` (straight RGBA, u8 per channel).
@@ -1183,11 +1154,7 @@ mod tests {
 
         // Reference Layer has its own natural dimensions (different from document)
         // and a non-trivial placement — both must survive round-trip.
-        let placement = ReferencePlacement {
-            x: 1.5,
-            y: -2.0,
-            scale: 0.75,
-        };
+        let placement = ReferencePlacement::new(1.5, -2.0, 0.75).unwrap();
         let ref_rgba = vec![10u8, 20, 30, 40, 50, 60, 70, 80];
         let reference = ReferenceData::new(ref_rgba.clone(), 2, 1, placement).unwrap();
         let reference_layer = Layer {
@@ -1250,11 +1217,7 @@ mod tests {
                     vec![1u8; 4],
                     1,
                     1,
-                    ReferencePlacement {
-                        x: 1.0,
-                        y: 1.0,
-                        scale: 1.0,
-                    },
+                    ReferencePlacement::new(1.0, 1.0, 1.0).unwrap(),
                 )
                 .unwrap(),
             ),
@@ -1278,11 +1241,7 @@ mod tests {
                     vec![2u8; 8],
                     2,
                     1,
-                    ReferencePlacement {
-                        x: 3.0,
-                        y: 4.0,
-                        scale: 2.0,
-                    },
+                    ReferencePlacement::new(3.0, 4.0, 2.0).unwrap(),
                 )
                 .unwrap(),
             ),
@@ -1720,11 +1679,7 @@ mod tests {
         let r = Uuid::new_v4();
         let red = Color::new(255, 0, 0, 255);
         // Identity placement, 1x1 fully opaque green reference covering the doc.
-        let placement = ReferencePlacement {
-            x: 0.0,
-            y: 0.0,
-            scale: 1.0,
-        };
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
         let green_rgba = vec![0u8, 255, 0, 255];
         let reference = ReferenceData::new(green_rgba, 1, 1, placement).unwrap();
 
@@ -1754,11 +1709,7 @@ mod tests {
         let a = Uuid::new_v4();
         let r = Uuid::new_v4();
         let red = Color::new(255, 0, 0, 255);
-        let placement = ReferencePlacement {
-            x: 0.0,
-            y: 0.0,
-            scale: 1.0,
-        };
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
         let green_rgba = vec![0u8, 255, 0, 255];
         let reference = ReferenceData::new(green_rgba, 1, 1, placement).unwrap();
 
@@ -1788,11 +1739,7 @@ mod tests {
         let a = Uuid::new_v4();
         let b = Uuid::new_v4();
         let red = Color::new(255, 0, 0, 255);
-        let placement = ReferencePlacement {
-            x: 0.0,
-            y: 0.0,
-            scale: 1.0,
-        };
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
         // A visible Reference Layer holding solid opaque green pixels — must NOT
         // contribute to the export buffer or the Pixel-only composite.
         let green_rgba = vec![0u8, 255, 0, 255];
@@ -1898,29 +1845,15 @@ mod tests {
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
         doc.add_reference_layer(r, "Ref".to_string(), source_rgba, 4, 4)
             .unwrap();
-        doc.set_reference_placement(
-            r,
-            ReferencePlacement {
-                x: 0.0,
-                y: 0.0,
-                scale: 1.0,
-            },
-        )
-        .unwrap();
+        doc.set_reference_placement(r, ReferencePlacement::new(0.0, 0.0, 1.0).unwrap())
+            .unwrap();
 
         assert_eq!(doc.try_get_pixel(1, 1), Some(Color::new(1, 1, 0, 255)));
         assert_eq!(doc.try_get_pixel(2, 0), None);
         assert_eq!(doc.try_get_pixel(0, 2), None);
 
-        doc.set_reference_placement(
-            r,
-            ReferencePlacement {
-                x: 1.0,
-                y: 1.0,
-                scale: 1.0,
-            },
-        )
-        .unwrap();
+        doc.set_reference_placement(r, ReferencePlacement::new(1.0, 1.0, 1.0).unwrap())
+            .unwrap();
         assert_eq!(doc.try_get_pixel(0, 0), None);
     }
 
@@ -2126,11 +2059,7 @@ mod tests {
 
         let a = Uuid::new_v4();
         let r = Uuid::new_v4();
-        let placement = ReferencePlacement {
-            x: 0.0,
-            y: 0.0,
-            scale: 1.0,
-        };
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
         let reference = ReferenceData::new(vec![0u8; 4], 1, 1, placement).unwrap();
 
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
@@ -2155,11 +2084,7 @@ mod tests {
         let a = Uuid::new_v4();
         let r = Uuid::new_v4();
         let source_rgba = vec![10u8, 20, 30, 40, 50, 60, 70, 80];
-        let placement = ReferencePlacement {
-            x: 0.0,
-            y: 0.0,
-            scale: 1.0,
-        };
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
         let reference = ReferenceData::new(source_rgba.clone(), 2, 1, placement).unwrap();
 
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
@@ -2183,11 +2108,7 @@ mod tests {
 
         let a = Uuid::new_v4();
         let r = Uuid::new_v4();
-        let placement = ReferencePlacement {
-            x: 0.0,
-            y: 0.0,
-            scale: 1.0,
-        };
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
         let reference = ReferenceData::new(vec![0u8; 8], 2, 1, placement).unwrap();
 
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
@@ -2211,11 +2132,7 @@ mod tests {
 
         let a = Uuid::new_v4();
         let r = Uuid::new_v4();
-        let placement = ReferencePlacement {
-            x: 1.5,
-            y: -2.0,
-            scale: 0.75,
-        };
+        let placement = ReferencePlacement::new(1.5, -2.0, 0.75).unwrap();
         let reference = ReferenceData::new(vec![0u8; 8], 2, 1, placement).unwrap();
 
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
@@ -2239,11 +2156,7 @@ mod tests {
 
         let a = Uuid::new_v4();
         let r = Uuid::new_v4();
-        let placement = ReferencePlacement {
-            x: 0.0,
-            y: 0.0,
-            scale: 1.0,
-        };
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
         let reference = ReferenceData::new(vec![0u8; 4], 1, 1, placement).unwrap();
 
         let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
@@ -2278,11 +2191,7 @@ mod tests {
         .unwrap();
         doc.set_reference_placement(
             first_reference,
-            ReferencePlacement {
-                x: 9.0,
-                y: 9.0,
-                scale: 2.0,
-            },
+            ReferencePlacement::new(9.0, 9.0, 2.0).unwrap(),
         )
         .unwrap();
 
@@ -2309,11 +2218,7 @@ mod tests {
         assert_eq!(data.natural_height(), 4);
         assert_eq!(
             data.placement(),
-            ReferencePlacement {
-                x: 0.0,
-                y: 1.0,
-                scale: 0.5
-            }
+            ReferencePlacement::new(0.0, 1.0, 0.5).unwrap()
         );
     }
 
@@ -2347,11 +2252,7 @@ mod tests {
         assert_eq!(data.source_rgba(), source_rgba.as_slice());
         assert_eq!(
             data.placement(),
-            ReferencePlacement {
-                x: 1.0,
-                y: 1.0,
-                scale: 1.0
-            }
+            ReferencePlacement::new(1.0, 1.0, 1.0).unwrap()
         );
     }
 
@@ -2372,11 +2273,7 @@ mod tests {
         };
         assert_eq!(
             data.placement(),
-            ReferencePlacement {
-                x: 0.0,
-                y: 1.0,
-                scale: 0.5
-            }
+            ReferencePlacement::new(0.0, 1.0, 0.5).unwrap()
         );
     }
 
@@ -2398,11 +2295,7 @@ mod tests {
         };
         assert_eq!(
             data.placement(),
-            ReferencePlacement {
-                x: 2.0,
-                y: 0.0,
-                scale: 0.25
-            }
+            ReferencePlacement::new(2.0, 0.0, 0.25).unwrap()
         );
     }
 
@@ -2439,11 +2332,7 @@ mod tests {
         doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
             .unwrap();
 
-        let target = ReferencePlacement {
-            x: 3.5,
-            y: -1.0,
-            scale: 2.0,
-        };
+        let target = ReferencePlacement::new(3.5, -1.0, 2.0).unwrap();
         doc.set_reference_placement(r, target).unwrap();
 
         assert_eq!(doc.layer_placement_at(0), Some(target));
@@ -2462,14 +2351,7 @@ mod tests {
         let before = doc.layer_placement_at(0).unwrap();
 
         let err = doc
-            .set_reference_placement(
-                unknown,
-                ReferencePlacement {
-                    x: 9.0,
-                    y: 9.0,
-                    scale: 9.0,
-                },
-            )
+            .set_reference_placement(unknown, ReferencePlacement::new(9.0, 9.0, 9.0).unwrap())
             .unwrap_err();
         assert_eq!(err, LayerError::LayerNotFound { id: unknown });
 
@@ -2491,14 +2373,7 @@ mod tests {
 
         // Target the Pixel Layer `a`, not the Reference Layer `r`.
         let err = doc
-            .set_reference_placement(
-                a,
-                ReferencePlacement {
-                    x: 9.0,
-                    y: 9.0,
-                    scale: 9.0,
-                },
-            )
+            .set_reference_placement(a, ReferencePlacement::new(9.0, 9.0, 9.0).unwrap())
             .unwrap_err();
         assert_eq!(
             err,
@@ -2533,11 +2408,7 @@ mod tests {
         let directions: &[(&str, u32, u32, f32, f32)] =
             &[("grow", 8, 8, 4.0, 4.0), ("shrink", 2, 2, -2.0, -2.0)];
 
-        let original = ReferencePlacement {
-            x: 1.0,
-            y: 0.5,
-            scale: 1.5,
-        };
+        let original = ReferencePlacement::new(1.0, 0.5, 1.5).unwrap();
 
         for &(anchor, (fx, fy)) in anchors {
             for &(label, new_w, new_h, dw, dh) in directions {
@@ -2555,11 +2426,12 @@ mod tests {
 
                 doc.resize(new_w, new_h, anchor).unwrap();
 
-                let expected = ReferencePlacement {
-                    x: original.x + dw * fx,
-                    y: original.y + dh * fy,
-                    scale: original.scale,
-                };
+                let expected = ReferencePlacement::new(
+                    original.x() + dw * fx,
+                    original.y() + dh * fy,
+                    original.scale(),
+                )
+                .unwrap();
                 assert_eq!(
                     doc.layer_placement_at(1),
                     Some(expected),
@@ -2577,11 +2449,7 @@ mod tests {
 
         let a = Uuid::new_v4();
         let r = Uuid::new_v4();
-        let placement = ReferencePlacement {
-            x: 3.0,
-            y: -1.5,
-            scale: 2.0,
-        };
+        let placement = ReferencePlacement::new(3.0, -1.5, 2.0).unwrap();
         let ref_rgba = vec![1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
         let reference = ReferenceData::new(ref_rgba.clone(), 2, 2, placement).unwrap();
 
@@ -2604,7 +2472,7 @@ mod tests {
         assert_eq!(after.natural_width(), 2);
         assert_eq!(after.natural_height(), 2);
         // Scale is unchanged by the transform.
-        assert_eq!(after.placement().scale, placement.scale);
+        assert_eq!(after.placement().scale(), placement.scale());
     }
 
     #[test]

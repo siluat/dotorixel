@@ -59,7 +59,6 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 - Canvas resize via border drag — drag canvas edges to change canvas dimensions
 - Timelapse recording — capture drawing process for playback/export
 - `cargo fmt` debt in `wasm/src/lib.rs` — sub-issue 110 noted that workspace-level `cargo fmt --check` fails on pre-existing whitespace in the wasm shell; clean up in a focused formatting pass.
-- Seal Reference Layer Placement invariants into the core — validating `ReferencePlacement::new`, `ReferenceData::sample_at`, adapters shrink to marshalling; folds the scale-invariant and `sample_reference` backlog items ([issue 166](../issues/166-seal-reference-placement-invariants-into-core.md))
 
 ## Future triggers
 

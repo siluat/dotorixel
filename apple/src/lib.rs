@@ -3,9 +3,7 @@ use std::sync::{Arc, Mutex};
 use dotorixel_core::canvas::PixelCanvas;
 use dotorixel_core::export::PngExport;
 use dotorixel_core::history::{HistoryManager, Snapshot};
-use dotorixel_core::pixel_perfect::{
-    FilterResult, TailState, pixel_perfect_filter,
-};
+use dotorixel_core::pixel_perfect::{FilterResult, TailState, pixel_perfect_filter};
 use dotorixel_core::tool::interpolate_pixels;
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
 
@@ -271,15 +269,34 @@ impl AppleHistoryManager {
     }
 
     fn push_snapshot(&self, width: u32, height: u32, pixels: Vec<u8>) {
-        self.inner.lock().unwrap().push_snapshot(width, height, &pixels);
+        self.inner
+            .lock()
+            .unwrap()
+            .push_snapshot(width, height, &pixels);
     }
 
-    fn undo(&self, current_width: u32, current_height: u32, current_pixels: Vec<u8>) -> Option<Snapshot> {
-        self.inner.lock().unwrap().undo(current_width, current_height, &current_pixels)
+    fn undo(
+        &self,
+        current_width: u32,
+        current_height: u32,
+        current_pixels: Vec<u8>,
+    ) -> Option<Snapshot> {
+        self.inner
+            .lock()
+            .unwrap()
+            .undo(current_width, current_height, &current_pixels)
     }
 
-    fn redo(&self, current_width: u32, current_height: u32, current_pixels: Vec<u8>) -> Option<Snapshot> {
-        self.inner.lock().unwrap().redo(current_width, current_height, &current_pixels)
+    fn redo(
+        &self,
+        current_width: u32,
+        current_height: u32,
+        current_pixels: Vec<u8>,
+    ) -> Option<Snapshot> {
+        self.inner
+            .lock()
+            .unwrap()
+            .redo(current_width, current_height, &current_pixels)
     }
 
     fn clear(&self) {
@@ -347,12 +364,7 @@ impl AppleViewport {
         self.inner.display_size(canvas_width, canvas_height)
     }
 
-    fn zoom_at_point(
-        &self,
-        screen_x: f64,
-        screen_y: f64,
-        new_zoom: f64,
-    ) -> Arc<AppleViewport> {
+    fn zoom_at_point(&self, screen_x: f64, screen_y: f64, new_zoom: f64) -> Arc<AppleViewport> {
         Arc::new(AppleViewport {
             inner: self.inner.zoom_at_point(screen_x, screen_y, new_zoom),
         })
@@ -384,9 +396,12 @@ impl AppleViewport {
         viewport_size: ViewportSize,
     ) -> Arc<AppleViewport> {
         Arc::new(AppleViewport {
-            inner: self
-                .inner
-                .fit_to_viewport(canvas_width, canvas_height, viewport_size, f64::INFINITY),
+            inner: self.inner.fit_to_viewport(
+                canvas_width,
+                canvas_height,
+                viewport_size,
+                f64::INFINITY,
+            ),
         })
     }
 }

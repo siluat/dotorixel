@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-[166 — Seal Reference Layer Placement Invariants into the Core](../issues/166-seal-reference-placement-invariants-into-core.md): The Reference Layer Placement invariant (finite position, scale > 0) now lives in the core's validating constructor with private fields — illegal placements are unrepresentable, and adapters shrink to marshalling. Retired two review-backlog items (scale invariant, `sample_reference` → `ReferenceData::sample_at`); the wasm `cargo fmt` debt item also looks already resolved — confirm and retire.
+[167 — Retire the workspace cargo fmt debt](../issues/167-workspace-cargo-fmt-debt.md): The wasm half was already resolved; the same debt had moved to `apple/src/lib.rs`, so the item was widened to workspace scope and `cargo fmt --check` now passes workspace-wide. Note: no hook/CI enforces workspace fmt — this debt accumulated silently twice.
 
 ## Next Up
 
@@ -33,4 +33,3 @@ None
 - Document rename
 - Canvas resize via border drag
 - Timelapse recording
-- `cargo fmt` debt in `wasm/src/lib.rs` (likely already resolved — confirm and retire)

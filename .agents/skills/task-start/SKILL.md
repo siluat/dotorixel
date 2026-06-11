@@ -18,6 +18,11 @@ Follow these steps in order when starting a task.
    - **Other task**: Notify the user that a previous task is still in progress and ask whether to continue it or start a new one.
 
 3. **Select task from "Next Up"**:
+   - Before presenting options, look up each candidate in `tasks/todo.md` and determine its state using the Step 4 classification. Annotate each option's description with that state so the user can see what selecting it leads to:
+     - Links to an issue file → `issue: NNN-slug.md (ready to implement)`
+     - Item or its parent has a `[PRD]`/`[RFC]` link but no sub-issues → `PRD: NNN-slug.md — needs sub-issues (/to-issues)`
+     - Plain text, no links → `no issue yet — starts at /to-prd`
+     - Design task → `design (.pen) — starts at /ui-design`
    - 2 or more items → use `AskUserQuestion` to let the user choose which task to work on.
    - 1 item → start that task directly.
    - No items → notify the user there are no tasks and stop.

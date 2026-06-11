@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 167 | [Retire the workspace cargo fmt debt](../issues/167-workspace-cargo-fmt-debt.md) | 2026-06-11 |
 | 166 | [Seal Reference Layer Placement Invariants into the Core](../issues/166-seal-reference-placement-invariants-into-core.md) | 2026-06-10 |
 | 165 | [Deepen the Reference Window Placement Interaction](../issues/165-deepen-reference-window-placement-interaction.md) | 2026-06-10 |
 | 164 | [Seal the Sampling Session view and name its species](../issues/164-seal-sampling-session-view.md) | 2026-06-10 |

@@ -1,6 +1,6 @@
 ---
 title: "Seal Reference Layer Placement Invariants into the Core"
-status: ready-for-agent
+status: done
 created: 2026-06-10
 ---
 
@@ -85,3 +85,27 @@ impl ReferenceData {
 | `with_position` / `with_scale` | `pub(crate)` (one internal caller) / deleted (test-only) |
 | `WasmReferencePlacement` JS constructor | Deleted — unused from TS, closes the unvalidated hole by removal |
 | `sample_reference` | Becomes `ReferenceData::sample_at`; `reference_sampler.rs` removed, tests migrate to the method |
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/reference_placement.rs` | Validating `ReferencePlacement::new` with `ReferencePlacementError` (`NonFiniteCoordinates` / `InvalidScale`, `Display` + `std::error::Error`); fields private with getters; `auto_fit` moved in from document.rs as `pub(crate)` (sole caller is document.rs); `with_position` → `pub(crate)` with a finite-coords `debug_assert`; `with_scale` deleted (test-only usage). |
+| `crates/core/src/layer.rs` | `ReferenceData::sample_at(x, y)` replaces the sampler free function; the 9 sampler tests migrated to the method through the public type (`ReferenceData::new` + `sample_at`). |
+| `crates/core/src/reference_sampler.rs` | Deleted; module export removed from `lib.rs`. |
+| `crates/core/src/document.rs` | `try_get_pixel` delegates to `data.sample_at`; resize translation reads via getters; `auto_fit_placement` free function removed; test struct literals converted to `ReferencePlacement::new(...).unwrap()`. |
+| `wasm/src/lib.rs` | `is_valid_reference_scale` / `is_valid_reference_placement` / `validate_reference_placement` and their unit tests deleted; `set_reference_placement` and builder `add_reference_layer` construct via `ReferencePlacement::new` and marshal the error; the unvalidated `WasmReferencePlacement` JS constructor removed (no TS caller). |
+| `docs/platform-status.md` | Reference Layer row Notes now state the invariant ownership. |
+
+### Key Decisions
+
+- The validation matrix is pinned at the core constructor only. The wasm seam keeps no rejection tests because constructing `JsError` panics on non-wasm targets (the reason the old code unit-tested bool helpers instead). After field privatization the adapter cannot reach the type except through `new`, so the compiler enforces what seam tests would have.
+- `auto_fit` is `pub(crate)` (no out-of-crate caller); `fit_to_canvas` stays `pub` (consumed by the wasm adapter and TS).
+- Error messages keep the previous wording with the offending value appended (e.g., "…must be finite and greater than 0, got 0"). No TS code depends on the text.
+
+### Notes
+
+- `cargo fmt -p dotorixel-wasm --check` now passes — the "cargo fmt debt in `wasm/src/lib.rs`" review-backlog item appears already resolved by intervening work and can likely be retired after a quick confirm (`apple/src/lib.rs` still has a pre-existing fmt diff, outside that item's scope).
+- Naming observation for a possible follow-up: `fit_to_canvas` (may enlarge) vs `auto_fit` (never enlarges) — the name pair does not reveal the distinction; both names predate this issue.
+- Verified: core 363, wasm 18, web unit 1361, `svelte-check` 0 errors, production build OK, reference-images E2E 6/6, `cargo fmt --check` clean on core and wasm.
+- Implements architecture-review candidate 5 (2026-06-10); the CONTEXT.md invariant sentence on **Reference Layer Placement** landed in the planning commit (`830d1b7`).

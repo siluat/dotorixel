@@ -6,14 +6,22 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 148 | 114 | 34 | 149 | 77% | 43% |
-| cubic-dev-ai[bot] | 104 | 87 | 17 | 172 | 84% | 34% |
-| coderabbitai[bot] | 202 | 145 | 57 | 111 | 72% | 57% |
+| greptile-apps[bot] | 149 | 115 | 34 | 150 | 77% | 43% |
+| cubic-dev-ai[bot] | 105 | 87 | 18 | 174 | 83% | 33% |
+| coderabbitai[bot] | 205 | 147 | 58 | 111 | 72% | 57% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #263 | cubic-dev-ai[bot] | Reject | Flagged the release-active asserts as contradicting a debug_assert "pattern"; they are the accepted round-1 fix, and the remaining debug_asserts are redundant tripwires, not sole invariant enforcement |
+| #263 | coderabbitai[bot] | Accept | fit_to_canvas/auto_fit guarded only by debug_assert — invariant escapable in release; promoted to release-active assert |
+| #263 | greptile-apps[bot] | Accept | Same finding — fit_to_canvas can silently produce scale 0 in release builds |
+| #263 | coderabbitai[bot] | Accept | wasm set_reference_placement / builder add_reference_layer docs lacked placement-validation error conditions |
+| #263 | coderabbitai[bot] | Reject | get_x/get_y/get_scale rename contradicts rust-conventions (C-GETTER bare-noun getters; simple getters need no rustdoc) |
+| #263 | greptile-apps[bot] | Miss | Did not flag missing error-condition docs on the wasm placement entry points |
+| #263 | cubic-dev-ai[bot] | Miss | Did not flag release-escapable placement constructor preconditions |
+| #263 | cubic-dev-ai[bot] | Miss | Did not flag missing error-condition docs on the wasm placement entry points |
 | #262 | cubic-dev-ai[bot] | Accept | Issue 165 Results table abbreviated the ReferenceWindowOverlay test path; expanded to the full path |
 | #262 | coderabbitai[bot] | Miss | Did not flag the abbreviated test file path in issue 165 Results |
 | #262 | greptile-apps[bot] | Miss | Did not flag the abbreviated test file path in issue 165 Results |

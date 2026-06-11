@@ -3,6 +3,7 @@ use std::fmt;
 use uuid::Uuid;
 
 use crate::canvas::{PixelCanvas, PixelCanvasError};
+use crate::color::Color;
 use crate::reference_placement::ReferencePlacement;
 
 /// A single layer in a [`Document`](crate::Document) — an addressable slot
@@ -184,6 +185,33 @@ impl ReferenceData {
     pub fn set_placement(&mut self, placement: ReferencePlacement) {
         self.placement = placement;
     }
+
+    /// Returns the source pixel that projects onto document coordinate
+    /// `(x, y)` under the current placement, or `None` if `(x, y)` lies
+    /// outside the source's projected footprint. Sampling is integer-floor
+    /// nearest-neighbor — appropriate for the pixel-art aesthetic; no
+    /// smoothing.
+    pub fn sample_at(&self, x: u32, y: u32) -> Option<Color> {
+        let source_x = ((x as f32 - self.placement.x()) / self.placement.scale()).floor();
+        let source_y = ((y as f32 - self.placement.y()) / self.placement.scale()).floor();
+
+        if source_x < 0.0 || source_y < 0.0 {
+            return None;
+        }
+        let source_x = source_x as u32;
+        let source_y = source_y as u32;
+        if source_x >= self.natural_width || source_y >= self.natural_height {
+            return None;
+        }
+
+        let idx = (source_y as usize * self.natural_width as usize + source_x as usize) * 4;
+        Some(Color::new(
+            self.source_rgba[idx],
+            self.source_rgba[idx + 1],
+            self.source_rgba[idx + 2],
+            self.source_rgba[idx + 3],
+        ))
+    }
 }
 
 fn fingerprint_rgba(bytes: &[u8]) -> u64 {
@@ -217,11 +245,7 @@ mod tests {
     #[test]
     fn reference_data_new_accepts_buffer_matching_dimensions() {
         let rgba = vec![0u8; 4 * 4 * 4];
-        let placement = ReferencePlacement {
-            x: 0.0,
-            y: 0.0,
-            scale: 1.0,
-        };
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
         let data = ReferenceData::new(rgba, 4, 4, placement).unwrap();
         assert_eq!(data.natural_width(), 4);
         assert_eq!(data.natural_height(), 4);
@@ -229,13 +253,122 @@ mod tests {
         assert_eq!(data.placement(), placement);
     }
 
+    fn solid_rgba(width: u32, height: u32, color: Color) -> Vec<u8> {
+        (0..width * height)
+            .flat_map(|_| [color.r, color.g, color.b, color.a])
+            .collect()
+    }
+
+    // Each pixel's red channel encodes its `x` and green channel encodes its
+    // `y`, so the sampled `Color` reveals the source coordinate it was read from.
+    fn positional_rgba(width: u32, height: u32) -> Vec<u8> {
+        let mut buf = Vec::with_capacity((width * height * 4) as usize);
+        for y in 0..height {
+            for x in 0..width {
+                buf.extend_from_slice(&[x as u8, y as u8, 0, 255]);
+            }
+        }
+        buf
+    }
+
+    fn positional_reference(x: f32, y: f32, scale: f32) -> ReferenceData {
+        let placement = ReferencePlacement::new(x, y, scale).unwrap();
+        ReferenceData::new(positional_rgba(4, 4), 4, 4, placement).unwrap()
+    }
+
+    #[test]
+    fn sample_at_maps_document_pixel_to_source_pixel_under_identity_placement() {
+        let color = Color::new(10, 20, 30, 255);
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
+        let data = ReferenceData::new(solid_rgba(4, 4, color), 4, 4, placement).unwrap();
+
+        assert_eq!(data.sample_at(2, 1), Some(color));
+    }
+
+    #[test]
+    fn sample_at_scale_up_by_2x_maps_consecutive_document_pixels_to_same_source_pixel() {
+        let data = positional_reference(0.0, 0.0, 2.0);
+
+        assert_eq!(data.sample_at(0, 0), Some(Color::new(0, 0, 0, 255)));
+        assert_eq!(data.sample_at(1, 0), Some(Color::new(0, 0, 0, 255)));
+        assert_eq!(data.sample_at(2, 0), Some(Color::new(1, 0, 0, 255)));
+        assert_eq!(data.sample_at(3, 0), Some(Color::new(1, 0, 0, 255)));
+    }
+
+    #[test]
+    fn sample_at_scale_up_by_3x_uses_three_consecutive_document_pixels_per_source_pixel() {
+        let data = positional_reference(0.0, 0.0, 3.0);
+
+        let footprint: Vec<_> = (0..6).map(|x| data.sample_at(x, 0)).collect();
+
+        assert_eq!(
+            footprint,
+            vec![
+                Some(Color::new(0, 0, 0, 255)),
+                Some(Color::new(0, 0, 0, 255)),
+                Some(Color::new(0, 0, 0, 255)),
+                Some(Color::new(1, 0, 0, 255)),
+                Some(Color::new(1, 0, 0, 255)),
+                Some(Color::new(1, 0, 0, 255)),
+            ],
+        );
+    }
+
+    #[test]
+    fn sample_at_scale_down_by_half_floors_to_every_second_source_pixel() {
+        let data = positional_reference(0.0, 0.0, 0.5);
+
+        let row: Vec<_> = (0..2).map(|x| data.sample_at(x, 0)).collect();
+
+        assert_eq!(
+            row,
+            vec![
+                Some(Color::new(0, 0, 0, 255)),
+                Some(Color::new(2, 0, 0, 255)),
+            ],
+        );
+    }
+
+    #[test]
+    fn sample_at_sub_pixel_placement_offsets_snap_to_integer_source_coords() {
+        let data = positional_reference(-0.3, 0.7, 1.0);
+
+        assert_eq!(data.sample_at(2, 1), Some(Color::new(2, 0, 0, 255)));
+    }
+
+    #[test]
+    fn sample_at_reaches_last_row_and_last_column_pixels() {
+        let data = positional_reference(0.0, 0.0, 1.0);
+
+        assert_eq!(data.sample_at(3, 3), Some(Color::new(3, 3, 0, 255)));
+        assert_eq!(data.sample_at(3, 0), Some(Color::new(3, 0, 0, 255)));
+        assert_eq!(data.sample_at(0, 3), Some(Color::new(0, 3, 0, 255)));
+    }
+
+    #[test]
+    fn sample_at_returns_none_when_document_coord_falls_before_shifted_source_origin() {
+        let data = positional_reference(2.0, 0.0, 1.0);
+
+        assert_eq!(data.sample_at(0, 0), None);
+    }
+
+    #[test]
+    fn sample_at_returns_none_when_document_coord_is_past_source_right_edge() {
+        let data = positional_reference(0.0, 0.0, 1.0);
+
+        assert_eq!(data.sample_at(4, 0), None);
+    }
+
+    #[test]
+    fn sample_at_returns_none_when_document_coord_is_past_source_bottom_edge() {
+        let data = positional_reference(0.0, 0.0, 1.0);
+
+        assert_eq!(data.sample_at(0, 4), None);
+    }
+
     #[test]
     fn reference_data_new_rejects_buffer_length_mismatch() {
-        let placement = ReferencePlacement {
-            x: 0.0,
-            y: 0.0,
-            scale: 1.0,
-        };
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
         let err = ReferenceData::new(vec![0u8; 10], 4, 4, placement).unwrap_err();
         assert_eq!(
             err,
@@ -248,11 +381,7 @@ mod tests {
 
     #[test]
     fn reference_data_new_rejects_zero_dimension() {
-        let placement = ReferencePlacement {
-            x: 0.0,
-            y: 0.0,
-            scale: 1.0,
-        };
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
         let err = ReferenceData::new(vec![], 0, 4, placement).unwrap_err();
         assert_eq!(err, ReferenceDataError::InvalidDimension { value: 0 });
     }
@@ -260,11 +389,7 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "32")]
     fn reference_data_new_rejects_dimensions_that_overflow_usize_on_32_bit() {
-        let placement = ReferencePlacement {
-            x: 0.0,
-            y: 0.0,
-            scale: 1.0,
-        };
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
         let err = ReferenceData::new(vec![], 65536, 65536, placement).unwrap_err();
         assert_eq!(
             err,

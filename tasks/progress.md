@@ -2,11 +2,11 @@
 
 ## Currently Working On
 
-Seal Reference Layer Placement Invariants into the Core ([issue 166](../issues/166-seal-reference-placement-invariants-into-core.md))
+None
 
 ## Last Completed
 
-[165 — Deepen the Reference Window Placement Interaction](../issues/165-deepen-reference-window-placement-interaction.md): The References module now owns the Reference Window move/resize gesture lifecycle end-to-end, and auto-save marks dirty once per completed gesture (a mid-drag flush can no longer persist unclamped positions). Follow-up to evaluate on touch hardware: only one window gesture is active at a time, so two-finger simultaneous window drags no longer move both.
+[166 — Seal Reference Layer Placement Invariants into the Core](../issues/166-seal-reference-placement-invariants-into-core.md): The Reference Layer Placement invariant (finite position, scale > 0) now lives in the core's validating constructor with private fields — illegal placements are unrepresentable, and adapters shrink to marshalling. Retired two review-backlog items (scale invariant, `sample_reference` → `ReferenceData::sample_at`); the wasm `cargo fmt` debt item also looks already resolved — confirm and retire.
 
 ## Next Up
 
@@ -33,4 +33,4 @@ Seal Reference Layer Placement Invariants into the Core ([issue 166](../issues/1
 - Document rename
 - Canvas resize via border drag
 - Timelapse recording
-- `cargo fmt` debt in `wasm/src/lib.rs`
+- `cargo fmt` debt in `wasm/src/lib.rs` (likely already resolved — confirm and retire)

@@ -45,7 +45,9 @@
 
 <div class="tool-strip-shell">
 	{#if shouldDescribeConstrain}
-		<span id={constrainStatusId} class="sr-only">{constrainStatusText}</span>
+		<span id={constrainStatusId} class="sr-only" role="status" aria-live="polite">
+			{constrainStatusText}
+		</span>
 	{/if}
 	<div class="tool-strip">
 		{#each TOOL_ENTRIES as tool}

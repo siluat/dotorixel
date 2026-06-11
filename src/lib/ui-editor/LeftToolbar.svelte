@@ -45,7 +45,9 @@
 
 <aside class="left-toolbar">
 	{#if shouldDescribeConstrain}
-		<span id={constrainStatusId} class="sr-only">{constrainStatusText}</span>
+		<span id={constrainStatusId} class="sr-only" role="status" aria-live="polite">
+			{constrainStatusText}
+		</span>
 	{/if}
 	{#each TOOL_ENTRIES as tool}
 		<button

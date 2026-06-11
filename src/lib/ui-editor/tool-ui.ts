@@ -42,3 +42,9 @@ export const TOOL_ENTRIES: readonly ToolUIEntry[] = TOOL_TYPES.map((type) => {
 	const ui = TOOL_UI[type];
 	return { type, icon: ui.icon, label: ui.label, shortcutKey: def.shortcutKey, cursor: def.cursor };
 });
+
+const CONSTRAINABLE_TOOLS = new Set<ToolType>(['line', 'rectangle', 'ellipse', 'selection']);
+
+export function isConstrainableTool(type: ToolType): boolean {
+	return CONSTRAINABLE_TOOLS.has(type);
+}

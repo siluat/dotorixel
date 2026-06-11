@@ -39,6 +39,16 @@ function getPixel(editor: EditorController, x: number, y: number): Color {
 	return { r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: pixels[i + 3] };
 }
 
+function expectHorizontalConstrainedLine(editor: EditorController): void {
+	expect(getPixel(editor, 5, 0)).toEqual(BLACK);
+	expect(getPixel(editor, 5, 1)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+}
+
+function expectFreeLine(editor: EditorController): void {
+	expect(getPixel(editor, 5, 0)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+	expect(getPixel(editor, 5, 1)).toEqual(BLACK);
+}
+
 describe('EditorController — construction & escape hatches', () => {
 	it('createEditorController returns a fully wired controller', () => {
 		const { editor } = makeController();
@@ -221,6 +231,63 @@ describe('EditorController — keyboard projections', () => {
 		expect(editor.isShiftHeld).toBe(true);
 		editor.handleKeyUp(new KeyboardEvent('keyup', { code: 'ShiftLeft' }));
 		expect(editor.isShiftHeld).toBe(false);
+	});
+});
+
+describe('EditorController — constrain latch', () => {
+	it('defaults off and toggles without marking the document dirty', () => {
+		const { editor, notifier } = makeController();
+		notifier.reset();
+
+		expect(editor.isConstrainLatchOn).toBe(false);
+
+		editor.toggleConstrainLatch();
+		expect(editor.isConstrainLatchOn).toBe(true);
+
+		editor.toggleConstrainLatch();
+		expect(editor.isConstrainLatchOn).toBe(false);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('keeps toggleConstrainLatch bound when passed as a callback', () => {
+		const { editor } = makeController();
+		const toggle = editor.toggleConstrainLatch;
+
+		toggle();
+
+		expect(editor.isConstrainLatchOn).toBe(true);
+	});
+
+	it('OR-combines keyboard Shift and the latch at the tool seam', () => {
+		const { editor: neither } = makeController();
+		drawLine(neither, { x: 0, y: 0 }, { x: 5, y: 1 });
+		expectFreeLine(neither);
+
+		const { editor: keyboardOnly } = makeController();
+		keyboardOnly.handleKeyDown(new KeyboardEvent('keydown', { code: 'ShiftLeft' }));
+		drawLine(keyboardOnly, { x: 0, y: 0 }, { x: 5, y: 1 });
+		expectHorizontalConstrainedLine(keyboardOnly);
+
+		const { editor: latchOnly } = makeController();
+		latchOnly.toggleConstrainLatch();
+		drawLine(latchOnly, { x: 0, y: 0 }, { x: 5, y: 1 });
+		expectHorizontalConstrainedLine(latchOnly);
+
+		const { editor: both } = makeController();
+		both.handleKeyDown(new KeyboardEvent('keydown', { code: 'ShiftLeft' }));
+		both.toggleConstrainLatch();
+		drawLine(both, { x: 0, y: 0 }, { x: 5, y: 1 });
+		expectHorizontalConstrainedLine(both);
+	});
+
+	it('resets to off when the workspace is restored from a snapshot', () => {
+		const { editor } = makeController();
+		editor.toggleConstrainLatch();
+
+		const restored = editor.workspace.toSnapshot();
+		const { editor: reloaded } = makeController({ restored });
+
+		expect(reloaded.isConstrainLatchOn).toBe(false);
 	});
 });
 

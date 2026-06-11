@@ -30,4 +30,4 @@ Covers parent user stories 10 and 11.
 
 ## Blocked by
 
-- [169 — Constrain latch + touch tool strip toggle](169-constrain-latch-touch-toggle.md)
+None - can start immediately

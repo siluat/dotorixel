@@ -59,6 +59,9 @@ export class EditorController {
 	get pixelPerfect(): boolean {
 		return this.workspace.shared.pixelPerfect;
 	}
+	get isConstrainLatchOn(): boolean {
+		return this.workspace.isConstrainLatchOn;
+	}
 	get toolCursor(): string {
 		return TOOL_CURSORS[this.workspace.shared.activeTool];
 	}
@@ -146,6 +149,9 @@ export class EditorController {
 	togglePixelPerfect(): void {
 		this.workspace.togglePixelPerfect();
 	}
+	toggleConstrainLatch = (): void => {
+		this.workspace.toggleConstrainLatch();
+	};
 
 	// Drawing handlers
 	handleDrawStart = (button: number, pointerType: PointerType): void => {

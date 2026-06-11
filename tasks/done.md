@@ -2,6 +2,8 @@
 
 | # | Task | Date |
 |---|------|------|
+| 171 | [Constrain toggle in the docked layout](../issues/171-constrain-toggle-docked-layout.md) | 2026-06-11 |
+| 169 | [Constrain latch + touch tool strip toggle](../issues/169-constrain-latch-touch-toggle.md) | 2026-06-11 |
 | 167 | [Retire the workspace cargo fmt debt](../issues/167-workspace-cargo-fmt-debt.md) | 2026-06-11 |
 | 166 | [Seal Reference Layer Placement Invariants into the Core](../issues/166-seal-reference-placement-invariants-into-core.md) | 2026-06-10 |
 | 165 | [Deepen the Reference Window Placement Interaction](../issues/165-deepen-reference-window-placement-interaction.md) | 2026-06-10 |

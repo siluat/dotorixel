@@ -86,6 +86,7 @@ export class Workspace {
 	readonly references: References;
 	tabs = $state<TabState[]>([]);
 	activeIndex = $state(0);
+	isConstrainLatchOn = $state(false);
 
 	#backend: CanvasBackend;
 	#notifier: DirtyNotifier;
@@ -140,7 +141,9 @@ export class Workspace {
 		return new TabState({
 			backend: this.#backend,
 			shared: this.shared,
-			keyboard: this.#keyboard,
+			keyboard: {
+				getShiftHeld: () => this.#keyboard.getShiftHeld() || this.isConstrainLatchOn
+			},
 			notifier: this.#notifier,
 			documentId,
 			name,
@@ -232,6 +235,10 @@ export class Workspace {
 		this.shared.foregroundColor = this.shared.backgroundColor;
 		this.shared.backgroundColor = temp;
 		this.#notifier.markDirty(this.activeTab.documentId);
+	}
+
+	toggleConstrainLatch(): void {
+		this.isConstrainLatchOn = !this.isConstrainLatchOn;
 	}
 
 	setSelectionClipboard(value: SelectionClipboardData | null): void {

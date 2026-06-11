@@ -1,6 +1,6 @@
 ---
 title: "Constrain toggle in the docked layout"
-status: ready-for-agent
+status: done
 created: 2026-06-11
 parent: 168-touch-modifier-alternatives.md
 ---
@@ -34,3 +34,20 @@ Extends parent user story 12 (and stories 1–9) to the docked layout.
 ## Blocked by
 
 - [169 — Constrain latch + touch tool strip toggle](169-constrain-latch-touch-toggle.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/ui-editor/LeftToolbar.svelte` | Added docked retap-to-toggle behavior, latch indicator, accessible state text, and 44px tool/action buttons. |
+| `src/lib/ui-editor/LeftToolbar.stories.svelte` | Added latch props and a latched docked toolbar story. |
+| `src/routes/editor/+page.svelte` | Wired the shared workspace latch into the docked toolbar. |
+| `src/lib/ui-editor/LeftToolbar.svelte.test.ts` | Covered docked retap toggling, non-constrainable tools, indicator state, selection behavior, and accessibility text. |
+
+### Key Decisions
+
+- Used the same active-tool retap gesture in the docked toolbar instead of adding a separate Constrain button, so resizing from compact to docked preserves both state and the user's off-ramp.
+
+### Notes
+
+- This completes the docked escape path for a latch that was turned on before a layout-mode change.

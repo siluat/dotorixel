@@ -2,14 +2,15 @@
 
 ## Currently Working On
 
-Touch modifier alternatives — touch-reachable Shift-constrain ([PRD](../issues/168-touch-modifier-alternatives.md)). PRD authored and decomposed into 3 sub-issues (169–171); all ready-for-agent. Next implementable: [169 — Constrain latch + touch tool strip toggle](../issues/169-constrain-latch-touch-toggle.md) (no blockers; 170 and 171 are blocked by it).
+Touch modifier alternatives — touch-reachable Shift-constrain ([PRD](../issues/168-touch-modifier-alternatives.md)). 2 of 3 sub-issues are done: [169](../issues/169-constrain-latch-touch-toggle.md) shipped the shared latch and compact retap control, and [171](../issues/171-constrain-toggle-docked-layout.md) shipped the docked off-ramp. Next implementable: [170 — Mid-stroke toggle immediate refresh](../issues/170-constrain-latch-mid-stroke-refresh.md).
 
 ## Last Completed
 
-[167 — Retire the workspace cargo fmt debt](../issues/167-workspace-cargo-fmt-debt.md): The wasm half was already resolved; the same debt had moved to `apple/src/lib.rs`, so the item was widened to workspace scope and `cargo fmt --check` now passes workspace-wide. Note: no hook/CI enforces workspace fmt — this debt accumulated silently twice.
+[169 — Constrain latch + touch tool strip toggle](../issues/169-constrain-latch-touch-toggle.md) and [171 — Constrain toggle in the docked layout](../issues/171-constrain-toggle-docked-layout.md): Touch users can latch Shift-equivalent constrain by retapping the active constrainable tool, and the same gesture turns it off after resizing into the docked layout. Immediate stationary-pointer mid-stroke refresh remains in [170](../issues/170-constrain-latch-mid-stroke-refresh.md).
 
 ## Next Up
 
+- Touch modifier alternatives — [170 — Mid-stroke toggle immediate refresh](../issues/170-constrain-latch-mid-stroke-refresh.md)
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load

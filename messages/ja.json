@@ -37,6 +37,8 @@
 	"canvas_current": "現在:",
 	"status_marquee": "選択範囲: {width}×{height} ({x}, {y})",
 	"status_marqueeCompact": "{width}×{height}",
+	"status_constrainLatchOn": "制約がオンです。このツールをもう一度有効にするとオフになります。",
+	"status_constrainLatchOff": "制約がオフです。このツールをもう一度有効にするとオンになります。",
 
 	"color_recent": "最近の色",
 	"color_hexCode": "HEXカラーコード",

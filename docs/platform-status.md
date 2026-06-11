@@ -82,6 +82,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Touch | — | ✅ | ✅ | Pointer Events / UITouch; Web: pinch-zoom + two-finger pan + touch deferral + long-press eyedropper |
 | Apple Pencil | — | — | ✅ | |
 | Keyboard shortcuts | — | ✅ | ✅ | Web: tools, grid, undo/redo, Alt eyedropper, Space pan, X color swap, Shift constrain, `/` hints, selection C/X/V. Apple: undo/redo only |
+| Touch constrain latch | — | 🔧 | ⬜ | Active constrainable tool retap latches Shift-equivalent constrain across compact/docked; resets on reload; stationary mid-stroke refresh pending |
 
 ## i18n
 

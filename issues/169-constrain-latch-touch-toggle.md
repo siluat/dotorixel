@@ -1,6 +1,6 @@
 ---
 title: "Constrain latch + touch tool strip toggle"
-status: ready-for-agent
+status: done
 created: 2026-06-11
 parent: 168-touch-modifier-alternatives.md
 ---
@@ -39,3 +39,25 @@ Covers parent user stories 1–9 and 12–17 on the touch (non-docked) layout.
 ## Blocked by
 
 None - can start immediately
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/editor-session/workspace.svelte.ts` | Added the workspace-scoped Constrain latch and OR-combined it with keyboard Shift at the existing held-modifier seam. |
+| `src/lib/canvas/editor-session/editor-controller.svelte.ts` | Exposed latch state and a bound toggle command to the editor UI. |
+| `src/lib/ui-editor/tool-ui.ts` | Named the constrainable tool set for shared toolbar gating. |
+| `src/lib/ui-editor/ToolStrip.svelte` | Added compact/medium retap-to-toggle behavior, latch indicator, accessible state text, and 44px touch targets. |
+| `src/routes/editor/+page.svelte` | Wired the latch state and toggle command into the editor tool surfaces. |
+| `messages/en.json`, `messages/ko.json`, `messages/ja.json` | Added localized latch state text. |
+| `src/lib/canvas/editor-session/editor-controller.svelte.test.ts` | Covered latch defaults, callback binding, keyboard/latch OR behavior, drawing constraint behavior, and reload reset. |
+| `src/lib/ui-editor/ToolStrip.svelte.test.ts` | Covered compact/medium retap toggling, non-constrainable tools, indicator state, selection behavior, and accessibility text. |
+
+### Key Decisions
+
+- Chose active-tool retap as the control instead of adding a separate Constrain button. This preserves compact toolbar width and gives the same gesture for turning the latch on and off.
+- The latch remains session-transient and does not dirty or persist the document.
+
+### Notes
+
+- Immediate stationary-pointer mid-stroke refresh remains deferred to issue 170. The latch already affects subsequent draw samples because tools live-read the same held-modifier state.

@@ -37,6 +37,8 @@
 	"canvas_current": "Current:",
 	"status_marquee": "Marquee: {width}×{height} at ({x}, {y})",
 	"status_marqueeCompact": "{width}×{height}",
+	"status_constrainLatchOn": "Constrain is on. Activate this tool again to turn it off.",
+	"status_constrainLatchOff": "Constrain is off. Activate this tool again to turn it on.",
 
 	"color_recent": "Recent",
 	"color_hexCode": "Hex color code",

@@ -1,28 +1,62 @@
 <script lang="ts">
 	import { Undo2, Redo2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
-	import { TOOL_ENTRIES, type ToolType } from '$lib/ui-editor/tool-ui';
+	import { TOOL_ENTRIES, isConstrainableTool, type ToolType } from '$lib/ui-editor/tool-ui';
 	import { tooltip } from '$lib/tooltip';
 
 	interface Props {
 		activeTool: ToolType;
 		canUndo: boolean;
 		canRedo: boolean;
+		constrainLatchOn: boolean;
 		onToolChange: (tool: ToolType) => void;
 		onUndo: () => void;
 		onRedo: () => void;
+		onConstrainLatchToggle: () => void;
 	}
 
-	let { activeTool, canUndo, canRedo, onToolChange, onUndo, onRedo }: Props = $props();
+	let {
+		activeTool,
+		canUndo,
+		canRedo,
+		constrainLatchOn,
+		onToolChange,
+		onUndo,
+		onRedo,
+		onConstrainLatchToggle
+	}: Props = $props();
+
+	const constrainStatusId = 'left-toolbar-constrain-status';
+
+	const shouldDescribeConstrain = $derived(isConstrainableTool(activeTool));
+	const constrainStatusText = $derived(
+		constrainLatchOn ? m.status_constrainLatchOn() : m.status_constrainLatchOff()
+	);
+
+	function handleToolClick(tool: ToolType) {
+		if (tool === activeTool && isConstrainableTool(tool)) {
+			onConstrainLatchToggle();
+			return;
+		}
+
+		onToolChange(tool);
+	}
 </script>
 
 <aside class="left-toolbar">
+	{#if shouldDescribeConstrain}
+		<span id={constrainStatusId} class="sr-only">{constrainStatusText}</span>
+	{/if}
 	{#each TOOL_ENTRIES as tool}
 		<button
 			class="tool-btn"
 			class:active={activeTool === tool.type}
-			onclick={() => onToolChange(tool.type)}
+			class:latched={constrainLatchOn && activeTool === tool.type && isConstrainableTool(tool.type)}
+			onclick={() => handleToolClick(tool.type)}
 			aria-label={tool.label()}
+			aria-describedby={activeTool === tool.type && isConstrainableTool(tool.type)
+				? constrainStatusId
+				: undefined}
 			aria-pressed={activeTool === tool.type}
 			use:tooltip={{ text: `${tool.label()} (${tool.shortcutKey})`, placement: 'right' }}
 		>
@@ -64,6 +98,18 @@
 		overflow-y: auto;
 	}
 
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
 	@media (min-width: 1440px) {
 		.left-toolbar {
 			padding: 8px 0;
@@ -72,11 +118,12 @@
 	}
 
 	.tool-btn {
+		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 36px;
-		height: 36px;
+		width: var(--ds-touch-target-min);
+		height: var(--ds-touch-target-min);
 		border: none;
 		background: none;
 		border-radius: var(--ds-radius-sm);
@@ -92,6 +139,20 @@
 	.tool-btn.active {
 		background: var(--ds-accent-subtle);
 		color: var(--ds-accent);
+	}
+
+	.tool-btn.latched::after {
+		content: '';
+		position: absolute;
+		right: 6px;
+		top: 6px;
+		width: 8px;
+		height: 8px;
+		border-radius: 999px;
+		background: var(--ds-accent);
+		box-shadow:
+			0 0 0 2px var(--ds-bg-surface),
+			0 0 0 3px var(--ds-accent);
 	}
 
 	.separator {
@@ -111,8 +172,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 36px;
-		height: 36px;
+		width: var(--ds-touch-target-min);
+		height: var(--ds-touch-target-min);
 		border: none;
 		background: none;
 		border-radius: var(--ds-radius-sm);

@@ -31,6 +31,8 @@
 	"action_selectionCancel": "Cancel",
 	"action_selectionDuplicate": "Duplicate",
 
+	"modifier_constrain": "Constrain",
+
 	"canvas_width": "Canvas width",
 	"canvas_height": "Canvas height",
 	"canvas_size": "Canvas Size",

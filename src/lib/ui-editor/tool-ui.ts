@@ -10,9 +10,38 @@ import {
 	Move
 } from 'lucide-svelte';
 import * as m from '$lib/paraglide/messages';
-import { TOOL_TYPES, getToolDef, type ToolType } from '$lib/canvas/tool-registry';
+import { TOOL_TYPES, getToolDef, isConstrainableTool, type ToolType } from '$lib/canvas/tool-registry';
 
 export type { ToolType } from '$lib/canvas/tool-registry';
+
+/**
+ * A tap or click on the already-active tool toggles the Constrain latch when
+ * that tool can constrain. Shared by every toolbar that renders tool buttons
+ * (touch strip, docked toolbar) so the gesture means the same thing everywhere.
+ */
+export function isConstrainToggleTap(tool: ToolType, activeTool: ToolType): boolean {
+	return tool === activeTool && isConstrainableTool(tool);
+}
+
+/** Whether a tool button should carry the Constrain dot and announce the latched state. */
+export function showsConstrainState(
+	tool: ToolType,
+	activeTool: ToolType,
+	constrainActive: boolean
+): boolean {
+	return constrainActive && isConstrainToggleTap(tool, activeTool);
+}
+
+/** Accessible button label for a tool, announcing the Constrain state while latched. */
+export function toolButtonLabel(
+	entry: Pick<ToolUIEntry, 'type' | 'label'>,
+	activeTool: ToolType,
+	constrainActive: boolean
+): string {
+	return showsConstrainState(entry.type, activeTool, constrainActive)
+		? `${entry.label()} (${m.modifier_constrain()})`
+		: entry.label();
+}
 
 /** Merged core + UI metadata for a single tool. */
 export interface ToolUIEntry {

@@ -600,9 +600,11 @@
 			activeTool={editor.activeTool}
 			canUndo={editor.canUndo}
 			canRedo={editor.canRedo}
+			constrainActive={editor.isConstrainActive}
 			onToolChange={(tool) => editor.setTool(tool)}
 			onUndo={editor.handleUndo}
 			onRedo={editor.handleRedo}
+			onToggleConstrain={editor.toggleConstrain}
 		/>
 
 		<div
@@ -806,9 +808,11 @@
 				activeTool={editor.activeTool}
 				canUndo={editor.canUndo}
 				canRedo={editor.canRedo}
+				constrainActive={editor.isConstrainActive}
 				onToolChange={(tool) => editor.setTool(tool)}
 				onUndo={editor.handleUndo}
 				onRedo={editor.handleRedo}
+				onToggleConstrain={editor.toggleConstrain}
 			/>
 			<ColorBar
 				foregroundColor={editor.foregroundColorHex}

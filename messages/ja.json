@@ -31,6 +31,8 @@
 	"action_selectionCancel": "キャンセル",
 	"action_selectionDuplicate": "複製",
 
+	"modifier_constrain": "固定",
+
 	"canvas_width": "キャンバス幅",
 	"canvas_height": "キャンバス高さ",
 	"canvas_size": "キャンバスサイズ",

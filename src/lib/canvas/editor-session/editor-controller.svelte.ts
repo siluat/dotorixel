@@ -10,6 +10,7 @@ import type { Color } from '../color';
 import { colorToHex, hexToColor } from '../color';
 import { TOOL_CURSORS, type ToolType } from '../tool-registry';
 import type { KeyboardInput } from '../keyboard-input.svelte';
+import type { ConstrainLatch } from '../constrain-latch.svelte';
 import type { ReferenceSamplingSession } from '../../reference-images/reference-sampling-session.svelte';
 import type { LoupeInputSource, SamplingSessionView } from '../sampling/types';
 import type { PointerType } from '../canvas-interaction.svelte';
@@ -25,6 +26,8 @@ import type { Workspace } from './workspace.svelte';
  * - Per-tab state lives on `workspace.activeTab` (canvas, viewport, history).
  * - Workspace-shared state lives on `workspace.shared` (active tool, colors).
  * - Keyboard lifecycle is owned by the controller via `keyboard`.
+ * - The Constrain latch is owned by the controller via `constrainLatch`;
+ *   it is OR-combined with keyboard Shift at the composition root.
  *
  * The underlying instances are exposed as `readonly` fields so callers that
  * genuinely need ownership-aware access (persistence, tests, gestures) can
@@ -34,7 +37,8 @@ import type { Workspace } from './workspace.svelte';
 export class EditorController {
 	constructor(
 		readonly workspace: Workspace,
-		readonly keyboard: KeyboardInput
+		readonly keyboard: KeyboardInput,
+		readonly constrainLatch: ConstrainLatch
 	) {}
 
 	// Shared-state projections
@@ -132,6 +136,14 @@ export class EditorController {
 	get isShortcutHintsVisible(): boolean {
 		return this.keyboard.isShortcutHintsVisible;
 	}
+
+	// Constrain latch (state projection + toggle command)
+	get isConstrainActive(): boolean {
+		return this.constrainLatch.isActive;
+	}
+	toggleConstrain = (): void => {
+		this.constrainLatch.toggle();
+	};
 
 	// Explicit setters (route through workspace so dirty notifications fire)
 	setTool(tool: ToolType): void {

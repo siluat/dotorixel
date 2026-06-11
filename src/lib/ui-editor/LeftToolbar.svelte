@@ -1,19 +1,36 @@
 <script lang="ts">
 	import { Undo2, Redo2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
-	import { TOOL_ENTRIES, type ToolType } from '$lib/ui-editor/tool-ui';
+	import {
+		TOOL_ENTRIES,
+		isConstrainToggleTap,
+		showsConstrainState,
+		toolButtonLabel,
+		type ToolType
+	} from '$lib/ui-editor/tool-ui';
 	import { tooltip } from '$lib/tooltip';
 
 	interface Props {
 		activeTool: ToolType;
 		canUndo: boolean;
 		canRedo: boolean;
+		constrainActive: boolean;
 		onToolChange: (tool: ToolType) => void;
 		onUndo: () => void;
 		onRedo: () => void;
+		onToggleConstrain: () => void;
 	}
 
-	let { activeTool, canUndo, canRedo, onToolChange, onUndo, onRedo }: Props = $props();
+	let { activeTool, canUndo, canRedo, constrainActive, onToolChange, onUndo, onRedo, onToggleConstrain }: Props =
+		$props();
+
+	function handleToolTap(tool: ToolType) {
+		if (isConstrainToggleTap(tool, activeTool)) {
+			onToggleConstrain();
+			return;
+		}
+		onToolChange(tool);
+	}
 </script>
 
 <aside class="left-toolbar">
@@ -21,12 +38,15 @@
 		<button
 			class="tool-btn"
 			class:active={activeTool === tool.type}
-			onclick={() => onToolChange(tool.type)}
-			aria-label={tool.label()}
+			onclick={() => handleToolTap(tool.type)}
+			aria-label={toolButtonLabel(tool, activeTool, constrainActive)}
 			aria-pressed={activeTool === tool.type}
 			use:tooltip={{ text: `${tool.label()} (${tool.shortcutKey})`, placement: 'right' }}
 		>
 			<tool.icon size={18} />
+			{#if showsConstrainState(tool.type, activeTool, constrainActive)}
+				<span class="constrain-badge" aria-hidden="true"></span>
+			{/if}
 		</button>
 	{/each}
 
@@ -72,6 +92,7 @@
 	}
 
 	.tool-btn {
+		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -87,6 +108,17 @@
 
 	.tool-btn:hover {
 		background: var(--ds-bg-hover);
+	}
+
+	.constrain-badge {
+		position: absolute;
+		top: 2px;
+		right: 2px;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--ds-accent);
+		pointer-events: none;
 	}
 
 	.tool-btn.active {

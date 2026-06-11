@@ -7,13 +7,14 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 149 | 115 | 34 | 150 | 77% | 43% |
-| cubic-dev-ai[bot] | 105 | 87 | 18 | 174 | 83% | 33% |
+| cubic-dev-ai[bot] | 106 | 87 | 19 | 174 | 82% | 33% |
 | coderabbitai[bot] | 205 | 147 | 58 | 111 | 72% | 57% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #266 | cubic-dev-ai[bot] | Reject | Flagged keyboard activation of the active tool toggling the latch, implying pointer-only gating; Enter/Space→click is standard button semantics and pointer-gating would deny keyboard/AT users the affordance (WCAG 2.1.1) |
 | #263 | cubic-dev-ai[bot] | Reject | Flagged the release-active asserts as contradicting a debug_assert "pattern"; they are the accepted round-1 fix, and the remaining debug_asserts are redundant tripwires, not sole invariant enforcement |
 | #263 | coderabbitai[bot] | Accept | fit_to_canvas/auto_fit guarded only by debug_assert — invariant escapable in release; promoted to release-active assert |
 | #263 | greptile-apps[bot] | Accept | Same finding — fit_to_canvas can silently produce scale 0 in release builds |

@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None
+Touch modifier alternatives — touch-reachable Shift-constrain ([PRD](../issues/168-touch-modifier-alternatives.md)). PRD authored and decomposed into 3 sub-issues (169–171); all ready-for-agent. Next implementable: [169 — Constrain latch + touch tool strip toggle](../issues/169-constrain-latch-touch-toggle.md) (no blockers; 170 and 171 are blocked by it).
 
 ## Last Completed
 
@@ -10,7 +10,6 @@ None
 
 ## Next Up
 
-- Touch modifier alternatives (touch Shift-constrain, Selection axis lock, Alt-eyedropper UI)
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load

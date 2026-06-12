@@ -34,7 +34,7 @@ function getToolLabel(type: ToolType): string {
 }
 
 function getToolButton(type: ToolType): HTMLElement {
-	return screen.getByRole('button', { name: getToolLabel(type) });
+	return screen.getByRole('radio', { name: getToolLabel(type) });
 }
 
 export function createConstrainLatchToolbarDefaults(): ConstrainLatchToolbarProps {
@@ -91,8 +91,11 @@ export function defineConstrainLatchToolbarContract(
 		const activeButton = getToolButton('line');
 
 		expect(activeButton.classList.contains('latched')).toBe(true);
-		expect(activeButton.getAttribute('aria-current')).toBe('true');
+		expect(activeButton.getAttribute('role')).toBe('radio');
+		expect(activeButton.getAttribute('aria-checked')).toBe('true');
+		expect(activeButton.hasAttribute('aria-current')).toBe(false);
 		expect(activeButton.hasAttribute('aria-pressed')).toBe(false);
+		expect(screen.getByRole('radiogroup', { name: 'Drawing Tools' })).toBeTruthy();
 	});
 
 	it('does not mark a non-constrainable active tool when the latch is on', () => {
@@ -100,7 +103,9 @@ export function defineConstrainLatchToolbarContract(
 		const activeButton = getToolButton('pencil');
 
 		expect(activeButton.classList.contains('latched')).toBe(false);
-		expect(activeButton.getAttribute('aria-current')).toBe('true');
+		expect(activeButton.getAttribute('role')).toBe('radio');
+		expect(activeButton.getAttribute('aria-checked')).toBe('true');
+		expect(activeButton.hasAttribute('aria-current')).toBe(false);
 		expect(activeButton.hasAttribute('aria-pressed')).toBe(false);
 		expect(screen.queryByRole('status')).toBeNull();
 	});
@@ -128,5 +133,13 @@ export function defineConstrainLatchToolbarContract(
 			'Constrain is on. Activate this tool again to turn it off.'
 		);
 		expect(getToolButton('line').getAttribute('aria-describedby')).toBe(status.id);
+	});
+
+	it('uses instance-unique status ids when multiple toolbars are mounted', () => {
+		renderToolbar({ activeTool: 'line', constrainLatchOn: true });
+		renderToolbar({ activeTool: 'rectangle', constrainLatchOn: true });
+		const statusIds = screen.getAllByRole('status').map((status) => status.id);
+
+		expect(new Set(statusIds).size).toBe(statusIds.length);
 	});
 }

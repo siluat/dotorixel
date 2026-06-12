@@ -6,14 +6,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 150 | 116 | 34 | 153 | 77% | 43% |
-| cubic-dev-ai[bot] | 108 | 90 | 18 | 175 | 83% | 34% |
-| coderabbitai[bot] | 207 | 149 | 58 | 113 | 72% | 57% |
+| greptile-apps[bot] | 150 | 116 | 34 | 155 | 77% | 43% |
+| cubic-dev-ai[bot] | 109 | 91 | 18 | 176 | 83% | 34% |
+| coderabbitai[bot] | 209 | 151 | 58 | 113 | 72% | 57% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #265 | coderabbitai[bot] | Accept | Fixed Constrain status IDs were duplicated across multiple toolbar mounts |
+| #265 | cubic-dev-ai[bot] | Miss | Did not flag duplicated Constrain status IDs across multiple toolbar mounts |
+| #265 | greptile-apps[bot] | Miss | Did not flag duplicated Constrain status IDs across multiple toolbar mounts |
+| #265 | coderabbitai[bot] | Accept | Replace aria-current tool selection with radiogroup/radio aria-checked semantics |
+| #265 | cubic-dev-ai[bot] | Accept | Same finding — aria-current was wrong for tool selection; fixed with radio semantics instead of aria-pressed |
+| #265 | greptile-apps[bot] | Miss | Did not flag aria-current tool selection semantics |
 | #265 | coderabbitai[bot] | Accept | Derive Constrain latch toolbar test labels and tool sets from tool-ui source exports |
 | #265 | cubic-dev-ai[bot] | Accept | Same finding — shared Constrain latch test helper duplicated tool labels and constrainable sets |
 | #265 | greptile-apps[bot] | Accept | Same finding — test helper list duplicated the production constrainable tool set |

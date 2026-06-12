@@ -26,7 +26,8 @@
 		onConstrainLatchToggle
 	}: Props = $props();
 
-	const constrainStatusId = 'left-toolbar-constrain-status';
+	const componentId = $props.id();
+	const constrainStatusId = `${componentId}-left-toolbar-constrain-status`;
 
 	const shouldDescribeConstrain = $derived(isConstrainableTool(activeTool));
 	const constrainStatusText = $derived(
@@ -49,22 +50,25 @@
 			{constrainStatusText}
 		</span>
 	{/if}
-	{#each TOOL_ENTRIES as tool}
-		<button
-			class="tool-btn"
-			class:active={activeTool === tool.type}
-			class:latched={constrainLatchOn && activeTool === tool.type && isConstrainableTool(tool.type)}
-			onclick={() => handleToolClick(tool.type)}
-			aria-label={tool.label()}
-			aria-describedby={activeTool === tool.type && isConstrainableTool(tool.type)
-				? constrainStatusId
-				: undefined}
-			aria-current={activeTool === tool.type ? 'true' : undefined}
-			use:tooltip={{ text: `${tool.label()} (${tool.shortcutKey})`, placement: 'right' }}
-		>
-			<tool.icon size={18} />
-		</button>
-	{/each}
+	<div class="tool-group" role="radiogroup" aria-label={m.landing_feature_tools_title()}>
+		{#each TOOL_ENTRIES as tool}
+			<button
+				class="tool-btn"
+				class:active={activeTool === tool.type}
+				class:latched={constrainLatchOn && activeTool === tool.type && isConstrainableTool(tool.type)}
+				onclick={() => handleToolClick(tool.type)}
+				role="radio"
+				aria-label={tool.label()}
+				aria-checked={activeTool === tool.type}
+				aria-describedby={activeTool === tool.type && isConstrainableTool(tool.type)
+					? constrainStatusId
+					: undefined}
+				use:tooltip={{ text: `${tool.label()} (${tool.shortcutKey})`, placement: 'right' }}
+			>
+				<tool.icon size={18} />
+			</button>
+		{/each}
+	</div>
 
 	<div class="separator"></div>
 
@@ -112,9 +116,20 @@
 		border: 0;
 	}
 
+	.tool-group {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
+	}
+
 	@media (min-width: 1440px) {
 		.left-toolbar {
 			padding: 8px 0;
+			gap: 4px;
+		}
+
+		.tool-group {
 			gap: 4px;
 		}
 	}

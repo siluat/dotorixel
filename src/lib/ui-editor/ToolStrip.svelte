@@ -26,7 +26,8 @@
 		onConstrainLatchToggle
 	}: Props = $props();
 
-	const constrainStatusId = 'tool-strip-constrain-status';
+	const componentId = $props.id();
+	const constrainStatusId = `${componentId}-tool-strip-constrain-status`;
 
 	const shouldDescribeConstrain = $derived(isConstrainableTool(activeTool));
 	const constrainStatusText = $derived(
@@ -50,22 +51,25 @@
 		</span>
 	{/if}
 	<div class="tool-strip">
-		{#each TOOL_ENTRIES as tool}
-			<button
-				class="tool-btn"
-				class:active={activeTool === tool.type}
-				class:latched={constrainLatchOn && activeTool === tool.type && isConstrainableTool(tool.type)}
-				onclick={() => handleToolClick(tool.type)}
-				aria-label={tool.label()}
-				aria-describedby={activeTool === tool.type && isConstrainableTool(tool.type)
-					? constrainStatusId
-					: undefined}
-				aria-current={activeTool === tool.type ? 'true' : undefined}
-				use:tooltip={`${tool.label()} (${tool.shortcutKey})`}
-			>
-				<tool.icon size={18} />
-			</button>
-		{/each}
+		<div class="tool-strip-tools" role="radiogroup" aria-label={m.landing_feature_tools_title()}>
+			{#each TOOL_ENTRIES as tool}
+				<button
+					class="tool-btn"
+					class:active={activeTool === tool.type}
+					class:latched={constrainLatchOn && activeTool === tool.type && isConstrainableTool(tool.type)}
+					onclick={() => handleToolClick(tool.type)}
+					role="radio"
+					aria-label={tool.label()}
+					aria-checked={activeTool === tool.type}
+					aria-describedby={activeTool === tool.type && isConstrainableTool(tool.type)
+						? constrainStatusId
+						: undefined}
+					use:tooltip={`${tool.label()} (${tool.shortcutKey})`}
+				>
+					<tool.icon size={18} />
+				</button>
+			{/each}
+		</div>
 
 		<!-- Undo: always shown -->
 		<button
@@ -126,6 +130,12 @@
 		flex-shrink: 0;
 	}
 
+	.tool-strip-tools {
+		display: flex;
+		align-items: center;
+		flex: 0 0 auto;
+	}
+
 	.tool-strip::-webkit-scrollbar {
 		display: none;
 	}
@@ -137,6 +147,11 @@
 			padding: 0 16px;
 			overflow-x: visible;
 			touch-action: auto;
+		}
+
+		.tool-strip-tools {
+			flex: 1 1 auto;
+			justify-content: space-around;
 		}
 	}
 

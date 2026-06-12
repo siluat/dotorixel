@@ -10,6 +10,7 @@ Touch modifier alternatives — touch-reachable Shift-constrain ([PRD](../issues
 
 ## Next Up
 
+- Constrain latch follow-ups (port of #265's strengths): [172 — shared contract tests](../issues/172-toolbar-constrain-latch-contract-tests.md) → [173 — radiogroup + live region](../issues/173-toolbar-radiogroup-live-region.md) → [174 — 44px touch targets + strip overflow](../issues/174-toolbar-touch-targets-strip-overflow.md); [175 — snapshot guard + wording](../issues/175-constrain-latch-snapshot-guard.md) is independent
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load

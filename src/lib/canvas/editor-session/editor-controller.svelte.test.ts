@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { EditorController } from './editor-controller.svelte';
 import { createEditorController, type CreateEditorControllerOptions } from './create-editor-controller';
 import { marqueeRegionFromDrag, wasmBackend } from '../wasm-backend';
@@ -283,6 +283,62 @@ describe('EditorController — Constrain latch', () => {
 
 		expect(getPixel(editor, 6, 1)).toEqual(BLACK);
 		expect(getPixel(editor, 6, 3)).toEqual(TRANSPARENT);
+	});
+
+	it('toggling the latch on mid-stroke snaps the in-flight line with the pointer stationary', () => {
+		const { editor } = makeController();
+		editor.setTool('line');
+		editor.handleDrawStart(0, 'mouse');
+		editor.handleDraw({ x: 1, y: 1 }, null);
+		editor.handleDraw({ x: 6, y: 3 }, { x: 1, y: 1 });
+
+		// Latch flips on while the pointer holds at {6,3}: the in-flight line
+		// must re-resolve to its constraint immediately, before any further move.
+		editor.toggleConstrain();
+		editor.handleDrawEnd();
+
+		expect(getPixel(editor, 6, 1)).toEqual(BLACK);
+		expect(getPixel(editor, 6, 3)).toEqual(TRANSPARENT);
+	});
+
+	it('toggling the latch off mid-stroke returns the in-flight line to free-form', () => {
+		const { editor } = makeController();
+		editor.toggleConstrain();
+		editor.setTool('line');
+		editor.handleDrawStart(0, 'mouse');
+		editor.handleDraw({ x: 1, y: 1 }, null);
+		editor.handleDraw({ x: 6, y: 3 }, { x: 1, y: 1 });
+
+		// Latch flips off while the pointer holds at {6,3}: the constrained
+		// preview reverts to the free-form endpoint immediately, erasing the
+		// previously constrained endpoint.
+		editor.toggleConstrain();
+		editor.handleDrawEnd();
+
+		expect(getPixel(editor, 6, 3)).toEqual(BLACK);
+		expect(getPixel(editor, 6, 1)).toEqual(TRANSPARENT);
+	});
+
+	it('toggling the latch while drawing fires the modifier-change notification', () => {
+		const { editor } = makeController();
+		editor.setTool('line');
+		editor.handleDrawStart(0, 'mouse');
+		editor.handleDraw({ x: 1, y: 1 }, null);
+		editor.handleDraw({ x: 6, y: 3 }, { x: 1, y: 1 });
+		const modifierChanged = vi.spyOn(editor.workspace.activeTab, 'modifierChanged');
+
+		editor.toggleConstrain();
+
+		expect(modifierChanged).toHaveBeenCalledOnce();
+	});
+
+	it('toggling the latch while idle does not fire the modifier-change notification', () => {
+		const { editor } = makeController();
+		const modifierChanged = vi.spyOn(editor.workspace.activeTab, 'modifierChanged');
+
+		editor.toggleConstrain();
+
+		expect(modifierChanged).not.toHaveBeenCalled();
 	});
 });
 

@@ -2,15 +2,15 @@
 
 ## Currently Working On
 
-Touch modifier alternatives — touch-reachable Shift-constrain ([PRD](../issues/168-touch-modifier-alternatives.md)). 2 of 3 sub-issues done (169 + 171, delivered together); only [170 — Mid-stroke toggle immediate refresh](../issues/170-constrain-latch-mid-stroke-refresh.md) remains, now unblocked.
+None
 
 ## Last Completed
 
-[169 — Constrain latch + touch tool strip toggle](../issues/169-constrain-latch-touch-toggle.md) + [171 — Constrain toggle in the docked layout](../issues/171-constrain-toggle-docked-layout.md): re-tapping the active constrainable tool toggles a workspace Constrain latch (accent corner dot + label announce), OR-combined with keyboard Shift at the existing seam — uniform across the touch strip and docked toolbar, so the latch is visible and clearable in every layout. 171's "dedicated toggle button" design was superseded by the re-tap gesture during implementation.
+[170 — Constrain latch mid-stroke toggle — immediate in-flight refresh](../issues/170-constrain-latch-mid-stroke-refresh.md): toggling the latch during an active stroke now fires the same modifier-change notification as keyboard Shift, so the in-flight shape re-resolves with the pointer stationary. Completes parent PRD [168 — Touch modifier alternatives](../issues/168-touch-modifier-alternatives.md) — the latch has full keyboard-Shift parity.
 
 ## Next Up
 
-- Constrain latch follow-ups (port of #265's strengths): [172 — shared contract tests](../issues/172-toolbar-constrain-latch-contract-tests.md) → [173 — radiogroup + live region](../issues/173-toolbar-radiogroup-live-region.md) → [174 — 44px touch targets + strip overflow](../issues/174-toolbar-touch-targets-strip-overflow.md); [175 — snapshot guard + wording](../issues/175-constrain-latch-snapshot-guard.md) is independent
+- Constrain latch follow-ups (port of #265's strengths): start at [172 — shared contract tests](../issues/172-toolbar-constrain-latch-contract-tests.md) (unblocks 173 → 174); [175 — snapshot guard + wording](../issues/175-constrain-latch-snapshot-guard.md) is independent
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load

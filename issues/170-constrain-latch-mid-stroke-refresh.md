@@ -1,6 +1,6 @@
 ---
 title: "Constrain latch mid-stroke toggle — immediate in-flight refresh"
-status: ready-for-agent
+status: done
 created: 2026-06-11
 parent: 168-touch-modifier-alternatives.md
 ---
@@ -31,3 +31,21 @@ Covers parent user stories 10 and 11.
 ## Blocked by
 
 None - can start immediately (169 shipped via PR #266)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/editor-session/editor-controller.svelte.ts` | `toggleConstrain` fires `activeTab.modifierChanged()` when a stroke is active — the same seam keyboard Shift enters |
+| `src/lib/canvas/editor-session/editor-controller.svelte.test.ts` | Mid-stroke latch tests mirroring the keyboard ones: on/off pixel re-resolve with a stationary pointer, notification fired while drawing, not fired while idle |
+
+### Key Decisions
+
+- **Orchestration on the controller command, not the latch.** `ConstrainLatch` stays a pure state holder; `EditorController.toggleConstrain` does the flip-then-notify, mirroring how `keyboard-input` guards `notifyModifierChange` behind `isDrawing`. Both UI entry points (touch strip re-tap, docked toolbar) route through this one command, so no per-toolbar wiring was needed.
+- **No new seam.** The toggle reuses `activeTab.modifierChanged()` — the path keyboard Shift already takes — so every downstream re-resolver (shape snapshot redraw, Marquee preview, Floating Selection axis lock) works unchanged.
+
+### Notes
+
+- The `isDrawing` guard at the command implements the spec's "idle toggle fires no notification" contract; downstream `tool-runner.modifierChanged()` would no-op anyway, but the non-firing itself is part of the acceptance criteria (verified by spy, mirroring the keyboard tests).
+- Selection-tool re-resolve is covered transitively: the latch enters the same notification path keyboard Shift uses, whose downstream behavior existing stroke-engine / shape-tool / selection-tool tests already pin.
+- Completes parent PRD 168 — the latch now has full keyboard-Shift parity (live-read per sample from 169 + immediate mid-stroke refresh from this issue).

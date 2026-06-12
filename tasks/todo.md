@@ -2,8 +2,6 @@
 
 ## Milestone 3: Editor for Serious Work
 
-- Touch modifier alternatives — touch-reachable Shift-constrain ([PRD](../issues/168-touch-modifier-alternatives.md))
-  - [170 — Mid-stroke toggle immediate refresh](../issues/170-constrain-latch-mid-stroke-refresh.md)
 - Constrain latch follow-ups — port the strengths of closed PR #265 ([comparative review](https://github.com/siluat/dotorixel/pull/266#issuecomment-4691161728))
   - [172 — Consolidate toolbar Constrain-latch specs into a shared contract](../issues/172-toolbar-constrain-latch-contract-tests.md)
   - [173 — Tool selection radiogroup semantics + live-region announcements (blocked by 172)](../issues/173-toolbar-radiogroup-live-region.md)

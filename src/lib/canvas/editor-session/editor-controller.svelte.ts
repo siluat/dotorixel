@@ -143,6 +143,11 @@ export class EditorController {
 	}
 	toggleConstrain = (): void => {
 		this.constrainLatch.toggle();
+		// Keyboard-Shift parity: tools live-read the latch only on draw samples,
+		// so a stationary pointer would not reflect the toggle until the next move.
+		if (this.workspace.activeTab.isDrawing) {
+			this.workspace.activeTab.modifierChanged();
+		}
 	};
 
 	// Explicit setters (route through workspace so dirty notifications fire)

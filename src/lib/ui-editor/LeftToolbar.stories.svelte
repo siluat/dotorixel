@@ -3,6 +3,8 @@
 	import LeftToolbar from './LeftToolbar.svelte';
 
 	const { Story } = defineMeta({});
+
+	const noop = () => {};
 </script>
 
 <Story name="Default">
@@ -11,9 +13,11 @@
 			activeTool="pencil"
 			canUndo={true}
 			canRedo={false}
-			onToolChange={() => {}}
-			onUndo={() => {}}
-			onRedo={() => {}}
+			constrainActive={false}
+			onToolChange={noop}
+			onUndo={noop}
+			onRedo={noop}
+			onToggleConstrain={noop}
 		/>
 	</div>
 </Story>
@@ -24,9 +28,11 @@
 			activeTool="eraser"
 			canUndo={true}
 			canRedo={true}
-			onToolChange={() => {}}
-			onUndo={() => {}}
-			onRedo={() => {}}
+			constrainActive={false}
+			onToolChange={noop}
+			onUndo={noop}
+			onRedo={noop}
+			onToggleConstrain={noop}
 		/>
 	</div>
 </Story>
@@ -37,9 +43,27 @@
 			activeTool="move"
 			canUndo={false}
 			canRedo={false}
-			onToolChange={() => {}}
-			onUndo={() => {}}
-			onRedo={() => {}}
+			constrainActive={false}
+			onToolChange={noop}
+			onUndo={noop}
+			onRedo={noop}
+			onToggleConstrain={noop}
+		/>
+	</div>
+</Story>
+
+<!-- The Constrain latch is on: the active tool button carries the corner dot. -->
+<Story name="ConstrainLatchOn">
+	<div style="height: 600px;">
+		<LeftToolbar
+			activeTool="line"
+			canUndo={true}
+			canRedo={false}
+			constrainActive={true}
+			onToolChange={noop}
+			onUndo={noop}
+			onRedo={noop}
+			onToggleConstrain={noop}
 		/>
 	</div>
 </Story>

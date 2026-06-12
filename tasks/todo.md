@@ -3,9 +3,7 @@
 ## Milestone 3: Editor for Serious Work
 
 - Touch modifier alternatives — touch-reachable Shift-constrain ([PRD](../issues/168-touch-modifier-alternatives.md))
-  - [169 — Constrain latch + touch tool strip toggle](../issues/169-constrain-latch-touch-toggle.md)
-  - [170 — Mid-stroke toggle immediate refresh (blocked by 169)](../issues/170-constrain-latch-mid-stroke-refresh.md)
-  - [171 — Constrain toggle in docked layout (blocked by 169)](../issues/171-constrain-toggle-docked-layout.md)
+  - [170 — Mid-stroke toggle immediate refresh](../issues/170-constrain-latch-mid-stroke-refresh.md)
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load

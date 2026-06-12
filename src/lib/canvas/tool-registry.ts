@@ -16,6 +16,8 @@ export interface ToolDef {
 	readonly tool: DrawTool;
 	readonly isDrawingTool: boolean;
 	readonly isPixelMutationTool: boolean;
+	/** Whether the tool's stroke responds to the Shift constraint (45°, square, axis-lock). */
+	readonly isConstrainable: boolean;
 }
 
 // ── Registry ───────────────────────────────────────────────────────
@@ -30,63 +32,72 @@ const TOOL_DEFS = {
 		shortcutKey: 'P',
 		tool: pencilTool,
 		isDrawingTool: true,
-		isPixelMutationTool: true
+		isPixelMutationTool: true,
+		isConstrainable: false
 	},
 	eraser: {
 		cursor: 'crosshair',
 		shortcutKey: 'E',
 		tool: eraserTool,
 		isDrawingTool: true,
-		isPixelMutationTool: true
+		isPixelMutationTool: true,
+		isConstrainable: false
 	},
 	line: {
 		cursor: 'crosshair',
 		shortcutKey: 'L',
 		tool: lineTool,
 		isDrawingTool: true,
-		isPixelMutationTool: true
+		isPixelMutationTool: true,
+		isConstrainable: true
 	},
 	rectangle: {
 		cursor: 'crosshair',
 		shortcutKey: 'U',
 		tool: rectangleTool,
 		isDrawingTool: true,
-		isPixelMutationTool: true
+		isPixelMutationTool: true,
+		isConstrainable: true
 	},
 	ellipse: {
 		cursor: 'crosshair',
 		shortcutKey: 'O',
 		tool: ellipseTool,
 		isDrawingTool: true,
-		isPixelMutationTool: true
+		isPixelMutationTool: true,
+		isConstrainable: true
 	},
 	floodfill: {
 		cursor: 'crosshair',
 		shortcutKey: 'F',
 		tool: floodfillTool,
 		isDrawingTool: true,
-		isPixelMutationTool: true
+		isPixelMutationTool: true,
+		isConstrainable: false
 	},
 	eyedropper: {
 		cursor: 'crosshair',
 		shortcutKey: 'I',
 		tool: eyedropperTool,
 		isDrawingTool: false,
-		isPixelMutationTool: false
+		isPixelMutationTool: false,
+		isConstrainable: false
 	},
 	move: {
 		cursor: 'move',
 		shortcutKey: 'V',
 		tool: moveTool,
 		isDrawingTool: false,
-		isPixelMutationTool: true
+		isPixelMutationTool: true,
+		isConstrainable: false
 	},
 	selection: {
 		cursor: 'crosshair',
 		shortcutKey: 'M',
 		tool: selectionTool,
 		isDrawingTool: true,
-		isPixelMutationTool: true
+		isPixelMutationTool: true,
+		isConstrainable: true
 	}
 } as const satisfies Record<string, ToolDef>;
 
@@ -111,6 +122,11 @@ export function isDrawingTool(type: ToolType): boolean {
 /** Tools whose stroke lifecycle must be blocked while a Reference Layer is active. */
 export function isPixelMutationTool(type: ToolType): boolean {
 	return TOOL_DEFS[type].isPixelMutationTool;
+}
+
+/** Tools whose stroke responds to the Shift constraint (line 45°, square/circle, Selection square + axis-lock). */
+export function isConstrainableTool(type: ToolType): boolean {
+	return TOOL_DEFS[type].isConstrainable;
 }
 
 /** Collect all DrawTool instances. Called once at engine construction. */

@@ -1,6 +1,7 @@
 import type { Color } from '../color';
 import type { WorkspaceSnapshot } from '../workspace-snapshot';
 import { createKeyboardInput, type KeyboardInput } from '../keyboard-input.svelte';
+import { ConstrainLatch } from '../constrain-latch.svelte';
 import type { CanvasBackend } from './canvas-backend';
 import type { DirtyNotifier } from './dirty-notifier';
 import { EditorController } from './editor-controller.svelte';
@@ -28,6 +29,8 @@ export function createEditorController(
 ): EditorController {
 	let workspaceRef: Workspace | null = null;
 
+	const constrainLatch = new ConstrainLatch();
+
 	const keyboard: KeyboardInput = createKeyboardInput({
 		isDrawing: () => workspaceRef?.activeTab.isDrawing ?? false,
 		getActiveTool: () => workspaceRef?.shared.activeTool ?? 'pencil',
@@ -48,12 +51,15 @@ export function createEditorController(
 	const workspace = new Workspace({
 		backend: options.backend,
 		notifier: options.notifier,
-		keyboard: { getShiftHeld: () => keyboard.isShiftHeld },
+		// The held-modifier state every constrainable tool reads is the OR of
+		// keyboard Shift and the touch Constrain latch — either source alone
+		// constrains, so a hybrid device can use whichever is convenient.
+		keyboard: { getShiftHeld: () => keyboard.isShiftHeld || constrainLatch.isActive },
 		gridColor: options.gridColor,
 		initialForegroundColor: options.initialForegroundColor,
 		restored: options.restored
 	});
 	workspaceRef = workspace;
 
-	return new EditorController(workspace, keyboard);
+	return new EditorController(workspace, keyboard, constrainLatch);
 }

@@ -1,19 +1,39 @@
 <script lang="ts">
 	import { Undo2, Redo2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
-	import { TOOL_ENTRIES, type ToolType } from '$lib/ui-editor/tool-ui';
+	import {
+		TOOL_ENTRIES,
+		isConstrainToggleTap,
+		showsConstrainState,
+		toolButtonLabel,
+		type ToolType
+	} from '$lib/ui-editor/tool-ui';
 	import { tooltip } from '$lib/tooltip';
 
 	interface Props {
 		activeTool: ToolType;
 		canUndo: boolean;
 		canRedo: boolean;
+		constrainActive: boolean;
 		onToolChange: (tool: ToolType) => void;
 		onUndo: () => void;
 		onRedo: () => void;
+		onToggleConstrain: () => void;
 	}
 
-	let { activeTool, canUndo, canRedo, onToolChange, onUndo, onRedo }: Props = $props();
+	let { activeTool, canUndo, canRedo, constrainActive, onToolChange, onUndo, onRedo, onToggleConstrain }: Props =
+		$props();
+
+	// The strip is already at its width budget (9 tools + undo on the narrowest
+	// viewport), so the Constrain latch gets no button of its own: re-tapping the
+	// active constrainable tool toggles it, and a corner dot shows it is armed.
+	function handleToolTap(tool: ToolType) {
+		if (isConstrainToggleTap(tool, activeTool)) {
+			onToggleConstrain();
+			return;
+		}
+		onToolChange(tool);
+	}
 </script>
 
 <div class="tool-strip">
@@ -21,12 +41,15 @@
 		<button
 			class="tool-btn"
 			class:active={activeTool === tool.type}
-			onclick={() => onToolChange(tool.type)}
-			aria-label={tool.label()}
+			onclick={() => handleToolTap(tool.type)}
+			aria-label={toolButtonLabel(tool, activeTool, constrainActive)}
 			aria-pressed={activeTool === tool.type}
 			use:tooltip={`${tool.label()} (${tool.shortcutKey})`}
 		>
 			<tool.icon size={18} />
+			{#if showsConstrainState(tool.type, activeTool, constrainActive)}
+				<span class="constrain-badge" aria-hidden="true"></span>
+			{/if}
 		</button>
 	{/each}
 
@@ -59,7 +82,9 @@
 		align-items: center;
 		justify-content: space-around;
 		height: 48px;
-		/* 9 buttons × 44px = 396px; fits 375px+ viewports, may overflow 360px (iPhone SE) */
+		/* 9 tools + undo = 10 × 44px = 440px; buttons flex-shrink below the 44px
+		   touch minimum on phone widths — pre-existing width debt, which is why
+		   the Constrain latch rides the active tool button instead of adding one. */
 		padding: 0 4px;
 		background: var(--ds-bg-surface);
 		border-top: 1px solid var(--ds-border-subtle);
@@ -74,6 +99,7 @@
 	}
 
 	.tool-btn {
+		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -85,6 +111,17 @@
 		color: var(--ds-text-secondary);
 		cursor: pointer;
 		padding: 0;
+	}
+
+	.constrain-badge {
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		background: var(--ds-accent);
+		pointer-events: none;
 	}
 
 	@media (min-width: 600px) {

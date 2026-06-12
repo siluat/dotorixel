@@ -67,9 +67,11 @@ describe('EditorController — construction & escape hatches', () => {
 		const { editor } = makeController();
 		const ws = editor.workspace;
 		const kb = editor.keyboard;
-		const controller = new EditorController(ws, kb);
+		const latch = editor.constrainLatch;
+		const controller = new EditorController(ws, kb, latch);
 		expect(controller.workspace).toBe(ws);
 		expect(controller.keyboard).toBe(kb);
+		expect(controller.constrainLatch).toBe(latch);
 	});
 });
 
@@ -221,6 +223,66 @@ describe('EditorController — keyboard projections', () => {
 		expect(editor.isShiftHeld).toBe(true);
 		editor.handleKeyUp(new KeyboardEvent('keyup', { code: 'ShiftLeft' }));
 		expect(editor.isShiftHeld).toBe(false);
+	});
+});
+
+describe('EditorController — Constrain latch', () => {
+	const TRANSPARENT: Color = { r: 0, g: 0, b: 0, a: 0 };
+
+	it('isConstrainActive resets to off on a freshly constructed controller', () => {
+		const { editor } = makeController();
+		expect(editor.isConstrainActive).toBe(false);
+	});
+
+	it('toggleConstrain flips the latch on, then off again', () => {
+		const { editor } = makeController();
+
+		editor.toggleConstrain();
+		expect(editor.isConstrainActive).toBe(true);
+
+		editor.toggleConstrain();
+		expect(editor.isConstrainActive).toBe(false);
+	});
+
+	it('latch on (keyboard untouched) snaps a line to the Shift constraint', () => {
+		const { editor } = makeController();
+		editor.toggleConstrain();
+
+		drawLine(editor, { x: 1, y: 1 }, { x: 6, y: 3 });
+
+		// constrainLine({1,1},{6,3}) snaps East to {6,1}: the constrained
+		// endpoint is painted and the free endpoint is left untouched.
+		expect(getPixel(editor, 6, 1)).toEqual(BLACK);
+		expect(getPixel(editor, 6, 3)).toEqual(TRANSPARENT);
+	});
+
+	it('latch off leaves the line free-form', () => {
+		const { editor } = makeController();
+
+		drawLine(editor, { x: 1, y: 1 }, { x: 6, y: 3 });
+
+		expect(getPixel(editor, 6, 3)).toEqual(BLACK);
+	});
+
+	it('keyboard Shift alone still constrains while the latch is off', () => {
+		const { editor } = makeController();
+		editor.handleKeyDown(new KeyboardEvent('keydown', { code: 'ShiftLeft' }));
+
+		drawLine(editor, { x: 1, y: 1 }, { x: 6, y: 3 });
+
+		expect(getPixel(editor, 6, 1)).toEqual(BLACK);
+		expect(getPixel(editor, 6, 3)).toEqual(TRANSPARENT);
+	});
+
+	it('latch and keyboard Shift together still constrain', () => {
+		const { editor } = makeController();
+		editor.toggleConstrain();
+		editor.handleKeyDown(new KeyboardEvent('keydown', { code: 'ShiftLeft' }));
+
+		drawLine(editor, { x: 1, y: 1 }, { x: 6, y: 3 });
+
+		expect(getPixel(editor, 6, 1)).toEqual(BLACK);
+		expect(getPixel(editor, 6, 3)).toEqual(TRANSPARENT);
 	});
 });
 

@@ -11,7 +11,8 @@ import {
 	createAllTools,
 	isValidToolType,
 	isDrawingTool,
-	isPixelMutationTool
+	isPixelMutationTool,
+	isConstrainableTool
 } from './tool-registry';
 
 // ── constrainLine ──────────────────────────────────────────────────
@@ -163,6 +164,15 @@ describe('tool registry', () => {
 			'ellipse',
 			'floodfill',
 			'move',
+			'selection'
+		]);
+	});
+
+	it('classifies tools that respond to the Shift constraint from registry metadata', () => {
+		expect(TOOL_TYPES.filter(isConstrainableTool)).toEqual([
+			'line',
+			'rectangle',
+			'ellipse',
 			'selection'
 		]);
 	});

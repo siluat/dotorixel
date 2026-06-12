@@ -6,14 +6,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 149 | 115 | 34 | 152 | 77% | 43% |
-| cubic-dev-ai[bot] | 107 | 89 | 18 | 174 | 83% | 34% |
-| coderabbitai[bot] | 205 | 147 | 58 | 113 | 72% | 57% |
+| greptile-apps[bot] | 150 | 116 | 34 | 153 | 77% | 43% |
+| cubic-dev-ai[bot] | 108 | 90 | 18 | 175 | 83% | 34% |
+| coderabbitai[bot] | 207 | 149 | 58 | 113 | 72% | 57% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #265 | coderabbitai[bot] | Accept | Derive Constrain latch toolbar test labels and tool sets from tool-ui source exports |
+| #265 | cubic-dev-ai[bot] | Accept | Same finding — shared Constrain latch test helper duplicated tool labels and constrainable sets |
+| #265 | greptile-apps[bot] | Accept | Same finding — test helper list duplicated the production constrainable tool set |
+| #265 | coderabbitai[bot] | Accept | Tool selection buttons used aria-pressed for mutually exclusive selection; switched to aria-current |
+| #265 | cubic-dev-ai[bot] | Miss | Did not flag tool selection buttons using aria-pressed for non-toggle selection state |
+| #265 | greptile-apps[bot] | Miss | Did not flag tool selection buttons using aria-pressed for non-toggle selection state |
 | #265 | cubic-dev-ai[bot] | Accept | Constrain latch status text lacked a live region, so retap state changes may not be announced |
 | #265 | cubic-dev-ai[bot] | Accept | ToolStrip and LeftToolbar duplicated Constrain latch specs; extracted a shared toolbar contract |
 | #265 | coderabbitai[bot] | Miss | Did not flag missing Constrain latch live-region announcement |

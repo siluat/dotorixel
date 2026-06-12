@@ -1,6 +1,7 @@
 import { fireEvent, screen } from '@testing-library/svelte';
 import { expect, it, vi } from 'vitest';
 import type { ToolType } from '$lib/canvas/tool-registry';
+import { TOOL_ENTRIES, isConstrainableTool } from '$lib/ui-editor/tool-ui';
 
 export interface ConstrainLatchToolbarProps {
 	activeTool: ToolType;
@@ -15,26 +16,26 @@ export interface ConstrainLatchToolbarProps {
 
 type RenderToolbar = (props?: Partial<ConstrainLatchToolbarProps>) => unknown;
 
-const LABEL_BY_TOOL: Record<ToolType, string> = {
-	pencil: 'Pencil',
-	line: 'Line',
-	rectangle: 'Rectangle',
-	ellipse: 'Ellipse',
-	eraser: 'Eraser',
-	floodfill: 'Flood Fill',
-	eyedropper: 'Eyedropper',
-	move: 'Move',
-	selection: 'Selection'
-};
+const CONSTRAINABLE_TOOLS = TOOL_ENTRIES.filter((tool) => isConstrainableTool(tool.type)).map(
+	(tool) => tool.type
+);
+const NON_CONSTRAINABLE_TOOLS = TOOL_ENTRIES.filter((tool) => !isConstrainableTool(tool.type)).map(
+	(tool) => tool.type
+);
 
-const CONSTRAINABLE_TOOLS: ToolType[] = ['line', 'rectangle', 'ellipse', 'selection'];
-const NON_CONSTRAINABLE_TOOLS: ToolType[] = [
-	'pencil',
-	'eraser',
-	'floodfill',
-	'eyedropper',
-	'move'
-];
+function getToolLabel(type: ToolType): string {
+	const entry = TOOL_ENTRIES.find((tool) => tool.type === type);
+
+	if (!entry) {
+		throw new Error(`Unknown tool type: ${type}`);
+	}
+
+	return entry.label();
+}
+
+function getToolButton(type: ToolType): HTMLElement {
+	return screen.getByRole('button', { name: getToolLabel(type) });
+}
 
 export function createConstrainLatchToolbarDefaults(): ConstrainLatchToolbarProps {
 	return {
@@ -63,7 +64,7 @@ export function defineConstrainLatchToolbarContract(
 
 			expect(screen.queryByRole('button', { name: 'Constrain' })).toBeNull();
 
-			await fireEvent.click(screen.getByRole('button', { name: LABEL_BY_TOOL[activeTool] }));
+			await fireEvent.click(getToolButton(activeTool));
 
 			expect(onConstrainLatchToggle).toHaveBeenCalledOnce();
 			expect(onToolChange).not.toHaveBeenCalled();
@@ -78,7 +79,7 @@ export function defineConstrainLatchToolbarContract(
 
 			renderToolbar({ activeTool, onConstrainLatchToggle });
 
-			await fireEvent.click(screen.getByRole('button', { name: LABEL_BY_TOOL[activeTool] }));
+			await fireEvent.click(getToolButton(activeTool));
 
 			expect(onConstrainLatchToggle).not.toHaveBeenCalled();
 			expect(screen.queryByRole('button', { name: 'Constrain' })).toBeNull();
@@ -87,14 +88,20 @@ export function defineConstrainLatchToolbarContract(
 
 	it('marks the active constrainable tool when the latch is on', () => {
 		renderToolbar({ activeTool: 'line', constrainLatchOn: true });
+		const activeButton = getToolButton('line');
 
-		expect(screen.getByRole('button', { name: 'Line' }).classList.contains('latched')).toBe(true);
+		expect(activeButton.classList.contains('latched')).toBe(true);
+		expect(activeButton.getAttribute('aria-current')).toBe('true');
+		expect(activeButton.hasAttribute('aria-pressed')).toBe(false);
 	});
 
 	it('does not mark a non-constrainable active tool when the latch is on', () => {
 		renderToolbar({ activeTool: 'pencil', constrainLatchOn: true });
+		const activeButton = getToolButton('pencil');
 
-		expect(screen.getByRole('button', { name: 'Pencil' }).classList.contains('latched')).toBe(false);
+		expect(activeButton.classList.contains('latched')).toBe(false);
+		expect(activeButton.getAttribute('aria-current')).toBe('true');
+		expect(activeButton.hasAttribute('aria-pressed')).toBe(false);
 		expect(screen.queryByRole('status')).toBeNull();
 	});
 
@@ -104,7 +111,7 @@ export function defineConstrainLatchToolbarContract(
 
 		renderToolbar({ activeTool: 'line', onToolChange, onConstrainLatchToggle });
 
-		await fireEvent.click(screen.getByRole('button', { name: 'Rectangle' }));
+		await fireEvent.click(getToolButton('rectangle'));
 
 		expect(onToolChange).toHaveBeenCalledWith('rectangle');
 		expect(onConstrainLatchToggle).not.toHaveBeenCalled();
@@ -120,8 +127,6 @@ export function defineConstrainLatchToolbarContract(
 		expect(status.textContent?.trim()).toBe(
 			'Constrain is on. Activate this tool again to turn it off.'
 		);
-		expect(screen.getByRole('button', { name: 'Line' }).getAttribute('aria-describedby')).toBe(
-			status.id
-		);
+		expect(getToolButton('line').getAttribute('aria-describedby')).toBe(status.id);
 	});
 }

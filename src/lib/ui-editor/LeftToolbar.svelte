@@ -59,7 +59,7 @@
 			aria-describedby={activeTool === tool.type && isConstrainableTool(tool.type)
 				? constrainStatusId
 				: undefined}
-			aria-pressed={activeTool === tool.type}
+			aria-current={activeTool === tool.type ? 'true' : undefined}
 			use:tooltip={{ text: `${tool.label()} (${tool.shortcutKey})`, placement: 'right' }}
 		>
 			<tool.icon size={18} />

@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 150 | 116 | 34 | 155 | 77% | 43% |
-| cubic-dev-ai[bot] | 109 | 91 | 18 | 176 | 83% | 34% |
-| coderabbitai[bot] | 209 | 151 | 58 | 113 | 72% | 57% |
+| greptile-apps[bot] | 150 | 116 | 34 | 156 | 77% | 43% |
+| cubic-dev-ai[bot] | 110 | 92 | 18 | 176 | 84% | 34% |
+| coderabbitai[bot] | 209 | 151 | 58 | 114 | 72% | 57% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #265 | cubic-dev-ai[bot] | Accept | Tool radio group roles lacked matching keyboard focus and arrow-key selection behavior |
+| #265 | coderabbitai[bot] | Miss | Did not flag radio group keyboard/focus behavior mismatch |
+| #265 | greptile-apps[bot] | Miss | Did not flag radio group keyboard/focus behavior mismatch |
 | #265 | coderabbitai[bot] | Accept | Fixed Constrain status IDs were duplicated across multiple toolbar mounts |
 | #265 | cubic-dev-ai[bot] | Miss | Did not flag duplicated Constrain status IDs across multiple toolbar mounts |
 | #265 | greptile-apps[bot] | Miss | Did not flag duplicated Constrain status IDs across multiple toolbar mounts |

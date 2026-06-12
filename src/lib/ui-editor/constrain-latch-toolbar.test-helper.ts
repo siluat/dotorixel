@@ -23,6 +23,20 @@ const NON_CONSTRAINABLE_TOOLS = TOOL_ENTRIES.filter((tool) => !isConstrainableTo
 	(tool) => tool.type
 );
 
+function getToolTypeAt(index: number): ToolType {
+	const entry = TOOL_ENTRIES.at(index);
+
+	if (!entry) {
+		throw new Error(`Unknown tool index: ${index}`);
+	}
+
+	return entry.type;
+}
+
+function getLastToolType(): ToolType {
+	return getToolTypeAt(TOOL_ENTRIES.length - 1);
+}
+
 function getToolLabel(type: ToolType): string {
 	const entry = TOOL_ENTRIES.find((tool) => tool.type === type);
 
@@ -93,6 +107,7 @@ export function defineConstrainLatchToolbarContract(
 		expect(activeButton.classList.contains('latched')).toBe(true);
 		expect(activeButton.getAttribute('role')).toBe('radio');
 		expect(activeButton.getAttribute('aria-checked')).toBe('true');
+		expect(activeButton.tabIndex).toBe(0);
 		expect(activeButton.hasAttribute('aria-current')).toBe(false);
 		expect(activeButton.hasAttribute('aria-pressed')).toBe(false);
 		expect(screen.getByRole('radiogroup', { name: 'Drawing Tools' })).toBeTruthy();
@@ -105,9 +120,71 @@ export function defineConstrainLatchToolbarContract(
 		expect(activeButton.classList.contains('latched')).toBe(false);
 		expect(activeButton.getAttribute('role')).toBe('radio');
 		expect(activeButton.getAttribute('aria-checked')).toBe('true');
+		expect(activeButton.tabIndex).toBe(0);
 		expect(activeButton.hasAttribute('aria-current')).toBe(false);
 		expect(activeButton.hasAttribute('aria-pressed')).toBe(false);
 		expect(screen.queryByRole('status')).toBeNull();
+	});
+
+	it('keeps inactive tool radios out of the tab order', () => {
+		renderToolbar({ activeTool: 'line' });
+
+		expect(getToolButton('line').tabIndex).toBe(0);
+		expect(getToolButton('rectangle').tabIndex).toBe(-1);
+	});
+
+	it('selects and focuses the next tool with ArrowRight', async () => {
+		const onToolChange = vi.fn<(tool: ToolType) => void>();
+		const activeTool = getToolTypeAt(0);
+		const nextTool = getToolTypeAt(1);
+
+		renderToolbar({ activeTool, onToolChange });
+		getToolButton(activeTool).focus();
+
+		await fireEvent.keyDown(getToolButton(activeTool), { key: 'ArrowRight' });
+
+		expect(onToolChange).toHaveBeenCalledWith(nextTool);
+		expect(document.activeElement).toBe(getToolButton(nextTool));
+	});
+
+	it('wraps focus and selection from the first tool to the last with ArrowLeft', async () => {
+		const onToolChange = vi.fn<(tool: ToolType) => void>();
+		const activeTool = getToolTypeAt(0);
+		const previousTool = getLastToolType();
+
+		renderToolbar({ activeTool, onToolChange });
+		getToolButton(activeTool).focus();
+
+		await fireEvent.keyDown(getToolButton(activeTool), { key: 'ArrowLeft' });
+
+		expect(onToolChange).toHaveBeenCalledWith(previousTool);
+		expect(document.activeElement).toBe(getToolButton(previousTool));
+	});
+
+	it('selects a focused unchecked radio with Space', async () => {
+		const onToolChange = vi.fn<(tool: ToolType) => void>();
+		const onConstrainLatchToggle = vi.fn<() => void>();
+
+		renderToolbar({ activeTool: 'line', onToolChange, onConstrainLatchToggle });
+		getToolButton('rectangle').focus();
+
+		await fireEvent.keyDown(getToolButton('rectangle'), { key: ' ' });
+
+		expect(onToolChange).toHaveBeenCalledWith('rectangle');
+		expect(onConstrainLatchToggle).not.toHaveBeenCalled();
+		expect(document.activeElement).toBe(getToolButton('rectangle'));
+	});
+
+	it('keeps keyboard activation as the active Constrain latch toggle', async () => {
+		const onToolChange = vi.fn<(tool: ToolType) => void>();
+		const onConstrainLatchToggle = vi.fn<() => void>();
+
+		renderToolbar({ activeTool: 'line', onToolChange, onConstrainLatchToggle });
+
+		await fireEvent.keyDown(getToolButton('line'), { key: 'Enter' });
+
+		expect(onConstrainLatchToggle).toHaveBeenCalledOnce();
+		expect(onToolChange).not.toHaveBeenCalled();
 	});
 
 	it('selects another tool instead of toggling Constrain', async () => {

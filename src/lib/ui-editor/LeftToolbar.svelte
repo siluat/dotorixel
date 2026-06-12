@@ -2,6 +2,11 @@
 	import { Undo2, Redo2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { TOOL_ENTRIES, isConstrainableTool, type ToolType } from '$lib/ui-editor/tool-ui';
+	import {
+		focusToolRadio,
+		getToolRadioNavigationTarget,
+		isToolRadioActivationKey
+	} from '$lib/ui-editor/tool-radio-navigation';
 	import { tooltip } from '$lib/tooltip';
 
 	interface Props {
@@ -28,6 +33,7 @@
 
 	const componentId = $props.id();
 	const constrainStatusId = `${componentId}-left-toolbar-constrain-status`;
+	let toolGroupElement: HTMLDivElement | undefined;
 
 	const shouldDescribeConstrain = $derived(isConstrainableTool(activeTool));
 	const constrainStatusText = $derived(
@@ -42,6 +48,37 @@
 
 		onToolChange(tool);
 	}
+
+	function handleToolKeydown(event: KeyboardEvent, tool: ToolType) {
+		if (event.altKey || event.ctrlKey || event.metaKey) {
+			return;
+		}
+
+		const nextTool = getToolRadioNavigationTarget(tool, event.key);
+		if (nextTool) {
+			event.preventDefault();
+			event.stopPropagation();
+			onToolChange(nextTool);
+			focusToolRadio(toolGroupElement, nextTool);
+			return;
+		}
+
+		if (!isToolRadioActivationKey(event.key)) {
+			return;
+		}
+
+		event.preventDefault();
+		event.stopPropagation();
+		if (tool === activeTool) {
+			if (isConstrainableTool(tool)) {
+				onConstrainLatchToggle();
+			}
+			return;
+		}
+
+		onToolChange(tool);
+		focusToolRadio(toolGroupElement, tool);
+	}
 </script>
 
 <aside class="left-toolbar">
@@ -50,14 +87,22 @@
 			{constrainStatusText}
 		</span>
 	{/if}
-	<div class="tool-group" role="radiogroup" aria-label={m.landing_feature_tools_title()}>
+	<div
+		class="tool-group"
+		role="radiogroup"
+		aria-label={m.landing_feature_tools_title()}
+		bind:this={toolGroupElement}
+	>
 		{#each TOOL_ENTRIES as tool}
 			<button
 				class="tool-btn"
 				class:active={activeTool === tool.type}
 				class:latched={constrainLatchOn && activeTool === tool.type && isConstrainableTool(tool.type)}
 				onclick={() => handleToolClick(tool.type)}
+				onkeydown={(event) => handleToolKeydown(event, tool.type)}
 				role="radio"
+				tabindex={activeTool === tool.type ? 0 : -1}
+				data-tool-type={tool.type}
 				aria-label={tool.label()}
 				aria-checked={activeTool === tool.type}
 				aria-describedby={activeTool === tool.type && isConstrainableTool(tool.type)

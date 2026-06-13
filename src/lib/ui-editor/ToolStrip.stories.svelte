@@ -13,9 +13,9 @@
 	const noop = () => {};
 </script>
 
-<!-- ToolStrip lives only in the compact (touch) layout, so the default view is the
-     390px strip where 9 tools + Undo can't fit at 44px: the tools scroll horizontally
-     (last button clipped as the scroll affordance) while Undo stays pinned at the edge. -->
+<!-- ToolStrip's compact tier (<600px): 9 tools + Undo can't fit at 44px, so the tools
+     scroll horizontally (last button clipped as the scroll affordance) while Undo stays
+     pinned at the edge. EraserActive shows the ≥600px tier where everything fits. -->
 <Story name="Default" globals={{ viewport: { value: '390-844' } }}>
 	<ToolStrip
 		activeTool="pencil"

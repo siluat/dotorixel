@@ -6,14 +6,18 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 153 | 118 | 35 | 151 | 77% | 44% |
-| cubic-dev-ai[bot] | 108 | 87 | 21 | 178 | 81% | 33% |
-| coderabbitai[bot] | 206 | 148 | 58 | 114 | 72% | 57% |
+| greptile-apps[bot] | 154 | 118 | 36 | 152 | 77% | 44% |
+| cubic-dev-ai[bot] | 109 | 88 | 21 | 178 | 81% | 33% |
+| coderabbitai[bot] | 207 | 149 | 58 | 114 | 72% | 57% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #270 | coderabbitai[bot] | Accept | Default story comment claimed ToolStrip "lives only in the compact layout"; it also handles medium (≥600px, EraserActive demos it) — reworded to name the compact tier |
+| #270 | cubic-dev-ai[bot] | Accept | Same: Default story comment inaccurately said compact-only; reworded to cover the ≥600px tier too |
+| #270 | greptile-apps[bot] | Reject | Claimed the `390-844` viewport needs registration in preview.ts or stories show medium; SB10 applies the inline `'{width}-{height}'` value directly — verified in a running Storybook (Default 390px, EraserActive 768px) |
+| #270 | greptile-apps[bot] | Miss | Did not flag the inaccurate compact-only comment on the Default story |
 | #270 | greptile-apps[bot] | Accept | Default and CompactOverflowPinnedUndo stories were identical (same args + `390-844` viewport) after the viewport pin; removed the duplicate and folded its overflow comment into Default |
 | #270 | cubic-dev-ai[bot] | Miss | Did not flag the identical Default / CompactOverflowPinnedUndo ToolStrip stories |
 | #270 | coderabbitai[bot] | Miss | Did not flag the identical Default / CompactOverflowPinnedUndo ToolStrip stories |

@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 151 | 116 | 35 | 151 | 77% | 43% |
-| cubic-dev-ai[bot] | 108 | 87 | 21 | 176 | 81% | 33% |
-| coderabbitai[bot] | 206 | 148 | 58 | 112 | 72% | 57% |
+| greptile-apps[bot] | 152 | 117 | 35 | 151 | 77% | 44% |
+| cubic-dev-ai[bot] | 108 | 87 | 21 | 177 | 81% | 33% |
+| coderabbitai[bot] | 206 | 148 | 58 | 113 | 72% | 57% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #270 | greptile-apps[bot] | Accept | CompactOverflowPinnedUndo story used a 390px wrapper div, but `@media(min-width:600px)` keys off the viewport; added a `390-844` viewport global (+ fullscreen) so the compact scroll/pinned-Undo state renders |
+| #270 | cubic-dev-ai[bot] | Miss | Did not flag the ToolStrip compact stories rendering the ≥600px layout at the default Storybook viewport (viewport-keyed media query) |
+| #270 | coderabbitai[bot] | Miss | Did not flag the ToolStrip compact stories rendering the ≥600px layout at the default Storybook viewport (viewport-keyed media query) |
 | #270 | coderabbitai[bot] | Accept | Last Completed entry in progress.md ran 4 sentences with grid/happy-dom mechanics; trimmed to a 2-sentence handoff per the 1–3 sentence cap |
 | #270 | cubic-dev-ai[bot] | Miss | Did not flag the over-long, changelog-style Last Completed entry in progress.md |
 | #270 | greptile-apps[bot] | Miss | Did not flag the over-long, changelog-style Last Completed entry in progress.md |

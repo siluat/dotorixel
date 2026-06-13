@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 174 | [Guarantee 44px toolbar touch targets and resolve the strip width debt](../issues/174-toolbar-touch-targets-strip-overflow.md) | 2026-06-13 |
 | 173 | [Tool selection radiogroup semantics + live-region Constrain announcements](../issues/173-toolbar-radiogroup-live-region.md) | 2026-06-13 |
 | 172 | [Consolidate toolbar Constrain-latch specs into a shared contract](../issues/172-toolbar-constrain-latch-contract-tests.md) | 2026-06-13 |
 | 170 | [Constrain latch mid-stroke toggle — immediate in-flight refresh](../issues/170-constrain-latch-mid-stroke-refresh.md) | 2026-06-12 |

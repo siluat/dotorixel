@@ -22,6 +22,23 @@
 	</div>
 </Story>
 
+<!-- Phone width can't fit 9 tools + Undo at 44px: the tools scroll horizontally
+     (last button clipped as the scroll affordance) while Undo stays pinned at the edge. -->
+<Story name="CompactOverflowPinnedUndo">
+	<div style="width: 390px;">
+		<ToolStrip
+			activeTool="pencil"
+			canUndo={true}
+			canRedo={false}
+			constrainActive={false}
+			onToolChange={noop}
+			onUndo={noop}
+			onRedo={noop}
+			onToggleConstrain={noop}
+		/>
+	</div>
+</Story>
+
 <Story name="EraserActive">
 	<div style="width: 768px;">
 		<ToolStrip

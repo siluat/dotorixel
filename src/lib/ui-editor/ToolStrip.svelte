@@ -102,9 +102,6 @@
 		align-items: center;
 		justify-content: space-around;
 		height: 48px;
-		/* 9 tools + undo = 10 × 44px = 440px; buttons flex-shrink below the 44px
-		   touch minimum on phone widths — pre-existing width debt, which is why
-		   the Constrain latch rides the active tool button instead of adding one. */
 		padding: 0 4px;
 		background: var(--ds-bg-surface);
 		border-top: 1px solid var(--ds-border-subtle);
@@ -118,10 +115,30 @@
 		}
 	}
 
-	/* The radiogroup wraps only the tool buttons (not undo/redo); display:contents
-	   keeps them as direct flex children of the strip so layout is unchanged. */
+	/* Compact can't fit 9 tools + pinned Undo at 44px each, so the radiogroup
+	   becomes a horizontal scroll area: tools scroll, Undo stays pinned outside it.
+	   The clipped button at the edge is the scroll affordance. */
 	.tool-group {
-		display: contents;
+		display: flex;
+		align-items: center;
+		flex: 1 1 auto;
+		min-width: 0;
+		overflow-x: auto;
+		overscroll-behavior-x: contain;
+		touch-action: pan-x;
+		scrollbar-width: none;
+	}
+
+	.tool-group::-webkit-scrollbar {
+		display: none;
+	}
+
+	/* At ≥600px everything fits: display:contents drops the scroll box so the tool
+	   buttons become direct flex children of the strip and space-around applies. */
+	@media (min-width: 600px) {
+		.tool-group {
+			display: contents;
+		}
 	}
 
 	.tool-btn {
@@ -129,7 +146,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: var(--ds-touch-target-min);
+		flex: 0 0 var(--ds-touch-target-min);
 		height: var(--ds-touch-target-min);
 		border: none;
 		background: none;
@@ -170,7 +187,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: var(--ds-touch-target-min);
+		flex: 0 0 var(--ds-touch-target-min);
 		height: var(--ds-touch-target-min);
 		border: none;
 		background: none;

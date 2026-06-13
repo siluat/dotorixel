@@ -75,7 +75,7 @@ How the overall editor structure changes across breakpoints.
 | Overall layout | Vertical stack + tab navigation | Full-screen canvas + floating panels | Top bar + left toolbar + canvas + right panel + status bar | Same as wide, wider panels |
 | Navigation model | Bottom tab bar (4 tabs) | No tab bar (all panels accessible) | No tab bar (all panels docked) | No tab bar |
 | Top bar | App bar: logo + undo/redo + menu | App bar: logo + undo/redo + menu | Full top bar: logo, menus, mode badge, undo/redo, export | Full top bar |
-| Left toolbar | Hidden (tools in bottom strip) | Hidden (tools in floating panel) | Docked vertical strip (44px) | Docked vertical strip (48px) |
+| Left toolbar | Hidden (tools in bottom strip) | Hidden (tools in floating panel) | Docked vertical strip (44px hit areas) | Docked vertical strip (48px hit areas) |
 | Canvas area | Full viewport minus bars | Full viewport minus floating panels | Between toolbar and right panel | Between toolbar and right panel |
 | Right panel | Tab screens (full-screen per tab) | Collapsible floating panel | Docked panel (200px) | Docked panel (240px) |
 | Bottom area | Tool strip + color bar + tab bar | Floating tool/color panels | Hidden (integrated into panels) | Hidden |
@@ -89,7 +89,7 @@ How each Pebble UI component maps to the layout.
 |---|---|---|---|---|
 | `TopControlsLeft` | In app bar (undo/redo only) | In app bar (undo/redo + grid toggle) | In top bar | In top bar |
 | `TopControlsRight` | Canvas presets → Settings tab; export → overflow menu | Floating panel (top-right) | In top bar actions area | In top bar actions area |
-| `BottomToolsPanel` | Tool strip (full-width, 48px, 44px min touch targets) | Floating pill panel (bottom-center) | Absent (tools in left toolbar) | Absent |
+| `BottomToolsPanel` | Tool strip (full-width, 48px). 9 tools scroll horizontally (44px each, hidden scrollbar); Undo pinned outside the scroll area, always visible | Floating pill panel (bottom-center) | Absent (tools in left toolbar) | Absent |
 | `BottomColorPalette` | Color bar (swatches only) + Colors tab for full picker | Floating panel (bottom-center, below tools) | In right panel "Colors" section | In right panel "Colors" section |
 | `FloatingPanel` | Not used (native bars replace panels) | Active (tools, colors, optionally settings) | Not used (docked panels) | Not used |
 | Canvas presets | In Settings tab | In `TopControlsRight` floating panel | In top bar | In top bar |
@@ -191,5 +191,5 @@ These gaps will be addressed by the "Design system finalization" task (next M2 d
 
 Per `touch-mobile-analysis.en.md` and Apple HIG:
 - Minimum touch target: **44×44px** on compact and medium tiers.
-- Tool strip buttons, color swatches, and tab bar items must meet this minimum.
-- The left toolbar on wide/x-wide can use smaller visual icons (18px) but should maintain 44px hit areas via padding.
+- Tool strip buttons, color swatches, and tab bar items must meet this minimum. The compact tool strip pins Undo outside a horizontal scroll area so all buttons stay ≥44px even when the nine tools exceed the viewport width.
+- The left toolbar keeps 18px visual icons inside a 44px button box (48px on x-wide), so the hit area meets the minimum without enlarging the icon.

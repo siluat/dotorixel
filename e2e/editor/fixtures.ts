@@ -184,11 +184,11 @@ function createCanvasHelpers(page: Page): CanvasHelpers {
 function createToolHelpers(page: Page): ToolHelpers {
 	return {
 		async selectTool(name) {
-			await page.getByRole('button', { name, exact: true }).click();
+			await page.getByRole('radio', { name, exact: true }).click();
 		},
 
 		async getActiveTool() {
-			const activeBtn = page.locator('.tool-btn[aria-pressed="true"]');
+			const activeBtn = page.locator('.tool-btn[aria-checked="true"]');
 			const label = await activeBtn.getAttribute('aria-label');
 			return label ?? '';
 		},

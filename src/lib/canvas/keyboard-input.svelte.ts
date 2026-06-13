@@ -80,6 +80,9 @@ export function createKeyboardInput(host: KeyboardInputHost): KeyboardInput {
 	return {
 		handleKeyDown(event: KeyboardEvent): void {
 			if (isTextInputTarget(event.target)) return;
+			// A composite widget (e.g. the toolbar radiogroup) that already handled this
+			// key calls preventDefault; don't let its Arrow/Space/Enter also pan or nudge.
+			if (event.defaultPrevented) return;
 
 			if (event.code === 'Slash') {
 				event.preventDefault();

@@ -50,6 +50,9 @@
 	"color_saturationBrightness": "Saturation and brightness",
 
 	"aria_pixelCanvas": "Pixel art canvas",
+	"aria_toolSelection": "Tool selection",
+	"aria_constrainStatusOn": "Constrain is on. Activate this tool again to turn it off.",
+	"aria_constrainStatusOff": "Constrain is off. Activate this tool again to turn it on.",
 	"aria_selectionActions": "Selection actions",
 	"aria_saturationValue": "Saturation {s}%, Brightness {v}%",
 	"aria_fgBgGroup": "Foreground color {fg}, background color {bg}",

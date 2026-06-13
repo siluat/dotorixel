@@ -1,6 +1,6 @@
 ---
 title: "Constrain latch snapshot-restore guard + ownership wording"
-status: ready-for-agent
+status: done
 created: 2026-06-12
 ---
 
@@ -22,3 +22,21 @@ Fourth of four follow-ups porting the strengths of the closed PR [#265](https://
 ## Blocked by
 
 None - can start immediately
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/editor-session/editor-controller.svelte.test.ts` | Added a snapshot-restore regression guard: arm the latch, round-trip the workspace through `toSnapshot()` → `restored`, assert the rebuilt editor starts with the latch off and a line stays free-form |
+| `src/lib/canvas/constrain-latch.svelte.ts` | Reworded the doc comment from "Workspace-scoped" to "Editor-session-scoped" and added a paragraph naming the actual owner (composition root / controller) |
+
+### Key Decisions
+
+- The guard asserts **both** the flag (`isConstrainActive` off) and actual free-form drawing (`getPixel`), so it catches more than one failure mode: moving latch ownership into the Workspace, or leaking latch state through shared snapshot state. Not a vacuous test.
+- In the ownership paragraph, dropped a redundant "stays out of the snapshot" clause because the existing "Session-transient" paragraph already states it — the new paragraph carries the *why* (ownership), the old one the *lifecycle*.
+- Left `docs/platform-status.md` unchanged: no feature implementation or status marker changed; the Constrain latch row's behavior is unaffected.
+
+### Notes
+
+- The guard is GREEN from construction by design — the latch lives at the composition root and structurally cannot enter the workspace snapshot, exactly the property credited by the comparative review. The test pins the load-bearing "session-transient, never persisted" contract for upcoming project-file/persistence work.
+- This was the fourth and final follow-up porting the strengths of closed PR #265; the thread is now complete.

@@ -6,11 +6,10 @@ None
 
 ## Last Completed
 
-[174 — Guarantee 44px toolbar touch targets and resolve the strip width debt](../issues/174-toolbar-touch-targets-strip-overflow.md): both toolbars now guarantee ≥44px hit targets, with Undo always visible in the compact strip. The width-debt comment is gone and sizing is E2E-verified; follow-up 175 stays independent.
+[175 — Constrain latch snapshot-restore guard + ownership wording](../issues/175-constrain-latch-snapshot-guard.md): a regression guard now pins the latch as session-transient — off after a snapshot round-trip — and the doc comment names the composition root as its owner. This was the last of four #265 ports; that thread is closed.
 
 ## Next Up
 
-- Constrain latch follow-up (port of #265's strengths): [175 — snapshot guard + wording](../issues/175-constrain-latch-snapshot-guard.md) is independent and ready
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load

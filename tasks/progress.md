@@ -6,11 +6,11 @@ None
 
 ## Last Completed
 
-[172 — Consolidate toolbar Constrain-latch specs into a shared contract](../issues/172-toolbar-constrain-latch-contract-tests.md): the touch ToolStrip and docked LeftToolbar now run one shared, registry-derived Constrain-latch contract instead of twin specs, so the two surfaces can't drift behaviorally — and LeftToolbar gained the inactive-constrainable case it was missing. Test-only; production unchanged. Unblocks 173.
+[173 — Tool selection radiogroup semantics + live-region Constrain announcements](../issues/173-toolbar-radiogroup-live-region.md): both toolbars now expose tool selection as an ARIA radiogroup (aria-checked + roving tabindex + arrow-key nav) and announce the Constrain latch through a polite live region; the `(Constrain)` accessible-name suffix is gone. Unblocks 174. Post-merge: manual VoiceOver smoke check still pending.
 
 ## Next Up
 
-- Constrain latch follow-ups (port of #265's strengths): start at [173 — radiogroup semantics + live-region](../issues/173-toolbar-radiogroup-live-region.md) (now unblocked by 172; unblocks 174); [175 — snapshot guard + wording](../issues/175-constrain-latch-snapshot-guard.md) is independent
+- Constrain latch follow-ups (port of #265's strengths): [174 — 44px touch targets + strip width](../issues/174-toolbar-touch-targets-strip-overflow.md) (now unblocked by 173); [175 — snapshot guard + wording](../issues/175-constrain-latch-snapshot-guard.md) is independent
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load

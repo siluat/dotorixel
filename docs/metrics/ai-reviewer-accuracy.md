@@ -6,14 +6,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 149 | 115 | 34 | 150 | 77% | 43% |
-| cubic-dev-ai[bot] | 106 | 87 | 19 | 174 | 82% | 33% |
-| coderabbitai[bot] | 205 | 147 | 58 | 111 | 72% | 57% |
+| greptile-apps[bot] | 151 | 116 | 35 | 150 | 77% | 44% |
+| cubic-dev-ai[bot] | 108 | 87 | 21 | 175 | 81% | 33% |
+| coderabbitai[bot] | 205 | 147 | 58 | 112 | 72% | 57% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #269 | greptile-apps[bot] | Reject | Conditional live-region mount "won't announce initial state on tool switch"; latch *flips* always fire while the region is mounted and aria-describedby covers focus, so always-mounting would over-announce on every constrainable-tool selection |
+| #269 | greptile-apps[bot] | Accept | role="status" lived inside role="radiogroup"; moved the latch status region to a sibling so the group owns radios only |
+| #269 | cubic-dev-ai[bot] | Reject | Same live-region conditional-mount concern as greptile (LeftToolbar); declined for the same flip-only-intent reason |
+| #269 | cubic-dev-ai[bot] | Reject | display:contents claimed to drop radiogroup semantics; the strips-role bug was fixed in Chromium/Firefox/WebKit in 2021 and evergreen browsers preserve the explicit role + owned radios |
+| #269 | cubic-dev-ai[bot] | Miss | Did not flag role="status" nested inside role="radiogroup" |
+| #269 | coderabbitai[bot] | Miss | Did not flag role="status" nested inside role="radiogroup" |
 | #266 | cubic-dev-ai[bot] | Reject | Flagged keyboard activation of the active tool toggling the latch, implying pointer-only gating; Enter/Space→click is standard button semantics and pointer-gating would deny keyboard/AT users the affordance (WCAG 2.1.1) |
 | #263 | cubic-dev-ai[bot] | Reject | Flagged the release-active asserts as contradicting a debug_assert "pattern"; they are the accepted round-1 fix, and the remaining debug_asserts are redundant tripwires, not sole invariant enforcement |
 | #263 | coderabbitai[bot] | Accept | fit_to_canvas/auto_fit guarded only by debug_assert — invariant escapable in release; promoted to release-active assert |

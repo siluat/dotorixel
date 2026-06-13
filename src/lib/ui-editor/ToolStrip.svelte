@@ -3,11 +3,13 @@
 	import * as m from '$lib/paraglide/messages';
 	import {
 		TOOL_ENTRIES,
-		isConstrainToggleTap,
 		showsConstrainState,
-		toolButtonLabel,
+		constrainStatusMessage,
+		activateTool,
+		handleToolRadiogroupKeydown,
 		type ToolType
 	} from '$lib/ui-editor/tool-ui';
+	import { isConstrainableTool } from '$lib/canvas/tool-registry';
 	import { tooltip } from '$lib/tooltip';
 
 	interface Props {
@@ -24,34 +26,52 @@
 	let { activeTool, canUndo, canRedo, constrainActive, onToolChange, onUndo, onRedo, onToggleConstrain }: Props =
 		$props();
 
+	let radiogroupEl: HTMLElement;
+	const uid = $props.id();
+	const statusId = `${uid}-constrain-status`;
+	let isActiveConstrainable = $derived(isConstrainableTool(activeTool));
+
 	// The strip is already at its width budget (9 tools + undo on the narrowest
 	// viewport), so the Constrain latch gets no button of its own: re-tapping the
 	// active constrainable tool toggles it, and a corner dot shows it is armed.
-	function handleToolTap(tool: ToolType) {
-		if (isConstrainToggleTap(tool, activeTool)) {
-			onToggleConstrain();
-			return;
-		}
-		onToolChange(tool);
+	let activation = $derived({ activeTool, onToolChange, onToggleConstrain });
+
+	function focusTool(tool: ToolType) {
+		radiogroupEl?.querySelector<HTMLElement>(`[data-tool="${tool}"]`)?.focus();
 	}
 </script>
 
 <div class="tool-strip">
-	{#each TOOL_ENTRIES as tool}
-		<button
-			class="tool-btn"
-			class:active={activeTool === tool.type}
-			onclick={() => handleToolTap(tool.type)}
-			aria-label={toolButtonLabel(tool, activeTool, constrainActive)}
-			aria-pressed={activeTool === tool.type}
-			use:tooltip={`${tool.label()} (${tool.shortcutKey})`}
+	<div class="tool-group" role="radiogroup" aria-label={m.aria_toolSelection()} bind:this={radiogroupEl}>
+		{#each TOOL_ENTRIES as tool}
+			<button
+				class="tool-btn"
+				class:active={activeTool === tool.type}
+				role="radio"
+				aria-checked={activeTool === tool.type}
+				tabindex={activeTool === tool.type ? 0 : -1}
+				data-tool={tool.type}
+				aria-label={tool.label()}
+				aria-describedby={activeTool === tool.type && isActiveConstrainable ? statusId : undefined}
+				onclick={() => activateTool(tool.type, activation)}
+				onkeydown={(e) => handleToolRadiogroupKeydown(e, activation, focusTool)}
+				use:tooltip={`${tool.label()} (${tool.shortcutKey})`}
+			>
+				<tool.icon size={18} />
+				{#if showsConstrainState(tool.type, activeTool, constrainActive)}
+					<span class="constrain-badge" aria-hidden="true"></span>
+				{/if}
+			</button>
+		{/each}
+	</div>
+
+	<!-- The latch status is a separate announcement channel, not a group member, so it
+	     lives as a sibling of the radiogroup (which owns only radios). -->
+	{#if isActiveConstrainable}
+		<span id={statusId} class="sr-only" role="status" aria-live="polite"
+			>{constrainStatusMessage(constrainActive)}</span
 		>
-			<tool.icon size={18} />
-			{#if showsConstrainState(tool.type, activeTool, constrainActive)}
-				<span class="constrain-badge" aria-hidden="true"></span>
-			{/if}
-		</button>
-	{/each}
+	{/if}
 
 	<!-- Undo: always shown -->
 	<button
@@ -96,6 +116,12 @@
 			height: 52px;
 			padding: 0 16px;
 		}
+	}
+
+	/* The radiogroup wraps only the tool buttons (not undo/redo); display:contents
+	   keeps them as direct flex children of the strip so layout is unchanged. */
+	.tool-group {
+		display: contents;
 	}
 
 	.tool-btn {

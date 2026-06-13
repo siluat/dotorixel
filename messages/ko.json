@@ -50,6 +50,9 @@
 	"color_saturationBrightness": "채도와 명도",
 
 	"aria_pixelCanvas": "픽셀 아트 캔버스",
+	"aria_toolSelection": "도구 선택",
+	"aria_constrainStatusOn": "고정이 켜졌습니다. 이 도구를 다시 누르면 꺼집니다.",
+	"aria_constrainStatusOff": "고정이 꺼졌습니다. 이 도구를 다시 누르면 켜집니다.",
 	"aria_selectionActions": "선택 작업",
 	"aria_saturationValue": "채도 {s}%, 명도 {v}%",
 	"aria_fgBgGroup": "전경색 {fg}, 배경색 {bg}",

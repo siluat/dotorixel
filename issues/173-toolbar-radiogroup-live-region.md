@@ -1,6 +1,6 @@
 ---
 title: "Tool selection radiogroup semantics + live-region Constrain announcements"
-status: ready-for-agent
+status: done
 created: 2026-06-12
 ---
 
@@ -35,3 +35,33 @@ End-to-end behavior:
 ## Blocked by
 
 - [172 — Consolidate toolbar Constrain-latch specs into a shared contract](172-toolbar-constrain-latch-contract-tests.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/ui-editor/tool-ui.ts` | Shared tool-selection logic: `toolRadiogroupAction` (key→action, pure), `activateTool`, `handleToolRadiogroupKeydown`, `constrainStatusMessage`; removed the `(Constrain)` label-suffix helper |
+| `src/lib/ui-editor/ToolStrip.svelte` | Touch strip → ARIA radiogroup (`role=radio`, `aria-checked`, roving `tabindex`); SR live-region status referenced via `aria-describedby`; corner-dot retained |
+| `src/lib/ui-editor/LeftToolbar.svelte` | Docked toolbar → same radiogroup + live-region treatment |
+| `src/lib/canvas/keyboard-input.svelte.ts` | Window handler now ignores `event.defaultPrevented` so radiogroup-handled keys don't also fire Space-pan / arrow-nudge |
+| `src/styles/global.css` | Added shared `.sr-only` accessibility utility |
+| `messages/{en,ko,ja}.json` | New keys `aria_toolSelection`, `aria_constrainStatusOn`, `aria_constrainStatusOff` (dedicated, not a reused landing key) |
+| `src/lib/ui-editor/toolbar-constrain-latch.contract.ts` | Extended shared contract: radiogroup semantics, roving tabindex, live-region/describedby, keyboard nav + activation, instance-unique ids; migrated off the label suffix |
+| `src/lib/ui-editor/tool-ui.test.ts` | New unit tests for `toolRadiogroupAction` |
+| `src/lib/canvas/keyboard-input.svelte.test.ts` | Test: a `defaultPrevented` keydown is ignored by the global handler |
+| `e2e/editor/constrain-latch.test.ts` | Assertions migrated to the polite status region; added a keyboard-arm (Space) leak test |
+| `e2e/editor/fixtures.ts` | `selectTool` / `getActiveTool` use `role=radio` / `aria-checked` |
+
+### Key Decisions
+
+- New keyboard-navigation logic lives in one shared module (`tool-ui.ts`) consumed by both toolbars, not duplicated per component — the source PR #265 duplicated ~45 lines/component.
+- Leak prevention via an `event.defaultPrevented` guard in the global handler (surgical) rather than extending the text-input focus guard to the whole toolbar — keeps Ctrl+Z etc. working while a tool button is focused.
+- The `(Constrain)` accessible-name suffix was removed; latch state moved to a polite `role="status"` live region + `aria-describedby`. The corner-dot visual stays.
+- Status-region ids are instance-unique via Svelte `$props.id()` so multiple mounted toolbars don't collide.
+- The keydown handler is attached per-radio (not on the radiogroup container) to avoid Svelte's interactive-role-needs-tabindex warning and to match the existing TabStrip pattern.
+
+### Notes
+
+- **Post-merge maintainer checklist remains**: VoiceOver smoke check — tool focus announcement, latch-flip announcement, `describedby` read-out. Manual, not automatable in CI.
+- Unblocks 174 (44px touch targets + strip width); 175 stays independent.
+- Selection-follows-focus model: arrow keys move both selection and focus, so the "Space/Enter on an unchecked tool selects it" branch is covered by `activateTool` but is not reached in the normal roving flow.

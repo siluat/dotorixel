@@ -33,6 +33,7 @@ function keyDown(
 		shiftKey?: boolean;
 		repeat?: boolean;
 		target?: EventTarget | null;
+		defaultPrevented?: boolean;
 	} = {}
 ): KeyboardEvent {
 	return {
@@ -44,6 +45,7 @@ function keyDown(
 		shiftKey: options.shiftKey ?? false,
 		repeat: options.repeat ?? false,
 		target: options.target ?? null,
+		defaultPrevented: options.defaultPrevented ?? false,
 		preventDefault: vi.fn()
 	} as unknown as KeyboardEvent;
 }
@@ -61,6 +63,20 @@ function keyUp(code: string): KeyboardEvent {
 		preventDefault: vi.fn()
 	} as unknown as KeyboardEvent;
 }
+
+// ── Events already handled downstream ────────────────────────
+
+describe('events whose default was already prevented', () => {
+	it('ignores them so widget keys (e.g. the toolbar radiogroup) do not also fire global shortcuts', () => {
+		const kb = createKeyboardInput(createHost());
+
+		// The toolbar radiogroup handles Space/arrows and calls preventDefault; the
+		// window-level handler must then leave Space-pan (and the rest) untouched.
+		kb.handleKeyDown(keyDown('Space', { defaultPrevented: true }));
+
+		expect(kb.isSpaceHeld).toBe(false);
+	});
+});
 
 // ── Space modifier ───────────────────────────────────────────
 

@@ -50,6 +50,9 @@
 	"color_saturationBrightness": "彩度と明度",
 
 	"aria_pixelCanvas": "ピクセルアートキャンバス",
+	"aria_toolSelection": "ツール選択",
+	"aria_constrainStatusOn": "固定がオンになりました。このツールをもう一度押すとオフになります。",
+	"aria_constrainStatusOff": "固定がオフになりました。このツールをもう一度押すとオンになります。",
 	"aria_selectionActions": "選択操作",
 	"aria_saturationValue": "彩度 {s}%、明度 {v}%",
 	"aria_fgBgGroup": "前景色 {fg}、背景色 {bg}",

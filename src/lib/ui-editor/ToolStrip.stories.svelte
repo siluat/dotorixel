@@ -13,22 +13,10 @@
 	const noop = () => {};
 </script>
 
-<Story name="Default" globals={{ viewport: { value: '390-844' } }}>
-	<ToolStrip
-		activeTool="pencil"
-		canUndo={true}
-		canRedo={false}
-		constrainActive={false}
-		onToolChange={noop}
-		onUndo={noop}
-		onRedo={noop}
-		onToggleConstrain={noop}
-	/>
-</Story>
-
-<!-- Phone width can't fit 9 tools + Undo at 44px: the tools scroll horizontally
+<!-- ToolStrip lives only in the compact (touch) layout, so the default view is the
+     390px strip where 9 tools + Undo can't fit at 44px: the tools scroll horizontally
      (last button clipped as the scroll affordance) while Undo stays pinned at the edge. -->
-<Story name="CompactOverflowPinnedUndo" globals={{ viewport: { value: '390-844' } }}>
+<Story name="Default" globals={{ viewport: { value: '390-844' } }}>
 	<ToolStrip
 		activeTool="pencil"
 		canUndo={true}

@@ -2,8 +2,6 @@
 
 ## Milestone 3: Editor for Serious Work
 
-- Constrain latch follow-ups — port the strengths of closed PR #265 ([comparative review](https://github.com/siluat/dotorixel/pull/266#issuecomment-4691161728))
-  - [175 — Latch snapshot-restore guard + ownership wording](../issues/175-constrain-latch-snapshot-guard.md)
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load

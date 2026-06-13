@@ -234,6 +234,23 @@ describe('EditorController — Constrain latch', () => {
 		expect(editor.isConstrainActive).toBe(false);
 	});
 
+	it('latch stays off when the editor is rebuilt from a snapshot taken while armed', () => {
+		const { editor } = makeController();
+		editor.toggleConstrain();
+		expect(editor.isConstrainActive).toBe(true);
+
+		// Round-trip the workspace through a snapshot restore. The latch is
+		// session-transient — never persisted — so the rebuilt editor must start
+		// off, with Shift-constrain inactive absent a physical Shift.
+		const snapshot = editor.workspace.toSnapshot();
+		const { editor: restored } = makeController({ restored: snapshot });
+
+		expect(restored.isConstrainActive).toBe(false);
+
+		drawLine(restored, { x: 1, y: 1 }, { x: 6, y: 3 });
+		expect(getPixel(restored, 6, 3)).toEqual(BLACK);
+	});
+
 	it('toggleConstrain flips the latch on, then off again', () => {
 		const { editor } = makeController();
 

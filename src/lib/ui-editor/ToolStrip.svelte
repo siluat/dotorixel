@@ -63,12 +63,15 @@
 				{/if}
 			</button>
 		{/each}
-		{#if isActiveConstrainable}
-			<span id={statusId} class="sr-only" role="status" aria-live="polite"
-				>{constrainStatusMessage(constrainActive)}</span
-			>
-		{/if}
 	</div>
+
+	<!-- The latch status is a separate announcement channel, not a group member, so it
+	     lives as a sibling of the radiogroup (which owns only radios). -->
+	{#if isActiveConstrainable}
+		<span id={statusId} class="sr-only" role="status" aria-live="polite"
+			>{constrainStatusMessage(constrainActive)}</span
+		>
+	{/if}
 
 	<!-- Undo: always shown -->
 	<button

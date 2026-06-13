@@ -6,11 +6,11 @@ None
 
 ## Last Completed
 
-[173 — Tool selection radiogroup semantics + live-region Constrain announcements](../issues/173-toolbar-radiogroup-live-region.md): both toolbars now expose tool selection as an ARIA radiogroup (aria-checked + roving tabindex + arrow-key nav) and announce the Constrain latch through a polite live region; the `(Constrain)` accessible-name suffix is gone. Unblocks 174. Post-merge: manual VoiceOver smoke check still pending.
+[174 — Guarantee 44px toolbar touch targets and resolve the strip width debt](../issues/174-toolbar-touch-targets-strip-overflow.md): both toolbars now guarantee ≥44px hit targets, with Undo always visible in the compact strip. The width-debt comment is gone and sizing is E2E-verified; follow-up 175 stays independent.
 
 ## Next Up
 
-- Constrain latch follow-ups (port of #265's strengths): [174 — 44px touch targets + strip width](../issues/174-toolbar-touch-targets-strip-overflow.md) (now unblocked by 173); [175 — snapshot guard + wording](../issues/175-constrain-latch-snapshot-guard.md) is independent
+- Constrain latch follow-up (port of #265's strengths): [175 — snapshot guard + wording](../issues/175-constrain-latch-snapshot-guard.md) is independent and ready
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load

@@ -3,7 +3,6 @@
 ## Milestone 3: Editor for Serious Work
 
 - Constrain latch follow-ups — port the strengths of closed PR #265 ([comparative review](https://github.com/siluat/dotorixel/pull/266#issuecomment-4691161728))
-  - [174 — 44px toolbar touch targets + strip width debt](../issues/174-toolbar-touch-targets-strip-overflow.md)
   - [175 — Latch snapshot-restore guard + ownership wording](../issues/175-constrain-latch-snapshot-guard.md)
 - Copy/paste
 - Flip/transform

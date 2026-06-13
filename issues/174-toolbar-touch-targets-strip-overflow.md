@@ -1,6 +1,6 @@
 ---
 title: "Guarantee 44px toolbar touch targets and resolve the strip width debt"
-status: ready-for-agent
+status: done
 created: 2026-06-12
 ---
 
@@ -37,3 +37,26 @@ Decision from the breakdown review — pinned-actions layout for the compact str
 
 - [172 — Consolidate toolbar Constrain-latch specs into a shared contract](172-toolbar-constrain-latch-contract-tests.md)
 - [173 — Tool selection radiogroup semantics + live-region Constrain announcements](173-toolbar-radiogroup-live-region.md) — content-independent, but sequenced to avoid churning the same markup and tests in parallel
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/ui-editor/ToolStrip.svelte` | Compact strip: the radiogroup becomes a horizontal scroll area (hidden scrollbar, `pan-x`, contained overscroll); tool buttons get a non-shrink 44px flex basis; Undo is pinned outside the scroll. Reverts to `display:contents` + space-around at ≥600px. Width-debt comment removed. |
+| `src/lib/ui-editor/LeftToolbar.svelte` | Docked tool/action buttons 36px → 44px (`--ds-touch-target-min`), 48px at x-wide; icons stay 18px. |
+| `src/routes/editor/+page.svelte` | Docked grid `toolbar` column `44px`/`48px` → `auto`, so the strip sizes to button + 1px divider (fixes the desktop horizontal scrollbar). |
+| `src/lib/ui-editor/ToolStrip.stories.svelte` | Added the 390px `CompactOverflowPinnedUndo` story. |
+| `docs/screen-inventory.md` | §3.1 / §3.2 / §7 updated to the pinned-Undo scroll + 44/48px hit-area behavior. |
+| `e2e/editor/toolbar-touch-targets.test.ts` | New E2E: 44px targets + always-visible Undo, scroll reachability, latch toggle + badge on a scrolled-in tool, medium no-scroll with Redo, docked no horizontal overflow. |
+
+### Key Decisions
+
+- Pinned-actions layout: only the nine tools scroll; Undo stays fixed and always visible (the most frequent mid-drawing action), per the breakdown review — rejecting the source PR's whole-strip scroll that could hide Undo.
+- Docked strip width is driven by the button: grid column set to `auto` (not `calc(44px + 1px)`) so it tracks the 44/48px button with no magic offset.
+- x-wide LeftToolbar buttons use a one-off 48px literal — no comfortable-size token exists, so promote only when reuse is confirmed.
+
+### Notes
+
+- Sizing/scroll is verified by E2E only: happy-dom does no layout, so unit/component tests can't measure pixel sizes. Latch/radiogroup behavior stays covered by the shared contract tests (172).
+- A desktop (docked) horizontal-scrollbar regression surfaced after enlarging the LeftToolbar buttons; fixed via the `auto` grid column and guarded by a new E2E test.
+- Follow-up [175 — latch snapshot-restore guard + ownership wording](175-constrain-latch-snapshot-guard.md) is independent and still open.

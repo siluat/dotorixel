@@ -976,7 +976,7 @@
 			'toolbar  canvas   panel'     1fr
 			'toolbar  timeline panel'     auto
 			'status   status   status'    calc(28px + env(safe-area-inset-bottom, 0px))
-			/ 44px    1fr      200px;
+			/ auto    1fr      200px;
 	}
 
 	@media (min-width: 1440px) {
@@ -987,7 +987,7 @@
 				'toolbar  canvas   panel'     1fr
 				'toolbar  timeline panel'     auto
 				'status   status   status'    calc(28px + env(safe-area-inset-bottom, 0px))
-				/ 48px    1fr      240px;
+				/ auto    1fr      240px;
 		}
 	}
 

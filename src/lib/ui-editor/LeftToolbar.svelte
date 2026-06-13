@@ -116,13 +116,15 @@
 		display: contents;
 	}
 
+	/* The 18px icon stays visually small; the 44px button box provides the hit area
+	   (per the screen inventory's "44px hit areas via padding" note). */
 	.tool-btn {
 		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 36px;
-		height: 36px;
+		width: var(--ds-touch-target-min);
+		height: var(--ds-touch-target-min);
 		border: none;
 		background: none;
 		border-radius: var(--ds-radius-sm);
@@ -168,8 +170,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 36px;
-		height: 36px;
+		width: var(--ds-touch-target-min);
+		height: var(--ds-touch-target-min);
 		border: none;
 		background: none;
 		border-radius: var(--ds-radius-sm);
@@ -186,5 +188,14 @@
 	.action-btn:disabled {
 		opacity: 0.4;
 		cursor: default;
+	}
+
+	/* x-wide widens the docked strip to 48px hit areas (screen inventory §3.1). */
+	@media (min-width: 1440px) {
+		.tool-btn,
+		.action-btn {
+			width: 48px;
+			height: 48px;
+		}
 	}
 </style>

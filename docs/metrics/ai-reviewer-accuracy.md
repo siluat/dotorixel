@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 151 | 116 | 35 | 150 | 77% | 44% |
-| cubic-dev-ai[bot] | 108 | 87 | 21 | 175 | 81% | 33% |
-| coderabbitai[bot] | 205 | 147 | 58 | 112 | 72% | 57% |
+| greptile-apps[bot] | 151 | 116 | 35 | 151 | 77% | 43% |
+| cubic-dev-ai[bot] | 108 | 87 | 21 | 176 | 81% | 33% |
+| coderabbitai[bot] | 206 | 148 | 58 | 112 | 72% | 57% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #270 | coderabbitai[bot] | Accept | Last Completed entry in progress.md ran 4 sentences with grid/happy-dom mechanics; trimmed to a 2-sentence handoff per the 1–3 sentence cap |
+| #270 | cubic-dev-ai[bot] | Miss | Did not flag the over-long, changelog-style Last Completed entry in progress.md |
+| #270 | greptile-apps[bot] | Miss | Did not flag the over-long, changelog-style Last Completed entry in progress.md |
 | #269 | greptile-apps[bot] | Reject | Conditional live-region mount "won't announce initial state on tool switch"; latch *flips* always fire while the region is mounted and aria-describedby covers focus, so always-mounting would over-announce on every constrainable-tool selection |
 | #269 | greptile-apps[bot] | Accept | role="status" lived inside role="radiogroup"; moved the latch status region to a sibling so the group owns radios only |
 | #269 | cubic-dev-ai[bot] | Reject | Same live-region conditional-mount concern as greptile (LeftToolbar); declined for the same flip-only-intent reason |

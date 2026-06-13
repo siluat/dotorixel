@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-[174 — Guarantee 44px toolbar touch targets and resolve the strip width debt](../issues/174-toolbar-touch-targets-strip-overflow.md): both toolbars now guarantee ≥44px hit targets — the compact strip pins Undo outside a horizontal tool-scroll area, and the docked LeftToolbar sizes its grid column to the button (44px / 48px x-wide). The strip width-debt comment is gone. Sizing is E2E-verified (happy-dom can't measure layout). Follow-up 175 stays independent.
+[174 — Guarantee 44px toolbar touch targets and resolve the strip width debt](../issues/174-toolbar-touch-targets-strip-overflow.md): both toolbars now guarantee ≥44px hit targets, with Undo always visible in the compact strip. The width-debt comment is gone and sizing is E2E-verified; follow-up 175 stays independent.
 
 ## Next Up
 

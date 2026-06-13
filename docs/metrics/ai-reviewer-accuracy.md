@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 154 | 118 | 36 | 152 | 77% | 44% |
-| cubic-dev-ai[bot] | 109 | 88 | 21 | 178 | 81% | 33% |
-| coderabbitai[bot] | 207 | 149 | 58 | 114 | 72% | 57% |
+| greptile-apps[bot] | 155 | 119 | 36 | 152 | 77% | 44% |
+| cubic-dev-ai[bot] | 110 | 89 | 21 | 178 | 81% | 33% |
+| coderabbitai[bot] | 207 | 149 | 58 | 115 | 72% | 56% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #271 | greptile-apps[bot] | Accept | "workspace snapshot below" in the ConstrainLatch doc comment was a dangling forward reference; restructured so para 2 owns the structural snapshot-exclusion and para 4 keeps only the reload lifecycle |
+| #271 | cubic-dev-ai[bot] | Accept | Same: "below" read as a dangling reference to nonexistent snapshot code in the file; reworded |
+| #271 | coderabbitai[bot] | Miss | Did not flag the dangling "workspace snapshot below" doc comment reference (APPROVED) |
 | #270 | coderabbitai[bot] | Accept | Default story comment claimed ToolStrip "lives only in the compact layout"; it also handles medium (≥600px, EraserActive demos it) — reworded to name the compact tier |
 | #270 | cubic-dev-ai[bot] | Accept | Same: Default story comment inaccurately said compact-only; reworded to cover the ≥600px tier too |
 | #270 | greptile-apps[bot] | Reject | Claimed the `390-844` viewport needs registration in preview.ts or stories show medium; SB10 applies the inline `'{width}-{height}'` value directly — verified in a running Storybook (Default 390px, EraserActive 768px) |

@@ -4,8 +4,8 @@
  * users get a clickable latch as a side benefit.
  *
  * Deliberately *not* owned by the Workspace: it is constructed at the editor
- * composition root and owned by the controller, which is why it stays out of the
- * workspace snapshot below.
+ * composition root and owned by the controller, so it structurally cannot enter
+ * a workspace snapshot.
  *
  * The editor composition root OR-combines this latch with keyboard Shift at the
  * single seam tools read (`getShiftHeld`), so turning the latch on is — from
@@ -13,8 +13,8 @@
  * key: lines snap to 45°, rectangles/ellipses force a square/circle, a new
  * Marquee stays square, and a Floating Selection drag locks to its axis.
  *
- * Session-transient: it is never persisted to the workspace snapshot and resets
- * to off on reload, mirroring how keyboard Shift is never remembered.
+ * Session-transient: it resets to off on reload, mirroring how keyboard Shift is
+ * never remembered.
  */
 export class ConstrainLatch {
 	#isActive = $state(false);

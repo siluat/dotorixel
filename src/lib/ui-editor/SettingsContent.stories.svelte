@@ -17,6 +17,8 @@
 			onResize={noop}
 			onExport={noop}
 			onClear={noop}
+			onFlipHorizontal={noop}
+			onFlipVertical={noop}
 			onGridToggle={noop}
 			onAnchorChange={noop}
 		/>
@@ -33,6 +35,8 @@
 			onResize={noop}
 			onExport={noop}
 			onClear={noop}
+			onFlipHorizontal={noop}
+			onFlipVertical={noop}
 			onGridToggle={noop}
 			onAnchorChange={noop}
 		/>

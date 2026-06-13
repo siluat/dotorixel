@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Download, Trash2 } from 'lucide-svelte';
+	import { Download, FlipHorizontal, FlipVertical, Trash2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { ResizeAnchor } from '$lib/canvas/canvas-model';
 	import CanvasSizeControl from './CanvasSizeControl.svelte';
@@ -12,6 +12,8 @@
 		onResize: (width: number, height: number) => void;
 		onExport: () => void;
 		onClear: () => void;
+		onFlipHorizontal: () => void;
+		onFlipVertical: () => void;
 		onGridToggle: () => void;
 		onAnchorChange: (anchor: ResizeAnchor) => void;
 	}
@@ -24,6 +26,8 @@
 		onResize,
 		onExport,
 		onClear,
+		onFlipHorizontal,
+		onFlipVertical,
 		onGridToggle,
 		onAnchorChange
 	}: Props = $props();
@@ -41,6 +45,21 @@
 			{onAnchorChange}
 			variant="touch"
 		/>
+	</section>
+
+	<!-- Transform Section -->
+	<section class="section">
+		<h3 class="section-title">{m.section_transform()}</h3>
+		<div class="transform-actions">
+			<button class="action-btn outline" onclick={onFlipHorizontal}>
+				<FlipHorizontal size={18} aria-hidden={true} />
+				<span>{m.action_transformFlipHorizontal()}</span>
+			</button>
+			<button class="action-btn outline" onclick={onFlipVertical}>
+				<FlipVertical size={18} aria-hidden={true} />
+				<span>{m.action_transformFlipVertical()}</span>
+			</button>
+		</div>
 	</section>
 
 	<!-- Actions Section -->
@@ -132,6 +151,12 @@
 
 	.action-btn.outline:hover {
 		background: var(--ds-bg-hover);
+	}
+
+	.transform-actions {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+		gap: 8px;
 	}
 
 	/* Toggle */

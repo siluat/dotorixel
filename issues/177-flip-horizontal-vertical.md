@@ -88,10 +88,11 @@ None - can start immediately.
 | `src/lib/canvas/PixelCanvasView.svelte` | Passed flip callbacks into the selection action bar. |
 | `src/lib/canvas/SelectionActionBar.svelte` | Added localized Flip H / Flip V actions for idle Marquee selections and preserved compact overflow behavior. |
 | `src/lib/ui-editor/RightPanel.svelte` | Added a Transform group in the Canvas section with Flip H / Flip V actions. |
+| `src/lib/ui-editor/SettingsContent.svelte` | Added the same Transform actions to the small-screen Settings tab. |
 | `src/routes/editor/+page.svelte` | Wired both editor layouts and the RightPanel to the new flip commands. |
 | `messages/en.json`, `messages/ko.json`, `messages/ja.json` | Added localized transform labels. |
 | `src/lib/canvas/fake-drawing-ops.ts` | Updated test fakes to satisfy and exercise the expanded Document contract. |
-| `src/lib/canvas/*test.ts`, `src/lib/ui-editor/RightPanel.svelte.test.ts` | Added journal, tab-state, component, and UI entry-point regression coverage. |
+| `src/lib/canvas/*test.ts`, `src/lib/ui-editor/RightPanel.svelte.test.ts`, `src/lib/ui-editor/SettingsContent.svelte.test.ts` | Added journal, tab-state, component, and UI entry-point regression coverage. |
 
 ### Key Decisions
 

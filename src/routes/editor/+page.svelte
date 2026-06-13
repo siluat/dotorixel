@@ -794,6 +794,8 @@
 					onResize={handleResize}
 					onExport={editor.toggleExportUI}
 					onClear={editor.handleClear}
+					onFlipHorizontal={editor.flipHorizontal}
+					onFlipVertical={editor.flipVertical}
 					onGridToggle={editor.handleGridToggle}
 					onAnchorChange={(anchor) => editor.workspace.setActiveResizeAnchor(anchor)}
 				/>

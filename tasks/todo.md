@@ -3,9 +3,8 @@
 ## Milestone 3: Editor for Serious Work
 
 - Constrain latch follow-ups — port the strengths of closed PR #265 ([comparative review](https://github.com/siluat/dotorixel/pull/266#issuecomment-4691161728))
-  - [172 — Consolidate toolbar Constrain-latch specs into a shared contract](../issues/172-toolbar-constrain-latch-contract-tests.md)
-  - [173 — Tool selection radiogroup semantics + live-region announcements (blocked by 172)](../issues/173-toolbar-radiogroup-live-region.md)
-  - [174 — 44px toolbar touch targets + strip width debt (blocked by 172, 173)](../issues/174-toolbar-touch-targets-strip-overflow.md)
+  - [173 — Tool selection radiogroup semantics + live-region announcements](../issues/173-toolbar-radiogroup-live-region.md)
+  - [174 — 44px toolbar touch targets + strip width debt (blocked by 173)](../issues/174-toolbar-touch-targets-strip-overflow.md)
   - [175 — Latch snapshot-restore guard + ownership wording](../issues/175-constrain-latch-snapshot-guard.md)
 - Copy/paste
 - Flip/transform

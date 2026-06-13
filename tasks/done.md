@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 172 | [Consolidate toolbar Constrain-latch specs into a shared contract](../issues/172-toolbar-constrain-latch-contract-tests.md) | 2026-06-13 |
 | 170 | [Constrain latch mid-stroke toggle — immediate in-flight refresh](../issues/170-constrain-latch-mid-stroke-refresh.md) | 2026-06-12 |
 | 171 | [Constrain toggle in the docked layout](../issues/171-constrain-toggle-docked-layout.md) | 2026-06-11 |
 | 169 | [Constrain latch + touch tool strip toggle](../issues/169-constrain-latch-touch-toggle.md) | 2026-06-11 |

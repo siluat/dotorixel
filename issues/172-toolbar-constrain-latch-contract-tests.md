@@ -1,6 +1,6 @@
 ---
 title: "Consolidate toolbar Constrain-latch specs into a shared contract"
-status: ready-for-agent
+status: done
 created: 2026-06-12
 ---
 
@@ -28,3 +28,25 @@ Test-only change: production markup and behavior stay identical.
 ## Blocked by
 
 None - can start immediately
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/ui-editor/toolbar-constrain-latch.contract.ts` | New shared contract: `describeToolbarConstrainLatch(name, verb, render)` defines the toolbar Constrain-latch behavior once; constrainable/non-constrainable tool lists and labels derived from `TOOL_ENTRIES` + `isConstrainableTool`; load-time guard fails loud if either tool group empties |
+| `src/lib/ui-editor/LeftToolbar.svelte.test.ts` | Reduced to a thin shell (render fn + contract call); gained the inactive-constrainable case from the union (9 → 10 cases) |
+| `src/lib/ui-editor/ToolStrip.svelte.test.ts` | Reduced to a thin shell (render fn + contract call) |
+
+### Key Decisions
+
+- **Contract = a `describe`-injecting function over each spec's own render.** Each surface keeps its markup/render local while sharing the behavioral contract — so the two toolbars cannot drift apart, and 173's radiogroup conversion edits one file instead of two.
+- **Tool lists/labels derived from the registry, not literals**, so the contract can never disagree with production's `isConstrainable` classification.
+- **`verb: 'click' | 'tap'` union** preserves each surface's wording ("re-click" / "re-tap") and deliberately avoids the codebase's established "gesture" term (pointer drag/zoom/resize) to keep domain vocabulary consistent.
+- **Load-time guard (≥2 constrainable, ≥1 non-constrainable) over an in-suite assertion**: blocks `it.each` from silently collapsing to zero cases (false-green). Verified it fires with an actionable message.
+- **First `.contract.ts` file in the codebase.** Not matched by vitest `include: ['src/**/*.test.ts']`, so it executes only when a spec imports it — no empty-suite collection.
+
+### Notes
+
+- Test-only change — no production markup or behavior touched. Full unit suite (1394 tests) + svelte-check clean.
+- Union coverage closed a real gap: LeftToolbar previously lacked the "inactive constrainable tools show no Constrain state" case.
+- Unblocks 173; 174 remains blocked by 173.

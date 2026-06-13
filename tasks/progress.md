@@ -6,11 +6,11 @@ None
 
 ## Last Completed
 
-[170 — Constrain latch mid-stroke toggle — immediate in-flight refresh](../issues/170-constrain-latch-mid-stroke-refresh.md): toggling the latch during an active stroke now fires the same modifier-change notification as keyboard Shift, so the in-flight shape re-resolves with the pointer stationary. Completes parent PRD [168 — Touch modifier alternatives](../issues/168-touch-modifier-alternatives.md) — the latch has full keyboard-Shift parity.
+[172 — Consolidate toolbar Constrain-latch specs into a shared contract](../issues/172-toolbar-constrain-latch-contract-tests.md): the touch ToolStrip and docked LeftToolbar now run one shared, registry-derived Constrain-latch contract instead of twin specs, so the two surfaces can't drift behaviorally — and LeftToolbar gained the inactive-constrainable case it was missing. Test-only; production unchanged. Unblocks 173.
 
 ## Next Up
 
-- Constrain latch follow-ups (port of #265's strengths): start at [172 — shared contract tests](../issues/172-toolbar-constrain-latch-contract-tests.md) (unblocks 173 → 174); [175 — snapshot guard + wording](../issues/175-constrain-latch-snapshot-guard.md) is independent
+- Constrain latch follow-ups (port of #265's strengths): start at [173 — radiogroup semantics + live-region](../issues/173-toolbar-radiogroup-live-region.md) (now unblocked by 172; unblocks 174); [175 — snapshot guard + wording](../issues/175-constrain-latch-snapshot-guard.md) is independent
 - Copy/paste
 - Flip/transform
 - Project file format (JSON-based) + save/load

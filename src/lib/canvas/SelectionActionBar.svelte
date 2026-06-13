@@ -4,6 +4,8 @@
 		ClipboardPaste,
 		Copy,
 		CopyPlus,
+		FlipHorizontal,
+		FlipVertical,
 		Scissors,
 		SquareDashedMousePointer,
 		Trash2,
@@ -45,6 +47,8 @@
 		onClearMarqueeOrFloating?: () => void;
 		onCommitFloatingSelection?: () => void;
 		onDuplicateFloatingSelection?: () => void;
+		onFlipHorizontal?: () => void;
+		onFlipVertical?: () => void;
 	}
 
 	let {
@@ -62,7 +66,9 @@
 		onDeleteMarqueePixels,
 		onClearMarqueeOrFloating,
 		onCommitFloatingSelection,
-		onDuplicateFloatingSelection
+		onDuplicateFloatingSelection,
+		onFlipHorizontal,
+		onFlipVertical
 	}: Props = $props();
 
 	type Rect = {
@@ -120,6 +126,16 @@
 			icon: ClipboardPaste,
 			handler: canPaste ? onPasteSelectionClipboard : undefined,
 			disabled: !canPaste
+		},
+		{
+			label: m.action_transformFlipHorizontal(),
+			icon: FlipHorizontal,
+			handler: onFlipHorizontal
+		},
+		{
+			label: m.action_transformFlipVertical(),
+			icon: FlipVertical,
+			handler: onFlipVertical
 		},
 		{
 			label: m.action_selectionDelete(),

@@ -773,6 +773,54 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
 	});
 
+	it('flipHorizontal mirrors the active layer and restores on undo', () => {
+		const pixels = new Uint8Array(2 * 1 * 4);
+		pixels.set(makePixelRgba(RED), 0);
+		pixels.set(makePixelRgba(GREEN), 4);
+		const { tab } = makeTab({ document: singleLayerDocument(2, 1, pixels) });
+
+		tab.flipHorizontal();
+
+		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
+		expect(getPixel(tab, 1, 0)).toEqual(RED);
+
+		tab.undo();
+
+		expect(getPixel(tab, 0, 0)).toEqual(RED);
+		expect(getPixel(tab, 1, 0)).toEqual(GREEN);
+	});
+
+	it('flipVertical mirrors the active layer', () => {
+		const pixels = new Uint8Array(1 * 2 * 4);
+		pixels.set(makePixelRgba(RED), 0);
+		pixels.set(makePixelRgba(GREEN), 4);
+		const { tab } = makeTab({ document: singleLayerDocument(1, 2, pixels) });
+
+		tab.flipVertical();
+
+		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
+		expect(getPixel(tab, 0, 1)).toEqual(RED);
+	});
+
+	it('flipHorizontal commits an idle Floating Selection nudge before mirroring the region', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (0 * 5 + 0) * 4);
+		pixels.set(makePixelRgba(GREEN), (0 * 5 + 1) * 4);
+		const { tab } = makeTab({ document: singleLayerDocument(5, 5, pixels) });
+		tab.document.set_marquee(marqueeRegionFromDrag(0, 0, 1, 0));
+		tab.nudgeMarquee(0, 1);
+
+		tab.flipHorizontal();
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		// The strip is committed one row down, then mirrored within its region.
+		expect(getPixel(tab, 0, 0)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 1, 0)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 0, 1)).toEqual(GREEN);
+		expect(getPixel(tab, 1, 1)).toEqual(RED);
+		expect(tab.document.marquee()).toMatchObject({ x: 0, y: 1, width: 2, height: 1 });
+	});
+
 	it('clearMarqueePixels commits an idle Floating Selection nudge before clearing moved pixels', () => {
 		const pixels = new Uint8Array(5 * 5 * 4);
 		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);

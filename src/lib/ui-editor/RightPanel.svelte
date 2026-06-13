@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowLeftRight } from 'lucide-svelte';
+	import { ArrowLeftRight, FlipHorizontal, FlipVertical } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { ResizeAnchor } from '$lib/canvas/canvas-model';
 	import HsvPicker from '$lib/color-picker/HsvPicker.svelte';
@@ -20,6 +20,8 @@
 		onResize: (width: number, height: number) => void;
 		onClear: () => void;
 		onAnchorChange: (anchor: ResizeAnchor) => void;
+		onFlipHorizontal: () => void;
+		onFlipVertical: () => void;
 	}
 
 	let {
@@ -34,7 +36,9 @@
 		onSwapColors,
 		onResize,
 		onClear,
-		onAnchorChange
+		onAnchorChange,
+		onFlipHorizontal,
+		onFlipVertical
 	}: Props = $props();
 
 	let colorSectionEl: HTMLElement | undefined = $state();
@@ -66,6 +70,23 @@
 		<button class="clear-btn" onclick={onClear}>
 			{m.action_clearCanvas()}
 		</button>
+	</section>
+
+	<hr class="divider" />
+
+	<!-- Transform Section -->
+	<section class="panel-section">
+		<h3 class="section-title">{m.section_transform()}</h3>
+		<div class="transform-actions">
+			<button class="transform-btn" onclick={onFlipHorizontal}>
+				<FlipHorizontal size={16} aria-hidden={true} />
+				{m.action_transformFlipHorizontal()}
+			</button>
+			<button class="transform-btn" onclick={onFlipVertical}>
+				<FlipVertical size={16} aria-hidden={true} />
+				{m.action_transformFlipVertical()}
+			</button>
+		</div>
 	</section>
 
 	<hr class="divider" />
@@ -156,8 +177,8 @@
 		color: var(--ds-text-secondary);
 	}
 
-	.clear-btn {
-		width: 100%;
+	.clear-btn,
+	.transform-btn {
 		height: 28px;
 		border: 1px solid var(--ds-border);
 		border-radius: 4px;
@@ -168,8 +189,26 @@
 		cursor: pointer;
 	}
 
-	.clear-btn:hover {
+	.clear-btn {
+		width: 100%;
+	}
+
+	.transform-btn {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
+	}
+
+	.clear-btn:hover,
+	.transform-btn:hover {
 		background: var(--ds-bg-hover);
+	}
+
+	.transform-actions {
+		display: flex;
+		gap: 8px;
 	}
 
 	/* Divider */

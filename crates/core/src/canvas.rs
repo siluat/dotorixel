@@ -354,6 +354,16 @@ impl PixelCanvas {
         self.pixels.fill(0);
     }
 
+    /// Mirrors the canvas horizontally (left ↔ right) in place.
+    pub fn flip_horizontal(&mut self) {
+        self.pixels = flip_buffer_horizontal(&self.pixels, self.width, self.height);
+    }
+
+    /// Mirrors the canvas vertically (top ↔ bottom) in place.
+    pub fn flip_vertical(&mut self) {
+        self.pixels = flip_buffer_vertical(&self.pixels, self.width, self.height);
+    }
+
     /// Fills all pixels connected to `(start_x, start_y)` with `fill_color`
     /// using 4-connectivity (up, down, left, right).
     ///
@@ -489,6 +499,36 @@ impl PixelCanvas {
         }
         Ok(dest)
     }
+}
+
+/// Mirrors a row-major RGBA `buffer` horizontally (left ↔ right) within each
+/// row. The caller guarantees `buffer.len() == width * height * 4`.
+pub fn flip_buffer_horizontal(buffer: &[u8], width: u32, height: u32) -> Vec<u8> {
+    let width = width as usize;
+    let height = height as usize;
+    let mut flipped = vec![0u8; buffer.len()];
+    for y in 0..height {
+        for x in 0..width {
+            let src = (y * width + x) * 4;
+            let dst = (y * width + (width - 1 - x)) * 4;
+            flipped[dst..dst + 4].copy_from_slice(&buffer[src..src + 4]);
+        }
+    }
+    flipped
+}
+
+/// Mirrors a row-major RGBA `buffer` vertically (top ↔ bottom) by reversing the
+/// row order. The caller guarantees `buffer.len() == width * height * 4`.
+pub fn flip_buffer_vertical(buffer: &[u8], width: u32, height: u32) -> Vec<u8> {
+    let row_len = width as usize * 4;
+    let height = height as usize;
+    let mut flipped = vec![0u8; buffer.len()];
+    for y in 0..height {
+        let src = y * row_len;
+        let dst = (height - 1 - y) * row_len;
+        flipped[dst..dst + row_len].copy_from_slice(&buffer[src..src + row_len]);
+    }
+    flipped
 }
 
 #[cfg(test)]
@@ -803,6 +843,74 @@ mod tests {
                 actual: 8
             })
         );
+    }
+
+    // ── flip buffer primitives ──────────────────────────────────
+
+    #[test]
+    fn flip_buffer_horizontal_swaps_left_and_right_columns() {
+        // 2×1 row: [RED, GREEN] mirrors to [GREEN, RED].
+        let buffer = vec![255, 0, 0, 255, 0, 255, 0, 255];
+        let flipped = flip_buffer_horizontal(&buffer, 2, 1);
+        assert_eq!(flipped, vec![0, 255, 0, 255, 255, 0, 0, 255]);
+    }
+
+    #[test]
+    fn flip_buffer_vertical_swaps_top_and_bottom_rows() {
+        // 1×2 column: [RED, GREEN] mirrors to [GREEN, RED].
+        let buffer = vec![255, 0, 0, 255, 0, 255, 0, 255];
+        let flipped = flip_buffer_vertical(&buffer, 1, 2);
+        assert_eq!(flipped, vec![0, 255, 0, 255, 255, 0, 0, 255]);
+    }
+
+    // ── flip whole-canvas ───────────────────────────────────────
+
+    const GREEN: Color = Color::new(0, 255, 0, 255);
+    const BLUE: Color = Color::new(0, 0, 255, 255);
+
+    fn distinct_2x2() -> PixelCanvas {
+        // top row [RED, GREEN], bottom row [BLUE, transparent].
+        PixelCanvas::from_pixels(
+            2,
+            2,
+            vec![255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 0, 0, 0, 0],
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn flip_horizontal_mirrors_canvas_in_place() {
+        let mut canvas = distinct_2x2();
+        canvas.flip_horizontal();
+        assert_eq!(canvas.get_pixel(0, 0).unwrap(), GREEN);
+        assert_eq!(canvas.get_pixel(1, 0).unwrap(), RED);
+        assert_eq!(canvas.get_pixel(0, 1).unwrap(), Color::TRANSPARENT);
+        assert_eq!(canvas.get_pixel(1, 1).unwrap(), BLUE);
+    }
+
+    #[test]
+    fn flip_vertical_mirrors_canvas_in_place() {
+        let mut canvas = distinct_2x2();
+        canvas.flip_vertical();
+        assert_eq!(canvas.get_pixel(0, 0).unwrap(), BLUE);
+        assert_eq!(canvas.get_pixel(1, 0).unwrap(), Color::TRANSPARENT);
+        assert_eq!(canvas.get_pixel(0, 1).unwrap(), RED);
+        assert_eq!(canvas.get_pixel(1, 1).unwrap(), GREEN);
+    }
+
+    #[test]
+    fn double_flip_returns_to_original() {
+        let original = distinct_2x2();
+
+        let mut h = original.clone();
+        h.flip_horizontal();
+        h.flip_horizontal();
+        assert_eq!(h, original);
+
+        let mut v = original.clone();
+        v.flip_vertical();
+        v.flip_vertical();
+        assert_eq!(v, original);
     }
 
     // ── resize ──────────────────────────────────────────────────

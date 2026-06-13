@@ -19,6 +19,8 @@
 			onClear={noop}
 			onGridToggle={noop}
 			onAnchorChange={noop}
+			onFlipHorizontal={noop}
+			onFlipVertical={noop}
 		/>
 	</div>
 </Story>
@@ -35,6 +37,8 @@
 			onClear={noop}
 			onGridToggle={noop}
 			onAnchorChange={noop}
+			onFlipHorizontal={noop}
+			onFlipVertical={noop}
 		/>
 	</div>
 </Story>

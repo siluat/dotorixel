@@ -602,6 +602,24 @@ export class TabState {
 		});
 	};
 
+	flipHorizontal = (): void => {
+		if (this.isDrawing) return;
+		this.#commitIdleFloatingSelection();
+		this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'flip-horizontal' }
+		});
+	};
+
+	flipVertical = (): void => {
+		if (this.isDrawing) return;
+		this.#commitIdleFloatingSelection();
+		this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'flip-vertical' }
+		});
+	};
+
 	clearMarquee = (): void => {
 		this.#commitIdleFloatingSelection();
 		this.#documentChangeJournal.commit({

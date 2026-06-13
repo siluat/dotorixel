@@ -54,6 +54,8 @@
 		onClearMarqueeOrFloating?: () => void;
 		onCommitFloatingSelection?: () => void;
 		onDuplicateFloatingSelection?: () => void;
+		onFlipHorizontal?: () => void;
+		onFlipVertical?: () => void;
 		activeTool?: ToolType;
 		toolCursor?: string;
 		selectionDragPhase?: SelectionDragPhase;
@@ -93,6 +95,8 @@
 		onClearMarqueeOrFloating,
 		onCommitFloatingSelection,
 		onDuplicateFloatingSelection,
+		onFlipHorizontal,
+		onFlipVertical,
 		activeTool = 'pencil',
 		toolCursor = 'crosshair',
 		selectionDragPhase = 'defineMarquee',
@@ -712,6 +716,8 @@
 	{onClearMarqueeOrFloating}
 	{onCommitFloatingSelection}
 	{onDuplicateFloatingSelection}
+	{onFlipHorizontal}
+	{onFlipVertical}
 />
 
 {#if samplingSession?.position}

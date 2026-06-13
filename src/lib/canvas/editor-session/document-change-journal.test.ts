@@ -404,6 +404,73 @@ describe('DocumentChangeJournal', () => {
 		expect(current.marquee()).toMatchObject({ x: 1, y: 1, width: 1, height: 1 });
 	});
 
+	it('flips the active layer horizontally as one undoable document change', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array(2 * 1 * 4);
+		pixels.set([255, 0, 0, 255], 0);
+		pixels.set([0, 255, 0, 255], 4);
+		const document = singleLayerDocument(2, 1, pixels);
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'flip-horizontal' }
+		});
+
+		expect(result).toEqual({ changed: true });
+		expect(Array.from(document.layer_pixels_at(0)!.slice(0, 4))).toEqual([0, 255, 0, 255]);
+		expect(Array.from(document.layer_pixels_at(0)!.slice(4, 8))).toEqual([255, 0, 0, 255]);
+		expect(events).toEqual(['snapshot', 'render', 'dirty']);
+	});
+
+	it('undo restores and redo re-applies a flip', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array(2 * 1 * 4);
+		pixels.set([255, 0, 0, 255], 0);
+		pixels.set([0, 255, 0, 255], 4);
+		let current = singleLayerDocument(2, 1, pixels);
+		const journal = createJournal(events, current, {
+			getDocument: () => current,
+			replaceDocument: (document) => {
+				current = document;
+				events.push(`replace:${document.width}x${document.height}`);
+			},
+			createHistoryManager
+		});
+
+		journal.commit({ kind: 'undoable-document', intent: { type: 'flip-horizontal' } });
+		expect(Array.from(current.layer_pixels_at(0)!.slice(0, 4))).toEqual([0, 255, 0, 255]);
+
+		expect(journal.undo()).toEqual({ changed: true });
+		expect(Array.from(current.layer_pixels_at(0)!.slice(0, 4))).toEqual([255, 0, 0, 255]);
+		expect(Array.from(current.layer_pixels_at(0)!.slice(4, 8))).toEqual([0, 255, 0, 255]);
+
+		expect(journal.redo()).toEqual({ changed: true });
+		expect(Array.from(current.layer_pixels_at(0)!.slice(0, 4))).toEqual([0, 255, 0, 255]);
+	});
+
+	it('skips flip and captures no snapshot when the active layer is Reference', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			active_layer_id: () => 'reference-1',
+			layer_count: () => 1,
+			layers_metadata: () => [
+				{ id: 'reference-1', name: 'Reference', visible: true, opacity: 1, kind: 'reference' }
+			]
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		expect(
+			journal.commit({ kind: 'undoable-document', intent: { type: 'flip-horizontal' } })
+		).toEqual({ changed: false });
+		expect(
+			journal.commit({ kind: 'undoable-document', intent: { type: 'flip-vertical' } })
+		).toEqual({ changed: false });
+		expect(events).toEqual([]);
+	});
+
 	it('commits a Floating Selection move as one undoable document change', () => {
 		const events: string[] = [];
 		const pixels = new Uint8Array(4 * 4 * 4);

@@ -2,16 +2,16 @@
 
 ## Currently Working On
 
-Flip & rotate transforms ([PRD](../issues/176-flip-and-rotate-transforms.md))
+Flip & rotate transforms ([PRD](../issues/176-flip-and-rotate-transforms.md)) — 1 of 3 sub-issues done. 177 (flip H/V) shipped the shared transform pipeline; 178 (rotate region 90°) is now unblocked, 179 (whole-document rotate) still waits on 178.
 
 ## Last Completed
 
-[175 — Constrain latch snapshot-restore guard + ownership wording](../issues/175-constrain-latch-snapshot-guard.md): a regression guard now pins the latch as session-transient — off after a snapshot round-trip — and the doc comment names the composition root as its owner. This was the last of four #265 ports; that thread is closed.
+[177 — Flip horizontal & vertical](../issues/177-flip-horizontal-vertical.md): H/V flip across the full pipeline (Rust core → WASM → Change Journal → three UI entry points: SelectionActionBar, desktop RightPanel, compact Settings). Target (Marquee region vs whole active layer) is resolved in Rust at apply time via payload-less intents; Reference Layer is a no-op. Compact Transform parity was added beyond the issue's two named entry points.
 
 ## Next Up
 
 - Copy/paste
-- Flip/transform
+- Rotate region 90° CW & CCW ([178](../issues/178-region-rotate-90.md)) — unblocked by 177
 - Project file format (JSON-based) + save/load
 - Apple Pencil: hover preview + palm rejection
 - Feature guide page (basic usage instructions)

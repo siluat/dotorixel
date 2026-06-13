@@ -270,6 +270,14 @@ export class EditorController {
 		this.workspace.activeTab.clear();
 	};
 
+	handleFlipHorizontal = (): void => {
+		this.workspace.activeTab.flipHorizontal();
+	};
+
+	handleFlipVertical = (): void => {
+		this.workspace.activeTab.flipVertical();
+	};
+
 	// Viewport handlers
 	handleViewportChange = (newViewport: ViewportData): void => {
 		this.workspace.activeTab.setViewport(newViewport);

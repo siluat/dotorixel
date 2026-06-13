@@ -639,6 +639,8 @@
 				onClearMarqueeOrFloating={editor.clearMarqueeOrFloating}
 				onCommitFloatingSelection={editor.commitFloatingSelection}
 				onDuplicateFloatingSelection={editor.duplicateFloatingSelection}
+				onFlipHorizontal={editor.flipHorizontal}
+				onFlipVertical={editor.flipVertical}
 				activeTool={editor.activeTool}
 				toolCursor={editor.toolCursor}
 				isSpaceHeld={editor.isSpaceHeld}
@@ -684,6 +686,8 @@
 			onSwapColors={editor.swapColors}
 			onResize={handleResize}
 			onClear={editor.handleClear}
+			onFlipHorizontal={editor.flipHorizontal}
+			onFlipVertical={editor.flipVertical}
 			onAnchorChange={(anchor) => editor.workspace.setActiveResizeAnchor(anchor)}
 		/>
 
@@ -755,6 +759,8 @@
 						onClearMarqueeOrFloating={editor.clearMarqueeOrFloating}
 						onCommitFloatingSelection={editor.commitFloatingSelection}
 						onDuplicateFloatingSelection={editor.duplicateFloatingSelection}
+						onFlipHorizontal={editor.flipHorizontal}
+						onFlipVertical={editor.flipVertical}
 						activeTool={editor.activeTool}
 						toolCursor={editor.toolCursor}
 						isSpaceHeld={editor.isSpaceHeld}

@@ -746,6 +746,20 @@ impl WasmDocument {
         self.inner.clear();
     }
 
+    /// Mirrors either the current Marquee region or, when no Marquee exists,
+    /// the entire active Pixel Layer horizontally. No-op when the active layer
+    /// is a Reference Layer.
+    pub fn flip_horizontal(&mut self) {
+        self.inner.flip_horizontal();
+    }
+
+    /// Mirrors either the current Marquee region or, when no Marquee exists,
+    /// the entire active Pixel Layer vertically. No-op when the active layer is
+    /// a Reference Layer.
+    pub fn flip_vertical(&mut self) {
+        self.inner.flip_vertical();
+    }
+
     /// Copies the current Marquee region from the active Pixel Layer as a
     /// row-major RGBA buffer. Returns an empty buffer when no Marquee exists
     /// or when the active layer is a Reference Layer.
@@ -1506,6 +1520,20 @@ mod tests {
         let marquee = doc.marquee().expect("marquee is preserved");
         assert_eq!(marquee.x(), 0);
         assert_eq!(marquee.width(), 2);
+    }
+
+    #[test]
+    fn wasm_document_flip_horizontal_mirrors_active_layer() {
+        let id = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 1, id.to_string(), "Layer 1".to_string()).unwrap();
+        let red = WasmColor::new(255, 0, 0, 255);
+        let blue = WasmColor::new(0, 0, 255, 255);
+        doc.set_pixel(0, 0, &red).unwrap();
+        doc.set_pixel(1, 0, &blue).unwrap();
+
+        doc.flip_horizontal();
+
+        assert_eq!(&doc.composite()[0..8], &[0, 0, 255, 255, 255, 0, 0, 255]);
     }
 
     #[test]

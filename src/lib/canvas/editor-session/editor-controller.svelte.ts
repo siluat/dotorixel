@@ -254,6 +254,14 @@ export class EditorController {
 		this.workspace.activeTab.clearMarqueePixels();
 	};
 
+	flipHorizontal = (): void => {
+		this.workspace.activeTab.flipHorizontal();
+	};
+
+	flipVertical = (): void => {
+		this.workspace.activeTab.flipVertical();
+	};
+
 	clearMarqueeOrFloating = (): void => {
 		this.workspace.activeTab.clearMarqueeOrFloating();
 	};

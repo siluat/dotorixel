@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowLeftRight } from 'lucide-svelte';
+	import { ArrowLeftRight, FlipHorizontal, FlipVertical } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { ResizeAnchor } from '$lib/canvas/canvas-model';
 	import HsvPicker from '$lib/color-picker/HsvPicker.svelte';
@@ -19,6 +19,8 @@
 		onSwapColors: () => void;
 		onResize: (width: number, height: number) => void;
 		onClear: () => void;
+		onFlipHorizontal: () => void;
+		onFlipVertical: () => void;
 		onAnchorChange: (anchor: ResizeAnchor) => void;
 	}
 
@@ -34,6 +36,8 @@
 		onSwapColors,
 		onResize,
 		onClear,
+		onFlipHorizontal,
+		onFlipVertical,
 		onAnchorChange
 	}: Props = $props();
 
@@ -66,6 +70,20 @@
 		<button class="clear-btn" onclick={onClear}>
 			{m.action_clearCanvas()}
 		</button>
+
+		<div class="transform-group" aria-labelledby="transform-title">
+			<h3 id="transform-title" class="section-title">{m.section_transform()}</h3>
+			<div class="transform-actions">
+				<button class="transform-btn" onclick={onFlipHorizontal}>
+					<FlipHorizontal size={14} aria-hidden={true} />
+					<span>{m.action_transformFlipHorizontal()}</span>
+				</button>
+				<button class="transform-btn" onclick={onFlipVertical}>
+					<FlipVertical size={14} aria-hidden={true} />
+					<span>{m.action_transformFlipVertical()}</span>
+				</button>
+			</div>
+		</div>
 	</section>
 
 	<hr class="divider" />
@@ -170,6 +188,46 @@
 
 	.clear-btn:hover {
 		background: var(--ds-bg-hover);
+	}
+
+	.transform-group {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding-top: 4px;
+	}
+
+	.transform-actions {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 6px;
+	}
+
+	.transform-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		min-width: 0;
+		height: 28px;
+		padding: 0 8px;
+		border: 1px solid var(--ds-border);
+		border-radius: 4px;
+		background: none;
+		color: var(--ds-text-secondary);
+		font-family: var(--ds-font-body);
+		font-size: var(--ds-font-size-sm);
+		cursor: pointer;
+	}
+
+	.transform-btn:hover {
+		background: var(--ds-bg-hover);
+	}
+
+	.transform-btn span {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	/* Divider */

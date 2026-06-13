@@ -42,6 +42,8 @@ describe('SelectionActionBar', () => {
 			onCutSelection: vi.fn(),
 			onPasteSelectionClipboard: vi.fn(),
 			onDeleteMarqueePixels: vi.fn(),
+			onFlipHorizontal: vi.fn(),
+			onFlipVertical: vi.fn(),
 			onClearMarqueeOrFloating: vi.fn()
 		};
 
@@ -63,12 +65,16 @@ describe('SelectionActionBar', () => {
 		await fireEvent.click(screen.getByRole('button', { name: 'Cut' }));
 		await fireEvent.click(screen.getByRole('button', { name: 'Paste' }));
 		await fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Flip H' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Flip V' }));
 		await fireEvent.click(screen.getByRole('button', { name: 'Deselect' }));
 
 		expect(handlers.onCopySelection).toHaveBeenCalledOnce();
 		expect(handlers.onCutSelection).toHaveBeenCalledOnce();
 		expect(handlers.onPasteSelectionClipboard).toHaveBeenCalledOnce();
 		expect(handlers.onDeleteMarqueePixels).toHaveBeenCalledOnce();
+		expect(handlers.onFlipHorizontal).toHaveBeenCalledOnce();
+		expect(handlers.onFlipVertical).toHaveBeenCalledOnce();
 		expect(handlers.onClearMarqueeOrFloating).toHaveBeenCalledOnce();
 	});
 
@@ -119,6 +125,8 @@ describe('SelectionActionBar', () => {
 		expect(screen.queryByRole('button', { name: 'Cut' })).toBeNull();
 		expect(screen.queryByRole('button', { name: 'Paste' })).toBeNull();
 		expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Flip H' })).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Flip V' })).toBeNull();
 		expect(screen.queryByRole('button', { name: 'Deselect' })).toBeNull();
 
 		await fireEvent.click(screen.getByRole('button', { name: 'Done' }));
@@ -215,12 +223,12 @@ describe('SelectionActionBar', () => {
 				canvasWidth: 24,
 				canvasHeight: 12,
 				viewport: { ...viewport, panX: 0, panY: 0 },
-				viewportSize: { width: 240, height: 200 },
+				viewportSize: { width: 320, height: 200 },
 				canPaste: true
 			}
 		});
 
-		expect(screen.getByTestId('selection-action-bar').style.left).toBe('34px');
+		expect(screen.getByTestId('selection-action-bar').style.left).toBe('38px');
 	});
 
 	it('hides during pointer drag and restores after release state', async () => {
@@ -287,12 +295,12 @@ describe('SelectionActionBar', () => {
 	});
 
 	it.each([
-		['en', 'Copy', 'Cut', 'Paste', 'Delete', 'Deselect'],
-		['ko', '복사', '잘라내기', '붙여넣기', '삭제', '선택 해제'],
-		['ja', 'コピー', '切り取り', '貼り付け', '削除', '選択解除']
+		['en', 'Copy', 'Cut', 'Paste', 'Delete', 'Flip H', 'Flip V', 'Deselect'],
+		['ko', '복사', '잘라내기', '붙여넣기', '삭제', '좌우 반전', '상하 반전', '선택 해제'],
+		['ja', 'コピー', '切り取り', '貼り付け', '削除', '左右反転', '上下反転', '選択解除']
 	] as const)(
 		'renders localized labels for %s',
-		(locale, copy, cut, paste, deleteLabel, deselect) => {
+		(locale, copy, cut, paste, deleteLabel, flipHorizontal, flipVertical, deselect) => {
 			overwriteGetLocale(() => locale);
 
 			render(SelectionActionBar, {
@@ -306,7 +314,7 @@ describe('SelectionActionBar', () => {
 				}
 			});
 
-			for (const label of [copy, cut, paste, deleteLabel, deselect]) {
+			for (const label of [copy, cut, paste, deleteLabel, flipHorizontal, flipVertical, deselect]) {
 				expect(screen.getByRole('button', { name: label })).toBeTruthy();
 			}
 		}

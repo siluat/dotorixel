@@ -6,7 +6,10 @@ use crate::canvas::{CanvasRect, PixelCanvas, PixelCanvasError, ResizeAnchor};
 use crate::color::Color;
 use crate::layer::{Layer, LayerKind, LayerKindTag, ReferenceData, ReferenceDataError};
 use crate::reference_placement::ReferencePlacement;
-use crate::selection::{MarqueeRegion, clear_region, composite_region, lift_region};
+use crate::selection::{
+    MarqueeRegion, clear_region, composite_region, flip_region_horizontal, flip_region_vertical,
+    lift_region,
+};
 use crate::tool::ToolType;
 
 /// Errors that can occur during layer-stack operations on a [`Document`].
@@ -596,6 +599,40 @@ impl Document {
         }
     }
 
+    /// Mirrors either the current Marquee region or, when no Marquee exists,
+    /// the entire active Pixel Layer horizontally. No-op when the active layer
+    /// is a Reference Layer.
+    pub fn flip_horizontal(&mut self) {
+        let marquee = self.marquee;
+        match &mut self.active_layer_mut().kind {
+            LayerKind::Pixel(canvas) => {
+                if let Some(region) = marquee {
+                    flip_region_horizontal(canvas, region);
+                } else {
+                    canvas.flip_horizontal();
+                }
+            }
+            LayerKind::Reference(_) => {}
+        }
+    }
+
+    /// Mirrors either the current Marquee region or, when no Marquee exists,
+    /// the entire active Pixel Layer vertically. No-op when the active layer is
+    /// a Reference Layer.
+    pub fn flip_vertical(&mut self) {
+        let marquee = self.marquee;
+        match &mut self.active_layer_mut().kind {
+            LayerKind::Pixel(canvas) => {
+                if let Some(region) = marquee {
+                    flip_region_vertical(canvas, region);
+                } else {
+                    canvas.flip_vertical();
+                }
+            }
+            LayerKind::Reference(_) => {}
+        }
+    }
+
     /// Returns the [`LayerKindTag`] of the layer at `index`, or `None` when
     /// `index` is out of range.
     pub fn layer_kind_at(&self, index: usize) -> Option<LayerKindTag> {
@@ -799,6 +836,13 @@ mod tests {
         layer.kind = LayerKind::Pixel(canvas);
     }
 
+    fn rgba(colors: &[Color]) -> Vec<u8> {
+        colors
+            .iter()
+            .flat_map(|color| [color.r, color.g, color.b, color.a])
+            .collect()
+    }
+
     #[test]
     fn marquee_round_trips_through_document_state() {
         let first = Uuid::new_v4();
@@ -906,6 +950,120 @@ mod tests {
             pixel_canvas(&doc.layers[1]).get_pixel(2, 2).unwrap(),
             Color::TRANSPARENT
         );
+    }
+
+    #[test]
+    fn flip_horizontal_without_marquee_mirrors_only_the_active_pixel_layer() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        let white = Color::new(255, 255, 255, 255);
+        let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::from_pixels(2, 2, rgba(&[red, green, blue, white])).unwrap(),
+        );
+        doc.add_layer(b, "B".to_string());
+        set_pixel_canvas(
+            &mut doc.layers[1],
+            PixelCanvas::from_pixels(2, 2, rgba(&[white, blue, green, red])).unwrap(),
+        );
+
+        doc.flip_horizontal();
+
+        assert_eq!(
+            pixel_canvas(&doc.layers[0]).pixels(),
+            rgba(&[red, green, blue, white])
+        );
+        assert_eq!(
+            pixel_canvas(&doc.layers[1]).pixels(),
+            rgba(&[blue, white, red, green])
+        );
+        assert_eq!(doc.marquee(), None);
+    }
+
+    #[test]
+    fn flip_vertical_without_marquee_mirrors_only_the_active_pixel_layer() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        let white = Color::new(255, 255, 255, 255);
+        let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::from_pixels(2, 2, rgba(&[red, green, blue, white])).unwrap(),
+        );
+        doc.add_layer(b, "B".to_string());
+        set_pixel_canvas(
+            &mut doc.layers[1],
+            PixelCanvas::from_pixels(2, 2, rgba(&[white, blue, green, red])).unwrap(),
+        );
+
+        doc.flip_vertical();
+
+        assert_eq!(
+            pixel_canvas(&doc.layers[0]).pixels(),
+            rgba(&[red, green, blue, white])
+        );
+        assert_eq!(
+            pixel_canvas(&doc.layers[1]).pixels(),
+            rgba(&[green, red, white, blue])
+        );
+        assert_eq!(doc.marquee(), None);
+    }
+
+    #[test]
+    fn flip_horizontal_with_marquee_mirrors_only_the_region_and_preserves_marquee() {
+        let a = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        let white = Color::new(255, 255, 255, 255);
+        let mut doc = Document::new(4, 2, a, "A".to_string()).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::from_pixels(
+                4,
+                2,
+                rgba(&[red, green, blue, white, white, blue, green, red]),
+            )
+            .unwrap(),
+        );
+        let marquee = MarqueeRegion::from_drag(1, 0, 2, 1);
+        doc.set_marquee(Some(marquee));
+
+        doc.flip_horizontal();
+
+        assert_eq!(
+            pixel_canvas(&doc.layers[0]).pixels(),
+            rgba(&[red, blue, green, white, white, green, blue, red])
+        );
+        assert_eq!(doc.marquee(), Some(marquee));
+    }
+
+    #[test]
+    fn flip_is_no_op_when_active_layer_is_reference() {
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let mut doc = Document::new(2, 1, a, "A".to_string()).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::from_pixels(2, 1, rgba(&[red, Color::TRANSPARENT])).unwrap(),
+        );
+        doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
+            .unwrap();
+        let before = pixel_canvas(&doc.layers[1]).pixels().to_vec();
+
+        doc.flip_horizontal();
+        doc.flip_vertical();
+
+        assert_eq!(pixel_canvas(&doc.layers[1]).pixels(), before);
+        assert_eq!(doc.active_layer_id(), r);
     }
 
     #[test]

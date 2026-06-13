@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 177 | [Flip horizontal & vertical — region and active layer](../issues/177-flip-horizontal-vertical.md) | 2026-06-14 |
 | 175 | [Constrain latch snapshot-restore guard + ownership wording](../issues/175-constrain-latch-snapshot-guard.md) | 2026-06-13 |
 | 174 | [Guarantee 44px toolbar touch targets and resolve the strip width debt](../issues/174-toolbar-touch-targets-strip-overflow.md) | 2026-06-13 |
 | 173 | [Tool selection radiogroup semantics + live-region Constrain announcements](../issues/173-toolbar-radiogroup-live-region.md) | 2026-06-13 |

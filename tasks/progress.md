@@ -2,16 +2,17 @@
 
 ## Currently Working On
 
-Flip & rotate transforms ([PRD](../issues/176-flip-and-rotate-transforms.md))
+Flip & rotate transforms ([PRD](../issues/176-flip-and-rotate-transforms.md)).
+1 of 3 transform sub-issues is done; region rotation is now unblocked, while whole-document rotation still waits on the region-rotation slice.
 
 ## Last Completed
 
-[175 — Constrain latch snapshot-restore guard + ownership wording](../issues/175-constrain-latch-snapshot-guard.md): a regression guard now pins the latch as session-transient — off after a snapshot round-trip — and the doc comment names the composition root as its owner. This was the last of four #265 ports; that thread is closed.
+[177 — Flip horizontal & vertical — region and active layer](../issues/177-flip-horizontal-vertical.md): Flip H/V are now undoable from both Web entry points, target either the active Marquee or active Pixel Layer, and no-op cleanly on Reference Layers. Rotation remains out of scope for follow-up slices.
 
 ## Next Up
 
 - Copy/paste
-- Flip/transform
+- Rotate region 90° CW & CCW
 - Project file format (JSON-based) + save/load
 - Apple Pencil: hover preview + palm rejection
 - Feature guide page (basic usage instructions)

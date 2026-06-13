@@ -124,6 +124,18 @@ export interface Document {
 	 */
 	clear_marquee_pixels(): void;
 	/**
+	 * Mirrors either the current Marquee region or, when no Marquee exists,
+	 * the entire active Pixel Layer horizontally. No-op when the active layer
+	 * is a Reference Layer.
+	 */
+	flip_horizontal(): void;
+	/**
+	 * Mirrors either the current Marquee region or, when no Marquee exists,
+	 * the entire active Pixel Layer vertically. No-op when the active layer is
+	 * a Reference Layer.
+	 */
+	flip_vertical(): void;
+	/**
 	 * Source-over composites row-major RGBA `buffer` at `region`. `buffer`
 	 * must contain `region.width × region.height × 4` bytes; implementations
 	 * throw when that length is invalid.

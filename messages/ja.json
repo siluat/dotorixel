@@ -30,6 +30,8 @@
 	"action_selectionDone": "完了",
 	"action_selectionCancel": "キャンセル",
 	"action_selectionDuplicate": "複製",
+	"action_transformFlipHorizontal": "左右反転",
+	"action_transformFlipVertical": "上下反転",
 
 	"modifier_constrain": "固定",
 
@@ -73,6 +75,7 @@
 	"section_palette": "パレット",
 	"section_actions": "操作",
 	"section_display": "表示",
+	"section_transform": "変形",
 
 	"label_export": "書き出し",
 	"label_format": "フォーマット",

@@ -1,6 +1,6 @@
 ---
 title: "Flip horizontal & vertical — region and active layer"
-status: ready-for-agent
+status: done
 created: 2026-06-14
 parent: 176-flip-and-rotate-transforms.md
 ---
@@ -72,3 +72,35 @@ keys added to `en` / `ko` / `ja` (e.g. `action_transformFlipHorizontal`,
 ## Blocked by
 
 None - can start immediately.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/canvas.rs` | Added whole-canvas horizontal and vertical flip primitives with identity and double-flip coverage. |
+| `crates/core/src/selection.rs` | Added region flip helpers that reuse the lift, clear, and composite region seams, including clipped/off-canvas coverage. |
+| `crates/core/src/document.rs` | Added Document-level target resolution for Marquee-region flips, whole-active-layer flips, and Reference-active no-op behavior. |
+| `wasm/src/lib.rs` | Exposed the flip operations through the WASM document facade and covered the binding path. |
+| `src/lib/canvas/canvas-model.ts` | Extended the TypeScript Document contract for flip operations. |
+| `src/lib/canvas/editor-session/document-change-journal.svelte.ts` | Added undoable flip intents with Reference-active guards and render/dirty invalidation. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Routed flip actions through the active tab and committed idle Floating Selections before applying. |
+| `src/lib/canvas/editor-session/editor-controller.svelte.ts` | Exposed editor-level flip commands for UI callers. |
+| `src/lib/canvas/PixelCanvasView.svelte` | Passed flip callbacks into the selection action bar. |
+| `src/lib/canvas/SelectionActionBar.svelte` | Added localized Flip H / Flip V actions for idle Marquee selections and preserved compact overflow behavior. |
+| `src/lib/ui-editor/RightPanel.svelte` | Added a Transform group in the Canvas section with Flip H / Flip V actions. |
+| `src/routes/editor/+page.svelte` | Wired both editor layouts and the RightPanel to the new flip commands. |
+| `messages/en.json`, `messages/ko.json`, `messages/ja.json` | Added localized transform labels. |
+| `src/lib/canvas/fake-drawing-ops.ts` | Updated test fakes to satisfy and exercise the expanded Document contract. |
+| `src/lib/canvas/*test.ts`, `src/lib/ui-editor/RightPanel.svelte.test.ts` | Added journal, tab-state, component, and UI entry-point regression coverage. |
+
+### Key Decisions
+
+- Target resolution lives in the Document layer so both RightPanel and SelectionActionBar dispatch the same operation and do not duplicate targeting rules.
+- Region flips reuse the existing lift → clear → composite seam so later rotation work can extend the same transform pipeline.
+- Reference-active flips are guarded before snapshot capture, matching the existing no-op drawing/clear contract without adding empty undo steps.
+- The selection action bar now clamps to available viewport width and scrolls horizontally on narrow viewports, because the idle command set grew beyond the old fixed-width assumptions.
+
+### Notes
+
+- Parent PRD 176 remains open because region rotation and whole-document rotation are still separate follow-up slices.
+- Verification passed: `cargo test --workspace`, `bun run check`, `bun run test`, and a browser smoke check at `/en/editor`.

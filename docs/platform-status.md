@@ -27,6 +27,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Create / resize | ✅ | ✅ | ✅ | 1–256px, presets available, 9-position anchor selector (Web) |
 | Clear | ✅ | ✅ | ⬜ | RightPanel (docked) + Settings tab (mobile) |
+| Flip horizontal / vertical | ✅ | ✅ | ⬜ | Marquee region or active Pixel Layer; Reference-active no-op |
 
 ## History
 

@@ -378,6 +378,52 @@ describe('TabState — effect dispatcher', () => {
 		expect(notifier.dirtyCalls).toEqual([]);
 	});
 
+	it('flipHorizontal mirrors the active Pixel Layer as one undoable change', () => {
+		const pixels = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]);
+		const { tab, notifier } = makeTab({
+			document: singleLayerDocument(2, 1, pixels),
+			canvasWidth: 2,
+			canvasHeight: 1
+		});
+		notifier.reset();
+
+		tab.flipHorizontal();
+
+		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
+		expect(getPixel(tab, 1, 0)).toEqual(RED);
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+
+		tab.undo();
+
+		expect(getPixel(tab, 0, 0)).toEqual(RED);
+		expect(getPixel(tab, 1, 0)).toEqual(GREEN);
+	});
+
+	it('flipHorizontal commits an idle Floating Selection before flipping committed pixels', () => {
+		const pixels = new Uint8Array(4 * 1 * 4);
+		pixels.set(makePixelRgba(RED), 0);
+		pixels.set(makePixelRgba(GREEN), 4);
+		const { tab, notifier, shared } = makeTab({
+			document: singleLayerDocument(4, 1, pixels),
+			canvasWidth: 4,
+			canvasHeight: 1
+		});
+		shared.activeTool = 'selection';
+		tab.document.set_marquee(marqueeRegionFromDrag(0, 0, 1, 0));
+		tab.nudgeMarquee(1, 0);
+		notifier.reset();
+
+		tab.flipHorizontal();
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 0, width: 2, height: 1 });
+		expect(getPixel(tab, 0, 0)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(getPixel(tab, 1, 0)).toEqual(GREEN);
+		expect(getPixel(tab, 2, 0)).toEqual(RED);
+		expect(getPixel(tab, 3, 0)).toEqual({ r: 0, g: 0, b: 0, a: 0 });
+		expect(notifier.dirtyCalls).toEqual(['doc-test', 'doc-test']);
+	});
+
 	it('nudgeMarquee auto-lifts the active Marquee into a one-pixel Floating Selection preview', () => {
 		const pixels = new Uint8Array(5 * 5 * 4);
 		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);

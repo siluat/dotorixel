@@ -30,6 +30,8 @@
 	"action_selectionDone": "완료",
 	"action_selectionCancel": "취소",
 	"action_selectionDuplicate": "복제",
+	"action_transformFlipHorizontal": "좌우 반전",
+	"action_transformFlipVertical": "상하 반전",
 
 	"modifier_constrain": "고정",
 
@@ -73,6 +75,7 @@
 	"section_palette": "팔레트",
 	"section_actions": "작업",
 	"section_display": "화면",
+	"section_transform": "변형",
 
 	"label_export": "내보내기",
 	"label_format": "형식",

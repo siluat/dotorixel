@@ -404,6 +404,41 @@ describe('DocumentChangeJournal', () => {
 		expect(current.marquee()).toMatchObject({ x: 1, y: 1, width: 1, height: 1 });
 	});
 
+	it('flips horizontally as one undoable document change', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array([
+			255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255
+		]);
+		let current = singleLayerDocument(2, 2, pixels);
+		const journal = createJournal(events, current, {
+			getDocument: () => current,
+			replaceDocument: (document) => {
+				current = document;
+				events.push(`replace:${document.width}x${document.height}`);
+			},
+			createHistoryManager
+		});
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'flip-horizontal' }
+		});
+
+		expect(result).toEqual({ changed: true });
+		expect(getPixelAt(current, 0, 0)).toEqual([0, 255, 0, 255]);
+		expect(getPixelAt(current, 1, 0)).toEqual([255, 0, 0, 255]);
+		expect(journal.canUndo).toBe(true);
+		expect(events).toEqual(['render', 'dirty']);
+
+		expect(journal.undo()).toEqual({ changed: true });
+		expect(getPixelAt(current, 0, 0)).toEqual([255, 0, 0, 255]);
+		expect(getPixelAt(current, 1, 0)).toEqual([0, 255, 0, 255]);
+
+		expect(journal.redo()).toEqual({ changed: true });
+		expect(getPixelAt(current, 0, 0)).toEqual([0, 255, 0, 255]);
+		expect(getPixelAt(current, 1, 0)).toEqual([255, 0, 0, 255]);
+	});
+
 	it('commits a Floating Selection move as one undoable document change', () => {
 		const events: string[] = [];
 		const pixels = new Uint8Array(4 * 4 * 4);
@@ -613,6 +648,36 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: false });
+		expect(events).toEqual([]);
+	});
+
+	it('skips flip transforms on a Reference-active document without capturing history', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			active_layer_id: () => 'reference-1',
+			marquee: () => undefined,
+			layer_count: () => 1,
+			layers_metadata: () => [
+				{ id: 'reference-1', name: 'Reference', visible: true, opacity: 1, kind: 'reference' }
+			],
+			flip_horizontal: () => events.push('flip-horizontal'),
+			flip_vertical: () => events.push('flip-vertical')
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const horizontal = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'flip-horizontal' }
+		});
+		const vertical = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'flip-vertical' }
+		});
+
+		expect(horizontal).toEqual({ changed: false });
+		expect(vertical).toEqual({ changed: false });
 		expect(events).toEqual([]);
 	});
 

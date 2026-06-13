@@ -21,6 +21,8 @@
 			onSwapColors={noop}
 			onResize={noop}
 			onClear={noop}
+			onFlipHorizontal={noop}
+			onFlipVertical={noop}
 			onAnchorChange={noop}
 		/>
 	</div>
@@ -40,6 +42,8 @@
 			onSwapColors={noop}
 			onResize={noop}
 			onClear={noop}
+			onFlipHorizontal={noop}
+			onFlipVertical={noop}
 			onAnchorChange={noop}
 		/>
 	</div>

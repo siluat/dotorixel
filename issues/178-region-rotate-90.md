@@ -66,4 +66,4 @@ no-Marquee path, and arrive in #179. i18n keys added across en / ko / ja
 
 ## Blocked by
 
-- [177 — Flip horizontal & vertical](177-flip-horizontal-vertical.md)
+None - [177 — Flip horizontal & vertical](177-flip-horizontal-vertical.md) is complete.

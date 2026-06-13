@@ -30,6 +30,8 @@
 	"action_selectionDone": "Done",
 	"action_selectionCancel": "Cancel",
 	"action_selectionDuplicate": "Duplicate",
+	"action_transformFlipHorizontal": "Flip H",
+	"action_transformFlipVertical": "Flip V",
 
 	"modifier_constrain": "Constrain",
 
@@ -73,6 +75,7 @@
 	"section_palette": "Palette",
 	"section_actions": "Actions",
 	"section_display": "Display",
+	"section_transform": "Transform",
 
 	"label_export": "Export",
 	"label_format": "Format",

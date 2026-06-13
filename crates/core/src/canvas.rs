@@ -354,6 +354,32 @@ impl PixelCanvas {
         self.pixels.fill(0);
     }
 
+    /// Mirrors the canvas horizontally in place.
+    pub fn flip_horizontal(&mut self) {
+        let width = self.width as usize;
+        for y in 0..self.height as usize {
+            for x in 0..width / 2 {
+                let left = (y * width + x) * 4;
+                let right = (y * width + (width - 1 - x)) * 4;
+                for channel in 0..4 {
+                    self.pixels.swap(left + channel, right + channel);
+                }
+            }
+        }
+    }
+
+    /// Mirrors the canvas vertically in place.
+    pub fn flip_vertical(&mut self) {
+        let row_len = self.width as usize * 4;
+        for y in 0..self.height as usize / 2 {
+            let top = y * row_len;
+            let bottom = (self.height as usize - 1 - y) * row_len;
+            for offset in 0..row_len {
+                self.pixels.swap(top + offset, bottom + offset);
+            }
+        }
+    }
+
     /// Fills all pixels connected to `(start_x, start_y)` with `fill_color`
     /// using 4-connectivity (up, down, left, right).
     ///
@@ -737,6 +763,82 @@ mod tests {
                 assert_eq!(canvas.get_pixel(x, y).unwrap(), Color::TRANSPARENT);
             }
         }
+    }
+
+    // ── flip ────────────────────────────────────────────────────
+
+    #[test]
+    fn flip_horizontal_mirrors_each_row_in_place() {
+        let mut canvas = PixelCanvas::from_pixels(
+            3,
+            2,
+            vec![
+                1, 0, 0, 255, 2, 0, 0, 255, 3, 0, 0, 255, 4, 0, 0, 255, 5, 0, 0, 255, 6, 0, 0, 255,
+            ],
+        )
+        .unwrap();
+
+        canvas.flip_horizontal();
+
+        assert_eq!(canvas.width(), 3);
+        assert_eq!(canvas.height(), 2);
+        assert_eq!(
+            canvas.pixels(),
+            &[
+                3, 0, 0, 255, 2, 0, 0, 255, 1, 0, 0, 255, 6, 0, 0, 255, 5, 0, 0, 255, 4, 0, 0, 255,
+            ]
+        );
+    }
+
+    #[test]
+    fn flip_vertical_mirrors_rows_in_place() {
+        let mut canvas = PixelCanvas::from_pixels(
+            2,
+            3,
+            vec![
+                1, 0, 0, 255, 2, 0, 0, 255, 3, 0, 0, 255, 4, 0, 0, 255, 5, 0, 0, 255, 6, 0, 0, 255,
+            ],
+        )
+        .unwrap();
+
+        canvas.flip_vertical();
+
+        assert_eq!(canvas.width(), 2);
+        assert_eq!(canvas.height(), 3);
+        assert_eq!(
+            canvas.pixels(),
+            &[
+                5, 0, 0, 255, 6, 0, 0, 255, 3, 0, 0, 255, 4, 0, 0, 255, 1, 0, 0, 255, 2, 0, 0, 255,
+            ]
+        );
+    }
+
+    #[test]
+    fn flip_one_by_one_canvas_is_identity() {
+        let mut canvas = PixelCanvas::from_pixels(1, 1, vec![1, 2, 3, 4]).unwrap();
+
+        canvas.flip_horizontal();
+        canvas.flip_vertical();
+
+        assert_eq!(canvas.pixels(), &[1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn double_flip_horizontal_restores_original_canvas() {
+        let mut canvas = PixelCanvas::from_pixels(
+            3,
+            2,
+            vec![
+                1, 0, 0, 255, 2, 0, 0, 255, 3, 0, 0, 255, 4, 0, 0, 255, 5, 0, 0, 255, 6, 0, 0, 255,
+            ],
+        )
+        .unwrap();
+        let before = canvas.pixels().to_vec();
+
+        canvas.flip_horizontal();
+        canvas.flip_horizontal();
+
+        assert_eq!(canvas.pixels(), before);
     }
 
     // ── from_pixels ───────────────────────────────────────────────

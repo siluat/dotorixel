@@ -175,6 +175,18 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 	const restoreCalls: Uint8Array[] = [];
 	let timelinePanelCollapsed = false;
 	let marquee: MarqueeRegion | undefined;
+	const byteIndex = (x: number, y: number) => (y * width + x) * 4;
+	const swapPixels = (ax: number, ay: number, bx: number, by: number) => {
+		const a = byteIndex(ax, ay);
+		const b = byteIndex(bx, by);
+		for (let channel = 0; channel < 4; channel += 1) {
+			const tmp = pixels[a + channel];
+			pixels[a + channel] = pixels[b + channel];
+			pixels[b + channel] = tmp;
+		}
+	};
+	const activeTransformRegion = () =>
+		marquee?.clip_to(width, height) ?? { x: 0, y: 0, width, height };
 	return {
 		width,
 		height,
@@ -199,6 +211,26 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 		},
 		lift_marquee_pixels: () => new Uint8Array(),
 		clear_marquee_pixels() {},
+		flip_horizontal() {
+			const region = activeTransformRegion();
+			if (!region) return;
+			for (let row = 0; row < region.height; row += 1) {
+				for (let left = 0; left < Math.floor(region.width / 2); left += 1) {
+					const right = region.width - 1 - left;
+					swapPixels(region.x + left, region.y + row, region.x + right, region.y + row);
+				}
+			}
+		},
+		flip_vertical() {
+			const region = activeTransformRegion();
+			if (!region) return;
+			for (let top = 0; top < Math.floor(region.height / 2); top += 1) {
+				const bottom = region.height - 1 - top;
+				for (let col = 0; col < region.width; col += 1) {
+					swapPixels(region.x + col, region.y + top, region.x + col, region.y + bottom);
+				}
+			}
+		},
 		composite_buffer_at() {},
 		next_layer_number: () => 2,
 		is_timeline_panel_collapsed: () => timelinePanelCollapsed,

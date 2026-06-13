@@ -189,6 +189,50 @@ pub fn composite_region(canvas: &mut PixelCanvas, buffer: &[u8], dest_region: Ma
     }
 }
 
+/// Mirrors pixels inside `region` horizontally. Pixels outside `region` are
+/// untouched; out-of-canvas portions of the region participate as transparent
+/// pixels and may clip mirrored content out of bounds.
+pub fn flip_region_horizontal(canvas: &mut PixelCanvas, region: MarqueeRegion) {
+    let mut buffer = lift_region(canvas, region);
+    flip_buffer_horizontal(&mut buffer, region.width, region.height);
+    clear_region(canvas, region);
+    composite_region(canvas, &buffer, region);
+}
+
+/// Mirrors pixels inside `region` vertically. Pixels outside `region` are
+/// untouched; out-of-canvas portions of the region participate as transparent
+/// pixels and may clip mirrored content out of bounds.
+pub fn flip_region_vertical(canvas: &mut PixelCanvas, region: MarqueeRegion) {
+    let mut buffer = lift_region(canvas, region);
+    flip_buffer_vertical(&mut buffer, region.width, region.height);
+    clear_region(canvas, region);
+    composite_region(canvas, &buffer, region);
+}
+
+fn flip_buffer_horizontal(buffer: &mut [u8], width: u32, height: u32) {
+    let width = width as usize;
+    for y in 0..height as usize {
+        for x in 0..width / 2 {
+            let left = (y * width + x) * 4;
+            let right = (y * width + (width - 1 - x)) * 4;
+            for channel in 0..4 {
+                buffer.swap(left + channel, right + channel);
+            }
+        }
+    }
+}
+
+fn flip_buffer_vertical(buffer: &mut [u8], width: u32, height: u32) {
+    let row_len = width as usize * 4;
+    for y in 0..height as usize / 2 {
+        let top = y * row_len;
+        let bottom = (height as usize - 1 - y) * row_len;
+        for offset in 0..row_len {
+            buffer.swap(top + offset, bottom + offset);
+        }
+    }
+}
+
 fn source_over(src: Color, dst: Color) -> Color {
     let src_a = src.a as f32 / 255.0;
     let dst_a = dst.a as f32 / 255.0;
@@ -420,6 +464,76 @@ mod tests {
             &[0, 0, 0, 0],
             MarqueeRegion::from_drag(0, 0, 1, 1),
         );
+    }
+
+    #[test]
+    fn flip_region_horizontal_mirrors_only_the_region() {
+        let mut canvas = PixelCanvas::from_pixels(
+            4,
+            2,
+            rgba(&[RED, GREEN, BLUE, WHITE, WHITE, BLUE, GREEN, RED]),
+        )
+        .unwrap();
+
+        super::flip_region_horizontal(&mut canvas, MarqueeRegion::from_drag(1, 0, 2, 1));
+
+        assert_eq!(
+            canvas.pixels(),
+            rgba(&[RED, BLUE, GREEN, WHITE, WHITE, GREEN, BLUE, RED])
+        );
+    }
+
+    #[test]
+    fn flip_region_vertical_mirrors_only_the_region() {
+        let mut canvas = PixelCanvas::from_pixels(
+            2,
+            4,
+            rgba(&[RED, GREEN, GREEN, BLUE, BLUE, WHITE, WHITE, RED]),
+        )
+        .unwrap();
+
+        super::flip_region_vertical(&mut canvas, MarqueeRegion::from_drag(0, 1, 1, 2));
+
+        assert_eq!(
+            canvas.pixels(),
+            rgba(&[RED, GREEN, BLUE, WHITE, GREEN, BLUE, WHITE, RED])
+        );
+    }
+
+    #[test]
+    fn flip_region_handles_one_pixel_region_as_identity() {
+        let mut canvas = PixelCanvas::from_pixels(2, 1, rgba(&[RED, GREEN])).unwrap();
+
+        super::flip_region_horizontal(&mut canvas, MarqueeRegion::from_drag(0, 0, 0, 0));
+        super::flip_region_vertical(&mut canvas, MarqueeRegion::from_drag(0, 0, 0, 0));
+
+        assert_eq!(canvas.pixels(), rgba(&[RED, GREEN]));
+    }
+
+    #[test]
+    fn flip_region_horizontal_clips_partially_off_canvas_regions() {
+        let mut canvas = PixelCanvas::from_pixels(2, 1, rgba(&[RED, GREEN])).unwrap();
+
+        super::flip_region_horizontal(&mut canvas, MarqueeRegion::from_drag(-1, 0, 0, 0));
+
+        assert_eq!(canvas.pixels(), rgba(&[Color::TRANSPARENT, GREEN]));
+    }
+
+    #[test]
+    fn double_flip_region_horizontal_restores_original_pixels() {
+        let mut canvas = PixelCanvas::from_pixels(
+            4,
+            2,
+            rgba(&[RED, GREEN, BLUE, WHITE, WHITE, BLUE, GREEN, RED]),
+        )
+        .unwrap();
+        let before = canvas.pixels().to_vec();
+        let region = MarqueeRegion::from_drag(1, 0, 2, 1);
+
+        super::flip_region_horizontal(&mut canvas, region);
+        super::flip_region_horizontal(&mut canvas, region);
+
+        assert_eq!(canvas.pixels(), before);
     }
 
     #[test]

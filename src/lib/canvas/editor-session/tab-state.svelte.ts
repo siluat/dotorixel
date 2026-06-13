@@ -632,6 +632,24 @@ export class TabState {
 		});
 	};
 
+	flipHorizontal = (): void => {
+		if (this.isDrawing) return;
+		this.#commitIdleFloatingSelection();
+		this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'flip-horizontal' }
+		});
+	};
+
+	flipVertical = (): void => {
+		if (this.isDrawing) return;
+		this.#commitIdleFloatingSelection();
+		this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'flip-vertical' }
+		});
+	};
+
 	nudgeMarquee = (dx: number, dy: number): void => {
 		if (this.isDrawing) return;
 		if (this.layerProjection.activeLayerKind === 'reference') return;

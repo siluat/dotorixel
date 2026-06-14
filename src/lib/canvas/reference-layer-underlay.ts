@@ -34,9 +34,14 @@ export interface ReferenceLayerUnderlayBounds {
 	readonly maxY: number;
 }
 
-/** Normalizes an optional quarter-turn into `0 | 1 | 2 | 3` (absence → 0). */
+/**
+ * Normalizes an optional quarter-turn into `0 | 1 | 2 | 3` (absence → 0). The
+ * input is truncated to an integer first, so a corrupt fractional value can't
+ * leak through the `% 4` and violate the return-type contract.
+ */
 export function normalizedQuarterTurn(rotation: number | undefined): 0 | 1 | 2 | 3 {
-	return ((((rotation ?? 0) % 4) + 4) % 4) as 0 | 1 | 2 | 3;
+	const turns = Number.isFinite(rotation) ? Math.trunc(rotation as number) : 0;
+	return ((((turns % 4) + 4) % 4) as 0 | 1 | 2 | 3);
 }
 
 export function referenceLayerUnderlaySourceCoords(

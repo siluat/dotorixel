@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
 import {
+	normalizedQuarterTurn,
 	referenceLayerUnderlayBounds,
 	referenceLayerUnderlayDocumentRect,
 	referenceLayerUnderlaySourceCoords,
@@ -21,6 +22,27 @@ const viewport: ViewportData = {
 	showGrid: false,
 	gridColor: '#000000'
 };
+
+describe('normalizedQuarterTurn', () => {
+	it('passes through the four canonical quarter-turns', () => {
+		expect([0, 1, 2, 3].map(normalizedQuarterTurn)).toEqual([0, 1, 2, 3]);
+	});
+
+	it('treats absence as no rotation', () => {
+		expect(normalizedQuarterTurn(undefined)).toBe(0);
+	});
+
+	it('wraps out-of-range turns into 0..=3', () => {
+		expect(normalizedQuarterTurn(4)).toBe(0);
+		expect(normalizedQuarterTurn(7)).toBe(3);
+		expect(normalizedQuarterTurn(-1)).toBe(3);
+	});
+
+	it('truncates a corrupt fractional value to an integer turn', () => {
+		expect(normalizedQuarterTurn(1.5)).toBe(1);
+		expect(normalizedQuarterTurn(Number.NaN)).toBe(0);
+	});
+});
 
 describe('Reference Layer Underlay projection helpers', () => {
 	const underlay: ReferenceLayerUnderlay = {

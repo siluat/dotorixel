@@ -199,6 +199,8 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 		},
 		lift_marquee_pixels: () => new Uint8Array(),
 		clear_marquee_pixels() {},
+		flip_horizontal() {},
+		flip_vertical() {},
 		composite_buffer_at() {},
 		next_layer_number: () => 2,
 		is_timeline_panel_collapsed: () => timelinePanelCollapsed,

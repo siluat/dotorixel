@@ -639,6 +639,8 @@
 				onClearMarqueeOrFloating={editor.clearMarqueeOrFloating}
 				onCommitFloatingSelection={editor.commitFloatingSelection}
 				onDuplicateFloatingSelection={editor.duplicateFloatingSelection}
+				onFlipHorizontal={editor.handleFlipHorizontal}
+				onFlipVertical={editor.handleFlipVertical}
 				activeTool={editor.activeTool}
 				toolCursor={editor.toolCursor}
 				isSpaceHeld={editor.isSpaceHeld}
@@ -685,6 +687,8 @@
 			onResize={handleResize}
 			onClear={editor.handleClear}
 			onAnchorChange={(anchor) => editor.workspace.setActiveResizeAnchor(anchor)}
+			onFlipHorizontal={editor.handleFlipHorizontal}
+			onFlipVertical={editor.handleFlipVertical}
 		/>
 
 		<StatusBar
@@ -755,6 +759,8 @@
 						onClearMarqueeOrFloating={editor.clearMarqueeOrFloating}
 						onCommitFloatingSelection={editor.commitFloatingSelection}
 						onDuplicateFloatingSelection={editor.duplicateFloatingSelection}
+						onFlipHorizontal={editor.handleFlipHorizontal}
+						onFlipVertical={editor.handleFlipVertical}
 						activeTool={editor.activeTool}
 						toolCursor={editor.toolCursor}
 						isSpaceHeld={editor.isSpaceHeld}
@@ -790,6 +796,8 @@
 					onClear={editor.handleClear}
 					onGridToggle={editor.handleGridToggle}
 					onAnchorChange={(anchor) => editor.workspace.setActiveResizeAnchor(anchor)}
+					onFlipHorizontal={editor.handleFlipHorizontal}
+					onFlipVertical={editor.handleFlipVertical}
 				/>
 			{/if}
 		</div>

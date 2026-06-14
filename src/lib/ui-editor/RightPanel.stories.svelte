@@ -22,6 +22,8 @@
 			onResize={noop}
 			onClear={noop}
 			onAnchorChange={noop}
+			onFlipHorizontal={noop}
+			onFlipVertical={noop}
 		/>
 	</div>
 </Story>
@@ -41,6 +43,8 @@
 			onResize={noop}
 			onClear={noop}
 			onAnchorChange={noop}
+			onFlipHorizontal={noop}
+			onFlipVertical={noop}
 		/>
 	</div>
 </Story>

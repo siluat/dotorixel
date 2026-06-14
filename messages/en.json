@@ -30,6 +30,8 @@
 	"action_selectionDone": "Done",
 	"action_selectionCancel": "Cancel",
 	"action_selectionDuplicate": "Duplicate",
+	"action_transformFlipHorizontal": "Flip Horizontal",
+	"action_transformFlipVertical": "Flip Vertical",
 
 	"modifier_constrain": "Constrain",
 
@@ -68,6 +70,7 @@
 	"tab_settings": "SETTINGS",
 
 	"section_canvas": "Canvas",
+	"section_transform": "Transform",
 	"section_color": "Color",
 	"section_hsv": "HSV",
 	"section_palette": "Palette",

@@ -759,6 +759,20 @@ impl WasmDocument {
         self.inner.clear_marquee_pixels();
     }
 
+    /// Mirrors the active Pixel Layer horizontally. With a Marquee active, only
+    /// the pixels inside it are mirrored (the Marquee position is preserved);
+    /// otherwise the whole layer is mirrored. No-op on a Reference Layer.
+    pub fn flip_horizontal(&mut self) {
+        self.inner.flip_horizontal();
+    }
+
+    /// Mirrors the active Pixel Layer vertically. With a Marquee active, only
+    /// the pixels inside it are mirrored (the Marquee position is preserved);
+    /// otherwise the whole layer is mirrored. No-op on a Reference Layer.
+    pub fn flip_vertical(&mut self) {
+        self.inner.flip_vertical();
+    }
+
     /// Source-over composites `buffer` at `region` on the active Pixel Layer.
     ///
     /// Returns `Err(JsError)` when the buffer length does not match

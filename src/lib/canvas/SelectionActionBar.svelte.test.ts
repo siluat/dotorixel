@@ -72,6 +72,30 @@ describe('SelectionActionBar', () => {
 		expect(handlers.onClearMarqueeOrFloating).toHaveBeenCalledOnce();
 	});
 
+	it('renders Flip Horizontal and Flip Vertical transform actions while a Marquee is active', async () => {
+		const onFlipHorizontal = vi.fn();
+		const onFlipVertical = vi.fn();
+
+		render(SelectionActionBar, {
+			props: {
+				marquee: region(),
+				canvasWidth: 12,
+				canvasHeight: 12,
+				viewport,
+				viewportSize: { width: 180, height: 180 },
+				canPaste: true,
+				onFlipHorizontal,
+				onFlipVertical
+			}
+		});
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Flip Horizontal' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Flip Vertical' }));
+
+		expect(onFlipHorizontal).toHaveBeenCalledOnce();
+		expect(onFlipVertical).toHaveBeenCalledOnce();
+	});
+
 	it('disables Paste when the shared Selection Clipboard is empty', async () => {
 		const onPasteSelectionClipboard = vi.fn();
 
@@ -209,18 +233,20 @@ describe('SelectionActionBar', () => {
 	});
 
 	it('clamps to the right viewport edge when the Marquee is near the right edge', () => {
+		// Viewport wide enough that the action bar fits, so the right-edge
+		// (maxLeft) clamp is observable rather than overflowing to the margin.
 		render(SelectionActionBar, {
 			props: {
 				marquee: region({ x: 23, y: 8, width: 1, height: 1 }),
 				canvasWidth: 24,
 				canvasHeight: 12,
 				viewport: { ...viewport, panX: 0, panY: 0 },
-				viewportSize: { width: 240, height: 200 },
+				viewportSize: { width: 360, height: 200 },
 				canPaste: true
 			}
 		});
 
-		expect(screen.getByTestId('selection-action-bar').style.left).toBe('34px');
+		expect(screen.getByTestId('selection-action-bar').style.left).toBe('78px');
 	});
 
 	it('hides during pointer drag and restores after release state', async () => {
@@ -287,12 +313,12 @@ describe('SelectionActionBar', () => {
 	});
 
 	it.each([
-		['en', 'Copy', 'Cut', 'Paste', 'Delete', 'Deselect'],
-		['ko', '복사', '잘라내기', '붙여넣기', '삭제', '선택 해제'],
-		['ja', 'コピー', '切り取り', '貼り付け', '削除', '選択解除']
+		['en', 'Copy', 'Cut', 'Paste', 'Flip Horizontal', 'Flip Vertical', 'Delete', 'Deselect'],
+		['ko', '복사', '잘라내기', '붙여넣기', '좌우 반전', '상하 반전', '삭제', '선택 해제'],
+		['ja', 'コピー', '切り取り', '貼り付け', '左右反転', '上下反転', '削除', '選択解除']
 	] as const)(
 		'renders localized labels for %s',
-		(locale, copy, cut, paste, deleteLabel, deselect) => {
+		(locale, copy, cut, paste, flipH, flipV, deleteLabel, deselect) => {
 			overwriteGetLocale(() => locale);
 
 			render(SelectionActionBar, {
@@ -306,7 +332,7 @@ describe('SelectionActionBar', () => {
 				}
 			});
 
-			for (const label of [copy, cut, paste, deleteLabel, deselect]) {
+			for (const label of [copy, cut, paste, flipH, flipV, deleteLabel, deselect]) {
 				expect(screen.getByRole('button', { name: label })).toBeTruthy();
 			}
 		}
@@ -336,11 +362,14 @@ describe('SelectionActionBar', () => {
 		}
 	});
 
-	it('documents fade timing, reduced motion, and touch target CSS', () => {
+	it('documents fade timing, reduced motion, touch target, and horizontal overflow scroll CSS', () => {
 		expect(selectionActionBarSource).toContain('transition: opacity 120ms ease-out');
 		expect(selectionActionBarSource).toContain('transition-duration: 100ms');
 		expect(selectionActionBarSource).toContain('prefers-reduced-motion: reduce');
 		expect(selectionActionBarSource).toContain('width: 44px');
 		expect(selectionActionBarSource).toContain('height: 44px');
+		expect(selectionActionBarSource).toContain('overflow-x: auto');
+		expect(selectionActionBarSource).toContain('touch-action: pan-x');
+		expect(selectionActionBarSource).toContain('scrollbar-width: none');
 	});
 });

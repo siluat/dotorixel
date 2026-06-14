@@ -7,13 +7,18 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 155 | 119 | 36 | 152 | 77% | 44% |
-| cubic-dev-ai[bot] | 110 | 89 | 21 | 178 | 81% | 33% |
-| coderabbitai[bot] | 207 | 149 | 58 | 115 | 72% | 56% |
+| cubic-dev-ai[bot] | 111 | 90 | 21 | 178 | 81% | 34% |
+| coderabbitai[bot] | 210 | 149 | 61 | 116 | 71% | 56% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #273 | coderabbitai[bot] | Reject | Claimed the running totals weren't updated for the #273 log rows; they were updated in the same commit (84c52b2), and the proposed 112/91 & 212/62/117 double-count this PR's verdicts |
+| #273 | cubic-dev-ai[bot] | Accept | flipVertical test asserted only the forward transform; added undo-restore assertions to mirror the flipHorizontal coverage |
+| #273 | coderabbitai[bot] | Reject | Doc comments on the editor-controller flip handlers — declined; the controller has 37 thin delegation handlers with 0 doc comments and the names already state the delegation contract |
+| #273 | coderabbitai[bot] | Reject | Doc comments on the tab-state flip methods — declined; same guard-then-commit shape as the undocumented adjacent `clear`, and TabState documents only its non-obvious methods (~14 of ~46) |
+| #273 | coderabbitai[bot] | Miss | Did not flag the flipVertical test's missing undo-restore assertion |
 | #271 | greptile-apps[bot] | Accept | "workspace snapshot below" in the ConstrainLatch doc comment was a dangling forward reference; restructured so para 2 owns the structural snapshot-exclusion and para 4 keeps only the reload lifecycle |
 | #271 | cubic-dev-ai[bot] | Accept | Same: "below" read as a dangling reference to nonexistent snapshot code in the file; reworded |
 | #271 | coderabbitai[bot] | Miss | Did not flag the dangling "workspace snapshot below" doc comment reference (APPROVED) |

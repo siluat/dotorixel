@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Download, Trash2 } from 'lucide-svelte';
+	import { Download, FlipHorizontal, FlipVertical, Trash2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { ResizeAnchor } from '$lib/canvas/canvas-model';
 	import CanvasSizeControl from './CanvasSizeControl.svelte';
@@ -14,6 +14,8 @@
 		onClear: () => void;
 		onGridToggle: () => void;
 		onAnchorChange: (anchor: ResizeAnchor) => void;
+		onFlipHorizontal: () => void;
+		onFlipVertical: () => void;
 	}
 
 	let {
@@ -25,7 +27,9 @@
 		onExport,
 		onClear,
 		onGridToggle,
-		onAnchorChange
+		onAnchorChange,
+		onFlipHorizontal,
+		onFlipVertical
 	}: Props = $props();
 </script>
 
@@ -43,15 +47,28 @@
 		/>
 	</section>
 
+	<!-- Transform Section -->
+	<section class="section">
+		<h3 class="section-title">{m.section_transform()}</h3>
+		<button class="action-btn outline" onclick={onFlipHorizontal}>
+			<FlipHorizontal size={18} aria-hidden={true} />
+			<span>{m.action_transformFlipHorizontal()}</span>
+		</button>
+		<button class="action-btn outline" onclick={onFlipVertical}>
+			<FlipVertical size={18} aria-hidden={true} />
+			<span>{m.action_transformFlipVertical()}</span>
+		</button>
+	</section>
+
 	<!-- Actions Section -->
 	<section class="section">
 		<h3 class="section-title">{m.section_actions()}</h3>
 		<button class="action-btn primary" onclick={onExport}>
-			<Download size={18} />
+			<Download size={18} aria-hidden={true} />
 			<span>{m.label_export()}</span>
 		</button>
 		<button class="action-btn outline" onclick={onClear}>
-			<Trash2 size={18} />
+			<Trash2 size={18} aria-hidden={true} />
 			<span>{m.action_clearCanvas()}</span>
 		</button>
 	</section>

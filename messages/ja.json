@@ -30,6 +30,8 @@
 	"action_selectionDone": "完了",
 	"action_selectionCancel": "キャンセル",
 	"action_selectionDuplicate": "複製",
+	"action_transformFlipHorizontal": "左右反転",
+	"action_transformFlipVertical": "上下反転",
 
 	"modifier_constrain": "固定",
 
@@ -68,6 +70,7 @@
 	"tab_settings": "設定",
 
 	"section_canvas": "キャンバス",
+	"section_transform": "変形",
 	"section_color": "カラー",
 	"section_hsv": "HSV",
 	"section_palette": "パレット",

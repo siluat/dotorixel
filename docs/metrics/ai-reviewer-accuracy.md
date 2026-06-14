@@ -6,14 +6,19 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 155 | 119 | 36 | 153 | 77% | 44% |
-| cubic-dev-ai[bot] | 112 | 91 | 21 | 178 | 81% | 34% |
-| coderabbitai[bot] | 210 | 149 | 61 | 117 | 71% | 56% |
+| greptile-apps[bot] | 155 | 119 | 36 | 154 | 77% | 44% |
+| cubic-dev-ai[bot] | 113 | 91 | 22 | 179 | 81% | 34% |
+| coderabbitai[bot] | 212 | 150 | 62 | 117 | 71% | 56% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #275 | coderabbitai[bot] | Accept | normalizedQuarterTurn cast `as 0\|1\|2\|3` could leak a fractional value (1.5) through `% 4`, desyncing geometry (reads 0) from the renderer (1.5·90°); added Math.trunc + regression test |
+| #275 | coderabbitai[bot] | Reject | Wanted a QuarterTurn newtype rejecting rotation > 3; quarter-turns are Z/4Z so `% 4` is the canonical reduction (4 turns ≡ 0, geometry preserved), the internal advance depends on the wrap, and the only writer is our normalized pipeline |
+| #275 | cubic-dev-ai[bot] | Reject | Claimed `natural * scale` f32 overflow breaks placement finiteness for "large valid scales"; valid scales (fit ≤256, drag ≤~1e4) stay orders below the f32 ceiling — only an already-corrupt ~1e38 scale could overflow |
+| #275 | cubic-dev-ai[bot] | Miss | Did not flag the normalizedQuarterTurn fractional-truncation gap |
+| #275 | greptile-apps[bot] | Miss | Did not flag the normalizedQuarterTurn fractional-truncation gap |
 | #274 | cubic-dev-ai[bot] | Accept | rotate_active_marquee cleared only the source region; source-over composite left stale (transparent cells) / blended (semi-transparent) pixels in the destination when the rotated H×W footprint exceeded the source. Added clear_region(rotated_region) + regression test |
 | #274 | coderabbitai[bot] | Miss | Did not flag the rotate destination region not being cleared (APPROVED, no actionable comments) |
 | #274 | greptile-apps[bot] | Miss | Did not flag the rotate destination region not being cleared (5/5 confidence, "no logic errors found") |

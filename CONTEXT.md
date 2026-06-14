@@ -96,3 +96,17 @@ _Avoid_: drop group, drop session.
 **Navigation Bounds**:
 The document-space region a tab's viewport pan is clamped to — the union of the canvas rectangle and, when the active Layer is a Reference Layer, its visible underlay footprint. Defined so that **every** viewport mutation (pan, zoom, zoom-fit, viewport-resize, and the post-document-change reclamp) is held to one region; the canvas can never be panned or zoomed entirely out of reach. Owned by a single viewport authority rather than recomputed per trigger.
 _Avoid_: pan limits / scroll bounds (informal), canvas bounds (that is only one input — Navigation Bounds also covers the Reference underlay footprint), viewport bounds (the viewport is the thing being clamped, not the bound).
+
+### History
+
+**History**:
+A tab's undo/redo record — a bounded, branch-discarding LIFO: pushing a new entry clears the redo future and evicts the oldest entry once the cap is exceeded. This invariant is owned once by a shared generic ring (`History<T>`); the model split below provides two never-mixed species that each only marshal their own value type. Mixing species is unrepresentable, not guarded.
+_Avoid_: undo stack (names only one of the two stacks), history manager (the pre-split type that fused both species behind one enum — superseded by PixelCanvas History / Document History), snapshot stack.
+
+**PixelCanvas History**:
+The single-canvas undo/redo species — a LIFO of dimension-aware `Snapshot`s (width, height, pixel buffer) so pixels restore across resize. The Apple shell's history. Canonical core type `PixelCanvasHistory`.
+_Avoid_: canvas history (informal), HistoryManager (the pre-split fused name this species was extracted from).
+
+**Document History**:
+The layer-aware undo/redo species — a LIFO of whole-`Document` snapshots (layer stack, active-layer pointer, Marquee, counters). The web shell's history; wrapped by the WASM binding. Canonical core type `DocumentHistory`.
+_Avoid_: document undo, layer history.

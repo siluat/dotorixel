@@ -1,6 +1,6 @@
 ---
 title: Carve out Document History over a shared generic history ring
-status: ready-for-agent
+status: done
 created: 2026-06-14
 ---
 
@@ -43,3 +43,27 @@ A web-facing undo/redo path that runs on a dedicated `DocumentHistory` type buil
 ## Blocked by
 
 None - can start immediately.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/history.rs` | Added private generic ring `History<T>` (owns the branch-discard/evict/swap invariant) and public `DocumentHistory` over `History<Document>`; 20 document-path tests (round-trips, LIFO order, content-verified oldest-eviction) |
+| `crates/core/src/lib.rs` | Export `DocumentHistory` |
+| `wasm/src/lib.rs` | `WasmHistoryManager` now wraps `DocumentHistory`; removed the single-canvas surface (`push_snapshot`/`undo`/`redo`) and `WasmSnapshot` |
+| `src/lib/canvas/adapter-types.ts` | Narrowed + renamed the web port `HistoryManager` → `DocumentHistory` (document path only); deleted the `Snapshot` interface |
+| `src/lib/canvas/wasm-backend.ts`, `editor-session/canvas-backend.ts`, `editor-session/tab-state.svelte.ts`, `editor-session/document-change-journal.svelte.ts` | Renamed factory/port `createHistoryManager` → `createDocumentHistory` and the journal's history type/field |
+| `src/lib/canvas/wasm-sync.test.ts`, `document-hydration.test.ts`, `editor-session/document-change-journal.test.ts` | Narrowed the structural type-sync check; renamed; dropped the canvas-path mock methods |
+| `src/lib/wasm/wasm-history.test.ts` | Deleted — entirely single-canvas; the document-path WASM round-trip is covered by `document-hydration.test.ts` |
+
+### Key Decisions
+
+- **Generic ring is private, tested through `DocumentHistory`.** `History<T>` carries the undo/redo invariant in one place; tests exercise it via the public species so they survive internal refactors.
+- **Rename extended past the interface to the factory + deps field.** The issue named only the interface, but `CONTEXT.md` lists "history manager" as an avoided term, so `createDocumentHistory` and the journal field were renamed too for vocabulary consistency.
+- **Added `# Panics` to public `DocumentHistory::new`** per the Rust doc-comment convention (the pre-split `HistoryManager::new` had omitted it).
+
+### Notes
+
+- **`HistoryManager` left intact** for the Apple binding (single-canvas path); its now-duplicated document path is deleted in the follow-up slice [181](181-pixelcanvas-history-rename.md), which this unblocks. The shared generic ring therefore underlies only Document History today — the PixelCanvas species migrates onto it in 181.
+- **`default_max_snapshots()` on the WASM binding now has no consumer or test** (its only test lived in the deleted file). Left as exposed-but-unused surface; cleanup is out of scope.
+- **Verified across five layers**: `cargo test` (core 426 / wasm 18, Apple compiles), web vitest 1446, `svelte-check` 0 errors, production `bun run build`, and Playwright E2E 98 (incl. `e2e/editor/history.test.ts`).

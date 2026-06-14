@@ -1,5 +1,5 @@
 import type { Document, MarqueeRegion, ReferencePlacement, ResizeAnchor } from '../canvas-model';
-import type { HistoryManager } from '../adapter-types';
+import type { DocumentHistory } from '../adapter-types';
 import type { DocumentLayerKind, DocumentLayerProjectionRead } from '../document-layer-projection';
 
 export interface ReferenceLayerSource {
@@ -61,7 +61,7 @@ export interface DocumentChangeJournalDeps {
 	readonly getDocument: () => Document;
 	readonly getLayerProjection: () => DocumentLayerProjectionRead;
 	readonly replaceDocument: (document: Document) => void;
-	readonly createHistoryManager: () => HistoryManager;
+	readonly createDocumentHistory: () => DocumentHistory;
 	readonly createLayerId?: () => string;
 	readonly rememberReferenceLayerBlob: (layerId: string, sourceBlob: Blob) => void;
 	readonly clearActiveLayerPixels: (document: Document) => void;
@@ -98,12 +98,12 @@ function translateMarqueeRegion(
  */
 export class DocumentChangeJournal {
 	#deps: DocumentChangeJournalDeps;
-	#history: HistoryManager;
+	#history: DocumentHistory;
 	#historyVersion = $state(0);
 
 	constructor(deps: DocumentChangeJournalDeps) {
 		this.#deps = deps;
-		this.#history = deps.createHistoryManager();
+		this.#history = deps.createDocumentHistory();
 	}
 
 	get canUndo(): boolean {

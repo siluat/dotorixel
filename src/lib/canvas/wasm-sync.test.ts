@@ -1,12 +1,7 @@
 import { describe, it, expectTypeOf } from 'vitest';
-import type {
-	WasmDocument,
-	WasmPixelCanvas,
-	WasmHistoryManager,
-	WasmSnapshot
-} from '$wasm/dotorixel_wasm';
+import type { WasmDocument, WasmPixelCanvas, WasmHistoryManager } from '$wasm/dotorixel_wasm';
 import type { Document, PixelCanvas } from './canvas-model';
-import type { Snapshot, HistoryManager } from './adapter-types';
+import type { DocumentHistory } from './adapter-types';
 
 /**
  * Compile-time structural compatibility checks.
@@ -20,12 +15,8 @@ describe('WASM structural compatibility', () => {
 		expectTypeOf<WasmPixelCanvas>().toMatchTypeOf<PixelCanvas>();
 	});
 
-	it('WasmHistoryManager satisfies HistoryManager', () => {
-		expectTypeOf<WasmHistoryManager>().toMatchTypeOf<HistoryManager>();
-	});
-
-	it('WasmSnapshot satisfies Snapshot', () => {
-		expectTypeOf<WasmSnapshot>().toMatchTypeOf<Snapshot>();
+	it('WasmHistoryManager satisfies DocumentHistory', () => {
+		expectTypeOf<WasmHistoryManager>().toMatchTypeOf<DocumentHistory>();
 	});
 
 	it('WasmDocument satisfies Document', () => {

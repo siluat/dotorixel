@@ -189,6 +189,129 @@ impl Default for HistoryManager {
     }
 }
 
+/// A bounded, branch-discarding LIFO ring that owns the undo/redo invariant
+/// for a single value type.
+///
+/// `push` clears the redo future and evicts the oldest past entry once `max`
+/// is exceeded; `undo`/`redo` swap the caller's current value across the two
+/// stacks. Holding the invariant in one generic place lets each history
+/// species (Document, PixelCanvas) reuse it without re-deriving the rules or
+/// risking divergence between them.
+#[derive(Debug, Clone)]
+struct History<T> {
+    undo: VecDeque<T>,
+    redo: VecDeque<T>,
+    max: usize,
+}
+
+impl<T> History<T> {
+    fn new(max: usize) -> Self {
+        assert!(max > 0, "History max must be > 0");
+        Self {
+            undo: VecDeque::new(),
+            redo: VecDeque::new(),
+            max,
+        }
+    }
+
+    fn can_undo(&self) -> bool {
+        !self.undo.is_empty()
+    }
+
+    fn can_redo(&self) -> bool {
+        !self.redo.is_empty()
+    }
+
+    /// Pushes `value` as the new top of the undo stack, evicting the oldest
+    /// entry once `max` is exceeded and discarding the redo future.
+    fn push(&mut self, value: T) {
+        self.undo.push_back(value);
+        if self.undo.len() > self.max {
+            self.undo.pop_front();
+        }
+        self.redo.clear();
+    }
+
+    /// Pops the most recent undo entry and pushes `current` onto the redo
+    /// stack, returning the popped value (or `None` when nothing to undo).
+    fn undo(&mut self, current: T) -> Option<T> {
+        let entry = self.undo.pop_back()?;
+        self.redo.push_back(current);
+        Some(entry)
+    }
+
+    /// Pops the most recent redo entry and pushes `current` onto the undo
+    /// stack, returning the popped value (or `None` when nothing to redo).
+    fn redo(&mut self, current: T) -> Option<T> {
+        let entry = self.redo.pop_back()?;
+        self.undo.push_back(current);
+        Some(entry)
+    }
+
+    fn clear(&mut self) {
+        self.undo.clear();
+        self.redo.clear();
+    }
+}
+
+/// The layer-aware undo/redo species — a LIFO of whole-[`Document`] snapshots
+/// (layer stack, active-layer pointer, Marquee, counters). The web shell's
+/// history, wrapped by the WASM binding.
+#[derive(Debug, Clone)]
+pub struct DocumentHistory {
+    inner: History<Document>,
+}
+
+impl DocumentHistory {
+    pub const DEFAULT_MAX_SNAPSHOTS: usize = 100;
+
+    /// # Panics
+    ///
+    /// Panics if `max_snapshots` is 0 — a history that retains nothing is a
+    /// caller error, not a runtime condition to handle.
+    pub fn new(max_snapshots: usize) -> Self {
+        Self {
+            inner: History::new(max_snapshots),
+        }
+    }
+
+    pub fn can_undo(&self) -> bool {
+        self.inner.can_undo()
+    }
+
+    pub fn can_redo(&self) -> bool {
+        self.inner.can_redo()
+    }
+
+    /// Captures `document` as the new top of the undo stack, clearing the redo
+    /// future and evicting the oldest snapshot once the cap is exceeded.
+    pub fn push_document(&mut self, document: &Document) {
+        self.inner.push(document.clone());
+    }
+
+    /// Pops the most recent snapshot from the undo stack and pushes `current`
+    /// onto the redo stack, or returns `None` when the undo stack is empty.
+    pub fn undo_document(&mut self, current: &Document) -> Option<Document> {
+        self.inner.undo(current.clone())
+    }
+
+    /// Pops the most recent snapshot from the redo stack and pushes `current`
+    /// onto the undo stack, or returns `None` when the redo stack is empty.
+    pub fn redo_document(&mut self, current: &Document) -> Option<Document> {
+        self.inner.redo(current.clone())
+    }
+
+    pub fn clear(&mut self) {
+        self.inner.clear();
+    }
+}
+
+impl Default for DocumentHistory {
+    fn default() -> Self {
+        Self::new(Self::DEFAULT_MAX_SNAPSHOTS)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -632,5 +755,287 @@ mod tests {
         assert_eq!(snap.pixels, vec![1, 0, 0, 0]);
 
         assert!(history.undo(1, 1, &snap.pixels).is_none());
+    }
+}
+
+#[cfg(test)]
+mod document_history_tests {
+    use super::*;
+    use crate::canvas::PixelCanvas;
+    use crate::color::Color;
+    use crate::document::Document;
+    use crate::layer::{Layer, LayerKind};
+    use uuid::Uuid;
+
+    fn doc() -> Document {
+        Document::new(2, 2, Uuid::new_v4(), "Layer 1".into()).unwrap()
+    }
+
+    /// A document carrying `layer_count` layers, so snapshots are
+    /// distinguishable by `layers().len()` in ordering/eviction assertions.
+    fn doc_with_layers(layer_count: usize) -> Document {
+        let mut document = Document::new(2, 2, Uuid::new_v4(), "Layer 1".into()).unwrap();
+        for n in 1..layer_count {
+            document.add_layer(Uuid::new_v4(), format!("Layer {}", n + 1));
+        }
+        document
+    }
+
+    fn pixel_canvas(layer: &Layer) -> &PixelCanvas {
+        let LayerKind::Pixel(canvas) = &layer.kind else {
+            panic!("layer is not Pixel-kind");
+        };
+        canvas
+    }
+
+    #[test]
+    fn initial_can_undo_is_false() {
+        let history = DocumentHistory::default();
+        assert!(!history.can_undo());
+    }
+
+    #[test]
+    fn initial_can_redo_is_false() {
+        let history = DocumentHistory::default();
+        assert!(!history.can_redo());
+    }
+
+    #[test]
+    fn push_enables_can_undo() {
+        let mut history = DocumentHistory::default();
+        history.push_document(&doc());
+        assert!(history.can_undo());
+    }
+
+    #[test]
+    fn push_keeps_can_redo_false() {
+        let mut history = DocumentHistory::default();
+        history.push_document(&doc());
+        assert!(!history.can_redo());
+    }
+
+    #[test]
+    fn undo_returns_none_when_empty() {
+        let mut history = DocumentHistory::default();
+        assert!(history.undo_document(&doc()).is_none());
+    }
+
+    #[test]
+    fn undo_enables_can_redo() {
+        let mut history = DocumentHistory::default();
+        history.push_document(&doc());
+        history.undo_document(&doc());
+        assert!(history.can_redo());
+    }
+
+    #[test]
+    fn undo_restores_next_layer_number() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, a, "A".into()).unwrap();
+        assert_eq!(doc.next_layer_number(), 2);
+
+        let mut history = DocumentHistory::default();
+        history.push_document(&doc);
+        doc.add_layer(b, "B".into());
+        assert_eq!(doc.next_layer_number(), 3);
+
+        let restored = history.undo_document(&doc).unwrap();
+        assert_eq!(restored.next_layer_number(), 2);
+    }
+
+    #[test]
+    fn redo_returns_none_when_empty() {
+        let mut history = DocumentHistory::default();
+        assert!(history.redo_document(&doc()).is_none());
+    }
+
+    #[test]
+    fn push_clears_redo_stack() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, a, "A".into()).unwrap();
+        let mut history = DocumentHistory::default();
+
+        history.push_document(&doc);
+        doc.add_layer(b, "B".into());
+        history.undo_document(&doc);
+        assert!(history.can_redo());
+
+        // A new push from the (restored) past must discard the former future.
+        history.push_document(&doc);
+        assert!(!history.can_redo());
+    }
+
+    #[test]
+    fn redo_reapplies_post_undo_state() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, a, "A".into()).unwrap();
+        let mut history = DocumentHistory::default();
+
+        history.push_document(&doc);
+        doc.add_layer(b, "B".into()); // mutated state has [A, B]
+        let pre_undo = doc.clone();
+
+        let restored = history.undo_document(&doc).unwrap();
+        let redone = history.redo_document(&restored).unwrap();
+
+        let ids: Vec<Uuid> = redone.layers().iter().map(|l| l.id).collect();
+        let pre_ids: Vec<Uuid> = pre_undo.layers().iter().map(|l| l.id).collect();
+        assert_eq!(ids, pre_ids);
+        assert_eq!(redone.active_layer_id(), pre_undo.active_layer_id());
+    }
+
+    #[test]
+    fn redo_enables_can_undo() {
+        let mut history = DocumentHistory::default();
+        history.push_document(&doc());
+        let restored = history.undo_document(&doc()).unwrap();
+        assert!(!history.can_undo());
+
+        history.redo_document(&restored);
+        assert!(history.can_undo());
+    }
+
+    #[test]
+    fn clear_resets_both_stacks() {
+        let mut history = DocumentHistory::default();
+        history.push_document(&doc());
+        history.push_document(&doc());
+        history.undo_document(&doc());
+
+        history.clear();
+
+        assert!(!history.can_undo());
+        assert!(!history.can_redo());
+    }
+
+    #[test]
+    fn undo_returns_documents_in_lifo_order() {
+        let mut history = DocumentHistory::default();
+        history.push_document(&doc_with_layers(1));
+        history.push_document(&doc_with_layers(2));
+        history.push_document(&doc_with_layers(3));
+
+        let current = doc_with_layers(9);
+        assert_eq!(history.undo_document(&current).unwrap().layers().len(), 3);
+        assert_eq!(history.undo_document(&current).unwrap().layers().len(), 2);
+        assert_eq!(history.undo_document(&current).unwrap().layers().len(), 1);
+        assert!(history.undo_document(&current).is_none());
+    }
+
+    #[test]
+    fn evicts_oldest_when_limit_exceeded() {
+        let mut history = DocumentHistory::new(3);
+        // Push one more than the limit; the oldest (1-layer) snapshot must go.
+        history.push_document(&doc_with_layers(1));
+        history.push_document(&doc_with_layers(2));
+        history.push_document(&doc_with_layers(3));
+        history.push_document(&doc_with_layers(4));
+
+        let current = doc_with_layers(9);
+        assert_eq!(history.undo_document(&current).unwrap().layers().len(), 4);
+        assert_eq!(history.undo_document(&current).unwrap().layers().len(), 3);
+        assert_eq!(history.undo_document(&current).unwrap().layers().len(), 2);
+        // The oldest 1-layer snapshot was evicted, not retained.
+        assert!(history.undo_document(&current).is_none());
+    }
+
+    #[test]
+    fn default_uses_default_max_snapshots() {
+        let doc = doc();
+        let mut history = DocumentHistory::default();
+        for _ in 0..=DocumentHistory::DEFAULT_MAX_SNAPSHOTS {
+            history.push_document(&doc);
+        }
+        let mut count = 0;
+        while history.undo_document(&doc).is_some() {
+            count += 1;
+        }
+        assert_eq!(count, DocumentHistory::DEFAULT_MAX_SNAPSHOTS);
+    }
+
+    #[test]
+    #[should_panic(expected = "History max must be > 0")]
+    fn new_rejects_zero_max_snapshots() {
+        DocumentHistory::new(0);
+    }
+
+    #[test]
+    fn undo_after_add_layer_restores_prior_stack() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, a, "A".into()).unwrap();
+        let mut history = DocumentHistory::default();
+
+        history.push_document(&doc);
+        doc.add_layer(b, "B".into());
+
+        let restored = history.undo_document(&doc).unwrap();
+
+        let ids: Vec<Uuid> = restored.layers().iter().map(|l| l.id).collect();
+        assert_eq!(ids, vec![a]);
+        assert_eq!(restored.active_layer_id(), a);
+    }
+
+    #[test]
+    fn undo_after_remove_layer_restores_removed_layer() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let mut doc = Document::new(2, 2, a, "A".into()).unwrap();
+        doc.add_layer(b, "B".into()); // active=B
+        doc.set_pixel(0, 0, red).unwrap(); // stamp B for round-trip verification
+
+        let mut history = DocumentHistory::default();
+        history.push_document(&doc);
+        doc.remove_layer(b).unwrap();
+
+        let restored = history.undo_document(&doc).unwrap();
+
+        let ids: Vec<Uuid> = restored.layers().iter().map(|l| l.id).collect();
+        assert_eq!(ids, vec![a, b]);
+        assert_eq!(restored.layers()[1].name, "B");
+        assert_eq!(
+            pixel_canvas(&restored.layers()[1]).get_pixel(0, 0).unwrap(),
+            red
+        );
+    }
+
+    #[test]
+    fn undo_after_reorder_restores_original_order() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let c = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, a, "A".into()).unwrap();
+        doc.add_layer(b, "B".into());
+        doc.add_layer(c, "C".into()); // [A, B, C]
+
+        let mut history = DocumentHistory::default();
+        history.push_document(&doc);
+        doc.reorder_layer(a, 2).unwrap(); // [B, C, A]
+
+        let restored = history.undo_document(&doc).unwrap();
+
+        let ids: Vec<Uuid> = restored.layers().iter().map(|l| l.id).collect();
+        assert_eq!(ids, vec![a, b, c]);
+    }
+
+    #[test]
+    fn undo_after_pixel_change_restores_active_layer_pixels() {
+        let id = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, id, "Layer 1".into()).unwrap();
+        let mut history = DocumentHistory::default();
+
+        history.push_document(&doc);
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+
+        let restored = history.undo_document(&doc).unwrap();
+
+        assert_eq!(
+            pixel_canvas(&restored.layers()[0]).get_pixel(0, 0).unwrap(),
+            Color::TRANSPARENT
+        );
     }
 }

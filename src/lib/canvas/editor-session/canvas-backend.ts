@@ -1,5 +1,5 @@
 import type { PixelCanvas } from '../canvas-model';
-import type { CanvasFactory, CanvasConstraints, HistoryManager } from '../adapter-types';
+import type { CanvasFactory, CanvasConstraints, DocumentHistory } from '../adapter-types';
 import type { ViewportOps } from '../viewport';
 import type { DrawingOps } from '../drawing-ops';
 
@@ -16,6 +16,6 @@ export interface CanvasBackend {
 	readonly canvasFactory: CanvasFactory;
 	readonly canvasConstraints: CanvasConstraints;
 	readonly viewportOps: ViewportOps;
-	createHistoryManager(): HistoryManager;
+	createDocumentHistory(): DocumentHistory;
 	createDrawingOps(getCanvas: () => PixelCanvas): DrawingOps;
 }

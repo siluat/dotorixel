@@ -30,7 +30,7 @@ import type {
 	ResizeAnchor,
 	ReferencePlacement
 } from './canvas-model';
-import type { CanvasFactory, CanvasConstraints, HistoryManager } from './adapter-types';
+import type { CanvasFactory, CanvasConstraints, DocumentHistory } from './adapter-types';
 import type {
 	MarqueeRecord,
 	PixelLayerRecord,
@@ -464,9 +464,9 @@ export function teeDrawingOps(primary: DrawingOps, secondary: DrawingOps): Drawi
 	};
 }
 
-// ── HistoryManager ──────────────────────────────────────────────────
+// ── DocumentHistory ─────────────────────────────────────────────────
 
-export function createHistoryManager(): HistoryManager {
+export function createDocumentHistory(): DocumentHistory {
 	return WasmHistoryManager.default_manager();
 }
 
@@ -570,6 +570,6 @@ export const wasmBackend: CanvasBackend = {
 	canvasFactory,
 	canvasConstraints,
 	viewportOps,
-	createHistoryManager,
+	createDocumentHistory,
 	createDrawingOps
 };

@@ -5,7 +5,7 @@ use dotorixel_core::canvas::{CanvasRect, PixelCanvas, ResizeAnchor};
 use dotorixel_core::color::Color;
 use dotorixel_core::document::Document;
 use dotorixel_core::export::{PngExport, SvgExport};
-use dotorixel_core::history::{HistoryManager, Snapshot};
+use dotorixel_core::history::DocumentHistory;
 use dotorixel_core::layer::{Layer, LayerKind, LayerKindTag, ReferenceData};
 use dotorixel_core::pixel_perfect::{Action, FilterResult, TailState, pixel_perfect_filter};
 use dotorixel_core::reference_placement::ReferencePlacement;
@@ -1084,38 +1084,12 @@ pub fn wasm_flood_fill_bounded(
 }
 
 // ---------------------------------------------------------------------------
-// WasmSnapshot
-// ---------------------------------------------------------------------------
-
-#[wasm_bindgen]
-pub struct WasmSnapshot {
-    inner: Snapshot,
-}
-
-#[wasm_bindgen]
-impl WasmSnapshot {
-    #[wasm_bindgen(getter)]
-    pub fn width(&self) -> u32 {
-        self.inner.width
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn height(&self) -> u32 {
-        self.inner.height
-    }
-
-    pub fn pixels(&self) -> Vec<u8> {
-        self.inner.pixels.clone()
-    }
-}
-
-// ---------------------------------------------------------------------------
 // WasmHistoryManager
 // ---------------------------------------------------------------------------
 
 #[wasm_bindgen]
 pub struct WasmHistoryManager {
-    inner: HistoryManager,
+    inner: DocumentHistory,
 }
 
 #[wasm_bindgen]
@@ -1123,13 +1097,13 @@ impl WasmHistoryManager {
     #[wasm_bindgen(constructor)]
     pub fn new(max_snapshots: usize) -> WasmHistoryManager {
         WasmHistoryManager {
-            inner: HistoryManager::new(max_snapshots),
+            inner: DocumentHistory::new(max_snapshots),
         }
     }
 
     pub fn default_manager() -> WasmHistoryManager {
         WasmHistoryManager {
-            inner: HistoryManager::default(),
+            inner: DocumentHistory::default(),
         }
     }
 
@@ -1141,38 +1115,12 @@ impl WasmHistoryManager {
         self.inner.can_redo()
     }
 
-    pub fn push_snapshot(&mut self, width: u32, height: u32, pixels: &[u8]) {
-        self.inner.push_snapshot(width, height, pixels);
-    }
-
-    pub fn undo(
-        &mut self,
-        current_width: u32,
-        current_height: u32,
-        current_pixels: &[u8],
-    ) -> Option<WasmSnapshot> {
-        self.inner
-            .undo(current_width, current_height, current_pixels)
-            .map(|s| WasmSnapshot { inner: s })
-    }
-
-    pub fn redo(
-        &mut self,
-        current_width: u32,
-        current_height: u32,
-        current_pixels: &[u8],
-    ) -> Option<WasmSnapshot> {
-        self.inner
-            .redo(current_width, current_height, current_pixels)
-            .map(|s| WasmSnapshot { inner: s })
-    }
-
     pub fn clear(&mut self) {
         self.inner.clear();
     }
 
     pub fn default_max_snapshots() -> usize {
-        HistoryManager::DEFAULT_MAX_SNAPSHOTS
+        DocumentHistory::DEFAULT_MAX_SNAPSHOTS
     }
 
     /// Captures `document` as the new top of the undo stack and clears the

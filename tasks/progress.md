@@ -10,7 +10,6 @@ None.
 
 ## Next Up
 
-- Copy/paste
 - Project file format (JSON-based) + save/load
 - Apple Pencil: hover preview + palm rejection
 - Feature guide page (basic usage instructions)

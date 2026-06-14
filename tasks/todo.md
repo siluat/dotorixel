@@ -2,7 +2,6 @@
 
 ## Milestone 3: Editor for Serious Work
 
-- Copy/paste
 - Project file format (JSON-based) + save/load
 - (review) Evaluate serde-wasm-bindgen + tsify for WASM↔TS serialization — revisit when project file format requires multi-type Rust↔JSON↔TS conversion
 - Apple Pencil: hover preview + palm rejection

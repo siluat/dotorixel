@@ -790,7 +790,7 @@ describe('TabState — effect dispatcher', () => {
 		expect(getPixel(tab, 1, 0)).toEqual(GREEN);
 	});
 
-	it('flipVertical mirrors the active layer', () => {
+	it('flipVertical mirrors the active layer and restores on undo', () => {
 		const pixels = new Uint8Array(1 * 2 * 4);
 		pixels.set(makePixelRgba(RED), 0);
 		pixels.set(makePixelRgba(GREEN), 4);
@@ -800,6 +800,11 @@ describe('TabState — effect dispatcher', () => {
 
 		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
 		expect(getPixel(tab, 0, 1)).toEqual(RED);
+
+		tab.undo();
+
+		expect(getPixel(tab, 0, 0)).toEqual(RED);
+		expect(getPixel(tab, 0, 1)).toEqual(GREEN);
 	});
 
 	it('flipHorizontal commits an idle Floating Selection nudge before mirroring the region', () => {

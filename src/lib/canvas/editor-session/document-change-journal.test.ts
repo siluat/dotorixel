@@ -524,21 +524,50 @@ describe('DocumentChangeJournal', () => {
 		expect(current.marquee()).toMatchObject({ x: 1, y: 0, width: 1, height: 3 });
 	});
 
-	it('skips rotate and captures no snapshot when no Marquee is active', () => {
+	it('rotates the whole document when no Marquee is active and refreshes metrics', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array(2 * 1 * 4);
+		pixels.set([255, 0, 0, 255], 0); // (0,0) red
+		pixels.set([0, 255, 0, 255], 4); // (1,0) green
+		const document = singleLayerDocument(2, 1, pixels);
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'rotate-cw' }
+		});
+
+		expect(result).toEqual({ changed: true });
+		// 2×1 → 1×2, dimensions swapped.
+		expect([document.width, document.height]).toEqual([1, 2]);
+		// Clockwise: the left pixel lands on top.
+		expect(getPixelAt(document, 0, 0)).toEqual([255, 0, 0, 255]);
+		expect(getPixelAt(document, 0, 1)).toEqual([0, 255, 0, 255]);
+		// A dimension change refreshes metrics and viewport, like resize-document.
+		expect(events).toEqual(['snapshot', 'sync', 'reclamp', 'render', 'dirty']);
+	});
+
+	it('undo restores dimensions and pixels after a whole-document rotate', () => {
 		const events: string[] = [];
 		const pixels = new Uint8Array(2 * 1 * 4);
 		pixels.set([255, 0, 0, 255], 0);
 		pixels.set([0, 255, 0, 255], 4);
-		const document = singleLayerDocument(2, 1, pixels);
-		const journal = createJournal(events, document);
+		let current = singleLayerDocument(2, 1, pixels);
+		const journal = createJournal(events, current, {
+			getDocument: () => current,
+			replaceDocument: (document) => {
+				current = document;
+			},
+			createHistoryManager
+		});
 
-		expect(
-			journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-cw' } })
-		).toEqual({ changed: false });
-		expect(
-			journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-ccw' } })
-		).toEqual({ changed: false });
-		expect(events).toEqual([]);
+		journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-cw' } });
+		expect([current.width, current.height]).toEqual([1, 2]);
+
+		expect(journal.undo()).toEqual({ changed: true });
+		expect([current.width, current.height]).toEqual([2, 1]);
+		expect(getPixelAt(current, 0, 0)).toEqual([255, 0, 0, 255]);
+		expect(getPixelAt(current, 1, 0)).toEqual([0, 255, 0, 255]);
 	});
 
 	it('skips rotate and captures no snapshot when the active layer is Reference', () => {

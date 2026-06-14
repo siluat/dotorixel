@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Download, FlipHorizontal, FlipVertical, Trash2 } from 'lucide-svelte';
+	import { Download, FlipHorizontal, FlipVertical, RotateCcw, RotateCw, Trash2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { ResizeAnchor } from '$lib/canvas/canvas-model';
 	import CanvasSizeControl from './CanvasSizeControl.svelte';
@@ -16,6 +16,8 @@
 		onAnchorChange: (anchor: ResizeAnchor) => void;
 		onFlipHorizontal: () => void;
 		onFlipVertical: () => void;
+		onRotateCw: () => void;
+		onRotateCcw: () => void;
 	}
 
 	let {
@@ -29,7 +31,9 @@
 		onGridToggle,
 		onAnchorChange,
 		onFlipHorizontal,
-		onFlipVertical
+		onFlipVertical,
+		onRotateCw,
+		onRotateCcw
 	}: Props = $props();
 </script>
 
@@ -57,6 +61,14 @@
 		<button class="action-btn outline" onclick={onFlipVertical}>
 			<FlipVertical size={18} aria-hidden={true} />
 			<span>{m.action_transformFlipVertical()}</span>
+		</button>
+		<button class="action-btn outline" onclick={onRotateCw}>
+			<RotateCw size={18} aria-hidden={true} />
+			<span>{m.action_transformRotateCw()}</span>
+		</button>
+		<button class="action-btn outline" onclick={onRotateCcw}>
+			<RotateCcw size={18} aria-hidden={true} />
+			<span>{m.action_transformRotateCcw()}</span>
 		</button>
 	</section>
 

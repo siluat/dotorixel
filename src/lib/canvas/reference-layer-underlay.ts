@@ -34,15 +34,48 @@ export interface ReferenceLayerUnderlayBounds {
 	readonly maxY: number;
 }
 
+/** Normalizes an optional quarter-turn into `0 | 1 | 2 | 3` (absence → 0). */
+export function normalizedQuarterTurn(rotation: number | undefined): 0 | 1 | 2 | 3 {
+	return ((((rotation ?? 0) % 4) + 4) % 4) as 0 | 1 | 2 | 3;
+}
+
 export function referenceLayerUnderlaySourceCoords(
 	underlay: ReferenceLayerUnderlay,
 	coords: CanvasPoint
 ): CanvasCoords {
 	const { x, y, scale } = underlay.placement;
-	return {
-		x: Math.floor((coords.x - x) / scale),
-		y: Math.floor((coords.y - y) / scale)
-	};
+	// The rendered footprint is the source turned `rotation` quarter-turns, so
+	// these grid coordinates index the rotated footprint, not the source yet.
+	const gridX = Math.floor((coords.x - x) / scale);
+	const gridY = Math.floor((coords.y - y) / scale);
+	const lastX = underlay.naturalWidth - 1;
+	const lastY = underlay.naturalHeight - 1;
+	// Invert the clockwise quarter-turn on the integer pixel grid.
+	switch (normalizedQuarterTurn(underlay.placement.rotation)) {
+		case 1:
+			return { x: gridY, y: lastY - gridX };
+		case 2:
+			return { x: lastX - gridX, y: lastY - gridY };
+		case 3:
+			return { x: lastX - gridY, y: gridX };
+		default:
+			return { x: gridX, y: gridY };
+	}
+}
+
+/**
+ * The footprint's source dimensions in document pixels, with width and height
+ * swapped for an odd quarter-turn (its axis-aligned bounding box turns with it).
+ */
+function rotatedFootprintExtent(underlay: ReferenceLayerUnderlay): {
+	readonly width: number;
+	readonly height: number;
+} {
+	const { scale } = underlay.placement;
+	const isQuarterTurned = normalizedQuarterTurn(underlay.placement.rotation) % 2 === 1;
+	const width = (isQuarterTurned ? underlay.naturalHeight : underlay.naturalWidth) * scale;
+	const height = (isQuarterTurned ? underlay.naturalWidth : underlay.naturalHeight) * scale;
+	return { width, height };
 }
 
 export function referenceLayerUnderlayDocumentRect(
@@ -50,12 +83,13 @@ export function referenceLayerUnderlayDocumentRect(
 	viewport: ViewportData
 ): ReferenceLayerUnderlayRect {
 	const scaledPixel = effectivePixelSize(viewport);
-	const { x, y, scale } = underlay.placement;
+	const { x, y } = underlay.placement;
+	const extent = rotatedFootprintExtent(underlay);
 	return {
 		left: x * scaledPixel,
 		top: y * scaledPixel,
-		width: underlay.naturalWidth * scale * scaledPixel,
-		height: underlay.naturalHeight * scale * scaledPixel
+		width: extent.width * scaledPixel,
+		height: extent.height * scaledPixel
 	};
 }
 
@@ -75,11 +109,12 @@ export function referenceLayerUnderlayViewportRect(
 export function referenceLayerUnderlayBounds(
 	underlay: ReferenceLayerUnderlay
 ): ReferenceLayerUnderlayBounds {
-	const { x, y, scale } = underlay.placement;
+	const { x, y } = underlay.placement;
+	const extent = rotatedFootprintExtent(underlay);
 	return {
 		minX: x,
 		minY: y,
-		maxX: x + underlay.naturalWidth * scale,
-		maxY: y + underlay.naturalHeight * scale
+		maxX: x + extent.width,
+		maxY: y + extent.height
 	};
 }

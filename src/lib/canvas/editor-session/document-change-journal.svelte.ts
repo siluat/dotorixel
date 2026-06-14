@@ -304,9 +304,13 @@ export class DocumentChangeJournal {
 			case 'flip-vertical':
 				return this.#activeLayerKind() === 'pixel';
 			case 'clear-marquee-pixels':
+				return Boolean(document.marquee()) && this.#activeLayerKind() === 'pixel';
 			case 'rotate-cw':
 			case 'rotate-ccw':
-				return Boolean(document.marquee()) && this.#activeLayerKind() === 'pixel';
+				// With a Marquee, rotate the region on the active Pixel Layer; with
+				// none, rotate the whole Document — always allowed, independent of
+				// the active layer kind.
+				return document.marquee() ? this.#activeLayerKind() === 'pixel' : true;
 			case 'commit-floating-selection':
 				return this.#layerKindOf(intent.sourceLayerId) === 'pixel' && intent.buffer.length > 0;
 			case 'set-marquee':
@@ -389,10 +393,20 @@ export class DocumentChangeJournal {
 			case 'clear-marquee-pixels':
 			case 'flip-horizontal':
 			case 'flip-vertical':
-			case 'rotate-cw':
-			case 'rotate-ccw':
 			case 'commit-floating-selection':
 				this.#invalidateRenderAndMarkDirty();
+				break;
+			case 'rotate-cw':
+			case 'rotate-ccw':
+				// A region rotate leaves the dimensions unchanged; a whole-document
+				// rotate (no Marquee) swaps them, so it must refresh metrics and the
+				// viewport like resize-document.
+				if (this.#deps.getDocument().marquee()) {
+					this.#invalidateRenderAndMarkDirty();
+				} else {
+					this.#deps.syncDocumentMetrics();
+					this.#reclampViewportInvalidateRenderAndMarkDirty();
+				}
 				break;
 			case 'add-pixel-layer':
 			case 'set-reference-layer':

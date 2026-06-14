@@ -24,6 +24,8 @@
 			onAnchorChange={noop}
 			onFlipHorizontal={noop}
 			onFlipVertical={noop}
+			onRotateCw={noop}
+			onRotateCcw={noop}
 		/>
 	</div>
 </Story>
@@ -45,6 +47,8 @@
 			onAnchorChange={noop}
 			onFlipHorizontal={noop}
 			onFlipVertical={noop}
+			onRotateCw={noop}
+			onRotateCcw={noop}
 		/>
 	</div>
 </Story>

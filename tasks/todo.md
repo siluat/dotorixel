@@ -3,8 +3,6 @@
 ## Milestone 3: Editor for Serious Work
 
 - Copy/paste
-- Flip/transform — [PRD](../issues/176-flip-and-rotate-transforms.md)
-  - [179 — Whole-document rotate 90°](../issues/179-whole-document-rotate.md)
 - Project file format (JSON-based) + save/load
 - (review) Evaluate serde-wasm-bindgen + tsify for WASM↔TS serialization — revisit when project file format requires multi-type Rust↔JSON↔TS conversion
 - Apple Pencil: hover preview + palm rejection

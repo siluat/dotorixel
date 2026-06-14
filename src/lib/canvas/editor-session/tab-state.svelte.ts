@@ -963,7 +963,8 @@ export class TabState {
 					placement: {
 						x: placement.x,
 						y: placement.y,
-						scale: placement.scale
+						scale: placement.scale,
+						rotation: placement.rotation
 					}
 				} satisfies ReferenceLayerSnapshot;
 			}

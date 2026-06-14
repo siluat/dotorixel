@@ -94,7 +94,8 @@ export function createReferenceLayerPlacementInteraction() {
 		return {
 			x: drag.startPlacement.x + delta.x,
 			y: drag.startPlacement.y + delta.y,
-			scale: drag.startPlacement.scale
+			scale: drag.startPlacement.scale,
+			rotation: drag.startPlacement.rotation
 		};
 	}
 
@@ -122,15 +123,16 @@ export function createReferenceLayerPlacementInteraction() {
 		const startRight = start.x + naturalWidth * start.scale;
 		const startBottom = start.y + naturalHeight * start.scale;
 
+		const rotation = start.rotation;
 		switch (handle) {
 			case 'nw':
-				return { x: startRight - width, y: startBottom - height, scale };
+				return { x: startRight - width, y: startBottom - height, scale, rotation };
 			case 'ne':
-				return { x: start.x, y: startBottom - height, scale };
+				return { x: start.x, y: startBottom - height, scale, rotation };
 			case 'se':
-				return { x: start.x, y: start.y, scale };
+				return { x: start.x, y: start.y, scale, rotation };
 			case 'sw':
-				return { x: startRight - width, y: start.y, scale };
+				return { x: startRight - width, y: start.y, scale, rotation };
 		}
 	}
 
@@ -268,7 +270,8 @@ export function createReferenceLayerPlacementInteraction() {
 			const next = {
 				x: placement.x + delta.x,
 				y: placement.y + delta.y,
-				scale: placement.scale
+				scale: placement.scale,
+				rotation: placement.rotation
 			};
 			draftPlacement = next;
 			return next;

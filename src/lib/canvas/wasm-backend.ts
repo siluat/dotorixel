@@ -212,7 +212,12 @@ export function fitReferencePlacementToCanvas(
 		naturalWidth,
 		naturalHeight
 	);
-	return { x: placement.x, y: placement.y, scale: placement.scale };
+	return {
+		x: placement.x,
+		y: placement.y,
+		scale: placement.scale,
+		rotation: placement.rotation
+	};
 }
 
 // ── MarqueeRegion ─────────────────────────────────────────────────
@@ -509,6 +514,7 @@ export function documentFromLayerSource(source: DocumentLayerSource): Document {
 				layer.placement.x,
 				layer.placement.y,
 				layer.placement.scale,
+				layer.placement.rotation ?? 0,
 				layer.visible,
 				layer.opacity
 			);

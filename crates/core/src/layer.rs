@@ -190,19 +190,39 @@ impl ReferenceData {
     /// `(x, y)` under the current placement, or `None` if `(x, y)` lies
     /// outside the source's projected footprint. Sampling is integer-floor
     /// nearest-neighbor — appropriate for the pixel-art aesthetic; no
-    /// smoothing.
+    /// smoothing. The placement's quarter-turn rotation is inverted so a
+    /// rotated reference samples the correct source pixel.
     pub fn sample_at(&self, x: u32, y: u32) -> Option<Color> {
-        let source_x = ((x as f32 - self.placement.x()) / self.placement.scale()).floor();
-        let source_y = ((y as f32 - self.placement.y()) / self.placement.scale()).floor();
+        // The rendered footprint is the source turned `rotation` quarter-turns,
+        // so its grid swaps width and height for odd rotations.
+        let (grid_width, grid_height) = if self.placement.rotation() % 2 == 0 {
+            (self.natural_width, self.natural_height)
+        } else {
+            (self.natural_height, self.natural_width)
+        };
 
-        if source_x < 0.0 || source_y < 0.0 {
+        let grid_x = ((x as f32 - self.placement.x()) / self.placement.scale()).floor();
+        let grid_y = ((y as f32 - self.placement.y()) / self.placement.scale()).floor();
+        if grid_x < 0.0 || grid_y < 0.0 {
             return None;
         }
-        let source_x = source_x as u32;
-        let source_y = source_y as u32;
-        if source_x >= self.natural_width || source_y >= self.natural_height {
+        let grid_x = grid_x as u32;
+        let grid_y = grid_y as u32;
+        if grid_x >= grid_width || grid_y >= grid_height {
             return None;
         }
+
+        // Invert the quarter-turn on the integer pixel grid: each turn is the
+        // exact inverse of the clockwise buffer rotation used when drawing.
+        let (source_x, source_y) = match self.placement.rotation() {
+            0 => (grid_x, grid_y),
+            1 => (grid_y, self.natural_height - 1 - grid_x),
+            2 => (
+                self.natural_width - 1 - grid_x,
+                self.natural_height - 1 - grid_y,
+            ),
+            _ => (self.natural_width - 1 - grid_y, grid_x),
+        };
 
         let idx = (source_y as usize * self.natural_width as usize + source_x as usize) * 4;
         Some(Color::new(
@@ -343,6 +363,34 @@ mod tests {
         assert_eq!(data.sample_at(3, 3), Some(Color::new(3, 3, 0, 255)));
         assert_eq!(data.sample_at(3, 0), Some(Color::new(3, 0, 0, 255)));
         assert_eq!(data.sample_at(0, 3), Some(Color::new(0, 3, 0, 255)));
+    }
+
+    #[test]
+    fn sample_at_inverts_a_clockwise_quarter_turn() {
+        // A 2×1 source rotated one quarter-turn clockwise reads as a 1×2 column:
+        // the source's left pixel is on top, its right pixel below.
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0)
+            .unwrap()
+            .with_rotation(1);
+        let data = ReferenceData::new(positional_rgba(2, 1), 2, 1, placement).unwrap();
+
+        assert_eq!(data.sample_at(0, 0), Some(Color::new(0, 0, 0, 255)));
+        assert_eq!(data.sample_at(0, 1), Some(Color::new(1, 0, 0, 255)));
+        // The rotated footprint is only 1 document pixel wide.
+        assert_eq!(data.sample_at(1, 0), None);
+    }
+
+    #[test]
+    fn sample_at_inverts_a_counter_clockwise_quarter_turn() {
+        // Three quarter-turns clockwise equals one counter-clockwise: the
+        // source's left pixel is now at the bottom.
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0)
+            .unwrap()
+            .with_rotation(3);
+        let data = ReferenceData::new(positional_rgba(2, 1), 2, 1, placement).unwrap();
+
+        assert_eq!(data.sample_at(0, 0), Some(Color::new(1, 0, 0, 255)));
+        assert_eq!(data.sample_at(0, 1), Some(Color::new(0, 0, 0, 255)));
     }
 
     #[test]

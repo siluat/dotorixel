@@ -1,6 +1,6 @@
 ---
 title: "Rotate whole document 90° — all layers, dimension swap, reference quarter-turn"
-status: ready-for-agent
+status: done
 created: 2026-06-14
 parent: 176-flip-and-rotate-transforms.md
 ---
@@ -85,3 +85,31 @@ Wiring:
 ## Blocked by
 
 - [178 — Rotate region 90° clockwise & counter-clockwise](178-region-rotate-90.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/canvas.rs` | `PixelCanvas::rotate_cw`/`rotate_ccw` — return a new canvas with swapped dimensions, built on `rotate_buffer_*` |
+| `crates/core/src/reference_placement.rs` | Added private `rotation: u8` (0..=3) with `rotation()` getter and `pub fn with_rotation` (normalizes `% 4`); `new`/`auto_fit`/`fit_to_canvas` default to 0; `with_position` preserves it |
+| `crates/core/src/document.rs` | `rotate_cw`/`rotate_ccw` branch on Marquee: region path unchanged, no-Marquee path runs `rotate_whole_document` (rotate every Pixel Layer + swap `width`/`height` + remap each Reference via `rotate_reference_placement`). `set_reference_placement` now preserves the layer's quarter-turn |
+| `crates/core/src/layer.rs` | `ReferenceData::sample_at` inverts the quarter-turn on the integer pixel grid so a rotated reference samples the correct source pixel |
+| `wasm/src/lib.rs` | `WasmReferencePlacement.rotation` getter; builder `add_reference_layer` takes a `rotation` arg for hydration |
+| `src/lib/canvas/reference-layer-underlay.ts` | `documentRect`/`bounds`/`sourceCoords` are quarter-turn aware; exported `normalizedQuarterTurn` helper |
+| `src/lib/canvas/renderer.ts` | Reference underlay draws rotated: translate to the bbox center, `rotate(k·90°)`, draw at un-rotated size (unrotated path unchanged) |
+| `src/lib/canvas/editor-session/document-change-journal.svelte.ts` | Rotate guard allows the no-Marquee path unconditionally; after-handler refreshes metrics/viewport (like `resize-document`) only for the dimension-swapping whole-document rotate |
+| `src/lib/ui-editor/RightPanel.svelte`, `SettingsContent.svelte` | Rotate CW/CCW buttons added to the Transform group, wired through `+page.svelte` to `editor.handleRotateCw/Ccw` |
+| `src/lib/session/session-storage-types.ts` | `ReferencePlacementRecord.rotation?` (optional; absence → 0) — no schema-version bump |
+
+### Key Decisions
+
+- **Reference rotation geometry** is derived to match the buffer-rotation pixel mapping exactly: CW remaps a footprint center by the continuous turn `(u,v) → (H−v, u)`, CCW by `(v, W−u)`; `(x, y)` is the rotated footprint's AABB top-left, and rendering rotates about the bbox center so the swapped-dimension box stays anchored.
+- **Render + sampling/bounds both made rotation-correct** (chosen over render-only) so a rotated reference's eyedropper sampling and overlay/clamp bounds don't silently drift.
+- **`rotation` kept as a normalized `u8`** (not a dedicated enum) to match the existing private-field invariant style and the WASM/persistence numeric boundary; illegal values are unrepresentable via private fields + `with_rotation`'s `% 4`.
+- **Persistence** extends `ReferencePlacementRecord` with an optional `rotation` (absence → 0) following the established additive-field pattern — no new schema version.
+
+### Notes
+
+- **Renderer rotated-draw path has no unit test** — the pure geometry functions are tested with rotation, but the `ctx` rotate/draw path is verified only by reasoning (happy-dom can't assert rendered pixels; asserting `ctx` call order would couple to implementation). A visual check belongs to manual/e2e verification.
+- **`placementFromScaleDrag` is rotation-naive**: manually scale-dragging a rotated reference is geometrically imperfect because it uses un-rotated natural dimensions. Rotation is preserved through the drag; full correctness is deferred to the "reference window polish (manual rotate)" backlog item.
+- Whole-document rotate uses the existing full-document undo snapshot, so undo/redo of dimensions, pixels, and reference placements is covered by the same mechanism as `resize-document`.

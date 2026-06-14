@@ -364,6 +364,27 @@ impl PixelCanvas {
         self.pixels = flip_buffer_vertical(&self.pixels, self.width, self.height);
     }
 
+    /// Returns a new canvas rotated 90° clockwise. The `width × height` source
+    /// becomes a `height × width` result. The source canvas is not modified.
+    pub fn rotate_cw(&self) -> Self {
+        Self {
+            width: self.height,
+            height: self.width,
+            pixels: rotate_buffer_cw(&self.pixels, self.width, self.height),
+        }
+    }
+
+    /// Returns a new canvas rotated 90° counter-clockwise. The `width × height`
+    /// source becomes a `height × width` result. The source canvas is not
+    /// modified.
+    pub fn rotate_ccw(&self) -> Self {
+        Self {
+            width: self.height,
+            height: self.width,
+            pixels: rotate_buffer_ccw(&self.pixels, self.width, self.height),
+        }
+    }
+
     /// Fills all pixels connected to `(start_x, start_y)` with `fill_color`
     /// using 4-connectivity (up, down, left, right).
     ///
@@ -1019,6 +1040,41 @@ mod tests {
         v.flip_vertical();
         v.flip_vertical();
         assert_eq!(v, original);
+    }
+
+    // ── rotate whole-canvas ─────────────────────────────────────
+
+    #[test]
+    fn rotate_cw_swaps_dimensions_and_turns_pixels_clockwise() {
+        // A B C        D A
+        // D E F   ->   E B
+        //              F C
+        let canvas = PixelCanvas::from_pixels(3, 2, labelled_3x2()).unwrap();
+        let rotated = canvas.rotate_cw();
+        assert_eq!((rotated.width(), rotated.height()), (2, 3));
+        assert_eq!(rotated.get_pixel(0, 0).unwrap(), Color::new(4, 4, 4, 4)); // D
+        assert_eq!(rotated.get_pixel(1, 0).unwrap(), Color::new(1, 1, 1, 1)); // A
+        assert_eq!(rotated.get_pixel(1, 2).unwrap(), Color::new(3, 3, 3, 3)); // C
+    }
+
+    #[test]
+    fn rotate_ccw_swaps_dimensions_and_turns_pixels_counter_clockwise() {
+        // A B C        C F
+        // D E F   ->   B E
+        //              A D
+        let canvas = PixelCanvas::from_pixels(3, 2, labelled_3x2()).unwrap();
+        let rotated = canvas.rotate_ccw();
+        assert_eq!((rotated.width(), rotated.height()), (2, 3));
+        assert_eq!(rotated.get_pixel(0, 0).unwrap(), Color::new(3, 3, 3, 3)); // C
+        assert_eq!(rotated.get_pixel(1, 0).unwrap(), Color::new(6, 6, 6, 6)); // F
+        assert_eq!(rotated.get_pixel(0, 2).unwrap(), Color::new(1, 1, 1, 1)); // A
+    }
+
+    #[test]
+    fn rotate_cw_then_ccw_restores_a_non_square_canvas() {
+        let original = PixelCanvas::from_pixels(3, 2, labelled_3x2()).unwrap();
+        let restored = original.rotate_cw().rotate_ccw();
+        assert_eq!(restored, original);
     }
 
     // ── resize ──────────────────────────────────────────────────

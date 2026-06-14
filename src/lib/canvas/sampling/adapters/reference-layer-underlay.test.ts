@@ -12,7 +12,7 @@ const reference: ReferenceLayerUnderlay = {
 	]),
 	naturalWidth: 4,
 	naturalHeight: 1,
-	placement: { x: 2, y: 1, scale: 2 },
+	placement: { x: 2, y: 1, scale: 2, rotation: 0 },
 	opacity: 1
 };
 

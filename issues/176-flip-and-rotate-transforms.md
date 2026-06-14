@@ -1,6 +1,6 @@
 ---
 title: "Flip & rotate transforms — region, active layer, and whole document"
-status: ready-for-agent
+status: done
 created: 2026-06-13
 ---
 

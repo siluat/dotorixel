@@ -444,7 +444,89 @@ describe('SessionPersistence', () => {
 		const referenceLayer = expectReferenceLayer(snapshot.tabs[0].layers[0]);
 		expect(referenceLayer.sourceBlob.type).toBe('image/png');
 		expect(Array.from(referenceLayer.sourceRgba)).toEqual(Array.from(sourceRgba));
-		expect(referenceLayer.placement).toEqual({ x: 1, y: 2, scale: 3 });
+		expect(referenceLayer.placement).toEqual({ x: 1, y: 2, scale: 3, rotation: 0 });
+	});
+
+	it('round-trips a rotated document (swapped dimensions + reference quarter-turn)', async () => {
+		const pixelId = crypto.randomUUID();
+		const referenceId = crypto.randomUUID();
+		const sourceBlob = new Blob([new Uint8Array([4, 5, 6])], { type: 'image/png' });
+		const sourceRgba = new Uint8ClampedArray([11, 22, 33, 255, 44, 55, 66, 255]);
+		vi.mocked(decodeReferenceBlob).mockResolvedValue({ width: 2, height: 1, data: sourceRgba });
+		// A landscape source that was rotated to portrait: the document is 2×4
+		// (already H×W) and the reference carries a one-quarter clockwise turn.
+		await storage.putDocument({
+			schemaVersion: 5,
+			id: 'doc-rotated',
+			name: 'Rotated doc',
+			width: 2,
+			height: 4,
+			marquee: null,
+			layers: [
+				{
+					kind: 'pixel',
+					id: pixelId,
+					name: 'Paint',
+					pixels: new Uint8Array(2 * 4 * 4),
+					visible: true,
+					opacity: 1
+				},
+				{
+					kind: 'reference',
+					id: referenceId,
+					name: 'Sketch.png',
+					visible: true,
+					opacity: 1,
+					sourceBlob,
+					naturalWidth: 2,
+					naturalHeight: 1,
+					placement: { x: 0, y: 1, scale: 1, rotation: 1 }
+				}
+			],
+			activeLayerId: pixelId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false,
+			saved: false,
+			createdAt: new Date('2026-05-01T00:00:00Z'),
+			updatedAt: new Date('2026-05-02T00:00:00Z')
+		});
+		await storage.putWorkspace({
+			id: 'current',
+			tabOrder: ['doc-rotated'],
+			activeTabIndex: 0,
+			sharedState: {
+				activeTool: 'pencil',
+				foregroundColor: { r: 0, g: 0, b: 0, a: 255 },
+				backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+				recentColors: []
+			},
+			viewports: {}
+		});
+
+		const restored = await persistence.restore();
+		const workspace = new Workspace({
+			backend: wasmBackend,
+			notifier: createFakeDirtyNotifier(),
+			keyboard: { getShiftHeld: () => false },
+			restored: restored!
+		});
+
+		// Dimensions survive, and the reference's quarter-turn rehydrates into the
+		// live document.
+		expect([workspace.activeTab.document.width, workspace.activeTab.document.height]).toEqual([
+			2, 4
+		]);
+		const placement = workspace.activeTab.document
+			.layers_metadata()
+			.find((layer) => layer.kind === 'reference')!.placement!;
+		expect(placement.rotation).toBe(1);
+
+		// And it persists back out unchanged.
+		const snapshot = workspace.toSnapshot();
+		const referenceLayer = expectReferenceLayer(
+			snapshot.tabs[0].layers.find((layer) => layer.kind === 'reference')!
+		);
+		expect(referenceLayer.placement).toEqual({ x: 0, y: 1, scale: 1, rotation: 1 });
 	});
 
 	it('returns null when no saved data exists', async () => {

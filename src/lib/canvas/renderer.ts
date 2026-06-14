@@ -1,5 +1,6 @@
 import { effectivePixelSize, type ViewportData, type ViewportSize } from './viewport';
 import {
+	normalizedQuarterTurn,
 	referenceLayerUnderlayDocumentRect,
 	type ReferenceLayerUnderlay
 } from './reference-layer-underlay';
@@ -152,17 +153,40 @@ function renderReferenceLayerUnderlay(
 	const previousAlpha = ctx.globalAlpha;
 	ctx.globalAlpha = Math.min(Math.max(opacity, 0), 1);
 	ctx.imageSmoothingEnabled = true;
-	ctx.drawImage(
-		sourceRaster,
-		0,
-		0,
-		reference.naturalWidth,
-		reference.naturalHeight,
-		rect.left,
-		rect.top,
-		rect.width,
-		rect.height
-	);
+
+	const quarterTurns = normalizedQuarterTurn(reference.placement.rotation);
+	if (quarterTurns === 0) {
+		ctx.drawImage(
+			sourceRaster,
+			0,
+			0,
+			reference.naturalWidth,
+			reference.naturalHeight,
+			rect.left,
+			rect.top,
+			rect.width,
+			rect.height
+		);
+	} else {
+		// Turn the source about its (rotated) bounding-box center. The drawn
+		// image keeps its un-rotated scaled dimensions; rotating a rect 90°
+		// about its center lands it exactly inside the swapped-dimension box.
+		const drawWidth = reference.naturalWidth * reference.placement.scale * scaledPixel;
+		const drawHeight = reference.naturalHeight * reference.placement.scale * scaledPixel;
+		ctx.translate(rect.left + rect.width / 2, rect.top + rect.height / 2);
+		ctx.rotate((quarterTurns * Math.PI) / 2);
+		ctx.drawImage(
+			sourceRaster,
+			0,
+			0,
+			reference.naturalWidth,
+			reference.naturalHeight,
+			-drawWidth / 2,
+			-drawHeight / 2,
+			drawWidth,
+			drawHeight
+		);
+	}
 	ctx.globalAlpha = previousAlpha;
 	ctx.restore();
 }

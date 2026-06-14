@@ -75,6 +75,12 @@ export interface ReferencePlacementRecord {
 	x: number;
 	y: number;
 	scale: number;
+	/**
+	 * Number of 90° clockwise turns applied to the source image, in `0..=3`.
+	 * Undefined on records written before reference rotation existed; hydration
+	 * treats absence as 0 (no rotation).
+	 */
+	rotation?: number;
 }
 
 export interface PixelLayerRecord extends PixelLayerRecordV3 {

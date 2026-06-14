@@ -27,7 +27,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Create / resize | ✅ | ✅ | ✅ | 1–256px, presets available, 9-position anchor selector (Web) |
 | Clear | ✅ | ✅ | ⬜ | RightPanel (docked) + Settings tab (mobile) |
-| Flip / transform | ✅ | ✅ | ⬜ | Flip H/V (Marquee region or whole active layer); rotate 90° CW/CCW (Marquee region only — re-centered, canvas-clipped). Reference no-op. Web: SelectionActionBar; flip also in RightPanel/Settings |
+| Flip / transform | ✅ | ✅ | ⬜ | Flip H/V (Marquee region or whole active layer). Rotate 90° CW/CCW: Marquee region (re-centered, canvas-clipped) or, with no Marquee, the whole document (all layers + W↔H swap + Reference quarter-turn). Web: SelectionActionBar (region) + RightPanel/Settings |
 
 ## History
 
@@ -115,7 +115,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Document/Layer model | 🔧 | 🔧 | ⬜ | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple remains single-canvas |
-| Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and source-coordinate sampling. Placement invariant (finite pos, scale > 0) enforced by the core constructor; adapters marshal only |
+| Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and rotation-aware source sampling. Turns with a whole-document rotate (quarter-turn). Placement invariant (finite pos, scale > 0, quarter-turn 0..=3) enforced by the core constructor |
 | Timeline panel | — | 🔧 | ⬜ | Top-z first; activate/remove/reorder/visibility are undoable. Reorder drag previews displaced rows; desktop collapse is per-document. Frame column is M4 placeholder |
 
 ## Reference Images

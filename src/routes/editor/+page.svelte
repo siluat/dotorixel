@@ -691,6 +691,8 @@
 			onAnchorChange={(anchor) => editor.workspace.setActiveResizeAnchor(anchor)}
 			onFlipHorizontal={editor.handleFlipHorizontal}
 			onFlipVertical={editor.handleFlipVertical}
+			onRotateCw={editor.handleRotateCw}
+			onRotateCcw={editor.handleRotateCcw}
 		/>
 
 		<StatusBar
@@ -802,6 +804,8 @@
 					onAnchorChange={(anchor) => editor.workspace.setActiveResizeAnchor(anchor)}
 					onFlipHorizontal={editor.handleFlipHorizontal}
 					onFlipVertical={editor.handleFlipVertical}
+					onRotateCw={editor.handleRotateCw}
+					onRotateCcw={editor.handleRotateCcw}
 				/>
 			{/if}
 		</div>

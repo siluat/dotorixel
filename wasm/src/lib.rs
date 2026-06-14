@@ -102,6 +102,12 @@ impl WasmReferencePlacement {
         self.inner.scale()
     }
 
+    /// Number of 90° clockwise turns applied to the source image, in `0..=3`.
+    #[wasm_bindgen(getter)]
+    pub fn rotation(&self) -> u8 {
+        self.inner.rotation()
+    }
+
     pub fn fit_to_canvas(
         canvas_width: u32,
         canvas_height: u32,
@@ -873,6 +879,9 @@ impl WasmDocumentBuilder {
     /// Errors when `id` is not a valid UUID string, when the placement is
     /// invalid (`x`/`y` non-finite, or `scale` non-finite or ≤ 0), or when
     /// the source buffer is inconsistent with the declared dimensions.
+    /// `rotation` is the persisted quarter-turn (number of 90° clockwise turns),
+    /// normalized into `0..=3`.
+    #[allow(clippy::too_many_arguments)]
     pub fn add_reference_layer(
         &mut self,
         id: String,
@@ -883,12 +892,14 @@ impl WasmDocumentBuilder {
         x: f32,
         y: f32,
         scale: f32,
+        rotation: u8,
         visible: bool,
         opacity: f32,
     ) -> Result<(), JsError> {
         let layer_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
-        let placement =
-            ReferencePlacement::new(x, y, scale).map_err(|e| JsError::new(&e.to_string()))?;
+        let placement = ReferencePlacement::new(x, y, scale)
+            .map_err(|e| JsError::new(&e.to_string()))?
+            .with_rotation(rotation);
         let data = ReferenceData::new(source_rgba, source_width, source_height, placement)
             .map_err(|e| JsError::new(&e.to_string()))?;
         self.layers.push(Layer {
@@ -1624,6 +1635,7 @@ mod tests {
                 0.5,
                 1.0,
                 2.0,
+                3,
                 true,
                 0.5,
             )
@@ -1653,6 +1665,7 @@ mod tests {
         assert_eq!(placement.x(), 0.5);
         assert_eq!(placement.y(), 1.0);
         assert_eq!(placement.scale(), 2.0);
+        assert_eq!(placement.rotation(), 3);
 
         let pixel = &metadata[1];
         assert_eq!(pixel.id(), pixel_id.to_string());

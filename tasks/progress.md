@@ -2,16 +2,15 @@
 
 ## Currently Working On
 
-Flip & rotate transforms ([PRD](../issues/176-flip-and-rotate-transforms.md)) — 2 of 3 sub-issues done. 178 (rotate region 90°) shipped the Marquee rotate path; 179 (whole-document rotate) is now unblocked and is the last sub-issue.
+None.
 
 ## Last Completed
 
-[178 — Rotate region 90°](../issues/178-region-rotate-90.md): Marquee region CW/CCW rotate reusing the #177 transform pipeline. Re-centering uses truncating division so CW∘CCW restores the Marquee exactly. Marquee-only slice — the no-Marquee/whole-document path and RightPanel buttons are deferred to 179.
+[179 — Whole-document rotate 90°](../issues/179-whole-document-rotate.md): no-Marquee rotate turns the whole Document (all Pixel Layers + dimension swap + Reference quarter-turn), completing the Flip & rotate transforms PRD ([176](../issues/176-flip-and-rotate-transforms.md)). Reference rotation is render- and sampling-correct; manual scale-drag of a rotated reference is left to the reference-window-polish backlog.
 
 ## Next Up
 
 - Copy/paste
-- Whole-document rotate 90° ([179](../issues/179-whole-document-rotate.md)) — unblocked by 178
 - Project file format (JSON-based) + save/load
 - Apple Pencil: hover preview + palm rejection
 - Feature guide page (basic usage instructions)

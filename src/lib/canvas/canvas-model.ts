@@ -14,6 +14,11 @@ export interface ReferencePlacement {
 	readonly x: number;
 	readonly y: number;
 	readonly scale: number;
+	/**
+	 * Number of 90° clockwise turns applied to the source image, in `0..=3`.
+	 * Optional for backward compatibility; absence is treated as 0 (no rotation).
+	 */
+	readonly rotation?: number;
 }
 
 /** Document-scoped rectangular Marquee region in pixel coordinates. */

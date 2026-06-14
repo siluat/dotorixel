@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 179 | [Rotate whole document 90° — all layers, dimension swap, reference quarter-turn](../issues/179-whole-document-rotate.md) | 2026-06-14 |
 | 178 | [Rotate region 90° clockwise & counter-clockwise](../issues/178-region-rotate-90.md) | 2026-06-14 |
 | 177 | [Flip horizontal & vertical — region and active layer](../issues/177-flip-horizontal-vertical.md) | 2026-06-14 |
 | 175 | [Constrain latch snapshot-restore guard + ownership wording](../issues/175-constrain-latch-snapshot-guard.md) | 2026-06-13 |

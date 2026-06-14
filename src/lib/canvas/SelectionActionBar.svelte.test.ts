@@ -96,6 +96,30 @@ describe('SelectionActionBar', () => {
 		expect(onFlipVertical).toHaveBeenCalledOnce();
 	});
 
+	it('renders Rotate Right and Rotate Left transform actions while a Marquee is active', async () => {
+		const onRotateCw = vi.fn();
+		const onRotateCcw = vi.fn();
+
+		render(SelectionActionBar, {
+			props: {
+				marquee: region(),
+				canvasWidth: 12,
+				canvasHeight: 12,
+				viewport,
+				viewportSize: { width: 180, height: 180 },
+				canPaste: true,
+				onRotateCw,
+				onRotateCcw
+			}
+		});
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Rotate Right' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Rotate Left' }));
+
+		expect(onRotateCw).toHaveBeenCalledOnce();
+		expect(onRotateCcw).toHaveBeenCalledOnce();
+	});
+
 	it('disables Paste when the shared Selection Clipboard is empty', async () => {
 		const onPasteSelectionClipboard = vi.fn();
 
@@ -241,12 +265,12 @@ describe('SelectionActionBar', () => {
 				canvasWidth: 24,
 				canvasHeight: 12,
 				viewport: { ...viewport, panX: 0, panY: 0 },
-				viewportSize: { width: 360, height: 200 },
+				viewportSize: { width: 400, height: 200 },
 				canPaste: true
 			}
 		});
 
-		expect(screen.getByTestId('selection-action-bar').style.left).toBe('78px');
+		expect(screen.getByTestId('selection-action-bar').style.left).toBe('42px');
 	});
 
 	it('hides during pointer drag and restores after release state', async () => {
@@ -313,12 +337,12 @@ describe('SelectionActionBar', () => {
 	});
 
 	it.each([
-		['en', 'Copy', 'Cut', 'Paste', 'Flip Horizontal', 'Flip Vertical', 'Delete', 'Deselect'],
-		['ko', '복사', '잘라내기', '붙여넣기', '좌우 반전', '상하 반전', '삭제', '선택 해제'],
-		['ja', 'コピー', '切り取り', '貼り付け', '左右反転', '上下反転', '削除', '選択解除']
+		['en', 'Copy', 'Cut', 'Paste', 'Flip Horizontal', 'Flip Vertical', 'Rotate Right', 'Rotate Left', 'Delete', 'Deselect'],
+		['ko', '복사', '잘라내기', '붙여넣기', '좌우 반전', '상하 반전', '오른쪽 회전', '왼쪽 회전', '삭제', '선택 해제'],
+		['ja', 'コピー', '切り取り', '貼り付け', '左右反転', '上下反転', '右回転', '左回転', '削除', '選択解除']
 	] as const)(
 		'renders localized labels for %s',
-		(locale, copy, cut, paste, flipH, flipV, deleteLabel, deselect) => {
+		(locale, copy, cut, paste, flipH, flipV, rotateCw, rotateCcw, deleteLabel, deselect) => {
 			overwriteGetLocale(() => locale);
 
 			render(SelectionActionBar, {
@@ -332,7 +356,7 @@ describe('SelectionActionBar', () => {
 				}
 			});
 
-			for (const label of [copy, cut, paste, flipH, flipV, deleteLabel, deselect]) {
+			for (const label of [copy, cut, paste, flipH, flipV, rotateCw, rotateCcw, deleteLabel, deselect]) {
 				expect(screen.getByRole('button', { name: label })).toBeTruthy();
 			}
 		}

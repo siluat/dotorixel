@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 155 | 119 | 36 | 152 | 77% | 44% |
-| cubic-dev-ai[bot] | 111 | 90 | 21 | 178 | 81% | 34% |
-| coderabbitai[bot] | 210 | 149 | 61 | 116 | 71% | 56% |
+| greptile-apps[bot] | 155 | 119 | 36 | 153 | 77% | 44% |
+| cubic-dev-ai[bot] | 112 | 91 | 21 | 178 | 81% | 34% |
+| coderabbitai[bot] | 210 | 149 | 61 | 117 | 71% | 56% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #274 | cubic-dev-ai[bot] | Accept | rotate_active_marquee cleared only the source region; source-over composite left stale (transparent cells) / blended (semi-transparent) pixels in the destination when the rotated H×W footprint exceeded the source. Added clear_region(rotated_region) + regression test |
+| #274 | coderabbitai[bot] | Miss | Did not flag the rotate destination region not being cleared (APPROVED, no actionable comments) |
+| #274 | greptile-apps[bot] | Miss | Did not flag the rotate destination region not being cleared (5/5 confidence, "no logic errors found") |
 | #273 | coderabbitai[bot] | Reject | Claimed the running totals weren't updated for the #273 log rows; they were updated in the same commit (84c52b2), and the proposed 112/91 & 212/62/117 double-count this PR's verdicts |
 | #273 | cubic-dev-ai[bot] | Accept | flipVertical test asserted only the forward transform; added undo-restore assertions to mirror the flipHorizontal coverage |
 | #273 | coderabbitai[bot] | Reject | Doc comments on the editor-controller flip handlers — declined; the controller has 37 thin delegation handlers with 0 doc comments and the names already state the delegation contract |

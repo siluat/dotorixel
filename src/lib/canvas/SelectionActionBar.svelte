@@ -6,6 +6,8 @@
 		CopyPlus,
 		FlipHorizontal,
 		FlipVertical,
+		RotateCcw,
+		RotateCw,
 		Scissors,
 		SquareDashedMousePointer,
 		Trash2,
@@ -49,6 +51,8 @@
 		onDuplicateFloatingSelection?: () => void;
 		onFlipHorizontal?: () => void;
 		onFlipVertical?: () => void;
+		onRotateCw?: () => void;
+		onRotateCcw?: () => void;
 	}
 
 	let {
@@ -68,7 +72,9 @@
 		onCommitFloatingSelection,
 		onDuplicateFloatingSelection,
 		onFlipHorizontal,
-		onFlipVertical
+		onFlipVertical,
+		onRotateCw,
+		onRotateCcw
 	}: Props = $props();
 
 	type Rect = {
@@ -136,6 +142,16 @@
 			label: m.action_transformFlipVertical(),
 			icon: FlipVertical,
 			handler: onFlipVertical
+		},
+		{
+			label: m.action_transformRotateCw(),
+			icon: RotateCw,
+			handler: onRotateCw
+		},
+		{
+			label: m.action_transformRotateCcw(),
+			icon: RotateCcw,
+			handler: onRotateCcw
 		},
 		{
 			label: m.action_selectionDelete(),

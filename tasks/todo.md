@@ -4,8 +4,7 @@
 
 - Copy/paste
 - Flip/transform — [PRD](../issues/176-flip-and-rotate-transforms.md)
-  - [178 — Rotate region 90° CW & CCW](../issues/178-region-rotate-90.md)
-  - [179 — Whole-document rotate 90°](../issues/179-whole-document-rotate.md) (blocked by 178)
+  - [179 — Whole-document rotate 90°](../issues/179-whole-document-rotate.md)
 - Project file format (JSON-based) + save/load
 - (review) Evaluate serde-wasm-bindgen + tsify for WASM↔TS serialization — revisit when project file format requires multi-type Rust↔JSON↔TS conversion
 - Apple Pencil: hover preview + palm rejection

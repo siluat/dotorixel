@@ -471,6 +471,99 @@ describe('DocumentChangeJournal', () => {
 		expect(events).toEqual([]);
 	});
 
+	it('rotates the marquee region clockwise as one undoable document change', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array(3 * 3 * 4);
+		pixels.set([255, 0, 0, 255], (1 * 3 + 0) * 4);
+		pixels.set([0, 255, 0, 255], (1 * 3 + 1) * 4);
+		pixels.set([0, 0, 255, 255], (1 * 3 + 2) * 4);
+		const document = singleLayerDocument(3, 3, pixels);
+		document.set_marquee(marqueeRegionFromDrag(0, 1, 2, 1));
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'rotate-cw' }
+		});
+
+		expect(result).toEqual({ changed: true });
+		// The horizontal strip becomes a vertical column re-centered on (1, 1).
+		expect(getPixelAt(document, 1, 0)).toEqual([255, 0, 0, 255]);
+		expect(getPixelAt(document, 1, 1)).toEqual([0, 255, 0, 255]);
+		expect(getPixelAt(document, 1, 2)).toEqual([0, 0, 255, 255]);
+		expect(document.marquee()).toMatchObject({ x: 1, y: 0, width: 1, height: 3 });
+		expect(events).toEqual(['snapshot', 'render', 'dirty']);
+	});
+
+	it('undo restores and redo re-applies a rotate, including the Marquee', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array(3 * 3 * 4);
+		pixels.set([255, 0, 0, 255], (1 * 3 + 0) * 4);
+		pixels.set([0, 255, 0, 255], (1 * 3 + 1) * 4);
+		pixels.set([0, 0, 255, 255], (1 * 3 + 2) * 4);
+		let current = singleLayerDocument(3, 3, pixels);
+		current.set_marquee(marqueeRegionFromDrag(0, 1, 2, 1));
+		const journal = createJournal(events, current, {
+			getDocument: () => current,
+			replaceDocument: (document) => {
+				current = document;
+			},
+			createHistoryManager
+		});
+
+		journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-cw' } });
+		expect(getPixelAt(current, 1, 0)).toEqual([255, 0, 0, 255]);
+
+		expect(journal.undo()).toEqual({ changed: true });
+		expect(getPixelAt(current, 0, 1)).toEqual([255, 0, 0, 255]);
+		expect(getPixelAt(current, 2, 1)).toEqual([0, 0, 255, 255]);
+		expect(current.marquee()).toMatchObject({ x: 0, y: 1, width: 3, height: 1 });
+
+		expect(journal.redo()).toEqual({ changed: true });
+		expect(getPixelAt(current, 1, 0)).toEqual([255, 0, 0, 255]);
+		expect(current.marquee()).toMatchObject({ x: 1, y: 0, width: 1, height: 3 });
+	});
+
+	it('skips rotate and captures no snapshot when no Marquee is active', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array(2 * 1 * 4);
+		pixels.set([255, 0, 0, 255], 0);
+		pixels.set([0, 255, 0, 255], 4);
+		const document = singleLayerDocument(2, 1, pixels);
+		const journal = createJournal(events, document);
+
+		expect(
+			journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-cw' } })
+		).toEqual({ changed: false });
+		expect(
+			journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-ccw' } })
+		).toEqual({ changed: false });
+		expect(events).toEqual([]);
+	});
+
+	it('skips rotate and captures no snapshot when the active layer is Reference', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			active_layer_id: () => 'reference-1',
+			layer_count: () => 1,
+			layers_metadata: () => [
+				{ id: 'reference-1', name: 'Reference', visible: true, opacity: 1, kind: 'reference' }
+			],
+			marquee: () => ({ x: 0, y: 0, width: 4, height: 4 })
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		expect(
+			journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-cw' } })
+		).toEqual({ changed: false });
+		expect(
+			journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-ccw' } })
+		).toEqual({ changed: false });
+		expect(events).toEqual([]);
+	});
+
 	it('commits a Floating Selection move as one undoable document change', () => {
 		const events: string[] = [];
 		const pixels = new Uint8Array(4 * 4 * 4);

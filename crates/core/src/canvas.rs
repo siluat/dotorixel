@@ -531,6 +531,42 @@ pub fn flip_buffer_vertical(buffer: &[u8], width: u32, height: u32) -> Vec<u8> {
     flipped
 }
 
+/// Rotates a row-major RGBA `buffer` 90° clockwise, turning a `width × height`
+/// buffer into a `height × width` one. The caller guarantees
+/// `buffer.len() == width * height * 4`.
+pub fn rotate_buffer_cw(buffer: &[u8], width: u32, height: u32) -> Vec<u8> {
+    let width = width as usize;
+    let height = height as usize;
+    let mut rotated = vec![0u8; buffer.len()];
+    for y in 0..height {
+        for x in 0..width {
+            let src = (y * width + x) * 4;
+            // Destination is height-wide: the left column becomes the top row.
+            let dst = (x * height + (height - 1 - y)) * 4;
+            rotated[dst..dst + 4].copy_from_slice(&buffer[src..src + 4]);
+        }
+    }
+    rotated
+}
+
+/// Rotates a row-major RGBA `buffer` 90° counter-clockwise, turning a
+/// `width × height` buffer into a `height × width` one. The caller guarantees
+/// `buffer.len() == width * height * 4`.
+pub fn rotate_buffer_ccw(buffer: &[u8], width: u32, height: u32) -> Vec<u8> {
+    let width = width as usize;
+    let height = height as usize;
+    let mut rotated = vec![0u8; buffer.len()];
+    for y in 0..height {
+        for x in 0..width {
+            let src = (y * width + x) * 4;
+            // Destination is height-wide: the right column becomes the top row.
+            let dst = ((width - 1 - x) * height + y) * 4;
+            rotated[dst..dst + 4].copy_from_slice(&buffer[src..src + 4]);
+        }
+    }
+    rotated
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -861,6 +897,78 @@ mod tests {
         let buffer = vec![255, 0, 0, 255, 0, 255, 0, 255];
         let flipped = flip_buffer_vertical(&buffer, 1, 2);
         assert_eq!(flipped, vec![0, 255, 0, 255, 255, 0, 0, 255]);
+    }
+
+    // ── rotate buffer primitives ────────────────────────────────
+
+    /// Six distinct RGBA pixels laid out as a 3×2 (W×H) row-major buffer:
+    /// `A B C / D E F`.
+    fn labelled_3x2() -> Vec<u8> {
+        vec![
+            1, 1, 1, 1, // A
+            2, 2, 2, 2, // B
+            3, 3, 3, 3, // C
+            4, 4, 4, 4, // D
+            5, 5, 5, 5, // E
+            6, 6, 6, 6, // F
+        ]
+    }
+
+    #[test]
+    fn rotate_buffer_cw_turns_a_3x2_into_a_2x3_clockwise() {
+        // A B C        D A
+        // D E F   ->   E B
+        //              F C
+        let rotated = rotate_buffer_cw(&labelled_3x2(), 3, 2);
+        assert_eq!(
+            rotated,
+            vec![
+                4, 4, 4, 4, // D
+                1, 1, 1, 1, // A
+                5, 5, 5, 5, // E
+                2, 2, 2, 2, // B
+                6, 6, 6, 6, // F
+                3, 3, 3, 3, // C
+            ]
+        );
+    }
+
+    #[test]
+    fn rotate_buffer_ccw_turns_a_3x2_into_a_2x3_counter_clockwise() {
+        // A B C        C F
+        // D E F   ->   B E
+        //              A D
+        let rotated = rotate_buffer_ccw(&labelled_3x2(), 3, 2);
+        assert_eq!(
+            rotated,
+            vec![
+                3, 3, 3, 3, // C
+                6, 6, 6, 6, // F
+                2, 2, 2, 2, // B
+                5, 5, 5, 5, // E
+                1, 1, 1, 1, // A
+                4, 4, 4, 4, // D
+            ]
+        );
+    }
+
+    #[test]
+    fn rotate_buffer_cw_then_ccw_restores_the_original() {
+        let original = labelled_3x2();
+        let cw = rotate_buffer_cw(&original, 3, 2);
+        // The clockwise result is 2×3, so the inverse reads those dimensions.
+        let restored = rotate_buffer_ccw(&cw, 2, 3);
+        assert_eq!(restored, original);
+    }
+
+    #[test]
+    fn rotate_buffer_cw_four_times_is_identity() {
+        let original = labelled_3x2();
+        let once = rotate_buffer_cw(&original, 3, 2);
+        let twice = rotate_buffer_cw(&once, 2, 3);
+        let thrice = rotate_buffer_cw(&twice, 3, 2);
+        let full_turn = rotate_buffer_cw(&thrice, 2, 3);
+        assert_eq!(full_turn, original);
     }
 
     // ── flip whole-canvas ───────────────────────────────────────

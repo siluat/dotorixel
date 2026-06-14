@@ -201,6 +201,8 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 		clear_marquee_pixels() {},
 		flip_horizontal() {},
 		flip_vertical() {},
+		rotate_cw() {},
+		rotate_ccw() {},
 		composite_buffer_at() {},
 		next_layer_number: () => 2,
 		is_timeline_panel_collapsed: () => timelinePanelCollapsed,

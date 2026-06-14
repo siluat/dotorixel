@@ -32,6 +32,8 @@
 	"action_selectionDuplicate": "複製",
 	"action_transformFlipHorizontal": "左右反転",
 	"action_transformFlipVertical": "上下反転",
+	"action_transformRotateCw": "右回転",
+	"action_transformRotateCcw": "左回転",
 
 	"modifier_constrain": "固定",
 

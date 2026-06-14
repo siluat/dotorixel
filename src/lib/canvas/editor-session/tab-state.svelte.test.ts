@@ -826,6 +826,46 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.document.marquee()).toMatchObject({ x: 0, y: 1, width: 2, height: 1 });
 	});
 
+	it('rotateCw rotates the marquee region clockwise and restores on undo', () => {
+		const pixels = new Uint8Array(3 * 3 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 3 + 0) * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 3 + 1) * 4);
+		pixels.set(makePixelRgba(BLUE), (1 * 3 + 2) * 4);
+		const { tab } = makeTab({ document: singleLayerDocument(3, 3, pixels) });
+		tab.document.set_marquee(marqueeRegionFromDrag(0, 1, 2, 1));
+
+		tab.rotateCw();
+
+		// The horizontal strip becomes a vertical column re-centered on (1, 1).
+		expect(getPixel(tab, 1, 0)).toEqual(RED);
+		expect(getPixel(tab, 1, 1)).toEqual(GREEN);
+		expect(getPixel(tab, 1, 2)).toEqual(BLUE);
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 0, width: 1, height: 3 });
+
+		tab.undo();
+
+		expect(getPixel(tab, 0, 1)).toEqual(RED);
+		expect(getPixel(tab, 2, 1)).toEqual(BLUE);
+		expect(tab.document.marquee()).toMatchObject({ x: 0, y: 1, width: 3, height: 1 });
+	});
+
+	it('rotateCcw rotates the marquee region counter-clockwise', () => {
+		const pixels = new Uint8Array(3 * 3 * 4);
+		pixels.set(makePixelRgba(RED), (1 * 3 + 0) * 4);
+		pixels.set(makePixelRgba(GREEN), (1 * 3 + 1) * 4);
+		pixels.set(makePixelRgba(BLUE), (1 * 3 + 2) * 4);
+		const { tab } = makeTab({ document: singleLayerDocument(3, 3, pixels) });
+		tab.document.set_marquee(marqueeRegionFromDrag(0, 1, 2, 1));
+
+		tab.rotateCcw();
+
+		// Counter-clockwise sends the right end (blue) to the top.
+		expect(getPixel(tab, 1, 0)).toEqual(BLUE);
+		expect(getPixel(tab, 1, 1)).toEqual(GREEN);
+		expect(getPixel(tab, 1, 2)).toEqual(RED);
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 0, width: 1, height: 3 });
+	});
+
 	it('clearMarqueePixels commits an idle Floating Selection nudge before clearing moved pixels', () => {
 		const pixels = new Uint8Array(5 * 5 * 4);
 		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);

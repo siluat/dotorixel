@@ -362,11 +362,14 @@ describe('SelectionActionBar', () => {
 		}
 	});
 
-	it('documents fade timing, reduced motion, and touch target CSS', () => {
+	it('documents fade timing, reduced motion, touch target, and horizontal overflow scroll CSS', () => {
 		expect(selectionActionBarSource).toContain('transition: opacity 120ms ease-out');
 		expect(selectionActionBarSource).toContain('transition-duration: 100ms');
 		expect(selectionActionBarSource).toContain('prefers-reduced-motion: reduce');
 		expect(selectionActionBarSource).toContain('width: 44px');
 		expect(selectionActionBarSource).toContain('height: 44px');
+		expect(selectionActionBarSource).toContain('overflow-x: auto');
+		expect(selectionActionBarSource).toContain('touch-action: pan-x');
+		expect(selectionActionBarSource).toContain('scrollbar-width: none');
 	});
 });

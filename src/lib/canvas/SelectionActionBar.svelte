@@ -168,9 +168,15 @@
 	]);
 	const actions = $derived(floatingSelectionOffset ? floatingActions : idleActions);
 	const estimatedActionBarWidth = $derived(estimateActionBarWidth(actions, showLabel));
+	const availableActionBarWidth = $derived(viewportSize.width - ACTION_BAR_EDGE_MARGIN * 2);
 	let actionBarEl: HTMLDivElement | undefined = $state();
 	let measuredActionBarWidth = $state(0);
-	const actionBarWidth = $derived(measuredActionBarWidth || estimatedActionBarWidth);
+	const actionBarWidth = $derived.by(() => {
+		const contentWidth = measuredActionBarWidth || estimatedActionBarWidth;
+		return availableActionBarWidth > 0
+			? Math.min(contentWidth, availableActionBarWidth)
+			: contentWidth;
+	});
 	const position = $derived(
 		projectedRect ? actionBarPosition(projectedRect, viewportSize, actionBarWidth) : null
 	);
@@ -286,6 +292,8 @@
 		gap: 2px;
 		max-width: calc(100% - 16px);
 		height: 44px;
+		overflow-x: auto;
+		overflow-y: hidden;
 		padding: 4px;
 		border: 1px solid var(--ds-border);
 		border-radius: var(--ds-radius-sm);
@@ -293,7 +301,13 @@
 		box-shadow: var(--ds-shadow-md);
 		opacity: 1;
 		transition: opacity 120ms ease-out;
-		touch-action: none;
+		touch-action: pan-x;
+		overscroll-behavior-x: contain;
+		scrollbar-width: none;
+	}
+
+	.selection-action-bar::-webkit-scrollbar {
+		display: none;
 	}
 
 	.selection-action-bar--hidden {

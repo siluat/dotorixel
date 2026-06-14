@@ -1,14 +1,17 @@
-/// A Reference Layer's source-to-document geometry — position and uniform
-/// scale that map the source image onto the document canvas.
+/// A Reference Layer's source-to-document geometry — position, uniform scale,
+/// and a quarter-turn rotation that map the source image onto the document
+/// canvas.
 ///
 /// Fields are private so the invariant established by [`Self::new`] — finite
-/// position, scale finite and strictly greater than 0 — holds for every value
-/// of this type.
+/// position, scale finite and strictly greater than 0, rotation a quarter-turn
+/// in `0..=3` — holds for every value of this type.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ReferencePlacement {
     x: f32,
     y: f32,
     scale: f32,
+    /// Number of 90° clockwise turns applied to the source image, in `0..=3`.
+    rotation: u8,
 }
 
 /// Rejection reasons for [`ReferencePlacement::new`].
@@ -50,7 +53,12 @@ impl ReferencePlacement {
         if !scale.is_finite() || scale <= 0.0 {
             return Err(ReferencePlacementError::InvalidScale { scale });
         }
-        Ok(Self { x, y, scale })
+        Ok(Self {
+            x,
+            y,
+            scale,
+            rotation: 0,
+        })
     }
 
     pub fn x(&self) -> f32 {
@@ -65,14 +73,29 @@ impl ReferencePlacement {
         self.scale
     }
 
+    /// Number of 90° clockwise turns applied to the source image, in `0..=3`.
+    pub fn rotation(&self) -> u8 {
+        self.rotation
+    }
+
     /// Internal builder for placement translation; callers must keep the
-    /// coordinates finite.
+    /// coordinates finite. The quarter-turn rotation is preserved.
     pub(crate) fn with_position(self, x: f32, y: f32) -> Self {
         debug_assert!(
             x.is_finite() && y.is_finite(),
             "with_position requires finite coordinates"
         );
         Self { x, y, ..self }
+    }
+
+    /// Returns this placement with its quarter-turn rotation set to `rotation`,
+    /// normalized into `0..=3` (number of 90° clockwise turns). Position and
+    /// scale are unchanged.
+    pub fn with_rotation(self, rotation: u8) -> Self {
+        Self {
+            rotation: rotation % 4,
+            ..self
+        }
     }
 
     /// Aspect-preserving auto-fit: scales the source down so the longest axis
@@ -99,6 +122,7 @@ impl ReferencePlacement {
             x: (canvas_width as f32 - projected_w) / 2.0,
             y: (canvas_height as f32 - projected_h) / 2.0,
             scale,
+            rotation: 0,
         }
     }
 
@@ -124,6 +148,7 @@ impl ReferencePlacement {
             x: (canvas_width as f32 - projected_width) / 2.0,
             y: (canvas_height as f32 - projected_height) / 2.0,
             scale,
+            rotation: 0,
         }
     }
 }
@@ -183,6 +208,29 @@ mod tests {
             error.to_string(),
             "Reference placement scale must be finite and greater than 0, got 0"
         );
+    }
+
+    #[test]
+    fn new_defaults_to_an_unrotated_quarter_turn() {
+        let placement = ReferencePlacement::new(1.0, 2.0, 1.0).unwrap();
+        assert_eq!(placement.rotation(), 0);
+    }
+
+    #[test]
+    fn with_rotation_sets_the_quarter_turn_and_wraps_modulo_four() {
+        let placement = ReferencePlacement::new(1.0, 2.0, 1.0).unwrap();
+        assert_eq!(placement.with_rotation(1).rotation(), 1);
+        assert_eq!(placement.with_rotation(3).rotation(), 3);
+        assert_eq!(placement.with_rotation(4).rotation(), 0);
+        assert_eq!(placement.with_rotation(7).rotation(), 3);
+    }
+
+    #[test]
+    fn with_position_preserves_the_quarter_turn() {
+        let placement = ReferencePlacement::new(1.0, 2.0, 1.0)
+            .unwrap()
+            .with_rotation(2);
+        assert_eq!(placement.with_position(9.0, 9.0).rotation(), 2);
     }
 
     #[test]

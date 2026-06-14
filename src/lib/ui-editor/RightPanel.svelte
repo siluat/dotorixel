@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowLeftRight, FlipHorizontal, FlipVertical } from 'lucide-svelte';
+	import { ArrowLeftRight, FlipHorizontal, FlipVertical, RotateCcw, RotateCw } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { ResizeAnchor } from '$lib/canvas/canvas-model';
 	import HsvPicker from '$lib/color-picker/HsvPicker.svelte';
@@ -22,6 +22,8 @@
 		onAnchorChange: (anchor: ResizeAnchor) => void;
 		onFlipHorizontal: () => void;
 		onFlipVertical: () => void;
+		onRotateCw: () => void;
+		onRotateCcw: () => void;
 	}
 
 	let {
@@ -38,7 +40,9 @@
 		onClear,
 		onAnchorChange,
 		onFlipHorizontal,
-		onFlipVertical
+		onFlipVertical,
+		onRotateCw,
+		onRotateCcw
 	}: Props = $props();
 
 	let colorSectionEl: HTMLElement | undefined = $state();
@@ -85,6 +89,14 @@
 			<button class="transform-btn" onclick={onFlipVertical}>
 				<FlipVertical size={16} aria-hidden={true} />
 				{m.action_transformFlipVertical()}
+			</button>
+			<button class="transform-btn" onclick={onRotateCw}>
+				<RotateCw size={16} aria-hidden={true} />
+				{m.action_transformRotateCw()}
+			</button>
+			<button class="transform-btn" onclick={onRotateCcw}>
+				<RotateCcw size={16} aria-hidden={true} />
+				{m.action_transformRotateCcw()}
 			</button>
 		</div>
 	</section>

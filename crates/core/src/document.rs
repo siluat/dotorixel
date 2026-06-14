@@ -376,7 +376,10 @@ impl Document {
         Ok(())
     }
 
-    /// Updates the [`ReferencePlacement`] of the Reference Layer with `id`.
+    /// Updates the position and scale of the Reference Layer with `id` from
+    /// `placement`. The layer's existing quarter-turn rotation is preserved —
+    /// `placement.rotation()` is ignored — because only a whole-Document rotate
+    /// turns a reference.
     ///
     /// Returns [`LayerError::LayerNotFound`] for an unknown id and
     /// [`LayerError::LayerKindMismatch`] when the addressed layer is a Pixel
@@ -393,7 +396,11 @@ impl Document {
             .ok_or(LayerError::LayerNotFound { id })?;
         match &mut layer.kind {
             LayerKind::Reference(data) => {
-                data.set_placement(placement);
+                // The placement's position and scale are updated, but its
+                // quarter-turn rotation is preserved: only a whole-Document
+                // rotate turns a reference, and a move/scale must not reset it.
+                let preserved = placement.with_rotation(data.placement().rotation());
+                data.set_placement(preserved);
                 Ok(())
             }
             LayerKind::Pixel(_) => Err(LayerError::LayerKindMismatch {
@@ -755,20 +762,53 @@ impl Document {
         }
     }
 
-    /// Rotates the Marquee region on the active Pixel Layer 90° clockwise. The
-    /// region's `W×H` pixels become an `H×W` block re-centered on the region's
-    /// center and clipped to the canvas; the Marquee updates to wrap the new
-    /// region. No-op without a Marquee or on a Reference Layer.
+    /// Rotates 90° clockwise. With a Marquee, the region's `W×H` pixels on the
+    /// active Pixel Layer become an `H×W` block re-centered on the region's
+    /// center and clipped to the canvas, and the Marquee updates to wrap it
+    /// (no-op on a Reference Layer). With no Marquee, the whole Document turns:
+    /// every Pixel Layer's canvas rotates, the Document `width`/`height` swap,
+    /// and every Reference Layer turns with the canvas — regardless of which
+    /// layer is active.
     pub fn rotate_cw(&mut self) {
-        self.rotate_active_marquee(rotate_buffer_cw);
+        match self.marquee {
+            Some(_) => self.rotate_active_marquee(rotate_buffer_cw),
+            None => self.rotate_whole_document(QuarterTurn::Cw),
+        }
     }
 
-    /// Rotates the Marquee region on the active Pixel Layer 90° counter-clockwise.
-    /// The region's `W×H` pixels become an `H×W` block re-centered on the region's
-    /// center and clipped to the canvas; the Marquee updates to wrap the new
-    /// region. No-op without a Marquee or on a Reference Layer.
+    /// Rotates 90° counter-clockwise. Mirror of [`Self::rotate_cw`]: the Marquee
+    /// path turns the region counter-clockwise; the no-Marquee path turns the
+    /// whole Document counter-clockwise.
     pub fn rotate_ccw(&mut self) {
-        self.rotate_active_marquee(rotate_buffer_ccw);
+        match self.marquee {
+            Some(_) => self.rotate_active_marquee(rotate_buffer_ccw),
+            None => self.rotate_whole_document(QuarterTurn::Ccw),
+        }
+    }
+
+    /// Turns the whole Document a quarter-turn: each Pixel Layer's canvas is
+    /// replaced by its rotated canvas, the Document dimensions swap, and each
+    /// Reference Layer's placement is remapped into the rotated frame so it
+    /// stays visually anchored and turns with the canvas.
+    fn rotate_whole_document(&mut self, turn: QuarterTurn) {
+        let old_width = self.width;
+        let old_height = self.height;
+        for layer in &mut self.layers {
+            match &mut layer.kind {
+                LayerKind::Pixel(canvas) => {
+                    *canvas = match turn {
+                        QuarterTurn::Cw => canvas.rotate_cw(),
+                        QuarterTurn::Ccw => canvas.rotate_ccw(),
+                    };
+                }
+                LayerKind::Reference(data) => {
+                    let remapped = rotate_reference_placement(data, old_width, old_height, turn);
+                    data.set_placement(remapped);
+                }
+            }
+        }
+        self.width = old_height;
+        self.height = old_width;
     }
 
     /// Rotates the current Marquee region on the active Pixel Layer via
@@ -812,6 +852,58 @@ impl Document {
             .find(|l| l.id == id)
             .expect("active layer is always present in the stack")
     }
+}
+
+/// Direction of a whole-Document quarter-turn.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum QuarterTurn {
+    Cw,
+    Ccw,
+}
+
+/// Remaps a Reference Layer's placement into the rotated `H×W` document frame.
+///
+/// The reference's projected footprint is turned about its center using the
+/// same continuous quarter-turn the pixel buffers follow, so it stays visually
+/// anchored; its quarter-turn rotation advances by one in `turn`'s direction.
+/// `doc_width`/`doc_height` are the document dimensions *before* the rotation.
+fn rotate_reference_placement(
+    data: &ReferenceData,
+    doc_width: u32,
+    doc_height: u32,
+    turn: QuarterTurn,
+) -> ReferencePlacement {
+    let placement = data.placement();
+    let scale = placement.scale();
+    let projected_w = data.natural_width() as f32 * scale;
+    let projected_h = data.natural_height() as f32 * scale;
+    // A quarter-turn rotation swaps the footprint's axis-aligned bounding box,
+    // so an odd current rotation already has its width and height exchanged.
+    let (bbox_w, bbox_h) = if placement.rotation() % 2 == 0 {
+        (projected_w, projected_h)
+    } else {
+        (projected_h, projected_w)
+    };
+    let center_x = placement.x() + bbox_w / 2.0;
+    let center_y = placement.y() + bbox_h / 2.0;
+    let (new_center_x, new_center_y) = match turn {
+        // Clockwise turn of the document frame: (u, v) → (H − v, u).
+        QuarterTurn::Cw => (doc_height as f32 - center_y, center_x),
+        // Counter-clockwise turn of the document frame: (u, v) → (v, W − u).
+        QuarterTurn::Ccw => (center_y, doc_width as f32 - center_x),
+    };
+    // After the turn the footprint's bounding box swaps dimensions again.
+    let new_x = new_center_x - bbox_h / 2.0;
+    let new_y = new_center_y - bbox_w / 2.0;
+    // Advance the source's own quarter-turn; `+3 ≡ -1 (mod 4)` is one CCW step,
+    // and `with_rotation` wraps the result back into `0..=3`.
+    let new_rotation = match turn {
+        QuarterTurn::Cw => placement.rotation() + 1,
+        QuarterTurn::Ccw => placement.rotation() + 3,
+    };
+    placement
+        .with_position(new_x, new_y)
+        .with_rotation(new_rotation)
 }
 
 fn normalize_reference_underlay(
@@ -1354,7 +1446,29 @@ mod tests {
     }
 
     #[test]
-    fn rotate_is_no_op_without_a_marquee() {
+    fn rotate_cw_without_a_marquee_turns_the_whole_document() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        let mut doc = Document::new(3, 2, a, "A".to_string()).unwrap();
+        let canvas = pixel_canvas_mut(&mut doc.layers[0]);
+        canvas.set_pixel(0, 0, red).unwrap();
+        canvas.set_pixel(2, 1, blue).unwrap();
+
+        doc.rotate_cw();
+
+        // 3×2 → 2×3, dimensions swapped.
+        assert_eq!((doc.width(), doc.height()), (2, 3));
+        // Clockwise: the top-left red lands on the top-right; the bottom-right
+        // blue lands on the bottom-left.
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(1, 0).unwrap(), red);
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(0, 2).unwrap(), blue);
+    }
+
+    #[test]
+    fn rotate_cw_then_ccw_without_a_marquee_restores_pixels_and_dimensions() {
         use crate::color::Color;
 
         let a = Uuid::new_v4();
@@ -1367,8 +1481,179 @@ mod tests {
         doc.rotate_cw();
         doc.rotate_ccw();
 
+        assert_eq!((doc.width(), doc.height()), (3, 2));
         assert_eq!(pixel_canvas(&doc.layers[0]).pixels(), before.as_slice());
         assert_eq!(doc.marquee(), None);
+    }
+
+    #[test]
+    fn rotate_cw_without_a_marquee_turns_every_pixel_layer() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        let mut doc = Document::new(3, 2, a, "A".to_string()).unwrap();
+        doc.add_layer(b, "B".to_string());
+        pixel_canvas_mut(&mut doc.layers[0])
+            .set_pixel(0, 0, red)
+            .unwrap();
+        pixel_canvas_mut(&mut doc.layers[1])
+            .set_pixel(0, 0, blue)
+            .unwrap();
+
+        doc.rotate_cw();
+
+        assert_eq!((doc.width(), doc.height()), (2, 3));
+        // Both layers turn the same way: the top-left pixel lands top-right.
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(1, 0).unwrap(), red);
+        assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(1, 0).unwrap(), blue);
+    }
+
+    #[test]
+    fn rotate_cw_without_a_marquee_is_independent_of_the_active_layer_kind() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let mut doc = Document::new(3, 2, a, "A".to_string()).unwrap();
+        pixel_canvas_mut(&mut doc.layers[0])
+            .set_pixel(0, 0, red)
+            .unwrap();
+        doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
+            .unwrap();
+        // Make the Reference Layer active — the whole document must still turn.
+        doc.set_active_layer(r).unwrap();
+
+        doc.rotate_cw();
+
+        assert_eq!((doc.width(), doc.height()), (2, 3));
+        let pixel_index = doc
+            .layers()
+            .iter()
+            .position(|l| matches!(l.kind, LayerKind::Pixel(_)))
+            .unwrap();
+        assert_eq!(
+            pixel_canvas(&doc.layers[pixel_index])
+                .get_pixel(1, 0)
+                .unwrap(),
+            red
+        );
+    }
+
+    #[test]
+    fn rotate_cw_without_a_marquee_remaps_and_advances_reference_placement() {
+        use crate::layer::ReferenceData;
+        use crate::reference_placement::ReferencePlacement;
+
+        // A wide 2×1 reference footprint anchored at the top-left of a 4×2 doc.
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
+        let reference = ReferenceData::new(vec![0u8; 8], 2, 1, placement).unwrap();
+        let mut doc = Document::new(4, 2, a, "A".to_string()).unwrap();
+        doc.layers.push(Layer {
+            id: r,
+            name: "Ref".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Reference(reference),
+        });
+
+        doc.rotate_cw();
+
+        // The wide box turns into a tall 1×2 box, staying over the same content,
+        // and the quarter-turn advances by one.
+        let after = doc.layer_placement_at(1).unwrap();
+        assert_eq!(after.x(), 1.0);
+        assert_eq!(after.y(), 0.0);
+        assert_eq!(after.scale(), 1.0);
+        assert_eq!(after.rotation(), 1);
+    }
+
+    #[test]
+    fn rotate_cw_without_a_marquee_preserves_reference_source_and_natural_dimensions() {
+        use crate::layer::ReferenceData;
+        use crate::reference_placement::ReferencePlacement;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let placement = ReferencePlacement::new(1.0, 0.5, 2.0).unwrap();
+        let ref_rgba = vec![1u8, 2, 3, 4, 5, 6, 7, 8];
+        let reference = ReferenceData::new(ref_rgba.clone(), 2, 1, placement).unwrap();
+        let mut doc = Document::new(4, 2, a, "A".to_string()).unwrap();
+        doc.layers.push(Layer {
+            id: r,
+            name: "Ref".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Reference(reference),
+        });
+
+        doc.rotate_cw();
+
+        let LayerKind::Reference(after) = &doc.layers()[1].kind else {
+            panic!("Reference Layer must remain Reference-kind after rotate");
+        };
+        assert_eq!(after.source_rgba(), ref_rgba.as_slice());
+        assert_eq!(after.natural_width(), 2);
+        assert_eq!(after.natural_height(), 1);
+        assert_eq!(after.placement().scale(), 2.0);
+    }
+
+    #[test]
+    fn four_cw_turns_restore_a_document_with_a_reference() {
+        use crate::color::Color;
+        use crate::layer::ReferenceData;
+        use crate::reference_placement::ReferencePlacement;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
+        let reference = ReferenceData::new(vec![0u8; 8], 2, 1, placement).unwrap();
+        let mut doc = Document::new(4, 2, a, "A".to_string()).unwrap();
+        pixel_canvas_mut(&mut doc.layers[0])
+            .set_pixel(3, 1, Color::new(0, 0, 255, 255))
+            .unwrap();
+        doc.layers.push(Layer {
+            id: r,
+            name: "Ref".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Reference(reference),
+        });
+        let pixels_before = pixel_canvas(&doc.layers[0]).pixels().to_vec();
+
+        for _ in 0..4 {
+            doc.rotate_cw();
+        }
+
+        assert_eq!((doc.width(), doc.height()), (4, 2));
+        assert_eq!(
+            pixel_canvas(&doc.layers[0]).pixels(),
+            pixels_before.as_slice()
+        );
+        assert_eq!(doc.layer_placement_at(1), Some(placement));
+    }
+
+    #[test]
+    fn rotate_ccw_without_a_marquee_turns_the_whole_document_the_other_way() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let mut doc = Document::new(3, 2, a, "A".to_string()).unwrap();
+        pixel_canvas_mut(&mut doc.layers[0])
+            .set_pixel(0, 0, red)
+            .unwrap();
+
+        doc.rotate_ccw();
+
+        assert_eq!((doc.width(), doc.height()), (2, 3));
+        // Counter-clockwise sends the top-left pixel to the bottom-left.
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(0, 2).unwrap(), red);
     }
 
     #[test]
@@ -2803,6 +3088,28 @@ mod tests {
         doc.set_reference_placement(r, target).unwrap();
 
         assert_eq!(doc.layer_placement_at(0), Some(target));
+    }
+
+    #[test]
+    fn set_reference_placement_preserves_an_existing_quarter_turn() {
+        use crate::reference_placement::ReferencePlacement;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let mut doc = Document::new(4, 4, a, "A".to_string()).unwrap();
+        doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
+            .unwrap();
+        // A whole-document rotate is the only thing that turns a reference;
+        // a subsequent move/scale must not silently reset that quarter-turn.
+        doc.rotate_cw();
+        assert_eq!(doc.layer_placement_at(0).unwrap().rotation(), 1);
+
+        let moved = ReferencePlacement::new(3.5, -1.0, 2.0).unwrap();
+        doc.set_reference_placement(r, moved).unwrap();
+
+        let after = doc.layer_placement_at(0).unwrap();
+        assert_eq!((after.x(), after.y(), after.scale()), (3.5, -1.0, 2.0));
+        assert_eq!(after.rotation(), 1);
     }
 
     #[test]

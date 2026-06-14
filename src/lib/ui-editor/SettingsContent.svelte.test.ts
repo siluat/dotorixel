@@ -16,7 +16,9 @@ function renderSettings(props: Record<string, unknown> = {}) {
 		onGridToggle: vi.fn(),
 		onAnchorChange: vi.fn(),
 		onFlipHorizontal: vi.fn(),
-		onFlipVertical: vi.fn()
+		onFlipVertical: vi.fn(),
+		onRotateCw: vi.fn(),
+		onRotateCcw: vi.fn()
 	};
 	const merged = { ...defaultProps, ...props };
 	const result = render(SettingsContent, { props: merged });
@@ -37,6 +39,16 @@ describe('SettingsContent — Transform group', () => {
 
 		expect(onFlipHorizontal).toHaveBeenCalledOnce();
 		expect(onFlipVertical).toHaveBeenCalledOnce();
+	});
+
+	it('renders Rotate Right and Rotate Left and invokes their handlers', async () => {
+		const { onRotateCw, onRotateCcw } = renderSettings();
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Rotate Right' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Rotate Left' }));
+
+		expect(onRotateCw).toHaveBeenCalledOnce();
+		expect(onRotateCcw).toHaveBeenCalledOnce();
 	});
 
 	it.each([

@@ -166,7 +166,8 @@ export class DocumentLayerProjection {
 			placement: {
 				x: placement.x,
 				y: placement.y,
-				scale: placement.scale
+				scale: placement.scale,
+				rotation: placement.rotation
 			},
 			opacity: record.opacity
 		};

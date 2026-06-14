@@ -1,5 +1,13 @@
 # Todo
 
+## Architecture deepening (robustness & clarity)
+
+- History split by data model: `DocumentHistory` (web) + `PixelCanvasHistory` (Apple) over a shared generic ring — [180](../issues/180-document-history-shared-ring.md) → [181](../issues/181-pixelcanvas-history-rename.md)
+- Consolidate Floating Selection orchestration out of TabState (commit-before-mutation boundary + snapshot marquee) — [182](../issues/182-consolidate-floating-selection-orchestration.md)
+- Remove dead canvas-mode DrawingOps residue; Document DrawingOps becomes the sole factory — [183](../issues/183-remove-dead-canvas-mode-drawingops.md)
+- Extract `importReferenceFile` as a pure function out of the References store — [184](../issues/184-extract-import-reference-file.md)
+- Dissolve the CanvasBackend umbrella; editor-session imports wasm adapters directly — [185](../issues/185-dissolve-canvas-backend-umbrella.md) (after 183)
+
 ## Milestone 4: Animation-Capable Editor
 
 - Frame management (add/delete/duplicate/reorder)

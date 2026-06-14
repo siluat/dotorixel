@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Document, MarqueeRegion, ResizeAnchor } from '../canvas-model';
-import type { HistoryManager } from '../adapter-types';
+import type { DocumentHistory } from '../adapter-types';
 import type { DocumentLayerProjectionRead } from '../document-layer-projection';
 import {
 	clearActiveLayerPixels,
-	createHistoryManager,
+	createDocumentHistory,
 	documentFromLayerSource,
 	marqueeRegionFromDrag,
 	singleLayerDocument
@@ -24,10 +24,10 @@ function createFakeDocument(events: string[]): Document {
 	} as Document;
 }
 
-function createFakeHistoryManager(
+function createFakeDocumentHistory(
 	events: string[],
 	opts: { undoDocument?: Document; redoDocument?: Document } = {}
-): HistoryManager {
+): DocumentHistory {
 	let canUndo = false;
 	let canRedo = false;
 	return {
@@ -38,13 +38,6 @@ function createFakeHistoryManager(
 			canUndo = false;
 			canRedo = false;
 		},
-		push_snapshot: () => {
-			events.push('legacy-snapshot');
-			canUndo = true;
-			canRedo = false;
-		},
-		undo: () => undefined,
-		redo: () => undefined,
 		push_document: () => {
 			events.push('snapshot');
 			canUndo = true;
@@ -108,7 +101,7 @@ function createJournal(
 		getLayerProjection: () => createTestLayerProjection(getDocument()),
 		replaceDocument: (nextDocument) =>
 			events.push(`replace:${nextDocument.width}x${nextDocument.height}`),
-		createHistoryManager: () => createFakeHistoryManager(events),
+		createDocumentHistory: () => createFakeDocumentHistory(events),
 		createLayerId: () => 'layer-2',
 		rememberReferenceLayerBlob: (layerId) => events.push(`remember:${layerId}`),
 		clearActiveLayerPixels: () => events.push('clear-active-layer'),
@@ -158,7 +151,7 @@ describe('DocumentChangeJournal', () => {
 		const previous = { width: 8, height: 8 } as unknown as Document;
 		const next = { width: 32, height: 24 } as unknown as Document;
 		let current = initial;
-		const history = createFakeHistoryManager(events, {
+		const history = createFakeDocumentHistory(events, {
 			undoDocument: previous,
 			redoDocument: next
 		});
@@ -168,7 +161,7 @@ describe('DocumentChangeJournal', () => {
 				current = document;
 				events.push(`replace:${document.width}x${document.height}`);
 			},
-			createHistoryManager: () => history
+			createDocumentHistory: () => history
 		});
 		journal.captureUndoSnapshot();
 
@@ -385,7 +378,7 @@ describe('DocumentChangeJournal', () => {
 				current = document;
 				events.push(`replace:${document.width}x${document.height}`);
 			},
-			createHistoryManager
+			createDocumentHistory
 		});
 
 		journal.commit({
@@ -435,7 +428,7 @@ describe('DocumentChangeJournal', () => {
 				current = document;
 				events.push(`replace:${document.width}x${document.height}`);
 			},
-			createHistoryManager
+			createDocumentHistory
 		});
 
 		journal.commit({ kind: 'undoable-document', intent: { type: 'flip-horizontal' } });
@@ -508,7 +501,7 @@ describe('DocumentChangeJournal', () => {
 			replaceDocument: (document) => {
 				current = document;
 			},
-			createHistoryManager
+			createDocumentHistory
 		});
 
 		journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-cw' } });
@@ -558,7 +551,7 @@ describe('DocumentChangeJournal', () => {
 			replaceDocument: (document) => {
 				current = document;
 			},
-			createHistoryManager
+			createDocumentHistory
 		});
 
 		journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-cw' } });
@@ -612,7 +605,7 @@ describe('DocumentChangeJournal', () => {
 				current = document;
 				events.push(`replace:${document.width}x${document.height}`);
 			},
-			createHistoryManager
+			createDocumentHistory
 		});
 
 		const result = journal.commit({
@@ -696,7 +689,7 @@ describe('DocumentChangeJournal', () => {
 				current = document;
 				events.push(`replace:${document.width}x${document.height}`);
 			},
-			createHistoryManager
+			createDocumentHistory
 		});
 
 		const result = journal.commit({

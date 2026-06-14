@@ -10,7 +10,7 @@ import type {
 } from '../canvas-model';
 import {
 	clearActiveLayerPixels,
-	createHistoryManager,
+	createDocumentHistory,
 	fitReferencePlacementToCanvas,
 	marqueeRegionFromDrag,
 	resizeDocumentWithAnchor,
@@ -350,7 +350,7 @@ export class TabState {
 			replaceDocument: (document) => {
 				this.document = document;
 			},
-			createHistoryManager,
+			createDocumentHistory,
 			rememberReferenceLayerBlob: (layerId, sourceBlob) => {
 				this.#referenceLayerBlobs.set(layerId, sourceBlob);
 			},

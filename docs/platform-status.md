@@ -33,8 +33,8 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Undo / redo | ✅ | ✅ | ✅ | Snapshot-based, dimension-aware (resize undoable on Web) |
-| Document undo / redo | ✅ | ✅ | ⬜ | Snapshots the full `Document` (layer stack + counters), distinct from canvas snapshot path. Web: all undo/redo flows through this — resize emits a Document-shaped snapshot too. Not yet exposed through Apple bindings |
+| PixelCanvas History (single-canvas) | ✅ | ⬜ | ✅ | Dimension-aware snapshots (pixels + W/H) so resize is undoable. Apple's undo path; the Web binding no longer exposes it — Web routes undo through Document History |
+| Document History | ✅ | ✅ | ⬜ | Whole-`Document` snapshots (layer stack + Marquee + counters); Web's undo path. Its own species — never mixed with the PixelCanvas path (unrepresentable, not runtime-guarded). Not on Apple bindings yet |
 
 ## Viewport
 

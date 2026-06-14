@@ -1,13 +1,6 @@
 import type { Color } from './color';
 import type { Document, PixelCanvas, ResizeAnchor } from './canvas-model';
 
-/** Immutable pixel snapshot returned by undo/redo. */
-export interface Snapshot {
-	readonly width: number;
-	readonly height: number;
-	pixels(): Uint8Array;
-}
-
 /** Creates and transforms PixelCanvas instances. */
 export interface CanvasFactory {
 	create(width: number, height: number): PixelCanvas;
@@ -30,31 +23,18 @@ export interface CanvasConstraints {
 }
 
 /**
- * Undo/redo stack with two snapshot paths:
+ * The web shell's undo/redo stack — the **Document History** species.
  *
- * - **Single-canvas path** (legacy): `push_snapshot` / `undo` / `redo` carry
- *   the canvas dimensions + pixel buffer.
- * - **Document path**: `push_document` / `undo_document` / `redo_document`
- *   carry a whole `Document` snapshot (layer stack + active pointer +
- *   counters).
+ * `push_document` / `undo_document` / `redo_document` carry a whole `Document`
+ * snapshot (layer stack + active pointer + Marquee + counters); pushing clears
+ * the redo future and evicts the oldest snapshot once the cap is exceeded.
  *
  * Structurally satisfied by WasmHistoryManager — no wrapping needed at runtime.
  */
-export interface HistoryManager {
+export interface DocumentHistory {
 	can_undo(): boolean;
 	can_redo(): boolean;
 	clear(): void;
-	push_snapshot(width: number, height: number, pixels: Uint8Array): void;
-	undo(
-		current_width: number,
-		current_height: number,
-		current_pixels: Uint8Array
-	): Snapshot | undefined;
-	redo(
-		current_width: number,
-		current_height: number,
-		current_pixels: Uint8Array
-	): Snapshot | undefined;
 	push_document(document: Document): void;
 	undo_document(current: Document): Document | undefined;
 	redo_document(current: Document): Document | undefined;

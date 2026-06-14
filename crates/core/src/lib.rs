@@ -16,7 +16,7 @@ pub use canvas::{PixelCanvasError, ResizeAnchor};
 pub use color::ColorParseError;
 pub use document::{Document, DrawError, LayerError};
 pub use export::{ExportError, PngExport, SvgExport};
-pub use history::{HistoryManager, Snapshot};
+pub use history::{DocumentHistory, HistoryManager, Snapshot};
 pub use layer::Layer;
 pub use reference_placement::ReferencePlacement;
 pub use tool::ToolType;

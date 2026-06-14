@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
-import { createHistoryManager, documentFromLayerSource } from './wasm-backend';
+import { createDocumentHistory, documentFromLayerSource } from './wasm-backend';
 import type { DocumentSchemaV3 } from '$lib/session/session-storage-types';
 
 function makeSchema(overrides: Partial<DocumentSchemaV3> = {}): DocumentSchemaV3 {
@@ -131,13 +131,13 @@ describe('documentFromLayerSource', () => {
 	});
 });
 
-describe('HistoryManager document path', () => {
+describe('DocumentHistory document path', () => {
 	it('push, undo, redo round-trip the Document state', () => {
 		const initial = documentFromLayerSource(makeSchema());
 		const mutated = documentFromLayerSource(
 			makeSchema({ nextLayerNumber: 99, timelinePanelCollapsed: true })
 		);
-		const history = createHistoryManager();
+		const history = createDocumentHistory();
 
 		history.push_document(initial);
 		const undone = history.undo_document(mutated);

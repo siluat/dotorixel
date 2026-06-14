@@ -179,6 +179,7 @@
 
 	.clear-btn,
 	.transform-btn {
+		width: 100%;
 		height: 28px;
 		border: 1px solid var(--ds-border);
 		border-radius: 4px;
@@ -189,12 +190,7 @@
 		cursor: pointer;
 	}
 
-	.clear-btn {
-		width: 100%;
-	}
-
 	.transform-btn {
-		flex: 1;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -208,6 +204,7 @@
 
 	.transform-actions {
 		display: flex;
+		flex-direction: column;
 		gap: 8px;
 	}
 

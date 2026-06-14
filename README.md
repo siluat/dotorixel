@@ -9,7 +9,7 @@ A pixel art editor you can open anywhere and start drawing right away.
 
 ## Roadmap
 
-> Currently working on: **Milestone 3 — Editor for Serious Work**
+> Currently working on: **Milestone 4 — Animation-Capable Editor**
 
 ### Milestone 1 — Usable Editor ✓
 
@@ -30,7 +30,7 @@ Overhaul the UI from prototype-level to production quality. Design for all platf
 - Touch & mobile support (touch targets, pinch-zoom, safe area, responsive layout)
 - Usability fixes and UX enhancements from post-development testing
 
-### Milestone 3 — Editor for Serious Work
+### Milestone 3 — Editor for Serious Work ✓
 
 Layer support, selection, project persistence, and reference imagery for larger projects.
 
@@ -38,19 +38,19 @@ Layer support, selection, project persistence, and reference imagery for larger 
 - Reference layer (import image as non-editable layer)
 - Floating reference image windows (reposition, color sampling) — inspired by Pixquare
 - Selection & transform (rect select, move, copy/paste, flip)
-- Project file format (JSON-based save/load)
-- Apple Pencil: hover preview + palm rejection
 - Touch modifier alternatives
-- Feature guide page
 
 ### Milestone 4 — Animation-Capable Editor
 
-Frame-by-frame animation workflow.
+Frame-by-frame animation workflow, plus project file format and editor polish carried over from Milestone 3.
 
 - Frame management and timeline UI
 - Onion skinning
 - Animation preview
 - GIF and spritesheet export
+- Project file format (JSON-based save/load)
+- Apple Pencil: hover preview + palm rejection
+- Feature guide page
 
 ## Tech Stack
 

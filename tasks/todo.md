@@ -1,13 +1,5 @@
 # Todo
 
-## Milestone 3: Editor for Serious Work
-
-- Project file format (JSON-based) + save/load
-- (review) Evaluate serde-wasm-bindgen + tsify for WASM↔TS serialization — revisit when project file format requires multi-type Rust↔JSON↔TS conversion
-- Apple Pencil: hover preview + palm rejection
-- Feature guide page (basic usage instructions)
-- (review) In-editor feedback widget
-
 ## Milestone 4: Animation-Capable Editor
 
 - Frame management (add/delete/duplicate/reorder)
@@ -17,7 +9,12 @@
 - Animation preview (play/pause in editor)
 - GIF/spritesheet export
 - Feedback link to Google Form
+- Apple Pencil: hover preview + palm rejection
+- (review) In-editor feedback widget
 - (review) Public roadmap & feature voting system — depends on user base size
+- Project file format (JSON-based) + save/load
+- (review) Evaluate serde-wasm-bindgen + tsify for WASM↔TS serialization — revisit when project file format requires multi-type Rust↔JSON↔TS conversion
+- Feature guide page (basic usage instructions)
 
 ## Future milestones (directional hypotheses — redesign based on user feedback)
 

@@ -10,11 +10,9 @@ None.
 
 ## Next Up
 
-- Project file format (JSON-based) + save/load
-- Apple Pencil: hover preview + palm rejection
-- Feature guide page (basic usage instructions)
-- (review) In-editor feedback widget
 - Frame management (add/delete/duplicate/reorder)
+- Apple Pencil: hover preview + palm rejection
+- (review) In-editor feedback widget
 - Feedback link to Google Form
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
 - Apple Phase 1 — Enable clear canvas (existing disabled button)

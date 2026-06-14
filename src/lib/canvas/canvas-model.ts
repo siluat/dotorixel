@@ -136,6 +136,20 @@ export interface Document {
 	 */
 	flip_vertical(): void;
 	/**
+	 * Rotates the active Pixel Layer's Marquee region 90° clockwise. The region's
+	 * `W×H` pixels become an `H×W` block re-centered on the region's center and
+	 * clipped to the canvas; the Marquee updates to wrap the new region. No-op
+	 * without a Marquee or on a Reference Layer.
+	 */
+	rotate_cw(): void;
+	/**
+	 * Rotates the active Pixel Layer's Marquee region 90° counter-clockwise. The
+	 * region's `W×H` pixels become an `H×W` block re-centered on the region's
+	 * center and clipped to the canvas; the Marquee updates to wrap the new
+	 * region. No-op without a Marquee or on a Reference Layer.
+	 */
+	rotate_ccw(): void;
+	/**
 	 * Source-over composites row-major RGBA `buffer` at `region`. `buffer`
 	 * must contain `region.width × region.height × 4` bytes; implementations
 	 * throw when that length is invalid.

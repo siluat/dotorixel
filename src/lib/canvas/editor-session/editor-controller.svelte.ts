@@ -278,6 +278,14 @@ export class EditorController {
 		this.workspace.activeTab.flipVertical();
 	};
 
+	handleRotateCw = (): void => {
+		this.workspace.activeTab.rotateCw();
+	};
+
+	handleRotateCcw = (): void => {
+		this.workspace.activeTab.rotateCcw();
+	};
+
 	// Viewport handlers
 	handleViewportChange = (newViewport: ViewportData): void => {
 		this.workspace.activeTab.setViewport(newViewport);

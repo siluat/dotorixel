@@ -641,6 +641,8 @@
 				onDuplicateFloatingSelection={editor.duplicateFloatingSelection}
 				onFlipHorizontal={editor.handleFlipHorizontal}
 				onFlipVertical={editor.handleFlipVertical}
+				onRotateCw={editor.handleRotateCw}
+				onRotateCcw={editor.handleRotateCcw}
 				activeTool={editor.activeTool}
 				toolCursor={editor.toolCursor}
 				isSpaceHeld={editor.isSpaceHeld}
@@ -761,6 +763,8 @@
 						onDuplicateFloatingSelection={editor.duplicateFloatingSelection}
 						onFlipHorizontal={editor.handleFlipHorizontal}
 						onFlipVertical={editor.handleFlipVertical}
+						onRotateCw={editor.handleRotateCw}
+						onRotateCcw={editor.handleRotateCcw}
 						activeTool={editor.activeTool}
 						toolCursor={editor.toolCursor}
 						isSpaceHeld={editor.isSpaceHeld}

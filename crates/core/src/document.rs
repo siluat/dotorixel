@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::canvas::{
     CanvasRect, PixelCanvas, PixelCanvasError, ResizeAnchor, flip_buffer_horizontal,
-    flip_buffer_vertical,
+    flip_buffer_vertical, rotate_buffer_ccw, rotate_buffer_cw,
 };
 use crate::color::Color;
 use crate::layer::{Layer, LayerKind, LayerKindTag, ReferenceData, ReferenceDataError};
@@ -755,6 +755,42 @@ impl Document {
         }
     }
 
+    /// Rotates the Marquee region on the active Pixel Layer 90° clockwise. The
+    /// region's `W×H` pixels become an `H×W` block re-centered on the region's
+    /// center and clipped to the canvas; the Marquee updates to wrap the new
+    /// region. No-op without a Marquee or on a Reference Layer.
+    pub fn rotate_cw(&mut self) {
+        self.rotate_active_marquee(rotate_buffer_cw);
+    }
+
+    /// Rotates the Marquee region on the active Pixel Layer 90° counter-clockwise.
+    /// The region's `W×H` pixels become an `H×W` block re-centered on the region's
+    /// center and clipped to the canvas; the Marquee updates to wrap the new
+    /// region. No-op without a Marquee or on a Reference Layer.
+    pub fn rotate_ccw(&mut self) {
+        self.rotate_active_marquee(rotate_buffer_ccw);
+    }
+
+    /// Rotates the current Marquee region on the active Pixel Layer via
+    /// lift → rotate → clear → composite, re-centering the rotated `H×W` block on
+    /// the region's center and updating the Marquee to its canvas-clipped bounds.
+    /// `rotate_buffer` rotates a lifted region buffer 90°. No-op without a Marquee
+    /// or on a Reference Layer.
+    fn rotate_active_marquee(&mut self, rotate_buffer: fn(&[u8], u32, u32) -> Vec<u8>) {
+        let Some(region) = self.marquee else {
+            return;
+        };
+        let LayerKind::Pixel(canvas) = &mut self.active_layer_mut().kind else {
+            return;
+        };
+        let lifted = lift_region(canvas, region);
+        let rotated = rotate_buffer(&lifted, region.width(), region.height());
+        let rotated_region = region.rotated_90();
+        clear_region(canvas, region);
+        composite_region(canvas, &rotated, rotated_region);
+        self.marquee = rotated_region.clip_to(canvas.width(), canvas.height());
+    }
+
     fn active_layer(&self) -> &Layer {
         let id = self.active_layer_id;
         self.layers
@@ -833,6 +869,13 @@ mod tests {
 
     fn pixel_canvas(layer: &Layer) -> &PixelCanvas {
         let LayerKind::Pixel(canvas) = &layer.kind else {
+            panic!("layer is not Pixel-kind");
+        };
+        canvas
+    }
+
+    fn pixel_canvas_mut(layer: &mut Layer) -> &mut PixelCanvas {
+        let LayerKind::Pixel(canvas) = &mut layer.kind else {
             panic!("layer is not Pixel-kind");
         };
         canvas
@@ -1219,6 +1262,169 @@ mod tests {
             }
         }
         assert_eq!(doc.marquee(), Some(marquee));
+    }
+
+    // ── rotate ──────────────────────────────────────────────────
+
+    #[test]
+    fn rotate_cw_turns_the_marquee_region_and_recenters_it() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        let mut doc = Document::new(5, 5, a, "A".to_string()).unwrap();
+        // A horizontal strip red→green→blue at row y = 2, x = 1..=3.
+        let canvas = pixel_canvas_mut(&mut doc.layers[0]);
+        canvas.set_pixel(1, 2, red).unwrap();
+        canvas.set_pixel(2, 2, green).unwrap();
+        canvas.set_pixel(3, 2, blue).unwrap();
+        doc.set_marquee(Some(MarqueeRegion::from_drag(1, 2, 3, 2)));
+
+        doc.rotate_cw();
+
+        // The 3×1 strip becomes a 1×3 column re-centered on (2.5, 2.5): the
+        // left end (red) is now on top, the right end (blue) at the bottom.
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(2, 1).unwrap(), red);
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(2, 2).unwrap(), green);
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(2, 3).unwrap(), blue);
+        // The original horizontal footprint outside the new column is cleared.
+        assert_eq!(
+            pixel_canvas(&doc.layers[0]).get_pixel(1, 2).unwrap(),
+            Color::TRANSPARENT
+        );
+        assert_eq!(
+            pixel_canvas(&doc.layers[0]).get_pixel(3, 2).unwrap(),
+            Color::TRANSPARENT
+        );
+        assert_eq!(doc.marquee(), Some(MarqueeRegion::from_drag(2, 1, 2, 3)));
+    }
+
+    #[test]
+    fn rotate_ccw_turns_the_marquee_region_counter_clockwise() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        let mut doc = Document::new(5, 5, a, "A".to_string()).unwrap();
+        let canvas = pixel_canvas_mut(&mut doc.layers[0]);
+        canvas.set_pixel(1, 2, red).unwrap();
+        canvas.set_pixel(2, 2, green).unwrap();
+        canvas.set_pixel(3, 2, blue).unwrap();
+        doc.set_marquee(Some(MarqueeRegion::from_drag(1, 2, 3, 2)));
+
+        doc.rotate_ccw();
+
+        // Counter-clockwise sends the right end (blue) to the top and the left
+        // end (red) to the bottom — the mirror image of the clockwise case.
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(2, 1).unwrap(), blue);
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(2, 2).unwrap(), green);
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(2, 3).unwrap(), red);
+        assert_eq!(doc.marquee(), Some(MarqueeRegion::from_drag(2, 1, 2, 3)));
+    }
+
+    #[test]
+    fn rotate_cw_then_ccw_restores_pixels_and_marquee() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let mut doc = Document::new(5, 5, a, "A".to_string()).unwrap();
+        let canvas = pixel_canvas_mut(&mut doc.layers[0]);
+        canvas.set_pixel(1, 2, Color::new(255, 0, 0, 255)).unwrap();
+        canvas.set_pixel(2, 2, Color::new(0, 255, 0, 255)).unwrap();
+        canvas.set_pixel(3, 2, Color::new(0, 0, 255, 255)).unwrap();
+        let marquee = MarqueeRegion::from_drag(1, 2, 3, 2);
+        doc.set_marquee(Some(marquee));
+        let before = pixel_canvas(&doc.layers[0]).pixels().to_vec();
+
+        doc.rotate_cw();
+        doc.rotate_ccw();
+
+        assert_eq!(pixel_canvas(&doc.layers[0]).pixels(), before.as_slice());
+        assert_eq!(doc.marquee(), Some(marquee));
+    }
+
+    #[test]
+    fn rotate_is_no_op_without_a_marquee() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let mut doc = Document::new(3, 2, a, "A".to_string()).unwrap();
+        let canvas = pixel_canvas_mut(&mut doc.layers[0]);
+        canvas.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+        canvas.set_pixel(2, 1, Color::new(0, 0, 255, 255)).unwrap();
+        let before = pixel_canvas(&doc.layers[0]).pixels().to_vec();
+
+        doc.rotate_cw();
+        doc.rotate_ccw();
+
+        assert_eq!(pixel_canvas(&doc.layers[0]).pixels(), before.as_slice());
+        assert_eq!(doc.marquee(), None);
+    }
+
+    #[test]
+    fn rotate_is_no_op_when_active_layer_is_reference() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(2, 2, red).unwrap(),
+        );
+        doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
+            .unwrap();
+        let marquee = MarqueeRegion::from_drag(0, 0, 1, 1);
+        doc.set_marquee(Some(marquee));
+
+        doc.rotate_cw();
+        doc.rotate_ccw();
+
+        for y in 0..2 {
+            for x in 0..2 {
+                assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(x, y).unwrap(), red);
+            }
+        }
+        assert_eq!(doc.marquee(), Some(marquee));
+    }
+
+    #[test]
+    fn rotate_cw_clips_a_partially_off_canvas_region_and_drops_outside_pixels() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        let mut doc = Document::new(3, 3, a, "A".to_string()).unwrap();
+        // A 3×1 strip along the top edge; rotating it re-centers the column
+        // above the canvas, so the top end falls off and is lost.
+        let canvas = pixel_canvas_mut(&mut doc.layers[0]);
+        canvas.set_pixel(0, 0, red).unwrap();
+        canvas.set_pixel(1, 0, green).unwrap();
+        canvas.set_pixel(2, 0, blue).unwrap();
+        doc.set_marquee(Some(MarqueeRegion::from_drag(0, 0, 2, 0)));
+
+        doc.rotate_cw();
+
+        // red rotates to (1, -1) off-canvas and is dropped; green and blue land.
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(1, 0).unwrap(), green);
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(1, 1).unwrap(), blue);
+        assert_eq!(
+            pixel_canvas(&doc.layers[0]).get_pixel(0, 0).unwrap(),
+            Color::TRANSPARENT
+        );
+        assert_eq!(
+            pixel_canvas(&doc.layers[0]).get_pixel(2, 0).unwrap(),
+            Color::TRANSPARENT
+        );
+        // The Marquee wraps only the on-canvas part of the rotated region.
+        assert_eq!(doc.marquee(), Some(MarqueeRegion::from_drag(1, 0, 1, 1)));
     }
 
     #[test]

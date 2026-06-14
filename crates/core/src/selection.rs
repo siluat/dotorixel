@@ -72,6 +72,22 @@ impl MarqueeRegion {
         }
     }
 
+    /// Returns the region rotated 90° about its own center: a `W×H` region
+    /// becomes `H×W` sharing the same center. Clockwise and counter-clockwise
+    /// rotation share this footprint; only the pixel buffer differs. Truncating
+    /// division makes the transform its own inverse, so rotating twice restores
+    /// the original region exactly.
+    pub fn rotated_90(&self) -> Self {
+        let width = self.width as i32;
+        let height = self.height as i32;
+        Self {
+            x: self.x + (width - height) / 2,
+            y: self.y + (height - width) / 2,
+            width: self.height,
+            height: self.width,
+        }
+    }
+
     pub fn clip_to(&self, canvas_w: u32, canvas_h: u32) -> Option<Self> {
         let left = i64::from(self.x).max(0);
         let top = i64::from(self.y).max(0);
@@ -275,6 +291,28 @@ mod tests {
         assert_eq!(region.y(), 9);
         assert_eq!(region.width(), 4);
         assert_eq!(region.height(), 5);
+    }
+
+    #[test]
+    fn rotated_90_swaps_dimensions_and_recenters_on_the_same_center() {
+        // A 4×2 region at (1, 1) spans x∈[1,5), y∈[1,3); its center is (3, 2).
+        // Rotating to 2×4 keeps that center, so the origin shifts by
+        // ((4-2)/2, (2-4)/2) = (1, -1) to (2, 0).
+        let rotated = MarqueeRegion::from_drag(1, 1, 4, 2).rotated_90();
+
+        assert_eq!(rotated.x(), 2);
+        assert_eq!(rotated.y(), 0);
+        assert_eq!(rotated.width(), 2);
+        assert_eq!(rotated.height(), 4);
+    }
+
+    #[test]
+    fn rotated_90_applied_twice_restores_the_original_region() {
+        // Odd dimension difference: truncating division keeps the round-trip
+        // exact, so clockwise-then-counter-clockwise returns the same Marquee.
+        let original = MarqueeRegion::from_drag(2, 3, 6, 4);
+
+        assert_eq!(original.rotated_90().rotated_90(), original);
     }
 
     #[test]

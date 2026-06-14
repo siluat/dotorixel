@@ -56,6 +56,8 @@
 		onDuplicateFloatingSelection?: () => void;
 		onFlipHorizontal?: () => void;
 		onFlipVertical?: () => void;
+		onRotateCw?: () => void;
+		onRotateCcw?: () => void;
 		activeTool?: ToolType;
 		toolCursor?: string;
 		selectionDragPhase?: SelectionDragPhase;
@@ -97,6 +99,8 @@
 		onDuplicateFloatingSelection,
 		onFlipHorizontal,
 		onFlipVertical,
+		onRotateCw,
+		onRotateCcw,
 		activeTool = 'pencil',
 		toolCursor = 'crosshair',
 		selectionDragPhase = 'defineMarquee',
@@ -718,6 +722,8 @@
 	{onDuplicateFloatingSelection}
 	{onFlipHorizontal}
 	{onFlipVertical}
+	{onRotateCw}
+	{onRotateCcw}
 />
 
 {#if samplingSession?.position}

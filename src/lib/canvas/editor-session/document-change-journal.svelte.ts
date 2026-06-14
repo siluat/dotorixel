@@ -31,6 +31,8 @@ export type UndoableDocumentIntent =
 	| { readonly type: 'clear-marquee-pixels' }
 	| { readonly type: 'flip-horizontal' }
 	| { readonly type: 'flip-vertical' }
+	| { readonly type: 'rotate-cw' }
+	| { readonly type: 'rotate-ccw' }
 	| {
 			readonly type: 'commit-floating-selection';
 			readonly sourceLayerId: string;
@@ -226,6 +228,12 @@ export class DocumentChangeJournal {
 			case 'flip-vertical':
 				document.flip_vertical();
 				return { changed: true };
+			case 'rotate-cw':
+				document.rotate_cw();
+				return { changed: true };
+			case 'rotate-ccw':
+				document.rotate_ccw();
+				return { changed: true };
 			case 'commit-floating-selection': {
 				const destRegion = translateMarqueeRegion(intent.sourceRegion, intent.destOffset);
 				this.#withActiveLayer(intent.sourceLayerId, (document) => {
@@ -296,6 +304,8 @@ export class DocumentChangeJournal {
 			case 'flip-vertical':
 				return this.#activeLayerKind() === 'pixel';
 			case 'clear-marquee-pixels':
+			case 'rotate-cw':
+			case 'rotate-ccw':
 				return Boolean(document.marquee()) && this.#activeLayerKind() === 'pixel';
 			case 'commit-floating-selection':
 				return this.#layerKindOf(intent.sourceLayerId) === 'pixel' && intent.buffer.length > 0;
@@ -379,6 +389,8 @@ export class DocumentChangeJournal {
 			case 'clear-marquee-pixels':
 			case 'flip-horizontal':
 			case 'flip-vertical':
+			case 'rotate-cw':
+			case 'rotate-ccw':
 			case 'commit-floating-selection':
 				this.#invalidateRenderAndMarkDirty();
 				break;

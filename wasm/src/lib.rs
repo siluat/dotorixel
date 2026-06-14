@@ -773,6 +773,22 @@ impl WasmDocument {
         self.inner.flip_vertical();
     }
 
+    /// Rotates the active Pixel Layer's Marquee region 90° clockwise. The region's
+    /// `W×H` pixels become an `H×W` block re-centered on the region's center and
+    /// clipped to the canvas; the Marquee updates to wrap the new region. No-op
+    /// without a Marquee or on a Reference Layer.
+    pub fn rotate_cw(&mut self) {
+        self.inner.rotate_cw();
+    }
+
+    /// Rotates the active Pixel Layer's Marquee region 90° counter-clockwise. The
+    /// region's `W×H` pixels become an `H×W` block re-centered on the region's
+    /// center and clipped to the canvas; the Marquee updates to wrap the new
+    /// region. No-op without a Marquee or on a Reference Layer.
+    pub fn rotate_ccw(&mut self) {
+        self.inner.rotate_ccw();
+    }
+
     /// Source-over composites `buffer` at `region` on the active Pixel Layer.
     ///
     /// Returns `Err(JsError)` when the buffer length does not match

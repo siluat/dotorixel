@@ -620,6 +620,24 @@ export class TabState {
 		});
 	};
 
+	rotateCw = (): void => {
+		if (this.isDrawing) return;
+		this.#commitIdleFloatingSelection();
+		this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'rotate-cw' }
+		});
+	};
+
+	rotateCcw = (): void => {
+		if (this.isDrawing) return;
+		this.#commitIdleFloatingSelection();
+		this.#documentChangeJournal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'rotate-ccw' }
+		});
+	};
+
 	clearMarquee = (): void => {
 		this.#commitIdleFloatingSelection();
 		this.#documentChangeJournal.commit({

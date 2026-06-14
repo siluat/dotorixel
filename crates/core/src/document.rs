@@ -772,8 +772,9 @@ impl Document {
     }
 
     /// Rotates the current Marquee region on the active Pixel Layer via
-    /// lift → rotate → clear → composite, re-centering the rotated `H×W` block on
-    /// the region's center and updating the Marquee to its canvas-clipped bounds.
+    /// lift → rotate → clear (source and destination) → composite, re-centering
+    /// the rotated `H×W` block on the region's center and updating the Marquee to
+    /// its canvas-clipped bounds.
     /// `rotate_buffer` rotates a lifted region buffer 90°. No-op without a Marquee
     /// or on a Reference Layer.
     fn rotate_active_marquee(&mut self, rotate_buffer: fn(&[u8], u32, u32) -> Vec<u8>) {
@@ -787,6 +788,11 @@ impl Document {
         let rotated = rotate_buffer(&lifted, region.width(), region.height());
         let rotated_region = region.rotated_90();
         clear_region(canvas, region);
+        // Clear the destination too: `composite_region` is source-over and skips
+        // transparent source pixels, so without this any pixels already under the
+        // rotated footprint would bleed through the rotated block's transparent
+        // (or blend under its semi-transparent) cells.
+        clear_region(canvas, rotated_region);
         composite_region(canvas, &rotated, rotated_region);
         self.marquee = rotated_region.clip_to(canvas.width(), canvas.height());
     }
@@ -1425,6 +1431,33 @@ mod tests {
         );
         // The Marquee wraps only the on-canvas part of the rotated region.
         assert_eq!(doc.marquee(), Some(MarqueeRegion::from_drag(1, 0, 1, 1)));
+    }
+
+    #[test]
+    fn rotate_cw_clears_destination_so_pixels_outside_the_marquee_do_not_bleed_through() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        let mut doc = Document::new(5, 5, a, "A".to_string()).unwrap();
+        // The 3×1 region holds a single opaque pixel; the rest is transparent.
+        // blue sits OUTSIDE the Marquee but inside the rotated footprint.
+        let canvas = pixel_canvas_mut(&mut doc.layers[0]);
+        canvas.set_pixel(1, 1, red).unwrap();
+        canvas.set_pixel(2, 2, blue).unwrap();
+        doc.set_marquee(Some(MarqueeRegion::from_drag(1, 1, 3, 1)));
+
+        doc.rotate_cw();
+
+        // red rotates to the top of the H×W column at (2, 0); the column's
+        // transparent cells must stay transparent — the pre-existing blue at
+        // (2, 2) must not bleed through the rotated block.
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(2, 0).unwrap(), red);
+        assert_eq!(
+            pixel_canvas(&doc.layers[0]).get_pixel(2, 2).unwrap(),
+            Color::TRANSPARENT
+        );
     }
 
     #[test]

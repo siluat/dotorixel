@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 183 | [Remove dead canvas-mode DrawingOps residue and make Document DrawingOps the sole factory](../issues/183-remove-dead-canvas-mode-drawingops.md) | 2026-06-15 |
 | 182 | [Consolidate Floating Selection orchestration out of TabState](../issues/182-consolidate-floating-selection-orchestration.md) | 2026-06-15 |
 | 181 | [Rename single-canvas history to PixelCanvasHistory and delete the fused machinery](../issues/181-pixelcanvas-history-rename.md) | 2026-06-15 |
 | 180 | [Carve out Document History over a shared generic history ring](../issues/180-document-history-shared-ring.md) | 2026-06-14 |

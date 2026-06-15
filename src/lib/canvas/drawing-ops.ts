@@ -18,9 +18,9 @@ export type DrawingToolType = 'pencil' | 'eraser' | 'line' | 'rectangle' | 'elli
 /**
  * Drawing operations that tools invoke.
  *
- * Most methods operate on the canvas captured in the closure at creation time
- * (via `createDrawingOps(getCanvas)`), so callers don't pass a canvas parameter —
- * this avoids type assertions between PixelCanvas and WasmPixelCanvas.
+ * Most methods operate on the document captured in the closure at creation time
+ * (via `createDrawingOps(getDocument)`), so callers don't pass a target parameter;
+ * the getter runs on every call, so writes always hit the current document.
  */
 export interface DrawingOps {
 	/** Apply a single-pixel tool operation. Returns true if a pixel changed. */

@@ -6,12 +6,12 @@ None.
 
 ## Last Completed
 
-[182 — Consolidate Floating Selection orchestration out of TabState](../issues/182-consolidate-floating-selection-orchestration.md): `TabState` now drives the Floating Selection feature through the lifecycle interface — a single `#mutate` commit-before-mutation boundary (the `isDrawing` guard lives inside `commitIfPending`) plus `marqueeForSnapshot` owning the persisted-Marquee baseline; the scattered 13× commit calls and the `#selectionPreviewBaselineMarquee` field are gone. Web-only, no behavior change. Out-of-scope follow-up: paste/duplicate still have no e2e (clipboard-permission flakiness); `copyMarqueeRegion` in the baseline capture is currently redundant but kept for consistency.
+[183 — Remove dead canvas-mode DrawingOps residue](../issues/183-remove-dead-canvas-mode-drawingops.md): the web↔core drawing seam now exposes exactly one live drawing path (the Document-backed factory), with the dead pre-Document canvas path deleted and that factory promoted to the sole `createDrawingOps`. Web-only, no behavior change — verified by type-check, vitest, and full e2e. Unblocks 185 (dissolve the `CanvasBackend` umbrella).
 
 ## Next Up
 
-- Remove dead canvas-mode DrawingOps residue — [183](../issues/183-remove-dead-canvas-mode-drawingops.md) (unblocks 185)
 - Extract `importReferenceFile` as a pure function — [184](../issues/184-extract-import-reference-file.md)
+- Dissolve the `CanvasBackend` umbrella; editor-session imports wasm adapters directly — [185](../issues/185-dissolve-canvas-backend-umbrella.md)
 - Frame management (add/delete/duplicate/reorder) — M4 entry; the rest of the animation cluster depends on it
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
 - Apple Phase 1 — Enable clear canvas (existing disabled button)

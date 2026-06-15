@@ -1,7 +1,5 @@
-import type { PixelCanvas } from '../canvas-model';
 import type { CanvasFactory, CanvasConstraints, DocumentHistory } from '../adapter-types';
 import type { ViewportOps } from '../viewport';
-import type { DrawingOps } from '../drawing-ops';
 
 /**
  * Umbrella port for the drawing-engine adapters used by the editor session
@@ -17,5 +15,4 @@ export interface CanvasBackend {
 	readonly canvasConstraints: CanvasConstraints;
 	readonly viewportOps: ViewportOps;
 	createDocumentHistory(): DocumentHistory;
-	createDrawingOps(getCanvas: () => PixelCanvas): DrawingOps;
 }

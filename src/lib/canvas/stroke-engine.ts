@@ -7,7 +7,7 @@ import type { SharedState } from './shared-state.svelte';
 import type { SessionHost, StrokeSpec } from './tool-authoring';
 import type { EditorEffects, ToolRunnerHost } from './tool-runner.svelte';
 import { NO_EFFECTS } from './draw-tool';
-import { createDocumentDrawingOps } from './wasm-backend';
+import { createDrawingOps } from './wasm-backend';
 import { createAllTools, isPixelMutationTool } from './tool-registry';
 
 /**
@@ -82,7 +82,7 @@ function isActiveLayerReference(document: ToolRunnerHost['document']): boolean {
  * subsequent sample flows through that fixed closure.
  */
 export function createStrokeEngine(deps: StrokeEngineDeps): StrokeEngine {
-	const baseOps = createDocumentDrawingOps(() => deps.host.document);
+	const baseOps = createDrawingOps(() => deps.host.document);
 	const tools = createAllTools();
 
 	return {

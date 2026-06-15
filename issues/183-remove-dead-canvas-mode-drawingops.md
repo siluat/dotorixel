@@ -1,6 +1,6 @@
 ---
 title: Remove dead canvas-mode DrawingOps residue and make Document DrawingOps the sole factory
-status: ready-for-agent
+status: done
 created: 2026-06-14
 ---
 
@@ -38,3 +38,22 @@ Delete the dead canvas-mode drawing path and promote the Document-backed factory
 ## Blocked by
 
 None - can start immediately.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/wasm-backend.ts` | Deleted canvas-mode `createDrawingOps`, `teeDrawingOps`, `resolveWasmCanvas`; dropped the now-unused `apply_tool`/`wasm_flood_fill`/`wasm_flood_fill_bounded` WASM imports and the orphaned `PixelCanvas` type import; renamed `createDocumentDrawingOps` → `createDrawingOps` (now the sole factory) and removed the `createDrawingOps` member from the `wasmBackend` object |
+| `src/lib/canvas/editor-session/canvas-backend.ts` | Removed the `createDrawingOps` member from the `CanvasBackend` interface and its now-unused `PixelCanvas`/`DrawingOps` imports |
+| `src/lib/canvas/stroke-engine.ts` | Updated the import and call site to the renamed `createDrawingOps` |
+| `src/lib/canvas/drawing-ops.ts` | Reworded the `DrawingOps` interface doc comment to the document-getter form (no canvas-getter reference) |
+
+### Key Decisions
+
+- The work was deletion, not unification: the canvas-mode path had zero invocations, so promoting the live Document-backed factory to the single `createDrawingOps` left exactly one drawing path at the seam.
+- Left the broader "does the `CanvasBackend` umbrella earn its keep" question to issue 185 (now unblocked), per the issue's stated scope.
+
+### Notes
+
+- Web-only; no Rust core, binding, persistence-format, `CONTEXT.md`, or ADR changes. `WasmPixelCanvas` retained for the canvas factory and export path.
+- Verified at every level: type-check (0 errors), vitest 481 passed, full Playwright e2e 100 passed (drawing/pixel-perfect/selection/history/export all green).

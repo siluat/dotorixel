@@ -1,6 +1,6 @@
 ---
 title: Rename single-canvas history to PixelCanvasHistory and delete the fused machinery
-status: ready-for-agent
+status: done
 created: 2026-06-14
 ---
 
@@ -37,3 +37,23 @@ The **PixelCanvas History** species and the removal of every trace of the fused 
 ## Blocked by
 
 - Issue 180 (Carve out Document History over a shared generic history ring) — the WASM binding must be moved onto `DocumentHistory` before the fused document path can be removed from the single-canvas type.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/history.rs` | Renamed `HistoryManager` → `PixelCanvasHistory` over `History<Snapshot>`; deleted the `HistoryEntry` enum, `expect_canvas`/`expect_document`, and the document-path methods. Added a private `debug_assert_rgba_len` helper shared by push/undo/redo. Split the tests into a `pixel_canvas_history_tests` species module (document-path tests already live in `document_history_tests`). |
+| `crates/core/src/lib.rs` | Re-export `HistoryManager` → `PixelCanvasHistory`. |
+| `apple/src/lib.rs` | `AppleHistoryManager` now wraps `Mutex<PixelCanvasHistory>`; the UniFFI-exported surface is byte-for-byte unchanged (verified against the checked-in `apple/generated/dotorixel_apple.swift`). |
+| `docs/decisions/web-document-layer-apple-preserved.en.md` | Status-line amendment naming `PixelCanvasHistory` as the preserved single-canvas history — a rename, not a data-model migration. |
+
+### Key Decisions
+
+- **Species side by side over the shared ring.** `PixelCanvasHistory` and `DocumentHistory` now both wrap `History<T>`; mixing the two is a compile error, with the `HistoryEntry`/`expect_*` runtime mix-path panic removed entirely.
+- **`new(0)` panic message unified.** The single-canvas constructor delegates to the shared ring, so the panic text is now `"History max must be > 0"` (was `"HistoryManager max_snapshots must be > 0"`). The message is not a public contract; the species test was updated to match.
+- **ADR amendment follows the existing one-line convention** (Status-line `Amended (date): …`, as in `reference-layer-excluded-from-export`), not a new `## Amendments` heading.
+
+### Notes
+
+- **Apple `EditorState` undo/redo pixel-restore round-trip has no automated test** (Swift XCTest covers only `resizeClearsHistory` — the `canUndo`/`canRedo` flags + resize-clear). This refactor did **not** introduce that gap: the Swift surface is byte-for-byte unchanged, so the rename neither widens nor narrows it. The core `PixelCanvasHistory` behavior itself is fully covered by `cargo test`. Filling the gap (a Swift round-trip test) is a separate follow-up, out of scope for this rename.
+- Historical `HistoryManager` mentions in past issue files, `tasks/records/`, `done.md`, and the `uniffi-mutex-interior-mutability` ADR are point-in-time records and were intentionally left unchanged. `CONTEXT.md` already records the canonical vocabulary.

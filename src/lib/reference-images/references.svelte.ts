@@ -9,24 +9,14 @@ import {
 	commitResize
 } from './reference-window-placement';
 import { CASCADE_OFFSET } from './reference-window-constants';
-import { validateFile, type ValidationResult } from './import-validator';
-import { computeThumbnailDimensions } from './thumbnail';
+import { importReferenceFile, type ImportError } from './import-reference-file';
 
-export type ImportError =
-	| { kind: 'unsupported-format' }
-	| { kind: 'too-large' }
-	| { kind: 'decode-failed' };
+export type { ImportError };
 
 export type ImportFileError = {
 	file: File;
 	error: ImportError;
 };
-
-const THUMBNAIL_LONGEST_EDGE = 256;
-
-type ImportOneResult =
-	| { ok: true; reference: ReferenceImage }
-	| { ok: false; error: ImportError };
 
 type ActiveGesture =
 	| {
@@ -248,7 +238,7 @@ export class References {
 	): Promise<{ errors: ImportFileError[] }> {
 		const errors: ImportFileError[] = [];
 		for (const file of files) {
-			const result = await this.#importOne(file);
+			const result = await importReferenceFile(file);
 			if (result.ok) {
 				this.add(result.reference, docId);
 			} else {
@@ -280,7 +270,7 @@ export class References {
 		const errors: ImportFileError[] = [];
 		let index = 0;
 		for (const file of files) {
-			const result = await this.#importOne(file);
+			const result = await importReferenceFile(file);
 			if (!result.ok) {
 				errors.push({ file, error: result.error });
 				continue;
@@ -342,55 +332,6 @@ export class References {
 			return;
 		}
 		this.#displayCentered(refId, docId, viewport);
-	}
-
-	async #importOne(file: File): Promise<ImportOneResult> {
-		const validation: ValidationResult = validateFile({ type: file.type, size: file.size });
-		if (!validation.ok) {
-			return { ok: false, error: { kind: validation.reason } };
-		}
-
-		let bitmap: ImageBitmap;
-		try {
-			bitmap = await createImageBitmap(file);
-		} catch {
-			return { ok: false, error: { kind: 'decode-failed' } };
-		}
-
-		const naturalWidth = bitmap.width;
-		const naturalHeight = bitmap.height;
-		const { w, h } = computeThumbnailDimensions(naturalWidth, naturalHeight, THUMBNAIL_LONGEST_EDGE);
-
-		let thumbnail: Blob;
-		try {
-			const offscreen = new OffscreenCanvas(w, h);
-			const ctx = offscreen.getContext('2d');
-			if (!ctx) {
-				bitmap.close();
-				return { ok: false, error: { kind: 'decode-failed' } };
-			}
-			ctx.drawImage(bitmap, 0, 0, w, h);
-			thumbnail = await offscreen.convertToBlob({ type: 'image/png' });
-		} catch {
-			bitmap.close();
-			return { ok: false, error: { kind: 'decode-failed' } };
-		}
-		bitmap.close();
-
-		return {
-			ok: true,
-			reference: {
-				id: crypto.randomUUID(),
-				filename: file.name,
-				blob: file,
-				thumbnail,
-				mimeType: file.type,
-				naturalWidth,
-				naturalHeight,
-				byteSize: file.size,
-				addedAt: new Date()
-			}
-		};
 	}
 
 	#displayCentered(refId: string, docId: string, viewport: Viewport): void {

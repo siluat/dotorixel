@@ -6,11 +6,10 @@ None.
 
 ## Last Completed
 
-[183 — Remove dead canvas-mode DrawingOps residue](../issues/183-remove-dead-canvas-mode-drawingops.md): the web↔core drawing seam now exposes exactly one live drawing path (the Document-backed factory), with the dead pre-Document canvas path deleted and that factory promoted to the sole `createDrawingOps`. Web-only, no behavior change — verified by type-check, vitest, and full e2e. Unblocks 185 (dissolve the `CanvasBackend` umbrella).
+[184 — Extract importReferenceFile as a pure function](../issues/184-extract-import-reference-file.md): per-file reference import (validate → decode → thumbnail → mint) is now a standalone pure function alongside the other import helpers; the References store delegates and keeps only sequencing/`add`/drop-cascade/error-collection. Behavior-preserving (unit + e2e green). The review's gesture-mirror headline was dropped as structurally inapt — only this extraction remained.
 
 ## Next Up
 
-- Extract `importReferenceFile` as a pure function — [184](../issues/184-extract-import-reference-file.md)
 - Dissolve the `CanvasBackend` umbrella; editor-session imports wasm adapters directly — [185](../issues/185-dissolve-canvas-backend-umbrella.md)
 - Frame management (add/delete/duplicate/reorder) — M4 entry; the rest of the animation cluster depends on it
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)

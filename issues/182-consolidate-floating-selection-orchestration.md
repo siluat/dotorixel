@@ -1,6 +1,6 @@
 ---
 title: Consolidate Floating Selection orchestration out of TabState
-status: ready-for-agent
+status: done
 created: 2026-06-14
 ---
 
@@ -48,3 +48,23 @@ Preserve two subtleties: the existing `isDrawing` guard semantics that some call
 ## Blocked by
 
 None - can start immediately.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/editor-session/floating-selection-lifecycle.ts` | Added `commitIfPending()` (commit-before-mutation policy, incl. the `isDrawing` guard) and `marqueeForSnapshot()`; the lifecycle now owns the snapshot baseline (captured in `withDrawStartPolicy` / re-captured in `commitIfSelectionDragStartsOutside`, cleared in `endSelectionDrag`); new `getIsDrawing` dep. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Routed the 13 undoable mutations through one `#mutate` boundary; `setActiveLayer` (persisted-UI) calls `commitIfPending` directly; deleted `#commitIdleFloatingSelection`/`#commitFloatingSelection` and the `#selectionPreviewBaselineMarquee` field + its draw-lifecycle captures; `toSnapshot()` queries `marqueeForSnapshot`; moved `endSelectionDrag()` ahead of effects in `drawEnd`. |
+| `src/lib/canvas/editor-session/floating-selection-lifecycle.test.ts` | Unit tests for `commitIfPending` (idle/drawing/no-op), `marqueeForSnapshot` (live/baseline), and baseline-copy independence. |
+| `src/lib/canvas/editor-session/tab-state.svelte.test.ts` | Regression tests for the snapshot baseline on the outside-drag-commit path and the drawStart idle-commit dirty snapshot. |
+| `e2e/editor/selection.test.ts` | New e2e: floating lift→drag→commit (+undo) and lift→drag→Escape cancel, driven by real pointer events. |
+
+### Key Decisions
+- The `isDrawing` guard moved **into** `FloatingSelectionLifecycle.commitIfPending()` so the full commit-before-mutation policy lives behind one interface, rather than being re-checked at each call site.
+- The snapshot baseline covers the **whole** selection stroke (both new-Marquee redefine and floating-drag projection), not just the floating-drag projection the issue described — the existing `toSnapshot keeps the committed Marquee while a selection preview is live` test pins the broader behavior.
+- `drawEnd` now ends the selection-drag stroke **before** applying tool effects, so the final Marquee commit's synchronous snapshot reads the live Marquee, not the stale baseline.
+
+### Notes
+- `copyMarqueeRegion` in `#captureSnapshotBaseline` is currently redundant (the WASM `document.marquee()` already returns an independent copy — verified by mutation testing the line away), but kept for consistency with the module's other Marquee storage and future-safety if `marquee()` ever returns a view. The added baseline-copy test pins the independence contract regardless.
+- The outside-drag-commit snapshot regression test was confirmed to actually guard the re-capture line via mutation testing (removing `#captureSnapshotBaseline(true)` turns it red).
+- paste/duplicate were **not** added to e2e: unit coverage is solid, clipboard e2e is flaky (permission-dependent), and this refactor did not touch `commit()` internals. Candidate for a follow-up if desired.

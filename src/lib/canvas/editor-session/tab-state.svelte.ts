@@ -50,7 +50,9 @@ import type { CanvasBackend } from './canvas-backend';
 import type { DirtyNotifier } from './dirty-notifier';
 import {
 	DocumentChangeJournal,
-	type ReferenceLayerSource
+	type DocumentChangeResult,
+	type ReferenceLayerSource,
+	type UndoableDocumentIntent
 } from './document-change-journal.svelte';
 import {
 	type CommitFloatingSelectionIntent,
@@ -65,7 +67,7 @@ function assertNever(x: never): never {
 	throw new Error(`Unhandled effect type: ${(x as { type: string }).type}`);
 }
 
-function serializeMarquee(region: MarqueeRegion | undefined): TabSnapshot['marquee'] {
+function serializeMarquee(region: MarqueeRegion | null | undefined): TabSnapshot['marquee'] {
 	return region
 		? {
 				x: region.x,
@@ -222,10 +224,10 @@ export class TabState {
 		readonly renderVersion: number;
 		readonly read: DocumentLayerProjectionRead;
 	};
-	#selectionPreviewBaselineMarquee: TabSnapshot['marquee'] | undefined = undefined;
 	#floatingSelection = new FloatingSelectionLifecycle({
 		getDocument: () => this.document,
-		applyCommit: (intent) => this.#commitFloatingSelectionIntent(intent)
+		applyCommit: (intent) => this.#commitFloatingSelectionIntent(intent),
+		getIsDrawing: () => this.isDrawing
 	});
 
 	get viewport(): ViewportData {
@@ -400,7 +402,7 @@ export class TabState {
 					this.#recordFloatingPreviewChanged(this.#floatingSelection.moveTo(effect.offset));
 					break;
 				case 'commitFloatingSelection':
-					this.#commitFloatingSelection();
+					this.#floatingSelection.commit();
 					break;
 				case 'cancelFloatingSelection':
 					this.#recordFloatingPreviewChanged(this.#floatingSelection.cancel());
@@ -443,13 +445,16 @@ export class TabState {
 		});
 	}
 
-	#commitFloatingSelection(): void {
-		this.#floatingSelection.commit();
-	}
-
-	#commitIdleFloatingSelection(): void {
-		if (this.isDrawing) return;
-		this.#commitFloatingSelection();
+	/**
+	 * The single boundary every undoable document mutation routes through: it
+	 * first commits any pending Floating Selection (the commit-before-mutation
+	 * policy lives behind the lifecycle's `commitIfPending`), then applies the
+	 * intent through the journal. Returns the journal's `DocumentChangeResult`,
+	 * which carries the new layer id for layer-creating intents.
+	 */
+	#mutate(intent: UndoableDocumentIntent): DocumentChangeResult {
+		this.#floatingSelection.commitIfPending();
+		return this.#documentChangeJournal.commit({ kind: 'undoable-document', intent });
 	}
 
 	#visibleCanvasRect(): DocumentRect | null {
@@ -484,37 +489,30 @@ export class TabState {
 	}
 
 	drawStart = (button: number, pointerType: PointerType): void => {
-		const effects = this.#floatingSelection.withDrawStartPolicy(
-			this.shared.activeTool === 'selection',
-			() => this.#toolRunner.drawStart(button, pointerType)
+		this.#applyEffects(
+			this.#floatingSelection.withDrawStartPolicy(
+				this.shared.activeTool === 'selection',
+				() => this.#toolRunner.drawStart(button, pointerType)
+			)
 		);
-		this.#selectionPreviewBaselineMarquee =
-			this.shared.activeTool === 'selection' ? serializeMarquee(this.document.marquee()) : undefined;
-		this.#applyEffects(effects);
 	};
 
 	draw = (current: CanvasPoint, previous: CanvasPoint | null): void => {
-		if (
-			this.layerProjection.activeLayerKind !== 'reference' &&
-			this.#floatingSelection.commitIfSelectionDragStartsOutside(current, previous)
-		) {
-			this.#selectionPreviewBaselineMarquee =
-				this.shared.activeTool === 'selection'
-					? serializeMarquee(this.document.marquee())
-					: undefined;
+		if (this.layerProjection.activeLayerKind !== 'reference') {
+			this.#floatingSelection.commitIfSelectionDragStartsOutside(current, previous);
 		}
 		this.#applyEffects(this.#toolRunner.draw(current, previous));
 	};
 
 	drawEnd = (): void => {
-		this.#selectionPreviewBaselineMarquee = undefined;
-		this.#applyEffects(this.#toolRunner.drawEnd());
+		// End the selection-drag stroke before applying effects so the final
+		// Marquee commit's snapshot reads the live Marquee, not the stale baseline.
 		this.#floatingSelection.endSelectionDrag();
+		this.#applyEffects(this.#toolRunner.drawEnd());
 	};
 
 	drawCancel = (): void => {
 		this.#applyEffects(this.#toolRunner.drawCancel());
-		this.#selectionPreviewBaselineMarquee = undefined;
 		this.#floatingSelection.endSelectionDrag();
 	};
 
@@ -595,55 +593,31 @@ export class TabState {
 
 	clear = (): void => {
 		if (this.isDrawing) return;
-		this.#commitIdleFloatingSelection();
-		this.#documentChangeJournal.commit({
-			kind: 'undoable-document',
-			intent: { type: 'clear-active-layer' }
-		});
+		this.#mutate({ type: 'clear-active-layer' });
 	};
 
 	flipHorizontal = (): void => {
 		if (this.isDrawing) return;
-		this.#commitIdleFloatingSelection();
-		this.#documentChangeJournal.commit({
-			kind: 'undoable-document',
-			intent: { type: 'flip-horizontal' }
-		});
+		this.#mutate({ type: 'flip-horizontal' });
 	};
 
 	flipVertical = (): void => {
 		if (this.isDrawing) return;
-		this.#commitIdleFloatingSelection();
-		this.#documentChangeJournal.commit({
-			kind: 'undoable-document',
-			intent: { type: 'flip-vertical' }
-		});
+		this.#mutate({ type: 'flip-vertical' });
 	};
 
 	rotateCw = (): void => {
 		if (this.isDrawing) return;
-		this.#commitIdleFloatingSelection();
-		this.#documentChangeJournal.commit({
-			kind: 'undoable-document',
-			intent: { type: 'rotate-cw' }
-		});
+		this.#mutate({ type: 'rotate-cw' });
 	};
 
 	rotateCcw = (): void => {
 		if (this.isDrawing) return;
-		this.#commitIdleFloatingSelection();
-		this.#documentChangeJournal.commit({
-			kind: 'undoable-document',
-			intent: { type: 'rotate-ccw' }
-		});
+		this.#mutate({ type: 'rotate-ccw' });
 	};
 
 	clearMarquee = (): void => {
-		this.#commitIdleFloatingSelection();
-		this.#documentChangeJournal.commit({
-			kind: 'undoable-document',
-			intent: { type: 'set-marquee', region: null }
-		});
+		this.#mutate({ type: 'set-marquee', region: null });
 	};
 
 	clearMarqueeOrFloating = (): void => {
@@ -661,11 +635,7 @@ export class TabState {
 
 	clearMarqueePixels = (): void => {
 		if (this.isDrawing) return;
-		this.#commitIdleFloatingSelection();
-		this.#documentChangeJournal.commit({
-			kind: 'undoable-document',
-			intent: { type: 'clear-marquee-pixels' }
-		});
+		this.#mutate({ type: 'clear-marquee-pixels' });
 	};
 
 	nudgeMarquee = (dx: number, dy: number): void => {
@@ -675,8 +645,7 @@ export class TabState {
 	};
 
 	commitFloatingSelection = (): void => {
-		if (this.isDrawing) return;
-		this.#commitFloatingSelection();
+		this.#floatingSelection.commitIfPending();
 	};
 
 	duplicateFloatingSelection = (): void => {
@@ -725,11 +694,7 @@ export class TabState {
 	};
 
 	addLayer = (name: string): void => {
-		this.#commitIdleFloatingSelection();
-		this.#documentChangeJournal.commit({
-			kind: 'undoable-document',
-			intent: { type: 'add-pixel-layer', name }
-		});
+		this.#mutate({ type: 'add-pixel-layer', name });
 	};
 
 	/**
@@ -738,11 +703,7 @@ export class TabState {
 	 * old source blobs stay cached even after a successful replacement.
 	 */
 	setReferenceLayer = (source: ReferenceLayerSource): string => {
-		this.#commitIdleFloatingSelection();
-		const result = this.#documentChangeJournal.commit({
-			kind: 'undoable-document',
-			intent: { type: 'set-reference-layer', source }
-		});
+		const result = this.#mutate({ type: 'set-reference-layer', source });
 		if (!result.changed || !result.layerId) {
 			throw new Error('Reference Layer change did not produce a layer id');
 		}
@@ -758,15 +719,14 @@ export class TabState {
 	 * if `id` does not refer to an existing layer.
 	 */
 	removeLayer = (id: string): void => {
-		this.#commitIdleFloatingSelection();
-		this.#documentChangeJournal.commit({
-			kind: 'undoable-document',
-			intent: { type: 'remove-layer', id }
-		});
+		this.#mutate({ type: 'remove-layer', id });
 	};
 
 	setActiveLayer = (id: string): void => {
-		this.#commitIdleFloatingSelection();
+		// A persisted-UI mutation rather than undoable, so it routes the
+		// commit-before-mutation policy through the lifecycle directly instead of
+		// the undoable `#mutate` boundary.
+		this.#floatingSelection.commitIfPending();
 		this.#documentChangeJournal.commit({
 			kind: 'persisted-document-ui',
 			intent: { type: 'set-active-layer', id }
@@ -784,11 +744,7 @@ export class TabState {
 	 * to an existing layer.
 	 */
 	reorderLayer = (id: string, newVisualIndex: number): void => {
-		this.#commitIdleFloatingSelection();
-		this.#documentChangeJournal.commit({
-			kind: 'undoable-document',
-			intent: { type: 'reorder-layer', id, newVisualIndex }
-		});
+		this.#mutate({ type: 'reorder-layer', id, newVisualIndex });
 	};
 
 	/**
@@ -800,11 +756,7 @@ export class TabState {
 	 * to an existing layer.
 	 */
 	setLayerVisibility = (id: string, visible: boolean): void => {
-		this.#commitIdleFloatingSelection();
-		this.#documentChangeJournal.commit({
-			kind: 'undoable-document',
-			intent: { type: 'set-layer-visibility', id, visible }
-		});
+		this.#mutate({ type: 'set-layer-visibility', id, visible });
 	};
 
 	/**
@@ -815,11 +767,7 @@ export class TabState {
 	 * tab dirty. Throws when `id` does not exist or is not a Reference Layer.
 	 */
 	setReferencePlacement = (id: string, placement: ReferencePlacement): void => {
-		this.#commitIdleFloatingSelection();
-		this.#documentChangeJournal.commit({
-			kind: 'undoable-document',
-			intent: { type: 'set-reference-placement', id, placement }
-		});
+		this.#mutate({ type: 'set-reference-placement', id, placement });
 	};
 
 	fitReferenceLayerToCanvas = (id: string): void => {
@@ -888,15 +836,11 @@ export class TabState {
 	};
 
 	resize = (newWidth: number, newHeight: number): void => {
-		this.#commitIdleFloatingSelection();
-		this.#documentChangeJournal.commit({
-			kind: 'undoable-document',
-			intent: {
-				type: 'resize-document',
-				width: newWidth,
-				height: newHeight,
-				anchor: this.resizeAnchor
-			}
+		this.#mutate({
+			type: 'resize-document',
+			width: newWidth,
+			height: newHeight,
+			anchor: this.resizeAnchor
 		});
 	};
 
@@ -978,10 +922,9 @@ export class TabState {
 				pixels: pixels.slice()
 			};
 		});
-		const marquee =
-			this.#selectionPreviewBaselineMarquee === undefined
-				? serializeMarquee(doc.marquee())
-				: this.#selectionPreviewBaselineMarquee;
+		const marquee = serializeMarquee(
+			this.#floatingSelection.marqueeForSnapshot(doc.marquee() ?? null)
+		);
 		return {
 			id: this.documentId,
 			name: this.name,

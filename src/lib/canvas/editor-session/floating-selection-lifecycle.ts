@@ -32,6 +32,7 @@ interface FloatingSelection {
 export interface FloatingSelectionLifecycleDeps {
 	readonly getDocument: () => Document;
 	readonly applyCommit: ApplyFloatingSelectionCommit;
+	readonly getIsDrawing: () => boolean;
 }
 
 const DUPLICATE_FLOATING_OFFSET: FloatingSelectionOffset = { dx: 1, dy: 1 };
@@ -146,6 +147,10 @@ export class FloatingSelectionLifecycle {
 	#floating: FloatingSelection | null = null;
 	#selectionDragBaselineOffset: FloatingSelectionOffset | null = null;
 	#selectionDragProjectedRegion: MarqueeRegion | null = null;
+	// The Marquee to persist while a selection draw stroke mutates the live
+	// document Marquee. `undefined` means "no stroke in progress — use the live
+	// Marquee"; `null` means "the pre-stroke Marquee was empty".
+	#snapshotBaselineMarquee: MarqueeRegion | null | undefined = undefined;
 
 	constructor(deps: FloatingSelectionLifecycleDeps) {
 		this.#deps = deps;
@@ -300,6 +305,30 @@ export class FloatingSelectionLifecycle {
 		return true;
 	}
 
+	/**
+	 * Commits any pending Floating Selection before an undoable document
+	 * mutation, unless a draw stroke is in progress — a mid-stroke commit would
+	 * race the tool that is still manipulating the selection. The single
+	 * commit-before-mutation policy every mutating caller routes through.
+	 * Returns `true` when a Floating Selection was committed, `false` when there
+	 * was nothing to commit or a draw stroke was in progress.
+	 */
+	commitIfPending(): boolean {
+		if (this.#deps.getIsDrawing()) return false;
+		return this.commit();
+	}
+
+	/**
+	 * The Marquee a persistence snapshot should record: the pre-drag baseline
+	 * while a selection draw stroke is transiently mutating the live Marquee,
+	 * otherwise the live `documentMarquee` passed in.
+	 */
+	marqueeForSnapshot(documentMarquee: MarqueeRegion | null): MarqueeRegion | null {
+		return this.#snapshotBaselineMarquee === undefined
+			? documentMarquee
+			: this.#snapshotBaselineMarquee;
+	}
+
 	clipboardSnapshot(): SelectionClipboardData | null {
 		const floating = this.#floating;
 		if (floating) {
@@ -385,15 +414,14 @@ export class FloatingSelectionLifecycle {
 	withDrawStartPolicy<T>(isSelectionTool: boolean, run: () => T): T {
 		this.endSelectionDrag();
 		const restoreMarquee = isSelectionTool ? this.#projectMarqueeForSelectionDrag() : undefined;
-		if (restoreMarquee === undefined) {
-			this.commit();
-			return run();
-		}
-
 		try {
+			if (restoreMarquee === undefined) {
+				this.commit();
+			}
 			return run();
 		} finally {
 			this.#restoreMarqueeAfterSelectionDragProjection(restoreMarquee);
+			this.#captureSnapshotBaseline(isSelectionTool);
 		}
 	}
 
@@ -403,12 +431,26 @@ export class FloatingSelectionLifecycle {
 		if (isPointInsideMarquee(current, projectedRegion)) return false;
 
 		this.endSelectionDrag();
-		return this.commit();
+		if (!this.commit()) return false;
+		// The committed Floating Selection becomes the baseline for the new
+		// Marquee stroke this drag is about to start.
+		this.#captureSnapshotBaseline(true);
+		return true;
 	}
 
 	endSelectionDrag(): void {
 		this.#selectionDragBaselineOffset = null;
 		this.#selectionDragProjectedRegion = null;
+		this.#snapshotBaselineMarquee = undefined;
+	}
+
+	#captureSnapshotBaseline(isSelectionTool: boolean): void {
+		if (!isSelectionTool) {
+			this.#snapshotBaselineMarquee = undefined;
+			return;
+		}
+		const marquee = this.#deps.getDocument().marquee();
+		this.#snapshotBaselineMarquee = marquee ? copyMarqueeRegion(marquee) : null;
 	}
 
 	#resolveSelectionDragOffset(offset: FloatingSelectionOffset): FloatingSelectionOffset {

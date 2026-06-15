@@ -6,11 +6,10 @@ None.
 
 ## Last Completed
 
-[181 — Rename single-canvas history to PixelCanvasHistory and delete the fused machinery](../issues/181-pixelcanvas-history-rename.md): the core's single-canvas undo/redo is now its own `PixelCanvasHistory` species over the shared ring, and the fused `HistoryManager` (mix-path enum + runtime panics) is gone — mixing the two history species is a compile error, not a runtime guard. The History split (180 → 181) is complete. Out-of-scope follow-up: Apple's `EditorState` undo/redo pixel-restore round-trip still has no Swift test (this rename left that pre-existing gap unchanged).
+[182 — Consolidate Floating Selection orchestration out of TabState](../issues/182-consolidate-floating-selection-orchestration.md): `TabState` now drives the Floating Selection feature through the lifecycle interface — a single `#mutate` commit-before-mutation boundary (the `isDrawing` guard lives inside `commitIfPending`) plus `marqueeForSnapshot` owning the persisted-Marquee baseline; the scattered 13× commit calls and the `#selectionPreviewBaselineMarquee` field are gone. Web-only, no behavior change. Out-of-scope follow-up: paste/duplicate still have no e2e (clipboard-permission flakiness); `copyMarqueeRegion` in the baseline capture is currently redundant but kept for consistency.
 
 ## Next Up
 
-- Consolidate Floating Selection orchestration out of TabState — [182](../issues/182-consolidate-floating-selection-orchestration.md)
 - Remove dead canvas-mode DrawingOps residue — [183](../issues/183-remove-dead-canvas-mode-drawingops.md) (unblocks 185)
 - Extract `importReferenceFile` as a pure function — [184](../issues/184-extract-import-reference-file.md)
 - Frame management (add/delete/duplicate/reorder) — M4 entry; the rest of the animation cluster depends on it

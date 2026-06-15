@@ -13,7 +13,9 @@ function readPixelAt({ px, py }: { px: number; py: number }): PixelColor {
 	if (!canvas) throw new Error('Canvas not found');
 	const ctx = canvas.getContext('2d');
 	if (!ctx) throw new Error('No 2d context');
-	const p = ctx.getImageData(px, py, 1, 1).data;
+	// Round to honor getImageData's integer-pixel contract and stay stable if
+	// coordinate math ever yields fractions.
+	const p = ctx.getImageData(Math.round(px), Math.round(py), 1, 1).data;
 	return { r: p[0], g: p[1], b: p[2], a: p[3] };
 }
 
@@ -22,6 +24,12 @@ function readPixelAt({ px, py }: { px: number; py: number }): PixelColor {
  * sub-checker mode reports two checker tiles per art pixel, so the checker
  * period must be doubled and the per-axis count halved for art-pixel math.
  * Mirrors `pixel-perfect.test.ts`.
+ *
+ * Only `artPixelsAcross` parity is asserted: the default viewport may crop the
+ * art canvas bottom at a half-pixel boundary, leaving `artPixelsDown`
+ * legitimately odd, so a Y-axis parity assert would fail valid runs. These
+ * tests read near-center rows via `floor(artPixelsDown / 2)`, safe for odd
+ * heights.
  */
 function normalizeArtGrid(geo: {
 	pixelSize: number;

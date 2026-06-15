@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use dotorixel_core::canvas::PixelCanvas;
 use dotorixel_core::export::PngExport;
-use dotorixel_core::history::{HistoryManager, Snapshot};
+use dotorixel_core::history::{PixelCanvasHistory, Snapshot};
 use dotorixel_core::pixel_perfect::{FilterResult, TailState, pixel_perfect_filter};
 use dotorixel_core::tool::interpolate_pixels;
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
@@ -111,7 +111,7 @@ fn canvas_is_valid_dimension(value: u32) -> bool {
 
 #[uniffi::export]
 fn history_default_max_snapshots() -> u64 {
-    HistoryManager::DEFAULT_MAX_SNAPSHOTS as u64
+    PixelCanvasHistory::DEFAULT_MAX_SNAPSHOTS as u64
 }
 
 // --- Viewport static utilities ---
@@ -240,7 +240,7 @@ impl ApplePixelCanvas {
 /// History manager wrapper with interior mutability for thread-safe FFI access.
 #[derive(uniffi::Object)]
 pub struct AppleHistoryManager {
-    inner: Mutex<HistoryManager>,
+    inner: Mutex<PixelCanvasHistory>,
 }
 
 #[uniffi::export]
@@ -249,14 +249,14 @@ impl AppleHistoryManager {
     #[uniffi::constructor]
     fn new(max_snapshots: u64) -> Arc<Self> {
         Arc::new(Self {
-            inner: Mutex::new(HistoryManager::new(max_snapshots as usize)),
+            inner: Mutex::new(PixelCanvasHistory::new(max_snapshots as usize)),
         })
     }
 
     #[uniffi::constructor]
     fn default_manager() -> Arc<Self> {
         Arc::new(Self {
-            inner: Mutex::new(HistoryManager::default()),
+            inner: Mutex::new(PixelCanvasHistory::default()),
         })
     }
 

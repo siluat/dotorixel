@@ -6,11 +6,10 @@ None.
 
 ## Last Completed
 
-[180 — Carve out Document History over a shared generic history ring](../issues/180-document-history-shared-ring.md): the web shell's undo/redo now runs on a dedicated Document History species over a private generic ring that owns the branch-discard/evict invariant, and the WASM binding dropped its single-canvas surface. Mixing the two history species is now unrepresentable rather than runtime-guarded. The pre-split fused manager stays for Apple's single-canvas path; its duplicated document path is removed in the now-unblocked [181](../issues/181-pixelcanvas-history-rename.md).
+[181 — Rename single-canvas history to PixelCanvasHistory and delete the fused machinery](../issues/181-pixelcanvas-history-rename.md): the core's single-canvas undo/redo is now its own `PixelCanvasHistory` species over the shared ring, and the fused `HistoryManager` (mix-path enum + runtime panics) is gone — mixing the two history species is a compile error, not a runtime guard. The History split (180 → 181) is complete. Out-of-scope follow-up: Apple's `EditorState` undo/redo pixel-restore round-trip still has no Swift test (this rename left that pre-existing gap unchanged).
 
 ## Next Up
 
-- History split follow-up — `PixelCanvasHistory` onto the shared ring + remove the fused manager's dup document path — [181](../issues/181-pixelcanvas-history-rename.md)
 - Consolidate Floating Selection orchestration out of TabState — [182](../issues/182-consolidate-floating-selection-orchestration.md)
 - Remove dead canvas-mode DrawingOps residue — [183](../issues/183-remove-dead-canvas-mode-drawingops.md) (unblocks 185)
 - Extract `importReferenceFile` as a pure function — [184](../issues/184-extract-import-reference-file.md)

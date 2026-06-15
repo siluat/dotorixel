@@ -4,6 +4,8 @@
 
 Accepted (2026-05-06)
 
+Amended (2026-06-14, issue 181): the preserved single-canvas `HistoryManager` below was renamed `PixelCanvasHistory` over a shared generic history ring (issue 180) — a rename, not a data-model migration; Apple stays on the single-`PixelCanvas` model.
+
 ## Context
 
 Introducing the layer system in Milestone 3 (`086-layer-system-basic-infrastructure`) is a data-model change with the potential to affect both shells. The Rust core's `PixelCanvas` is a single flat buffer today, and the change extends it into a `Document → Layer stack`.

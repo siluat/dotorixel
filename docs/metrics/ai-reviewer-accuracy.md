@@ -6,14 +6,18 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 155 | 119 | 36 | 154 | 77% | 44% |
-| cubic-dev-ai[bot] | 113 | 91 | 22 | 179 | 81% | 34% |
-| coderabbitai[bot] | 212 | 150 | 62 | 117 | 71% | 56% |
+| greptile-apps[bot] | 155 | 119 | 36 | 155 | 77% | 43% |
+| cubic-dev-ai[bot] | 114 | 92 | 22 | 179 | 81% | 34% |
+| coderabbitai[bot] | 214 | 151 | 63 | 117 | 71% | 56% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #278 | coderabbitai[bot] | Accept | readPixelAt passed px/py to getImageData unrounded; added Math.round to honor its integer-pixel contract (coords are currently integer, so defensive + intent-revealing) |
+| #278 | cubic-dev-ai[bot] | Accept | Same px/py rounding before getImageData (duplicate of coderabbit) |
+| #278 | coderabbitai[bot] | Reject | Wanted an artPixelsDown parity assert in normalizeArtGrid; an odd Y-axis is intentional (default viewport may crop the art bottom at a half-pixel boundary, per pixel-perfect.test.ts) and tests read near-center via floor(/2) — clarified the omission in a comment |
+| #278 | greptile-apps[bot] | Miss | Did not flag the unrounded getImageData coords (5/5 "safe to merge", no line comments) |
 | #275 | coderabbitai[bot] | Accept | normalizedQuarterTurn cast `as 0\|1\|2\|3` could leak a fractional value (1.5) through `% 4`, desyncing geometry (reads 0) from the renderer (1.5·90°); added Math.trunc + regression test |
 | #275 | coderabbitai[bot] | Reject | Wanted a QuarterTurn newtype rejecting rotation > 3; quarter-turns are Z/4Z so `% 4` is the canonical reduction (4 turns ≡ 0, geometry preserved), the internal advance depends on the wrap, and the only writer is our normalized pipeline |
 | #275 | cubic-dev-ai[bot] | Reject | Claimed `natural * scale` f32 overflow breaks placement finiteness for "large valid scales"; valid scales (fit ≤256, drag ≤~1e4) stay orders below the f32 ceiling — only an already-corrupt ~1e38 scale could overflow |

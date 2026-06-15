@@ -58,14 +58,16 @@ function applyCommitToDocument(document: Document, intent: CommitFloatingSelecti
 
 function createLifecycle(document: Document) {
 	const commits: CommitFloatingSelectionIntent[] = [];
+	const drawing = { value: false };
 	const lifecycle = new FloatingSelectionLifecycle({
 		getDocument: () => document,
 		applyCommit: (intent) => {
 			commits.push(intent);
 			applyCommitToDocument(document, intent);
-		}
+		},
+		getIsDrawing: () => drawing.value
 	});
-	return { lifecycle, commits };
+	return { lifecycle, commits, drawing };
 }
 
 describe('FloatingSelectionLifecycle', () => {
@@ -160,6 +162,105 @@ describe('FloatingSelectionLifecycle', () => {
 		expect(commits).toEqual([]);
 		expect(document.marquee()).toMatchObject({ x: 1, y: 1, width: 1, height: 1 });
 		expect(lifecycle.isActive).toBe(true);
+	});
+
+	it('commitIfPending commits the active Floating Selection while idle', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		setPixel(pixels, 5, 1, 1, RED);
+		const document = singleLayerDocument(5, 5, pixels);
+		const { lifecycle, commits } = createLifecycle(document);
+		document.set_marquee(marqueeRegionFromDrag(1, 1, 1, 1));
+		lifecycle.nudgeMarquee({ dx: 1, dy: 0 });
+
+		expect(lifecycle.commitIfPending()).toBe(true);
+
+		expect(commits).toHaveLength(1);
+		expect(lifecycle.isActive).toBe(false);
+		expect(pixelAt(document, 2, 1)).toEqual(RED);
+	});
+
+	it('commitIfPending leaves the Floating Selection floating while a draw stroke is in progress', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		setPixel(pixels, 5, 1, 1, RED);
+		const document = singleLayerDocument(5, 5, pixels);
+		const { lifecycle, commits, drawing } = createLifecycle(document);
+		document.set_marquee(marqueeRegionFromDrag(1, 1, 1, 1));
+		lifecycle.nudgeMarquee({ dx: 1, dy: 0 });
+		drawing.value = true;
+
+		expect(lifecycle.commitIfPending()).toBe(false);
+
+		expect(commits).toEqual([]);
+		expect(lifecycle.isActive).toBe(true);
+	});
+
+	it('commitIfPending is a no-op when no Floating Selection is active', () => {
+		const document = singleLayerDocument(5, 5, new Uint8Array(5 * 5 * 4));
+		const { lifecycle, commits } = createLifecycle(document);
+
+		expect(lifecycle.commitIfPending()).toBe(false);
+
+		expect(commits).toEqual([]);
+	});
+
+	it('marqueeForSnapshot returns the live document Marquee when no selection stroke is active', () => {
+		const document = singleLayerDocument(5, 5, new Uint8Array(5 * 5 * 4));
+		const { lifecycle } = createLifecycle(document);
+		const live = marqueeRegionFromDrag(1, 1, 2, 2);
+
+		expect(lifecycle.marqueeForSnapshot(live)).toBe(live);
+		expect(lifecycle.marqueeForSnapshot(null)).toBeNull();
+	});
+
+	it('marqueeForSnapshot holds the pre-drag baseline while a selection draw is live', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		setPixel(pixels, 5, 1, 1, RED);
+		const document = singleLayerDocument(5, 5, pixels);
+		const { lifecycle } = createLifecycle(document);
+		document.set_marquee(marqueeRegionFromDrag(1, 1, 1, 1));
+		lifecycle.nudgeMarquee({ dx: 1, dy: 0 });
+
+		lifecycle.withDrawStartPolicy(true, () => undefined);
+		// Live document Marquee moves to the dragged position mid-stroke...
+		document.set_marquee(marqueeRegionFromDrag(3, 3, 3, 3));
+
+		// ...but the snapshot keeps the pre-drag baseline.
+		expect(lifecycle.marqueeForSnapshot(document.marquee() ?? null)).toMatchObject({
+			x: 1,
+			y: 1,
+			width: 1,
+			height: 1
+		});
+
+		lifecycle.endSelectionDrag();
+		expect(lifecycle.marqueeForSnapshot(document.marquee() ?? null)).toMatchObject({
+			x: 3,
+			y: 3,
+			width: 1,
+			height: 1
+		});
+	});
+
+	it('marqueeForSnapshot keeps an independent baseline copy after the live document Marquee is replaced or cleared', () => {
+		const document = singleLayerDocument(5, 5, new Uint8Array(5 * 5 * 4));
+		const { lifecycle } = createLifecycle(document);
+		document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 2));
+
+		// A selection stroke captures the pre-stroke Marquee as the snapshot baseline.
+		lifecycle.withDrawStartPolicy(true, () => undefined);
+
+		// The live document Marquee is replaced...
+		document.set_marquee(marqueeRegionFromDrag(4, 4, 4, 4));
+		expect(lifecycle.marqueeForSnapshot(document.marquee() ?? null)).toMatchObject({
+			x: 1,
+			y: 1,
+			width: 2,
+			height: 2
+		});
+
+		// ...then cleared entirely, yet the baseline copy is independent and survives.
+		document.set_marquee(null);
+		expect(lifecycle.marqueeForSnapshot(null)).toMatchObject({ x: 1, y: 1, width: 2, height: 2 });
 	});
 
 	it('commits when the next Selection drag starts outside the projected Floating Selection', () => {

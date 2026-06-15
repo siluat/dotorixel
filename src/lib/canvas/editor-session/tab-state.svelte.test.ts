@@ -227,6 +227,34 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.toSnapshot().marquee).toEqual({ x: 5, y: 5, width: 2, height: 2 });
 	});
 
+	it('keeps the committed Marquee in snapshots while a new selection drag redraws after an outside-drag commit', () => {
+		const { tab, shared } = makeTab();
+		shared.activeTool = 'selection';
+
+		// Float a Marquee, then start the next selection drag from outside it: the
+		// Floating commits and a brand-new Marquee drag begins in the same stroke.
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 2));
+		tab.nudgeMarquee(1, 1); // Floating offset {1,1}; projected region {2,2,2,2}
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 6, y: 6 }, null); // outside the projected Floating → commit
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(tab.toSnapshot().marquee).toEqual({ x: 2, y: 2, width: 2, height: 2 });
+
+		// While the new Marquee is being dragged out, the snapshot must keep the
+		// just-committed Marquee, not the in-progress preview.
+		tab.draw({ x: 7, y: 7 }, { x: 6, y: 6 });
+
+		expect(tab.document.marquee()).toMatchObject({ x: 6, y: 6, width: 2, height: 2 });
+		expect(tab.toSnapshot().marquee).toEqual({ x: 2, y: 2, width: 2, height: 2 });
+
+		// The new Marquee only reaches the snapshot once the stroke ends.
+		tab.drawEnd();
+
+		expect(tab.toSnapshot().marquee).toEqual({ x: 6, y: 6, width: 2, height: 2 });
+	});
+
 	it('drawEnd exposes the committed Marquee to synchronous dirty snapshots', () => {
 		const shared = new SharedState();
 		shared.activeTool = 'selection';
@@ -261,6 +289,42 @@ describe('TabState — effect dispatcher', () => {
 		tab.drawEnd();
 
 		expect(dirtySnapshots).toEqual([{ x: 5, y: 5, width: 2, height: 2 }]);
+	});
+
+	it('drawStart exposes the committed Marquee to synchronous dirty snapshots when a non-selection draw commits an idle Floating Selection', () => {
+		const shared = new SharedState();
+		shared.activeTool = 'selection';
+		let tab: TabState | undefined;
+		const dirtySnapshots: Array<ReturnType<TabState['toSnapshot']>['marquee']> = [];
+		tab = new TabState({
+			backend: wasmBackend,
+			shared,
+			keyboard: { getShiftHeld: () => false },
+			notifier: {
+				markDirty() {
+					if (!tab) throw new Error('Expected TabState to be initialized');
+					dirtySnapshots.push(tab.toSnapshot().marquee);
+				},
+				notifyTabRemoved() {}
+			},
+			documentId: 'doc-test',
+			name: 'Untitled 1',
+			canvasWidth: 8,
+			canvasHeight: 8
+		});
+
+		// Float a Marquee, then switch to a non-selection tool.
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 2, 2));
+		tab.nudgeMarquee(1, 1); // Floating offset {1,1}
+		dirtySnapshots.length = 0;
+
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+
+		// The idle Floating Selection commits first during drawStart; its
+		// synchronous dirty snapshot must record the committed Marquee.
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(dirtySnapshots[0]).toEqual({ x: 2, y: 2, width: 2, height: 2 });
 	});
 
 	it('selection drawCancel restores the previous Marquee without a dirty commit', () => {

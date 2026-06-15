@@ -1,6 +1,6 @@
 ---
 title: Extract importReferenceFile as a pure function out of the References store
-status: ready-for-agent
+status: done
 created: 2026-06-14
 ---
 
@@ -31,3 +31,19 @@ Note for the implementer: `#importOne` mints `id: crypto.randomUUID()` and `adde
 ## Blocked by
 
 None - can start immediately.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/reference-images/import-reference-file.ts` | New module. `importReferenceFile(file)` — the validate → decode → thumbnail → mint orchestration lifted out of the store as a standalone async function. Owns `ImportError` and the `ImportFileResult` result type and the `THUMBNAIL_LONGEST_EDGE` constant. |
+| `src/lib/reference-images/import-reference-file.test.ts` | New isolated unit tests (5): success shape, `unsupported-format`, `too-large`, decoder-throws `decode-failed`, missing-2D-context `decode-failed` — none construct the References store. |
+| `src/lib/reference-images/references.svelte.ts` | `#importOne` deleted; `importToGallery`/`importDroppedBatch` delegate to `importReferenceFile`. Store keeps sequencing, `add`, drop-batch placement/cascade, and error collection. Re-exports `ImportError` so existing consumers keep their import path. |
+
+### Key Decisions
+- **`ImportError` lives in the new module, re-exported from the store.** `+page.svelte` imports `ImportError` from `references.svelte`; a `export type { ImportError }` re-export keeps that path working without churn. `ImportFileError` (the `File`-paired batch shape) stays in the store — it is the batch-reporting concept, not part of the per-file result.
+- **`id`/`addedAt` minted inline** (`crypto.randomUUID()` / `new Date()`), per the issue's implementer-discretion note; tests assert the success result structurally (id is a non-empty string, `addedAt instanceof Date`) rather than injecting a clock.
+
+### Notes
+- Behavior-preserving: 40 store tests + 5 new unit tests, full unit suite (1459) and all e2e (100) green; `svelte-check` clean.
+- The repo has **no prettier config** (no `.prettierrc`, no `prettier` key) and no `format` script; the convention is **tab** indentation. `prettier --write` falls back to its 2-space default and silently reformats whole files — do not run it here. New files were authored with tabs to match siblings.

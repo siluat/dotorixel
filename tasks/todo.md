@@ -2,7 +2,6 @@
 
 ## Architecture deepening (robustness & clarity)
 
-- Extract `importReferenceFile` as a pure function out of the References store — [184](../issues/184-extract-import-reference-file.md)
 - Dissolve the CanvasBackend umbrella; editor-session imports wasm adapters directly — [185](../issues/185-dissolve-canvas-backend-umbrella.md)
 
 ## Milestone 4: Animation-Capable Editor

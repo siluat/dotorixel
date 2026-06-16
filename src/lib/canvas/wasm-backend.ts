@@ -35,7 +35,6 @@ import type {
 } from '$lib/session/session-storage-types';
 import { effectivePixelSize, type ViewportData, type ViewportOps } from './viewport';
 import type { DrawingOps, DrawingToolType, MarqueeBounds } from './drawing-ops';
-import type { CanvasBackend } from './editor-session/canvas-backend';
 
 // ── Internal mappings ───────────────────────────────────────────────
 
@@ -450,18 +449,3 @@ export function singleLayerDocument(
 	builder.add_layer(id, 'Layer 1', pixels.slice(), true, 1);
 	return builder.build(id, 2, false);
 }
-
-// ── CanvasBackend umbrella ─────────────────────────────────────────
-
-/**
- * Production `CanvasBackend` — aggregates the WASM-backed adapters above
- * into the single injection point consumed by editor-session layers
- * (TabState, Workspace). Individual exports remain available for callers
- * that need a narrower dependency.
- */
-export const wasmBackend: CanvasBackend = {
-	canvasFactory,
-	canvasConstraints,
-	viewportOps,
-	createDocumentHistory
-};

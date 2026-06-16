@@ -2,13 +2,11 @@ import type { Color } from '../color';
 import type { WorkspaceSnapshot } from '../workspace-snapshot';
 import { createKeyboardInput, type KeyboardInput } from '../keyboard-input.svelte';
 import { ConstrainLatch } from '../constrain-latch.svelte';
-import type { CanvasBackend } from './canvas-backend';
 import type { DirtyNotifier } from './dirty-notifier';
 import { EditorController } from './editor-controller.svelte';
 import { Workspace } from './workspace.svelte';
 
 export interface CreateEditorControllerOptions {
-	readonly backend: CanvasBackend;
 	readonly notifier: DirtyNotifier;
 	readonly gridColor?: string;
 	readonly initialForegroundColor?: Color;
@@ -49,7 +47,6 @@ export function createEditorController(
 	});
 
 	const workspace = new Workspace({
-		backend: options.backend,
 		notifier: options.notifier,
 		// The held-modifier state every constrainable tool reads is the OR of
 		// keyboard Shift and the touch Constrain latch — either source alone

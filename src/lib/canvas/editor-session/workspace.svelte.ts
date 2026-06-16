@@ -11,14 +11,12 @@ import type {
 } from '../workspace-snapshot';
 import { documentFromLayerSource, singleLayerDocument } from '../wasm-backend';
 import { References } from '$lib/reference-images/references.svelte';
-import type { CanvasBackend } from './canvas-backend';
 import type { DirtyNotifier } from './dirty-notifier';
 import { TabState } from './tab-state.svelte';
 
 const UNTITLED_PATTERN = /^Untitled (\d+)$/;
 
 export interface WorkspaceDeps {
-	readonly backend: CanvasBackend;
 	readonly notifier: DirtyNotifier;
 	readonly keyboard: { readonly getShiftHeld: () => boolean };
 	readonly gridColor?: string;
@@ -28,7 +26,7 @@ export interface WorkspaceDeps {
 
 /**
  * Config passed to `createTab` / `addTab` callers. `createTab` bakes in the
- * workspace's ambient deps (backend, shared, keyboard, notifier) so callers
+ * workspace's ambient deps (shared, keyboard, notifier) so callers
  * only need to describe the document.
  */
 export interface CreateTabConfig {
@@ -71,9 +69,8 @@ function copySelectionClipboard(
 
 /**
  * Workspace owns the tab collection, the single `SharedState` instance, and
- * the two editor-session ports (`CanvasBackend`, `DirtyNotifier`). All tabs
- * see the same `SharedState` by reference — mutating it is immediately
- * visible everywhere.
+ * the editor-session `DirtyNotifier` port. All tabs see the same `SharedState`
+ * by reference — mutating it is immediately visible everywhere.
  *
  * Auto-emits `DirtyNotifier` calls on tab lifecycle events (`addTab`,
  * `openDocument`, `closeTab`) and on shared-state setter methods
@@ -87,7 +84,6 @@ export class Workspace {
 	tabs = $state<TabState[]>([]);
 	activeIndex = $state(0);
 
-	#backend: CanvasBackend;
 	#notifier: DirtyNotifier;
 	#keyboard: { readonly getShiftHeld: () => boolean };
 	#gridColor?: string;
@@ -97,7 +93,6 @@ export class Workspace {
 	}
 
 	constructor(deps: WorkspaceDeps) {
-		this.#backend = deps.backend;
 		this.#notifier = deps.notifier;
 		this.#keyboard = deps.keyboard;
 		this.#gridColor = deps.gridColor;
@@ -138,7 +133,6 @@ export class Workspace {
 		const documentId = config.documentId ?? `doc-${crypto.randomUUID()}`;
 		const name = config.name ?? this.#nextUntitledName();
 		return new TabState({
-			backend: this.#backend,
 			shared: this.shared,
 			keyboard: this.#keyboard,
 			notifier: this.#notifier,

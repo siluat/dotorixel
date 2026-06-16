@@ -1,6 +1,6 @@
 ---
 title: Dissolve the CanvasBackend umbrella; editor-session imports the wasm adapters directly
-status: ready-for-agent
+status: done
 created: 2026-06-14
 ---
 
@@ -35,3 +35,24 @@ Remove the `CanvasBackend` umbrella and its injection chain; have the editor-ses
 ## Blocked by
 
 - Issue 183 (Remove dead canvas-mode DrawingOps residue) — it removes the dead `createDrawingOps` member first, leaving a clean 4-member umbrella to dissolve and keeping the two issues' edits to `wasm-backend` and `CanvasBackend` non-overlapping.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/editor-session/canvas-backend.ts` | Deleted — the `CanvasBackend` interface is gone. |
+| `src/lib/canvas/wasm-backend.ts` | Removed the `wasmBackend` aggregate object and its `CanvasBackend` import; the four adapters remain individually exported. |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | Dropped the `backend` dep; direct-imports `viewportOps`/`canvasFactory` alongside the existing `wasm-backend` imports. |
+| `src/lib/canvas/editor-session/workspace.svelte.ts` | Dropped the `backend` dep and stopped threading it into `TabState`; doc comments updated. |
+| `src/lib/canvas/editor-session/create-editor-controller.ts`, `src/lib/session/session.ts`, `src/routes/editor/+page.svelte` | Stopped threading `backend` through the session construction paths. |
+| 5 test files (tab-state, workspace, editor-controller, session, session-persistence) | Dropped `backend: wasmBackend` injection; tab-state test switched its two `wasmBackend.viewportOps` reads to the directly-imported `viewportOps`. |
+
+### Key Decisions
+
+- The four adapter names match the current code (`createDocumentHistory`, not the issue's older `createHistoryManager` wording, which was renamed by #277). No behavior or rename beyond removing the umbrella.
+
+### Notes
+
+- The actual code had a 4-member umbrella (`canvasFactory`, `canvasConstraints`, `viewportOps`, `createDocumentHistory`) — #183 had already dropped the dead `createDrawingOps`, as the blocker intended.
+- The meaningful injection seams are preserved: `TabViewport` still takes a `ViewportOps`, and `DocumentChangeJournal` still takes an injected `createDocumentHistory` (with a fake in its test). Only the hollow umbrella was removed.
+- Web-only — no `CONTEXT.md`, ADR, or `platform-status.md` change. Verified green: unit 1459, e2e 100 (chromium), `bun run check` 0/0.

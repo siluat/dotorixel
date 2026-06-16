@@ -1,5 +1,4 @@
 import type { Color } from '$lib/canvas/color';
-import type { CanvasBackend } from '$lib/canvas/editor-session/canvas-backend';
 import type { TabSnapshot } from '$lib/canvas/workspace-snapshot';
 import { createAutoSaveDirtyNotifier } from '$lib/canvas/editor-session/dirty-notifier';
 import { createEditorController } from '$lib/canvas/editor-session/create-editor-controller';
@@ -53,7 +52,6 @@ const NO_OP_SESSION: SessionHandle = {
 };
 
 export interface OpenSessionOptions {
-	backend: CanvasBackend;
 	foregroundColor?: Color;
 	gridColor?: string;
 	debounceMs?: number;
@@ -85,7 +83,6 @@ export async function openSession(
 		const notifier = createAutoSaveDirtyNotifier(autoSave);
 
 		const editor = createEditorController({
-			backend: options.backend,
 			notifier,
 			gridColor: options.gridColor,
 			initialForegroundColor: options.foregroundColor,
@@ -113,7 +110,6 @@ export async function openSession(
 		storage?.close();
 		console.warn('Session persistence unavailable, starting with a fresh workspace:', error);
 		const editor = createEditorController({
-			backend: options.backend,
 			notifier: { markDirty() {}, notifyTabRemoved() {} },
 			gridColor: options.gridColor,
 			initialForegroundColor: options.foregroundColor

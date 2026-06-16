@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { EditorController } from './editor-controller.svelte';
 import { createEditorController, type CreateEditorControllerOptions } from './create-editor-controller';
-import { marqueeRegionFromDrag, wasmBackend } from '../wasm-backend';
+import { marqueeRegionFromDrag } from '../wasm-backend';
 import { createFakeDirtyNotifier } from './fake-dirty-notifier';
 import type { Color } from '../color';
 import type { CanvasCoords } from '../canvas-model';
@@ -14,7 +14,6 @@ const RED: Color = { r: 255, g: 0, b: 0, a: 255 };
 function makeController(overrides: Partial<CreateEditorControllerOptions> = {}) {
 	const notifier = createFakeDirtyNotifier();
 	const editor = createEditorController({
-		backend: wasmBackend,
 		notifier,
 		...overrides
 	});

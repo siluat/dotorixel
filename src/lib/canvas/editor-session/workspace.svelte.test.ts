@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { Workspace, type WorkspaceDeps } from './workspace.svelte';
-import { marqueeRegionFromDrag, wasmBackend, singleLayerDocument } from '../wasm-backend';
+import { marqueeRegionFromDrag, singleLayerDocument } from '../wasm-backend';
 import { createFakeDirtyNotifier } from './fake-dirty-notifier';
 import type { TabSnapshot, WorkspaceSnapshot } from '../workspace-snapshot';
 import { tabSnapshotFixture as makeTabSnap } from '../workspace-snapshot-fixtures';
@@ -9,7 +9,6 @@ import { tabSnapshotFixture as makeTabSnap } from '../workspace-snapshot-fixture
 function makeWorkspace(overrides: Omit<Partial<WorkspaceDeps>, 'notifier'> = {}) {
 	const notifier = createFakeDirtyNotifier();
 	const workspace = new Workspace({
-		backend: wasmBackend,
 		notifier,
 		keyboard: { getShiftHeld: () => false },
 		...overrides

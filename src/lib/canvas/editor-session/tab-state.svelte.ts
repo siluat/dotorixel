@@ -9,12 +9,14 @@ import type {
 	SelectionClipboardData
 } from '../canvas-model';
 import {
+	canvasFactory,
 	clearActiveLayerPixels,
 	createDocumentHistory,
 	fitReferencePlacementToCanvas,
 	marqueeRegionFromDrag,
 	resizeDocumentWithAnchor,
-	singleLayerDocument
+	singleLayerDocument,
+	viewportOps
 } from '../wasm-backend';
 import { isBlankCanvas } from '../blank-detection';
 import type { ViewportData, ViewportSize } from '../viewport';
@@ -46,7 +48,6 @@ import {
 	referenceLayerUnderlaySourceCoords,
 	type ReferenceLayerUnderlay
 } from '../reference-layer-underlay';
-import type { CanvasBackend } from './canvas-backend';
 import type { DirtyNotifier } from './dirty-notifier';
 import {
 	DocumentChangeJournal,
@@ -100,7 +101,6 @@ interface SelectionCutSnapshot {
 }
 
 export interface TabStateDeps {
-	readonly backend: CanvasBackend;
 	readonly shared: SharedState;
 	readonly keyboard: { readonly getShiftHeld: () => boolean };
 	readonly notifier: DirtyNotifier;
@@ -212,7 +212,6 @@ export class TabState {
 		return true;
 	}
 
-	#backend: CanvasBackend;
 	#notifier: DirtyNotifier;
 	#toolRunner: ToolRunner;
 	#tabViewport: TabViewport;
@@ -268,7 +267,6 @@ export class TabState {
 	}
 
 	constructor(deps: TabStateDeps) {
-		this.#backend = deps.backend;
 		this.#notifier = deps.notifier;
 		this.shared = deps.shared;
 		this.documentId = deps.documentId;
@@ -289,7 +287,7 @@ export class TabState {
 		if (deps.viewport) {
 			initialViewport = deps.viewport;
 		} else {
-			const vd = this.#backend.viewportOps.forCanvas(this.document.width, this.document.height);
+			const vd = viewportOps.forCanvas(this.document.width, this.document.height);
 			initialViewport = deps.gridColor ? { ...vd, gridColor: deps.gridColor } : vd;
 		}
 
@@ -302,7 +300,7 @@ export class TabState {
 				height: self.document.height
 			}),
 			getReferenceFootprint: () => self.#activeReferenceFootprint(),
-			viewportOps: this.#backend.viewportOps,
+			viewportOps,
 			notifier: this.#notifier,
 			documentId: this.documentId
 		});
@@ -458,8 +456,8 @@ export class TabState {
 	}
 
 	#visibleCanvasRect(): DocumentRect | null {
-		const topLeft = this.#backend.viewportOps.screenToCanvasPoint(this.viewport, 0, 0);
-		const bottomRight = this.#backend.viewportOps.screenToCanvasPoint(
+		const topLeft = viewportOps.screenToCanvasPoint(this.viewport, 0, 0);
+		const bottomRight = viewportOps.screenToCanvasPoint(
 			this.viewport,
 			this.viewportSize.width,
 			this.viewportSize.height
@@ -866,7 +864,7 @@ export class TabState {
 	 * one-shot snapshot; callers must not retain it across mutations.
 	 */
 	exportableSnapshot = (): PixelCanvas => {
-		return this.#backend.canvasFactory.fromPixels(
+		return canvasFactory.fromPixels(
 			this.document.width,
 			this.document.height,
 			this.document.composite_for_export()

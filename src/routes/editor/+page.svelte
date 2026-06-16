@@ -3,7 +3,6 @@
 	import { createEditorController } from '$lib/canvas/editor-session/create-editor-controller';
 	import type { EditorController } from '$lib/canvas/editor-session/editor-controller.svelte';
 	import type { TabState } from '$lib/canvas/editor-session/tab-state.svelte';
-	import { wasmBackend } from '$lib/canvas/wasm-backend';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 	import { createLayoutMode } from '$lib/ui-editor/layout-mode.svelte';
 	import TopBar from '$lib/ui-editor/TopBar.svelte';
@@ -54,7 +53,6 @@
 
 	let editor = $state<EditorController>(
 		createEditorController({
-			backend: wasmBackend,
 			notifier: { markDirty() {}, notifyTabRemoved() {} },
 			initialForegroundColor: { r: 0, g: 0, b: 0, a: 255 },
 			gridColor: '#ECE5D9'
@@ -476,7 +474,6 @@
 		document.documentElement.dataset.sessionState = 'loading';
 
 		openSession({
-			backend: wasmBackend,
 			gridColor: '#ECE5D9',
 			foregroundColor: { r: 0, g: 0, b: 0, a: 255 }
 		}).then((result) => {

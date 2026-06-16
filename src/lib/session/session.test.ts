@@ -3,7 +3,6 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { openSession } from './session';
 import { SessionStorage } from './session-storage';
-import { wasmBackend } from '$lib/canvas/wasm-backend';
 import type { Color } from '$lib/canvas/color';
 import type { ViewportData } from '$lib/canvas/viewport';
 import type { TabState } from '$lib/canvas/editor-session/tab-state.svelte';
@@ -23,7 +22,6 @@ describe('openSession', () => {
 
 	it('returns an editor with one default tab when no prior session exists', async () => {
 		const { editor, session } = await openSession({
-			backend: wasmBackend,
 			gridColor: '#ECE5D9'
 		});
 
@@ -35,7 +33,6 @@ describe('openSession', () => {
 
 	it('preserves pixel data across save and restore', async () => {
 		const { editor, session } = await openSession({
-			backend: wasmBackend,
 			gridColor: '#ECE5D9'
 		});
 
@@ -45,7 +42,6 @@ describe('openSession', () => {
 		session.dispose();
 
 		const { editor: restored, session: session2 } = await openSession({
-			backend: wasmBackend,
 			gridColor: '#ECE5D9'
 		});
 
@@ -60,7 +56,6 @@ describe('openSession', () => {
 
 	it('preserves multiple tabs with per-tab viewport state', async () => {
 		const { editor, session } = await openSession({
-			backend: wasmBackend,
 			gridColor: '#ECE5D9'
 		});
 
@@ -81,7 +76,6 @@ describe('openSession', () => {
 		session.dispose();
 
 		const { editor: restored, session: session2 } = await openSession({
-			backend: wasmBackend,
 			gridColor: '#ECE5D9'
 		});
 
@@ -105,7 +99,6 @@ describe('openSession', () => {
 
 	it('removes closed tab from storage on next save', async () => {
 		const { editor, session } = await openSession({
-			backend: wasmBackend,
 			gridColor: '#ECE5D9'
 		});
 
@@ -123,7 +116,6 @@ describe('openSession', () => {
 		session.dispose();
 
 		const { editor: restored, session: session2 } = await openSession({
-			backend: wasmBackend,
 			gridColor: '#ECE5D9'
 		});
 
@@ -137,7 +129,6 @@ describe('openSession', () => {
 		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 
 		const { editor, session } = await openSession({
-			backend: wasmBackend,
 			gridColor: '#ECE5D9',
 			debounceMs: 3000
 		});
@@ -151,7 +142,6 @@ describe('openSession', () => {
 
 		// Before debounce expires: nothing saved yet
 		const { editor: before, session: sessionBefore } = await openSession({
-			backend: wasmBackend,
 			gridColor: '#ECE5D9'
 		});
 		expect(before.workspace.tabs[0].documentId).not.toBe(docId);
@@ -165,7 +155,6 @@ describe('openSession', () => {
 		vi.useRealTimers();
 
 		const { editor: after, session: session2 } = await openSession({
-			backend: wasmBackend,
 			gridColor: '#ECE5D9'
 		});
 		expect(after.workspace.tabs).toHaveLength(1);
@@ -175,7 +164,6 @@ describe('openSession', () => {
 
 	it('flush does not error when nothing is dirty', async () => {
 		const { session } = await openSession({
-			backend: wasmBackend,
 			gridColor: '#ECE5D9'
 		});
 
@@ -188,7 +176,6 @@ describe('openSession', () => {
 		vi.spyOn(SessionStorage, 'open').mockRejectedValueOnce(new Error('IndexedDB unavailable'));
 
 		const { editor, session } = await openSession({
-			backend: wasmBackend,
 			gridColor: '#ECE5D9'
 		});
 

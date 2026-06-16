@@ -10,7 +10,7 @@ import {
 	type TabSnapshotFixtureOpts
 } from '$lib/canvas/workspace-snapshot-fixtures';
 import { Workspace } from '$lib/canvas/editor-session/workspace.svelte';
-import { marqueeRegionFromDrag, wasmBackend } from '$lib/canvas/wasm-backend';
+import { marqueeRegionFromDrag } from '$lib/canvas/wasm-backend';
 import { createFakeDirtyNotifier } from '$lib/canvas/editor-session/fake-dirty-notifier';
 import { SessionPersistence } from './session-persistence';
 import { SessionStorage } from './session-storage';
@@ -162,7 +162,6 @@ describe('SessionPersistence', () => {
 	it('reloads a saved Workspace Marquee into Document.marquee()', async () => {
 		const notifier = createFakeDirtyNotifier();
 		const workspace = new Workspace({
-			backend: wasmBackend,
 			notifier,
 			keyboard: { getShiftHeld: () => false }
 		});
@@ -171,7 +170,6 @@ describe('SessionPersistence', () => {
 		await persistence.save(workspace.toSnapshot());
 		const restored = await persistence.restore();
 		const reloaded = new Workspace({
-			backend: wasmBackend,
 			notifier: createFakeDirtyNotifier(),
 			keyboard: { getShiftHeld: () => false },
 			restored: restored!
@@ -428,7 +426,6 @@ describe('SessionPersistence', () => {
 
 		const restored = await persistence.restore();
 		const workspace = new Workspace({
-			backend: wasmBackend,
 			notifier: createFakeDirtyNotifier(),
 			keyboard: { getShiftHeld: () => false },
 			restored: restored!
@@ -505,7 +502,6 @@ describe('SessionPersistence', () => {
 
 		const restored = await persistence.restore();
 		const workspace = new Workspace({
-			backend: wasmBackend,
 			notifier: createFakeDirtyNotifier(),
 			keyboard: { getShiftHeld: () => false },
 			restored: restored!
@@ -904,7 +900,6 @@ describe('SessionPersistence', () => {
 		// First session: build a multi-layer document and persist it.
 		const notifier1 = createFakeDirtyNotifier();
 		const ws1 = new Workspace({
-			backend: wasmBackend,
 			notifier: notifier1,
 			keyboard: { getShiftHeld: () => false }
 		});
@@ -923,7 +918,6 @@ describe('SessionPersistence', () => {
 		expect(restored).not.toBeNull();
 
 		const ws2 = new Workspace({
-			backend: wasmBackend,
 			notifier: createFakeDirtyNotifier(),
 			keyboard: { getShiftHeld: () => false },
 			restored: restored!

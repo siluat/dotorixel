@@ -6,11 +6,10 @@ None.
 
 ## Last Completed
 
-[184 — Extract importReferenceFile as a pure function](../issues/184-extract-import-reference-file.md): per-file reference import (validate → decode → thumbnail → mint) is now a standalone pure function alongside the other import helpers; the References store delegates and keeps only sequencing/`add`/drop-cascade/error-collection. Behavior-preserving (unit + e2e green). The review's gesture-mirror headline was dropped as structurally inapt — only this extraction remained.
+[185 — Dissolve the CanvasBackend umbrella](../issues/185-dissolve-canvas-backend-umbrella.md): the umbrella port is gone — editor-session layers (TabState/Workspace) and the session construction paths now import the wasm adapters directly. The seams that earn their keep are preserved (TabViewport still takes a `ViewportOps`; the change journal still takes an injected `createDocumentHistory` with a test fake). Behavior-preserving (unit + e2e green).
 
 ## Next Up
 
-- Dissolve the `CanvasBackend` umbrella; editor-session imports wasm adapters directly — [185](../issues/185-dissolve-canvas-backend-umbrella.md)
 - Frame management (add/delete/duplicate/reorder) — M4 entry; the rest of the animation cluster depends on it
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
 - Apple Phase 1 — Enable clear canvas (existing disabled button)

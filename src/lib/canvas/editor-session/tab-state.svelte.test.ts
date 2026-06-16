@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { TabState, type TabStateDeps } from './tab-state.svelte';
 import {
-	wasmBackend,
+	viewportOps,
 	singleLayerDocument,
 	documentFromLayerSource,
 	marqueeRegionFromDrag
@@ -59,7 +59,6 @@ function makeTab(overrides: Omit<Partial<TabStateDeps>, 'notifier'> = {}) {
 	const shared = overrides.shared ?? new SharedState();
 	const notifier = createFakeDirtyNotifier();
 	const tab = new TabState({
-		backend: wasmBackend,
 		shared,
 		keyboard: { getShiftHeld: () => false },
 		notifier,
@@ -261,7 +260,6 @@ describe('TabState — effect dispatcher', () => {
 		let tab: TabState | undefined;
 		const dirtySnapshots: Array<ReturnType<TabState['toSnapshot']>['marquee']> = [];
 		tab = new TabState({
-			backend: wasmBackend,
 			shared,
 			keyboard: { getShiftHeld: () => false },
 			notifier: {
@@ -297,7 +295,6 @@ describe('TabState — effect dispatcher', () => {
 		let tab: TabState | undefined;
 		const dirtySnapshots: Array<ReturnType<TabState['toSnapshot']>['marquee']> = [];
 		tab = new TabState({
-			backend: wasmBackend,
 			shared,
 			keyboard: { getShiftHeld: () => false },
 			notifier: {
@@ -1372,7 +1369,7 @@ describe('TabState — effect dispatcher', () => {
 
 		tab.resize(8, 8);
 
-		const reapplied = wasmBackend.viewportOps.clampPan(
+		const reapplied = viewportOps.clampPan(
 			tab.viewport,
 			tab.document.width,
 			tab.document.height,
@@ -2098,7 +2095,7 @@ describe('TabState — Reference underlay render source', () => {
 		// canvas-only clamp. The detailed bounds math is covered by the
 		// navigation-bounds and tab-viewport tests; here we only assert that
 		// TabState feeds the footprint through to the viewport's clamp.
-		const canvasOnly = wasmBackend.viewportOps.clampPan(
+		const canvasOnly = viewportOps.clampPan(
 			requested,
 			tab.document.width,
 			tab.document.height,

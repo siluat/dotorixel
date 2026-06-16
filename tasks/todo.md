@@ -1,9 +1,5 @@
 # Todo
 
-## Architecture deepening (robustness & clarity)
-
-- Dissolve the CanvasBackend umbrella; editor-session imports wasm adapters directly — [185](../issues/185-dissolve-canvas-backend-umbrella.md)
-
 ## Milestone 4: Animation-Capable Editor
 
 - Frame management (add/delete/duplicate/reorder)

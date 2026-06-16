@@ -260,7 +260,7 @@ describe('TabState — effect dispatcher', () => {
 		let tab: TabState | undefined;
 		const dirtySnapshots: Array<ReturnType<TabState['toSnapshot']>['marquee']> = [];
 		tab = new TabState({
-				shared,
+			shared,
 			keyboard: { getShiftHeld: () => false },
 			notifier: {
 				markDirty() {
@@ -295,7 +295,7 @@ describe('TabState — effect dispatcher', () => {
 		let tab: TabState | undefined;
 		const dirtySnapshots: Array<ReturnType<TabState['toSnapshot']>['marquee']> = [];
 		tab = new TabState({
-				shared,
+			shared,
 			keyboard: { getShiftHeld: () => false },
 			notifier: {
 				markDirty() {

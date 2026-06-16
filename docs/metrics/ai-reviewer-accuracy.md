@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 155 | 119 | 36 | 155 | 77% | 43% |
-| cubic-dev-ai[bot] | 114 | 92 | 22 | 179 | 81% | 34% |
-| coderabbitai[bot] | 214 | 151 | 63 | 117 | 71% | 56% |
+| greptile-apps[bot] | 156 | 120 | 36 | 155 | 77% | 44% |
+| cubic-dev-ai[bot] | 114 | 92 | 22 | 180 | 81% | 34% |
+| coderabbitai[bot] | 214 | 151 | 63 | 118 | 71% | 56% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #281 | greptile-apps[bot] | Accept | Two `shared,` lines over-indented (tab 4 vs sibling 3) in the inline `new TabState({…})` blocks — bulk-edit artifact from dropping the `backend: wasmBackend,` line above each |
+| #281 | cubic-dev-ai[bot] | Miss | Did not flag the over-indented `shared,` artifact ("No issues found" across 16 files) |
+| #281 | coderabbitai[bot] | Miss | Did not flag the over-indented `shared,` artifact (APPROVED, no actionable comments) |
 | #278 | coderabbitai[bot] | Accept | readPixelAt passed px/py to getImageData unrounded; added Math.round to honor its integer-pixel contract (coords are currently integer, so defensive + intent-revealing) |
 | #278 | cubic-dev-ai[bot] | Accept | Same px/py rounding before getImageData (duplicate of coderabbit) |
 | #278 | coderabbitai[bot] | Reject | Wanted an artPixelsDown parity assert in normalizeArtGrid; an odd Y-axis is intentional (default viewport may crop the art bottom at a half-pixel boundary, per pixel-perfect.test.ts) and tests read near-center via floor(/2) — clarified the omission in a comment |

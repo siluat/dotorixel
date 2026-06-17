@@ -180,3 +180,7 @@ The five canonical triage labels are recorded in each issue file's YAML front-ma
 ### Domain docs
 
 Single-context repo — refer to `CONTEXT.md` at the root (created lazily by `/grill-with-docs` when needed) and ADRs under `docs/decisions/`. See `docs/agents/domain.md`.
+
+### Pencil design canvas
+
+The `.pen` design file (`docs/pencil-dotorixel.pen`) holds UI mockups and feature spec sheets, organized into labeled feature bands with superseded work in a separate LEGACY band; access it only via the `pencil` MCP tools. Read the guide before exploring or editing the canvas — it covers the band map, naming, spec↔issue map, canonical reuse patterns, legacy policy, and Pencil tool gotchas. See `docs/agents/pencil-canvas.md`.

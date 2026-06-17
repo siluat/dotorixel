@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 187 | [Frame ruler design — M4 Layer × Frame grid (.pen)](../issues/187-frame-ruler-design.md) | 2026-06-17 |
 | 185 | [Dissolve the CanvasBackend umbrella; editor-session imports the wasm adapters directly](../issues/185-dissolve-canvas-backend-umbrella.md) | 2026-06-16 |
 | 184 | [Extract importReferenceFile as a pure function out of the References store](../issues/184-extract-import-reference-file.md) | 2026-06-15 |
 | 183 | [Remove dead canvas-mode DrawingOps residue and make Document DrawingOps the sole factory](../issues/183-remove-dead-canvas-mode-drawingops.md) | 2026-06-15 |

@@ -2,15 +2,14 @@
 
 ## Currently Working On
 
-None.
+Frame management (add/delete/duplicate/reorder) — M4 entry ([PRD](../issues/186-frame-management.md)). Design slice ([187](../issues/187-frame-ruler-design.md)) shipped — the Layer × Frame grid is finalized. Next: `/to-issues` to break out the implementation slices (core cel-grid → persistence V6 → ruler shell → add/duplicate/delete/reorder).
 
 ## Last Completed
 
-[185 — Dissolve the CanvasBackend umbrella](../issues/185-dissolve-canvas-backend-umbrella.md): the umbrella port is gone — editor-session layers (TabState/Workspace) and the session construction paths now import the wasm adapters directly. The seams that earn their keep are preserved (TabViewport still takes a `ViewportOps`; the change journal still takes an injected `createDocumentHistory` with a test fake). Behavior-preserving (unit + e2e green).
+[187 — Frame ruler design (.pen)](../issues/187-frame-ruler-design.md): the M4 Layer × Frame grid is finalized (cel = layer×frame; Pixel/Reference distinction via a continuous spanning bar; symmetric Layers/Frames labels; canonical mobile chrome reused). The `.pen` lives in the `dotorixel-codex` worktree — commit it there. Header metric (bare icons) intentionally diverges from the impl's 24×24 buttons — flagged for a design↔impl sync.
 
 ## Next Up
 
-- Frame management (add/delete/duplicate/reorder) — M4 entry; the rest of the animation cluster depends on it
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
 - Apple Phase 1 — Enable clear canvas (existing disabled button)
 - Apple Phase 1 — Enable PNG export (existing disabled button)

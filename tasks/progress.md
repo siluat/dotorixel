@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-Frame management (add/delete/duplicate/reorder) — M4 entry ([PRD](../issues/186-frame-management.md)). Design slice ([187](../issues/187-frame-ruler-design.md)) shipped — the Layer × Frame grid is finalized. Next: `/to-issues` to break out the implementation slices (core cel-grid → persistence V6 → ruler shell → add/duplicate/delete/reorder).
+Frame management (add/delete/duplicate/reorder) — M4 entry ([PRD](../issues/186-frame-management.md)). Design slice ([187](../issues/187-frame-ruler-design.md)) shipped — the Layer × Frame grid is finalized. Implementation slices broken out ([188](../issues/188-frame-cel-grid-core.md)–[192](../issues/192-frame-operations-ui.md)). Next: start [188 — Frame cel-grid + frame operations (Rust core)](../issues/188-frame-cel-grid-core.md) (the only unblocked slice; 189/190 follow, 191 then 192).
 
 ## Last Completed
 

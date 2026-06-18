@@ -7,7 +7,8 @@ use crate::canvas::{
     flip_buffer_vertical, rotate_buffer_ccw, rotate_buffer_cw,
 };
 use crate::color::Color;
-use crate::layer::{Layer, LayerKind, LayerKindTag, ReferenceData, ReferenceDataError};
+use crate::frame::Frame;
+use crate::layer::{Cels, Layer, LayerKind, LayerKindTag, ReferenceData, ReferenceDataError};
 use crate::reference_placement::ReferencePlacement;
 use crate::selection::{MarqueeRegion, clear_region, composite_region, lift_region};
 use crate::tool::ToolType;
@@ -47,6 +48,27 @@ impl fmt::Display for LayerError {
 }
 
 impl std::error::Error for LayerError {}
+
+/// Errors that can occur during frame-axis operations on a [`Document`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FrameError {
+    FrameNotFound { id: Uuid },
+    RemoveLastFrame,
+}
+
+impl fmt::Display for FrameError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FrameNotFound { id } => write!(f, "Frame with id {id} not found"),
+            Self::RemoveLastFrame => write!(
+                f,
+                "Cannot remove the last remaining frame. A document must contain at least one frame."
+            ),
+        }
+    }
+}
+
+impl std::error::Error for FrameError {}
 
 /// Errors returned by the active-layer pixel accessors ([`Document::set_pixel`],
 /// [`Document::get_pixel`]) when the call is incompatible with the active
@@ -125,17 +147,24 @@ impl fmt::Display for DocumentBuildError {
 
 impl std::error::Error for DocumentBuildError {}
 
-/// A pixel art document: an ordered stack of layers, an active-layer pointer,
-/// and presentation state.
+/// A pixel art document: an ordered stack of layers, an ordered axis of
+/// frames, active pointers into each, and presentation state.
 ///
 /// The first element of `layers()` is the bottom of the visible stack; the
 /// last element is the top. All layers share the document's `width`/`height`.
+///
+/// Layers and frames are orthogonal axes. The first element of `frames()` is
+/// the first frame; frames are always non-empty. Every Pixel Layer holds one
+/// cel per frame (the **grid invariant**); a Reference Layer is
+/// frame-independent. Drawing and compositing act on the active frame's cels.
 #[derive(Debug, Clone)]
 pub struct Document {
     width: u32,
     height: u32,
     layers: Vec<Layer>,
     active_layer_id: Uuid,
+    frames: Vec<Frame>,
+    active_frame_id: Uuid,
     marquee: Option<MarqueeRegion>,
     next_layer_number: u32,
     timeline_panel_collapsed: bool,
@@ -143,8 +172,9 @@ pub struct Document {
 
 impl Document {
     /// Creates a new document with one transparent layer (`first_layer_id` /
-    /// `first_layer_name`) marked active. `next_layer_number` starts at 2 and
-    /// the timeline panel begins expanded.
+    /// `first_layer_name`) marked active and one [initial frame](Frame::INITIAL)
+    /// marked active. `next_layer_number` starts at 2 and the timeline panel
+    /// begins expanded.
     pub fn new(
         width: u32,
         height: u32,
@@ -157,6 +187,8 @@ impl Document {
             height,
             layers: vec![layer],
             active_layer_id: first_layer_id,
+            frames: vec![Frame::INITIAL],
+            active_frame_id: Frame::INITIAL.id,
             marquee: None,
             next_layer_number: 2,
             timeline_panel_collapsed: false,
@@ -168,6 +200,10 @@ impl Document {
     /// [`DocumentBuildError`] when the stack is empty, contains duplicate ids,
     /// contains a layer whose pixel dimensions don't match `width × height`,
     /// or when `active_layer_id` is not present in the supplied stack.
+    ///
+    /// The reconstructed document has a single [initial frame](Frame::INITIAL)
+    /// marked active, with each Pixel Layer's sole cel keyed to it.
+    /// Multi-frame reconstruction is a later persistence concern.
     pub fn from_layers(
         width: u32,
         height: u32,
@@ -183,14 +219,16 @@ impl Document {
             if layers[..i].iter().any(|prior| prior.id == layer.id) {
                 return Err(DocumentBuildError::DuplicateLayerId(layer.id));
             }
-            if let LayerKind::Pixel(canvas) = &layer.kind {
-                let actual = (canvas.width(), canvas.height());
-                if actual != (width, height) {
-                    return Err(DocumentBuildError::LayerDimensionsMismatch {
-                        layer_id: layer.id,
-                        expected: (width, height),
-                        actual,
-                    });
+            if let LayerKind::Pixel(cels) = &layer.kind {
+                for canvas in cels.canvases() {
+                    let actual = (canvas.width(), canvas.height());
+                    if actual != (width, height) {
+                        return Err(DocumentBuildError::LayerDimensionsMismatch {
+                            layer_id: layer.id,
+                            expected: (width, height),
+                            actual,
+                        });
+                    }
                 }
             }
         }
@@ -203,6 +241,8 @@ impl Document {
             height,
             layers,
             active_layer_id,
+            frames: vec![Frame::INITIAL],
+            active_frame_id: Frame::INITIAL.id,
             marquee: None,
             next_layer_number,
             timeline_panel_collapsed,
@@ -223,6 +263,14 @@ impl Document {
 
     pub fn active_layer_id(&self) -> Uuid {
         self.active_layer_id
+    }
+
+    pub fn frames(&self) -> &[Frame] {
+        &self.frames
+    }
+
+    pub fn active_frame_id(&self) -> Uuid {
+        self.active_frame_id
     }
 
     pub fn marquee(&self) -> Option<MarqueeRegion> {
@@ -246,7 +294,8 @@ impl Document {
     }
 
     /// Inserts a new transparent layer directly above the active layer and
-    /// makes it active.
+    /// makes it active. The new layer is seeded with a transparent cel for
+    /// every frame, preserving the grid invariant.
     ///
     /// Increments [`next_layer_number`](Self::next_layer_number); the counter
     /// is not decremented by [`remove_layer`](Self::remove_layer), so layer
@@ -261,9 +310,19 @@ impl Document {
             .iter()
             .position(|l| l.id == self.active_layer_id)
             .expect("active layer id is always present in the stack");
-        let layer = Layer::new(new_id, name, self.width, self.height)
+        let frame_ids: Vec<Uuid> = self.frames.iter().map(|f| f.id).collect();
+        let cels = Cels::transparent(&frame_ids, self.width, self.height)
             .expect("document dimensions are validated at construction");
-        self.layers.insert(active_idx + 1, layer);
+        self.layers.insert(
+            active_idx + 1,
+            Layer {
+                id: new_id,
+                name,
+                visible: true,
+                opacity: 1.0,
+                kind: LayerKind::Pixel(cels),
+            },
+        );
         self.active_layer_id = new_id;
         self.next_layer_number += 1;
     }
@@ -444,20 +503,137 @@ impl Document {
         Ok(())
     }
 
+    /// Inserts a new frame directly after the active frame, seeds a transparent
+    /// cel for it on every Pixel Layer, and makes it active. Mirrors
+    /// [`add_layer`](Self::add_layer) on the frame axis.
+    pub fn add_frame(&mut self, new_id: Uuid) {
+        debug_assert!(
+            !self.frames.iter().any(|f| f.id == new_id),
+            "add_frame called with a frame id already present on the axis"
+        );
+        let active_idx = self
+            .frames
+            .iter()
+            .position(|f| f.id == self.active_frame_id)
+            .expect("active frame id is always present on the axis");
+        self.frames.insert(active_idx + 1, Frame { id: new_id });
+        for layer in &mut self.layers {
+            if let LayerKind::Pixel(cels) = &mut layer.kind {
+                cels.seed_transparent(new_id, self.width, self.height)
+                    .expect("document dimensions are validated at construction");
+            }
+        }
+        self.active_frame_id = new_id;
+    }
+
+    /// Inserts a copy of the active frame directly after it — cloning every
+    /// Pixel Layer's active-frame cel into the new frame — and makes the copy
+    /// active. The clone is deep: editing the copy never touches the source.
+    pub fn duplicate_frame(&mut self, new_id: Uuid) {
+        debug_assert!(
+            !self.frames.iter().any(|f| f.id == new_id),
+            "duplicate_frame called with a frame id already present on the axis"
+        );
+        let source_id = self.active_frame_id;
+        let active_idx = self
+            .frames
+            .iter()
+            .position(|f| f.id == source_id)
+            .expect("active frame id is always present on the axis");
+        self.frames.insert(active_idx + 1, Frame { id: new_id });
+        for layer in &mut self.layers {
+            if let LayerKind::Pixel(cels) = &mut layer.kind {
+                cels.duplicate_cel(source_id, new_id);
+            }
+        }
+        self.active_frame_id = new_id;
+    }
+
+    /// Removes the frame with `id` and drops its cel from every Pixel Layer.
+    ///
+    /// Returns [`FrameError::RemoveLastFrame`] when the document has only one
+    /// frame (a document must always contain at least one). Returns
+    /// [`FrameError::FrameNotFound`] for an unknown id — and prefers it over
+    /// `RemoveLastFrame` on a single-frame document.
+    ///
+    /// When the removed frame was active, the active pointer moves to the frame
+    /// immediately below; if the removed frame was the first, it falls back to
+    /// the frame immediately above — the same policy as
+    /// [`remove_layer`](Self::remove_layer).
+    pub fn remove_frame(&mut self, id: Uuid) -> Result<(), FrameError> {
+        let idx = self
+            .frames
+            .iter()
+            .position(|f| f.id == id)
+            .ok_or(FrameError::FrameNotFound { id })?;
+        if self.frames.len() == 1 {
+            return Err(FrameError::RemoveLastFrame);
+        }
+        self.frames.remove(idx);
+        for layer in &mut self.layers {
+            if let LayerKind::Pixel(cels) = &mut layer.kind {
+                cels.remove(id);
+            }
+        }
+        if self.active_frame_id == id {
+            // Prefer the frame immediately below; fall back to the frame
+            // immediately above when the removed frame was the first.
+            let new_active_idx = idx.saturating_sub(1);
+            self.active_frame_id = self.frames[new_active_idx].id;
+        }
+        Ok(())
+    }
+
+    /// Moves the frame with `id` to `new_index`, silently clamped to
+    /// `[0, frames.len() - 1]`. Returns [`FrameError::FrameNotFound`] for an
+    /// unknown id. The active frame pointer is preserved across reordering
+    /// (it is tracked by id, not by index), and each Pixel Layer's cels stay
+    /// keyed by frame id, so cel contents follow their frame.
+    pub fn reorder_frame(&mut self, id: Uuid, new_index: usize) -> Result<(), FrameError> {
+        let from = self
+            .frames
+            .iter()
+            .position(|f| f.id == id)
+            .ok_or(FrameError::FrameNotFound { id })?;
+        let to = new_index.min(self.frames.len() - 1);
+        if from != to {
+            let frame = self.frames.remove(from);
+            self.frames.insert(to, frame);
+        }
+        Ok(())
+    }
+
+    /// Sets the active frame by id.
+    ///
+    /// Returns [`FrameError::FrameNotFound`] when no frame with `id` exists; in
+    /// that case the previous active frame is preserved.
+    pub fn set_active_frame(&mut self, id: Uuid) -> Result<(), FrameError> {
+        if !self.frames.iter().any(|f| f.id == id) {
+            return Err(FrameError::FrameNotFound { id });
+        }
+        self.active_frame_id = id;
+        Ok(())
+    }
+
     /// Returns a freshly-allocated row-major RGBA byte buffer
-    /// (`width * height * 4`) with visible Pixel Layers blended bottom-to-top
-    /// using straight (non-premultiplied) source-over alpha.
+    /// (`width * height * 4`) with each visible Pixel Layer's active-frame cel
+    /// blended bottom-to-top using straight (non-premultiplied) source-over
+    /// alpha.
     ///
     /// Each Pixel Layer's `opacity` is multiplied into its source alpha; layers
     /// with `visible = false` are skipped entirely. Reference Layers are
     /// viewport underlays and never contribute to document-pixel buffers.
     pub fn composite(&self) -> Vec<u8> {
+        let frame_id = self.active_frame_id;
         let mut buf = vec![0u8; (self.width * self.height * 4) as usize];
         for layer in &self.layers {
             if !layer.visible {
                 continue;
             }
-            if let LayerKind::Pixel(canvas) = &layer.kind {
+            if let LayerKind::Pixel(cels) = &layer.kind {
+                let canvas = cels
+                    .get(frame_id)
+                    .expect("grid invariant: every Pixel Layer has a cel for the active frame");
                 blend_pixel_canvas_over(&mut buf, canvas, layer.opacity);
             }
         }
@@ -465,10 +641,10 @@ impl Document {
     }
 
     /// Returns a freshly-allocated row-major RGBA byte buffer
-    /// (`width * height * 4`) with Pixel Layers only — Reference Layers are
-    /// always excluded, regardless of visibility. Use this for exports (PNG,
-    /// SVG, project-file thumbnail) where the tracing reference must not
-    /// appear in the user-facing artifact.
+    /// (`width * height * 4`) of the active frame with Pixel Layers only —
+    /// Reference Layers are always excluded, regardless of visibility. Use this
+    /// for exports (PNG, SVG, project-file thumbnail) where the tracing
+    /// reference must not appear in the user-facing artifact.
     pub fn composite_for_export(&self) -> Vec<u8> {
         self.composite()
     }
@@ -481,9 +657,9 @@ impl Document {
     /// Layer. Use this when the caller knows the active layer is a Pixel
     /// Layer; sampling-aware reads across kinds belong on a separate accessor.
     pub fn get_pixel(&self, x: u32, y: u32) -> Result<Color, DrawError> {
-        match &self.active_layer().kind {
-            LayerKind::Pixel(canvas) => Ok(canvas.get_pixel(x, y)?),
-            LayerKind::Reference(_) => Err(DrawError::LayerKindMismatch),
+        match self.active_pixel_canvas() {
+            Some(canvas) => Ok(canvas.get_pixel(x, y)?),
+            None => Err(DrawError::LayerKindMismatch),
         }
     }
 
@@ -497,10 +673,18 @@ impl Document {
         if x >= self.width || y >= self.height {
             return None;
         }
+        let frame_id = self.active_frame_id;
         match &self.active_layer().kind {
-            LayerKind::Pixel(canvas) => Some(canvas.get_pixel(x, y).unwrap_or_else(|err| {
-                panic!("active Pixel Layer read failed inside document bounds at ({x}, {y}): {err}")
-            })),
+            LayerKind::Pixel(cels) => {
+                let canvas = cels.get(frame_id).expect(
+                    "grid invariant: the active Pixel Layer has a cel for the active frame",
+                );
+                Some(canvas.get_pixel(x, y).unwrap_or_else(|err| {
+                    panic!(
+                        "active Pixel Layer read failed inside document bounds at ({x}, {y}): {err}"
+                    )
+                }))
+            }
             LayerKind::Reference(data) => data.sample_at(x, y),
         }
     }
@@ -513,9 +697,9 @@ impl Document {
     /// the active layer is a Reference Layer (drawing tools never mutate a
     /// Reference Layer's source).
     pub fn set_pixel(&mut self, x: u32, y: u32, color: Color) -> Result<(), DrawError> {
-        match &mut self.active_layer_mut().kind {
-            LayerKind::Pixel(canvas) => Ok(canvas.set_pixel(x, y, color)?),
-            LayerKind::Reference(_) => Err(DrawError::LayerKindMismatch),
+        match self.active_pixel_canvas_mut() {
+            Some(canvas) => Ok(canvas.set_pixel(x, y, color)?),
+            None => Err(DrawError::LayerKindMismatch),
         }
     }
 
@@ -524,9 +708,9 @@ impl Document {
     /// the active layer is a Reference Layer (drawing tools never mutate a
     /// Reference Layer's source).
     pub fn apply_tool(&mut self, tool: ToolType, x: i32, y: i32, color: Color) -> bool {
-        match &mut self.active_layer_mut().kind {
-            LayerKind::Pixel(canvas) => tool.apply(canvas, x, y, color),
-            LayerKind::Reference(_) => false,
+        match self.active_pixel_canvas_mut() {
+            Some(canvas) => tool.apply(canvas, x, y, color),
+            None => false,
         }
     }
 
@@ -534,9 +718,9 @@ impl Document {
     /// Returns `true` when at least one pixel was changed, `false` when the
     /// active layer is a Reference Layer.
     pub fn flood_fill(&mut self, x: u32, y: u32, color: Color) -> bool {
-        match &mut self.active_layer_mut().kind {
-            LayerKind::Pixel(canvas) => canvas.flood_fill(x, y, color),
-            LayerKind::Reference(_) => false,
+        match self.active_pixel_canvas_mut() {
+            Some(canvas) => canvas.flood_fill(x, y, color),
+            None => false,
         }
     }
 
@@ -554,18 +738,17 @@ impl Document {
         let bounds = CanvasRect::new(bounds.x(), bounds.y(), bounds.width(), bounds.height())
             .expect("MarqueeRegion bounds are always non-empty");
 
-        match &mut self.active_layer_mut().kind {
-            LayerKind::Pixel(canvas) => canvas.flood_fill_rect(x, y, color, bounds),
-            LayerKind::Reference(_) => false,
+        match self.active_pixel_canvas_mut() {
+            Some(canvas) => canvas.flood_fill_rect(x, y, color, bounds),
+            None => false,
         }
     }
 
     /// Clears the active layer to fully transparent. Other layers are
     /// unaffected. No-op when the active layer is a Reference Layer.
     pub fn clear(&mut self) {
-        match &mut self.active_layer_mut().kind {
-            LayerKind::Pixel(canvas) => canvas.clear(),
-            LayerKind::Reference(_) => {}
+        if let Some(canvas) = self.active_pixel_canvas_mut() {
+            canvas.clear();
         }
     }
 
@@ -576,9 +759,8 @@ impl Document {
         let Some(region) = self.marquee else {
             return;
         };
-        match &mut self.active_layer_mut().kind {
-            LayerKind::Pixel(canvas) => clear_region(canvas, region),
-            LayerKind::Reference(_) => {}
+        if let Some(canvas) = self.active_pixel_canvas_mut() {
+            clear_region(canvas, region);
         }
     }
 
@@ -589,9 +771,9 @@ impl Document {
         let Some(region) = self.marquee else {
             return Vec::new();
         };
-        match &self.active_layer().kind {
-            LayerKind::Pixel(canvas) => lift_region(canvas, region),
-            LayerKind::Reference(_) => Vec::new(),
+        match self.active_pixel_canvas() {
+            Some(canvas) => lift_region(canvas, region),
+            None => Vec::new(),
         }
     }
 
@@ -600,9 +782,8 @@ impl Document {
     ///
     /// Panics when `buffer.len()` is not `region.width * region.height * 4`.
     pub fn composite_buffer_at(&mut self, buffer: &[u8], region: MarqueeRegion) {
-        match &mut self.active_layer_mut().kind {
-            LayerKind::Pixel(canvas) => composite_region(canvas, buffer, region),
-            LayerKind::Reference(_) => {}
+        if let Some(canvas) = self.active_pixel_canvas_mut() {
+            composite_region(canvas, buffer, region);
         }
     }
 
@@ -652,11 +833,17 @@ impl Document {
         }
     }
 
-    /// Returns the RGBA pixel buffer of the layer at `index`, or `None` when
-    /// `index` is out of range or the layer is not a Pixel Layer.
+    /// Returns the RGBA pixel buffer of the active-frame cel of the layer at
+    /// `index`, or `None` when `index` is out of range or the layer is not a
+    /// Pixel Layer.
     pub fn layer_pixels_at(&self, index: usize) -> Option<&[u8]> {
+        let frame_id = self.active_frame_id;
         match &self.layers.get(index)?.kind {
-            LayerKind::Pixel(canvas) => Some(canvas.pixels()),
+            LayerKind::Pixel(cels) => Some(
+                cels.get(frame_id)
+                    .expect("grid invariant: every Pixel Layer has a cel for the active frame")
+                    .pixels(),
+            ),
             LayerKind::Reference(_) => None,
         }
     }
@@ -670,14 +857,14 @@ impl Document {
     /// active layer is a Reference Layer — preview snapshots only apply to
     /// drawable layers.
     pub fn restore_active_layer_pixels(&mut self, data: &[u8]) -> Result<(), PixelCanvasError> {
-        match &mut self.active_layer_mut().kind {
-            LayerKind::Pixel(canvas) => canvas.restore_pixels(data),
-            LayerKind::Reference(_) => Ok(()),
+        match self.active_pixel_canvas_mut() {
+            Some(canvas) => canvas.restore_pixels(data),
+            None => Ok(()),
         }
     }
 
-    /// Resizes every Pixel Layer to `new_width × new_height` using the same
-    /// `anchor`. Each Reference Layer's placement is translated by the
+    /// Resizes every cel of every Pixel Layer to `new_width × new_height` using
+    /// the same `anchor`. Each Reference Layer's placement is translated by the
     /// `anchor`'s placement factor (`placement.x += (new_w − old_w) × fx`,
     /// `placement.y += (new_h − old_h) × fy`); scale, source buffer, and
     /// natural dimensions are unchanged. The active layer pointer is preserved.
@@ -695,8 +882,10 @@ impl Document {
             .iter()
             .map(|layer| -> Result<Layer, PixelCanvasError> {
                 let kind = match &layer.kind {
-                    LayerKind::Pixel(canvas) => {
-                        LayerKind::Pixel(canvas.resize_with_anchor(new_width, new_height, anchor)?)
+                    LayerKind::Pixel(cels) => {
+                        LayerKind::Pixel(cels.try_map_canvases(|canvas| {
+                            canvas.resize_with_anchor(new_width, new_height, anchor)
+                        })?)
                     }
                     LayerKind::Reference(data) => {
                         let current = data.placement();
@@ -722,33 +911,33 @@ impl Document {
         Ok(())
     }
 
-    /// Mirrors the active Pixel Layer horizontally. With a Marquee active, only
-    /// the pixels inside it are mirrored (the Marquee position is unchanged);
-    /// otherwise the whole layer is mirrored in place. No-op on a Reference
-    /// Layer.
+    /// Mirrors the active Pixel Layer's active-frame cel horizontally. With a
+    /// Marquee active, only the pixels inside it are mirrored (the Marquee
+    /// position is unchanged); otherwise the whole cel is mirrored in place.
+    /// No-op on a Reference Layer.
     pub fn flip_horizontal(&mut self) {
         self.flip_active_pixel_layer(flip_buffer_horizontal, PixelCanvas::flip_horizontal);
     }
 
-    /// Mirrors the active Pixel Layer vertically. With a Marquee active, only
-    /// the pixels inside it are mirrored (the Marquee position is unchanged);
-    /// otherwise the whole layer is mirrored in place. No-op on a Reference
-    /// Layer.
+    /// Mirrors the active Pixel Layer's active-frame cel vertically. With a
+    /// Marquee active, only the pixels inside it are mirrored (the Marquee
+    /// position is unchanged); otherwise the whole cel is mirrored in place.
+    /// No-op on a Reference Layer.
     pub fn flip_vertical(&mut self) {
         self.flip_active_pixel_layer(flip_buffer_vertical, PixelCanvas::flip_vertical);
     }
 
-    /// Applies a flip to the active Pixel Layer, mirroring either the current
-    /// Marquee region (via lift → flip → composite) or the whole layer in place.
-    /// `flip_buffer` mirrors a lifted region buffer; `flip_whole` mirrors a full
-    /// canvas. No-op on a Reference Layer.
+    /// Applies a flip to the active Pixel Layer's active-frame cel, mirroring
+    /// either the current Marquee region (via lift → flip → composite) or the
+    /// whole cel in place. `flip_buffer` mirrors a lifted region buffer;
+    /// `flip_whole` mirrors a full canvas. No-op on a Reference Layer.
     fn flip_active_pixel_layer(
         &mut self,
         flip_buffer: fn(&[u8], u32, u32) -> Vec<u8>,
         flip_whole: fn(&mut PixelCanvas),
     ) {
         let region = self.marquee;
-        let LayerKind::Pixel(canvas) = &mut self.active_layer_mut().kind else {
+        let Some(canvas) = self.active_pixel_canvas_mut() else {
             return;
         };
         match region {
@@ -763,12 +952,12 @@ impl Document {
     }
 
     /// Rotates 90° clockwise. With a Marquee, the region's `W×H` pixels on the
-    /// active Pixel Layer become an `H×W` block re-centered on the region's
-    /// center and clipped to the canvas, and the Marquee updates to wrap it
-    /// (no-op on a Reference Layer). With no Marquee, the whole Document turns:
-    /// every Pixel Layer's canvas rotates, the Document `width`/`height` swap,
-    /// and every Reference Layer turns with the canvas — regardless of which
-    /// layer is active.
+    /// active Pixel Layer's active-frame cel become an `H×W` block re-centered
+    /// on the region's center and clipped to the canvas, and the Marquee updates
+    /// to wrap it (no-op on a Reference Layer). With no Marquee, the whole
+    /// Document turns: every cel of every Pixel Layer rotates (all frames), the
+    /// Document `width`/`height` swap, and every Reference Layer turns with the
+    /// canvas — regardless of which layer or frame is active.
     pub fn rotate_cw(&mut self) {
         match self.marquee {
             Some(_) => self.rotate_active_marquee(rotate_buffer_cw),
@@ -786,20 +975,22 @@ impl Document {
         }
     }
 
-    /// Turns the whole Document a quarter-turn: each Pixel Layer's canvas is
-    /// replaced by its rotated canvas, the Document dimensions swap, and each
-    /// Reference Layer's placement is remapped into the rotated frame so it
-    /// stays visually anchored and turns with the canvas.
+    /// Turns the whole Document a quarter-turn: every cel of every Pixel Layer
+    /// (all frames) is replaced by its rotated canvas, the Document dimensions
+    /// swap, and each Reference Layer's placement is remapped into the rotated
+    /// document space so it stays visually anchored and turns with the canvas.
     fn rotate_whole_document(&mut self, turn: QuarterTurn) {
         let old_width = self.width;
         let old_height = self.height;
         for layer in &mut self.layers {
             match &mut layer.kind {
-                LayerKind::Pixel(canvas) => {
-                    *canvas = match turn {
-                        QuarterTurn::Cw => canvas.rotate_cw(),
-                        QuarterTurn::Ccw => canvas.rotate_ccw(),
-                    };
+                LayerKind::Pixel(cels) => {
+                    for canvas in cels.canvases_mut() {
+                        *canvas = match turn {
+                            QuarterTurn::Cw => canvas.rotate_cw(),
+                            QuarterTurn::Ccw => canvas.rotate_ccw(),
+                        };
+                    }
                 }
                 LayerKind::Reference(data) => {
                     let remapped = rotate_reference_placement(data, old_width, old_height, turn);
@@ -811,7 +1002,8 @@ impl Document {
         self.height = old_width;
     }
 
-    /// Rotates the current Marquee region on the active Pixel Layer via
+    /// Rotates the current Marquee region on the active Pixel Layer's
+    /// active-frame cel via
     /// lift → rotate → clear (source and destination) → composite, re-centering
     /// the rotated `H×W` block on the region's center and updating the Marquee to
     /// its canvas-clipped bounds.
@@ -821,7 +1013,7 @@ impl Document {
         let Some(region) = self.marquee else {
             return;
         };
-        let LayerKind::Pixel(canvas) = &mut self.active_layer_mut().kind else {
+        let Some(canvas) = self.active_pixel_canvas_mut() else {
             return;
         };
         let lifted = lift_region(canvas, region);
@@ -851,6 +1043,34 @@ impl Document {
             .iter_mut()
             .find(|l| l.id == id)
             .expect("active layer is always present in the stack")
+    }
+
+    /// The active layer's active-frame cel, or `None` when the active layer is
+    /// a Reference Layer.
+    fn active_pixel_canvas(&self) -> Option<&PixelCanvas> {
+        let frame_id = self.active_frame_id;
+        match &self.active_layer().kind {
+            LayerKind::Pixel(cels) => {
+                Some(cels.get(frame_id).expect(
+                    "grid invariant: the active Pixel Layer has a cel for the active frame",
+                ))
+            }
+            LayerKind::Reference(_) => None,
+        }
+    }
+
+    /// The active layer's active-frame cel mutably, or `None` when the active
+    /// layer is a Reference Layer.
+    fn active_pixel_canvas_mut(&mut self) -> Option<&mut PixelCanvas> {
+        let frame_id = self.active_frame_id;
+        match &mut self.active_layer_mut().kind {
+            LayerKind::Pixel(cels) => {
+                Some(cels.get_mut(frame_id).expect(
+                    "grid invariant: the active Pixel Layer has a cel for the active frame",
+                ))
+            }
+            LayerKind::Reference(_) => None,
+        }
     }
 }
 
@@ -966,21 +1186,21 @@ mod tests {
     use uuid::Uuid;
 
     fn pixel_canvas(layer: &Layer) -> &PixelCanvas {
-        let LayerKind::Pixel(canvas) = &layer.kind else {
+        let LayerKind::Pixel(cels) = &layer.kind else {
             panic!("layer is not Pixel-kind");
         };
-        canvas
+        cels.sole_canvas()
     }
 
     fn pixel_canvas_mut(layer: &mut Layer) -> &mut PixelCanvas {
-        let LayerKind::Pixel(canvas) = &mut layer.kind else {
+        let LayerKind::Pixel(cels) = &mut layer.kind else {
             panic!("layer is not Pixel-kind");
         };
-        canvas
+        cels.sole_canvas_mut()
     }
 
     fn set_pixel_canvas(layer: &mut Layer, canvas: PixelCanvas) {
-        layer.kind = LayerKind::Pixel(canvas);
+        *pixel_canvas_mut(layer) = canvas;
     }
 
     #[test]
@@ -1901,7 +2121,7 @@ mod tests {
             name: "A".to_string(),
             visible: true,
             opacity: 1.0,
-            kind: LayerKind::Pixel(red_canvas.clone()),
+            kind: LayerKind::Pixel(Cels::single(Frame::INITIAL.id, red_canvas.clone())),
         };
 
         // Reference Layer has its own natural dimensions (different from document)
@@ -1923,7 +2143,7 @@ mod tests {
             name: "B".to_string(),
             visible: true,
             opacity: 1.0,
-            kind: LayerKind::Pixel(green_canvas.clone()),
+            kind: LayerKind::Pixel(Cels::single(Frame::INITIAL.id, green_canvas.clone())),
         };
 
         let layers = vec![pixel_a.clone(), reference_layer.clone(), pixel_b.clone()];
@@ -1955,9 +2175,10 @@ mod tests {
             name: "Paint A".to_string(),
             visible: true,
             opacity: 1.0,
-            kind: LayerKind::Pixel(
+            kind: LayerKind::Pixel(Cels::single(
+                Frame::INITIAL.id,
                 PixelCanvas::with_color(4, 4, Color::new(255, 0, 0, 255)).unwrap(),
-            ),
+            )),
         };
         let old_reference = Layer {
             id: old_reference_id,
@@ -1979,9 +2200,10 @@ mod tests {
             name: "Paint B".to_string(),
             visible: true,
             opacity: 1.0,
-            kind: LayerKind::Pixel(
+            kind: LayerKind::Pixel(Cels::single(
+                Frame::INITIAL.id,
                 PixelCanvas::with_color(4, 4, Color::new(0, 0, 255, 255)).unwrap(),
-            ),
+            )),
         };
         let kept_reference = Layer {
             id: kept_reference_id,
@@ -3293,5 +3515,426 @@ mod tests {
                 );
             }
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // Frame axis
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn new_yields_exactly_one_frame_with_it_active() {
+        let doc = Document::new(4, 4, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        assert_eq!(doc.frames().len(), 1);
+        assert_eq!(doc.active_frame_id(), doc.frames()[0].id);
+    }
+
+    #[test]
+    fn add_frame_inserts_after_active_and_makes_it_active() {
+        let mut doc = Document::new(4, 4, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let second = Uuid::new_v4();
+        doc.add_frame(second);
+
+        assert_eq!(doc.frames().len(), 2);
+        assert_eq!(doc.frames()[0].id, first);
+        assert_eq!(doc.frames()[1].id, second);
+        assert_eq!(doc.active_frame_id(), second);
+    }
+
+    #[test]
+    fn add_frame_inserts_directly_after_active_when_active_is_not_last() {
+        let mut doc = Document::new(4, 4, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let second = Uuid::new_v4();
+        let third = Uuid::new_v4();
+        doc.add_frame(second); // order [first, second], active = second
+        doc.set_active_frame(first).unwrap();
+        doc.add_frame(third); // inserted after first -> [first, third, second]
+
+        let ids: Vec<Uuid> = doc.frames().iter().map(|f| f.id).collect();
+        assert_eq!(ids, vec![first, third, second]);
+        assert_eq!(doc.active_frame_id(), third);
+    }
+
+    #[test]
+    fn add_frame_seeds_a_transparent_cel_so_the_new_frame_starts_empty() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+        doc.add_frame(Uuid::new_v4());
+        // The freshly added frame is active and its cel starts transparent.
+        assert!(
+            doc.composite().iter().all(|&b| b == 0),
+            "a newly added frame must be fully transparent"
+        );
+        assert_grid_invariant(&mut doc);
+    }
+
+    #[test]
+    fn set_active_frame_switches_frame_and_composite_reflects_it() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let red = Color::new(255, 0, 0, 255);
+        doc.set_pixel(0, 0, red).unwrap();
+        doc.add_frame(Uuid::new_v4()); // new empty frame becomes active
+
+        assert!(doc.composite().iter().all(|&b| b == 0));
+
+        doc.set_active_frame(first).unwrap();
+        assert_eq!(&doc.composite()[0..4], &[255, 0, 0, 255]);
+    }
+
+    #[test]
+    fn set_active_frame_unknown_id_returns_frame_not_found_and_preserves_active() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let original = doc.active_frame_id();
+        let unknown = Uuid::new_v4();
+        assert_eq!(
+            doc.set_active_frame(unknown),
+            Err(FrameError::FrameNotFound { id: unknown })
+        );
+        assert_eq!(doc.active_frame_id(), original);
+    }
+
+    #[test]
+    fn drawing_writes_only_the_active_frame_cel() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let red = Color::new(255, 0, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        doc.set_pixel(0, 0, red).unwrap(); // on the first frame
+
+        let second = Uuid::new_v4();
+        doc.add_frame(second); // second active and empty
+        doc.set_pixel(1, 1, blue).unwrap(); // on the second frame
+
+        doc.set_active_frame(first).unwrap();
+        assert_eq!(doc.get_pixel(0, 0).unwrap(), red);
+        assert_eq!(doc.get_pixel(1, 1).unwrap(), Color::TRANSPARENT);
+
+        doc.set_active_frame(second).unwrap();
+        assert_eq!(doc.get_pixel(0, 0).unwrap(), Color::TRANSPARENT);
+        assert_eq!(doc.get_pixel(1, 1).unwrap(), blue);
+    }
+
+    #[test]
+    fn duplicate_frame_inserts_after_active_clones_the_source_and_becomes_active() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+
+        let copy = Uuid::new_v4();
+        doc.duplicate_frame(copy);
+
+        assert_eq!(doc.frames().len(), 2);
+        assert_eq!(doc.frames()[0].id, first);
+        assert_eq!(doc.frames()[1].id, copy);
+        assert_eq!(doc.active_frame_id(), copy);
+        // The duplicate reproduces the source frame's full composite.
+        assert_eq!(&doc.composite()[0..4], &[255, 0, 0, 255]);
+    }
+
+    #[test]
+    fn duplicate_frame_deep_copies_so_editing_the_copy_leaves_the_source_unchanged() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+        doc.set_pixel(0, 0, red).unwrap();
+
+        let copy = Uuid::new_v4();
+        doc.duplicate_frame(copy); // copy active, holds the cloned red pixel
+        doc.set_pixel(1, 1, green).unwrap(); // edit only the copy
+
+        doc.set_active_frame(first).unwrap();
+        assert_eq!(doc.get_pixel(0, 0).unwrap(), red);
+        assert_eq!(doc.get_pixel(1, 1).unwrap(), Color::TRANSPARENT);
+    }
+
+    #[test]
+    fn duplicate_frame_clones_every_pixel_layers_active_frame_cel() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+        doc.set_pixel(0, 0, red).unwrap(); // layer 0 (active)
+        doc.add_layer(Uuid::new_v4(), "Layer 2".to_string()); // layer 1 active
+        doc.set_pixel(1, 1, green).unwrap();
+
+        doc.duplicate_frame(Uuid::new_v4());
+
+        // Both layers' cels are copied into the duplicate frame: layer 0's red
+        // at (0,0) and layer 1's green at (1,1) both appear in the composite.
+        let composite = doc.composite();
+        let texel = |x: usize, y: usize| {
+            let i = (y * 2 + x) * 4;
+            &composite[i..i + 4]
+        };
+        assert_eq!(texel(0, 0), &[255, 0, 0, 255]);
+        assert_eq!(texel(1, 1), &[0, 255, 0, 255]);
+        assert_grid_invariant(&mut doc);
+    }
+
+    /// Verifies the grid invariant behaviorally: every frame has a cel for every
+    /// Pixel Layer. Switches through each frame and exercises the active-frame
+    /// accessors, whose grid-invariant `expect` panics if a cel is missing.
+    /// Restores the original active frame.
+    fn assert_grid_invariant(doc: &mut Document) {
+        let frame_ids: Vec<Uuid> = doc.frames().iter().map(|f| f.id).collect();
+        let layer_count = doc.layers().len();
+        let original = doc.active_frame_id();
+        for fid in frame_ids {
+            doc.set_active_frame(fid).unwrap();
+            for idx in 0..layer_count {
+                let _ = doc.layer_pixels_at(idx);
+            }
+            let _ = doc.composite();
+        }
+        doc.set_active_frame(original).unwrap();
+    }
+
+    #[test]
+    fn remove_frame_rejects_the_last_remaining_frame() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let only = doc.active_frame_id();
+        assert_eq!(doc.remove_frame(only), Err(FrameError::RemoveLastFrame));
+        assert_eq!(doc.frames().len(), 1);
+    }
+
+    #[test]
+    fn remove_frame_unknown_id_returns_frame_not_found() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        doc.add_frame(Uuid::new_v4());
+        let unknown = Uuid::new_v4();
+        assert_eq!(
+            doc.remove_frame(unknown),
+            Err(FrameError::FrameNotFound { id: unknown })
+        );
+        assert_eq!(doc.frames().len(), 2);
+    }
+
+    #[test]
+    fn remove_frame_prefers_frame_not_found_over_remove_last_frame() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let unknown = Uuid::new_v4();
+        assert_eq!(
+            doc.remove_frame(unknown),
+            Err(FrameError::FrameNotFound { id: unknown })
+        );
+    }
+
+    #[test]
+    fn remove_frame_relocates_active_to_the_frame_below() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let second = Uuid::new_v4();
+        let third = Uuid::new_v4();
+        doc.add_frame(second);
+        doc.add_frame(third); // [first, second, third]
+        doc.set_active_frame(second).unwrap();
+
+        doc.remove_frame(second).unwrap();
+        let ids: Vec<Uuid> = doc.frames().iter().map(|f| f.id).collect();
+        assert_eq!(ids, vec![first, third]);
+        assert_eq!(doc.active_frame_id(), first);
+    }
+
+    #[test]
+    fn remove_frame_relocates_active_up_when_removing_the_first_frame() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let second = Uuid::new_v4();
+        doc.add_frame(second); // [first, second]
+        doc.set_active_frame(first).unwrap();
+
+        doc.remove_frame(first).unwrap();
+        let ids: Vec<Uuid> = doc.frames().iter().map(|f| f.id).collect();
+        assert_eq!(ids, vec![second]);
+        assert_eq!(doc.active_frame_id(), second);
+    }
+
+    #[test]
+    fn remove_frame_drops_the_cel_from_every_pixel_layer() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let red = Color::new(255, 0, 0, 255);
+        doc.set_pixel(0, 0, red).unwrap();
+        let second = Uuid::new_v4();
+        doc.add_frame(second);
+        doc.set_pixel(1, 1, Color::new(0, 0, 255, 255)).unwrap();
+
+        doc.remove_frame(second).unwrap();
+        assert_eq!(doc.active_frame_id(), first);
+        assert_eq!(doc.get_pixel(0, 0).unwrap(), red);
+        assert_grid_invariant(&mut doc);
+    }
+
+    #[test]
+    fn reorder_frame_rearranges_and_preserves_active_by_id() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let second = Uuid::new_v4();
+        let third = Uuid::new_v4();
+        doc.add_frame(second);
+        doc.add_frame(third); // [first, second, third]
+        doc.set_active_frame(second).unwrap();
+
+        doc.reorder_frame(third, 0).unwrap();
+        let ids: Vec<Uuid> = doc.frames().iter().map(|f| f.id).collect();
+        assert_eq!(ids, vec![third, first, second]);
+        assert_eq!(doc.active_frame_id(), second);
+        assert_grid_invariant(&mut doc);
+    }
+
+    #[test]
+    fn reorder_frame_clamps_out_of_range_index() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let second = Uuid::new_v4();
+        doc.add_frame(second); // [first, second]
+
+        doc.reorder_frame(first, 99).unwrap();
+        let ids: Vec<Uuid> = doc.frames().iter().map(|f| f.id).collect();
+        assert_eq!(ids, vec![second, first]);
+    }
+
+    #[test]
+    fn reorder_frame_unknown_id_returns_frame_not_found() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let unknown = Uuid::new_v4();
+        assert_eq!(
+            doc.reorder_frame(unknown, 0),
+            Err(FrameError::FrameNotFound { id: unknown })
+        );
+    }
+
+    #[test]
+    fn reorder_frame_preserves_cel_contents_keyed_by_id() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let red = Color::new(255, 0, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        doc.set_pixel(0, 0, red).unwrap();
+        let second = Uuid::new_v4();
+        doc.add_frame(second);
+        doc.set_pixel(1, 1, blue).unwrap();
+
+        doc.reorder_frame(second, 0).unwrap(); // [second, first]
+
+        doc.set_active_frame(first).unwrap();
+        assert_eq!(doc.get_pixel(0, 0).unwrap(), red);
+        assert_eq!(doc.get_pixel(1, 1).unwrap(), Color::TRANSPARENT);
+        doc.set_active_frame(second).unwrap();
+        assert_eq!(doc.get_pixel(1, 1).unwrap(), blue);
+    }
+
+    #[test]
+    fn add_layer_seeds_a_cel_for_every_existing_frame() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let second = Uuid::new_v4();
+        doc.add_frame(second); // two frames exist before the layer is added
+        doc.add_layer(Uuid::new_v4(), "Layer 2".to_string());
+
+        // The new layer is drawable on each frame independently — proving it was
+        // seeded a cel for both.
+        let red = Color::new(255, 0, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        doc.set_pixel(0, 0, blue).unwrap(); // new layer, `second` frame (active)
+        doc.set_active_frame(first).unwrap();
+        doc.set_pixel(1, 1, red).unwrap(); // new layer, `first` frame
+
+        assert_eq!(doc.get_pixel(1, 1).unwrap(), red);
+        assert_eq!(doc.get_pixel(0, 0).unwrap(), Color::TRANSPARENT);
+        doc.set_active_frame(second).unwrap();
+        assert_eq!(doc.get_pixel(0, 0).unwrap(), blue);
+        assert_eq!(doc.get_pixel(1, 1).unwrap(), Color::TRANSPARENT);
+
+        assert_grid_invariant(&mut doc);
+    }
+
+    #[test]
+    fn resize_maps_every_cel_of_every_frame_with_the_same_anchor() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let red = Color::new(255, 0, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        doc.set_pixel(0, 0, red).unwrap(); // first frame
+        let second = Uuid::new_v4();
+        doc.add_frame(second);
+        doc.set_pixel(0, 0, blue).unwrap(); // second frame
+
+        doc.resize(4, 4, ResizeAnchor::TopLeft).unwrap();
+        assert_eq!((doc.width(), doc.height()), (4, 4));
+
+        // A TopLeft anchor keeps (0,0) in place on every frame's cel.
+        doc.set_active_frame(first).unwrap();
+        assert_eq!(doc.get_pixel(0, 0).unwrap(), red);
+        doc.set_active_frame(second).unwrap();
+        assert_eq!(doc.get_pixel(0, 0).unwrap(), blue);
+        assert_grid_invariant(&mut doc);
+    }
+
+    #[test]
+    fn rotate_cw_without_a_marquee_turns_every_cel_of_every_frame() {
+        let mut doc = Document::new(3, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap(); // first frame
+        let second = Uuid::new_v4();
+        doc.add_frame(second);
+        doc.set_pixel(2, 1, Color::new(0, 0, 255, 255)).unwrap(); // second frame, opposite corner
+
+        doc.set_active_frame(first).unwrap();
+        let first_before = doc.composite();
+        doc.set_active_frame(second).unwrap();
+        let second_before = doc.composite();
+
+        doc.rotate_cw();
+        assert_eq!((doc.width(), doc.height()), (2, 3)); // dims swapped
+        assert_grid_invariant(&mut doc);
+
+        // A CCW turn restores every frame's original content exactly — only
+        // possible if rotate_cw turned every cel of every frame, not just the
+        // active one.
+        doc.rotate_ccw();
+        assert_eq!((doc.width(), doc.height()), (3, 2));
+        doc.set_active_frame(first).unwrap();
+        assert_eq!(doc.composite(), first_before);
+        doc.set_active_frame(second).unwrap();
+        assert_eq!(doc.composite(), second_before);
+    }
+
+    #[test]
+    fn reference_layer_is_frame_independent_across_frames() {
+        let mut doc = Document::new(4, 4, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let ref_id = Uuid::new_v4();
+        let rgba = vec![9u8; 4 * 4 * 4];
+        doc.add_reference_layer(ref_id, "Ref".to_string(), rgba, 4, 4)
+            .unwrap();
+        let sample_before = doc.try_get_pixel(0, 0);
+
+        // Adding a frame seeds no cel for the Reference; it samples identically.
+        doc.add_frame(Uuid::new_v4());
+        assert_eq!(doc.try_get_pixel(0, 0), sample_before);
+
+        // Drawing with the Reference active stays a no-op on the new frame.
+        assert!(!doc.flood_fill(0, 0, Color::new(1, 2, 3, 255)));
+        assert_eq!(
+            doc.set_pixel(0, 0, Color::new(1, 2, 3, 255)),
+            Err(DrawError::LayerKindMismatch)
+        );
+
+        // The Reference never contributes to the composite on any frame.
+        assert!(doc.composite().iter().all(|&b| b == 0));
+        assert_grid_invariant(&mut doc);
+    }
+
+    #[test]
+    fn remove_layer_preserves_the_grid_invariant_across_frames() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        doc.add_frame(Uuid::new_v4()); // two frames
+        let layer_two = Uuid::new_v4();
+        doc.add_layer(layer_two, "Layer 2".to_string());
+
+        doc.remove_layer(layer_two).unwrap();
+        assert_grid_invariant(&mut doc);
     }
 }

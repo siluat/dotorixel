@@ -527,10 +527,10 @@ mod document_history_tests {
     }
 
     fn pixel_canvas(layer: &Layer) -> &PixelCanvas {
-        let LayerKind::Pixel(canvas) = &layer.kind else {
+        let LayerKind::Pixel(cels) = &layer.kind else {
             panic!("layer is not Pixel-kind");
         };
-        canvas
+        cels.sole_canvas()
     }
 
     #[test]

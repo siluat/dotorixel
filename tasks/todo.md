@@ -3,9 +3,8 @@
 ## Milestone 4: Animation-Capable Editor
 
 - Frame management (add/delete/duplicate/reorder) — [PRD](../issues/186-frame-management.md)
-  - [188 — Frame cel-grid + frame operations (Rust core)](../issues/188-frame-cel-grid-core.md)
-  - [189 — Frame WASM binding + Change Journal intents](../issues/189-frame-wasm-journal-intents.md) — blocked by 188
-  - [190 — Document schema V6 — frames + per-cel persistence](../issues/190-document-schema-v6-frames.md) — blocked by 188 (parallel with 189)
+  - [189 — Frame WASM binding + Change Journal intents](../issues/189-frame-wasm-journal-intents.md)
+  - [190 — Document schema V6 — frames + per-cel persistence](../issues/190-document-schema-v6-frames.md) — parallel with 189
   - [191 — Frame ruler shell + selection (TimelinePanel)](../issues/191-frame-ruler-shell.md) — blocked by 189, 190
   - [192 — Frame operations UI — add / duplicate / delete / reorder](../issues/192-frame-operations-ui.md) — blocked by 191
 - Per-frame speed control

@@ -1,9 +1,11 @@
+use std::collections::HashMap;
 use std::fmt;
 
 use uuid::Uuid;
 
 use crate::canvas::{PixelCanvas, PixelCanvasError};
 use crate::color::Color;
+use crate::frame::Frame;
 use crate::reference_placement::ReferencePlacement;
 
 /// A single layer in a [`Document`](crate::Document) — an addressable slot
@@ -22,9 +24,13 @@ pub struct Layer {
 /// The two layer variants. Drawing tools target Pixel Layers; Reference
 /// Layers carry a tracing image that is composited on-screen but excluded
 /// from exports.
+///
+/// A Pixel Layer owns one [`Cel`](PixelCanvas) per Document frame, held in
+/// [`Cels`]. A Reference Layer is frame-independent: it has no cels and renders
+/// identically under every frame.
 #[derive(Debug, Clone, PartialEq)]
 pub enum LayerKind {
-    Pixel(PixelCanvas),
+    Pixel(Cels),
     Reference(ReferenceData),
 }
 
@@ -46,16 +52,145 @@ impl LayerKind {
 }
 
 impl Layer {
-    /// Creates a fully-transparent Pixel Layer of `width × height`. New
-    /// layers start `visible = true` and `opacity = 1.0`.
+    /// Creates a fully-transparent Pixel Layer of `width × height` holding a
+    /// single cel for the [initial frame](Frame::INITIAL). New layers start
+    /// `visible = true` and `opacity = 1.0`.
+    ///
+    /// This builds the one-cel layer a single-frame Document needs. A Document
+    /// with more than one frame seeds the extra cels itself (it owns the frame
+    /// ids) — see [`Document::add_layer`](crate::Document::add_layer).
     pub fn new(id: Uuid, name: String, width: u32, height: u32) -> Result<Self, PixelCanvasError> {
         Ok(Self {
             id,
             name,
             visible: true,
             opacity: 1.0,
-            kind: LayerKind::Pixel(PixelCanvas::new(width, height)?),
+            kind: LayerKind::Pixel(Cels::single(
+                Frame::INITIAL.id,
+                PixelCanvas::new(width, height)?,
+            )),
         })
+    }
+}
+
+/// The cels of a single Pixel Layer — exactly one [`PixelCanvas`] (a **Cel**)
+/// per Document frame, keyed by frame id.
+///
+/// A Cel is the pixel buffer a Pixel Layer shows on one frame; an empty frame
+/// is a transparent cel, never an absent one. The **grid invariant** — a Pixel
+/// Layer's cel keys equal the Document's frame ids, with no missing and no
+/// extra cels — spans the [`Document`](crate::Document)'s frame axis and every
+/// Pixel Layer, so it is maintained by the Document's frame and layer
+/// operations; `Cels` itself only stores and transforms the per-frame canvases
+/// it is told to.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Cels {
+    by_frame: HashMap<Uuid, PixelCanvas>,
+}
+
+impl Cels {
+    /// Seeds a fully-transparent cel of `width × height` for every id in
+    /// `frame_ids`.
+    pub fn transparent(
+        frame_ids: &[Uuid],
+        width: u32,
+        height: u32,
+    ) -> Result<Self, PixelCanvasError> {
+        let mut by_frame = HashMap::with_capacity(frame_ids.len());
+        for &id in frame_ids {
+            by_frame.insert(id, PixelCanvas::new(width, height)?);
+        }
+        Ok(Self { by_frame })
+    }
+
+    /// Wraps `canvas` as the sole cel, keyed by `frame_id`.
+    pub fn single(frame_id: Uuid, canvas: PixelCanvas) -> Self {
+        let mut by_frame = HashMap::with_capacity(1);
+        by_frame.insert(frame_id, canvas);
+        Self { by_frame }
+    }
+
+    /// The cel for `frame_id`, or `None` when this layer holds no cel for that
+    /// frame (a grid-invariant violation for a live frame id).
+    pub fn get(&self, frame_id: Uuid) -> Option<&PixelCanvas> {
+        self.by_frame.get(&frame_id)
+    }
+
+    pub fn get_mut(&mut self, frame_id: Uuid) -> Option<&mut PixelCanvas> {
+        self.by_frame.get_mut(&frame_id)
+    }
+
+    /// Inserts a fresh transparent cel for `frame_id`. Called when a frame is
+    /// added to the Document.
+    pub fn seed_transparent(
+        &mut self,
+        frame_id: Uuid,
+        width: u32,
+        height: u32,
+    ) -> Result<(), PixelCanvasError> {
+        self.by_frame
+            .insert(frame_id, PixelCanvas::new(width, height)?);
+        Ok(())
+    }
+
+    /// Clones the cel at `from` into a new cel keyed by `to`. Called when a
+    /// frame is duplicated. No-op when there is no cel at `from`.
+    pub fn duplicate_cel(&mut self, from: Uuid, to: Uuid) {
+        if let Some(canvas) = self.by_frame.get(&from).cloned() {
+            self.by_frame.insert(to, canvas);
+        }
+    }
+
+    /// Drops the cel for `frame_id`. Called when a frame is removed.
+    pub fn remove(&mut self, frame_id: Uuid) {
+        self.by_frame.remove(&frame_id);
+    }
+
+    /// Every cel, in unspecified frame order.
+    pub fn canvases(&self) -> impl Iterator<Item = &PixelCanvas> {
+        self.by_frame.values()
+    }
+
+    /// Every cel mutably, in unspecified frame order. Used by in-place
+    /// whole-Document transforms (rotate) that replace each cel.
+    pub fn canvases_mut(&mut self) -> impl Iterator<Item = &mut PixelCanvas> {
+        self.by_frame.values_mut()
+    }
+
+    /// Returns a new `Cels` with every cel transformed through `f`, preserving
+    /// frame keys. Used by dimension-changing Document operations (resize) that
+    /// must map every cel of every Pixel Layer with the same parameters.
+    pub fn try_map_canvases<E>(
+        &self,
+        f: impl Fn(&PixelCanvas) -> Result<PixelCanvas, E>,
+    ) -> Result<Self, E> {
+        let mut by_frame = HashMap::with_capacity(self.by_frame.len());
+        for (&id, canvas) in &self.by_frame {
+            by_frame.insert(id, f(canvas)?);
+        }
+        Ok(Self { by_frame })
+    }
+
+    /// The sole cel, for single-frame test setups. Panics unless exactly one
+    /// cel is present.
+    #[cfg(test)]
+    pub fn sole_canvas(&self) -> &PixelCanvas {
+        assert_eq!(
+            self.by_frame.len(),
+            1,
+            "sole_canvas requires exactly one cel"
+        );
+        self.by_frame.values().next().unwrap()
+    }
+
+    #[cfg(test)]
+    pub fn sole_canvas_mut(&mut self) -> &mut PixelCanvas {
+        assert_eq!(
+            self.by_frame.len(),
+            1,
+            "sole_canvas_mut requires exactly one cel"
+        );
+        self.by_frame.values_mut().next().unwrap()
     }
 }
 
@@ -254,9 +389,10 @@ mod tests {
         assert_eq!(layer.name, "Layer 1");
         assert!(layer.visible);
         assert_eq!(layer.opacity, 1.0);
-        let LayerKind::Pixel(canvas) = &layer.kind else {
+        let LayerKind::Pixel(cels) = &layer.kind else {
             panic!("Layer::new must create a Pixel-kind layer");
         };
+        let canvas = cels.sole_canvas();
         assert_eq!(canvas.width(), 8);
         assert_eq!(canvas.height(), 8);
         assert_eq!(canvas.get_pixel(0, 0).unwrap(), Color::TRANSPARENT);

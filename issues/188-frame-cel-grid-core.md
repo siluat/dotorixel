@@ -1,6 +1,6 @@
 ---
 title: "Frame cel-grid + frame operations — Rust core"
-status: ready-for-agent
+status: done
 created: 2026-06-18
 parent: 186-frame-management.md
 ---
@@ -88,3 +88,25 @@ slice (087) did.
 ## Blocked by
 
 None - can start immediately. (Design slice 187 is complete.)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `CONTEXT.md` | Adds Frame, Cel, and Active Frame vocabulary and reconciles Layer/Frame terminology. |
+| `crates/core/src/document.rs` | Adds the frame axis, active-frame pointer, frame operations, active-frame cel routing, and behavior tests. |
+| `crates/core/src/layer.rs` | Replaces single-canvas Pixel Layers with frame-indexed PixelLayer/Cel storage while keeping cel internals crate-local. |
+| `crates/core/src/history.rs` | Updates document-history tests for the new Pixel Layer payload. |
+| `crates/core/src/lib.rs` | Exports Frame and FrameError while keeping cel storage out of the root public surface. |
+| `wasm/src/lib.rs` | Keeps legacy single-frame hydration working through `Layer::from_pixel_canvas`. |
+
+### Key Decisions
+
+- Frames are identity-only and initialized with a single legacy-compatible initial frame; UI ordering remains ordinal.
+- PixelLayer owns the cel grid, but Cel/container access stays crate-local; shell-facing paths continue through Document/Layer accessors.
+- WASM builder keeps legacy V5 hydration single-frame; multi-frame persistence remains for issue 190.
+
+### Notes
+
+- No shell consumer is exposed yet; frame WASM/journal work remains in issue 189 and V6 persistence in issue 190.
+- `cargo clippy --all-targets -- -D warnings` still fails on pre-existing test lint warnings (`pixel_perfect.rs` type complexity, `tool.rs` constant assert); `cargo clippy --lib -- -D warnings` passes.

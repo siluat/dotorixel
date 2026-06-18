@@ -110,6 +110,12 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Saved work browser (desktop) | — | ✅ | ⬜ | Browse/open/delete; opens full Document snapshots while cards use composite thumbnails |
 | Saved work browser (mobile) | — | ✅ | — | Bottom sheet; opens full Document snapshots while cards use composite thumbnails |
 
+## Animation
+
+| Feature | Core | Web | Apple | Notes |
+|---------|------|-----|-------|-------|
+| Frame model / cel grid | ✅ | ⬜ | ⬜ | Core owns ordered frames and per-frame cels; shell bindings, persistence, and UI remain open |
+
 ## Layers
 
 | Feature | Core | Web | Apple | Notes |

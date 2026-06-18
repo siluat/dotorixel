@@ -7,19 +7,31 @@ DOTORIXEL is a pixel art editor with a Svelte web shell, an Apple SwiftUI shell,
 ### Document & Layers
 
 **Document**:
-The artifact a user edits and saves — one piece of pixel art with its own canvas dimensions, layer stack, and active-layer pointer.
+The artifact a user edits and saves — one piece of pixel art with its own canvas dimensions, layer stack, frame axis, active-layer pointer, and active-frame pointer.
 _Avoid_: artwork (too vague — also used for portfolio sharing), composition (overlaps with the rendering term), image (used for reference images and exports).
 
 **Layer**:
 A named slot inside a Document — exactly one of Pixel Layer or Reference Layer — carrying its own visibility and opacity.
-_Avoid_: frame (animation term), tile, slice, stack (the *collection* of layers; an individual entry is a Layer).
+_Avoid_: frame (the orthogonal animation-time axis), tile, slice, stack (the *collection* of layers; an individual entry is a Layer).
+
+**Frame**:
+An identity-only temporal slot inside a Document. Frames are ordered, always non-empty, and displayed by their 1-based ordinal; duration and names are separate future concepts.
+_Avoid_: layer (the orthogonal visual stack axis), page, scene, keyframe (implies timing or interpolation not yet modeled).
+
+**Cel**:
+The Pixel Layer payload for one Frame — a `PixelCanvas` at a specific Layer × Frame coordinate. Every Pixel Layer has exactly one Cel for every Frame; an empty Frame is represented by transparent Cels, not missing Cels.
+_Avoid_: frame pixels (blurs the axis with the payload), layer copy (suggests duplication semantics), bitmap (too generic).
+
+**Active Frame**:
+The Document's current Frame pointer. Pixel drawing, active-layer pixel reads, transforms, and Pixel-only composites operate on each Pixel Layer's Cel for the Active Frame; Reference Layers are frame-independent.
+_Avoid_: current frame (informal), selected frame (UI state wording), timeline index (position, not identity).
 
 **Pixel Layer**:
-The Layer variant that owns a pixel buffer matching the Document's canvas — the only kind drawing tools target and exports include.
+The Layer variant that owns one Cel per Frame, with every Cel matching the Document's canvas dimensions — the only kind drawing tools target and exports include.
 _Avoid_: paint layer, draw layer, raster layer.
 
 **Reference Layer**:
-A singleton Layer holding a source image and its Reference Layer Placement as an in-Document tracing reference, fixed below the Pixel Layers and excluded from every pixel output.
+A singleton Layer holding a source image and its Reference Layer Placement as an in-Document tracing reference, fixed below the Pixel Layers, frame-independent, and excluded from every pixel output.
 _Avoid_: imported image, tracing layer, reference image (Reference Window's term).
 
 **Reference Layer Placement**:

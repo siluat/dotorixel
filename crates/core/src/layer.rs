@@ -24,7 +24,7 @@ pub struct Layer {
 /// from exports.
 #[derive(Debug, Clone, PartialEq)]
 pub enum LayerKind {
-    Pixel(PixelCanvas),
+    Pixel(PixelLayer),
     Reference(ReferenceData),
 }
 
@@ -49,13 +49,209 @@ impl Layer {
     /// Creates a fully-transparent Pixel Layer of `width × height`. New
     /// layers start `visible = true` and `opacity = 1.0`.
     pub fn new(id: Uuid, name: String, width: u32, height: u32) -> Result<Self, PixelCanvasError> {
+        Self::new_with_frame(id, name, Uuid::nil(), width, height)
+    }
+
+    /// Creates a fully-transparent Pixel Layer with one Cel for `frame_id`.
+    pub fn new_with_frame(
+        id: Uuid,
+        name: String,
+        frame_id: Uuid,
+        width: u32,
+        height: u32,
+    ) -> Result<Self, PixelCanvasError> {
         Ok(Self {
             id,
             name,
             visible: true,
             opacity: 1.0,
-            kind: LayerKind::Pixel(PixelCanvas::new(width, height)?),
+            kind: LayerKind::Pixel(PixelLayer::new(frame_id, width, height)?),
         })
+    }
+
+    /// Creates a fully-transparent Pixel Layer with one Cel for every supplied
+    /// frame id.
+    pub fn new_with_frames(
+        id: Uuid,
+        name: String,
+        frame_ids: impl IntoIterator<Item = Uuid>,
+        width: u32,
+        height: u32,
+    ) -> Result<Self, PixelCanvasError> {
+        Ok(Self {
+            id,
+            name,
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Pixel(PixelLayer::new_for_frames(frame_ids, width, height)?),
+        })
+    }
+
+    /// Creates a Pixel Layer from an existing single-frame pixel canvas.
+    ///
+    /// This is used at persistence and binding boundaries that still hydrate a
+    /// layer from one RGBA buffer. [`Document::from_layers`](crate::Document::from_layers)
+    /// normalizes the layer to the document's initial Frame.
+    pub fn from_pixel_canvas(
+        id: Uuid,
+        name: String,
+        canvas: PixelCanvas,
+        visible: bool,
+        opacity: f32,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            visible,
+            opacity,
+            kind: LayerKind::Pixel(PixelLayer::from_canvas(Uuid::nil(), canvas)),
+        }
+    }
+}
+
+/// One editable pixel buffer for a Pixel Layer at a particular Frame.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Cel {
+    frame_id: Uuid,
+    canvas: PixelCanvas,
+}
+
+impl Cel {
+    pub(crate) fn canvas(&self) -> &PixelCanvas {
+        &self.canvas
+    }
+}
+
+/// The frame-indexed pixel payload of a Pixel Layer.
+///
+/// A Pixel Layer owns exactly one Cel per Document Frame. Document-level
+/// mutations preserve that grid invariant; shell callers usually read and
+/// write only the Cel for the active Frame.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PixelLayer {
+    cels: Vec<Cel>,
+}
+
+impl PixelLayer {
+    pub(crate) fn new(frame_id: Uuid, width: u32, height: u32) -> Result<Self, PixelCanvasError> {
+        Ok(Self::from_canvas(
+            frame_id,
+            PixelCanvas::new(width, height)?,
+        ))
+    }
+
+    pub(crate) fn new_for_frames(
+        frame_ids: impl IntoIterator<Item = Uuid>,
+        width: u32,
+        height: u32,
+    ) -> Result<Self, PixelCanvasError> {
+        let cels = frame_ids
+            .into_iter()
+            .map(|frame_id| {
+                Ok(Cel {
+                    frame_id,
+                    canvas: PixelCanvas::new(width, height)?,
+                })
+            })
+            .collect::<Result<Vec<_>, PixelCanvasError>>()?;
+        assert!(!cels.is_empty(), "PixelLayer must contain at least one Cel");
+        Ok(Self { cels })
+    }
+
+    pub(crate) fn from_canvas(frame_id: Uuid, canvas: PixelCanvas) -> Self {
+        Self {
+            cels: vec![Cel { frame_id, canvas }],
+        }
+    }
+
+    pub(crate) fn cels(&self) -> &[Cel] {
+        &self.cels
+    }
+
+    pub(crate) fn first_canvas(&self) -> &PixelCanvas {
+        &self
+            .cels
+            .first()
+            .expect("PixelLayer must contain at least one Cel")
+            .canvas
+    }
+
+    pub(crate) fn canvas_for_frame(&self, frame_id: Uuid) -> Option<&PixelCanvas> {
+        self.cels
+            .iter()
+            .find(|cel| cel.frame_id == frame_id)
+            .map(|cel| &cel.canvas)
+    }
+
+    pub(crate) fn canvas_for_frame_mut(&mut self, frame_id: Uuid) -> Option<&mut PixelCanvas> {
+        self.cels
+            .iter_mut()
+            .find(|cel| cel.frame_id == frame_id)
+            .map(|cel| &mut cel.canvas)
+    }
+
+    pub(crate) fn insert_cel(&mut self, frame_id: Uuid, canvas: PixelCanvas) {
+        debug_assert!(
+            !self.cels.iter().any(|cel| cel.frame_id == frame_id),
+            "insert_cel called with a Frame id already present in the Pixel Layer"
+        );
+        self.cels.push(Cel { frame_id, canvas });
+    }
+
+    pub(crate) fn remove_cel(&mut self, frame_id: Uuid) {
+        let index = self
+            .cels
+            .iter()
+            .position(|cel| cel.frame_id == frame_id)
+            .expect("PixelLayer grid must contain the removed Frame");
+        self.cels.remove(index);
+    }
+
+    pub(crate) fn resize_with_anchor(
+        &self,
+        new_width: u32,
+        new_height: u32,
+        anchor: crate::canvas::ResizeAnchor,
+    ) -> Result<Self, PixelCanvasError> {
+        let cels = self
+            .cels
+            .iter()
+            .map(|cel| {
+                Ok(Cel {
+                    frame_id: cel.frame_id,
+                    canvas: cel
+                        .canvas
+                        .resize_with_anchor(new_width, new_height, anchor)?,
+                })
+            })
+            .collect::<Result<Vec<_>, PixelCanvasError>>()?;
+        Ok(Self { cels })
+    }
+
+    pub(crate) fn rotate_cw(&self) -> Self {
+        Self {
+            cels: self
+                .cels
+                .iter()
+                .map(|cel| Cel {
+                    frame_id: cel.frame_id,
+                    canvas: cel.canvas.rotate_cw(),
+                })
+                .collect(),
+        }
+    }
+
+    pub(crate) fn rotate_ccw(&self) -> Self {
+        Self {
+            cels: self
+                .cels
+                .iter()
+                .map(|cel| Cel {
+                    frame_id: cel.frame_id,
+                    canvas: cel.canvas.rotate_ccw(),
+                })
+                .collect(),
+        }
     }
 }
 
@@ -254,9 +450,12 @@ mod tests {
         assert_eq!(layer.name, "Layer 1");
         assert!(layer.visible);
         assert_eq!(layer.opacity, 1.0);
-        let LayerKind::Pixel(canvas) = &layer.kind else {
+        let LayerKind::Pixel(pixel_layer) = &layer.kind else {
             panic!("Layer::new must create a Pixel-kind layer");
         };
+        let canvas = pixel_layer
+            .canvas_for_frame(Uuid::nil())
+            .expect("Layer::new must seed the initial Frame");
         assert_eq!(canvas.width(), 8);
         assert_eq!(canvas.height(), 8);
         assert_eq!(canvas.get_pixel(0, 0).unwrap(), Color::TRANSPARENT);

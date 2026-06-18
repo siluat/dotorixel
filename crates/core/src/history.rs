@@ -527,10 +527,12 @@ mod document_history_tests {
     }
 
     fn pixel_canvas(layer: &Layer) -> &PixelCanvas {
-        let LayerKind::Pixel(canvas) = &layer.kind else {
+        let LayerKind::Pixel(pixel_layer) = &layer.kind else {
             panic!("layer is not Pixel-kind");
         };
-        canvas
+        pixel_layer
+            .canvas_for_frame(Uuid::nil())
+            .expect("test Pixel Layer must contain the initial Frame")
     }
 
     #[test]

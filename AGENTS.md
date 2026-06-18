@@ -179,7 +179,7 @@ The five canonical triage labels are recorded in each issue file's YAML front-ma
 
 ### Domain docs
 
-Single-context repo — refer to `CONTEXT.md` at the root (created lazily by `/grill-with-docs` when needed) and ADRs under `docs/decisions/`. See `docs/agents/domain.md`.
+Single-context repo — refer to `CONTEXT.md` at the root (created lazily by `/domain-modeling` when needed) and ADRs under `docs/decisions/`. See `docs/agents/domain.md`.
 
 ### Pencil design canvas
 

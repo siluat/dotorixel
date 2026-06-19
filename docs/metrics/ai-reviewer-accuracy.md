@@ -7,13 +7,14 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 157 | 121 | 36 | 158 | 77% | 43% |
-| cubic-dev-ai[bot] | 117 | 95 | 22 | 181 | 81% | 34% |
+| cubic-dev-ai[bot] | 118 | 95 | 23 | 181 | 81% | 34% |
 | coderabbitai[bot] | 215 | 152 | 63 | 121 | 71% | 56% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #282 | cubic-dev-ai[bot] | Reject | `Layer::new_with_frames` empty-frame panic path is crate-local and only receives `Document::frames`, which is guaranteed non-empty; kept as an internal invariant check |
 | #282 | coderabbitai[bot] | Accept | `add_frame` and `duplicate_frame` relied on debug assertions for duplicate frame ids; added release-active `DuplicateFrameId` errors |
 | #282 | greptile-apps[bot] | Miss | Did not flag duplicate frame ids being accepted in release builds by `add_frame` / `duplicate_frame` |
 | #282 | cubic-dev-ai[bot] | Miss | Did not flag duplicate frame ids being accepted in release builds by `add_frame` / `duplicate_frame` |

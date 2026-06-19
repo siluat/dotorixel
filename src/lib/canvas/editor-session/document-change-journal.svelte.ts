@@ -43,10 +43,15 @@ export type UndoableDocumentIntent =
 			readonly snapshotMarquee?: MarqueeRegion | null;
 			readonly sourceLayerPixelsBeforeLift?: Uint8Array;
 	  }
-	| { readonly type: 'set-marquee'; readonly region: MarqueeRegion | null };
+	| { readonly type: 'set-marquee'; readonly region: MarqueeRegion | null }
+	| { readonly type: 'add-frame' }
+	| { readonly type: 'duplicate-frame' }
+	| { readonly type: 'remove-frame'; readonly id: string }
+	| { readonly type: 'reorder-frame'; readonly id: string; readonly newIndex: number };
 
 export type PersistedDocumentUiIntent =
 	| { readonly type: 'set-active-layer'; readonly id: string }
+	| { readonly type: 'set-active-frame'; readonly id: string }
 	| { readonly type: 'set-timeline-panel-collapsed'; readonly collapsed: boolean };
 
 export type DocumentChange =
@@ -55,7 +60,7 @@ export type DocumentChange =
 
 export type DocumentChangeResult =
 	| { readonly changed: false }
-	| { readonly changed: true; readonly layerId?: string };
+	| { readonly changed: true; readonly layerId?: string; readonly frameId?: string };
 
 export interface DocumentChangeJournalDeps {
 	readonly getDocument: () => Document;
@@ -63,6 +68,7 @@ export interface DocumentChangeJournalDeps {
 	readonly replaceDocument: (document: Document) => void;
 	readonly createDocumentHistory: () => DocumentHistory;
 	readonly createLayerId?: () => string;
+	readonly createFrameId?: () => string;
 	readonly rememberReferenceLayerBlob: (layerId: string, sourceBlob: Blob) => void;
 	readonly clearActiveLayerPixels: (document: Document) => void;
 	readonly resizeDocument: (
@@ -249,6 +255,22 @@ export class DocumentChangeJournal {
 			case 'set-marquee':
 				document.set_marquee(intent.region);
 				return { changed: true };
+			case 'add-frame': {
+				const frameId = this.#deps.createFrameId?.() ?? crypto.randomUUID();
+				document.add_frame(frameId);
+				return { changed: true, frameId };
+			}
+			case 'duplicate-frame': {
+				const frameId = this.#deps.createFrameId?.() ?? crypto.randomUUID();
+				document.duplicate_frame(frameId);
+				return { changed: true, frameId };
+			}
+			case 'remove-frame':
+				document.remove_frame(intent.id);
+				return { changed: true };
+			case 'reorder-frame':
+				document.reorder_frame(intent.id, intent.newIndex);
+				return { changed: true };
 		}
 	}
 
@@ -258,6 +280,9 @@ export class DocumentChangeJournal {
 		switch (intent.type) {
 			case 'set-active-layer':
 				document.set_active_layer(intent.id);
+				break;
+			case 'set-active-frame':
+				document.set_active_frame(intent.id);
 				break;
 			case 'set-timeline-panel-collapsed':
 				document.set_timeline_panel_collapsed(intent.collapsed);
@@ -318,6 +343,20 @@ export class DocumentChangeJournal {
 					this.#activeLayerKind() === 'pixel' &&
 					!sameMarqueeRegion(document.marquee(), intent.region)
 				);
+			case 'add-frame':
+			case 'duplicate-frame':
+				return true;
+			case 'remove-frame':
+				return document.frame_count() > 1;
+			case 'reorder-frame': {
+				const frames = document.frames_metadata();
+				const from = frames.findIndex((frame) => frame.id === intent.id);
+				if (from === -1) {
+					throw new Error(`Frame with id ${intent.id} not found`);
+				}
+				const to = Math.min(Math.max(intent.newIndex, 0), frames.length - 1);
+				return from !== to;
+			}
 		}
 	}
 
@@ -326,6 +365,8 @@ export class DocumentChangeJournal {
 		switch (intent.type) {
 			case 'set-active-layer':
 				return document.active_layer_id() !== intent.id;
+			case 'set-active-frame':
+				return document.active_frame_id() !== intent.id;
 			case 'set-timeline-panel-collapsed':
 				return document.is_timeline_panel_collapsed() !== intent.collapsed;
 		}
@@ -383,6 +424,13 @@ export class DocumentChangeJournal {
 		switch (intent.type) {
 			case 'reorder-layer':
 			case 'set-marquee':
+			// Frame ops change which cel composites and the frame axis the panel
+			// renders, but never the canvas dimensions or the active layer — so
+			// Navigation Bounds are unaffected and no viewport reclamp is needed.
+			case 'add-frame':
+			case 'duplicate-frame':
+			case 'remove-frame':
+			case 'reorder-frame':
 				this.#invalidateRenderAndMarkDirty();
 				break;
 			case 'resize-document':
@@ -422,6 +470,11 @@ export class DocumentChangeJournal {
 		switch (intent.type) {
 			case 'set-active-layer':
 				this.#reclampViewportInvalidateRenderAndMarkDirty();
+				break;
+			case 'set-active-frame':
+				// Unlike set-active-layer, switching frames keeps the active layer
+				// fixed, so Navigation Bounds don't change — no reclamp.
+				this.#invalidateRenderAndMarkDirty();
 				break;
 			case 'set-timeline-panel-collapsed':
 				this.#invalidateRenderAndMarkDirty();

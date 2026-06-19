@@ -879,6 +879,21 @@ impl Document {
         }
     }
 
+    /// Returns the RGBA pixel buffer of the cel at (`layer_index`, `frame_id`)
+    /// without moving the active-frame pointer, or `None` when `layer_index` is
+    /// out of range, the layer is not a Pixel Layer, or no frame with
+    /// `frame_id` exists on the axis.
+    ///
+    /// The frame-agnostic counterpart of [`layer_pixels_at`](Self::layer_pixels_at):
+    /// it reads any frame's cel, which a timeline panel needs to show per-frame
+    /// occupancy and thumbnails regardless of which frame is active.
+    pub fn cel_pixels_at(&self, layer_index: usize, frame_id: Uuid) -> Option<&[u8]> {
+        match &self.layers.get(layer_index)?.kind {
+            LayerKind::Pixel(cels) => cels.get(frame_id).map(|cel| cel.pixels()),
+            LayerKind::Reference(_) => None,
+        }
+    }
+
     /// Overwrites the active layer's pixel buffer with `data`. Used by tools
     /// that take a stroke-start snapshot and restore it during preview
     /// (shape tools, move tool). Other layers are unaffected.
@@ -3898,6 +3913,58 @@ mod tests {
         assert_eq!(doc.get_pixel(1, 1).unwrap(), Color::TRANSPARENT);
         doc.set_active_frame(second).unwrap();
         assert_eq!(doc.get_pixel(1, 1).unwrap(), blue);
+    }
+
+    #[test]
+    fn cel_pixels_at_reads_the_addressed_cel_independent_of_the_active_frame() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let red = Color::new(255, 0, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        doc.set_pixel(0, 0, red).unwrap(); // first frame, pixel (0,0)
+        let second = Uuid::new_v4();
+        doc.add_frame(second); // second frame active and empty
+        doc.set_pixel(1, 1, blue).unwrap(); // second frame, pixel (1,1)
+
+        // Active frame is `second`, yet either frame's cel reads correctly and
+        // the read leaves the active pointer untouched.
+        assert_eq!(
+            &doc.cel_pixels_at(0, first).unwrap()[0..4],
+            &[255, 0, 0, 255]
+        );
+        assert_eq!(
+            &doc.cel_pixels_at(0, second).unwrap()[12..16],
+            &[0, 0, 255, 255]
+        );
+        assert_eq!(doc.active_frame_id(), second);
+
+        // Out-of-range layer index and unknown frame id both yield None.
+        assert_eq!(doc.cel_pixels_at(1, first), None);
+        assert_eq!(doc.cel_pixels_at(0, Uuid::new_v4()), None);
+    }
+
+    #[test]
+    fn cel_pixels_at_returns_none_for_a_reference_layer() {
+        use crate::layer::ReferenceData;
+        use crate::reference_placement::ReferencePlacement;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
+        let reference = ReferenceData::new(vec![0u8; 4], 1, 1, placement).unwrap();
+
+        let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
+        let frame = doc.active_frame_id();
+        doc.layers.push(Layer {
+            id: r,
+            name: "Ref".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Reference(reference),
+        });
+
+        assert!(doc.cel_pixels_at(0, frame).is_some()); // Pixel Layer
+        assert_eq!(doc.cel_pixels_at(1, frame), None); // Reference Layer
     }
 
     #[test]

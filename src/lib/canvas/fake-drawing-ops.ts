@@ -252,6 +252,28 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 			throw new Error('createFakeDocument: set_layer_visibility not implemented');
 		},
 		layer_source_pixels_at: () => undefined,
+		active_frame_id: () => 'frame',
+		frame_count: () => 1,
+		frames_metadata: () => [{ id: 'frame' }],
+		cel_pixels_at: (layerIndex, frameId) =>
+			layerIndex === 0 && frameId === 'frame' ? new Uint8Array(pixels) : undefined,
+		add_frame: () => {
+			throw new Error('createFakeDocument: add_frame not implemented');
+		},
+		duplicate_frame: () => {
+			throw new Error('createFakeDocument: duplicate_frame not implemented');
+		},
+		remove_frame: () => {
+			throw new Error('createFakeDocument: remove_frame not implemented');
+		},
+		reorder_frame: () => {
+			throw new Error('createFakeDocument: reorder_frame not implemented');
+		},
+		set_active_frame: (id) => {
+			if (id !== 'frame') {
+				throw new Error(`createFakeDocument: unknown frame id: ${id}`);
+			}
+		},
 		get restoreActiveLayerCalls() {
 			return restoreCalls;
 		}

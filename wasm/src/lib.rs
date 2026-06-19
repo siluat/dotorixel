@@ -467,6 +467,28 @@ impl WasmLayerMetadata {
 }
 
 // ---------------------------------------------------------------------------
+// WasmFrameMetadata
+// ---------------------------------------------------------------------------
+
+/// One frame's metadata, read in axis order via
+/// [`WasmDocument::frames_metadata`]. A Frame is identity-only today, so this
+/// carries just its id; the struct (rather than a bare id string) mirrors
+/// [`WasmLayerMetadata`] and leaves room for per-frame attributes (e.g. a
+/// duration for playback speed) without reshaping the read.
+#[wasm_bindgen]
+pub struct WasmFrameMetadata {
+    id: String,
+}
+
+#[wasm_bindgen]
+impl WasmFrameMetadata {
+    #[wasm_bindgen(getter)]
+    pub fn id(&self) -> String {
+        self.id.clone()
+    }
+}
+
+// ---------------------------------------------------------------------------
 // WasmDocument
 // ---------------------------------------------------------------------------
 
@@ -816,6 +838,102 @@ impl WasmDocument {
         }
         self.inner.composite_buffer_at(buffer, region.inner);
         Ok(())
+    }
+
+    // -- Frame axis --
+
+    pub fn active_frame_id(&self) -> String {
+        self.inner.active_frame_id().to_string()
+    }
+
+    pub fn frame_count(&self) -> usize {
+        self.inner.frames().len()
+    }
+
+    /// Every frame's metadata in axis order (`index = 0` is the first frame,
+    /// displayed as ordinal 1) in a single crossing.
+    pub fn frames_metadata(&self) -> Vec<WasmFrameMetadata> {
+        self.inner
+            .frames()
+            .iter()
+            .map(|frame| WasmFrameMetadata {
+                id: frame.id.to_string(),
+            })
+            .collect()
+    }
+
+    /// Returns a copy of the RGBA pixel buffer of the cel at (`layer_index`,
+    /// `frame_id`) without moving the active-frame pointer. `None` when
+    /// `layer_index` is out of range, the layer is not a Pixel Layer, or no
+    /// frame with `frame_id` exists. Errors only when `frame_id` is not a valid
+    /// UUID string.
+    pub fn cel_pixels_at(
+        &self,
+        layer_index: usize,
+        frame_id: String,
+    ) -> Result<Option<Vec<u8>>, JsError> {
+        let fid = Uuid::parse_str(&frame_id).map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(self
+            .inner
+            .cel_pixels_at(layer_index, fid)
+            .map(|pixels| pixels.to_vec()))
+    }
+
+    /// Inserts a transparent frame directly after the active frame, seeds a cel
+    /// for it on every Pixel Layer, and makes it active. Errors when `new_id` is
+    /// not a valid UUID string or a frame with the same id already exists on the
+    /// axis.
+    pub fn add_frame(&mut self, new_id: String) -> Result<(), JsError> {
+        let id = Uuid::parse_str(&new_id).map_err(|e| JsError::new(&e.to_string()))?;
+        if self.inner.frames().iter().any(|f| f.id == id) {
+            return Err(JsError::new(&format!("Frame with id {id} already exists")));
+        }
+        self.inner.add_frame(id);
+        Ok(())
+    }
+
+    /// Inserts a deep copy of the active frame directly after it — cloning every
+    /// Pixel Layer's active-frame cel — and makes the copy active. Errors when
+    /// `new_id` is not a valid UUID string or already exists on the axis.
+    pub fn duplicate_frame(&mut self, new_id: String) -> Result<(), JsError> {
+        let id = Uuid::parse_str(&new_id).map_err(|e| JsError::new(&e.to_string()))?;
+        if self.inner.frames().iter().any(|f| f.id == id) {
+            return Err(JsError::new(&format!("Frame with id {id} already exists")));
+        }
+        self.inner.duplicate_frame(id);
+        Ok(())
+    }
+
+    /// Removes the frame with `id` and drops its cel from every Pixel Layer.
+    /// Errors when the frame does not exist or when removing it would empty the
+    /// axis (a document must always contain at least one frame). When the
+    /// removed frame was active, the active pointer moves to an adjacent frame.
+    pub fn remove_frame(&mut self, id: String) -> Result<(), JsError> {
+        let frame_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner
+            .remove_frame(frame_id)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// Moves the frame with `id` to `new_index` (0-based axis position),
+    /// silently clamped to `[0, frame_count - 1]`. The active frame pointer is
+    /// preserved (tracked by id), and each Pixel Layer's cels stay keyed by
+    /// frame id, so cel contents follow their frame. Errors when no frame with
+    /// `id` exists.
+    pub fn reorder_frame(&mut self, id: String, new_index: usize) -> Result<(), JsError> {
+        let frame_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner
+            .reorder_frame(frame_id, new_index)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// Sets the active frame by id. Errors when no frame with `id` exists; the
+    /// previous active frame is preserved on error.
+    pub fn set_active_frame(&mut self, id: String) -> Result<(), JsError> {
+        let frame_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner
+            .set_active_frame(frame_id)
+            .map_err(|e| JsError::new(&e.to_string()))
     }
 }
 
@@ -1559,6 +1677,112 @@ mod tests {
         assert_eq!(doc.layer_count(), 2);
         assert_eq!(doc.next_layer_number(), 3);
         assert_eq!(doc.active_layer_id(), second.to_string());
+    }
+
+    // -- WasmDocument frame axis --
+
+    #[test]
+    fn wasm_document_new_starts_with_one_frame_active() {
+        let id = Uuid::new_v4();
+        let doc = WasmDocument::new(4, 4, id.to_string(), "Layer 1".to_string()).unwrap();
+
+        assert_eq!(doc.frame_count(), 1);
+        let frames = doc.frames_metadata();
+        assert_eq!(frames.len(), 1);
+        assert_eq!(doc.active_frame_id(), frames[0].id());
+    }
+
+    #[test]
+    fn wasm_document_add_frame_appends_after_active_and_activates() {
+        let layer = Uuid::new_v4();
+        let second = Uuid::new_v4();
+        let mut doc = WasmDocument::new(4, 4, layer.to_string(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+
+        doc.add_frame(second.to_string()).unwrap();
+
+        assert_eq!(doc.frame_count(), 2);
+        assert_eq!(doc.active_frame_id(), second.to_string());
+        let ids: Vec<String> = doc.frames_metadata().iter().map(|f| f.id()).collect();
+        assert_eq!(ids, vec![first, second.to_string()]);
+    }
+
+    #[test]
+    fn wasm_document_set_active_frame_moves_the_pointer() {
+        let layer = Uuid::new_v4();
+        let second = Uuid::new_v4();
+        let mut doc = WasmDocument::new(4, 4, layer.to_string(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        doc.add_frame(second.to_string()).unwrap(); // active = second
+
+        doc.set_active_frame(first.clone()).unwrap();
+
+        assert_eq!(doc.active_frame_id(), first);
+    }
+
+    #[test]
+    fn wasm_document_remove_frame_drops_it_and_relocates_active() {
+        let layer = Uuid::new_v4();
+        let second = Uuid::new_v4();
+        let mut doc = WasmDocument::new(4, 4, layer.to_string(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        doc.add_frame(second.to_string()).unwrap(); // active = second
+
+        doc.remove_frame(second.to_string()).unwrap();
+
+        assert_eq!(doc.frame_count(), 1);
+        assert_eq!(doc.active_frame_id(), first);
+    }
+
+    #[test]
+    fn wasm_document_reorder_frame_rearranges_axis_and_preserves_active_by_id() {
+        let layer = Uuid::new_v4();
+        let second = Uuid::new_v4();
+        let mut doc = WasmDocument::new(4, 4, layer.to_string(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        doc.add_frame(second.to_string()).unwrap(); // [first, second], active = second
+
+        doc.reorder_frame(second.to_string(), 0).unwrap(); // [second, first]
+
+        let ids: Vec<String> = doc.frames_metadata().iter().map(|f| f.id()).collect();
+        assert_eq!(ids, vec![second.to_string(), first]);
+        assert_eq!(doc.active_frame_id(), second.to_string());
+    }
+
+    #[test]
+    fn wasm_document_duplicate_frame_copies_active_cel_into_the_new_frame() {
+        let layer = Uuid::new_v4();
+        let copy = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 2, layer.to_string(), "Layer 1".to_string()).unwrap();
+        let red = WasmColor::new(255, 0, 0, 255);
+        doc.set_pixel(0, 0, &red).unwrap();
+
+        doc.duplicate_frame(copy.to_string()).unwrap();
+
+        assert_eq!(doc.frame_count(), 2);
+        assert_eq!(doc.active_frame_id(), copy.to_string());
+        // The copy carries the source pixel (deep clone of the active cel).
+        assert_eq!(&doc.composite()[0..4], &[255, 0, 0, 255]);
+    }
+
+    #[test]
+    fn wasm_document_cel_pixels_at_reads_each_frame_cel_independent_of_active() {
+        let layer = Uuid::new_v4();
+        let second = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 2, layer.to_string(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let red = WasmColor::new(255, 0, 0, 255);
+        doc.set_pixel(0, 0, &red).unwrap(); // first frame
+        doc.add_frame(second.to_string()).unwrap(); // second active and empty
+
+        let first_cel = doc.cel_pixels_at(0, first.clone()).unwrap().unwrap();
+        let second_cel = doc.cel_pixels_at(0, second.to_string()).unwrap().unwrap();
+
+        assert_eq!(&first_cel[0..4], &[255, 0, 0, 255]);
+        assert!(second_cel.iter().all(|&b| b == 0)); // freshly added frame is empty
+        assert_eq!(doc.active_frame_id(), second.to_string()); // read left active untouched
+        // Out-of-range layer index yields None without throwing.
+        assert_eq!(doc.cel_pixels_at(9, first).unwrap(), None);
     }
 
     #[test]

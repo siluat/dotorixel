@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 189 | [Frame WASM binding + Change Journal intents](../issues/189-frame-wasm-journal-intents.md) | 2026-06-20 |
 | 188 | [Frame cel-grid + frame operations — Rust core](../issues/188-frame-cel-grid-core.md) | 2026-06-18 |
 | 187 | [Frame ruler design — M4 Layer × Frame grid (.pen)](../issues/187-frame-ruler-design.md) | 2026-06-17 |
 | 185 | [Dissolve the CanvasBackend umbrella; editor-session imports the wasm adapters directly](../issues/185-dissolve-canvas-backend-umbrella.md) | 2026-06-16 |

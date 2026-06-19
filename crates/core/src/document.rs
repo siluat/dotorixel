@@ -111,6 +111,9 @@ pub enum DocumentBuildError {
         actual: (u32, u32),
     },
     UnknownActiveLayer(Uuid),
+    MissingInitialFrameCel {
+        layer_id: Uuid,
+    },
 }
 
 impl fmt::Display for DocumentBuildError {
@@ -139,6 +142,12 @@ impl fmt::Display for DocumentBuildError {
                 write!(
                     f,
                     "Active layer id {id} is not present in the supplied layer stack."
+                )
+            }
+            Self::MissingInitialFrameCel { layer_id } => {
+                write!(
+                    f,
+                    "Pixel layer {layer_id} has no cel for the document's initial frame; every Pixel Layer must hold one cel per frame."
                 )
             }
         }
@@ -220,6 +229,13 @@ impl Document {
                 return Err(DocumentBuildError::DuplicateLayerId(layer.id));
             }
             if let LayerKind::Pixel(cels) = &layer.kind {
+                // The reconstructed document has a single initial frame, so every
+                // Pixel Layer must carry a cel keyed to it — otherwise the
+                // document would build successfully but panic on the first
+                // active-frame access. Also rejects an empty `Cels`.
+                if cels.get(Frame::INITIAL.id).is_none() {
+                    return Err(DocumentBuildError::MissingInitialFrameCel { layer_id: layer.id });
+                }
                 for canvas in cels.canvases() {
                     let actual = (canvas.width(), canvas.height());
                     if actual != (width, height) {
@@ -2103,6 +2119,27 @@ mod tests {
         let dummy_id = Uuid::new_v4();
         let result = Document::from_layers(8, 8, vec![], dummy_id, 1, false);
         assert_eq!(result.unwrap_err(), DocumentBuildError::EmptyLayers);
+    }
+
+    #[test]
+    fn from_layers_rejects_a_pixel_layer_not_keyed_to_the_initial_frame() {
+        // A Pixel layer whose sole cel is keyed to some other frame id (or an
+        // empty `Cels`) would build successfully but panic on the first
+        // active-frame access — reject it at the boundary instead.
+        let a = Uuid::new_v4();
+        let stray_frame = Uuid::new_v4();
+        let layer = Layer {
+            id: a,
+            name: "A".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Pixel(Cels::single(stray_frame, PixelCanvas::new(4, 4).unwrap())),
+        };
+        let result = Document::from_layers(4, 4, vec![layer], a, 2, false);
+        assert_eq!(
+            result.unwrap_err(),
+            DocumentBuildError::MissingInitialFrameCel { layer_id: a }
+        );
     }
 
     #[test]

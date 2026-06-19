@@ -134,8 +134,14 @@ impl Cels {
     }
 
     /// Clones the cel at `from` into a new cel keyed by `to`. Called when a
-    /// frame is duplicated. No-op when there is no cel at `from`.
+    /// frame is duplicated; the caller must ensure `from` references an existing
+    /// cel (the grid invariant guarantees it). A missing source trips a
+    /// `debug_assert` in test builds and is a no-op in release.
     pub fn duplicate_cel(&mut self, from: Uuid, to: Uuid) {
+        debug_assert!(
+            self.by_frame.contains_key(&from),
+            "duplicate_cel: source frame {from} has no cel"
+        );
         if let Some(canvas) = self.by_frame.get(&from).cloned() {
             self.by_frame.insert(to, canvas);
         }

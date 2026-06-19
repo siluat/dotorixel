@@ -6,14 +6,23 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 156 | 120 | 36 | 155 | 77% | 44% |
-| cubic-dev-ai[bot] | 114 | 92 | 22 | 180 | 81% | 34% |
-| coderabbitai[bot] | 214 | 151 | 63 | 118 | 71% | 56% |
+| greptile-apps[bot] | 158 | 122 | 36 | 155 | 77% | 44% |
+| cubic-dev-ai[bot] | 117 | 94 | 23 | 180 | 80% | 34% |
+| coderabbitai[bot] | 217 | 152 | 65 | 119 | 70% | 56% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #283 | greptile-apps[bot] | Accept | from_layers accepted a Pixel layer not keyed to Frame::INITIAL (or an empty Cels) — builds ok but panics on the first active-frame access; added DocumentBuildError::MissingInitialFrameCel boundary check |
+| #283 | coderabbitai[bot] | Accept | Same from_layers missing-initial-frame-cel validation gap (duplicate) |
+| #283 | cubic-dev-ai[bot] | Accept | Same from_layers missing-initial-frame-cel validation gap (duplicate) |
+| #283 | greptile-apps[bot] | Accept | duplicate_cel silently no-ops on a missing source cel; added a debug_assert on source presence to match the sibling axis-op precondition style (release no-op kept) |
+| #283 | cubic-dev-ai[bot] | Accept | Same duplicate_cel silent-no-op finding (duplicate) |
+| #283 | coderabbitai[bot] | Reject | Wanted add_frame/duplicate_frame to reject duplicate ids via Result at runtime; mirrors add_layer's debug_assert precondition + infallible contract, runtime uniqueness check lives at the WASM boundary (lands in 189) |
+| #283 | cubic-dev-ai[bot] | Reject | Same debug_assert→runtime frame-id uniqueness concern (assert! variant); declined for the add_layer-parity / fail-at-the-boundary reason |
+| #283 | coderabbitai[bot] | Reject | Wanted rustdoc on get_mut / frames() / active_frame_id(); simple getters need no doc per rust-conventions, consistent with undocumented width()/layers()/active_layer_id() and the struct-level frame-order doc |
+| #283 | coderabbitai[bot] | Miss | Did not flag duplicate_cel's silent no-op on a missing source cel |
 | #281 | greptile-apps[bot] | Accept | Two `shared,` lines over-indented (tab 4 vs sibling 3) in the inline `new TabState({…})` blocks — bulk-edit artifact from dropping the `backend: wasmBackend,` line above each |
 | #281 | cubic-dev-ai[bot] | Miss | Did not flag the over-indented `shared,` artifact ("No issues found" across 16 files) |
 | #281 | coderabbitai[bot] | Miss | Did not flag the over-indented `shared,` artifact (APPROVED, no actionable comments) |

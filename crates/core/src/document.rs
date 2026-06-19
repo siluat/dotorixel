@@ -52,6 +52,7 @@ impl std::error::Error for LayerError {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FrameError {
     FrameNotFound { id: Uuid },
+    DuplicateFrameId { id: Uuid },
     RemoveLastFrame,
 }
 
@@ -59,6 +60,7 @@ impl fmt::Display for FrameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::FrameNotFound { id } => write!(f, "Frame with id {id} not found"),
+            Self::DuplicateFrameId { id } => write!(f, "Frame with id {id} already exists"),
             Self::RemoveLastFrame => write!(
                 f,
                 "Cannot remove the last remaining frame. A document must contain at least one frame."
@@ -350,11 +352,13 @@ impl Document {
     /// Inserts a new empty Frame directly after the active Frame and makes it
     /// active. Every Pixel Layer receives one transparent Cel for the new
     /// Frame; Reference Layers remain frame-independent.
-    pub fn add_frame(&mut self, new_id: Uuid) {
-        debug_assert!(
-            !self.frames.iter().any(|frame| frame.id == new_id),
-            "add_frame called with a UUID already present in the frame axis"
-        );
+    ///
+    /// Returns [`FrameError::DuplicateFrameId`] when `new_id` is already present
+    /// in the frame axis.
+    pub fn add_frame(&mut self, new_id: Uuid) -> Result<(), FrameError> {
+        if self.frames.iter().any(|frame| frame.id == new_id) {
+            return Err(FrameError::DuplicateFrameId { id: new_id });
+        }
         let active_idx = self.active_frame_index();
         self.frames.insert(active_idx + 1, Frame { id: new_id });
         for layer in &mut self.layers {
@@ -367,16 +371,19 @@ impl Document {
             }
         }
         self.active_frame_id = new_id;
+        Ok(())
     }
 
     /// Duplicates the active Frame after itself and makes the duplicate active.
     /// Every Pixel Layer's active Cel is cloned; Reference Layers remain
     /// frame-independent.
-    pub fn duplicate_frame(&mut self, new_id: Uuid) {
-        debug_assert!(
-            !self.frames.iter().any(|frame| frame.id == new_id),
-            "duplicate_frame called with a UUID already present in the frame axis"
-        );
+    ///
+    /// Returns [`FrameError::DuplicateFrameId`] when `new_id` is already present
+    /// in the frame axis.
+    pub fn duplicate_frame(&mut self, new_id: Uuid) -> Result<(), FrameError> {
+        if self.frames.iter().any(|frame| frame.id == new_id) {
+            return Err(FrameError::DuplicateFrameId { id: new_id });
+        }
         let source_frame_id = self.active_frame_id;
         let active_idx = self.active_frame_index();
         self.frames.insert(active_idx + 1, Frame { id: new_id });
@@ -390,6 +397,7 @@ impl Document {
             }
         }
         self.active_frame_id = new_id;
+        Ok(())
     }
 
     /// Sets the active Frame by id.
@@ -2402,7 +2410,7 @@ mod tests {
         let first_frame_id = doc.active_frame_id();
         doc.set_pixel(0, 0, red).unwrap();
 
-        doc.add_frame(new_frame_id);
+        doc.add_frame(new_frame_id).unwrap();
 
         assert_eq!(
             doc.frames()
@@ -2422,6 +2430,26 @@ mod tests {
     }
 
     #[test]
+    fn add_frame_rejects_duplicate_frame_id_without_mutating() {
+        let layer_id = Uuid::new_v4();
+        let mut doc = Document::new(1, 1, layer_id, "Layer 1".to_string()).unwrap();
+        let existing_frame_id = doc.active_frame_id();
+        let before_composite = doc.composite();
+
+        let result = doc.add_frame(existing_frame_id);
+
+        assert_eq!(
+            result.unwrap_err(),
+            FrameError::DuplicateFrameId {
+                id: existing_frame_id
+            }
+        );
+        assert_eq!(doc.frames().len(), 1);
+        assert_eq!(doc.active_frame_id(), existing_frame_id);
+        assert_eq!(doc.composite(), before_composite);
+    }
+
+    #[test]
     fn duplicate_frame_clones_every_pixel_layers_active_cel_and_becomes_active() {
         let bottom_id = Uuid::new_v4();
         let top_id = Uuid::new_v4();
@@ -2433,7 +2461,7 @@ mod tests {
         doc.set_pixel(1, 0, Color::new(0, 0, 255, 255)).unwrap();
         let source_composite = doc.composite();
 
-        doc.duplicate_frame(duplicate_frame_id);
+        doc.duplicate_frame(duplicate_frame_id).unwrap();
 
         assert_eq!(
             doc.frames()
@@ -2452,14 +2480,36 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_frame_rejects_duplicate_frame_id_without_mutating() {
+        let layer_id = Uuid::new_v4();
+        let second_frame_id = Uuid::new_v4();
+        let mut doc = Document::new(1, 1, layer_id, "Layer 1".to_string()).unwrap();
+        let first_frame_id = doc.active_frame_id();
+        doc.add_frame(second_frame_id).unwrap();
+        let frames_before = doc.frames().to_vec();
+        let active_before = doc.active_frame_id();
+        let before_composite = doc.composite();
+
+        let result = doc.duplicate_frame(first_frame_id);
+
+        assert_eq!(
+            result.unwrap_err(),
+            FrameError::DuplicateFrameId { id: first_frame_id }
+        );
+        assert_eq!(doc.frames(), frames_before.as_slice());
+        assert_eq!(doc.active_frame_id(), active_before);
+        assert_eq!(doc.composite(), before_composite);
+    }
+
+    #[test]
     fn remove_frame_drops_cels_rejects_last_frame_and_relocates_active_to_adjacent() {
         let layer_id = Uuid::new_v4();
         let second_frame_id = Uuid::new_v4();
         let third_frame_id = Uuid::new_v4();
         let mut doc = Document::new(1, 1, layer_id, "Layer 1".to_string()).unwrap();
         let first_frame_id = doc.active_frame_id();
-        doc.add_frame(second_frame_id);
-        doc.add_frame(third_frame_id);
+        doc.add_frame(second_frame_id).unwrap();
+        doc.add_frame(third_frame_id).unwrap();
         doc.set_pixel(0, 0, Color::new(0, 0, 255, 255)).unwrap();
 
         doc.remove_frame(third_frame_id).unwrap();
@@ -2489,8 +2539,8 @@ mod tests {
         let third_frame_id = Uuid::new_v4();
         let mut doc = Document::new(1, 1, layer_id, "Layer 1".to_string()).unwrap();
         let first_frame_id = doc.active_frame_id();
-        doc.add_frame(second_frame_id);
-        doc.add_frame(third_frame_id);
+        doc.add_frame(second_frame_id).unwrap();
+        doc.add_frame(third_frame_id).unwrap();
         doc.set_active_frame(second_frame_id).unwrap();
 
         doc.reorder_frame(second_frame_id, 99).unwrap();
@@ -2530,7 +2580,7 @@ mod tests {
         let second_frame_id = Uuid::new_v4();
         let mut doc = Document::new(1, 1, first_layer_id, "Layer 1".to_string()).unwrap();
         let first_frame_id = doc.active_frame_id();
-        doc.add_frame(second_frame_id);
+        doc.add_frame(second_frame_id).unwrap();
 
         doc.add_layer(second_layer_id, "Layer 2".to_string());
 
@@ -2551,7 +2601,7 @@ mod tests {
         let mut doc = Document::new(2, 2, layer_id, "Layer 1".to_string()).unwrap();
         let first_frame_id = doc.active_frame_id();
         doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
-        doc.add_frame(second_frame_id);
+        doc.add_frame(second_frame_id).unwrap();
         doc.set_pixel(0, 0, Color::new(0, 0, 255, 255)).unwrap();
 
         doc.resize(3, 3, ResizeAnchor::BottomRight).unwrap();

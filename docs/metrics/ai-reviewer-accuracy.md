@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 157 | 121 | 36 | 157 | 77% | 44% |
-| cubic-dev-ai[bot] | 117 | 95 | 22 | 180 | 81% | 35% |
-| coderabbitai[bot] | 214 | 151 | 63 | 121 | 71% | 56% |
+| greptile-apps[bot] | 157 | 121 | 36 | 158 | 77% | 43% |
+| cubic-dev-ai[bot] | 117 | 95 | 22 | 181 | 81% | 34% |
+| coderabbitai[bot] | 215 | 152 | 63 | 121 | 71% | 56% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #282 | coderabbitai[bot] | Accept | `add_frame` and `duplicate_frame` relied on debug assertions for duplicate frame ids; added release-active `DuplicateFrameId` errors |
+| #282 | greptile-apps[bot] | Miss | Did not flag duplicate frame ids being accepted in release builds by `add_frame` / `duplicate_frame` |
+| #282 | cubic-dev-ai[bot] | Miss | Did not flag duplicate frame ids being accepted in release builds by `add_frame` / `duplicate_frame` |
 | #282 | greptile-apps[bot] | Accept | `from_layers` could silently flatten multi-cel Pixel Layers; fixed by rejecting multi-cel legacy hydration input rather than relying on position-based `first_canvas()` |
 | #282 | cubic-dev-ai[bot] | Accept | `Layer::new_with_frames` exposed an internal frame-grid constructor that could panic on empty frame ids; narrowed it to crate-local use |
 | #282 | cubic-dev-ai[bot] | Accept | `from_layers` silently discarded non-first cels from Pixel Layers; added an explicit multi-cel Pixel Layer rejection |

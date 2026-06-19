@@ -5,9 +5,8 @@ use dotorixel_core::canvas::{CanvasRect, PixelCanvas, ResizeAnchor};
 use dotorixel_core::color::Color;
 use dotorixel_core::document::Document;
 use dotorixel_core::export::{PngExport, SvgExport};
-use dotorixel_core::frame::Frame;
 use dotorixel_core::history::DocumentHistory;
-use dotorixel_core::layer::{Cels, Layer, LayerKind, LayerKindTag, ReferenceData};
+use dotorixel_core::layer::{Layer, LayerKind, LayerKindTag, ReferenceData};
 use dotorixel_core::pixel_perfect::{Action, FilterResult, TailState, pixel_perfect_filter};
 use dotorixel_core::reference_placement::ReferencePlacement;
 use dotorixel_core::selection::{MarqueeRegion, SelectionClipboard};
@@ -862,17 +861,17 @@ impl WasmDocumentBuilder {
         let layer_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
         let pixel_canvas = PixelCanvas::from_pixels(self.width, self.height, pixels)
             .map_err(|e| JsError::new(&e.to_string()))?;
-        // Single-frame reconstruction: key the layer's sole cel to the initial
-        // frame, matching the single frame `Document::from_layers` establishes.
-        // Multi-frame persistence (and caller-supplied frame ids) arrives with
-        // the frame WASM binding and schema V6.
-        self.layers.push(Layer {
-            id: layer_id,
+        // Single-frame reconstruction: the core wraps the canvas as the sole
+        // cel for the initial frame, matching the single frame
+        // `Document::from_layers` establishes. Multi-frame persistence (and
+        // caller-supplied frame ids) arrives with schema V6.
+        self.layers.push(Layer::from_pixel_canvas(
+            layer_id,
             name,
             visible,
             opacity,
-            kind: LayerKind::Pixel(Cels::single(Frame::INITIAL.id, pixel_canvas)),
-        });
+            pixel_canvas,
+        ));
         Ok(())
     }
 

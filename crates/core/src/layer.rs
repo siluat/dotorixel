@@ -71,6 +71,28 @@ impl Layer {
             )),
         })
     }
+
+    /// Builds a Pixel Layer wrapping an existing `canvas` as its sole cel for
+    /// the [initial frame](Frame::INITIAL), with caller-supplied display state.
+    /// Used by persistence hydration, where pixels, visibility, and opacity are
+    /// restored verbatim — contrast [`Layer::new`], which creates a fresh
+    /// transparent layer. Keeps the cel/initial-frame keying inside the layer
+    /// module rather than leaking it into binding code.
+    pub fn from_pixel_canvas(
+        id: Uuid,
+        name: String,
+        visible: bool,
+        opacity: f32,
+        canvas: PixelCanvas,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            visible,
+            opacity,
+            kind: LayerKind::Pixel(Cels::single(Frame::INITIAL.id, canvas)),
+        }
+    }
 }
 
 /// The cels of a single Pixel Layer — exactly one [`PixelCanvas`] (a **Cel**)
@@ -150,6 +172,15 @@ impl Cels {
     /// Drops the cel for `frame_id`. Called when a frame is removed.
     pub fn remove(&mut self, frame_id: Uuid) {
         self.by_frame.remove(&frame_id);
+    }
+
+    /// The number of cels (one per frame this layer covers).
+    pub fn len(&self) -> usize {
+        self.by_frame.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.by_frame.is_empty()
     }
 
     /// Every cel, in unspecified frame order.

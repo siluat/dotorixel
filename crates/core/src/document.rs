@@ -114,6 +114,9 @@ pub enum DocumentBuildError {
     MissingInitialFrameCel {
         layer_id: Uuid,
     },
+    MultiFramePixelLayer {
+        layer_id: Uuid,
+    },
 }
 
 impl fmt::Display for DocumentBuildError {
@@ -148,6 +151,12 @@ impl fmt::Display for DocumentBuildError {
                 write!(
                     f,
                     "Pixel layer {layer_id} has no cel for the document's initial frame; every Pixel Layer must hold one cel per frame."
+                )
+            }
+            Self::MultiFramePixelLayer { layer_id } => {
+                write!(
+                    f,
+                    "Pixel layer {layer_id} carries more than one cel; from_layers reconstructs a single-frame document, so each Pixel Layer must hold exactly one cel."
                 )
             }
         }
@@ -235,6 +244,12 @@ impl Document {
                 // active-frame access. Also rejects an empty `Cels`.
                 if cels.get(Frame::INITIAL.id).is_none() {
                     return Err(DocumentBuildError::MissingInitialFrameCel { layer_id: layer.id });
+                }
+                // The initial cel is present; any additional cels would key to
+                // frames this single-frame document does not have, violating the
+                // grid invariant (cel keys == frame ids, no extra).
+                if cels.len() != 1 {
+                    return Err(DocumentBuildError::MultiFramePixelLayer { layer_id: layer.id });
                 }
                 for canvas in cels.canvases() {
                     let actual = (canvas.width(), canvas.height());
@@ -2139,6 +2154,28 @@ mod tests {
         assert_eq!(
             result.unwrap_err(),
             DocumentBuildError::MissingInitialFrameCel { layer_id: a }
+        );
+    }
+
+    #[test]
+    fn from_layers_rejects_a_pixel_layer_carrying_more_than_one_cel() {
+        // A Cels with the initial frame plus a stray frame id would build a
+        // single-frame document holding a multi-cel Pixel Layer — a grid
+        // invariant violation (cel keys must equal the frame ids exactly).
+        let a = Uuid::new_v4();
+        let stray_frame = Uuid::new_v4();
+        let cels = Cels::transparent(&[Frame::INITIAL.id, stray_frame], 4, 4).unwrap();
+        let layer = Layer {
+            id: a,
+            name: "A".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Pixel(cels),
+        };
+        let result = Document::from_layers(4, 4, vec![layer], a, 2, false);
+        assert_eq!(
+            result.unwrap_err(),
+            DocumentBuildError::MultiFramePixelLayer { layer_id: a }
         );
     }
 

@@ -28,10 +28,11 @@ export type StoredDocument =
 	| DocumentSchemaV2
 	| DocumentSchemaV3
 	| DocumentSchemaV4
-	| DocumentSchemaV5;
+	| DocumentSchemaV5
+	| DocumentSchemaV6;
 
 /** App-facing document type — latest version wired into persistence call sites. */
-export type DocumentRecord = DocumentSchemaV5;
+export type DocumentRecord = DocumentSchemaV6;
 
 /** Lightweight summary for browsing saved documents (excludes schemaVersion, saved, createdAt) */
 export interface SavedDocumentSummary {
@@ -118,6 +119,40 @@ export interface MarqueeRecord {
 export type DocumentSchemaV5 = Omit<DocumentSchemaV4, 'schemaVersion'> & {
 	schemaVersion: 5;
 	marquee: MarqueeRecord | null;
+};
+
+/** A position on the Document's temporal axis — identity only, no name or duration. */
+export interface FrameRecord {
+	id: string;
+}
+
+/** One Pixel Layer's pixel buffer for one Frame — the (layer × frame) grid cell. */
+export interface CelRecord {
+	frameId: string;
+	pixels: Uint8Array;
+}
+
+/**
+ * V6 Pixel Layer record — one Cel per Frame, replacing V5's single `pixels`.
+ * A Pixel Layer's cel keys equal the Document's frame ids (the grid invariant).
+ */
+export interface PixelLayerRecordV6 {
+	kind: 'pixel';
+	id: string;
+	name: string;
+	cels: CelRecord[];
+	visible: boolean;
+	opacity: number;
+}
+
+export type LayerRecordV6 = PixelLayerRecordV6 | ReferenceLayerRecord;
+
+/** Schema V6 — adds the frame axis; each Pixel Layer holds one Cel per frame. */
+export type DocumentSchemaV6 = Omit<DocumentSchemaV5, 'schemaVersion' | 'layers'> & {
+	schemaVersion: 6;
+	frames: FrameRecord[];
+	activeFrameId: string;
+	layers: LayerRecordV6[];
 };
 
 function isReferenceLayerRecord(layer: LayerRecord): layer is ReferenceLayerRecord {
@@ -235,6 +270,35 @@ export function migrateV4ToV5(doc: DocumentSchemaV4 | DocumentSchemaV5): Documen
 }
 
 /**
+ * Migrates a V5 persisted document to schema V6 by synthesizing a single Frame.
+ * Each Pixel Layer's single `pixels` becomes that frame's only Cel; the
+ * Reference Layer is frame-independent and carried through unchanged.
+ * `activeFrameId` points at the synthesized frame. No pixel loss; history
+ * resets, consistent with prior schema migrations.
+ */
+export function migrateV5ToV6(doc: DocumentSchemaV5): DocumentSchemaV6 {
+	const frameId = crypto.randomUUID();
+	return {
+		...doc,
+		schemaVersion: 6,
+		frames: [{ id: frameId }],
+		activeFrameId: frameId,
+		layers: doc.layers.map((layer) =>
+			layer.kind === 'reference'
+				? layer
+				: {
+						kind: 'pixel',
+						id: layer.id,
+						name: layer.name,
+						cels: [{ frameId, pixels: layer.pixels.slice() }],
+						visible: layer.visible,
+						opacity: layer.opacity
+					}
+		)
+	};
+}
+
+/**
  * Source-over composite of every visible layer at its declared opacity.
  * Used to build a single thumbnail buffer for the saved-work browser — the
  * Rust core renders the in-editor canvas via a parallel implementation, so
@@ -261,11 +325,36 @@ export function compositeV3(doc: DocumentSchemaV3): Uint8Array {
 	return out;
 }
 
+/**
+ * The pixels of a Pixel Layer's Cel at a given Frame. The grid invariant
+ * guarantees exactly one Cel per frame, so an absent Cel signals a corrupt
+ * record rather than an expected state.
+ */
+export function celPixelsForFrame(layer: PixelLayerRecordV6, frameId: string): Uint8Array {
+	const cel = layer.cels.find((entry) => entry.frameId === frameId);
+	if (!cel) {
+		throw new Error(`Pixel Layer ${layer.id} is missing a cel for frame ${frameId}`);
+	}
+	return cel.pixels;
+}
+
 /** Pixel-only composite for persistence summaries; Reference Layers are excluded. */
 export function compositeForExportSummary(
-	doc: DocumentSchemaV3 | DocumentSchemaV4 | DocumentSchemaV5
+	doc: DocumentSchemaV3 | DocumentSchemaV4 | DocumentSchemaV5 | DocumentSchemaV6
 ): Uint8Array {
 	if (doc.schemaVersion === 3) return compositeV3(doc);
+	if (doc.schemaVersion === 6) {
+		const pixelLayers = doc.layers
+			.filter((layer): layer is PixelLayerRecordV6 => layer.kind === 'pixel')
+			.map((layer) => ({
+				id: layer.id,
+				name: layer.name,
+				pixels: celPixelsForFrame(layer, doc.activeFrameId),
+				visible: layer.visible,
+				opacity: layer.opacity
+			}));
+		return compositeV3({ ...doc, schemaVersion: 3, layers: pixelLayers });
+	}
 	const pixelLayers = doc.layers.filter(
 		(layer): layer is PixelLayerRecord => layer.kind === 'pixel'
 	);

@@ -1,6 +1,6 @@
 ---
 title: "Document schema V6 — frames + per-cel persistence"
-status: ready-for-agent
+status: done
 created: 2026-06-18
 parent: 186-frame-management.md
 ---
@@ -49,3 +49,23 @@ record to **V6** with a lossless V5 → V6 migration. Depends only on the core m
 - [188 — Frame cel-grid + frame operations (Rust core)](188-frame-cel-grid-core.md)
 
 Can run in parallel with [189 — Frame WASM binding + Change Journal intents](189-frame-wasm-journal-intents.md) (both depend only on 188).
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/session/session-storage-types.ts` | Added `FrameRecord`, `CelRecord`, `PixelLayerRecordV6` (cels), `DocumentSchemaV6` (`frames` + `activeFrameId`, no `nextFrameNumber`); `migrateV5ToV6` (synthesizes one frame); `celPixelsForFrame` helper; `compositeForExportSummary` V6 branch (active-frame cels). Kept `PixelLayerRecord` (single `pixels`) for V4/V5 + the snapshot |
+| `src/lib/session/session-storage.ts` | `normalizeToV6` dispatch (V5 still routes through `migrateV4ToV5` to re-normalize Reference order); `DB_VERSION` 6 + `oldVersion < 6` cursor upgrade; `getAllSavedDocuments` skips unreadable records |
+| `src/lib/session/session-persistence.ts` | `save` synthesizes a single frame (each layer buffer → one Cel); `restore`/`getSavedDocumentSnapshot` collapse the active-frame Cel back to the snapshot's single `pixels` |
+| `src/lib/session/session-storage-types.test.ts` | `migrateV5ToV6` + `compositeForExportSummary` V6 unit tests |
+| `src/lib/session/session-storage.test.ts` | Migration tests retargeted V5→V6; added multi-frame V6 round-trip, V5→V6 on DB open, and the unreadable-record skip test |
+| `src/lib/session/session-persistence.test.ts` | `save` writes a single-frame V6 record; legacy reference-hydration docs carried forward via a `putLegacyV5` helper |
+
+### Key Decisions
+- **Scope: record-level only (Scope A).** The snapshot producer (`toSnapshot()`) does not yet extract frames, so 190 stayed independent of 189: the live save/restore path **synthesizes one frame on write and collapses the active-frame Cel on read**. Multi-frame capacity is proven by record-level round-trip tests; the single-frame snapshot bridge is lossless because every record the live path writes is single-frame. The seam to flow real frames through the snapshot opens in a later slice (191/192).
+- **Reference normalization preserved:** V5 input routes through `migrateV4ToV5` (not `migrateV5ToV6` directly) so legacy multi/misplaced Reference Layers still normalize to one bottom-most underlay before gaining the frame axis.
+
+### Notes
+- **`getAllSavedDocuments` hardened** to skip un-normalizable records (mirrors `restore()`'s graceful fallback) after a mid-edit HMR autosave left a malformed `schemaVersion: 5` + cel-layer record in a dev IndexedDB. Clean production data (≤V5 with `pixels`) is unaffected; the guard prevents one bad record from breaking the whole saved-work browser.
+- The deferred **serde-wasm-bindgen + tsify** evaluation is *not* triggered here — this slice has no Rust↔TS cel serialization (frames are not yet extracted across the WASM boundary). That trigger belongs to the snapshot-extraction slice.
+- **191 (ruler shell) is now unblocked** — it depended only on 190.

@@ -1,12 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { migrateV3ToV4, migrateV4ToV5 } from './session-storage-types';
+import {
+	compositeForExportSummary,
+	migrateV3ToV4,
+	migrateV4ToV5,
+	migrateV5ToV6
+} from './session-storage-types';
 import type {
 	DocumentSchemaV3,
 	DocumentSchemaV4,
 	DocumentSchemaV5,
+	DocumentSchemaV6,
 	PixelLayerRecord,
+	PixelLayerRecordV6,
 	ReferenceLayerRecord
 } from './session-storage-types';
+
+function makeV6(overrides: Partial<DocumentSchemaV6> = {}): DocumentSchemaV6 {
+	return { ...migrateV5ToV6(makeV5()), ...overrides };
+}
+
+function makeV5(overrides: Partial<DocumentSchemaV5> = {}): DocumentSchemaV5 {
+	return { ...migrateV4ToV5(migrateV3ToV4(makeV3())), ...overrides };
+}
 
 function makeV3(overrides: Partial<DocumentSchemaV3> = {}): DocumentSchemaV3 {
 	const bottomId = crypto.randomUUID();
@@ -192,5 +207,113 @@ describe('migrateV4ToV5', () => {
 		expect(v5.marquee).not.toBe(marquee);
 		expect(v5.layers).toEqual(seeded.layers);
 		expect(v5.activeLayerId).toBe(seeded.activeLayerId);
+	});
+});
+
+describe('migrateV5ToV6', () => {
+	it('synthesizes one frame whose single cel carries each pixel layer’s pixels', () => {
+		const v5 = makeV5();
+
+		const v6 = migrateV5ToV6(v5);
+
+		expect(v6.schemaVersion).toBe(6);
+		expect(v6.frames).toHaveLength(1);
+		expect(v6.activeFrameId).toBe(v6.frames[0].id);
+
+		const frameId = v6.frames[0].id;
+		const pixelLayers = v6.layers.filter(
+			(layer): layer is PixelLayerRecordV6 => layer.kind === 'pixel'
+		);
+		expect(pixelLayers).toHaveLength(2);
+		pixelLayers.forEach((layer, index) => {
+			expect(layer.cels).toHaveLength(1);
+			expect(layer.cels[0].frameId).toBe(frameId);
+			expect(layer.cels[0].pixels).toEqual(
+				(v5.layers[index] as PixelLayerRecord).pixels
+			);
+		});
+	});
+
+	it('carries the frame-independent Reference Layer through unchanged', () => {
+		const reference: ReferenceLayerRecord = {
+			kind: 'reference',
+			id: crypto.randomUUID(),
+			name: 'Reference',
+			visible: true,
+			opacity: 0.75,
+			sourceBlob: new Blob(['reference'], { type: 'image/png' }),
+			naturalWidth: 24,
+			naturalHeight: 16,
+			placement: { x: 2, y: 3, scale: 1.5, rotation: 1 }
+		};
+		const v5 = makeV5({ layers: [reference, ...migrateV3ToV4(makeV3()).layers] });
+
+		const v6 = migrateV5ToV6(v5);
+
+		expect(v6.layers[0]).toEqual(reference);
+		expect('cels' in v6.layers[0]).toBe(false);
+	});
+
+	it('preserves document metadata while resetting the layer pixels into cels', () => {
+		const v5 = makeV5({
+			id: 'doc-v5',
+			name: 'V5 document',
+			width: 64,
+			height: 32,
+			activeLayerId: 'active-layer',
+			nextLayerNumber: 9,
+			timelinePanelCollapsed: true,
+			marquee: { x: 1, y: 2, width: 3, height: 4 },
+			saved: true,
+			createdAt: new Date('2026-06-01T00:00:00Z'),
+			updatedAt: new Date('2026-06-02T00:00:00Z')
+		});
+
+		const v6 = migrateV5ToV6(v5);
+
+		expect(v6).toMatchObject({
+			id: 'doc-v5',
+			name: 'V5 document',
+			width: 64,
+			height: 32,
+			activeLayerId: 'active-layer',
+			nextLayerNumber: 9,
+			timelinePanelCollapsed: true,
+			marquee: { x: 1, y: 2, width: 3, height: 4 },
+			saved: true,
+			createdAt: new Date('2026-06-01T00:00:00Z'),
+			updatedAt: new Date('2026-06-02T00:00:00Z')
+		});
+		expect('nextFrameNumber' in v6).toBe(false);
+	});
+});
+
+describe('compositeForExportSummary', () => {
+	it('composites the active frame’s cels for a V6 document', () => {
+		const frameA = crypto.randomUUID();
+		const frameB = crypto.randomUUID();
+		const red = new Uint8Array([255, 0, 0, 255]);
+		const blue = new Uint8Array([0, 0, 255, 255]);
+		const v6: DocumentSchemaV6 = makeV6({
+			width: 1,
+			height: 1,
+			frames: [{ id: frameA }, { id: frameB }],
+			activeFrameId: frameB,
+			layers: [
+				{
+					kind: 'pixel',
+					id: 'layer-1',
+					name: 'Layer 1',
+					cels: [
+						{ frameId: frameA, pixels: red },
+						{ frameId: frameB, pixels: blue }
+					],
+					visible: true,
+					opacity: 1
+				}
+			]
+		});
+
+		expect(compositeForExportSummary(v6)).toEqual(blue);
 	});
 });

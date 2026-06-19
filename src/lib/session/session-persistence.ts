@@ -8,9 +8,10 @@ import type { ReferenceImage } from '$lib/reference-images/reference-image-types
 import type { ReferenceWindowState } from '$lib/reference-images/reference-window-state-types';
 import { decodeReferenceBlob } from '$lib/reference-images/decode-reference-blob';
 import type { SessionStorage } from './session-storage';
+import { celPixelsForFrame } from './session-storage-types';
 import type {
 	DisplayStateRecord,
-	LayerRecord,
+	LayerRecordV6,
 	MarqueeRecord,
 	ReferenceImageRecord,
 	SavedDocumentSummary,
@@ -31,7 +32,12 @@ function isReferenceLayer(layer: LayerSnapshot): layer is ReferenceLayerSnapshot
 	return 'kind' in layer && layer.kind === 'reference';
 }
 
-function serializeLayer(layer: LayerSnapshot): LayerRecord {
+/**
+ * Serializes a snapshot layer into a V6 record. The frame-less snapshot carries
+ * a single pixel buffer per Pixel Layer, so it maps to one Cel keyed by the
+ * document's synthesized frame; the Reference Layer is frame-independent.
+ */
+function serializeLayer(layer: LayerSnapshot, frameId: string): LayerRecordV6 {
 	if (isReferenceLayer(layer)) {
 		return {
 			kind: 'reference',
@@ -49,7 +55,7 @@ function serializeLayer(layer: LayerSnapshot): LayerRecord {
 		kind: 'pixel',
 		id: layer.id,
 		name: layer.name,
-		pixels: layer.pixels.slice(),
+		cels: [{ frameId, pixels: layer.pixels.slice() }],
 		visible: layer.visible,
 		opacity: layer.opacity
 	};
@@ -82,8 +88,22 @@ function copySharedState(sharedState: SharedStateRecord): SharedStateRecord {
 	};
 }
 
-async function hydrateLayer(layer: LayerRecord): Promise<LayerSnapshot> {
-	if (layer.kind === 'pixel') return { ...layer, pixels: layer.pixels.slice() };
+/**
+ * Hydrates a V6 record layer into a snapshot layer. The frame-less snapshot holds
+ * one pixel buffer per Pixel Layer, so a Pixel Layer collapses to its active-frame
+ * Cel; the Reference Layer is frame-independent and decodes as before.
+ */
+async function hydrateLayer(layer: LayerRecordV6, activeFrameId: string): Promise<LayerSnapshot> {
+	if (layer.kind === 'pixel') {
+		return {
+			kind: 'pixel',
+			id: layer.id,
+			name: layer.name,
+			pixels: celPixelsForFrame(layer, activeFrameId).slice(),
+			visible: layer.visible,
+			opacity: layer.opacity
+		};
+	}
 	const decoded = await decodeReferenceBlob(layer.sourceBlob);
 	return {
 		...layer,
@@ -115,14 +135,19 @@ export class SessionPersistence {
 			const shouldWrite = !dirtyDocIds || dirtyDocIds.has(tab.id);
 			if (shouldWrite) {
 				const existing = await this.#storage.getDocument(tab.id);
+				// The snapshot has no frame axis yet, so persist a single synthesized
+				// frame; each Pixel Layer's buffer becomes that frame's only Cel.
+				const frameId = crypto.randomUUID();
 				await this.#storage.putDocument({
-					schemaVersion: 5,
+					schemaVersion: 6,
 					id: tab.id,
 					name: tab.name,
 					width: tab.width,
 					height: tab.height,
 					marquee: copyMarquee(tab.marquee),
-					layers: tab.layers.map(serializeLayer),
+					frames: [{ id: frameId }],
+					activeFrameId: frameId,
+					layers: tab.layers.map((layer) => serializeLayer(layer, frameId)),
 					activeLayerId: tab.activeLayerId,
 					nextLayerNumber: tab.nextLayerNumber,
 					timelinePanelCollapsed: tab.timelinePanelCollapsed,
@@ -198,7 +223,9 @@ export class SessionPersistence {
 			width: doc.width,
 			height: doc.height,
 			marquee: copyMarquee(doc.marquee),
-			layers: await Promise.all(doc.layers.map(hydrateLayer)),
+			layers: await Promise.all(
+				doc.layers.map((layer) => hydrateLayer(layer, doc.activeFrameId))
+			),
 			activeLayerId: doc.activeLayerId,
 			nextLayerNumber: doc.nextLayerNumber,
 			timelinePanelCollapsed: doc.timelinePanelCollapsed,
@@ -228,7 +255,9 @@ export class SessionPersistence {
 					width: doc.width,
 					height: doc.height,
 					marquee: copyMarquee(doc.marquee),
-					layers: await Promise.all(doc.layers.map(hydrateLayer)),
+					layers: await Promise.all(
+						doc.layers.map((layer) => hydrateLayer(layer, doc.activeFrameId))
+					),
 					activeLayerId: doc.activeLayerId,
 					nextLayerNumber: doc.nextLayerNumber,
 					timelinePanelCollapsed: doc.timelinePanelCollapsed,

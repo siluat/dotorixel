@@ -3,8 +3,7 @@
 ## Milestone 4: Animation-Capable Editor
 
 - Frame management (add/delete/duplicate/reorder) — [PRD](../issues/186-frame-management.md)
-  - [190 — Document schema V6 — frames + per-cel persistence](../issues/190-document-schema-v6-frames.md)
-  - [191 — Frame ruler shell + selection (TimelinePanel)](../issues/191-frame-ruler-shell.md) — blocked by 190
+  - [191 — Frame ruler shell + selection (TimelinePanel)](../issues/191-frame-ruler-shell.md)
   - [192 — Frame operations UI — add / duplicate / delete / reorder](../issues/192-frame-operations-ui.md) — blocked by 191
 - Per-frame speed control
 - Timeline UI

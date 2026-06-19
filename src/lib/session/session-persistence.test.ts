@@ -14,11 +14,22 @@ import { marqueeRegionFromDrag } from '$lib/canvas/wasm-backend';
 import { createFakeDirtyNotifier } from '$lib/canvas/editor-session/fake-dirty-notifier';
 import { SessionPersistence } from './session-persistence';
 import { SessionStorage } from './session-storage';
-import type { DocumentRecord } from './session-storage-types';
+import { migrateV4ToV5, migrateV5ToV6 } from './session-storage-types';
+import type { DocumentSchemaV5 } from './session-storage-types';
 
 vi.mock('$lib/reference-images/decode-reference-blob', () => ({
 	decodeReferenceBlob: vi.fn()
 }));
+
+/**
+ * Stores a document expressed in the pre-frame (V5) shape as a current V6 record,
+ * mirroring how a legacy saved document is carried forward — Reference Layers
+ * normalize to one bottom-most underlay and each Pixel Layer's buffer becomes its
+ * single frame's Cel. Keeps these hydration tests terse without hand-building cels.
+ */
+async function putLegacyV5(storage: SessionStorage, doc: DocumentSchemaV5): Promise<void> {
+	await storage.putDocument(migrateV5ToV6(migrateV4ToV5(doc)));
+}
 
 function makeRef(id: string): ReferenceImage {
 	return {
@@ -302,7 +313,7 @@ describe('SessionPersistence', () => {
 			height: 1,
 			data: sourceRgba
 		});
-		const doc: DocumentRecord = {
+		const doc: DocumentSchemaV5 = {
 			schemaVersion: 5,
 			id: 'doc-reference',
 			name: 'Reference doc',
@@ -337,7 +348,7 @@ describe('SessionPersistence', () => {
 			createdAt: new Date('2026-05-01T00:00:00Z'),
 			updatedAt: new Date('2026-05-02T00:00:00Z')
 		};
-		await storage.putDocument(doc);
+		await putLegacyV5(storage, doc);
 		await storage.putWorkspace({
 			id: 'current',
 			tabOrder: ['doc-reference'],
@@ -376,7 +387,7 @@ describe('SessionPersistence', () => {
 			height: 1,
 			data: sourceRgba
 		});
-		await storage.putDocument({
+		await putLegacyV5(storage, {
 			schemaVersion: 5,
 			id: 'doc-reference-workspace',
 			name: 'Reference workspace',
@@ -452,7 +463,7 @@ describe('SessionPersistence', () => {
 		vi.mocked(decodeReferenceBlob).mockResolvedValue({ width: 2, height: 1, data: sourceRgba });
 		// A landscape source that was rotated to portrait: the document is 2×4
 		// (already H×W) and the reference carries a one-quarter clockwise turn.
-		await storage.putDocument({
+		await putLegacyV5(storage, {
 			schemaVersion: 5,
 			id: 'doc-rotated',
 			name: 'Rotated doc',
@@ -654,6 +665,23 @@ describe('SessionPersistence', () => {
 		expect(doc!.saved).toBe(false);
 	});
 
+	it('persists a frame-less snapshot as a single-frame V6 record whose cel carries the layer pixels', async () => {
+		const tab = makeTab({ id: 'doc-frame-save' });
+
+		await persistence.save(makeSnapshot({}, [tab]));
+		const stored = await storage.getDocument('doc-frame-save');
+
+		expect(stored).toBeDefined();
+		expect(stored!.schemaVersion).toBe(6);
+		expect(stored!.frames).toHaveLength(1);
+		expect(stored!.activeFrameId).toBe(stored!.frames[0].id);
+		const layer = stored!.layers[0];
+		if (layer.kind !== 'pixel') throw new Error('Expected Pixel Layer');
+		expect(layer.cels).toHaveLength(1);
+		expect(layer.cels[0].frameId).toBe(stored!.activeFrameId);
+		expect(layer.cels[0].pixels).toEqual(expectPixelLayer(tab.layers[0]).pixels);
+	});
+
 	it('preserves saved=true on re-save', async () => {
 		const snapshot = makeSnapshot({}, [makeTab({ id: 'doc-1' })]);
 		await persistence.save(snapshot);
@@ -756,7 +784,7 @@ describe('SessionPersistence', () => {
 	it('clamps activeTabIndex when saved value exceeds tab count', async () => {
 		// Simulate corrupted data: activeTabIndex beyond the tab count
 		const layerId = crypto.randomUUID();
-		const doc: DocumentRecord = {
+		const doc: DocumentSchemaV5 = {
 			schemaVersion: 5,
 			id: 'doc-1',
 			name: 'Tab',
@@ -780,7 +808,7 @@ describe('SessionPersistence', () => {
 			createdAt: new Date(),
 			updatedAt: new Date()
 		};
-		await storage.putDocument(doc);
+		await putLegacyV5(storage, doc);
 		await storage.putWorkspace({
 			id: 'current',
 			tabOrder: ['doc-1'],

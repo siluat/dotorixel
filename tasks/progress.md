@@ -2,11 +2,11 @@
 
 ## Currently Working On
 
-Frame management (add/delete/duplicate/reorder) — M4 entry ([PRD](../issues/186-frame-management.md)). Design slice ([187](../issues/187-frame-ruler-design.md)) shipped — the Layer × Frame grid is finalized. Implementation slices broken out ([188](../issues/188-frame-cel-grid-core.md)–[192](../issues/192-frame-operations-ui.md)). Next: start [188 — Frame cel-grid + frame operations (Rust core)](../issues/188-frame-cel-grid-core.md) (the only unblocked slice; 189/190 follow, 191 then 192).
+Frame management (add/delete/duplicate/reorder) — M4 entry ([PRD](../issues/186-frame-management.md)). Core foundation [188](../issues/188-frame-cel-grid-core.md) shipped (1/5 slices). Now unblocked and runnable in parallel: [189 — Frame WASM binding + Change Journal intents](../issues/189-frame-wasm-journal-intents.md) and [190 — Document schema V6](../issues/190-document-schema-v6-frames.md); then 191 (ruler shell) → 192 (operations UI).
 
 ## Last Completed
 
-[187 — Frame ruler design (.pen)](../issues/187-frame-ruler-design.md): the M4 Layer × Frame grid is finalized (cel = layer×frame; Pixel/Reference distinction via a continuous spanning bar; symmetric Layers/Frames labels; canonical mobile chrome reused). The `.pen` lives in the `dotorixel-codex` worktree — commit it there. Header metric (bare icons) intentionally diverges from the impl's 24×24 buttons — flagged for a design↔impl sync.
+[188 — Frame cel-grid + frame operations (Rust core)](../issues/188-frame-cel-grid-core.md): `Document` gained a non-empty frame axis with one Cel (a `PixelCanvas`) per Pixel Layer per frame (the grid invariant); Reference Layers stay frame-independent. Dead-code-tolerant and single-frame-preserving — the initial frame uses `Frame::INITIAL` (nil UUID) and there is no shell consumer yet (real caller-supplied frame ids + the WASM binding land in 189).
 
 ## Next Up
 

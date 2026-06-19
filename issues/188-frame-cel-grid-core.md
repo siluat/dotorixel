@@ -1,6 +1,6 @@
 ---
 title: "Frame cel-grid + frame operations — Rust core"
-status: ready-for-agent
+status: done
 created: 2026-06-18
 parent: 186-frame-management.md
 ---
@@ -88,3 +88,27 @@ slice (087) did.
 ## Blocked by
 
 None - can start immediately. (Design slice 187 is complete.)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/frame.rs` | New module: identity-only `Frame { id }` and the `Frame::INITIAL` constant (the nil-UUID frame a Document is born with). |
+| `crates/core/src/layer.rs` | New `Cels` type encapsulating `HashMap<frame_id, PixelCanvas>`; `LayerKind::Pixel(PixelCanvas)` → `Pixel(Cels)`; `Layer::new` seeds the initial-frame cel. |
+| `crates/core/src/document.rs` | `frames` axis + `active_frame_id`; `FrameError` (`RemoveLastFrame`, `FrameNotFound`); `add_frame`/`duplicate_frame`/`remove_frame`/`reorder_frame`/`set_active_frame` + `frames()`/`active_frame_id()`; all pixel ops routed through the active-frame cel; `resize`/whole-document `rotate_*` map every cel of every frame. 25 new behavior tests. |
+| `crates/core/src/lib.rs` | Register `frame` module; export `Frame`, `FrameError`. |
+| `wasm/src/lib.rs` | Builder keys each reconstructed layer's sole cel to `Frame::INITIAL` (compile-keep; public WASM signatures unchanged). |
+| `CONTEXT.md` | Add **Frame**, **Cel**, **Active Frame** entries; reconcile the Layer "avoid: frame" note as orthogonal axes. |
+| `docs/platform-status.md` | New **Frame cel-grid** row under Layers (Core ✅, Web/Apple ⬜). |
+
+### Key Decisions
+
+- **`Frame::INITIAL` (= `Uuid::nil()`) as the single initial/single-frame id.** The core cannot mint v4 UUIDs in non-test code (`uuid/v4` is a dev-dependency), so the initial frame uses a named nil constant rather than a random id. This centralizes the coupling in one place and keeps `Document::new`, `from_layers`, and `Layer::new` at their existing 4-arg signatures (zero churn across ~100 call sites). WASM uses it as the agreed placeholder; caller-supplied frame ids arrive with 189.
+- **Whole-document rotate (no Marquee) turns every cel of every frame**, not just the active one — the only behavior that preserves the dimension invariant (every cel matches the Document's W×H). The issue grouped `rotate_*` under "active-frame cel"; that applies to the Marquee path only.
+- **Cel container is an encapsulated `Cels` type.** Tests assert external behavior (composite output, frame/active-frame metadata, error variants) and verify the grid invariant by switching frames and exercising the panicking accessors — never by inspecting the private cel map.
+
+### Notes
+
+- Dead-code-tolerant and single-frame-preserving: all 417 prior core tests still pass (442 total core + 18 wasm). No shell consumer yet; public WASM signatures unchanged, so no web-shell TS changes.
+- `from_layers` establishes a single initial frame. Multi-frame reconstruction, an explicit `frames` parameter, and grid-invariant boundary validation are deferred to 190 (schema V6).
+- Unblocks **189** (Frame WASM binding + Change Journal intents) and **190** (Document schema V6) — both depend on this slice.

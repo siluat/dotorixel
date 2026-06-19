@@ -861,13 +861,17 @@ impl WasmDocumentBuilder {
         let layer_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
         let pixel_canvas = PixelCanvas::from_pixels(self.width, self.height, pixels)
             .map_err(|e| JsError::new(&e.to_string()))?;
-        self.layers.push(Layer {
-            id: layer_id,
+        // Single-frame reconstruction: the core wraps the canvas as the sole
+        // cel for the initial frame, matching the single frame
+        // `Document::from_layers` establishes. Multi-frame persistence (and
+        // caller-supplied frame ids) arrives with schema V6.
+        self.layers.push(Layer::from_pixel_canvas(
+            layer_id,
             name,
             visible,
             opacity,
-            kind: LayerKind::Pixel(pixel_canvas),
-        });
+            pixel_canvas,
+        ));
         Ok(())
     }
 

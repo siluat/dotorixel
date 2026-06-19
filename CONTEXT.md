@@ -12,7 +12,7 @@ _Avoid_: artwork (too vague — also used for portfolio sharing), composition (o
 
 **Layer**:
 A named slot inside a Document — exactly one of Pixel Layer or Reference Layer — carrying its own visibility and opacity.
-_Avoid_: frame (animation term), tile, slice, stack (the *collection* of layers; an individual entry is a Layer).
+_Avoid_: tile, slice, stack (the *collection* of layers; an individual entry is a Layer). Not a synonym for **Frame** — Layer (space) and Frame (time) are orthogonal axes; a Pixel Layer spans every frame, holding one Cel per frame.
 
 **Pixel Layer**:
 The Layer variant that owns a pixel buffer matching the Document's canvas — the only kind drawing tools target and exports include.
@@ -29,6 +29,20 @@ _Avoid_: position, transform, geometry, viewport (all overloaded).
 **Reference Layer Placement Interaction**:
 The pointer- and keyboard-driven lifecycle for editing a Reference Layer Placement in the canvas viewport.
 _Avoid_: placement drag, overlay edit, transform interaction.
+
+### Frames & Cels
+
+**Frame**:
+A single position on a Document's temporal axis — identity only, carrying no persistent name, counter, or duration, and displayed as its 1-based ordinal. A Document always holds at least one frame; the axis is ordered and reorderable. Orthogonal to the Layer axis: layers stack in space, frames sequence in time.
+_Avoid_: keyframe (there is no interpolation — every frame is explicit), animation frame (verbose), cel (a Frame is the time slot itself; a Cel is one layer's pixels at that slot), layer (the orthogonal spatial axis).
+
+**Cel**:
+One Pixel Layer's pixel buffer (a `PixelCanvas`) for one Frame — the cell where the Layer and Frame axes intersect. Every Pixel Layer holds exactly one Cel per Frame (the **grid invariant**: a Pixel Layer's cel keys equal the Document's frame ids, no missing and no extra); a Reference Layer is frame-independent and has no Cels. An empty frame is a transparent Cel, never an absent one.
+_Avoid_: frame (that names the time slot, not the per-layer pixels), layer canvas (a Pixel Layer owns one Cel per frame, not a single canvas), tile, snapshot (a History term).
+
+**Active Frame**:
+The Frame that drawing and compositing act on — the temporal counterpart of the active-layer pointer. Drawing tools write only the active Layer's active-frame Cel; `composite` blends every visible Pixel Layer's active-frame Cel. Always references a frame present on the axis.
+_Avoid_: current frame (informal), playhead (a playback/timeline term, not the edit pointer), selected frame (the Marquee owns "selection").
 
 ### Selection
 

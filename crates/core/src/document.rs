@@ -104,6 +104,10 @@ impl From<PixelCanvasError> for DrawError {
 pub enum DocumentBuildError {
     EmptyLayers,
     DuplicateLayerId(Uuid),
+    MultiFramePixelLayer {
+        layer_id: Uuid,
+        cel_count: usize,
+    },
     LayerDimensionsMismatch {
         layer_id: Uuid,
         expected: (u32, u32),
@@ -122,6 +126,15 @@ impl fmt::Display for DocumentBuildError {
                 write!(
                     f,
                     "Layer id {id} appears more than once in the supplied layer stack."
+                )
+            }
+            Self::MultiFramePixelLayer {
+                layer_id,
+                cel_count,
+            } => {
+                write!(
+                    f,
+                    "Layer {layer_id} has {cel_count} frame cels; Document::from_layers accepts only legacy single-frame Pixel Layers.",
                 )
             }
             Self::LayerDimensionsMismatch {
@@ -201,11 +214,12 @@ impl Document {
         })
     }
 
-    /// Constructs a document from an existing layer stack with caller-supplied
-    /// layer ids, names, pixel buffers, visibility, and opacity. Returns
-    /// [`DocumentBuildError`] when the stack is empty, contains duplicate ids,
-    /// contains a layer whose pixel dimensions don't match `width × height`,
-    /// or when `active_layer_id` is not present in the supplied stack.
+    /// Constructs a document from an existing legacy single-frame layer stack
+    /// with caller-supplied layer ids, names, pixel buffers, visibility, and
+    /// opacity. Returns [`DocumentBuildError`] when the stack is empty, contains
+    /// duplicate ids, contains multi-frame Pixel Layer payloads, contains a
+    /// layer whose pixel dimensions don't match `width × height`, or when
+    /// `active_layer_id` is not present in the supplied stack.
     pub fn from_layers(
         width: u32,
         height: u32,
@@ -223,6 +237,13 @@ impl Document {
                 return Err(DocumentBuildError::DuplicateLayerId(layer.id));
             }
             if let LayerKind::Pixel(pixel_layer) = &layer.kind {
+                let cel_count = pixel_layer.cels().len();
+                if cel_count != 1 {
+                    return Err(DocumentBuildError::MultiFramePixelLayer {
+                        layer_id: layer.id,
+                        cel_count,
+                    });
+                }
                 for cel in pixel_layer.cels() {
                     let actual = (cel.canvas().width(), cel.canvas().height());
                     if actual != (width, height) {
@@ -1192,7 +1213,7 @@ fn normalize_pixel_layers_to_single_frame(layers: Vec<Layer>, frame_id: Uuid) ->
             let kind = match layer.kind {
                 LayerKind::Pixel(pixel_layer) => LayerKind::Pixel(PixelLayer::from_canvas(
                     frame_id,
-                    pixel_layer.first_canvas().clone(),
+                    pixel_layer.single_canvas().clone(),
                 )),
                 LayerKind::Reference(data) => LayerKind::Reference(data),
             };
@@ -2139,6 +2160,24 @@ mod tests {
                 layer_id: b,
                 expected: (8, 8),
                 actual: (4, 4),
+            }
+        );
+    }
+
+    #[test]
+    fn from_layers_rejects_multi_frame_pixel_layer_input() {
+        let layer_id = Uuid::new_v4();
+        let frame_ids = [Uuid::nil(), Uuid::new_v4()];
+        let layers =
+            vec![Layer::new_with_frames(layer_id, "A".to_string(), frame_ids, 4, 4).unwrap()];
+
+        let result = Document::from_layers(4, 4, layers, layer_id, 1, false);
+
+        assert_eq!(
+            result.unwrap_err(),
+            DocumentBuildError::MultiFramePixelLayer {
+                layer_id,
+                cel_count: 2,
             }
         );
     }

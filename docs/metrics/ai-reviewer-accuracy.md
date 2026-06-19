@@ -6,14 +6,23 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 156 | 120 | 36 | 155 | 77% | 44% |
-| cubic-dev-ai[bot] | 114 | 92 | 22 | 180 | 81% | 34% |
-| coderabbitai[bot] | 214 | 151 | 63 | 118 | 71% | 56% |
+| greptile-apps[bot] | 157 | 121 | 36 | 157 | 77% | 44% |
+| cubic-dev-ai[bot] | 117 | 95 | 22 | 180 | 81% | 35% |
+| coderabbitai[bot] | 214 | 151 | 63 | 121 | 71% | 56% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #282 | greptile-apps[bot] | Accept | `from_layers` could silently flatten multi-cel Pixel Layers; fixed by rejecting multi-cel legacy hydration input rather than relying on position-based `first_canvas()` |
+| #282 | cubic-dev-ai[bot] | Accept | `Layer::new_with_frames` exposed an internal frame-grid constructor that could panic on empty frame ids; narrowed it to crate-local use |
+| #282 | cubic-dev-ai[bot] | Accept | `from_layers` silently discarded non-first cels from Pixel Layers; added an explicit multi-cel Pixel Layer rejection |
+| #282 | cubic-dev-ai[bot] | Accept | Active Frame glossary overstated transform scope; clarified that whole-document transforms update every Pixel Layer's Cels |
+| #282 | greptile-apps[bot] | Miss | Did not flag the public `new_with_frames` panic path on empty frame ids |
+| #282 | greptile-apps[bot] | Miss | Did not flag the Active Frame glossary's over-broad transform wording |
+| #282 | coderabbitai[bot] | Miss | Did not flag the multi-cel Pixel Layer flattening risk in `from_layers` |
+| #282 | coderabbitai[bot] | Miss | Did not flag the public `new_with_frames` panic path on empty frame ids |
+| #282 | coderabbitai[bot] | Miss | Did not flag the Active Frame glossary's over-broad transform wording |
 | #281 | greptile-apps[bot] | Accept | Two `shared,` lines over-indented (tab 4 vs sibling 3) in the inline `new TabState({…})` blocks — bulk-edit artifact from dropping the `backend: wasmBackend,` line above each |
 | #281 | cubic-dev-ai[bot] | Miss | Did not flag the over-indented `shared,` artifact ("No issues found" across 16 files) |
 | #281 | coderabbitai[bot] | Miss | Did not flag the over-indented `shared,` artifact (APPROVED, no actionable comments) |

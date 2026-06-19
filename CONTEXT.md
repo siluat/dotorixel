@@ -23,7 +23,7 @@ The Pixel Layer payload for one Frame — a `PixelCanvas` at a specific Layer ×
 _Avoid_: frame pixels (blurs the axis with the payload), layer copy (suggests duplication semantics), bitmap (too generic).
 
 **Active Frame**:
-The Document's current Frame pointer. Pixel drawing, active-layer pixel reads, transforms, and Pixel-only composites operate on each Pixel Layer's Cel for the Active Frame; Reference Layers are frame-independent.
+The Document's current Frame pointer. Pixel drawing, active-layer pixel reads, and active-frame composites operate on each Pixel Layer's Cel for the Active Frame; whole-document transforms update every Pixel Layer's Cels. Reference Layers are frame-independent.
 _Avoid_: current frame (informal), selected frame (UI state wording), timeline index (position, not identity).
 
 **Pixel Layer**:

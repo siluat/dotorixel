@@ -71,7 +71,7 @@ impl Layer {
 
     /// Creates a fully-transparent Pixel Layer with one Cel for every supplied
     /// frame id.
-    pub fn new_with_frames(
+    pub(crate) fn new_with_frames(
         id: Uuid,
         name: String,
         frame_ids: impl IntoIterator<Item = Uuid>,
@@ -168,12 +168,13 @@ impl PixelLayer {
         &self.cels
     }
 
-    pub(crate) fn first_canvas(&self) -> &PixelCanvas {
-        &self
-            .cels
-            .first()
-            .expect("PixelLayer must contain at least one Cel")
-            .canvas
+    pub(crate) fn single_canvas(&self) -> &PixelCanvas {
+        assert_eq!(
+            self.cels.len(),
+            1,
+            "single-frame Pixel Layer normalization requires exactly one Cel"
+        );
+        &self.cels[0].canvas
     }
 
     pub(crate) fn canvas_for_frame(&self, frame_id: Uuid) -> Option<&PixelCanvas> {

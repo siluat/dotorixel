@@ -3050,3 +3050,154 @@ describe('TabState — compositeBuffer reflects all visible layers', () => {
 		expect([px[i], px[i + 1], px[i + 2], px[i + 3]]).toEqual([255, 0, 0, 255]);
 	});
 });
+
+describe('TabState — frame axis', () => {
+	function drawPixel(tab: TabState, shared: SharedState, color: Color, x: number, y: number) {
+		shared.foregroundColor = color;
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x, y }, null);
+		tab.drawEnd();
+	}
+
+	function celPixel(tab: TabState, frameId: string, x: number, y: number): Color {
+		return getPixelFromBuffer(tab.document.cel_pixels_at(0, frameId)!, tab.document.width, x, y);
+	}
+
+	it('addFrame inserts an empty active frame; undo restores one frame keeping its pixels, redo re-adds', () => {
+		const { tab, shared } = makeTab();
+		expect(tab.document.frame_count()).toBe(1);
+		const firstFrame = tab.document.active_frame_id();
+		drawPixel(tab, shared, RED, 1, 1);
+
+		tab.addFrame();
+
+		expect(tab.document.frame_count()).toBe(2);
+		const secondFrame = tab.document.active_frame_id();
+		expect(secondFrame).not.toBe(firstFrame);
+		// The new frame starts transparent; the first frame keeps its pixel.
+		expect(celPixel(tab, secondFrame, 1, 1).a).toBe(0);
+		expect(celPixel(tab, firstFrame, 1, 1)).toEqual(RED);
+
+		tab.undo();
+		expect(tab.document.frame_count()).toBe(1);
+		expect(tab.document.active_frame_id()).toBe(firstFrame);
+		expect(celPixel(tab, firstFrame, 1, 1)).toEqual(RED);
+
+		tab.redo();
+		expect(tab.document.frame_count()).toBe(2);
+	});
+
+	it('duplicateFrame deep-copies the active cel; editing the copy leaves the source frame untouched', () => {
+		const { tab, shared } = makeTab();
+		drawPixel(tab, shared, RED, 1, 1);
+		const sourceFrame = tab.document.active_frame_id();
+
+		tab.duplicateFrame();
+
+		expect(tab.document.frame_count()).toBe(2);
+		const copy = tab.document.active_frame_id();
+		expect(copy).not.toBe(sourceFrame);
+		expect(celPixel(tab, copy, 1, 1)).toEqual(RED); // carries the source pixel
+
+		// Editing the copy must not bleed into the source (deep clone).
+		drawPixel(tab, shared, GREEN, 2, 2);
+		expect(celPixel(tab, copy, 2, 2)).toEqual(GREEN);
+		expect(celPixel(tab, sourceFrame, 2, 2).a).toBe(0);
+	});
+
+	it('removeFrame drops the frame and relocates active; undo restores the frame with its per-cel pixels', () => {
+		const { tab, shared } = makeTab();
+		const frameA = tab.document.active_frame_id();
+		drawPixel(tab, shared, RED, 1, 1);
+		tab.addFrame();
+		const frameB = tab.document.active_frame_id();
+		drawPixel(tab, shared, GREEN, 2, 2);
+
+		tab.removeFrame(frameB);
+
+		expect(tab.document.frame_count()).toBe(1);
+		expect(tab.document.active_frame_id()).toBe(frameA);
+
+		tab.undo();
+
+		expect(tab.document.frame_count()).toBe(2);
+		const restored = tab.document.frames_metadata().map((f) => f.id);
+		expect(restored).toEqual([frameA, frameB]);
+		expect(celPixel(tab, frameB, 2, 2)).toEqual(GREEN); // per-cel pixels survive
+	});
+
+	it('reorderFrame moves a frame to a new axis index (0-based) and is undoable', () => {
+		const { tab } = makeTab();
+		const frameA = tab.document.active_frame_id();
+		tab.addFrame();
+		const frameB = tab.document.active_frame_id(); // order [A, B], active B
+
+		tab.reorderFrame(frameB, 0); // -> [B, A]
+
+		expect(tab.document.frames_metadata().map((f) => f.id)).toEqual([frameB, frameA]);
+		expect(tab.document.active_frame_id()).toBe(frameB); // active preserved by id
+
+		tab.undo();
+		expect(tab.document.frames_metadata().map((f) => f.id)).toEqual([frameA, frameB]);
+	});
+
+	it('setActiveFrame switches the active frame and marks dirty; re-selecting the active frame is a no-op', () => {
+		const { tab, notifier } = makeTab();
+		const frameA = tab.document.active_frame_id();
+		tab.addFrame();
+		expect(tab.document.active_frame_id()).not.toBe(frameA); // addFrame activated the new frame
+
+		notifier.reset();
+		const renderBefore = tab.renderVersion;
+		tab.setActiveFrame(frameA);
+
+		expect(tab.document.active_frame_id()).toBe(frameA);
+		expect(tab.renderVersion).toBeGreaterThan(renderBefore);
+		expect(notifier.dirtyCalls.length).toBeGreaterThan(0);
+
+		notifier.reset();
+		const renderAfter = tab.renderVersion;
+		tab.setActiveFrame(frameA); // already active
+
+		expect(tab.renderVersion).toBe(renderAfter);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
+
+	it('setActiveFrame is not undoable: undo after several switches reverts the prior content op in one step', () => {
+		const { tab } = makeTab();
+		tab.addFrame(); // undoable: pushes a snapshot
+		const [frameA, frameB] = tab.document.frames_metadata().map((f) => f.id);
+
+		tab.setActiveFrame(frameA);
+		tab.setActiveFrame(frameB);
+		tab.setActiveFrame(frameA);
+
+		tab.undo();
+
+		// The addFrame is reverted, not the setActiveFrame navigation.
+		expect(tab.document.frame_count()).toBe(1);
+	});
+
+	it('setActiveFrame commits an in-flight Floating Selection onto the frame it was lifted from before switching', () => {
+		const { tab, shared } = makeTab();
+		tab.addFrame();
+		const [frameA, frameB] = tab.document.frames_metadata().map((f) => f.id);
+		expect(tab.document.active_frame_id()).toBe(frameB);
+
+		// Lift a one-pixel selection on frame B and nudge it by (1, 1).
+		drawPixel(tab, shared, RED, 1, 1);
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 1, 1));
+		tab.nudgeMarquee(1, 1);
+
+		tab.setActiveFrame(frameA);
+
+		// The selection committed first (onto frame B, its origin), then the
+		// active frame switched to A.
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(tab.document.active_frame_id()).toBe(frameA);
+		expect(celPixel(tab, frameB, 2, 2)).toEqual(RED); // landed at the nudged spot
+		expect(celPixel(tab, frameB, 1, 1).a).toBe(0); // source pixel cleared
+		expect(celPixel(tab, frameA, 2, 2).a).toBe(0); // frame A untouched by the commit
+	});
+});

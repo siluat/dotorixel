@@ -2,11 +2,11 @@
 
 ## Currently Working On
 
-Frame management (add/delete/duplicate/reorder) — M4 entry ([PRD](../issues/186-frame-management.md)). Core foundation [188](../issues/188-frame-cel-grid-core.md) shipped (1/5 slices). Now unblocked and runnable in parallel: [189 — Frame WASM binding + Change Journal intents](../issues/189-frame-wasm-journal-intents.md) and [190 — Document schema V6](../issues/190-document-schema-v6-frames.md); then 191 (ruler shell) → 192 (operations UI).
+Frame management (add/delete/duplicate/reorder) — M4 entry ([PRD](../issues/186-frame-management.md)). Core [188](../issues/188-frame-cel-grid-core.md) + WASM/journal [189](../issues/189-frame-wasm-journal-intents.md) shipped (2/5 slices). Next runnable: [190 — Document schema V6](../issues/190-document-schema-v6-frames.md) (still parallel-safe); then [191 — ruler shell](../issues/191-frame-ruler-shell.md) (now waits only on 190) → [192 — operations UI](../issues/192-frame-operations-ui.md).
 
 ## Last Completed
 
-[188 — Frame cel-grid + frame operations (Rust core)](../issues/188-frame-cel-grid-core.md): `Document` gained a non-empty frame axis with one Cel (a `PixelCanvas`) per Pixel Layer per frame (the grid invariant); Reference Layers stay frame-independent. Dead-code-tolerant and single-frame-preserving — the initial frame uses `Frame::INITIAL` (nil UUID) and there is no shell consumer yet (real caller-supplied frame ids + the WASM binding land in 189).
+[189 — Frame WASM binding + Change Journal intents](../issues/189-frame-wasm-journal-intents.md): exposed the frame model to the web shell via the WASM `Document` binding and routed 4 undoable + 1 persisted (`set-active-frame`) frame intents through the Change Journal. Undo/redo restores frame structure + per-cel pixels via the existing whole-`Document` snapshot. No persistence (190) or UI (191) yet.
 
 ## Next Up
 

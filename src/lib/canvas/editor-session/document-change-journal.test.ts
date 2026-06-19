@@ -103,6 +103,7 @@ function createJournal(
 			events.push(`replace:${nextDocument.width}x${nextDocument.height}`),
 		createDocumentHistory: () => createFakeDocumentHistory(events),
 		createLayerId: () => 'layer-2',
+		createFrameId: () => 'frame-2',
 		rememberReferenceLayerBlob: (layerId) => events.push(`remember:${layerId}`),
 		clearActiveLayerPixels: () => events.push('clear-active-layer'),
 		resizeDocument: (_document, width, height, anchor) =>
@@ -977,5 +978,155 @@ describe('DocumentChangeJournal', () => {
 			'render',
 			'dirty'
 		]);
+	});
+
+	it('applies an undoable add-frame change: snapshot, mints a frame id, render + dirty (no reclamp)', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			add_frame: (id: string) => events.push(`add-frame:${id}`)
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'add-frame' }
+		});
+
+		expect(result).toEqual({ changed: true, frameId: 'frame-2' });
+		// No 'reclamp': frame ops leave the canvas size and active layer untouched.
+		expect(events).toEqual(['snapshot', 'add-frame:frame-2', 'render', 'dirty']);
+	});
+
+	it('applies an undoable duplicate-frame change: snapshot, mints a frame id, render + dirty', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			duplicate_frame: (id: string) => events.push(`duplicate-frame:${id}`)
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'duplicate-frame' }
+		});
+
+		expect(result).toEqual({ changed: true, frameId: 'frame-2' });
+		expect(events).toEqual(['snapshot', 'duplicate-frame:frame-2', 'render', 'dirty']);
+	});
+
+	it('applies an undoable remove-frame change when more than one frame remains', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			frame_count: () => 2,
+			remove_frame: (id: string) => events.push(`remove-frame:${id}`)
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'remove-frame', id: 'frame-9' }
+		});
+
+		expect(result).toEqual({ changed: true });
+		expect(events).toEqual(['snapshot', 'remove-frame:frame-9', 'render', 'dirty']);
+	});
+
+	it('skips remove-frame entirely when only one frame remains (no snapshot, no apply)', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			frame_count: () => 1
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'remove-frame', id: 'only-frame' }
+		});
+
+		expect(result).toEqual({ changed: false });
+		expect(events).toEqual([]);
+	});
+
+	it('applies an undoable reorder-frame change to a new axis position', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			frames_metadata: () => [{ id: 'a' }, { id: 'b' }, { id: 'c' }],
+			reorder_frame: (id: string, index: number) => events.push(`reorder-frame:${id}:${index}`)
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'reorder-frame', id: 'c', newIndex: 0 }
+		});
+
+		expect(result).toEqual({ changed: true });
+		expect(events).toEqual(['snapshot', 'reorder-frame:c:0', 'render', 'dirty']);
+	});
+
+	it('skips reorder-frame when the frame is already at the target index', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			frames_metadata: () => [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'reorder-frame', id: 'b', newIndex: 1 }
+		});
+
+		expect(result).toEqual({ changed: false });
+		expect(events).toEqual([]);
+	});
+
+	it('applies set-active-frame without an undo snapshot (persisted, not undoable, no reclamp)', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			active_frame_id: () => 'frame-1',
+			set_active_frame: (id: string) => events.push(`set-active-frame:${id}`)
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'persisted-document-ui',
+			intent: { type: 'set-active-frame', id: 'frame-2' }
+		});
+
+		expect(result).toEqual({ changed: true });
+		// No 'snapshot' (not undoable) and no 'reclamp' (active layer unchanged),
+		// unlike set-active-layer.
+		expect(events).toEqual(['set-active-frame:frame-2', 'render', 'dirty']);
+	});
+
+	it('skips set-active-frame when the frame is already active', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			active_frame_id: () => 'frame-1'
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'persisted-document-ui',
+			intent: { type: 'set-active-frame', id: 'frame-1' }
+		});
+
+		expect(result).toEqual({ changed: false });
+		expect(events).toEqual([]);
 	});
 });

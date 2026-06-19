@@ -793,6 +793,56 @@ export class TabState {
 	};
 
 	/**
+	 * Inserts a transparent frame after the active frame and makes it active.
+	 * Routes through `#mutate`, so any in-flight Floating Selection commits onto
+	 * its origin frame first. Pushes an undo snapshot and marks the tab dirty.
+	 */
+	addFrame = (): void => {
+		this.#mutate({ type: 'add-frame' });
+	};
+
+	/**
+	 * Inserts a deep copy of the active frame after it and makes the copy active.
+	 * Like `addFrame`, commits a pending Floating Selection first and is undoable.
+	 */
+	duplicateFrame = (): void => {
+		this.#mutate({ type: 'duplicate-frame' });
+	};
+
+	/**
+	 * Removes the frame with `id`. No-op when only one frame remains (last-frame
+	 * guard keeps history clean — no snapshot). When the removed frame was active,
+	 * the active pointer moves to an adjacent frame (delegated to the core). Pushes
+	 * an undo snapshot on the real-removal branch.
+	 */
+	removeFrame = (id: string): void => {
+		this.#mutate({ type: 'remove-frame', id });
+	};
+
+	/**
+	 * Moves the frame with `id` to `newIndex` — a 0-based axis position where
+	 * ordinal 1 is index 0. No-op when the frame is already there (no snapshot).
+	 * Pushes an undo snapshot on a real move.
+	 */
+	reorderFrame = (id: string, newIndex: number): void => {
+		this.#mutate({ type: 'reorder-frame', id, newIndex });
+	};
+
+	/**
+	 * Sets the active frame by id. Like `setActiveLayer`, this is a persisted-UI
+	 * mutation (not undoable), so it routes the commit-before-mutation policy
+	 * through the lifecycle directly — committing a pending Floating Selection
+	 * onto the frame it was lifted from before the active frame changes.
+	 */
+	setActiveFrame = (id: string): void => {
+		this.#floatingSelection.commitIfPending();
+		this.#documentChangeJournal.commit({
+			kind: 'persisted-document-ui',
+			intent: { type: 'set-active-frame', id }
+		});
+	};
+
+	/**
 	 * The active Reference Layer's visible underlay footprint in canvas-pixel
 	 * coordinates, or `null` when the active layer is not a visible Reference
 	 * Layer. Supplied to `TabViewport` as the projection-coupled input to

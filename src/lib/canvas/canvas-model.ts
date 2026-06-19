@@ -96,6 +96,18 @@ export interface LayerMetadata {
 }
 
 /**
+ * One frame's metadata as read across the WASM seam in a single
+ * `frames_metadata()` crossing. A Frame is identity-only, so this carries just
+ * its `id` — the 1-based ordinal a panel displays is positional. The struct
+ * (over a bare id string) mirrors {@link LayerMetadata} and leaves room for
+ * future per-frame attributes (e.g. a playback duration) without reshaping the
+ * read.
+ */
+export interface FrameMetadata {
+	readonly id: string;
+}
+
+/**
  * Document with a stack of layers, an active-layer pointer, and presentation
  * state. The `composite()` method returns a row-major RGBA buffer of visible
  * Pixel Layers blended bottom-to-top; Reference Layers are rendered separately
@@ -236,4 +248,48 @@ export interface Document {
 	set_layer_visibility(id: string, visible: boolean): void;
 	/** Returns a Reference Layer's source RGBA buffer, or `undefined` for Pixel Layers / out of range. */
 	layer_source_pixels_at(index: number): Uint8Array | undefined;
+	active_frame_id(): string;
+	frame_count(): number;
+	/**
+	 * Every frame's metadata in axis order (`index 0` is the first frame,
+	 * displayed as ordinal 1) in a single crossing.
+	 */
+	frames_metadata(): FrameMetadata[];
+	/**
+	 * Returns the RGBA pixel buffer of the cel at (`layer_index`, `frame_id`)
+	 * without moving the active-frame pointer, or `undefined` when `layer_index`
+	 * is out of range, the layer is not a Pixel Layer, or no frame with
+	 * `frame_id` exists. Throws when `frame_id` is not a valid UUID.
+	 */
+	cel_pixels_at(layer_index: number, frame_id: string): Uint8Array | undefined;
+	/**
+	 * Inserts a transparent frame directly after the active frame, seeds a cel
+	 * for it on every Pixel Layer, and makes it active. Throws when `new_id` is
+	 * not a valid UUID or already exists on the axis.
+	 */
+	add_frame(new_id: string): void;
+	/**
+	 * Inserts a deep copy of the active frame directly after it — cloning every
+	 * Pixel Layer's active-frame cel — and makes the copy active. Throws when
+	 * `new_id` is not a valid UUID or already exists on the axis.
+	 */
+	duplicate_frame(new_id: string): void;
+	/**
+	 * Removes the frame with `id`, dropping its cel from every Pixel Layer.
+	 * Throws when the frame does not exist or when removing it would empty the
+	 * axis (a document must always contain at least one frame). When the removed
+	 * frame was active, the active pointer moves to an adjacent frame.
+	 */
+	remove_frame(id: string): void;
+	/**
+	 * Moves the frame with `id` to `new_index` (0-based axis position), silently
+	 * clamped to `[0, frame_count - 1]`. The active frame pointer is preserved
+	 * (tracked by id, not index). Throws when no frame with `id` exists.
+	 */
+	reorder_frame(id: string, new_index: number): void;
+	/**
+	 * Sets the active frame pointer by id. Throws if no frame with this id
+	 * exists; the previous active frame is preserved on error.
+	 */
+	set_active_frame(id: string): void;
 }

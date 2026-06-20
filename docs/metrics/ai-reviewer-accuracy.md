@@ -6,14 +6,22 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 160 | 124 | 36 | 157 | 78% | 44% |
-| cubic-dev-ai[bot] | 123 | 96 | 27 | 182 | 78% | 35% |
-| coderabbitai[bot] | 218 | 153 | 65 | 122 | 70% | 56% |
+| greptile-apps[bot] | 162 | 125 | 37 | 158 | 77% | 44% |
+| cubic-dev-ai[bot] | 125 | 97 | 28 | 183 | 78% | 35% |
+| coderabbitai[bot] | 218 | 153 | 65 | 124 | 70% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #287 | cubic-dev-ai[bot] | Accept | Stale drag-click suppression could swallow a later keyboard-activated frame select (Enter/Space → click with no preceding pointerdown to clear the flag); gated suppression on pointer-click context (event.detail > 0) so keyboard clicks always select |
+| #287 | cubic-dev-ai[bot] | Reject | Claimed a missing active-frame Cel now hydrates silently vs fail-fast; celPixelsForFrame still throws on a missing Cel (lookup moved to documentFromLayerSource), caught by openSession's try/catch → graceful fresh-workspace fallback (the documented policy); serializeLayer maps toSnapshot's one-Cel-per-frame output, so saved records are always complete |
+| #287 | greptile-apps[bot] | Accept | hydrateFrames append loop relied on the implicit add_frame "makes-the-new-frame-active" contract without citing it; added a comment citing the canvas-model.ts contract to guard against a future reverse-order regression |
+| #287 | greptile-apps[bot] | Reject | Null-drag (past threshold, released at origin) suppresses the trailing select-click; intentional — a past-threshold drag is a gesture not a tap, selection is reserved for sub-threshold taps; compatible with the keyboard fix (the null-drag's pointer-click stays suppressed by design) |
+| #287 | coderabbitai[bot] | Miss | Did not flag the stale drag-click suppression blocking keyboard frame selection |
+| #287 | greptile-apps[bot] | Miss | Did not flag the stale drag-click suppression blocking keyboard frame selection |
+| #287 | coderabbitai[bot] | Miss | Did not flag the implicit add_frame makes-active ordering contract in hydrateFrames |
+| #287 | cubic-dev-ai[bot] | Miss | Did not flag the implicit add_frame makes-active ordering contract in hydrateFrames |
 | #286 | greptile-apps[bot] | Accept | activeFrameOrdinal's `Math.max(0, …)` fallback made an absent activeFrameId read as "Frame 1/N"; dropped it so a not-found frame shows "Frame 0/N" (out-of-range signal), mirroring activeLayerName's explicit not-found handling |
 | #286 | cubic-dev-ai[bot] | Reject | Claimed full cel-buffer occupancy scans are a hot-path perf risk; deliberate web-side read behind the documented cel_is_empty seam, single-frame runtime until 192, projection cached per renderVersion |
 | #286 | cubic-dev-ai[bot] | Reject | Claimed frameProjection's renderVersion cache can return stale data; every frame mutation (add/duplicate/remove/reorder/set-active) + occupancy-changing draw invalidates render → bumps renderVersion, same contract as layerProjection |

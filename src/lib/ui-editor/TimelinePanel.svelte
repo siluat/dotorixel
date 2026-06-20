@@ -65,7 +65,7 @@
 		layers.find((l) => l.id === activeLayerId)?.name ?? ''
 	);
 	const activeFrameOrdinal = $derived(
-		Math.max(0, frames.findIndex((frameCol) => frameCol.id === activeFrameId)) + 1
+		frames.findIndex((frameCol) => frameCol.id === activeFrameId) + 1
 	);
 	const renderedLayers = $derived(
 		isReferenceLayerImporting ? layers.filter((layer) => layer.kind !== 'reference') : layers

@@ -3064,6 +3064,26 @@ describe('TabState — frame axis', () => {
 		return getPixelFromBuffer(tab.document.cel_pixels_at(0, frameId)!, tab.document.width, x, y);
 	}
 
+	it('frameProjection mirrors the document frames + active frame and refreshes after a frame change', () => {
+		const { tab, shared } = makeTab();
+		const activeLayerId = tab.document.active_layer_id();
+		const frameA = tab.document.active_frame_id();
+		drawPixel(tab, shared, RED, 1, 1);
+
+		const before = tab.frameProjection;
+		expect(before.frames.map((f) => f.id)).toEqual([frameA]);
+		expect(before.activeFrameId).toBe(frameA);
+		expect(before.frames[0].occupiedLayerIds.has(activeLayerId)).toBe(true);
+
+		tab.addFrame();
+
+		const after = tab.frameProjection;
+		const frameB = tab.document.active_frame_id();
+		expect(after.frames.map((f) => f.id)).toEqual([frameA, frameB]);
+		expect(after.activeFrameId).toBe(frameB);
+		expect(after.frames[1].occupiedLayerIds.has(activeLayerId)).toBe(false);
+	});
+
 	it('addFrame inserts an empty active frame; undo restores one frame keeping its pixels, redo re-adds', () => {
 		const { tab, shared } = makeTab();
 		expect(tab.document.frame_count()).toBe(1);

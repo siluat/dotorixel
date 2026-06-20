@@ -115,9 +115,9 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Document/Layer model | 🔧 | 🔧 | ⬜ | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple remains single-canvas |
-| Frame cel-grid | ✅ | 🔧 | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: WASM binding + undoable add/duplicate/remove/reorder & persisted set-active journal intents (undo restores frame+cel); V6 persistence shipped (single-frame live path). Ruler UI pending |
+| Frame cel-grid | ✅ | 🔧 | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: WASM binding + undoable add/duplicate/remove/reorder & persisted set-active journal intents (undo restores frame+cel); V6 persistence shipped (single-frame live path) |
 | Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and rotation-aware source sampling. Turns with a whole-document rotate (quarter-turn). Placement invariant (finite pos, scale > 0, quarter-turn 0..=3) enforced by the core constructor |
-| Timeline panel | — | 🔧 | ⬜ | Top-z first; activate/remove/reorder/visibility are undoable. Reorder drag previews displaced rows; desktop collapse is per-document. Frame column is M4 placeholder |
+| Timeline panel | — | 🔧 | ⬜ | Layer × Frame grid: ordinal columns, cel-occupancy dots, Reference spanning bar, 2-channel active highlight; ruler/cell click selects frame/cel; per-document collapse. Frame add/duplicate/delete/reorder UI pending |
 
 ## Reference Images
 

@@ -1,6 +1,6 @@
 ---
 title: "Frame ruler shell + selection — TimelinePanel"
-status: ready-for-agent
+status: done
 created: 2026-06-18
 parent: 186-frame-management.md
 ---
@@ -72,3 +72,26 @@ Per the finalized [187 design spec](187-frame-ruler-design.md):
 
 - [189 — Frame WASM binding + Change Journal intents](189-frame-wasm-journal-intents.md)
 - [190 — Document schema V6 — frames + per-cel persistence](190-document-schema-v6-frames.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/document-frame-projection.ts` | New read seam — `readDocumentFrameProjection` (pure fn) projects the Frame axis: frames in order, active frame, per-Cel occupancy |
+| `src/lib/canvas/document-frame-projection.test.ts` | Projection tests: axis order, active frame, occupancy true/false, per-frame, Reference excluded |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | `frameProjection` getter (renderVersion-cached), mirroring `layerProjection` |
+| `src/lib/ui-editor/TimelinePanel.svelte` | Layer × Frame grid (pure view): ruler ordinals, cel dots, Reference spanning bar, 2-channel active highlight, ruler/cell selection, read-only collapsed summary, mobile sizing |
+| `src/lib/ui-editor/TimelinePanel.svelte.test.ts` | Component tests: column count, dots, spanning bar, active highlight + aria-current, select callbacks, active-layer row tint, collapsed read-only |
+| `src/lib/ui-editor/TimelinePanel.stories.svelte` | New stories: MultiFrame, WithReferenceLayer, ManyFramesScroll, SingleFrame, Collapsed (multi-frame grid is only visible here until 192) |
+| `src/routes/editor/+page.svelte` | Wires `frames`/`activeFrameId` + `onSelectFrame`/`onSelectCel` (desktop + mobile) |
+| `messages/{en,ko,ja}.json` | i18n: collapsed summary, Reference span caption, frame/cel select aria |
+
+### Key Decisions
+- Cel occupancy is computed web-side via `cel_pixels_at` behind an isolated `hasContent` seam, so a future core `cel_is_empty` (bool, no buffer copy) can replace it without touching the panel or page — no Rust/WASM rebuild this slice.
+- Multi-frame persistence deferred to 192: with no frame-add UI yet, runtime holds a single frame, so "survives reload" is satisfied by the single-frame collapse; the snapshot frame-axis seam opens with 192.
+- The frame projection is a **pure function**, not a class — unlike `DocumentLayerProjection` it holds no source cache, so the stateless-transform guideline applies.
+
+### Notes
+- Built to the finalized 187 `.pen` spec, verified against it via Storybook screenshots: ruler 24px / bg-elevated, active-layer row tint across both panes, active cel = accent border + accent dot, Reference spanning bar with image icon + "underlay — same under every frame", collapsed read-only `Frame n / N`, mobile 40px cells / 140px sidebar.
+- Reserved but not built (a later M4 slice): the transport strip above the ruler. Out of scope and pending: frame add/duplicate/delete/reorder UI (192).
+- Backlogged follow-up: TimelinePanel mobile touch targets — pre-existing 24px header/row icon buttons stay below ≥44px on the mobile Timeline tab (187 §5).

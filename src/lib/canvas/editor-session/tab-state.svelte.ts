@@ -44,6 +44,10 @@ import {
 	type DocumentLayerProjectionRead
 } from '../document-layer-projection';
 import {
+	readDocumentFrameProjection,
+	type DocumentFrameProjectionRead
+} from '../document-frame-projection';
+import {
 	referenceLayerUnderlayBounds,
 	referenceLayerUnderlaySourceCoords,
 	type ReferenceLayerUnderlay
@@ -187,6 +191,28 @@ export class TabState {
 	}
 
 	/**
+	 * Projects the current Document Frame axis into the shell-facing read model —
+	 * frames in axis order, the active frame, and per-Cel occupancy for the
+	 * timeline grid. Tied to `renderVersion` so consumers refresh after drawing
+	 * (a Cel's occupancy can flip), frame navigation, frame stack changes, undo,
+	 * and redo.
+	 */
+	get frameProjection(): DocumentFrameProjectionRead {
+		const renderVersion = this.renderVersion;
+		const cached = this.#frameProjectionCache;
+		if (cached?.document === this.document && cached.renderVersion === renderVersion) {
+			return cached.read;
+		}
+		const read = readDocumentFrameProjection(this.document);
+		this.#frameProjectionCache = {
+			document: this.document,
+			renderVersion,
+			read
+		};
+		return read;
+	}
+
+	/**
 	 * Projects the current visible Reference Layer into the shell-facing underlay
 	 * consumed by rendering, placement UI, and source-image sampling. Returns
 	 * `undefined` when the document has no visible, readable Reference Layer.
@@ -222,6 +248,11 @@ export class TabState {
 		readonly document: Document;
 		readonly renderVersion: number;
 		readonly read: DocumentLayerProjectionRead;
+	};
+	#frameProjectionCache?: {
+		readonly document: Document;
+		readonly renderVersion: number;
+		readonly read: DocumentFrameProjectionRead;
 	};
 	#floatingSelection = new FloatingSelectionLifecycle({
 		getDocument: () => this.document,

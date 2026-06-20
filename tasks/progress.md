@@ -2,11 +2,11 @@
 
 ## Currently Working On
 
-Frame management (add/delete/duplicate/reorder) — M4 entry ([PRD](../issues/186-frame-management.md)). Core [188](../issues/188-frame-cel-grid-core.md), WASM/journal [189](../issues/189-frame-wasm-journal-intents.md), and persistence V6 [190](../issues/190-document-schema-v6-frames.md) shipped (3/5 slices). Next runnable: [191 — frame ruler shell](../issues/191-frame-ruler-shell.md) (unblocked by 190) → [192 — operations UI](../issues/192-frame-operations-ui.md).
+Frame management (add/delete/duplicate/reorder) — M4 entry ([PRD](../issues/186-frame-management.md)). Core/WASM/persistence (188–190) and ruler shell + selection [191](../issues/191-frame-ruler-shell.md) shipped — 4/5 slices. Next runnable: [192 — frame operations UI](../issues/192-frame-operations-ui.md) (unblocked by 191).
 
 ## Last Completed
 
-[190 — Document schema V6 — frames + per-cel persistence](../issues/190-document-schema-v6-frames.md): bumped web persistence to V6 (`frames` + `activeFrameId`, per-cel `cels`) with a lossless V5→V6 migration. The snapshot has no frame axis yet, so live save/restore synthesizes/collapses a single frame — multi-frame capacity is proven at the record level only; the seam to flow real frames through the snapshot opens with the UI slice (191/192).
+[191 — Frame ruler shell + selection (TimelinePanel)](../issues/191-frame-ruler-shell.md): TimelinePanel grew into the Layer × Frame grid — ruler ordinals, cel-occupancy dots, Reference spanning bar, 2-channel active highlight, frame/cel selection — built to the 187 design spec. Cel occupancy is web-side behind a `cel_is_empty` seam; multi-frame persistence and the frame-operation UI land with 192.
 
 ## Next Up
 
@@ -29,3 +29,4 @@ Frame management (add/delete/duplicate/reorder) — M4 entry ([PRD](../issues/18
 - Document rename
 - Canvas resize via border drag
 - Timelapse recording
+- TimelinePanel mobile touch targets — header/row icon buttons ≥44px on the mobile Timeline tab

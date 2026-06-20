@@ -100,6 +100,10 @@
 			kind
 		}));
 	});
+	const frames = $derived.by(() => editor.workspace.activeTab.frameProjection.frames);
+	const activeFrameId = $derived.by(
+		() => editor.workspace.activeTab.frameProjection.activeFrameId
+	);
 	const displayedRefIds = $derived(
 		new Set(
 			editor.workspace.references
@@ -157,6 +161,18 @@
 
 	function handleActivateLayer(id: string) {
 		editor.workspace.activeTab.setActiveLayer(id);
+	}
+
+	function handleSelectFrame(id: string) {
+		editor.workspace.activeTab.setActiveFrame(id);
+	}
+
+	function handleSelectCel(layerId: string, frameId: string) {
+		// A cel sits at the intersection of a layer and a frame, so selecting it
+		// moves both pointers. Both are persisted-UI (non-undoable) moves.
+		const tab = editor.workspace.activeTab;
+		tab.setActiveLayer(layerId);
+		tab.setActiveFrame(frameId);
 	}
 
 	function handleRemoveLayer(id: string) {
@@ -660,6 +676,10 @@
 		<TimelinePanel
 			layers={layers}
 			activeLayerId={activeLayerId}
+			frames={frames}
+			activeFrameId={activeFrameId}
+			onSelectFrame={handleSelectFrame}
+			onSelectCel={handleSelectCel}
 			collapsed={isTimelinePanelCollapsed}
 			onAddLayer={handleAddLayer}
 			onAddReferenceLayer={handleAddReferenceLayerRequest}
@@ -837,6 +857,10 @@
 			<TimelinePanel
 				layers={layers}
 				activeLayerId={activeLayerId}
+				frames={frames}
+				activeFrameId={activeFrameId}
+				onSelectFrame={handleSelectFrame}
+				onSelectCel={handleSelectCel}
 				collapsed={false}
 				onAddLayer={handleAddLayer}
 				onAddReferenceLayer={handleAddReferenceLayerRequest}

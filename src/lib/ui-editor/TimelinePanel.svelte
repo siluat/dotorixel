@@ -11,9 +11,17 @@
 		readonly kind: LayerKind;
 	}
 
+	interface FrameColumn {
+		readonly id: string;
+		/** Pixel Layer ids whose Cel at this frame is content-bearing (renders a dot). */
+		readonly occupiedLayerIds: ReadonlySet<string>;
+	}
+
 	interface Props {
 		layers: ReadonlyArray<LayerSummary>;
 		activeLayerId: string;
+		frames: ReadonlyArray<FrameColumn>;
+		activeFrameId: string;
 		collapsed: boolean;
 		onAddLayer: () => void;
 		onAddReferenceLayer: () => void;
@@ -23,6 +31,8 @@
 		onToggleLayerVisibility: (id: string, newVisible: boolean) => void;
 		onToggleCollapsed: () => void;
 		onFitReferenceLayerToCanvas: (id: string) => void;
+		onSelectFrame: (frameId: string) => void;
+		onSelectCel: (layerId: string, frameId: string) => void;
 		isReferenceLayerImporting?: boolean;
 		referenceLayerImportName?: string;
 	}
@@ -30,6 +40,8 @@
 	let {
 		layers,
 		activeLayerId,
+		frames,
+		activeFrameId,
 		collapsed,
 		onAddLayer,
 		onAddReferenceLayer,
@@ -39,6 +51,8 @@
 		onToggleLayerVisibility,
 		onToggleCollapsed,
 		onFitReferenceLayerToCanvas,
+		onSelectFrame,
+		onSelectCel,
 		isReferenceLayerImporting = false,
 		referenceLayerImportName
 	}: Props = $props();
@@ -49,6 +63,9 @@
 
 	const activeLayerName = $derived(
 		layers.find((l) => l.id === activeLayerId)?.name ?? ''
+	);
+	const activeFrameOrdinal = $derived(
+		Math.max(0, frames.findIndex((frameCol) => frameCol.id === activeFrameId)) + 1
 	);
 	const renderedLayers = $derived(
 		isReferenceLayerImporting ? layers.filter((layer) => layer.kind !== 'reference') : layers
@@ -209,34 +226,44 @@
 	data-collapsed={collapsed ? 'true' : 'false'}
 >
 	<div class="header">
-		<button
-			type="button"
-			class="add-btn"
-			data-add-layer
-			aria-label={m.aria_addLayer()}
-			onclick={onAddLayer}
-		>
-			+
-		</button>
-		<button
-			type="button"
-			class="add-btn"
-			data-add-reference-layer
-			data-busy={isReferenceLayerImporting ? 'true' : 'false'}
-			aria-label={m.aria_setReferenceLayer()}
-			disabled={isReferenceLayerImporting}
-			onclick={onAddReferenceLayer}
-		>
-			{#if isReferenceLayerImporting}
-				<span class="spinner">
-					<LoaderCircle size={14} strokeWidth={1.75} aria-hidden="true" />
-				</span>
-			{:else}
-				<Image size={14} strokeWidth={1.75} aria-hidden="true" />
-			{/if}
-		</button>
+		<!-- Collapsed is a read-only summary strip (187 spec §4): only the summary
+		     and the collapse chevron remain; the add actions are hidden. -->
+		{#if !collapsed}
+			<button
+				type="button"
+				class="add-btn"
+				data-add-layer
+				aria-label={m.aria_addLayer()}
+				onclick={onAddLayer}
+			>
+				+
+			</button>
+			<button
+				type="button"
+				class="add-btn"
+				data-add-reference-layer
+				data-busy={isReferenceLayerImporting ? 'true' : 'false'}
+				aria-label={m.aria_setReferenceLayer()}
+				disabled={isReferenceLayerImporting}
+				onclick={onAddReferenceLayer}
+			>
+				{#if isReferenceLayerImporting}
+					<span class="spinner">
+						<LoaderCircle size={14} strokeWidth={1.75} aria-hidden="true" />
+					</span>
+				{:else}
+					<Image size={14} strokeWidth={1.75} aria-hidden="true" />
+				{/if}
+			</button>
+		{/if}
 		<span class="header-label">
-			{collapsed ? m.layer_panel_collapsed_label({ name: activeLayerName }) : m.layer_panel_title()}
+			{collapsed
+				? m.timeline_collapsed_summary({
+						layer: activeLayerName,
+						frame: activeFrameOrdinal,
+						total: frames.length
+					})
+				: m.layer_panel_title()}
 		</span>
 		<button
 			type="button"
@@ -253,6 +280,9 @@
 		<div class="divider"></div>
 		<div class="body">
 			<div class="sidebar">
+				<!-- Spacer aligning the layer rows below with the frame grid's ruler, so
+				     each sidebar row lines up with its frame row. -->
+				<div class="sidebar-grid-header" aria-hidden="true"></div>
 				{#each renderedLayers as layer, visualIndex (layer.id)}
 					{@const isActive = layer.id === activeLayerId}
 					{@const isVisible = layer.visible ?? true}
@@ -267,6 +297,7 @@
 						class="row"
 						class:row--active={isActive}
 						class:row--hidden={!isVisible}
+						class:row--reference={kind === 'reference'}
 						class:row--dragging={isDraggingLayer}
 						class:row--drag-shifted={rowDragY !== 0 && !isDraggingLayer}
 						style={dragStyle(rowDragY)}
@@ -395,22 +426,83 @@
 			</div>
 			<div class="vdiv"></div>
 			<div class="frame-area">
-				<div class="frame-col">
-					{#each renderedLayers as layer, visualIndex (layer.id)}
-						{@const cellDragY = dragTranslateY(layer.id, visualIndex)}
-						<div
-							class="frame-cell"
-							class:frame-cell--dragging={draggingId === layer.id}
-							class:frame-cell--drag-shifted={cellDragY !== 0 && draggingId !== layer.id}
-							style={dragStyle(cellDragY)}
-						></div>
-					{/each}
-					{#if isReferenceLayerImporting}
-						<div class="frame-cell"></div>
-					{/if}
-				</div>
-				<div class="empty-axis">
-					<span class="empty-axis-hint">M3 placeholder — frame ruler grows here in M4</span>
+				<div class="frame-grid">
+					<!-- Reserved seam: a later M4 slice inserts the transport strip
+					     (play/pause · FPS · loop) directly above the ruler. Not built here
+					     (187 spec §6) — the ruler stays the top row of the grid. -->
+					<div class="frame-ruler">
+						{#each frames as frameCol, frameIndex (frameCol.id)}
+							{@const isActiveFrame = frameCol.id === activeFrameId}
+							<button
+								type="button"
+								class="frame-ruler-cell"
+								class:frame-ruler-cell--active={isActiveFrame}
+								data-frame-ruler-cell
+								data-frame-id={frameCol.id}
+								aria-current={isActiveFrame ? 'true' : undefined}
+								aria-label={m.aria_selectFrame({ n: frameIndex + 1 })}
+								onclick={() => onSelectFrame(frameCol.id)}
+							>
+								{frameIndex + 1}
+							</button>
+						{/each}
+					</div>
+					<div class="frame-body">
+						{#each renderedLayers as layer, visualIndex (layer.id)}
+							{#if layer.kind === 'pixel'}
+								{@const rowDragY = dragTranslateY(layer.id, visualIndex)}
+								<div
+									class="frame-row"
+									class:frame-row--active-layer={layer.id === activeLayerId}
+									class:frame-row--dragging={draggingId === layer.id}
+									class:frame-row--drag-shifted={rowDragY !== 0 && draggingId !== layer.id}
+									style={dragStyle(rowDragY)}
+									data-frame-row
+									data-layer-id={layer.id}
+								>
+									{#each frames as frameCol, frameIndex (frameCol.id)}
+										{@const isActiveFrame = frameCol.id === activeFrameId}
+										{@const isActiveCel = isActiveFrame && layer.id === activeLayerId}
+										<button
+											type="button"
+											class="frame-cell"
+											class:frame-cell--frame-active={isActiveFrame}
+											class:frame-cell--cel-active={isActiveCel}
+											data-frame-cell
+											data-layer-id={layer.id}
+											data-frame-id={frameCol.id}
+											data-frame-active={isActiveFrame ? 'true' : undefined}
+											data-cel-active={isActiveCel ? 'true' : undefined}
+											aria-label={m.aria_selectCel({ layer: layer.name, n: frameIndex + 1 })}
+											onclick={() => onSelectCel(layer.id, frameCol.id)}
+										>
+											{#if frameCol.occupiedLayerIds.has(layer.id)}
+												<span class="cel-dot" data-cel-dot></span>
+											{/if}
+										</button>
+									{/each}
+								</div>
+							{:else}
+								<div class="frame-reference-row" data-frame-row data-layer-id={layer.id}>
+									<div class="frame-reference-span" data-frame-reference-span>
+										<span class="frame-reference-icon" aria-hidden="true">
+											<Image size={14} strokeWidth={1.75} />
+										</span>
+										<span class="frame-reference-caption">
+											{m.timeline_reference_span_caption()}
+										</span>
+									</div>
+								</div>
+							{/if}
+						{/each}
+						{#if isReferenceLayerImporting}
+							<!-- Placeholder band keeping the frame grid aligned with the
+							     sidebar's busy Reference import row. -->
+							<div class="frame-reference-row" aria-hidden="true">
+								<div class="frame-reference-span"></div>
+							</div>
+						{/if}
+					</div>
 				</div>
 			</div>
 		</div>
@@ -422,6 +514,11 @@
 		--row-height: 32px;
 		--panel-height: 180px;
 		--sidebar-width: 256px;
+		/* Frame columns are square — width tracks the shared row height so each
+		   sidebar layer row aligns with its frame grid row. */
+		--frame-col-width: var(--row-height);
+		--ruler-height: 24px;
+		--cel-dot-size: 6px;
 
 		display: flex;
 		flex-direction: column;
@@ -438,8 +535,11 @@
 
 	@media (max-width: 1023px) {
 		.timeline-panel {
-			--row-height: 28px;
-			--panel-height: 146px;
+			/* Tab-takeover on touch (187 spec): 40px grid rows/cells and a narrower
+			   sidebar so the scrollable frame area gets more room. */
+			--row-height: 40px;
+			--panel-height: 220px;
+			--sidebar-width: 140px;
 		}
 	}
 
@@ -564,52 +664,192 @@
 
 	.frame-area {
 		flex: 1;
-		display: flex;
 		min-width: 0;
+		overflow-x: auto;
 	}
 
-	.frame-col {
-		width: var(--row-height);
+	/* Aligns the sidebar's layer rows with the frame body rows by reserving the
+	   ruler height at the top of the frozen sidebar. The bg-elevated fill matches
+	   the ruler so corner + ruler read as one continuous top band. */
+	.sidebar-grid-header {
+		height: var(--ruler-height);
+		flex: none;
+		background: var(--ds-bg-elevated);
+	}
+
+	.frame-grid {
 		display: flex;
 		flex-direction: column;
-		flex: none;
+		width: max-content;
+		min-width: 100%;
 	}
 
-	.frame-cell {
-		width: var(--row-height);
-		height: var(--row-height);
-		background: var(--ds-bg-base);
-		border: var(--ds-border-width) solid var(--ds-border-subtle);
+	.frame-ruler {
+		display: flex;
+		height: var(--ruler-height);
+		flex: none;
+		background: var(--ds-bg-elevated);
+	}
+
+	.frame-ruler-cell {
+		width: var(--frame-col-width);
+		height: var(--ruler-height);
+		flex: none;
 		box-sizing: border-box;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+		border: none;
+		border-right: var(--ds-border-width) solid var(--ds-border-subtle);
+		/* Reserve the 2px active top-bar slot up front so the ordinal never shifts
+		   when a column becomes active. */
+		border-top: var(--ds-border-width-thick) solid transparent;
+		background: none;
+		color: var(--ds-text-tertiary);
+		font-family: inherit;
+		font-size: var(--ds-font-size-xs);
+		font-weight: 500;
+		line-height: 1;
+		cursor: pointer;
+	}
+
+	.frame-ruler-cell:hover {
+		background: var(--ds-bg-hover);
+		color: var(--ds-text-primary);
+	}
+
+	.frame-ruler-cell:focus-visible {
+		outline: var(--ds-border-width-thick) solid var(--ds-accent);
+		outline-offset: -2px;
+	}
+
+	/* Two-channel active treatment (color-blind safe): channel 1 is the
+	   accent-subtle fill, channel 2 is the 2px accent bar on the top edge — either
+	   alone identifies the active frame without relying on hue. */
+	.frame-ruler-cell--active {
+		background: var(--ds-accent-subtle);
+		border-top-color: var(--ds-accent);
+		color: var(--ds-accent-text);
+		font-weight: 700;
+	}
+
+	.frame-body {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.frame-row {
+		display: flex;
+		height: var(--row-height);
+		flex: none;
 		transform: translateY(var(--layer-drag-y, 0));
 		transition: transform 120ms ease;
 	}
 
-	.frame-cell--dragging {
+	/* Active-layer tint spans the grid row, mirroring the sidebar's .row--active so
+	   the active layer reads continuously across both panes. */
+	.frame-row--active-layer {
+		background: var(--ds-bg-active);
+	}
+
+	.frame-row--dragging {
 		position: relative;
 		z-index: 2;
 		transition: none;
 	}
 
-	.frame-cell--drag-shifted {
+	.frame-row--drag-shifted {
 		position: relative;
 		z-index: 1;
 	}
 
-	.empty-axis {
+	.frame-cell {
+		width: var(--frame-col-width);
+		height: var(--row-height);
+		flex: none;
+		box-sizing: border-box;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+		border: none;
+		border-right: var(--ds-border-width) solid var(--ds-border-subtle);
+		border-bottom: var(--ds-border-width) solid var(--ds-border-subtle);
+		/* Transparent so the row tint shows through (bg-active on the active layer,
+		   the panel surface otherwise); the active column overrides with
+		   accent-subtle. */
+		background: none;
+		cursor: pointer;
+	}
+
+	.frame-cell:hover {
+		background: var(--ds-bg-hover);
+	}
+
+	.frame-cell:focus-visible {
+		outline: var(--ds-border-width-thick) solid var(--ds-accent);
+		outline-offset: -2px;
+	}
+
+	.frame-cell--frame-active {
+		background: var(--ds-accent-subtle);
+	}
+
+	/* The active cel (active layer ∩ active frame) adds an accent border over the
+	   column's accent-subtle fill for combined emphasis. */
+	.frame-cell--cel-active {
+		box-shadow: inset 0 0 0 var(--ds-border-width) var(--ds-accent);
+	}
+
+	.cel-dot {
+		width: var(--cel-dot-size);
+		height: var(--cel-dot-size);
+		border-radius: var(--ds-radius-full);
+		background: var(--ds-text-secondary);
+	}
+
+	.frame-cell--cel-active .cel-dot {
+		background: var(--ds-accent);
+	}
+
+	.frame-reference-row {
+		display: flex;
+		height: var(--row-height);
+		flex: none;
+		/* Pairs with the sidebar's .row--reference top border so the divider reads
+		   as one line spanning both panes. Uses the stronger --ds-border (not subtle)
+		   to separate the frame-independent underlay from the cel grid. */
+		border-top: var(--ds-border-width) solid var(--ds-border);
+		box-sizing: border-box;
+	}
+
+	.frame-reference-span {
 		flex: 1;
 		display: flex;
 		align-items: center;
-		justify-content: center;
+		gap: var(--ds-space-3);
 		min-width: 0;
-		padding: 0 var(--ds-space-5);
+		padding: 0 var(--ds-space-3);
+		/* A continuous muted band — deliberately not cell-divided — signals that the
+		   Reference underlay is frame-independent. */
+		background: var(--ds-bg-hover);
 	}
 
-	.empty-axis-hint {
-		font-size: var(--ds-font-size-sm);
-		font-style: italic;
+	.frame-reference-icon {
+		display: inline-flex;
+		align-items: center;
+		flex: none;
+		color: var(--ds-accent-text);
+	}
+
+	.frame-reference-caption {
+		font-size: var(--ds-font-size-xs);
+		font-weight: 500;
 		color: var(--ds-text-tertiary);
-		text-align: center;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.row {
@@ -632,6 +872,13 @@
 
 	.row--active {
 		background: var(--ds-bg-active);
+	}
+
+	/* Top divider mirrored by .frame-reference-row so the line spans both panes.
+	   border-box keeps the bordered row the same height as its frame counterpart. */
+	.row--reference {
+		border-top: var(--ds-border-width) solid var(--ds-border);
+		box-sizing: border-box;
 	}
 
 	.row--active .bar {
@@ -770,7 +1017,7 @@
 
 	@media (prefers-reduced-motion: reduce) {
 		.row,
-		.frame-cell {
+		.frame-row {
 			transition: none;
 		}
 

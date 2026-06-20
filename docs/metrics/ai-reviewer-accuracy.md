@@ -6,14 +6,24 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 158 | 122 | 36 | 155 | 77% | 44% |
-| cubic-dev-ai[bot] | 117 | 94 | 23 | 180 | 80% | 34% |
-| coderabbitai[bot] | 217 | 152 | 65 | 119 | 70% | 56% |
+| greptile-apps[bot] | 159 | 123 | 36 | 157 | 77% | 44% |
+| cubic-dev-ai[bot] | 120 | 96 | 24 | 181 | 80% | 35% |
+| coderabbitai[bot] | 218 | 153 | 65 | 121 | 70% | 56% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #285 | greptile-apps[bot] | Accept | oldVersion<6 upgrade's migrateV5ToV6 was unprotected — a malformed V5 record (e.g. HMR-autosaved schemaVersion-5-with-cels) aborts the whole upgrade transaction and fails SessionStorage.open(); wrapped per-record migration in try/catch |
+| #285 | cubic-dev-ai[bot] | Accept | Same unprotected oldVersion<6 upgrade migration (duplicate) — one corrupt V5 record bricks DB open |
+| #285 | cubic-dev-ai[bot] | Accept | V5→V6 DB upgrade called migrateV5ToV6 directly, bypassing the read-path's migrateV4ToV5 Reference re-normalization; routed the upgrade through migrateV4ToV5 too |
+| #285 | cubic-dev-ai[bot] | Reject | Claimed dirty-save destroys multi-frame V6 docs; no multi-frame record can be persisted at this slice (toSnapshot extracts no frames, migration synthesizes one) — documented single-frame bridge, the frame-aware slice serializes real frames |
+| #285 | coderabbitai[bot] | Accept | migrateV5ToV6 test asserted only value equality; added a .not.toBe assertion to lock in Cel copy-not-alias semantics |
+| #285 | coderabbitai[bot] | Miss | Did not flag the unprotected oldVersion<6 upgrade migration (DB-open abort risk) |
+| #285 | greptile-apps[bot] | Miss | Did not flag the V5→V6 upgrade bypassing migrateV4ToV5 Reference re-normalization |
+| #285 | coderabbitai[bot] | Miss | Did not flag the V5→V6 upgrade bypassing migrateV4ToV5 Reference re-normalization |
+| #285 | greptile-apps[bot] | Miss | Did not flag the missing Cel copy-not-alias assertion in the migrateV5ToV6 test |
+| #285 | cubic-dev-ai[bot] | Miss | Did not flag the missing Cel copy-not-alias assertion in the migrateV5ToV6 test |
 | #283 | greptile-apps[bot] | Accept | from_layers accepted a Pixel layer not keyed to Frame::INITIAL (or an empty Cels) — builds ok but panics on the first active-frame access; added DocumentBuildError::MissingInitialFrameCel boundary check |
 | #283 | coderabbitai[bot] | Accept | Same from_layers missing-initial-frame-cel validation gap (duplicate) |
 | #283 | cubic-dev-ai[bot] | Accept | Same from_layers missing-initial-frame-cel validation gap (duplicate) |

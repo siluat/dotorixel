@@ -3,8 +3,9 @@ import type { SelectionClipboardData } from './canvas-model';
 import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 import type { ReferenceWindowState } from '$lib/reference-images/reference-window-state-types';
 import type {
+	FrameRecord,
 	MarqueeRecord,
-	PixelLayerRecord,
+	PixelLayerRecordV6,
 	ReferenceLayerRecord
 } from '$lib/session/session-storage-types';
 
@@ -12,7 +13,10 @@ export interface ReferenceLayerSnapshot extends ReferenceLayerRecord {
 	readonly sourceRgba: Uint8Array;
 }
 
-export type LayerSnapshot = PixelLayerRecord | ReferenceLayerSnapshot;
+// A Pixel Layer snapshot carries one Cel per frame; the Reference Layer is
+// frame-independent. This mirrors the V6 document record so SessionPersistence
+// maps the two with minimal translation.
+export type LayerSnapshot = PixelLayerRecordV6 | ReferenceLayerSnapshot;
 
 export interface SharedStateSnapshot {
 	readonly activeTool: string;
@@ -66,6 +70,9 @@ export interface TabSnapshot {
 	 */
 	readonly marquee?: MarqueeRecord | null;
 	readonly layers: readonly LayerSnapshot[];
+	/** The frame axis in order; always non-empty (a Document has ≥ 1 frame). */
+	readonly frames: readonly FrameRecord[];
+	readonly activeFrameId: string;
 	readonly activeLayerId: string;
 	readonly nextLayerNumber: number;
 	readonly timelinePanelCollapsed: boolean;

@@ -962,6 +962,8 @@ export class TabState {
 
 	toSnapshot = (): TabSnapshot => {
 		const doc = this.document;
+		const activeFrameId = doc.active_frame_id();
+		const frameIds = doc.frames_metadata().map((frame) => frame.id);
 		const layers = doc.layers_metadata().map((record, i) => {
 			const id = record.id;
 			const common = {
@@ -991,14 +993,21 @@ export class TabState {
 					}
 				} satisfies ReferenceLayerSnapshot;
 			}
-			const pixels = this.#floatingSelection.pixelLayerSnapshotPixels(
-				id,
-				doc.layer_pixels_at(i)!
-			);
+			// One Cel per frame. The floating selection is lifted from the active
+			// layer's active-frame Cel, so bake it only there; every other Cel
+			// persists its stored pixels untouched.
+			const cels = frameIds.map((frameId) => {
+				const stored = doc.cel_pixels_at(i, frameId)!;
+				const pixels =
+					frameId === activeFrameId
+						? this.#floatingSelection.pixelLayerSnapshotPixels(id, stored)
+						: stored;
+				return { frameId, pixels: pixels.slice() };
+			});
 			return {
 				kind: 'pixel' as const,
 				...common,
-				pixels: pixels.slice()
+				cels
 			};
 		});
 		const marquee = serializeMarquee(
@@ -1011,6 +1020,8 @@ export class TabState {
 			height: doc.height,
 			marquee,
 			layers,
+			frames: frameIds.map((frameId) => ({ id: frameId })),
+			activeFrameId,
 			activeLayerId: doc.active_layer_id(),
 			nextLayerNumber: doc.next_layer_number(),
 			timelinePanelCollapsed: doc.is_timeline_panel_collapsed(),

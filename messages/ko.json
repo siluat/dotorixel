@@ -158,6 +158,7 @@
 
 	"layer_default_name": "레이어 {n}",
 	"layer_panel_title": "레이어",
+	"timeline_frames_label": "프레임",
 	"layer_panel_collapsed_label": "레이어 · {name}",
 	"timeline_collapsed_summary": "레이어 · {layer} · 프레임 {frame} / {total}",
 	"timeline_reference_span_caption": "언더레이 — 모든 프레임에서 동일",
@@ -177,6 +178,9 @@
 	"aria_fitReferenceLayerToCanvas": "{name}을(를) 캔버스에 맞추기",
 	"aria_removeLayer": "{name} 삭제",
 	"aria_reorderLayer": "{name} 순서 변경",
+	"aria_addFrame": "프레임 추가",
+	"aria_duplicateFrame": "프레임 복제",
+	"aria_removeFrame": "프레임 삭제",
 	"aria_hideLayer": "{name} 숨기기",
 	"aria_showLayer": "{name} 표시",
 	"aria_collapseTimelinePanel": "레이어 패널 접기",

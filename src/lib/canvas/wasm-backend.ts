@@ -29,10 +29,13 @@ import type {
 import type { CanvasFactory, CanvasConstraints, DocumentHistory } from './adapter-types';
 import type {
 	MarqueeRecord,
+	FrameRecord,
 	PixelLayerRecord,
 	PixelLayerRecordV3,
+	PixelLayerRecordV6,
 	ReferenceLayerRecord
 } from '$lib/session/session-storage-types';
+import { celPixelsForFrame } from '$lib/session/session-storage-types';
 import { effectivePixelSize, type ViewportData, type ViewportOps } from './viewport';
 import type { DrawingOps, DrawingToolType, MarqueeBounds } from './drawing-ops';
 
@@ -368,6 +371,12 @@ export interface DocumentLayerSource {
 	readonly width: number;
 	readonly height: number;
 	readonly marquee?: MarqueeRecord | null;
+	/**
+	 * The frame axis in order. Omitted by legacy single-frame callers (e.g. a V3
+	 * schema), in which case the Document keeps its single synthesized frame.
+	 */
+	readonly frames?: readonly FrameRecord[];
+	readonly activeFrameId?: string;
 	readonly layers: readonly HydratableLayerRecord[];
 	readonly activeLayerId: string;
 	readonly nextLayerNumber: number;
@@ -378,7 +387,9 @@ export interface HydratedReferenceLayerRecord extends ReferenceLayerRecord {
 	readonly sourceRgba: Uint8Array;
 }
 
-type HydratablePixelLayerRecord = PixelLayerRecordV3 | PixelLayerRecord;
+// A Pixel Layer source either carries one buffer (legacy V3/V5 + the old
+// frame-less snapshot) or one Cel per frame (the multi-frame snapshot).
+type HydratablePixelLayerRecord = PixelLayerRecordV3 | PixelLayerRecord | PixelLayerRecordV6;
 type HydratableLayerRecord = HydratablePixelLayerRecord | HydratedReferenceLayerRecord;
 
 function isReferenceLayer(
@@ -388,13 +399,68 @@ function isReferenceLayer(
 }
 
 /**
+ * A Pixel Layer source's pixels for `frameId` — its matching Cel, or its lone
+ * legacy buffer. A nullish `frameId` (the initial-frame seed) resolves to the
+ * layer's first Cel.
+ */
+function pixelsForFrame(
+	layer: HydratablePixelLayerRecord,
+	frameId: string | undefined
+): Uint8Array {
+	if (!('cels' in layer)) return layer.pixels;
+	return celPixelsForFrame(layer, frameId ?? layer.cels[0].frameId);
+}
+
+/**
+ * Rebuilds the frame axis on a freshly-built single-frame Document. The builder
+ * seeds frame 0 (with each Pixel Layer's first Cel) but reassigns its id, so the
+ * first persisted frame id maps to the builder's id; later frames keep theirs.
+ * Cels are written by parking the active (frame, layer) pointer and restoring the
+ * buffer — reusing the same primitives the live editor uses.
+ */
+function hydrateFrames(
+	document: Document,
+	source: DocumentLayerSource,
+	frames: readonly FrameRecord[]
+): void {
+	const builtFirstFrameId = document.active_frame_id();
+
+	// `Document.add_frame` inserts after the active frame AND makes the new frame
+	// active (canvas-model.ts contract), so adding in sequence appends each frame
+	// after the previous one — yielding [builtFirst, frames[1], frames[2], …].
+	for (let i = 1; i < frames.length; i++) {
+		document.add_frame(frames[i].id);
+	}
+
+	const pixelLayers = source.layers.filter(
+		(layer): layer is HydratablePixelLayerRecord => !isReferenceLayer(layer)
+	);
+	for (let i = 1; i < frames.length; i++) {
+		document.set_active_frame(frames[i].id);
+		for (const layer of pixelLayers) {
+			document.set_active_layer(layer.id);
+			document.restore_active_layer_pixels(pixelsForFrame(layer, frames[i].id).slice());
+		}
+	}
+
+	const activeFrameId =
+		source.activeFrameId === frames[0].id ? builtFirstFrameId : source.activeFrameId;
+	if (activeFrameId !== undefined) {
+		document.set_active_frame(activeFrameId);
+	}
+	document.set_active_layer(source.activeLayerId);
+}
+
+/**
  * Builds a [`Document`] from any value carrying the [`DocumentLayerSource`]
- * shape — e.g. a persisted V3 schema or a `TabSnapshot`. Each layer's pixel
- * buffer must already be in the source's `width × height × 4` shape;
- * validation errors from the WASM builder propagate as thrown `Error`s.
+ * shape — e.g. a persisted V3 schema (one buffer per layer) or a multi-frame
+ * `TabSnapshot` (one Cel per frame). Every buffer must already be in the source's
+ * `width × height × 4` shape; validation errors from the WASM builder propagate
+ * as thrown `Error`s.
  */
 export function documentFromLayerSource(source: DocumentLayerSource): Document {
 	const builder = new WasmDocumentBuilder(source.width, source.height);
+	const firstFrameId = source.frames?.[0]?.id;
 	for (const layer of source.layers) {
 		if (isReferenceLayer(layer)) {
 			builder.add_reference_layer(
@@ -411,10 +477,12 @@ export function documentFromLayerSource(source: DocumentLayerSource): Document {
 				layer.opacity
 			);
 		} else {
+			// The builder makes a single-frame Document; seed it with each Pixel
+			// Layer's first Cel (or its lone legacy buffer).
 			builder.add_layer(
 				layer.id,
 				layer.name,
-				layer.pixels.slice(),
+				pixelsForFrame(layer, firstFrameId).slice(),
 				layer.visible,
 				layer.opacity
 			);
@@ -425,6 +493,10 @@ export function documentFromLayerSource(source: DocumentLayerSource): Document {
 		source.nextLayerNumber,
 		source.timelinePanelCollapsed
 	);
+	// More than one frame → rebuild the frame axis and fill the added Cels.
+	if (source.frames && source.frames.length > 1) {
+		hydrateFrames(document, source, source.frames);
+	}
 	if (source.marquee) {
 		const clipped = marqueeBoundsToWasm(source.marquee)?.clip_to(source.width, source.height);
 		if (clipped) {

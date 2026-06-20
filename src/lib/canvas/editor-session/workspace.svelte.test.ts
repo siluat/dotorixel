@@ -6,6 +6,11 @@ import { createFakeDirtyNotifier } from './fake-dirty-notifier';
 import type { TabSnapshot, WorkspaceSnapshot } from '../workspace-snapshot';
 import { tabSnapshotFixture as makeTabSnap } from '../workspace-snapshot-fixtures';
 
+// A stand-in frame id for the single-frame snapshots these openSnapshot tests
+// hand-build. Valid UUID form, and shared because each snapshot is a separate
+// document (frame ids are per-document, so reuse across tests is harmless).
+const SNAP_FRAME_ID = '00000000-0000-4000-8000-0000000000f1';
+
 function makeWorkspace(overrides: Omit<Partial<WorkspaceDeps>, 'notifier'> = {}) {
 	const notifier = createFakeDirtyNotifier();
 	const workspace = new Workspace({
@@ -290,6 +295,8 @@ describe('Workspace — shared state propagation', () => {
 		workspace.openSnapshot({
 			id: 'reference-active-doc',
 			name: 'Reference Active',
+			frames: [{ id: SNAP_FRAME_ID }],
+			activeFrameId: SNAP_FRAME_ID,
 			width: 2,
 			height: 2,
 			marquee: null,
@@ -310,7 +317,7 @@ describe('Workspace — shared state propagation', () => {
 					kind: 'pixel',
 					id: pixelId,
 					name: 'Paint',
-					pixels: new Uint8Array(2 * 2 * 4),
+					cels: [{ frameId: SNAP_FRAME_ID, pixels: new Uint8Array(2 * 2 * 4) }],
 					visible: true,
 					opacity: 1
 				}
@@ -499,6 +506,8 @@ describe('Workspace — shared state propagation', () => {
 		workspace.openSnapshot({
 			id: 'cut-reference-active-doc',
 			name: 'Cut Reference Active',
+			frames: [{ id: SNAP_FRAME_ID }],
+			activeFrameId: SNAP_FRAME_ID,
 			width: 2,
 			height: 2,
 			marquee: null,
@@ -519,10 +528,10 @@ describe('Workspace — shared state propagation', () => {
 					kind: 'pixel',
 					id: pixelId,
 					name: 'Paint',
-					pixels: rgba([
+					cels: [{ frameId: SNAP_FRAME_ID, pixels: rgba([
 						1, 0, 0, 255, 2, 0, 0, 255,
 						3, 0, 0, 255, 4, 0, 0, 255
-					]),
+					]) }],
 					visible: true,
 					opacity: 1
 				}
@@ -685,6 +694,8 @@ describe('Workspace — shared state propagation', () => {
 		workspace.openSnapshot({
 			id: 'paste-offscreen-doc',
 			name: 'Paste Offscreen',
+			frames: [{ id: SNAP_FRAME_ID }],
+			activeFrameId: SNAP_FRAME_ID,
 			width: 8,
 			height: 8,
 			marquee: null,
@@ -693,7 +704,7 @@ describe('Workspace — shared state propagation', () => {
 					kind: 'pixel',
 					id: layerId,
 					name: 'Layer 1',
-					pixels: new Uint8Array(8 * 8 * 4),
+					cels: [{ frameId: SNAP_FRAME_ID, pixels: new Uint8Array(8 * 8 * 4) }],
 					visible: true,
 					opacity: 1
 				}
@@ -795,6 +806,8 @@ describe('Workspace — shared state propagation', () => {
 		workspace.openSnapshot({
 			id: 'paste-reference-active-doc',
 			name: 'Paste Reference Active',
+			frames: [{ id: SNAP_FRAME_ID }],
+			activeFrameId: SNAP_FRAME_ID,
 			width: 2,
 			height: 2,
 			marquee: null,
@@ -815,7 +828,7 @@ describe('Workspace — shared state propagation', () => {
 					kind: 'pixel',
 					id: pixelId,
 					name: 'Paint',
-					pixels: pixelLayer.slice(),
+					cels: [{ frameId: SNAP_FRAME_ID, pixels: pixelLayer.slice() }],
 					visible: true,
 					opacity: 1
 				}
@@ -938,11 +951,13 @@ describe('Workspace — openDocument', () => {
 		const snapshot: TabSnapshot = {
 			id: 'layered-doc',
 			name: 'Layered',
+			frames: [{ id: SNAP_FRAME_ID }],
+			activeFrameId: SNAP_FRAME_ID,
 			width: 2,
 			height: 1,
 			layers: [
-				{ kind: 'pixel', id: bottomId, name: 'Paint', pixels: bottomPixels, visible: true, opacity: 1 },
-				{ kind: 'pixel', id: topId, name: 'Ink', pixels: topPixels, visible: true, opacity: 1 }
+				{ kind: 'pixel', id: bottomId, name: 'Paint', cels: [{ frameId: SNAP_FRAME_ID, pixels: bottomPixels }], visible: true, opacity: 1 },
+				{ kind: 'pixel', id: topId, name: 'Ink', cels: [{ frameId: SNAP_FRAME_ID, pixels: topPixels }], visible: true, opacity: 1 }
 			],
 			activeLayerId: topId,
 			nextLayerNumber: 4,

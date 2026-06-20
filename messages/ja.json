@@ -158,6 +158,7 @@
 
 	"layer_default_name": "レイヤー {n}",
 	"layer_panel_title": "レイヤー",
+	"timeline_frames_label": "フレーム",
 	"layer_panel_collapsed_label": "レイヤー · {name}",
 	"timeline_collapsed_summary": "レイヤー · {layer} · フレーム {frame} / {total}",
 	"timeline_reference_span_caption": "アンダーレイ — すべてのフレームで共通",
@@ -177,6 +178,9 @@
 	"aria_fitReferenceLayerToCanvas": "{name}をキャンバスに合わせる",
 	"aria_removeLayer": "{name}を削除",
 	"aria_reorderLayer": "{name}を並べ替え",
+	"aria_addFrame": "フレームを追加",
+	"aria_duplicateFrame": "フレームを複製",
+	"aria_removeFrame": "フレームを削除",
 	"aria_hideLayer": "{name}を隠す",
 	"aria_showLayer": "{name}を表示",
 	"aria_collapseTimelinePanel": "レイヤーパネルを折りたたむ",

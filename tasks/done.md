@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 192 | [Frame operations UI — add / duplicate / delete / reorder](../issues/192-frame-operations-ui.md) | 2026-06-20 |
 | 191 | [Frame ruler shell + selection (TimelinePanel)](../issues/191-frame-ruler-shell.md) | 2026-06-20 |
 | 190 | [Document schema V6 — frames + per-cel persistence](../issues/190-document-schema-v6-frames.md) | 2026-06-20 |
 | 189 | [Frame WASM binding + Change Journal intents](../issues/189-frame-wasm-journal-intents.md) | 2026-06-20 |

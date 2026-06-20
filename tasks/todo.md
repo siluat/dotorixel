@@ -2,8 +2,6 @@
 
 ## Milestone 4: Animation-Capable Editor
 
-- Frame management (add/delete/duplicate/reorder) — [PRD](../issues/186-frame-management.md)
-  - [192 — Frame operations UI — add / duplicate / delete / reorder](../issues/192-frame-operations-ui.md)
 - Per-frame speed control
 - Timeline UI
 - Onion skinning

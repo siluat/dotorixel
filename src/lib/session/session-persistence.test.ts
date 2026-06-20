@@ -61,6 +61,14 @@ function expectReferenceLayer(layer: TabSnapshot['layers'][number]) {
 	return layer;
 }
 
+/** The active-frame Cel's pixels for a Pixel Layer of a (restored) tab snapshot. */
+function activeCelPixels(tab: TabSnapshot, layerIndex: number): Uint8Array {
+	const layer = expectPixelLayer(tab.layers[layerIndex]);
+	const cel = layer.cels.find((c) => c.frameId === tab.activeFrameId);
+	if (!cel) throw new Error(`No Cel for active frame ${tab.activeFrameId}`);
+	return cel.pixels;
+}
+
 function makeSnapshot(
 	overrides: Partial<WorkspaceSnapshot> = {},
 	tabs?: readonly TabSnapshot[]
@@ -115,7 +123,7 @@ describe('SessionPersistence', () => {
 		expect(restored!.tabs[0].width).toBe(16);
 		expect(restored!.tabs[0].height).toBe(16);
 		// Verify pixel data includes the red pixel
-		const restoredPixels = expectPixelLayer(restored!.tabs[0].layers[0]).pixels;
+		const restoredPixels = activeCelPixels(restored!.tabs[0], 0);
 		expect(restoredPixels[0]).toBe(255); // R
 		expect(restoredPixels[1]).toBe(0);   // G
 		expect(restoredPixels[2]).toBe(0);   // B
@@ -207,15 +215,18 @@ describe('SessionPersistence', () => {
 		topPixels[5] = 255;
 		topPixels[7] = 200;
 
+		const frameId = crypto.randomUUID();
 		const multiLayerTab: TabSnapshot = {
 			id: 'doc-multi',
 			name: 'Layered',
 			width: 2,
 			height: 2,
 			layers: [
-				{ kind: 'pixel', id: bottomId, name: 'Background', pixels: bottomPixels, visible: true, opacity: 1 },
-				{ kind: 'pixel', id: topId, name: 'Sketch', pixels: topPixels, visible: false, opacity: 0.5 }
+				{ kind: 'pixel', id: bottomId, name: 'Background', cels: [{ frameId, pixels: bottomPixels }], visible: true, opacity: 1 },
+				{ kind: 'pixel', id: topId, name: 'Sketch', cels: [{ frameId, pixels: topPixels }], visible: false, opacity: 0.5 }
 			],
+			frames: [{ id: frameId }],
+			activeFrameId: frameId,
 			activeLayerId: topId,
 			nextLayerNumber: 7,
 			timelinePanelCollapsed: true,
@@ -241,14 +252,14 @@ describe('SessionPersistence', () => {
 		expect(bottomLayer.name).toBe('Background');
 		expect(bottomLayer.visible).toBe(true);
 		expect(bottomLayer.opacity).toBe(1);
-		expect(Array.from(bottomLayer.pixels)).toEqual(Array.from(bottomPixels));
+		expect(Array.from(activeCelPixels(tab, 0))).toEqual(Array.from(bottomPixels));
 
 		const topLayer = expectPixelLayer(tab.layers[1]);
 		expect(topLayer.id).toBe(topId);
 		expect(topLayer.name).toBe('Sketch');
 		expect(topLayer.visible).toBe(false);
 		expect(topLayer.opacity).toBeCloseTo(0.5);
-		expect(Array.from(topLayer.pixels)).toEqual(Array.from(topPixels));
+		expect(Array.from(activeCelPixels(tab, 1))).toEqual(Array.from(topPixels));
 	});
 
 	it('loads a saved document snapshot with its full layer stack for reopening', async () => {
@@ -262,15 +273,18 @@ describe('SessionPersistence', () => {
 		topPixels[5] = 255;
 		topPixels[7] = 255;
 
+		const frameId = crypto.randomUUID();
 		const tab: TabSnapshot = {
 			id: 'doc-reopen-layered',
 			name: 'Layered',
 			width: 2,
 			height: 1,
 			layers: [
-				{ kind: 'pixel', id: bottomId, name: 'Paint', pixels: bottomPixels, visible: true, opacity: 1 },
-				{ kind: 'pixel', id: topId, name: 'Ink', pixels: topPixels, visible: false, opacity: 0.5 }
+				{ kind: 'pixel', id: bottomId, name: 'Paint', cels: [{ frameId, pixels: bottomPixels }], visible: true, opacity: 1 },
+				{ kind: 'pixel', id: topId, name: 'Ink', cels: [{ frameId, pixels: topPixels }], visible: false, opacity: 0.5 }
 			],
+			frames: [{ id: frameId }],
+			activeFrameId: frameId,
 			activeLayerId: topId,
 			nextLayerNumber: 6,
 			timelinePanelCollapsed: true,
@@ -296,8 +310,8 @@ describe('SessionPersistence', () => {
 		expect(reopened!.activeLayerId).toBe(topId);
 		expect(reopened!.nextLayerNumber).toBe(6);
 		expect(reopened!.timelinePanelCollapsed).toBe(true);
-		expect(Array.from(expectPixelLayer(reopened!.layers[0]).pixels)).toEqual(Array.from(bottomPixels));
-		expect(Array.from(expectPixelLayer(reopened!.layers[1]).pixels)).toEqual(Array.from(topPixels));
+		expect(Array.from(activeCelPixels(reopened!, 0))).toEqual(Array.from(bottomPixels));
+		expect(Array.from(activeCelPixels(reopened!, 1))).toEqual(Array.from(topPixels));
 	});
 
 	it('restores Reference Layer records by decoding source blobs for document hydration', async () => {
@@ -561,15 +575,15 @@ describe('SessionPersistence', () => {
 		expect(restored!.tabs).toHaveLength(2);
 		expect(restored!.tabs[0].name).toBe('Untitled 1');
 		expect(restored!.tabs[1].name).toBe('Untitled 2');
-		const restoredTab0Layer = expectPixelLayer(restored!.tabs[0].layers[0]);
-		const restoredTab1Layer = expectPixelLayer(restored!.tabs[1].layers[0]);
+		const restoredTab0Pixels = activeCelPixels(restored!.tabs[0], 0);
+		const restoredTab1Pixels = activeCelPixels(restored!.tabs[1], 0);
 		// Tab 0: red at (0,0)
-		expect(restoredTab0Layer.pixels[0]).toBe(255);
-		expect(restoredTab0Layer.pixels[1]).toBe(0);
+		expect(restoredTab0Pixels[0]).toBe(255);
+		expect(restoredTab0Pixels[1]).toBe(0);
 		// Tab 1: blue at (1,0)
-		expect(restoredTab1Layer.pixels[4]).toBe(0);
-		expect(restoredTab1Layer.pixels[5]).toBe(0);
-		expect(restoredTab1Layer.pixels[6]).toBe(255);
+		expect(restoredTab1Pixels[4]).toBe(0);
+		expect(restoredTab1Pixels[5]).toBe(0);
+		expect(restoredTab1Pixels[6]).toBe(255);
 	});
 
 	it('preserves activeTabIndex when middle tab is active', async () => {
@@ -665,7 +679,7 @@ describe('SessionPersistence', () => {
 		expect(doc!.saved).toBe(false);
 	});
 
-	it('persists a frame-less snapshot as a single-frame V6 record whose cel carries the layer pixels', async () => {
+	it('persists a single-frame snapshot as a one-frame V6 record whose cel carries the layer pixels', async () => {
 		const tab = makeTab({ id: 'doc-frame-save' });
 
 		await persistence.save(makeSnapshot({}, [tab]));
@@ -679,7 +693,46 @@ describe('SessionPersistence', () => {
 		if (layer.kind !== 'pixel') throw new Error('Expected Pixel Layer');
 		expect(layer.cels).toHaveLength(1);
 		expect(layer.cels[0].frameId).toBe(stored!.activeFrameId);
-		expect(layer.cels[0].pixels).toEqual(expectPixelLayer(tab.layers[0]).pixels);
+		expect(layer.cels[0].pixels).toEqual(activeCelPixels(tab, 0));
+	});
+
+	it('round-trips a multi-frame snapshot, preserving every frame’s per-cel pixels and the active frame', async () => {
+		const frameA = crypto.randomUUID();
+		const frameB = crypto.randomUUID();
+		const frameC = crypto.randomUUID();
+		const cel = (n: number) => {
+			const px = new Uint8Array(2 * 2 * 4);
+			px[0] = n;
+			px[3] = 255;
+			return px;
+		};
+		const tab = tabSnapshotFixture({
+			id: 'doc-multi-frame',
+			name: 'Animation',
+			width: 2,
+			height: 2,
+			cels: [
+				{ frameId: frameA, pixels: cel(10) },
+				{ frameId: frameB, pixels: cel(20) },
+				{ frameId: frameC, pixels: cel(30) }
+			]
+		});
+		// Activate the middle frame so its restoration is exercised too.
+		const middleActive: TabSnapshot = { ...tab, activeFrameId: frameB };
+
+		await persistence.save(makeSnapshot({}, [middleActive]));
+		const restored = await persistence.restore();
+
+		expect(restored).not.toBeNull();
+		const restoredTab = restored!.tabs[0];
+		expect(restoredTab.frames.map((f) => f.id)).toEqual([frameA, frameB, frameC]);
+		expect(restoredTab.activeFrameId).toBe(frameB);
+		const layer = expectPixelLayer(restoredTab.layers[0]);
+		const celFor = (frameId: string) =>
+			Array.from(layer.cels.find((c) => c.frameId === frameId)!.pixels);
+		expect(celFor(frameA)).toEqual(Array.from(cel(10)));
+		expect(celFor(frameB)).toEqual(Array.from(cel(20)));
+		expect(celFor(frameC)).toEqual(Array.from(cel(30)));
 	});
 
 	it('preserves saved=true on re-save', async () => {

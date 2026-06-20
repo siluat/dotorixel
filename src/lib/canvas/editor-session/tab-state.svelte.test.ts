@@ -83,6 +83,18 @@ function expectReferenceLayer(layer: ReturnType<TabState['toSnapshot']>['layers'
 	return layer;
 }
 
+/** The active-frame Cel's pixels for a Pixel Layer — the single-frame analogue
+ *  of the snapshot's former `layer.pixels`. */
+function activeCelPixels(
+	snap: ReturnType<TabState['toSnapshot']>,
+	layerIndex: number
+): Uint8Array {
+	const layer = expectPixelLayer(snap.layers[layerIndex]);
+	const cel = layer.cels.find((c) => c.frameId === snap.activeFrameId);
+	if (!cel) throw new Error(`No Cel for active frame ${snap.activeFrameId}`);
+	return cel.pixels;
+}
+
 function drawLine(tab: TabState, from: CanvasCoords, to: CanvasCoords) {
 	tab.shared.activeTool = 'line';
 	tab.drawStart(0, 'mouse');
@@ -151,6 +163,63 @@ function makeReferenceDocumentWithPlacement(placement: { x: number; y: number; s
 		})
 	};
 }
+
+describe('TabState — multi-frame snapshot', () => {
+	function fill2x2(r: number, g: number, b: number): Uint8Array {
+		const px = new Uint8Array(2 * 2 * 4);
+		for (let i = 0; i < 4; i++) {
+			px[i * 4] = r;
+			px[i * 4 + 1] = g;
+			px[i * 4 + 2] = b;
+			px[i * 4 + 3] = 255;
+		}
+		return px;
+	}
+
+	it('toSnapshot carries every frame and each Pixel Layer’s per-frame cels', () => {
+		const layerId = crypto.randomUUID();
+		const frameA = crypto.randomUUID();
+		const frameB = crypto.randomUUID();
+		const red = fill2x2(255, 0, 0);
+		const blue = fill2x2(0, 0, 255);
+		const document = documentFromLayerSource({
+			width: 2,
+			height: 2,
+			frames: [{ id: frameA }, { id: frameB }],
+			activeFrameId: frameB,
+			layers: [
+				{
+					kind: 'pixel',
+					id: layerId,
+					name: 'Layer 1',
+					cels: [
+						{ frameId: frameA, pixels: red },
+						{ frameId: frameB, pixels: blue }
+					],
+					visible: true,
+					opacity: 1
+				}
+			],
+			activeLayerId: layerId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false
+		});
+		const { tab } = makeTab({ document });
+
+		const snap = tab.toSnapshot();
+
+		expect(snap.frames.length).toBe(2);
+		// Active frame is the second one (the builder reassigns the first frame's id).
+		expect(snap.activeFrameId).toBe(snap.frames[1].id);
+
+		const layer = expectPixelLayer(snap.layers[0]);
+		expect(layer.cels.length).toBe(2);
+		const celFor = (frameId: string) =>
+			Array.from(layer.cels.find((cel) => cel.frameId === frameId)!.pixels);
+		expect(celFor(snap.frames[0].id)).toEqual(Array.from(red));
+		expect(celFor(snap.frames[1].id)).toEqual(Array.from(blue));
+	});
+});
 
 describe('TabState — ownership', () => {
 	it('owns its own document and viewport; two tabs do not share them', () => {
@@ -1195,10 +1264,10 @@ describe('TabState — effect dispatcher', () => {
 		expect(getRenderedPixel(tab, 2, 2)).toEqual(RED);
 
 		const snap = tab.toSnapshot();
-		const layer = expectPixelLayer(snap.layers[0]);
-		expect(getPixelFromBuffer(layer.pixels, snap.width, 1, 1)).toEqual(RED);
-		expect(getPixelFromBuffer(layer.pixels, snap.width, 2, 1)).toEqual(GREEN);
-		expect(getPixelFromBuffer(layer.pixels, snap.width, 2, 2)).toEqual(BLUE);
+		const pixelsOut = activeCelPixels(snap, 0);
+		expect(getPixelFromBuffer(pixelsOut, snap.width, 1, 1)).toEqual(RED);
+		expect(getPixelFromBuffer(pixelsOut, snap.width, 2, 1)).toEqual(GREEN);
+		expect(getPixelFromBuffer(pixelsOut, snap.width, 2, 2)).toEqual(BLUE);
 		expect(snap.marquee).toEqual({ x: 1, y: 1, width: 2, height: 1 });
 	});
 
@@ -1597,8 +1666,9 @@ describe('TabState — snapshot', () => {
 		expect(snap.layers).toHaveLength(1);
 		const layer = expectPixelLayer(snap.layers[0]);
 		expect(layer.name).toBe('Layer 1');
-		expect(layer.pixels).toBeInstanceOf(Uint8Array);
-		expect(layer.pixels.length).toBe(8 * 8 * 4);
+		expect(layer.cels).toHaveLength(1);
+		expect(layer.cels[0].pixels).toBeInstanceOf(Uint8Array);
+		expect(layer.cels[0].pixels.length).toBe(8 * 8 * 4);
 		expect(layer.visible).toBe(true);
 		expect(layer.opacity).toBe(1);
 		expect(snap.activeLayerId).toBe(layer.id);
@@ -1612,7 +1682,7 @@ describe('TabState — snapshot', () => {
 		drawLine(tab, { x: 0, y: 0 }, { x: 3, y: 0 });
 
 		const snap = tab.toSnapshot();
-		expect(expectPixelLayer(snap.layers[0]).pixels).toEqual(tab.document.layer_pixels_at(0));
+		expect(activeCelPixels(snap, 0)).toEqual(tab.document.layer_pixels_at(0));
 		expect(getPixel(tab, 0, 0)).toEqual(BLACK);
 	});
 
@@ -1630,7 +1700,7 @@ describe('TabState — snapshot', () => {
 			expect(snap.layers[i].id).toBe(records[i].id);
 			expect(snap.layers[i].visible).toBe(records[i].visible);
 			expect(snap.layers[i].opacity).toBe(records[i].opacity);
-			expect(expectPixelLayer(snap.layers[i]).pixels).toEqual(tab.document.layer_pixels_at(i));
+			expect(activeCelPixels(snap, i)).toEqual(tab.document.layer_pixels_at(i));
 		}
 		expect(snap.activeLayerId).toBe(tab.document.active_layer_id());
 		expect(snap.nextLayerNumber).toBe(tab.document.next_layer_number());
@@ -1688,7 +1758,7 @@ describe('TabState — toSnapshot derives from document', () => {
 		const snap = tab.toSnapshot();
 		expect(snap.width).toBe(tab.document.width);
 		expect(snap.height).toBe(tab.document.height);
-		expect(expectPixelLayer(snap.layers[0]).pixels).toEqual(tab.document.layer_pixels_at(0));
+		expect(activeCelPixels(snap, 0)).toEqual(tab.document.layer_pixels_at(0));
 	});
 });
 

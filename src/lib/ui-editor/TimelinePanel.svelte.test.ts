@@ -17,6 +17,10 @@ const noopToggleCollapsed = () => {};
 const noopFitReferenceLayerToCanvas = (_id: string) => {};
 const noopSelectFrame = (_id: string) => {};
 const noopSelectCel = (_layerId: string, _frameId: string) => {};
+const noopAddFrame = () => {};
+const noopDuplicateFrame = () => {};
+const noopRemoveFrame = (_id: string) => {};
+const noopReorderFrame = (_id: string, _newIndex: number) => {};
 
 const defaultProps = {
 	collapsed: false,
@@ -31,7 +35,11 @@ const defaultProps = {
 	onToggleCollapsed: noopToggleCollapsed,
 	onFitReferenceLayerToCanvas: noopFitReferenceLayerToCanvas,
 	onSelectFrame: noopSelectFrame,
-	onSelectCel: noopSelectCel
+	onSelectCel: noopSelectCel,
+	onAddFrame: noopAddFrame,
+	onDuplicateFrame: noopDuplicateFrame,
+	onRemoveFrame: noopRemoveFrame,
+	onReorderFrame: noopReorderFrame
 };
 
 function pixelLayer(id: string, name: string, opts: { visible?: boolean } = {}) {
@@ -1236,5 +1244,369 @@ describe('TimelinePanel', () => {
 			container.querySelector(`[data-frame-row][data-layer-id="${id}"]`);
 		expect(gridRow('b')?.classList.contains('frame-row--active-layer')).toBe(true);
 		expect(gridRow('a')?.classList.contains('frame-row--active-layer')).toBe(false);
+	});
+
+	describe('frame operations (add / duplicate / delete / reorder)', () => {
+		it('renders a Frames label and an add-frame button in the header', () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const { container } = render(TimelinePanel, {
+				props: { layers, activeLayerId: 'a', ...defaultProps }
+			});
+
+			// The right-side group is labeled "Frames", mirroring the left "Layers"
+			// label to disambiguate the two + buttons (187 spec §3).
+			const header = container.querySelector('.timeline-panel .header') as HTMLElement;
+			expect(header.textContent).toContain('Frames');
+
+			const addFrame = container.querySelector('[data-add-frame]');
+			expect(addFrame).not.toBeNull();
+			expect(addFrame?.tagName).toBe('BUTTON');
+		});
+
+		it('invokes onAddFrame when the add-frame button is clicked', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const onAddFrame = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: { layers, activeLayerId: 'a', ...defaultProps, onAddFrame }
+			});
+
+			const btn = container.querySelector('[data-add-frame]') as HTMLButtonElement;
+			await fireEvent.click(btn);
+
+			expect(onAddFrame).toHaveBeenCalledTimes(1);
+		});
+
+		it('renders a duplicate-frame button and invokes onDuplicateFrame on click', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const onDuplicateFrame = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: { layers, activeLayerId: 'a', ...defaultProps, onDuplicateFrame }
+			});
+
+			const btn = container.querySelector('[data-duplicate-frame]') as HTMLButtonElement;
+			expect(btn).not.toBeNull();
+			expect(btn.tagName).toBe('BUTTON');
+
+			await fireEvent.click(btn);
+
+			expect(onDuplicateFrame).toHaveBeenCalledTimes(1);
+		});
+
+		it('renders a delete-frame button and invokes onRemoveFrame with the active frame id', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1'), frame('f2')];
+			const onRemoveFrame = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f2',
+					onRemoveFrame
+				}
+			});
+
+			const btn = container.querySelector('[data-remove-frame]') as HTMLButtonElement;
+			expect(btn).not.toBeNull();
+
+			await fireEvent.click(btn);
+
+			// The header delete acts on the active frame (f2 here), mirroring how
+			// add/duplicate target the active frame in the core.
+			expect(onRemoveFrame).toHaveBeenCalledWith('f2');
+			expect(onRemoveFrame).toHaveBeenCalledTimes(1);
+		});
+
+		it('disables the delete-frame button when only one frame remains', () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1')];
+			const { container } = render(TimelinePanel, {
+				props: { layers, activeLayerId: 'a', ...defaultProps, frames, activeFrameId: 'f1' }
+			});
+
+			const btn = container.querySelector('[data-remove-frame]') as HTMLButtonElement;
+			expect(btn.disabled).toBe(true);
+		});
+
+		it('enables the delete-frame button when two or more frames are present', () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1'), frame('f2')];
+			const { container } = render(TimelinePanel, {
+				props: { layers, activeLayerId: 'a', ...defaultProps, frames, activeFrameId: 'f1' }
+			});
+
+			const btn = container.querySelector('[data-remove-frame]') as HTMLButtonElement;
+			expect(btn.disabled).toBe(false);
+		});
+
+		it('hides the frame-action group and Frames label when collapsed (read-only strip)', () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const { container } = render(TimelinePanel, {
+				props: { layers, activeLayerId: 'a', ...defaultProps, collapsed: true }
+			});
+
+			expect(container.querySelector('[data-frames-label]')).toBeNull();
+			expect(container.querySelector('[data-add-frame]')).toBeNull();
+			expect(container.querySelector('[data-duplicate-frame]')).toBeNull();
+			expect(container.querySelector('[data-remove-frame]')).toBeNull();
+			// The collapse chevron stays so the strip can be expanded again.
+			expect(container.querySelector('[data-collapse-toggle]')).not.toBeNull();
+		});
+
+		const rulerCell = (container: HTMLElement, frameId: string) =>
+			container.querySelector(
+				`[data-frame-ruler-cell][data-frame-id="${frameId}"]`
+			) as HTMLElement;
+
+		it('pointer-dragging a ruler cell right by two columns reorders to the dropped index', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1'), frame('f2'), frame('f3')];
+			const onReorderFrame = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f1',
+					onReorderFrame
+				}
+			});
+
+			const f1 = rulerCell(container, 'f1');
+			await fireEvent.pointerDown(f1, { clientX: 0, pointerId: 1 });
+			await fireEvent.pointerMove(f1, { clientX: 64, pointerId: 1 });
+			await fireEvent.pointerUp(f1, { clientX: 64, pointerId: 1 });
+
+			// f1 is at index 0; +64px over a 32px column targets index 2.
+			expect(onReorderFrame).toHaveBeenCalledWith('f1', 2);
+			expect(onReorderFrame).toHaveBeenCalledTimes(1);
+		});
+
+		it('previews the moving cell and displaced cells before drop', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1'), frame('f2'), frame('f3')];
+			const onReorderFrame = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f1',
+					onReorderFrame
+				}
+			});
+
+			const f1 = rulerCell(container, 'f1');
+			const f2 = rulerCell(container, 'f2');
+			const f3 = rulerCell(container, 'f3');
+
+			await fireEvent.pointerDown(f1, { clientX: 0, pointerId: 1 });
+			expect(f1.getAttribute('data-frame-dragging')).toBe('true');
+			expect(f1.hasAttribute('data-frame-drag-target')).toBe(false);
+
+			await fireEvent.pointerMove(f1, { clientX: 64, pointerId: 1 });
+			expect(f1.getAttribute('data-frame-dragging')).toBe('true');
+			expect(f3.getAttribute('data-frame-drag-target')).toBe('true');
+			expect(f1.style.getPropertyValue('--frame-drag-x')).toBe('64px');
+			expect(f2.style.getPropertyValue('--frame-drag-x')).toBe('-32px');
+			expect(f3.style.getPropertyValue('--frame-drag-x')).toBe('-32px');
+			expect(onReorderFrame).not.toHaveBeenCalled();
+		});
+
+		it('does not also select the frame after a completed drag (trailing click swallowed)', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1'), frame('f2'), frame('f3')];
+			const onSelectFrame = vi.fn();
+			const onReorderFrame = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f1',
+					onSelectFrame,
+					onReorderFrame
+				}
+			});
+
+			const f1 = rulerCell(container, 'f1');
+			await fireEvent.pointerDown(f1, { clientX: 0, pointerId: 1 });
+			await fireEvent.pointerMove(f1, { clientX: 64, pointerId: 1 });
+			await fireEvent.pointerUp(f1, { clientX: 64, pointerId: 1 });
+			// The browser emits a *pointer* click (detail > 0) after this sequence;
+			// reordering must not also re-select the dragged frame.
+			await fireEvent.click(f1, { detail: 1 });
+
+			expect(onReorderFrame).toHaveBeenCalledWith('f1', 2);
+			expect(onSelectFrame).not.toHaveBeenCalled();
+		});
+
+		it('keyboard-activates a frame even when a prior drag left the suppress flag armed', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1'), frame('f2'), frame('f3')];
+			const onSelectFrame = vi.fn();
+			const onReorderFrame = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f1',
+					onSelectFrame,
+					onReorderFrame
+				}
+			});
+
+			const f1 = rulerCell(container, 'f1');
+			const f2 = rulerCell(container, 'f2');
+			// A real drag whose trailing pointer-click the browser suppressed leaves
+			// the flag armed — no pointerdown on another cell follows to clear it.
+			await fireEvent.pointerDown(f1, { clientX: 0, pointerId: 1 });
+			await fireEvent.pointerMove(f1, { clientX: 64, pointerId: 1 });
+			await fireEvent.pointerUp(f1, { clientX: 64, pointerId: 1 });
+			expect(onReorderFrame).toHaveBeenCalledTimes(1);
+
+			// Keyboard activation (Enter/Space) emits a click with detail 0; it must
+			// select regardless of the stale flag.
+			await fireEvent.click(f2, { detail: 0 });
+			expect(onSelectFrame).toHaveBeenCalledWith('f2');
+		});
+
+		it('still selects the frame on a tap (pointer down/up without movement)', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1'), frame('f2')];
+			const onSelectFrame = vi.fn();
+			const onReorderFrame = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f1',
+					onSelectFrame,
+					onReorderFrame
+				}
+			});
+
+			const f2 = rulerCell(container, 'f2');
+			await fireEvent.pointerDown(f2, { clientX: 40, pointerId: 1 });
+			await fireEvent.pointerUp(f2, { clientX: 40, pointerId: 1 });
+			await fireEvent.click(f2);
+
+			expect(onSelectFrame).toHaveBeenCalledWith('f2');
+			expect(onReorderFrame).not.toHaveBeenCalled();
+		});
+
+		it('treats a sub-threshold jitter as a select, not a reorder', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1'), frame('f2')];
+			const onSelectFrame = vi.fn();
+			const onReorderFrame = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f1',
+					onSelectFrame,
+					onReorderFrame
+				}
+			});
+
+			const f2 = rulerCell(container, 'f2');
+			await fireEvent.pointerDown(f2, { clientX: 40, pointerId: 1 });
+			await fireEvent.pointerMove(f2, { clientX: 43, pointerId: 1 });
+			await fireEvent.pointerUp(f2, { clientX: 43, pointerId: 1 });
+			await fireEvent.click(f2);
+
+			expect(onReorderFrame).not.toHaveBeenCalled();
+			expect(onSelectFrame).toHaveBeenCalledWith('f2');
+		});
+
+		it('pointer cancel during a ruler drag does not reorder', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1'), frame('f2'), frame('f3')];
+			const onReorderFrame = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f1',
+					onReorderFrame
+				}
+			});
+
+			const f1 = rulerCell(container, 'f1');
+			await fireEvent.pointerDown(f1, { clientX: 0, pointerId: 1 });
+			await fireEvent.pointerMove(f1, { clientX: 64, pointerId: 1 });
+			await fireEvent.pointerCancel(f1, { pointerId: 1 });
+
+			expect(onReorderFrame).not.toHaveBeenCalled();
+		});
+
+		it('does not start a ruler drag when only one frame exists', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1')];
+			const onReorderFrame = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f1',
+					onReorderFrame
+				}
+			});
+
+			const f1 = rulerCell(container, 'f1');
+			await fireEvent.pointerDown(f1, { clientX: 0, pointerId: 1 });
+			await fireEvent.pointerMove(f1, { clientX: 64, pointerId: 1 });
+			await fireEvent.pointerUp(f1, { clientX: 64, pointerId: 1 });
+
+			expect(onReorderFrame).not.toHaveBeenCalled();
+		});
+
+		it('ignores a second pointer landing during an active ruler drag', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1'), frame('f2'), frame('f3')];
+			const onReorderFrame = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f1',
+					onReorderFrame
+				}
+			});
+
+			const f1 = rulerCell(container, 'f1');
+			const f3 = rulerCell(container, 'f3');
+
+			await fireEvent.pointerDown(f1, { clientX: 0, pointerId: 1 });
+			// Second finger lands on another cell — must not start a second drag…
+			await fireEvent.pointerDown(f3, { clientX: 200, pointerId: 2 });
+			// …and the secondary pointer's events are ignored.
+			await fireEvent.pointerMove(f1, { clientX: 200, pointerId: 2 });
+			await fireEvent.pointerUp(f1, { clientX: 200, pointerId: 2 });
+			expect(onReorderFrame).not.toHaveBeenCalled();
+
+			// The original pointer still drives the drop.
+			await fireEvent.pointerMove(f1, { clientX: 64, pointerId: 1 });
+			await fireEvent.pointerUp(f1, { clientX: 64, pointerId: 1 });
+			expect(onReorderFrame).toHaveBeenCalledTimes(1);
+			expect(onReorderFrame).toHaveBeenCalledWith('f1', 2);
+		});
 	});
 });

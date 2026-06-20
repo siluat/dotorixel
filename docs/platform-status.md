@@ -105,7 +105,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Tab management (Workspace) | — | ✅ | ⬜ | Workspace model, page wiring, TabStrip UI complete |
-| Session persistence | — | ✅ | ⬜ | Multi-tab IndexedDB restore, debounced auto-save, retention; V6 Document persistence (layers, per-frame Cels, Reference blobs, Marquee) with lossless V1→V6 migration. Live path single-frame until the snapshot carries frames; one unreadable record is skipped, not fatal |
+| Session persistence | — | ✅ | ⬜ | Multi-tab IndexedDB restore, debounced auto-save, retention; V6 Document persistence (layers, per-frame Cels, Reference blobs, Marquee) round-trips multi-frame state; lossless V1→V6 migration; one unreadable record is skipped, not fatal |
 | Save dialog on tab close | — | ✅ | ⬜ | Blank canvas detection, save/delete/cancel modal, focus trap, keyboard accessible |
 | Saved work browser (desktop) | — | ✅ | ⬜ | Browse/open/delete; opens full Document snapshots while cards use composite thumbnails |
 | Saved work browser (mobile) | — | ✅ | — | Bottom sheet; opens full Document snapshots while cards use composite thumbnails |
@@ -115,9 +115,9 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Document/Layer model | 🔧 | 🔧 | ⬜ | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple remains single-canvas |
-| Frame cel-grid | ✅ | 🔧 | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: WASM binding + undoable add/duplicate/remove/reorder & persisted set-active journal intents (undo restores frame+cel); V6 persistence shipped (single-frame live path) |
+| Frame cel-grid | ✅ | ✅ | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: undoable add/duplicate/remove/reorder + set-active journal intents (undo restores frame+cel); multi-frame V6 persistence round-trips through the snapshot |
 | Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and rotation-aware source sampling. Turns with a whole-document rotate (quarter-turn). Placement invariant (finite pos, scale > 0, quarter-turn 0..=3) enforced by the core constructor |
-| Timeline panel | — | 🔧 | ⬜ | Layer × Frame grid: ordinal columns, cel-occupancy dots, Reference spanning bar, 2-channel active highlight; ruler/cell click selects frame/cel; per-document collapse. Frame add/duplicate/delete/reorder UI pending |
+| Timeline panel | — | 🔧 | ⬜ | Layer × Frame grid (ordinal columns, occupancy dots, Reference span, 2-channel active highlight); select via ruler/cell click; header add/duplicate/delete + ruler-cell drag-reorder; per-document collapse. Transport/playback strip pending |
 
 ## Reference Images
 

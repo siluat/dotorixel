@@ -175,6 +175,22 @@
 		tab.setActiveFrame(frameId);
 	}
 
+	function handleAddFrame() {
+		editor.workspace.activeTab.addFrame();
+	}
+
+	function handleDuplicateFrame() {
+		editor.workspace.activeTab.duplicateFrame();
+	}
+
+	function handleRemoveFrame(id: string) {
+		editor.workspace.activeTab.removeFrame(id);
+	}
+
+	function handleReorderFrame(id: string, newIndex: number) {
+		editor.workspace.activeTab.reorderFrame(id, newIndex);
+	}
+
 	function handleRemoveLayer(id: string) {
 		editor.workspace.activeTab.removeLayer(id);
 	}
@@ -680,6 +696,10 @@
 			activeFrameId={activeFrameId}
 			onSelectFrame={handleSelectFrame}
 			onSelectCel={handleSelectCel}
+			onAddFrame={handleAddFrame}
+			onDuplicateFrame={handleDuplicateFrame}
+			onRemoveFrame={handleRemoveFrame}
+			onReorderFrame={handleReorderFrame}
 			collapsed={isTimelinePanelCollapsed}
 			onAddLayer={handleAddLayer}
 			onAddReferenceLayer={handleAddReferenceLayerRequest}
@@ -861,6 +881,10 @@
 				activeFrameId={activeFrameId}
 				onSelectFrame={handleSelectFrame}
 				onSelectCel={handleSelectCel}
+				onAddFrame={handleAddFrame}
+				onDuplicateFrame={handleDuplicateFrame}
+				onRemoveFrame={handleRemoveFrame}
+				onReorderFrame={handleReorderFrame}
 				collapsed={false}
 				onAddLayer={handleAddLayer}
 				onAddReferenceLayer={handleAddReferenceLayerRequest}

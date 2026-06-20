@@ -1,6 +1,6 @@
 ---
 title: "Frame operations UI — add / duplicate / delete / reorder"
-status: ready-for-agent
+status: done
 created: 2026-06-18
 parent: 186-frame-management.md
 ---
@@ -58,3 +58,29 @@ Per the [187 design spec](187-frame-ruler-design.md):
 ## Blocked by
 
 - [191 — Frame ruler shell + selection (TimelinePanel)](191-frame-ruler-shell.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/ui-editor/TimelinePanel.svelte` | Header-right frame-action group (`Frames` label + add `＋` / duplicate / delete; delete disabled at one frame); ruler-cell **horizontal drag-reorder** mirroring the layer-row pattern (translateX preview + displaced-cell shift; a completed drag swallows the trailing select-click via a threshold flag) |
+| `src/routes/editor/+page.svelte` | `handleAddFrame` / `Duplicate` / `Remove` / `Reorder` → `tab.*`; wired on both docked + mobile TimelinePanel instances |
+| `messages/{en,ko,ja}.json` | `timeline_frames_label`, `aria_addFrame` / `aria_duplicateFrame` / `aria_removeFrame` |
+| `src/lib/canvas/workspace-snapshot.ts` | `TabSnapshot` gains `frames` + `activeFrameId`; Pixel Layer snapshot single `pixels` → `cels` (one per frame) |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | `toSnapshot` extracts every frame's Cel (floating selection baked only onto the active-frame Cel) |
+| `src/lib/canvas/wasm-backend.ts` | `documentFromLayerSource` rebuilds a multi-frame Document from a Cel-based source via `add_frame` + `set_active_frame`/`set_active_layer` + `restore_active_layer_pixels`; legacy single-buffer sources still build one frame |
+| `src/lib/session/session-persistence.ts` | `save` writes the snapshot's real frames/Cels (no more single-frame synthesis); `restore` / `getSavedDocumentSnapshot` carry every Cel through |
+| `src/lib/canvas/workspace-snapshot-fixtures.ts` | Fixture supports `cels` / multi-frame |
+| `e2e/editor/frames.test.ts` (new) | Add+draw+switch+undo tracer, duplicate-carries-content, delete (disabled/adjacent/undo), drag-reorder (active preserved), **per-cel pixels survive a page refresh** |
+| `TimelinePanel.svelte.test.ts`, `document-hydration.test.ts`, `tab-state.svelte.test.ts`, `session-persistence.test.ts`, `workspace.svelte.test.ts` | Component coverage for the action group + drag; multi-frame round-trip (snapshot↔Document, save↔restore); migrated single-frame snapshot assumptions to Cels |
+
+### Key Decisions
+- **Multi-frame persistence landed in the web shell only** (no Rust/WASM change): the snapshot↔Document bridge reuses existing WASM primitives to reconstruct the frame axis on hydration, keeping binding friction at zero.
+- **First-frame id is reassigned on rebuild and remapped.** The WASM builder mints the initial frame's id, so the first persisted frame id maps to it; later frames keep theirs. Frames are identity-only / position-numbered, so id stability across reload is not required.
+- **Ruler cell is both select-on-click and drag-to-reorder.** A pointer move past a small threshold marks the gesture a drag and suppresses the trailing click, so reordering never also re-selects.
+- **Header buttons follow the current 24×24 icon-button pattern**, not the 187 "bare-icon" ideal (that visual sync stays deferred).
+
+### Notes
+- **Scope correction:** 190 explicitly deferred flowing real frames through the snapshot to "a later slice (191/192)"; 191 was the read-only ruler shell, so multi-frame persistence (192 acceptance criterion 7) belonged here. It was missed in the first pass and then implemented + E2E-verified (refresh survival).
+- **Mobile touch targets:** the frame action buttons stay 24px (below the ≥44px guideline) — tracked by the existing "TimelinePanel mobile touch targets" backlog item, to be solved together with the row icon buttons.
+- **Verification:** 1518 unit tests + `svelte-check` clean + 105 E2E (incl. 5 frame flows with refresh survival); no regression in the other reload-persistence E2E (pixel-perfect / reference / workspace).

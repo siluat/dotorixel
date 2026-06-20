@@ -25,7 +25,11 @@
 		onToggleCollapsed: noop,
 		onFitReferenceLayerToCanvas: noop,
 		onSelectFrame: noop,
-		onSelectCel: noop
+		onSelectCel: noop,
+		onAddFrame: noop,
+		onDuplicateFrame: noop,
+		onRemoveFrame: noop,
+		onReorderFrame: noop
 	};
 
 	// Panel order = top→bottom; a Reference Layer always sits at the bottom.
@@ -38,9 +42,9 @@
 	];
 </script>
 
-<!-- The multi-frame grid only exists in stories until frame-add UI lands in 192;
-     these states are how the column layout, dots, active highlight, and the
-     Reference spanning bar are reviewed. -->
+<!-- These states exercise the Layer × Frame grid — column layout, occupancy dots,
+     active highlight, the Reference spanning bar, and the header frame-action group
+     (add / duplicate / delete). Ruler-cell drag-reorder is reviewed live here too. -->
 
 <Story name="MultiFrame">
 	<div style="width: 720px;">

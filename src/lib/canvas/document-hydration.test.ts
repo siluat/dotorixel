@@ -131,6 +131,113 @@ describe('documentFromLayerSource', () => {
 	});
 });
 
+describe('documentFromLayerSource — multi-frame', () => {
+	function fill2x2(r: number, g: number, b: number): Uint8Array {
+		const px = new Uint8Array(2 * 2 * 4);
+		for (let i = 0; i < 4; i++) {
+			px[i * 4] = r;
+			px[i * 4 + 1] = g;
+			px[i * 4 + 2] = b;
+			px[i * 4 + 3] = 255;
+		}
+		return px;
+	}
+
+	it('reconstructs a document with one cel per frame, preserving each frame’s pixels and the active frame', () => {
+		const layerId = crypto.randomUUID();
+		const frameA = crypto.randomUUID();
+		const frameB = crypto.randomUUID();
+		const red = fill2x2(255, 0, 0);
+		const blue = fill2x2(0, 0, 255);
+
+		const doc = documentFromLayerSource({
+			width: 2,
+			height: 2,
+			frames: [{ id: frameA }, { id: frameB }],
+			activeFrameId: frameB,
+			layers: [
+				{
+					kind: 'pixel',
+					id: layerId,
+					name: 'Layer 1',
+					cels: [
+						{ frameId: frameA, pixels: red },
+						{ frameId: frameB, pixels: blue }
+					],
+					visible: true,
+					opacity: 1
+				}
+			],
+			activeLayerId: layerId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false
+		});
+
+		expect(doc.frame_count()).toBe(2);
+		// The first frame's id is reassigned by the builder, so assert on per-position
+		// cel content (the durable contract), not on id identity.
+		const frames = doc.frames_metadata();
+		expect(Array.from(doc.cel_pixels_at(0, frames[0].id)!)).toEqual(Array.from(red));
+		expect(Array.from(doc.cel_pixels_at(0, frames[1].id)!)).toEqual(Array.from(blue));
+		// Active frame is the second one (frame-b → blue), so the composite is blue.
+		expect(doc.active_frame_id()).toBe(frames[1].id);
+		expect(Array.from(doc.composite())).toEqual(Array.from(blue));
+	});
+
+	it('preserves a multi-frame stack’s per-layer cels independently', () => {
+		const bottom = crypto.randomUUID();
+		const top = crypto.randomUUID();
+		const f1 = crypto.randomUUID();
+		const f2 = crypto.randomUUID();
+		const red = fill2x2(255, 0, 0);
+		const green = fill2x2(0, 255, 0);
+		const blue = fill2x2(0, 0, 255);
+		const transparent = new Uint8Array(2 * 2 * 4);
+
+		const doc = documentFromLayerSource({
+			width: 2,
+			height: 2,
+			frames: [{ id: f1 }, { id: f2 }],
+			activeFrameId: f1,
+			layers: [
+				{
+					kind: 'pixel',
+					id: bottom,
+					name: 'Bottom',
+					cels: [
+						{ frameId: f1, pixels: red },
+						{ frameId: f2, pixels: green }
+					],
+					visible: true,
+					opacity: 1
+				},
+				{
+					kind: 'pixel',
+					id: top,
+					name: 'Top',
+					cels: [
+						{ frameId: f1, pixels: transparent },
+						{ frameId: f2, pixels: blue }
+					],
+					visible: true,
+					opacity: 1
+				}
+			],
+			activeLayerId: bottom,
+			nextLayerNumber: 3,
+			timelinePanelCollapsed: false
+		});
+
+		const frames = doc.frames_metadata();
+		// Bottom layer (index 0): red on frame 1, green on frame 2.
+		expect(Array.from(doc.cel_pixels_at(0, frames[0].id)!)).toEqual(Array.from(red));
+		expect(Array.from(doc.cel_pixels_at(0, frames[1].id)!)).toEqual(Array.from(green));
+		// Top layer (index 1): empty on frame 1, blue on frame 2.
+		expect(Array.from(doc.cel_pixels_at(1, frames[0].id)!)).toEqual(Array.from(transparent));
+		expect(Array.from(doc.cel_pixels_at(1, frames[1].id)!)).toEqual(Array.from(blue));
+	});
+});
+
 describe('DocumentHistory document path', () => {
 	it('push, undo, redo round-trip the Document state', () => {
 		const initial = documentFromLayerSource(makeSchema());

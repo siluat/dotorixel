@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ChevronDown, Grid2x2, Image, LoaderCircle, Maximize2 } from 'lucide-svelte';
+	import { ChevronDown, Copy, Grid2x2, Image, LoaderCircle, Maximize2, Trash2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 
 	type LayerKind = 'pixel' | 'reference';
@@ -33,6 +33,10 @@
 		onFitReferenceLayerToCanvas: (id: string) => void;
 		onSelectFrame: (frameId: string) => void;
 		onSelectCel: (layerId: string, frameId: string) => void;
+		onAddFrame: () => void;
+		onDuplicateFrame: () => void;
+		onRemoveFrame: (frameId: string) => void;
+		onReorderFrame: (frameId: string, newIndex: number) => void;
 		isReferenceLayerImporting?: boolean;
 		referenceLayerImportName?: string;
 	}
@@ -53,6 +57,10 @@
 		onFitReferenceLayerToCanvas,
 		onSelectFrame,
 		onSelectCel,
+		onAddFrame,
+		onDuplicateFrame,
+		onRemoveFrame,
+		onReorderFrame,
 		isReferenceLayerImporting = false,
 		referenceLayerImportName
 	}: Props = $props();
@@ -217,6 +225,131 @@
 		resetDrag();
 		releaseCapture(event.currentTarget as Element, event.pointerId);
 	}
+
+	// === Frame ruler reorder (horizontal drag) ============================
+	// Parallels the layer-row drag above, but on the X axis. Frames are uniform
+	// (no Pixel/Reference split), so every cell is reorderable and the clamp is
+	// the full [0, frames.length - 1] range. The ruler cell doubles as the
+	// select-on-click target, so a completed drag must explicitly swallow the
+	// click it would otherwise emit.
+	const DEFAULT_FRAME_COL_WIDTH_PX = 32;
+	// Pointer travel below this is treated as a tap (select), not a drag (reorder).
+	const FRAME_DRAG_THRESHOLD_PX = 4;
+
+	let frameDraggingId = $state<string | null>(null);
+	let frameDraggingPointerId = $state<number | null>(null);
+	let frameDragStartX = $state(0);
+	let frameDragBaseIndex = $state(0);
+	let frameDragTargetIndex = $state<number | null>(null);
+	let frameDragOffsetX = $state(0);
+	let frameColWidth = $state(DEFAULT_FRAME_COL_WIDTH_PX);
+	// Transient, non-reactive: set when a drag crosses the threshold so the
+	// trailing click selects nothing. Cleared at the next pointerdown so a stale
+	// flag (a browser that suppressed the post-drag click) can't poison the next
+	// genuine click.
+	let shouldSuppressNextFrameClick = false;
+
+	const canReorderFrames = $derived(frames.length > 1);
+
+	function computeFrameTargetIndex(clientX: number): number {
+		const deltaX = clientX - frameDragStartX;
+		const offset = Math.round(deltaX / frameColWidth);
+		const candidate = frameDragBaseIndex + offset;
+		return Math.max(0, Math.min(frames.length - 1, candidate));
+	}
+
+	function clampFrameDragOffsetX(clientX: number): number {
+		const deltaX = clientX - frameDragStartX;
+		const minOffset = -frameDragBaseIndex * frameColWidth;
+		const maxOffset = (frames.length - 1 - frameDragBaseIndex) * frameColWidth;
+		return Math.max(minOffset, Math.min(maxOffset, deltaX));
+	}
+
+	function frameDragTranslateX(id: string, index: number): number {
+		if (frameDraggingId === null || frameDragTargetIndex === null) return 0;
+		if (id === frameDraggingId) return frameDragOffsetX;
+		if (frameDragBaseIndex < frameDragTargetIndex) {
+			return index > frameDragBaseIndex && index <= frameDragTargetIndex ? -frameColWidth : 0;
+		}
+		if (frameDragBaseIndex > frameDragTargetIndex) {
+			return index >= frameDragTargetIndex && index < frameDragBaseIndex ? frameColWidth : 0;
+		}
+		return 0;
+	}
+
+	function frameDragStyle(offsetX: number): string | undefined {
+		return offsetX === 0 ? undefined : `--frame-drag-x: ${offsetX}px;`;
+	}
+
+	function resetFrameDrag() {
+		frameDraggingId = null;
+		frameDraggingPointerId = null;
+		frameDragTargetIndex = null;
+		frameDragOffsetX = 0;
+	}
+
+	function handleFramePointerDown(event: PointerEvent, id: string, index: number) {
+		// A second pointer mid-drag must not hijack the gesture.
+		if (frameDraggingId !== null) return;
+		if (event.button !== 0) return;
+		// Fresh interaction — clear suppression left by any prior drag.
+		shouldSuppressNextFrameClick = false;
+		if (!canReorderFrames) return;
+
+		const target = event.currentTarget as HTMLElement;
+		const measured = target.offsetWidth;
+
+		frameDraggingId = id;
+		frameDraggingPointerId = event.pointerId;
+		frameDragStartX = event.clientX;
+		frameDragBaseIndex = index;
+		frameDragTargetIndex = index;
+		frameDragOffsetX = 0;
+		frameColWidth = measured > 0 ? measured : DEFAULT_FRAME_COL_WIDTH_PX;
+
+		try {
+			target.setPointerCapture(event.pointerId);
+		} catch {
+			// happy-dom or browsers that lack support — ignore.
+		}
+	}
+
+	function handleFramePointerMove(event: PointerEvent, id: string) {
+		if (frameDraggingId !== id || event.pointerId !== frameDraggingPointerId) return;
+		if (Math.abs(event.clientX - frameDragStartX) > FRAME_DRAG_THRESHOLD_PX) {
+			shouldSuppressNextFrameClick = true;
+		}
+		frameDragOffsetX = clampFrameDragOffsetX(event.clientX);
+		frameDragTargetIndex = computeFrameTargetIndex(event.clientX);
+		event.preventDefault();
+	}
+
+	function handleFramePointerUp(event: PointerEvent, id: string) {
+		if (frameDraggingId !== id || event.pointerId !== frameDraggingPointerId) return;
+		const target = computeFrameTargetIndex(event.clientX);
+		const base = frameDragBaseIndex;
+		const wasDrag = shouldSuppressNextFrameClick;
+		resetFrameDrag();
+		releaseCapture(event.currentTarget as Element, event.pointerId);
+		if (wasDrag && target !== base) {
+			onReorderFrame(id, target);
+		}
+	}
+
+	function handleFramePointerCancel(event: PointerEvent, id: string) {
+		if (frameDraggingId !== id || event.pointerId !== frameDraggingPointerId) return;
+		resetFrameDrag();
+		releaseCapture(event.currentTarget as Element, event.pointerId);
+	}
+
+	function handleFrameSelectClick(id: string) {
+		// Swallow the click that trails a completed drag; otherwise select.
+		if (shouldSuppressNextFrameClick) {
+			shouldSuppressNextFrameClick = false;
+			return;
+		}
+		onSelectFrame(id);
+	}
 </script>
 
 <section
@@ -265,6 +398,44 @@
 					})
 				: m.layer_panel_title()}
 		</span>
+		<!-- Header-right frame-action group, acting on the active frame (187 spec §3).
+		     The `Frames` label mirrors the left `Layers` label, disambiguating the two
+		     `+` buttons (left adds a layer, right adds a frame). Hidden when collapsed,
+		     like the left add actions, so the strip stays read-only. -->
+		{#if !collapsed}
+			<span class="frames-label" data-frames-label>{m.timeline_frames_label()}</span>
+			<button
+				type="button"
+				class="add-btn"
+				data-add-frame
+				aria-label={m.aria_addFrame()}
+				onclick={onAddFrame}
+			>
+				+
+			</button>
+			<button
+				type="button"
+				class="add-btn"
+				data-duplicate-frame
+				aria-label={m.aria_duplicateFrame()}
+				onclick={onDuplicateFrame}
+			>
+				<Copy size={14} strokeWidth={1.75} aria-hidden="true" />
+			</button>
+			<!-- Delete targets the active frame; disabled at one frame so the Document
+			     is never left frameless (the core rejects it too — this just hides the
+			     dead affordance). -->
+			<button
+				type="button"
+				class="add-btn"
+				data-remove-frame
+				aria-label={m.aria_removeFrame()}
+				disabled={frames.length === 1}
+				onclick={() => onRemoveFrame(activeFrameId)}
+			>
+				<Trash2 size={14} strokeWidth={1.75} aria-hidden="true" />
+			</button>
+		{/if}
 		<button
 			type="button"
 			class="collapse-toggle"
@@ -433,15 +604,30 @@
 					<div class="frame-ruler">
 						{#each frames as frameCol, frameIndex (frameCol.id)}
 							{@const isActiveFrame = frameCol.id === activeFrameId}
+							{@const cellDragX = frameDragTranslateX(frameCol.id, frameIndex)}
+							{@const isDraggingFrame = frameDraggingId === frameCol.id}
+							{@const isFrameDragTarget =
+								frameDragTargetIndex !== null &&
+								frameDragTargetIndex !== frameDragBaseIndex &&
+								frameDragTargetIndex === frameIndex}
 							<button
 								type="button"
 								class="frame-ruler-cell"
 								class:frame-ruler-cell--active={isActiveFrame}
+								class:frame-ruler-cell--dragging={isDraggingFrame}
+								class:frame-ruler-cell--drag-shifted={cellDragX !== 0 && !isDraggingFrame}
+								style={frameDragStyle(cellDragX)}
 								data-frame-ruler-cell
 								data-frame-id={frameCol.id}
+								data-frame-dragging={isDraggingFrame ? 'true' : undefined}
+								data-frame-drag-target={isFrameDragTarget ? 'true' : undefined}
 								aria-current={isActiveFrame ? 'true' : undefined}
 								aria-label={m.aria_selectFrame({ n: frameIndex + 1 })}
-								onclick={() => onSelectFrame(frameCol.id)}
+								onclick={() => handleFrameSelectClick(frameCol.id)}
+								onpointerdown={(e) => handleFramePointerDown(e, frameCol.id, frameIndex)}
+								onpointermove={(e) => handleFramePointerMove(e, frameCol.id)}
+								onpointerup={(e) => handleFramePointerUp(e, frameCol.id)}
+								onpointercancel={(e) => handleFramePointerCancel(e, frameCol.id)}
 							>
 								{frameIndex + 1}
 							</button>
@@ -556,6 +742,19 @@
 		font-size: var(--ds-font-size-md);
 		font-weight: 600;
 		color: var(--ds-text-primary);
+		/* Absorbs the free space between the left `Layers` group and the right
+		   `Frames` group, pushing the frame actions (and collapse chevron) to the
+		   far edge. Also drives the collapsed summary's chevron to the right. */
+		margin-right: auto;
+	}
+
+	/* Prefixes the header-right frame-action group. Mirrors `.header-label`'s
+	   weight/color (only labels are text-primary; action icons stay secondary) but
+	   carries no auto margin — the left label already claimed the free space. */
+	.frames-label {
+		font-size: var(--ds-font-size-md);
+		font-weight: 600;
+		color: var(--ds-text-primary);
 	}
 
 	.add-btn {
@@ -601,7 +800,6 @@
 		justify-content: center;
 		width: 24px;
 		height: 24px;
-		margin-left: auto;
 		padding: 0;
 		border: none;
 		background: none;
@@ -712,6 +910,13 @@
 		font-weight: 500;
 		line-height: 1;
 		cursor: pointer;
+		/* The cell is a drag-reorder target; --frame-drag-x animates the preview
+		   shift. position + touch-action let the dragged cell stack above its
+		   neighbours and claim the touch gesture instead of scrolling the ruler. */
+		position: relative;
+		transform: translateX(var(--frame-drag-x, 0));
+		transition: transform 120ms ease;
+		touch-action: none;
 	}
 
 	.frame-ruler-cell:hover {
@@ -732,6 +937,17 @@
 		border-top-color: var(--ds-accent);
 		color: var(--ds-accent-text);
 		font-weight: 700;
+	}
+
+	.frame-ruler-cell--dragging {
+		z-index: 2;
+		cursor: grabbing;
+		background: var(--ds-bg-active);
+		transition: none;
+	}
+
+	.frame-ruler-cell--drag-shifted {
+		z-index: 1;
 	}
 
 	.frame-body {
@@ -1017,7 +1233,8 @@
 
 	@media (prefers-reduced-motion: reduce) {
 		.row,
-		.frame-row {
+		.frame-row,
+		.frame-ruler-cell {
 			transition: none;
 		}
 

@@ -158,6 +158,7 @@
 
 	"layer_default_name": "Layer {n}",
 	"layer_panel_title": "Layers",
+	"timeline_frames_label": "Frames",
 	"layer_panel_collapsed_label": "Layers · {name}",
 	"timeline_collapsed_summary": "Layers · {layer} · Frame {frame} / {total}",
 	"timeline_reference_span_caption": "underlay — same under every frame",
@@ -177,6 +178,9 @@
 	"aria_fitReferenceLayerToCanvas": "Fit {name} to canvas",
 	"aria_removeLayer": "Delete {name}",
 	"aria_reorderLayer": "Reorder {name}",
+	"aria_addFrame": "Add frame",
+	"aria_duplicateFrame": "Duplicate frame",
+	"aria_removeFrame": "Delete frame",
 	"aria_hideLayer": "Hide {name}",
 	"aria_showLayer": "Show {name}",
 	"aria_collapseTimelinePanel": "Collapse layers panel",

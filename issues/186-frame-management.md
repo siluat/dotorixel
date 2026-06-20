@@ -1,6 +1,6 @@
 ---
 title: "Frame management (add/delete/duplicate/reorder) — M4 entry"
-status: ready-for-agent
+status: done
 created: 2026-06-16
 ---
 

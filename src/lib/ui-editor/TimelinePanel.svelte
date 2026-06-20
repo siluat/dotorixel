@@ -342,12 +342,13 @@
 		releaseCapture(event.currentTarget as Element, event.pointerId);
 	}
 
-	function handleFrameSelectClick(id: string) {
-		// Swallow the click that trails a completed drag; otherwise select.
-		if (shouldSuppressNextFrameClick) {
-			shouldSuppressNextFrameClick = false;
-			return;
-		}
+	function handleFrameSelectClick(event: MouseEvent, id: string) {
+		// A completed drag arms the suppress flag; swallow only the *pointer* click
+		// that trails it (detail > 0). Keyboard activation (Enter/Space emits a click
+		// with detail 0) must always select, so a stale flag can never block it.
+		const suppress = shouldSuppressNextFrameClick && event.detail > 0;
+		shouldSuppressNextFrameClick = false;
+		if (suppress) return;
 		onSelectFrame(id);
 	}
 </script>
@@ -623,7 +624,7 @@
 								data-frame-drag-target={isFrameDragTarget ? 'true' : undefined}
 								aria-current={isActiveFrame ? 'true' : undefined}
 								aria-label={m.aria_selectFrame({ n: frameIndex + 1 })}
-								onclick={() => handleFrameSelectClick(frameCol.id)}
+								onclick={(e) => handleFrameSelectClick(e, frameCol.id)}
 								onpointerdown={(e) => handleFramePointerDown(e, frameCol.id, frameIndex)}
 								onpointermove={(e) => handleFramePointerMove(e, frameCol.id)}
 								onpointerup={(e) => handleFramePointerUp(e, frameCol.id)}

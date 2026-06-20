@@ -425,8 +425,9 @@ function hydrateFrames(
 ): void {
 	const builtFirstFrameId = document.active_frame_id();
 
-	// Each add_frame inserts after the active frame, so adding in order yields
-	// [builtFirst, frames[1], frames[2], …].
+	// `Document.add_frame` inserts after the active frame AND makes the new frame
+	// active (canvas-model.ts contract), so adding in sequence appends each frame
+	// after the previous one — yielding [builtFirst, frames[1], frames[2], …].
 	for (let i = 1; i < frames.length; i++) {
 		document.add_frame(frames[i].id);
 	}

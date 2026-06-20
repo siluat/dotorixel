@@ -1437,12 +1437,44 @@ describe('TimelinePanel', () => {
 			await fireEvent.pointerDown(f1, { clientX: 0, pointerId: 1 });
 			await fireEvent.pointerMove(f1, { clientX: 64, pointerId: 1 });
 			await fireEvent.pointerUp(f1, { clientX: 64, pointerId: 1 });
-			// A real browser emits a click after this sequence; reordering must not
-			// also re-select the dragged frame.
-			await fireEvent.click(f1);
+			// The browser emits a *pointer* click (detail > 0) after this sequence;
+			// reordering must not also re-select the dragged frame.
+			await fireEvent.click(f1, { detail: 1 });
 
 			expect(onReorderFrame).toHaveBeenCalledWith('f1', 2);
 			expect(onSelectFrame).not.toHaveBeenCalled();
+		});
+
+		it('keyboard-activates a frame even when a prior drag left the suppress flag armed', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1'), frame('f2'), frame('f3')];
+			const onSelectFrame = vi.fn();
+			const onReorderFrame = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f1',
+					onSelectFrame,
+					onReorderFrame
+				}
+			});
+
+			const f1 = rulerCell(container, 'f1');
+			const f2 = rulerCell(container, 'f2');
+			// A real drag whose trailing pointer-click the browser suppressed leaves
+			// the flag armed — no pointerdown on another cell follows to clear it.
+			await fireEvent.pointerDown(f1, { clientX: 0, pointerId: 1 });
+			await fireEvent.pointerMove(f1, { clientX: 64, pointerId: 1 });
+			await fireEvent.pointerUp(f1, { clientX: 64, pointerId: 1 });
+			expect(onReorderFrame).toHaveBeenCalledTimes(1);
+
+			// Keyboard activation (Enter/Space) emits a click with detail 0; it must
+			// select regardless of the stale flag.
+			await fireEvent.click(f2, { detail: 0 });
+			expect(onSelectFrame).toHaveBeenCalledWith('f2');
 		});
 
 		it('still selects the frame on a tap (pointer down/up without movement)', async () => {

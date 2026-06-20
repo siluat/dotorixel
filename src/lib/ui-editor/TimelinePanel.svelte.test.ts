@@ -15,9 +15,13 @@ const noopReorderLayer = (_id: string, _newVisualIndex: number) => {};
 const noopToggleLayerVisibility = (_id: string, _visible: boolean) => {};
 const noopToggleCollapsed = () => {};
 const noopFitReferenceLayerToCanvas = (_id: string) => {};
+const noopSelectFrame = (_id: string) => {};
+const noopSelectCel = (_layerId: string, _frameId: string) => {};
 
 const defaultProps = {
 	collapsed: false,
+	frames: [{ id: 'f1', occupiedLayerIds: new Set<string>() }],
+	activeFrameId: 'f1',
 	onAddLayer: noopAddLayer,
 	onAddReferenceLayer: noopAddReferenceLayer,
 	onActivateLayer: noopActivateLayer,
@@ -25,7 +29,9 @@ const defaultProps = {
 	onReorderLayer: noopReorderLayer,
 	onToggleLayerVisibility: noopToggleLayerVisibility,
 	onToggleCollapsed: noopToggleCollapsed,
-	onFitReferenceLayerToCanvas: noopFitReferenceLayerToCanvas
+	onFitReferenceLayerToCanvas: noopFitReferenceLayerToCanvas,
+	onSelectFrame: noopSelectFrame,
+	onSelectCel: noopSelectCel
 };
 
 function pixelLayer(id: string, name: string, opts: { visible?: boolean } = {}) {
@@ -34,6 +40,10 @@ function pixelLayer(id: string, name: string, opts: { visible?: boolean } = {}) 
 
 function referenceLayer(id: string, name: string, opts: { visible?: boolean } = {}) {
 	return { id, name, kind: 'reference' as const, ...opts };
+}
+
+function frame(id: string, occupied: ReadonlyArray<string> = []) {
+	return { id, occupiedLayerIds: new Set(occupied) };
 }
 
 describe('TimelinePanel', () => {
@@ -965,6 +975,18 @@ describe('TimelinePanel', () => {
 		expect(rows.length).toBe(0);
 	});
 
+	it('hides the add-layer and add-reference actions when collapsed (read-only strip)', () => {
+		const layers = [pixelLayer('a', 'Layer 1')];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, collapsed: true }
+		});
+
+		expect(container.querySelector('[data-add-layer]')).toBeNull();
+		expect(container.querySelector('[data-add-reference-layer]')).toBeNull();
+		// The collapse chevron stays so the strip can be expanded again.
+		expect(container.querySelector('[data-collapse-toggle]')).not.toBeNull();
+	});
+
 	it('switches the collapse toggle aria-label between Collapse and Expand by prop', () => {
 		const layers = [pixelLayer('a', 'Layer 1')];
 		const { container: expandedContainer } = render(TimelinePanel, {
@@ -1027,5 +1049,192 @@ describe('TimelinePanel', () => {
 		await fireEvent.keyDown(rowB, { key: ' ' });
 		expect(onActivateLayer).toHaveBeenCalledWith('b');
 		expect(onActivateLayer).toHaveBeenCalledTimes(1);
+	});
+
+	it('renders one ruler column per frame with 1-based ordinals', () => {
+		const layers = [pixelLayer('a', 'Layer 1')];
+		const frames = [frame('f1'), frame('f2'), frame('f3')];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, frames, activeFrameId: 'f1' }
+		});
+
+		const cells = container.querySelectorAll('[data-frame-ruler-cell]');
+		expect(cells.length).toBe(3);
+		expect(Array.from(cells).map((c) => c.textContent?.trim())).toEqual(['1', '2', '3']);
+	});
+
+	it('renders a dot for a content-bearing cel and leaves an empty cel blank', () => {
+		const layers = [pixelLayer('a', 'Layer 1'), pixelLayer('b', 'Layer 2')];
+		const frames = [frame('f1', ['a']), frame('f2')];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, frames, activeFrameId: 'f1' }
+		});
+
+		const cell = (layerId: string, frameId: string) =>
+			container.querySelector(
+				`[data-frame-cell][data-layer-id="${layerId}"][data-frame-id="${frameId}"]`
+			);
+
+		// Layer a is occupied in f1 → dot; empty in f2 → blank. Layer b is empty in f1.
+		expect(cell('a', 'f1')?.querySelector('[data-cel-dot]')).not.toBeNull();
+		expect(cell('a', 'f2')?.querySelector('[data-cel-dot]')).toBeNull();
+		expect(cell('b', 'f1')?.querySelector('[data-cel-dot]')).toBeNull();
+	});
+
+	it('renders the Reference Layer as a single continuous spanning bar, not per-frame cells', () => {
+		const layers = [pixelLayer('a', 'Layer 1'), referenceLayer('ref', 'Sketch reference')];
+		const frames = [frame('f1'), frame('f2'), frame('f3')];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, frames, activeFrameId: 'f1' }
+		});
+
+		// One spanning bar for the Reference row...
+		const bars = container.querySelectorAll('[data-frame-reference-span]');
+		expect(bars.length).toBe(1);
+		// ...and no discrete per-frame cells for the Reference Layer.
+		expect(container.querySelectorAll('[data-frame-cell][data-layer-id="ref"]').length).toBe(0);
+		// Pixel rows still render their per-frame cells.
+		expect(container.querySelectorAll('[data-frame-cell][data-layer-id="a"]').length).toBe(3);
+	});
+
+	it('highlights the active frame column (aria-current + active marker) and the active cel', () => {
+		const layers = [pixelLayer('a', 'Layer 1'), pixelLayer('b', 'Layer 2')];
+		const frames = [frame('f1'), frame('f2')];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, frames, activeFrameId: 'f2' }
+		});
+
+		const ruler = (frameId: string) =>
+			container.querySelector(`[data-frame-ruler-cell][data-frame-id="${frameId}"]`);
+		const cell = (layerId: string, frameId: string) =>
+			container.querySelector(
+				`[data-frame-cell][data-layer-id="${layerId}"][data-frame-id="${frameId}"]`
+			);
+
+		// Channel 1+2 anchor: the active ruler cell announces itself to assistive tech.
+		expect(ruler('f2')?.getAttribute('aria-current')).toBe('true');
+		expect(ruler('f1')?.hasAttribute('aria-current')).toBe(false);
+
+		// The whole active column is marked; inactive columns are not.
+		expect(cell('a', 'f2')?.getAttribute('data-frame-active')).toBe('true');
+		expect(cell('b', 'f2')?.getAttribute('data-frame-active')).toBe('true');
+		expect(cell('a', 'f1')?.hasAttribute('data-frame-active')).toBe(false);
+
+		// The active cel = active layer (a) ∩ active frame (f2) gets combined emphasis.
+		expect(cell('a', 'f2')?.getAttribute('data-cel-active')).toBe('true');
+		expect(cell('b', 'f2')?.hasAttribute('data-cel-active')).toBe(false);
+	});
+
+	it('clicking a ruler ordinal selects the frame only — never a cel', async () => {
+		const layers = [pixelLayer('a', 'Layer 1')];
+		const frames = [frame('f1'), frame('f2')];
+		const onSelectFrame = vi.fn();
+		const onSelectCel = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: {
+				layers,
+				activeLayerId: 'a',
+				...defaultProps,
+				frames,
+				activeFrameId: 'f1',
+				onSelectFrame,
+				onSelectCel
+			}
+		});
+
+		const rulerF2 = container.querySelector(
+			'[data-frame-ruler-cell][data-frame-id="f2"]'
+		) as HTMLElement;
+		await fireEvent.click(rulerF2);
+
+		expect(onSelectFrame).toHaveBeenCalledWith('f2');
+		expect(onSelectFrame).toHaveBeenCalledTimes(1);
+		expect(onSelectCel).not.toHaveBeenCalled();
+	});
+
+	it('clicking a grid cell selects both the layer and the frame of that cel', async () => {
+		const layers = [pixelLayer('a', 'Layer 1'), pixelLayer('b', 'Layer 2')];
+		const frames = [frame('f1'), frame('f2')];
+		const onSelectFrame = vi.fn();
+		const onSelectCel = vi.fn();
+		const { container } = render(TimelinePanel, {
+			props: {
+				layers,
+				activeLayerId: 'a',
+				...defaultProps,
+				frames,
+				activeFrameId: 'f1',
+				onSelectFrame,
+				onSelectCel
+			}
+		});
+
+		const cellB2 = container.querySelector(
+			'[data-frame-cell][data-layer-id="b"][data-frame-id="f2"]'
+		) as HTMLElement;
+		await fireEvent.click(cellB2);
+
+		expect(onSelectCel).toHaveBeenCalledWith('b', 'f2');
+		expect(onSelectCel).toHaveBeenCalledTimes(1);
+	});
+
+	it('shows the active layer and "Frame n/N" in the collapsed summary', () => {
+		const layers = [pixelLayer('a', 'Sky'), pixelLayer('b', 'Mountains')];
+		const frames = [frame('f1'), frame('f2'), frame('f3')];
+		const { container } = render(TimelinePanel, {
+			props: {
+				layers,
+				activeLayerId: 'b',
+				...defaultProps,
+				collapsed: true,
+				frames,
+				activeFrameId: 'f2'
+			}
+		});
+
+		const header = container.querySelector('.timeline-panel .header') as HTMLElement;
+		expect(header.textContent).toContain('Mountains');
+		// Active frame f2 is the 2nd of 3 frames (187 spec format: "Frame n / N").
+		expect(header.textContent).toContain('2 / 3');
+	});
+
+	it('captions the Reference spanning bar as the underlay shared across frames', () => {
+		const layers = [pixelLayer('a', 'Layer 1'), referenceLayer('ref', 'Sketch reference')];
+		const frames = [frame('f1'), frame('f2')];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, frames, activeFrameId: 'f1' }
+		});
+
+		const bar = container.querySelector('[data-frame-reference-span]') as HTMLElement;
+		expect(bar.textContent).toContain('underlay — same under every frame');
+	});
+
+	it('gives ruler ordinal and grid cell buttons descriptive accessible names', () => {
+		const layers = [pixelLayer('a', 'Sky')];
+		const frames = [frame('f1'), frame('f2')];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'a', ...defaultProps, frames, activeFrameId: 'f1' }
+		});
+
+		const ruler2 = container.querySelector('[data-frame-ruler-cell][data-frame-id="f2"]');
+		expect(ruler2?.getAttribute('aria-label')).toBe('Select frame 2');
+
+		const cell = container.querySelector(
+			'[data-frame-cell][data-layer-id="a"][data-frame-id="f2"]'
+		);
+		expect(cell?.getAttribute('aria-label')).toBe('Select Sky, frame 2');
+	});
+
+	it('tints the active layer row across the frame grid, not only the sidebar', () => {
+		const layers = [pixelLayer('a', 'Layer 1'), pixelLayer('b', 'Layer 2')];
+		const frames = [frame('f1')];
+		const { container } = render(TimelinePanel, {
+			props: { layers, activeLayerId: 'b', ...defaultProps, frames, activeFrameId: 'f1' }
+		});
+
+		const gridRow = (id: string) =>
+			container.querySelector(`[data-frame-row][data-layer-id="${id}"]`);
+		expect(gridRow('b')?.classList.contains('frame-row--active-layer')).toBe(true);
+		expect(gridRow('a')?.classList.contains('frame-row--active-layer')).toBe(false);
 	});
 });

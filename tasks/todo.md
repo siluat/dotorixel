@@ -3,8 +3,7 @@
 ## Milestone 4: Animation-Capable Editor
 
 - Frame management (add/delete/duplicate/reorder) — [PRD](../issues/186-frame-management.md)
-  - [191 — Frame ruler shell + selection (TimelinePanel)](../issues/191-frame-ruler-shell.md)
-  - [192 — Frame operations UI — add / duplicate / delete / reorder](../issues/192-frame-operations-ui.md) — blocked by 191
+  - [192 — Frame operations UI — add / duplicate / delete / reorder](../issues/192-frame-operations-ui.md)
 - Per-frame speed control
 - Timeline UI
 - Onion skinning
@@ -54,6 +53,7 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 - Document rename — allow renaming documents from tab and saved work browser
 - Canvas resize via border drag — drag canvas edges to change canvas dimensions
 - Timelapse recording — capture drawing process for playback/export
+- TimelinePanel mobile touch targets — the header/row icon buttons (add-layer, add-reference, visibility, remove, reorder, fit-to-canvas) stay 24px on compact/medium, below the ≥44px touch guideline (`web-styling.md`) and the 187 spec §5 ("header actions ≥44px"). Pre-existing controls untouched by 191; enlarge to ≥44px on the mobile Timeline tab and coordinate with the 192 Frames action group.
 
 ## Future triggers
 

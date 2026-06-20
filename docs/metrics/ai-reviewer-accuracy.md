@@ -6,14 +6,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 159 | 123 | 36 | 157 | 77% | 44% |
-| cubic-dev-ai[bot] | 120 | 96 | 24 | 181 | 80% | 35% |
-| coderabbitai[bot] | 218 | 153 | 65 | 121 | 70% | 56% |
+| greptile-apps[bot] | 160 | 124 | 36 | 157 | 78% | 44% |
+| cubic-dev-ai[bot] | 123 | 96 | 27 | 182 | 78% | 35% |
+| coderabbitai[bot] | 218 | 153 | 65 | 122 | 70% | 56% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #286 | greptile-apps[bot] | Accept | activeFrameOrdinal's `Math.max(0, …)` fallback made an absent activeFrameId read as "Frame 1/N"; dropped it so a not-found frame shows "Frame 0/N" (out-of-range signal), mirroring activeLayerName's explicit not-found handling |
+| #286 | cubic-dev-ai[bot] | Reject | Claimed full cel-buffer occupancy scans are a hot-path perf risk; deliberate web-side read behind the documented cel_is_empty seam, single-frame runtime until 192, projection cached per renderVersion |
+| #286 | cubic-dev-ai[bot] | Reject | Claimed frameProjection's renderVersion cache can return stale data; every frame mutation (add/duplicate/remove/reorder/set-active) + occupancy-changing draw invalidates render → bumps renderVersion, same contract as layerProjection |
+| #286 | cubic-dev-ai[bot] | Reject | Wanted an onSelectFrame assertion in the cell-click test; a cell fires onSelectCel only (one callback carrying both axes), so asserting onSelectFrame would assert a call that never happens and fail |
+| #286 | cubic-dev-ai[bot] | Miss | Did not flag the activeFrameOrdinal not-found fallback |
+| #286 | coderabbitai[bot] | Miss | Did not flag the activeFrameOrdinal not-found fallback |
 | #285 | greptile-apps[bot] | Accept | oldVersion<6 upgrade's migrateV5ToV6 was unprotected — a malformed V5 record (e.g. HMR-autosaved schemaVersion-5-with-cels) aborts the whole upgrade transaction and fails SessionStorage.open(); wrapped per-record migration in try/catch |
 | #285 | cubic-dev-ai[bot] | Accept | Same unprotected oldVersion<6 upgrade migration (duplicate) — one corrupt V5 record bricks DB open |
 | #285 | cubic-dev-ai[bot] | Accept | V5→V6 DB upgrade called migrateV5ToV6 directly, bypassing the read-path's migrateV4ToV5 Reference re-normalization; routed the upgrade through migrateV4ToV5 too |

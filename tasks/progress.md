@@ -2,11 +2,11 @@
 
 ## Currently Working On
 
-Frame management (add/delete/duplicate/reorder) — M4 entry ([PRD](../issues/186-frame-management.md)). Core [188](../issues/188-frame-cel-grid-core.md) + WASM/journal [189](../issues/189-frame-wasm-journal-intents.md) shipped (2/5 slices). Next runnable: [190 — Document schema V6](../issues/190-document-schema-v6-frames.md) (still parallel-safe); then [191 — ruler shell](../issues/191-frame-ruler-shell.md) (now waits only on 190) → [192 — operations UI](../issues/192-frame-operations-ui.md).
+Frame management (add/delete/duplicate/reorder) — M4 entry ([PRD](../issues/186-frame-management.md)). Core [188](../issues/188-frame-cel-grid-core.md), WASM/journal [189](../issues/189-frame-wasm-journal-intents.md), and persistence V6 [190](../issues/190-document-schema-v6-frames.md) shipped (3/5 slices). Next runnable: [191 — frame ruler shell](../issues/191-frame-ruler-shell.md) (unblocked by 190) → [192 — operations UI](../issues/192-frame-operations-ui.md).
 
 ## Last Completed
 
-[189 — Frame WASM binding + Change Journal intents](../issues/189-frame-wasm-journal-intents.md): exposed the frame model to the web shell via the WASM `Document` binding and routed 4 undoable + 1 persisted (`set-active-frame`) frame intents through the Change Journal. Undo/redo restores frame structure + per-cel pixels via the existing whole-`Document` snapshot. No persistence (190) or UI (191) yet.
+[190 — Document schema V6 — frames + per-cel persistence](../issues/190-document-schema-v6-frames.md): bumped web persistence to V6 (`frames` + `activeFrameId`, per-cel `cels`) with a lossless V5→V6 migration. The snapshot has no frame axis yet, so live save/restore synthesizes/collapses a single frame — multi-frame capacity is proven at the record level only; the seam to flow real frames through the snapshot opens with the UI slice (191/192).
 
 ## Next Up
 

@@ -105,7 +105,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Tab management (Workspace) | — | ✅ | ⬜ | Workspace model, page wiring, TabStrip UI complete |
-| Session persistence | — | ✅ | ⬜ | Multi-tab IndexedDB restore, debounced auto-save, saved-doc retention, and V5 Document persistence with layers, Reference source blobs, and Marquee |
+| Session persistence | — | ✅ | ⬜ | Multi-tab IndexedDB restore, debounced auto-save, retention; V6 Document persistence (layers, per-frame Cels, Reference blobs, Marquee) with lossless V1→V6 migration. Live path single-frame until the snapshot carries frames; one unreadable record is skipped, not fatal |
 | Save dialog on tab close | — | ✅ | ⬜ | Blank canvas detection, save/delete/cancel modal, focus trap, keyboard accessible |
 | Saved work browser (desktop) | — | ✅ | ⬜ | Browse/open/delete; opens full Document snapshots while cards use composite thumbnails |
 | Saved work browser (mobile) | — | ✅ | — | Bottom sheet; opens full Document snapshots while cards use composite thumbnails |
@@ -115,7 +115,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Document/Layer model | 🔧 | 🔧 | ⬜ | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple remains single-canvas |
-| Frame cel-grid | ✅ | 🔧 | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: WASM binding + undoable add/duplicate/remove/reorder & persisted set-active journal intents (undo restores frame+cel). Persistence (V6) and UI pending |
+| Frame cel-grid | ✅ | 🔧 | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: WASM binding + undoable add/duplicate/remove/reorder & persisted set-active journal intents (undo restores frame+cel); V6 persistence shipped (single-frame live path). Ruler UI pending |
 | Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and rotation-aware source sampling. Turns with a whole-document rotate (quarter-turn). Placement invariant (finite pos, scale > 0, quarter-turn 0..=3) enforced by the core constructor |
 | Timeline panel | — | 🔧 | ⬜ | Top-z first; activate/remove/reorder/visibility are undoable. Reorder drag previews displaced rows; desktop collapse is per-document. Frame column is M4 placeholder |
 

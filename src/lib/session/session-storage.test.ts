@@ -628,6 +628,83 @@ describe('SessionStorage', () => {
 			expect(stored!.layers[0].cels[0].frameId).toBe(stored!.activeFrameId);
 			expect(stored!.layers[0].cels[0].pixels).toEqual(v5Pixels);
 		});
+
+		it('survives an unmigratable V5 record and still upgrades the valid ones', async () => {
+			storage.close();
+			await new Promise<void>((resolve, reject) => {
+				const request = indexedDB.deleteDatabase('dotorixel');
+				request.onsuccess = () => resolve();
+				request.onerror = () => reject(request.error);
+			});
+
+			const validId = crypto.randomUUID();
+			const validPixels = new Uint8Array([1, 2, 3, 255]);
+			const v5Db = await openDB('dotorixel', 5, {
+				upgrade(db) {
+					const store = db.createObjectStore('documents', { keyPath: 'id' });
+					store.createIndex('updatedAt', 'updatedAt');
+					db.createObjectStore('workspace', { keyPath: 'id' });
+				}
+			});
+			await v5Db.put('documents', {
+				schemaVersion: 5,
+				id: validId,
+				name: 'Valid V5',
+				width: 1,
+				height: 1,
+				marquee: null,
+				layers: [
+					{ kind: 'pixel', id: 'valid-layer', name: 'Layer 1', pixels: validPixels, visible: true, opacity: 1 }
+				],
+				activeLayerId: 'valid-layer',
+				nextLayerNumber: 2,
+				timelinePanelCollapsed: false,
+				saved: true,
+				createdAt: new Date('2026-06-01'),
+				updatedAt: new Date('2026-06-02')
+			});
+			// A malformed V5 record (cel-shaped layers) that migrateV5ToV6 cannot migrate.
+			await v5Db.put('documents', {
+				schemaVersion: 5,
+				id: 'malformed',
+				name: 'Malformed',
+				width: 1,
+				height: 1,
+				marquee: null,
+				layers: [
+					{
+						kind: 'pixel',
+						id: 'malformed-layer',
+						name: 'Layer 1',
+						cels: [{ frameId: 'orphan-frame', pixels: new Uint8Array([0, 0, 0, 255]) }],
+						visible: true,
+						opacity: 1
+					}
+				],
+				activeLayerId: 'malformed-layer',
+				nextLayerNumber: 2,
+				timelinePanelCollapsed: false,
+				saved: true,
+				createdAt: new Date('2026-06-01'),
+				updatedAt: new Date('2026-06-02')
+			});
+			v5Db.close();
+
+			// The upgrade must not abort — open succeeds despite the malformed record.
+			storage = await SessionStorage.open();
+			storage.close();
+
+			const rawDb = await openDB('dotorixel', 6);
+			const validStored = await rawDb.get('documents', validId);
+			const malformedStored = await rawDb.get('documents', 'malformed');
+			rawDb.close();
+
+			// Valid record migrated to V6; the unmigratable one is left untouched, not fatal.
+			expect(validStored!.schemaVersion).toBe(6);
+			expect(validStored!.frames).toHaveLength(1);
+			expect(validStored!.layers[0].cels[0].pixels).toEqual(validPixels);
+			expect(malformedStored!.schemaVersion).toBe(5);
+		});
 	});
 
 	describe('getAllSavedDocuments', () => {

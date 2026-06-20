@@ -231,6 +231,10 @@ describe('migrateV5ToV6', () => {
 			expect(layer.cels[0].pixels).toEqual(
 				(v5.layers[index] as PixelLayerRecord).pixels
 			);
+			// Copy, not alias — a Cel must not share the V5 layer's buffer.
+			expect(layer.cels[0].pixels).not.toBe(
+				(v5.layers[index] as PixelLayerRecord).pixels
+			);
 		});
 	});
 

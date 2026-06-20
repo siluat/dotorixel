@@ -113,7 +113,14 @@ export class SessionStorage {
 					while (cursor) {
 						const doc = cursor.value;
 						if ('schemaVersion' in doc && doc.schemaVersion === 5) {
-							await cursor.update(migrateV5ToV6(doc));
+							try {
+								// Route through migrateV4ToV5 to re-normalize legacy Reference
+								// order, matching the read-path dispatch. One unmigratable record
+								// must not abort the whole upgrade — that would fail the DB open.
+								await cursor.update(migrateV5ToV6(migrateV4ToV5(doc)));
+							} catch (error) {
+								console.warn(`Skipping unmigratable V5 document ${doc.id}`, error);
+							}
 						}
 						cursor = await cursor.continue();
 					}

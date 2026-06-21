@@ -3290,4 +3290,42 @@ describe('TabState — frame axis', () => {
 		expect(celPixel(tab, frameB, 1, 1).a).toBe(0); // source pixel cleared
 		expect(celPixel(tab, frameA, 2, 2).a).toBe(0); // frame A untouched by the commit
 	});
+
+	it('setFrameDuration retimes the target frame and round-trips through frames_metadata', () => {
+		const { tab } = makeTab();
+		const frameA = tab.document.active_frame_id();
+
+		tab.setFrameDuration(frameA, 250);
+
+		expect(tab.document.frames_metadata()[0].duration_ms).toBe(250);
+	});
+
+	it('setFrameDuration is undoable: undo restores the prior duration, redo re-applies', () => {
+		const { tab } = makeTab();
+		const frameA = tab.document.active_frame_id();
+		const original = tab.document.frames_metadata()[0].duration_ms; // core default
+
+		tab.setFrameDuration(frameA, 500);
+		expect(tab.document.frames_metadata()[0].duration_ms).toBe(500);
+
+		tab.undo();
+		expect(tab.document.frames_metadata()[0].duration_ms).toBe(original);
+
+		tab.redo();
+		expect(tab.document.frames_metadata()[0].duration_ms).toBe(500);
+	});
+
+	it('setFrameDuration is a no-op when the duration is unchanged: no snapshot, no dirty', () => {
+		const { tab, notifier } = makeTab();
+		const frameA = tab.document.active_frame_id();
+		const current = tab.document.frames_metadata()[0].duration_ms;
+
+		notifier.reset();
+		const renderBefore = tab.renderVersion;
+		tab.setFrameDuration(frameA, current); // identical value
+
+		expect(tab.canUndo).toBe(false);
+		expect(tab.renderVersion).toBe(renderBefore);
+		expect(notifier.dirtyCalls).toEqual([]);
+	});
 });

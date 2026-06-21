@@ -1091,6 +1091,63 @@ describe('DocumentChangeJournal', () => {
 		expect(events).toEqual([]);
 	});
 
+	it('applies an undoable set-frame-duration change: snapshot, render + dirty (no reclamp)', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			frames_metadata: () => [{ id: 'frame-1', duration_ms: 100 }],
+			set_frame_duration: (id: string, durationMs: number) =>
+				events.push(`set-frame-duration:${id}:${durationMs}`)
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'set-frame-duration', id: 'frame-1', durationMs: 250 }
+		});
+
+		expect(result).toEqual({ changed: true });
+		// No 'reclamp': retiming a frame changes neither dimensions nor the active layer.
+		expect(events).toEqual(['snapshot', 'set-frame-duration:frame-1:250', 'render', 'dirty']);
+	});
+
+	it('skips set-frame-duration when the frame already has the requested duration', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			frames_metadata: () => [{ id: 'frame-1', duration_ms: 250 }]
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'set-frame-duration', id: 'frame-1', durationMs: 250 }
+		});
+
+		expect(result).toEqual({ changed: false });
+		expect(events).toEqual([]);
+	});
+
+	it('throws set-frame-duration for a frame id that is not on the axis', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			frames_metadata: () => [{ id: 'frame-1', duration_ms: 100 }]
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		expect(() =>
+			journal.commit({
+				kind: 'undoable-document',
+				intent: { type: 'set-frame-duration', id: 'absent', durationMs: 250 }
+			})
+		).toThrow('Frame with id absent not found');
+		expect(events).toEqual([]);
+	});
+
 	it('applies set-active-frame without an undo snapshot (persisted, not undoable, no reclamp)', () => {
 		const events: string[] = [];
 		const document = {

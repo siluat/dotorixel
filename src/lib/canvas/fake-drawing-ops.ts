@@ -254,7 +254,7 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 		layer_source_pixels_at: () => undefined,
 		active_frame_id: () => 'frame',
 		frame_count: () => 1,
-		frames_metadata: () => [{ id: 'frame' }],
+		frames_metadata: () => [{ id: 'frame', duration_ms: 100 }],
 		cel_pixels_at: (layerIndex, frameId) =>
 			layerIndex === 0 && frameId === 'frame' ? new Uint8Array(pixels) : undefined,
 		add_frame: () => {
@@ -273,6 +273,9 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 			if (id !== 'frame') {
 				throw new Error(`createFakeDocument: unknown frame id: ${id}`);
 			}
+		},
+		set_frame_duration: () => {
+			throw new Error('createFakeDocument: set_frame_duration not implemented');
 		},
 		get restoreActiveLayerCalls() {
 			return restoreCalls;

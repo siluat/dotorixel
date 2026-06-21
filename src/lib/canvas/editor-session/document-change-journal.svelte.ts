@@ -47,7 +47,8 @@ export type UndoableDocumentIntent =
 	| { readonly type: 'add-frame' }
 	| { readonly type: 'duplicate-frame' }
 	| { readonly type: 'remove-frame'; readonly id: string }
-	| { readonly type: 'reorder-frame'; readonly id: string; readonly newIndex: number };
+	| { readonly type: 'reorder-frame'; readonly id: string; readonly newIndex: number }
+	| { readonly type: 'set-frame-duration'; readonly id: string; readonly durationMs: number };
 
 export type PersistedDocumentUiIntent =
 	| { readonly type: 'set-active-layer'; readonly id: string }
@@ -271,6 +272,9 @@ export class DocumentChangeJournal {
 			case 'reorder-frame':
 				document.reorder_frame(intent.id, intent.newIndex);
 				return { changed: true };
+			case 'set-frame-duration':
+				document.set_frame_duration(intent.id, intent.durationMs);
+				return { changed: true };
 		}
 	}
 
@@ -357,6 +361,16 @@ export class DocumentChangeJournal {
 				const to = Math.min(Math.max(intent.newIndex, 0), frames.length - 1);
 				return from !== to;
 			}
+			case 'set-frame-duration': {
+				const frame = document.frames_metadata().find((f) => f.id === intent.id);
+				if (!frame) {
+					throw new Error(`Frame with id ${intent.id} not found`);
+				}
+				// Mirror set-layer-visibility: a duration that already matches is a
+				// no-op. The compare is against the requested value as-is — the
+				// [1, 60_000] clamp lives at the WASM boundary, its single source.
+				return frame.duration_ms !== intent.durationMs;
+			}
 		}
 	}
 
@@ -427,10 +441,12 @@ export class DocumentChangeJournal {
 			// Frame ops change which cel composites and the frame axis the panel
 			// renders, but never the canvas dimensions or the active layer — so
 			// Navigation Bounds are unaffected and no viewport reclamp is needed.
+			// Retiming (set-frame-duration) likewise touches neither.
 			case 'add-frame':
 			case 'duplicate-frame':
 			case 'remove-frame':
 			case 'reorder-frame':
+			case 'set-frame-duration':
 				this.#invalidateRenderAndMarkDirty();
 				break;
 			case 'resize-document':

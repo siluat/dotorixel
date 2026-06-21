@@ -1,6 +1,6 @@
 ---
 title: "Per-frame duration — Rust core (Frame.duration_ms + set_frame_duration)"
-status: ready-for-agent
+status: done
 created: 2026-06-21
 parent: 193-per-frame-speed-control.md
 ---
@@ -53,3 +53,32 @@ dead-code-tolerant, exactly as the frame cel-grid core slice (188) did.
 ## Blocked by
 
 None — can start immediately (runs in parallel with 194). Unblocks 196.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/frame.rs` | `Frame` gains `duration_ms: u32` and `DEFAULT_DURATION_MS` (100 ms = 10 fps); `INITIAL` carries the default. `PartialEq`/`Eq`/`Hash` are now hand-written, keyed on `id` alone (derives dropped). |
+| `crates/core/src/document.rs` | New `set_frame_duration(id, ms)` (returns `FrameNotFound` for unknown id); `add_frame` seeds the default, `duplicate_frame` copies the source frame's duration; `remove_frame`/`reorder_frame` carry durations untouched. +9 inline behavior tests. |
+| `CONTEXT.md` | Frame entry: drops "or duration"; notes a Frame now carries a duration (display time, ms) that is **mutable metadata, not identity**. |
+
+### Key Decisions
+
+- **Frame equality/hash: manual impl keyed on `id`** (rather than dropping the
+  derives). The acceptance criterion requires "a retimed frame is equal by
+  identity" to be a *testable* behavior, which a two-field derive cannot satisfy —
+  so `PartialEq`/`Eq`/`Hash` ignore `duration_ms` and key on `id` alone. (HITL
+  decision.)
+- **`duration_ms: u32`, not `NonZeroU32`/a clamped newtype.** The 1–60000 ms range
+  is a boundary concern owned by 196; the core trusts the value, so a
+  range-enforcing type here would contradict "fail at the boundary, trust the
+  core."
+
+### Notes
+
+- Lands **dead-code-tolerant**: no shell consumer yet, so the wasm/apple binding
+  crates build unchanged. **196 is now unblocked** — it wires the WASM binding +
+  journal intent + TabState and owns the range clamping.
+- All 455 core tests pass; `cargo fmt` clean; no new clippy/rustdoc warnings.
+  Pre-existing warnings in `pixel_perfect.rs`/`tool.rs`/layer docs were left
+  untouched (out of scope).

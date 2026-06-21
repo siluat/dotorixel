@@ -33,7 +33,7 @@ _Avoid_: placement drag, overlay edit, transform interaction.
 ### Frames & Cels
 
 **Frame**:
-A single position on a Document's temporal axis — identity only, carrying no persistent name, counter, or duration, and displayed as its 1-based ordinal. A Document always holds at least one frame; the axis is ordered and reorderable. Orthogonal to the Layer axis: layers stack in space, frames sequence in time.
+A single position on a Document's temporal axis — identity-only, carrying no persistent name or counter, and displayed as its 1-based ordinal. It also carries a **duration** (display time, in milliseconds) that is **mutable metadata, not identity**: a retimed frame is the same frame, so frames compare and hash by `id` alone. A Document always holds at least one frame; the axis is ordered and reorderable. Orthogonal to the Layer axis: layers stack in space, frames sequence in time.
 _Avoid_: keyframe (there is no interpolation — every frame is explicit), animation frame (verbose), cel (a Frame is the time slot itself; a Cel is one layer's pixels at that slot), layer (the orthogonal spatial axis).
 
 **Cel**:

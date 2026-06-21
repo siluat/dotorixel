@@ -874,6 +874,17 @@ export class TabState {
 	};
 
 	/**
+	 * Sets the display duration (in milliseconds) of the frame with `id`. Routes
+	 * through `#mutate` (committing any in-flight Floating Selection first) and is
+	 * undoable — one committed adjustment is one undo step. No-op when the frame
+	 * already holds that duration. The WASM boundary clamps the value to
+	 * `[1, 60_000]` ms.
+	 */
+	setFrameDuration = (id: string, durationMs: number): void => {
+		this.#mutate({ type: 'set-frame-duration', id, durationMs });
+	};
+
+	/**
 	 * The active Reference Layer's visible underlay footprint in canvas-pixel
 	 * coordinates, or `null` when the active layer is not a visible Reference
 	 * Layer. Supplied to `TabViewport` as the projection-coupled input to

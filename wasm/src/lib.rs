@@ -471,13 +471,13 @@ impl WasmLayerMetadata {
 // ---------------------------------------------------------------------------
 
 /// One frame's metadata, read in axis order via
-/// [`WasmDocument::frames_metadata`]. A Frame is identity-only today, so this
-/// carries just its id; the struct (rather than a bare id string) mirrors
-/// [`WasmLayerMetadata`] and leaves room for per-frame attributes (e.g. a
-/// duration for playback speed) without reshaping the read.
+/// [`WasmDocument::frames_metadata`]. Carries the frame's `id` plus its display
+/// `duration_ms` (playback timing); the struct mirrors [`WasmLayerMetadata`] and
+/// leaves room for further per-frame attributes without reshaping the read.
 #[wasm_bindgen]
 pub struct WasmFrameMetadata {
     id: String,
+    duration_ms: u32,
 }
 
 #[wasm_bindgen]
@@ -485,6 +485,12 @@ impl WasmFrameMetadata {
     #[wasm_bindgen(getter)]
     pub fn id(&self) -> String {
         self.id.clone()
+    }
+
+    /// The frame's display time in milliseconds during playback.
+    #[wasm_bindgen(getter)]
+    pub fn duration_ms(&self) -> u32 {
+        self.duration_ms
     }
 }
 
@@ -495,6 +501,15 @@ impl WasmFrameMetadata {
 #[wasm_bindgen]
 pub struct WasmDocument {
     inner: Document,
+}
+
+impl WasmDocument {
+    /// Smallest display duration a frame may hold (1 ms). The core trusts any
+    /// value; this shell binding owns the range and clamps to it, so a frame is
+    /// never zero-length.
+    const MIN_FRAME_DURATION_MS: u32 = 1;
+    /// Largest display duration a frame may hold (60_000 ms = 60 s).
+    const MAX_FRAME_DURATION_MS: u32 = 60_000;
 }
 
 #[wasm_bindgen]
@@ -858,6 +873,7 @@ impl WasmDocument {
             .iter()
             .map(|frame| WasmFrameMetadata {
                 id: frame.id.to_string(),
+                duration_ms: frame.duration_ms,
             })
             .collect()
     }
@@ -933,6 +949,18 @@ impl WasmDocument {
         let frame_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
         self.inner
             .set_active_frame(frame_id)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// Sets the display duration (in milliseconds) of the frame with `id`,
+    /// clamped to `[1, 60_000]` ms at this boundary before reaching the core.
+    /// Clamping never errors; the call errors only when `id` is not a valid
+    /// UUID string or no frame with that id exists on the axis.
+    pub fn set_frame_duration(&mut self, id: String, duration_ms: u32) -> Result<(), JsError> {
+        let frame_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
+        let clamped = duration_ms.clamp(Self::MIN_FRAME_DURATION_MS, Self::MAX_FRAME_DURATION_MS);
+        self.inner
+            .set_frame_duration(frame_id, clamped)
             .map_err(|e| JsError::new(&e.to_string()))
     }
 }
@@ -1784,6 +1812,50 @@ mod tests {
         // Out-of-range layer index yields None without throwing.
         assert_eq!(doc.cel_pixels_at(9, first).unwrap(), None);
     }
+
+    #[test]
+    fn wasm_document_frames_metadata_reports_each_frame_duration() {
+        let id = Uuid::new_v4();
+        let doc = WasmDocument::new(4, 4, id.to_string(), "Layer 1".to_string()).unwrap();
+
+        let frames = doc.frames_metadata();
+        // A freshly created document's sole frame carries the core's default
+        // duration (100 ms = 10 fps).
+        assert_eq!(
+            frames[0].duration_ms(),
+            dotorixel_core::frame::Frame::DEFAULT_DURATION_MS
+        );
+    }
+
+    #[test]
+    fn wasm_document_set_frame_duration_round_trips_through_frames_metadata() {
+        let layer = Uuid::new_v4();
+        let mut doc = WasmDocument::new(4, 4, layer.to_string(), "Layer 1".to_string()).unwrap();
+        let frame = doc.active_frame_id();
+
+        doc.set_frame_duration(frame, 250).unwrap();
+
+        assert_eq!(doc.frames_metadata()[0].duration_ms(), 250);
+    }
+
+    #[test]
+    fn wasm_document_set_frame_duration_clamps_to_supported_range() {
+        let layer = Uuid::new_v4();
+        let mut doc = WasmDocument::new(4, 4, layer.to_string(), "Layer 1".to_string()).unwrap();
+        let frame = doc.active_frame_id();
+
+        // Below the minimum clamps up to 1 ms.
+        doc.set_frame_duration(frame.clone(), 0).unwrap();
+        assert_eq!(doc.frames_metadata()[0].duration_ms(), 1);
+
+        // Above the maximum clamps down to 60_000 ms (60 s).
+        doc.set_frame_duration(frame, 99_999).unwrap();
+        assert_eq!(doc.frames_metadata()[0].duration_ms(), 60_000);
+    }
+
+    // The invalid-UUID / unknown-frame error contract is exercised at the JS
+    // boundary (`src/lib/wasm/wasm-document.test.ts`): constructing the `JsError`
+    // those paths return panics on a non-wasm `cargo test` target.
 
     #[test]
     fn wasm_document_layers_metadata_reports_pixel_and_reference_records() {

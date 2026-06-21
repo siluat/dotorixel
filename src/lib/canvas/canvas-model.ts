@@ -97,14 +97,15 @@ export interface LayerMetadata {
 
 /**
  * One frame's metadata as read across the WASM seam in a single
- * `frames_metadata()` crossing. A Frame is identity-only, so this carries just
- * its `id` — the 1-based ordinal a panel displays is positional. The struct
- * (over a bare id string) mirrors {@link LayerMetadata} and leaves room for
- * future per-frame attributes (e.g. a playback duration) without reshaping the
- * read.
+ * `frames_metadata()` crossing. Carries the frame's `id` (its identity — the
+ * 1-based ordinal a panel displays is positional) and its display `duration_ms`
+ * (playback timing). The struct mirrors {@link LayerMetadata} and leaves room
+ * for further per-frame attributes without reshaping the read.
  */
 export interface FrameMetadata {
 	readonly id: string;
+	/** Display time in milliseconds during playback. */
+	readonly duration_ms: number;
 }
 
 /**
@@ -292,4 +293,11 @@ export interface Document {
 	 * exists; the previous active frame is preserved on error.
 	 */
 	set_active_frame(id: string): void;
+	/**
+	 * Sets the display duration (in milliseconds) of the frame with `id`,
+	 * clamped to `[1, 60_000]` ms at the binding boundary. Clamping never
+	 * throws; throws only when `id` is not a valid UUID or no frame with that
+	 * id exists on the axis.
+	 */
+	set_frame_duration(id: string, duration_ms: number): void;
 }

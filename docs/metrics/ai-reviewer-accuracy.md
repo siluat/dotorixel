@@ -6,14 +6,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 162 | 125 | 37 | 158 | 77% | 44% |
-| cubic-dev-ai[bot] | 125 | 97 | 28 | 183 | 78% | 35% |
-| coderabbitai[bot] | 218 | 153 | 65 | 124 | 70% | 55% |
+| greptile-apps[bot] | 162 | 125 | 37 | 160 | 77% | 44% |
+| cubic-dev-ai[bot] | 127 | 99 | 28 | 183 | 78% | 35% |
+| coderabbitai[bot] | 219 | 154 | 65 | 125 | 70% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #289 | coderabbitai[bot] | Accept | `set_frame_duration` took `duration_ms` as `u32`, so a negative JS number wrapped (−1 → 4294967295) before the clamp and resolved to the max (60000 ms); changed the boundary param to `f64` and clamp on the true magnitude, NaN → min |
+| #289 | cubic-dev-ai[bot] | Accept | Same `u32` boundary mis-clamp of negative durations to the max (duplicate); fixed via `f64` parameter + magnitude clamp |
+| #289 | cubic-dev-ai[bot] | Accept | Bare `.toThrow()` didn't distinguish which error path fired; asserted `/invalid character/` (UUID parse) vs `/not found/` (axis lookup), matching the file's line-15 convention |
+| #289 | coderabbitai[bot] | Miss | Did not flag the bare `.toThrow()` assertions not distinguishing the invalid-UUID and unknown-frame error paths |
+| #289 | greptile-apps[bot] | Miss | Did not flag the `u32` boundary negative-duration mis-clamp (approved 5/5, endorsed deferring the edge to 198) |
+| #289 | greptile-apps[bot] | Miss | Did not flag the bare `.toThrow()` assertions not distinguishing error paths |
 | #287 | cubic-dev-ai[bot] | Accept | Stale drag-click suppression could swallow a later keyboard-activated frame select (Enter/Space → click with no preceding pointerdown to clear the flag); gated suppression on pointer-click context (event.detail > 0) so keyboard clicks always select |
 | #287 | cubic-dev-ai[bot] | Reject | Claimed a missing active-frame Cel now hydrates silently vs fail-fast; celPixelsForFrame still throws on a missing Cel (lookup moved to documentFromLayerSource), caught by openSession's try/catch → graceful fresh-workspace fallback (the documented policy); serializeLayer maps toSnapshot's one-Cel-per-frame output, so saved records are always complete |
 | #287 | greptile-apps[bot] | Accept | hydrateFrames append loop relied on the implicit add_frame "makes-the-new-frame-active" contract without citing it; added a comment citing the canvas-model.ts contract to guard against a future reverse-order regression |

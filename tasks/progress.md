@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None.
+Per-frame speed control — per-frame duration (M4) ([PRD](../issues/193-per-frame-speed-control.md)). PRD + 5 sub-issues published (194–198, `ready-for-agent`). Next: start an unblocked slice — **194 (design, HITL)** and **195 (core, AFK)** have no blockers and run in parallel; 196 → 197 → 198 chain after.
 
 ## Last Completed
 
@@ -10,7 +10,6 @@ None.
 
 ## Next Up
 
-- Per-frame speed control (M4 — frame axis now in place)
 - Timeline UI (M4 — transport/playback strip; the ruler already reserves its slot)
 - Onion skinning (M4 — needs per-arbitrary-frame composite)
 - Animation preview — play/pause in editor (M4)

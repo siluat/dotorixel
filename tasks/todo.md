@@ -3,7 +3,6 @@
 ## Milestone 4: Animation-Capable Editor
 
 - Per-frame speed control ([PRD](../issues/193-per-frame-speed-control.md))
-  - [194 — Per-frame duration control design (.pen)](../issues/194-per-frame-duration-design.md) (HITL)
   - [195 — Per-frame duration (Rust core)](../issues/195-frame-duration-core.md)
   - [196 — WASM binding + journal intent + TabState](../issues/196-frame-duration-wasm-journal.md)
   - [197 — Document schema V7 + snapshot persistence](../issues/197-frame-duration-schema-v7.md)

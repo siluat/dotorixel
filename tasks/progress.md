@@ -2,14 +2,15 @@
 
 ## Currently Working On
 
-Per-frame speed control — per-frame duration (M4) ([PRD](../issues/193-per-frame-speed-control.md)). PRD + 5 sub-issues published (194–198, `ready-for-agent`). Next: start an unblocked slice — **194 (design, HITL)** and **195 (core, AFK)** have no blockers and run in parallel; 196 → 197 → 198 chain after.
+Per-frame speed control — per-frame duration (M4) ([PRD](../issues/193-per-frame-speed-control.md)). **1 / 5 sub-issues done** — [194 design](../issues/194-per-frame-duration-design.md) shipped (placement: active-frame **left-corner editor**, ms input + read-only fps, 1–60000 clamp). Next unblocked slice: **[195 — Per-frame duration (Rust core)](../issues/195-frame-duration-core.md)** (no blockers). Then 196 → 197; 198 (UI) needs 196 + the now-done 194 design.
 
 ## Last Completed
 
-[192 — Frame operations UI](../issues/192-frame-operations-ui.md): the header frame-action group (add / duplicate / delete) + ruler-cell drag-reorder shipped, completing **PRD 186 — Frame management (M4 entry)**; the whole M4 animation cluster (per-frame speed, timeline UI, onion skinning, preview, GIF export) is now unblocked. Multi-frame state now flows through the workspace snapshot, so frames + per-cel pixels survive a page refresh — this closed the snapshot seam 190 had deferred. Follow-up: the frame/row icon buttons are still 24px on mobile (TimelinePanel touch-targets backlog item).
+[194 — Per-frame duration control design (.pen)](../issues/194-per-frame-duration-design.md): finalized the per-frame duration control spec in the FEATURE SPECS band (sibling to 187). Chose the **left-corner editor** (active-frame-only, plain ms numeric input committing on Enter/blur + read-only derived fps, clamp 1–60000 ms) over footer / header placements via HITL visual comparison. Collapsed summary gains a read-only `· <ms>`; mobile grows the ruler + corner to ≥48px (touches 187's mobile ruler — pairs with the TimelinePanel mobile touch-targets backlog). The `.pen` is committed from the Pencil worktree, not here.
 
 ## Next Up
 
+- **195 — Per-frame duration (Rust core)** ([issue](../issues/195-frame-duration-core.md)) — active PRD's next slice, no blockers (then 196 → 197 → 198)
 - Timeline UI (M4 — transport/playback strip; the ruler already reserves its slot)
 - Onion skinning (M4 — needs per-arbitrary-frame composite)
 - Animation preview — play/pause in editor (M4)

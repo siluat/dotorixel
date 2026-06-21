@@ -954,11 +954,26 @@ impl WasmDocument {
 
     /// Sets the display duration (in milliseconds) of the frame with `id`,
     /// clamped to `[1, 60_000]` ms at this boundary before reaching the core.
-    /// Clamping never errors; the call errors only when `id` is not a valid
-    /// UUID string or no frame with that id exists on the axis.
-    pub fn set_frame_duration(&mut self, id: String, duration_ms: u32) -> Result<(), JsError> {
+    ///
+    /// `duration_ms` arrives as an `f64` — JavaScript's native number — so the
+    /// clamp acts on the caller's true value: a negative or fractional input is
+    /// bounded on its real magnitude rather than a wrapped integer (a raw `u32`
+    /// parameter would coerce `-1` to `u32::MAX` and then clamp it to the
+    /// *maximum*). `NaN` resolves to the minimum. Clamping never errors; the call
+    /// errors only when `id` is not a valid UUID string or no frame with that id
+    /// exists on the axis.
+    pub fn set_frame_duration(&mut self, id: String, duration_ms: f64) -> Result<(), JsError> {
         let frame_id = Uuid::parse_str(&id).map_err(|e| JsError::new(&e.to_string()))?;
-        let clamped = duration_ms.clamp(Self::MIN_FRAME_DURATION_MS, Self::MAX_FRAME_DURATION_MS);
+        // f64::clamp propagates NaN, so guard it: a NaN duration (e.g. an empty
+        // numeric input) resolves to the minimum rather than to zero.
+        let clamped = if duration_ms.is_nan() {
+            Self::MIN_FRAME_DURATION_MS
+        } else {
+            duration_ms.clamp(
+                Self::MIN_FRAME_DURATION_MS as f64,
+                Self::MAX_FRAME_DURATION_MS as f64,
+            ) as u32
+        };
         self.inner
             .set_frame_duration(frame_id, clamped)
             .map_err(|e| JsError::new(&e.to_string()))
@@ -1833,7 +1848,7 @@ mod tests {
         let mut doc = WasmDocument::new(4, 4, layer.to_string(), "Layer 1".to_string()).unwrap();
         let frame = doc.active_frame_id();
 
-        doc.set_frame_duration(frame, 250).unwrap();
+        doc.set_frame_duration(frame, 250.0).unwrap();
 
         assert_eq!(doc.frames_metadata()[0].duration_ms(), 250);
     }
@@ -1844,12 +1859,16 @@ mod tests {
         let mut doc = WasmDocument::new(4, 4, layer.to_string(), "Layer 1".to_string()).unwrap();
         let frame = doc.active_frame_id();
 
-        // Below the minimum clamps up to 1 ms.
-        doc.set_frame_duration(frame.clone(), 0).unwrap();
+        // Below the minimum — including a negative — clamps up to 1 ms. The f64
+        // boundary bounds on true magnitude, so a negative lands on the minimum,
+        // not the maximum a u32 wrap would produce.
+        doc.set_frame_duration(frame.clone(), 0.0).unwrap();
+        assert_eq!(doc.frames_metadata()[0].duration_ms(), 1);
+        doc.set_frame_duration(frame.clone(), -5.0).unwrap();
         assert_eq!(doc.frames_metadata()[0].duration_ms(), 1);
 
         // Above the maximum clamps down to 60_000 ms (60 s).
-        doc.set_frame_duration(frame, 99_999).unwrap();
+        doc.set_frame_duration(frame, 99_999.0).unwrap();
         assert_eq!(doc.frames_metadata()[0].duration_ms(), 60_000);
     }
 

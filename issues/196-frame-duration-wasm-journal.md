@@ -79,11 +79,10 @@ Unblocks 197 and 198.
   non-wasm target.
 
 ### Notes
-- **Handoff to 198**: the facade `set_frame_duration(durationMs: number)` does not
-  reject negative/NaN at the type level. Measured boundary coercion: `NaN → 1`,
-  `250.7 → 250`, but `-5 → 60000` (a negative wraps high through `u32`, then clamps
-  to the **max**, not the min). A bounded numeric input (`min=1 max=60000`) in 198
-  avoids this; 196 deliberately keeps the clamp single-sourced over a duplicate
-  TS-side guard.
+- The WASM boundary takes `duration_ms` as an `f64` (JavaScript's native number)
+  and clamps on its true magnitude, so a negative input lands on the minimum
+  (1 ms) — not the maximum a `u32` wrap of `-1 → 4294967295` would produce — and
+  `NaN` also resolves to the minimum. (Hardened in review — flagged by CodeRabbit
+  and cubic; an earlier draft deferred this to 198's bounded input.)
 - Duration in the snapshot/persistence is 197's concern; the timeline control is
   198's. Both remain open under parent 193 (3 / 5 sub-issues done).

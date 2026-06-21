@@ -4,10 +4,12 @@ How to explore and edit the project's `.pen` design file without rediscovering i
 structure (or its tool quirks) every time. Read this **before** touching the
 canvas.
 
-- **File**: `docs/pencil-dotorixel.pen`. Open via the `get_editor_state` active
-  editor path (the Pencil app may have it checked out under a sibling worktree,
-  e.g. `…/dotorixel-codex/docs/pencil-dotorixel.pen` — always use the path
-  `get_editor_state` reports, not a hard-coded one).
+- **File**: `docs/pencil-dotorixel.pen` **in the current repository**. The Pencil
+  app must have *this repo's* copy open — confirm the `get_editor_state` active
+  path is under the current repo root before editing. If it reports another clone
+  or worktree (e.g. `…/dotorixel-codex/docs/pencil-dotorixel.pen`), that is a
+  misconfiguration: ask the user to open this repo's `.pen` in Pencil and do
+  **not** edit the other copy.
 - **Encrypted**: access **only** via the `pencil` MCP tools. Never `Read`/`Grep` a
   `.pen` file.
 
@@ -31,7 +33,7 @@ FEATURE SPECS row (left→right): `092 TimelinePanel` · `187 Frame Ruler (M4)` 
 `106 Reference Layer` · `133 Selection Action Bar` · `054 Floating Reference
 Windows` · Floating Window Chrome compare · Color Picker Loupe · Saved Work
 Browser · Export UI · Canvas Resize · Tooltip · Pixel-Perfect Toggle (Icon / Q4
-ON·OFF / Final Spec).
+ON·OFF / Final Spec) · `194 Per-frame Duration Control (M4)`.
 
 ## Naming conventions
 

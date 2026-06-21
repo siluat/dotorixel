@@ -6,8 +6,11 @@ first** — it is the canonical guide (canvas map, naming, spec↔issue map, reu
 patterns, legacy policy, and the full tool-gotcha list). The essentials:
 
 - **Encrypted file — pencil MCP tools only.** Never `Read`/`Grep` a `.pen` file.
-  Use the active editor path from `get_editor_state` (it may be a sibling worktree
-  checkout), not a hard-coded path.
+  Always target **this repository's** `docs/pencil-dotorixel.pen`. Confirm the
+  `get_editor_state` active path is inside the current repo root; if it points at
+  another clone or worktree (e.g. `…/dotorixel-codex/…`), that is a
+  misconfiguration — **stop and ask the user to open this repo's `.pen` in
+  Pencil**, and never edit the sibling copy.
 - **Canvas is organized into labeled bands.** Valid mockups live in feature bands
   (FOUNDATIONS, EDITOR — CORE, EDITOR — ANIMATION/TIMELINE, LANDING, FEATURE SPECS);
   superseded work + the old `[Ref]` series live in the **LEGACY band (y ≥ 18000)**.

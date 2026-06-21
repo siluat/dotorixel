@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 195 | [Per-frame duration — Rust core](../issues/195-frame-duration-core.md) | 2026-06-21 |
 | 194 | [Per-frame duration control design — M4 (.pen)](../issues/194-per-frame-duration-design.md) | 2026-06-21 |
 | 192 | [Frame operations UI — add / duplicate / delete / reorder](../issues/192-frame-operations-ui.md) | 2026-06-20 |
 | 191 | [Frame ruler shell + selection (TimelinePanel)](../issues/191-frame-ruler-shell.md) | 2026-06-20 |

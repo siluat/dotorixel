@@ -116,6 +116,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Document/Layer model | 🔧 | 🔧 | ⬜ | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple remains single-canvas |
 | Frame cel-grid | ✅ | ✅ | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: undoable add/duplicate/remove/reorder + set-active journal intents (undo restores frame+cel); multi-frame V6 persistence round-trips through the snapshot |
+| Per-frame duration | ✅ | ⬜ | ⬜ | Each frame carries a display duration; default 100ms (10fps). Identity stays id-only (a retimed frame is the same frame). Core trusts the value; range clamp is a shell-boundary concern. Web/Apple pending |
 | Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and rotation-aware source sampling. Turns with a whole-document rotate (quarter-turn). Placement invariant (finite pos, scale > 0, quarter-turn 0..=3) enforced by the core constructor |
 | Timeline panel | — | 🔧 | ⬜ | Layer × Frame grid (ordinal columns, occupancy dots, Reference span, 2-channel active highlight); select via ruler/cell click; header add/duplicate/delete + ruler-cell drag-reorder; per-document collapse. Transport/playback strip pending |
 

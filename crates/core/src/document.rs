@@ -547,7 +547,13 @@ impl Document {
             .iter()
             .position(|f| f.id == self.active_frame_id)
             .expect("active frame id is always present on the axis");
-        self.frames.insert(active_idx + 1, Frame { id: new_id });
+        self.frames.insert(
+            active_idx + 1,
+            Frame {
+                id: new_id,
+                duration_ms: Frame::DEFAULT_DURATION_MS,
+            },
+        );
         for layer in &mut self.layers {
             if let LayerKind::Pixel(cels) = &mut layer.kind {
                 cels.seed_transparent(new_id, self.width, self.height)
@@ -558,7 +564,8 @@ impl Document {
     }
 
     /// Inserts a copy of the active frame directly after it — cloning every
-    /// Pixel Layer's active-frame cel into the new frame — and makes the copy
+    /// Pixel Layer's active-frame cel into the new frame and inheriting the
+    /// source frame's [`duration_ms`](Frame::duration_ms) — and makes the copy
     /// active. The clone is deep: editing the copy never touches the source.
     pub fn duplicate_frame(&mut self, new_id: Uuid) {
         debug_assert!(
@@ -571,7 +578,16 @@ impl Document {
             .iter()
             .position(|f| f.id == source_id)
             .expect("active frame id is always present on the axis");
-        self.frames.insert(active_idx + 1, Frame { id: new_id });
+        // Duration is part of what a duplicate reproduces: the copy inherits the
+        // source frame's duration, not the default.
+        let duration_ms = self.frames[active_idx].duration_ms;
+        self.frames.insert(
+            active_idx + 1,
+            Frame {
+                id: new_id,
+                duration_ms,
+            },
+        );
         for layer in &mut self.layers {
             if let LayerKind::Pixel(cels) = &mut layer.kind {
                 cels.duplicate_cel(source_id, new_id);
@@ -643,6 +659,22 @@ impl Document {
             return Err(FrameError::FrameNotFound { id });
         }
         self.active_frame_id = id;
+        Ok(())
+    }
+
+    /// Sets the display [`duration_ms`](Frame::duration_ms) of the frame with
+    /// `id` — the source of truth for that frame's playback timing.
+    ///
+    /// Returns [`FrameError::FrameNotFound`] when no frame with `id` exists; in
+    /// that case no duration is changed. The core trusts `duration_ms` as given —
+    /// range clamping is a boundary concern owned by the shell binding.
+    pub fn set_frame_duration(&mut self, id: Uuid, duration_ms: u32) -> Result<(), FrameError> {
+        let frame = self
+            .frames
+            .iter_mut()
+            .find(|f| f.id == id)
+            .ok_or(FrameError::FrameNotFound { id })?;
+        frame.duration_ms = duration_ms;
         Ok(())
     }
 
@@ -4076,6 +4108,146 @@ mod tests {
         doc.add_layer(layer_two, "Layer 2".to_string());
 
         doc.remove_layer(layer_two).unwrap();
+        assert_grid_invariant(&mut doc);
+    }
+
+    // -----------------------------------------------------------------------
+    // Frame duration (per-frame timing)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn new_seeds_the_initial_frame_at_the_default_duration() {
+        let doc = Document::new(4, 4, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        assert_eq!(doc.frames()[0].duration_ms, Frame::DEFAULT_DURATION_MS);
+    }
+
+    #[test]
+    fn add_frame_seeds_the_new_frame_at_the_default_duration() {
+        let mut doc = Document::new(4, 4, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let added = Uuid::new_v4();
+        doc.add_frame(added);
+
+        let frame = doc.frames().iter().find(|f| f.id == added).unwrap();
+        assert_eq!(frame.duration_ms, Frame::DEFAULT_DURATION_MS);
+    }
+
+    #[test]
+    fn set_frame_duration_updates_the_target_frames_duration() {
+        let mut doc = Document::new(4, 4, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let id = doc.active_frame_id();
+
+        doc.set_frame_duration(id, 250).unwrap();
+
+        let frame = doc.frames().iter().find(|f| f.id == id).unwrap();
+        assert_eq!(frame.duration_ms, 250);
+    }
+
+    #[test]
+    fn set_frame_duration_unknown_id_returns_frame_not_found_and_leaves_durations_intact() {
+        let mut doc = Document::new(4, 4, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let known = doc.active_frame_id();
+        doc.set_frame_duration(known, 500).unwrap();
+        let unknown = Uuid::new_v4();
+
+        assert_eq!(
+            doc.set_frame_duration(unknown, 999),
+            Err(FrameError::FrameNotFound { id: unknown })
+        );
+        // The failed call mutates nothing: the known frame keeps its duration.
+        let frame = doc.frames().iter().find(|f| f.id == known).unwrap();
+        assert_eq!(frame.duration_ms, 500);
+    }
+
+    #[test]
+    fn duplicate_frame_copies_the_source_frames_duration() {
+        let mut doc = Document::new(4, 4, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let source = doc.active_frame_id();
+        doc.set_frame_duration(source, 333).unwrap(); // deliberately non-default
+
+        let copy = Uuid::new_v4();
+        doc.duplicate_frame(copy);
+
+        let frame = doc.frames().iter().find(|f| f.id == copy).unwrap();
+        assert_eq!(frame.duration_ms, 333);
+    }
+
+    #[test]
+    fn a_retimed_frame_is_equal_by_identity() {
+        let id = Uuid::new_v4();
+        let original = Frame {
+            id,
+            duration_ms: 100,
+        };
+        let retimed = Frame {
+            id,
+            duration_ms: 5000,
+        };
+
+        // Duration is mutable metadata, not identity: a retimed frame is the
+        // same frame, so it stays equal and hashes by id alone.
+        assert_eq!(original, retimed);
+        let set: std::collections::HashSet<Frame> = [original, retimed].into_iter().collect();
+        assert_eq!(set.len(), 1, "the same frame, retimed, must dedupe as one");
+
+        // A different id is a different frame, even with the same duration.
+        let other = Frame {
+            id: Uuid::new_v4(),
+            duration_ms: 100,
+        };
+        assert_ne!(original, other);
+    }
+
+    #[test]
+    fn remove_frame_leaves_other_frames_durations_intact() {
+        let mut doc = Document::new(4, 4, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let second = Uuid::new_v4();
+        let third = Uuid::new_v4();
+        doc.add_frame(second);
+        doc.add_frame(third); // [first, second, third]
+        doc.set_frame_duration(first, 111).unwrap();
+        doc.set_frame_duration(third, 333).unwrap();
+
+        doc.remove_frame(second).unwrap();
+
+        let duration_of = |doc: &Document, id| {
+            doc.frames()
+                .iter()
+                .find(|f| f.id == id)
+                .unwrap()
+                .duration_ms
+        };
+        assert_eq!(duration_of(&doc, first), 111);
+        assert_eq!(duration_of(&doc, third), 333);
+    }
+
+    #[test]
+    fn reorder_frame_preserves_the_moved_frames_duration_by_id() {
+        let mut doc = Document::new(4, 4, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let second = Uuid::new_v4();
+        doc.add_frame(second); // [first, second]
+        doc.set_frame_duration(second, 777).unwrap();
+
+        doc.reorder_frame(second, 0).unwrap(); // [second, first]
+
+        // The moved frame carries its duration with it, keyed by id.
+        assert_eq!(doc.frames()[0].id, second);
+        assert_eq!(doc.frames()[0].duration_ms, 777);
+        let first_frame = doc.frames().iter().find(|f| f.id == first).unwrap();
+        assert_eq!(first_frame.duration_ms, Frame::DEFAULT_DURATION_MS);
+    }
+
+    #[test]
+    fn set_frame_duration_preserves_the_grid_invariant() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        doc.add_frame(Uuid::new_v4());
+        doc.add_layer(Uuid::new_v4(), "Layer 2".to_string());
+        let target = doc.active_frame_id();
+
+        doc.set_frame_duration(target, 420).unwrap();
+
+        // Retiming touches frame metadata only — every cel stays in place.
         assert_grid_invariant(&mut doc);
     }
 }

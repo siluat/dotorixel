@@ -5,6 +5,7 @@ import { marqueeRegionFromDrag, singleLayerDocument } from '../wasm-backend';
 import { createFakeDirtyNotifier } from './fake-dirty-notifier';
 import type { TabSnapshot, WorkspaceSnapshot } from '../workspace-snapshot';
 import { tabSnapshotFixture as makeTabSnap } from '../workspace-snapshot-fixtures';
+import { DEFAULT_FRAME_DURATION_MS } from '$lib/session/session-storage-types';
 
 // A stand-in frame id for the single-frame snapshots these openSnapshot tests
 // hand-build. Valid UUID form, and shared because each snapshot is a separate
@@ -295,7 +296,7 @@ describe('Workspace — shared state propagation', () => {
 		workspace.openSnapshot({
 			id: 'reference-active-doc',
 			name: 'Reference Active',
-			frames: [{ id: SNAP_FRAME_ID }],
+			frames: [{ id: SNAP_FRAME_ID, durationMs: DEFAULT_FRAME_DURATION_MS }],
 			activeFrameId: SNAP_FRAME_ID,
 			width: 2,
 			height: 2,
@@ -506,7 +507,7 @@ describe('Workspace — shared state propagation', () => {
 		workspace.openSnapshot({
 			id: 'cut-reference-active-doc',
 			name: 'Cut Reference Active',
-			frames: [{ id: SNAP_FRAME_ID }],
+			frames: [{ id: SNAP_FRAME_ID, durationMs: DEFAULT_FRAME_DURATION_MS }],
 			activeFrameId: SNAP_FRAME_ID,
 			width: 2,
 			height: 2,
@@ -694,7 +695,7 @@ describe('Workspace — shared state propagation', () => {
 		workspace.openSnapshot({
 			id: 'paste-offscreen-doc',
 			name: 'Paste Offscreen',
-			frames: [{ id: SNAP_FRAME_ID }],
+			frames: [{ id: SNAP_FRAME_ID, durationMs: DEFAULT_FRAME_DURATION_MS }],
 			activeFrameId: SNAP_FRAME_ID,
 			width: 8,
 			height: 8,
@@ -806,7 +807,7 @@ describe('Workspace — shared state propagation', () => {
 		workspace.openSnapshot({
 			id: 'paste-reference-active-doc',
 			name: 'Paste Reference Active',
-			frames: [{ id: SNAP_FRAME_ID }],
+			frames: [{ id: SNAP_FRAME_ID, durationMs: DEFAULT_FRAME_DURATION_MS }],
 			activeFrameId: SNAP_FRAME_ID,
 			width: 2,
 			height: 2,
@@ -951,7 +952,7 @@ describe('Workspace — openDocument', () => {
 		const snapshot: TabSnapshot = {
 			id: 'layered-doc',
 			name: 'Layered',
-			frames: [{ id: SNAP_FRAME_ID }],
+			frames: [{ id: SNAP_FRAME_ID, durationMs: DEFAULT_FRAME_DURATION_MS }],
 			activeFrameId: SNAP_FRAME_ID,
 			width: 2,
 			height: 1,

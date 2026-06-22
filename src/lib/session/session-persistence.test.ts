@@ -14,7 +14,12 @@ import { marqueeRegionFromDrag } from '$lib/canvas/wasm-backend';
 import { createFakeDirtyNotifier } from '$lib/canvas/editor-session/fake-dirty-notifier';
 import { SessionPersistence } from './session-persistence';
 import { SessionStorage } from './session-storage';
-import { migrateV4ToV5, migrateV5ToV6 } from './session-storage-types';
+import {
+	DEFAULT_FRAME_DURATION_MS,
+	migrateV4ToV5,
+	migrateV5ToV6,
+	migrateV6ToV7
+} from './session-storage-types';
 import type { DocumentSchemaV5 } from './session-storage-types';
 
 vi.mock('$lib/reference-images/decode-reference-blob', () => ({
@@ -22,13 +27,13 @@ vi.mock('$lib/reference-images/decode-reference-blob', () => ({
 }));
 
 /**
- * Stores a document expressed in the pre-frame (V5) shape as a current V6 record,
+ * Stores a document expressed in the pre-frame (V5) shape as a current V7 record,
  * mirroring how a legacy saved document is carried forward — Reference Layers
  * normalize to one bottom-most underlay and each Pixel Layer's buffer becomes its
  * single frame's Cel. Keeps these hydration tests terse without hand-building cels.
  */
 async function putLegacyV5(storage: SessionStorage, doc: DocumentSchemaV5): Promise<void> {
-	await storage.putDocument(migrateV5ToV6(migrateV4ToV5(doc)));
+	await storage.putDocument(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(doc))));
 }
 
 function makeRef(id: string): ReferenceImage {
@@ -225,7 +230,7 @@ describe('SessionPersistence', () => {
 				{ kind: 'pixel', id: bottomId, name: 'Background', cels: [{ frameId, pixels: bottomPixels }], visible: true, opacity: 1 },
 				{ kind: 'pixel', id: topId, name: 'Sketch', cels: [{ frameId, pixels: topPixels }], visible: false, opacity: 0.5 }
 			],
-			frames: [{ id: frameId }],
+			frames: [{ id: frameId, durationMs: DEFAULT_FRAME_DURATION_MS }],
 			activeFrameId: frameId,
 			activeLayerId: topId,
 			nextLayerNumber: 7,
@@ -262,6 +267,23 @@ describe('SessionPersistence', () => {
 		expect(Array.from(activeCelPixels(tab, 1))).toEqual(Array.from(topPixels));
 	});
 
+	it('round-trips each frame’s duration through save and restore', async () => {
+		const tab = makeTab({
+			id: 'doc-durations',
+			cels: [
+				{ frameId: crypto.randomUUID(), pixels: new Uint8Array(16 * 16 * 4) },
+				{ frameId: crypto.randomUUID(), pixels: new Uint8Array(16 * 16 * 4) }
+			],
+			frameDurationsMs: [420, 1500]
+		});
+
+		await persistence.save(makeSnapshot({}, [tab]));
+		const restored = await persistence.restore();
+
+		expect(restored).not.toBeNull();
+		expect(restored!.tabs[0].frames.map((frame) => frame.durationMs)).toEqual([420, 1500]);
+	});
+
 	it('loads a saved document snapshot with its full layer stack for reopening', async () => {
 		const bottomId = crypto.randomUUID();
 		const topId = crypto.randomUUID();
@@ -283,7 +305,7 @@ describe('SessionPersistence', () => {
 				{ kind: 'pixel', id: bottomId, name: 'Paint', cels: [{ frameId, pixels: bottomPixels }], visible: true, opacity: 1 },
 				{ kind: 'pixel', id: topId, name: 'Ink', cels: [{ frameId, pixels: topPixels }], visible: false, opacity: 0.5 }
 			],
-			frames: [{ id: frameId }],
+			frames: [{ id: frameId, durationMs: 640 }],
 			activeFrameId: frameId,
 			activeLayerId: topId,
 			nextLayerNumber: 6,
@@ -306,6 +328,7 @@ describe('SessionPersistence', () => {
 
 		expect(reopened).not.toBeNull();
 		expect(reopened!.name).toBe('Layered Saved');
+		expect(reopened!.frames.map((frame) => frame.durationMs)).toEqual([640]);
 		expect(reopened!.layers).toHaveLength(2);
 		expect(reopened!.activeLayerId).toBe(topId);
 		expect(reopened!.nextLayerNumber).toBe(6);
@@ -679,15 +702,16 @@ describe('SessionPersistence', () => {
 		expect(doc!.saved).toBe(false);
 	});
 
-	it('persists a single-frame snapshot as a one-frame V6 record whose cel carries the layer pixels', async () => {
+	it('persists a single-frame snapshot as a one-frame V7 record whose cel carries the layer pixels', async () => {
 		const tab = makeTab({ id: 'doc-frame-save' });
 
 		await persistence.save(makeSnapshot({}, [tab]));
 		const stored = await storage.getDocument('doc-frame-save');
 
 		expect(stored).toBeDefined();
-		expect(stored!.schemaVersion).toBe(6);
+		expect(stored!.schemaVersion).toBe(7);
 		expect(stored!.frames).toHaveLength(1);
+		expect(stored!.frames[0].durationMs).toBe(DEFAULT_FRAME_DURATION_MS);
 		expect(stored!.activeFrameId).toBe(stored!.frames[0].id);
 		const layer = stored!.layers[0];
 		if (layer.kind !== 'pixel') throw new Error('Expected Pixel Layer');

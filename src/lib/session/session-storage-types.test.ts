@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
 	compositeForExportSummary,
+	DEFAULT_FRAME_DURATION_MS,
 	migrateV3ToV4,
 	migrateV4ToV5,
-	migrateV5ToV6
+	migrateV5ToV6,
+	migrateV6ToV7
 } from './session-storage-types';
 import type {
 	DocumentSchemaV3,
@@ -289,6 +291,77 @@ describe('migrateV5ToV6', () => {
 			updatedAt: new Date('2026-06-02T00:00:00Z')
 		});
 		expect('nextFrameNumber' in v6).toBe(false);
+	});
+});
+
+describe('migrateV6ToV7', () => {
+	it('gives every frame the default duration while preserving ids, cels, and the active frame', () => {
+		const frameA = crypto.randomUUID();
+		const frameB = crypto.randomUUID();
+		const red = new Uint8Array([255, 0, 0, 255]);
+		const blue = new Uint8Array([0, 0, 255, 255]);
+		const v6: DocumentSchemaV6 = makeV6({
+			width: 1,
+			height: 1,
+			frames: [{ id: frameA }, { id: frameB }],
+			activeFrameId: frameB,
+			layers: [
+				{
+					kind: 'pixel',
+					id: 'layer-1',
+					name: 'Layer 1',
+					cels: [
+						{ frameId: frameA, pixels: red },
+						{ frameId: frameB, pixels: blue }
+					],
+					visible: true,
+					opacity: 1
+				}
+			]
+		});
+
+		const v7 = migrateV6ToV7(v6);
+
+		expect(v7.schemaVersion).toBe(7);
+		expect(v7.frames).toEqual([
+			{ id: frameA, durationMs: DEFAULT_FRAME_DURATION_MS },
+			{ id: frameB, durationMs: DEFAULT_FRAME_DURATION_MS }
+		]);
+		expect(v7.activeFrameId).toBe(frameB);
+		// Lossless: the layer stack and its cels carry through untouched.
+		expect(v7.layers).toEqual(v6.layers);
+	});
+
+	it('preserves document metadata across the bump', () => {
+		const v6 = makeV6({
+			id: 'doc-v6',
+			name: 'V6 document',
+			width: 64,
+			height: 32,
+			activeLayerId: 'active-layer',
+			nextLayerNumber: 9,
+			timelinePanelCollapsed: true,
+			marquee: { x: 1, y: 2, width: 3, height: 4 },
+			saved: true,
+			createdAt: new Date('2026-06-01T00:00:00Z'),
+			updatedAt: new Date('2026-06-02T00:00:00Z')
+		});
+
+		const v7 = migrateV6ToV7(v6);
+
+		expect(v7).toMatchObject({
+			id: 'doc-v6',
+			name: 'V6 document',
+			width: 64,
+			height: 32,
+			activeLayerId: 'active-layer',
+			nextLayerNumber: 9,
+			timelinePanelCollapsed: true,
+			marquee: { x: 1, y: 2, width: 3, height: 4 },
+			saved: true,
+			createdAt: new Date('2026-06-01T00:00:00Z'),
+			updatedAt: new Date('2026-06-02T00:00:00Z')
+		});
 	});
 });
 

@@ -1,6 +1,6 @@
 ---
 title: "Per-frame duration — document schema V7 + snapshot persistence"
-status: ready-for-agent
+status: done
 created: 2026-06-21
 parent: 193-per-frame-speed-control.md
 ---
@@ -54,3 +54,24 @@ snapshot read/rebuild path uses it.
 - [196 — Per-frame duration WASM binding + journal intent + TabState](196-frame-duration-wasm-journal.md)
 
 Unblocks 198.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/session/session-storage-types.ts` | `DocumentSchemaV7` + `FrameRecord.durationMs`; froze the V6 frame shape as `FrameRecordV6`; `migrateV6ToV7` backfills the default duration; `DEFAULT_FRAME_DURATION_MS` single TS mirror of the core constant |
+| `src/lib/session/session-storage.ts` | `DB_VERSION` 6→7; `normalizeToV7` read-path chain; `oldVersion < 7` DB-open upgrade cursor (defensive try/catch) |
+| `src/lib/session/session-persistence.ts` | `save` writes V7; `getSavedDocumentSnapshot` / `restore` carry `durationMs` end-to-end |
+| `src/lib/canvas/wasm-backend.ts` | `applyFrameDurations` applies each frame's duration on rebuild via `set_frame_duration` (positional alignment; single- and multi-frame) |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | `toSnapshot` reads `frames_metadata().duration_ms` into the snapshot frames |
+| `src/lib/canvas/workspace-snapshot-fixtures.ts` | fixture frames carry `durationMs` (+ optional `frameDurationsMs` override for round-trip tests) |
+| tests | `migrateV6ToV7`, V6→V7 + V1→V7 DB-open upgrade, hydration duration, `toSnapshot`, save/restore + reopen round-trips |
+
+### Key Decisions
+- **Field is `durationMs`, not the issue text's `duration`.** The codebase already standardizes on `durationMs` (journal `set-frame-duration` intent, `setFrameDuration(id, durationMs)`) and `duration_ms` (core/WASM); the bare name broke that vocabulary and needed a "in milliseconds" comment — the exact Naming-guide anti-pattern.
+- **`durationMs` is required, not optional.** Every construction site carries it (type-enforced); the V6→V7 migration is the single place that backfills the default. The duration-less V6 shape is frozen as `FrameRecordV6` so the migration input stays type-honest (sets the value, never copies an absent one).
+- **No WASM/Rust changes.** The binding and the 1–60000ms clamp shipped in 196; this slice is web-shell schema/persistence only.
+
+### Notes
+- The duration clamp stays single-sourced at the WASM boundary; the schema trusts persisted values.
+- 198 (TimelinePanel control + i18n + E2E) is now unblocked — the last remaining slice of PRD 193.

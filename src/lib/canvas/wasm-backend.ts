@@ -452,6 +452,24 @@ function hydrateFrames(
 }
 
 /**
+ * Applies each persisted frame's duration to the rebuilt Document. The frame
+ * order matches the source axis positionally — frame 0 under the builder's
+ * reassigned id, later frames under their persisted ids — so durations map by
+ * position, covering both the single- and multi-frame paths. A source without a
+ * frame axis (legacy single-frame) keeps the core's default duration.
+ */
+function applyFrameDurations(
+	document: Document,
+	frames: readonly FrameRecord[] | undefined
+): void {
+	if (!frames) return;
+	const ids = document.frames_metadata().map((frame) => frame.id);
+	for (let i = 0; i < frames.length; i++) {
+		document.set_frame_duration(ids[i], frames[i].durationMs);
+	}
+}
+
+/**
  * Builds a [`Document`] from any value carrying the [`DocumentLayerSource`]
  * shape — e.g. a persisted V3 schema (one buffer per layer) or a multi-frame
  * `TabSnapshot` (one Cel per frame). Every buffer must already be in the source's
@@ -497,6 +515,7 @@ export function documentFromLayerSource(source: DocumentLayerSource): Document {
 	if (source.frames && source.frames.length > 1) {
 		hydrateFrames(document, source, source.frames);
 	}
+	applyFrameDurations(document, source.frames);
 	if (source.marquee) {
 		const clipped = marqueeBoundsToWasm(source.marquee)?.clip_to(source.width, source.height);
 		if (clipped) {

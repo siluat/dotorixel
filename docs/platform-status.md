@@ -105,7 +105,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Tab management (Workspace) | — | ✅ | ⬜ | Workspace model, page wiring, TabStrip UI complete |
-| Session persistence | — | ✅ | ⬜ | Multi-tab IndexedDB restore, debounced auto-save, retention; V6 Document persistence (layers, per-frame Cels, Reference blobs, Marquee) round-trips multi-frame state; lossless V1→V6 migration; one unreadable record is skipped, not fatal |
+| Session persistence | — | ✅ | ⬜ | Multi-tab IndexedDB restore, debounced auto-save, retention; V7 Document persistence (layers, per-frame Cels + durations, Reference blobs, Marquee) round-trips multi-frame state; lossless V1→V7 migration; one unreadable record is skipped, not fatal |
 | Save dialog on tab close | — | ✅ | ⬜ | Blank canvas detection, save/delete/cancel modal, focus trap, keyboard accessible |
 | Saved work browser (desktop) | — | ✅ | ⬜ | Browse/open/delete; opens full Document snapshots while cards use composite thumbnails |
 | Saved work browser (mobile) | — | ✅ | — | Bottom sheet; opens full Document snapshots while cards use composite thumbnails |
@@ -115,8 +115,8 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Document/Layer model | 🔧 | 🔧 | ⬜ | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple remains single-canvas |
-| Frame cel-grid | ✅ | ✅ | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: undoable add/duplicate/remove/reorder + set-active journal intents (undo restores frame+cel); multi-frame V6 persistence round-trips through the snapshot |
-| Per-frame duration | ✅ | 🔧 | ⬜ | Each frame carries a display duration; default 100ms (10fps); a retimed frame keeps its identity. Core trusts the value; the 1–60000ms clamp is a shell-boundary concern. Web: undoable in-memory retiming landed; timeline UI + persistence pending. Apple pending |
+| Frame cel-grid | ✅ | ✅ | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: undoable add/duplicate/remove/reorder + set-active journal intents (undo restores frame+cel); multi-frame V7 persistence round-trips through the snapshot |
+| Per-frame duration | ✅ | 🔧 | ⬜ | Each frame carries a display duration; default 100ms (10fps); a retimed frame keeps its identity. Core trusts the value; the 1–60000ms clamp is a shell-boundary concern. Web: undoable retiming + V7 persistence (snapshot round-trip, default-backfill migration) landed; timeline UI pending. Apple pending |
 | Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and rotation-aware source sampling. Turns with a whole-document rotate (quarter-turn). Placement invariant (finite pos, scale > 0, quarter-turn 0..=3) enforced by the core constructor |
 | Timeline panel | — | 🔧 | ⬜ | Layer × Frame grid (ordinal columns, occupancy dots, Reference span, 2-channel active highlight); select via ruler/cell click; header add/duplicate/delete + ruler-cell drag-reorder; per-document collapse. Transport/playback strip pending |
 

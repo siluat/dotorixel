@@ -134,13 +134,13 @@ export class SessionPersistence {
 			if (shouldWrite) {
 				const existing = await this.#storage.getDocument(tab.id);
 				await this.#storage.putDocument({
-					schemaVersion: 6,
+					schemaVersion: 7,
 					id: tab.id,
 					name: tab.name,
 					width: tab.width,
 					height: tab.height,
 					marquee: copyMarquee(tab.marquee),
-					frames: tab.frames.map((frame) => ({ id: frame.id })),
+					frames: tab.frames.map((frame) => ({ id: frame.id, durationMs: frame.durationMs })),
 					activeFrameId: tab.activeFrameId,
 					layers: tab.layers.map((layer) => serializeLayer(layer)),
 					activeLayerId: tab.activeLayerId,
@@ -219,7 +219,7 @@ export class SessionPersistence {
 			height: doc.height,
 			marquee: copyMarquee(doc.marquee),
 			layers: await Promise.all(doc.layers.map((layer) => hydrateLayer(layer))),
-			frames: doc.frames.map((frame) => ({ id: frame.id })),
+			frames: doc.frames.map((frame) => ({ id: frame.id, durationMs: frame.durationMs })),
 			activeFrameId: doc.activeFrameId,
 			activeLayerId: doc.activeLayerId,
 			nextLayerNumber: doc.nextLayerNumber,
@@ -251,7 +251,7 @@ export class SessionPersistence {
 					height: doc.height,
 					marquee: copyMarquee(doc.marquee),
 					layers: await Promise.all(doc.layers.map((layer) => hydrateLayer(layer))),
-					frames: doc.frames.map((frame) => ({ id: frame.id })),
+					frames: doc.frames.map((frame) => ({ id: frame.id, durationMs: frame.durationMs })),
 					activeFrameId: doc.activeFrameId,
 					activeLayerId: doc.activeLayerId,
 					nextLayerNumber: doc.nextLayerNumber,

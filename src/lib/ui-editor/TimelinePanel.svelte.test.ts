@@ -1732,6 +1732,29 @@ describe('TimelinePanel', () => {
 			expect(input.value).toBe('250');
 		});
 
+		it('reverts a fractional entry without firing — duration is integer ms', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1', [], 250)];
+			const onSetFrameDuration = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f1',
+					onSetFrameDuration
+				}
+			});
+
+			const input = durationInput(container);
+			await fireEvent.input(input, { target: { value: '100.5' } });
+			await fireEvent.blur(input);
+
+			expect(onSetFrameDuration).not.toHaveBeenCalled();
+			expect(input.value).toBe('250');
+		});
+
 		it('does not fire when the value is committed unchanged', async () => {
 			const layers = [pixelLayer('a', 'Layer 1')];
 			const frames = [frame('f1', [], 250)];

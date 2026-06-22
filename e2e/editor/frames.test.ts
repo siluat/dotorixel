@@ -242,8 +242,6 @@ test.describe('Frame panel — operations', () => {
 			null,
 			{ timeout: 10_000 }
 		);
-		await page.waitForTimeout(200);
-
 		await page.reload();
 		await page.getByRole('application', { name: 'Pixel art canvas' }).waitFor({ state: 'visible' });
 		await waitForSessionRestored(page);

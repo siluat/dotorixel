@@ -384,10 +384,13 @@
 	// coalescing contract). The clamp lives only at the WASM boundary, so the view
 	// dispatches the raw value; after the round-trip it reconciles the field to the
 	// stored truth, which snaps an out-of-range entry back to the clamped bound.
+	// Duration is integer ms, so empty / non-numeric / fractional entries are
+	// rejected here (`Number.isInteger` also rules out NaN and Infinity) rather than
+	// dispatched to be silently truncated at the u32 boundary.
 	async function commitFrameDuration() {
 		const trimmed = durationDraft.trim();
 		const parsed = Number(trimmed);
-		if (trimmed !== '' && Number.isFinite(parsed) && parsed !== activeFrameDurationMs) {
+		if (trimmed !== '' && Number.isInteger(parsed) && parsed !== activeFrameDurationMs) {
 			onSetFrameDuration(activeFrameId, parsed);
 			// Let the dispatch round-trip through the projection before reconciling,
 			// so the field reflects the clamped, stored value — even when the clamp

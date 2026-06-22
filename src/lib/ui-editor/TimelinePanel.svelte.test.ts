@@ -21,10 +21,11 @@ const noopAddFrame = () => {};
 const noopDuplicateFrame = () => {};
 const noopRemoveFrame = (_id: string) => {};
 const noopReorderFrame = (_id: string, _newIndex: number) => {};
+const noopSetFrameDuration = (_id: string, _durationMs: number) => {};
 
 const defaultProps = {
 	collapsed: false,
-	frames: [{ id: 'f1', occupiedLayerIds: new Set<string>() }],
+	frames: [{ id: 'f1', occupiedLayerIds: new Set<string>(), durationMs: 100 }],
 	activeFrameId: 'f1',
 	onAddLayer: noopAddLayer,
 	onAddReferenceLayer: noopAddReferenceLayer,
@@ -39,7 +40,8 @@ const defaultProps = {
 	onAddFrame: noopAddFrame,
 	onDuplicateFrame: noopDuplicateFrame,
 	onRemoveFrame: noopRemoveFrame,
-	onReorderFrame: noopReorderFrame
+	onReorderFrame: noopReorderFrame,
+	onSetFrameDuration: noopSetFrameDuration
 };
 
 function pixelLayer(id: string, name: string, opts: { visible?: boolean } = {}) {
@@ -50,8 +52,8 @@ function referenceLayer(id: string, name: string, opts: { visible?: boolean } = 
 	return { id, name, kind: 'reference' as const, ...opts };
 }
 
-function frame(id: string, occupied: ReadonlyArray<string> = []) {
-	return { id, occupiedLayerIds: new Set(occupied) };
+function frame(id: string, occupied: ReadonlyArray<string> = [], durationMs = 100) {
+	return { id, occupiedLayerIds: new Set(occupied), durationMs };
 }
 
 describe('TimelinePanel', () => {
@@ -1607,6 +1609,212 @@ describe('TimelinePanel', () => {
 			await fireEvent.pointerUp(f1, { clientX: 64, pointerId: 1 });
 			expect(onReorderFrame).toHaveBeenCalledTimes(1);
 			expect(onReorderFrame).toHaveBeenCalledWith('f1', 2);
+		});
+	});
+
+	describe('frame duration control', () => {
+		const durationInput = (container: HTMLElement) =>
+			container.querySelector('[data-frame-duration-input]') as HTMLInputElement;
+
+		it("shows the active frame's duration in an editable corner control", () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1', [], 250), frame('f2', [], 100)];
+			const { container } = render(TimelinePanel, {
+				props: { layers, activeLayerId: 'a', ...defaultProps, frames, activeFrameId: 'f1' }
+			});
+
+			const input = durationInput(container);
+			expect(input).not.toBeNull();
+			expect(input.value).toBe('250');
+		});
+
+		it('updates the displayed duration when the active frame changes', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1', [], 250), frame('f2', [], 80)];
+			const { container, rerender } = render(TimelinePanel, {
+				props: { layers, activeLayerId: 'a', ...defaultProps, frames, activeFrameId: 'f1' }
+			});
+			expect(durationInput(container).value).toBe('250');
+
+			await rerender({ layers, activeLayerId: 'a', ...defaultProps, frames, activeFrameId: 'f2' });
+			expect(durationInput(container).value).toBe('80');
+		});
+
+		it('commits a new duration with Enter, firing onSetFrameDuration with the active frame id', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1', [], 100), frame('f2', [], 100)];
+			const onSetFrameDuration = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f2',
+					onSetFrameDuration
+				}
+			});
+
+			const input = durationInput(container);
+			await fireEvent.input(input, { target: { value: '250' } });
+			await fireEvent.keyDown(input, { key: 'Enter' });
+
+			expect(onSetFrameDuration).toHaveBeenCalledWith('f2', 250);
+			expect(onSetFrameDuration).toHaveBeenCalledTimes(1);
+		});
+
+		it('commits a new duration on blur', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1', [], 100)];
+			const onSetFrameDuration = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f1',
+					onSetFrameDuration
+				}
+			});
+
+			const input = durationInput(container);
+			await fireEvent.input(input, { target: { value: '400' } });
+			await fireEvent.blur(input);
+
+			expect(onSetFrameDuration).toHaveBeenCalledWith('f1', 400);
+			expect(onSetFrameDuration).toHaveBeenCalledTimes(1);
+		});
+
+		it('reverts an emptied field to the prior value without firing', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1', [], 250)];
+			const onSetFrameDuration = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f1',
+					onSetFrameDuration
+				}
+			});
+
+			const input = durationInput(container);
+			await fireEvent.input(input, { target: { value: '' } });
+			await fireEvent.blur(input);
+
+			expect(onSetFrameDuration).not.toHaveBeenCalled();
+			expect(input.value).toBe('250');
+		});
+
+		it('reverts a non-numeric entry to the prior value without firing', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1', [], 250)];
+			const onSetFrameDuration = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f1',
+					onSetFrameDuration
+				}
+			});
+
+			const input = durationInput(container);
+			await fireEvent.input(input, { target: { value: 'abc' } });
+			await fireEvent.blur(input);
+
+			expect(onSetFrameDuration).not.toHaveBeenCalled();
+			expect(input.value).toBe('250');
+		});
+
+		it('does not fire when the value is committed unchanged', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1', [], 250)];
+			const onSetFrameDuration = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f1',
+					onSetFrameDuration
+				}
+			});
+
+			const input = durationInput(container);
+			await fireEvent.input(input, { target: { value: '250' } });
+			await fireEvent.blur(input);
+
+			expect(onSetFrameDuration).not.toHaveBeenCalled();
+		});
+
+		it('forwards an out-of-range value unclamped — the WASM boundary owns the clamp', async () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1', [], 100)];
+			const onSetFrameDuration = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'a',
+					...defaultProps,
+					frames,
+					activeFrameId: 'f1',
+					onSetFrameDuration
+				}
+			});
+
+			const input = durationInput(container);
+			await fireEvent.input(input, { target: { value: '99999' } });
+			await fireEvent.keyDown(input, { key: 'Enter' });
+
+			expect(onSetFrameDuration).toHaveBeenCalledWith('f1', 99999);
+		});
+
+		it('gives the duration input a descriptive accessible name', () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const { container } = render(TimelinePanel, {
+				props: { layers, activeLayerId: 'a', ...defaultProps }
+			});
+
+			expect(durationInput(container).getAttribute('aria-label')).toBe(
+				'Frame duration in milliseconds'
+			);
+		});
+
+		it('shows a read-only fps helper derived from the active frame duration', () => {
+			const layers = [pixelLayer('a', 'Layer 1')];
+			const frames = [frame('f1', [], 250)];
+			const { container } = render(TimelinePanel, {
+				props: { layers, activeLayerId: 'a', ...defaultProps, frames, activeFrameId: 'f1' }
+			});
+
+			// 1000 / 250 ms = 4 fps.
+			const fps = container.querySelector('[data-frame-duration-fps]') as HTMLElement;
+			expect(fps.textContent).toContain('4');
+		});
+
+		it('includes the active frame duration in the collapsed summary', () => {
+			const layers = [pixelLayer('a', 'Sky'), pixelLayer('b', 'Mountains')];
+			const frames = [frame('f1', [], 100), frame('f2', [], 250), frame('f3', [], 100)];
+			const { container } = render(TimelinePanel, {
+				props: {
+					layers,
+					activeLayerId: 'b',
+					...defaultProps,
+					collapsed: true,
+					frames,
+					activeFrameId: 'f2'
+				}
+			});
+
+			const header = container.querySelector('.timeline-panel .header') as HTMLElement;
+			expect(header.textContent).toContain('250 ms');
 		});
 	});
 });

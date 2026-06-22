@@ -2,11 +2,14 @@ import type { Document } from './canvas-model';
 
 /**
  * One frame projected into a shell-facing read model. A Frame is identity-only,
- * so this carries its `id` plus the set of Pixel Layer ids whose Cel at this
- * frame is content-bearing — the timeline grid renders a dot for each.
+ * so this carries its `id`, its display `durationMs` (playback timing), and the
+ * set of Pixel Layer ids whose Cel at this frame is content-bearing — the
+ * timeline grid renders a dot for each.
  */
 export interface DocumentFrameRead {
 	readonly id: string;
+	/** Display time in milliseconds during playback. */
+	readonly durationMs: number;
 	readonly occupiedLayerIds: ReadonlySet<string>;
 }
 
@@ -24,7 +27,8 @@ export interface DocumentFrameProjectionRead {
  * projection.
  */
 export function readDocumentFrameProjection(document: Document): DocumentFrameProjectionRead {
-	const frameIds = document.frames_metadata().map((frame) => frame.id);
+	const framesMetadata = document.frames_metadata();
+	const frameIds = framesMetadata.map((frame) => frame.id);
 	const records = document.layers_metadata();
 	const occupiedByFrame = new Map<string, Set<string>>(
 		frameIds.map((id) => [id, new Set<string>()])
@@ -45,7 +49,11 @@ export function readDocumentFrameProjection(document: Document): DocumentFramePr
 	}
 
 	return {
-		frames: frameIds.map((id) => ({ id, occupiedLayerIds: occupiedByFrame.get(id)! })),
+		frames: framesMetadata.map(({ id, duration_ms }) => ({
+			id,
+			durationMs: duration_ms,
+			occupiedLayerIds: occupiedByFrame.get(id)!
+		})),
 		activeFrameId: document.active_frame_id()
 	};
 }

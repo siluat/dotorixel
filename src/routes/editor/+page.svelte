@@ -191,6 +191,10 @@
 		editor.workspace.activeTab.reorderFrame(id, newIndex);
 	}
 
+	function handleSetFrameDuration(id: string, durationMs: number) {
+		editor.workspace.activeTab.setFrameDuration(id, durationMs);
+	}
+
 	function handleRemoveLayer(id: string) {
 		editor.workspace.activeTab.removeLayer(id);
 	}
@@ -700,6 +704,7 @@
 			onDuplicateFrame={handleDuplicateFrame}
 			onRemoveFrame={handleRemoveFrame}
 			onReorderFrame={handleReorderFrame}
+			onSetFrameDuration={handleSetFrameDuration}
 			collapsed={isTimelinePanelCollapsed}
 			onAddLayer={handleAddLayer}
 			onAddReferenceLayer={handleAddReferenceLayerRequest}
@@ -885,6 +890,7 @@
 				onDuplicateFrame={handleDuplicateFrame}
 				onRemoveFrame={handleRemoveFrame}
 				onReorderFrame={handleReorderFrame}
+				onSetFrameDuration={handleSetFrameDuration}
 				collapsed={false}
 				onAddLayer={handleAddLayer}
 				onAddReferenceLayer={handleAddReferenceLayerRequest}

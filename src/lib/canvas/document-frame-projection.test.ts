@@ -47,6 +47,19 @@ describe('DocumentFrameProjection', () => {
 		expect(read.activeFrameId).toBe(secondFrameId);
 	});
 
+	it("reports each frame's display duration, defaulting to 100 ms", () => {
+		const document = pixelDoc({ id: crypto.randomUUID(), pixels: TRANSPARENT });
+		const firstFrameId = document.active_frame_id();
+		const secondFrameId = crypto.randomUUID();
+		document.add_frame(secondFrameId);
+		document.set_frame_duration(secondFrameId, 250);
+
+		const { frames } = readDocumentFrameProjection(document);
+
+		expect(frames.find((f) => f.id === firstFrameId)?.durationMs).toBe(100);
+		expect(frames.find((f) => f.id === secondFrameId)?.durationMs).toBe(250);
+	});
+
 	it('marks a cel occupied only when its Pixel Layer holds content', () => {
 		const filledId = crypto.randomUUID();
 		const emptyId = crypto.randomUUID();

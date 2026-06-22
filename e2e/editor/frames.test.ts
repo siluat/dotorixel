@@ -191,4 +191,64 @@ test.describe('Frame panel — operations', () => {
 			.poll(async () => canvas.pixelEquals(await canvas.readPixelAtCenter(), drawn))
 			.toBe(true);
 	});
+
+	test("a frame's duration is undoable and survives a page refresh", async ({ editorPage }) => {
+		const { page, history } = editorPage;
+		const durationInput = page.locator('[data-frame-duration-input]');
+
+		// The starting frame defaults to 100 ms.
+		await expect(durationInput).toHaveValue('100');
+
+		// Retime it and commit with Enter — one adjustment is one undo step.
+		await durationInput.fill('500');
+		await durationInput.press('Enter');
+		await expect(durationInput).toHaveValue('500');
+
+		// Undo restores the prior duration; redo re-applies the retime. The undo
+		// stack is in-memory, so this is exercised before the reload.
+		await history.undo();
+		await expect(durationInput).toHaveValue('100');
+		await history.redo();
+		await expect(durationInput).toHaveValue('500');
+
+		// Wait for the debounced auto-save to persist the retimed duration, then
+		// reload. Polling the record (not a fixed wait) avoids racing the commit.
+		await page.waitForFunction(
+			() =>
+				new Promise<boolean>((resolve) => {
+					const req = indexedDB.open('dotorixel');
+					req.onsuccess = () => {
+						const db = req.result;
+						const getAll = db
+							.transaction('documents', 'readonly')
+							.objectStore('documents')
+							.getAll();
+						getAll.onsuccess = () => {
+							const docs = getAll.result as Array<{ frames?: Array<{ durationMs?: number }> }>;
+							db.close();
+							resolve(
+								docs.some(
+									(d) => Array.isArray(d.frames) && d.frames.some((f) => f.durationMs === 500)
+								)
+							);
+						};
+						getAll.onerror = () => {
+							db.close();
+							resolve(false);
+						};
+					};
+					req.onerror = () => resolve(false);
+				}),
+			null,
+			{ timeout: 10_000 }
+		);
+		await page.waitForTimeout(200);
+
+		await page.reload();
+		await page.getByRole('application', { name: 'Pixel art canvas' }).waitFor({ state: 'visible' });
+		await waitForSessionRestored(page);
+
+		// The retimed duration came back after the reload.
+		await expect(page.locator('[data-frame-duration-input]')).toHaveValue('500');
+	});
 });

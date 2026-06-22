@@ -2,8 +2,6 @@
 
 ## Milestone 4: Animation-Capable Editor
 
-- Per-frame speed control ([PRD](../issues/193-per-frame-speed-control.md))
-  - [198 — TimelinePanel control + i18n + E2E](../issues/198-frame-duration-timeline-ui.md)
 - Timeline UI
 - Onion skinning
 - Animation preview (play/pause in editor)

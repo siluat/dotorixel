@@ -10,8 +10,8 @@
 	function reference(id: string, name: string) {
 		return { id, name, kind: 'reference' as const, visible: true };
 	}
-	function frame(id: string, occupied: string[] = []) {
-		return { id, occupiedLayerIds: new Set(occupied) };
+	function frame(id: string, occupied: string[] = [], durationMs = 100) {
+		return { id, occupiedLayerIds: new Set(occupied), durationMs };
 	}
 
 	const noop = () => {};
@@ -29,16 +29,17 @@
 		onAddFrame: noop,
 		onDuplicateFrame: noop,
 		onRemoveFrame: noop,
-		onReorderFrame: noop
+		onReorderFrame: noop,
+		onSetFrameDuration: noop
 	};
 
 	// Panel order = top→bottom; a Reference Layer always sits at the bottom.
 	const pixelLayers = [pixel('hero', 'Hero'), pixel('hills', 'Hills'), pixel('sky', 'Sky')];
 	const fourFrames = [
-		frame('f1', ['sky', 'hills']),
-		frame('f2', ['sky', 'hills', 'hero']),
-		frame('f3', ['sky', 'hero']),
-		frame('f4', ['sky'])
+		frame('f1', ['sky', 'hills'], 100),
+		frame('f2', ['sky', 'hills', 'hero'], 250),
+		frame('f3', ['sky', 'hero'], 500),
+		frame('f4', ['sky'], 1000)
 	];
 </script>
 

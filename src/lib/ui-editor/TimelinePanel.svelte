@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { ChevronDown, Copy, Grid2x2, Image, LoaderCircle, Maximize2, Trash2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 
@@ -15,6 +16,8 @@
 		readonly id: string;
 		/** Pixel Layer ids whose Cel at this frame is content-bearing (renders a dot). */
 		readonly occupiedLayerIds: ReadonlySet<string>;
+		/** Display time in milliseconds during playback. */
+		readonly durationMs: number;
 	}
 
 	interface Props {
@@ -37,6 +40,7 @@
 		onDuplicateFrame: () => void;
 		onRemoveFrame: (frameId: string) => void;
 		onReorderFrame: (frameId: string, newIndex: number) => void;
+		onSetFrameDuration: (frameId: string, durationMs: number) => void;
 		isReferenceLayerImporting?: boolean;
 		referenceLayerImportName?: string;
 	}
@@ -61,6 +65,7 @@
 		onDuplicateFrame,
 		onRemoveFrame,
 		onReorderFrame,
+		onSetFrameDuration,
 		isReferenceLayerImporting = false,
 		referenceLayerImportName
 	}: Props = $props();
@@ -75,6 +80,28 @@
 	const activeFrameOrdinal = $derived(
 		frames.findIndex((frameCol) => frameCol.id === activeFrameId) + 1
 	);
+	const activeFrameDurationMs = $derived(
+		frames.find((frameCol) => frameCol.id === activeFrameId)?.durationMs ?? 0
+	);
+	// Read-only fps helper derived from the duration (1000 / ms); shown on desktop,
+	// hidden on mobile (194 design). Guarded so the 0 fallback never divides.
+	const activeFrameFps = $derived(
+		activeFrameDurationMs > 0 ? Math.round(1000 / activeFrameDurationMs) : 0
+	);
+
+	// Controlled draft for the duration editor: it mirrors the active frame's
+	// stored duration but holds the user's raw in-progress text while editing (a
+	// plain string — empty when the field is blank). A text input (not type=number)
+	// keeps the entry under our control: no browser spinner, no value quirks. The
+	// effect below seeds it before first paint and re-syncs it from the stored value
+	// whenever that changes — frame switch, undo, or the post-commit clamp
+	// round-trip. Typing only mutates the draft, so this never clobbers a mid-edit
+	// value (the stored value is unchanged then).
+	let durationDraft = $state('');
+	$effect(() => {
+		durationDraft = String(activeFrameDurationMs);
+	});
+
 	const renderedLayers = $derived(
 		isReferenceLayerImporting ? layers.filter((layer) => layer.kind !== 'reference') : layers
 	);
@@ -351,6 +378,41 @@
 		if (suppress) return;
 		onSelectFrame(id);
 	}
+
+	// === Active-frame duration editor (top-left corner) ===================
+	// Commits the draft on Enter / blur so one retime is one undo step (the 196
+	// coalescing contract). The clamp lives only at the WASM boundary, so the view
+	// dispatches the raw value; after the round-trip it reconciles the field to the
+	// stored truth, which snaps an out-of-range entry back to the clamped bound.
+	// Duration is integer ms, so empty / non-numeric / fractional entries are
+	// rejected here (`Number.isInteger` also rules out NaN and Infinity) rather than
+	// dispatched to be silently truncated at the u32 boundary.
+	async function commitFrameDuration() {
+		const trimmed = durationDraft.trim();
+		const parsed = Number(trimmed);
+		if (trimmed !== '' && Number.isInteger(parsed) && parsed !== activeFrameDurationMs) {
+			onSetFrameDuration(activeFrameId, parsed);
+			// Let the dispatch round-trip through the projection before reconciling,
+			// so the field reflects the clamped, stored value — even when the clamp
+			// lands back on the current duration (where the sync effect wouldn't fire).
+			await tick();
+		}
+		// Reverts an empty/invalid/unchanged field; snaps a clamped entry to its bound.
+		durationDraft = String(activeFrameDurationMs);
+	}
+
+	function handleFrameDurationKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter') {
+			// Commit in place; forcing a blur here would fire a second, stale commit.
+			event.preventDefault();
+			commitFrameDuration();
+		} else if (event.key === 'Escape') {
+			// Discard the in-progress edit and restore the stored value.
+			event.preventDefault();
+			durationDraft = String(activeFrameDurationMs);
+			(event.currentTarget as HTMLInputElement).blur();
+		}
+	}
 </script>
 
 <section
@@ -395,7 +457,8 @@
 				? m.timeline_collapsed_summary({
 						layer: activeLayerName,
 						frame: activeFrameOrdinal,
-						total: frames.length
+						total: frames.length,
+						duration: activeFrameDurationMs
 					})
 				: m.layer_panel_title()}
 		</span>
@@ -452,9 +515,25 @@
 		<div class="divider"></div>
 		<div class="body">
 			<div class="sidebar">
-				<!-- Spacer aligning the layer rows below with the frame grid's ruler, so
-				     each sidebar row lines up with its frame row. -->
-				<div class="sidebar-grid-header" aria-hidden="true"></div>
+				<!-- The top-left corner doubles as the active frame's duration editor
+				     (194 design): aligned with the ruler, it edits whichever frame is
+				     selected. The fps helper is read-only and desktop-only. -->
+				<div class="sidebar-grid-header">
+					<input
+						type="text"
+						inputmode="numeric"
+						class="frame-duration-input"
+						data-frame-duration-input
+						aria-label={m.aria_frameDuration()}
+						bind:value={durationDraft}
+						onkeydown={handleFrameDurationKeydown}
+						onblur={commitFrameDuration}
+					/>
+					<span class="frame-duration-unit" aria-hidden="true">ms</span>
+					<span class="frame-duration-fps" data-frame-duration-fps aria-hidden="true">
+						{activeFrameFps} fps
+					</span>
+				</div>
 				{#each renderedLayers as layer, visualIndex (layer.id)}
 					{@const isActive = layer.id === activeLayerId}
 					{@const isVisible = layer.visible ?? true}
@@ -723,10 +802,24 @@
 	@media (max-width: 1023px) {
 		.timeline-panel {
 			/* Tab-takeover on touch (187 spec): 40px grid rows/cells and a narrower
-			   sidebar so the scrollable frame area gets more room. */
+			   sidebar so the scrollable frame area gets more room. The ruler (and the
+			   duration corner aligned to it) grows to seat the touch-target-sized
+			   duration input with breathing room (194 mobile spec). */
 			--row-height: 40px;
 			--panel-height: 220px;
 			--sidebar-width: 140px;
+			--ruler-height: 48px;
+		}
+
+		.frame-duration-input {
+			height: var(--ds-touch-target-min);
+			width: 64px;
+			font-size: var(--ds-font-size-md);
+		}
+
+		/* The fps helper is desktop-only (194); the narrow mobile sidebar drops it. */
+		.frame-duration-fps {
+			display: none;
 		}
 	}
 
@@ -874,6 +967,47 @@
 		height: var(--ruler-height);
 		flex: none;
 		background: var(--ds-bg-elevated);
+		display: flex;
+		align-items: center;
+		gap: var(--ds-space-1);
+		padding: 0 var(--ds-space-2);
+		box-sizing: border-box;
+		overflow: hidden;
+	}
+
+	.frame-duration-input {
+		width: 56px;
+		height: 20px;
+		flex: none;
+		min-width: 0;
+		padding: 0 var(--ds-space-1);
+		box-sizing: border-box;
+		border: var(--ds-border-width) solid var(--ds-border-subtle);
+		border-radius: var(--ds-radius-sm);
+		background: var(--ds-bg-surface);
+		color: var(--ds-text-primary);
+		font-family: inherit;
+		font-size: var(--ds-font-size-xs);
+		text-align: center;
+	}
+
+	.frame-duration-input:focus-visible {
+		outline: var(--ds-border-width-thick) solid var(--ds-accent);
+		outline-offset: 1px;
+	}
+
+	.frame-duration-unit {
+		flex: none;
+		font-size: var(--ds-font-size-xs);
+		color: var(--ds-text-secondary);
+	}
+
+	.frame-duration-fps {
+		flex: none;
+		margin-left: auto;
+		font-size: var(--ds-font-size-xs);
+		color: var(--ds-text-tertiary);
+		white-space: nowrap;
 	}
 
 	.frame-grid {

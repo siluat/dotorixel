@@ -1,6 +1,6 @@
 ---
 title: "Per-frame speed control — per-frame duration (M4)"
-status: ready-for-agent
+status: done
 created: 2026-06-21
 ---
 

@@ -6,14 +6,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 162 | 125 | 37 | 160 | 77% | 44% |
-| cubic-dev-ai[bot] | 127 | 99 | 28 | 183 | 78% | 35% |
-| coderabbitai[bot] | 219 | 154 | 65 | 125 | 70% | 55% |
+| greptile-apps[bot] | 164 | 127 | 37 | 160 | 77% | 44% |
+| cubic-dev-ai[bot] | 129 | 101 | 28 | 183 | 78% | 36% |
+| coderabbitai[bot] | 219 | 154 | 65 | 127 | 70% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #291 | greptile-apps[bot] | Accept | Fractional duration (e.g. 100.5) passed `Number.isFinite` and dispatched to be silently truncated at the u32 WASM boundary; guarded commit on `Number.isInteger` so empty / non-numeric / fractional entries all revert |
+| #291 | cubic-dev-ai[bot] | Accept | Same fractional-duration u32 truncation (duplicate); fixed via the `Number.isInteger` guard |
+| #291 | greptile-apps[bot] | Accept | Redundant `waitForTimeout(200)` after the IndexedDB poll already confirmed `durationMs===500`; removed (the poll guarantees durability before reload) |
+| #291 | cubic-dev-ai[bot] | Accept | Same redundant post-poll `waitForTimeout(200)` (duplicate); removed |
+| #291 | coderabbitai[bot] | Miss | Did not flag the fractional-duration u32 truncation (APPROVED, no line comments) |
+| #291 | coderabbitai[bot] | Miss | Did not flag the redundant post-poll `waitForTimeout(200)` |
 | #289 | coderabbitai[bot] | Accept | `set_frame_duration` took `duration_ms` as `u32`, so a negative JS number wrapped (−1 → 4294967295) before the clamp and resolved to the max (60000 ms); changed the boundary param to `f64` and clamp on the true magnitude, NaN → min |
 | #289 | cubic-dev-ai[bot] | Accept | Same `u32` boundary mis-clamp of negative durations to the max (duplicate); fixed via `f64` parameter + magnitude clamp |
 | #289 | cubic-dev-ai[bot] | Accept | Bare `.toThrow()` didn't distinguish which error path fired; asserted `/invalid character/` (UUID parse) vs `/not found/` (axis lookup), matching the file's line-15 convention |

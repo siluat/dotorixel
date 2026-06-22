@@ -974,7 +974,8 @@ export class TabState {
 	toSnapshot = (): TabSnapshot => {
 		const doc = this.document;
 		const activeFrameId = doc.active_frame_id();
-		const frameIds = doc.frames_metadata().map((frame) => frame.id);
+		const frameMetadata = doc.frames_metadata();
+		const frameIds = frameMetadata.map((frame) => frame.id);
 		const layers = doc.layers_metadata().map((record, i) => {
 			const id = record.id;
 			const common = {
@@ -1031,7 +1032,7 @@ export class TabState {
 			height: doc.height,
 			marquee,
 			layers,
-			frames: frameIds.map((frameId) => ({ id: frameId })),
+			frames: frameMetadata.map((frame) => ({ id: frame.id, durationMs: frame.duration_ms })),
 			activeFrameId,
 			activeLayerId: doc.active_layer_id(),
 			nextLayerNumber: doc.next_layer_number(),

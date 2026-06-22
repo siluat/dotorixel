@@ -3,7 +3,6 @@
 ## Milestone 4: Animation-Capable Editor
 
 - Per-frame speed control ([PRD](../issues/193-per-frame-speed-control.md))
-  - [197 — Document schema V7 + snapshot persistence](../issues/197-frame-duration-schema-v7.md)
   - [198 — TimelinePanel control + i18n + E2E](../issues/198-frame-duration-timeline-ui.md)
 - Timeline UI
 - Onion skinning

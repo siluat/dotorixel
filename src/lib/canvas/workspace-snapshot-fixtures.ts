@@ -1,5 +1,6 @@
 import type { TabSnapshot } from './workspace-snapshot';
 import type { ViewportData } from './viewport';
+import { DEFAULT_FRAME_DURATION_MS } from '$lib/session/session-storage-types';
 
 export const FIXTURE_VIEWPORT: ViewportData = {
 	pixelSize: 32,
@@ -19,6 +20,8 @@ export interface TabSnapshotFixtureOpts {
 	pixels?: Uint8Array;
 	/** One Cel per frame — defines a multi-frame axis. Overrides `pixels`. */
 	cels?: { frameId: string; pixels: Uint8Array }[];
+	/** Per-frame durations (ms), aligned to the frame axis. Defaults each frame to `DEFAULT_FRAME_DURATION_MS`. */
+	frameDurationsMs?: number[];
 	layerName?: string;
 	viewport?: ViewportData;
 }
@@ -52,7 +55,10 @@ export function tabSnapshotFixture(opts: TabSnapshotFixtureOpts = {}): TabSnapsh
 				opacity: 1
 			}
 		],
-		frames: cels.map((cel) => ({ id: cel.frameId })),
+		frames: cels.map((cel, index) => ({
+			id: cel.frameId,
+			durationMs: opts.frameDurationsMs?.[index] ?? DEFAULT_FRAME_DURATION_MS
+		})),
 		activeFrameId: cels[0].frameId,
 		activeLayerId: layerId,
 		nextLayerNumber: 2,

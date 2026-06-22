@@ -9,6 +9,7 @@ import {
 } from '../wasm-backend';
 import { createFakeDirtyNotifier } from './fake-dirty-notifier';
 import { SharedState } from '../shared-state.svelte';
+import { DEFAULT_FRAME_DURATION_MS } from '$lib/session/session-storage-types';
 import type { CanvasCoords } from '../canvas-model';
 import type { Color } from '../color';
 import { LOUPE_CENTER_INDEX } from '../sampling/loupe-config';
@@ -185,7 +186,10 @@ describe('TabState — multi-frame snapshot', () => {
 		const document = documentFromLayerSource({
 			width: 2,
 			height: 2,
-			frames: [{ id: frameA }, { id: frameB }],
+			frames: [
+				{ id: frameA, durationMs: DEFAULT_FRAME_DURATION_MS },
+				{ id: frameB, durationMs: DEFAULT_FRAME_DURATION_MS }
+			],
 			activeFrameId: frameB,
 			layers: [
 				{
@@ -218,6 +222,42 @@ describe('TabState — multi-frame snapshot', () => {
 			Array.from(layer.cels.find((cel) => cel.frameId === frameId)!.pixels);
 		expect(celFor(snap.frames[0].id)).toEqual(Array.from(red));
 		expect(celFor(snap.frames[1].id)).toEqual(Array.from(blue));
+	});
+
+	it('toSnapshot carries each frame’s duration', () => {
+		const layerId = crypto.randomUUID();
+		const frameA = crypto.randomUUID();
+		const frameB = crypto.randomUUID();
+		const document = documentFromLayerSource({
+			width: 2,
+			height: 2,
+			frames: [
+				{ id: frameA, durationMs: 250 },
+				{ id: frameB, durationMs: 500 }
+			],
+			activeFrameId: frameA,
+			layers: [
+				{
+					kind: 'pixel',
+					id: layerId,
+					name: 'Layer 1',
+					cels: [
+						{ frameId: frameA, pixels: fill2x2(255, 0, 0) },
+						{ frameId: frameB, pixels: fill2x2(0, 0, 255) }
+					],
+					visible: true,
+					opacity: 1
+				}
+			],
+			activeLayerId: layerId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false
+		});
+		const { tab } = makeTab({ document });
+
+		const snap = tab.toSnapshot();
+
+		expect(snap.frames.map((frame) => frame.durationMs)).toEqual([250, 500]);
 	});
 });
 

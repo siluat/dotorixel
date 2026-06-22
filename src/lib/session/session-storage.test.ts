@@ -4,11 +4,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SessionStorage } from './session-storage';
 import {
 	celPixelsForFrame,
+	DEFAULT_FRAME_DURATION_MS,
 	migrateDocumentToV2,
 	migrateV2ToV3,
 	migrateV3ToV4,
 	migrateV4ToV5,
-	migrateV5ToV6
+	migrateV5ToV6,
+	migrateV6ToV7
 } from './session-storage-types';
 import type {
 	DocumentRecord,
@@ -46,7 +48,7 @@ function makeSingleLayerV3(overrides: Partial<DocumentSchemaV3> = {}): DocumentR
 	if (overrides.layers && !overrides.activeLayerId) {
 		merged.activeLayerId = overrides.layers[0].id;
 	}
-	return migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(merged)));
+	return migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(merged))));
 }
 
 function expectPixelLayer(layer: DocumentRecord['layers'][number]) {
@@ -92,7 +94,7 @@ describe('SessionStorage', () => {
 		it('stores and retrieves a document with pixel data', async () => {
 			const pixels = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]);
 			const layerId = crypto.randomUUID();
-			const doc = migrateV5ToV6(migrateV4ToV5(migrateV3ToV4({
+			const doc = migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4({
 				schemaVersion: 3,
 				id: 'doc-1',
 				name: 'Untitled 1',
@@ -107,7 +109,7 @@ describe('SessionStorage', () => {
 				saved: false,
 				createdAt: new Date('2026-04-06T00:00:00Z'),
 				updatedAt: new Date('2026-04-06T00:00:00Z')
-			})));
+			}))));
 
 			await storage.putDocument(doc);
 			const retrieved = await storage.getDocument('doc-1');
@@ -127,7 +129,7 @@ describe('SessionStorage', () => {
 			const retrieved = await storage.getDocument('doc-v3');
 
 			expect(retrieved).toBeDefined();
-			expect(retrieved!.schemaVersion).toBe(6);
+			expect(retrieved!.schemaVersion).toBe(7);
 			expect(retrieved!.marquee).toBeNull();
 			expect(retrieved!.saved).toBe(true);
 		});
@@ -137,7 +139,7 @@ describe('SessionStorage', () => {
 			const v1Pixels = new Uint8Array(4 * 4 * 4);
 			v1Pixels[0] = 200; // distinctive signature
 			v1Pixels[3] = 255;
-			const rawDb = await openDB('dotorixel', 6);
+			const rawDb = await openDB('dotorixel', 7);
 			await rawDb.put('documents', {
 				id: 'doc-v1',
 				name: 'Old doc',
@@ -152,7 +154,7 @@ describe('SessionStorage', () => {
 			const retrieved = await storage.getDocument('doc-v1');
 
 			expect(retrieved).toBeDefined();
-			expect(retrieved!.schemaVersion).toBe(6);
+			expect(retrieved!.schemaVersion).toBe(7);
 			expect(retrieved!.marquee).toBeNull();
 			expect(retrieved!.frames).toHaveLength(1);
 			expect(retrieved!.layers[0].kind).toBe('pixel');
@@ -204,7 +206,7 @@ describe('SessionStorage', () => {
 				updatedAt: new Date('2026-05-02T00:00:00Z')
 			};
 
-			await storage.putDocument(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(doc))));
+			await storage.putDocument(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(doc)))));
 			const retrieved = await storage.getDocument('doc-multi');
 
 			expect(retrieved).toBeDefined();
@@ -243,11 +245,11 @@ describe('SessionStorage', () => {
 				updatedAt: new Date('2026-05-01T00:00:00Z')
 			};
 
-			await storage.putDocument(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(doc))));
+			await storage.putDocument(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(doc)))));
 			const retrieved = await storage.getDocument('doc-v3');
 
 			expect(retrieved).toBeDefined();
-			expect(retrieved!.schemaVersion).toBe(6);
+			expect(retrieved!.schemaVersion).toBe(7);
 			expect(retrieved!.marquee).toBeNull();
 			expect(retrieved!.layers[0].kind).toBe('pixel');
 			expect(retrieved!.id).toBe('doc-v3');
@@ -266,8 +268,8 @@ describe('SessionStorage', () => {
 		});
 	});
 
-	describe('V6 frame persistence', () => {
-		it('round-trips a multi-frame document preserving per-cel pixels and the active frame', async () => {
+	describe('V7 frame persistence', () => {
+		it('round-trips a multi-frame document preserving per-cel pixels, the active frame, and each frame’s duration', async () => {
 			const frameA = crypto.randomUUID();
 			const frameB = crypto.randomUUID();
 			const layer1 = crypto.randomUUID();
@@ -278,13 +280,16 @@ describe('SessionStorage', () => {
 			const l2a = new Uint8Array([0, 3, 0, 255]);
 			const l2b = new Uint8Array([0, 4, 0, 255]);
 			const doc: DocumentRecord = {
-				schemaVersion: 6,
+				schemaVersion: 7,
 				id: 'doc-frames',
 				name: 'Animated',
 				width: 1,
 				height: 1,
 				marquee: null,
-				frames: [{ id: frameA }, { id: frameB }],
+				frames: [
+					{ id: frameA, durationMs: 250 },
+					{ id: frameB, durationMs: 500 }
+				],
 				activeFrameId: frameB,
 				layers: [
 					{
@@ -322,8 +327,11 @@ describe('SessionStorage', () => {
 			const retrieved = await storage.getDocument('doc-frames');
 
 			expect(retrieved).toBeDefined();
-			expect(retrieved!.schemaVersion).toBe(6);
-			expect(retrieved!.frames).toEqual([{ id: frameA }, { id: frameB }]);
+			expect(retrieved!.schemaVersion).toBe(7);
+			expect(retrieved!.frames).toEqual([
+				{ id: frameA, durationMs: 250 },
+				{ id: frameB, durationMs: 500 }
+			]);
 			expect(retrieved!.activeFrameId).toBe(frameB);
 			expect(expectPixelLayer(retrieved!.layers[0]).cels).toEqual([
 				{ frameId: frameA, pixels: l1a },
@@ -337,7 +345,7 @@ describe('SessionStorage', () => {
 	});
 
 	describe('schema migration', () => {
-		it('upgrades V1 documents to V6 on DB open', async () => {
+		it('upgrades V1 documents to V7 on DB open', async () => {
 			// Close the V2 DB opened by beforeEach
 			storage.close();
 			await new Promise<void>((resolve, reject) => {
@@ -370,7 +378,7 @@ describe('SessionStorage', () => {
 
 			// Verify migration wrote to the raw store (not just read-time normalization)
 			storage.close();
-			const rawDb = await openDB('dotorixel', 6);
+			const rawDb = await openDB('dotorixel', 7);
 			const stored = await rawDb.get('documents', 'old-doc');
 			rawDb.close();
 
@@ -378,17 +386,19 @@ describe('SessionStorage', () => {
 			expect(stored).toMatchObject({
 				id: 'old-doc',
 				name: 'Pre-migration',
-				schemaVersion: 6,
+				schemaVersion: 7,
 				marquee: null,
 				saved: true
 			});
 			expect(stored!.frames).toHaveLength(1);
+			// The full V1 → V7 chain backfills the synthesized frame's default duration.
+			expect(stored!.frames[0].durationMs).toBe(DEFAULT_FRAME_DURATION_MS);
 			expect(stored!.activeFrameId).toBe(stored!.frames[0].id);
 			expect(stored!.layers[0].kind).toBe('pixel');
 			expect(stored!.createdAt).toEqual(new Date('2026-02-01'));
 		});
 
-		it('upgrades V2 documents to V6 on DB open', async () => {
+		it('upgrades V2 documents to V7 on DB open', async () => {
 			// Close the V3 DB opened by beforeEach
 			storage.close();
 			await new Promise<void>((resolve, reject) => {
@@ -426,12 +436,12 @@ describe('SessionStorage', () => {
 
 			// Verify the raw store now holds a V6 record
 			storage.close();
-			const rawDb = await openDB('dotorixel', 6);
+			const rawDb = await openDB('dotorixel', 7);
 			const stored = await rawDb.get('documents', 'v2-doc');
 			rawDb.close();
 
 			expect(stored).toBeDefined();
-			expect(stored!.schemaVersion).toBe(6);
+			expect(stored!.schemaVersion).toBe(7);
 			expect(stored!.marquee).toBeNull();
 			expect(stored!.name).toBe('V2 saved');
 			expect(stored!.saved).toBe(true);
@@ -448,7 +458,7 @@ describe('SessionStorage', () => {
 			expect(stored!.timelinePanelCollapsed).toBe(false);
 		});
 
-		it('upgrades V3 documents to V6 on DB open', async () => {
+		it('upgrades V3 documents to V7 on DB open', async () => {
 			storage.close();
 			await new Promise<void>((resolve, reject) => {
 				const request = indexedDB.deleteDatabase('dotorixel');
@@ -492,12 +502,12 @@ describe('SessionStorage', () => {
 			storage = await SessionStorage.open();
 			storage.close();
 
-			const rawDb = await openDB('dotorixel', 6);
+			const rawDb = await openDB('dotorixel', 7);
 			const stored = await rawDb.get('documents', 'v3-doc');
 			rawDb.close();
 
 			expect(stored).toBeDefined();
-			expect(stored!.schemaVersion).toBe(6);
+			expect(stored!.schemaVersion).toBe(7);
 			expect(stored!.marquee).toBeNull();
 			expect(stored!.frames).toHaveLength(1);
 			expect(stored!.layers).toHaveLength(1);
@@ -515,7 +525,7 @@ describe('SessionStorage', () => {
 			expect(stored!.timelinePanelCollapsed).toBe(true);
 		});
 
-		it('upgrades V4 documents to V6 with no Marquee on DB open', async () => {
+		it('upgrades V4 documents to V7 with no Marquee on DB open', async () => {
 			storage.close();
 			await new Promise<void>((resolve, reject) => {
 				const request = indexedDB.deleteDatabase('dotorixel');
@@ -559,12 +569,12 @@ describe('SessionStorage', () => {
 			storage = await SessionStorage.open();
 			storage.close();
 
-			const rawDb = await openDB('dotorixel', 6);
+			const rawDb = await openDB('dotorixel', 7);
 			const stored = await rawDb.get('documents', 'v4-doc');
 			rawDb.close();
 
 			expect(stored).toBeDefined();
-			expect(stored!.schemaVersion).toBe(6);
+			expect(stored!.schemaVersion).toBe(7);
 			expect(stored!.marquee).toBeNull();
 			expect(stored!.frames).toHaveLength(1);
 			expect(stored!.activeFrameId).toBe(stored!.frames[0].id);
@@ -576,7 +586,7 @@ describe('SessionStorage', () => {
 			expect(stored!.layers[0].cels).toHaveLength(1);
 		});
 
-		it('upgrades V5 documents to V6 on DB open', async () => {
+		it('upgrades V5 documents to V7 on DB open', async () => {
 			storage.close();
 			await new Promise<void>((resolve, reject) => {
 				const request = indexedDB.deleteDatabase('dotorixel');
@@ -615,18 +625,79 @@ describe('SessionStorage', () => {
 			storage = await SessionStorage.open();
 			storage.close();
 
-			const rawDb = await openDB('dotorixel', 6);
+			const rawDb = await openDB('dotorixel', 7);
 			const stored = await rawDb.get('documents', 'v5-doc');
 			rawDb.close();
 
 			expect(stored).toBeDefined();
-			expect(stored!.schemaVersion).toBe(6);
+			expect(stored!.schemaVersion).toBe(7);
 			expect(stored!.marquee).toBeNull();
 			expect(stored!.frames).toHaveLength(1);
 			expect(stored!.activeFrameId).toBe(stored!.frames[0].id);
 			expect(stored!.layers[0].cels).toHaveLength(1);
 			expect(stored!.layers[0].cels[0].frameId).toBe(stored!.activeFrameId);
 			expect(stored!.layers[0].cels[0].pixels).toEqual(v5Pixels);
+		});
+
+		it('upgrades V6 documents to V7 on DB open', async () => {
+			storage.close();
+			await new Promise<void>((resolve, reject) => {
+				const request = indexedDB.deleteDatabase('dotorixel');
+				request.onsuccess = () => resolve();
+				request.onerror = () => reject(request.error);
+			});
+
+			const layerId = crypto.randomUUID();
+			const frameId = crypto.randomUUID();
+			const v6Pixels = new Uint8Array([7, 8, 9, 255]);
+			const v6Db = await openDB('dotorixel', 6, {
+				upgrade(db) {
+					const store = db.createObjectStore('documents', { keyPath: 'id' });
+					store.createIndex('updatedAt', 'updatedAt');
+					db.createObjectStore('workspace', { keyPath: 'id' });
+				}
+			});
+			await v6Db.put('documents', {
+				schemaVersion: 6,
+				id: 'v6-doc',
+				name: 'V6 saved',
+				width: 1,
+				height: 1,
+				marquee: null,
+				frames: [{ id: frameId }],
+				activeFrameId: frameId,
+				layers: [
+					{
+						kind: 'pixel',
+						id: layerId,
+						name: 'Layer 1',
+						cels: [{ frameId, pixels: v6Pixels }],
+						visible: true,
+						opacity: 1
+					}
+				],
+				activeLayerId: layerId,
+				nextLayerNumber: 2,
+				timelinePanelCollapsed: false,
+				saved: true,
+				createdAt: new Date('2026-06-01'),
+				updatedAt: new Date('2026-06-02')
+			});
+			v6Db.close();
+
+			storage = await SessionStorage.open();
+			storage.close();
+
+			const rawDb = await openDB('dotorixel', 7);
+			const stored = await rawDb.get('documents', 'v6-doc');
+			rawDb.close();
+
+			expect(stored).toBeDefined();
+			expect(stored!.schemaVersion).toBe(7);
+			// Every frame gains the default duration; the cel grid is untouched.
+			expect(stored!.frames).toEqual([{ id: frameId, durationMs: DEFAULT_FRAME_DURATION_MS }]);
+			expect(stored!.activeFrameId).toBe(frameId);
+			expect(stored!.layers[0].cels[0].pixels).toEqual(v6Pixels);
 		});
 
 		it('survives an unmigratable V5 record and still upgrades the valid ones', async () => {
@@ -694,13 +765,13 @@ describe('SessionStorage', () => {
 			storage = await SessionStorage.open();
 			storage.close();
 
-			const rawDb = await openDB('dotorixel', 6);
+			const rawDb = await openDB('dotorixel', 7);
 			const validStored = await rawDb.get('documents', validId);
 			const malformedStored = await rawDb.get('documents', 'malformed');
 			rawDb.close();
 
-			// Valid record migrated to V6; the unmigratable one is left untouched, not fatal.
-			expect(validStored!.schemaVersion).toBe(6);
+			// Valid record migrated to V7; the unmigratable one is left untouched, not fatal.
+			expect(validStored!.schemaVersion).toBe(7);
 			expect(validStored!.frames).toHaveLength(1);
 			expect(validStored!.layers[0].cels[0].pixels).toEqual(validPixels);
 			expect(malformedStored!.schemaVersion).toBe(5);
@@ -810,7 +881,7 @@ describe('SessionStorage', () => {
 				createdAt: new Date('2026-05-03'),
 				updatedAt: new Date('2026-05-03')
 			};
-			await storage.putDocument(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(doc))));
+			await storage.putDocument(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(doc)))));
 
 			const summaries = await storage.getAllSavedDocuments();
 
@@ -850,7 +921,7 @@ describe('SessionStorage', () => {
 				createdAt: new Date('2026-05-03'),
 				updatedAt: new Date('2026-05-03')
 			};
-			await storage.putDocument(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(doc))));
+			await storage.putDocument(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(doc)))));
 
 			const summaries = await storage.getAllSavedDocuments();
 
@@ -863,12 +934,12 @@ describe('SessionStorage', () => {
 			const frameId = crypto.randomUUID();
 			const paintedPixels = new Uint8Array([255, 0, 0, 255]);
 			await storage.putDocument({
-				schemaVersion: 6,
+				schemaVersion: 7,
 				id: 'reference-thumbnail',
 				name: 'Reference thumbnail',
 				width: 1,
 				height: 1,
-				frames: [{ id: frameId }],
+				frames: [{ id: frameId, durationMs: DEFAULT_FRAME_DURATION_MS }],
 				activeFrameId: frameId,
 				layers: [
 					{

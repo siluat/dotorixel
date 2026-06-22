@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
 import { createDocumentHistory, documentFromLayerSource } from './wasm-backend';
+import { DEFAULT_FRAME_DURATION_MS } from '$lib/session/session-storage-types';
 import type { DocumentSchemaV3 } from '$lib/session/session-storage-types';
 
 function makeSchema(overrides: Partial<DocumentSchemaV3> = {}): DocumentSchemaV3 {
@@ -153,7 +154,10 @@ describe('documentFromLayerSource — multi-frame', () => {
 		const doc = documentFromLayerSource({
 			width: 2,
 			height: 2,
-			frames: [{ id: frameA }, { id: frameB }],
+			frames: [
+				{ id: frameA, durationMs: DEFAULT_FRAME_DURATION_MS },
+				{ id: frameB, durationMs: DEFAULT_FRAME_DURATION_MS }
+			],
 			activeFrameId: frameB,
 			layers: [
 				{
@@ -197,7 +201,10 @@ describe('documentFromLayerSource — multi-frame', () => {
 		const doc = documentFromLayerSource({
 			width: 2,
 			height: 2,
-			frames: [{ id: f1 }, { id: f2 }],
+			frames: [
+				{ id: f1, durationMs: DEFAULT_FRAME_DURATION_MS },
+				{ id: f2, durationMs: DEFAULT_FRAME_DURATION_MS }
+			],
 			activeFrameId: f1,
 			layers: [
 				{
@@ -235,6 +242,70 @@ describe('documentFromLayerSource — multi-frame', () => {
 		// Top layer (index 1): empty on frame 1, blue on frame 2.
 		expect(Array.from(doc.cel_pixels_at(1, frames[0].id)!)).toEqual(Array.from(transparent));
 		expect(Array.from(doc.cel_pixels_at(1, frames[1].id)!)).toEqual(Array.from(blue));
+	});
+
+	it('applies each frame’s persisted duration on rebuild', () => {
+		const layerId = crypto.randomUUID();
+		const frameA = crypto.randomUUID();
+		const frameB = crypto.randomUUID();
+
+		const doc = documentFromLayerSource({
+			width: 2,
+			height: 2,
+			frames: [
+				{ id: frameA, durationMs: 250 },
+				{ id: frameB, durationMs: 500 }
+			],
+			activeFrameId: frameA,
+			layers: [
+				{
+					kind: 'pixel',
+					id: layerId,
+					name: 'Layer 1',
+					cels: [
+						{ frameId: frameA, pixels: fill2x2(255, 0, 0) },
+						{ frameId: frameB, pixels: fill2x2(0, 0, 255) }
+					],
+					visible: true,
+					opacity: 1
+				}
+			],
+			activeLayerId: layerId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false
+		});
+
+		// Durations align positionally with the source frame axis, including frame 0
+		// whose id the builder reassigns.
+		expect(doc.frames_metadata().map((frame) => frame.duration_ms)).toEqual([250, 500]);
+	});
+
+	it('applies the lone frame’s duration when the source has a single frame', () => {
+		const layerId = crypto.randomUUID();
+		const frameId = crypto.randomUUID();
+
+		const doc = documentFromLayerSource({
+			width: 2,
+			height: 2,
+			frames: [{ id: frameId, durationMs: 333 }],
+			activeFrameId: frameId,
+			layers: [
+				{
+					kind: 'pixel',
+					id: layerId,
+					name: 'Layer 1',
+					cels: [{ frameId, pixels: fill2x2(0, 255, 0) }],
+					visible: true,
+					opacity: 1
+				}
+			],
+			activeLayerId: layerId,
+			nextLayerNumber: 2,
+			timelinePanelCollapsed: false
+		});
+
+		expect(doc.frames_metadata()).toHaveLength(1);
+		expect(doc.frames_metadata()[0].duration_ms).toBe(333);
 	});
 });
 

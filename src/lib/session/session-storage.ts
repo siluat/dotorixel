@@ -11,7 +11,8 @@ import {
 	migrateV2ToV3,
 	migrateV3ToV4,
 	migrateV4ToV5,
-	migrateV5ToV6
+	migrateV5ToV6,
+	migrateV6ToV7
 } from './session-storage-types';
 
 interface DotorixelDB {
@@ -27,24 +28,26 @@ interface DotorixelDB {
 }
 
 const DB_NAME = 'dotorixel';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
-function normalizeToV6(stored: StoredDocument): DocumentRecord {
+function normalizeToV7(stored: StoredDocument): DocumentRecord {
 	if ('schemaVersion' in stored) {
-		if (stored.schemaVersion === 6) return stored;
+		if (stored.schemaVersion === 7) return stored;
+		if (stored.schemaVersion === 6) return migrateV6ToV7(stored);
 		// V5 still routes through migrateV4ToV5 to re-normalize legacy Reference
 		// Layer order (single bottom-most underlay) before gaining the frame axis.
-		if (stored.schemaVersion === 5) return migrateV5ToV6(migrateV4ToV5(stored));
-		if (stored.schemaVersion === 4) return migrateV5ToV6(migrateV4ToV5(stored));
-		if (stored.schemaVersion === 3) return migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(stored)));
+		if (stored.schemaVersion === 5) return migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(stored)));
+		if (stored.schemaVersion === 4) return migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(stored)));
+		if (stored.schemaVersion === 3)
+			return migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(stored))));
 		if (stored.schemaVersion === 2)
-			return migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(stored))));
+			return migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(stored)))));
 		throw new Error(
 			`Unsupported document schemaVersion: ${(stored as { schemaVersion: number }).schemaVersion}`
 		);
 	}
-	return migrateV5ToV6(
-		migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(migrateDocumentToV2(stored))))
+	return migrateV6ToV7(
+		migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(migrateDocumentToV2(stored)))))
 	);
 }
 
@@ -125,6 +128,23 @@ export class SessionStorage {
 						cursor = await cursor.continue();
 					}
 				}
+				if (oldVersion < 7) {
+					const store = tx.objectStore('documents');
+					let cursor = await store.openCursor();
+					while (cursor) {
+						const doc = cursor.value;
+						// Records from earlier versions were already chained up to V6 by the
+						// blocks above, so a single V6 → V7 step here finishes every record.
+						if ('schemaVersion' in doc && doc.schemaVersion === 6) {
+							try {
+								await cursor.update(migrateV6ToV7(doc));
+							} catch (error) {
+								console.warn(`Skipping unmigratable V6 document ${doc.id}`, error);
+							}
+						}
+						cursor = await cursor.continue();
+					}
+				}
 			}
 		});
 		return new SessionStorage(db);
@@ -134,7 +154,7 @@ export class SessionStorage {
 	async getDocument(id: string): Promise<DocumentRecord | undefined> {
 		const stored = await this.#db.get('documents', id);
 		if (!stored) return undefined;
-		return normalizeToV6(stored);
+		return normalizeToV7(stored);
 	}
 
 	async putDocument(doc: DocumentRecord): Promise<void> {
@@ -147,7 +167,7 @@ export class SessionStorage {
 		const saved: SavedDocumentSummary[] = [];
 		for (const doc of all) {
 			try {
-				const record = normalizeToV6(doc);
+				const record = normalizeToV7(doc);
 				if (!record.saved) continue;
 				saved.push({
 					id: record.id,

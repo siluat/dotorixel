@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 197 | [Per-frame duration — document schema V7 + snapshot persistence](../issues/197-frame-duration-schema-v7.md) | 2026-06-22 |
 | 196 | [Per-frame duration — WASM binding + journal intent + TabState](../issues/196-frame-duration-wasm-journal.md) | 2026-06-21 |
 | 195 | [Per-frame duration — Rust core](../issues/195-frame-duration-core.md) | 2026-06-21 |
 | 194 | [Per-frame duration control design — M4 (.pen)](../issues/194-per-frame-duration-design.md) | 2026-06-21 |

@@ -29,10 +29,11 @@ export type StoredDocument =
 	| DocumentSchemaV3
 	| DocumentSchemaV4
 	| DocumentSchemaV5
-	| DocumentSchemaV6;
+	| DocumentSchemaV6
+	| DocumentSchemaV7;
 
 /** App-facing document type — latest version wired into persistence call sites. */
-export type DocumentRecord = DocumentSchemaV6;
+export type DocumentRecord = DocumentSchemaV7;
 
 /** Lightweight summary for browsing saved documents (excludes schemaVersion, saved, createdAt) */
 export interface SavedDocumentSummary {
@@ -121,8 +122,26 @@ export type DocumentSchemaV5 = Omit<DocumentSchemaV4, 'schemaVersion'> & {
 	marquee: MarqueeRecord | null;
 };
 
-/** A position on the Document's temporal axis — identity only, no name or duration. */
+/**
+ * The display duration (ms) a Frame defaults to when none is recorded — the TS
+ * mirror of the core's `Frame::DEFAULT_DURATION_MS`. Single source of truth for
+ * the value the V6 → V7 migration backfills onto duration-less frames.
+ */
+export const DEFAULT_FRAME_DURATION_MS = 100;
+
+/**
+ * A position on the Document's temporal axis — its identity plus the display
+ * duration (`durationMs`) it is held during playback. Gained `durationMs` in
+ * schema V7; the duration-less V6 shape is frozen as {@link FrameRecordV6}.
+ */
 export interface FrameRecord {
+	id: string;
+	/** How long the frame is held during playback, in milliseconds. */
+	durationMs: number;
+}
+
+/** The frozen V6 Frame shape — identity only, before V7 added `durationMs`. */
+export interface FrameRecordV6 {
 	id: string;
 }
 
@@ -150,9 +169,15 @@ export type LayerRecordV6 = PixelLayerRecordV6 | ReferenceLayerRecord;
 /** Schema V6 — adds the frame axis; each Pixel Layer holds one Cel per frame. */
 export type DocumentSchemaV6 = Omit<DocumentSchemaV5, 'schemaVersion' | 'layers'> & {
 	schemaVersion: 6;
-	frames: FrameRecord[];
+	frames: FrameRecordV6[];
 	activeFrameId: string;
 	layers: LayerRecordV6[];
+};
+
+/** Schema V7 — each Frame carries its display `durationMs`; the cel grid is unchanged. */
+export type DocumentSchemaV7 = Omit<DocumentSchemaV6, 'schemaVersion' | 'frames'> & {
+	schemaVersion: 7;
+	frames: FrameRecord[];
 };
 
 function isReferenceLayerRecord(layer: LayerRecord): layer is ReferenceLayerRecord {
@@ -299,6 +324,20 @@ export function migrateV5ToV6(doc: DocumentSchemaV5): DocumentSchemaV6 {
 }
 
 /**
+ * Migrates a V6 persisted document to schema V7 by giving every Frame the
+ * default display duration. Lossless: the cel grid, layers, `activeFrameId`,
+ * and document metadata are untouched; history resets, consistent with prior
+ * schema migrations.
+ */
+export function migrateV6ToV7(doc: DocumentSchemaV6): DocumentSchemaV7 {
+	return {
+		...doc,
+		schemaVersion: 7,
+		frames: doc.frames.map((frame) => ({ id: frame.id, durationMs: DEFAULT_FRAME_DURATION_MS }))
+	};
+}
+
+/**
  * Source-over composite of every visible layer at its declared opacity.
  * Used to build a single thumbnail buffer for the saved-work browser — the
  * Rust core renders the in-editor canvas via a parallel implementation, so
@@ -340,10 +379,15 @@ export function celPixelsForFrame(layer: PixelLayerRecordV6, frameId: string): U
 
 /** Pixel-only composite for persistence summaries; Reference Layers are excluded. */
 export function compositeForExportSummary(
-	doc: DocumentSchemaV3 | DocumentSchemaV4 | DocumentSchemaV5 | DocumentSchemaV6
+	doc:
+		| DocumentSchemaV3
+		| DocumentSchemaV4
+		| DocumentSchemaV5
+		| DocumentSchemaV6
+		| DocumentSchemaV7
 ): Uint8Array {
 	if (doc.schemaVersion === 3) return compositeV3(doc);
-	if (doc.schemaVersion === 6) {
+	if (doc.schemaVersion === 6 || doc.schemaVersion === 7) {
 		const pixelLayers = doc.layers
 			.filter((layer): layer is PixelLayerRecordV6 => layer.kind === 'pixel')
 			.map((layer) => ({

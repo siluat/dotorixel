@@ -2,15 +2,15 @@
 
 ## Currently Working On
 
-Per-frame speed control — per-frame duration (M4) ([PRD](../issues/193-per-frame-speed-control.md)). **3 / 5 sub-issues done** — 194 design + 195 core + [196 WASM binding/journal/TabState](../issues/196-frame-duration-wasm-journal.md) shipped. Next unblocked slice: **[197 — Document schema V7 + snapshot persistence](../issues/197-frame-duration-schema-v7.md)** (unblocked by 196). Then 198 (TimelinePanel UI; also needs the done 194 design).
+Per-frame speed control — per-frame duration (M4) ([PRD](../issues/193-per-frame-speed-control.md)). **4 / 5 sub-issues done** — 194 design + 195 core + 196 WASM binding/journal + 197 schema V7/persistence shipped. Final slice: **[198 — TimelinePanel control + i18n + E2E](../issues/198-frame-duration-timeline-ui.md)**, now unblocked (its 194 / 196 / 197 blockers are all done).
 
 ## Last Completed
 
-[196 — Per-frame duration WASM binding + journal intent + TabState](../issues/196-frame-duration-wasm-journal.md): the web shell can now read each frame's `duration_ms` and retime it through an undoable `set-frame-duration` journal intent (one commit = one undo step, no viewport reclamp). The 1–60000 ms clamp is single-sourced at the WASM boundary; snapshot persistence (197) and the timeline control (198) remain.
+[197 — Document schema V7 + snapshot persistence](../issues/197-frame-duration-schema-v7.md): per-frame duration now survives a refresh — `FrameRecord.durationMs` round-trips through the workspace snapshot and a `DB_VERSION` 7 record, with a lossless V6 → V7 migration that backfills every legacy frame at the 100ms default. The duration clamp stays single-sourced at the WASM boundary; only the timeline control (198) remains.
 
 ## Next Up
 
-- **197 — Document schema V7 + snapshot persistence** ([issue](../issues/197-frame-duration-schema-v7.md)) — active PRD's next slice, now unblocked by 196 (then 198)
+- **198 — TimelinePanel control + i18n + E2E** ([issue](../issues/198-frame-duration-timeline-ui.md)) — active PRD's final slice, now unblocked by 197
 - Timeline UI (M4 — transport/playback strip; the ruler already reserves its slot)
 - Onion skinning (M4 — needs per-arbitrary-frame composite)
 - Animation preview — play/pause in editor (M4)

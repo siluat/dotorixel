@@ -2,9 +2,11 @@
 
 ## Milestone 4: Animation-Capable Editor
 
-- Timeline UI
+- In-editor animation playback (transport strip + preview) — [PRD](../issues/199-animation-playback-transport.md) (merges former "Timeline UI" + "Animation preview")
+  - [201 — Per-frame composite seam (`composite_at`)](../issues/201-per-frame-composite-at.md) (AFK · no blockers)
+  - [202 — Shell playback controller](../issues/202-playback-controller.md) (AFK · blocked by 201)
+  - [203 — Transport strip UI + i18n + E2E](../issues/203-transport-strip-ui.md) (AFK · blocked by 202)
 - Onion skinning
-- Animation preview (play/pause in editor)
 - GIF/spritesheet export
 - Feedback link to Google Form
 - Apple Pencil: hover preview + palm rejection

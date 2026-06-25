@@ -2,18 +2,16 @@
 
 ## Currently Working On
 
-None
+In-editor animation playback — transport strip + preview ([PRD](../issues/199-animation-playback-transport.md)): 1/4 sub-issues done — 200 (transport strip design) shipped. Remaining: **201 (per-frame `composite_at` seam, unblocked)** → 202 (playback controller, needs 201) → 203 (transport UI, needs 202).
 
 ## Last Completed
 
-[198 — TimelinePanel control + i18n + E2E](../issues/198-frame-duration-timeline-ui.md): the active-frame duration editor (text input, ms + derived fps) now lives in the timeline's ruler corner — commit-on-Enter/blur, undoable, persisted, with an E2E tracer. This **completes PRD 193** (per-frame duration: authored, editable, durable, undoable end-to-end on Web). Playback/preview and GIF export are the separate M4 consumers of this timing data.
+[200 — Animation playback transport strip design (.pen)](../issues/200-animation-playback-transport-design.md): the 199 spec — a full-width fixed transport bar (Play/Pause toggle · Loop · n/N readout) with a sweeping ▾ playhead kept visually distinct from the static Active-Frame highlight; light/dark + mobile ≥44px. Placement picked via a 3-variant study; no global fps (per-frame ms remains the source of truth). Implementation lands in 201–203.
 
 ## Next Up
 
-- Timeline UI (M4 — transport/playback strip; the ruler already reserves its slot)
-- Onion skinning (M4 — needs per-arbitrary-frame composite)
-- Animation preview — play/pause in editor (M4)
-- GIF / spritesheet export (M4 — multi-frame export)
+- Onion skinning (M4 — needs per-arbitrary-frame composite; reuses `composite_at` from PRD 199)
+- GIF / spritesheet export (M4 — multi-frame export; reuses `composite_at` from PRD 199)
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
 - Apple Phase 1 — Enable clear canvas (existing disabled button)
 - Apple Phase 1 — Enable PNG export (existing disabled button)

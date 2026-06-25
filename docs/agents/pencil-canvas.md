@@ -33,7 +33,8 @@ FEATURE SPECS row (left→right): `092 TimelinePanel` · `187 Frame Ruler (M4)` 
 `106 Reference Layer` · `133 Selection Action Bar` · `054 Floating Reference
 Windows` · Floating Window Chrome compare · Color Picker Loupe · Saved Work
 Browser · Export UI · Canvas Resize · Tooltip · Pixel-Perfect Toggle (Icon / Q4
-ON·OFF / Final Spec) · `194 Per-frame Duration Control (M4)`.
+ON·OFF / Final Spec) · `194 Per-frame Duration Control (M4)` · `199 Animation
+Playback / Transport Strip (M4)`.
 
 ## Naming conventions
 

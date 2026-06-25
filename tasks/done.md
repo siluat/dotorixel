@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 200 | [Animation playback transport strip — design (.pen)](../issues/200-animation-playback-transport-design.md) | 2026-06-23 |
 | 198 | [Per-frame duration — TimelinePanel control + i18n + E2E](../issues/198-frame-duration-timeline-ui.md) | 2026-06-22 |
 | 197 | [Per-frame duration — document schema V7 + snapshot persistence](../issues/197-frame-duration-schema-v7.md) | 2026-06-22 |
 | 196 | [Per-frame duration — WASM binding + journal intent + TabState](../issues/196-frame-duration-wasm-journal.md) | 2026-06-21 |

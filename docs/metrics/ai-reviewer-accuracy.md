@@ -6,14 +6,16 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 164 | 127 | 37 | 160 | 77% | 44% |
-| cubic-dev-ai[bot] | 129 | 101 | 28 | 183 | 78% | 36% |
+| greptile-apps[bot] | 165 | 127 | 38 | 160 | 77% | 44% |
+| cubic-dev-ai[bot] | 130 | 101 | 29 | 183 | 78% | 36% |
 | coderabbitai[bot] | 219 | 154 | 65 | 127 | 70% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #292 | greptile-apps[bot] | Reject | Claimed the fake has no accessor to obtain its frame id, so `composite_at(active_frame_id())` would throw in 202's tests; false — fake-drawing-ops.ts:261 already exposes `active_frame_id() => 'frame'` and `composite_at('frame')` returns the buffer |
+| #292 | cubic-dev-ai[bot] | Reject | Wanted the fake's `composite()` to delegate to `composite_at(active_frame_id())` to mirror the core; no observable change in a single-frame stub (`active_frame_id()` fixed at `'frame'`, `frame_count()` 1), and a partial mirror omitting composite_for_export→composite would be inconsistent |
 | #291 | greptile-apps[bot] | Accept | Fractional duration (e.g. 100.5) passed `Number.isFinite` and dispatched to be silently truncated at the u32 WASM boundary; guarded commit on `Number.isInteger` so empty / non-numeric / fractional entries all revert |
 | #291 | cubic-dev-ai[bot] | Accept | Same fractional-duration u32 truncation (duplicate); fixed via the `Number.isInteger` guard |
 | #291 | greptile-apps[bot] | Accept | Redundant `waitForTimeout(200)` after the IndexedDB poll already confirmed `durationMs===500`; removed (the poll guarantees durability before reload) |

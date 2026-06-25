@@ -686,8 +686,31 @@ impl Document {
     /// Each Pixel Layer's `opacity` is multiplied into its source alpha; layers
     /// with `visible = false` are skipped entirely. Reference Layers are
     /// viewport underlays and never contribute to document-pixel buffers.
+    ///
+    /// The active-frame special case of [`composite_at`](Self::composite_at):
+    /// "how a frame composites" has one definition, and the active frame reads
+    /// through it like any other.
     pub fn composite(&self) -> Vec<u8> {
-        let frame_id = self.active_frame_id;
+        self.composite_at(self.active_frame_id)
+    }
+
+    /// Returns a freshly-allocated row-major RGBA byte buffer
+    /// (`width * height * 4`) for the frame identified by `frame_id`, with each
+    /// visible Pixel Layer's cel for that frame blended bottom-to-top using
+    /// straight (non-premultiplied) source-over alpha — the frame-agnostic
+    /// generalization of [`composite`](Self::composite).
+    ///
+    /// Each Pixel Layer's `opacity` is multiplied into its source alpha; layers
+    /// with `visible = false` are skipped entirely. Reference Layers are
+    /// viewport underlays and never contribute. The active-frame pointer is
+    /// neither consulted nor moved, so playback (and later onion skinning and
+    /// multi-frame export) can read any frame without disturbing the edit state.
+    ///
+    /// Trusts `frame_id` to be a valid in-document frame — the same grid
+    /// invariant [`composite`](Self::composite) already relies on; validating an
+    /// arbitrary id is a boundary concern owned by the shell binding. Panics
+    /// when no Pixel Layer holds a cel for `frame_id`.
+    pub fn composite_at(&self, frame_id: Uuid) -> Vec<u8> {
         let mut buf = vec![0u8; (self.width * self.height * 4) as usize];
         for layer in &self.layers {
             if !layer.visible {
@@ -696,7 +719,7 @@ impl Document {
             if let LayerKind::Pixel(cels) = &layer.kind {
                 let canvas = cels
                     .get(frame_id)
-                    .expect("grid invariant: every Pixel Layer has a cel for the active frame");
+                    .expect("grid invariant: every Pixel Layer has a cel for every frame");
                 blend_pixel_canvas_over(&mut buf, canvas, layer.opacity);
             }
         }
@@ -3702,6 +3725,108 @@ mod tests {
 
         doc.set_active_frame(first).unwrap();
         assert_eq!(&doc.composite()[0..4], &[255, 0, 0, 255]);
+    }
+
+    #[test]
+    fn composite_at_returns_the_requested_frames_pixels_not_the_active_frames() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let red = Color::new(255, 0, 0, 255);
+        doc.set_pixel(0, 0, red).unwrap(); // paint the first frame
+
+        let second = Uuid::new_v4();
+        doc.add_frame(second); // second is now active and empty
+
+        // The active frame (second) is empty, but compositing the first frame by
+        // id still yields its red pixel; the empty second frame composites blank.
+        assert!(doc.composite_at(second).iter().all(|&b| b == 0));
+        assert_eq!(&doc.composite_at(first)[0..4], &[255, 0, 0, 255]);
+    }
+
+    #[test]
+    fn composite_equals_composite_at_the_active_frame() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap(); // first frame
+        let second = Uuid::new_v4();
+        doc.add_frame(second); // second active
+        doc.set_pixel(1, 1, Color::new(0, 255, 0, 255)).unwrap(); // second frame
+
+        // composite() is exactly composite_at(active_frame_id): no behavior change
+        // for existing callers, whichever frame is active.
+        assert_eq!(doc.composite(), doc.composite_at(second));
+        assert_eq!(doc.composite(), doc.composite_at(doc.active_frame_id()));
+
+        doc.set_active_frame(first).unwrap();
+        assert_eq!(doc.composite(), doc.composite_at(first));
+        assert_eq!(doc.composite(), doc.composite_at(doc.active_frame_id()));
+    }
+
+    #[test]
+    fn composite_at_is_a_pure_query_that_leaves_the_active_frame_untouched() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap(); // first frame
+        let second = Uuid::new_v4();
+        doc.add_frame(second); // second active and empty
+        let active_before = doc.active_frame_id();
+        let active_composite_before = doc.composite();
+
+        // Reading a non-active frame's composite must not move the pointer or
+        // disturb the active frame's composite — playback reads, never writes.
+        let _ = doc.composite_at(first);
+
+        assert_eq!(doc.active_frame_id(), active_before);
+        assert_eq!(doc.composite(), active_composite_before);
+    }
+
+    #[test]
+    fn composite_at_skips_hidden_layers_and_excludes_references_on_a_non_active_frame() {
+        use crate::layer::ReferenceData;
+        use crate::reference_placement::ReferencePlacement;
+
+        // Bottom Pixel Layer: opaque red, painted on the first frame.
+        let bottom = Uuid::new_v4();
+        let mut doc = Document::new(1, 1, bottom, "Bottom".to_string()).unwrap();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+        // Top Pixel Layer: opaque green on the first frame, then hidden.
+        let top = Uuid::new_v4();
+        doc.add_layer(top, "Top".to_string());
+        doc.set_pixel(0, 0, Color::new(0, 255, 0, 255)).unwrap();
+        doc.set_layer_visibility(top, false).unwrap();
+        // A visible Reference Layer holding opaque blue — a viewport underlay that
+        // must never reach a pixel buffer, on any frame.
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
+        let reference = ReferenceData::new(vec![0u8, 0, 255, 255], 1, 1, placement).unwrap();
+        doc.layers.push(Layer {
+            id: Uuid::new_v4(),
+            name: "Reference".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Reference(reference),
+        });
+        // Make a second frame active so `first` is composited as a non-active frame.
+        let first = doc.active_frame_id();
+        doc.add_frame(Uuid::new_v4());
+        assert_ne!(doc.active_frame_id(), first);
+
+        // The same skip rules apply for an arbitrary frame: hidden top excluded,
+        // Reference excluded, only the bottom red remains.
+        assert_eq!(doc.composite_at(first), vec![255, 0, 0, 255]);
+    }
+
+    #[test]
+    fn composite_at_multiplies_layer_opacity_into_source_alpha_on_a_non_active_frame() {
+        let mut doc = Document::new(1, 1, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap(); // opaque red on first frame
+        doc.layers[0].opacity = 0.5;
+        doc.add_frame(Uuid::new_v4()); // second active; first becomes non-active
+        assert_ne!(doc.active_frame_id(), first);
+
+        // Opacity multiplies into source alpha identically for any frame:
+        // src_a = 1.0 * 0.5 = 0.5 → out_a = 0.5 → alpha byte 128.
+        assert_eq!(doc.composite_at(first), vec![255, 0, 0, 128]);
     }
 
     #[test]

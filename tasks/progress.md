@@ -2,16 +2,16 @@
 
 ## Currently Working On
 
-In-editor animation playback — transport strip + preview ([PRD](../issues/199-animation-playback-transport.md)): 1/4 sub-issues done — 200 (transport strip design) shipped. Remaining: **201 (per-frame `composite_at` seam, unblocked)** → 202 (playback controller, needs 201) → 203 (transport UI, needs 202).
+In-editor animation playback — transport strip + preview ([PRD](../issues/199-animation-playback-transport.md)): 2/4 sub-issues done — 200 (transport strip design) + 201 (`composite_at` seam) shipped. Remaining: **202 (playback controller, now unblocked)** → 203 (transport UI, needs 202).
 
 ## Last Completed
 
-[200 — Animation playback transport strip design (.pen)](../issues/200-animation-playback-transport-design.md): the 199 spec — a full-width fixed transport bar (Play/Pause toggle · Loop · n/N readout) with a sweeping ▾ playhead kept visually distinct from the static Active-Frame highlight; light/dark + mobile ≥44px. Placement picked via a 3-variant study; no global fps (per-frame ms remains the source of truth). Implementation lands in 201–203.
+[201 — Per-frame composite seam (`composite_at`)](../issues/201-per-frame-composite-at.md): a per-arbitrary-frame composite in core + web binding, with `composite()` now its active-frame special case. Read-only (no journal), validated at the WASM boundary, lands dead-code-tolerant (no consumer yet). Unblocks 202; the same seam onion skinning + multi-frame export will reuse.
 
 ## Next Up
 
-- Onion skinning (M4 — needs per-arbitrary-frame composite; reuses `composite_at` from PRD 199)
-- GIF / spritesheet export (M4 — multi-frame export; reuses `composite_at` from PRD 199)
+- Onion skinning (M4 — multi-frame; `composite_at` seam now available)
+- GIF / spritesheet export (M4 — multi-frame export; `composite_at` seam now available)
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
 - Apple Phase 1 — Enable clear canvas (existing disabled button)
 - Apple Phase 1 — Enable PNG export (existing disabled button)

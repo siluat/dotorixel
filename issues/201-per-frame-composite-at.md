@@ -1,6 +1,6 @@
 ---
 title: "Per-frame composite seam — composite_at (core + WASM)"
-status: ready-for-agent
+status: done
 created: 2026-06-23
 parent: 199-animation-playback-transport.md
 ---
@@ -55,3 +55,32 @@ cel-grid (188) and duration core (195) slices did.
 ## Blocked by
 
 None — can start immediately (runs in parallel with 200). Unblocks 202.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/document.rs` | `composite_at(frame_id: Uuid) -> Vec<u8>` — per-arbitrary-frame straight source-over composite; `composite()` now delegates as `composite_at(active_frame_id)`. 5 inline behavior tests. |
+| `wasm/src/lib.rs` | `composite_at(frame_id: String) -> Result<Vec<u8>, JsError>` read-only getter: parses the UUID, confirms the frame exists, delegates. Happy-path round-trip test. |
+| `src/lib/canvas/canvas-model.ts` | `Document.composite_at(frameId)` added to the facade interface. |
+| `src/lib/canvas/fake-drawing-ops.ts` | Fake `composite_at` (returns the composite for the sole frame; throws on an unknown id). |
+| `src/lib/wasm/wasm-document.test.ts` | JS-boundary error contract: invalid UUID and unknown frame both throw. |
+
+### Key Decisions
+
+- **`composite()` becomes a special case of `composite_at`** — one definition of "how a
+  frame composites"; the active frame reads through it like any other, removing the
+  blend-loop duplication.
+- **Fail at the boundary, trust the core** — the core trusts a valid in-document
+  `frame_id` (grid-invariant `expect`); UUID parsing + frame-existence validation live
+  at the WASM layer. The invalid-UUID / unknown-frame error contract is verified at the
+  JS boundary, since constructing a `JsError` panics on a non-wasm `cargo test` target.
+- **Read-only sibling of `composite()`** — no mutation, no journal intent (playback
+  reads, never writes); the active-frame pointer is neither consulted nor moved.
+
+### Notes
+
+- Lands dead-code-tolerant: no shell consumer yet, and the Apple binding builds
+  unchanged (`cargo build --workspace` green). Unblocks 202 (playback controller).
+- Verification: core 460 tests, wasm 29 tests, full vitest 1548 tests — all green; no
+  new clippy warnings.

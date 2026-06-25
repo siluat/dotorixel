@@ -124,6 +124,13 @@ export interface Document {
 	composite(): Uint8Array;
 	/** Pixel-only composite for export and saved-work thumbnails. */
 	composite_for_export(): Uint8Array;
+	/**
+	 * Pixel-only composite of the frame identified by `frameId`, without moving
+	 * the active-frame pointer — the read-only, frame-addressed sibling of
+	 * {@link composite} that playback reads frame by frame. Throws when `frameId`
+	 * is not a valid UUID or no frame with that id is on the axis.
+	 */
+	composite_at(frameId: string): Uint8Array;
 	/** Reads the active-layer pixel at `(x, y)`. Throws when `(x, y)` is outside `width × height`. */
 	get_pixel(x: number, y: number): Color;
 	/** Reads the active layer for sampling, or returns `undefined` when no pixel is available. */

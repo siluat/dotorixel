@@ -62,7 +62,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Pixel rendering | — | ✅ | ✅ | Canvas2D / Metal |
-| Multi-layer composite | ✅ | ✅ | ⬜ | Visible Pixel Layers blended bottom-to-top; Reference is drawn separately as a viewport underlay |
+| Multi-layer composite | ✅ | ✅ | ⬜ | Visible Pixel Layers blended bottom-to-top; Reference drawn separately as viewport underlay. Composites any frame (active = one case) — read seam for playback/onion/export |
 | Checkerboard transparency | — | ✅ | ✅ | |
 | Grid overlay + toggle | — | ✅ | ✅ | Auto-hidden below 4px |
 

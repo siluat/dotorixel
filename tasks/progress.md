@@ -2,11 +2,11 @@
 
 ## Currently Working On
 
-In-editor animation playback — transport strip + preview ([PRD](../issues/199-animation-playback-transport.md)): 2/4 sub-issues done — 200 (transport strip design) + 201 (`composite_at` seam) shipped. Remaining: **202 (playback controller, now unblocked)** → 203 (transport UI, needs 202).
+In-editor animation playback — transport strip + preview ([PRD](../issues/199-animation-playback-transport.md)): 3/4 sub-issues done — 200 (transport design) + 201 (`composite_at` seam) + 202 (playback engine) shipped. Remaining: **203 (transport strip UI + i18n + E2E, now unblocked)** — it wires the 202 engine to a UI.
 
 ## Last Completed
 
-[201 — Per-frame composite seam (`composite_at`)](../issues/201-per-frame-composite-at.md): a per-arbitrary-frame composite in core + web binding, with `composite()` now its active-frame special case. Read-only (no journal), validated at the WASM boundary, lands dead-code-tolerant (no consumer yet). Unblocks 202; the same seam onion skinning + multi-frame export will reuse.
+[202 — Shell playback controller](../issues/202-playback-controller.md): the headless playback engine — a per-tab transient Playhead + rAF clock that advances frames by each `duration_ms` and previews committed art through `composite_at`, never mutating the Document (no dirty, no history, Active Frame unmoved). Lands without UI (203 wires the transport); reusable `fake-frame-scheduler` test double added.
 
 ## Next Up
 

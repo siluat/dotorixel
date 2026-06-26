@@ -6,14 +6,33 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 165 | 127 | 38 | 160 | 77% | 44% |
-| cubic-dev-ai[bot] | 130 | 101 | 29 | 183 | 78% | 36% |
-| coderabbitai[bot] | 219 | 154 | 65 | 127 | 70% | 55% |
+| greptile-apps[bot] | 166 | 128 | 38 | 164 | 77% | 44% |
+| cubic-dev-ai[bot] | 138 | 107 | 31 | 183 | 78% | 37% |
+| coderabbitai[bot] | 223 | 158 | 65 | 129 | 71% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #293 | coderabbitai[bot] | Accept | New openDocument/openSnapshot playback tests asserted only `isPlaying`, not scheduled-frame cleanup; added `expect(manual.hasScheduled).toBe(false)` to match adjacent tests and verify the outgoing tab's rAF was cancelled (round 2) |
+| #293 | cubic-dev-ai[bot] | Accept | Same missing scheduler-cancellation assertion in the new openDocument/openSnapshot tests (duplicate, round 2); fixed |
+| #293 | coderabbitai[bot] | Accept | fake-frame-scheduler silently overwrote a pending callback, masking a double-schedule bug; throw on a second schedule to enforce the controller's single-pending-frame invariant in tests |
+| #293 | cubic-dev-ai[bot] | Accept | Same fake-scheduler double-schedule masking (duplicate); fixed via throw-on-double-schedule |
+| #293 | coderabbitai[bot] | Accept | Playback stopped only in `#mutate` — tool strokes via `drawStart`/`#applyEffects` kept the playhead running while editing a frame invisibly; stop playback at `drawStart` too + regression test |
+| #293 | cubic-dev-ai[bot] | Accept | Same tool-stroke edit-boundary gap (duplicate); fixed by stopping playback at `drawStart` |
+| #293 | coderabbitai[bot] | Accept | Tab-switch stop lived only in `setActiveTab` — `addTab`/`openDocument`/`openSnapshot` activate a tab directly, leaking the outgoing tab's rAF; routed all four through a shared `#stopOutgoingPlayback` helper |
+| #293 | cubic-dev-ai[bot] | Accept | Same other-tab-switch-paths rAF leak (duplicate); fixed via the shared helper |
+| #293 | greptile-apps[bot] | Accept | Redundant `requestRender()` in the loop-off stop path (Svelte batches it away under `playheadFrameId=null`); reordered `#onFrame` to check `result.stopped` before the frame-change render |
+| #293 | cubic-dev-ai[bot] | Accept | Same redundant stop-path `requestRender()` (duplicate); fixed by the reorder |
+| #293 | cubic-dev-ai[bot] | Accept | Lifecycle tests covered only `setActiveTab`/`closeTab`; added regression coverage for `addTab`/`openDocument`/`openSnapshot` stopping the outgoing tab's playback |
+| #293 | cubic-dev-ai[bot] | Reject | `start()` dereferences `frames[0]` without an empty check; a Document always holds ≥1 frame (CONTEXT.md invariant), so guarding it violates fail-at-the-boundary/trust-the-core — documented the non-empty `getFrames` precondition instead |
+| #293 | cubic-dev-ai[bot] | Reject | Clamp negative timestamp deltas; rAF timestamps are monotonic non-decreasing by spec so a negative delta can't occur in production (the upper clamp guards a real resume-jump, a lower clamp an impossible one) — documented the monotonic `FrameScheduler` contract instead |
+| #293 | greptile-apps[bot] | Miss | Did not flag the fake-scheduler double-schedule masking |
+| #293 | greptile-apps[bot] | Miss | Did not flag tool strokes (`drawStart`) bypassing the playback-stop boundary |
+| #293 | greptile-apps[bot] | Miss | Did not flag the other tab-switch paths (`addTab`/`openDocument`/`openSnapshot`) leaking outgoing playback |
+| #293 | greptile-apps[bot] | Miss | Did not flag the missing `addTab`/`openDocument`/`openSnapshot` playback-lifecycle test coverage |
+| #293 | coderabbitai[bot] | Miss | Did not flag the redundant stop-path `requestRender()` |
+| #293 | coderabbitai[bot] | Miss | Did not flag the missing `addTab`/`openDocument`/`openSnapshot` playback-lifecycle test coverage |
 | #292 | greptile-apps[bot] | Reject | Claimed the fake has no accessor to obtain its frame id, so `composite_at(active_frame_id())` would throw in 202's tests; false — fake-drawing-ops.ts:261 already exposes `active_frame_id() => 'frame'` and `composite_at('frame')` returns the buffer |
 | #292 | cubic-dev-ai[bot] | Reject | Wanted the fake's `composite()` to delegate to `composite_at(active_frame_id())` to mirror the core; no observable change in a single-frame stub (`active_frame_id()` fixed at `'frame'`, `frame_count()` 1), and a partial mirror omitting composite_for_export→composite would be inconsistent |
 | #291 | greptile-apps[bot] | Accept | Fractional duration (e.g. 100.5) passed `Number.isFinite` and dispatched to be silently truncated at the u32 WASM boundary; guarded commit on `Number.isInteger` so empty / non-numeric / fractional entries all revert |

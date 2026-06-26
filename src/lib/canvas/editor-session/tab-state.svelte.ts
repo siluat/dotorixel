@@ -65,6 +65,11 @@ import {
 	type FloatingSelectionOffset
 } from './floating-selection-lifecycle';
 import { TabViewport } from './tab-viewport.svelte';
+import {
+	PlaybackController,
+	rafFrameScheduler,
+	type FrameScheduler
+} from './playback-controller.svelte';
 
 export type { ReferenceLayerSource } from './document-change-journal.svelte';
 
@@ -118,6 +123,8 @@ export interface TabStateDeps {
 	readonly canvasWidth?: number;
 	readonly canvasHeight?: number;
 	readonly gridColor?: string;
+	/** Animation-frame clock for playback; defaults to the browser's rAF. Injected by tests. */
+	readonly frameScheduler?: FrameScheduler;
 }
 
 const DEFAULT_CANVAS_DIMENSION = 16;
@@ -156,6 +163,10 @@ export class TabState {
 	 * source-over composite of every visible Pixel Layer. Reference Layers are
 	 * exposed separately through `referenceLayerUnderlay` so the renderer can draw
 	 * the original image before the Pixel composite.
+	 *
+	 * While playing, `pixels()` returns the Playhead frame's committed composite
+	 * (`composite_at`) instead of the edit composite — playback previews committed
+	 * art, with no Floating Selection overlay.
 	 */
 	get compositeBuffer(): { readonly width: number; readonly height: number; pixels(): Uint8Array } {
 		const self = this;
@@ -166,7 +177,12 @@ export class TabState {
 			get height() {
 				return self.document.height;
 			},
-			pixels: () => self.#floatingSelection.previewPixels()
+			pixels: () => {
+				const playheadFrameId = self.#playback.playheadFrameId;
+				return playheadFrameId !== null
+					? self.document.composite_at(playheadFrameId)
+					: self.#floatingSelection.previewPixels();
+			}
 		};
 	}
 
@@ -259,6 +275,7 @@ export class TabState {
 		applyCommit: (intent) => this.#commitFloatingSelectionIntent(intent),
 		getIsDrawing: () => this.isDrawing
 	});
+	#playback: PlaybackController;
 
 	get viewport(): ViewportData {
 		return this.#tabViewport.viewport;
@@ -401,6 +418,18 @@ export class TabState {
 			},
 			markDirty: () => this.#notifier.markDirty(this.documentId)
 		});
+		this.#playback = new PlaybackController({
+			getFrames: () =>
+				this.document.frames_metadata().map((frame) => ({
+					id: frame.id,
+					durationMs: frame.duration_ms
+				})),
+			commitFloatingSelection: () => this.#floatingSelection.commitIfPending(),
+			requestRender: () => {
+				this.renderVersion++;
+			},
+			frameScheduler: deps.frameScheduler ?? rafFrameScheduler
+		});
 	}
 
 	#applyEffects(effects: EditorEffects): void {
@@ -482,6 +511,10 @@ export class TabState {
 	 * which carries the new layer id for layer-creating intents.
 	 */
 	#mutate(intent: UndoableDocumentIntent): DocumentChangeResult {
+		// A document edit exits the playback preview: a structural change (e.g.
+		// deleting the frame under the playhead) must not run against a moving
+		// playhead. Stopping first returns the display to the Active Frame.
+		this.#playback.stop();
 		this.#floatingSelection.commitIfPending();
 		return this.#documentChangeJournal.commit({ kind: 'undoable-document', intent });
 	}
@@ -518,6 +551,11 @@ export class TabState {
 	}
 
 	drawStart = (button: number, pointerType: PointerType): void => {
+		// A tool stroke edits the Active Frame's Cel — exit the playback preview
+		// first so the user draws on (and sees) the frame being edited, not the
+		// moving Playhead. `#mutate` covers undoable document mutations; this covers
+		// the incremental tool strokes that apply through `#applyEffects` instead.
+		this.#playback.stop();
 		this.#applyEffects(
 			this.#floatingSelection.withDrawStartPolicy(
 				this.shared.activeTool === 'selection',
@@ -606,6 +644,7 @@ export class TabState {
 	};
 
 	undo = (): void => {
+		this.#playback.stop();
 		if (this.isDrawing) return;
 		if (this.#floatingSelection.isActive) {
 			this.#recordFloatingPreviewChanged(this.#floatingSelection.cancel());
@@ -615,6 +654,7 @@ export class TabState {
 	};
 
 	redo = (): void => {
+		this.#playback.stop();
 		if (this.isDrawing) return;
 		if (this.#floatingSelection.isActive) return;
 		this.#documentChangeJournal.redo();
@@ -882,6 +922,41 @@ export class TabState {
 	 */
 	setFrameDuration = (id: string, durationMs: number): void => {
 		this.#mutate({ type: 'set-frame-duration', id, durationMs });
+	};
+
+	/** True while in-editor playback is running its transient Playhead. */
+	get isPlaying(): boolean {
+		return this.#playback.isPlaying;
+	}
+
+	/** True when playback wraps to the first frame at the end instead of stopping. */
+	get isLooping(): boolean {
+		return this.#playback.isLooping;
+	}
+
+	/**
+	 * Starts in-editor playback from the first frame. Commits any in-flight
+	 * Floating Selection first so the preview shows the committed Document, then
+	 * drives the transient Playhead through the sequence honoring each frame's
+	 * duration. Playback never mutates the Document, pushes a history entry, or
+	 * marks the tab dirty, and leaves the Active Frame untouched.
+	 */
+	startPlayback = (): void => {
+		this.#playback.start();
+	};
+
+	/**
+	 * Stops playback and discards the Playhead, returning the display to the
+	 * Active Frame (which never moved). No-op when already stopped. Also invoked
+	 * on tab switches, tab close, and structural document changes.
+	 */
+	stopPlayback = (): void => {
+		this.#playback.stop();
+	};
+
+	/** Toggles whether playback loops at the end of the sequence. */
+	toggleLoop = (): void => {
+		this.#playback.toggleLoop();
 	};
 
 	/**

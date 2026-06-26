@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { Workspace, type WorkspaceDeps } from './workspace.svelte';
 import { marqueeRegionFromDrag, singleLayerDocument } from '../wasm-backend';
 import { createFakeDirtyNotifier } from './fake-dirty-notifier';
+import { createFakeFrameScheduler } from './fake-frame-scheduler';
 import type { TabSnapshot, WorkspaceSnapshot } from '../workspace-snapshot';
 import { tabSnapshotFixture as makeTabSnap } from '../workspace-snapshot-fixtures';
 import { DEFAULT_FRAME_DURATION_MS } from '$lib/session/session-storage-types';
@@ -1612,5 +1613,74 @@ describe('Workspace — load path constructs Document', () => {
 		expect(tab.document.height).toBe(1);
 		const layer = tab.document.layer_pixels_at(0)!;
 		expect(Array.from(layer)).toEqual(Array.from(pixels));
+	});
+});
+
+describe('Workspace — playback lifecycle', () => {
+	it('stops playback on the outgoing tab when switching tabs', () => {
+		const manual = createFakeFrameScheduler();
+		const { workspace } = makeWorkspace({ frameScheduler: manual.scheduler });
+		workspace.addTab(); // a second tab becomes active
+		const playing = workspace.activeTab;
+		playing.startPlayback();
+		expect(playing.isPlaying).toBe(true);
+
+		workspace.setActiveTab(0); // switch away from the playing tab
+
+		expect(playing.isPlaying).toBe(false);
+		expect(manual.hasScheduled).toBe(false);
+	});
+
+	it('stops playback on a tab when it is closed', () => {
+		const manual = createFakeFrameScheduler();
+		const { workspace } = makeWorkspace({ frameScheduler: manual.scheduler });
+		workspace.addTab(); // index 1, active
+		const playing = workspace.activeTab;
+		playing.startPlayback();
+		expect(playing.isPlaying).toBe(true);
+
+		workspace.closeTab(1);
+
+		expect(playing.isPlaying).toBe(false);
+		expect(manual.hasScheduled).toBe(false);
+	});
+
+	it('stops playback on the outgoing tab when a new tab is added', () => {
+		const manual = createFakeFrameScheduler();
+		const { workspace } = makeWorkspace({ frameScheduler: manual.scheduler });
+		const playing = workspace.activeTab;
+		playing.startPlayback();
+		expect(playing.isPlaying).toBe(true);
+
+		workspace.addTab(); // activates a new tab directly
+
+		expect(playing.isPlaying).toBe(false);
+		expect(manual.hasScheduled).toBe(false);
+	});
+
+	it('stops playback on the outgoing tab when a document is opened', () => {
+		const manual = createFakeFrameScheduler();
+		const { workspace } = makeWorkspace({ frameScheduler: manual.scheduler });
+		const playing = workspace.activeTab;
+		playing.startPlayback();
+		expect(playing.isPlaying).toBe(true);
+
+		workspace.openDocument({ id: 'opened', name: 'Opened', width: 2, height: 1, pixels: rgba([0, 0, 0, 0, 0, 0, 0, 0]) });
+
+		expect(playing.isPlaying).toBe(false);
+		expect(manual.hasScheduled).toBe(false); // the clock was cancelled
+	});
+
+	it('stops playback on the outgoing tab when a snapshot is opened', () => {
+		const manual = createFakeFrameScheduler();
+		const { workspace } = makeWorkspace({ frameScheduler: manual.scheduler });
+		const playing = workspace.activeTab;
+		playing.startPlayback();
+		expect(playing.isPlaying).toBe(true);
+
+		workspace.openSnapshot(makeTabSnap({ id: 'snap-opened' }));
+
+		expect(playing.isPlaying).toBe(false);
+		expect(manual.hasScheduled).toBe(false); // the clock was cancelled
 	});
 });

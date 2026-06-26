@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 202 | [Shell playback controller — transient playhead engine](../issues/202-playback-controller.md) | 2026-06-26 |
 | 201 | [Per-frame composite seam — composite_at (core + WASM)](../issues/201-per-frame-composite-at.md) | 2026-06-25 |
 | 200 | [Animation playback transport strip — design (.pen)](../issues/200-animation-playback-transport-design.md) | 2026-06-23 |
 | 198 | [Per-frame duration — TimelinePanel control + i18n + E2E](../issues/198-frame-duration-timeline-ui.md) | 2026-06-22 |

@@ -42,7 +42,15 @@ _Avoid_: frame (that names the time slot, not the per-layer pixels), layer canva
 
 **Active Frame**:
 The Frame that drawing and compositing act on — the temporal counterpart of the active-layer pointer. Drawing tools write only the active Layer's active-frame Cel; `composite` blends every visible Pixel Layer's active-frame Cel. Always references a frame present on the axis.
-_Avoid_: current frame (informal), playhead (a playback/timeline term, not the edit pointer), selected frame (the Marquee owns "selection").
+_Avoid_: current frame (informal), playhead (the Playhead is the playback pointer, not the edit pointer), selected frame (the Marquee owns "selection").
+
+**Playback**:
+The transient, per-tab preview that runs a Document's frames in sequence over time without mutating it — it owns the Playhead and a clock, advancing by each Frame's duration and either looping back to the first frame or stopping at the last. Purely runtime: a tab always starts stopped, playback pushes no History entry and never marks the Document dirty, and it never moves the Active Frame. Absent from the document schema and the workspace snapshot, so a reopened or duplicated tab starts stopped.
+_Avoid_: animation (the capability and the milestone, not the runtime preview), preview (overloaded — also tool and Floating Selection previews), play head (one word).
+
+**Playhead**:
+The transient frame pointer Playback advances through the axis, distinct from the Active Frame (the edit pointer, which never moves during Playback). While playing it drives the display buffer — the renderer reads the Playhead frame's `composite_at`, committed art with no Floating Selection overlay — but never editing. Play starts it at the first Frame; pause, a loop-off completion, or a tab/document change discards it, returning the display to the Active Frame.
+_Avoid_: active frame (the edit pointer), current frame (informal), cursor (an input/text term).
 
 ### Selection
 

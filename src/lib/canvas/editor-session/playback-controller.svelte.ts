@@ -10,6 +10,10 @@ export interface PlaybackFrame {
  * Schedules animation callbacks for the playback clock. Mirrors the
  * `requestAnimationFrame` / `cancelAnimationFrame` contract so production wraps
  * the browser's animation-frame clock while tests drive the clock by hand.
+ *
+ * The callback's `timestampMs` must be monotonic non-decreasing (the rAF
+ * contract). The clock loop relies on this: it clamps only the upper bound of a
+ * delta (a backgrounded-tab resume), never a backward jump.
  */
 export interface FrameScheduler {
 	request(callback: (timestampMs: number) => void): number;
@@ -23,7 +27,10 @@ export const rafFrameScheduler: FrameScheduler = {
 };
 
 export interface PlaybackControllerDeps {
-	/** The Document's frames in axis order, read live each tick. */
+	/**
+	 * The Document's frames in axis order, read live each tick. Never empty — a
+	 * Document always holds at least one frame, so `start()` trusts `frames[0]`.
+	 */
 	readonly getFrames: () => readonly PlaybackFrame[];
 	/**
 	 * Commit any in-flight Floating Selection before playback previews the
@@ -147,14 +154,17 @@ export class PlaybackController {
 		const result = advancePlayhead(currentIndex, this.#accumulatedMs, durations, this.isLooping);
 		this.#accumulatedMs = result.carryMs;
 
+		if (result.stopped) {
+			// Stopping returns the display to the Active Frame, so rendering the
+			// last playhead frame first is pointless — stop() supersedes it within
+			// this same tick (Svelte batches the two $state writes into one flush).
+			this.stop();
+			return;
+		}
+
 		if (result.nextIndex !== currentIndex) {
 			this.playheadFrameId = frames[result.nextIndex].id;
 			this.#deps.requestRender();
-		}
-
-		if (result.stopped) {
-			this.stop();
-			return;
 		}
 
 		this.#scheduleNextFrame();

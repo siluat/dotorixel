@@ -3556,6 +3556,19 @@ describe('TabState — playback', () => {
 		expect(tab.isPlaying).toBe(false);
 	});
 
+	it('stops playback when a tool stroke starts (drawing exits the preview)', () => {
+		const { tab, shared, manual } = makeFramesTab([RED, GREEN]);
+
+		tab.startPlayback();
+		manual.fireAt(0); // prime → playing, playhead on frame 0
+		expect(tab.isPlaying).toBe(true);
+
+		paintActiveFrame(tab, shared, BLUE, 3, 3); // begin a brush stroke
+
+		expect(tab.isPlaying).toBe(false);
+		expect(manual.hasScheduled).toBe(false); // the clock was cancelled
+	});
+
 	it('always starts stopped and never serializes playback state', () => {
 		const { tab, manual } = makeFramesTab([RED, GREEN]);
 

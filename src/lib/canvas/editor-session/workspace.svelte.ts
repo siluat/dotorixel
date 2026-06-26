@@ -154,6 +154,7 @@ export class Workspace {
 	}
 
 	addTab(): TabState {
+		this.#stopOutgoingPlayback(this.tabs.length);
 		const tab = this.createTab();
 		this.tabs.push(tab);
 		this.activeIndex = this.tabs.length - 1;
@@ -162,6 +163,7 @@ export class Workspace {
 	}
 
 	openDocument(doc: OpenDocumentInput): TabState {
+		this.#stopOutgoingPlayback(this.tabs.length);
 		const document = singleLayerDocument(doc.width, doc.height, doc.pixels);
 		const tab = this.createTab({
 			documentId: doc.id,
@@ -175,6 +177,7 @@ export class Workspace {
 	}
 
 	openSnapshot(tabSnap: TabSnapshot): TabState {
+		this.#stopOutgoingPlayback(this.tabs.length);
 		const tab = this.createTab({
 			documentId: tabSnap.id,
 			name: tabSnap.name,
@@ -202,12 +205,21 @@ export class Workspace {
 	}
 
 	setActiveTab(index: number): void {
-		// Switching away from a tab discards its transient playback — a tab is only
-		// ever active while playing, and a newly-activated tab always starts stopped.
-		if (index !== this.activeIndex) {
+		this.#stopOutgoingPlayback(index);
+		this.activeIndex = index;
+	}
+
+	/**
+	 * Discards the currently-active tab's transient playback before a different
+	 * tab becomes active. A tab is only ever active while playing and a
+	 * newly-activated tab always starts stopped, so every activation path
+	 * (select, add, open) must stop the outgoing tab's clock — otherwise it keeps
+	 * ticking in the background. No-op when the active tab is unchanged.
+	 */
+	#stopOutgoingPlayback(nextIndex: number): void {
+		if (nextIndex !== this.activeIndex) {
 			this.activeTab.stopPlayback();
 		}
-		this.activeIndex = index;
 	}
 
 	setActiveTool(tool: ToolType): void {

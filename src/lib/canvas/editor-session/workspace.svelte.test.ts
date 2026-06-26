@@ -1644,4 +1644,41 @@ describe('Workspace — playback lifecycle', () => {
 		expect(playing.isPlaying).toBe(false);
 		expect(manual.hasScheduled).toBe(false);
 	});
+
+	it('stops playback on the outgoing tab when a new tab is added', () => {
+		const manual = createFakeFrameScheduler();
+		const { workspace } = makeWorkspace({ frameScheduler: manual.scheduler });
+		const playing = workspace.activeTab;
+		playing.startPlayback();
+		expect(playing.isPlaying).toBe(true);
+
+		workspace.addTab(); // activates a new tab directly
+
+		expect(playing.isPlaying).toBe(false);
+		expect(manual.hasScheduled).toBe(false);
+	});
+
+	it('stops playback on the outgoing tab when a document is opened', () => {
+		const manual = createFakeFrameScheduler();
+		const { workspace } = makeWorkspace({ frameScheduler: manual.scheduler });
+		const playing = workspace.activeTab;
+		playing.startPlayback();
+		expect(playing.isPlaying).toBe(true);
+
+		workspace.openDocument({ id: 'opened', name: 'Opened', width: 2, height: 1, pixels: rgba([0, 0, 0, 0, 0, 0, 0, 0]) });
+
+		expect(playing.isPlaying).toBe(false);
+	});
+
+	it('stops playback on the outgoing tab when a snapshot is opened', () => {
+		const manual = createFakeFrameScheduler();
+		const { workspace } = makeWorkspace({ frameScheduler: manual.scheduler });
+		const playing = workspace.activeTab;
+		playing.startPlayback();
+		expect(playing.isPlaying).toBe(true);
+
+		workspace.openSnapshot(makeTabSnap({ id: 'snap-opened' }));
+
+		expect(playing.isPlaying).toBe(false);
+	});
 });

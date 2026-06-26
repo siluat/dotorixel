@@ -551,6 +551,11 @@ export class TabState {
 	}
 
 	drawStart = (button: number, pointerType: PointerType): void => {
+		// A tool stroke edits the Active Frame's Cel — exit the playback preview
+		// first so the user draws on (and sees) the frame being edited, not the
+		// moving Playhead. `#mutate` covers undoable document mutations; this covers
+		// the incremental tool strokes that apply through `#applyEffects` instead.
+		this.#playback.stop();
 		this.#applyEffects(
 			this.#floatingSelection.withDrawStartPolicy(
 				this.shared.activeTool === 'selection',

@@ -21,6 +21,12 @@ export function createFakeFrameScheduler(): FakeFrameScheduler {
 	return {
 		scheduler: {
 			request(callback: (timestampMs: number) => void): number {
+				// The controller keeps exactly one frame pending; throwing on a
+				// second schedule surfaces a double-schedule regression instead of
+				// silently dropping the earlier callback.
+				if (scheduled) {
+					throw new Error('Animation frame already scheduled');
+				}
 				scheduled = callback;
 				return nextHandle++;
 			},

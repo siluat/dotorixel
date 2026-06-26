@@ -13,6 +13,7 @@ import { documentFromLayerSource, singleLayerDocument } from '../wasm-backend';
 import { References } from '$lib/reference-images/references.svelte';
 import type { DirtyNotifier } from './dirty-notifier';
 import { TabState } from './tab-state.svelte';
+import type { FrameScheduler } from './playback-controller.svelte';
 
 const UNTITLED_PATTERN = /^Untitled (\d+)$/;
 
@@ -22,6 +23,8 @@ export interface WorkspaceDeps {
 	readonly gridColor?: string;
 	readonly restored?: WorkspaceSnapshot;
 	readonly initialForegroundColor?: Color;
+	/** Animation-frame clock forwarded to each tab's playback; defaults to the browser's rAF. */
+	readonly frameScheduler?: FrameScheduler;
 }
 
 /**
@@ -87,6 +90,7 @@ export class Workspace {
 	#notifier: DirtyNotifier;
 	#keyboard: { readonly getShiftHeld: () => boolean };
 	#gridColor?: string;
+	#frameScheduler?: FrameScheduler;
 
 	get activeTab(): TabState {
 		return this.tabs[this.activeIndex];
@@ -96,6 +100,7 @@ export class Workspace {
 		this.#notifier = deps.notifier;
 		this.#keyboard = deps.keyboard;
 		this.#gridColor = deps.gridColor;
+		this.#frameScheduler = deps.frameScheduler;
 		this.shared = new SharedState();
 		const restoredRefs = deps.restored?.references
 			? Object.fromEntries(
@@ -143,7 +148,8 @@ export class Workspace {
 			viewport: config.viewport,
 			canvasWidth: config.canvasWidth,
 			canvasHeight: config.canvasHeight,
-			gridColor: this.#gridColor
+			gridColor: this.#gridColor,
+			frameScheduler: this.#frameScheduler
 		});
 	}
 
@@ -185,6 +191,7 @@ export class Workspace {
 	closeTab(index: number): void {
 		if (this.tabs.length <= 1) return;
 		const removed = this.tabs[index];
+		removed.stopPlayback(); // discard the closed tab's transient playback clock
 		this.tabs.splice(index, 1);
 		if (index === this.activeIndex) {
 			this.activeIndex = Math.min(index, this.tabs.length - 1);
@@ -195,6 +202,11 @@ export class Workspace {
 	}
 
 	setActiveTab(index: number): void {
+		// Switching away from a tab discards its transient playback — a tab is only
+		// ever active while playing, and a newly-activated tab always starts stopped.
+		if (index !== this.activeIndex) {
+			this.activeTab.stopPlayback();
+		}
 		this.activeIndex = index;
 	}
 

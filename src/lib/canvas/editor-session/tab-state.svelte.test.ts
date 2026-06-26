@@ -8,6 +8,7 @@ import {
 	marqueeRegionFromDrag
 } from '../wasm-backend';
 import { createFakeDirtyNotifier } from './fake-dirty-notifier';
+import { createFakeFrameScheduler } from './fake-frame-scheduler';
 import { SharedState } from '../shared-state.svelte';
 import { DEFAULT_FRAME_DURATION_MS } from '$lib/session/session-storage-types';
 import type { CanvasCoords } from '../canvas-model';
@@ -3367,5 +3368,210 @@ describe('TabState — frame axis', () => {
 		expect(tab.canUndo).toBe(false);
 		expect(tab.renderVersion).toBe(renderBefore);
 		expect(notifier.dirtyCalls).toEqual([]);
+	});
+});
+
+describe('TabState — playback', () => {
+	function paintActiveFrame(
+		tab: TabState,
+		shared: SharedState,
+		color: Color,
+		x: number,
+		y: number
+	) {
+		shared.foregroundColor = color;
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x, y }, null);
+		tab.drawEnd();
+	}
+
+	function playbackCelPixel(tab: TabState, frameId: string, x: number, y: number): Color {
+		return getPixelFromBuffer(tab.document.cel_pixels_at(0, frameId)!, tab.document.width, x, y);
+	}
+
+	/**
+	 * Build a tab whose frame `i` carries pixel (0,0) = `colors[i]`, so the
+	 * display buffer's (0,0) pixel names the visible frame. The last frame is left
+	 * active. Frame durations default to the core value; override per test.
+	 */
+	function makeFramesTab(colors: Color[]) {
+		const manual = createFakeFrameScheduler();
+		const { tab, shared, notifier } = makeTab({ frameScheduler: manual.scheduler });
+		const frameIds: string[] = [];
+		paintActiveFrame(tab, shared, colors[0], 0, 0);
+		frameIds.push(tab.document.active_frame_id());
+		for (let i = 1; i < colors.length; i++) {
+			tab.addFrame();
+			paintActiveFrame(tab, shared, colors[i], 0, 0);
+			frameIds.push(tab.document.active_frame_id());
+		}
+		return { tab, shared, notifier, manual, frameIds };
+	}
+
+	it('overrides the display buffer with the first frame composite while playing', () => {
+		const { tab } = makeFramesTab([RED, GREEN]);
+
+		// Active frame is the last (green) — the edit composite shows green.
+		expect(getRenderedPixel(tab, 0, 0)).toEqual(GREEN);
+
+		tab.startPlayback();
+
+		expect(tab.isPlaying).toBe(true);
+		// Playback starts at the first frame (red) — the display now shows red.
+		expect(getRenderedPixel(tab, 0, 0)).toEqual(RED);
+	});
+
+	it('advances the playhead over time, holding a longer-duration frame proportionally longer', () => {
+		const { tab, manual, frameIds } = makeFramesTab([RED, GREEN, BLUE]);
+		tab.setFrameDuration(frameIds[0], 100); // red holds 100ms
+		tab.setFrameDuration(frameIds[1], 300); // green holds 300ms
+
+		tab.startPlayback();
+		manual.fireAt(0); // prime the clock baseline
+		expect(getRenderedPixel(tab, 0, 0)).toEqual(RED);
+
+		manual.fireAt(100); // red's 100ms elapsed — advance to green
+		expect(getRenderedPixel(tab, 0, 0)).toEqual(GREEN);
+
+		manual.fireAt(200); // only 100ms into green's 300ms — still green
+		expect(getRenderedPixel(tab, 0, 0)).toEqual(GREEN);
+
+		manual.fireAt(400); // green's 300ms elapsed — advance to blue
+		expect(getRenderedPixel(tab, 0, 0)).toEqual(BLUE);
+	});
+
+	it('wraps back to the first frame at the end when looping is on', () => {
+		const { tab, manual, frameIds } = makeFramesTab([RED, GREEN]);
+		tab.setFrameDuration(frameIds[0], 100);
+		tab.setFrameDuration(frameIds[1], 100);
+		tab.toggleLoop();
+		expect(tab.isLooping).toBe(true);
+
+		tab.startPlayback();
+		manual.fireAt(0); // prime → red (frame 0)
+		manual.fireAt(100); // advance to green (frame 1)
+		expect(getRenderedPixel(tab, 0, 0)).toEqual(GREEN);
+
+		manual.fireAt(200); // green elapsed at the last frame — loop wraps to red
+		expect(getRenderedPixel(tab, 0, 0)).toEqual(RED);
+		expect(tab.isPlaying).toBe(true);
+	});
+
+	it('stops at the last frame when looping is off, returning the display to the active frame', () => {
+		const { tab, manual, frameIds } = makeFramesTab([RED, GREEN]);
+		tab.setFrameDuration(frameIds[0], 100);
+		tab.setFrameDuration(frameIds[1], 100);
+		tab.setActiveFrame(frameIds[0]); // active frame = red, distinct from where playback ends
+
+		tab.startPlayback();
+		manual.fireAt(0); // prime → red (playhead frame 0)
+		manual.fireAt(100); // advance to green (frame 1, the last)
+		expect(getRenderedPixel(tab, 0, 0)).toEqual(GREEN);
+
+		manual.fireAt(200); // green elapsed, loop off → stop
+		expect(tab.isPlaying).toBe(false);
+		// Stop discards the playhead; the display returns to the active frame (red), not green.
+		expect(getRenderedPixel(tab, 0, 0)).toEqual(RED);
+		expect(manual.hasScheduled).toBe(false);
+	});
+
+	it('never advances a single-frame document, even across a large time jump', () => {
+		const { tab, manual } = makeFramesTab([RED]);
+
+		tab.startPlayback();
+		expect(tab.isPlaying).toBe(true);
+		manual.fireAt(0); // prime
+		manual.fireAt(100);
+		manual.fireAt(100_000); // a large jump must not advance a one-frame sequence
+
+		expect(getRenderedPixel(tab, 0, 0)).toEqual(RED);
+		expect(tab.isPlaying).toBe(true); // and it never auto-stops
+	});
+
+	it('runs playback without marking dirty, pushing history, or moving the active frame', () => {
+		const { tab, notifier, manual, frameIds } = makeFramesTab([RED, GREEN]);
+		tab.setFrameDuration(frameIds[0], 100);
+		tab.setFrameDuration(frameIds[1], 100);
+		tab.toggleLoop(); // keep running past the end without auto-stopping
+
+		const activeFrameBefore = tab.document.active_frame_id();
+		const canUndoBefore = tab.canUndo;
+		notifier.reset();
+
+		tab.startPlayback();
+		manual.fireAt(0);
+		manual.fireAt(100); // advance
+		manual.fireAt(200); // wrap (loop on)
+		tab.stopPlayback();
+
+		expect(notifier.dirtyCalls).toEqual([]); // never marked dirty
+		expect(tab.canUndo).toBe(canUndoBefore); // no history entry pushed
+		expect(tab.document.active_frame_id()).toBe(activeFrameBefore); // active frame unmoved
+		// Stopping returns the display buffer to the active-frame composite (green).
+		expect(getRenderedPixel(tab, 0, 0)).toEqual(GREEN);
+	});
+
+	it('commits an in-flight Floating Selection before starting playback', () => {
+		const manual = createFakeFrameScheduler();
+		const { tab, shared } = makeTab({ frameScheduler: manual.scheduler });
+		const frameId = tab.document.active_frame_id();
+
+		// Lift a one-pixel selection and nudge it by (1, 1): an in-flight Floating Selection.
+		paintActiveFrame(tab, shared, RED, 1, 1);
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 1, 1));
+		tab.nudgeMarquee(1, 1);
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 1 });
+
+		tab.startPlayback();
+
+		// Starting playback committed the Floating Selection first (PRD 186 precedent).
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		expect(playbackCelPixel(tab, frameId, 2, 2)).toEqual(RED); // landed at the nudged spot
+		expect(playbackCelPixel(tab, frameId, 1, 1).a).toBe(0); // source pixel cleared
+	});
+
+	it('stops playback on a structural document change such as removing the playhead frame', () => {
+		const { tab, manual, frameIds } = makeFramesTab([RED, GREEN]);
+
+		tab.startPlayback();
+		manual.fireAt(0); // prime → playhead on frame 0
+		expect(tab.isPlaying).toBe(true);
+
+		tab.removeFrame(frameIds[0]); // delete the frame under the playhead
+
+		expect(tab.isPlaying).toBe(false);
+		expect(manual.hasScheduled).toBe(false); // the clock was cancelled
+	});
+
+	it('stops playback when an edit is undone', () => {
+		const { tab, manual } = makeFramesTab([RED, GREEN]);
+
+		tab.startPlayback();
+		manual.fireAt(0);
+		expect(tab.isPlaying).toBe(true);
+
+		tab.undo();
+
+		expect(tab.isPlaying).toBe(false);
+	});
+
+	it('always starts stopped and never serializes playback state', () => {
+		const { tab, manual } = makeFramesTab([RED, GREEN]);
+
+		// A tab always starts stopped — playback is transient.
+		expect(tab.isPlaying).toBe(false);
+		expect(tab.isLooping).toBe(false);
+
+		const stoppedSnapshotKeys = Object.keys(tab.toSnapshot()).sort();
+
+		tab.toggleLoop();
+		tab.startPlayback();
+		manual.fireAt(0);
+		expect(tab.isPlaying).toBe(true);
+
+		// Playback adds no keys to the snapshot, so a reopened/duplicated tab
+		// cannot restore a playing state — and there is no schema change.
+		expect(Object.keys(tab.toSnapshot()).sort()).toEqual(stoppedSnapshotKeys);
 	});
 });

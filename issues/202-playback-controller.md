@@ -1,6 +1,6 @@
 ---
 title: "Shell playback controller — transient playhead engine"
-status: ready-for-agent
+status: done
 created: 2026-06-23
 parent: 199-animation-playback-transport.md
 ---
@@ -71,3 +71,31 @@ history entry, no moved edit pointer.
 ## Blocked by
 
 - [201 — Per-frame composite seam (composite_at)](201-per-frame-composite-at.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/editor-session/playback-advance.ts` | Pure `advancePlayhead(index, accumulatedMs, durations, isLooping) → { nextIndex, carryMs, stopped }` — the framework-free testability seam |
+| `src/lib/canvas/editor-session/playback-advance.test.ts` | 8 unit tests: advance, proportional hold, carry/no-drift, multi-frame skip, loop wrap, loop-off stop, single-frame no-op |
+| `src/lib/canvas/editor-session/playback-controller.svelte.ts` | Reactive engine + rAF-loop wrapper (delta-clamped); transient `isPlaying`/`isLooping`/`playheadFrameId`; injected `getFrames`/`commitFloatingSelection`/`requestRender`/`FrameScheduler` |
+| `src/lib/canvas/editor-session/fake-frame-scheduler.ts` | Deterministic clock test double (rAF stand-in); shared, reused by 203 |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | `compositeBuffer` playhead override (`composite_at`); `startPlayback`/`stopPlayback`/`toggleLoop` + `isPlaying`/`isLooping`; stop hooks in `#mutate`/`undo`/`redo`; scheduler dep |
+| `src/lib/canvas/editor-session/tab-state.svelte.test.ts` | 10 real-WASM integration tests via external behavior (display override, advance + proportional hold, loop on/off, single-frame, no dirty/history/active-frame move, floating-selection commit, doc-change stop, non-persistence) |
+| `src/lib/canvas/editor-session/workspace.svelte.ts` | Stop playback on tab switch/close; `frameScheduler` plumbing |
+| `src/lib/canvas/editor-session/workspace.svelte.test.ts` | 2 lifecycle tests (switch / close stop the clock) |
+| `CONTEXT.md` | Added **Playback** + **Playhead**; Active Frame's _avoid_ note now points at the defined term |
+
+### Key Decisions
+
+- **Pure advance in the web shell, not Rust core.** Simple arithmetic on a per-frame hot path makes per-tick FFI disproportionate; the clock (rAF) and display-buffer override are inherently web-specific; playback UX may diverge per platform. Matches the issue's "Shell" framing and the Core Placement rule of thumb.
+- **Display via the existing `compositeBuffer` seam + a `renderVersion` bump on frame change** — renderer and viewport untouched; re-composite fires only when the displayed frame changes (start, advance, stop), never on an idle tick.
+- **`FrameScheduler` injected (defaults to rAF)** so integration tests drive the clock deterministically and still exercise the real loop wrapper (delta accumulation, scheduling), not a test-only shortcut.
+- **Playback exits on any document mutation (`#mutate`/undo/redo) and on tab switch/close** — broader than "delete the playhead frame" but the same "edit/navigation exits the preview" semantic; `stop()` is a no-op when idle, so existing flows are unaffected.
+
+### Notes
+
+- **No transport UI and no `EditorController` wiring yet** — deferred to 203. The engine is verifiable through the `TabState` API + display buffer; no consumer in the running app yet (parallels 201's dead-code-tolerant landing).
+- **Single-frame playback holds frame 0 and never auto-stops** (deliberate reading of "never advances" over auto-stopping a one-frame sequence).
+- **No schema change**; playback state is absent from `toSnapshot`, so a reopened/duplicated tab starts stopped.
+- `MAX_FRAME_DELTA_MS` (1000 ms) clamps the per-tick delta so a backgrounded-tab refocus never fast-forwards through a burst of frames.

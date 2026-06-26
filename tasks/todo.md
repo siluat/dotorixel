@@ -3,8 +3,7 @@
 ## Milestone 4: Animation-Capable Editor
 
 - In-editor animation playback (transport strip + preview) — [PRD](../issues/199-animation-playback-transport.md) (merges former "Timeline UI" + "Animation preview")
-  - [202 — Shell playback controller](../issues/202-playback-controller.md) (AFK · no blockers — 201 done)
-  - [203 — Transport strip UI + i18n + E2E](../issues/203-transport-strip-ui.md) (AFK · blocked by 202)
+  - [203 — Transport strip UI + i18n + E2E](../issues/203-transport-strip-ui.md) (AFK · no blockers — 202 done)
 - Onion skinning
 - GIF/spritesheet export
 - Feedback link to Google Form

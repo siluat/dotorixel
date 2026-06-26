@@ -119,6 +119,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Per-frame duration | ✅ | ✅ | ⬜ | Each frame holds a display duration; default 100ms (10fps); identity unchanged when retimed. 1–60000ms clamp at the shell boundary (core trusts the value). Web complete: active-frame editor in the timeline corner (ms + derived fps), undoable, V7-persisted. Apple pending |
 | Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and rotation-aware source sampling. Turns with a whole-document rotate (quarter-turn). Placement invariant (finite pos, scale > 0, quarter-turn 0..=3) enforced by the core constructor |
 | Timeline panel | — | 🔧 | ⬜ | Layer × Frame grid (ordinal columns, occupancy dots, Reference span, 2-channel active highlight); select via ruler/cell click; header add/duplicate/delete + ruler-cell drag-reorder; per-document collapse. Transport/playback strip pending |
+| Playback (animation) | — | 🔧 | ⬜ | Headless per-tab engine: transient Playhead + rAF clock advances frames by each `duration_ms` (leftover carries, no drift), loops or stops at end. Previews committed art via `composite_at` with no Document mutation/history/dirty; transient, never persisted. Tab/document change stops it. Transport UI pending |
 
 ## Reference Images
 

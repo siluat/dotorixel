@@ -180,6 +180,12 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 		height,
 		composite: () => new Uint8Array(pixels),
 		composite_for_export: () => new Uint8Array(pixels),
+		composite_at: (frameId) => {
+			if (frameId !== 'frame') {
+				throw new Error(`createFakeDocument: unknown frame id: ${frameId}`);
+			}
+			return new Uint8Array(pixels);
+		},
 		get_pixel: (x, y) => {
 			if (x < 0 || y < 0 || x >= width || y >= height) {
 				return { r: 0, g: 0, b: 0, a: 0 };

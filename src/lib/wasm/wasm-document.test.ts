@@ -38,4 +38,20 @@ describe('WasmDocument', () => {
 		document.set_frame_duration(frameId, 1e9);
 		expect(document.frames_metadata()[0].duration_ms).toBe(60_000);
 	});
+
+	it('composites a frame by id and throws on an invalid UUID or an unknown frame id', () => {
+		const document = new WasmDocument(2, 2, LAYER_ID, 'Layer 1');
+		const activeFrameId = document.active_frame_id();
+
+		// A valid, present frame id composites to a full RGBA buffer.
+		expect(document.composite_at(activeFrameId)).toHaveLength(2 * 2 * 4);
+
+		// Not a UUID string at all — fails in UUID parsing, before the axis lookup.
+		expect(() => document.composite_at('not-a-uuid')).toThrow(/invalid character/);
+
+		// A valid UUID, but no frame with that id is on the axis — reaches the
+		// existence check and fails there, a distinct path from the parse above.
+		const absentFrameId = '11111111-1111-4111-8111-111111111111';
+		expect(() => document.composite_at(absentFrameId)).toThrow(/not found/);
+	});
 });

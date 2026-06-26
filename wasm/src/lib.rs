@@ -616,6 +616,22 @@ impl WasmDocument {
         self.inner.composite_for_export()
     }
 
+    /// RGBA row-major Pixel-only composite buffer (`width * height * 4` bytes)
+    /// of the frame identified by `frame_id`, without moving the active-frame
+    /// pointer — the read-only, frame-addressed sibling of
+    /// [`composite`](Self::composite) that playback reads frame by frame.
+    ///
+    /// The core trusts a validated id, so this boundary confirms the frame
+    /// exists before delegating. Errors only when `frame_id` is not a valid
+    /// UUID string or no frame with that id is on the axis.
+    pub fn composite_at(&self, frame_id: String) -> Result<Vec<u8>, JsError> {
+        let fid = Uuid::parse_str(&frame_id).map_err(|e| JsError::new(&e.to_string()))?;
+        if !self.inner.frames().iter().any(|f| f.id == fid) {
+            return Err(JsError::new(&format!("Frame with id {fid} not found")));
+        }
+        Ok(self.inner.composite_at(fid))
+    }
+
     /// Reads the pixel color at `(x, y)` on the active layer.
     ///
     /// Returns `Err(JsError)` when `(x, y)` is outside the document's
@@ -1826,6 +1842,27 @@ mod tests {
         assert_eq!(doc.active_frame_id(), second.to_string()); // read left active untouched
         // Out-of-range layer index yields None without throwing.
         assert_eq!(doc.cel_pixels_at(9, first).unwrap(), None);
+    }
+
+    #[test]
+    fn wasm_document_composite_at_reads_a_frame_buffer_without_moving_the_active_pointer() {
+        let layer = Uuid::new_v4();
+        let second = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 2, layer.to_string(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        let red = WasmColor::new(255, 0, 0, 255);
+        doc.set_pixel(0, 0, &red).unwrap(); // first frame
+        doc.add_frame(second.to_string()).unwrap(); // second active and empty
+
+        // Compositing the first frame by id round-trips its red pixel; the empty
+        // active (second) frame composites blank.
+        let first_composite = doc.composite_at(first.clone()).unwrap();
+        assert_eq!(&first_composite[0..4], &[255, 0, 0, 255]);
+        let second_composite = doc.composite_at(second.to_string()).unwrap();
+        assert!(second_composite.iter().all(|&b| b == 0));
+
+        // The read left the active-frame pointer untouched.
+        assert_eq!(doc.active_frame_id(), second.to_string());
     }
 
     #[test]

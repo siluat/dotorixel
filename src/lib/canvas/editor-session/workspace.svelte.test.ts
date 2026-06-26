@@ -1668,6 +1668,7 @@ describe('Workspace — playback lifecycle', () => {
 		workspace.openDocument({ id: 'opened', name: 'Opened', width: 2, height: 1, pixels: rgba([0, 0, 0, 0, 0, 0, 0, 0]) });
 
 		expect(playing.isPlaying).toBe(false);
+		expect(manual.hasScheduled).toBe(false); // the clock was cancelled
 	});
 
 	it('stops playback on the outgoing tab when a snapshot is opened', () => {
@@ -1680,5 +1681,6 @@ describe('Workspace — playback lifecycle', () => {
 		workspace.openSnapshot(makeTabSnap({ id: 'snap-opened' }));
 
 		expect(playing.isPlaying).toBe(false);
+		expect(manual.hasScheduled).toBe(false); // the clock was cancelled
 	});
 });

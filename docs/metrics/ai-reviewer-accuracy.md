@@ -7,13 +7,15 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 166 | 128 | 38 | 164 | 77% | 44% |
-| cubic-dev-ai[bot] | 137 | 106 | 31 | 183 | 77% | 37% |
-| coderabbitai[bot] | 222 | 157 | 65 | 129 | 71% | 55% |
+| cubic-dev-ai[bot] | 138 | 107 | 31 | 183 | 78% | 37% |
+| coderabbitai[bot] | 223 | 158 | 65 | 129 | 71% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #293 | coderabbitai[bot] | Accept | New openDocument/openSnapshot playback tests asserted only `isPlaying`, not scheduled-frame cleanup; added `expect(manual.hasScheduled).toBe(false)` to match adjacent tests and verify the outgoing tab's rAF was cancelled (round 2) |
+| #293 | cubic-dev-ai[bot] | Accept | Same missing scheduler-cancellation assertion in the new openDocument/openSnapshot tests (duplicate, round 2); fixed |
 | #293 | coderabbitai[bot] | Accept | fake-frame-scheduler silently overwrote a pending callback, masking a double-schedule bug; throw on a second schedule to enforce the controller's single-pending-frame invariant in tests |
 | #293 | cubic-dev-ai[bot] | Accept | Same fake-scheduler double-schedule masking (duplicate); fixed via throw-on-double-schedule |
 | #293 | coderabbitai[bot] | Accept | Playback stopped only in `#mutate` — tool strokes via `drawStart`/`#applyEffects` kept the playhead running while editing a frame invisibly; stop playback at `drawStart` too + regression test |

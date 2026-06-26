@@ -1,6 +1,6 @@
 ---
 title: "Transport strip UI + playhead + i18n + E2E"
-status: ready-for-agent
+status: done
 created: 2026-06-23
 parent: 199-animation-playback-transport.md
 ---
@@ -48,3 +48,31 @@ animation in the canvas.
 
 - [200 — Animation playback transport strip design (.pen)](200-animation-playback-transport-design.md)
 - [202 — Shell playback controller (transient playhead)](202-playback-controller.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/ui-editor/TransportBar.svelte` | New pure-view bar: single Play/Pause toggle + Loop toggle + right-aligned `n / N` readout; `role="toolbar"`, `aria-pressed`, single-frame disabled; component-scoped sizing tokens, mobile ≥44px touch targets |
+| `src/lib/ui-editor/TransportBar.svelte.test.ts` | 8 component tests — toolbar + play/loop callbacks, play/loop state reflection (aria-pressed + on-state class), `n / N` readout, single-frame disabled |
+| `src/lib/ui-editor/TimelinePanel.svelte` | Renders `TransportBar` between the header and the `[duration-corner｜ruler]` band; adds the ▾ playhead marker lane above the ruler (column-aligned) + a sidebar alignment spacer; new optional transport props; panel height 180→224px (mobile 220→288px) |
+| `src/lib/ui-editor/TimelinePanel.svelte.test.ts` | +6 tests — transport render + play passthrough, readout (active vs playhead), ▾ marker present-while-playing / absent-when-stopped, hidden when collapsed |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | `playheadFrameId` public getter (drives the readout + marker) |
+| `src/lib/canvas/editor-session/tab-state.svelte.test.ts` | +1 test — `playheadFrameId` reflects the playhead while playing, `null` when stopped |
+| `src/routes/editor/+page.svelte` | Wires both docked + mobile `TimelinePanel` instances to the controller via `activeTab` (mirrors the frame wiring): `isPlaying`/`isLooping`/`playheadFrameId` derivations + `togglePlay`/`toggleLoop` handlers |
+| `messages/{en,ko,ja}.json` | 4 i18n keys — `aria_play` / `aria_pause` / `aria_toggleLoop` / `aria_playbackToolbar` |
+| `src/lib/ui-editor/TimelinePanel.stories.svelte` | "Playing" story (pause icon, loop-on, ▾ marker) |
+| `e2e/editor/playback.test.ts` | E2E tracer — single-frame Play disabled → author two frames → Loop on → Play → ▾ advances (stable data attribute) → canvas shows frame 1 → Pause → Active Frame restored → first undo reverts the real edit (no playback history entry) |
+
+### Key Decisions
+
+- **`TransportBar` split out; ▾ marker kept in `TimelinePanel`** (HITL-chosen): the control bar is a focused, independently-tested pure view; the marker stays where it must align to the ruler columns and scroll with them.
+- **Placement = full-width bar between header and the band** (200 design), not 187's "above the ruler" reserved slot — only the ▾ marker sits above the ruler. Panel grows ~44px to seat it.
+- **Wired directly to `activeTab`** (no new `EditorController` projection), mirroring the existing frame-operation wiring the issue pointed to.
+- **"Morphing aria-label + aria-pressed"** for Play/Pause matches the project's established toggle convention (pixel-perfect, grid, constrain latch).
+
+### Notes
+
+- No schema change and no Rust core change — playback is shell-owned; only a `playheadFrameId` getter was layered onto the 202 engine.
+- Verified: 1587 unit tests + frames/layers/smoke + the new playback E2E pass; `svelte-check` clean; production build (`bun run build`) succeeds; mobile touch targets measured at exactly 44×44px; Light/Dark/mobile/single-frame states visually checked against the 200 spec.
+- Apple shell untouched (web + core only, per PRD 199). Completes PRD 199 (4/4 sub-issues).

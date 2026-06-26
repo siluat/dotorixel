@@ -103,6 +103,25 @@
 	</div>
 </Story>
 
+<Story name="Playing">
+	<div style="width: 720px;">
+		<!-- Playback running: the Play button shows pause, Loop is on, and the ▾ marker
+		     sits over the Playhead frame (f3) — a channel distinct from the Active-Frame
+		     highlight (f2), which never moves during playback. -->
+		<TimelinePanel
+			layers={pixelLayers}
+			activeLayerId="hero"
+			frames={fourFrames}
+			activeFrameId="f2"
+			collapsed={false}
+			isPlaying={true}
+			isLooping={true}
+			playheadFrameId="f3"
+			{...handlers}
+		/>
+	</div>
+</Story>
+
 <Story name="Collapsed">
 	<div style="width: 720px;">
 		<TimelinePanel

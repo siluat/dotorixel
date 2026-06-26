@@ -1840,4 +1840,108 @@ describe('TimelinePanel', () => {
 			expect(header.textContent).toContain('250 ms');
 		});
 	});
+
+	describe('transport strip', () => {
+		it('renders the transport bar and forwards its play click to onTogglePlay', async () => {
+			const onTogglePlay = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					...defaultProps,
+					layers: [pixelLayer('a', 'Layer 1')],
+					activeLayerId: 'a',
+					frames: [frame('f1'), frame('f2')],
+					activeFrameId: 'f1',
+					onTogglePlay
+				}
+			});
+
+			expect(container.querySelector('[data-transport-bar]')).not.toBeNull();
+			const play = container.querySelector('[data-transport-play]') as HTMLButtonElement;
+			await fireEvent.click(play);
+			expect(onTogglePlay).toHaveBeenCalledTimes(1);
+		});
+
+		it('reads out the active-frame ordinal while stopped', () => {
+			const { container } = render(TimelinePanel, {
+				props: {
+					...defaultProps,
+					layers: [pixelLayer('a', 'Layer 1')],
+					activeLayerId: 'a',
+					frames: [frame('f1'), frame('f2'), frame('f3')],
+					activeFrameId: 'f2',
+					isPlaying: false,
+					playheadFrameId: null
+				}
+			});
+
+			const readout = container.querySelector('[data-transport-position]') as HTMLElement;
+			expect(readout.textContent?.replace(/\s+/g, ' ').trim()).toBe('2 / 3');
+		});
+
+		it('reads out the playhead ordinal while playing', () => {
+			const { container } = render(TimelinePanel, {
+				props: {
+					...defaultProps,
+					layers: [pixelLayer('a', 'Layer 1')],
+					activeLayerId: 'a',
+					frames: [frame('f1'), frame('f2'), frame('f3')],
+					activeFrameId: 'f1',
+					isPlaying: true,
+					playheadFrameId: 'f3'
+				}
+			});
+
+			const readout = container.querySelector('[data-transport-position]') as HTMLElement;
+			expect(readout.textContent?.replace(/\s+/g, ' ').trim()).toBe('3 / 3');
+		});
+
+		it('marks the playhead frame column with the ▾ marker while playing', () => {
+			const { container } = render(TimelinePanel, {
+				props: {
+					...defaultProps,
+					layers: [pixelLayer('a', 'Layer 1')],
+					activeLayerId: 'a',
+					frames: [frame('f1'), frame('f2'), frame('f3')],
+					activeFrameId: 'f1',
+					isPlaying: true,
+					playheadFrameId: 'f2'
+				}
+			});
+
+			const marker = container.querySelector('[data-playhead-marker]') as HTMLElement;
+			expect(marker).not.toBeNull();
+			expect(marker.getAttribute('data-playhead-frame-id')).toBe('f2');
+		});
+
+		it('renders no ▾ marker while stopped', () => {
+			const { container } = render(TimelinePanel, {
+				props: {
+					...defaultProps,
+					layers: [pixelLayer('a', 'Layer 1')],
+					activeLayerId: 'a',
+					frames: [frame('f1'), frame('f2')],
+					activeFrameId: 'f1',
+					isPlaying: false,
+					playheadFrameId: null
+				}
+			});
+
+			expect(container.querySelector('[data-playhead-marker]')).toBeNull();
+		});
+
+		it('hides the transport strip when the panel is collapsed', () => {
+			const { container } = render(TimelinePanel, {
+				props: {
+					...defaultProps,
+					layers: [pixelLayer('a', 'Layer 1')],
+					activeLayerId: 'a',
+					frames: [frame('f1'), frame('f2')],
+					activeFrameId: 'f1',
+					collapsed: true
+				}
+			});
+
+			expect(container.querySelector('[data-transport-bar]')).toBeNull();
+		});
+	});
 });

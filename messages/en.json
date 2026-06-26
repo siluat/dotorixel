@@ -185,5 +185,9 @@
 	"aria_hideLayer": "Hide {name}",
 	"aria_showLayer": "Show {name}",
 	"aria_collapseTimelinePanel": "Collapse layers panel",
-	"aria_expandTimelinePanel": "Expand layers panel"
+	"aria_expandTimelinePanel": "Expand layers panel",
+	"aria_playbackToolbar": "Playback",
+	"aria_play": "Play",
+	"aria_pause": "Pause",
+	"aria_toggleLoop": "Loop"
 }

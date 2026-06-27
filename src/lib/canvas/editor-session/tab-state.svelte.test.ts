@@ -3587,4 +3587,24 @@ describe('TabState — playback', () => {
 		// cannot restore a playing state — and there is no schema change.
 		expect(Object.keys(tab.toSnapshot()).sort()).toEqual(stoppedSnapshotKeys);
 	});
+
+	it('exposes the playhead frame id while playing and null while stopped', () => {
+		const { tab, manual, frameIds } = makeFramesTab([RED, GREEN]);
+		tab.setFrameDuration(frameIds[0], 100);
+		tab.setFrameDuration(frameIds[1], 100);
+
+		// Stopped: there is no playhead (the transport readout falls back to the
+		// active frame; the ruler shows no ▼ marker).
+		expect(tab.playheadFrameId).toBeNull();
+
+		tab.startPlayback();
+		manual.fireAt(0); // prime → playhead on the first frame
+		expect(tab.playheadFrameId).toBe(frameIds[0]);
+
+		manual.fireAt(100); // advance → playhead on the second frame
+		expect(tab.playheadFrameId).toBe(frameIds[1]);
+
+		tab.stopPlayback();
+		expect(tab.playheadFrameId).toBeNull();
+	});
 });

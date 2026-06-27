@@ -1,6 +1,6 @@
 ---
 title: "In-editor animation playback — transport strip + preview (M4)"
-status: ready-for-agent
+status: done
 created: 2026-06-23
 ---
 

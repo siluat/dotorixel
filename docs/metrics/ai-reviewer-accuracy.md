@@ -6,14 +6,21 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 166 | 128 | 38 | 164 | 77% | 44% |
-| cubic-dev-ai[bot] | 138 | 107 | 31 | 183 | 78% | 37% |
-| coderabbitai[bot] | 223 | 158 | 65 | 129 | 71% | 55% |
+| greptile-apps[bot] | 167 | 128 | 39 | 166 | 77% | 44% |
+| cubic-dev-ai[bot] | 140 | 109 | 31 | 183 | 78% | 37% |
+| coderabbitai[bot] | 224 | 159 | 65 | 130 | 71% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #294 | coderabbitai[bot] | Accept | Play/Pause combined a dynamic accessible name (Play⇄Pause) with `aria-pressed` — a conflicting toggle pattern (ARIA APG); dropped `aria-pressed` (the morphing name conveys state), Loop keeps it (stable-name toggle) |
+| #294 | cubic-dev-ai[bot] | Accept | Same Play/Pause `aria-pressed` conflicting-toggle finding (duplicate); fixed by dropping `aria-pressed` |
+| #294 | cubic-dev-ai[bot] | Accept | Playhead-marker prose used ▾ (U+25BE) while the .pen spec + code render ▼ (U+25BC); unified to ▼ across this PR's docs, comments, and test names |
+| #294 | greptile-apps[bot] | Reject | Wanted an on-accent token for the play button's `#FFFFFF`; declined — `#FFFFFF` on solid `--ds-accent` is the established convention (EditorButton/SaveDialog/ExportPopover/SettingsContent), no `--ds-on-accent` token exists, and adding one is a design-system-wide change out of scope |
+| #294 | greptile-apps[bot] | Miss | Did not flag the Play/Pause `aria-pressed` conflicting-toggle pattern |
+| #294 | greptile-apps[bot] | Miss | Did not flag the ▾/▼ playhead-glyph doc inconsistency |
+| #294 | coderabbitai[bot] | Miss | Did not flag the ▾/▼ playhead-glyph doc inconsistency |
 | #293 | coderabbitai[bot] | Accept | New openDocument/openSnapshot playback tests asserted only `isPlaying`, not scheduled-frame cleanup; added `expect(manual.hasScheduled).toBe(false)` to match adjacent tests and verify the outgoing tab's rAF was cancelled (round 2) |
 | #293 | cubic-dev-ai[bot] | Accept | Same missing scheduler-cancellation assertion in the new openDocument/openSnapshot tests (duplicate, round 2); fixed |
 | #293 | coderabbitai[bot] | Accept | fake-frame-scheduler silently overwrote a pending callback, masking a double-schedule bug; throw on a second schedule to enforce the controller's single-pending-frame invariant in tests |

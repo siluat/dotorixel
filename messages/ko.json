@@ -185,5 +185,9 @@
 	"aria_hideLayer": "{name} 숨기기",
 	"aria_showLayer": "{name} 표시",
 	"aria_collapseTimelinePanel": "레이어 패널 접기",
-	"aria_expandTimelinePanel": "레이어 패널 펼치기"
+	"aria_expandTimelinePanel": "레이어 패널 펼치기",
+	"aria_playbackToolbar": "재생 컨트롤",
+	"aria_play": "재생",
+	"aria_pause": "일시정지",
+	"aria_toggleLoop": "반복"
 }

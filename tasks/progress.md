@@ -2,16 +2,16 @@
 
 ## Currently Working On
 
-In-editor animation playback — transport strip + preview ([PRD](../issues/199-animation-playback-transport.md)): 3/4 sub-issues done — 200 (transport design) + 201 (`composite_at` seam) + 202 (playback engine) shipped. Remaining: **203 (transport strip UI + i18n + E2E, now unblocked)** — it wires the 202 engine to a UI.
+None
 
 ## Last Completed
 
-[202 — Shell playback controller](../issues/202-playback-controller.md): the headless playback engine — a per-tab transient Playhead + rAF clock that advances frames by each `duration_ms` and previews committed art through `composite_at`, never mutating the Document (no dirty, no history, Active Frame unmoved). Lands without UI (203 wires the transport); reusable `fake-frame-scheduler` test double added.
+[203 — Transport strip UI + playhead + i18n + E2E](../issues/203-transport-strip-ui.md): wired the transport strip (single Play/Pause + Loop + `n / N` readout) and the ▼ playhead marker to the 202 engine on both docked + mobile — **completing PRD 199 (in-editor animation playback)**. Playback stays preview-only: no history entry, no dirty mark, the Active Frame never moves. `composite_at` now has a live consumer, ready for onion skin / export next.
 
 ## Next Up
 
-- Onion skinning (M4 — multi-frame; `composite_at` seam now available)
-- GIF / spritesheet export (M4 — multi-frame export; `composite_at` seam now available)
+- Onion skinning (M4 — multi-frame; `composite_at` seam available)
+- GIF / spritesheet export (M4 — multi-frame export; `composite_at` seam available)
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
 - Apple Phase 1 — Enable clear canvas (existing disabled button)
 - Apple Phase 1 — Enable PNG export (existing disabled button)

@@ -104,6 +104,9 @@
 	const activeFrameId = $derived.by(
 		() => editor.workspace.activeTab.frameProjection.activeFrameId
 	);
+	const isPlaying = $derived(editor.workspace.activeTab.isPlaying);
+	const isLooping = $derived(editor.workspace.activeTab.isLooping);
+	const playheadFrameId = $derived(editor.workspace.activeTab.playheadFrameId);
 	const displayedRefIds = $derived(
 		new Set(
 			editor.workspace.references
@@ -193,6 +196,16 @@
 
 	function handleSetFrameDuration(id: string, durationMs: number) {
 		editor.workspace.activeTab.setFrameDuration(id, durationMs);
+	}
+
+	function handleTogglePlay() {
+		const tab = editor.workspace.activeTab;
+		if (tab.isPlaying) tab.stopPlayback();
+		else tab.startPlayback();
+	}
+
+	function handleToggleLoop() {
+		editor.workspace.activeTab.toggleLoop();
 	}
 
 	function handleRemoveLayer(id: string) {
@@ -705,6 +718,11 @@
 			onRemoveFrame={handleRemoveFrame}
 			onReorderFrame={handleReorderFrame}
 			onSetFrameDuration={handleSetFrameDuration}
+			isPlaying={isPlaying}
+			isLooping={isLooping}
+			playheadFrameId={playheadFrameId}
+			onTogglePlay={handleTogglePlay}
+			onToggleLoop={handleToggleLoop}
 			collapsed={isTimelinePanelCollapsed}
 			onAddLayer={handleAddLayer}
 			onAddReferenceLayer={handleAddReferenceLayerRequest}
@@ -891,6 +909,11 @@
 				onRemoveFrame={handleRemoveFrame}
 				onReorderFrame={handleReorderFrame}
 				onSetFrameDuration={handleSetFrameDuration}
+				isPlaying={isPlaying}
+				isLooping={isLooping}
+				playheadFrameId={playheadFrameId}
+				onTogglePlay={handleTogglePlay}
+				onToggleLoop={handleToggleLoop}
 				collapsed={false}
 				onAddLayer={handleAddLayer}
 				onAddReferenceLayer={handleAddReferenceLayerRequest}

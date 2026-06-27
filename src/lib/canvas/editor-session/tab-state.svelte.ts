@@ -935,6 +935,15 @@ export class TabState {
 	}
 
 	/**
+	 * The frame the transient Playhead currently shows, or `null` while stopped.
+	 * Drives the transport readout (playhead ordinal) and the ruler's ▼ marker; it
+	 * is never the Active Frame (the edit pointer, which playback leaves untouched).
+	 */
+	get playheadFrameId(): string | null {
+		return this.#playback.playheadFrameId;
+	}
+
+	/**
 	 * Starts in-editor playback from the first frame. Commits any in-flight
 	 * Floating Selection first so the preview shows the committed Document, then
 	 * drives the transient Playhead through the sequence honoring each frame's

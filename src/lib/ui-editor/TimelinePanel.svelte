@@ -2,6 +2,7 @@
 	import { tick } from 'svelte';
 	import { ChevronDown, Copy, Grid2x2, Image, LoaderCircle, Maximize2, Trash2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
+	import TransportBar from './TransportBar.svelte';
 
 	type LayerKind = 'pixel' | 'reference';
 
@@ -43,6 +44,14 @@
 		onSetFrameDuration: (frameId: string, durationMs: number) => void;
 		isReferenceLayerImporting?: boolean;
 		referenceLayerImportName?: string;
+		// Transport (playback) state + commands. Optional so non-playback render
+		// sites (e.g. Storybook) keep working; the editor wires all of them.
+		isPlaying?: boolean;
+		isLooping?: boolean;
+		/** The frame the Playhead shows while playing, or null while stopped. */
+		playheadFrameId?: string | null;
+		onTogglePlay?: () => void;
+		onToggleLoop?: () => void;
 	}
 
 	let {
@@ -67,7 +76,12 @@
 		onReorderFrame,
 		onSetFrameDuration,
 		isReferenceLayerImporting = false,
-		referenceLayerImportName
+		referenceLayerImportName,
+		isPlaying = false,
+		isLooping = false,
+		playheadFrameId = null,
+		onTogglePlay = () => {},
+		onToggleLoop = () => {}
 	}: Props = $props();
 
 	// Fallback row height used when the DOM has no layout (e.g. headless test
@@ -79,6 +93,17 @@
 	);
 	const activeFrameOrdinal = $derived(
 		frames.findIndex((frameCol) => frameCol.id === activeFrameId) + 1
+	);
+	// 1-based Playhead position (0 when the id isn't found / stopped).
+	const playheadOrdinal = $derived(
+		playheadFrameId !== null
+			? frames.findIndex((frameCol) => frameCol.id === playheadFrameId) + 1
+			: 0
+	);
+	// The transport readout follows the Playhead while playing, else the Active Frame
+	// (the frame you return to on stop). One readout, two sources — the 200 design.
+	const transportPosition = $derived(
+		isPlaying && playheadOrdinal > 0 ? playheadOrdinal : activeFrameOrdinal
 	);
 	const activeFrameDurationMs = $derived(
 		frames.find((frameCol) => frameCol.id === activeFrameId)?.durationMs ?? 0
@@ -513,8 +538,23 @@
 	</div>
 	{#if !collapsed}
 		<div class="divider"></div>
+		<!-- Transport strip (200 design): a full-width fixed bar between the header
+		     and the [duration-corner | ruler] band. It never scrolls with the frames.
+		     The ▼ playhead marker lives below, in the frame grid, aligned to columns. -->
+		<TransportBar
+			{isPlaying}
+			{isLooping}
+			position={transportPosition}
+			frameCount={frames.length}
+			{onTogglePlay}
+			{onToggleLoop}
+		/>
 		<div class="body">
 			<div class="sidebar">
+				<!-- Reserves the playhead-marker lane's height so the duration corner
+				     stays aligned with the ruler (the marker lane sits above the ruler
+				     in the frame grid). -->
+				<div class="playhead-lane-spacer" aria-hidden="true"></div>
 				<!-- The top-left corner doubles as the active frame's duration editor
 				     (194 design): aligned with the ruler, it edits whichever frame is
 				     selected. The fps helper is read-only and desktop-only. -->
@@ -678,9 +718,25 @@
 			<div class="vdiv"></div>
 			<div class="frame-area">
 				<div class="frame-grid">
-					<!-- Reserved seam: a later M4 slice inserts the transport strip
-					     (play/pause · FPS · loop) directly above the ruler. Not built here
-					     (187 spec §6) — the ruler stays the top row of the grid. -->
+					<!-- Playhead marker lane (200 design): a thin row above the ruler,
+					     one cell per frame column. The ▼ marker sweeps to the Playhead
+					     frame while playing — a channel kept separate from the static
+					     Active-Frame highlight on the ruler, so the two never collide. -->
+					<div class="playhead-lane" data-playhead-lane aria-hidden="true">
+						{#each frames as frameCol (frameCol.id)}
+							{@const isPlayheadCell = isPlaying && frameCol.id === playheadFrameId}
+							<div class="playhead-cell">
+								{#if isPlayheadCell}
+									<span
+										class="playhead-marker"
+										data-playhead-marker
+										data-playhead-frame-id={frameCol.id}
+										data-playhead-ordinal={playheadOrdinal}
+									>▼</span>
+								{/if}
+							</div>
+						{/each}
+					</div>
 					<div class="frame-ruler">
 						{#each frames as frameCol, frameIndex (frameCol.id)}
 							{@const isActiveFrame = frameCol.id === activeFrameId}
@@ -778,12 +834,17 @@
 <style>
 	.timeline-panel {
 		--row-height: 32px;
-		--panel-height: 180px;
+		/* Grew from 180px to seat the transport bar (200 design) + the playhead
+		   marker lane above the ruler, keeping a comparable number of frame rows. */
+		--panel-height: 224px;
 		--sidebar-width: 256px;
 		/* Frame columns are square — width tracks the shared row height so each
 		   sidebar layer row aligns with its frame grid row. */
 		--frame-col-width: var(--row-height);
 		--ruler-height: 24px;
+		/* The thin row above the ruler that carries the ▼ playhead marker. The
+		   sidebar reserves the same height so the duration corner stays ruler-aligned. */
+		--playhead-lane-height: 14px;
 		--cel-dot-size: 6px;
 
 		display: flex;
@@ -806,7 +867,7 @@
 			   duration corner aligned to it) grows to seat the touch-target-sized
 			   duration input with breathing room (194 mobile spec). */
 			--row-height: 40px;
-			--panel-height: 220px;
+			--panel-height: 288px;
 			--sidebar-width: 140px;
 			--ruler-height: 48px;
 		}
@@ -960,6 +1021,16 @@
 		overflow-x: auto;
 	}
 
+	/* Reserves the marker-lane height above the duration corner so the corner stays
+	   ruler-aligned. Elevated (unlike the transparent frame-side marker lane) so the
+	   corner reads as one full-height elevated block — the 200 design's split where
+	   the corner is solid and the playhead lane is surface-transparent. */
+	.playhead-lane-spacer {
+		height: var(--playhead-lane-height);
+		flex: none;
+		background: var(--ds-bg-elevated);
+	}
+
 	/* Aligns the sidebar's layer rows with the frame body rows by reserving the
 	   ruler height at the top of the frozen sidebar. The bg-elevated fill matches
 	   the ruler so corner + ruler read as one continuous top band. */
@@ -1015,6 +1086,37 @@
 		flex-direction: column;
 		width: max-content;
 		min-width: 100%;
+	}
+
+	/* Playhead marker lane: a thin row above the ruler, one cell per frame column
+	   (same width), so the ▼ marker sits over the Playhead frame. Transparent (200
+	   design) so it reads as the panel surface above the elevated ruler — the corner
+	   side stays elevated via the spacer. Always reserved (even when stopped) so
+	   starting/stopping playback never shifts the layout. */
+	.playhead-lane {
+		display: flex;
+		height: var(--playhead-lane-height);
+		flex: none;
+	}
+
+	.playhead-cell {
+		width: var(--frame-col-width);
+		height: var(--playhead-lane-height);
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	/* The marker is a per-cell glyph that appears in the Playhead column and jumps
+	   column-to-column as the frame advances — instant content changes, so motion is
+	   inherently reduced-motion-safe (no sliding transition to suppress). */
+	.playhead-marker {
+		color: var(--ds-accent);
+		/* 1px above the ruler ordinals (--ds-font-size-xs), matching the 200 in-context
+		   scale (marker 11 vs ordinal 10) — not the enlarged anatomy figure's 12. */
+		font-size: var(--ds-font-size-sm);
+		line-height: 1;
 	}
 
 	.frame-ruler {

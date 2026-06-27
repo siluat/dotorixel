@@ -185,5 +185,9 @@
 	"aria_hideLayer": "{name}を隠す",
 	"aria_showLayer": "{name}を表示",
 	"aria_collapseTimelinePanel": "レイヤーパネルを折りたたむ",
-	"aria_expandTimelinePanel": "レイヤーパネルを展開"
+	"aria_expandTimelinePanel": "レイヤーパネルを展開",
+	"aria_playbackToolbar": "再生コントロール",
+	"aria_play": "再生",
+	"aria_pause": "一時停止",
+	"aria_toggleLoop": "ループ"
 }

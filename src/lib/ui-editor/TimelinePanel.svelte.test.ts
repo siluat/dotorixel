@@ -1895,7 +1895,7 @@ describe('TimelinePanel', () => {
 			expect(readout.textContent?.replace(/\s+/g, ' ').trim()).toBe('3 / 3');
 		});
 
-		it('marks the playhead frame column with the ▾ marker while playing', () => {
+		it('marks the playhead frame column with the ▼ marker while playing', () => {
 			const { container } = render(TimelinePanel, {
 				props: {
 					...defaultProps,
@@ -1913,7 +1913,7 @@ describe('TimelinePanel', () => {
 			expect(marker.getAttribute('data-playhead-frame-id')).toBe('f2');
 		});
 
-		it('renders no ▾ marker while stopped', () => {
+		it('renders no ▼ marker while stopped', () => {
 			const { container } = render(TimelinePanel, {
 				props: {
 					...defaultProps,

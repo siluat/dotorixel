@@ -936,7 +936,7 @@ export class TabState {
 
 	/**
 	 * The frame the transient Playhead currently shows, or `null` while stopped.
-	 * Drives the transport readout (playhead ordinal) and the ruler's ▾ marker; it
+	 * Drives the transport readout (playhead ordinal) and the ruler's ▼ marker; it
 	 * is never the Active Frame (the edit pointer, which playback leaves untouched).
 	 */
 	get playheadFrameId(): string | null {

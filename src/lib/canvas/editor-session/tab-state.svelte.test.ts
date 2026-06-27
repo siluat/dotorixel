@@ -3594,7 +3594,7 @@ describe('TabState — playback', () => {
 		tab.setFrameDuration(frameIds[1], 100);
 
 		// Stopped: there is no playhead (the transport readout falls back to the
-		// active frame; the ruler shows no ▾ marker).
+		// active frame; the ruler shows no ▼ marker).
 		expect(tab.playheadFrameId).toBeNull();
 
 		tab.startPlayback();

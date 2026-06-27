@@ -45,22 +45,23 @@ describe('TransportBar', () => {
 		expect(onToggleLoop).toHaveBeenCalledTimes(1);
 	});
 
-	it('reflects the stopped state on the play control (Play label, not pressed)', () => {
+	it('shows the Play label while stopped and is not a toggle (no aria-pressed)', () => {
 		const { container } = render(TransportBar, {
 			props: { ...defaultProps, isPlaying: false }
 		});
 		const play = container.querySelector('[data-transport-play]') as HTMLButtonElement;
-		expect(play.getAttribute('aria-pressed')).toBe('false');
 		expect(play.getAttribute('aria-label')).toBe('Play');
+		// A dynamic-name action button, not a toggle — aria-pressed would conflict (ARIA APG).
+		expect(play.getAttribute('aria-pressed')).toBeNull();
 	});
 
-	it('reflects the playing state on the play control (Pause label, pressed)', () => {
+	it('shows the Pause label while playing (still no aria-pressed)', () => {
 		const { container } = render(TransportBar, {
 			props: { ...defaultProps, isPlaying: true }
 		});
 		const play = container.querySelector('[data-transport-play]') as HTMLButtonElement;
-		expect(play.getAttribute('aria-pressed')).toBe('true');
 		expect(play.getAttribute('aria-label')).toBe('Pause');
+		expect(play.getAttribute('aria-pressed')).toBeNull();
 	});
 
 	it('reflects the loop state via aria-pressed and an on-state class', () => {

@@ -22,12 +22,14 @@
 </script>
 
 <div class="transport-bar" role="toolbar" aria-label={m.aria_playbackToolbar()} data-transport-bar>
+	<!-- An action button whose accessible name flips Play⇄Pause — not a toggle, so
+	     no aria-pressed (that would be a conflicting pattern with the changing name).
+	     The morphing name conveys state; Loop, with a stable name, is the real toggle. -->
 	<button
 		type="button"
 		class="transport-btn transport-btn--play"
 		data-transport-play
 		aria-label={isPlaying ? m.aria_pause() : m.aria_play()}
-		aria-pressed={isPlaying}
 		disabled={isSingleFrame}
 		onclick={onTogglePlay}
 	>

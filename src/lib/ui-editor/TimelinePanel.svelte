@@ -540,7 +540,7 @@
 		<div class="divider"></div>
 		<!-- Transport strip (200 design): a full-width fixed bar between the header
 		     and the [duration-corner | ruler] band. It never scrolls with the frames.
-		     The ▾ playhead marker lives below, in the frame grid, aligned to columns. -->
+		     The ▼ playhead marker lives below, in the frame grid, aligned to columns. -->
 		<TransportBar
 			{isPlaying}
 			{isLooping}
@@ -719,7 +719,7 @@
 			<div class="frame-area">
 				<div class="frame-grid">
 					<!-- Playhead marker lane (200 design): a thin row above the ruler,
-					     one cell per frame column. The ▾ marker sweeps to the Playhead
+					     one cell per frame column. The ▼ marker sweeps to the Playhead
 					     frame while playing — a channel kept separate from the static
 					     Active-Frame highlight on the ruler, so the two never collide. -->
 					<div class="playhead-lane" data-playhead-lane aria-hidden="true">
@@ -842,7 +842,7 @@
 		   sidebar layer row aligns with its frame grid row. */
 		--frame-col-width: var(--row-height);
 		--ruler-height: 24px;
-		/* The thin row above the ruler that carries the ▾ playhead marker. The
+		/* The thin row above the ruler that carries the ▼ playhead marker. The
 		   sidebar reserves the same height so the duration corner stays ruler-aligned. */
 		--playhead-lane-height: 14px;
 		--cel-dot-size: 6px;

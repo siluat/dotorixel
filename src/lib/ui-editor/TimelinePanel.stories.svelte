@@ -105,7 +105,7 @@
 
 <Story name="Playing">
 	<div style="width: 720px;">
-		<!-- Playback running: the Play button shows pause, Loop is on, and the ▾ marker
+		<!-- Playback running: the Play button shows pause, Loop is on, and the ▼ marker
 		     sits over the Playhead frame (f3) — a channel distinct from the Active-Frame
 		     highlight (f2), which never moves during playback. -->
 		<TimelinePanel

@@ -32,7 +32,7 @@ test.describe('Transport — in-editor playback', () => {
 		await loop.click();
 		await expect(loop).toHaveAttribute('aria-pressed', 'true');
 		await play.click();
-		await expect(play).toHaveAttribute('aria-pressed', 'true');
+		await expect(play).toHaveAttribute('aria-label', 'Pause');
 
 		// The playhead advances to the second frame — asserted on a stable data
 		// attribute (the ▾ marker's ordinal), not a pixel-diff race.
@@ -49,7 +49,7 @@ test.describe('Transport — in-editor playback', () => {
 		// Pause → playback stops, the marker disappears, and the display returns to the
 		// Active Frame (frame 2, still blank), which never moved during playback.
 		await play.click();
-		await expect(play).toHaveAttribute('aria-pressed', 'false');
+		await expect(play).toHaveAttribute('aria-label', 'Play');
 		await expect(marker).toHaveCount(0);
 		await expect(ruler.nth(1)).toHaveAttribute('aria-current', 'true');
 		await expect

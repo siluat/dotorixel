@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-[203 — Transport strip UI + playhead + i18n + E2E](../issues/203-transport-strip-ui.md): wired the transport strip (single Play/Pause + Loop + `n / N` readout) and the ▾ playhead marker to the 202 engine on both docked + mobile — **completing PRD 199 (in-editor animation playback)**. Playback stays preview-only: no history entry, no dirty mark, the Active Frame never moves. `composite_at` now has a live consumer, ready for onion skin / export next.
+[203 — Transport strip UI + playhead + i18n + E2E](../issues/203-transport-strip-ui.md): wired the transport strip (single Play/Pause + Loop + `n / N` readout) and the ▼ playhead marker to the 202 engine on both docked + mobile — **completing PRD 199 (in-editor animation playback)**. Playback stays preview-only: no history entry, no dirty mark, the Active Frame never moves. `composite_at` now has a live consumer, ready for onion skin / export next.
 
 ## Next Up
 

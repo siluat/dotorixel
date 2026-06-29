@@ -20,7 +20,7 @@ pub use export::{ExportError, PngExport, SvgExport};
 pub use frame::Frame;
 pub use history::{DocumentHistory, PixelCanvasHistory, Snapshot};
 pub use layer::Layer;
-pub use reference_placement::ReferencePlacement;
+pub use reference_placement::{ReferenceFootprint, ReferencePlacement};
 pub use tool::ToolType;
 pub use viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
 

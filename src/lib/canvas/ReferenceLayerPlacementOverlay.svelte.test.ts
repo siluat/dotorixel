@@ -22,6 +22,7 @@ const referenceLayerUnderlay: ReferenceLayerUnderlay = {
 	naturalWidth: 2,
 	naturalHeight: 1,
 	placement: { x: 0.5, y: 1, scale: 2 },
+	projectedBounds: { minX: 0.5, minY: 1, maxX: 4.5, maxY: 3 },
 	opacity: 1
 };
 

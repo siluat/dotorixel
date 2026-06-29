@@ -48,7 +48,6 @@ import {
 	type DocumentFrameProjectionRead
 } from '../document-frame-projection';
 import {
-	referenceLayerUnderlayBounds,
 	referenceLayerUnderlaySourceCoords,
 	type ReferenceLayerUnderlay
 } from '../reference-layer-underlay';
@@ -978,7 +977,7 @@ export class TabState {
 		const projection = this.layerProjection;
 		if (projection.activeLayerKind !== 'reference') return null;
 		const underlay = projection.referenceLayerUnderlay;
-		return underlay ? referenceLayerUnderlayBounds(underlay) : null;
+		return underlay ? underlay.projectedBounds : null;
 	}
 
 	setViewport = (newViewport: ViewportData): void => {

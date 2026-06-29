@@ -151,6 +151,68 @@ impl ReferencePlacement {
             rotation: 0,
         }
     }
+
+    /// This placement's [`ReferenceFootprint`] — the projected axis-aligned
+    /// bounding box of a `natural_width × natural_height` source, in canvas-pixel
+    /// coordinates. The min corner is the placement origin; the extent is the
+    /// source dimensions scaled by [`scale`](Self::scale), with width and height
+    /// swapped for an odd quarter-turn [`rotation`](Self::rotation) (the box
+    /// turns with the source). Takes the natural dimensions as parameters, like
+    /// [`fit_to_canvas`](Self::fit_to_canvas).
+    pub fn footprint(&self, natural_width: u32, natural_height: u32) -> ReferenceFootprint {
+        let projected_width = natural_width as f32 * self.scale;
+        let projected_height = natural_height as f32 * self.scale;
+        let (width, height) = if self.rotation % 2 == 0 {
+            (projected_width, projected_height)
+        } else {
+            (projected_height, projected_width)
+        };
+        ReferenceFootprint {
+            min_x: self.x,
+            min_y: self.y,
+            max_x: self.x + width,
+            max_y: self.y + height,
+        }
+    }
+}
+
+/// A Reference Layer's projected axis-aligned bounding box on the document
+/// canvas, in canvas-pixel coordinates — produced solely by
+/// [`ReferencePlacement::footprint`]. Stored as min/max corners; its fractional
+/// `f32` coordinates are why it is not a [`CanvasRect`](crate::canvas::CanvasRect),
+/// which is integer-pixel.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ReferenceFootprint {
+    min_x: f32,
+    min_y: f32,
+    max_x: f32,
+    max_y: f32,
+}
+
+impl ReferenceFootprint {
+    pub fn min_x(&self) -> f32 {
+        self.min_x
+    }
+
+    pub fn min_y(&self) -> f32 {
+        self.min_y
+    }
+
+    pub fn max_x(&self) -> f32 {
+        self.max_x
+    }
+
+    pub fn max_y(&self) -> f32 {
+        self.max_y
+    }
+
+    pub fn width(&self) -> f32 {
+        self.max_x - self.min_x
+    }
+
+    pub fn height(&self) -> f32 {
+        self.max_y - self.min_y
+    }
 }
 
 #[cfg(test)]
@@ -282,5 +344,43 @@ mod tests {
         let _ = original.with_position(99.0, 99.0);
         let _ = ReferencePlacement::fit_to_canvas(16, 16, 16, 8);
         assert_eq!(original, ReferencePlacement::new(10.0, 20.0, 2.0).unwrap());
+    }
+
+    #[test]
+    fn footprint_of_unrotated_placement_spans_source_dimensions_from_the_origin() {
+        let placement = ReferencePlacement::new(3.0, 5.0, 1.0).unwrap();
+        let footprint = placement.footprint(4, 2);
+        assert_eq!(footprint.min_x(), 3.0);
+        assert_eq!(footprint.min_y(), 5.0);
+        assert_eq!(footprint.max_x(), 7.0);
+        assert_eq!(footprint.max_y(), 7.0);
+        assert_eq!(footprint.width(), 4.0);
+        assert_eq!(footprint.height(), 2.0);
+    }
+
+    #[test]
+    fn footprint_swaps_width_and_height_for_odd_quarter_turns() {
+        // A non-square 4×2 source at scale 3, placed at (1, 2). Even turns keep
+        // the 12×6 projected extent; odd turns swap it to 6×12. The min corner
+        // stays the placement origin regardless of rotation.
+        let base = ReferencePlacement::new(1.0, 2.0, 3.0).unwrap();
+
+        for rotation in [0, 2] {
+            let footprint = base.with_rotation(rotation).footprint(4, 2);
+            assert_eq!((footprint.min_x(), footprint.min_y()), (1.0, 2.0));
+            assert_eq!(footprint.width(), 12.0);
+            assert_eq!(footprint.height(), 6.0);
+            assert_eq!(footprint.max_x(), 13.0);
+            assert_eq!(footprint.max_y(), 8.0);
+        }
+
+        for rotation in [1, 3] {
+            let footprint = base.with_rotation(rotation).footprint(4, 2);
+            assert_eq!((footprint.min_x(), footprint.min_y()), (1.0, 2.0));
+            assert_eq!(footprint.width(), 6.0);
+            assert_eq!(footprint.height(), 12.0);
+            assert_eq!(footprint.max_x(), 7.0);
+            assert_eq!(footprint.max_y(), 14.0);
+        }
     }
 }

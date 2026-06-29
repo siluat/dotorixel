@@ -1996,6 +1996,7 @@ describe('TabState — Reference underlay render source', () => {
 			naturalWidth: 2,
 			naturalHeight: 1,
 			placement: { x: 3, y: 4, scale: 2, rotation: 0 },
+			projectedBounds: { minX: 3, minY: 4, maxX: 7, maxY: 6 },
 			opacity: 0.5
 		});
 

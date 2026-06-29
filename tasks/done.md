@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 204 | [Reference Footprint — one core authority for the projected AABB](../issues/204-reference-footprint-core-authority.md) | 2026-06-29 |
 | 203 | [Transport strip UI + playhead + i18n + E2E](../issues/203-transport-strip-ui.md) | 2026-06-27 |
 | 202 | [Shell playback controller — transient playhead engine](../issues/202-playback-controller.md) | 2026-06-26 |
 | 201 | [Per-frame composite seam — composite_at (core + WASM)](../issues/201-per-frame-composite-at.md) | 2026-06-25 |

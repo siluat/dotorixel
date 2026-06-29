@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::canvas::{PixelCanvas, PixelCanvasError};
 use crate::color::Color;
 use crate::frame::Frame;
-use crate::reference_placement::ReferencePlacement;
+use crate::reference_placement::{ReferenceFootprint, ReferencePlacement};
 
 /// A single layer in a [`Document`](crate::Document) — an addressable slot
 /// with display state ([`visible`], [`opacity`] in `[0.0, 1.0]`) and a
@@ -358,6 +358,12 @@ impl ReferenceData {
         self.placement = placement;
     }
 
+    /// This layer's [`ReferenceFootprint`] — its placement's projected
+    /// axis-aligned bounding box for this source's natural dimensions.
+    pub fn footprint(&self) -> ReferenceFootprint {
+        self.placement.footprint(self.natural_width, self.natural_height)
+    }
+
     /// Returns the source pixel that projects onto document coordinate
     /// `(x, y)` under the current placement, or `None` if `(x, y)` lies
     /// outside the source's projected footprint. Sampling is integer-floor
@@ -619,5 +625,14 @@ mod tests {
                 natural_height: 65536,
             }
         );
+    }
+
+    #[test]
+    fn reference_data_footprint_delegates_to_placement_with_its_own_natural_dimensions() {
+        // A rotated, non-square reference: the footprint must use the data's own
+        // natural dimensions, so the odd-turn width/height swap is observable.
+        let placement = ReferencePlacement::new(2.0, 3.0, 2.0).unwrap().with_rotation(1);
+        let data = ReferenceData::new(positional_rgba(4, 2), 4, 2, placement).unwrap();
+        assert_eq!(data.footprint(), placement.footprint(4, 2));
     }
 }

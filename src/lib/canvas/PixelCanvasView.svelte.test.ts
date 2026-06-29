@@ -69,6 +69,7 @@ const referenceLayerUnderlay: ReferenceLayerUnderlay = {
 	naturalWidth: 2,
 	naturalHeight: 1,
 	placement: { x: 0.5, y: 1, scale: 2 },
+	projectedBounds: { minX: 0.5, minY: 1, maxX: 4.5, maxY: 3 },
 	opacity: 1
 };
 
@@ -78,13 +79,15 @@ const squareReferenceLayerUnderlay: ReferenceLayerUnderlay = {
 	naturalWidth: 4,
 	naturalHeight: 4,
 	placement: { x: 1, y: 1, scale: 2 },
+	projectedBounds: { minX: 1, minY: 1, maxX: 9, maxY: 9 },
 	opacity: 1
 };
 
 const largeSquareReferenceLayerUnderlay: ReferenceLayerUnderlay = {
 	...squareReferenceLayerUnderlay,
 	sourceKey: 'reference-overlay-large-square',
-	placement: { x: 1, y: 1, scale: 3 }
+	placement: { x: 1, y: 1, scale: 3 },
+	projectedBounds: { minX: 1, minY: 1, maxX: 13, maxY: 13 }
 };
 
 const viewport: ViewportData = {

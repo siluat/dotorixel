@@ -21,6 +21,20 @@ export interface ReferencePlacement {
 	readonly rotation?: number;
 }
 
+/**
+ * A Reference Layer's projected axis-aligned bounding box on the document
+ * canvas, in canvas-pixel coordinates (min/max corners). The single producer is
+ * the core's `ReferencePlacement::footprint`, read across the WASM seam via
+ * {@link Document.reference_layer_footprint_at}; field names are snake_case to
+ * match the binding, like {@link LayerMetadata}'s `placement`.
+ */
+export interface ReferenceFootprint {
+	readonly min_x: number;
+	readonly min_y: number;
+	readonly max_x: number;
+	readonly max_y: number;
+}
+
 /** Document-scoped rectangular Marquee region in pixel coordinates. */
 export interface MarqueeRegion {
 	readonly x: number;
@@ -256,6 +270,12 @@ export interface Document {
 	set_layer_visibility(id: string, visible: boolean): void;
 	/** Returns a Reference Layer's source RGBA buffer, or `undefined` for Pixel Layers / out of range. */
 	layer_source_pixels_at(index: number): Uint8Array | undefined;
+	/**
+	 * Returns the Reference Layer's {@link ReferenceFootprint} — its projected
+	 * axis-aligned bounding box in canvas-pixel coordinates — at `stackIndex`, or
+	 * `undefined` for a Pixel Layer / out of range.
+	 */
+	reference_layer_footprint_at(stackIndex: number): ReferenceFootprint | undefined;
 	active_frame_id(): string;
 	frame_count(): number;
 	/**

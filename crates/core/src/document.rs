@@ -1195,16 +1195,11 @@ fn rotate_reference_placement(
     turn: QuarterTurn,
 ) -> ReferencePlacement {
     let placement = data.placement();
-    let scale = placement.scale();
-    let projected_w = data.natural_width() as f32 * scale;
-    let projected_h = data.natural_height() as f32 * scale;
-    // A quarter-turn rotation swaps the footprint's axis-aligned bounding box,
-    // so an odd current rotation already has its width and height exchanged.
-    let (bbox_w, bbox_h) = if placement.rotation() % 2 == 0 {
-        (projected_w, projected_h)
-    } else {
-        (projected_h, projected_w)
-    };
+    // One core authority for the rotation-aware projected bounding box: the
+    // footprint already swaps width/height for an odd current rotation.
+    let footprint = placement.footprint(data.natural_width(), data.natural_height());
+    let bbox_w = footprint.width();
+    let bbox_h = footprint.height();
     let center_x = placement.x() + bbox_w / 2.0;
     let center_y = placement.y() + bbox_h / 2.0;
     let (new_center_x, new_center_y) = match turn {

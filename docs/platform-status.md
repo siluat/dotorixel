@@ -43,7 +43,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Zoom | ✅ | ✅ | ✅ | Discrete levels + continuous |
 | Pan | ✅ | ✅ | ✅ | |
 | Fit to viewport | ✅ | ✅ | ✅ | |
-| Navigation Bounds clamp | 🔧 | ✅ | ⬜ | Pan/zoom/zoom-fit/resize clamp to canvas ∪ active-Reference footprint via one viewport sink. Core supplies the clamp op; the union is computed Web-side |
+| Navigation Bounds clamp | 🔧 | ✅ | ⬜ | Clamp (pan/zoom/zoom-fit/resize) to canvas ∪ active-Reference footprint via one viewport sink. Rotation-aware footprint and clamp op are both core; the union is computed Web-side |
 
 ## Color
 

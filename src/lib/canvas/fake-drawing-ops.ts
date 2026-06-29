@@ -258,6 +258,7 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 			throw new Error('createFakeDocument: set_layer_visibility not implemented');
 		},
 		layer_source_pixels_at: () => undefined,
+		reference_layer_footprint_at: () => undefined,
 		active_frame_id: () => 'frame',
 		frame_count: () => 1,
 		frames_metadata: () => [{ id: 'frame', duration_ms: 100 }],

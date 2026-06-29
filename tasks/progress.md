@@ -26,6 +26,7 @@ None
 - Design: share artwork dialog — URL sharing dialog UI (.pen)
 - FG/BG swap UI improvements
 - Dark mode toggle UI
+- Reference Footprint core authority — one core producer for the rotation-aware projected AABB ([issue 204](../issues/204-reference-footprint-core-authority.md), ready-for-agent)
 - Document error conditions on `PixelCanvas` public API
 - IndexedDB quota exceeded error handling
 - Document rename

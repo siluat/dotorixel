@@ -30,6 +30,10 @@ _Avoid_: position, transform, geometry, viewport (all overloaded).
 The pointer- and keyboard-driven lifecycle for editing a Reference Layer Placement in the canvas viewport.
 _Avoid_: placement drag, overlay edit, transform interaction.
 
+**Reference Footprint**:
+A Reference Layer's projected axis-aligned bounding box on the Document canvas — the source image scaled by the placement's scale and width/height-swapped for an odd quarter-turn rotation, expressed in canvas-pixel coordinates as min/max corners (canonical core type `ReferenceFootprint`). Owned by one core authority — `ReferencePlacement::footprint(natural_width, natural_height)`, with the convenience `ReferenceData::footprint()` — so the rotation-aware geometry is computed once in the core rather than re-derived per shell. It is the single producer feeding both Navigation Bounds (unioned with the canvas rectangle) and the viewport underlay's display rect (the shell's `× scaled-pixel + pan` projection of it).
+_Avoid_: bounds (the clamped pan region is Navigation Bounds), underlay rect (the shell's display-space projection of this footprint), extent (names only width/height, not the positioned box), projected footprint (informal — `ReferenceFootprint` is the canonical name).
+
 ### Frames & Cels
 
 **Frame**:

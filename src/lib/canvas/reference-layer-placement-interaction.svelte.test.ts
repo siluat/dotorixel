@@ -146,6 +146,32 @@ describe('Reference Layer Placement Interaction', () => {
 		});
 	});
 
+	it('preserves the rotated footprint dimensions through a body drag', () => {
+		const interaction = createReferenceLayerPlacementInteraction();
+		// A 2×1 source at a quarter-turn: its projected box is swapped to 2 wide × 4
+		// tall. The preview must keep that rotated shape while translating.
+		const rotated: ReferenceLayerUnderlay = {
+			...referenceLayerUnderlay,
+			placement: { x: 1, y: 1, scale: 2, rotation: 1 },
+			projectedBounds: { minX: 1, minY: 1, maxX: 3, maxY: 5 }
+		};
+		beginDrag(interaction, { referenceLayerUnderlay: rotated });
+		interaction.updateDrag({
+			pointerId: 1,
+			clientX: 30,
+			clientY: 10,
+			localX: 30,
+			localY: 10,
+			scaledCanvasPixel: 10
+		});
+
+		// Same scale → the swapped 2×4 box shifts to the draft origin, staying rotated.
+		expect(interaction.displayedUnderlay(rotated)).toMatchObject({
+			placement: { x: 3, y: 0, scale: 2, rotation: 1 },
+			projectedBounds: { minX: 3, minY: 0, maxX: 5, maxY: 4 }
+		});
+	});
+
 	it('clamps corner scaling to an 8x8 document-pixel footprint', () => {
 		const interaction = createReferenceLayerPlacementInteraction();
 		beginDrag(interaction, {

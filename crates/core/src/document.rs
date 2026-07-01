@@ -1197,7 +1197,7 @@ fn rotate_reference_placement(
     let placement = data.placement();
     // One core authority for the rotation-aware projected bounding box: the
     // footprint already swaps width/height for an odd current rotation.
-    let footprint = placement.footprint(data.natural_width(), data.natural_height());
+    let footprint = data.footprint();
     let bbox_w = footprint.width();
     let bbox_h = footprint.height();
     let center_x = placement.x() + bbox_w / 2.0;

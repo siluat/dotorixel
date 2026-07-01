@@ -6,14 +6,23 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 167 | 128 | 39 | 166 | 77% | 44% |
-| cubic-dev-ai[bot] | 140 | 109 | 31 | 183 | 78% | 37% |
-| coderabbitai[bot] | 224 | 159 | 65 | 130 | 71% | 55% |
+| greptile-apps[bot] | 167 | 128 | 39 | 168 | 77% | 43% |
+| cubic-dev-ai[bot] | 141 | 109 | 32 | 185 | 77% | 37% |
+| coderabbitai[bot] | 228 | 161 | 67 | 130 | 71% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #295 | coderabbitai[bot] | Accept | rotate_reference_placement re-wired the natural dims through placement.footprint(...) instead of the ReferenceData::footprint() convenience this PR added; switched to data.footprint() to keep the natural-dim contract centralized |
+| #295 | coderabbitai[bot] | Accept | Drag-preview derivation tests covered only axis-aligned underlays; added a quarter-turn body-drag case locking the rotation-aware footprint (swapped 2×4 box) through a preview update |
+| #295 | coderabbitai[bot] | Reject | Wanted platform-status reworded to say Core only supplies the footprint; declined — the pan-clamp op is core (Viewport::clamp_pan_to_document_bounds via wasm-backend.ts), only the union (navigationBounds) is Web-side, so the row's clamp-op-core / union-web split is already accurate |
+| #295 | coderabbitai[bot] | Reject | Wanted an odd-rotation case in the WASM footprint test; declined — the accessor is pure delegation to data.footprint() with no rotation logic, and the width/height swap is exhaustively core-tested across all four quarter-turns |
+| #295 | cubic-dev-ai[bot] | Reject | Wanted a debug_assert for non-zero natural dims in footprint(); declined — footprint multiplies the dims (zero yields a valid zero-extent box, no hazard) unlike fit_to_canvas/auto_fit which divide, and all callers feed ReferenceData-validated dims (≥1) |
+| #295 | cubic-dev-ai[bot] | Miss | Did not flag the duplicated natural-dim wiring in rotate_reference_placement (placement.footprint(...) vs data.footprint()) |
+| #295 | cubic-dev-ai[bot] | Miss | Did not flag the missing rotated drag-preview test case |
+| #295 | greptile-apps[bot] | Miss | Did not flag the duplicated natural-dim wiring in rotate_reference_placement |
+| #295 | greptile-apps[bot] | Miss | Did not flag the missing rotated drag-preview test case |
 | #294 | coderabbitai[bot] | Accept | Play/Pause combined a dynamic accessible name (Play⇄Pause) with `aria-pressed` — a conflicting toggle pattern (ARIA APG); dropped `aria-pressed` (the morphing name conveys state), Loop keeps it (stable-name toggle) |
 | #294 | cubic-dev-ai[bot] | Accept | Same Play/Pause `aria-pressed` conflicting-toggle finding (duplicate); fixed by dropping `aria-pressed` |
 | #294 | cubic-dev-ai[bot] | Accept | Playhead-marker prose used ▾ (U+25BE) while the .pen spec + code render ▼ (U+25BC); unified to ▼ across this PR's docs, comments, and test names |

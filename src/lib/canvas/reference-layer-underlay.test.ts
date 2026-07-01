@@ -2,7 +2,6 @@
 import { describe, expect, it } from 'vitest';
 import {
 	normalizedQuarterTurn,
-	referenceLayerUnderlayBounds,
 	referenceLayerUnderlayDocumentRect,
 	referenceLayerUnderlaySourceCoords,
 	referenceLayerUnderlayViewportRect,
@@ -51,6 +50,7 @@ describe('Reference Layer Underlay projection helpers', () => {
 		naturalWidth: 4,
 		naturalHeight: 1,
 		placement: { x: 0.5, y: 1, scale: 2, rotation: 0 },
+		projectedBounds: { minX: 0.5, minY: 1, maxX: 8.5, maxY: 3 },
 		opacity: 1
 	};
 
@@ -83,42 +83,26 @@ describe('Reference Layer Underlay projection helpers', () => {
 		});
 	});
 
-	it('returns document bounds for navigation clamping', () => {
-		expect(referenceLayerUnderlayBounds(underlay)).toEqual({
-			minX: 0.5,
-			minY: 1,
-			maxX: 8.5,
-			maxY: 3
-		});
-	});
-
 	describe('with a quarter-turn rotation', () => {
-		// A 2×1 source rotated one quarter-turn clockwise; its bounding box turns
-		// into a 1×2 column at scale 1.
+		// A 2×1 source rotated one quarter-turn clockwise; its projected bounding
+		// box turns into a 1×2 column at scale 1 (the swap is computed by the core
+		// footprint authority and carried on `projectedBounds`).
 		const rotated: ReferenceLayerUnderlay = {
 			sourceKey: 'rotated',
 			sourceRgba: new Uint8Array([0, 0, 0, 255, 1, 0, 0, 255]),
 			naturalWidth: 2,
 			naturalHeight: 1,
 			placement: { x: 0, y: 0, scale: 1, rotation: 1 },
+			projectedBounds: { minX: 0, minY: 0, maxX: 1, maxY: 2 },
 			opacity: 1
 		};
 
-		it('swaps the document rect dimensions for an odd quarter-turn', () => {
+		it('projects the document rect from the rotated bounds for an odd quarter-turn', () => {
 			expect(referenceLayerUnderlayDocumentRect(rotated, viewport)).toEqual({
 				left: 0,
 				top: 0,
-				width: 10, // naturalHeight * scale * pixelSize
-				height: 20 // naturalWidth * scale * pixelSize
-			});
-		});
-
-		it('swaps the document bounds dimensions for an odd quarter-turn', () => {
-			expect(referenceLayerUnderlayBounds(rotated)).toEqual({
-				minX: 0,
-				minY: 0,
-				maxX: 1, // naturalHeight * scale
-				maxY: 2 // naturalWidth * scale
+				width: 10, // (maxX - minX) * pixelSize
+				height: 20 // (maxY - minY) * pixelSize
 			});
 		});
 

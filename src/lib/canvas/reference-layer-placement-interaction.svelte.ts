@@ -164,9 +164,25 @@ export function createReferenceLayerPlacementInteraction() {
 		},
 
 		displayedUnderlay(referenceLayerUnderlay?: ReferenceLayerUnderlay): ReferenceLayerUnderlay | undefined {
-			return referenceLayerUnderlay && draftPlacement
-				? { ...referenceLayerUnderlay, placement: draftPlacement }
-				: referenceLayerUnderlay;
+			if (!referenceLayerUnderlay || !draftPlacement) return referenceLayerUnderlay;
+			// A placement edit only translates or uniformly scales the footprint —
+			// rotation is preserved across drag/scale/nudge — so the live draft box
+			// is the core-produced committed box moved to the draft origin and scaled
+			// by the scale ratio. The rotation-aware projection stays the core's job;
+			// the width/height swap is never recomputed here.
+			const committed = referenceLayerUnderlay.placement;
+			const ratio = draftPlacement.scale / committed.scale;
+			const { minX, minY, maxX, maxY } = referenceLayerUnderlay.projectedBounds;
+			return {
+				...referenceLayerUnderlay,
+				placement: draftPlacement,
+				projectedBounds: {
+					minX: draftPlacement.x,
+					minY: draftPlacement.y,
+					maxX: draftPlacement.x + (maxX - minX) * ratio,
+					maxY: draftPlacement.y + (maxY - minY) * ratio
+				}
+			};
 		},
 
 		beginDrag(input: ReferencePlacementDragBeginInput): boolean {

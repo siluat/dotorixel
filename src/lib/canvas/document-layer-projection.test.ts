@@ -78,6 +78,9 @@ describe('DocumentLayerProjection', () => {
 			naturalWidth: 4,
 			naturalHeight: 1,
 			placement: { x: 0.5, y: 1, scale: 2 },
+			// Projected footprint sourced from the core: a 4×1 source at scale 2
+			// from (0.5, 1) spans (0.5, 1)–(8.5, 3).
+			projectedBounds: { minX: 0.5, minY: 1, maxX: 8.5, maxY: 3 },
 			opacity: 0.5
 		});
 		expect(read.referenceLayerUnderlay?.sourceKey).toContain(`${referenceId}:4x1:`);

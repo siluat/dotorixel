@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-[203 — Transport strip UI + playhead + i18n + E2E](../issues/203-transport-strip-ui.md): wired the transport strip (single Play/Pause + Loop + `n / N` readout) and the ▼ playhead marker to the 202 engine on both docked + mobile — **completing PRD 199 (in-editor animation playback)**. Playback stays preview-only: no history entry, no dirty mark, the Active Frame never moves. `composite_at` now has a live consumer, ready for onion skin / export next.
+[204 — Reference Footprint core authority](../issues/204-reference-footprint-core-authority.md): the rotation-aware projected AABB now has a single core producer feeding both Navigation Bounds and the underlay render rect; the web's duplicate formula is deleted. The placement-drag preview re-derives the footprint by translate + uniform-scale (rotation is preserved during edits), so the rotation swap lives only in the core.
 
 ## Next Up
 
@@ -26,7 +26,6 @@ None
 - Design: share artwork dialog — URL sharing dialog UI (.pen)
 - FG/BG swap UI improvements
 - Dark mode toggle UI
-- Reference Footprint core authority — one core producer for the rotation-aware projected AABB ([issue 204](../issues/204-reference-footprint-core-authority.md), ready-for-agent)
 - Document error conditions on `PixelCanvas` public API
 - IndexedDB quota exceeded error handling
 - Document rename

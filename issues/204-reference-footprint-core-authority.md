@@ -1,6 +1,6 @@
 ---
 title: "Reference Footprint — one core authority for the projected AABB (core + WASM + web)"
-status: ready-for-agent
+status: done
 created: 2026-06-29
 ---
 
@@ -116,3 +116,29 @@ inverse projection" if the duplication is confirmed.
 ## Blocked by
 
 None — can start immediately. Independent of review candidate #4 (WASM layer-metadata schema).
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/reference_placement.rs` | New `ReferenceFootprint` value type (private `f32` min/max, `min_x/min_y/max_x/max_y` + `width()/height()`) and the single authority `ReferencePlacement::footprint(nat_w, nat_h)` — rotation-aware projected AABB |
+| `crates/core/src/layer.rs` | Convenience `ReferenceData::footprint()` delegating to `placement().footprint(natural dims)` |
+| `crates/core/src/document.rs` | `rotate_reference_placement` reuses `footprint().width()/height()` instead of the inline width/height swap (behaviour unchanged) |
+| `crates/core/src/lib.rs` | Re-export `ReferenceFootprint` |
+| `wasm/src/lib.rs` | `WasmReferenceFootprint` getter-struct (f64 corners) + read-only `WasmDocument::reference_layer_footprint_at(stack_index)` |
+| `src/lib/canvas/canvas-model.ts` | `ReferenceFootprint` interface + `Document.reference_layer_footprint_at` |
+| `src/lib/canvas/document-layer-projection.ts` | Caches `projectedBounds` from the core accessor once per projection rebuild |
+| `src/lib/canvas/reference-layer-underlay.ts` | Adds required `projectedBounds` field; **deletes** `rotatedFootprintExtent` + `referenceLayerUnderlayBounds`; render rect reads `projectedBounds` |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | `#activeReferenceFootprint` reads the cached `projectedBounds` |
+| `src/lib/canvas/reference-layer-placement-interaction.svelte.ts` | `displayedUnderlay` derives the draft `projectedBounds` (translate + uniform-scale of the core box) |
+| `fake-drawing-ops.ts` + 6 test files | Facade stub; footprint coverage relocated to core; `projectedBounds` assertions + fixture updates; drag-preview derivation tests |
+
+### Key Decisions
+- **WASM accessor reads the layer directly** (no new core `Document` method) — faithful to the issue's core scope and matches the existing `WasmLayerMetadata::from_layer` `LayerKind` match idiom.
+- **Drag-preview regression (gap not covered by the issue):** `renderPixelCanvas` and the placement overlay both render `displayedUnderlay`, which carries a draft placement; with the rect now sourced from cached `projectedBounds`, the live drag/scale/nudge preview would freeze at the committed box. Fixed in `displayedUnderlay` by translating + uniform-scaling the core-produced box (rotation is preserved across placement edits, so the rotation-aware swap is **not** recomputed — no second copy of the formula). Chosen over a per-frame WASM footprint call, which would contradict the "cache, don't call per frame" decision.
+- **`WasmReferenceFootprint` getters widen `f32 → f64`** at the facade, per the issue spec.
+
+### Notes
+- The sampling inverse map (`referenceLayerUnderlaySourceCoords`, `normalizedQuarterTurn`) is left untouched — out-of-scope sibling candidate.
+- `CONTEXT.md`'s `ReferenceFootprint` domain entry was already recorded during the design phase.
+- Apple binding untouched; `cargo build --workspace`, `cargo clippy` (no new warnings), `bun run check` (0 errors), `cargo test` (core + wasm), and `bunx vitest run` (1587 tests) all green.

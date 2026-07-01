@@ -133,6 +133,15 @@ export class DocumentLayerProjection {
 			return this.#clearReferenceSource();
 		}
 
+		const footprint = document.reference_layer_footprint_at(stackIndex);
+		if (!footprint) return this.#clearReferenceSource();
+		const projectedBounds = {
+			minX: footprint.min_x,
+			minY: footprint.min_y,
+			maxX: footprint.max_x,
+			maxY: footprint.max_y
+		};
+
 		const layerId = record.id;
 		let source =
 			this.#source?.document === document &&
@@ -169,6 +178,7 @@ export class DocumentLayerProjection {
 				scale: placement.scale,
 				rotation: placement.rotation
 			},
+			projectedBounds,
 			opacity: record.opacity
 		};
 	}

@@ -86,6 +86,7 @@ describe('renderPixelCanvas', () => {
 			naturalWidth: 2,
 			naturalHeight: 1,
 			placement: { x: 0.5, y: 1, scale: 2 },
+			projectedBounds: { minX: 0.5, minY: 1, maxX: 4.5, maxY: 3 },
 			opacity: 0.5
 		};
 		const viewport: ViewportData = {
@@ -137,6 +138,7 @@ describe('renderPixelCanvas', () => {
 			naturalWidth: 2,
 			naturalHeight: 1,
 			placement: { x: 0, y: 0, scale: 1 },
+			projectedBounds: { minX: 0, minY: 0, maxX: 2, maxY: 1 },
 			opacity: 1
 		};
 		const ctx = createContext();
@@ -144,7 +146,8 @@ describe('renderPixelCanvas', () => {
 		renderPixelCanvas(ctx as unknown as CanvasRenderingContext2D, canvas, viewport, viewportSize, reference);
 		renderPixelCanvas(ctx as unknown as CanvasRenderingContext2D, canvas, viewport, viewportSize, {
 			...reference,
-			placement: { x: 1, y: 1, scale: 2 }
+			placement: { x: 1, y: 1, scale: 2 },
+			projectedBounds: { minX: 1, minY: 1, maxX: 5, maxY: 3 }
 		});
 
 		const referenceRasters = FakeOffscreenCanvas.instances.filter(
@@ -180,6 +183,7 @@ describe('renderPixelCanvas', () => {
 			naturalWidth: 2,
 			naturalHeight: 1,
 			placement: { x: 0, y: 0, scale: 1 },
+			projectedBounds: { minX: 0, minY: 0, maxX: 2, maxY: 1 },
 			opacity: 1
 		};
 		const referenceB: ReferenceLayerUnderlay = {

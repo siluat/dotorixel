@@ -8,7 +8,7 @@ use dotorixel_core::export::{PngExport, SvgExport};
 use dotorixel_core::history::DocumentHistory;
 use dotorixel_core::layer::{Layer, LayerKind, LayerKindTag, ReferenceData};
 use dotorixel_core::pixel_perfect::{Action, FilterResult, TailState, pixel_perfect_filter};
-use dotorixel_core::reference_placement::ReferencePlacement;
+use dotorixel_core::reference_placement::{ReferenceFootprint, ReferencePlacement};
 use dotorixel_core::selection::{MarqueeRegion, SelectionClipboard};
 use dotorixel_core::tool::{ToolType, ellipse_outline, interpolate_pixels, rectangle_outline};
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
@@ -126,6 +126,48 @@ impl WasmReferencePlacement {
 
 impl From<ReferencePlacement> for WasmReferencePlacement {
     fn from(inner: ReferencePlacement) -> Self {
+        Self { inner }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// WasmReferenceFootprint
+// ---------------------------------------------------------------------------
+
+/// A Reference Layer's projected axis-aligned bounding box on the document
+/// canvas, in canvas-pixel coordinates. Read across the seam via
+/// [`WasmDocument::reference_layer_footprint_at`]; the core `f32` corners widen
+/// to `f64` at this facade.
+#[wasm_bindgen]
+pub struct WasmReferenceFootprint {
+    inner: ReferenceFootprint,
+}
+
+#[wasm_bindgen]
+impl WasmReferenceFootprint {
+    #[wasm_bindgen(getter)]
+    pub fn min_x(&self) -> f64 {
+        self.inner.min_x() as f64
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn min_y(&self) -> f64 {
+        self.inner.min_y() as f64
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn max_x(&self) -> f64 {
+        self.inner.max_x() as f64
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn max_y(&self) -> f64 {
+        self.inner.max_y() as f64
+    }
+}
+
+impl From<ReferenceFootprint> for WasmReferenceFootprint {
+    fn from(inner: ReferenceFootprint) -> Self {
         Self { inner }
     }
 }
@@ -753,6 +795,20 @@ impl WasmDocument {
     /// when `index` is out of range or points at a Pixel Layer.
     pub fn layer_source_pixels_at(&self, index: usize) -> Option<Vec<u8>> {
         self.inner.layer_source_pixels_at(index).map(|p| p.to_vec())
+    }
+
+    /// Returns the [`WasmReferenceFootprint`] — the projected axis-aligned
+    /// bounding box in canvas-pixel coordinates — of the Reference Layer at
+    /// `stack_index`, or `None` when `stack_index` is out of range or points at
+    /// a Pixel Layer. Read-only; mutates nothing.
+    pub fn reference_layer_footprint_at(
+        &self,
+        stack_index: usize,
+    ) -> Option<WasmReferenceFootprint> {
+        match &self.inner.layers().get(stack_index)?.kind {
+            LayerKind::Reference(data) => Some(data.footprint().into()),
+            LayerKind::Pixel(_) => None,
+        }
     }
 
     /// Overwrites the active layer's pixel buffer with `data`. Used by tools
@@ -2025,6 +2081,29 @@ mod tests {
         assert_eq!(placement.x(), 1.0);
         assert_eq!(placement.y(), 1.5);
         assert_eq!(placement.scale(), 1.0);
+    }
+
+    #[test]
+    fn wasm_document_reference_layer_footprint_at_returns_projected_bounds_for_reference_only() {
+        let first = Uuid::new_v4();
+        let reference = Uuid::new_v4();
+        let mut doc = WasmDocument::new(4, 4, first.to_string(), "Layer 1".into()).unwrap();
+        let source_rgba = vec![10, 20, 30, 255, 40, 50, 60, 255]; // 2×1 RGBA
+
+        doc.add_reference_layer(reference.to_string(), "Reference".into(), &source_rgba, 2, 1)
+            .unwrap();
+
+        // The Reference Layer is kept bottom-most (index 0); its 2×1 source
+        // auto-fits to scale 1.0 centered at (1.0, 1.5) in the 4×4 canvas.
+        let footprint = doc.reference_layer_footprint_at(0).unwrap();
+        assert_eq!(footprint.min_x(), 1.0);
+        assert_eq!(footprint.min_y(), 1.5);
+        assert_eq!(footprint.max_x(), 3.0);
+        assert_eq!(footprint.max_y(), 2.5);
+
+        // A Pixel Layer (index 1) and an out-of-range index both yield `None`.
+        assert!(doc.reference_layer_footprint_at(1).is_none());
+        assert!(doc.reference_layer_footprint_at(99).is_none());
     }
 
     #[test]

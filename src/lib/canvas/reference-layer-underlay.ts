@@ -16,6 +16,13 @@ export interface ReferenceLayerUnderlay {
 	readonly naturalHeight: number;
 	/** Source-to-document placement in canvas pixel coordinates. */
 	readonly placement: ReferencePlacement;
+	/**
+	 * Projected axis-aligned bounding box in canvas-pixel coordinates, sourced
+	 * once from the core (`reference_layer_footprint_at`) at projection-build
+	 * time. The single producer of the rotation-aware footprint: the render rect
+	 * and Navigation Bounds both read this instead of recomputing the swap.
+	 */
+	readonly projectedBounds: ReferenceLayerUnderlayBounds;
 	/** Normalized underlay opacity in `[0, 1]`, applied when drawing the source raster. */
 	readonly opacity: number;
 }
@@ -68,33 +75,17 @@ export function referenceLayerUnderlaySourceCoords(
 	}
 }
 
-/**
- * The footprint's source dimensions in document pixels, with width and height
- * swapped for an odd quarter-turn (its axis-aligned bounding box turns with it).
- */
-function rotatedFootprintExtent(underlay: ReferenceLayerUnderlay): {
-	readonly width: number;
-	readonly height: number;
-} {
-	const { scale } = underlay.placement;
-	const isQuarterTurned = normalizedQuarterTurn(underlay.placement.rotation) % 2 === 1;
-	const width = (isQuarterTurned ? underlay.naturalHeight : underlay.naturalWidth) * scale;
-	const height = (isQuarterTurned ? underlay.naturalWidth : underlay.naturalHeight) * scale;
-	return { width, height };
-}
-
 export function referenceLayerUnderlayDocumentRect(
 	underlay: ReferenceLayerUnderlay,
 	viewport: ViewportData
 ): ReferenceLayerUnderlayRect {
 	const scaledPixel = effectivePixelSize(viewport);
-	const { x, y } = underlay.placement;
-	const extent = rotatedFootprintExtent(underlay);
+	const { minX, minY, maxX, maxY } = underlay.projectedBounds;
 	return {
-		left: x * scaledPixel,
-		top: y * scaledPixel,
-		width: extent.width * scaledPixel,
-		height: extent.height * scaledPixel
+		left: minX * scaledPixel,
+		top: minY * scaledPixel,
+		width: (maxX - minX) * scaledPixel,
+		height: (maxY - minY) * scaledPixel
 	};
 }
 
@@ -108,18 +99,5 @@ export function referenceLayerUnderlayViewportRect(
 		top: Math.round(viewport.panY) + rect.top,
 		width: rect.width,
 		height: rect.height
-	};
-}
-
-export function referenceLayerUnderlayBounds(
-	underlay: ReferenceLayerUnderlay
-): ReferenceLayerUnderlayBounds {
-	const { x, y } = underlay.placement;
-	const extent = rotatedFootprintExtent(underlay);
-	return {
-		minX: x,
-		minY: y,
-		maxX: x + extent.width,
-		maxY: y + extent.height
 	};
 }

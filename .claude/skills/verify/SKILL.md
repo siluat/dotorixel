@@ -16,7 +16,7 @@ description: Build, launch, and drive the DOTORIXEL web editor to verify changes
 - **Canvas drawing**: `click` only accepts selectors, not coordinates. Dispatch PointerEvents on `.pixel-canvas` via `eval --stdin`:
   `pointerdown` (buttons: 1) → optional `pointermove`s → `pointerup` (buttons: 0), each with `bubbles: true, clientX/clientY` in viewport px.
 - **Assertions**: the status bar is the cheapest oracle — `agent-browser eval "document.querySelector('[class*=status]')?.textContent"` returns `"W × H  Marquee: WxH at (x, y)  <tool>"`.
-- Keyboard: `agent-browser press "Meta+z"` (undo), etc.
+- Keyboard: `agent-browser press "ControlOrMeta+z"` (undo — sends ⌘ on macOS, Ctrl elsewhere), etc.
 - Screenshots: `agent-browser screenshot <scratchpad>/NN-step.png`, then Read the file.
 
 ## Gotchas

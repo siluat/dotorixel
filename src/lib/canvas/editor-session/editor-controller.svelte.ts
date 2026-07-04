@@ -286,6 +286,14 @@ export class EditorController {
 		this.workspace.activeTab.flipCanvasVertical();
 	};
 
+	handleRotateCanvasCw = (): void => {
+		this.workspace.activeTab.rotateCanvasCw();
+	};
+
+	handleRotateCanvasCcw = (): void => {
+		this.workspace.activeTab.rotateCanvasCcw();
+	};
+
 	handleRotateCw = (): void => {
 		this.workspace.activeTab.rotateCw();
 	};

@@ -6,14 +6,18 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 167 | 128 | 39 | 169 | 77% | 43% |
-| cubic-dev-ai[bot] | 142 | 110 | 32 | 185 | 77% | 37% |
-| coderabbitai[bot] | 229 | 162 | 67 | 130 | 71% | 55% |
+| greptile-apps[bot] | 167 | 128 | 39 | 170 | 77% | 43% |
+| cubic-dev-ai[bot] | 144 | 111 | 33 | 185 | 77% | 38% |
+| coderabbitai[bot] | 229 | 162 | 67 | 131 | 71% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #297 | cubic-dev-ai[bot] | Accept | verify-skill undo shortcut documented macOS-only `Meta+z` — Playwright's Meta maps to Super/Win off-macOS while the app handles ctrlKey too; switched the recipe to `ControlOrMeta+z` |
+| #297 | cubic-dev-ai[bot] | Reject | Wanted the fake's `rotate_canvas_*` stubs to swap width/height; declined — the fake's contract is no-op transform stubs (pre-existing `rotate_cw` doesn't swap either), behavior tests use the real WASM Document, and a dims-only swap would desync `pixels.length` from width×height×4 |
+| #297 | coderabbitai[bot] | Miss | Did not flag the macOS-only `Meta+z` undo shortcut in the verify skill (APPROVED, no comments) |
+| #297 | greptile-apps[bot] | Miss | Did not flag the macOS-only `Meta+z` undo shortcut in the verify skill (5/5 confidence, no line comments) |
 | #296 | coderabbitai[bot] | Accept | flip-canvas would-change returned true unconditionally — a Reference-only document (reachable by removing the last Pixel Layer) took an empty undo snapshot + spurious dirty flag on a no-op canvas flip; gated on a Pixel Layer existing or an active Marquee |
 | #296 | cubic-dev-ai[bot] | Accept | Same Reference-only no-op canvas-flip snapshot finding (duplicate); fixed via the same guard |
 | #296 | greptile-apps[bot] | Miss | Did not flag the Reference-only no-op canvas-flip snapshot (Confidence 5/5, no findings) |

@@ -35,6 +35,8 @@ export type UndoableDocumentIntent =
 	| { readonly type: 'flip-canvas-vertical' }
 	| { readonly type: 'rotate-cw' }
 	| { readonly type: 'rotate-ccw' }
+	| { readonly type: 'rotate-canvas-cw' }
+	| { readonly type: 'rotate-canvas-ccw' }
 	| {
 			readonly type: 'commit-floating-selection';
 			readonly sourceLayerId: string;
@@ -249,6 +251,12 @@ export class DocumentChangeJournal {
 			case 'rotate-ccw':
 				document.rotate_ccw();
 				return { changed: true };
+			case 'rotate-canvas-cw':
+				document.rotate_canvas_cw();
+				return { changed: true };
+			case 'rotate-canvas-ccw':
+				document.rotate_canvas_ccw();
+				return { changed: true };
 			case 'commit-floating-selection': {
 				const destRegion = translateMarqueeRegion(intent.sourceRegion, intent.destOffset);
 				this.#withActiveLayer(intent.sourceLayerId, (document) => {
@@ -360,6 +368,12 @@ export class DocumentChangeJournal {
 				// none, rotate the whole Document — always allowed, independent of
 				// the active layer kind.
 				return document.marquee() ? this.#activeLayerKind() === 'pixel' : true;
+			case 'rotate-canvas-cw':
+			case 'rotate-canvas-ccw':
+				// A canvas rotate always changes the Document in this slice: Pixel
+				// Layer cels turn, and even on a Reference-only document the
+				// Reference still turns with the canvas (until issue 206 fixes it).
+				return true;
 			case 'commit-floating-selection':
 				return this.#layerKindOf(intent.sourceLayerId) === 'pixel' && intent.buffer.length > 0;
 			case 'set-marquee':
@@ -470,6 +484,10 @@ export class DocumentChangeJournal {
 				this.#invalidateRenderAndMarkDirty();
 				break;
 			case 'resize-document':
+			// A canvas rotate always swaps the Document dimensions, so it must
+			// refresh metrics and the viewport like resize-document.
+			case 'rotate-canvas-cw':
+			case 'rotate-canvas-ccw':
 				this.#deps.syncDocumentMetrics();
 				this.#reclampViewportInvalidateRenderAndMarkDirty();
 				break;

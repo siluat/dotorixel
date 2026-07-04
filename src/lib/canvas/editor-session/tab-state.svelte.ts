@@ -684,6 +684,16 @@ export class TabState {
 		this.#mutate({ type: 'flip-canvas-vertical' });
 	};
 
+	rotateCanvasCw = (): void => {
+		if (this.isDrawing) return;
+		this.#mutate({ type: 'rotate-canvas-cw' });
+	};
+
+	rotateCanvasCcw = (): void => {
+		if (this.isDrawing) return;
+		this.#mutate({ type: 'rotate-canvas-ccw' });
+	};
+
 	rotateCw = (): void => {
 		if (this.isDrawing) return;
 		this.#mutate({ type: 'rotate-cw' });

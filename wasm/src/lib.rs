@@ -902,6 +902,21 @@ impl WasmDocument {
         self.inner.flip_canvas_vertical();
     }
 
+    /// Rotates the whole canvas 90° clockwise: every Pixel Layer's every cel
+    /// (all frames) turns regardless of the active layer, the canvas
+    /// width/height swap, and the Reference Layer turns with the canvas. An
+    /// active Marquee is carried through the same quarter-turn into the
+    /// swapped dimensions and clipped to the new canvas.
+    pub fn rotate_canvas_cw(&mut self) {
+        self.inner.rotate_canvas_cw();
+    }
+
+    /// Rotates the whole canvas 90° counter-clockwise. Mirror of
+    /// [`Self::rotate_canvas_cw`].
+    pub fn rotate_canvas_ccw(&mut self) {
+        self.inner.rotate_canvas_ccw();
+    }
+
     /// Rotates the active Pixel Layer's Marquee region 90° clockwise. The region's
     /// `W×H` pixels become an `H×W` block re-centered on the region's center and
     /// clipped to the canvas; the Marquee updates to wrap the new region. No-op
@@ -1804,6 +1819,43 @@ mod tests {
         assert_eq!(&buf[8..12], &[255, 0, 0, 255]);
         let marquee = doc.marquee().expect("marquee is mirrored, not dropped");
         assert_eq!((marquee.x(), marquee.y()), (0, 1));
+    }
+
+    #[test]
+    fn wasm_document_rotate_canvas_cw_turns_pixels_swaps_dimensions_and_carries_marquee() {
+        let id = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 1, id.to_string(), "L1".into()).unwrap();
+        let red = WasmColor::new(255, 0, 0, 255);
+        doc.set_pixel(1, 0, &red).unwrap();
+        doc.set_marquee(Some(WasmMarqueeRegion::from_drag(1, 0, 1, 0)));
+
+        doc.rotate_canvas_cw();
+
+        // 2×1 → 1×2; clockwise sends red (1, 0) → (0, 1) — byte offset
+        // (1 * 1 + 0) * 4 = 4 — and the Marquee is carried, never region mode.
+        assert_eq!((doc.width(), doc.height()), (1, 2));
+        let buf = doc.composite();
+        assert_eq!(&buf[4..8], &[255, 0, 0, 255]);
+        let marquee = doc.marquee().expect("marquee is carried, not dropped");
+        assert_eq!((marquee.x(), marquee.y()), (0, 1));
+    }
+
+    #[test]
+    fn wasm_document_rotate_canvas_ccw_turns_pixels_the_other_way() {
+        let id = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 1, id.to_string(), "L1".into()).unwrap();
+        let red = WasmColor::new(255, 0, 0, 255);
+        doc.set_pixel(1, 0, &red).unwrap();
+        doc.set_marquee(Some(WasmMarqueeRegion::from_drag(1, 0, 1, 0)));
+
+        doc.rotate_canvas_ccw();
+
+        // Counter-clockwise sends red (1, 0) → (0, 0) — byte offset 0.
+        assert_eq!((doc.width(), doc.height()), (1, 2));
+        let buf = doc.composite();
+        assert_eq!(&buf[0..4], &[255, 0, 0, 255]);
+        let marquee = doc.marquee().expect("marquee is carried, not dropped");
+        assert_eq!((marquee.x(), marquee.y()), (0, 0));
     }
 
     #[test]

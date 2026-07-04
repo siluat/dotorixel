@@ -36,6 +36,8 @@
 	"action_transformFlipCanvasVertical": "キャンバス上下反転",
 	"action_transformRotateCw": "右回転",
 	"action_transformRotateCcw": "左回転",
+	"action_transformRotateCanvasCw": "キャンバス右回転",
+	"action_transformRotateCanvasCcw": "キャンバス左回転",
 
 	"modifier_constrain": "固定",
 

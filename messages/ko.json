@@ -36,6 +36,8 @@
 	"action_transformFlipCanvasVertical": "캔버스 상하 반전",
 	"action_transformRotateCw": "오른쪽 회전",
 	"action_transformRotateCcw": "왼쪽 회전",
+	"action_transformRotateCanvasCw": "캔버스 오른쪽 회전",
+	"action_transformRotateCanvasCcw": "캔버스 왼쪽 회전",
 
 	"modifier_constrain": "고정",
 

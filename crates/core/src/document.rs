@@ -1101,6 +1101,43 @@ impl Document {
         }
     }
 
+    /// Rotates the whole canvas 90° clockwise: every Pixel Layer's every cel
+    /// (all frames) turns — regardless of which layer or frame is active —
+    /// and the canvas width/height swap. Every Reference Layer turns with the
+    /// canvas exactly as [`Self::rotate_cw`]'s whole-document path does. An
+    /// active Marquee is carried through the same quarter-turn into the
+    /// swapped dimensions and clipped to the new canvas, so it still covers
+    /// the same (now rotated) content — never region mode.
+    pub fn rotate_canvas_cw(&mut self) {
+        self.rotate_canvas(QuarterTurn::Cw);
+    }
+
+    /// Rotates the whole canvas 90° counter-clockwise. Mirror of
+    /// [`Self::rotate_canvas_cw`]: every Pixel Layer's every cel turns the
+    /// other way, the dimensions swap, the Reference Layer turns with the
+    /// canvas, and an active Marquee is carried through the counter-clockwise
+    /// quarter-turn and clipped.
+    pub fn rotate_canvas_ccw(&mut self) {
+        self.rotate_canvas(QuarterTurn::Ccw);
+    }
+
+    /// Applies a whole-canvas quarter-turn: the whole Document rotates via
+    /// [`Self::rotate_whole_document`] (every Pixel Layer cel, dimension swap,
+    /// Reference remap), then an active Marquee is carried through the same
+    /// turn — mapped out of the pre-rotation extents — and clipped to the new
+    /// canvas.
+    fn rotate_canvas(&mut self, turn: QuarterTurn) {
+        let (old_width, old_height) = (self.width, self.height);
+        self.rotate_whole_document(turn);
+        if let Some(region) = self.marquee {
+            let carried = match turn {
+                QuarterTurn::Cw => region.rotated_cw(old_height),
+                QuarterTurn::Ccw => region.rotated_ccw(old_width),
+            };
+            self.marquee = carried.clip_to(self.width, self.height);
+        }
+    }
+
     /// Rotates 90° clockwise. With a Marquee, the region's `W×H` pixels on the
     /// active Pixel Layer's active-frame cel become an `H×W` block re-centered
     /// on the region's center and clipped to the canvas, and the Marquee updates
@@ -1911,6 +1948,174 @@ mod tests {
         doc.set_active_layer(b).unwrap();
         assert_eq!(doc.get_pixel(1, 2).unwrap(), green);
         assert_eq!(doc.marquee(), Some(MarqueeRegion::from_drag(0, 1, 0, 2)));
+    }
+
+    // ── canvas rotate ───────────────────────────────────────────
+
+    #[test]
+    fn rotate_canvas_cw_with_a_marquee_turns_the_whole_document_and_carries_the_marquee() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let mut doc = Document::new(4, 2, a, "A".to_string()).unwrap();
+        pixel_canvas_mut(&mut doc.layers[0])
+            .set_pixel(1, 0, red)
+            .unwrap();
+        // A 2×1 Marquee over x ∈ {1, 2} on the top row, covering red.
+        doc.set_marquee(Some(MarqueeRegion::from_drag(1, 0, 2, 0)));
+
+        doc.rotate_canvas_cw();
+
+        // The whole Document turns — never region mode: 4×2 → 2×4 and the
+        // clockwise map (x, y) → (H − 1 − y, x) sends red (1, 0) → (1, 1).
+        assert_eq!((doc.width(), doc.height()), (2, 4));
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(1, 1).unwrap(), red);
+        // The Marquee follows the same quarter-turn into the swapped
+        // dimensions — x → H − y − h = 1, y → x = 1 — and still covers red.
+        assert_eq!(doc.marquee(), Some(MarqueeRegion::from_drag(1, 1, 1, 2)));
+    }
+
+    #[test]
+    fn rotate_canvas_ccw_with_a_marquee_turns_the_whole_document_the_other_way() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let mut doc = Document::new(4, 2, a, "A".to_string()).unwrap();
+        pixel_canvas_mut(&mut doc.layers[0])
+            .set_pixel(1, 0, red)
+            .unwrap();
+        doc.set_marquee(Some(MarqueeRegion::from_drag(1, 0, 2, 0)));
+
+        doc.rotate_canvas_ccw();
+
+        // Counter-clockwise: (x, y) → (y, W − 1 − x) sends red (1, 0) → (0, 2).
+        assert_eq!((doc.width(), doc.height()), (2, 4));
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(0, 2).unwrap(), red);
+        // The Marquee follows — x → y = 0, y → W − x − w = 1 — still over red.
+        assert_eq!(doc.marquee(), Some(MarqueeRegion::from_drag(0, 1, 0, 2)));
+    }
+
+    #[test]
+    fn rotate_canvas_cw_four_times_restores_pixels_dimensions_and_marquee() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let mut doc = Document::new(4, 2, a, "A".to_string()).unwrap();
+        let canvas = pixel_canvas_mut(&mut doc.layers[0]);
+        canvas.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+        canvas.set_pixel(3, 1, Color::new(0, 0, 255, 255)).unwrap();
+        let marquee = MarqueeRegion::from_drag(1, 0, 2, 1);
+        doc.set_marquee(Some(marquee));
+        let before = pixel_canvas(&doc.layers[0]).pixels().to_vec();
+
+        for _ in 0..4 {
+            doc.rotate_canvas_cw();
+        }
+
+        assert_eq!((doc.width(), doc.height()), (4, 2));
+        assert_eq!(pixel_canvas(&doc.layers[0]).pixels(), before.as_slice());
+        assert_eq!(doc.marquee(), Some(marquee));
+    }
+
+    #[test]
+    fn rotate_canvas_cw_turns_every_pixel_layer_and_every_frame() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        let mut doc = Document::new(3, 2, a, "A".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        doc.add_layer(b, "B".to_string());
+        // First frame: layer A holds red top-left, layer B green bottom-right.
+        doc.set_active_layer(a).unwrap();
+        doc.set_pixel(0, 0, red).unwrap();
+        doc.set_active_layer(b).unwrap();
+        doc.set_pixel(2, 1, green).unwrap();
+        // Second frame: layer A holds blue top-left.
+        let second = Uuid::new_v4();
+        doc.add_frame(second);
+        doc.set_active_layer(a).unwrap();
+        doc.set_pixel(0, 0, blue).unwrap();
+
+        doc.rotate_canvas_cw();
+
+        // 3×2 → 2×3; every layer's every cel turns (x, y) → (1 − y, x).
+        assert_eq!((doc.width(), doc.height()), (2, 3));
+        doc.set_active_frame(first).unwrap();
+        doc.set_active_layer(a).unwrap();
+        assert_eq!(doc.get_pixel(1, 0).unwrap(), red);
+        doc.set_active_layer(b).unwrap();
+        assert_eq!(doc.get_pixel(0, 2).unwrap(), green);
+        doc.set_active_frame(second).unwrap();
+        doc.set_active_layer(a).unwrap();
+        assert_eq!(doc.get_pixel(1, 0).unwrap(), blue);
+    }
+
+    #[test]
+    fn rotate_canvas_cw_applies_even_while_the_reference_layer_is_active() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let mut doc = Document::new(3, 2, a, "A".to_string()).unwrap();
+        pixel_canvas_mut(&mut doc.layers[0])
+            .set_pixel(0, 0, red)
+            .unwrap();
+        doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
+            .unwrap();
+        doc.set_active_layer(r).unwrap();
+
+        doc.rotate_canvas_cw();
+
+        assert_eq!((doc.width(), doc.height()), (2, 3));
+        let pixel_index = doc
+            .layers()
+            .iter()
+            .position(|l| matches!(l.kind, LayerKind::Pixel(_)))
+            .unwrap();
+        assert_eq!(
+            pixel_canvas(&doc.layers[pixel_index])
+                .get_pixel(1, 0)
+                .unwrap(),
+            red
+        );
+    }
+
+    #[test]
+    fn rotate_canvas_cw_still_turns_the_reference_layer_with_the_canvas() {
+        use crate::layer::ReferenceData;
+        use crate::reference_placement::ReferencePlacement;
+
+        // Kept behavior in this slice: the Reference Layer turns with the
+        // canvas exactly as the whole-document rotate does — issue 206 will
+        // change canvas rotates to leave it fixed, flipping this test.
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
+        let reference = ReferenceData::new(vec![0u8; 8], 2, 1, placement).unwrap();
+        let mut doc = Document::new(4, 2, a, "A".to_string()).unwrap();
+        doc.layers.push(Layer {
+            id: r,
+            name: "Ref".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Reference(reference),
+        });
+
+        doc.rotate_canvas_cw();
+
+        // Same remap as rotate_cw's whole-document path: the wide 2×1 box
+        // turns into a tall 1×2 box and the quarter-turn advances by one.
+        let after = doc.layer_placement_at(1).unwrap();
+        assert_eq!(after.x(), 1.0);
+        assert_eq!(after.y(), 0.0);
+        assert_eq!(after.rotation(), 1);
     }
 
     // ── rotate ──────────────────────────────────────────────────

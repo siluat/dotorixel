@@ -22,8 +22,8 @@
 		onAnchorChange: (anchor: ResizeAnchor) => void;
 		onFlipCanvasHorizontal: () => void;
 		onFlipCanvasVertical: () => void;
-		onRotateCw: () => void;
-		onRotateCcw: () => void;
+		onRotateCanvasCw: () => void;
+		onRotateCanvasCcw: () => void;
 	}
 
 	let {
@@ -41,8 +41,8 @@
 		onAnchorChange,
 		onFlipCanvasHorizontal,
 		onFlipCanvasVertical,
-		onRotateCw,
-		onRotateCcw
+		onRotateCanvasCw,
+		onRotateCanvasCcw
 	}: Props = $props();
 
 	let colorSectionEl: HTMLElement | undefined = $state();
@@ -90,13 +90,13 @@
 				<FlipVertical size={16} aria-hidden={true} />
 				{m.action_transformFlipCanvasVertical()}
 			</button>
-			<button class="transform-btn" onclick={onRotateCw}>
+			<button class="transform-btn" onclick={onRotateCanvasCw}>
 				<RotateCw size={16} aria-hidden={true} />
-				{m.action_transformRotateCw()}
+				{m.action_transformRotateCanvasCw()}
 			</button>
-			<button class="transform-btn" onclick={onRotateCcw}>
+			<button class="transform-btn" onclick={onRotateCanvasCcw}>
 				<RotateCcw size={16} aria-hidden={true} />
-				{m.action_transformRotateCcw()}
+				{m.action_transformRotateCanvasCcw()}
 			</button>
 		</div>
 	</section>

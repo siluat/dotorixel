@@ -751,8 +751,8 @@
 			onAnchorChange={(anchor) => editor.workspace.setActiveResizeAnchor(anchor)}
 			onFlipCanvasHorizontal={editor.handleFlipCanvasHorizontal}
 			onFlipCanvasVertical={editor.handleFlipCanvasVertical}
-			onRotateCw={editor.handleRotateCw}
-			onRotateCcw={editor.handleRotateCcw}
+			onRotateCanvasCw={editor.handleRotateCanvasCw}
+			onRotateCanvasCcw={editor.handleRotateCanvasCcw}
 		/>
 
 		<StatusBar
@@ -864,8 +864,8 @@
 					onAnchorChange={(anchor) => editor.workspace.setActiveResizeAnchor(anchor)}
 					onFlipCanvasHorizontal={editor.handleFlipCanvasHorizontal}
 					onFlipCanvasVertical={editor.handleFlipCanvasVertical}
-					onRotateCw={editor.handleRotateCw}
-					onRotateCcw={editor.handleRotateCcw}
+					onRotateCanvasCw={editor.handleRotateCanvasCw}
+					onRotateCanvasCcw={editor.handleRotateCanvasCcw}
 				/>
 			{/if}
 		</div>

@@ -2,11 +2,11 @@
 
 ## Currently Working On
 
-Tiered transforms — split flip/rotate into Canvas Transform and Marquee Transform tiers ([PRD](../issues/207-tiered-canvas-marquee-transforms.md)). 3 of 4 sub-issues done (208 canvas flip, 209 canvas rotate, 206 reference exclusion); 210 (Marquee Transform explicit ops) is the last remaining slice and is unblocked.
+None
 
 ## Last Completed
 
-[206 — Whole-canvas transforms leave the Reference Layer fixed](../issues/206-reference-fixed-under-canvas-transforms.md): canvas rotate no longer remaps the reference placement, matching flip — the Reference Layer is now excluded from every Canvas Transform. Already-saved rotated references still render and sample (the rotation machinery stays); nothing produces new reference rotations anymore.
+[210 — Marquee Transform: explicit region ops, drop the Marquee-presence dispatch](../issues/210-marquee-transform-explicit-ops.md): the SelectionActionBar's flip/rotate are now explicit marquee ops (`flip_marquee_*`/`rotate_marquee_*`) — a no-op without a Marquee or on a Reference Layer, pushing no History entry and never marking dirty. This closes [PRD 207](../issues/207-tiered-canvas-marquee-transforms.md): no transform operation changes scope based on Marquee presence anymore.
 
 ## Next Up
 

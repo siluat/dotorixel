@@ -398,17 +398,18 @@ describe('DocumentChangeJournal', () => {
 		expect(current.marquee()).toMatchObject({ x: 1, y: 1, width: 1, height: 1 });
 	});
 
-	it('flips the active layer horizontally as one undoable document change', () => {
+	it('flips the Marquee region horizontally as one undoable document change', () => {
 		const events: string[] = [];
 		const pixels = new Uint8Array(2 * 1 * 4);
 		pixels.set([255, 0, 0, 255], 0);
 		pixels.set([0, 255, 0, 255], 4);
 		const document = singleLayerDocument(2, 1, pixels);
+		document.set_marquee(marqueeRegionFromDrag(0, 0, 1, 0));
 		const journal = createJournal(events, document);
 
 		const result = journal.commit({
 			kind: 'undoable-document',
-			intent: { type: 'flip-horizontal' }
+			intent: { type: 'flip-marquee-horizontal' }
 		});
 
 		expect(result).toEqual({ changed: true });
@@ -417,12 +418,13 @@ describe('DocumentChangeJournal', () => {
 		expect(events).toEqual(['snapshot', 'render', 'dirty']);
 	});
 
-	it('undo restores and redo re-applies a flip', () => {
+	it('undo restores and redo re-applies a marquee flip', () => {
 		const events: string[] = [];
 		const pixels = new Uint8Array(2 * 1 * 4);
 		pixels.set([255, 0, 0, 255], 0);
 		pixels.set([0, 255, 0, 255], 4);
 		let current = singleLayerDocument(2, 1, pixels);
+		current.set_marquee(marqueeRegionFromDrag(0, 0, 1, 0));
 		const journal = createJournal(events, current, {
 			getDocument: () => current,
 			replaceDocument: (document) => {
@@ -432,7 +434,7 @@ describe('DocumentChangeJournal', () => {
 			createDocumentHistory
 		});
 
-		journal.commit({ kind: 'undoable-document', intent: { type: 'flip-horizontal' } });
+		journal.commit({ kind: 'undoable-document', intent: { type: 'flip-marquee-horizontal' } });
 		expect(Array.from(current.layer_pixels_at(0)!.slice(0, 4))).toEqual([0, 255, 0, 255]);
 
 		expect(journal.undo()).toEqual({ changed: true });
@@ -443,13 +445,16 @@ describe('DocumentChangeJournal', () => {
 		expect(Array.from(current.layer_pixels_at(0)!.slice(0, 4))).toEqual([0, 255, 0, 255]);
 	});
 
-	it('skips flip and captures no snapshot when the active layer is Reference', () => {
+	it('skips a marquee flip and captures no snapshot when the active layer is Reference', () => {
 		const events: string[] = [];
+		// A Marquee is present, so the Reference-active layer is what makes
+		// this a no-op.
 		const document = {
 			width: 16,
 			height: 16,
 			active_layer_id: () => 'reference-1',
 			layer_count: () => 1,
+			marquee: () => ({ x: 0, y: 0, width: 4, height: 4 }),
 			layers_metadata: () => [
 				{ id: 'reference-1', name: 'Reference', visible: true, opacity: 1, kind: 'reference' }
 			]
@@ -457,12 +462,30 @@ describe('DocumentChangeJournal', () => {
 		const journal = createJournal(events, document);
 
 		expect(
-			journal.commit({ kind: 'undoable-document', intent: { type: 'flip-horizontal' } })
+			journal.commit({ kind: 'undoable-document', intent: { type: 'flip-marquee-horizontal' } })
 		).toEqual({ changed: false });
 		expect(
-			journal.commit({ kind: 'undoable-document', intent: { type: 'flip-vertical' } })
+			journal.commit({ kind: 'undoable-document', intent: { type: 'flip-marquee-vertical' } })
 		).toEqual({ changed: false });
 		expect(events).toEqual([]);
+	});
+
+	it('skips a marquee flip and captures no snapshot without a Marquee', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array(2 * 1 * 4);
+		pixels.set([255, 0, 0, 255], 0);
+		const document = singleLayerDocument(2, 1, pixels);
+		const journal = createJournal(events, document);
+
+		expect(
+			journal.commit({ kind: 'undoable-document', intent: { type: 'flip-marquee-horizontal' } })
+		).toEqual({ changed: false });
+		expect(
+			journal.commit({ kind: 'undoable-document', intent: { type: 'flip-marquee-vertical' } })
+		).toEqual({ changed: false });
+		// The Document is untouched: no undo entry, no dirty mark, no mirror.
+		expect(events).toEqual([]);
+		expect(Array.from(document.layer_pixels_at(0)!.slice(0, 4))).toEqual([255, 0, 0, 255]);
 	});
 
 	it('skips a canvas flip and captures no snapshot on a Reference-only document', () => {
@@ -555,7 +578,7 @@ describe('DocumentChangeJournal', () => {
 
 		const result = journal.commit({
 			kind: 'undoable-document',
-			intent: { type: 'rotate-cw' }
+			intent: { type: 'rotate-marquee-cw' }
 		});
 
 		expect(result).toEqual({ changed: true });
@@ -583,7 +606,7 @@ describe('DocumentChangeJournal', () => {
 			createDocumentHistory
 		});
 
-		journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-cw' } });
+		journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-marquee-cw' } });
 		expect(getPixelAt(current, 1, 0)).toEqual([255, 0, 0, 255]);
 
 		expect(journal.undo()).toEqual({ changed: true });
@@ -596,50 +619,24 @@ describe('DocumentChangeJournal', () => {
 		expect(current.marquee()).toMatchObject({ x: 1, y: 0, width: 1, height: 3 });
 	});
 
-	it('rotates the whole document when no Marquee is active and refreshes metrics', () => {
-		const events: string[] = [];
-		const pixels = new Uint8Array(2 * 1 * 4);
-		pixels.set([255, 0, 0, 255], 0); // (0,0) red
-		pixels.set([0, 255, 0, 255], 4); // (1,0) green
-		const document = singleLayerDocument(2, 1, pixels);
-		const journal = createJournal(events, document);
-
-		const result = journal.commit({
-			kind: 'undoable-document',
-			intent: { type: 'rotate-cw' }
-		});
-
-		expect(result).toEqual({ changed: true });
-		// 2×1 → 1×2, dimensions swapped.
-		expect([document.width, document.height]).toEqual([1, 2]);
-		// Clockwise: the left pixel lands on top.
-		expect(getPixelAt(document, 0, 0)).toEqual([255, 0, 0, 255]);
-		expect(getPixelAt(document, 0, 1)).toEqual([0, 255, 0, 255]);
-		// A dimension change refreshes metrics and viewport, like resize-document.
-		expect(events).toEqual(['snapshot', 'sync', 'reclamp', 'render', 'dirty']);
-	});
-
-	it('undo restores dimensions and pixels after a whole-document rotate', () => {
+	it('skips a marquee rotate and captures no snapshot without a Marquee', () => {
 		const events: string[] = [];
 		const pixels = new Uint8Array(2 * 1 * 4);
 		pixels.set([255, 0, 0, 255], 0);
-		pixels.set([0, 255, 0, 255], 4);
-		let current = singleLayerDocument(2, 1, pixels);
-		const journal = createJournal(events, current, {
-			getDocument: () => current,
-			replaceDocument: (document) => {
-				current = document;
-			},
-			createDocumentHistory
-		});
+		const document = singleLayerDocument(2, 1, pixels);
+		const journal = createJournal(events, document);
 
-		journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-cw' } });
-		expect([current.width, current.height]).toEqual([1, 2]);
-
-		expect(journal.undo()).toEqual({ changed: true });
-		expect([current.width, current.height]).toEqual([2, 1]);
-		expect(getPixelAt(current, 0, 0)).toEqual([255, 0, 0, 255]);
-		expect(getPixelAt(current, 1, 0)).toEqual([0, 255, 0, 255]);
+		expect(
+			journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-marquee-cw' } })
+		).toEqual({ changed: false });
+		expect(
+			journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-marquee-ccw' } })
+		).toEqual({ changed: false });
+		// The Document is untouched: no undo entry, no dirty mark, and the
+		// dimensions never swap (whole-document turns are rotate-canvas-*).
+		expect(events).toEqual([]);
+		expect([document.width, document.height]).toEqual([2, 1]);
+		expect(getPixelAt(document, 0, 0)).toEqual([255, 0, 0, 255]);
 	});
 
 	it('rotates the whole canvas clockwise as one undoable change even with a Marquee', () => {
@@ -749,7 +746,7 @@ describe('DocumentChangeJournal', () => {
 		expect(events).toEqual(['snapshot', 'rotate-canvas-cw', 'sync', 'reclamp', 'render', 'dirty']);
 	});
 
-	it('skips rotate and captures no snapshot when the active layer is Reference', () => {
+	it('skips a marquee rotate and captures no snapshot when the active layer is Reference', () => {
 		const events: string[] = [];
 		const document = {
 			width: 16,
@@ -764,10 +761,10 @@ describe('DocumentChangeJournal', () => {
 		const journal = createJournal(events, document);
 
 		expect(
-			journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-cw' } })
+			journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-marquee-cw' } })
 		).toEqual({ changed: false });
 		expect(
-			journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-ccw' } })
+			journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-marquee-ccw' } })
 		).toEqual({ changed: false });
 		expect(events).toEqual([]);
 	});

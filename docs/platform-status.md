@@ -27,7 +27,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Create / resize | ✅ | ✅ | ✅ | 1–256px, presets available, 9-position anchor selector (Web) |
 | Clear | ✅ | ✅ | ⬜ | RightPanel (docked) + Settings tab (mobile) |
-| Flip / transform | ✅ | ✅ | ⬜ | Canvas Flip H/V + Rotate CW/CCW (panel buttons): all Pixel Layers × all frames, Marquee co-transformed + clipped, rotate swaps W↔H; Reference Layer fixed (excluded from canvas transforms). SelectionActionBar keeps Marquee-aware ops (PRD 207) |
+| Flip / transform | ✅ | ✅ | ⬜ | Two tiers, one scope per button: Canvas Transform (panel) — all Pixel Layers × all frames, Marquee co-transformed + clipped, rotate swaps W↔H, Reference Layer fixed; Marquee Transform (SelectionActionBar) — Marquee region only, no-op without a Marquee or on a Reference Layer |
 
 ## History
 

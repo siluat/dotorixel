@@ -944,13 +944,14 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
 	});
 
-	it('flipHorizontal mirrors the active layer and restores on undo', () => {
+	it('flipMarqueeHorizontal mirrors the Marquee region and restores on undo', () => {
 		const pixels = new Uint8Array(2 * 1 * 4);
 		pixels.set(makePixelRgba(RED), 0);
 		pixels.set(makePixelRgba(GREEN), 4);
 		const { tab } = makeTab({ document: singleLayerDocument(2, 1, pixels) });
+		tab.document.set_marquee(marqueeRegionFromDrag(0, 0, 1, 0));
 
-		tab.flipHorizontal();
+		tab.flipMarqueeHorizontal();
 
 		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
 		expect(getPixel(tab, 1, 0)).toEqual(RED);
@@ -961,13 +962,14 @@ describe('TabState — effect dispatcher', () => {
 		expect(getPixel(tab, 1, 0)).toEqual(GREEN);
 	});
 
-	it('flipVertical mirrors the active layer and restores on undo', () => {
+	it('flipMarqueeVertical mirrors the Marquee region and restores on undo', () => {
 		const pixels = new Uint8Array(1 * 2 * 4);
 		pixels.set(makePixelRgba(RED), 0);
 		pixels.set(makePixelRgba(GREEN), 4);
 		const { tab } = makeTab({ document: singleLayerDocument(1, 2, pixels) });
+		tab.document.set_marquee(marqueeRegionFromDrag(0, 0, 0, 1));
 
-		tab.flipVertical();
+		tab.flipMarqueeVertical();
 
 		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
 		expect(getPixel(tab, 0, 1)).toEqual(RED);
@@ -978,7 +980,21 @@ describe('TabState — effect dispatcher', () => {
 		expect(getPixel(tab, 0, 1)).toEqual(GREEN);
 	});
 
-	it('flipHorizontal commits an idle Floating Selection nudge before mirroring the region', () => {
+	it('a marquee flip without a Marquee is a no-op and pushes no history', () => {
+		const pixels = new Uint8Array(2 * 1 * 4);
+		pixels.set(makePixelRgba(RED), 0);
+		pixels.set(makePixelRgba(GREEN), 4);
+		const { tab } = makeTab({ document: singleLayerDocument(2, 1, pixels) });
+
+		tab.flipMarqueeHorizontal();
+		tab.flipMarqueeVertical();
+
+		expect(getPixel(tab, 0, 0)).toEqual(RED);
+		expect(getPixel(tab, 1, 0)).toEqual(GREEN);
+		expect(tab.canUndo).toBe(false);
+	});
+
+	it('flipMarqueeHorizontal commits an idle Floating Selection nudge before mirroring the region', () => {
 		const pixels = new Uint8Array(5 * 5 * 4);
 		pixels.set(makePixelRgba(RED), (0 * 5 + 0) * 4);
 		pixels.set(makePixelRgba(GREEN), (0 * 5 + 1) * 4);
@@ -986,7 +1002,7 @@ describe('TabState — effect dispatcher', () => {
 		tab.document.set_marquee(marqueeRegionFromDrag(0, 0, 1, 0));
 		tab.nudgeMarquee(0, 1);
 
-		tab.flipHorizontal();
+		tab.flipMarqueeHorizontal();
 
 		expect(tab.floatingSelectionOffset).toBeUndefined();
 		// The strip is committed one row down, then mirrored within its region.
@@ -997,7 +1013,7 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.document.marquee()).toMatchObject({ x: 0, y: 1, width: 2, height: 1 });
 	});
 
-	it('rotateCw rotates the marquee region clockwise and restores on undo', () => {
+	it('rotateMarqueeCw rotates the Marquee region clockwise and restores on undo', () => {
 		const pixels = new Uint8Array(3 * 3 * 4);
 		pixels.set(makePixelRgba(RED), (1 * 3 + 0) * 4);
 		pixels.set(makePixelRgba(GREEN), (1 * 3 + 1) * 4);
@@ -1005,7 +1021,7 @@ describe('TabState — effect dispatcher', () => {
 		const { tab } = makeTab({ document: singleLayerDocument(3, 3, pixels) });
 		tab.document.set_marquee(marqueeRegionFromDrag(0, 1, 2, 1));
 
-		tab.rotateCw();
+		tab.rotateMarqueeCw();
 
 		// The horizontal strip becomes a vertical column re-centered on (1, 1).
 		expect(getPixel(tab, 1, 0)).toEqual(RED);
@@ -1020,7 +1036,7 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.document.marquee()).toMatchObject({ x: 0, y: 1, width: 3, height: 1 });
 	});
 
-	it('rotateCcw rotates the marquee region counter-clockwise', () => {
+	it('rotateMarqueeCcw rotates the Marquee region counter-clockwise', () => {
 		const pixels = new Uint8Array(3 * 3 * 4);
 		pixels.set(makePixelRgba(RED), (1 * 3 + 0) * 4);
 		pixels.set(makePixelRgba(GREEN), (1 * 3 + 1) * 4);
@@ -1028,7 +1044,7 @@ describe('TabState — effect dispatcher', () => {
 		const { tab } = makeTab({ document: singleLayerDocument(3, 3, pixels) });
 		tab.document.set_marquee(marqueeRegionFromDrag(0, 1, 2, 1));
 
-		tab.rotateCcw();
+		tab.rotateMarqueeCcw();
 
 		// Counter-clockwise sends the right end (blue) to the top.
 		expect(getPixel(tab, 1, 0)).toEqual(BLUE);

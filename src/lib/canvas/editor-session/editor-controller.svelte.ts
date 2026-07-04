@@ -270,12 +270,12 @@ export class EditorController {
 		this.workspace.activeTab.clear();
 	};
 
-	handleFlipHorizontal = (): void => {
-		this.workspace.activeTab.flipHorizontal();
+	handleFlipMarqueeHorizontal = (): void => {
+		this.workspace.activeTab.flipMarqueeHorizontal();
 	};
 
-	handleFlipVertical = (): void => {
-		this.workspace.activeTab.flipVertical();
+	handleFlipMarqueeVertical = (): void => {
+		this.workspace.activeTab.flipMarqueeVertical();
 	};
 
 	handleFlipCanvasHorizontal = (): void => {
@@ -294,12 +294,12 @@ export class EditorController {
 		this.workspace.activeTab.rotateCanvasCcw();
 	};
 
-	handleRotateCw = (): void => {
-		this.workspace.activeTab.rotateCw();
+	handleRotateMarqueeCw = (): void => {
+		this.workspace.activeTab.rotateMarqueeCw();
 	};
 
-	handleRotateCcw = (): void => {
-		this.workspace.activeTab.rotateCcw();
+	handleRotateMarqueeCcw = (): void => {
+		this.workspace.activeTab.rotateMarqueeCcw();
 	};
 
 	// Viewport handlers

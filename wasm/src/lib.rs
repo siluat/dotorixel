@@ -874,18 +874,17 @@ impl WasmDocument {
         self.inner.clear_marquee_pixels();
     }
 
-    /// Mirrors the active Pixel Layer horizontally. With a Marquee active, only
-    /// the pixels inside it are mirrored (the Marquee position is preserved);
-    /// otherwise the whole layer is mirrored. No-op on a Reference Layer.
-    pub fn flip_horizontal(&mut self) {
-        self.inner.flip_horizontal();
+    /// Mirrors the current Marquee region on the active Pixel Layer's
+    /// active-frame cel horizontally; the Marquee position is preserved.
+    /// No-op without a Marquee or on a Reference Layer.
+    pub fn flip_marquee_horizontal(&mut self) {
+        self.inner.flip_marquee_horizontal();
     }
 
-    /// Mirrors the active Pixel Layer vertically. With a Marquee active, only
-    /// the pixels inside it are mirrored (the Marquee position is preserved);
-    /// otherwise the whole layer is mirrored. No-op on a Reference Layer.
-    pub fn flip_vertical(&mut self) {
-        self.inner.flip_vertical();
+    /// Mirrors the current Marquee region vertically. Mirror of
+    /// [`Self::flip_marquee_horizontal`].
+    pub fn flip_marquee_vertical(&mut self) {
+        self.inner.flip_marquee_vertical();
     }
 
     /// Mirrors the whole canvas horizontally: every Pixel Layer's every cel
@@ -917,20 +916,19 @@ impl WasmDocument {
         self.inner.rotate_canvas_ccw();
     }
 
-    /// Rotates the active Pixel Layer's Marquee region 90° clockwise. The region's
-    /// `W×H` pixels become an `H×W` block re-centered on the region's center and
-    /// clipped to the canvas; the Marquee updates to wrap the new region. No-op
-    /// without a Marquee or on a Reference Layer.
-    pub fn rotate_cw(&mut self) {
-        self.inner.rotate_cw();
+    /// Rotates the current Marquee region on the active Pixel Layer's
+    /// active-frame cel 90° clockwise. The region's `W×H` pixels become an
+    /// `H×W` block re-centered on the region's center and clipped to the
+    /// canvas; the Marquee updates to wrap the new region. No-op without a
+    /// Marquee or on a Reference Layer.
+    pub fn rotate_marquee_cw(&mut self) {
+        self.inner.rotate_marquee_cw();
     }
 
-    /// Rotates the active Pixel Layer's Marquee region 90° counter-clockwise. The
-    /// region's `W×H` pixels become an `H×W` block re-centered on the region's
-    /// center and clipped to the canvas; the Marquee updates to wrap the new
-    /// region. No-op without a Marquee or on a Reference Layer.
-    pub fn rotate_ccw(&mut self) {
-        self.inner.rotate_ccw();
+    /// Rotates the current Marquee region 90° counter-clockwise. Mirror of
+    /// [`Self::rotate_marquee_cw`].
+    pub fn rotate_marquee_ccw(&mut self) {
+        self.inner.rotate_marquee_ccw();
     }
 
     /// Source-over composites `buffer` at `region` on the active Pixel Layer.
@@ -1856,6 +1854,82 @@ mod tests {
         assert_eq!(&buf[0..4], &[255, 0, 0, 255]);
         let marquee = doc.marquee().expect("marquee is carried, not dropped");
         assert_eq!((marquee.x(), marquee.y()), (0, 0));
+    }
+
+    #[test]
+    fn wasm_document_flip_marquee_horizontal_mirrors_only_the_region() {
+        let id = Uuid::new_v4();
+        let mut doc = WasmDocument::new(3, 1, id.to_string(), "L1".into()).unwrap();
+        let red = WasmColor::new(255, 0, 0, 255);
+        let blue = WasmColor::new(0, 0, 255, 255);
+        doc.set_pixel(0, 0, &red).unwrap();
+        doc.set_pixel(2, 0, &blue).unwrap();
+        doc.set_marquee(Some(WasmMarqueeRegion::from_drag(0, 0, 1, 0)));
+
+        doc.flip_marquee_horizontal();
+
+        // red (0,0) mirrors to (1,0) inside the region — byte offset 4 —
+        // while blue outside the Marquee stays at (2,0) — byte offset 8.
+        let buf = doc.composite();
+        assert_eq!(&buf[4..8], &[255, 0, 0, 255]);
+        assert_eq!(&buf[8..12], &[0, 0, 255, 255]);
+    }
+
+    #[test]
+    fn wasm_document_flip_marquee_vertical_mirrors_only_the_region() {
+        let id = Uuid::new_v4();
+        let mut doc = WasmDocument::new(1, 3, id.to_string(), "L1".into()).unwrap();
+        let red = WasmColor::new(255, 0, 0, 255);
+        let blue = WasmColor::new(0, 0, 255, 255);
+        doc.set_pixel(0, 0, &red).unwrap();
+        doc.set_pixel(0, 2, &blue).unwrap();
+        doc.set_marquee(Some(WasmMarqueeRegion::from_drag(0, 0, 0, 1)));
+
+        doc.flip_marquee_vertical();
+
+        // red (0,0) mirrors to (0,1) inside the region — byte offset 4 —
+        // while blue outside the Marquee stays at (0,2) — byte offset 8.
+        let buf = doc.composite();
+        assert_eq!(&buf[4..8], &[255, 0, 0, 255]);
+        assert_eq!(&buf[8..12], &[0, 0, 255, 255]);
+    }
+
+    #[test]
+    fn wasm_document_rotate_marquee_cw_turns_the_region_and_keeps_dimensions() {
+        let id = Uuid::new_v4();
+        let mut doc = WasmDocument::new(3, 3, id.to_string(), "L1".into()).unwrap();
+        let red = WasmColor::new(255, 0, 0, 255);
+        doc.set_pixel(0, 1, &red).unwrap();
+        doc.set_marquee(Some(WasmMarqueeRegion::from_drag(0, 1, 2, 1)));
+
+        doc.rotate_marquee_cw();
+
+        // The 3×1 strip becomes a 1×3 column; clockwise sends the left end
+        // (red) to the top at (1, 0) — byte offset 4. The canvas never
+        // swaps its dimensions and the Marquee wraps the rotated block.
+        assert_eq!((doc.width(), doc.height()), (3, 3));
+        let buf = doc.composite();
+        assert_eq!(&buf[4..8], &[255, 0, 0, 255]);
+        let marquee = doc.marquee().expect("marquee wraps the rotated region");
+        assert_eq!((marquee.x(), marquee.y()), (1, 0));
+        assert_eq!((marquee.width(), marquee.height()), (1, 3));
+    }
+
+    #[test]
+    fn wasm_document_rotate_marquee_ccw_turns_the_region_the_other_way() {
+        let id = Uuid::new_v4();
+        let mut doc = WasmDocument::new(3, 3, id.to_string(), "L1".into()).unwrap();
+        let red = WasmColor::new(255, 0, 0, 255);
+        doc.set_pixel(0, 1, &red).unwrap();
+        doc.set_marquee(Some(WasmMarqueeRegion::from_drag(0, 1, 2, 1)));
+
+        doc.rotate_marquee_ccw();
+
+        // Counter-clockwise sends the left end (red) to the bottom at
+        // (1, 2) — byte offset (2 * 3 + 1) * 4 = 28.
+        assert_eq!((doc.width(), doc.height()), (3, 3));
+        let buf = doc.composite();
+        assert_eq!(&buf[28..32], &[255, 0, 0, 255]);
     }
 
     #[test]

@@ -163,17 +163,14 @@ export interface Document {
 	 */
 	clear_marquee_pixels(): void;
 	/**
-	 * Mirrors the active Pixel Layer horizontally. With a Marquee active, only
-	 * pixels inside it are mirrored (the Marquee position is preserved);
-	 * otherwise the whole layer is mirrored. No-op on a Reference Layer.
+	 * Mirrors the current Marquee region on the active Pixel Layer's
+	 * active-frame cel horizontally; the Marquee position is preserved. The
+	 * Document's dimensions, other layers, other frames, and the Reference
+	 * Layer are untouched. No-op without a Marquee or on a Reference Layer.
 	 */
-	flip_horizontal(): void;
-	/**
-	 * Mirrors the active Pixel Layer vertically. With a Marquee active, only
-	 * pixels inside it are mirrored (the Marquee position is preserved);
-	 * otherwise the whole layer is mirrored. No-op on a Reference Layer.
-	 */
-	flip_vertical(): void;
+	flip_marquee_horizontal(): void;
+	/** Mirrors the current Marquee region vertically. Mirror of {@link flip_marquee_horizontal}. */
+	flip_marquee_vertical(): void;
 	/**
 	 * Mirrors the whole canvas horizontally: every Pixel Layer's every cel
 	 * (all frames) flips in place regardless of the active layer; dimensions
@@ -194,19 +191,16 @@ export interface Document {
 	/** Rotates the whole canvas 90° counter-clockwise. Mirror of {@link rotate_canvas_cw}. */
 	rotate_canvas_ccw(): void;
 	/**
-	 * Rotates the active Pixel Layer's Marquee region 90° clockwise. The region's
-	 * `W×H` pixels become an `H×W` block re-centered on the region's center and
-	 * clipped to the canvas; the Marquee updates to wrap the new region. No-op
-	 * without a Marquee or on a Reference Layer.
+	 * Rotates the current Marquee region on the active Pixel Layer's
+	 * active-frame cel 90° clockwise. The region's `W×H` pixels become an
+	 * `H×W` block re-centered on the region's center and clipped to the
+	 * canvas; the Marquee updates to wrap the new region. The Document's
+	 * dimensions never change. No-op without a Marquee or on a Reference
+	 * Layer.
 	 */
-	rotate_cw(): void;
-	/**
-	 * Rotates the active Pixel Layer's Marquee region 90° counter-clockwise. The
-	 * region's `W×H` pixels become an `H×W` block re-centered on the region's
-	 * center and clipped to the canvas; the Marquee updates to wrap the new
-	 * region. No-op without a Marquee or on a Reference Layer.
-	 */
-	rotate_ccw(): void;
+	rotate_marquee_cw(): void;
+	/** Rotates the current Marquee region 90° counter-clockwise. Mirror of {@link rotate_marquee_cw}. */
+	rotate_marquee_ccw(): void;
 	/**
 	 * Source-over composites row-major RGBA `buffer` at `region`. `buffer`
 	 * must contain `region.width × region.height × 4` bytes; implementations

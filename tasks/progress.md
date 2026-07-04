@@ -2,14 +2,16 @@
 
 ## Currently Working On
 
-GIF/spritesheet export — multi-frame export formats ([PRD](../issues/213-gif-spritesheet-export.md)). PRD published and broken into 3 AFK sub-issues (0/3 done): [214 prefactor](../issues/214-export-format-source-prefactor.md) is unblocked and up next; 215 spritesheet and 216 GIF ride it in parallel.
+GIF/spritesheet export — multi-frame export formats ([PRD](../issues/213-gif-spritesheet-export.md)). 1/3 sub-issues done: [214 prefactor](../issues/214-export-format-source-prefactor.md) landed, unblocking [215 spritesheet](../issues/215-spritesheet-export.md) and [216 GIF](../issues/216-gif-export.md) to proceed independently.
 
 ## Last Completed
 
-[212 — Extract Reorder Interaction module from TimelinePanel](../issues/212-extract-reorder-interaction.md): the twin layer/frame drag machines are now one headless `src/lib/gestures` module behind two adapters; the ~20 drag/keyboard behavior cases moved to headless unit tests. Observable behavior unchanged (old 103-test component suite passed against the new wiring before trimming); frame keyboard reorder is now possible but deliberately unwired.
+[214 — Prefactor: export formats declare their source](../issues/214-export-format-source-prefactor.md): the web export format registry is now a still-source/document-source discriminated union and the shared confirm flow resolves the declared source lazily. PNG/SVG behavior unchanged (existing export e2e passed); no document-source format ships yet — 215/216 each add one.
 
 ## Next Up
 
+- [215 — Spritesheet (PNG) export](../issues/215-spritesheet-export.md) (unblocked; parallel with 216)
+- [216 — Animated GIF export](../issues/216-gif-export.md) (unblocked; parallel with 215)
 - Onion skinning (M4 — multi-frame; `composite_at` seam available)
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
 - Apple Phase 1 — Enable clear canvas (existing disabled button)

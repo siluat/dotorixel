@@ -19,17 +19,78 @@ function isSvgEncodable(canvas: ExportableCanvas): canvas is SvgEncodable {
 	return 'encode_svg' in canvas;
 }
 
-export interface ExportFormat {
+/**
+ * The whole Document handed to multi-frame formats. Minimal on purpose —
+ * mirrors {@link ExportableCanvas}: each format narrows to the encoder
+ * methods it needs at runtime.
+ */
+export interface ExportableDocument {
+	readonly width: number;
+	readonly height: number;
+}
+
+interface ExportFormatCommon {
 	id: string;
 	label: string;
 	extension: string;
+}
+
+/** A format fed by the active-frame composite snapshot (still image). */
+export interface StillExportFormat extends ExportFormatCommon {
+	source: 'still';
 	exportFn: (canvas: ExportableCanvas, filename: string) => void;
 }
 
+/** A format fed by the whole Document (multi-frame output). */
+export interface DocumentExportFormat extends ExportFormatCommon {
+	source: 'document';
+	exportFn: (document: ExportableDocument, filename: string) => void;
+}
+
+/**
+ * A registry entry declaring which source its `exportFn` consumes — a still
+ * snapshot or the whole Document. {@link exportAs} resolves the declared
+ * source and dispatches.
+ */
+export type ExportFormat = StillExportFormat | DocumentExportFormat;
+
 export const availableFormats: ExportFormat[] = [
-	{ id: 'png', label: 'PNG', extension: 'png', exportFn: exportAsPng },
-	{ id: 'svg', label: 'SVG', extension: 'svg', exportFn: exportAsSvg }
+	{ id: 'png', label: 'PNG', extension: 'png', source: 'still', exportFn: exportAsPng },
+	{ id: 'svg', label: 'SVG', extension: 'svg', source: 'still', exportFn: exportAsSvg }
 ];
+
+/**
+ * Lazy providers for the export sources. `exportAs` calls only the thunk the
+ * format declares, so the unused source is never materialized (building a
+ * still snapshot costs a full composite).
+ */
+export interface ExportSources {
+	still(): ExportableCanvas;
+	document(): ExportableDocument;
+}
+
+/**
+ * Runs one export: cleans the typed filename stem, resolves the format's
+ * declared source, assembles the final filename, and hands both to the
+ * format's `exportFn`. Returns the resolved source's dimensions so callers
+ * can record analytics without re-deriving them.
+ */
+export function exportAs(
+	format: ExportFormat,
+	filenameStem: string,
+	sources: ExportSources
+): { width: number; height: number } {
+	const knownExtensions = availableFormats.map((f) => f.extension);
+	const cleanStem = stripKnownExtension(filenameStem.trim(), knownExtensions);
+	if (format.source === 'still') {
+		const canvas = sources.still();
+		format.exportFn(canvas, buildExportFilename(cleanStem, format.extension, canvas));
+		return { width: canvas.width, height: canvas.height };
+	}
+	const doc = sources.document();
+	format.exportFn(doc, buildExportFilename(cleanStem, format.extension, doc));
+	return { width: doc.width, height: doc.height };
+}
 
 export function generateDefaultStem(canvas: { width: number; height: number }): string {
 	return `dotorixel-${canvas.width}x${canvas.height}`;

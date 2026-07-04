@@ -6,14 +6,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 168 | 129 | 39 | 171 | 77% | 43% |
-| cubic-dev-ai[bot] | 148 | 113 | 35 | 185 | 76% | 38% |
-| coderabbitai[bot] | 231 | 162 | 69 | 133 | 70% | 55% |
+| greptile-apps[bot] | 169 | 130 | 39 | 171 | 77% | 43% |
+| cubic-dev-ai[bot] | 150 | 114 | 36 | 185 | 76% | 38% |
+| coderabbitai[bot] | 233 | 162 | 71 | 134 | 70% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #303 | greptile-apps[bot] | Accept | `exportAs`'s `document` local shadowed the browser global that `exportAsPng`/`exportAsSvg` in the same file rely on; renamed to `doc` |
+| #303 | cubic-dev-ai[bot] | Accept | Same `document` global-shadowing local (duplicate); fixed by the same rename |
+| #303 | cubic-dev-ai[bot] | Reject | Wanted `format.extension` merged into the strip list for formats outside `availableFormats`; unregistered formats are unreachable in production (the UI iterates the registry, 215/216 register theirs), and this prefactor's contract is zero behavior change with registry-scoped stripping pinned by a test |
+| #303 | coderabbitai[bot] | Reject | Claimed the issue-file Results table lacks a blank line before `### Key Decisions` (MD058); false — the committed file's line 42 is blank and markdownlint-cli2 passes with 0 errors |
+| #303 | coderabbitai[bot] | Reject | Claimed done.md's 2026-07-05 completion date is in the future; the completing commit is 2026-07-05 00:49 KST — the log records the author's local date, the 07-04 reading is a UTC artifact |
+| #303 | coderabbitai[bot] | Miss | Did not flag the `document` global-shadowing local in `exportAs` |
 | #302 | greptile-apps[bot] | Accept | Per-move redundancy in `pointerMove` (`coordOf` ×3, `allowedIndices()` ×2); the `coordOf` hoist landed, the shared-`allowedBounds` half declined — helper self-containment protects the documented reevaluate-per-event invariant and the allocations are noise at Timeline scale |
 | #302 | cubic-dev-ai[bot] | Accept | Same per-move `coordOf`/`allowedBounds` redundancy (duplicate); fixed via the same `coordOf` hoist, bounds sharing declined for the same reason |
 | #302 | cubic-dev-ai[bot] | Accept | Frame adapter rebuilt the allowed-index array on every event (`frames.map` inline); cached as a `$derived` `frameIndices`, mirroring the layer adapter's `pixelVisualIndices` |

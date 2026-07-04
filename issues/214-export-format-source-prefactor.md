@@ -1,6 +1,6 @@
 ---
 title: "Prefactor: export formats declare their source (still snapshot vs Document)"
-status: ready-for-agent
+status: done
 created: 2026-07-05
 parent: 213-gif-spritesheet-export.md
 ---
@@ -31,3 +31,24 @@ Observable behavior must not change: PNG and SVG export produce the same bytes, 
 ## Blocked by
 
 None — can start immediately.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/export.ts` | `ExportFormat` redefined as a `StillExportFormat \| DocumentExportFormat` discriminated union on `source`; added minimal `ExportableDocument` (mirrors `ExportableCanvas`) and lazy `ExportSources` thunks; confirm flow extracted into `exportAs()` which cleans the stem, resolves only the declared source, assembles the filename, dispatches, and returns the resolved dimensions |
+| `src/routes/editor/+page.svelte` | `handleExportConfirm` shrunk to `exportAs(...)` + `trackExport` with the returned dimensions + close export UI; no longer imports the filename helpers |
+| `src/lib/canvas/export.test.ts` | Six `exportAs` behavior specs (still/document dispatch, lazy source resolution, default-stem fallback, known-extension stripping, dimension reporting) via fake-format factories; registry tests now pin `source: 'still'` on PNG/SVG |
+
+### Key Decisions
+
+- **Minimal `ExportableDocument` (`{width, height}`), not the full `Document` interface** — keeps the registry from exposing mutating Document APIs to formats (least privilege); follow-up formats narrow to their encoder methods at runtime, reusing the established `isPngEncodable` pattern.
+- **Confirm flow extracted to `export.ts` as `exportAs`** — the page component was untestable; the flow now lives beside the registry (high cohesion) and is exercised with a fake document-source format as required.
+- **Lazy `ExportSources` thunks** — only the declared source is materialized (a still snapshot costs a full composite); pinned by a regression test as an API contract.
+- **`exportAs` returns the resolved source dimensions** — analytics stays at the page level unchanged, without re-deriving dimensions from a second source of truth.
+
+### Notes
+
+- Zero behavior change verified beyond unit seams: the pre-existing `e2e/editor/export.test.ts` (6 tests, real download events for PNG/SVG filenames) passes against the refactored flow. Full suite 90 files / 1,622 tests green; `svelte-check` clean.
+- `exportAs` derives known extensions from the whole registry, so registering the 215/216 formats automatically includes their extensions in stem cleaning — no extra wiring needed in the follow-ups.
+- "Still source / Document source" vocabulary lives in this issue and the PRD for now; consider a CONTEXT.md entry via `/domain-modeling` once 215/216 stabilize the terms.

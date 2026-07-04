@@ -1,10 +1,24 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
 	generateExportFilename,
 	buildExportFilename,
 	stripKnownExtension,
-	availableFormats
+	availableFormats,
+	exportAs,
+	type DocumentExportFormat,
+	type ExportSources,
+	type StillExportFormat
 } from './export.ts';
+
+function fakeStillFormat(exportFn: StillExportFormat['exportFn'] = vi.fn()): StillExportFormat {
+	return { id: 'fake-still', label: 'Fake Still', extension: 'fst', source: 'still', exportFn };
+}
+
+function fakeDocumentFormat(
+	exportFn: DocumentExportFormat['exportFn'] = vi.fn()
+): DocumentExportFormat {
+	return { id: 'fake-doc', label: 'Fake Doc', extension: 'fdoc', source: 'document', exportFn };
+}
 
 describe('generateExportFilename', () => {
 	it('includes canvas dimensions in the filename', () => {
@@ -66,20 +80,96 @@ describe('stripKnownExtension', () => {
 	});
 });
 
+describe('exportAs', () => {
+	it('hands still-source formats the still snapshot and the assembled filename', () => {
+		const exportFn = vi.fn();
+		const snapshot = { width: 16, height: 16 };
+		const sources: ExportSources = {
+			still: () => snapshot,
+			document: () => ({ width: 16, height: 16 })
+		};
+
+		exportAs(fakeStillFormat(exportFn), 'my-art', sources);
+
+		expect(exportFn).toHaveBeenCalledExactlyOnceWith(snapshot, 'my-art.fst');
+	});
+
+	it('hands document-source formats the Document and the assembled filename', () => {
+		const exportFn = vi.fn();
+		const document = { width: 32, height: 24 };
+		const sources: ExportSources = {
+			still: () => ({ width: 32, height: 24 }),
+			document: () => document
+		};
+
+		exportAs(fakeDocumentFormat(exportFn), 'my-anim', sources);
+
+		expect(exportFn).toHaveBeenCalledExactlyOnceWith(document, 'my-anim.fdoc');
+	});
+
+	it('resolves only the declared source, never the other one', () => {
+		const still = vi.fn(() => ({ width: 16, height: 16 }));
+		const document = vi.fn(() => ({ width: 16, height: 16 }));
+
+		exportAs(fakeStillFormat(), 'a', { still, document });
+		expect(document).not.toHaveBeenCalled();
+
+		exportAs(fakeDocumentFormat(), 'b', { still, document });
+		expect(still).toHaveBeenCalledTimes(1);
+		expect(document).toHaveBeenCalledTimes(1);
+	});
+
+	it('falls back to the default stem derived from the resolved source dimensions', () => {
+		const exportFn = vi.fn();
+		const sources: ExportSources = {
+			still: () => ({ width: 1, height: 1 }),
+			document: () => ({ width: 32, height: 24 })
+		};
+
+		exportAs(fakeDocumentFormat(exportFn), '', sources);
+
+		expect(exportFn).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'dotorixel-32x24.fdoc');
+	});
+
+	it('strips a registry-known extension typed into the stem', () => {
+		const exportFn = vi.fn();
+		const sources: ExportSources = {
+			still: () => ({ width: 16, height: 16 }),
+			document: () => ({ width: 16, height: 16 })
+		};
+
+		exportAs(fakeStillFormat(exportFn), ' my-art.png ', sources);
+
+		expect(exportFn).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'my-art.fst');
+	});
+
+	it('reports the resolved source dimensions so callers can record analytics', () => {
+		const sources: ExportSources = {
+			still: () => ({ width: 16, height: 8 }),
+			document: () => ({ width: 32, height: 24 })
+		};
+
+		expect(exportAs(fakeStillFormat(), 'a', sources)).toEqual({ width: 16, height: 8 });
+		expect(exportAs(fakeDocumentFormat(), 'b', sources)).toEqual({ width: 32, height: 24 });
+	});
+});
+
 describe('availableFormats', () => {
-	it('contains a PNG entry with required fields', () => {
+	it('contains a PNG entry declared as a still-source format', () => {
 		const png = availableFormats.find((f) => f.id === 'png');
 		expect(png).toBeDefined();
 		expect(png!.label).toBe('PNG');
 		expect(png!.extension).toBe('png');
+		expect(png!.source).toBe('still');
 		expect(png!.exportFn).toBeTypeOf('function');
 	});
 
-	it('contains an SVG entry with required fields', () => {
+	it('contains an SVG entry declared as a still-source format', () => {
 		const svg = availableFormats.find((f) => f.id === 'svg');
 		expect(svg).toBeDefined();
 		expect(svg!.label).toBe('SVG');
 		expect(svg!.extension).toBe('svg');
+		expect(svg!.source).toBe('still');
 		expect(svg!.exportFn).toBeTypeOf('function');
 	});
 });

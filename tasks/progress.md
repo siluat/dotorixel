@@ -2,11 +2,11 @@
 
 ## Currently Working On
 
-Tiered transforms — split flip/rotate into Canvas Transform and Marquee Transform tiers ([PRD](../issues/207-tiered-canvas-marquee-transforms.md)). Broken into 4 sub-issues: 208 (canvas flip, ready to start) → 209 (canvas rotate) → 206 (reference exclusion, re-parented) / 210 (marquee ops); 206 and 210 can run in parallel after 209/208.
+Tiered transforms — split flip/rotate into Canvas Transform and Marquee Transform tiers ([PRD](../issues/207-tiered-canvas-marquee-transforms.md)). 1 of 4 sub-issues done (208 canvas flip — tier patterns established); 209 (canvas rotate) is now unblocked and next; then 206 (reference exclusion) and 210 (marquee ops).
 
 ## Last Completed
 
-[204 — Reference Footprint core authority](../issues/204-reference-footprint-core-authority.md): the rotation-aware projected AABB now has a single core producer feeding both Navigation Bounds and the underlay render rect; the web's duplicate formula is deleted. The placement-drag preview re-derives the footprint by translate + uniform-scale (rotation is preserved during edits), so the rotation swap lives only in the core.
+[208 — Canvas Flip: whole-document flip with Marquee co-transform](../issues/208-canvas-flip-whole-document.md): the panels' Flip buttons now mirror every Pixel Layer's every Cel (Reference fixed, Marquee co-moved + clipped, one undo step) with no Marquee-presence dispatch. Established the PRD's naming chain (`flip_canvas_*` / `'flip-canvas-*'` / `flipCanvas*` / `action_transformFlipCanvas*`) that 209/210 follow; SelectionActionBar and rotate paths intentionally untouched.
 
 ## Next Up
 

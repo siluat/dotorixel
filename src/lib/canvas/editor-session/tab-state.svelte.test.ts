@@ -1037,6 +1037,91 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 0, width: 1, height: 3 });
 	});
 
+	it('flipCanvasHorizontal mirrors every layer and restores on undo', () => {
+		const layerA = crypto.randomUUID();
+		const layerB = crypto.randomUUID();
+		const pixelsA = new Uint8Array(3 * 1 * 4);
+		pixelsA.set(makePixelRgba(RED), 0 * 4);
+		const pixelsB = new Uint8Array(3 * 1 * 4);
+		pixelsB.set(makePixelRgba(GREEN), 2 * 4);
+		const document = documentFromLayerSource({
+			width: 3,
+			height: 1,
+			layers: [
+				{ kind: 'pixel', id: layerA, name: 'A', pixels: pixelsA, visible: true, opacity: 1 },
+				{ kind: 'pixel', id: layerB, name: 'B', pixels: pixelsB, visible: true, opacity: 1 }
+			],
+			activeLayerId: layerB,
+			nextLayerNumber: 3,
+			timelinePanelCollapsed: false
+		});
+		const { tab } = makeTab({ document });
+
+		tab.flipCanvasHorizontal();
+
+		// Both layers mirror — not just the active one.
+		expect(getPixel(tab, 2, 0)).toEqual(RED);
+		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
+
+		tab.undo();
+
+		expect(getPixel(tab, 0, 0)).toEqual(RED);
+		expect(getPixel(tab, 2, 0)).toEqual(GREEN);
+	});
+
+	it('flipCanvasHorizontal keeps canvas scope with a Marquee active and mirrors it along', () => {
+		const pixels = new Uint8Array(5 * 1 * 4);
+		pixels.set(makePixelRgba(RED), 1 * 4);
+		const { tab } = makeTab({ document: singleLayerDocument(5, 1, pixels) });
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 0, 2, 0));
+
+		tab.flipCanvasHorizontal();
+
+		// Region mode would keep red inside the Marquee (x ∈ {1, 2}); the canvas
+		// op mirrors it across the whole canvas to x = 3 and carries the Marquee
+		// through the same mapping.
+		expect(getPixel(tab, 3, 0)).toEqual(RED);
+		expect(tab.document.marquee()).toMatchObject({ x: 2, y: 0, width: 2, height: 1 });
+
+		// One history entry: a single undo restores pixels and Marquee together.
+		tab.undo();
+
+		expect(getPixel(tab, 1, 0)).toEqual(RED);
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 0, width: 2, height: 1 });
+	});
+
+	it('flipCanvasVertical mirrors the canvas and restores on undo', () => {
+		const pixels = new Uint8Array(1 * 3 * 4);
+		pixels.set(makePixelRgba(RED), 0);
+		const { tab } = makeTab({ document: singleLayerDocument(1, 3, pixels) });
+
+		tab.flipCanvasVertical();
+
+		expect(getPixel(tab, 0, 2)).toEqual(RED);
+
+		tab.undo();
+
+		expect(getPixel(tab, 0, 0)).toEqual(RED);
+	});
+
+	it('flipCanvasHorizontal commits an idle Floating Selection nudge before flipping', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (0 * 5 + 0) * 4);
+		pixels.set(makePixelRgba(GREEN), (0 * 5 + 1) * 4);
+		const { tab } = makeTab({ document: singleLayerDocument(5, 5, pixels) });
+		tab.document.set_marquee(marqueeRegionFromDrag(0, 0, 1, 0));
+		tab.nudgeMarquee(0, 1);
+
+		tab.flipCanvasHorizontal();
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		// The strip commits one row down, then the whole canvas mirrors it to
+		// x ∈ {3, 4} — GREEN, RED — with the Marquee carried along.
+		expect(getPixel(tab, 3, 1)).toEqual(GREEN);
+		expect(getPixel(tab, 4, 1)).toEqual(RED);
+		expect(tab.document.marquee()).toMatchObject({ x: 3, y: 1, width: 2, height: 1 });
+	});
+
 	it('clearMarqueePixels commits an idle Floating Selection nudge before clearing moved pixels', () => {
 		const pixels = new Uint8Array(5 * 5 * 4);
 		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
@@ -3553,6 +3638,18 @@ describe('TabState — playback', () => {
 		expect(tab.isPlaying).toBe(true);
 
 		tab.undo();
+
+		expect(tab.isPlaying).toBe(false);
+	});
+
+	it('stops playback when a canvas flip is applied', () => {
+		const { tab, manual } = makeFramesTab([RED, GREEN]);
+
+		tab.startPlayback();
+		manual.fireAt(0);
+		expect(tab.isPlaying).toBe(true);
+
+		tab.flipCanvasHorizontal();
 
 		expect(tab.isPlaying).toBe(false);
 	});

@@ -15,8 +15,8 @@ function renderSettings(props: Record<string, unknown> = {}) {
 		onClear: vi.fn(),
 		onGridToggle: vi.fn(),
 		onAnchorChange: vi.fn(),
-		onFlipHorizontal: vi.fn(),
-		onFlipVertical: vi.fn(),
+		onFlipCanvasHorizontal: vi.fn(),
+		onFlipCanvasVertical: vi.fn(),
 		onRotateCw: vi.fn(),
 		onRotateCcw: vi.fn()
 	};
@@ -31,14 +31,14 @@ afterEach(() => {
 });
 
 describe('SettingsContent — Transform group', () => {
-	it('renders Flip Horizontal and Flip Vertical and invokes their handlers', async () => {
-		const { onFlipHorizontal, onFlipVertical } = renderSettings();
+	it('renders the canvas-scoped Flip buttons and invokes their handlers', async () => {
+		const { onFlipCanvasHorizontal, onFlipCanvasVertical } = renderSettings();
 
-		await fireEvent.click(screen.getByRole('button', { name: 'Flip Horizontal' }));
-		await fireEvent.click(screen.getByRole('button', { name: 'Flip Vertical' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Flip Canvas Horizontal' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Flip Canvas Vertical' }));
 
-		expect(onFlipHorizontal).toHaveBeenCalledOnce();
-		expect(onFlipVertical).toHaveBeenCalledOnce();
+		expect(onFlipCanvasHorizontal).toHaveBeenCalledOnce();
+		expect(onFlipCanvasVertical).toHaveBeenCalledOnce();
 	});
 
 	it('renders Rotate Right and Rotate Left and invokes their handlers', async () => {
@@ -52,9 +52,9 @@ describe('SettingsContent — Transform group', () => {
 	});
 
 	it.each([
-		['en', 'Transform', 'Flip Horizontal', 'Flip Vertical'],
-		['ko', '변형', '좌우 반전', '상하 반전'],
-		['ja', '変形', '左右反転', '上下反転']
+		['en', 'Transform', 'Flip Canvas Horizontal', 'Flip Canvas Vertical'],
+		['ko', '변형', '캔버스 좌우 반전', '캔버스 상하 반전'],
+		['ja', '変形', 'キャンバス左右反転', 'キャンバス上下反転']
 	] as const)('renders localized Transform labels for %s', (locale, section, flipH, flipV) => {
 		overwriteGetLocale(() => locale);
 		renderSettings();

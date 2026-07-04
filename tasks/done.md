@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 208 | [Canvas Flip — whole-document flip with Marquee co-transform](../issues/208-canvas-flip-whole-document.md) | 2026-07-04 |
 | 204 | [Reference Footprint — one core authority for the projected AABB](../issues/204-reference-footprint-core-authority.md) | 2026-06-29 |
 | 203 | [Transport strip UI + playhead + i18n + E2E](../issues/203-transport-strip-ui.md) | 2026-06-27 |
 | 202 | [Shell playback controller — transient playhead engine](../issues/202-playback-controller.md) | 2026-06-26 |

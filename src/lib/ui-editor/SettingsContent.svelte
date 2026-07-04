@@ -14,8 +14,8 @@
 		onClear: () => void;
 		onGridToggle: () => void;
 		onAnchorChange: (anchor: ResizeAnchor) => void;
-		onFlipHorizontal: () => void;
-		onFlipVertical: () => void;
+		onFlipCanvasHorizontal: () => void;
+		onFlipCanvasVertical: () => void;
 		onRotateCw: () => void;
 		onRotateCcw: () => void;
 	}
@@ -30,8 +30,8 @@
 		onClear,
 		onGridToggle,
 		onAnchorChange,
-		onFlipHorizontal,
-		onFlipVertical,
+		onFlipCanvasHorizontal,
+		onFlipCanvasVertical,
 		onRotateCw,
 		onRotateCcw
 	}: Props = $props();
@@ -54,13 +54,13 @@
 	<!-- Transform Section -->
 	<section class="section">
 		<h3 class="section-title">{m.section_transform()}</h3>
-		<button class="action-btn outline" onclick={onFlipHorizontal}>
+		<button class="action-btn outline" onclick={onFlipCanvasHorizontal}>
 			<FlipHorizontal size={18} aria-hidden={true} />
-			<span>{m.action_transformFlipHorizontal()}</span>
+			<span>{m.action_transformFlipCanvasHorizontal()}</span>
 		</button>
-		<button class="action-btn outline" onclick={onFlipVertical}>
+		<button class="action-btn outline" onclick={onFlipCanvasVertical}>
 			<FlipVertical size={18} aria-hidden={true} />
-			<span>{m.action_transformFlipVertical()}</span>
+			<span>{m.action_transformFlipCanvasVertical()}</span>
 		</button>
 		<button class="action-btn outline" onclick={onRotateCw}>
 			<RotateCw size={18} aria-hidden={true} />

@@ -888,6 +888,20 @@ impl WasmDocument {
         self.inner.flip_vertical();
     }
 
+    /// Mirrors the whole canvas horizontally: every Pixel Layer's every cel
+    /// (all frames) flips in place regardless of the active layer; dimensions
+    /// are unchanged and the Reference Layer stays fixed. An active Marquee
+    /// is mirrored across the same axis and clipped to the canvas.
+    pub fn flip_canvas_horizontal(&mut self) {
+        self.inner.flip_canvas_horizontal();
+    }
+
+    /// Mirrors the whole canvas vertically. Mirror of
+    /// [`Self::flip_canvas_horizontal`].
+    pub fn flip_canvas_vertical(&mut self) {
+        self.inner.flip_canvas_vertical();
+    }
+
     /// Rotates the active Pixel Layer's Marquee region 90° clockwise. The region's
     /// `W×H` pixels become an `H×W` block re-centered on the region's center and
     /// clipped to the canvas; the Marquee updates to wrap the new region. No-op
@@ -1756,6 +1770,40 @@ mod tests {
 
         let read = doc.get_pixel(1, 0).unwrap();
         assert_eq!(read.inner, red.inner);
+    }
+
+    #[test]
+    fn wasm_document_flip_canvas_horizontal_mirrors_pixels_and_marquee() {
+        let id = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 2, id.to_string(), "L1".into()).unwrap();
+        let red = WasmColor::new(255, 0, 0, 255);
+        doc.set_pixel(0, 0, &red).unwrap();
+        doc.set_marquee(Some(WasmMarqueeRegion::from_drag(0, 0, 0, 1)));
+
+        doc.flip_canvas_horizontal();
+
+        // Pixel (0,0) mirrors to (1,0) — byte offset (0 * 2 + 1) * 4 = 4.
+        let buf = doc.composite();
+        assert_eq!(&buf[4..8], &[255, 0, 0, 255]);
+        let marquee = doc.marquee().expect("marquee is mirrored, not dropped");
+        assert_eq!((marquee.x(), marquee.y()), (1, 0));
+    }
+
+    #[test]
+    fn wasm_document_flip_canvas_vertical_mirrors_pixels_and_marquee() {
+        let id = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 2, id.to_string(), "L1".into()).unwrap();
+        let red = WasmColor::new(255, 0, 0, 255);
+        doc.set_pixel(0, 0, &red).unwrap();
+        doc.set_marquee(Some(WasmMarqueeRegion::from_drag(0, 0, 1, 0)));
+
+        doc.flip_canvas_vertical();
+
+        // Pixel (0,0) mirrors to (0,1) — byte offset (1 * 2 + 0) * 4 = 8.
+        let buf = doc.composite();
+        assert_eq!(&buf[8..12], &[255, 0, 0, 255]);
+        let marquee = doc.marquee().expect("marquee is mirrored, not dropped");
+        assert_eq!((marquee.x(), marquee.y()), (0, 1));
     }
 
     #[test]

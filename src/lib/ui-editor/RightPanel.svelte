@@ -20,8 +20,8 @@
 		onResize: (width: number, height: number) => void;
 		onClear: () => void;
 		onAnchorChange: (anchor: ResizeAnchor) => void;
-		onFlipHorizontal: () => void;
-		onFlipVertical: () => void;
+		onFlipCanvasHorizontal: () => void;
+		onFlipCanvasVertical: () => void;
 		onRotateCw: () => void;
 		onRotateCcw: () => void;
 	}
@@ -39,8 +39,8 @@
 		onResize,
 		onClear,
 		onAnchorChange,
-		onFlipHorizontal,
-		onFlipVertical,
+		onFlipCanvasHorizontal,
+		onFlipCanvasVertical,
 		onRotateCw,
 		onRotateCcw
 	}: Props = $props();
@@ -82,13 +82,13 @@
 	<section class="panel-section">
 		<h3 class="section-title">{m.section_transform()}</h3>
 		<div class="transform-actions">
-			<button class="transform-btn" onclick={onFlipHorizontal}>
+			<button class="transform-btn" onclick={onFlipCanvasHorizontal}>
 				<FlipHorizontal size={16} aria-hidden={true} />
-				{m.action_transformFlipHorizontal()}
+				{m.action_transformFlipCanvasHorizontal()}
 			</button>
-			<button class="transform-btn" onclick={onFlipVertical}>
+			<button class="transform-btn" onclick={onFlipCanvasVertical}>
 				<FlipVertical size={16} aria-hidden={true} />
-				{m.action_transformFlipVertical()}
+				{m.action_transformFlipCanvasVertical()}
 			</button>
 			<button class="transform-btn" onclick={onRotateCw}>
 				<RotateCw size={16} aria-hidden={true} />

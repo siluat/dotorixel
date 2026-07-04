@@ -664,14 +664,14 @@ export class TabState {
 		this.#mutate({ type: 'clear-active-layer' });
 	};
 
-	flipHorizontal = (): void => {
+	flipMarqueeHorizontal = (): void => {
 		if (this.isDrawing) return;
-		this.#mutate({ type: 'flip-horizontal' });
+		this.#mutate({ type: 'flip-marquee-horizontal' });
 	};
 
-	flipVertical = (): void => {
+	flipMarqueeVertical = (): void => {
 		if (this.isDrawing) return;
-		this.#mutate({ type: 'flip-vertical' });
+		this.#mutate({ type: 'flip-marquee-vertical' });
 	};
 
 	flipCanvasHorizontal = (): void => {
@@ -694,14 +694,14 @@ export class TabState {
 		this.#mutate({ type: 'rotate-canvas-ccw' });
 	};
 
-	rotateCw = (): void => {
+	rotateMarqueeCw = (): void => {
 		if (this.isDrawing) return;
-		this.#mutate({ type: 'rotate-cw' });
+		this.#mutate({ type: 'rotate-marquee-cw' });
 	};
 
-	rotateCcw = (): void => {
+	rotateMarqueeCcw = (): void => {
 		if (this.isDrawing) return;
-		this.#mutate({ type: 'rotate-ccw' });
+		this.#mutate({ type: 'rotate-marquee-ccw' });
 	};
 
 	clearMarquee = (): void => {

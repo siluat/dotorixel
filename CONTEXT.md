@@ -77,7 +77,7 @@ The whole-Document tier of flip and rotate — one operation mirrors or quarter-
 _Avoid_: whole-document transform (informal), canvas flip / canvas rotate as tier names (they name single operations, not the tier), sprite transform (Aseprite's vocabulary).
 
 **Marquee Transform**:
-The region tier of flip and rotate — mirrors or quarter-turns only the Marquee region of the active Pixel Layer's active-frame Cel; the Document's dimensions, other layers, other frames, and the Reference Layer are untouched. A no-op while a Reference Layer is active.
+The region tier of flip and rotate — mirrors or quarter-turns only the Marquee region of the active Pixel Layer's active-frame Cel; the Document's dimensions, other layers, other frames, and the Reference Layer are untouched. A no-op without a Marquee or while a Reference Layer is active — a no-op pushes no History entry and never marks the Document dirty.
 _Avoid_: selection transform (Selection names the tool/feature, not the region), region transform ("region" is used generically for pixel-buffer slices).
 
 ### Sampling

@@ -29,12 +29,12 @@ export type UndoableDocumentIntent =
 	  }
 	| { readonly type: 'clear-active-layer' }
 	| { readonly type: 'clear-marquee-pixels' }
-	| { readonly type: 'flip-horizontal' }
-	| { readonly type: 'flip-vertical' }
+	| { readonly type: 'flip-marquee-horizontal' }
+	| { readonly type: 'flip-marquee-vertical' }
 	| { readonly type: 'flip-canvas-horizontal' }
 	| { readonly type: 'flip-canvas-vertical' }
-	| { readonly type: 'rotate-cw' }
-	| { readonly type: 'rotate-ccw' }
+	| { readonly type: 'rotate-marquee-cw' }
+	| { readonly type: 'rotate-marquee-ccw' }
 	| { readonly type: 'rotate-canvas-cw' }
 	| { readonly type: 'rotate-canvas-ccw' }
 	| {
@@ -233,11 +233,11 @@ export class DocumentChangeJournal {
 			case 'clear-marquee-pixels':
 				document.clear_marquee_pixels();
 				return { changed: true };
-			case 'flip-horizontal':
-				document.flip_horizontal();
+			case 'flip-marquee-horizontal':
+				document.flip_marquee_horizontal();
 				return { changed: true };
-			case 'flip-vertical':
-				document.flip_vertical();
+			case 'flip-marquee-vertical':
+				document.flip_marquee_vertical();
 				return { changed: true };
 			case 'flip-canvas-horizontal':
 				document.flip_canvas_horizontal();
@@ -245,11 +245,11 @@ export class DocumentChangeJournal {
 			case 'flip-canvas-vertical':
 				document.flip_canvas_vertical();
 				return { changed: true };
-			case 'rotate-cw':
-				document.rotate_cw();
+			case 'rotate-marquee-cw':
+				document.rotate_marquee_cw();
 				return { changed: true };
-			case 'rotate-ccw':
-				document.rotate_ccw();
+			case 'rotate-marquee-ccw':
+				document.rotate_marquee_ccw();
 				return { changed: true };
 			case 'rotate-canvas-cw':
 				document.rotate_canvas_cw();
@@ -345,8 +345,6 @@ export class DocumentChangeJournal {
 			case 'resize-document':
 				return intent.width !== document.width || intent.height !== document.height;
 			case 'clear-active-layer':
-			case 'flip-horizontal':
-			case 'flip-vertical':
 				return this.#activeLayerKind() === 'pixel';
 			case 'flip-canvas-horizontal':
 			case 'flip-canvas-vertical':
@@ -361,13 +359,15 @@ export class DocumentChangeJournal {
 					Boolean(document.marquee())
 				);
 			case 'clear-marquee-pixels':
+			// A Marquee Transform mirrors or turns only the Marquee region of
+			// the active Pixel Layer's active-frame cel — without a Marquee or
+			// while a Reference Layer is active it has nothing to transform,
+			// so skip the snapshot for that no-op.
+			case 'flip-marquee-horizontal':
+			case 'flip-marquee-vertical':
+			case 'rotate-marquee-cw':
+			case 'rotate-marquee-ccw':
 				return Boolean(document.marquee()) && this.#activeLayerKind() === 'pixel';
-			case 'rotate-cw':
-			case 'rotate-ccw':
-				// With a Marquee, rotate the region on the active Pixel Layer; with
-				// none, rotate the whole Document — always allowed, independent of
-				// the active layer kind.
-				return document.marquee() ? this.#activeLayerKind() === 'pixel' : true;
 			case 'rotate-canvas-cw':
 			case 'rotate-canvas-ccw':
 				// A Canvas Transform turns every Pixel Layer's every cel, swaps the
@@ -500,26 +500,19 @@ export class DocumentChangeJournal {
 				break;
 			case 'clear-active-layer':
 			case 'clear-marquee-pixels':
-			case 'flip-horizontal':
-			case 'flip-vertical':
+			// A Marquee Transform touches only the Marquee region of one cel —
+			// the dimensions never change, so no metrics sync or viewport
+			// reclamp is needed.
+			case 'flip-marquee-horizontal':
+			case 'flip-marquee-vertical':
+			case 'rotate-marquee-cw':
+			case 'rotate-marquee-ccw':
 			// A canvas flip transforms the whole document but keeps its
 			// dimensions, so no metrics sync or viewport reclamp is needed.
 			case 'flip-canvas-horizontal':
 			case 'flip-canvas-vertical':
 			case 'commit-floating-selection':
 				this.#invalidateRenderAndMarkDirty();
-				break;
-			case 'rotate-cw':
-			case 'rotate-ccw':
-				// A region rotate leaves the dimensions unchanged; a whole-document
-				// rotate (no Marquee) swaps them, so it must refresh metrics and the
-				// viewport like resize-document.
-				if (this.#deps.getDocument().marquee()) {
-					this.#invalidateRenderAndMarkDirty();
-				} else {
-					this.#deps.syncDocumentMetrics();
-					this.#reclampViewportInvalidateRenderAndMarkDirty();
-				}
 				break;
 			case 'add-pixel-layer':
 			case 'set-reference-layer':

@@ -188,8 +188,8 @@ impl Cels {
         self.by_frame.values()
     }
 
-    /// Every cel mutably, in unspecified frame order. Used by in-place
-    /// whole-Document transforms (rotate) that replace each cel.
+    /// Every cel mutably, in unspecified frame order. Used by Canvas
+    /// Transforms to flip or replace each cel in place.
     pub fn canvases_mut(&mut self) -> impl Iterator<Item = &mut PixelCanvas> {
         self.by_frame.values_mut()
     }

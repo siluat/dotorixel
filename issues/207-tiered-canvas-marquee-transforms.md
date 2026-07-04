@@ -1,6 +1,6 @@
 ---
 title: "Tiered transforms — split flip/rotate into Canvas Transform and Marquee Transform tiers (PRD)"
-status: ready-for-agent
+status: done
 created: 2026-07-04
 ---
 

@@ -698,6 +698,57 @@ describe('DocumentChangeJournal', () => {
 		expect(current.marquee()).toMatchObject({ x: 1, y: 0, width: 1, height: 1 });
 	});
 
+	it('skips a canvas rotate and captures no snapshot on a square Reference-only document', () => {
+		const events: string[] = [];
+		// The Reference Layer stays fixed under canvas transforms, so on a
+		// Reference-only document a rotate only swaps the dimensions — and a
+		// square canvas leaves even those unchanged. With no Marquee either,
+		// nothing changes: it must not snapshot or dirty.
+		const document = {
+			width: 16,
+			height: 16,
+			active_layer_id: () => 'reference-1',
+			layer_count: () => 1,
+			marquee: () => undefined,
+			layers_metadata: () => [
+				{ id: 'reference-1', name: 'Reference', visible: true, opacity: 1, kind: 'reference' }
+			]
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		expect(
+			journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-canvas-cw' } })
+		).toEqual({ changed: false });
+		expect(
+			journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-canvas-ccw' } })
+		).toEqual({ changed: false });
+		expect(events).toEqual([]);
+	});
+
+	it('applies a canvas rotate on a non-square Reference-only document (the dimension swap is a real change)', () => {
+		const events: string[] = [];
+		const document = {
+			width: 8,
+			height: 16,
+			active_layer_id: () => 'reference-1',
+			layer_count: () => 1,
+			marquee: () => undefined,
+			layers_metadata: () => [
+				{ id: 'reference-1', name: 'Reference', visible: true, opacity: 1, kind: 'reference' }
+			],
+			rotate_canvas_cw: () => events.push('rotate-canvas-cw')
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'rotate-canvas-cw' }
+		});
+
+		expect(result).toEqual({ changed: true });
+		expect(events).toEqual(['snapshot', 'rotate-canvas-cw', 'sync', 'reclamp', 'render', 'dirty']);
+	});
+
 	it('skips rotate and captures no snapshot when the active layer is Reference', () => {
 		const events: string[] = [];
 		const document = {

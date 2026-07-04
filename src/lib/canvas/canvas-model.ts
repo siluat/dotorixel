@@ -186,8 +186,8 @@ export interface Document {
 	/**
 	 * Rotates the whole canvas 90° clockwise: every Pixel Layer's every cel
 	 * (all frames) turns regardless of the active layer, the canvas
-	 * width/height swap, and the Reference Layer turns with the canvas. An
-	 * active Marquee is carried through the same quarter-turn into the swapped
+	 * width/height swap, and the Reference Layer stays fixed. An active
+	 * Marquee is carried through the same quarter-turn into the swapped
 	 * dimensions and clipped to the new canvas.
 	 */
 	rotate_canvas_cw(): void;

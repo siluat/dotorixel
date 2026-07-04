@@ -904,9 +904,9 @@ impl WasmDocument {
 
     /// Rotates the whole canvas 90° clockwise: every Pixel Layer's every cel
     /// (all frames) turns regardless of the active layer, the canvas
-    /// width/height swap, and the Reference Layer turns with the canvas. An
-    /// active Marquee is carried through the same quarter-turn into the
-    /// swapped dimensions and clipped to the new canvas.
+    /// width/height swap, and the Reference Layer stays fixed. An active
+    /// Marquee is carried through the same quarter-turn into the swapped
+    /// dimensions and clipped to the new canvas.
     pub fn rotate_canvas_cw(&mut self) {
         self.inner.rotate_canvas_cw();
     }

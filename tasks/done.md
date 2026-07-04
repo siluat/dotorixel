@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 206 | [Whole-canvas transforms leave the Reference Layer fixed](../issues/206-reference-fixed-under-canvas-transforms.md) | 2026-07-04 |
 | 209 | [Canvas Rotate — explicit whole-document op with Marquee co-transform](../issues/209-canvas-rotate-explicit-op.md) | 2026-07-04 |
 | 208 | [Canvas Flip — whole-document flip with Marquee co-transform](../issues/208-canvas-flip-whole-document.md) | 2026-07-04 |
 | 204 | [Reference Footprint — one core authority for the projected AABB](../issues/204-reference-footprint-core-authority.md) | 2026-06-29 |

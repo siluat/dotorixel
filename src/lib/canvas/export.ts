@@ -87,9 +87,9 @@ export function exportAs(
 		format.exportFn(canvas, buildExportFilename(cleanStem, format.extension, canvas));
 		return { width: canvas.width, height: canvas.height };
 	}
-	const document = sources.document();
-	format.exportFn(document, buildExportFilename(cleanStem, format.extension, document));
-	return { width: document.width, height: document.height };
+	const doc = sources.document();
+	format.exportFn(doc, buildExportFilename(cleanStem, format.extension, doc));
+	return { width: doc.width, height: doc.height };
 }
 
 export function generateDefaultStem(canvas: { width: number; height: number }): string {

@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 169 | 130 | 39 | 173 | 77% | 43% |
-| cubic-dev-ai[bot] | 152 | 116 | 36 | 185 | 76% | 39% |
-| coderabbitai[bot] | 234 | 163 | 71 | 135 | 70% | 55% |
+| greptile-apps[bot] | 170 | 131 | 39 | 173 | 77% | 43% |
+| cubic-dev-ai[bot] | 152 | 116 | 36 | 186 | 76% | 38% |
+| coderabbitai[bot] | 234 | 163 | 71 | 136 | 70% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #305 | greptile-apps[bot] | Accept | Quantization-fallback test only used an all-opaque frame — the >255-unique-colors + transparent-pixels combination (reserved transparent index under NeuQuant, crate-internals-dependent) was an untested contract; added a regression test pinning both sides (transparent pixel survives, no opaque pixel swallowed by the transparent index) |
+| #305 | cubic-dev-ai[bot] | Miss | Did not flag the untested quantization-fallback + transparency combination ("No issues found across 14 files") |
+| #305 | coderabbitai[bot] | Miss | Did not flag the untested quantization-fallback + transparency combination ("No actionable comments") |
 | #304 | coderabbitai[bot] | Accept | Spritesheet sheet-size math was unchecked — `width × frame count` (u32) and the byte size (usize, 32-bit on wasm32) could wrap into an undersized allocation and copy panic; switched to checked math returning `ExportError::SheetTooLarge` |
 | #304 | cubic-dev-ai[bot] | Accept | Same unchecked sheet-size multiplication (duplicate); fixed by the same checked-math guard |
 | #304 | cubic-dev-ai[bot] | Accept | Download test stubbed `revokeObjectURL` without asserting it — a dropped deferred revoke would leak a blob URL per export unnoticed; now flushes fake timers and pins exactly-once revocation |

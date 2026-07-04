@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use dotorixel_core::canvas::{CanvasRect, PixelCanvas, ResizeAnchor};
 use dotorixel_core::color::Color;
 use dotorixel_core::document::Document;
-use dotorixel_core::export::{PngExport, SpritesheetExport, SvgExport};
+use dotorixel_core::export::{GifExport, PngExport, SpritesheetExport, SvgExport};
 use dotorixel_core::history::DocumentHistory;
 use dotorixel_core::layer::{Layer, LayerKind, LayerKindTag, ReferenceData};
 use dotorixel_core::pixel_perfect::{Action, FilterResult, TailState, pixel_perfect_filter};
@@ -672,6 +672,16 @@ impl WasmDocument {
             return Err(JsError::new(&format!("Frame with id {fid} not found")));
         }
         Ok(self.inner.composite_at(fid))
+    }
+
+    /// Animated GIF of every frame's composite, encoded as a byte buffer —
+    /// the core `GifExport` contract: frames in axis order with quantized
+    /// per-frame delays, infinite looping, binary transparency, Reference
+    /// Layers and hidden layers excluded, the active frame untouched.
+    pub fn encode_gif(&self) -> Result<Vec<u8>, JsError> {
+        self.inner
+            .encode_gif()
+            .map_err(|e| JsError::new(&e.to_string()))
     }
 
     /// Horizontal-strip spritesheet of every frame's composite, encoded as an
@@ -2103,6 +2113,23 @@ mod tests {
 
         // The read left the active-frame pointer untouched.
         assert_eq!(doc.active_frame_id(), second.to_string());
+    }
+
+    #[test]
+    fn wasm_document_encode_gif_returns_a_gif89a_buffer() {
+        let layer = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 2, layer.to_string(), "Layer 1".to_string()).unwrap();
+        let red = WasmColor::new(255, 0, 0, 255);
+        doc.set_pixel(0, 0, &red).unwrap(); // first frame
+        doc.add_frame(Uuid::new_v4().to_string()).unwrap(); // second active and empty
+
+        let bytes = doc.encode_gif().unwrap();
+
+        // Thin marshalling check: the buffer carries the GIF89a signature;
+        // frame order, timing, and palette behavior are owned by the core's
+        // round-trip tests. No error-path test: the binding takes no input,
+        // and a valid Document cannot make the core encoder fail.
+        assert_eq!(&bytes[..6], b"GIF89a");
     }
 
     #[test]

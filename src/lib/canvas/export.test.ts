@@ -6,11 +6,20 @@ import {
 	stripKnownExtension,
 	availableFormats,
 	exportAs,
+	exportAsGif,
 	exportAsSpritesheet,
 	type DocumentExportFormat,
 	type ExportSources,
 	type StillExportFormat
 } from './export.ts';
+
+function stubDownloadPlumbing() {
+	const createObjectURL = vi.fn((_blob: Blob) => 'blob:fake');
+	const revokeObjectURL = vi.fn();
+	vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+	const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+	return { createObjectURL, revokeObjectURL, click };
+}
 
 function fakeStillFormat(exportFn: StillExportFormat['exportFn'] = vi.fn()): StillExportFormat {
 	return {
@@ -212,19 +221,59 @@ describe('availableFormats', () => {
 		const spritesheet = availableFormats.find((f) => f.id === 'spritesheet');
 		expect(spritesheet!.defaultStem!({ width: 16, height: 16 })).toBe('dotorixel-16x16-sheet');
 	});
+
+	it('contains a GIF entry declared as a document-source format', () => {
+		const gif = availableFormats.find((f) => f.id === 'gif');
+		expect(gif).toBeDefined();
+		expect(gif!.label()).toBe('GIF');
+		expect(gif!.extension).toBe('gif');
+		expect(gif!.source).toBe('document');
+		expect(gif!.exportFn).toBeTypeOf('function');
+	});
+
+	it('lets the GIF default stem fall back to the shared one — .gif never collides', () => {
+		const gif = availableFormats.find((f) => f.id === 'gif');
+		expect(gif!.defaultStem).toBeUndefined();
+	});
+});
+
+describe('exportAsGif', () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
+		vi.useRealTimers();
+	});
+
+	it('encodes the Document and downloads it as an image/gif blob under the given filename', () => {
+		vi.useFakeTimers();
+		const { createObjectURL, revokeObjectURL, click } = stubDownloadPlumbing();
+		const encode = vi.fn(() => new Uint8Array([1, 2, 3]));
+		const doc = { width: 2, height: 2, encode_gif: encode };
+
+		exportAsGif(doc, 'walk-cycle.gif');
+
+		expect(encode).toHaveBeenCalledOnce();
+		const blob = createObjectURL.mock.calls[0]![0];
+		expect(blob.type).toBe('image/gif');
+		expect(click).toHaveBeenCalledOnce();
+		expect((click.mock.instances[0] as HTMLAnchorElement).download).toBe('walk-cycle.gif');
+
+		// The deferred revocation (Firefox guard) must still release the blob
+		// URL — a dropped revoke would leak one URL per export.
+		vi.runAllTimers();
+		expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith('blob:fake');
+	});
+
+	it('silently skips a Document that lacks the GIF encoder', () => {
+		const { createObjectURL } = stubDownloadPlumbing();
+
+		exportAsGif({ width: 2, height: 2 }, 'walk-cycle.gif');
+
+		expect(createObjectURL).not.toHaveBeenCalled();
+	});
 });
 
 describe('exportAsSpritesheet', () => {
-	function stubDownloadPlumbing() {
-		const createObjectURL = vi.fn((_blob: Blob) => 'blob:fake');
-		const revokeObjectURL = vi.fn();
-		vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
-		const click = vi
-			.spyOn(HTMLAnchorElement.prototype, 'click')
-			.mockImplementation(() => {});
-		return { createObjectURL, revokeObjectURL, click };
-	}
-
 	afterEach(() => {
 		vi.unstubAllGlobals();
 		vi.restoreAllMocks();

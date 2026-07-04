@@ -1,6 +1,6 @@
 ---
 title: GIF / spritesheet export — multi-frame export formats (M4)
-status: ready-for-agent
+status: done
 created: 2026-07-04
 ---
 

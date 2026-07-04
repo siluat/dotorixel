@@ -10,6 +10,9 @@ pub enum ExportError {
     PngEncode {
         message: String,
     },
+    GifEncode {
+        message: String,
+    },
     SheetTooLarge {
         width: u32,
         height: u32,
@@ -21,6 +24,7 @@ impl fmt::Display for ExportError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::PngEncode { message } => write!(f, "PNG encoding failed: {message}"),
+            Self::GifEncode { message } => write!(f, "GIF encoding failed: {message}"),
             Self::SheetTooLarge {
                 width,
                 height,
@@ -149,6 +153,87 @@ impl SpritesheetExport for Document {
     }
 }
 
+pub trait GifExport {
+    /// Encodes every Frame's composite as an animated GIF: frames in axis
+    /// order, each a full-canvas image disposing to background (transparent
+    /// regions never ghost an earlier frame), looping forever via the
+    /// standard looping extension.
+    ///
+    /// Each frame's delay is its `duration_ms` quantized to GIF's native
+    /// centisecond unit, round-to-nearest with a 1 cs floor. Transparency is
+    /// binary at the alpha-128 threshold: composite alpha ≥ 128 is opaque,
+    /// below is transparent. Palettes are per-frame with an exactness
+    /// guarantee — when a frame's unique opaque colors fit the palette (one
+    /// index reserved for transparency when needed), colors are preserved
+    /// exactly; only overflow frames fall back to quantization.
+    ///
+    /// A pure query reading through [`Document::composite_at`] — the Active
+    /// Frame is neither consulted nor moved. Compositing matches Playback:
+    /// visible Pixel Layers blended with their opacity; hidden layers and
+    /// Reference Layers excluded.
+    ///
+    /// Returns [`ExportError::GifEncode`] when the underlying GIF encoder
+    /// fails.
+    fn encode_gif(&self) -> Result<Vec<u8>, ExportError>;
+}
+
+/// Composite alpha at or above this encodes as opaque in GIF's 1-bit
+/// transparency; anything below encodes as fully transparent.
+const GIF_OPAQUE_ALPHA_THRESHOLD: u8 = 128;
+
+impl GifExport for Document {
+    fn encode_gif(&self) -> Result<Vec<u8>, ExportError> {
+        // Canvas dimensions are constructor-validated to MAX_DIMENSION (256),
+        // so they always fit GIF's u16 fields.
+        let width = self.width() as u16;
+        let height = self.height() as u16;
+        let gif_error = |e: gif::EncodingError| ExportError::GifEncode {
+            message: e.to_string(),
+        };
+
+        let mut buf = Vec::new();
+        {
+            let mut encoder = gif::Encoder::new(&mut buf, width, height, &[]).map_err(gif_error)?;
+            encoder
+                .set_repeat(gif::Repeat::Infinite)
+                .map_err(gif_error)?;
+            for frame in self.frames() {
+                let mut rgba = self.composite_at(frame.id);
+                // Opaque pixels are forced to alpha 255 up front (the encoder
+                // treats any non-zero alpha as opaque, so RGB alone must
+                // distinguish palette entries); sub-threshold pixels zero out
+                // entirely so every transparent pixel maps to one
+                // deterministic palette entry. `from_rgba` then builds an
+                // exact per-frame palette whenever the unique colors fit,
+                // quantizing only on overflow.
+                for px in rgba.chunks_exact_mut(4) {
+                    if px[3] >= GIF_OPAQUE_ALPHA_THRESHOLD {
+                        px[3] = 255;
+                    } else {
+                        px.fill(0);
+                    }
+                }
+                let mut gif_frame = gif::Frame::from_rgba(width, height, &mut rgba);
+                gif_frame.delay = centisecond_delay(frame.duration_ms);
+                // Full-canvas frames that dispose to background: each frame
+                // fully replaces the previous one, so transparent regions
+                // never ghost.
+                gif_frame.dispose = gif::DisposalMethod::Background;
+                encoder.write_frame(&gif_frame).map_err(gif_error)?;
+            }
+        }
+        Ok(buf)
+    }
+}
+
+/// Quantizes a frame duration to GIF's native centisecond delay unit:
+/// round-to-nearest (half up) with a 1 cs floor, saturating at the field's
+/// `u16` ceiling (the shell-enforced 60 000 ms maximum sits well below it).
+fn centisecond_delay(duration_ms: u32) -> u16 {
+    let centiseconds = (u64::from(duration_ms) + 5) / 10;
+    centiseconds.clamp(1, u64::from(u16::MAX)) as u16
+}
+
 /// Shared raw-buffer PNG encoding: RGBA 8-bit, `pixels` in row-major order.
 fn encode_rgba_png(width: u32, height: u32, pixels: &[u8]) -> Result<Vec<u8>, ExportError> {
     let mut buf: Vec<u8> = Vec::new();
@@ -179,6 +264,304 @@ mod tests {
     use uuid::Uuid;
 
     const PNG_SIGNATURE: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
+
+    /// Opens a decoder over encoded GIF bytes with RGBA color output, so
+    /// frame buffers decode straight into composite-comparable pixels.
+    fn rgba_gif_decoder(bytes: &[u8]) -> gif::Decoder<Cursor<&[u8]>> {
+        let mut options = gif::DecodeOptions::new();
+        options.set_color_output(gif::ColorOutput::RGBA);
+        options.read_info(Cursor::new(bytes)).unwrap()
+    }
+
+    #[test]
+    fn gif_encodes_every_frame_in_axis_order() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap(); // red on the first frame
+        let second = Uuid::new_v4();
+        doc.add_frame(second); // second active and empty
+        doc.set_pixel(1, 0, Color::new(0, 255, 0, 255)).unwrap(); // green on the second frame
+        let third = Uuid::new_v4();
+        doc.add_frame(third); // third active and empty
+        doc.set_pixel(1, 1, Color::new(0, 0, 255, 255)).unwrap(); // blue on the third frame
+
+        let bytes = doc.encode_gif().unwrap();
+
+        let mut decoder = rgba_gif_decoder(&bytes);
+        for (i, frame_id) in [first, second, third].into_iter().enumerate() {
+            let frame = decoder.read_next_frame().unwrap().expect("frame present");
+            assert_eq!(
+                frame.buffer.as_ref(),
+                doc.composite_at(frame_id).as_slice(),
+                "GIF frame {i} matches its Frame's composite in axis order"
+            );
+        }
+        assert!(decoder.read_next_frame().unwrap().is_none());
+    }
+
+    #[test]
+    fn gif_quantizes_each_frame_duration_to_centiseconds_round_to_nearest_with_a_floor() {
+        let mut doc = Document::new(1, 1, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        // (duration_ms, expected delay in centiseconds): round-to-nearest
+        // (half up), the 1 cs floor, and the 60 000 ms maximum duration.
+        let cases: [(u32, u16); 5] = [(83, 8), (85, 9), (4, 1), (100, 10), (60_000, 6_000)];
+        let (first_ms, _) = cases[0];
+        doc.set_frame_duration(doc.active_frame_id(), first_ms)
+            .unwrap();
+        for &(ms, _) in &cases[1..] {
+            let id = Uuid::new_v4();
+            doc.add_frame(id);
+            doc.set_frame_duration(id, ms).unwrap();
+        }
+
+        let bytes = doc.encode_gif().unwrap();
+
+        let mut decoder = rgba_gif_decoder(&bytes);
+        for (ms, expected_cs) in cases {
+            let frame = decoder.read_next_frame().unwrap().expect("frame present");
+            assert_eq!(
+                frame.delay, expected_cs,
+                "{ms} ms quantizes to {expected_cs} cs"
+            );
+        }
+    }
+
+    #[test]
+    fn gif_always_carries_the_infinite_loop_extension() {
+        let doc = Document::new(1, 1, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+
+        let bytes = doc.encode_gif().unwrap();
+
+        // Looping is not configurable: every export loops forever via the
+        // standard (NETSCAPE) looping extension.
+        let decoder = rgba_gif_decoder(&bytes);
+        assert_eq!(decoder.repeat(), gif::Repeat::Infinite);
+    }
+
+    #[test]
+    fn gif_preserves_colors_exactly_when_a_frames_unique_colors_fit_the_palette() {
+        let mut doc = Document::new(16, 16, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        // 255 unique opaque colors in adjacent shades a quantizer would blur,
+        // plus one transparent pixel: exactly fills the 256-entry palette with
+        // one index reserved for transparency — the exactness boundary.
+        for i in 0..255u32 {
+            let (x, y) = ((i + 1) % 16, (i + 1) / 16); // pixel (0,0) stays transparent
+            let color = Color::new(100 + (i % 5) as u8, (i / 5) as u8, 200, 255);
+            doc.set_pixel(x, y, color).unwrap();
+        }
+
+        let bytes = doc.encode_gif().unwrap();
+
+        let mut decoder = rgba_gif_decoder(&bytes);
+        let frame = decoder.read_next_frame().unwrap().unwrap();
+        assert_eq!(frame.buffer.as_ref(), doc.composite().as_slice());
+    }
+
+    #[test]
+    fn gif_binarizes_transparency_at_the_alpha_128_threshold() {
+        let mut doc = Document::new(2, 1, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 128)).unwrap(); // at the threshold → opaque
+        doc.set_pixel(1, 0, Color::new(0, 255, 0, 127)).unwrap(); // below → transparent
+
+        let bytes = doc.encode_gif().unwrap();
+
+        let mut decoder = rgba_gif_decoder(&bytes);
+        let frame = decoder.read_next_frame().unwrap().unwrap();
+        assert_eq!(
+            &frame.buffer[0..4],
+            &[255, 0, 0, 255],
+            "alpha 128 is opaque"
+        );
+        assert_eq!(
+            &frame.buffer[4..8],
+            &[0, 0, 0, 0],
+            "alpha 127 is transparent"
+        );
+    }
+
+    #[test]
+    fn gif_excludes_hidden_layers_and_reference_layers_from_every_frame() {
+        // Bottom Pixel Layer: opaque red painted on the first frame.
+        let bottom = Uuid::new_v4();
+        let mut doc = Document::new(1, 1, bottom, "Bottom".to_string()).unwrap();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+        // Top Pixel Layer: opaque green on the first frame, then hidden.
+        let top = Uuid::new_v4();
+        doc.add_layer(top, "Top".to_string());
+        doc.set_pixel(0, 0, Color::new(0, 255, 0, 255)).unwrap();
+        doc.set_layer_visibility(top, false).unwrap();
+        // A visible Reference Layer holding opaque blue — a viewport underlay
+        // that must never reach an exported frame.
+        doc.add_reference_layer(
+            Uuid::new_v4(),
+            "Reference".to_string(),
+            vec![0, 0, 255, 255],
+            1,
+            1,
+        )
+        .unwrap();
+        // A second, empty frame: the exclusion rules must hold on every frame.
+        doc.add_frame(Uuid::new_v4());
+
+        let bytes = doc.encode_gif().unwrap();
+
+        let mut decoder = rgba_gif_decoder(&bytes);
+        // First frame: hidden green and Reference blue excluded — red only.
+        let first = decoder.read_next_frame().unwrap().unwrap();
+        assert_eq!(first.buffer.as_ref(), &[255, 0, 0, 255]);
+        // Second frame: fully transparent, no Reference bleed.
+        let second = decoder.read_next_frame().unwrap().unwrap();
+        assert_eq!(second.buffer.as_ref(), &[0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn gif_multiplies_layer_opacity_into_alpha_before_the_transparency_threshold() {
+        use crate::layer::Layer;
+
+        // Two layers painting disjoint pixels: opacity 0.5 lands its pixel
+        // exactly at the alpha-128 threshold (opaque), 0.25 lands below it
+        // (transparent) — the same blend the composite produces.
+        let half = Uuid::new_v4();
+        let mut half_layer = Layer::new(half, "Half".to_string(), 2, 1).unwrap();
+        half_layer.opacity = 0.5;
+        let quarter = Uuid::new_v4();
+        let mut quarter_layer = Layer::new(quarter, "Quarter".to_string(), 2, 1).unwrap();
+        quarter_layer.opacity = 0.25;
+        let mut doc =
+            Document::from_layers(2, 1, vec![half_layer, quarter_layer], half, 2, false).unwrap();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+        doc.set_active_layer(quarter).unwrap();
+        doc.set_pixel(1, 0, Color::new(0, 255, 0, 255)).unwrap();
+        // The composite itself carries the blended alphas this GIF binarizes.
+        assert_eq!(doc.composite(), vec![255, 0, 0, 128, 0, 255, 0, 64]);
+
+        let bytes = doc.encode_gif().unwrap();
+
+        let mut decoder = rgba_gif_decoder(&bytes);
+        let frame = decoder.read_next_frame().unwrap().unwrap();
+        assert_eq!(
+            &frame.buffer[0..4],
+            &[255, 0, 0, 255],
+            "opacity 0.5 → alpha 128 → opaque"
+        );
+        assert_eq!(
+            &frame.buffer[4..8],
+            &[0, 0, 0, 0],
+            "opacity 0.25 → alpha 64 → transparent"
+        );
+    }
+
+    #[test]
+    fn gif_transparent_regions_never_ghost_the_previous_frame() {
+        let mut doc = Document::new(1, 1, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap(); // opaque first frame
+        doc.add_frame(Uuid::new_v4()); // fully transparent second frame
+
+        let bytes = doc.encode_gif().unwrap();
+
+        // Ghosting is decided by the on-wire frame geometry + disposal a
+        // viewer consumes: every frame must be full-canvas and dispose to
+        // background, so a transparent pixel shows the page background —
+        // never a leftover from an earlier frame.
+        let mut decoder = rgba_gif_decoder(&bytes);
+        while let Some(frame) = decoder.read_next_frame().unwrap() {
+            assert_eq!(frame.dispose, gif::DisposalMethod::Background);
+            assert_eq!(
+                (frame.top, frame.left, frame.width, frame.height),
+                (0, 0, 1, 1),
+                "every frame is a full-canvas image"
+            );
+        }
+    }
+
+    #[test]
+    fn gif_quantization_fallback_keeps_the_transparency_contract() {
+        let mut doc = Document::new(17, 16, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        // Pixel (0,0) stays transparent while the remaining 271 pixels take
+        // unique opaque colors — past the palette limit, so the reserved
+        // transparent index must be assigned inside the quantization
+        // fallback. This combination leans on the encoder crate's internals
+        // (alpha-aware color learning + nearest-index mapping), the kind of
+        // dependency a crate upgrade could silently regress.
+        for i in 0..271u32 {
+            let n = i + 1;
+            let (x, y) = (n % 17, n / 17);
+            let color = Color::new((i % 256) as u8, (i / 256 * 90 + 30) as u8, 10, 255);
+            doc.set_pixel(x, y, color).unwrap();
+        }
+
+        let bytes = doc.encode_gif().unwrap();
+
+        let mut decoder = rgba_gif_decoder(&bytes);
+        let frame = decoder.read_next_frame().unwrap().unwrap();
+        let alpha_of = |i: usize| frame.buffer[i * 4 + 3];
+        assert_eq!(
+            alpha_of(0),
+            0,
+            "the transparent pixel survives quantization as transparent"
+        );
+        let opaque_count = (1..272).filter(|&i| alpha_of(i) == 255).count();
+        assert_eq!(
+            opaque_count, 271,
+            "no opaque pixel is swallowed by the transparent index"
+        );
+    }
+
+    #[test]
+    fn gif_frame_exceeding_the_palette_limit_still_encodes_via_quantization() {
+        let mut doc = Document::new(17, 16, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        // 272 unique opaque colors — no 256-entry palette can hold them, so
+        // this frame must take the quantization fallback instead of erroring.
+        for i in 0..272u32 {
+            let (x, y) = (i % 17, i / 17);
+            let color = Color::new((i % 256) as u8, (i / 256 * 90) as u8, 0, 255);
+            doc.set_pixel(x, y, color).unwrap();
+        }
+
+        let bytes = doc.encode_gif().unwrap();
+
+        // Quantization approximates colors, so pin what survives it: a valid
+        // one-frame GIF whose pixels all stay opaque.
+        let mut decoder = rgba_gif_decoder(&bytes);
+        let frame = decoder.read_next_frame().unwrap().unwrap();
+        assert_eq!((frame.width, frame.height), (17, 16));
+        assert!(frame.buffer.chunks_exact(4).all(|px| px[3] == 255));
+        assert!(decoder.read_next_frame().unwrap().is_none());
+    }
+
+    #[test]
+    fn gif_encoding_is_a_pure_query_that_leaves_the_active_frame_untouched() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap(); // first frame
+        doc.add_frame(Uuid::new_v4()); // second active and empty
+        let active_before = doc.active_frame_id();
+        let active_composite_before = doc.composite();
+
+        // Encoding reads every frame, including non-active ones — it must not
+        // move the pointer or disturb the active frame's composite.
+        let _ = doc.encode_gif().unwrap();
+
+        assert_eq!(doc.active_frame_id(), active_before);
+        assert_eq!(doc.composite(), active_composite_before);
+    }
+
+    #[test]
+    fn gif_single_frame_document_is_a_valid_one_frame_gif_matching_its_composite() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+
+        let bytes = doc.encode_gif().unwrap();
+
+        assert_eq!(&bytes[..6], b"GIF89a");
+        let mut decoder = rgba_gif_decoder(&bytes);
+        let frame = decoder.read_next_frame().unwrap().unwrap();
+        assert_eq!((frame.width, frame.height), (2, 2));
+        assert_eq!(frame.buffer.as_ref(), doc.composite().as_slice());
+        assert!(
+            decoder.read_next_frame().unwrap().is_none(),
+            "a single-frame Document encodes exactly one GIF frame"
+        );
+    }
 
     fn decode_png(bytes: &[u8]) -> (u32, u32, Vec<u8>) {
         let decoder = png::Decoder::new(Cursor::new(bytes));

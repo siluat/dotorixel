@@ -33,7 +33,7 @@ describe('ExportPopover', () => {
 		const options = [...container.querySelectorAll('.format-select option')];
 		const values = options.map((o) => (o as HTMLOptionElement).value);
 
-		expect(values).toEqual(['png', 'svg', 'spritesheet']);
+		expect(values).toEqual(['png', 'svg', 'gif', 'spritesheet']);
 	});
 
 	it('shows the shared default stem as the filename placeholder for still formats', () => {

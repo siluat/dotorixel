@@ -72,6 +72,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | PNG | ✅ | ✅ | 🔧 | Apple: core ready, UI disabled |
 | SVG | ✅ | ✅ | ⬜ | Apple: core ready, UI not wired |
+| GIF (animated) | ✅ | ✅ | ⬜ | Timeline order, per-frame durations (centisecond quantization), infinite loop, binary transparency (α≥128), exact colors within palette limit; hidden/Reference layers excluded; Apple: core ready, UI not wired |
 | Spritesheet (PNG) | ✅ | ✅ | ⬜ | Horizontal strip, tile = canvas size, frames in Timeline order, full RGBA; hidden/Reference layers excluded; sheet-marked default filename; Apple: core ready, UI not wired |
 | Export UI — desktop | — | ✅ | ⬜ | Popover: format selector, filename input, confirmation |
 | Export UI — mobile | — | ✅ | — | Bottom sheet (vaul-svelte); format selector, filename input, export button |

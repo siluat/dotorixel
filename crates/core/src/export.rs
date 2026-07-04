@@ -3,16 +3,32 @@ use std::fmt::Write as _;
 use std::io::Cursor;
 
 use crate::canvas::PixelCanvas;
+use crate::document::Document;
 
 #[derive(Debug)]
 pub enum ExportError {
-    PngEncode { message: String },
+    PngEncode {
+        message: String,
+    },
+    SheetTooLarge {
+        width: u32,
+        height: u32,
+        frame_count: usize,
+    },
 }
 
 impl fmt::Display for ExportError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::PngEncode { message } => write!(f, "PNG encoding failed: {message}"),
+            Self::SheetTooLarge {
+                width,
+                height,
+                frame_count,
+            } => write!(
+                f,
+                "spritesheet too large: {frame_count} frames of {width}x{height} pixels exceed the maximum encodable sheet size"
+            ),
         }
     }
 }
@@ -73,33 +89,248 @@ pub trait PngExport {
 
 impl PngExport for PixelCanvas {
     fn encode_png(&self) -> Result<Vec<u8>, ExportError> {
-        let mut buf: Vec<u8> = Vec::new();
-        {
-            let cursor = Cursor::new(&mut buf);
-            let mut encoder = png::Encoder::new(cursor, self.width(), self.height());
-            encoder.set_color(png::ColorType::Rgba);
-            encoder.set_depth(png::BitDepth::Eight);
+        encode_rgba_png(self.width(), self.height(), self.pixels())
+    }
+}
 
-            let mut writer = encoder.write_header().map_err(|e| ExportError::PngEncode {
+pub trait SpritesheetExport {
+    /// Encodes every Frame's composite as one contiguous horizontal-strip
+    /// RGBA 8-bit PNG: frames in axis order, each tile exactly canvas
+    /// width × height with no padding, sheet dimensions
+    /// `(width × frame count) × height`.
+    ///
+    /// A pure query reading through [`Document::composite_at`] — the Active
+    /// Frame is neither consulted nor moved. Compositing matches Playback:
+    /// visible Pixel Layers blended with their opacity; hidden layers and
+    /// Reference Layers excluded.
+    ///
+    /// Returns [`ExportError::SheetTooLarge`] when `width × frame count`
+    /// (or the resulting byte size) overflows the encodable sheet size, and
+    /// [`ExportError::PngEncode`] when the underlying PNG encoder fails.
+    fn encode_spritesheet_png(&self) -> Result<Vec<u8>, ExportError>;
+}
+
+impl SpritesheetExport for Document {
+    fn encode_spritesheet_png(&self) -> Result<Vec<u8>, ExportError> {
+        let (width, height) = (self.width(), self.height());
+        let frame_count = self.frames().len();
+        // Canvas dimensions are constructor-validated and small, but the
+        // frame axis is unbounded: checked math turns an absurd frame count
+        // into a deterministic error instead of a wrapping allocation size
+        // followed by a copy panic (usize is 32-bit on wasm32).
+        let too_large = || ExportError::SheetTooLarge {
+            width,
+            height,
+            frame_count,
+        };
+        let sheet_width: u32 = (width as u64)
+            .checked_mul(frame_count as u64)
+            .and_then(|w| w.try_into().ok())
+            .ok_or_else(too_large)?;
+        let sheet_bytes: usize = (sheet_width as u64 * height as u64)
+            .checked_mul(4)
+            .and_then(|b| b.try_into().ok())
+            .ok_or_else(too_large)?;
+
+        let tile_row_bytes = width as usize * 4;
+        // Fits usize: sheet_bytes = sheet_row_bytes × height with height ≥ 1.
+        let sheet_row_bytes = sheet_width as usize * 4;
+
+        let mut sheet = vec![0u8; sheet_bytes];
+        for (tile, frame) in self.frames().iter().enumerate() {
+            let composite = self.composite_at(frame.id);
+            for y in 0..height as usize {
+                let src = y * tile_row_bytes..(y + 1) * tile_row_bytes;
+                let dest = y * sheet_row_bytes + tile * tile_row_bytes;
+                sheet[dest..dest + tile_row_bytes].copy_from_slice(&composite[src]);
+            }
+        }
+        encode_rgba_png(sheet_width, height, &sheet)
+    }
+}
+
+/// Shared raw-buffer PNG encoding: RGBA 8-bit, `pixels` in row-major order.
+fn encode_rgba_png(width: u32, height: u32, pixels: &[u8]) -> Result<Vec<u8>, ExportError> {
+    let mut buf: Vec<u8> = Vec::new();
+    {
+        let cursor = Cursor::new(&mut buf);
+        let mut encoder = png::Encoder::new(cursor, width, height);
+        encoder.set_color(png::ColorType::Rgba);
+        encoder.set_depth(png::BitDepth::Eight);
+
+        let mut writer = encoder.write_header().map_err(|e| ExportError::PngEncode {
+            message: e.to_string(),
+        })?;
+
+        writer
+            .write_image_data(pixels)
+            .map_err(|e| ExportError::PngEncode {
                 message: e.to_string(),
             })?;
-
-            writer
-                .write_image_data(self.pixels())
-                .map_err(|e| ExportError::PngEncode {
-                    message: e.to_string(),
-                })?;
-        }
-        Ok(buf)
     }
+    Ok(buf)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::color::Color;
+    use crate::document::Document;
+    use uuid::Uuid;
 
     const PNG_SIGNATURE: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
+
+    fn decode_png(bytes: &[u8]) -> (u32, u32, Vec<u8>) {
+        let decoder = png::Decoder::new(Cursor::new(bytes));
+        let mut reader = decoder.read_info().unwrap();
+        let mut decoded = vec![0u8; reader.output_buffer_size()];
+        reader.next_frame(&mut decoded).unwrap();
+        let info = reader.info();
+        let (width, height) = (info.width, info.height);
+        decoded.truncate(width as usize * height as usize * 4);
+        (width, height, decoded)
+    }
+
+    /// Extracts tile `index`'s pixels (tile_width × height) from a decoded
+    /// horizontal-strip sheet buffer.
+    fn tile_pixels(
+        sheet: &[u8],
+        sheet_width: u32,
+        tile_width: u32,
+        height: u32,
+        index: u32,
+    ) -> Vec<u8> {
+        let mut out = Vec::new();
+        for y in 0..height {
+            let row_start = ((y * sheet_width + index * tile_width) * 4) as usize;
+            out.extend_from_slice(&sheet[row_start..row_start + (tile_width * 4) as usize]);
+        }
+        out
+    }
+
+    #[test]
+    fn spritesheet_tiles_every_frame_left_to_right_in_axis_order() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap(); // red on the first frame
+        let second = Uuid::new_v4();
+        doc.add_frame(second); // second active and empty
+        doc.set_pixel(1, 0, Color::new(0, 255, 0, 255)).unwrap(); // green on the second frame
+        let third = Uuid::new_v4();
+        doc.add_frame(third); // third active and empty
+        doc.set_pixel(1, 1, Color::new(0, 0, 255, 255)).unwrap(); // blue on the third frame
+
+        let bytes = doc.encode_spritesheet_png().unwrap();
+
+        let (width, height, sheet) = decode_png(&bytes);
+        assert_eq!((width, height), (6, 2)); // (2 × 3 frames) × 2
+        for (i, frame_id) in [first, second, third].into_iter().enumerate() {
+            assert_eq!(
+                tile_pixels(&sheet, width, 2, 2, i as u32),
+                doc.composite_at(frame_id),
+                "tile {i} matches its frame's composite"
+            );
+        }
+    }
+
+    #[test]
+    fn spritesheet_excludes_hidden_layers_and_reference_layers_from_every_tile() {
+        // Bottom Pixel Layer: opaque red painted on the first frame.
+        let bottom = Uuid::new_v4();
+        let mut doc = Document::new(1, 1, bottom, "Bottom".to_string()).unwrap();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+        // Top Pixel Layer: opaque green on the first frame, then hidden.
+        let top = Uuid::new_v4();
+        doc.add_layer(top, "Top".to_string());
+        doc.set_pixel(0, 0, Color::new(0, 255, 0, 255)).unwrap();
+        doc.set_layer_visibility(top, false).unwrap();
+        // A visible Reference Layer holding opaque blue — a viewport underlay
+        // that must never reach an exported tile.
+        doc.add_reference_layer(
+            Uuid::new_v4(),
+            "Reference".to_string(),
+            vec![0, 0, 255, 255],
+            1,
+            1,
+        )
+        .unwrap();
+        // A second, empty frame: the exclusion rules must hold on every tile.
+        doc.add_frame(Uuid::new_v4());
+
+        let bytes = doc.encode_spritesheet_png().unwrap();
+
+        let (width, height, sheet) = decode_png(&bytes);
+        assert_eq!((width, height), (2, 1));
+        // First tile: hidden green and Reference blue excluded — red only.
+        assert_eq!(tile_pixels(&sheet, width, 1, 1, 0), vec![255, 0, 0, 255]);
+        // Second tile: fully transparent, no Reference bleed.
+        assert_eq!(tile_pixels(&sheet, width, 1, 1, 1), vec![0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn spritesheet_multiplies_layer_opacity_into_tile_alpha_like_the_composite() {
+        use crate::layer::Layer;
+
+        let id = Uuid::new_v4();
+        let mut layer = Layer::new(id, "Half".to_string(), 1, 1).unwrap();
+        layer.opacity = 0.5;
+        let mut doc = Document::from_layers(1, 1, vec![layer], id, 2, false).unwrap();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+
+        let bytes = doc.encode_spritesheet_png().unwrap();
+
+        let (_, _, sheet) = decode_png(&bytes);
+        // src_a = 1.0 * 0.5 → alpha byte 128 — byte-for-byte the composite.
+        assert_eq!(sheet, doc.composite());
+        assert_eq!(sheet, vec![255, 0, 0, 128]);
+    }
+
+    #[test]
+    fn spritesheet_encoding_is_a_pure_query_that_leaves_the_active_frame_untouched() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap(); // first frame
+        doc.add_frame(Uuid::new_v4()); // second active and empty
+        let active_before = doc.active_frame_id();
+        let active_composite_before = doc.composite();
+
+        // Encoding reads every frame, including non-active ones — it must not
+        // move the pointer or disturb the active frame's composite.
+        let _ = doc.encode_spritesheet_png().unwrap();
+
+        assert_eq!(doc.active_frame_id(), active_before);
+        assert_eq!(doc.composite(), active_composite_before);
+    }
+
+    // The SheetTooLarge branch itself is unreachable through the public API: a
+    // document big enough to overflow the checked sheet math cannot be
+    // constructed in test memory. The actionable message is what remains
+    // observable, so that is what gets pinned.
+    #[test]
+    fn sheet_too_large_error_names_the_offending_dimensions() {
+        let err = ExportError::SheetTooLarge {
+            width: 256,
+            height: 1,
+            frame_count: 20_000_000,
+        };
+
+        let message = err.to_string();
+
+        assert!(message.contains("20000000 frames"));
+        assert!(message.contains("256x1"));
+    }
+
+    #[test]
+    fn spritesheet_single_frame_document_is_a_one_tile_sheet_identical_to_its_composite() {
+        let mut doc = Document::new(2, 2, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+
+        let bytes = doc.encode_spritesheet_png().unwrap();
+
+        assert_eq!(&bytes[..8], &PNG_SIGNATURE);
+        let (width, height, pixels) = decode_png(&bytes);
+        assert_eq!((width, height), (2, 2));
+        assert_eq!(pixels, doc.composite());
+    }
 
     #[test]
     fn png_has_valid_signature() {

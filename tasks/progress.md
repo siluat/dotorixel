@@ -2,16 +2,15 @@
 
 ## Currently Working On
 
-GIF/spritesheet export — multi-frame export formats ([PRD](../issues/213-gif-spritesheet-export.md)). 1/3 sub-issues done: [214 prefactor](../issues/214-export-format-source-prefactor.md) landed, unblocking [215 spritesheet](../issues/215-spritesheet-export.md) and [216 GIF](../issues/216-gif-export.md) to proceed independently.
+GIF/spritesheet export — multi-frame export formats ([PRD](../issues/213-gif-spritesheet-export.md)). 2/3 sub-issues done ([214 prefactor](../issues/214-export-format-source-prefactor.md), [215 spritesheet](../issues/215-spritesheet-export.md)); [216 GIF](../issues/216-gif-export.md) is the last one.
 
 ## Last Completed
 
-[214 — Prefactor: export formats declare their source](../issues/214-export-format-source-prefactor.md): the web export format registry is now a still-source/document-source discriminated union and the shared confirm flow resolves the declared source lazily. PNG/SVG behavior unchanged (existing export e2e passed); no document-source format ships yet — 215/216 each add one.
+[215 — Spritesheet (PNG) export](../issues/215-spritesheet-export.md): the first document-source format — every frame's composite tiled as one horizontal-strip PNG, end-to-end (core encoder → WASM → registry/UI, en/ja/ko). Caveat for future UI tests: happy-dom can't drive Svelte 5 select bindings (`:checked` unsupported) — selection flows belong in e2e.
 
 ## Next Up
 
-- [215 — Spritesheet (PNG) export](../issues/215-spritesheet-export.md) (unblocked; parallel with 216)
-- [216 — Animated GIF export](../issues/216-gif-export.md) (unblocked; parallel with 215)
+- [216 — Animated GIF export](../issues/216-gif-export.md) (last remaining 213 sub-issue)
 - Onion skinning (M4 — multi-frame; `composite_at` seam available)
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
 - Apple Phase 1 — Enable clear canvas (existing disabled button)

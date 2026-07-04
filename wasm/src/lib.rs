@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use dotorixel_core::canvas::{CanvasRect, PixelCanvas, ResizeAnchor};
 use dotorixel_core::color::Color;
 use dotorixel_core::document::Document;
-use dotorixel_core::export::{PngExport, SvgExport};
+use dotorixel_core::export::{PngExport, SpritesheetExport, SvgExport};
 use dotorixel_core::history::DocumentHistory;
 use dotorixel_core::layer::{Layer, LayerKind, LayerKindTag, ReferenceData};
 use dotorixel_core::pixel_perfect::{Action, FilterResult, TailState, pixel_perfect_filter};
@@ -672,6 +672,16 @@ impl WasmDocument {
             return Err(JsError::new(&format!("Frame with id {fid} not found")));
         }
         Ok(self.inner.composite_at(fid))
+    }
+
+    /// Horizontal-strip spritesheet of every frame's composite, encoded as an
+    /// RGBA PNG byte buffer — the core `SpritesheetExport` contract: frames in
+    /// axis order, tile size exactly canvas width × height, Reference Layers
+    /// and hidden layers excluded, the active frame untouched.
+    pub fn encode_spritesheet_png(&self) -> Result<Vec<u8>, JsError> {
+        self.inner
+            .encode_spritesheet_png()
+            .map_err(|e| JsError::new(&e.to_string()))
     }
 
     /// Reads the pixel color at `(x, y)` on the active layer.
@@ -2093,6 +2103,24 @@ mod tests {
 
         // The read left the active-frame pointer untouched.
         assert_eq!(doc.active_frame_id(), second.to_string());
+    }
+
+    #[test]
+    fn wasm_document_encode_spritesheet_png_returns_a_png_buffer() {
+        let layer = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 2, layer.to_string(), "Layer 1".to_string()).unwrap();
+        let red = WasmColor::new(255, 0, 0, 255);
+        doc.set_pixel(0, 0, &red).unwrap(); // first frame
+        doc.add_frame(Uuid::new_v4().to_string()).unwrap(); // second active and empty
+
+        let bytes = doc.encode_spritesheet_png().unwrap();
+
+        // Thin marshalling check: the buffer carries the PNG signature; sheet
+        // geometry and composite behavior are owned by the core's round-trip
+        // tests. No error-path test: the binding takes no input, and a valid
+        // Document cannot make the core encoder fail.
+        const PNG_SIGNATURE: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
+        assert_eq!(&bytes[..8], &PNG_SIGNATURE);
     }
 
     #[test]

@@ -4,7 +4,6 @@
 
 - Onion skinning
 - GIF/spritesheet export — [PRD](../issues/213-gif-spritesheet-export.md)
-  - [215 — Spritesheet (PNG) export — horizontal strip, end-to-end](../issues/215-spritesheet-export.md)
   - [216 — Animated GIF export — pixel-art-faithful encoder, end-to-end](../issues/216-gif-export.md)
 - Feedback link to Google Form
 - Apple Pencil: hover preview + palm rejection

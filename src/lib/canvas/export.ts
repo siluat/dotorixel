@@ -1,3 +1,5 @@
+import { format_spritesheet } from '$lib/paraglide/messages';
+
 export interface ExportableCanvas {
 	readonly width: number;
 	readonly height: number;
@@ -29,10 +31,29 @@ export interface ExportableDocument {
 	readonly height: number;
 }
 
+interface SpritesheetEncodable extends ExportableDocument {
+	encode_spritesheet_png(): Uint8Array;
+}
+
+function isSpritesheetEncodable(doc: ExportableDocument): doc is SpritesheetEncodable {
+	return 'encode_spritesheet_png' in doc;
+}
+
 interface ExportFormatCommon {
 	id: string;
-	label: string;
+	/**
+	 * Display name resolved lazily so localized labels are read at render
+	 * time, after the locale is known — never captured at module init.
+	 */
+	label: () => string;
 	extension: string;
+	/**
+	 * Default filename stem used when the typed stem is empty. Declared by
+	 * formats whose default must not collide with another format sharing the
+	 * same extension (e.g. the spritesheet vs the still PNG); omitted formats
+	 * fall back to {@link generateDefaultStem}.
+	 */
+	defaultStem?: (dims: { width: number; height: number }) => string;
 }
 
 /** A format fed by the active-frame composite snapshot (still image). */
@@ -55,9 +76,22 @@ export interface DocumentExportFormat extends ExportFormatCommon {
 export type ExportFormat = StillExportFormat | DocumentExportFormat;
 
 export const availableFormats: ExportFormat[] = [
-	{ id: 'png', label: 'PNG', extension: 'png', source: 'still', exportFn: exportAsPng },
-	{ id: 'svg', label: 'SVG', extension: 'svg', source: 'still', exportFn: exportAsSvg }
+	{ id: 'png', label: () => 'PNG', extension: 'png', source: 'still', exportFn: exportAsPng },
+	{ id: 'svg', label: () => 'SVG', extension: 'svg', source: 'still', exportFn: exportAsSvg },
+	{
+		id: 'spritesheet',
+		label: format_spritesheet,
+		extension: 'png',
+		source: 'document',
+		exportFn: exportAsSpritesheet,
+		defaultStem: spritesheetDefaultStem
+	}
 ];
+
+/** Sheet-marked stem shared by the registry default and the direct-call fallback. */
+function spritesheetDefaultStem(dims: { width: number; height: number }): string {
+	return `${generateDefaultStem(dims)}-sheet`;
+}
 
 /**
  * Lazy providers for the export sources. `exportAs` calls only the thunk the
@@ -82,13 +116,14 @@ export function exportAs(
 ): { width: number; height: number } {
 	const knownExtensions = availableFormats.map((f) => f.extension);
 	const cleanStem = stripKnownExtension(filenameStem.trim(), knownExtensions);
+	const defaultStem = format.defaultStem ?? generateDefaultStem;
 	if (format.source === 'still') {
 		const canvas = sources.still();
-		format.exportFn(canvas, buildExportFilename(cleanStem, format.extension, canvas));
+		format.exportFn(canvas, buildExportFilename(cleanStem, format.extension, defaultStem(canvas)));
 		return { width: canvas.width, height: canvas.height };
 	}
 	const doc = sources.document();
-	format.exportFn(doc, buildExportFilename(cleanStem, format.extension, doc));
+	format.exportFn(doc, buildExportFilename(cleanStem, format.extension, defaultStem(doc)));
 	return { width: doc.width, height: doc.height };
 }
 
@@ -111,21 +146,18 @@ export function stripKnownExtension(input: string, knownExtensions: string[]): s
 export function buildExportFilename(
 	stem: string,
 	extension: string,
-	canvas: { width: number; height: number }
+	fallbackStem: string
 ): string {
-	const effectiveStem = stem.trim() || generateDefaultStem(canvas);
+	const effectiveStem = stem.trim() || fallbackStem;
 	return `${effectiveStem}.${extension}`;
 }
 
-export function exportAsPng(canvas: ExportableCanvas, filename?: string): void {
-	if (!isPngEncodable(canvas)) return;
-	const bytes = canvas.encode_png();
-	const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' });
+function downloadBlob(blob: Blob, filename: string): void {
 	const url = URL.createObjectURL(blob);
 
 	const anchor = document.createElement('a');
 	anchor.href = url;
-	anchor.download = filename ?? generateExportFilename(canvas);
+	anchor.download = filename;
 	anchor.click();
 
 	// Defer revocation so the browser can start the download before the URL is invalidated.
@@ -133,16 +165,23 @@ export function exportAsPng(canvas: ExportableCanvas, filename?: string): void {
 	setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+export function exportAsPng(canvas: ExportableCanvas, filename?: string): void {
+	if (!isPngEncodable(canvas)) return;
+	const bytes = canvas.encode_png();
+	const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' });
+	downloadBlob(blob, filename ?? generateExportFilename(canvas));
+}
+
+export function exportAsSpritesheet(doc: ExportableDocument, filename?: string): void {
+	if (!isSpritesheetEncodable(doc)) return;
+	const bytes = doc.encode_spritesheet_png();
+	const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' });
+	downloadBlob(blob, filename ?? `${spritesheetDefaultStem(doc)}.png`);
+}
+
 export function exportAsSvg(canvas: ExportableCanvas, filename?: string): void {
 	if (!isSvgEncodable(canvas)) return;
 	const svg = canvas.encode_svg();
 	const blob = new Blob([svg], { type: 'image/svg+xml' });
-	const url = URL.createObjectURL(blob);
-
-	const anchor = document.createElement('a');
-	anchor.href = url;
-	anchor.download = filename ?? `${generateDefaultStem(canvas)}.svg`;
-	anchor.click();
-
-	setTimeout(() => URL.revokeObjectURL(url), 0);
+	downloadBlob(blob, filename ?? `${generateDefaultStem(canvas)}.svg`);
 }

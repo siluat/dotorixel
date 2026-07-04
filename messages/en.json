@@ -86,6 +86,7 @@
 	"label_export": "Export",
 	"label_format": "Format",
 	"label_filename": "Filename",
+	"format_spritesheet": "Spritesheet",
 	"label_showGrid": "Show Grid",
 	"label_anchor": "Anchor",
 

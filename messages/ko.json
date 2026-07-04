@@ -86,6 +86,7 @@
 	"label_export": "내보내기",
 	"label_format": "형식",
 	"label_filename": "파일 이름",
+	"format_spritesheet": "스프라이트 시트",
 	"label_showGrid": "격자 표시",
 	"label_anchor": "기준점",
 

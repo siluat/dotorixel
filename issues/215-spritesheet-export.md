@@ -1,6 +1,6 @@
 ---
 title: "Spritesheet (PNG) export — horizontal strip, end-to-end"
-status: ready-for-agent
+status: done
 created: 2026-07-05
 parent: 213-gif-spritesheet-export.md
 ---
@@ -29,3 +29,28 @@ The first real document-source export format, riding the generalized registry fr
 ## Blocked by
 
 - [214 — Prefactor: export formats declare their source](214-export-format-source-prefactor.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/export.rs` | `SpritesheetExport` trait + `impl for Document`: frames tiled left-to-right through `composite_at`, encoded via a shared `encode_rgba_png` helper (`PixelCanvas::encode_png` now delegates to it). Decode round-trip tests: tile order, hidden/Reference exclusion, opacity parity, purity, single-frame |
+| `wasm/src/lib.rs` | `WasmDocument::encode_spritesheet_png() -> Result<Vec<u8>, JsError>` + PNG-signature marshalling test |
+| `src/lib/canvas/export.ts` | `spritesheet` document-source registry entry, `exportAsSpritesheet` (runtime narrowing, `image/png` blob), optional `defaultStem` seam (`dotorixel-WxH-sheet` via `spritesheetDefaultStem`), lazy `label: () => string`, shared `downloadBlob` plumbing |
+| `src/lib/canvas/export.test.ts` | Registry shape, sheet-marker stem, `defaultStem` fallback in `exportAs`, download-behavior tests (URL/anchor stubs) |
+| `src/lib/ui-editor/ExportPopover.svelte`, `ExportBottomSheet.svelte` | `label()` rendering + format-aware filename placeholder mirroring the actual empty-stem fallback |
+| `src/lib/ui-editor/ExportPopover.svelte.test.ts` | Registry-driven option list + placeholder tests |
+| `messages/{en,ja,ko}.json` | `format_spritesheet` label in all three locales |
+| `e2e/editor/export.test.ts` | Spritesheet case: select → placeholder switches to `-sheet` → empty input downloads `dotorixel-16x16-sheet.png` |
+
+### Key Decisions
+
+- **Lazy format labels** (`label: () => string`): localized labels resolve at render time instead of module init, so locale is always known; matches the existing `tool.label()` pattern. PNG/SVG stay untranslated acronyms; only Spritesheet carries a message key.
+- **`defaultStem` as a registry-entry function** (not a suffix field): the format owns its fallback formula, and both UI placeholders derive from the same function, so placeholder and actual filename cannot drift.
+- **Raw-buffer PNG helper** (`encode_rgba_png`): `PixelCanvas` cannot host the sheet buffer (its dimension cap rejects `width × frame count`), so the encoder works on a raw RGBA buffer; the still-PNG path shares the same helper.
+
+### Notes
+
+- **happy-dom cannot drive Svelte 5 select bindings**: its `:checked` matcher only supports `INPUT` elements (source-verified), while Svelte 5 reads `select.querySelector(':checked')` on change — the binding silently falls back to the first option. Selection-driven UI behaviors are therefore covered in `e2e/editor/export.test.ts` (one case added despite the PRD's "e2e not required"). Affects any future component test that changes a `<select>`.
+- **WASM error path untested by design**: the binding takes no input and a valid Document cannot make the core encoder fail; the `JsError` mapping follows the established pattern (recorded in the wasm test comment).
+- Encode-failure UI surfacing matches existing PNG/SVG parity (propagates as `JsError`, no toast) — a shared follow-up if ever needed, not spritesheet-specific.

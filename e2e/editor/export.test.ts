@@ -73,4 +73,22 @@ test.describe('Export', () => {
 
 		expect(download.suggestedFilename()).toBe('test-svg.svg');
 	});
+
+	test('Spritesheet export downloads a sheet-marked PNG by default', async ({ editorPage }) => {
+		const { page } = editorPage;
+
+		await page.getByRole('button', { name: 'Export' }).click();
+		await page.locator('#export-format').selectOption('spritesheet');
+
+		// The placeholder mirrors the sheet-marked default stem the empty
+		// input actually falls back to.
+		const filenameInput = page.locator('#export-filename');
+		await expect(filenameInput).toHaveAttribute('placeholder', /-sheet$/);
+
+		const downloadPromise = page.waitForEvent('download');
+		await page.locator('.export-confirm-btn').click();
+		const download = await downloadPromise;
+
+		expect(download.suggestedFilename()).toBe('dotorixel-16x16-sheet.png');
+	});
 });

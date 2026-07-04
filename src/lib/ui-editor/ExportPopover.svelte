@@ -31,8 +31,13 @@
 		availableFormats.find((f) => f.id === selectedFormatId) ?? availableFormats[0]
 	);
 
+	// Mirrors the fallback exportAs applies, so the placeholder always shows
+	// the filename an empty input actually produces.
 	const defaultStem = $derived(
-		generateDefaultStem({ width: canvasWidth, height: canvasHeight })
+		(selectedFormat.defaultStem ?? generateDefaultStem)({
+			width: canvasWidth,
+			height: canvasHeight
+		})
 	);
 
 	function handleExport() {
@@ -54,7 +59,7 @@
 		<div class="select-wrapper">
 			<select id="export-format" class="format-select" bind:value={selectedFormatId}>
 				{#each availableFormats as format}
-					<option value={format.id}>{format.label}</option>
+					<option value={format.id}>{format.label()}</option>
 				{/each}
 			</select>
 			<ChevronDown size={14} class="select-chevron" />
@@ -74,7 +79,7 @@
 
 	<button class="export-confirm-btn" onclick={handleExport}>
 		<Download size={14} />
-		<span>{m.action_exportFormat({ format: selectedFormat.label })}</span>
+		<span>{m.action_exportFormat({ format: selectedFormat.label() })}</span>
 	</button>
 </div>
 

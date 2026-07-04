@@ -465,6 +465,32 @@ describe('DocumentChangeJournal', () => {
 		expect(events).toEqual([]);
 	});
 
+	it('skips a canvas flip and captures no snapshot on a Reference-only document', () => {
+		const events: string[] = [];
+		// The last Pixel Layer can be removed while a Reference Layer remains,
+		// so a Reference-only document is reachable. With no Marquee either, a
+		// canvas flip has nothing to mirror — it must not snapshot or dirty.
+		const document = {
+			width: 16,
+			height: 16,
+			active_layer_id: () => 'reference-1',
+			layer_count: () => 1,
+			marquee: () => undefined,
+			layers_metadata: () => [
+				{ id: 'reference-1', name: 'Reference', visible: true, opacity: 1, kind: 'reference' }
+			]
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		expect(
+			journal.commit({ kind: 'undoable-document', intent: { type: 'flip-canvas-horizontal' } })
+		).toEqual({ changed: false });
+		expect(
+			journal.commit({ kind: 'undoable-document', intent: { type: 'flip-canvas-vertical' } })
+		).toEqual({ changed: false });
+		expect(events).toEqual([]);
+	});
+
 	it('flips the whole canvas horizontally as one undoable document change', () => {
 		const events: string[] = [];
 		const pixels = new Uint8Array(2 * 1 * 4);

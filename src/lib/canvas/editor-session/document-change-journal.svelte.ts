@@ -342,9 +342,16 @@ export class DocumentChangeJournal {
 				return this.#activeLayerKind() === 'pixel';
 			case 'flip-canvas-horizontal':
 			case 'flip-canvas-vertical':
-				// A Canvas Transform mirrors every Pixel Layer's every cel —
-				// always a change, independent of the active layer kind.
-				return true;
+				// A Canvas Transform mirrors every Pixel Layer's every cel and an
+				// active Marquee, independent of the active layer kind — but a
+				// Reference-only document with no Marquee gives it nothing to
+				// mirror, so skip the snapshot for that no-op.
+				return (
+					this.#deps
+						.getLayerProjection()
+						.layersInStackOrder.some((layer) => layer.kind === 'pixel') ||
+					Boolean(document.marquee())
+				);
 			case 'clear-marquee-pixels':
 				return Boolean(document.marquee()) && this.#activeLayerKind() === 'pixel';
 			case 'rotate-cw':

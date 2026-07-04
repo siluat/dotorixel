@@ -128,6 +128,10 @@
 	const activeSelectionDragPhase = $derived(
 		floatingSelectionOffset ? 'liftAndDrag' : selectionDragPhase
 	);
+	// The Marquee is document-scoped and survives an active-layer switch, but on a
+	// Reference Layer every selection action is a no-op and the placement overlay
+	// sits above the action bar — so the selection UI is hidden, not cleared.
+	const displayedMarquee = $derived(isReferenceLayerActive ? null : marquee);
 
 	const canvasInteraction = createCanvasInteraction(
 		{
@@ -695,7 +699,7 @@
 />
 
 <SelectionOverlay
-	{marquee}
+	marquee={displayedMarquee}
 	{floatingSelectionOffset}
 	canvasWidth={pixelCanvas.width}
 	canvasHeight={pixelCanvas.height}
@@ -705,7 +709,7 @@
 />
 
 <SelectionActionBar
-	{marquee}
+	marquee={displayedMarquee}
 	{floatingSelectionOffset}
 	canvasWidth={pixelCanvas.width}
 	canvasHeight={pixelCanvas.height}

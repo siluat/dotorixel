@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 205 | [Selection UI hidden while a Reference Layer is active, Marquee preserved](../issues/205-selection-ui-reference-layer-active.md) | 2026-07-04 |
 | 211 | [Enforce rustfmt in pre-commit and fix existing violations](../issues/211-enforce-rustfmt-pre-commit.md) | 2026-07-04 |
 | 210 | [Marquee Transform — explicit region ops, drop the Marquee-presence dispatch](../issues/210-marquee-transform-explicit-ops.md) | 2026-07-04 |
 | 206 | [Whole-canvas transforms leave the Reference Layer fixed](../issues/206-reference-fixed-under-canvas-transforms.md) | 2026-07-04 |

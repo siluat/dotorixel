@@ -475,6 +475,39 @@ mod tests {
     }
 
     #[test]
+    fn gif_quantization_fallback_keeps_the_transparency_contract() {
+        let mut doc = Document::new(17, 16, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        // Pixel (0,0) stays transparent while the remaining 271 pixels take
+        // unique opaque colors — past the palette limit, so the reserved
+        // transparent index must be assigned inside the quantization
+        // fallback. This combination leans on the encoder crate's internals
+        // (alpha-aware color learning + nearest-index mapping), the kind of
+        // dependency a crate upgrade could silently regress.
+        for i in 0..271u32 {
+            let n = i + 1;
+            let (x, y) = (n % 17, n / 17);
+            let color = Color::new((i % 256) as u8, (i / 256 * 90 + 30) as u8, 10, 255);
+            doc.set_pixel(x, y, color).unwrap();
+        }
+
+        let bytes = doc.encode_gif().unwrap();
+
+        let mut decoder = rgba_gif_decoder(&bytes);
+        let frame = decoder.read_next_frame().unwrap().unwrap();
+        let alpha_of = |i: usize| frame.buffer[i * 4 + 3];
+        assert_eq!(
+            alpha_of(0),
+            0,
+            "the transparent pixel survives quantization as transparent"
+        );
+        let opaque_count = (1..272).filter(|&i| alpha_of(i) == 255).count();
+        assert_eq!(
+            opaque_count, 271,
+            "no opaque pixel is swallowed by the transparent index"
+        );
+    }
+
+    #[test]
     fn gif_frame_exceeding_the_palette_limit_still_encodes_via_quantization() {
         let mut doc = Document::new(17, 16, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
         // 272 unique opaque colors — no 256-entry palette can hold them, so

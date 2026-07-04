@@ -7,13 +7,15 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 167 | 128 | 39 | 170 | 77% | 43% |
-| cubic-dev-ai[bot] | 144 | 111 | 33 | 185 | 77% | 38% |
-| coderabbitai[bot] | 229 | 162 | 67 | 131 | 71% | 55% |
+| cubic-dev-ai[bot] | 145 | 111 | 34 | 185 | 77% | 38% |
+| coderabbitai[bot] | 230 | 162 | 68 | 131 | 70% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #300 | coderabbitai[bot] | Reject | Claimed `glob: "*.rs"` matches only root-level files so nested `crates/`/`wasm/` changes never trigger the rustfmt hook; empirically false — lefthook compiles bare-`*` gobwas patterns without separator awareness, staging `crates/core/src/layer.rs` runs (and blocks on) the command, and the co-located `*.md` command has always relied on the same semantics |
+| #300 | cubic-dev-ai[bot] | Reject | Same root-level-only glob claim, escalated to "silently skipped on every commit"; refuted by the PR's own introducing commit running rustfmt with nested `.rs` files staged and by live skip-vs-run reproductions (nested `.rs` → runs, md-only → skips) |
 | #297 | cubic-dev-ai[bot] | Accept | verify-skill undo shortcut documented macOS-only `Meta+z` — Playwright's Meta maps to Super/Win off-macOS while the app handles ctrlKey too; switched the recipe to `ControlOrMeta+z` |
 | #297 | cubic-dev-ai[bot] | Reject | Wanted the fake's `rotate_canvas_*` stubs to swap width/height; declined — the fake's contract is no-op transform stubs (pre-existing `rotate_cw` doesn't swap either), behavior tests use the real WASM Document, and a dims-only swap would desync `pixels.length` from width×height×4 |
 | #297 | coderabbitai[bot] | Miss | Did not flag the macOS-only `Meta+z` undo shortcut in the verify skill (APPROVED, no comments) |

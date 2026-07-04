@@ -6,14 +6,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 169 | 130 | 39 | 171 | 77% | 43% |
-| cubic-dev-ai[bot] | 150 | 114 | 36 | 185 | 76% | 38% |
-| coderabbitai[bot] | 233 | 162 | 71 | 134 | 70% | 55% |
+| greptile-apps[bot] | 169 | 130 | 39 | 173 | 77% | 43% |
+| cubic-dev-ai[bot] | 152 | 116 | 36 | 185 | 76% | 39% |
+| coderabbitai[bot] | 234 | 163 | 71 | 135 | 70% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #304 | coderabbitai[bot] | Accept | Spritesheet sheet-size math was unchecked — `width × frame count` (u32) and the byte size (usize, 32-bit on wasm32) could wrap into an undersized allocation and copy panic; switched to checked math returning `ExportError::SheetTooLarge` |
+| #304 | cubic-dev-ai[bot] | Accept | Same unchecked sheet-size multiplication (duplicate); fixed by the same checked-math guard |
+| #304 | cubic-dev-ai[bot] | Accept | Download test stubbed `revokeObjectURL` without asserting it — a dropped deferred revoke would leak a blob URL per export unnoticed; now flushes fake timers and pins exactly-once revocation |
+| #304 | coderabbitai[bot] | Miss | Did not flag the unasserted `revokeObjectURL` stub in the download test |
+| #304 | greptile-apps[bot] | Miss | Did not flag the unchecked spritesheet sheet-size math (5/5 confidence, no findings) |
+| #304 | greptile-apps[bot] | Miss | Did not flag the unasserted `revokeObjectURL` stub in the download test |
 | #303 | greptile-apps[bot] | Accept | `exportAs`'s `document` local shadowed the browser global that `exportAsPng`/`exportAsSvg` in the same file rely on; renamed to `doc` |
 | #303 | cubic-dev-ai[bot] | Accept | Same `document` global-shadowing local (duplicate); fixed by the same rename |
 | #303 | cubic-dev-ai[bot] | Reject | Wanted `format.extension` merged into the strip list for formats outside `availableFormats`; unregistered formats are unreachable in production (the UI iterates the registry, 215/216 register theirs), and this prefactor's contract is zero behavior change with registry-scoped stripping pinned by a test |

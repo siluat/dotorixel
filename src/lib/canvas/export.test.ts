@@ -222,16 +222,18 @@ describe('exportAsSpritesheet', () => {
 		const click = vi
 			.spyOn(HTMLAnchorElement.prototype, 'click')
 			.mockImplementation(() => {});
-		return { createObjectURL, click };
+		return { createObjectURL, revokeObjectURL, click };
 	}
 
 	afterEach(() => {
 		vi.unstubAllGlobals();
 		vi.restoreAllMocks();
+		vi.useRealTimers();
 	});
 
 	it('encodes the Document and downloads it as an image/png blob under the given filename', () => {
-		const { createObjectURL, click } = stubDownloadPlumbing();
+		vi.useFakeTimers();
+		const { createObjectURL, revokeObjectURL, click } = stubDownloadPlumbing();
 		const encode = vi.fn(() => new Uint8Array([1, 2, 3]));
 		const doc = { width: 2, height: 2, encode_spritesheet_png: encode };
 
@@ -242,6 +244,11 @@ describe('exportAsSpritesheet', () => {
 		expect(blob.type).toBe('image/png');
 		expect(click).toHaveBeenCalledOnce();
 		expect((click.mock.instances[0] as HTMLAnchorElement).download).toBe('walk-cycle.png');
+
+		// The deferred revocation (Firefox guard) must still release the blob
+		// URL — a dropped revoke would leak one URL per export.
+		vi.runAllTimers();
+		expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith('blob:fake');
 	});
 
 	it('silently skips a Document that lacks the spritesheet encoder', () => {

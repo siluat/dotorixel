@@ -7,13 +7,28 @@ use crate::document::Document;
 
 #[derive(Debug)]
 pub enum ExportError {
-    PngEncode { message: String },
+    PngEncode {
+        message: String,
+    },
+    SheetTooLarge {
+        width: u32,
+        height: u32,
+        frame_count: usize,
+    },
 }
 
 impl fmt::Display for ExportError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::PngEncode { message } => write!(f, "PNG encoding failed: {message}"),
+            Self::SheetTooLarge {
+                width,
+                height,
+                frame_count,
+            } => write!(
+                f,
+                "spritesheet too large: {frame_count} frames of {width}x{height} pixels exceed the maximum encodable sheet size"
+            ),
         }
     }
 }
@@ -89,19 +104,39 @@ pub trait SpritesheetExport {
     /// visible Pixel Layers blended with their opacity; hidden layers and
     /// Reference Layers excluded.
     ///
-    /// Returns [`ExportError::PngEncode`] when the underlying PNG encoder
-    /// fails.
+    /// Returns [`ExportError::SheetTooLarge`] when `width × frame count`
+    /// (or the resulting byte size) overflows the encodable sheet size, and
+    /// [`ExportError::PngEncode`] when the underlying PNG encoder fails.
     fn encode_spritesheet_png(&self) -> Result<Vec<u8>, ExportError>;
 }
 
 impl SpritesheetExport for Document {
     fn encode_spritesheet_png(&self) -> Result<Vec<u8>, ExportError> {
         let (width, height) = (self.width(), self.height());
-        let sheet_width = width * self.frames().len() as u32;
-        let tile_row_bytes = (width * 4) as usize;
-        let sheet_row_bytes = (sheet_width * 4) as usize;
+        let frame_count = self.frames().len();
+        // Canvas dimensions are constructor-validated and small, but the
+        // frame axis is unbounded: checked math turns an absurd frame count
+        // into a deterministic error instead of a wrapping allocation size
+        // followed by a copy panic (usize is 32-bit on wasm32).
+        let too_large = || ExportError::SheetTooLarge {
+            width,
+            height,
+            frame_count,
+        };
+        let sheet_width: u32 = (width as u64)
+            .checked_mul(frame_count as u64)
+            .and_then(|w| w.try_into().ok())
+            .ok_or_else(too_large)?;
+        let sheet_bytes: usize = (sheet_width as u64 * height as u64)
+            .checked_mul(4)
+            .and_then(|b| b.try_into().ok())
+            .ok_or_else(too_large)?;
 
-        let mut sheet = vec![0u8; sheet_row_bytes * height as usize];
+        let tile_row_bytes = width as usize * 4;
+        // Fits usize: sheet_bytes = sheet_row_bytes × height with height ≥ 1.
+        let sheet_row_bytes = sheet_width as usize * 4;
+
+        let mut sheet = vec![0u8; sheet_bytes];
         for (tile, frame) in self.frames().iter().enumerate() {
             let composite = self.composite_at(frame.id);
             for y in 0..height as usize {
@@ -264,6 +299,24 @@ mod tests {
 
         assert_eq!(doc.active_frame_id(), active_before);
         assert_eq!(doc.composite(), active_composite_before);
+    }
+
+    // The SheetTooLarge branch itself is unreachable through the public API: a
+    // document big enough to overflow the checked sheet math cannot be
+    // constructed in test memory. The actionable message is what remains
+    // observable, so that is what gets pinned.
+    #[test]
+    fn sheet_too_large_error_names_the_offending_dimensions() {
+        let err = ExportError::SheetTooLarge {
+            width: 256,
+            height: 1,
+            frame_count: 20_000_000,
+        };
+
+        let message = err.to_string();
+
+        assert!(message.contains("20000000 frames"));
+        assert!(message.contains("256x1"));
     }
 
     #[test]

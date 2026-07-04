@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-Tiered transforms — split flip/rotate into Canvas Transform and Marquee Transform tiers ([PRD](../issues/207-tiered-canvas-marquee-transforms.md)); needs sub-issues (/to-issues). Absorbs issue 206.
+Tiered transforms — split flip/rotate into Canvas Transform and Marquee Transform tiers ([PRD](../issues/207-tiered-canvas-marquee-transforms.md)). Broken into 4 sub-issues: 208 (canvas flip, ready to start) → 209 (canvas rotate) → 206 (reference exclusion, re-parented) / 210 (marquee ops); 206 and 210 can run in parallel after 209/208.
 
 ## Last Completed
 

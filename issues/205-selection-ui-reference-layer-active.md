@@ -1,6 +1,6 @@
 ---
 title: "Selection UI shows and can't be dismissed while a Reference Layer is active"
-status: ready-for-agent
+status: done
 created: 2026-07-01
 ---
 
@@ -94,3 +94,35 @@ behavior on Pixel Layers is unchanged.
 - Pre-existing bug; unrelated to PR #295 (Reference Footprint core authority).
   Web shell only.
 - Surfaced during manual regression testing of #204.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/PixelCanvasView.svelte` | `displayedMarquee` derived nulls the marquee fed to `SelectionOverlay` + `SelectionActionBar` while a Reference Layer is active — display-only gating; the document Marquee is untouched |
+| `src/lib/canvas/PixelCanvasView.svelte.test.ts` | New behavior tests: action bar hidden, outline hidden, selection UI restored unchanged after switching back; replaces the 138-era "geometry unchanged while Reference is active" test |
+| `crates/core/src/document.rs` | Regression pin: `set_active_layer` preserves the Marquee across a Reference Layer switch and back |
+
+### Key Decisions
+
+- Gated at `PixelCanvasView`, the single composition point of both selection
+  components — covers both editor layout variants without changing child
+  interfaces or the model.
+- **Supersedes issue 138's "visible-but-inert Marquee" UX.** 138 intentionally
+  kept the marching ants visible while a Reference Layer is active; in practice
+  the SelectionActionBar showed only no-op actions and the placement overlay
+  swallowed the Deselect click (this bug). 205 reverses that decision: the
+  selection UI is hidden, the Marquee is preserved. The 138 visual test was
+  replaced by a restore-unchanged test that keeps its geometry-preservation
+  intent.
+- No gating on `floatingSelectionOffset`: `setActiveLayer` commits a pending
+  Floating Selection before switching, so it can never coexist with a
+  Reference-active document — no redundant guard added.
+
+### Notes
+
+- GUI-verified end-to-end (agent-browser): selection UI hides on Reference
+  activation while the status bar still reports the Marquee; unchanged restore
+  on switch back; Deselect regression clean on a Pixel Layer.
+- An unrelated flaky e2e (Reference Window reload persistence) surfaced during
+  verification — recorded in the review backlog in `tasks/todo.md`.

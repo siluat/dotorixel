@@ -189,6 +189,37 @@ describe('PixelCanvasView', () => {
 		expect(screen.getByRole('group', { name: 'Selection actions' })).toBeTruthy();
 	});
 
+	it('hides the Selection Action Bar while a Reference Layer is active', () => {
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				marquee: marqueeRegion(),
+				referenceLayerUnderlay,
+				isReferenceLayerActive: true,
+				viewport,
+				viewportSize: { width: 180, height: 180 },
+				canPasteSelection: true
+			}
+		});
+
+		expect(screen.queryByRole('group', { name: 'Selection actions' })).toBeNull();
+	});
+
+	it('hides the Marquee outline while a Reference Layer is active', () => {
+		render(PixelCanvasView, {
+			props: {
+				pixelCanvas,
+				marquee: marqueeRegion(),
+				referenceLayerUnderlay,
+				isReferenceLayerActive: true,
+				viewport,
+				viewportSize: { width: 180, height: 180 }
+			}
+		});
+
+		expect(screen.queryByTestId('selection-overlay')).toBeNull();
+	});
+
 	it('mounts the Floating Selection Action Bar during a Floating Selection', async () => {
 		const handlers = {
 			onCommitFloatingSelection: vi.fn(),
@@ -490,27 +521,15 @@ describe('PixelCanvasView', () => {
 		expect(screen.queryByTestId('selection-drag-guides')).toBeNull();
 	});
 
-	it('keeps the Selection overlay geometry unchanged while Reference is active', () => {
-		const marquee = {
-			x: 1,
-			y: 1,
-			width: 2,
-			height: 2,
-			contains: () => false,
-			translate: () => null!,
-			clip_to: () => undefined
-		};
-		const commonProps = {
-			pixelCanvas,
-			marquee,
-			viewport,
-			viewportSize: { width: 100, height: 100 }
-		};
-
-		const first = render(PixelCanvasView, {
+	it('restores the hidden selection UI unchanged after switching back to a Pixel Layer', async () => {
+		const { rerender } = render(PixelCanvasView, {
 			props: {
-				...commonProps,
-				isReferenceLayerActive: false
+				pixelCanvas,
+				marquee: marqueeRegion(),
+				referenceLayerUnderlay,
+				isReferenceLayerActive: false,
+				viewport,
+				viewportSize: { width: 180, height: 180 }
 			}
 		});
 		const pixelOverlay = screen.getByTestId('selection-overlay');
@@ -520,23 +539,22 @@ describe('PixelCanvasView', () => {
 			width: pixelOverlay.style.width,
 			height: pixelOverlay.style.height
 		};
-		first.unmount();
+		expect(screen.getByRole('group', { name: 'Selection actions' })).toBeTruthy();
 
-		render(PixelCanvasView, {
-			props: {
-				...commonProps,
-				referenceLayerUnderlay,
-				isReferenceLayerActive: true
-			}
-		});
-		const referenceOverlay = screen.getByTestId('selection-overlay');
+		await rerender({ isReferenceLayerActive: true });
+		expect(screen.queryByTestId('selection-overlay')).toBeNull();
+		expect(screen.queryByRole('group', { name: 'Selection actions' })).toBeNull();
+
+		await rerender({ isReferenceLayerActive: false });
+		const restoredOverlay = screen.getByTestId('selection-overlay');
 
 		expect({
-			left: referenceOverlay.style.left,
-			top: referenceOverlay.style.top,
-			width: referenceOverlay.style.width,
-			height: referenceOverlay.style.height
+			left: restoredOverlay.style.left,
+			top: restoredOverlay.style.top,
+			width: restoredOverlay.style.width,
+			height: restoredOverlay.style.height
 		}).toEqual(pixelGeometry);
+		expect(screen.getByRole('group', { name: 'Selection actions' })).toBeTruthy();
 	});
 
 	it('uses not-allowed cursor over the Reference image body for drawing tools', () => {

@@ -2986,6 +2986,27 @@ mod tests {
     }
 
     #[test]
+    fn set_active_layer_preserves_marquee_across_reference_layer_switch() {
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let mut doc = Document::new(8, 8, a, "A".to_string()).unwrap();
+        doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
+            .unwrap();
+        doc.set_active_layer(a).unwrap();
+        let marquee = crate::selection::MarqueeRegion::from_drag(1, 2, 4, 5);
+        doc.set_marquee(Some(marquee));
+
+        // The Marquee is document-scoped: switching the active layer to the
+        // Reference Layer and back only hides the selection UI in the shells
+        // and must never clear the region itself.
+        doc.set_active_layer(r).unwrap();
+        assert_eq!(doc.marquee(), Some(marquee));
+
+        doc.set_active_layer(a).unwrap();
+        assert_eq!(doc.marquee(), Some(marquee));
+    }
+
+    #[test]
     fn set_layer_visibility_flips_visible_flag() {
         let a = Uuid::new_v4();
         let mut doc = Document::new(8, 8, a, "A".to_string()).unwrap();

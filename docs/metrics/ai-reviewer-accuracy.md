@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 167 | 128 | 39 | 168 | 77% | 43% |
-| cubic-dev-ai[bot] | 141 | 109 | 32 | 185 | 77% | 37% |
-| coderabbitai[bot] | 228 | 161 | 67 | 130 | 71% | 55% |
+| greptile-apps[bot] | 167 | 128 | 39 | 169 | 77% | 43% |
+| cubic-dev-ai[bot] | 142 | 110 | 32 | 185 | 77% | 37% |
+| coderabbitai[bot] | 229 | 162 | 67 | 130 | 71% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #296 | coderabbitai[bot] | Accept | flip-canvas would-change returned true unconditionally — a Reference-only document (reachable by removing the last Pixel Layer) took an empty undo snapshot + spurious dirty flag on a no-op canvas flip; gated on a Pixel Layer existing or an active Marquee |
+| #296 | cubic-dev-ai[bot] | Accept | Same Reference-only no-op canvas-flip snapshot finding (duplicate); fixed via the same guard |
+| #296 | greptile-apps[bot] | Miss | Did not flag the Reference-only no-op canvas-flip snapshot (Confidence 5/5, no findings) |
 | #295 | coderabbitai[bot] | Accept | rotate_reference_placement re-wired the natural dims through placement.footprint(...) instead of the ReferenceData::footprint() convenience this PR added; switched to data.footprint() to keep the natural-dim contract centralized |
 | #295 | coderabbitai[bot] | Accept | Drag-preview derivation tests covered only axis-aligned underlays; added a quarter-turn body-drag case locking the rotation-aware footprint (swapped 2×4 box) through a preview update |
 | #295 | coderabbitai[bot] | Reject | Wanted platform-status reworded to say Core only supplies the footprint; declined — the pan-clamp op is core (Viewport::clamp_pan_to_document_bounds via wasm-backend.ts), only the union (navigationBounds) is Web-side, so the row's clamp-op-core / union-web split is already accurate |

@@ -32,3 +32,4 @@ None
 - Canvas resize via border drag
 - Timelapse recording
 - TimelinePanel mobile touch targets — frame + row icon buttons ≥44px on the mobile Timeline tab
+- Extract Reorder Interaction module from TimelinePanel ([issue 212](../issues/212-extract-reorder-interaction.md) — ready-for-agent, design finalized)

@@ -56,6 +56,12 @@ _Avoid_: animation (the capability and the milestone, not the runtime preview), 
 The transient frame pointer Playback advances through the axis, distinct from the Active Frame (the edit pointer, which never moves during Playback). While playing it drives the display buffer — the renderer reads the Playhead frame's `composite_at`, committed art with no Floating Selection overlay — but never editing. Play starts it at the first Frame; pause, a loop-off completion, or a tab/document change discards it, returning the display to the Active Frame.
 _Avoid_: active frame (the edit pointer), current frame (informal), cursor (an input/text term).
 
+### Timeline
+
+**Reorder Interaction**:
+The pointer- and keyboard-driven lifecycle for reordering items along one visual axis — begin → clamped preview (allowed-target snap + displacement translate) → drop commit, including tap-vs-drag discrimination and trailing-click suppression when the item doubles as a select target. One implementation; the Timeline's Layer rows (vertical) and Frame ruler cells (horizontal) are its two adapters.
+_Avoid_: drag reorder (names only the pointer species), drag & drop (implies data transfer), sort (a data operation, not an interaction).
+
 ### Selection
 
 **Marquee**:

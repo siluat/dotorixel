@@ -70,6 +70,16 @@ _Avoid_: floating layer (it is not a Layer and never enters the layer stack), li
 A workspace-shared single slot holding the most recent Copy or Cut of a Marquee region as `{ pixels, width, height }`, materialized on paste as a Floating Selection.
 _Avoid_: system clipboard (OS-level interop, explicitly out of scope), copy buffer (vague), per-document clipboard (rejected — the buffer is workspace-scoped so cross-tab reuse works).
 
+### Transforms
+
+**Canvas Transform**:
+The whole-Document tier of flip and rotate — one operation mirrors or quarter-turns every Pixel Layer's every Cel (all frames together); rotate additionally swaps the Document's canvas width/height. The Reference Layer is excluded (a fixed tracing overlay outside canvas transforms), and an active Marquee is carried through the same mapping and clipped to the new canvas. Always one undoable step, applied regardless of the active layer.
+_Avoid_: whole-document transform (informal), canvas flip / canvas rotate as tier names (they name single operations, not the tier), sprite transform (Aseprite's vocabulary).
+
+**Marquee Transform**:
+The region tier of flip and rotate — mirrors or quarter-turns only the Marquee region of the active Pixel Layer's active-frame Cel; the Document's dimensions, other layers, other frames, and the Reference Layer are untouched. A no-op while a Reference Layer is active.
+_Avoid_: selection transform (Selection names the tool/feature, not the region), region transform ("region" is used generically for pixel-buffer slices).
+
 ### Sampling
 
 **Sampling Session**:

@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None
+Tiered transforms — split flip/rotate into Canvas Transform and Marquee Transform tiers ([PRD](../issues/207-tiered-canvas-marquee-transforms.md)); needs sub-issues (/to-issues). Absorbs issue 206.
 
 ## Last Completed
 
@@ -21,6 +21,7 @@ None
 - Apple Pencil: hover preview + palm rejection
 - Feedback link to Google Form
 - (review) In-editor feedback widget
+- Selection UI stuck while a Reference Layer is active — hide the selection UI when the active layer is a Reference Layer ([issue 205](../issues/205-selection-ui-reference-layer-active.md), ready-for-agent)
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate
 - Reference image import — clipboard paste support
 - Design: share artwork dialog — URL sharing dialog UI (.pen)

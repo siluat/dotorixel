@@ -50,7 +50,7 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 - Timelapse recording — capture drawing process for playback/export
 - TimelinePanel mobile touch targets — the header/row icon buttons (add-layer, add-reference, visibility, remove, reorder, fit-to-canvas) stay 24px on compact/medium, below the ≥44px touch guideline (`web-styling.md`) and the 187 spec §5 ("header actions ≥44px"). Pre-existing controls untouched by 191; enlarge to ≥44px on the mobile Timeline tab and coordinate with the 192 Frames action group.
 - Selection UI shows and can't be dismissed while a Reference Layer is active ([issue 205](../issues/205-selection-ui-reference-layer-active.md), ready-for-agent) — SelectionActionBar + Marquee outline should hide when `activeLayerKind === 'reference'` (Marquee preserved); the reference placement overlay currently swallows the Deselect click
-- Whole-canvas transforms should leave the Reference Layer fixed ([issue 206](../issues/206-reference-fixed-under-canvas-transforms.md), ready-for-agent) — whole-canvas Rotate currently turns the reference while Flip doesn't; exclude the reference from Rotate too (fixed-overlay model, Aseprite convention). Keep the rotation render/persist machinery for backward compat
+- Tiered transforms — split flip/rotate into Canvas Transform and Marquee Transform tiers ([PRD](../issues/207-tiered-canvas-marquee-transforms.md)) — canvas ops go whole-document (all Pixel Layers, all frames, Reference excluded, Marquee co-transformed + clipped); region ops stay on the SelectionActionBar. Absorbs [issue 206](../issues/206-reference-fixed-under-canvas-transforms.md); needs sub-issues (/to-issues)
 
 ## Future triggers
 

@@ -1,6 +1,6 @@
 ---
 title: "Animated GIF export — pixel-art-faithful encoder, end-to-end"
-status: ready-for-agent
+status: done
 created: 2026-07-05
 parent: 213-gif-spritesheet-export.md
 ---
@@ -35,3 +35,28 @@ Animated GIF export end-to-end, riding the same generalized registry path as the
 ## Blocked by
 
 - [214 — Prefactor: export formats declare their source](214-export-format-source-prefactor.md) (independent of 215 — the two format slices can proceed in parallel)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/Cargo.toml` | `gif` 0.14 — the core's second image dependency (encoder + decoder, so round-trip tests need nothing extra) |
+| `crates/core/src/export.rs` | `GifExport` trait + `impl for Document`: frames in axis order through `composite_at`, alpha-128 binarization (named threshold const) feeding `gif::Frame::from_rgba` (exact palette when unique colors fit, NeuQuant fallback on overflow), `centisecond_delay` quantization, infinite loop, full-canvas frames disposing to background. Ten decode round-trip tests pin the contract |
+| `wasm/src/lib.rs` | `WasmDocument::encode_gif() -> Result<Vec<u8>, JsError>` + GIF89a-signature marshalling test |
+| `src/lib/canvas/export.ts` | `gif` document-source registry entry (`() => 'GIF'`, `.gif`, `image/gif`, shared default stem — no `defaultStem`) + `exportAsGif` (runtime narrowing, shared `downloadBlob`) |
+| `src/lib/canvas/export.test.ts` | Registry shape, shared-stem contract, blob/download behavior; `stubDownloadPlumbing` hoisted to file scope for reuse |
+| `src/lib/ui-editor/ExportPopover.svelte.test.ts` | Registry option-list expectation now includes `gif` |
+| `e2e/editor/export.test.ts` | GIF case: select → placeholder stays unmarked → empty input downloads `dotorixel-16x16.gif` |
+
+### Key Decisions
+
+- **GIF label stays an untranslated acronym** (`() => 'GIF'`, no message key) — consistent with 215's "PNG/SVG stay untranslated acronyms" decision; no new i18n strings, so the en/ja/ko criterion is satisfied vacuously.
+- **Binarize before `from_rgba`** (α ≥ 128 → 255, below → zeroed): aligns the PRD's alpha-128 contract with the crate's alpha==0 transparency rule and keeps the transparent palette entry deterministic. After binarization the crate's built-in exact-palette path (≤ 256 unique RGBA = 255 opaque colors + transparency) matches the PRD's exactness guarantee; NeuQuant runs only on overflow.
+- **Ghosting pinned at the on-wire contract**: tests assert full-canvas geometry + `DisposalMethod::Background` per frame — the properties viewers consume — instead of simulating viewer compositing.
+- **Delay quantization is half-up** with the 1 cs floor, saturating at the `u16` delay field (the shell-enforced 60 000 ms cap sits well below it).
+
+### Notes
+
+- **WASM error path untested by design** — the binding takes no input and a valid Document cannot make the core encoder fail; same rationale as 215, recorded in the test comment.
+- One e2e case added despite the PRD's "e2e not required", covering the same happy-dom select-binding gap 215 documented (selection flows can't be driven in component tests).
+- GIF's 10 ms delay granularity and viewer minimum-delay quirks are format/viewer constraints (see PRD Further Notes) — faithful quantization is the contract, not exact millisecond playback.

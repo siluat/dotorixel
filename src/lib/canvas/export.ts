@@ -39,6 +39,14 @@ function isSpritesheetEncodable(doc: ExportableDocument): doc is SpritesheetEnco
 	return 'encode_spritesheet_png' in doc;
 }
 
+interface GifEncodable extends ExportableDocument {
+	encode_gif(): Uint8Array;
+}
+
+function isGifEncodable(doc: ExportableDocument): doc is GifEncodable {
+	return 'encode_gif' in doc;
+}
+
 interface ExportFormatCommon {
 	id: string;
 	/**
@@ -78,6 +86,7 @@ export type ExportFormat = StillExportFormat | DocumentExportFormat;
 export const availableFormats: ExportFormat[] = [
 	{ id: 'png', label: () => 'PNG', extension: 'png', source: 'still', exportFn: exportAsPng },
 	{ id: 'svg', label: () => 'SVG', extension: 'svg', source: 'still', exportFn: exportAsSvg },
+	{ id: 'gif', label: () => 'GIF', extension: 'gif', source: 'document', exportFn: exportAsGif },
 	{
 		id: 'spritesheet',
 		label: format_spritesheet,
@@ -170,6 +179,13 @@ export function exportAsPng(canvas: ExportableCanvas, filename?: string): void {
 	const bytes = canvas.encode_png();
 	const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' });
 	downloadBlob(blob, filename ?? generateExportFilename(canvas));
+}
+
+export function exportAsGif(doc: ExportableDocument, filename?: string): void {
+	if (!isGifEncodable(doc)) return;
+	const bytes = doc.encode_gif();
+	const blob = new Blob([new Uint8Array(bytes)], { type: 'image/gif' });
+	downloadBlob(blob, filename ?? `${generateDefaultStem(doc)}.gif`);
 }
 
 export function exportAsSpritesheet(doc: ExportableDocument, filename?: string): void {

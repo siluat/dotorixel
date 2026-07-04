@@ -74,6 +74,24 @@ test.describe('Export', () => {
 		expect(download.suggestedFilename()).toBe('test-svg.svg');
 	});
 
+	test('GIF export downloads under the shared default stem', async ({ editorPage }) => {
+		const { page } = editorPage;
+
+		await page.getByRole('button', { name: 'Export' }).click();
+		await page.locator('#export-format').selectOption('gif');
+
+		// GIF shares the default stem — only the extension distinguishes it,
+		// so the placeholder stays unmarked.
+		const filenameInput = page.locator('#export-filename');
+		await expect(filenameInput).toHaveAttribute('placeholder', 'dotorixel-16x16');
+
+		const downloadPromise = page.waitForEvent('download');
+		await page.locator('.export-confirm-btn').click();
+		const download = await downloadPromise;
+
+		expect(download.suggestedFilename()).toBe('dotorixel-16x16.gif');
+	});
+
 	test('Spritesheet export downloads a sheet-marked PNG by default', async ({ editorPage }) => {
 		const { page } = editorPage;
 

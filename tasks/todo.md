@@ -3,8 +3,6 @@
 ## Milestone 4: Animation-Capable Editor
 
 - Onion skinning
-- GIF/spritesheet export — [PRD](../issues/213-gif-spritesheet-export.md)
-  - [216 — Animated GIF export — pixel-art-faithful encoder, end-to-end](../issues/216-gif-export.md)
 - Feedback link to Google Form
 - Apple Pencil: hover preview + palm rejection
 - (review) In-editor feedback widget

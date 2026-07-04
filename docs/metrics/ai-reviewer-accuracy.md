@@ -6,14 +6,22 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 167 | 128 | 39 | 170 | 77% | 43% |
-| cubic-dev-ai[bot] | 145 | 111 | 34 | 185 | 77% | 38% |
-| coderabbitai[bot] | 230 | 162 | 68 | 131 | 70% | 55% |
+| greptile-apps[bot] | 168 | 129 | 39 | 171 | 77% | 43% |
+| cubic-dev-ai[bot] | 148 | 113 | 35 | 185 | 76% | 38% |
+| coderabbitai[bot] | 231 | 162 | 69 | 133 | 70% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #302 | greptile-apps[bot] | Accept | Per-move redundancy in `pointerMove` (`coordOf` ×3, `allowedIndices()` ×2); the `coordOf` hoist landed, the shared-`allowedBounds` half declined — helper self-containment protects the documented reevaluate-per-event invariant and the allocations are noise at Timeline scale |
+| #302 | cubic-dev-ai[bot] | Accept | Same per-move `coordOf`/`allowedBounds` redundancy (duplicate); fixed via the same `coordOf` hoist, bounds sharing declined for the same reason |
+| #302 | cubic-dev-ai[bot] | Accept | Frame adapter rebuilt the allowed-index array on every event (`frames.map` inline); cached as a `$derived` `frameIndices`, mirroring the layer adapter's `pixelVisualIndices` |
+| #302 | cubic-dev-ai[bot] | Reject | Wanted `fallbackExtentPx` normalized to positive at construction; fail-at-the-boundary/trust-the-core — a compile-time option both adapters omit, a silent clamp would hide the misconfiguration, and the runtime-sourced measured path already guards `> 0` |
+| #302 | coderabbitai[bot] | Reject | Wanted `allowedBounds`/`activeDrag` renamed to verb form (`getAllowedBounds`/`resolveActiveDrag`); noun-phrase queries read as answers, matching in-repo precedent (`distanceSqFromOrigin` in long-press.ts), and the cited compliant siblings (`targetIndexAt`/`clampedOffsetAt`) are the same noun-phrase shape |
+| #302 | coderabbitai[bot] | Miss | Did not flag the per-move `coordOf`/`allowedBounds` redundancy in `pointerMove` |
+| #302 | coderabbitai[bot] | Miss | Did not flag the frame adapter's per-event allowed-index array rebuild |
+| #302 | greptile-apps[bot] | Miss | Did not flag the frame adapter's per-event allowed-index array rebuild |
 | #300 | coderabbitai[bot] | Reject | Claimed `glob: "*.rs"` matches only root-level files so nested `crates/`/`wasm/` changes never trigger the rustfmt hook; empirically false — lefthook compiles bare-`*` gobwas patterns without separator awareness, staging `crates/core/src/layer.rs` runs (and blocks on) the command, and the co-located `*.md` command has always relied on the same semantics |
 | #300 | cubic-dev-ai[bot] | Reject | Same root-level-only glob claim, escalated to "silently skipped on every commit"; refuted by the PR's own introducing commit running rustfmt with nested `.rs` files staged and by live skip-vs-run reproductions (nested `.rs` → runs, md-only → skips) |
 | #297 | cubic-dev-ai[bot] | Accept | verify-skill undo shortcut documented macOS-only `Meta+z` — Playwright's Meta maps to Super/Win off-macOS while the app handles ctrlKey too; switched the recipe to `ControlOrMeta+z` |

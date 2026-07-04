@@ -169,9 +169,13 @@
 	// Pointer travel below this is treated as a tap (select), not a drag (reorder).
 	const FRAME_DRAG_THRESHOLD_PX = 4;
 
+	// Every cell is reorderable, so the allowed set is simply [0, n-1] — cached
+	// as a derived like pixelVisualIndices so drags don't rebuild it per event.
+	const frameIndices = $derived(frames.map((_, index) => index));
+
 	const frameReorder = createReorderInteraction({
 		axis: 'x',
-		allowedIndices: () => frames.map((_, index) => index),
+		allowedIndices: () => frameIndices,
 		measureExtent: (target) => (target as HTMLElement).offsetWidth,
 		onDrop: (id, toIndex) => onReorderFrame(id, toIndex),
 		tapThresholdPx: FRAME_DRAG_THRESHOLD_PX

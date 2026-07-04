@@ -157,11 +157,12 @@ export function createReorderInteraction(options: ReorderInteractionOptions): Re
 		pointerMove(e, id) {
 			const active = activeDrag(e, id);
 			if (active === null) return;
-			if (tapThresholdPx > 0 && Math.abs(coordOf(e) - active.startCoord) > tapThresholdPx) {
+			const coord = coordOf(e);
+			if (tapThresholdPx > 0 && Math.abs(coord - active.startCoord) > tapThresholdPx) {
 				shouldSuppressNextClick = true;
 			}
-			active.offsetPx = clampedOffsetAt(coordOf(e), active);
-			active.targetIndex = targetIndexAt(coordOf(e), active);
+			active.offsetPx = clampedOffsetAt(coord, active);
+			active.targetIndex = targetIndexAt(coord, active);
 			e.preventDefault();
 		},
 		pointerUp(e, id) {

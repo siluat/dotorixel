@@ -1,6 +1,6 @@
 ---
 title: Extract Reorder Interaction module from TimelinePanel's twin drag machines
-status: ready-for-agent
+status: done
 created: 2026-07-04
 ---
 
@@ -98,3 +98,26 @@ One `createReorderInteraction` factory (per the interface sketch above) instanti
 - New defensive logic for items changing mid-drag (preserve current behavior).
 - TimelinePanel touch-target sizing (tracked separately in the todo backlog).
 - Every other candidate from the 2026-07-04 architecture review.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/gestures/reorder-interaction.svelte.ts` | New module: `createReorderInteraction` factory per the interface sketch — single `$state` drag record (pointer-id guard, capture try/catch, allowed-set snap/clamp, displacement preview), non-reactive suppression flag, axis-aware keyboard stepping, unified commit rule |
+| `src/lib/gestures/reorder-interaction.svelte.test.ts` | Headless suite (25 tests): all ~21 component drag/keyboard behavior cases ported 1:1 (per-test `ports:` provenance comments) plus the issue's invariants (stale-flag reset at pointerdown, arrows ignored mid-drag, threshold-gated commit, non-primary-button guard, measured-extent math) |
+| `src/lib/ui-editor/TimelinePanel.svelte` | Both inline machines, the keyboard neighbor helper, and the suppression flag deleted (~260 script lines → ~55); two adapter instantiations (layers `axis: 'y'`, frames `axis: 'x'` + 4px threshold), extent measurement, style-var mapping, and the Enter/Space propagation guard remain. Props unchanged |
+| `src/lib/ui-editor/TimelinePanel.svelte.test.ts` | 16 ported behavior tests removed; DOM-contract tests kept; 5 adapter wiring smokes retained (layer drag commit, layer translate style-var, keyboard arrow routing, frame tap-select vs drag-commit pair) |
+
+### Key Decisions
+
+- **`isDropTarget(visualIndex)` added to the sketched interface** — the only deviation; required to render the `data-drag-target` attribute. Falls under the issue's "marshalling details discovered during implementation" allowance.
+- **`keydown` returns `false` (unhandled, no preventDefault) mid-drag** — concrete reading of "keys ignored mid-drag".
+- **Port mapping lives as per-test `ports:` comments** in the module test file rather than a separate table — provenance survives future test edits.
+- **Behavior preservation was proven before trimming**: the untouched 103-test component suite was run against the new wiring first (all green), then the ported tests were deleted.
+
+### Notes
+
+- The module uses `$state` runes (`.svelte.ts`, the `createCanvasInteraction` idiom); the suppression flag is intentionally non-reactive, as in the original.
+- Frame keyboard reorder stays unwired (module supports `x`-axis arrows; enabling is a product decision).
+- Verification: unit 1616 passed, e2e 107 passed with no modifications, `svelte-check` clean. The known flaky e2e (Reference Window reload persistence) passed this run.
+- Manual-test focus for follow-up: real-browser trailing-click suppression, pointer capture on fast drags, touch/multi-touch on the mobile layout (40px measured extents).

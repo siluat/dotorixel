@@ -501,7 +501,11 @@ describe('TimelinePanel', () => {
 		expect(onActivateLayer).not.toHaveBeenCalled();
 	});
 
-	it('ArrowUp on a focused reorder handle moves the layer up one visual position', async () => {
+	// Adapter wiring smokes: the drag/keyboard reorder *behavior* suite lives
+	// headlessly in src/lib/gestures/reorder-interaction.svelte.test.ts (issue
+	// 212). These only verify TimelinePanel routes events, drop callbacks, and
+	// preview style vars through its two Reorder Interaction instances.
+	it('routes ArrowUp on a reorder handle through the module to onReorderLayer', async () => {
 		// Panel order (top→bottom): [Layer 3 (id c), Layer 2 (id b), Layer 1 (id a)]
 		const layers = [
 			pixelLayer('c', 'Layer 3'),
@@ -521,83 +525,6 @@ describe('TimelinePanel', () => {
 		// Layer b is currently at visual index 1; ArrowUp targets visual index 0.
 		expect(onReorderLayer).toHaveBeenCalledWith('b', 0);
 		expect(onReorderLayer).toHaveBeenCalledTimes(1);
-	});
-
-	it('ArrowDown on a focused reorder handle moves the layer down one visual position', async () => {
-		const layers = [
-			pixelLayer('c', 'Layer 3'),
-			pixelLayer('b', 'Layer 2'),
-			pixelLayer('a', 'Layer 1')
-		];
-		const onReorderLayer = vi.fn();
-		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
-		});
-
-		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
-		const handle = rowB.querySelector('[data-reorder-handle]') as HTMLButtonElement;
-		handle.focus();
-		await fireEvent.keyDown(handle, { key: 'ArrowDown' });
-
-		// Layer b is currently at visual index 1; ArrowDown targets visual index 2.
-		expect(onReorderLayer).toHaveBeenCalledWith('b', 2);
-	});
-
-	it('ArrowUp on the top-row reorder handle is a no-op', async () => {
-		const layers = [
-			pixelLayer('c', 'Layer 3'),
-			pixelLayer('b', 'Layer 2'),
-			pixelLayer('a', 'Layer 1')
-		];
-		const onReorderLayer = vi.fn();
-		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
-		});
-
-		const rowC = container.querySelector('[data-layer-row][data-layer-id="c"]') as HTMLElement;
-		const handle = rowC.querySelector('[data-reorder-handle]') as HTMLButtonElement;
-		handle.focus();
-		await fireEvent.keyDown(handle, { key: 'ArrowUp' });
-
-		expect(onReorderLayer).not.toHaveBeenCalled();
-	});
-
-	it('ArrowDown on the bottom-row reorder handle is a no-op', async () => {
-		const layers = [
-			pixelLayer('c', 'Layer 3'),
-			pixelLayer('b', 'Layer 2'),
-			pixelLayer('a', 'Layer 1')
-		];
-		const onReorderLayer = vi.fn();
-		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
-		});
-
-		const rowA = container.querySelector('[data-layer-row][data-layer-id="a"]') as HTMLElement;
-		const handle = rowA.querySelector('[data-reorder-handle]') as HTMLButtonElement;
-		handle.focus();
-		await fireEvent.keyDown(handle, { key: 'ArrowDown' });
-
-		expect(onReorderLayer).not.toHaveBeenCalled();
-	});
-
-	it('ArrowDown on the bottom Pixel row above a Reference row is a no-op', async () => {
-		const layers = [
-			pixelLayer('b', 'Layer 2'),
-			pixelLayer('a', 'Layer 1'),
-			referenceLayer('reference', 'Sketch reference')
-		];
-		const onReorderLayer = vi.fn();
-		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
-		});
-
-		const rowA = container.querySelector('[data-layer-row][data-layer-id="a"]') as HTMLElement;
-		const handle = rowA.querySelector('[data-reorder-handle]') as HTMLButtonElement;
-		handle.focus();
-		await fireEvent.keyDown(handle, { key: 'ArrowDown' });
-
-		expect(onReorderLayer).not.toHaveBeenCalled();
 	});
 
 	it('pointer-dragging row C downward by two row-heights and releasing calls onReorderLayer with the dropped visual index', async () => {
@@ -649,123 +576,6 @@ describe('TimelinePanel', () => {
 		expect(rowC.style.getPropertyValue('--layer-drag-y')).toBe('64px');
 		expect(rowB.style.getPropertyValue('--layer-drag-y')).toBe('-32px');
 		expect(rowA.style.getPropertyValue('--layer-drag-y')).toBe('-32px');
-		expect(onReorderLayer).not.toHaveBeenCalled();
-	});
-
-	it('pointer-dragging cannot target the fixed Reference row', async () => {
-		const layers = [
-			pixelLayer('c', 'Layer 3'),
-			pixelLayer('b', 'Layer 2'),
-			pixelLayer('a', 'Layer 1'),
-			referenceLayer('reference', 'Sketch reference')
-		];
-		const onReorderLayer = vi.fn();
-		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
-		});
-
-		const rowC = container.querySelector('[data-layer-row][data-layer-id="c"]') as HTMLElement;
-		const handleC = rowC.querySelector('[data-reorder-handle]') as HTMLButtonElement;
-
-		await fireEvent.pointerDown(handleC, { clientY: 0, pointerId: 1 });
-		await fireEvent.pointerUp(handleC, { clientY: 96, pointerId: 1 });
-
-		expect(onReorderLayer).toHaveBeenCalledWith('c', 2);
-	});
-
-	it('pointer cancel during a drag does not call onReorderLayer', async () => {
-		const layers = [
-			pixelLayer('c', 'Layer 3'),
-			pixelLayer('b', 'Layer 2'),
-			pixelLayer('a', 'Layer 1')
-		];
-		const onReorderLayer = vi.fn();
-		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
-		});
-
-		const rowC = container.querySelector('[data-layer-row][data-layer-id="c"]') as HTMLElement;
-		const handleC = rowC.querySelector('[data-reorder-handle]') as HTMLButtonElement;
-
-		await fireEvent.pointerDown(handleC, { clientY: 0, pointerId: 1 });
-		await fireEvent.pointerMove(handleC, { clientY: 64, pointerId: 1 });
-		await fireEvent.pointerCancel(handleC, { pointerId: 1 });
-
-		expect(onReorderLayer).not.toHaveBeenCalled();
-	});
-
-	it('pointer release at a Y different from the last pointermove uses the release Y for the target', async () => {
-		const layers = [
-			pixelLayer('c', 'Layer 3'),
-			pixelLayer('b', 'Layer 2'),
-			pixelLayer('a', 'Layer 1')
-		];
-		const onReorderLayer = vi.fn();
-		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
-		});
-
-		const rowC = container.querySelector('[data-layer-row][data-layer-id="c"]') as HTMLElement;
-		const handleC = rowC.querySelector('[data-reorder-handle]') as HTMLButtonElement;
-
-		await fireEvent.pointerDown(handleC, { clientY: 0, pointerId: 1 });
-		await fireEvent.pointerMove(handleC, { clientY: 32, pointerId: 1 });
-		await fireEvent.pointerUp(handleC, { clientY: 64, pointerId: 1 });
-
-		expect(onReorderLayer).toHaveBeenCalledWith('c', 2);
-	});
-
-	it('a second pointer landing during an active drag does not steal or reset it', async () => {
-		const layers = [
-			pixelLayer('c', 'Layer 3'),
-			pixelLayer('b', 'Layer 2'),
-			pixelLayer('a', 'Layer 1')
-		];
-		const onReorderLayer = vi.fn();
-		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
-		});
-
-		const rowC = container.querySelector('[data-layer-row][data-layer-id="c"]') as HTMLElement;
-		const handleC = rowC.querySelector('[data-reorder-handle]') as HTMLButtonElement;
-		const rowA = container.querySelector('[data-layer-row][data-layer-id="a"]') as HTMLElement;
-		const handleA = rowA.querySelector('[data-reorder-handle]') as HTMLButtonElement;
-
-		await fireEvent.pointerDown(handleC, { clientY: 0, pointerId: 1 });
-		// Second finger lands on a different handle — must not start a second drag.
-		await fireEvent.pointerDown(handleA, { clientY: 100, pointerId: 2 });
-		// Events from the secondary pointer are also ignored.
-		await fireEvent.pointerMove(handleC, { clientY: 200, pointerId: 2 });
-		await fireEvent.pointerUp(handleC, { clientY: 200, pointerId: 2 });
-		// Guard: the secondary pointer's release alone must not trigger reorder —
-		// catches a regression where the pointerId check on pointerup is dropped.
-		expect(onReorderLayer).not.toHaveBeenCalled();
-		// The original pointer's release at deltaY=64 still drives the reorder.
-		await fireEvent.pointerMove(handleC, { clientY: 64, pointerId: 1 });
-		await fireEvent.pointerUp(handleC, { clientY: 64, pointerId: 1 });
-
-		expect(onReorderLayer).toHaveBeenCalledTimes(1);
-		expect(onReorderLayer).toHaveBeenCalledWith('c', 2);
-	});
-
-	it('pointer release at the original Y does not call onReorderLayer', async () => {
-		const layers = [
-			pixelLayer('c', 'Layer 3'),
-			pixelLayer('b', 'Layer 2'),
-			pixelLayer('a', 'Layer 1')
-		];
-		const onReorderLayer = vi.fn();
-		const { container } = render(TimelinePanel, {
-			props: { layers, activeLayerId: 'a', ...defaultProps, onReorderLayer }
-		});
-
-		const rowB = container.querySelector('[data-layer-row][data-layer-id="b"]') as HTMLElement;
-		const handleB = rowB.querySelector('[data-reorder-handle]') as HTMLButtonElement;
-
-		await fireEvent.pointerDown(handleB, { clientY: 0, pointerId: 1 });
-		await fireEvent.pointerMove(handleB, { clientY: 4, pointerId: 1 });
-		await fireEvent.pointerUp(handleB, { clientY: 4, pointerId: 1 });
-
 		expect(onReorderLayer).not.toHaveBeenCalled();
 	});
 
@@ -1361,63 +1171,9 @@ describe('TimelinePanel', () => {
 				`[data-frame-ruler-cell][data-frame-id="${frameId}"]`
 			) as HTMLElement;
 
-		it('pointer-dragging a ruler cell right by two columns reorders to the dropped index', async () => {
-			const layers = [pixelLayer('a', 'Layer 1')];
-			const frames = [frame('f1'), frame('f2'), frame('f3')];
-			const onReorderFrame = vi.fn();
-			const { container } = render(TimelinePanel, {
-				props: {
-					layers,
-					activeLayerId: 'a',
-					...defaultProps,
-					frames,
-					activeFrameId: 'f1',
-					onReorderFrame
-				}
-			});
-
-			const f1 = rulerCell(container, 'f1');
-			await fireEvent.pointerDown(f1, { clientX: 0, pointerId: 1 });
-			await fireEvent.pointerMove(f1, { clientX: 64, pointerId: 1 });
-			await fireEvent.pointerUp(f1, { clientX: 64, pointerId: 1 });
-
-			// f1 is at index 0; +64px over a 32px column targets index 2.
-			expect(onReorderFrame).toHaveBeenCalledWith('f1', 2);
-			expect(onReorderFrame).toHaveBeenCalledTimes(1);
-		});
-
-		it('previews the moving cell and displaced cells before drop', async () => {
-			const layers = [pixelLayer('a', 'Layer 1')];
-			const frames = [frame('f1'), frame('f2'), frame('f3')];
-			const onReorderFrame = vi.fn();
-			const { container } = render(TimelinePanel, {
-				props: {
-					layers,
-					activeLayerId: 'a',
-					...defaultProps,
-					frames,
-					activeFrameId: 'f1',
-					onReorderFrame
-				}
-			});
-
-			const f1 = rulerCell(container, 'f1');
-			const f2 = rulerCell(container, 'f2');
-			const f3 = rulerCell(container, 'f3');
-
-			await fireEvent.pointerDown(f1, { clientX: 0, pointerId: 1 });
-			expect(f1.getAttribute('data-frame-dragging')).toBe('true');
-			expect(f1.hasAttribute('data-frame-drag-target')).toBe(false);
-
-			await fireEvent.pointerMove(f1, { clientX: 64, pointerId: 1 });
-			expect(f1.getAttribute('data-frame-dragging')).toBe('true');
-			expect(f3.getAttribute('data-frame-drag-target')).toBe('true');
-			expect(f1.style.getPropertyValue('--frame-drag-x')).toBe('64px');
-			expect(f2.style.getPropertyValue('--frame-drag-x')).toBe('-32px');
-			expect(f3.style.getPropertyValue('--frame-drag-x')).toBe('-32px');
-			expect(onReorderFrame).not.toHaveBeenCalled();
-		});
-
+		// Adapter wiring smokes (tap-select vs drag-commit pair) — the full ruler
+		// drag/tap behavior suite lives headlessly in
+		// src/lib/gestures/reorder-interaction.svelte.test.ts (issue 212).
 		it('does not also select the frame after a completed drag (trailing click swallowed)', async () => {
 			const layers = [pixelLayer('a', 'Layer 1')];
 			const frames = [frame('f1'), frame('f2'), frame('f3')];
@@ -1447,38 +1203,6 @@ describe('TimelinePanel', () => {
 			expect(onSelectFrame).not.toHaveBeenCalled();
 		});
 
-		it('keyboard-activates a frame even when a prior drag left the suppress flag armed', async () => {
-			const layers = [pixelLayer('a', 'Layer 1')];
-			const frames = [frame('f1'), frame('f2'), frame('f3')];
-			const onSelectFrame = vi.fn();
-			const onReorderFrame = vi.fn();
-			const { container } = render(TimelinePanel, {
-				props: {
-					layers,
-					activeLayerId: 'a',
-					...defaultProps,
-					frames,
-					activeFrameId: 'f1',
-					onSelectFrame,
-					onReorderFrame
-				}
-			});
-
-			const f1 = rulerCell(container, 'f1');
-			const f2 = rulerCell(container, 'f2');
-			// A real drag whose trailing pointer-click the browser suppressed leaves
-			// the flag armed — no pointerdown on another cell follows to clear it.
-			await fireEvent.pointerDown(f1, { clientX: 0, pointerId: 1 });
-			await fireEvent.pointerMove(f1, { clientX: 64, pointerId: 1 });
-			await fireEvent.pointerUp(f1, { clientX: 64, pointerId: 1 });
-			expect(onReorderFrame).toHaveBeenCalledTimes(1);
-
-			// Keyboard activation (Enter/Space) emits a click with detail 0; it must
-			// select regardless of the stale flag.
-			await fireEvent.click(f2, { detail: 0 });
-			expect(onSelectFrame).toHaveBeenCalledWith('f2');
-		});
-
 		it('still selects the frame on a tap (pointer down/up without movement)', async () => {
 			const layers = [pixelLayer('a', 'Layer 1')];
 			const frames = [frame('f1'), frame('f2')];
@@ -1505,111 +1229,6 @@ describe('TimelinePanel', () => {
 			expect(onReorderFrame).not.toHaveBeenCalled();
 		});
 
-		it('treats a sub-threshold jitter as a select, not a reorder', async () => {
-			const layers = [pixelLayer('a', 'Layer 1')];
-			const frames = [frame('f1'), frame('f2')];
-			const onSelectFrame = vi.fn();
-			const onReorderFrame = vi.fn();
-			const { container } = render(TimelinePanel, {
-				props: {
-					layers,
-					activeLayerId: 'a',
-					...defaultProps,
-					frames,
-					activeFrameId: 'f1',
-					onSelectFrame,
-					onReorderFrame
-				}
-			});
-
-			const f2 = rulerCell(container, 'f2');
-			await fireEvent.pointerDown(f2, { clientX: 40, pointerId: 1 });
-			await fireEvent.pointerMove(f2, { clientX: 43, pointerId: 1 });
-			await fireEvent.pointerUp(f2, { clientX: 43, pointerId: 1 });
-			await fireEvent.click(f2);
-
-			expect(onReorderFrame).not.toHaveBeenCalled();
-			expect(onSelectFrame).toHaveBeenCalledWith('f2');
-		});
-
-		it('pointer cancel during a ruler drag does not reorder', async () => {
-			const layers = [pixelLayer('a', 'Layer 1')];
-			const frames = [frame('f1'), frame('f2'), frame('f3')];
-			const onReorderFrame = vi.fn();
-			const { container } = render(TimelinePanel, {
-				props: {
-					layers,
-					activeLayerId: 'a',
-					...defaultProps,
-					frames,
-					activeFrameId: 'f1',
-					onReorderFrame
-				}
-			});
-
-			const f1 = rulerCell(container, 'f1');
-			await fireEvent.pointerDown(f1, { clientX: 0, pointerId: 1 });
-			await fireEvent.pointerMove(f1, { clientX: 64, pointerId: 1 });
-			await fireEvent.pointerCancel(f1, { pointerId: 1 });
-
-			expect(onReorderFrame).not.toHaveBeenCalled();
-		});
-
-		it('does not start a ruler drag when only one frame exists', async () => {
-			const layers = [pixelLayer('a', 'Layer 1')];
-			const frames = [frame('f1')];
-			const onReorderFrame = vi.fn();
-			const { container } = render(TimelinePanel, {
-				props: {
-					layers,
-					activeLayerId: 'a',
-					...defaultProps,
-					frames,
-					activeFrameId: 'f1',
-					onReorderFrame
-				}
-			});
-
-			const f1 = rulerCell(container, 'f1');
-			await fireEvent.pointerDown(f1, { clientX: 0, pointerId: 1 });
-			await fireEvent.pointerMove(f1, { clientX: 64, pointerId: 1 });
-			await fireEvent.pointerUp(f1, { clientX: 64, pointerId: 1 });
-
-			expect(onReorderFrame).not.toHaveBeenCalled();
-		});
-
-		it('ignores a second pointer landing during an active ruler drag', async () => {
-			const layers = [pixelLayer('a', 'Layer 1')];
-			const frames = [frame('f1'), frame('f2'), frame('f3')];
-			const onReorderFrame = vi.fn();
-			const { container } = render(TimelinePanel, {
-				props: {
-					layers,
-					activeLayerId: 'a',
-					...defaultProps,
-					frames,
-					activeFrameId: 'f1',
-					onReorderFrame
-				}
-			});
-
-			const f1 = rulerCell(container, 'f1');
-			const f3 = rulerCell(container, 'f3');
-
-			await fireEvent.pointerDown(f1, { clientX: 0, pointerId: 1 });
-			// Second finger lands on another cell — must not start a second drag…
-			await fireEvent.pointerDown(f3, { clientX: 200, pointerId: 2 });
-			// …and the secondary pointer's events are ignored.
-			await fireEvent.pointerMove(f1, { clientX: 200, pointerId: 2 });
-			await fireEvent.pointerUp(f1, { clientX: 200, pointerId: 2 });
-			expect(onReorderFrame).not.toHaveBeenCalled();
-
-			// The original pointer still drives the drop.
-			await fireEvent.pointerMove(f1, { clientX: 64, pointerId: 1 });
-			await fireEvent.pointerUp(f1, { clientX: 64, pointerId: 1 });
-			expect(onReorderFrame).toHaveBeenCalledTimes(1);
-			expect(onReorderFrame).toHaveBeenCalledWith('f1', 2);
-		});
 	});
 
 	describe('frame duration control', () => {

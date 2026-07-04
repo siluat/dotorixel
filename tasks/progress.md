@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None
+GIF/spritesheet export — multi-frame export formats ([PRD](../issues/213-gif-spritesheet-export.md)). PRD published and broken into 3 AFK sub-issues (0/3 done): [214 prefactor](../issues/214-export-format-source-prefactor.md) is unblocked and up next; 215 spritesheet and 216 GIF ride it in parallel.
 
 ## Last Completed
 
@@ -11,7 +11,6 @@ None
 ## Next Up
 
 - Onion skinning (M4 — multi-frame; `composite_at` seam available)
-- GIF / spritesheet export (M4 — multi-frame export; `composite_at` seam available)
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
 - Apple Phase 1 — Enable clear canvas (existing disabled button)
 - Apple Phase 1 — Enable PNG export (existing disabled button)

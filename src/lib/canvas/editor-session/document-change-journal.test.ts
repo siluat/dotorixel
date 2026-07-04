@@ -642,6 +642,62 @@ describe('DocumentChangeJournal', () => {
 		expect(getPixelAt(current, 1, 0)).toEqual([0, 255, 0, 255]);
 	});
 
+	it('rotates the whole canvas clockwise as one undoable change even with a Marquee', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array(2 * 1 * 4);
+		pixels.set([255, 0, 0, 255], 0); // (0,0) red
+		pixels.set([0, 255, 0, 255], 4); // (1,0) green
+		const document = singleLayerDocument(2, 1, pixels);
+		document.set_marquee(marqueeRegionFromDrag(1, 0, 1, 0));
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'rotate-canvas-cw' }
+		});
+
+		expect(result).toEqual({ changed: true });
+		// A Marquee never diverts the canvas op into region mode: the whole
+		// document turns 2×1 → 1×2 with red on top and green below.
+		expect([document.width, document.height]).toEqual([1, 2]);
+		expect(getPixelAt(document, 0, 0)).toEqual([255, 0, 0, 255]);
+		expect(getPixelAt(document, 0, 1)).toEqual([0, 255, 0, 255]);
+		// The Marquee is carried through the same quarter-turn, still on green.
+		expect(document.marquee()).toMatchObject({ x: 0, y: 1, width: 1, height: 1 });
+		// A canvas rotate always swaps dimensions — metrics and viewport
+		// refresh like resize-document.
+		expect(events).toEqual(['snapshot', 'sync', 'reclamp', 'render', 'dirty']);
+	});
+
+	it('undo restores dimensions, pixels, and the Marquee together after a canvas rotate', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array(2 * 1 * 4);
+		pixels.set([255, 0, 0, 255], 0);
+		pixels.set([0, 255, 0, 255], 4);
+		let current = singleLayerDocument(2, 1, pixels);
+		current.set_marquee(marqueeRegionFromDrag(1, 0, 1, 0));
+		const journal = createJournal(events, current, {
+			getDocument: () => current,
+			replaceDocument: (document) => {
+				current = document;
+			},
+			createDocumentHistory
+		});
+
+		journal.commit({ kind: 'undoable-document', intent: { type: 'rotate-canvas-ccw' } });
+		// Counter-clockwise: green (1, 0) → (0, 0), the Marquee following it.
+		expect([current.width, current.height]).toEqual([1, 2]);
+		expect(getPixelAt(current, 0, 0)).toEqual([0, 255, 0, 255]);
+		expect(current.marquee()).toMatchObject({ x: 0, y: 0, width: 1, height: 1 });
+
+		// One history entry: a single undo brings back pixels, dimensions, and
+		// the Marquee together.
+		expect(journal.undo()).toEqual({ changed: true });
+		expect([current.width, current.height]).toEqual([2, 1]);
+		expect(getPixelAt(current, 1, 0)).toEqual([0, 255, 0, 255]);
+		expect(current.marquee()).toMatchObject({ x: 1, y: 0, width: 1, height: 1 });
+	});
+
 	it('skips rotate and captures no snapshot when the active layer is Reference', () => {
 		const events: string[] = [];
 		const document = {

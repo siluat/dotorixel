@@ -36,6 +36,8 @@
 	"action_transformFlipCanvasVertical": "Flip Canvas Vertical",
 	"action_transformRotateCw": "Rotate Right",
 	"action_transformRotateCcw": "Rotate Left",
+	"action_transformRotateCanvasCw": "Rotate Canvas Right",
+	"action_transformRotateCanvasCcw": "Rotate Canvas Left",
 
 	"modifier_constrain": "Constrain",
 

@@ -1122,6 +1122,64 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.document.marquee()).toMatchObject({ x: 3, y: 1, width: 2, height: 1 });
 	});
 
+	it('rotateCanvasCw keeps canvas scope with a Marquee active and carries it along', () => {
+		const pixels = new Uint8Array(2 * 1 * 4);
+		pixels.set(makePixelRgba(RED), 0 * 4);
+		pixels.set(makePixelRgba(GREEN), 1 * 4);
+		const { tab } = makeTab({ document: singleLayerDocument(2, 1, pixels) });
+		tab.document.set_marquee(marqueeRegionFromDrag(1, 0, 1, 0));
+
+		tab.rotateCanvasCw();
+
+		// Region mode would turn only the strip; the canvas op turns the whole
+		// document 2×1 → 1×2 — red on top, green below, the Marquee on green.
+		expect([tab.document.width, tab.document.height]).toEqual([1, 2]);
+		expect(getPixel(tab, 0, 0)).toEqual(RED);
+		expect(getPixel(tab, 0, 1)).toEqual(GREEN);
+		expect(tab.document.marquee()).toMatchObject({ x: 0, y: 1, width: 1, height: 1 });
+
+		// One history entry: a single undo restores pixels, dimensions, and
+		// the Marquee together.
+		tab.undo();
+
+		expect([tab.document.width, tab.document.height]).toEqual([2, 1]);
+		expect(getPixel(tab, 1, 0)).toEqual(GREEN);
+		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 0, width: 1, height: 1 });
+	});
+
+	it('rotateCanvasCcw turns the whole canvas the other way', () => {
+		const pixels = new Uint8Array(2 * 1 * 4);
+		pixels.set(makePixelRgba(RED), 0 * 4);
+		pixels.set(makePixelRgba(GREEN), 1 * 4);
+		const { tab } = makeTab({ document: singleLayerDocument(2, 1, pixels) });
+
+		tab.rotateCanvasCcw();
+
+		// Counter-clockwise: green (1, 0) lands on top, red below.
+		expect([tab.document.width, tab.document.height]).toEqual([1, 2]);
+		expect(getPixel(tab, 0, 0)).toEqual(GREEN);
+		expect(getPixel(tab, 0, 1)).toEqual(RED);
+	});
+
+	it('rotateCanvasCw commits an idle Floating Selection nudge before rotating', () => {
+		const pixels = new Uint8Array(5 * 5 * 4);
+		pixels.set(makePixelRgba(RED), (0 * 5 + 0) * 4);
+		pixels.set(makePixelRgba(GREEN), (0 * 5 + 1) * 4);
+		const { tab } = makeTab({ document: singleLayerDocument(5, 5, pixels) });
+		tab.document.set_marquee(marqueeRegionFromDrag(0, 0, 1, 0));
+		tab.nudgeMarquee(0, 1);
+
+		tab.rotateCanvasCw();
+
+		expect(tab.floatingSelectionOffset).toBeUndefined();
+		// The strip commits one row down, then the whole canvas turns
+		// (x, y) → (4 − y, x): red (0,1) → (3,0), green (1,1) → (3,1) — with
+		// the Marquee carried along.
+		expect(getPixel(tab, 3, 0)).toEqual(RED);
+		expect(getPixel(tab, 3, 1)).toEqual(GREEN);
+		expect(tab.document.marquee()).toMatchObject({ x: 3, y: 0, width: 1, height: 2 });
+	});
+
 	it('clearMarqueePixels commits an idle Floating Selection nudge before clearing moved pixels', () => {
 		const pixels = new Uint8Array(5 * 5 * 4);
 		pixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
@@ -3650,6 +3708,18 @@ describe('TabState — playback', () => {
 		expect(tab.isPlaying).toBe(true);
 
 		tab.flipCanvasHorizontal();
+
+		expect(tab.isPlaying).toBe(false);
+	});
+
+	it('stops playback when a canvas rotate is applied', () => {
+		const { tab, manual } = makeFramesTab([RED, GREEN]);
+
+		tab.startPlayback();
+		manual.fireAt(0);
+		expect(tab.isPlaying).toBe(true);
+
+		tab.rotateCanvasCw();
 
 		expect(tab.isPlaying).toBe(false);
 	});

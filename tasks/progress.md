@@ -2,11 +2,11 @@
 
 ## Currently Working On
 
-Tiered transforms — split flip/rotate into Canvas Transform and Marquee Transform tiers ([PRD](../issues/207-tiered-canvas-marquee-transforms.md)). 1 of 4 sub-issues done (208 canvas flip — tier patterns established); 209 (canvas rotate) is now unblocked and next; then 206 (reference exclusion) and 210 (marquee ops).
+Tiered transforms — split flip/rotate into Canvas Transform and Marquee Transform tiers ([PRD](../issues/207-tiered-canvas-marquee-transforms.md)). 2 of 4 sub-issues done (208 canvas flip, 209 canvas rotate — the panels are now fully on Canvas Transform ops); 206 (reference exclusion) and 210 (marquee ops) are both unblocked, 206 is next per the PRD order.
 
 ## Last Completed
 
-[208 — Canvas Flip: whole-document flip with Marquee co-transform](../issues/208-canvas-flip-whole-document.md): the panels' Flip buttons now mirror every Pixel Layer's every Cel (Reference fixed, Marquee co-moved + clipped, one undo step) with no Marquee-presence dispatch. Established the PRD's naming chain (`flip_canvas_*` / `'flip-canvas-*'` / `flipCanvas*` / `action_transformFlipCanvas*`) that 209/210 follow; SelectionActionBar and rotate paths intentionally untouched.
+[209 — Canvas Rotate: explicit whole-document op with Marquee co-transform](../issues/209-canvas-rotate-explicit-op.md): the panels' Rotate buttons now always turn the whole Document — dimensions swap, every Cel, an active Marquee carried through the quarter-turn and clipped, one undo step — with no Marquee-presence dispatch. The Reference Layer still turns with the canvas, pinned by a test that 206 starts by flipping; SelectionActionBar rotate untouched (210's job).
 
 ## Next Up
 

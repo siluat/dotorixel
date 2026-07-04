@@ -17,8 +17,8 @@ function renderSettings(props: Record<string, unknown> = {}) {
 		onAnchorChange: vi.fn(),
 		onFlipCanvasHorizontal: vi.fn(),
 		onFlipCanvasVertical: vi.fn(),
-		onRotateCw: vi.fn(),
-		onRotateCcw: vi.fn()
+		onRotateCanvasCw: vi.fn(),
+		onRotateCanvasCcw: vi.fn()
 	};
 	const merged = { ...defaultProps, ...props };
 	const result = render(SettingsContent, { props: merged });
@@ -41,26 +41,26 @@ describe('SettingsContent — Transform group', () => {
 		expect(onFlipCanvasVertical).toHaveBeenCalledOnce();
 	});
 
-	it('renders Rotate Right and Rotate Left and invokes their handlers', async () => {
-		const { onRotateCw, onRotateCcw } = renderSettings();
+	it('renders the canvas-scoped Rotate buttons and invokes their handlers', async () => {
+		const { onRotateCanvasCw, onRotateCanvasCcw } = renderSettings();
 
-		await fireEvent.click(screen.getByRole('button', { name: 'Rotate Right' }));
-		await fireEvent.click(screen.getByRole('button', { name: 'Rotate Left' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Rotate Canvas Right' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Rotate Canvas Left' }));
 
-		expect(onRotateCw).toHaveBeenCalledOnce();
-		expect(onRotateCcw).toHaveBeenCalledOnce();
+		expect(onRotateCanvasCw).toHaveBeenCalledOnce();
+		expect(onRotateCanvasCcw).toHaveBeenCalledOnce();
 	});
 
 	it.each([
-		['en', 'Transform', 'Flip Canvas Horizontal', 'Flip Canvas Vertical'],
-		['ko', '변형', '캔버스 좌우 반전', '캔버스 상하 반전'],
-		['ja', '変形', 'キャンバス左右反転', 'キャンバス上下反転']
-	] as const)('renders localized Transform labels for %s', (locale, section, flipH, flipV) => {
+		['en', 'Transform', 'Flip Canvas Horizontal', 'Rotate Canvas Right'],
+		['ko', '변형', '캔버스 좌우 반전', '캔버스 오른쪽 회전'],
+		['ja', '変形', 'キャンバス左右反転', 'キャンバス右回転']
+	] as const)('renders localized Transform labels for %s', (locale, section, flipH, rotateCw) => {
 		overwriteGetLocale(() => locale);
 		renderSettings();
 
 		expect(screen.getByRole('heading', { name: section })).toBeTruthy();
 		expect(screen.getByRole('button', { name: flipH })).toBeTruthy();
-		expect(screen.getByRole('button', { name: flipV })).toBeTruthy();
+		expect(screen.getByRole('button', { name: rotateCw })).toBeTruthy();
 	});
 });

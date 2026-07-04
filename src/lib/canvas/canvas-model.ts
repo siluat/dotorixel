@@ -184,6 +184,16 @@ export interface Document {
 	/** Mirrors the whole canvas vertically. Mirror of {@link flip_canvas_horizontal}. */
 	flip_canvas_vertical(): void;
 	/**
+	 * Rotates the whole canvas 90° clockwise: every Pixel Layer's every cel
+	 * (all frames) turns regardless of the active layer, the canvas
+	 * width/height swap, and the Reference Layer turns with the canvas. An
+	 * active Marquee is carried through the same quarter-turn into the swapped
+	 * dimensions and clipped to the new canvas.
+	 */
+	rotate_canvas_cw(): void;
+	/** Rotates the whole canvas 90° counter-clockwise. Mirror of {@link rotate_canvas_cw}. */
+	rotate_canvas_ccw(): void;
+	/**
 	 * Rotates the active Pixel Layer's Marquee region 90° clockwise. The region's
 	 * `W×H` pixels become an `H×W` block re-centered on the region's center and
 	 * clipped to the canvas; the Marquee updates to wrap the new region. No-op

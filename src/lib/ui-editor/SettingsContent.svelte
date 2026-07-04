@@ -16,8 +16,8 @@
 		onAnchorChange: (anchor: ResizeAnchor) => void;
 		onFlipCanvasHorizontal: () => void;
 		onFlipCanvasVertical: () => void;
-		onRotateCw: () => void;
-		onRotateCcw: () => void;
+		onRotateCanvasCw: () => void;
+		onRotateCanvasCcw: () => void;
 	}
 
 	let {
@@ -32,8 +32,8 @@
 		onAnchorChange,
 		onFlipCanvasHorizontal,
 		onFlipCanvasVertical,
-		onRotateCw,
-		onRotateCcw
+		onRotateCanvasCw,
+		onRotateCanvasCcw
 	}: Props = $props();
 </script>
 
@@ -62,13 +62,13 @@
 			<FlipVertical size={18} aria-hidden={true} />
 			<span>{m.action_transformFlipCanvasVertical()}</span>
 		</button>
-		<button class="action-btn outline" onclick={onRotateCw}>
+		<button class="action-btn outline" onclick={onRotateCanvasCw}>
 			<RotateCw size={18} aria-hidden={true} />
-			<span>{m.action_transformRotateCw()}</span>
+			<span>{m.action_transformRotateCanvasCw()}</span>
 		</button>
-		<button class="action-btn outline" onclick={onRotateCcw}>
+		<button class="action-btn outline" onclick={onRotateCanvasCcw}>
 			<RotateCcw size={18} aria-hidden={true} />
-			<span>{m.action_transformRotateCcw()}</span>
+			<span>{m.action_transformRotateCanvasCcw()}</span>
 		</button>
 	</section>
 

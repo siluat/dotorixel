@@ -51,9 +51,8 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 - TimelinePanel mobile touch targets — the header/row icon buttons (add-layer, add-reference, visibility, remove, reorder, fit-to-canvas) stay 24px on compact/medium, below the ≥44px touch guideline (`web-styling.md`) and the 187 spec §5 ("header actions ≥44px"). Pre-existing controls untouched by 191; enlarge to ≥44px on the mobile Timeline tab and coordinate with the 192 Frames action group.
 - Selection UI shows and can't be dismissed while a Reference Layer is active ([issue 205](../issues/205-selection-ui-reference-layer-active.md), ready-for-agent) — SelectionActionBar + Marquee outline should hide when `activeLayerKind === 'reference'` (Marquee preserved); the reference placement overlay currently swallows the Deselect click
 - Tiered transforms — split flip/rotate into Canvas Transform and Marquee Transform tiers ([PRD](../issues/207-tiered-canvas-marquee-transforms.md)) — canvas ops go whole-document (all Pixel Layers, all frames, Reference excluded, Marquee co-transformed + clipped); region ops stay on the SelectionActionBar
-  - [209 — Canvas Rotate: explicit whole-document op with Marquee co-transform](../issues/209-canvas-rotate-explicit-op.md) (ready-for-agent, unblocked — 208 done)
-  - [206 — Whole-canvas transforms should leave the Reference Layer fixed](../issues/206-reference-fixed-under-canvas-transforms.md) (re-parented; blocked by 209)
-  - [210 — Marquee Transform: explicit region ops, drop the Marquee-presence dispatch](../issues/210-marquee-transform-explicit-ops.md) (blocked by 209)
+  - [206 — Whole-canvas transforms should leave the Reference Layer fixed](../issues/206-reference-fixed-under-canvas-transforms.md) (re-parented; unblocked — 209 done)
+  - [210 — Marquee Transform: explicit region ops, drop the Marquee-presence dispatch](../issues/210-marquee-transform-explicit-ops.md) (unblocked — 208, 209 done)
 
 ## Future triggers
 

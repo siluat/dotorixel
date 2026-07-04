@@ -209,6 +209,8 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 		flip_vertical() {},
 		flip_canvas_horizontal() {},
 		flip_canvas_vertical() {},
+		rotate_canvas_cw() {},
+		rotate_canvas_ccw() {},
 		rotate_cw() {},
 		rotate_ccw() {},
 		composite_buffer_at() {},

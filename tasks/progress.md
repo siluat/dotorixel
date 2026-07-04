@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-[205 — Selection UI hidden while a Reference Layer is active](../issues/205-selection-ui-reference-layer-active.md): the SelectionActionBar and Marquee outline no longer render while a Reference Layer is active — display-only gating; the document-scoped Marquee survives and restores unchanged on switch back. Supersedes 138's visible-but-inert Marquee UX.
+[212 — Extract Reorder Interaction module from TimelinePanel](../issues/212-extract-reorder-interaction.md): the twin layer/frame drag machines are now one headless `src/lib/gestures` module behind two adapters; the ~20 drag/keyboard behavior cases moved to headless unit tests. Observable behavior unchanged (old 103-test component suite passed against the new wiring before trimming); frame keyboard reorder is now possible but deliberately unwired.
 
 ## Next Up
 
@@ -32,4 +32,3 @@ None
 - Canvas resize via border drag
 - Timelapse recording
 - TimelinePanel mobile touch targets — frame + row icon buttons ≥44px on the mobile Timeline tab
-- Extract Reorder Interaction module from TimelinePanel ([issue 212](../issues/212-extract-reorder-interaction.md) — ready-for-agent, design finalized)

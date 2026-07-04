@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 212 | [Extract Reorder Interaction module from TimelinePanel's twin drag machines](../issues/212-extract-reorder-interaction.md) | 2026-07-04 |
 | 205 | [Selection UI hidden while a Reference Layer is active, Marquee preserved](../issues/205-selection-ui-reference-layer-active.md) | 2026-07-04 |
 | 211 | [Enforce rustfmt in pre-commit and fix existing violations](../issues/211-enforce-rustfmt-pre-commit.md) | 2026-07-04 |
 | 210 | [Marquee Transform — explicit region ops, drop the Marquee-presence dispatch](../issues/210-marquee-transform-explicit-ops.md) | 2026-07-04 |

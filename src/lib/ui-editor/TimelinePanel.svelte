@@ -2,6 +2,7 @@
 	import { tick } from 'svelte';
 	import { ChevronDown, Copy, Grid2x2, Image, LoaderCircle, Maximize2, Trash2 } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
+	import { createReorderInteraction } from '$lib/gestures/reorder-interaction.svelte';
 	import TransportBar from './TransportBar.svelte';
 
 	type LayerKind = 'pixel' | 'reference';
@@ -84,10 +85,6 @@
 		onToggleLoop = () => {}
 	}: Props = $props();
 
-	// Fallback row height used when the DOM has no layout (e.g. headless test
-	// environments where offsetHeight is 0). Matches the docked-mode --row-height.
-	const DEFAULT_ROW_HEIGHT_PX = 32;
-
 	const activeLayerName = $derived(
 		layers.find((l) => l.id === activeLayerId)?.name ?? ''
 	);
@@ -132,275 +129,64 @@
 	);
 	const busyReferenceName = $derived(referenceLayerImportName || m.reference_layer_loading());
 
-	let draggingId = $state<string | null>(null);
-	let draggingPointerId = $state<number | null>(null);
-	let dragStartY = $state(0);
-	let dragBaseIndex = $state(0);
-	let dragTargetIndex = $state<number | null>(null);
-	let dragOffsetY = $state(0);
-	let dragRowHeight = $state(DEFAULT_ROW_HEIGHT_PX);
-
 	const pixelVisualIndices = $derived.by(() =>
 		renderedLayers.flatMap((layer, index) => (layer.kind === 'pixel' ? [index] : []))
 	);
-	const canReorderPixels = $derived(pixelVisualIndices.length > 1);
 
-	function pixelReorderTarget(visualIndex: number, direction: -1 | 1): number | null {
-		const current = pixelVisualIndices.indexOf(visualIndex);
-		if (current === -1) return null;
-		return pixelVisualIndices[current + direction] ?? null;
-	}
-
-	function clampToPixelReorderTarget(candidate: number): number {
-		const bounded = Math.max(0, Math.min(renderedLayers.length - 1, candidate));
-		for (const index of pixelVisualIndices) {
-			if (bounded <= index) return index;
-		}
-		return pixelVisualIndices.at(-1) ?? bounded;
-	}
+	// === Reorder Interaction adapters =====================================
+	// The gesture module owns the drag/keyboard reorder lifecycle; this
+	// component only measures extents, forwards events, and applies the
+	// preview translations as style vars. When the DOM has no layout (headless
+	// tests), measurement falls back to the module's 32px default, which
+	// matches the docked-mode --row-height / --frame-col-width.
+	//
+	// Layer rows reorder vertically among Pixel rows only (the Reference row
+	// is fixed at the bottom), via a dedicated handle — no tap threshold.
+	const layerReorder = createReorderInteraction({
+		axis: 'y',
+		allowedIndices: () => pixelVisualIndices,
+		measureExtent: (target) =>
+			(target.closest('[data-layer-row]') as HTMLElement | null)?.offsetHeight,
+		onDrop: (id, toVisualIndex) => onReorderLayer(id, toVisualIndex)
+	});
 
 	function handleReorderKey(event: KeyboardEvent, id: string, visualIndex: number) {
-		if (event.key === 'ArrowUp') {
-			event.preventDefault();
-			const target = pixelReorderTarget(visualIndex, -1);
-			if (target !== null) onReorderLayer(id, target);
-		} else if (event.key === 'ArrowDown') {
-			event.preventDefault();
-			const target = pixelReorderTarget(visualIndex, 1);
-			if (target !== null) onReorderLayer(id, target);
-		} else if (event.key === 'Enter' || event.key === ' ') {
+		if (layerReorder.keydown(event, id, visualIndex)) return;
+		if (event.key === 'Enter' || event.key === ' ') {
 			// Stop the row's Enter/Space activation handler from firing; the
 			// handle is for reordering, not activation.
 			event.stopPropagation();
 		}
 	}
 
-	function releaseCapture(target: Element, pointerId: number) {
-		try {
-			(target as Element & { releasePointerCapture(id: number): void }).releasePointerCapture(
-				pointerId
-			);
-		} catch {
-			// happy-dom or browsers that lack support — ignore.
-		}
-	}
-
-	function computeTargetIndex(clientY: number): number {
-		const deltaY = clientY - dragStartY;
-		const offset = Math.round(deltaY / dragRowHeight);
-		const candidate = dragBaseIndex + offset;
-		return clampToPixelReorderTarget(candidate);
-	}
-
-	function clampDragOffsetY(clientY: number): number {
-		const deltaY = clientY - dragStartY;
-		const firstPixelIndex = pixelVisualIndices[0] ?? dragBaseIndex;
-		const lastPixelIndex = pixelVisualIndices.at(-1) ?? dragBaseIndex;
-		const minOffset = (firstPixelIndex - dragBaseIndex) * dragRowHeight;
-		const maxOffset = (lastPixelIndex - dragBaseIndex) * dragRowHeight;
-		return Math.max(minOffset, Math.min(maxOffset, deltaY));
-	}
-
-	function updateDragPreview(clientY: number) {
-		dragOffsetY = clampDragOffsetY(clientY);
-		dragTargetIndex = computeTargetIndex(clientY);
-	}
-
-	function resetDrag() {
-		draggingId = null;
-		draggingPointerId = null;
-		dragTargetIndex = null;
-		dragOffsetY = 0;
-	}
-
-	function dragTranslateY(id: string, visualIndex: number): number {
-		if (draggingId === null || dragTargetIndex === null) return 0;
-		if (id === draggingId) return dragOffsetY;
-		if (dragBaseIndex < dragTargetIndex) {
-			return visualIndex > dragBaseIndex && visualIndex <= dragTargetIndex ? -dragRowHeight : 0;
-		}
-		if (dragBaseIndex > dragTargetIndex) {
-			return visualIndex >= dragTargetIndex && visualIndex < dragBaseIndex ? dragRowHeight : 0;
-		}
-		return 0;
-	}
-
 	function dragStyle(offsetY: number): string | undefined {
 		return offsetY === 0 ? undefined : `--layer-drag-y: ${offsetY}px;`;
 	}
 
-	function handlePointerDown(event: PointerEvent, id: string, visualIndex: number) {
-		// Ignore secondary pointers (e.g. a second finger on a multi-touch device)
-		// while a drag is in progress — only the initiating pointer drives it.
-		if (draggingId !== null) return;
-		if (!canReorderPixels) return;
-		if (event.button !== 0) return;
-		const target = event.currentTarget as HTMLElement;
-		const row = target.closest('[data-layer-row]') as HTMLElement | null;
-		const measured = row?.offsetHeight ?? 0;
-
-		draggingId = id;
-		draggingPointerId = event.pointerId;
-		dragStartY = event.clientY;
-		dragBaseIndex = visualIndex;
-		dragTargetIndex = visualIndex;
-		dragOffsetY = 0;
-		dragRowHeight = measured > 0 ? measured : DEFAULT_ROW_HEIGHT_PX;
-
-		try {
-			target.setPointerCapture(event.pointerId);
-		} catch {
-			// happy-dom or browsers that lack support — ignore.
-		}
-		event.preventDefault();
-	}
-
-	function handlePointerMove(event: PointerEvent, id: string) {
-		if (draggingId !== id || event.pointerId !== draggingPointerId) return;
-		updateDragPreview(event.clientY);
-		event.preventDefault();
-	}
-
-	function handlePointerUp(event: PointerEvent, id: string) {
-		if (draggingId !== id || event.pointerId !== draggingPointerId) return;
-		const target = computeTargetIndex(event.clientY);
-		const base = dragBaseIndex;
-		resetDrag();
-		releaseCapture(event.currentTarget as Element, event.pointerId);
-		if (target !== base) {
-			onReorderLayer(id, target);
-		}
-	}
-
-	function handlePointerCancel(event: PointerEvent, id: string) {
-		if (draggingId !== id || event.pointerId !== draggingPointerId) return;
-		resetDrag();
-		releaseCapture(event.currentTarget as Element, event.pointerId);
-	}
-
-	// === Frame ruler reorder (horizontal drag) ============================
-	// Parallels the layer-row drag above, but on the X axis. Frames are uniform
-	// (no Pixel/Reference split), so every cell is reorderable and the clamp is
-	// the full [0, frames.length - 1] range. The ruler cell doubles as the
-	// select-on-click target, so a completed drag must explicitly swallow the
-	// click it would otherwise emit.
-	const DEFAULT_FRAME_COL_WIDTH_PX = 32;
+	// Frame ruler cells reorder horizontally across the full frame range; the
+	// cell doubles as the select-on-click target, so it carries a tap threshold
+	// and routes its click through the module's trailing-click suppression.
 	// Pointer travel below this is treated as a tap (select), not a drag (reorder).
 	const FRAME_DRAG_THRESHOLD_PX = 4;
 
-	let frameDraggingId = $state<string | null>(null);
-	let frameDraggingPointerId = $state<number | null>(null);
-	let frameDragStartX = $state(0);
-	let frameDragBaseIndex = $state(0);
-	let frameDragTargetIndex = $state<number | null>(null);
-	let frameDragOffsetX = $state(0);
-	let frameColWidth = $state(DEFAULT_FRAME_COL_WIDTH_PX);
-	// Transient, non-reactive: set when a drag crosses the threshold so the
-	// trailing click selects nothing. Cleared at the next pointerdown so a stale
-	// flag (a browser that suppressed the post-drag click) can't poison the next
-	// genuine click.
-	let shouldSuppressNextFrameClick = false;
+	// Every cell is reorderable, so the allowed set is simply [0, n-1] — cached
+	// as a derived like pixelVisualIndices so drags don't rebuild it per event.
+	const frameIndices = $derived(frames.map((_, index) => index));
 
-	const canReorderFrames = $derived(frames.length > 1);
-
-	function computeFrameTargetIndex(clientX: number): number {
-		const deltaX = clientX - frameDragStartX;
-		const offset = Math.round(deltaX / frameColWidth);
-		const candidate = frameDragBaseIndex + offset;
-		return Math.max(0, Math.min(frames.length - 1, candidate));
-	}
-
-	function clampFrameDragOffsetX(clientX: number): number {
-		const deltaX = clientX - frameDragStartX;
-		const minOffset = -frameDragBaseIndex * frameColWidth;
-		const maxOffset = (frames.length - 1 - frameDragBaseIndex) * frameColWidth;
-		return Math.max(minOffset, Math.min(maxOffset, deltaX));
-	}
-
-	function frameDragTranslateX(id: string, index: number): number {
-		if (frameDraggingId === null || frameDragTargetIndex === null) return 0;
-		if (id === frameDraggingId) return frameDragOffsetX;
-		if (frameDragBaseIndex < frameDragTargetIndex) {
-			return index > frameDragBaseIndex && index <= frameDragTargetIndex ? -frameColWidth : 0;
-		}
-		if (frameDragBaseIndex > frameDragTargetIndex) {
-			return index >= frameDragTargetIndex && index < frameDragBaseIndex ? frameColWidth : 0;
-		}
-		return 0;
-	}
+	const frameReorder = createReorderInteraction({
+		axis: 'x',
+		allowedIndices: () => frameIndices,
+		measureExtent: (target) => (target as HTMLElement).offsetWidth,
+		onDrop: (id, toIndex) => onReorderFrame(id, toIndex),
+		tapThresholdPx: FRAME_DRAG_THRESHOLD_PX
+	});
 
 	function frameDragStyle(offsetX: number): string | undefined {
 		return offsetX === 0 ? undefined : `--frame-drag-x: ${offsetX}px;`;
 	}
 
-	function resetFrameDrag() {
-		frameDraggingId = null;
-		frameDraggingPointerId = null;
-		frameDragTargetIndex = null;
-		frameDragOffsetX = 0;
-	}
-
-	function handleFramePointerDown(event: PointerEvent, id: string, index: number) {
-		// A second pointer mid-drag must not hijack the gesture.
-		if (frameDraggingId !== null) return;
-		if (event.button !== 0) return;
-		// Fresh interaction — clear suppression left by any prior drag.
-		shouldSuppressNextFrameClick = false;
-		if (!canReorderFrames) return;
-
-		const target = event.currentTarget as HTMLElement;
-		const measured = target.offsetWidth;
-
-		frameDraggingId = id;
-		frameDraggingPointerId = event.pointerId;
-		frameDragStartX = event.clientX;
-		frameDragBaseIndex = index;
-		frameDragTargetIndex = index;
-		frameDragOffsetX = 0;
-		frameColWidth = measured > 0 ? measured : DEFAULT_FRAME_COL_WIDTH_PX;
-
-		try {
-			target.setPointerCapture(event.pointerId);
-		} catch {
-			// happy-dom or browsers that lack support — ignore.
-		}
-	}
-
-	function handleFramePointerMove(event: PointerEvent, id: string) {
-		if (frameDraggingId !== id || event.pointerId !== frameDraggingPointerId) return;
-		if (Math.abs(event.clientX - frameDragStartX) > FRAME_DRAG_THRESHOLD_PX) {
-			shouldSuppressNextFrameClick = true;
-		}
-		frameDragOffsetX = clampFrameDragOffsetX(event.clientX);
-		frameDragTargetIndex = computeFrameTargetIndex(event.clientX);
-		event.preventDefault();
-	}
-
-	function handleFramePointerUp(event: PointerEvent, id: string) {
-		if (frameDraggingId !== id || event.pointerId !== frameDraggingPointerId) return;
-		const target = computeFrameTargetIndex(event.clientX);
-		const base = frameDragBaseIndex;
-		const wasDrag = shouldSuppressNextFrameClick;
-		resetFrameDrag();
-		releaseCapture(event.currentTarget as Element, event.pointerId);
-		if (wasDrag && target !== base) {
-			onReorderFrame(id, target);
-		}
-	}
-
-	function handleFramePointerCancel(event: PointerEvent, id: string) {
-		if (frameDraggingId !== id || event.pointerId !== frameDraggingPointerId) return;
-		resetFrameDrag();
-		releaseCapture(event.currentTarget as Element, event.pointerId);
-	}
-
 	function handleFrameSelectClick(event: MouseEvent, id: string) {
-		// A completed drag arms the suppress flag; swallow only the *pointer* click
-		// that trails it (detail > 0). Keyboard activation (Enter/Space emits a click
-		// with detail 0) must always select, so a stale flag can never block it.
-		const suppress = shouldSuppressNextFrameClick && event.detail > 0;
-		shouldSuppressNextFrameClick = false;
-		if (suppress) return;
+		if (frameReorder.consumeClickSuppression(event.detail)) return;
 		onSelectFrame(id);
 	}
 
@@ -578,12 +364,9 @@
 					{@const isActive = layer.id === activeLayerId}
 					{@const isVisible = layer.visible ?? true}
 					{@const kind = layer.kind}
-					{@const rowDragY = dragTranslateY(layer.id, visualIndex)}
-					{@const isDraggingLayer = draggingId === layer.id}
-					{@const isDragTarget =
-						dragTargetIndex !== null &&
-						dragTargetIndex !== dragBaseIndex &&
-						dragTargetIndex === visualIndex}
+					{@const rowDragY = layerReorder.translateFor(layer.id, visualIndex)}
+					{@const isDraggingLayer = layerReorder.draggingId === layer.id}
+					{@const isDragTarget = layerReorder.isDropTarget(visualIndex)}
 					<div
 						class="row"
 						class:row--active={isActive}
@@ -684,13 +467,13 @@
 								class="reorder-handle"
 								data-reorder-handle
 								aria-label={m.aria_reorderLayer({ name: layer.name })}
-								disabled={!canReorderPixels}
+								disabled={!layerReorder.canReorder}
 								onclick={(e) => e.stopPropagation()}
 								onkeydown={(e) => handleReorderKey(e, layer.id, visualIndex)}
-								onpointerdown={(e) => handlePointerDown(e, layer.id, visualIndex)}
-								onpointermove={(e) => handlePointerMove(e, layer.id)}
-								onpointerup={(e) => handlePointerUp(e, layer.id)}
-								onpointercancel={(e) => handlePointerCancel(e, layer.id)}
+								onpointerdown={(e) => layerReorder.pointerDown(e, layer.id, visualIndex)}
+								onpointermove={(e) => layerReorder.pointerMove(e, layer.id)}
+								onpointerup={(e) => layerReorder.pointerUp(e, layer.id)}
+								onpointercancel={(e) => layerReorder.pointerCancel(e, layer.id)}
 							>
 								≡
 							</button>
@@ -740,12 +523,9 @@
 					<div class="frame-ruler">
 						{#each frames as frameCol, frameIndex (frameCol.id)}
 							{@const isActiveFrame = frameCol.id === activeFrameId}
-							{@const cellDragX = frameDragTranslateX(frameCol.id, frameIndex)}
-							{@const isDraggingFrame = frameDraggingId === frameCol.id}
-							{@const isFrameDragTarget =
-								frameDragTargetIndex !== null &&
-								frameDragTargetIndex !== frameDragBaseIndex &&
-								frameDragTargetIndex === frameIndex}
+							{@const cellDragX = frameReorder.translateFor(frameCol.id, frameIndex)}
+							{@const isDraggingFrame = frameReorder.draggingId === frameCol.id}
+							{@const isFrameDragTarget = frameReorder.isDropTarget(frameIndex)}
 							<button
 								type="button"
 								class="frame-ruler-cell"
@@ -760,10 +540,10 @@
 								aria-current={isActiveFrame ? 'true' : undefined}
 								aria-label={m.aria_selectFrame({ n: frameIndex + 1 })}
 								onclick={(e) => handleFrameSelectClick(e, frameCol.id)}
-								onpointerdown={(e) => handleFramePointerDown(e, frameCol.id, frameIndex)}
-								onpointermove={(e) => handleFramePointerMove(e, frameCol.id)}
-								onpointerup={(e) => handleFramePointerUp(e, frameCol.id)}
-								onpointercancel={(e) => handleFramePointerCancel(e, frameCol.id)}
+								onpointerdown={(e) => frameReorder.pointerDown(e, frameCol.id, frameIndex)}
+								onpointermove={(e) => frameReorder.pointerMove(e, frameCol.id)}
+								onpointerup={(e) => frameReorder.pointerUp(e, frameCol.id)}
+								onpointercancel={(e) => frameReorder.pointerCancel(e, frameCol.id)}
 							>
 								{frameIndex + 1}
 							</button>
@@ -772,12 +552,12 @@
 					<div class="frame-body">
 						{#each renderedLayers as layer, visualIndex (layer.id)}
 							{#if layer.kind === 'pixel'}
-								{@const rowDragY = dragTranslateY(layer.id, visualIndex)}
+								{@const rowDragY = layerReorder.translateFor(layer.id, visualIndex)}
 								<div
 									class="frame-row"
 									class:frame-row--active-layer={layer.id === activeLayerId}
-									class:frame-row--dragging={draggingId === layer.id}
-									class:frame-row--drag-shifted={rowDragY !== 0 && draggingId !== layer.id}
+									class:frame-row--dragging={layerReorder.draggingId === layer.id}
+									class:frame-row--drag-shifted={rowDragY !== 0 && layerReorder.draggingId !== layer.id}
 									style={dragStyle(rowDragY)}
 									data-frame-row
 									data-layer-id={layer.id}

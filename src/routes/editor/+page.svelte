@@ -44,12 +44,7 @@
 		trackCanvasSize,
 		trackSessionEnd
 	} from '$lib/analytics/events';
-	import {
-		availableFormats,
-		stripKnownExtension,
-		buildExportFilename,
-		type ExportFormat
-	} from '$lib/canvas/export';
+	import { exportAs, type ExportFormat } from '$lib/canvas/export';
 
 	let editor = $state<EditorController>(
 		createEditorController({
@@ -590,12 +585,11 @@
 	}
 
 	function handleExportConfirm(format: ExportFormat, filenameStem: string) {
-		const knownExtensions = availableFormats.map((f) => f.extension);
-		const cleanStem = stripKnownExtension(filenameStem.trim(), knownExtensions);
-		const snapshot = editor.exportableSnapshot();
-		const filename = buildExportFilename(cleanStem, format.extension, snapshot);
-		format.exportFn(snapshot, filename);
-		trackExport(snapshot.width, snapshot.height, format.id);
+		const { width, height } = exportAs(format, filenameStem, {
+			still: () => editor.exportableSnapshot(),
+			document: () => editor.document
+		});
+		trackExport(width, height, format.id);
 		editor.workspace.activeTab.isExportUIOpen = false;
 	}
 </script>

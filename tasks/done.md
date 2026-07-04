@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 214 | [Prefactor: export formats declare their source (still snapshot vs Document)](../issues/214-export-format-source-prefactor.md) | 2026-07-05 |
 | 212 | [Extract Reorder Interaction module from TimelinePanel's twin drag machines](../issues/212-extract-reorder-interaction.md) | 2026-07-04 |
 | 205 | [Selection UI hidden while a Reference Layer is active, Marquee preserved](../issues/205-selection-ui-reference-layer-active.md) | 2026-07-04 |
 | 211 | [Enforce rustfmt in pre-commit and fix existing violations](../issues/211-enforce-rustfmt-pre-commit.md) | 2026-07-04 |

@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 211 | [Enforce rustfmt in pre-commit and fix existing violations](../issues/211-enforce-rustfmt-pre-commit.md) | 2026-07-04 |
 | 210 | [Marquee Transform — explicit region ops, drop the Marquee-presence dispatch](../issues/210-marquee-transform-explicit-ops.md) | 2026-07-04 |
 | 206 | [Whole-canvas transforms leave the Reference Layer fixed](../issues/206-reference-fixed-under-canvas-transforms.md) | 2026-07-04 |
 | 209 | [Canvas Rotate — explicit whole-document op with Marquee co-transform](../issues/209-canvas-rotate-explicit-op.md) | 2026-07-04 |

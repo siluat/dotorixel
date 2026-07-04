@@ -5,3 +5,6 @@ pre-commit:
     markdownlint:
       glob: "*.md"
       run: bunx markdownlint-cli2 {staged_files}
+    rustfmt:
+      glob: "*.rs"
+      run: cargo fmt --check

@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-[210 — Marquee Transform: explicit region ops, drop the Marquee-presence dispatch](../issues/210-marquee-transform-explicit-ops.md): the SelectionActionBar's flip/rotate are now explicit marquee ops (`flip_marquee_*`/`rotate_marquee_*`) — a no-op without a Marquee or on a Reference Layer, pushing no History entry and never marking dirty. This closes [PRD 207](../issues/207-tiered-canvas-marquee-transforms.md): no transform operation changes scope based on Marquee presence anymore.
+[211 — Enforce rustfmt in pre-commit and fix existing violations](../issues/211-enforce-rustfmt-pre-commit.md): the lefthook pre-commit now runs a workspace-wide `cargo fmt --check` whenever a `.rs` file is staged, and the 3 pre-existing violations are fixed — the Rust tree is formatting-clean and stays that way. rustfmt default style is the contract (no `rustfmt.toml`).
 
 ## Next Up
 
@@ -33,4 +33,3 @@ None
 - Canvas resize via border drag
 - Timelapse recording
 - TimelinePanel mobile touch targets — frame + row icon buttons ≥44px on the mobile Timeline tab
-- Enforce rustfmt in pre-commit and fix the 3 existing violations

@@ -1,6 +1,6 @@
 ---
 title: "Whole-canvas transforms should leave the Reference Layer fixed (exclude it from flip and rotate)"
-status: ready-for-agent
+status: done
 created: 2026-07-01
 parent: 207-tiered-canvas-marquee-transforms.md
 ---
@@ -137,3 +137,40 @@ reference rotations; it does not remove the ability to display an existing one.
   around the issue 204 work. The rotation-aware footprint (issue 204) is kept for
   backward-compatible rendering of any already-saved rotated reference.
 - Surfaced during manual regression testing of #204.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/document.rs` | `rotate_whole_document` now skips Reference Layers (flip-style `if let Pixel` loop); removed the unused `rotate_reference_placement` remap helper; rotate tests flipped to assert the reference is unchanged, plus a backward-compat test (saved non-zero quarter-turn survives a canvas rotate as saved) |
+| `wasm/src/lib.rs` | `rotate_canvas_cw` doc comment: Reference Layer stays fixed |
+| `src/lib/canvas/canvas-model.ts` | Same doc-contract update on the `Document` interface |
+| `src/lib/canvas/editor-session/document-change-journal.svelte.ts` | `rotate-canvas-*` change-verdict: replaced the always-`true` verdict (whose stated rationale was "the reference still turns — until issue 206 fixes it") with the flip-style no-op skip: square Reference-only document with no Marquee snapshots/dirties nothing |
+| `src/lib/canvas/editor-session/document-change-journal.test.ts` | Skip test (square Reference-only) + non-square pair test (dimension swap is a real change) |
+| `docs/platform-status.md` | Flip/transform + Reference Layer rows: reference excluded from canvas transforms; saved quarter-turns still render |
+
+### Key Decisions
+
+- **Fixed at the shared whole-document path, not per-op.** The Reference branch
+  was removed from `rotate_whole_document`, which both the Canvas Transform ops
+  (209) and the legacy `rotate_cw`/`rotate_ccw` no-Marquee path call — so the
+  legacy dispatch is fixed too, with no path fork. 210 removes that dispatch
+  entirely.
+- **Journal change-verdict updated beyond the AC letter.** The `return true`
+  for `rotate-canvas-*` rested explicitly on "the reference still turns";
+  with that gone, a square Reference-only document would accumulate no-change
+  undo entries. Mirrored the existing canvas-flip skip logic (+ the
+  non-square/dimension-swap boundary).
+- **`set_reference_placement_preserves_an_existing_quarter_turn` re-seeded.**
+  Nothing produces new reference rotations anymore, so the test now injects a
+  rotated placement directly (saved-document hydration), same pattern as the
+  flip tests.
+
+### Notes
+
+- The rotation *rendering* machinery is untouched and still test-covered:
+  rotation-aware footprint, sampling inverse map, quarter-turn persistence —
+  already-saved rotated references render and sample as before.
+- Found 3 pre-existing `cargo fmt --check` violations (`layer.rs` ×2,
+  `wasm/src/lib.rs` ×1), already on `main`; filed as a todo item (enforce
+  rustfmt in pre-commit + clean up) rather than fixing in this slice.

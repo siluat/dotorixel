@@ -27,7 +27,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Create / resize | ✅ | ✅ | ✅ | 1–256px, presets available, 9-position anchor selector (Web) |
 | Clear | ✅ | ✅ | ⬜ | RightPanel (docked) + Settings tab (mobile) |
-| Flip / transform | ✅ | ✅ | ⬜ | Canvas Flip H/V + Rotate CW/CCW (panel buttons): all Pixel Layers × all frames, Marquee co-transformed + clipped, rotate swaps W↔H; flip keeps Reference fixed, rotate still turns it (issue 206 next). SelectionActionBar keeps Marquee-aware ops (PRD 207) |
+| Flip / transform | ✅ | ✅ | ⬜ | Canvas Flip H/V + Rotate CW/CCW (panel buttons): all Pixel Layers × all frames, Marquee co-transformed + clipped, rotate swaps W↔H; Reference Layer fixed (excluded from canvas transforms). SelectionActionBar keeps Marquee-aware ops (PRD 207) |
 
 ## History
 
@@ -117,7 +117,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Document/Layer model | 🔧 | 🔧 | ⬜ | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple remains single-canvas |
 | Frame cel-grid | ✅ | ✅ | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: undoable add/duplicate/remove/reorder + set-active journal intents (undo restores frame+cel); multi-frame V7 persistence round-trips through the snapshot |
 | Per-frame duration | ✅ | ✅ | ⬜ | Each frame holds a display duration; default 100ms (10fps); identity unchanged when retimed. 1–60000ms clamp at the shell boundary (core trusts the value). Web complete: active-frame editor in the timeline corner (ms + derived fps), undoable, V7-persisted. Apple pending |
-| Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and rotation-aware source sampling. Turns with a whole-document rotate (quarter-turn). Placement invariant (finite pos, scale > 0, quarter-turn 0..=3) enforced by the core constructor |
+| Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and rotation-aware source sampling. Fixed under canvas transforms (nothing produces new quarter-turns; saved ones still render). Placement invariant (finite pos, scale > 0, quarter-turn 0..=3) enforced by the core constructor |
 | Timeline panel | — | 🔧 | ⬜ | Layer × Frame grid (occupancy dots, Reference span, 2-channel active highlight); ruler/cell select; header add/duplicate/delete + ruler-cell drag-reorder; per-document collapse; full-width transport strip (Play/Pause · Loop · `n/N`) + ▼ playhead marker lane. Mobile row-button touch targets pending |
 | Playback (animation) | — | ✅ | ⬜ | Per-tab engine: transient Playhead + rAF clock holds each frame its `duration_ms` (carry → no drift), loops or stops at end. Previews committed art via `composite_at` — no Document mutation/history/dirty, never persisted; tab/document change stops it. Transport strip (Play/Pause · Loop · ▼ playhead) wired on docked + mobile |
 

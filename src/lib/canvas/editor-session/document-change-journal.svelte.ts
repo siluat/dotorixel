@@ -370,10 +370,17 @@ export class DocumentChangeJournal {
 				return document.marquee() ? this.#activeLayerKind() === 'pixel' : true;
 			case 'rotate-canvas-cw':
 			case 'rotate-canvas-ccw':
-				// A canvas rotate always changes the Document in this slice: Pixel
-				// Layer cels turn, and even on a Reference-only document the
-				// Reference still turns with the canvas (until issue 206 fixes it).
-				return true;
+				// A Canvas Transform turns every Pixel Layer's every cel, swaps the
+				// dimensions, and carries an active Marquee — the Reference Layer
+				// stays fixed. Only a square Reference-only document with no
+				// Marquee gives it nothing to change, so skip that no-op.
+				return (
+					this.#deps
+						.getLayerProjection()
+						.layersInStackOrder.some((layer) => layer.kind === 'pixel') ||
+					Boolean(document.marquee()) ||
+					document.width !== document.height
+				);
 			case 'commit-floating-selection':
 				return this.#layerKindOf(intent.sourceLayerId) === 'pixel' && intent.buffer.length > 0;
 			case 'set-marquee':

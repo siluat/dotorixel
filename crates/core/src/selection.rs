@@ -72,6 +72,24 @@ impl MarqueeRegion {
         }
     }
 
+    /// Returns the region a horizontal canvas flip carries it to: mirrored
+    /// across the canvas's vertical center line, `x → canvas_w − x − width`.
+    pub fn mirrored_horizontal(&self, canvas_w: u32) -> Self {
+        Self {
+            x: canvas_w as i32 - self.x - self.width as i32,
+            ..*self
+        }
+    }
+
+    /// Returns the region a vertical canvas flip carries it to: mirrored
+    /// across the canvas's horizontal center line, `y → canvas_h − y − height`.
+    pub fn mirrored_vertical(&self, canvas_h: u32) -> Self {
+        Self {
+            y: canvas_h as i32 - self.y - self.height as i32,
+            ..*self
+        }
+    }
+
     /// Returns the region rotated 90° about its own center: a `W×H` region
     /// becomes `H×W` sharing the same center. Clockwise and counter-clockwise
     /// rotation share this footprint; only the pixel buffer differs. Truncating

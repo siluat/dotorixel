@@ -32,6 +32,8 @@
 	"action_selectionDuplicate": "Duplicate",
 	"action_transformFlipHorizontal": "Flip Horizontal",
 	"action_transformFlipVertical": "Flip Vertical",
+	"action_transformFlipCanvasHorizontal": "Flip Canvas Horizontal",
+	"action_transformFlipCanvasVertical": "Flip Canvas Vertical",
 	"action_transformRotateCw": "Rotate Right",
 	"action_transformRotateCcw": "Rotate Left",
 

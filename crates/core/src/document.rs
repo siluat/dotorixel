@@ -1052,6 +1052,55 @@ impl Document {
         }
     }
 
+    /// Mirrors the whole canvas horizontally: every Pixel Layer's every cel
+    /// (all frames) is flipped in place — regardless of which layer or frame
+    /// is active — and the canvas dimensions are unchanged. The Reference
+    /// Layer stays fixed (a tracing overlay, not artwork). An active Marquee
+    /// is mirrored across the same axis and clipped to the canvas, so it
+    /// still covers the same (now flipped) content.
+    pub fn flip_canvas_horizontal(&mut self) {
+        self.flip_canvas(
+            PixelCanvas::flip_horizontal,
+            MarqueeRegion::mirrored_horizontal,
+            self.width,
+        );
+    }
+
+    /// Mirrors the whole canvas vertically. Mirror of
+    /// [`Self::flip_canvas_horizontal`]: every Pixel Layer's every cel flips
+    /// across the horizontal center line, the Reference Layer stays fixed,
+    /// and an active Marquee is mirrored and clipped along with it.
+    pub fn flip_canvas_vertical(&mut self) {
+        self.flip_canvas(
+            PixelCanvas::flip_vertical,
+            MarqueeRegion::mirrored_vertical,
+            self.height,
+        );
+    }
+
+    /// Applies a whole-canvas flip: `flip_cel` mirrors each Pixel Layer cel in
+    /// place (all layers, all frames); `mirror_marquee` carries an active
+    /// Marquee across the flip axis, whose canvas extent is `axis_extent`
+    /// (width for horizontal, height for vertical). Reference Layers are left
+    /// untouched.
+    fn flip_canvas(
+        &mut self,
+        flip_cel: fn(&mut PixelCanvas),
+        mirror_marquee: fn(&MarqueeRegion, u32) -> MarqueeRegion,
+        axis_extent: u32,
+    ) {
+        for layer in &mut self.layers {
+            if let LayerKind::Pixel(cels) = &mut layer.kind {
+                for canvas in cels.canvases_mut() {
+                    flip_cel(canvas);
+                }
+            }
+        }
+        if let Some(region) = self.marquee {
+            self.marquee = mirror_marquee(&region, axis_extent).clip_to(self.width, self.height);
+        }
+    }
+
     /// Rotates 90° clockwise. With a Marquee, the region's `W×H` pixels on the
     /// active Pixel Layer's active-frame cel become an `H×W` block re-centered
     /// on the region's center and clipped to the canvas, and the Marquee updates
@@ -1676,6 +1725,192 @@ mod tests {
             }
         }
         assert_eq!(doc.marquee(), Some(marquee));
+    }
+
+    // ── canvas flip ─────────────────────────────────────────────
+
+    #[test]
+    fn flip_canvas_horizontal_mirrors_every_pixel_layer_and_every_frame() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+        let blue = Color::new(0, 0, 255, 255);
+        let mut doc = Document::new(3, 2, a, "A".to_string()).unwrap();
+        let first = doc.active_frame_id();
+        doc.add_layer(b, "B".to_string());
+        // First frame: layer A holds red top-left, layer B green bottom-left.
+        doc.set_active_layer(a).unwrap();
+        doc.set_pixel(0, 0, red).unwrap();
+        doc.set_active_layer(b).unwrap();
+        doc.set_pixel(0, 1, green).unwrap();
+        // Second frame: layer A holds blue top-left.
+        let second = Uuid::new_v4();
+        doc.add_frame(second);
+        doc.set_active_layer(a).unwrap();
+        doc.set_pixel(0, 0, blue).unwrap();
+
+        doc.flip_canvas_horizontal();
+
+        // Dimensions are unchanged; every layer's every cel mirrors x → 2 − x.
+        assert_eq!((doc.width(), doc.height()), (3, 2));
+        doc.set_active_frame(first).unwrap();
+        doc.set_active_layer(a).unwrap();
+        assert_eq!(doc.get_pixel(2, 0).unwrap(), red);
+        assert_eq!(doc.get_pixel(0, 0).unwrap(), Color::TRANSPARENT);
+        doc.set_active_layer(b).unwrap();
+        assert_eq!(doc.get_pixel(2, 1).unwrap(), green);
+        doc.set_active_frame(second).unwrap();
+        doc.set_active_layer(a).unwrap();
+        assert_eq!(doc.get_pixel(2, 0).unwrap(), blue);
+    }
+
+    #[test]
+    fn flip_canvas_horizontal_twice_restores_the_document() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let mut doc = Document::new(3, 2, a, "A".to_string()).unwrap();
+        let canvas = pixel_canvas_mut(&mut doc.layers[0]);
+        canvas.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+        canvas.set_pixel(2, 1, Color::new(0, 0, 255, 255)).unwrap();
+        let before = pixel_canvas(&doc.layers[0]).pixels().to_vec();
+
+        doc.flip_canvas_horizontal();
+        doc.flip_canvas_horizontal();
+
+        assert_eq!((doc.width(), doc.height()), (3, 2));
+        assert_eq!(pixel_canvas(&doc.layers[0]).pixels(), before.as_slice());
+    }
+
+    #[test]
+    fn flip_canvas_horizontal_leaves_the_reference_layer_untouched() {
+        use crate::layer::ReferenceData;
+        use crate::reference_placement::ReferencePlacement;
+
+        // A rotated, scaled reference anchored off-origin — every placement
+        // component and the source must survive the canvas flip unchanged.
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let placement = ReferencePlacement::new(1.0, 0.5, 2.0)
+            .unwrap()
+            .with_rotation(1);
+        let ref_rgba = vec![1u8, 2, 3, 4, 5, 6, 7, 8];
+        let reference = ReferenceData::new(ref_rgba.clone(), 2, 1, placement).unwrap();
+        let mut doc = Document::new(4, 2, a, "A".to_string()).unwrap();
+        doc.layers.push(Layer {
+            id: r,
+            name: "Ref".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Reference(reference),
+        });
+
+        doc.flip_canvas_horizontal();
+
+        let LayerKind::Reference(after) = &doc.layers()[1].kind else {
+            panic!("Reference Layer must remain Reference-kind after a canvas flip");
+        };
+        assert_eq!(after.placement(), placement);
+        assert_eq!(after.source_rgba(), ref_rgba.as_slice());
+        assert_eq!(after.natural_width(), 2);
+        assert_eq!(after.natural_height(), 1);
+    }
+
+    #[test]
+    fn flip_canvas_horizontal_applies_even_while_the_reference_layer_is_active() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let mut doc = Document::new(3, 2, a, "A".to_string()).unwrap();
+        pixel_canvas_mut(&mut doc.layers[0])
+            .set_pixel(0, 0, red)
+            .unwrap();
+        doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
+            .unwrap();
+        doc.set_active_layer(r).unwrap();
+
+        doc.flip_canvas_horizontal();
+
+        let pixel_index = doc
+            .layers()
+            .iter()
+            .position(|l| matches!(l.kind, LayerKind::Pixel(_)))
+            .unwrap();
+        assert_eq!(
+            pixel_canvas(&doc.layers[pixel_index])
+                .get_pixel(2, 0)
+                .unwrap(),
+            red
+        );
+    }
+
+    #[test]
+    fn flip_canvas_horizontal_mirrors_an_active_marquee_across_the_canvas_axis() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let mut doc = Document::new(5, 3, a, "A".to_string()).unwrap();
+        pixel_canvas_mut(&mut doc.layers[0])
+            .set_pixel(1, 0, red)
+            .unwrap();
+        // A 2×1 Marquee over x ∈ {1, 2} on the left half of the canvas.
+        doc.set_marquee(Some(MarqueeRegion::from_drag(1, 0, 2, 0)));
+
+        doc.flip_canvas_horizontal();
+
+        // The whole canvas mirrors — not just the region: red (1,0) → (3,0) —
+        // and the Marquee follows the same mapping, x → 5 − 1 − 2 = 2.
+        assert_eq!(pixel_canvas(&doc.layers[0]).get_pixel(3, 0).unwrap(), red);
+        assert_eq!(doc.marquee(), Some(MarqueeRegion::from_drag(2, 0, 3, 0)));
+    }
+
+    #[test]
+    fn flip_canvas_horizontal_clips_a_partially_off_canvas_marquee() {
+        let a = Uuid::new_v4();
+        let mut doc = Document::new(5, 3, a, "A".to_string()).unwrap();
+        // A Marquee hanging one column off the left edge (x ∈ {−1, 0, 1}).
+        doc.set_marquee(Some(MarqueeRegion::from_drag(-1, 0, 1, 0)));
+
+        doc.flip_canvas_horizontal();
+
+        // Its mirror hangs off the right edge and is clipped to the canvas,
+        // staying non-empty.
+        assert_eq!(doc.marquee(), Some(MarqueeRegion::from_drag(3, 0, 4, 0)));
+    }
+
+    #[test]
+    fn flip_canvas_vertical_mirrors_every_pixel_layer_and_the_marquee() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+        let mut doc = Document::new(2, 3, a, "A".to_string()).unwrap();
+        doc.add_layer(b, "B".to_string());
+        doc.set_active_layer(a).unwrap();
+        doc.set_pixel(0, 0, red).unwrap();
+        doc.set_active_layer(b).unwrap();
+        doc.set_pixel(1, 0, green).unwrap();
+        // A 1×2 Marquee over y ∈ {0, 1} at the top of the canvas.
+        doc.set_marquee(Some(MarqueeRegion::from_drag(0, 0, 0, 1)));
+
+        doc.flip_canvas_vertical();
+
+        // Every layer mirrors y → 2 − y and the Marquee follows the same
+        // mapping, y → 3 − 0 − 2 = 1.
+        assert_eq!((doc.width(), doc.height()), (2, 3));
+        doc.set_active_layer(a).unwrap();
+        assert_eq!(doc.get_pixel(0, 2).unwrap(), red);
+        doc.set_active_layer(b).unwrap();
+        assert_eq!(doc.get_pixel(1, 2).unwrap(), green);
+        assert_eq!(doc.marquee(), Some(MarqueeRegion::from_drag(0, 1, 0, 2)));
     }
 
     // ── rotate ──────────────────────────────────────────────────

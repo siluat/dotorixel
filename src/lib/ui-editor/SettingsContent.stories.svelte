@@ -19,8 +19,8 @@
 			onClear={noop}
 			onGridToggle={noop}
 			onAnchorChange={noop}
-			onFlipHorizontal={noop}
-			onFlipVertical={noop}
+			onFlipCanvasHorizontal={noop}
+			onFlipCanvasVertical={noop}
 			onRotateCw={noop}
 			onRotateCcw={noop}
 		/>
@@ -39,8 +39,8 @@
 			onClear={noop}
 			onGridToggle={noop}
 			onAnchorChange={noop}
-			onFlipHorizontal={noop}
-			onFlipVertical={noop}
+			onFlipCanvasHorizontal={noop}
+			onFlipCanvasVertical={noop}
 			onRotateCw={noop}
 			onRotateCcw={noop}
 		/>

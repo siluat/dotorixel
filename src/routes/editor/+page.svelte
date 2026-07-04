@@ -749,8 +749,8 @@
 			onResize={handleResize}
 			onClear={editor.handleClear}
 			onAnchorChange={(anchor) => editor.workspace.setActiveResizeAnchor(anchor)}
-			onFlipHorizontal={editor.handleFlipHorizontal}
-			onFlipVertical={editor.handleFlipVertical}
+			onFlipCanvasHorizontal={editor.handleFlipCanvasHorizontal}
+			onFlipCanvasVertical={editor.handleFlipCanvasVertical}
 			onRotateCw={editor.handleRotateCw}
 			onRotateCcw={editor.handleRotateCcw}
 		/>
@@ -862,8 +862,8 @@
 					onClear={editor.handleClear}
 					onGridToggle={editor.handleGridToggle}
 					onAnchorChange={(anchor) => editor.workspace.setActiveResizeAnchor(anchor)}
-					onFlipHorizontal={editor.handleFlipHorizontal}
-					onFlipVertical={editor.handleFlipVertical}
+					onFlipCanvasHorizontal={editor.handleFlipCanvasHorizontal}
+					onFlipCanvasVertical={editor.handleFlipCanvasVertical}
 					onRotateCw={editor.handleRotateCw}
 					onRotateCcw={editor.handleRotateCcw}
 				/>

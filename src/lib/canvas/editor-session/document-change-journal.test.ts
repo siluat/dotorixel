@@ -465,6 +465,84 @@ describe('DocumentChangeJournal', () => {
 		expect(events).toEqual([]);
 	});
 
+	it('skips a canvas flip and captures no snapshot on a Reference-only document', () => {
+		const events: string[] = [];
+		// The last Pixel Layer can be removed while a Reference Layer remains,
+		// so a Reference-only document is reachable. With no Marquee either, a
+		// canvas flip has nothing to mirror — it must not snapshot or dirty.
+		const document = {
+			width: 16,
+			height: 16,
+			active_layer_id: () => 'reference-1',
+			layer_count: () => 1,
+			marquee: () => undefined,
+			layers_metadata: () => [
+				{ id: 'reference-1', name: 'Reference', visible: true, opacity: 1, kind: 'reference' }
+			]
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		expect(
+			journal.commit({ kind: 'undoable-document', intent: { type: 'flip-canvas-horizontal' } })
+		).toEqual({ changed: false });
+		expect(
+			journal.commit({ kind: 'undoable-document', intent: { type: 'flip-canvas-vertical' } })
+		).toEqual({ changed: false });
+		expect(events).toEqual([]);
+	});
+
+	it('flips the whole canvas horizontally as one undoable document change', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array(2 * 1 * 4);
+		pixels.set([255, 0, 0, 255], 0);
+		pixels.set([0, 255, 0, 255], 4);
+		const document = singleLayerDocument(2, 1, pixels);
+		document.set_marquee(marqueeRegionFromDrag(0, 0, 0, 0));
+		const journal = createJournal(events, document);
+
+		const result = journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'flip-canvas-horizontal' }
+		});
+
+		expect(result).toEqual({ changed: true });
+		// The whole canvas mirrors — a Marquee never switches it to region
+		// mode — and the Marquee follows the same mapping onto x = 1.
+		expect(Array.from(document.layer_pixels_at(0)!.slice(0, 4))).toEqual([0, 255, 0, 255]);
+		expect(Array.from(document.layer_pixels_at(0)!.slice(4, 8))).toEqual([255, 0, 0, 255]);
+		expect(document.marquee()).toMatchObject({ x: 1, y: 0, width: 1, height: 1 });
+		expect(events).toEqual(['snapshot', 'render', 'dirty']);
+	});
+
+	it('undo restores pixels and the Marquee together after a canvas flip', () => {
+		const events: string[] = [];
+		const pixels = new Uint8Array(1 * 2 * 4);
+		pixels.set([255, 0, 0, 255], 0);
+		pixels.set([0, 255, 0, 255], 4);
+		let current = singleLayerDocument(1, 2, pixels);
+		current.set_marquee(marqueeRegionFromDrag(0, 0, 0, 0));
+		const journal = createJournal(events, current, {
+			getDocument: () => current,
+			replaceDocument: (document) => {
+				current = document;
+			},
+			createDocumentHistory
+		});
+
+		journal.commit({ kind: 'undoable-document', intent: { type: 'flip-canvas-vertical' } });
+		expect(getPixelAt(current, 0, 1)).toEqual([255, 0, 0, 255]);
+		expect(current.marquee()).toMatchObject({ x: 0, y: 1, width: 1, height: 1 });
+
+		// One history entry: a single undo restores pixels and Marquee together.
+		expect(journal.undo()).toEqual({ changed: true });
+		expect(getPixelAt(current, 0, 0)).toEqual([255, 0, 0, 255]);
+		expect(current.marquee()).toMatchObject({ x: 0, y: 0, width: 1, height: 1 });
+
+		expect(journal.redo()).toEqual({ changed: true });
+		expect(getPixelAt(current, 0, 1)).toEqual([255, 0, 0, 255]);
+		expect(current.marquee()).toMatchObject({ x: 0, y: 1, width: 1, height: 1 });
+	});
+
 	it('rotates the marquee region clockwise as one undoable document change', () => {
 		const events: string[] = [];
 		const pixels = new Uint8Array(3 * 3 * 4);

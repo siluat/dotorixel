@@ -31,6 +31,8 @@ export type UndoableDocumentIntent =
 	| { readonly type: 'clear-marquee-pixels' }
 	| { readonly type: 'flip-horizontal' }
 	| { readonly type: 'flip-vertical' }
+	| { readonly type: 'flip-canvas-horizontal' }
+	| { readonly type: 'flip-canvas-vertical' }
 	| { readonly type: 'rotate-cw' }
 	| { readonly type: 'rotate-ccw' }
 	| {
@@ -235,6 +237,12 @@ export class DocumentChangeJournal {
 			case 'flip-vertical':
 				document.flip_vertical();
 				return { changed: true };
+			case 'flip-canvas-horizontal':
+				document.flip_canvas_horizontal();
+				return { changed: true };
+			case 'flip-canvas-vertical':
+				document.flip_canvas_vertical();
+				return { changed: true };
 			case 'rotate-cw':
 				document.rotate_cw();
 				return { changed: true };
@@ -332,6 +340,18 @@ export class DocumentChangeJournal {
 			case 'flip-horizontal':
 			case 'flip-vertical':
 				return this.#activeLayerKind() === 'pixel';
+			case 'flip-canvas-horizontal':
+			case 'flip-canvas-vertical':
+				// A Canvas Transform mirrors every Pixel Layer's every cel and an
+				// active Marquee, independent of the active layer kind — but a
+				// Reference-only document with no Marquee gives it nothing to
+				// mirror, so skip the snapshot for that no-op.
+				return (
+					this.#deps
+						.getLayerProjection()
+						.layersInStackOrder.some((layer) => layer.kind === 'pixel') ||
+					Boolean(document.marquee())
+				);
 			case 'clear-marquee-pixels':
 				return Boolean(document.marquee()) && this.#activeLayerKind() === 'pixel';
 			case 'rotate-cw':
@@ -457,6 +477,10 @@ export class DocumentChangeJournal {
 			case 'clear-marquee-pixels':
 			case 'flip-horizontal':
 			case 'flip-vertical':
+			// A canvas flip transforms the whole document but keeps its
+			// dimensions, so no metrics sync or viewport reclamp is needed.
+			case 'flip-canvas-horizontal':
+			case 'flip-canvas-vertical':
 			case 'commit-floating-selection':
 				this.#invalidateRenderAndMarkDirty();
 				break;

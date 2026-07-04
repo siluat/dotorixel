@@ -175,6 +175,15 @@ export interface Document {
 	 */
 	flip_vertical(): void;
 	/**
+	 * Mirrors the whole canvas horizontally: every Pixel Layer's every cel
+	 * (all frames) flips in place regardless of the active layer; dimensions
+	 * are unchanged and the Reference Layer stays fixed. An active Marquee is
+	 * mirrored across the same axis and clipped to the canvas.
+	 */
+	flip_canvas_horizontal(): void;
+	/** Mirrors the whole canvas vertically. Mirror of {@link flip_canvas_horizontal}. */
+	flip_canvas_vertical(): void;
+	/**
 	 * Rotates the active Pixel Layer's Marquee region 90° clockwise. The region's
 	 * `W×H` pixels become an `H×W` block re-centered on the region's center and
 	 * clipped to the canvas; the Marquee updates to wrap the new region. No-op

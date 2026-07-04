@@ -22,8 +22,8 @@
 			onResize={noop}
 			onClear={noop}
 			onAnchorChange={noop}
-			onFlipHorizontal={noop}
-			onFlipVertical={noop}
+			onFlipCanvasHorizontal={noop}
+			onFlipCanvasVertical={noop}
 			onRotateCw={noop}
 			onRotateCcw={noop}
 		/>
@@ -45,8 +45,8 @@
 			onResize={noop}
 			onClear={noop}
 			onAnchorChange={noop}
-			onFlipHorizontal={noop}
-			onFlipVertical={noop}
+			onFlipCanvasHorizontal={noop}
+			onFlipCanvasVertical={noop}
 			onRotateCw={noop}
 			onRotateCcw={noop}
 		/>

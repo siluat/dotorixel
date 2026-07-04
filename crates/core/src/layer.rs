@@ -361,7 +361,8 @@ impl ReferenceData {
     /// This layer's [`ReferenceFootprint`] — its placement's projected
     /// axis-aligned bounding box for this source's natural dimensions.
     pub fn footprint(&self) -> ReferenceFootprint {
-        self.placement.footprint(self.natural_width, self.natural_height)
+        self.placement
+            .footprint(self.natural_width, self.natural_height)
     }
 
     /// Returns the source pixel that projects onto document coordinate
@@ -631,7 +632,9 @@ mod tests {
     fn reference_data_footprint_delegates_to_placement_with_its_own_natural_dimensions() {
         // A rotated, non-square reference: the footprint must use the data's own
         // natural dimensions, so the odd-turn width/height swap is observable.
-        let placement = ReferencePlacement::new(2.0, 3.0, 2.0).unwrap().with_rotation(1);
+        let placement = ReferencePlacement::new(2.0, 3.0, 2.0)
+            .unwrap()
+            .with_rotation(1);
         let data = ReferenceData::new(positional_rgba(4, 2), 4, 2, placement).unwrap();
         assert_eq!(data.footprint(), placement.footprint(4, 2));
     }

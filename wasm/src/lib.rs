@@ -2264,8 +2264,14 @@ mod tests {
         let mut doc = WasmDocument::new(4, 4, first.to_string(), "Layer 1".into()).unwrap();
         let source_rgba = vec![10, 20, 30, 255, 40, 50, 60, 255]; // 2×1 RGBA
 
-        doc.add_reference_layer(reference.to_string(), "Reference".into(), &source_rgba, 2, 1)
-            .unwrap();
+        doc.add_reference_layer(
+            reference.to_string(),
+            "Reference".into(),
+            &source_rgba,
+            2,
+            1,
+        )
+        .unwrap();
 
         // The Reference Layer is kept bottom-most (index 0); its 2×1 source
         // auto-fits to scale 1.0 centered at (1.0, 1.5) in the 4×4 canvas.

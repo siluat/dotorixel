@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { createEditorController } from '$lib/canvas/editor-session/create-editor-controller';
-	import type { EditorController } from '$lib/canvas/editor-session/editor-controller.svelte';
+	import { createEditorSession } from '$lib/canvas/editor-session/create-editor-session';
+	import type { InputPipeline } from '$lib/canvas/editor-session/input-pipeline.svelte';
+	import type { Workspace } from '$lib/canvas/editor-session/workspace.svelte';
 	import type { TabState } from '$lib/canvas/editor-session/tab-state.svelte';
 	import PixelCanvasView from '$lib/canvas/PixelCanvasView.svelte';
 	import { createLayoutMode } from '$lib/ui-editor/layout-mode.svelte';
@@ -33,6 +34,8 @@
 	import { decodeReferenceBlob } from '$lib/reference-images/decode-reference-blob';
 	import { validateFile } from '$lib/reference-images/import-validator';
 	import type { ReferencePlacement } from '$lib/canvas/canvas-model';
+	import { colorToHex, hexToColor } from '$lib/canvas/color';
+	import { TOOL_CURSORS } from '$lib/canvas/tool-registry';
 	import * as m from '$lib/paraglide/messages';
 	import type { ReferenceImage } from '$lib/reference-images/reference-image-types';
 	import { openSession, type SessionHandle } from '$lib/session/session';
@@ -46,16 +49,24 @@
 	} from '$lib/analytics/events';
 	import { exportAs, type ExportFormat } from '$lib/canvas/export';
 
-	let editor = $state<EditorController>(
-		createEditorController({
-			notifier: { markDirty() {}, notifyTabRemoved() {} },
-			initialForegroundColor: { r: 0, g: 0, b: 0, a: 255 },
-			gridColor: '#ECE5D9'
-		})
-	);
+	// Transient defaults that `openSession` replaces once IDB restore resolves.
+	const initialSession = createEditorSession({
+		notifier: { markDirty() {}, notifyTabRemoved() {} },
+		initialForegroundColor: { r: 0, g: 0, b: 0, a: 255 },
+		gridColor: '#ECE5D9'
+	});
+	let workspace = $state<Workspace>(initialSession.workspace);
+	let input = $state<InputPipeline>(initialSession.input);
+
 	const pixelPerfectDisabled = $derived(
-		editor.activeTool !== 'pencil' && editor.activeTool !== 'eraser'
+		workspace.shared.activeTool !== 'pencil' && workspace.shared.activeTool !== 'eraser'
 	);
+	// Usage-site adapters over shared state (single consumer today — promote to
+	// SharedState/Workspace getters only if a second consumer appears).
+	const foregroundColorHex = $derived(colorToHex(workspace.shared.foregroundColor));
+	const backgroundColorHex = $derived(colorToHex(workspace.shared.backgroundColor));
+	const toolCursor = $derived(TOOL_CURSORS[workspace.shared.activeTool]);
+	const canPasteSelection = $derived(workspace.shared.selectionClipboard !== null);
 
 	const layout = createLayoutMode();
 	let activeTab: MobileTab = $state('draw');
@@ -71,23 +82,23 @@
 	let referenceLayerImport = $state<{ name: string } | null>(null);
 	const isReferenceLayerImporting = $derived(referenceLayerImport !== null);
 	const activeReferences = $derived(
-		editor.workspace.references.forDoc(editor.workspace.activeTab.documentId)
+		workspace.references.forDoc(workspace.activeTab.documentId)
 	);
 	const activeLayerId = $derived.by(() => {
-		const tab = editor.workspace.activeTab;
+		const tab = workspace.activeTab;
 		return tab.layerProjection.activeLayer?.id ?? tab.document.active_layer_id();
 	});
 	const isReferenceLayerActive = $derived.by(() => {
-		const tab = editor.workspace.activeTab;
+		const tab = workspace.activeTab;
 		return tab.layerProjection.activeLayerKind === 'reference';
 	});
 	const isTimelinePanelCollapsed = $derived.by(() => {
-		const tab = editor.workspace.activeTab;
+		const tab = workspace.activeTab;
 		void tab.renderVersion;
 		return tab.document.is_timeline_panel_collapsed();
 	});
 	const layers = $derived.by(() => {
-		const tab = editor.workspace.activeTab;
+		const tab = workspace.activeTab;
 		return tab.layerProjection.layersInPanelOrder.map(({ id, name, visible, kind }) => ({
 			id,
 			name,
@@ -95,17 +106,17 @@
 			kind
 		}));
 	});
-	const frames = $derived.by(() => editor.workspace.activeTab.frameProjection.frames);
+	const frames = $derived.by(() => workspace.activeTab.frameProjection.frames);
 	const activeFrameId = $derived.by(
-		() => editor.workspace.activeTab.frameProjection.activeFrameId
+		() => workspace.activeTab.frameProjection.activeFrameId
 	);
-	const isPlaying = $derived(editor.workspace.activeTab.isPlaying);
-	const isLooping = $derived(editor.workspace.activeTab.isLooping);
-	const playheadFrameId = $derived(editor.workspace.activeTab.playheadFrameId);
+	const isPlaying = $derived(workspace.activeTab.isPlaying);
+	const isLooping = $derived(workspace.activeTab.isLooping);
+	const playheadFrameId = $derived(workspace.activeTab.playheadFrameId);
 	const displayedRefIds = $derived(
 		new Set(
-			editor.workspace.references
-				.windowStatesForDoc(editor.workspace.activeTab.documentId)
+			workspace.references
+				.windowStatesForDoc(workspace.activeTab.documentId)
 				.filter((s) => s.visible)
 				.map((s) => s.refId)
 		)
@@ -118,7 +129,7 @@
 			tab.zoomFit(1.0);
 		}
 		if (width > 0 && height > 0) {
-			editor.workspace.references.refitAll(tab.documentId, { width, height });
+			workspace.references.refitAll(tab.documentId, { width, height });
 		}
 	}
 
@@ -131,11 +142,11 @@
 	}
 
 	function handleAddTab() {
-		editor.workspace.addTab();
+		workspace.addTab();
 	}
 
 	function handleAddLayer() {
-		const tab = editor.workspace.activeTab;
+		const tab = workspace.activeTab;
 		const n = tab.document.next_layer_number();
 		tab.addLayer(m.layer_default_name({ n }));
 	}
@@ -150,7 +161,7 @@
 
 	function handleAddReferenceLayerRequest() {
 		if (isReferenceLayerImporting) return;
-		if (hasReferenceLayer(editor.workspace.activeTab)) {
+		if (hasReferenceLayer(workspace.activeTab)) {
 			modal.openRefReplace();
 			return;
 		}
@@ -158,89 +169,97 @@
 	}
 
 	function handleActivateLayer(id: string) {
-		editor.workspace.activeTab.setActiveLayer(id);
+		workspace.activeTab.setActiveLayer(id);
 	}
 
 	function handleSelectFrame(id: string) {
-		editor.workspace.activeTab.setActiveFrame(id);
+		workspace.activeTab.setActiveFrame(id);
 	}
 
 	function handleSelectCel(layerId: string, frameId: string) {
 		// A cel sits at the intersection of a layer and a frame, so selecting it
 		// moves both pointers. Both are persisted-UI (non-undoable) moves.
-		const tab = editor.workspace.activeTab;
+		const tab = workspace.activeTab;
 		tab.setActiveLayer(layerId);
 		tab.setActiveFrame(frameId);
 	}
 
 	function handleAddFrame() {
-		editor.workspace.activeTab.addFrame();
+		workspace.activeTab.addFrame();
 	}
 
 	function handleDuplicateFrame() {
-		editor.workspace.activeTab.duplicateFrame();
+		workspace.activeTab.duplicateFrame();
 	}
 
 	function handleRemoveFrame(id: string) {
-		editor.workspace.activeTab.removeFrame(id);
+		workspace.activeTab.removeFrame(id);
 	}
 
 	function handleReorderFrame(id: string, newIndex: number) {
-		editor.workspace.activeTab.reorderFrame(id, newIndex);
+		workspace.activeTab.reorderFrame(id, newIndex);
 	}
 
 	function handleSetFrameDuration(id: string, durationMs: number) {
-		editor.workspace.activeTab.setFrameDuration(id, durationMs);
+		workspace.activeTab.setFrameDuration(id, durationMs);
 	}
 
 	function handleTogglePlay() {
-		const tab = editor.workspace.activeTab;
+		const tab = workspace.activeTab;
 		if (tab.isPlaying) tab.stopPlayback();
 		else tab.startPlayback();
 	}
 
 	function handleToggleLoop() {
-		editor.workspace.activeTab.toggleLoop();
+		workspace.activeTab.toggleLoop();
 	}
 
 	function handleRemoveLayer(id: string) {
-		editor.workspace.activeTab.removeLayer(id);
+		workspace.activeTab.removeLayer(id);
 	}
 
 	function handleReorderLayer(id: string, newVisualIndex: number) {
-		editor.workspace.activeTab.reorderLayer(id, newVisualIndex);
+		workspace.activeTab.reorderLayer(id, newVisualIndex);
 	}
 
 	function handleToggleLayerVisibility(id: string, newVisible: boolean) {
-		editor.workspace.activeTab.setLayerVisibility(id, newVisible);
+		workspace.activeTab.setLayerVisibility(id, newVisible);
 	}
 
 	function handleFitReferenceLayerToCanvas(id: string) {
-		editor.workspace.activeTab.fitReferenceLayerToCanvas(id);
+		workspace.activeTab.fitReferenceLayerToCanvas(id);
 	}
 
 	function handleReferencePlacementCommit(placement: ReferencePlacement) {
-		const tab = editor.workspace.activeTab;
+		const tab = workspace.activeTab;
 		tab.setReferencePlacement(tab.document.active_layer_id(), placement);
 	}
 
 	function handleToggleTimelinePanelCollapsed() {
-		const tab = editor.workspace.activeTab;
+		const tab = workspace.activeTab;
 		tab.setTimelinePanelCollapsed(!tab.document.is_timeline_panel_collapsed());
 	}
 
 	function handlePixelPerfectToggle() {
 		if (pixelPerfectDisabled) return;
-		editor.togglePixelPerfect();
+		workspace.togglePixelPerfect();
+	}
+
+	function handleForegroundColorChange(hex: string) {
+		workspace.setForegroundColor(hexToColor(hex));
+	}
+
+	function handleBackgroundColorChange(hex: string) {
+		workspace.setBackgroundColor(hexToColor(hex));
 	}
 
 	async function closeTabImmediately(index: number) {
 		await session?.flush();
-		editor.workspace.closeTab(index);
+		workspace.closeTab(index);
 	}
 
 	async function handleCloseTab(index: number) {
-		const tab = editor.workspace.tabs[index];
+		const tab = workspace.tabs[index];
 		const isSaved = await session?.isDocumentSaved(tab.documentId) ?? false;
 
 		if (isSaved) {
@@ -260,23 +279,23 @@
 		const active = modal.active;
 		if (active?.kind !== 'save') return;
 		const closeIndex = active.tabIndex;
-		const tab = editor.workspace.tabs[closeIndex];
+		const tab = workspace.tabs[closeIndex];
 		const docId = tab.documentId;
 		await session?.flush();
 		await session?.saveDocumentAs(docId, name);
 		modal.close();
-		editor.workspace.closeTab(closeIndex);
+		workspace.closeTab(closeIndex);
 	}
 
 	async function handleSaveDialogDelete() {
 		const active = modal.active;
 		if (active?.kind !== 'save') return;
 		const closeIndex = active.tabIndex;
-		const tab = editor.workspace.tabs[closeIndex];
+		const tab = workspace.tabs[closeIndex];
 		const docId = tab.documentId;
 		modal.close();
-		editor.workspace.closeTab(closeIndex);
-		editor.workspace.references.removeDoc(docId);
+		workspace.closeTab(closeIndex);
+		workspace.references.removeDoc(docId);
 		await session?.deleteDocument(docId);
 	}
 
@@ -287,7 +306,7 @@
 	async function handleBrowseSavedWork() {
 		if (!session) return;
 		await session.flush();
-		const openIds = new Set(editor.workspace.tabs.map((t) => t.documentId));
+		const openIds = new Set(workspace.tabs.map((t) => t.documentId));
 		const docs = await session.getAllSavedDocuments();
 		modal.openSavedWork(docs.filter((d) => !openIds.has(d.id)));
 	}
@@ -304,7 +323,7 @@
 				modal.removeSavedWorkDoc(doc.id);
 				return;
 			}
-			editor.workspace.openSnapshot(snapshot);
+			workspace.openSnapshot(snapshot);
 			modal.close();
 		} finally {
 			const after = modal.active;
@@ -319,7 +338,7 @@
 		if (active?.kind === 'savedWork' && active.openingId === id) {
 			modal.setSavedWorkOpeningId(null);
 		}
-		editor.workspace.references.removeDoc(id);
+		workspace.references.removeDoc(id);
 		await session?.deleteDocument(id);
 		modal.removeSavedWorkDoc(id);
 	}
@@ -378,25 +397,25 @@
 	}
 
 	async function importToGallery(files: Iterable<File>): Promise<void> {
-		const docId = editor.workspace.activeTab.documentId;
-		const { errors } = await editor.workspace.references.importToGallery(files, docId);
+		const docId = workspace.activeTab.documentId;
+		const { errors } = await workspace.references.importToGallery(files, docId);
 		if (errors.length > 0) {
 			referenceErrors = [...referenceErrors, ...errors.map((e) => importErrorMessage(e.file, e.error))];
 		}
 	}
 
 	async function handleReferenceFileChange(event: Event) {
-		const input = event.currentTarget as HTMLInputElement;
-		const files = input.files;
+		const inputEl = event.currentTarget as HTMLInputElement;
+		const files = inputEl.files;
 		if (!files || files.length === 0) return;
 		await importToGallery(files);
-		input.value = '';
+		inputEl.value = '';
 	}
 
 	async function handleReferenceLayerFileChange(event: Event) {
-		const input = event.currentTarget as HTMLInputElement;
-		const file = input.files?.[0];
-		input.value = '';
+		const inputEl = event.currentTarget as HTMLInputElement;
+		const file = inputEl.files?.[0];
+		inputEl.value = '';
 		if (!file) return;
 
 		const displayName = referenceLayerDisplayName(file);
@@ -406,7 +425,7 @@
 			return;
 		}
 
-		const targetTab = editor.workspace.activeTab;
+		const targetTab = workspace.activeTab;
 		referenceLayerImport = { name: displayName };
 		try {
 			const decoded = await decodeReferenceBlob(file);
@@ -445,12 +464,12 @@
 	}
 
 	async function handleCanvasDrop(files: File[], dropX: number, dropY: number) {
-		const docId = editor.workspace.activeTab.documentId;
-		const { errors } = await editor.workspace.references.importDroppedBatch(
+		const docId = workspace.activeTab.documentId;
+		const { errors } = await workspace.references.importDroppedBatch(
 			files,
 			docId,
 			{ x: dropX, y: dropY },
-			editor.viewportSize
+			workspace.activeTab.viewportSize
 		);
 		if (errors.length > 0) {
 			referenceErrors = [...referenceErrors, ...errors.map((e) => importErrorMessage(e.file, e.error))];
@@ -458,19 +477,19 @@
 	}
 
 	function handleReferenceSelect(ref: ReferenceImage) {
-		const docId = editor.workspace.activeTab.documentId;
-		editor.workspace.references.openCentered(ref.id, docId, editor.viewportSize);
+		const docId = workspace.activeTab.documentId;
+		workspace.references.openCentered(ref.id, docId, workspace.activeTab.viewportSize);
 		handleCloseReferences();
 	}
 
 	function handleReferenceToggleDisplay(ref: ReferenceImage) {
-		const docId = editor.workspace.activeTab.documentId;
-		editor.workspace.references.toggleDisplay(ref.id, docId, editor.viewportSize);
+		const docId = workspace.activeTab.documentId;
+		workspace.references.toggleDisplay(ref.id, docId, workspace.activeTab.viewportSize);
 	}
 
 	async function handleReferenceDelete(id: string) {
-		const docId = editor.workspace.activeTab.documentId;
-		editor.workspace.references.delete(id, docId);
+		const docId = workspace.activeTab.documentId;
+		workspace.references.delete(id, docId);
 	}
 
 	function handleDismissReferenceError(index: number) {
@@ -483,7 +502,7 @@
 	let lastReferenceScreen: { x: number; y: number } | null = null;
 	function pushReferencePointer(event: PointerEvent) {
 		lastReferenceScreen = { x: event.clientX, y: event.clientY };
-		editor.referenceSamplingSession.updatePointer({
+		workspace.activeTab.referenceSamplingSession.updatePointer({
 			screen: lastReferenceScreen,
 			viewport: { width: window.innerWidth, height: window.innerHeight }
 		});
@@ -491,7 +510,7 @@
 
 	function handleWindowResize() {
 		if (!lastReferenceScreen) return;
-		editor.referenceSamplingSession.updatePointer({
+		workspace.activeTab.referenceSamplingSession.updatePointer({
 			screen: lastReferenceScreen,
 			viewport: { width: window.innerWidth, height: window.innerHeight }
 		});
@@ -499,12 +518,12 @@
 
 	function handleEditorKeyDown(event: KeyboardEvent) {
 		if (modal.isOpen) return;
-		editor.handleKeyDown(event);
+		input.handleKeyDown(event);
 	}
 
 	function handleEditorKeyUp(event: KeyboardEvent) {
 		if (modal.isOpen) return;
-		editor.handleKeyUp(event);
+		input.handleKeyUp(event);
 	}
 
 	onMount(() => {
@@ -512,7 +531,7 @@
 		const sessionStart = Date.now();
 
 		// Expose the async-restore phase so E2E can await a deterministic
-		// ready state. The initial controller above is a transient default
+		// ready state. The initial session above is a transient default
 		// that `openSession` replaces once IDB restore resolves; asserting
 		// on persisted state before the swap would race.
 		document.documentElement.dataset.sessionState = 'loading';
@@ -521,9 +540,10 @@
 			gridColor: '#ECE5D9',
 			foregroundColor: { r: 0, g: 0, b: 0, a: 255 }
 		}).then((result) => {
-			editor = result.editor;
+			workspace = result.workspace;
+			input = result.input;
 			session = result.session;
-			for (const tab of editor.workspace.tabs) {
+			for (const tab of workspace.tabs) {
 				fittedTabs.add(tab);
 			}
 			document.documentElement.dataset.sessionState = 'restored';
@@ -541,7 +561,7 @@
 
 	let prevTool: string | undefined;
 	$effect(() => {
-		const tool = editor.activeTool;
+		const tool = workspace.shared.activeTool;
 		if (prevTool !== undefined && prevTool !== tool) {
 			trackToolUsage(tool);
 		}
@@ -550,7 +570,7 @@
 
 	// Sync viewport size when active tab changes
 	$effect(() => {
-		const currentTab = editor.workspace.activeTab;
+		const currentTab = workspace.activeTab;
 		if (!canvasContainerEl) return;
 		const rect = canvasContainerEl.getBoundingClientRect();
 		const w = Math.round(rect.width);
@@ -573,31 +593,31 @@
 			const { width, height } = entry.contentRect;
 			const w = Math.round(width);
 			const h = Math.round(height);
-			initTabViewport(editor.workspace.activeTab, w, h);
+			initTabViewport(workspace.activeTab, w, h);
 		});
 		ro.observe(canvasContainerEl);
 		return () => ro.disconnect();
 	});
 
 	function handleResize(w: number, h: number) {
-		editor.handleResize(w, h);
+		workspace.activeTab.resize(w, h);
 		trackCanvasSize(w, h);
 	}
 
 	function handleExportConfirm(format: ExportFormat, filenameStem: string) {
 		const { width, height } = exportAs(format, filenameStem, {
-			still: () => editor.exportableSnapshot(),
-			document: () => editor.document
+			still: () => workspace.activeTab.exportableSnapshot(),
+			document: () => workspace.activeTab.document
 		});
 		trackExport(width, height, format.id);
-		editor.workspace.activeTab.isExportUIOpen = false;
+		workspace.activeTab.isExportUIOpen = false;
 	}
 </script>
 
 <svelte:window
 	onkeydown={handleEditorKeyDown}
 	onkeyup={handleEditorKeyUp}
-	onblur={editor.handleBlur}
+	onblur={input.handleBlur}
 	onbeforeunload={flushSession}
 	onpointerdown={pushReferencePointer}
 	onpointermove={pushReferencePointer}
@@ -607,20 +627,20 @@
 {#if layout.isDocked}
 	<div class="editor-docked">
 		<TopBar
-			zoomPercent={editor.zoomPercent}
-			showGrid={editor.viewport.showGrid}
-			pixelPerfect={editor.pixelPerfect}
+			zoomPercent={workspace.activeTab.zoomPercent}
+			showGrid={workspace.activeTab.viewport.showGrid}
+			pixelPerfect={workspace.shared.pixelPerfect}
 			pixelPerfectDisabled={pixelPerfectDisabled}
-			isExportOpen={editor.isExportUIOpen}
-			canvasWidth={editor.canvasWidth}
-			canvasHeight={editor.canvasHeight}
-			onZoomIn={editor.handleZoomIn}
-			onZoomOut={editor.handleZoomOut}
-			onZoomReset={editor.handleZoomReset}
-			onFit={editor.handleFit}
-			onGridToggle={editor.handleGridToggle}
+			isExportOpen={workspace.activeTab.isExportUIOpen}
+			canvasWidth={workspace.activeTab.canvasWidth}
+			canvasHeight={workspace.activeTab.canvasHeight}
+			onZoomIn={() => workspace.activeTab.zoomIn()}
+			onZoomOut={() => workspace.activeTab.zoomOut()}
+			onZoomReset={() => workspace.activeTab.zoomReset()}
+			onFit={() => workspace.activeTab.zoomFit()}
+			onGridToggle={() => workspace.activeTab.toggleGrid()}
 			onPixelPerfectToggle={handlePixelPerfectToggle}
-			onExportToggle={editor.toggleExportUI}
+			onExportToggle={() => workspace.activeTab.toggleExportUI()}
 			onExportConfirm={handleExportConfirm}
 			onBrowseSavedWork={handleBrowseSavedWork}
 			isSavedWorkOpen={activeModal?.kind === 'savedWork'}
@@ -629,22 +649,22 @@
 		/>
 
 		<TabStrip
-			tabs={editor.workspace.tabs}
-			activeTabIndex={editor.workspace.activeIndex}
-			onTabClick={(i) => editor.workspace.setActiveTab(i)}
+			tabs={workspace.tabs}
+			activeTabIndex={workspace.activeIndex}
+			onTabClick={(i) => workspace.setActiveTab(i)}
 			onTabClose={handleCloseTab}
 			onNewTab={handleAddTab}
 		/>
 
 		<LeftToolbar
-			activeTool={editor.activeTool}
-			canUndo={editor.canUndo}
-			canRedo={editor.canRedo}
-			constrainActive={editor.isConstrainActive}
-			onToolChange={(tool) => editor.setTool(tool)}
-			onUndo={editor.handleUndo}
-			onRedo={editor.handleRedo}
-			onToggleConstrain={editor.toggleConstrain}
+			activeTool={workspace.shared.activeTool}
+			canUndo={workspace.activeTab.canUndo}
+			canRedo={workspace.activeTab.canRedo}
+			constrainActive={input.isConstrainActive}
+			onToolChange={(tool) => workspace.setActiveTool(tool)}
+			onUndo={() => workspace.activeTab.undo()}
+			onRedo={() => workspace.activeTab.redo()}
+			onToggleConstrain={input.toggleConstrain}
 		/>
 
 		<div
@@ -653,51 +673,52 @@
 			use:canvasDropzone={{ onFilesDropped: handleCanvasDrop }}
 		>
 			<PixelCanvasView
-				pixelCanvas={editor.compositeBuffer}
-				referenceLayerUnderlay={editor.referenceLayerUnderlay}
-				onionSkinGhosts={editor.onionSkinProjection}
-				marquee={editor.marquee}
-				floatingSelectionOffset={editor.floatingSelectionOffset}
+				pixelCanvas={workspace.activeTab.compositeBuffer}
+				referenceLayerUnderlay={workspace.activeTab.referenceLayerUnderlay}
+				onionSkinGhosts={workspace.activeTab.onionSkinProjection}
+				marquee={workspace.activeTab.marquee}
+				floatingSelectionOffset={workspace.activeTab.floatingSelectionOffset}
 				isReferenceLayerActive={isReferenceLayerActive}
-				viewport={editor.viewport}
-				viewportSize={editor.viewportSize}
-				renderVersion={editor.renderVersion}
-				onDraw={editor.handleDraw}
-				onDrawStart={editor.handleDrawStart}
-				onDrawEnd={editor.handleDrawEnd}
-				onDrawCancel={editor.handleDrawCancel}
-				onViewportChange={editor.handleViewportChange}
-				onSampleStart={editor.handleSampleStart}
-				onSampleUpdate={editor.handleSampleUpdate}
-				onSampleEnd={editor.handleSampleEnd}
-				onSampleCancel={editor.handleSampleCancel}
+				viewport={workspace.activeTab.viewport}
+				viewportSize={workspace.activeTab.viewportSize}
+				renderVersion={workspace.activeTab.renderVersion}
+				onDraw={input.handleDraw}
+				onDrawStart={input.handleDrawStart}
+				onDrawEnd={input.handleDrawEnd}
+				onDrawCancel={input.handleDrawCancel}
+				onViewportChange={(vp) => workspace.activeTab.setViewport(vp)}
+				onSampleStart={input.handleSampleStart}
+				onSampleUpdate={input.handleSampleUpdate}
+				onSampleEnd={input.handleSampleEnd}
+				onSampleCancel={input.handleSampleCancel}
 				onReferencePlacementCommit={handleReferencePlacementCommit}
-				canPasteSelection={editor.canPasteSelection}
-				onCopySelection={editor.copySelection}
-				onCutSelection={editor.cutSelection}
-				onPasteSelectionClipboard={editor.pasteSelectionClipboard}
-				onDeleteMarqueePixels={editor.deleteMarqueePixels}
-				onClearMarqueeOrFloating={editor.clearMarqueeOrFloating}
-				onCommitFloatingSelection={editor.commitFloatingSelection}
-				onDuplicateFloatingSelection={editor.duplicateFloatingSelection}
-				onFlipHorizontal={editor.handleFlipMarqueeHorizontal}
-				onFlipVertical={editor.handleFlipMarqueeVertical}
-				onRotateCw={editor.handleRotateMarqueeCw}
-				onRotateCcw={editor.handleRotateMarqueeCcw}
-				activeTool={editor.activeTool}
-				toolCursor={editor.toolCursor}
-				isSpaceHeld={editor.isSpaceHeld}
-				samplingSession={editor.samplingSession}
+				canPasteSelection={canPasteSelection}
+				onCopySelection={() => workspace.copySelection()}
+				onCutSelection={() => workspace.cutSelection()}
+				onPasteSelectionClipboard={() => workspace.pasteSelectionClipboard()}
+				onDeleteMarqueePixels={() => workspace.activeTab.clearMarqueePixels()}
+				onClearMarqueeOrFloating={() => workspace.activeTab.clearMarqueeOrFloating()}
+				onCommitFloatingSelection={() => workspace.activeTab.commitFloatingSelection()}
+				onDuplicateFloatingSelection={() => workspace.activeTab.duplicateFloatingSelection()}
+				onFlipHorizontal={() => workspace.activeTab.flipMarqueeHorizontal()}
+				onFlipVertical={() => workspace.activeTab.flipMarqueeVertical()}
+				onRotateCw={() => workspace.activeTab.rotateMarqueeCw()}
+				onRotateCcw={() => workspace.activeTab.rotateMarqueeCcw()}
+				activeTool={workspace.shared.activeTool}
+				toolCursor={toolCursor}
+				isSpaceHeld={input.isSpaceHeld}
+				samplingSession={workspace.activeTab.samplingSession}
 			/>
 			<ReferenceWindowOverlay
-				store={editor.workspace.references}
-				docId={editor.workspace.activeTab.documentId}
-				viewportWidth={editor.viewportSize.width}
-				viewportHeight={editor.viewportSize.height}
-				quickSamplingEnabled={editor.activeTool === 'eyedropper'}
-				onSampleStart={editor.handleReferenceSampleStart}
-				onSampleMove={editor.handleReferenceSampleMove}
-				onSampleEnd={editor.handleReferenceSampleEnd}
+				store={workspace.references}
+				docId={workspace.activeTab.documentId}
+				viewportWidth={workspace.activeTab.viewportSize.width}
+				viewportHeight={workspace.activeTab.viewportSize.height}
+				quickSamplingEnabled={workspace.shared.activeTool === 'eyedropper'}
+				onSampleStart={(blob, imageX, imageY, inputSource) =>
+					void workspace.activeTab.referenceSampleStart(blob, imageX, imageY, inputSource)}
+				onSampleMove={(imageX, imageY) => workspace.activeTab.referenceSampleMove(imageX, imageY)}
+				onSampleEnd={() => workspace.activeTab.referenceSampleEnd()}
 			/>
 		</div>
 
@@ -715,11 +736,11 @@
 			onSetFrameDuration={handleSetFrameDuration}
 			isPlaying={isPlaying}
 			isLooping={isLooping}
-			showOnionSkin={editor.viewport.showOnionSkin}
+			showOnionSkin={workspace.activeTab.viewport.showOnionSkin}
 			playheadFrameId={playheadFrameId}
 			onTogglePlay={handleTogglePlay}
 			onToggleLoop={handleToggleLoop}
-			onToggleOnionSkin={editor.handleOnionSkinToggle}
+			onToggleOnionSkin={() => workspace.activeTab.toggleOnionSkin()}
 			collapsed={isTimelinePanelCollapsed}
 			onAddLayer={handleAddLayer}
 			onAddReferenceLayer={handleAddReferenceLayerRequest}
@@ -734,54 +755,54 @@
 		/>
 
 		<RightPanel
-			foregroundColor={editor.foregroundColorHex}
-			backgroundColor={editor.backgroundColorHex}
-			recentColors={editor.recentColors}
-			canvasWidth={editor.canvasWidth}
-			canvasHeight={editor.canvasHeight}
-			resizeAnchor={editor.resizeAnchor}
-			onForegroundColorChange={editor.handleForegroundColorChange}
-			onBackgroundColorChange={editor.handleBackgroundColorChange}
-			onSwapColors={editor.swapColors}
+			foregroundColor={foregroundColorHex}
+			backgroundColor={backgroundColorHex}
+			recentColors={workspace.shared.recentColors}
+			canvasWidth={workspace.activeTab.canvasWidth}
+			canvasHeight={workspace.activeTab.canvasHeight}
+			resizeAnchor={workspace.activeTab.resizeAnchor}
+			onForegroundColorChange={handleForegroundColorChange}
+			onBackgroundColorChange={handleBackgroundColorChange}
+			onSwapColors={() => workspace.swapColors()}
 			onResize={handleResize}
-			onClear={editor.handleClear}
-			onAnchorChange={(anchor) => editor.workspace.setActiveResizeAnchor(anchor)}
-			onFlipCanvasHorizontal={editor.handleFlipCanvasHorizontal}
-			onFlipCanvasVertical={editor.handleFlipCanvasVertical}
-			onRotateCanvasCw={editor.handleRotateCanvasCw}
-			onRotateCanvasCcw={editor.handleRotateCanvasCcw}
+			onClear={() => workspace.activeTab.clear()}
+			onAnchorChange={(anchor) => workspace.setActiveResizeAnchor(anchor)}
+			onFlipCanvasHorizontal={() => workspace.activeTab.flipCanvasHorizontal()}
+			onFlipCanvasVertical={() => workspace.activeTab.flipCanvasVertical()}
+			onRotateCanvasCw={() => workspace.activeTab.rotateCanvasCw()}
+			onRotateCanvasCcw={() => workspace.activeTab.rotateCanvasCcw()}
 		/>
 
 		<StatusBar
-			canvasWidth={editor.canvasWidth}
-			canvasHeight={editor.canvasHeight}
-			activeTool={editor.activeTool}
+			canvasWidth={workspace.activeTab.canvasWidth}
+			canvasHeight={workspace.activeTab.canvasHeight}
+			activeTool={workspace.shared.activeTool}
 			layoutMode={layout.mode}
-			marquee={editor.marquee}
+			marquee={workspace.activeTab.marquee}
 		/>
 	</div>
 {:else}
 	<div class="editor-tabs">
 		<AppBar
 			activeTab={activeTab}
-			showGrid={editor.viewport.showGrid}
-			pixelPerfect={editor.pixelPerfect}
+			showGrid={workspace.activeTab.viewport.showGrid}
+			pixelPerfect={workspace.shared.pixelPerfect}
 			pixelPerfectDisabled={pixelPerfectDisabled}
-			zoomPercent={editor.zoomPercent}
-			onGridToggle={editor.handleGridToggle}
+			zoomPercent={workspace.activeTab.zoomPercent}
+			onGridToggle={() => workspace.activeTab.toggleGrid()}
 			onPixelPerfectToggle={handlePixelPerfectToggle}
-			onExport={editor.toggleExportUI}
-			onZoomIn={editor.handleZoomIn}
-			onZoomOut={editor.handleZoomOut}
-			onZoomReset={editor.handleZoomReset}
+			onExport={() => workspace.activeTab.toggleExportUI()}
+			onZoomIn={() => workspace.activeTab.zoomIn()}
+			onZoomOut={() => workspace.activeTab.zoomOut()}
+			onZoomReset={() => workspace.activeTab.zoomReset()}
 			onBrowseSavedWork={handleBrowseSavedWork}
 			onOpenReferences={handleOpenReferences}
 		/>
 
 		<TabStrip
-			tabs={editor.workspace.tabs}
-			activeTabIndex={editor.workspace.activeIndex}
-			onTabClick={(i) => editor.workspace.setActiveTab(i)}
+			tabs={workspace.tabs}
+			activeTabIndex={workspace.activeIndex}
+			onTabClick={(i) => workspace.setActiveTab(i)}
 			onTabClose={handleCloseTab}
 			onNewTab={handleAddTab}
 		/>
@@ -794,105 +815,106 @@
 					use:canvasDropzone={{ onFilesDropped: handleCanvasDrop }}
 				>
 					<PixelCanvasView
-						pixelCanvas={editor.compositeBuffer}
-						referenceLayerUnderlay={editor.referenceLayerUnderlay}
-						onionSkinGhosts={editor.onionSkinProjection}
-						marquee={editor.marquee}
-						floatingSelectionOffset={editor.floatingSelectionOffset}
+						pixelCanvas={workspace.activeTab.compositeBuffer}
+						referenceLayerUnderlay={workspace.activeTab.referenceLayerUnderlay}
+						onionSkinGhosts={workspace.activeTab.onionSkinProjection}
+						marquee={workspace.activeTab.marquee}
+						floatingSelectionOffset={workspace.activeTab.floatingSelectionOffset}
 						isReferenceLayerActive={isReferenceLayerActive}
-						viewport={editor.viewport}
-						viewportSize={editor.viewportSize}
-						renderVersion={editor.renderVersion}
-						onDraw={editor.handleDraw}
-						onDrawStart={editor.handleDrawStart}
-						onDrawEnd={editor.handleDrawEnd}
-						onDrawCancel={editor.handleDrawCancel}
-						onViewportChange={editor.handleViewportChange}
-						onSampleStart={editor.handleSampleStart}
-						onSampleUpdate={editor.handleSampleUpdate}
-						onSampleEnd={editor.handleSampleEnd}
-						onSampleCancel={editor.handleSampleCancel}
+						viewport={workspace.activeTab.viewport}
+						viewportSize={workspace.activeTab.viewportSize}
+						renderVersion={workspace.activeTab.renderVersion}
+						onDraw={input.handleDraw}
+						onDrawStart={input.handleDrawStart}
+						onDrawEnd={input.handleDrawEnd}
+						onDrawCancel={input.handleDrawCancel}
+						onViewportChange={(vp) => workspace.activeTab.setViewport(vp)}
+						onSampleStart={input.handleSampleStart}
+						onSampleUpdate={input.handleSampleUpdate}
+						onSampleEnd={input.handleSampleEnd}
+						onSampleCancel={input.handleSampleCancel}
 						onReferencePlacementCommit={handleReferencePlacementCommit}
-						canPasteSelection={editor.canPasteSelection}
-						onCopySelection={editor.copySelection}
-						onCutSelection={editor.cutSelection}
-						onPasteSelectionClipboard={editor.pasteSelectionClipboard}
-						onDeleteMarqueePixels={editor.deleteMarqueePixels}
-						onClearMarqueeOrFloating={editor.clearMarqueeOrFloating}
-						onCommitFloatingSelection={editor.commitFloatingSelection}
-						onDuplicateFloatingSelection={editor.duplicateFloatingSelection}
-						onFlipHorizontal={editor.handleFlipMarqueeHorizontal}
-						onFlipVertical={editor.handleFlipMarqueeVertical}
-						onRotateCw={editor.handleRotateMarqueeCw}
-						onRotateCcw={editor.handleRotateMarqueeCcw}
-						activeTool={editor.activeTool}
-						toolCursor={editor.toolCursor}
-						isSpaceHeld={editor.isSpaceHeld}
-						samplingSession={editor.samplingSession}
+						canPasteSelection={canPasteSelection}
+						onCopySelection={() => workspace.copySelection()}
+						onCutSelection={() => workspace.cutSelection()}
+						onPasteSelectionClipboard={() => workspace.pasteSelectionClipboard()}
+						onDeleteMarqueePixels={() => workspace.activeTab.clearMarqueePixels()}
+						onClearMarqueeOrFloating={() => workspace.activeTab.clearMarqueeOrFloating()}
+						onCommitFloatingSelection={() => workspace.activeTab.commitFloatingSelection()}
+						onDuplicateFloatingSelection={() => workspace.activeTab.duplicateFloatingSelection()}
+						onFlipHorizontal={() => workspace.activeTab.flipMarqueeHorizontal()}
+						onFlipVertical={() => workspace.activeTab.flipMarqueeVertical()}
+						onRotateCw={() => workspace.activeTab.rotateMarqueeCw()}
+						onRotateCcw={() => workspace.activeTab.rotateMarqueeCcw()}
+						activeTool={workspace.shared.activeTool}
+						toolCursor={toolCursor}
+						isSpaceHeld={input.isSpaceHeld}
+						samplingSession={workspace.activeTab.samplingSession}
 					/>
 					<ReferenceWindowOverlay
-						store={editor.workspace.references}
-						docId={editor.workspace.activeTab.documentId}
-						viewportWidth={editor.viewportSize.width}
-						viewportHeight={editor.viewportSize.height}
-						quickSamplingEnabled={editor.activeTool === 'eyedropper'}
-						onSampleStart={editor.handleReferenceSampleStart}
-						onSampleMove={editor.handleReferenceSampleMove}
-						onSampleEnd={editor.handleReferenceSampleEnd}
+						store={workspace.references}
+						docId={workspace.activeTab.documentId}
+						viewportWidth={workspace.activeTab.viewportSize.width}
+						viewportHeight={workspace.activeTab.viewportSize.height}
+						quickSamplingEnabled={workspace.shared.activeTool === 'eyedropper'}
+						onSampleStart={(blob, imageX, imageY, inputSource) =>
+					void workspace.activeTab.referenceSampleStart(blob, imageX, imageY, inputSource)}
+						onSampleMove={(imageX, imageY) => workspace.activeTab.referenceSampleMove(imageX, imageY)}
+						onSampleEnd={() => workspace.activeTab.referenceSampleEnd()}
 					/>
 				</div>
 			{:else if activeTab === 'colors'}
 				<ColorsContent
-					foregroundColor={editor.foregroundColorHex}
-					backgroundColor={editor.backgroundColorHex}
-					onForegroundColorChange={editor.handleForegroundColorChange}
-					onBackgroundColorChange={editor.handleBackgroundColorChange}
-					onSwapColors={editor.swapColors}
+					foregroundColor={foregroundColorHex}
+					backgroundColor={backgroundColorHex}
+					onForegroundColorChange={handleForegroundColorChange}
+					onBackgroundColorChange={handleBackgroundColorChange}
+					onSwapColors={() => workspace.swapColors()}
 				/>
 			{:else}
 				<SettingsContent
-					canvasWidth={editor.canvasWidth}
-					canvasHeight={editor.canvasHeight}
-					showGrid={editor.viewport.showGrid}
-					resizeAnchor={editor.resizeAnchor}
+					canvasWidth={workspace.activeTab.canvasWidth}
+					canvasHeight={workspace.activeTab.canvasHeight}
+					showGrid={workspace.activeTab.viewport.showGrid}
+					resizeAnchor={workspace.activeTab.resizeAnchor}
 					onResize={handleResize}
-					onExport={editor.toggleExportUI}
-					onClear={editor.handleClear}
-					onGridToggle={editor.handleGridToggle}
-					onAnchorChange={(anchor) => editor.workspace.setActiveResizeAnchor(anchor)}
-					onFlipCanvasHorizontal={editor.handleFlipCanvasHorizontal}
-					onFlipCanvasVertical={editor.handleFlipCanvasVertical}
-					onRotateCanvasCw={editor.handleRotateCanvasCw}
-					onRotateCanvasCcw={editor.handleRotateCanvasCcw}
+					onExport={() => workspace.activeTab.toggleExportUI()}
+					onClear={() => workspace.activeTab.clear()}
+					onGridToggle={() => workspace.activeTab.toggleGrid()}
+					onAnchorChange={(anchor) => workspace.setActiveResizeAnchor(anchor)}
+					onFlipCanvasHorizontal={() => workspace.activeTab.flipCanvasHorizontal()}
+					onFlipCanvasVertical={() => workspace.activeTab.flipCanvasVertical()}
+					onRotateCanvasCw={() => workspace.activeTab.rotateCanvasCw()}
+					onRotateCanvasCcw={() => workspace.activeTab.rotateCanvasCcw()}
 				/>
 			{/if}
 		</div>
 
 		<StatusBar
-			canvasWidth={editor.canvasWidth}
-			canvasHeight={editor.canvasHeight}
-			activeTool={editor.activeTool}
+			canvasWidth={workspace.activeTab.canvasWidth}
+			canvasHeight={workspace.activeTab.canvasHeight}
+			activeTool={workspace.shared.activeTool}
 			layoutMode={layout.mode}
-			marquee={editor.marquee}
+			marquee={workspace.activeTab.marquee}
 			includeBottomSafeArea={false}
 		/>
 
 		{#if activeTab === 'draw'}
 			<ToolStrip
-				activeTool={editor.activeTool}
-				canUndo={editor.canUndo}
-				canRedo={editor.canRedo}
-				constrainActive={editor.isConstrainActive}
-				onToolChange={(tool) => editor.setTool(tool)}
-				onUndo={editor.handleUndo}
-				onRedo={editor.handleRedo}
-				onToggleConstrain={editor.toggleConstrain}
+				activeTool={workspace.shared.activeTool}
+				canUndo={workspace.activeTab.canUndo}
+				canRedo={workspace.activeTab.canRedo}
+				constrainActive={input.isConstrainActive}
+				onToolChange={(tool) => workspace.setActiveTool(tool)}
+				onUndo={() => workspace.activeTab.undo()}
+				onRedo={() => workspace.activeTab.redo()}
+				onToggleConstrain={input.toggleConstrain}
 			/>
 			<ColorBar
-				foregroundColor={editor.foregroundColorHex}
-				backgroundColor={editor.backgroundColorHex}
-				recentColors={editor.recentColors}
-				onForegroundColorChange={editor.handleForegroundColorChange}
+				foregroundColor={foregroundColorHex}
+				backgroundColor={backgroundColorHex}
+				recentColors={workspace.shared.recentColors}
+				onForegroundColorChange={handleForegroundColorChange}
 			/>
 		{:else if activeTab === 'layers'}
 			<TimelinePanel
@@ -909,11 +931,11 @@
 				onSetFrameDuration={handleSetFrameDuration}
 				isPlaying={isPlaying}
 				isLooping={isLooping}
-				showOnionSkin={editor.viewport.showOnionSkin}
+				showOnionSkin={workspace.activeTab.viewport.showOnionSkin}
 				playheadFrameId={playheadFrameId}
 				onTogglePlay={handleTogglePlay}
 				onToggleLoop={handleToggleLoop}
-				onToggleOnionSkin={editor.handleOnionSkinToggle}
+				onToggleOnionSkin={() => workspace.activeTab.toggleOnionSkin()}
 				collapsed={false}
 				onAddLayer={handleAddLayer}
 				onAddReferenceLayer={handleAddReferenceLayerRequest}
@@ -934,10 +956,10 @@
 		/>
 
 		<ExportBottomSheet
-			open={editor.isExportUIOpen}
-			canvasWidth={editor.canvasWidth}
-			canvasHeight={editor.canvasHeight}
-			onOpenChange={(isOpen) => (editor.workspace.activeTab.isExportUIOpen = isOpen)}
+			open={workspace.activeTab.isExportUIOpen}
+			canvasWidth={workspace.activeTab.canvasWidth}
+			canvasHeight={workspace.activeTab.canvasHeight}
+			onOpenChange={(isOpen) => (workspace.activeTab.isExportUIOpen = isOpen)}
 			onExport={handleExportConfirm}
 		/>
 
@@ -965,10 +987,10 @@
 	</div>
 {/if}
 
-{#if editor.referenceSamplingSession.position}
+{#if workspace.activeTab.referenceSamplingSession.position}
 	<Loupe
-		grid={editor.referenceSamplingSession.grid}
-		position={editor.referenceSamplingSession.position}
+		grid={workspace.activeTab.referenceSamplingSession.grid}
+		position={workspace.activeTab.referenceSamplingSession.position}
 	/>
 {/if}
 
@@ -1040,7 +1062,7 @@
 
 {#if activeModal?.kind === 'save'}
 	<SaveDialog
-		documentName={editor.workspace.tabs[activeModal.tabIndex].name}
+		documentName={workspace.tabs[activeModal.tabIndex].name}
 		onSave={handleSaveDialogSave}
 		onDelete={handleSaveDialogDelete}
 		onCancel={handleSaveDialogCancel}

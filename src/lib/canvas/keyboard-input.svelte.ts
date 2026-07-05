@@ -51,7 +51,7 @@ export interface KeyboardInput {
 	readonly isShortcutHintsVisible: boolean;
 
 	/**
-	 * Called by EditorController when a draw stroke ends or is canceled to restore a temporary tool switch.
+	 * Called by the Input Pipeline when a draw stroke ends or is canceled to restore a temporary tool switch.
 	 * Returns the tool to restore, or null if no restoration is needed.
 	 * Consumes the internal state — subsequent calls return null until the next temporary switch.
 	 */

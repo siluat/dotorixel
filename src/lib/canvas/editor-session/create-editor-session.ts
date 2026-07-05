@@ -3,10 +3,10 @@ import type { WorkspaceSnapshot } from '../workspace-snapshot';
 import { createKeyboardInput, type KeyboardInput } from '../keyboard-input.svelte';
 import { ConstrainLatch } from '../constrain-latch.svelte';
 import type { DirtyNotifier } from './dirty-notifier';
-import { EditorController } from './editor-controller.svelte';
+import { InputPipeline } from './input-pipeline.svelte';
 import { Workspace } from './workspace.svelte';
 
-export interface CreateEditorControllerOptions {
+export interface CreateEditorSessionOptions {
 	readonly notifier: DirtyNotifier;
 	readonly gridColor?: string;
 	readonly initialForegroundColor?: Color;
@@ -15,16 +15,17 @@ export interface CreateEditorControllerOptions {
 
 /**
  * Composition root for the editor session. Assembles `Workspace`,
- * `KeyboardInput`, and `EditorController` with the correct port bindings.
+ * `KeyboardInput`, and `InputPipeline` with the correct port bindings.
  *
  * The keyboard ↔ tool-runner circular reference is resolved by forward-
  * declaring `workspaceRef` and closing over it inside the keyboard host
  * callbacks. Callbacks fire only in response to user input, by which point
  * `workspaceRef` has been assigned — no ordering issue surfaces at runtime.
  */
-export function createEditorController(
-	options: CreateEditorControllerOptions
-): EditorController {
+export function createEditorSession(options: CreateEditorSessionOptions): {
+	workspace: Workspace;
+	input: InputPipeline;
+} {
 	let workspaceRef: Workspace | null = null;
 
 	const constrainLatch = new ConstrainLatch();
@@ -58,5 +59,5 @@ export function createEditorController(
 	});
 	workspaceRef = workspace;
 
-	return new EditorController(workspace, keyboard, constrainLatch);
+	return { workspace, input: new InputPipeline(workspace, keyboard, constrainLatch) };
 }

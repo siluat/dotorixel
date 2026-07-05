@@ -1,6 +1,6 @@
 ---
 title: "Collapse EditorController into an Input Pipeline module"
-status: ready-for-agent
+status: done
 created: 2026-07-05
 ---
 
@@ -151,3 +151,47 @@ None — can start immediately.
   unification in the same PR; adapters inlined at usage site; name "Input
   Pipeline"; flat 3-field session return; documentation-only enforcement;
   replace-don't-layer test strategy.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/editor-session/input-pipeline.svelte.ts` | New `InputPipeline` — exactly the 16 spec'd members, every one carrying policy; closed-scope doc; `#`-private deps |
+| `src/lib/canvas/editor-session/input-pipeline.svelte.test.ts` | 9 behavior tests: hints gate both edges (draw + canvas sampling), restore on drawEnd/drawCancel, Constrain parity mid-stroke (pixel-level), keyboard projections/blur |
+| `src/lib/canvas/editor-session/create-editor-session.ts` | Composition root returning `{ workspace, input }`; keyboard↔tool-runner cycle and Shift‖latch OR-combine unchanged inside |
+| `src/lib/canvas/editor-session/create-editor-session.test.ts` | 5 wiring tests: OR-combine both sources, shortcut routing, instance wiring, latch session-transience (snapshot-restore regression port) |
+| `src/lib/canvas/editor-session/editor-controller.svelte.ts` | Deleted (377 lines) |
+| `src/lib/canvas/editor-session/editor-controller.svelte.test.ts` | Deleted (681 lines) |
+| `src/lib/canvas/editor-session/create-editor-controller.ts` | Deleted (62 lines) |
+| `src/lib/session/session.ts` | `openSession` returns flat `{ workspace, input, session }`; autosave closure narrowed to `workspaceRef.toSnapshot()`; stale controller mentions rewritten |
+| `src/lib/session/session.test.ts` | Handles renamed to the new return shape |
+| `src/routes/editor/+page.svelte` | All reads/commands bind `workspace.shared` / `workspace.activeTab`; only draw/sample/keyboard/Constrain bind `input.*`; hex / toolCursor / canPasteSelection adapters inlined as `$derived`s |
+| `src/lib/canvas/keyboard-input.svelte.ts` | Doc comment: `EditorController` → Input Pipeline |
+| `CONTEXT.md` | Input Pipeline registered under new `### Input` section |
+
+### Key Decisions
+
+- `InputPipeline` holds its deps as `#`-private fields: reach-through via
+  `input.workspace` is structurally unrepresentable, one step past the
+  documentation-only enforcement the issue required.
+- Template binding rule: `input.*` handlers direct-bound (stable arrow
+  fields); every other command is an inline `() => workspace…` arrow, so
+  member style changes on Workspace/TabState can never break `this`-binding.
+- The old spy-based Constrain-parity test was replaced by a pixel-outcome
+  test at the new interface (spec over implementation).
+
+### Notes
+
+- Incidental contract cleanup: TopBar's `onclick={onFit}` used to flow a
+  MouseEvent into `handleFit(maxZoom)` (harmless — NaN is ignored by the
+  downstream fit clamp); the new `() => zoomFit()` binding matches the
+  declared no-arg contract.
+- "Restore fires on drawEnd/drawCancel while hints are visible" is
+  unreachable by construction (Slash is blocked mid-stroke; Alt-up while not
+  drawing restores immediately) — satisfied by gate placement: end/cancel
+  stay ungated.
+- `isShortcutHintsVisible` has no live UI consumer (the hints overlay UI
+  exists only in legacy story-only components); it remains as the admission
+  gate's observable state.
+- Verification: unit 93 files / 1,616 tests, `svelte-check` 0 errors,
+  e2e 110/110 (editor 89 + landing 21). Net ≈ −600 lines.

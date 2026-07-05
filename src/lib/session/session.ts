@@ -1,8 +1,9 @@
 import type { Color } from '$lib/canvas/color';
 import type { TabSnapshot } from '$lib/canvas/workspace-snapshot';
 import { createAutoSaveDirtyNotifier } from '$lib/canvas/editor-session/dirty-notifier';
-import { createEditorController } from '$lib/canvas/editor-session/create-editor-controller';
-import type { EditorController } from '$lib/canvas/editor-session/editor-controller.svelte';
+import { createEditorSession } from '$lib/canvas/editor-session/create-editor-session';
+import type { InputPipeline } from '$lib/canvas/editor-session/input-pipeline.svelte';
+import type { Workspace } from '$lib/canvas/editor-session/workspace.svelte';
 import { SessionStorage } from './session-storage';
 import { SessionPersistence } from './session-persistence';
 import { AutoSave } from './auto-save';
@@ -11,16 +12,16 @@ import type { SavedDocumentSummary } from './session-storage-types';
 /** Handle for controlling session persistence (auto-save, flush, cleanup). */
 export interface SessionHandle {
 	/**
-	 * Mark a document as needing save. Under normal use the EditorController
+	 * Mark a document as needing save. Under normal use the Workspace
 	 * auto-emits this on every persistable mutation; direct callers are
 	 * tests and consumers that need to flush state mutated outside the
-	 * controller surface.
+	 * workspace surface.
 	 */
 	markDirty(documentId: string): void;
 	/**
-	 * Notify that a tab was closed. Under normal use the EditorController
-	 * auto-emits this via `workspace.closeTab`; direct callers are tests
-	 * and orchestration code that closes tabs outside the controller.
+	 * Notify that a tab was closed. Under normal use the Workspace
+	 * auto-emits this from `closeTab`; direct callers are tests and
+	 * orchestration code that closes tabs outside the workspace.
 	 */
 	notifyTabClosed(documentId: string): void;
 	/** Immediately persist all pending changes. No-ops when nothing is dirty. */
@@ -59,36 +60,36 @@ export interface OpenSessionOptions {
 
 /**
  * Open a session: restore prior workspace from IndexedDB, wire the dirty
- * notifier to AutoSave, and assemble the EditorController. Returns a
- * fresh controller with a no-op session handle if storage is unavailable.
+ * notifier to AutoSave, and assemble the editor session. Returns a fresh
+ * workspace with a no-op session handle if storage is unavailable.
  */
 export async function openSession(
 	options: OpenSessionOptions
-): Promise<{ editor: EditorController; session: SessionHandle }> {
+): Promise<{ workspace: Workspace; input: InputPipeline; session: SessionHandle }> {
 	let storage: SessionStorage | undefined;
 	try {
 		storage = await SessionStorage.open();
 		const persistence = new SessionPersistence(storage);
 		const restored = await persistence.restore();
 
-		let editorRef: EditorController | null = null;
+		let workspaceRef: Workspace | null = null;
 		const autoSave = new AutoSave(
 			persistence,
 			() => {
-				if (!editorRef) throw new Error('openSession: editor not yet assigned');
-				return editorRef.workspace.toSnapshot();
+				if (!workspaceRef) throw new Error('openSession: workspace not yet assigned');
+				return workspaceRef.toSnapshot();
 			},
 			options.debounceMs
 		);
 		const notifier = createAutoSaveDirtyNotifier(autoSave);
 
-		const editor = createEditorController({
+		const { workspace, input } = createEditorSession({
 			notifier,
 			gridColor: options.gridColor,
 			initialForegroundColor: options.foregroundColor,
 			restored: restored ?? undefined
 		});
-		editorRef = editor;
+		workspaceRef = workspace;
 
 		const session: SessionHandle = {
 			markDirty: (docId) => autoSave.markDirty(docId),
@@ -105,15 +106,15 @@ export async function openSession(
 			}
 		};
 
-		return { editor, session };
+		return { workspace, input, session };
 	} catch (error) {
 		storage?.close();
 		console.warn('Session persistence unavailable, starting with a fresh workspace:', error);
-		const editor = createEditorController({
+		const { workspace, input } = createEditorSession({
 			notifier: { markDirty() {}, notifyTabRemoved() {} },
 			gridColor: options.gridColor,
 			initialForegroundColor: options.foregroundColor
 		});
-		return { editor, session: NO_OP_SESSION };
+		return { workspace, input, session: NO_OP_SESSION };
 	}
 }

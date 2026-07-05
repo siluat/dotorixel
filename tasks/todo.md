@@ -50,6 +50,7 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 - Flaky e2e: Reference Window reload persistence — `e2e/editor/reference-images.test.ts` "window position survives a page reload" failed once, then passed on solo and full re-runs (2026-07-04, surfaced during 205 verification). Timing-sensitive chain: drag via raw pointer events → reload → IndexedDB workspace restore. Investigate/stabilize if it recurs
 - Collapse EditorController into an Input Pipeline module — architecture deepening, fully specified after a grilling pass, ready for an agent ([issues/221](../issues/221-collapse-editor-controller-into-input-pipeline.md))
 - Consolidate source-over compositing into one core primitive — architecture deepening, fully specified after a grilling pass, ready for an agent; independent of 221 ([issues/222](../issues/222-consolidate-source-over-compositing.md))
+- Say the schema-migration chain once — architecture deepening, fully specified after a grilling pass, ready for an agent; independent of 221/222, best landed before the project file format work adds V8 ([issues/223](../issues/223-single-expression-schema-migration-chain.md))
 
 ## Future triggers
 

@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None
+Onion skinning — adjacent-frame ghosts while editing ([PRD](../issues/217-onion-skinning.md)). PRD published and broken into 3 sub-issues (0/3 done): [218 design (.pen)](../issues/218-onion-skin-design.md) (HITL) and [219 state](../issues/219-onion-skin-state.md) (AFK) are both unblocked and can run in parallel; [220 rendering + toggle](../issues/220-onion-skin-render-ui.md) rides both.
 
 ## Last Completed
 
@@ -10,7 +10,6 @@ None
 
 ## Next Up
 
-- Onion skinning (M4 — multi-frame; `composite_at` seam available)
 - Apple Phase 1 — Responsive tiers (iPad compact / iPad regular / Mac)
 - Apple Phase 1 — Enable clear canvas (existing disabled button)
 - Apple Phase 1 — Enable PNG export (existing disabled button)

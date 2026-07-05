@@ -33,6 +33,11 @@
 	/* ── Editor-Specific Colors ── */
 	--ds-canvas-bg: #F0ECE5;
 	--ds-pixel-grid: #D8CFC240;
+	/* Onion Skin ghost tints (218 spec). Theme-independent — ghosts render on
+	   the canvas checkerboard — so no dark overrides. Consumed as constants in
+	   the canvas renderer (renderer.ts); keep the two in sync. */
+	--ds-onion-prev: #E5484D;
+	--ds-onion-next: #3B82F6;
 
 	/* ── Typography ── */
 	--ds-font-heading: 'Galmuri14', monospace;

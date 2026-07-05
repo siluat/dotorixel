@@ -12,10 +12,12 @@ const noop = () => {};
 const defaultProps = {
 	isPlaying: false,
 	isLooping: false,
+	showOnionSkin: false,
 	position: 1,
 	frameCount: 2,
 	onTogglePlay: noop,
-	onToggleLoop: noop
+	onToggleLoop: noop,
+	onToggleOnionSkin: noop
 };
 
 describe('TransportBar', () => {
@@ -77,6 +79,39 @@ describe('TransportBar', () => {
 		expect(loopOn.classList.contains('transport-btn--loop-on')).toBe(true);
 	});
 
+	it('fires onToggleOnionSkin when the onion skin control is clicked', async () => {
+		const onToggleOnionSkin = vi.fn();
+		const { container } = render(TransportBar, {
+			props: { ...defaultProps, onToggleOnionSkin }
+		});
+
+		const onionSkin = container.querySelector('[data-transport-onion-skin]') as HTMLButtonElement;
+		expect(onionSkin).not.toBeNull();
+		await fireEvent.click(onionSkin);
+		expect(onToggleOnionSkin).toHaveBeenCalledTimes(1);
+	});
+
+	it('reflects the onion skin state via aria-pressed and an on-state class', () => {
+		const off = render(TransportBar, { props: { ...defaultProps, showOnionSkin: false } });
+		const onionOff = off.container.querySelector(
+			'[data-transport-onion-skin]'
+		) as HTMLButtonElement;
+		expect(onionOff.getAttribute('aria-pressed')).toBe('false');
+		expect(onionOff.classList.contains('transport-btn--onion-skin-on')).toBe(false);
+		cleanup();
+
+		const on = render(TransportBar, { props: { ...defaultProps, showOnionSkin: true } });
+		const onionOn = on.container.querySelector('[data-transport-onion-skin]') as HTMLButtonElement;
+		expect(onionOn.getAttribute('aria-pressed')).toBe('true');
+		expect(onionOn.classList.contains('transport-btn--onion-skin-on')).toBe(true);
+	});
+
+	it('carries the localized onion skin label', () => {
+		const { container } = render(TransportBar, { props: defaultProps });
+		const onionSkin = container.querySelector('[data-transport-onion-skin]') as HTMLButtonElement;
+		expect(onionSkin.getAttribute('aria-label')).toBe('Onion skin');
+	});
+
 	it('renders the position readout as "n / N"', () => {
 		const { container } = render(TransportBar, {
 			props: { ...defaultProps, position: 3, frameCount: 12 }
@@ -86,23 +121,27 @@ describe('TransportBar', () => {
 		expect(readout.textContent?.replace(/\s+/g, ' ').trim()).toBe('3 / 12');
 	});
 
-	it('disables play and loop when there is a single frame (nothing to animate)', () => {
+	it('disables play, loop, and onion skin when there is a single frame (nothing to animate)', () => {
 		const { container } = render(TransportBar, {
 			props: { ...defaultProps, position: 1, frameCount: 1 }
 		});
 		const play = container.querySelector('[data-transport-play]') as HTMLButtonElement;
 		const loop = container.querySelector('[data-transport-loop]') as HTMLButtonElement;
+		const onionSkin = container.querySelector('[data-transport-onion-skin]') as HTMLButtonElement;
 		expect(play.disabled).toBe(true);
 		expect(loop.disabled).toBe(true);
+		expect(onionSkin.disabled).toBe(true);
 	});
 
-	it('enables play and loop with two or more frames', () => {
+	it('enables play, loop, and onion skin with two or more frames', () => {
 		const { container } = render(TransportBar, {
 			props: { ...defaultProps, frameCount: 2 }
 		});
 		const play = container.querySelector('[data-transport-play]') as HTMLButtonElement;
 		const loop = container.querySelector('[data-transport-loop]') as HTMLButtonElement;
+		const onionSkin = container.querySelector('[data-transport-onion-skin]') as HTMLButtonElement;
 		expect(play.disabled).toBe(false);
 		expect(loop.disabled).toBe(false);
+		expect(onionSkin.disabled).toBe(false);
 	});
 });

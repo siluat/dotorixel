@@ -194,5 +194,6 @@
 	"aria_playbackToolbar": "Playback",
 	"aria_play": "Play",
 	"aria_pause": "Pause",
-	"aria_toggleLoop": "Loop"
+	"aria_toggleLoop": "Loop",
+	"aria_toggleOnionSkin": "Onion skin"
 }

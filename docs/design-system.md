@@ -97,6 +97,13 @@ Semantic colors for feedback. No theme variation — consistent across light/dar
 |---|---|---|---|
 | `--ds-canvas-bg` | `#F0ECE5` | `#1C1810` | Canvas area background (behind artwork) |
 | `--ds-pixel-grid` | `#D8CFC240` | `#3D342840` | Pixel grid overlay lines |
+| `--ds-onion-prev` | `#E5484D` | — (theme-independent) | Onion Skin previous-frame ghost tint |
+| `--ds-onion-next` | `#3B82F6` | — (theme-independent) | Onion Skin next-frame ghost tint |
+
+The Onion Skin pair renders on the canvas checkerboard, which does not theme, so the
+values are single (218 design spec). They are consumed as constants in the canvas
+renderer (`src/lib/canvas/renderer.ts`) — keep the two in sync. Web-only: the Apple
+shell's single-canvas model has no frame axis.
 
 ## 3. Typography Tokens
 

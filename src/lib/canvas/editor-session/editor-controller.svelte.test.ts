@@ -553,6 +553,27 @@ describe('EditorController — handler delegation', () => {
 		expect(editor.viewport.showGrid).toBe(!initial);
 	});
 
+	it('handleOnionSkinToggle delegates to activeTab.toggleOnionSkin', () => {
+		const { editor } = makeController();
+		const initial = editor.viewport.showOnionSkin;
+		editor.handleOnionSkinToggle();
+		expect(editor.viewport.showOnionSkin).toBe(!initial);
+	});
+
+	it('onionSkinProjection reflects the active tab ghost projection', () => {
+		const { editor } = makeController();
+		editor.handleOnionSkinToggle();
+		// A single frame has no neighbors to ghost.
+		expect(editor.onionSkinProjection).toEqual([]);
+
+		// Adding a frame (which becomes active) exposes the previous neighbor,
+		// and the read is the tab's own projection, not a recomputation.
+		editor.workspace.activeTab.addFrame();
+		expect(editor.onionSkinProjection).toHaveLength(1);
+		expect(editor.onionSkinProjection[0].kind).toBe('previous');
+		expect(editor.onionSkinProjection).toBe(editor.workspace.activeTab.onionSkinProjection);
+	});
+
 	it('handleForegroundColorChange converts hex and routes through setForegroundColor', () => {
 		const { editor, notifier } = makeController();
 		notifier.reset();

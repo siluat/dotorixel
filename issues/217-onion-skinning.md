@@ -1,6 +1,6 @@
 ---
 title: "Onion skinning — adjacent-frame ghosts while editing (M4)"
-status: ready-for-agent
+status: done
 created: 2026-07-05
 ---
 

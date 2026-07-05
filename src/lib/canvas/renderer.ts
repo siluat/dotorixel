@@ -4,6 +4,7 @@ import {
 	referenceLayerUnderlayDocumentRect,
 	type ReferenceLayerUnderlay
 } from './reference-layer-underlay';
+import type { OnionSkinGhostKind, OnionSkinGhostRead } from './editor-session/onion-skin';
 
 /**
  * Minimal shape the renderer needs from a pixel buffer source — width,
@@ -20,6 +21,17 @@ const MIN_CHECKER_SIZE = 4;
 const MAX_REFERENCE_RASTER_CACHE_ENTRIES = 4;
 const CHECKER_LIGHT = '#ffffff';
 const CHECKER_DARK = '#e0e0e0';
+
+// Onion Skin ghost treatment (218 spec): 60% of the kind tint blended over the
+// ghost's own colors, blitted at 40% alpha. The tints mirror --ds-onion-prev /
+// --ds-onion-next in design-tokens.css — single values, not theme-paired,
+// because the canvas checkerboard they render on is theme-independent.
+const ONION_SKIN_TINT_BLEND = 0.6;
+const ONION_SKIN_GHOST_ALPHA = 0.4;
+const ONION_SKIN_TINTS: Record<OnionSkinGhostKind, string> = {
+	previous: '#E5484D',
+	next: '#3B82F6'
+};
 
 const cachedReferenceRasters = new Map<string, OffscreenCanvas>();
 
@@ -75,6 +87,14 @@ function renderCheckerboard(
 	}
 }
 
+/** Rasterizes a row-major RGBA buffer into a same-sized OffscreenCanvas. */
+function rasterFromPixels(pixels: Uint8Array, width: number, height: number): OffscreenCanvas {
+	const offscreen = new OffscreenCanvas(width, height);
+	const offCtx = offscreen.getContext('2d')!;
+	offCtx.putImageData(new ImageData(new Uint8ClampedArray(pixels), width, height), 0, 0);
+	return offscreen;
+}
+
 function renderPixels(
 	ctx: CanvasRenderingContext2D,
 	canvas: RenderableCanvas,
@@ -84,17 +104,49 @@ function renderPixels(
 	const displayWidth = canvas.width * scaledPixel;
 	const displayHeight = canvas.height * scaledPixel;
 
-	const offscreen = new OffscreenCanvas(canvas.width, canvas.height);
-	const offCtx = offscreen.getContext('2d')!;
-	const imageData = new ImageData(
-		new Uint8ClampedArray(canvas.pixels()),
-		canvas.width,
-		canvas.height
-	);
-	offCtx.putImageData(imageData, 0, 0);
+	const offscreen = rasterFromPixels(canvas.pixels(), canvas.width, canvas.height);
 
 	ctx.imageSmoothingEnabled = false;
 	ctx.drawImage(offscreen, 0, 0, displayWidth, displayHeight);
+}
+
+function tintedGhostRaster(ghost: OnionSkinGhostRead, canvas: RenderableCanvas): OffscreenCanvas {
+	const offscreen = rasterFromPixels(ghost.pixels, canvas.width, canvas.height);
+	const offCtx = offscreen.getContext('2d')!;
+	// source-atop keeps the ghost's own alpha: transparent regions stay
+	// transparent (checkerboard and Reference show through) while covered
+	// pixels blend toward the kind tint.
+	offCtx.globalCompositeOperation = 'source-atop';
+	offCtx.globalAlpha = ONION_SKIN_TINT_BLEND;
+	offCtx.fillStyle = ONION_SKIN_TINTS[ghost.kind];
+	offCtx.fillRect(0, 0, canvas.width, canvas.height);
+	return offscreen;
+}
+
+function renderOnionSkinGhosts(
+	ctx: CanvasRenderingContext2D,
+	canvas: RenderableCanvas,
+	ghosts: readonly OnionSkinGhostRead[],
+	viewport: ViewportData
+): void {
+	if (ghosts.length === 0) return;
+
+	const scaledPixel = effectivePixelSize(viewport);
+	const displayWidth = canvas.width * scaledPixel;
+	const displayHeight = canvas.height * scaledPixel;
+
+	// Farthest first, nearest last, so nearer neighbors read stronger where
+	// ghosts overlap. The projection arrives in axis order; the sort is stable,
+	// so equal distances keep that order.
+	const drawOrder = [...ghosts].sort((a, b) => b.distance - a.distance);
+
+	const previousAlpha = ctx.globalAlpha;
+	ctx.imageSmoothingEnabled = false;
+	ctx.globalAlpha = ONION_SKIN_GHOST_ALPHA;
+	for (const ghost of drawOrder) {
+		ctx.drawImage(tintedGhostRaster(ghost, canvas), 0, 0, displayWidth, displayHeight);
+	}
+	ctx.globalAlpha = previousAlpha;
 }
 
 function referenceRasterKey(reference: ReferenceLayerUnderlay): string {
@@ -115,14 +167,11 @@ function referenceRaster(reference: ReferenceLayerUnderlay): OffscreenCanvas {
 		return cached;
 	}
 
-	const offscreen = new OffscreenCanvas(reference.naturalWidth, reference.naturalHeight);
-	const offCtx = offscreen.getContext('2d')!;
-	const imageData = new ImageData(
-		new Uint8ClampedArray(reference.sourceRgba),
+	const offscreen = rasterFromPixels(
+		reference.sourceRgba,
 		reference.naturalWidth,
 		reference.naturalHeight
 	);
-	offCtx.putImageData(imageData, 0, 0);
 	cachedReferenceRasters.set(key, offscreen);
 	if (cachedReferenceRasters.size > MAX_REFERENCE_RASTER_CACHE_ENTRIES) {
 		const oldestKey = cachedReferenceRasters.keys().next().value;
@@ -223,12 +272,20 @@ function renderGrid(
 	ctx.stroke();
 }
 
+/**
+ * Renders one full frame of the canvas viewport onto `ctx`, in draw order:
+ * checkerboard → Reference underlay (if given) → Onion Skin ghosts (farthest
+ * first, nearest last) → pixel composite → grid. Ghosts and composite blit
+ * nearest-neighbor at the viewport's effective pixel size; an empty ghost
+ * list draws nothing extra.
+ */
 export function renderPixelCanvas(
 	ctx: CanvasRenderingContext2D,
 	canvas: RenderableCanvas,
 	viewport: ViewportData,
 	viewportSize: ViewportSize,
-	referenceLayerUnderlay?: ReferenceLayerUnderlay
+	referenceLayerUnderlay?: ReferenceLayerUnderlay,
+	onionSkinGhosts: readonly OnionSkinGhostRead[] = []
 ): void {
 	ctx.clearRect(0, 0, viewportSize.width, viewportSize.height);
 
@@ -240,6 +297,7 @@ export function renderPixelCanvas(
 	if (referenceLayerUnderlay) {
 		renderReferenceLayerUnderlay(ctx, canvas, referenceLayerUnderlay, viewport);
 	}
+	renderOnionSkinGhosts(ctx, canvas, onionSkinGhosts, viewport);
 	renderPixels(ctx, canvas, viewport);
 	renderGrid(ctx, canvas, viewport);
 	ctx.restore();

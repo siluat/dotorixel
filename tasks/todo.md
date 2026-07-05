@@ -49,6 +49,7 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 - TimelinePanel mobile touch targets — the header/row icon buttons (add-layer, add-reference, visibility, remove, reorder, fit-to-canvas) stay 24px on compact/medium, below the ≥44px touch guideline (`web-styling.md`) and the 187 spec §5 ("header actions ≥44px"). Pre-existing controls untouched by 191; enlarge to ≥44px on the mobile Timeline tab and coordinate with the 192 Frames action group.
 - Flaky e2e: Reference Window reload persistence — `e2e/editor/reference-images.test.ts` "window position survives a page reload" failed once, then passed on solo and full re-runs (2026-07-04, surfaced during 205 verification). Timing-sensitive chain: drag via raw pointer events → reload → IndexedDB workspace restore. Investigate/stabilize if it recurs
 - Collapse EditorController into an Input Pipeline module — architecture deepening, fully specified after a grilling pass, ready for an agent ([issues/221](../issues/221-collapse-editor-controller-into-input-pipeline.md))
+- Consolidate source-over compositing into one core primitive — architecture deepening, fully specified after a grilling pass, ready for an agent; independent of 221 ([issues/222](../issues/222-consolidate-source-over-compositing.md))
 
 ## Future triggers
 

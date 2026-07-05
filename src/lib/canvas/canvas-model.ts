@@ -145,6 +145,23 @@ export interface Document {
 	 * is not a valid UUID or no frame with that id is on the axis.
 	 */
 	composite_at(frameId: string): Uint8Array;
+	/**
+	 * Pixel-only composite of the active frame with a transient
+	 * `patchWidth × patchHeight` RGBA patch source-over'd onto the layer
+	 * identified by `layerId` (top-left at `(destX, destY)`, clipped to the
+	 * canvas) before that layer is blended at its opacity — the core entry the
+	 * Floating Selection preview renders through. Throws when `layerId` is not a
+	 * valid UUID or names no layer, when `patch.length` is not
+	 * `patchWidth * patchHeight * 4`, or when the target is a Reference Layer.
+	 */
+	composite_with_layer_patch(
+		layerId: string,
+		patch: Uint8Array,
+		patchWidth: number,
+		patchHeight: number,
+		destX: number,
+		destY: number
+	): Uint8Array;
 	/** Reads the active-layer pixel at `(x, y)`. Throws when `(x, y)` is outside `width × height`. */
 	get_pixel(x: number, y: number): Color;
 	/** Reads the active layer for sampling, or returns `undefined` when no pixel is available. */

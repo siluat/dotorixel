@@ -674,6 +674,31 @@ impl WasmDocument {
         Ok(self.inner.composite_at(fid))
     }
 
+    /// RGBA row-major Pixel-only composite of the active frame with a transient
+    /// `patch_width × patch_height` RGBA patch source-over'd onto the layer
+    /// identified by `layer_id` (its top-left at `(dest_x, dest_y)`, clipped to
+    /// the canvas) before that layer is blended — the core entry the Floating
+    /// Selection preview renders through. See
+    /// [`Document::composite_with_layer_patch`].
+    ///
+    /// Errors when `layer_id` is not a valid UUID, when no layer has that id,
+    /// when `patch.len()` is not `patch_width * patch_height * 4`, or when the
+    /// target is a Reference Layer.
+    pub fn composite_with_layer_patch(
+        &self,
+        layer_id: String,
+        patch: &[u8],
+        patch_width: u32,
+        patch_height: u32,
+        dest_x: i32,
+        dest_y: i32,
+    ) -> Result<Vec<u8>, JsError> {
+        let lid = Uuid::parse_str(&layer_id).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner
+            .composite_with_layer_patch(lid, patch, patch_width, patch_height, dest_x, dest_y)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
     /// Animated GIF of every frame's composite, encoded as a byte buffer —
     /// the core `GifExport` contract: frames in axis order with quantized
     /// per-frame delays, infinite looping, binary transparency, Reference
@@ -1779,6 +1804,25 @@ mod tests {
         let marquee = doc.marquee().expect("marquee is preserved");
         assert_eq!(marquee.x(), 0);
         assert_eq!(marquee.width(), 2);
+    }
+
+    #[test]
+    fn wasm_document_composite_with_layer_patch_marshals_through_to_core() {
+        let id = Uuid::new_v4();
+        let mut doc = WasmDocument::new(2, 1, id.to_string(), "Layer 1".to_string()).unwrap();
+        doc.set_pixel(0, 0, &WasmColor::new(255, 0, 0, 255))
+            .unwrap();
+        doc.set_pixel(1, 0, &WasmColor::new(255, 0, 0, 255))
+            .unwrap();
+
+        // 1x1 opaque blue patch dropped over the left pixel.
+        let patch = [0u8, 0, 255, 255];
+        let result = doc
+            .composite_with_layer_patch(id.to_string(), &patch, 1, 1, 0, 0)
+            .unwrap();
+
+        assert_eq!(&result[0..4], &[0, 0, 255, 255]); // patched blue
+        assert_eq!(&result[4..8], &[255, 0, 0, 255]); // untouched red
     }
 
     #[test]

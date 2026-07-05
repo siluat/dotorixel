@@ -165,6 +165,32 @@ impl fmt::Display for DocumentBuildError {
 
 impl std::error::Error for DocumentBuildError {}
 
+/// Errors returned by [`Document::composite_with_layer_patch`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CompositePatchError {
+    LayerNotFound { id: Uuid },
+    PatchSizeMismatch { expected: usize, actual: usize },
+    ReferenceLayerTarget { id: Uuid },
+}
+
+impl fmt::Display for CompositePatchError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::LayerNotFound { id } => write!(f, "Layer with id {id} not found"),
+            Self::PatchSizeMismatch { expected, actual } => write!(
+                f,
+                "Layer patch must be patch_width * patch_height * 4 = {expected} bytes, got {actual}."
+            ),
+            Self::ReferenceLayerTarget { id } => write!(
+                f,
+                "Layer {id} is a Reference Layer; a layer patch can only target a Pixel Layer."
+            ),
+        }
+    }
+}
+
+impl std::error::Error for CompositePatchError {}
+
 /// A pixel art document: an ordered stack of layers, an ordered axis of
 /// frames, active pointers into each, and presentation state.
 ///
@@ -736,6 +762,82 @@ impl Document {
         self.composite()
     }
 
+    /// Returns the active frame's Pixel-only composite (see
+    /// [`composite`](Self::composite)) with a transient RGBA patch source-over'd
+    /// onto the layer identified by `layer_id` before that layer is blended at
+    /// its own opacity. Lets a shell preview a transient overlay on one layer in
+    /// a single binding crossing, rather than reading every layer's pixels out to
+    /// re-blend the overlay outside the core.
+    ///
+    /// The patch is a `patch_width × patch_height` RGBA buffer laid onto a copy
+    /// of the target layer's active-frame Cel with its top-left at
+    /// `(dest_x, dest_y)`; rows and columns falling outside the canvas are
+    /// clipped. Only the copy is touched, so the document is left unchanged.
+    /// Invisible layers are skipped, exactly as in
+    /// [`composite`](Self::composite).
+    ///
+    /// # Errors
+    ///
+    /// - [`CompositePatchError::PatchSizeMismatch`] when `patch.len()` is not
+    ///   `patch_width * patch_height * 4`.
+    /// - [`CompositePatchError::LayerNotFound`] when no layer has `layer_id`.
+    /// - [`CompositePatchError::ReferenceLayerTarget`] when `layer_id` names a
+    ///   Reference Layer, which holds no Cel to patch.
+    pub fn composite_with_layer_patch(
+        &self,
+        layer_id: Uuid,
+        patch: &[u8],
+        patch_width: u32,
+        patch_height: u32,
+        dest_x: i32,
+        dest_y: i32,
+    ) -> Result<Vec<u8>, CompositePatchError> {
+        let expected = (patch_width * patch_height * 4) as usize;
+        if patch.len() != expected {
+            return Err(CompositePatchError::PatchSizeMismatch {
+                expected,
+                actual: patch.len(),
+            });
+        }
+        let target = self
+            .layers
+            .iter()
+            .find(|layer| layer.id == layer_id)
+            .ok_or(CompositePatchError::LayerNotFound { id: layer_id })?;
+        if matches!(target.kind, LayerKind::Reference(_)) {
+            return Err(CompositePatchError::ReferenceLayerTarget { id: layer_id });
+        }
+
+        let frame_id = self.active_frame_id;
+        let mut buf = vec![0u8; (self.width * self.height * 4) as usize];
+        for layer in &self.layers {
+            if !layer.visible {
+                continue;
+            }
+            let LayerKind::Pixel(cels) = &layer.kind else {
+                continue;
+            };
+            let canvas = cels
+                .get(frame_id)
+                .expect("grid invariant: every Pixel Layer has a cel for every frame");
+            if layer.id == layer_id {
+                let mut patched = canvas.clone();
+                apply_layer_patch(
+                    &mut patched,
+                    patch,
+                    patch_width,
+                    patch_height,
+                    dest_x,
+                    dest_y,
+                );
+                blend_pixel_canvas_over(&mut buf, &patched, layer.opacity);
+            } else {
+                blend_pixel_canvas_over(&mut buf, canvas, layer.opacity);
+            }
+        }
+        Ok(buf)
+    }
+
     /// Reads the color at `(x, y)` on the active layer.
     ///
     /// Returns [`DrawError::OutOfBounds`] (wrapping [`PixelCanvasError`]) when
@@ -1283,19 +1385,62 @@ fn normalize_reference_underlay(
 fn blend_pixel_canvas_over(dst: &mut [u8], canvas: &PixelCanvas, opacity: f32) {
     let opacity = opacity.clamp(0.0, 1.0);
     for (chunk, src) in dst.chunks_exact_mut(4).zip(canvas.pixels().chunks_exact(4)) {
-        let src_a = (src[3] as f32 / 255.0) * opacity;
-        if src_a == 0.0 {
+        // A fully transparent source contribution must leave the destination
+        // byte-for-byte unchanged (a destination may carry non-zero RGB behind a
+        // zero alpha); skipping also keeps the common transparent-pixel case cheap.
+        if (src[3] as f32 / 255.0) * opacity == 0.0 {
             continue;
         }
-        let dst_a = chunk[3] as f32 / 255.0;
-        let out_a = src_a + dst_a * (1.0 - src_a);
-        for c in 0..3 {
-            let s = src[c] as f32 / 255.0;
-            let d = chunk[c] as f32 / 255.0;
-            let out = (s * src_a + d * dst_a * (1.0 - src_a)) / out_a;
-            chunk[c] = (out * 255.0).round() as u8;
+        let blended = Color::new(src[0], src[1], src[2], src[3])
+            .source_over_scaled(Color::new(chunk[0], chunk[1], chunk[2], chunk[3]), opacity);
+        chunk[0] = blended.r;
+        chunk[1] = blended.g;
+        chunk[2] = blended.b;
+        chunk[3] = blended.a;
+    }
+}
+
+/// Source-over blends `patch` (a `patch_width × patch_height` RGBA buffer) onto
+/// `canvas` with its top-left at `(dest_x, dest_y)`, clipping rows and columns
+/// that fall outside the canvas. Fully transparent patch pixels are skipped so
+/// they leave the underlying pixel untouched.
+fn apply_layer_patch(
+    canvas: &mut PixelCanvas,
+    patch: &[u8],
+    patch_width: u32,
+    patch_height: u32,
+    dest_x: i32,
+    dest_y: i32,
+) {
+    let canvas_width = canvas.width() as i32;
+    let canvas_height = canvas.height() as i32;
+    for row in 0..patch_height as i32 {
+        let target_y = dest_y + row;
+        if target_y < 0 || target_y >= canvas_height {
+            continue;
         }
-        chunk[3] = (out_a * 255.0).round() as u8;
+        for col in 0..patch_width as i32 {
+            let target_x = dest_x + col;
+            if target_x < 0 || target_x >= canvas_width {
+                continue;
+            }
+            let src_index = ((row * patch_width as i32 + col) * 4) as usize;
+            let src = Color::new(
+                patch[src_index],
+                patch[src_index + 1],
+                patch[src_index + 2],
+                patch[src_index + 3],
+            );
+            if src.a == 0 {
+                continue;
+            }
+            let dst = canvas
+                .get_pixel(target_x as u32, target_y as u32)
+                .expect("target coordinate checked against canvas bounds");
+            canvas
+                .set_pixel(target_x as u32, target_y as u32, src.source_over(dst))
+                .expect("target coordinate checked against canvas bounds");
+        }
     }
 }
 
@@ -3234,6 +3379,176 @@ mod tests {
         );
 
         assert_eq!(doc.composite_for_export(), doc.composite());
+    }
+
+    #[test]
+    fn composite_with_layer_patch_overlays_the_patch_on_its_target_layer() {
+        use crate::color::Color;
+
+        let id = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, id, "L1".to_string()).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(2, 2, Color::new(255, 0, 0, 255)).unwrap(),
+        );
+
+        // A 1x1 opaque blue patch dropped at (1, 0).
+        let patch = vec![0u8, 0, 255, 255];
+        let result = doc
+            .composite_with_layer_patch(id, &patch, 1, 1, 1, 0)
+            .unwrap();
+
+        assert_eq!(&result[0..4], &[255, 0, 0, 255]); // (0,0) untouched red
+        assert_eq!(&result[4..8], &[0, 0, 255, 255]); // (1,0) patched blue
+        assert_eq!(&result[8..12], &[255, 0, 0, 255]); // (0,1) untouched red
+        assert_eq!(&result[12..16], &[255, 0, 0, 255]); // (1,1) untouched red
+    }
+
+    #[test]
+    fn composite_with_layer_patch_with_a_fully_transparent_patch_equals_composite() {
+        use crate::color::Color;
+
+        let id = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, id, "L1".to_string()).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(2, 2, Color::new(255, 0, 0, 255)).unwrap(),
+        );
+
+        let patch = vec![0u8; 2 * 2 * 4]; // fully transparent — no visible change
+        let result = doc
+            .composite_with_layer_patch(id, &patch, 2, 2, 0, 0)
+            .unwrap();
+
+        assert_eq!(result, doc.composite());
+    }
+
+    #[test]
+    fn composite_with_layer_patch_clips_a_patch_overhanging_every_edge() {
+        let id = Uuid::new_v4();
+        let doc = Document::new(1, 1, id, "L1".to_string()).unwrap();
+
+        // A 3x3 patch with an opaque-green border and an opaque-blue center,
+        // dropped at (-1, -1) over a 1x1 canvas: only the center pixel maps onto
+        // the canvas, so the whole border must be clipped on all four sides.
+        let green = [0u8, 255, 0, 255];
+        let blue = [0u8, 0, 255, 255];
+        let mut patch: Vec<u8> = std::iter::repeat_n(green, 9).flatten().collect();
+        patch[16..20].copy_from_slice(&blue); // center pixel (1, 1)
+
+        let result = doc
+            .composite_with_layer_patch(id, &patch, 3, 3, -1, -1)
+            .unwrap();
+
+        assert_eq!(result, blue.to_vec());
+    }
+
+    #[test]
+    fn composite_with_layer_patch_applies_layer_opacity_after_patching() {
+        use crate::color::Color;
+
+        let id = Uuid::new_v4();
+        let mut doc = Document::new(2, 1, id, "L1".to_string()).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(2, 1, Color::new(255, 0, 0, 255)).unwrap(),
+        );
+        doc.layers[0].opacity = 0.5;
+
+        // Opaque-blue patch over the left pixel. Ordering pin: the patch lands on
+        // the Cel first, then the layer's 50% opacity applies to the whole patched
+        // Cel — so both the patched and unpatched pixels come out at alpha 128.
+        let patch = vec![0u8, 0, 255, 255];
+        let result = doc
+            .composite_with_layer_patch(id, &patch, 1, 1, 0, 0)
+            .unwrap();
+
+        assert_eq!(&result[0..4], &[0, 0, 255, 128]); // patched, then 50% opacity
+        assert_eq!(&result[4..8], &[255, 0, 0, 128]); // unpatched, same 50% opacity
+    }
+
+    #[test]
+    fn composite_with_layer_patch_skips_an_invisible_target_layer_and_its_patch() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let mut doc = Document::new(1, 1, a, "A".to_string()).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(1, 1, Color::new(255, 0, 0, 255)).unwrap(),
+        );
+        doc.add_layer(b, "B".to_string());
+        set_pixel_canvas(
+            &mut doc.layers[1],
+            PixelCanvas::with_color(1, 1, Color::new(0, 255, 0, 255)).unwrap(),
+        );
+        doc.layers[1].visible = false;
+
+        // Patch the hidden top layer: because an invisible layer is skipped, its
+        // green Cel and the patch both stay out of the composite.
+        let patch = vec![0u8, 0, 255, 255];
+        let result = doc
+            .composite_with_layer_patch(b, &patch, 1, 1, 0, 0)
+            .unwrap();
+
+        assert_eq!(result, vec![255, 0, 0, 255]);
+    }
+
+    #[test]
+    fn composite_with_layer_patch_errors_when_the_layer_id_is_unknown() {
+        let id = Uuid::new_v4();
+        let doc = Document::new(1, 1, id, "L1".to_string()).unwrap();
+
+        let missing = Uuid::new_v4();
+        let patch = vec![0u8, 0, 0, 0];
+
+        assert_eq!(
+            doc.composite_with_layer_patch(missing, &patch, 1, 1, 0, 0),
+            Err(CompositePatchError::LayerNotFound { id: missing })
+        );
+    }
+
+    #[test]
+    fn composite_with_layer_patch_errors_when_the_patch_size_is_wrong() {
+        let id = Uuid::new_v4();
+        let doc = Document::new(1, 1, id, "L1".to_string()).unwrap();
+
+        let patch = vec![0u8, 0, 0]; // 3 bytes; a 1x1 patch needs 4
+
+        assert_eq!(
+            doc.composite_with_layer_patch(id, &patch, 1, 1, 0, 0),
+            Err(CompositePatchError::PatchSizeMismatch {
+                expected: 4,
+                actual: 3,
+            })
+        );
+    }
+
+    #[test]
+    fn composite_with_layer_patch_errors_when_the_target_is_a_reference_layer() {
+        use crate::layer::ReferenceData;
+        use crate::reference_placement::ReferencePlacement;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let mut doc = Document::new(1, 1, a, "A".to_string()).unwrap();
+        let placement = ReferencePlacement::new(0.0, 0.0, 1.0).unwrap();
+        let reference = ReferenceData::new(vec![0u8, 255, 0, 255], 1, 1, placement).unwrap();
+        doc.layers.push(Layer {
+            id: r,
+            name: "Reference".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Reference(reference),
+        });
+
+        let patch = vec![0u8, 0, 0, 0];
+
+        assert_eq!(
+            doc.composite_with_layer_patch(r, &patch, 1, 1, 0, 0),
+            Err(CompositePatchError::ReferenceLayerTarget { id: r })
+        );
     }
 
     #[test]

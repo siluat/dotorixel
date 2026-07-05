@@ -1,6 +1,6 @@
 ---
 title: "Consolidate source-over compositing into one core primitive"
-status: ready-for-agent
+status: done
 created: 2026-07-05
 ---
 
@@ -171,3 +171,53 @@ None — independent of issue 221 (no file overlap; either may land first).
   specialized `composite_with_layer_patch` (active frame, clipping, actionable
   errors) over a stateless buffer-composite fn or an index/frame-parameterized
   general form.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/color.rs` | New `Color::source_over` / `source_over_scaled` primitive (the single source-over formula) + 8 unit tests |
+| `crates/core/src/selection.rs` | Private `source_over` deleted; call site uses `src.source_over(dst)` |
+| `crates/core/src/document.rs` | `blend_pixel_canvas_over` delegates to the primitive (skip guard preserved for bit-identity); new `composite_with_layer_patch` + `CompositePatchError` + private `apply_layer_patch`; 8 new tests |
+| `wasm/src/lib.rs` | `composite_with_layer_patch` binding (uuid parse + `map_err`) + 1 marshal smoke test |
+| `src/lib/canvas/canvas-model.ts` | `Document` interface gains `composite_with_layer_patch` |
+| `src/lib/canvas/editor-session/floating-selection-lifecycle.ts` | `blendSourceOver` / `blendLayerPixelsOver` / `compositeFloatingSelectionIntoLayer` deleted; `previewPixels()` reduced to one core call (no per-layer reads, no TS blend) |
+| `src/lib/canvas/fake-drawing-ops.ts` | Fake `Document` stubs the new method (not-implemented throw, unused by fake-based tests) |
+| `src/lib/session/session-storage-types.ts` | `compositeV3` doc comment: drift now pinned by a parity test, not "tolerated" |
+| `src/lib/session/composite-parity.test.ts` | New — pins `compositeV3` (f64) against the core composite (f32) to ≤ 1 per channel, exact on integer-exact fixtures |
+
+### Key Decisions
+
+- **Bit-identity via a preserved skip guard.** `blend_pixel_canvas_over` keeps its
+  `src_a == 0` early-skip: a low-opacity layer can produce an `alpha=0 / RGB≠0`
+  destination pixel, and overwriting it with a transparent source would zero the
+  RGB — a byte-level divergence the existing composite suites would (silently)
+  drift on. Channel formula and operation order match the originals exactly, so
+  `document.rs` / `selection.rs` / floating-selection / tab-state suites pass
+  unmodified.
+- **Core vocabulary kept generic.** `apply_layer_patch` is a separate
+  document-module helper rather than reusing `selection.rs::composite_region`,
+  which is bound to `MarqueeRegion` (Selection vocabulary). Reuse would couple the
+  generic patch entry to the web-only Floating Selection concept the issue
+  explicitly keeps out of the core; the small clip-and-blend duplication is the
+  lesser cost. Core doc comments describe the mechanism generically (no
+  "Floating Selection" / "TS" in the shared core).
+- **f32/f64 parity.** Preview tests use fully-opaque fixtures, so f32 and f64 round
+  identically (they pass unchanged). The parity test allows ≤ 1 per channel
+  because the two implementations share one formula and differ only in float
+  width; a real formula drift moves a channel far more than 1 and fails.
+- **`CompositePatchError::ReferenceLayerTarget`** kept as a precise, actionable
+  variant (over reusing the general `LayerKindMismatch` term) — confirmed with the
+  user.
+
+### Notes
+
+- Unknown `layer_id` and wrong patch size now return `Err` where the old TS path
+  silently showed the un-patched composite. Both are unreachable in practice
+  (a Floating Selection commits before its source layer can be removed, and
+  `floating.buffer` always matches `sourceRegion`); the `Err`s are the boundary
+  validation the issue specified.
+- Out of scope as planned: schema V8 save-time composite persistence (would let
+  `compositeV3` be deleted entirely) — revisit with the project file format work.
+- Verified: `cargo test` (core 508 / wasm 41), `cargo fmt`, clippy (no new
+  warnings), `bun run check` (0 errors), vitest (1619), full editor e2e (89).

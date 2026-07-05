@@ -261,7 +261,8 @@ describe('effectivePixelSize', () => {
 		panX: 0,
 		panY: 0,
 		showGrid: true,
-		gridColor: '#cccccc'
+		gridColor: '#cccccc',
+		showOnionSkin: false
 	});
 
 	it('multiplies pixel size by zoom', () => {

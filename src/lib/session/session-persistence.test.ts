@@ -237,7 +237,7 @@ describe('SessionPersistence', () => {
 			timelinePanelCollapsed: true,
 			viewport: {
 				pixelSize: 32, zoom: 1.0, panX: 0, panY: 0,
-				showGrid: true, gridColor: '#cccccc'
+				showGrid: true, gridColor: '#cccccc', showOnionSkin: false
 			}
 		};
 
@@ -316,7 +316,8 @@ describe('SessionPersistence', () => {
 				panX: 0,
 				panY: 0,
 				showGrid: true,
-				gridColor: '#cccccc'
+				gridColor: '#cccccc',
+				showOnionSkin: false
 			}
 		};
 
@@ -631,14 +632,14 @@ describe('SessionPersistence', () => {
 				id: 'doc-1',
 				viewport: {
 					pixelSize: 32, zoom: 3.0, panX: 100, panY: 0,
-					showGrid: false, gridColor: '#ECE5D9'
+					showGrid: false, gridColor: '#ECE5D9', showOnionSkin: false
 				}
 			}),
 			makeTab({
 				id: 'doc-2',
 				viewport: {
 					pixelSize: 32, zoom: 0.5, panX: 0, panY: -50,
-					showGrid: true, gridColor: '#aaaaaa'
+					showGrid: true, gridColor: '#aaaaaa', showOnionSkin: false
 				}
 			})
 		]);
@@ -653,6 +654,53 @@ describe('SessionPersistence', () => {
 		expect(restored!.tabs[1].viewport.zoom).toBe(0.5);
 		expect(restored!.tabs[1].viewport.panY).toBe(-50);
 		expect(restored!.tabs[1].viewport.gridColor).toBe('#aaaaaa');
+	});
+
+	it('round-trips the per-tab onion skin flag', async () => {
+		const snapshot = makeSnapshot({}, [
+			makeTab({
+				id: 'doc-1',
+				viewport: {
+					pixelSize: 32, zoom: 1.0, panX: 0, panY: 0,
+					showGrid: true, gridColor: '#cccccc', showOnionSkin: true
+				}
+			})
+		]);
+
+		await persistence.save(snapshot);
+		const restored = await persistence.restore();
+
+		expect(restored!.tabs[0].viewport.showOnionSkin).toBe(true);
+	});
+
+	it('reads a stored viewport record without the onion skin field as off', async () => {
+		await persistence.save(makeSnapshot({}, [makeTab({ id: 'doc-1' })]));
+		// A workspace written before the flag existed carries no showOnionSkin key.
+		const ws = (await storage.getWorkspace())!;
+		delete ws.viewports['doc-1'].showOnionSkin;
+		await storage.putWorkspace(ws);
+
+		const restored = await persistence.restore();
+
+		expect(restored!.tabs[0].viewport.showOnionSkin).toBe(false);
+	});
+
+	it('resets the onion skin flag to the default when loading a saved document snapshot', async () => {
+		const snapshot = makeSnapshot({}, [
+			makeTab({
+				id: 'doc-1',
+				viewport: {
+					pixelSize: 32, zoom: 1.0, panX: 0, panY: 0,
+					showGrid: true, gridColor: '#cccccc', showOnionSkin: true
+				}
+			})
+		]);
+		await persistence.save(snapshot);
+		await persistence.saveDocumentAs('doc-1', 'My Art');
+
+		const saved = await persistence.getSavedDocumentSnapshot('doc-1');
+
+		expect(saved!.viewport.showOnionSkin).toBe(false);
 	});
 
 	it('excludes closed tab from save and restore', async () => {

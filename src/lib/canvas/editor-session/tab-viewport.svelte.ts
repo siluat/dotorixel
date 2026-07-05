@@ -89,6 +89,10 @@ export class TabViewport {
 		this.apply({ ...this.viewport, showGrid: !this.viewport.showGrid });
 	}
 
+	toggleOnionSkin(): void {
+		this.apply({ ...this.viewport, showOnionSkin: !this.viewport.showOnionSkin });
+	}
+
 	/**
 	 * Re-clamps the current viewport against the latest Navigation Bounds
 	 * (canvas dimensions ∪ active-Reference footprint). Used after the document

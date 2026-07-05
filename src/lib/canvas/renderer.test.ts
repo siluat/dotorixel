@@ -95,7 +95,8 @@ describe('renderPixelCanvas', () => {
 			panX: 3.2,
 			panY: 4.6,
 			showGrid: false,
-			gridColor: '#000000'
+			gridColor: '#000000',
+			showOnionSkin: false
 		};
 		const viewportSize: ViewportSize = { width: 100, height: 100 };
 		const ctx = createContext();
@@ -129,7 +130,8 @@ describe('renderPixelCanvas', () => {
 			panX: 0,
 			panY: 0,
 			showGrid: false,
-			gridColor: '#000000'
+			gridColor: '#000000',
+			showOnionSkin: false
 		};
 		const viewportSize: ViewportSize = { width: 100, height: 100 };
 		const reference: ReferenceLayerUnderlay = {
@@ -174,7 +176,8 @@ describe('renderPixelCanvas', () => {
 			panX: 0,
 			panY: 0,
 			showGrid: false,
-			gridColor: '#000000'
+			gridColor: '#000000',
+			showOnionSkin: false
 		};
 		const viewportSize: ViewportSize = { width: 100, height: 100 };
 		const referenceA: ReferenceLayerUnderlay = {

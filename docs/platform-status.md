@@ -122,6 +122,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and rotation-aware source sampling. Fixed under canvas transforms (nothing produces new quarter-turns; saved ones still render). Placement invariant (finite pos, scale > 0, quarter-turn 0..=3) enforced by the core constructor |
 | Timeline panel | — | 🔧 | ⬜ | Layer × Frame grid (occupancy dots, Reference span, 2-channel active highlight); ruler/cell select; header add/duplicate/delete + ruler-cell drag-reorder; per-document collapse; full-width transport strip (Play/Pause · Loop · `n/N`) + ▼ playhead marker lane. Mobile row-button touch targets pending |
 | Playback (animation) | — | ✅ | ⬜ | Per-tab engine: transient Playhead + rAF clock holds each frame its `duration_ms` (carry → no drift), loops or stops at end. Previews committed art via `composite_at` — no Document mutation/history/dirty, never persisted; tab/document change stops it. Transport strip (Play/Pause · Loop · ▼ playhead) wired on docked + mobile |
+| Onion skinning | — | 🔧 | ⬜ | Adjacent-frame ghosts under the Active Frame while drawing (prev/next 1, clamped, no wrap); empty during Playback; never in exports. Web: state + persisted per-tab flag done, rendering + toggle pending |
 
 ## Reference Images
 

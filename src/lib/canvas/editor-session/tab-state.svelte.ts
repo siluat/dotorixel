@@ -65,6 +65,11 @@ import {
 } from './floating-selection-lifecycle';
 import { TabViewport } from './tab-viewport.svelte';
 import {
+	DEFAULT_ONION_SKIN_CONFIG,
+	onionSkinGhosts,
+	type OnionSkinGhostRead
+} from './onion-skin';
+import {
 	PlaybackController,
 	rafFrameScheduler,
 	type FrameScheduler
@@ -128,6 +133,10 @@ export interface TabStateDeps {
 
 const DEFAULT_CANVAS_DIMENSION = 16;
 const DEFAULT_VIEWPORT_SIZE: ViewportSize = { width: 512, height: 512 };
+
+// Shared empty projection so the off/playback/no-neighbor branches return a
+// referentially stable value instead of a fresh array per read.
+const NO_GHOSTS: readonly OnionSkinGhostRead[] = [];
 
 /**
  * Per-tab editor state. Owns canvas, viewport, document change journal,
@@ -237,6 +246,37 @@ export class TabState {
 	}
 
 	/**
+	 * Projects the Onion Skin ghosts for the current Active Frame — each
+	 * neighbor's descriptor plus its committed `composite_at` buffer, in axis
+	 * order. Empty while the onion-skin flag is off, while Playback runs, or on
+	 * a side with no neighbor. Tied to `renderVersion` like the frame
+	 * projection, so ghosts refresh after drawing, frame navigation, undo, and
+	 * redo. Computing it never mutates the document, never moves the Active
+	 * Frame, and never pushes History.
+	 */
+	get onionSkinProjection(): readonly OnionSkinGhostRead[] {
+		if (!this.viewport.showOnionSkin) return NO_GHOSTS;
+		if (this.#playback.playheadFrameId !== null) return NO_GHOSTS;
+		const renderVersion = this.renderVersion;
+		const cached = this.#onionSkinProjectionCache;
+		if (cached?.document === this.document && cached.renderVersion === renderVersion) {
+			return cached.read;
+		}
+		const frames = this.frameProjection;
+		const read = onionSkinGhosts(
+			frames.frames.map((frame) => frame.id),
+			frames.activeFrameId,
+			DEFAULT_ONION_SKIN_CONFIG
+		).map((ghost) => ({ ...ghost, pixels: this.document.composite_at(ghost.frameId) }));
+		this.#onionSkinProjectionCache = {
+			document: this.document,
+			renderVersion,
+			read
+		};
+		return read;
+	}
+
+	/**
 	 * True when every layer's pixel buffer is fully transparent. Unlike
 	 * `compositeBuffer.pixels()` this iterates every layer (including hidden
 	 * ones), so painted-then-hidden content still counts as non-blank — the
@@ -268,6 +308,11 @@ export class TabState {
 		readonly document: Document;
 		readonly renderVersion: number;
 		readonly read: DocumentFrameProjectionRead;
+	};
+	#onionSkinProjectionCache?: {
+		readonly document: Document;
+		readonly renderVersion: number;
+		readonly read: readonly OnionSkinGhostRead[];
 	};
 	#floatingSelection = new FloatingSelectionLifecycle({
 		getDocument: () => this.document,
@@ -1026,6 +1071,10 @@ export class TabState {
 
 	toggleGrid = (): void => {
 		this.#tabViewport.toggleGrid();
+	};
+
+	toggleOnionSkin = (): void => {
+		this.#tabViewport.toggleOnionSkin();
 	};
 
 	resize = (newWidth: number, newHeight: number): void => {

@@ -107,6 +107,7 @@ export const canvasConstraints: CanvasConstraints = {
 
 const DEFAULT_SHOW_GRID = true;
 const DEFAULT_GRID_COLOR = '#cccccc';
+const DEFAULT_SHOW_ONION_SKIN = false;
 
 function toWasm(vd: ViewportData): WasmViewport {
 	return new WasmViewport(vd.pixelSize, vd.zoom, vd.panX, vd.panY);
@@ -177,7 +178,8 @@ export const viewportOps: ViewportOps = {
 			panX: wasm.pan_x,
 			panY: wasm.pan_y,
 			showGrid: DEFAULT_SHOW_GRID,
-			gridColor: DEFAULT_GRID_COLOR
+			gridColor: DEFAULT_GRID_COLOR,
+			showOnionSkin: DEFAULT_SHOW_ONION_SKIN
 		};
 	},
 

@@ -333,7 +333,8 @@ describe('Workspace — shared state propagation', () => {
 				panX: 0,
 				panY: 0,
 				showGrid: true,
-				gridColor: '#cccccc'
+				gridColor: '#cccccc',
+				showOnionSkin: false
 			}
 		});
 		workspace.activeTab.document.set_marquee(marqueeRegionFromDrag(0, 0, 1, 1));
@@ -547,7 +548,8 @@ describe('Workspace — shared state propagation', () => {
 				panX: 0,
 				panY: 0,
 				showGrid: true,
-				gridColor: '#cccccc'
+				gridColor: '#cccccc',
+				showOnionSkin: false
 			}
 		});
 		workspace.activeTab.document.set_marquee(marqueeRegionFromDrag(0, 0, 1, 1));
@@ -591,7 +593,8 @@ describe('Workspace — shared state propagation', () => {
 			panX: -20,
 			panY: -10,
 			showGrid: true,
-			gridColor: '#cccccc'
+			gridColor: '#cccccc',
+			showOnionSkin: false
 		});
 		notifier.reset();
 
@@ -720,7 +723,8 @@ describe('Workspace — shared state propagation', () => {
 				panX: 1000,
 				panY: 1000,
 				showGrid: true,
-				gridColor: '#cccccc'
+				gridColor: '#cccccc',
+				showOnionSkin: false
 			}
 		});
 		workspace.setSelectionClipboard({
@@ -844,7 +848,8 @@ describe('Workspace — shared state propagation', () => {
 				panX: 0,
 				panY: 0,
 				showGrid: true,
-				gridColor: '#cccccc'
+				gridColor: '#cccccc',
+				showOnionSkin: false
 			}
 		});
 		workspace.setSelectionClipboard(clipboard);
@@ -970,7 +975,8 @@ describe('Workspace — openDocument', () => {
 				panX: 0,
 				panY: 0,
 				showGrid: true,
-				gridColor: '#cccccc'
+				gridColor: '#cccccc',
+				showOnionSkin: false
 			}
 		};
 
@@ -1002,7 +1008,8 @@ describe('Workspace — hydration', () => {
 						panX: 10,
 						panY: 20,
 						showGrid: true,
-						gridColor: '#ECE5D9'
+						gridColor: '#ECE5D9',
+						showOnionSkin: false
 					}
 				})
 			],
@@ -1352,7 +1359,8 @@ describe('Workspace — toSnapshot', () => {
 			panX: 100,
 			panY: -50,
 			showGrid: false,
-			gridColor: '#ECE5D9'
+			gridColor: '#ECE5D9',
+			showOnionSkin: false
 		});
 
 		const snapshot = workspace.toSnapshot();

@@ -133,6 +133,21 @@ describe('TabViewport', () => {
 		});
 	});
 
+	describe('toggleOnionSkin', () => {
+		it('flips showOnionSkin and emits markDirty', () => {
+			const { tabViewport, notifier } = makeViewport();
+			const startedShowing = tabViewport.viewport.showOnionSkin;
+
+			tabViewport.toggleOnionSkin();
+			expect(tabViewport.viewport.showOnionSkin).toBe(!startedShowing);
+
+			tabViewport.toggleOnionSkin();
+			expect(tabViewport.viewport.showOnionSkin).toBe(startedShowing);
+
+			expect(notifier.dirtyCalls).toEqual(['doc-1', 'doc-1']);
+		});
+	});
+
 	describe('setViewportSize', () => {
 		it('updates viewportSize without marking dirty when the reclamp leaves pan unchanged', () => {
 			const { tabViewport, notifier } = makeViewport();

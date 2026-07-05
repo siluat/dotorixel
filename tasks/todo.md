@@ -3,8 +3,7 @@
 ## Milestone 4: Animation-Capable Editor
 
 - Onion skinning — [PRD](../issues/217-onion-skinning.md)
-  - [219 — Onion skin state — neighbor selection, ghost projection, persisted per-tab flag](../issues/219-onion-skin-state.md)
-  - [220 — Onion skin rendering + transport toggle — end-to-end](../issues/220-onion-skin-render-ui.md) (blocked by 218, 219)
+  - [220 — Onion skin rendering + transport toggle — end-to-end](../issues/220-onion-skin-render-ui.md)
 - Feedback link to Google Form
 - Apple Pencil: hover preview + palm rejection
 - (review) In-editor feedback widget

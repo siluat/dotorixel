@@ -19,7 +19,8 @@ const viewport: ViewportData = {
 	panX: 3.2,
 	panY: 4.6,
 	showGrid: false,
-	gridColor: '#000000'
+	gridColor: '#000000',
+	showOnionSkin: false
 };
 
 describe('normalizedQuarterTurn', () => {

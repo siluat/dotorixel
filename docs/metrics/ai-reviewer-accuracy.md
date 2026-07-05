@@ -6,14 +6,16 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 170 | 131 | 39 | 173 | 77% | 43% |
+| greptile-apps[bot] | 171 | 131 | 40 | 173 | 77% | 43% |
 | cubic-dev-ai[bot] | 152 | 116 | 36 | 186 | 76% | 38% |
-| coderabbitai[bot] | 234 | 163 | 71 | 136 | 70% | 55% |
+| coderabbitai[bot] | 235 | 163 | 72 | 136 | 69% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #306 | greptile-apps[bot] | Reject | Wanted an `activeIndex === -1` early-return guard in `onionSkinGhosts`; fail-at-the-boundary/trust-the-core — the single call site reads both args from the same frame projection, the Document invariant keeps the Active Frame on the axis (stated in the doc contract), and the proposed `return []` would hide the violation (indistinguishable from flag-off) rather than surface it |
+| #306 | coderabbitai[bot] | Reject | Wanted `onionSkinGhosts` renamed to verb form (`selectOnionSkinGhosts`/`getOnionSkinGhosts`); noun-phrase queries are the established answer style (`navigationBounds`, `effectivePixelSize`; same verdict as #302 `allowedBounds`), and `select*` was deliberately avoided for the Selection/Marquee vocabulary collision (issue 219 Key Decisions) |
 | #305 | greptile-apps[bot] | Accept | Quantization-fallback test only used an all-opaque frame — the >255-unique-colors + transparent-pixels combination (reserved transparent index under NeuQuant, crate-internals-dependent) was an untested contract; added a regression test pinning both sides (transparent pixel survives, no opaque pixel swallowed by the transparent index) |
 | #305 | cubic-dev-ai[bot] | Miss | Did not flag the untested quantization-fallback + transparency combination ("No issues found across 14 files") |
 | #305 | coderabbitai[bot] | Miss | Did not flag the untested quantization-fallback + transparency combination ("No actionable comments") |

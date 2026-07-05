@@ -49,10 +49,12 @@
 		// sites (e.g. Storybook) keep working; the editor wires all of them.
 		isPlaying?: boolean;
 		isLooping?: boolean;
+		showOnionSkin?: boolean;
 		/** The frame the Playhead shows while playing, or null while stopped. */
 		playheadFrameId?: string | null;
 		onTogglePlay?: () => void;
 		onToggleLoop?: () => void;
+		onToggleOnionSkin?: () => void;
 	}
 
 	let {
@@ -80,9 +82,11 @@
 		referenceLayerImportName,
 		isPlaying = false,
 		isLooping = false,
+		showOnionSkin = false,
 		playheadFrameId = null,
 		onTogglePlay = () => {},
-		onToggleLoop = () => {}
+		onToggleLoop = () => {},
+		onToggleOnionSkin = () => {}
 	}: Props = $props();
 
 	const activeLayerName = $derived(
@@ -330,10 +334,12 @@
 		<TransportBar
 			{isPlaying}
 			{isLooping}
+			{showOnionSkin}
 			position={transportPosition}
 			frameCount={frames.length}
 			{onTogglePlay}
 			{onToggleLoop}
+			{onToggleOnionSkin}
 		/>
 		<div class="body">
 			<div class="sidebar">

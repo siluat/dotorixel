@@ -11,6 +11,7 @@
 		type RenderableCanvas
 	} from './renderer.ts';
 	import type { ReferenceLayerUnderlay } from './reference-layer-underlay';
+	import type { OnionSkinGhostRead } from './editor-session/onion-skin';
 	import {
 		createReferenceLayerPlacementInteraction,
 		type ReferencePlacementHandle
@@ -30,6 +31,8 @@
 	interface Props {
 		pixelCanvas: RenderableCanvas;
 		referenceLayerUnderlay?: ReferenceLayerUnderlay;
+		/** Onion Skin ghost projection — empty means no ghosts to draw. */
+		onionSkinGhosts?: readonly OnionSkinGhostRead[];
 		marquee?: MarqueeRegion | null;
 		floatingSelectionOffset?: { readonly dx: number; readonly dy: number } | null;
 		isReferenceLayerActive?: boolean;
@@ -73,6 +76,7 @@
 	let {
 		pixelCanvas,
 		referenceLayerUnderlay,
+		onionSkinGhosts = [],
 		marquee,
 		floatingSelectionOffset,
 		isReferenceLayerActive = false,
@@ -172,7 +176,14 @@
 		canvasEl.width = viewportSize.width;
 		canvasEl.height = viewportSize.height;
 
-		renderPixelCanvas(ctx, pixelCanvas, viewport, viewportSize, displayedReferenceLayerUnderlay);
+		renderPixelCanvas(
+			ctx,
+			pixelCanvas,
+			viewport,
+			viewportSize,
+			displayedReferenceLayerUnderlay,
+			onionSkinGhosts
+		);
 	});
 
 	$effect(() => {

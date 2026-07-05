@@ -655,6 +655,7 @@
 			<PixelCanvasView
 				pixelCanvas={editor.compositeBuffer}
 				referenceLayerUnderlay={editor.referenceLayerUnderlay}
+				onionSkinGhosts={editor.onionSkinProjection}
 				marquee={editor.marquee}
 				floatingSelectionOffset={editor.floatingSelectionOffset}
 				isReferenceLayerActive={isReferenceLayerActive}
@@ -714,9 +715,11 @@
 			onSetFrameDuration={handleSetFrameDuration}
 			isPlaying={isPlaying}
 			isLooping={isLooping}
+			showOnionSkin={editor.viewport.showOnionSkin}
 			playheadFrameId={playheadFrameId}
 			onTogglePlay={handleTogglePlay}
 			onToggleLoop={handleToggleLoop}
+			onToggleOnionSkin={editor.handleOnionSkinToggle}
 			collapsed={isTimelinePanelCollapsed}
 			onAddLayer={handleAddLayer}
 			onAddReferenceLayer={handleAddReferenceLayerRequest}
@@ -793,6 +796,7 @@
 					<PixelCanvasView
 						pixelCanvas={editor.compositeBuffer}
 						referenceLayerUnderlay={editor.referenceLayerUnderlay}
+						onionSkinGhosts={editor.onionSkinProjection}
 						marquee={editor.marquee}
 						floatingSelectionOffset={editor.floatingSelectionOffset}
 						isReferenceLayerActive={isReferenceLayerActive}
@@ -905,9 +909,11 @@
 				onSetFrameDuration={handleSetFrameDuration}
 				isPlaying={isPlaying}
 				isLooping={isLooping}
+				showOnionSkin={editor.viewport.showOnionSkin}
 				playheadFrameId={playheadFrameId}
 				onTogglePlay={handleTogglePlay}
 				onToggleLoop={handleToggleLoop}
+				onToggleOnionSkin={editor.handleOnionSkinToggle}
 				collapsed={false}
 				onAddLayer={handleAddLayer}
 				onAddReferenceLayer={handleAddReferenceLayerRequest}

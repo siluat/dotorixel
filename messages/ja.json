@@ -194,5 +194,6 @@
 	"aria_playbackToolbar": "再生コントロール",
 	"aria_play": "再生",
 	"aria_pause": "一時停止",
-	"aria_toggleLoop": "ループ"
+	"aria_toggleLoop": "ループ",
+	"aria_toggleOnionSkin": "オニオンスキン"
 }

@@ -194,5 +194,6 @@
 	"aria_playbackToolbar": "재생 컨트롤",
 	"aria_play": "재생",
 	"aria_pause": "일시정지",
-	"aria_toggleLoop": "반복"
+	"aria_toggleLoop": "반복",
+	"aria_toggleOnionSkin": "어니언 스킨"
 }

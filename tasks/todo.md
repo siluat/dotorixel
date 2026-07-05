@@ -2,8 +2,6 @@
 
 ## Milestone 4: Animation-Capable Editor
 
-- Onion skinning — [PRD](../issues/217-onion-skinning.md)
-  - [220 — Onion skin rendering + transport toggle — end-to-end](../issues/220-onion-skin-render-ui.md)
 - Feedback link to Google Form
 - Apple Pencil: hover preview + palm rejection
 - (review) In-editor feedback widget

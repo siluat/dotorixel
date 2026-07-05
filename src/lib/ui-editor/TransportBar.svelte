@@ -1,19 +1,31 @@
 <script lang="ts">
-	import { Play, Pause, Repeat } from 'lucide-svelte';
+	import { Play, Pause, Repeat, Ghost } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages';
 
 	interface Props {
 		isPlaying: boolean;
 		isLooping: boolean;
+		/** Onion Skin flag — ghosts of adjacent frames on the canvas (218 design). */
+		showOnionSkin: boolean;
 		/** 1-based ordinal shown in the readout (playhead while playing, else active frame). */
 		position: number;
 		/** Total frame count (the readout's denominator). */
 		frameCount: number;
 		onTogglePlay: () => void;
 		onToggleLoop: () => void;
+		onToggleOnionSkin: () => void;
 	}
 
-	let { isPlaying, isLooping, position, frameCount, onTogglePlay, onToggleLoop }: Props = $props();
+	let {
+		isPlaying,
+		isLooping,
+		showOnionSkin,
+		position,
+		frameCount,
+		onTogglePlay,
+		onToggleLoop,
+		onToggleOnionSkin
+	}: Props = $props();
 
 	// Nothing to animate with a single frame, so both transport controls are inert
 	// (the 200 design's disabled state). Playback can never be running here either —
@@ -50,6 +62,21 @@
 		onclick={onToggleLoop}
 	>
 		<Repeat size={16} strokeWidth={2} aria-hidden="true" />
+	</button>
+	<!-- Onion Skin toggle, third in the left cluster (218 design): a ghost of
+	     each adjacent frame on the canvas. Single frame → no neighbors to ghost,
+	     so it shares the strip's disabled convention. -->
+	<button
+		type="button"
+		class="transport-btn transport-btn--onion-skin"
+		class:transport-btn--onion-skin-on={showOnionSkin}
+		data-transport-onion-skin
+		aria-label={m.aria_toggleOnionSkin()}
+		aria-pressed={showOnionSkin}
+		disabled={isSingleFrame}
+		onclick={onToggleOnionSkin}
+	>
+		<Ghost size={16} strokeWidth={2} aria-hidden="true" />
 	</button>
 	<span class="transport-position" data-transport-position>{position} / {frameCount}</span>
 </div>
@@ -102,19 +129,24 @@
 		color: #FFFFFF;
 	}
 
-	.transport-btn--loop {
+	.transport-btn--loop,
+	.transport-btn--onion-skin {
 		color: var(--ds-text-secondary);
 	}
 
-	.transport-btn--loop:hover {
+	.transport-btn--loop:hover,
+	.transport-btn--onion-skin:hover {
 		background: var(--ds-bg-hover);
 		color: var(--ds-text-primary);
 	}
 
 	/* Two-channel on-state (color-blind safe): accent-subtle fill + an accent
-	   outline, with the icon in accent-text — readable without relying on hue. */
+	   outline, with the icon in accent-text — readable without relying on hue.
+	   The Onion Skin toggle mirrors it (218 design). */
 	.transport-btn--loop-on,
-	.transport-btn--loop-on:hover {
+	.transport-btn--loop-on:hover,
+	.transport-btn--onion-skin-on,
+	.transport-btn--onion-skin-on:hover {
 		background: var(--ds-accent-subtle);
 		color: var(--ds-accent-text);
 		box-shadow: inset 0 0 0 var(--ds-border-width) var(--ds-accent);

@@ -3945,4 +3945,19 @@ describe('TabState — onion skin projection', () => {
 		expect(tab.canRedo).toBe(canRedoBefore);
 		expect(notifier.dirtyCalls).toEqual([]);
 	});
+
+	it('never reaches exports: the exportable snapshot reads the document composite, ghosts or not', () => {
+		const { tab } = makeFramesTab([RED, GREEN]);
+		// Active = frame 1 (GREEN at 0,0); the neighbor carries RED at the same pixel.
+		const before = tab.exportableSnapshot().pixels().slice();
+
+		tab.toggleOnionSkin();
+		expect(tab.onionSkinProjection).toHaveLength(1);
+
+		// Ghosts are live on the view side, yet the export output is unchanged:
+		// (0,0) stays the active frame's own committed GREEN, untinted.
+		const after = tab.exportableSnapshot().pixels();
+		expect(after).toEqual(before);
+		expect(getPixelFromBuffer(after, tab.document.width, 0, 0)).toEqual(GREEN);
+	});
 });

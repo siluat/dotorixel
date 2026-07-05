@@ -2,11 +2,11 @@
 
 ## Currently Working On
 
-Onion skinning — adjacent-frame ghosts while editing ([PRD](../issues/217-onion-skinning.md)): 2/3 sub-issues done — 218 (design spec) and 219 (state) shipped. Remaining: **[220 rendering + toggle](../issues/220-onion-skin-render-ui.md), now unblocked** (PR for 219 pending merge).
+None
 
 ## Last Completed
 
-[219 — Onion skin state — neighbor selection, ghost projection, persisted per-tab flag](../issues/219-onion-skin-state.md): the pure neighbor seam (clamped, never wrapping), the per-tab `showOnionSkin` flag persisting like the grid toggle (stored records without the field read as off — no schema bump), and the cached ghost projection sourcing `composite_at` — empty during Playback, computing touches no History/dirty/Active Frame. Landed dead-code-tolerant; 220 consumes it.
+[220 — Onion skin rendering + transport toggle — end-to-end](../issues/220-onion-skin-render-ui.md): ghosts render between the Reference underlay and the composite (previous warm / next cool, committed art always on top), the transport-strip Ghost toggle ships on desktop + mobile, and the flag survives reload. **Closes PRD 217** — onion skinning done end-to-end; M4's authoring aid is complete.
 
 ## Next Up
 

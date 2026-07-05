@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 171 | 131 | 40 | 173 | 77% | 43% |
-| cubic-dev-ai[bot] | 152 | 116 | 36 | 186 | 76% | 38% |
-| coderabbitai[bot] | 235 | 163 | 72 | 136 | 69% | 55% |
+| greptile-apps[bot] | 172 | 131 | 41 | 173 | 76% | 43% |
+| cubic-dev-ai[bot] | 153 | 116 | 37 | 186 | 76% | 38% |
+| coderabbitai[bot] | 236 | 163 | 73 | 136 | 69% | 55% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #307 | greptile-apps[bot] | Reject | Wanted ghost rasters cached like the Reference raster; recompute-per-render is an explicit PRD 217 decision ("ghost offscreen canvases rebuild per render like the artwork blit", caching a measured follow-up only if profiling demands) — ghosts are deliberately symmetric with the artwork composite blit, and the Reference cache exists for natural-resolution imports (≤10MB), a different cost profile from canvas-sized buffers |
+| #307 | cubic-dev-ai[bot] | Reject | Same ghost-raster re-creation finding (`frameId`-keyed cache proposal); declined for the same PRD-pinned recompute-on-invalidation decision and artwork-blit symmetry |
+| #307 | coderabbitai[bot] | Reject | Wanted the `--ds-onion-*` inline note in design-tokens.css removed as duplicating design-system.md; the note is the repo's reserved why-comment use — non-obvious constraints at the edit site (dark-override absence is intentional; renderer constants must stay in sync) — and the committable suggestion backticks the hex values, breaking the stylesheet |
 | #306 | greptile-apps[bot] | Reject | Wanted an `activeIndex === -1` early-return guard in `onionSkinGhosts`; fail-at-the-boundary/trust-the-core — the single call site reads both args from the same frame projection, the Document invariant keeps the Active Frame on the axis (stated in the doc contract), and the proposed `return []` would hide the violation (indistinguishable from flag-off) rather than surface it |
 | #306 | coderabbitai[bot] | Reject | Wanted `onionSkinGhosts` renamed to verb form (`selectOnionSkinGhosts`/`getOnionSkinGhosts`); noun-phrase queries are the established answer style (`navigationBounds`, `effectivePixelSize`; same verdict as #302 `allowedBounds`), and `select*` was deliberately avoided for the Selection/Marquee vocabulary collision (issue 219 Key Decisions) |
 | #305 | greptile-apps[bot] | Accept | Quantization-fallback test only used an all-opaque frame — the >255-unique-colors + transparent-pixels combination (reserved transparent index under NeuQuant, crate-internals-dependent) was an untested contract; added a regression test pinning both sides (transparent pixel survives, no opaque pixel swallowed by the transparent index) |

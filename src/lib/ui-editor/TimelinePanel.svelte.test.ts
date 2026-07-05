@@ -1480,6 +1480,29 @@ describe('TimelinePanel', () => {
 			expect(onTogglePlay).toHaveBeenCalledTimes(1);
 		});
 
+		it('forwards the onion skin toggle click and reflects its pressed state', async () => {
+			const onToggleOnionSkin = vi.fn();
+			const { container } = render(TimelinePanel, {
+				props: {
+					...defaultProps,
+					layers: [pixelLayer('a', 'Layer 1')],
+					activeLayerId: 'a',
+					frames: [frame('f1'), frame('f2')],
+					activeFrameId: 'f1',
+					showOnionSkin: true,
+					onToggleOnionSkin
+				}
+			});
+
+			const onionSkin = container.querySelector(
+				'[data-transport-onion-skin]'
+			) as HTMLButtonElement;
+			expect(onionSkin).not.toBeNull();
+			expect(onionSkin.getAttribute('aria-pressed')).toBe('true');
+			await fireEvent.click(onionSkin);
+			expect(onToggleOnionSkin).toHaveBeenCalledTimes(1);
+		});
+
 		it('reads out the active-frame ordinal while stopped', () => {
 			const { container } = render(TimelinePanel, {
 				props: {

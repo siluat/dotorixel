@@ -15,6 +15,7 @@ import type { ReferenceSamplingSession } from '../../reference-images/reference-
 import type { LoupeInputSource, SamplingSessionView } from '../sampling/types';
 import type { PointerType } from '../canvas-interaction.svelte';
 import type { ReferenceLayerUnderlay } from '../reference-layer-underlay';
+import type { OnionSkinGhostRead } from './onion-skin';
 import type { Workspace } from './workspace.svelte';
 
 /**
@@ -82,6 +83,9 @@ export class EditorController {
 	}
 	get referenceLayerUnderlay(): ReferenceLayerUnderlay | undefined {
 		return this.workspace.activeTab.referenceLayerUnderlay;
+	}
+	get onionSkinProjection(): readonly OnionSkinGhostRead[] {
+		return this.workspace.activeTab.onionSkinProjection;
 	}
 	get marquee(): MarqueeRegion | undefined {
 		return this.workspace.activeTab.marquee;
@@ -325,6 +329,10 @@ export class EditorController {
 
 	handleGridToggle = (): void => {
 		this.workspace.activeTab.toggleGrid();
+	};
+
+	handleOnionSkinToggle = (): void => {
+		this.workspace.activeTab.toggleOnionSkin();
 	};
 
 	// Canvas handlers

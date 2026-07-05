@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 220 | [Onion skin rendering + transport toggle — end-to-end](../issues/220-onion-skin-render-ui.md) | 2026-07-05 |
 | 219 | [Onion skin state — neighbor selection, ghost projection, persisted per-tab flag](../issues/219-onion-skin-state.md) | 2026-07-05 |
 | 218 | [Onion skin transport toggle + ghost treatment — design (.pen)](../issues/218-onion-skin-design.md) | 2026-07-05 |
 | 216 | [Animated GIF export — pixel-art-faithful encoder, end-to-end](../issues/216-gif-export.md) | 2026-07-05 |

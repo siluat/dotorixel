@@ -13,7 +13,8 @@ const viewport: ViewportData = {
 	panX: 4.2,
 	panY: 5.6,
 	showGrid: false,
-	gridColor: '#000000'
+	gridColor: '#000000',
+	showOnionSkin: false
 };
 
 function region(overrides: Partial<MarqueeRegion> = {}): MarqueeRegion {

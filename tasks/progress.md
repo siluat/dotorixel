@@ -2,11 +2,11 @@
 
 ## Currently Working On
 
-Onion skinning — adjacent-frame ghosts while editing ([PRD](../issues/217-onion-skinning.md)): 1/3 sub-issues done — 218 (design spec) shipped. Remaining: **[219 state](../issues/219-onion-skin-state.md) (AFK, unblocked)** → [220 rendering + toggle](../issues/220-onion-skin-render-ui.md) (needs 219).
+Onion skinning — adjacent-frame ghosts while editing ([PRD](../issues/217-onion-skinning.md)): 2/3 sub-issues done — 218 (design spec) and 219 (state) shipped. Remaining: **[220 rendering + toggle](../issues/220-onion-skin-render-ui.md), now unblocked** (PR for 219 pending merge).
 
 ## Last Completed
 
-[218 — Onion skin transport toggle + ghost treatment — design (.pen)](../issues/218-onion-skin-design.md): the 217 spec — a lucide-ghost toggle third in the transport strip's left cluster (on-state mirrors Loop), ghosts at ~60% tint blend + ~40% alpha via the newly approved `$--onion-prev` / `$--onion-next` red/blue pair (single values — the canvas backdrop is theme-independent). 220 mirrors the pair into the web `--ds-*` tokens.
+[219 — Onion skin state — neighbor selection, ghost projection, persisted per-tab flag](../issues/219-onion-skin-state.md): the pure neighbor seam (clamped, never wrapping), the per-tab `showOnionSkin` flag persisting like the grid toggle (stored records without the field read as off — no schema bump), and the cached ghost projection sourcing `composite_at` — empty during Playback, computing touches no History/dirty/Active Frame. Landed dead-code-tolerant; 220 consumes it.
 
 ## Next Up
 

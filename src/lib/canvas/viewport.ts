@@ -16,6 +16,7 @@ export interface ViewportData {
 	readonly panY: number;
 	readonly showGrid: boolean;
 	readonly gridColor: string;
+	readonly showOnionSkin: boolean;
 }
 
 /**

@@ -8,7 +8,8 @@ export const FIXTURE_VIEWPORT: ViewportData = {
 	panX: 0,
 	panY: 0,
 	showGrid: true,
-	gridColor: '#cccccc'
+	gridColor: '#cccccc',
+	showOnionSkin: false
 };
 
 export interface TabSnapshotFixtureOpts {

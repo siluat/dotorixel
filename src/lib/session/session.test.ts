@@ -63,7 +63,7 @@ describe('openSession', () => {
 		setPixel(editor.workspace.activeTab, 0, 0, { r: 255, g: 0, b: 0, a: 255 });
 		editor.workspace.activeTab.setViewport({
 			pixelSize: 32, zoom: 3.0, panX: 100, panY: -50,
-			showGrid: false, gridColor: '#ECE5D9'
+			showGrid: false, gridColor: '#ECE5D9', showOnionSkin: false
 		} satisfies ViewportData);
 		session.markDirty(editor.workspace.activeTab.documentId);
 

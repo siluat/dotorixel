@@ -97,6 +97,40 @@ function activeCelPixels(
 	return cel.pixels;
 }
 
+function paintActiveFrame(
+	tab: TabState,
+	shared: SharedState,
+	color: Color,
+	x: number,
+	y: number
+) {
+	shared.foregroundColor = color;
+	shared.activeTool = 'pencil';
+	tab.drawStart(0, 'mouse');
+	tab.draw({ x, y }, null);
+	tab.drawEnd();
+}
+
+/**
+ * Build a tab whose frame `i` carries pixel (0,0) = `colors[i]`, so per-frame
+ * composites are distinguishable — the display buffer during playback, ghost
+ * buffers for onion skin. The last frame is left active. Frame durations
+ * default to the core value; override per test.
+ */
+function makeFramesTab(colors: Color[]) {
+	const manual = createFakeFrameScheduler();
+	const { tab, shared, notifier } = makeTab({ frameScheduler: manual.scheduler });
+	const frameIds: string[] = [];
+	paintActiveFrame(tab, shared, colors[0], 0, 0);
+	frameIds.push(tab.document.active_frame_id());
+	for (let i = 1; i < colors.length; i++) {
+		tab.addFrame();
+		paintActiveFrame(tab, shared, colors[i], 0, 0);
+		frameIds.push(tab.document.active_frame_id());
+	}
+	return { tab, shared, notifier, manual, frameIds };
+}
+
 function drawLine(tab: TabState, from: CanvasCoords, to: CanvasCoords) {
 	tab.shared.activeTool = 'line';
 	tab.drawStart(0, 'mouse');
@@ -3532,41 +3566,8 @@ describe('TabState — frame axis', () => {
 });
 
 describe('TabState — playback', () => {
-	function paintActiveFrame(
-		tab: TabState,
-		shared: SharedState,
-		color: Color,
-		x: number,
-		y: number
-	) {
-		shared.foregroundColor = color;
-		shared.activeTool = 'pencil';
-		tab.drawStart(0, 'mouse');
-		tab.draw({ x, y }, null);
-		tab.drawEnd();
-	}
-
 	function playbackCelPixel(tab: TabState, frameId: string, x: number, y: number): Color {
 		return getPixelFromBuffer(tab.document.cel_pixels_at(0, frameId)!, tab.document.width, x, y);
-	}
-
-	/**
-	 * Build a tab whose frame `i` carries pixel (0,0) = `colors[i]`, so the
-	 * display buffer's (0,0) pixel names the visible frame. The last frame is left
-	 * active. Frame durations default to the core value; override per test.
-	 */
-	function makeFramesTab(colors: Color[]) {
-		const manual = createFakeFrameScheduler();
-		const { tab, shared, notifier } = makeTab({ frameScheduler: manual.scheduler });
-		const frameIds: string[] = [];
-		paintActiveFrame(tab, shared, colors[0], 0, 0);
-		frameIds.push(tab.document.active_frame_id());
-		for (let i = 1; i < colors.length; i++) {
-			tab.addFrame();
-			paintActiveFrame(tab, shared, colors[i], 0, 0);
-			frameIds.push(tab.document.active_frame_id());
-		}
-		return { tab, shared, notifier, manual, frameIds };
 	}
 
 	it('overrides the display buffer with the first frame composite while playing', () => {
@@ -3790,5 +3791,158 @@ describe('TabState — playback', () => {
 
 		tab.stopPlayback();
 		expect(tab.playheadFrameId).toBeNull();
+	});
+});
+
+describe('TabState — onion skin flag', () => {
+	it('starts off for a fresh tab and toggles through the viewport chain, marking dirty', () => {
+		const { tab, notifier } = makeTab();
+		expect(tab.viewport.showOnionSkin).toBe(false);
+
+		notifier.reset();
+		tab.toggleOnionSkin();
+
+		expect(tab.viewport.showOnionSkin).toBe(true);
+		// Grid parity: the flag persists via the workspace auto-save chain.
+		expect(notifier.dirtyCalls).toEqual(['doc-test']);
+	});
+
+	it('rides the viewport into the tab snapshot for workspace persistence', () => {
+		const { tab } = makeTab();
+		tab.toggleOnionSkin();
+
+		expect(tab.toSnapshot().viewport.showOnionSkin).toBe(true);
+	});
+
+	it('is free to flip: pushes no history entry and leaves the document untouched', () => {
+		const { tab, shared } = makeTab();
+		shared.foregroundColor = RED;
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 0, y: 0 }, null);
+		tab.drawEnd();
+
+		const canUndoBefore = tab.canUndo;
+		const compositeBefore = tab.document.composite().slice();
+
+		tab.toggleOnionSkin();
+		tab.toggleOnionSkin();
+
+		expect(tab.canUndo).toBe(canUndoBefore);
+		expect(tab.canRedo).toBe(false);
+		expect(tab.document.composite()).toEqual(compositeBefore);
+	});
+});
+
+describe('TabState — onion skin projection', () => {
+	function descriptorsOf(tab: TabState) {
+		return tab.onionSkinProjection.map(({ frameId, kind, distance }) => ({
+			frameId,
+			kind,
+			distance
+		}));
+	}
+
+	/** The (x, y) pixel of the first (and only) ghost's composite buffer. */
+	function ghostPixel(tab: TabState, x: number, y: number): Color {
+		return getPixelFromBuffer(tab.onionSkinProjection[0].pixels, tab.document.width, x, y);
+	}
+
+	it("projects previous and next ghosts whose pixels equal each neighbor's composite_at", () => {
+		const { tab, frameIds } = makeFramesTab([RED, GREEN, BLUE]);
+		tab.setActiveFrame(frameIds[1]);
+
+		tab.toggleOnionSkin();
+
+		expect(descriptorsOf(tab)).toEqual([
+			{ frameId: frameIds[0], kind: 'previous', distance: 1 },
+			{ frameId: frameIds[2], kind: 'next', distance: 1 }
+		]);
+		expect(tab.onionSkinProjection[0].pixels).toEqual(tab.document.composite_at(frameIds[0]));
+		expect(tab.onionSkinProjection[1].pixels).toEqual(tab.document.composite_at(frameIds[2]));
+	});
+
+	it('returns a referentially stable projection until the next render invalidation', () => {
+		const { tab } = makeFramesTab([RED, GREEN]);
+		tab.toggleOnionSkin();
+
+		const first = tab.onionSkinProjection;
+
+		expect(tab.onionSkinProjection).toBe(first);
+	});
+
+	it('projects nothing while the flag is off', () => {
+		const { tab } = makeFramesTab([RED, GREEN]);
+
+		expect(tab.onionSkinProjection).toEqual([]);
+	});
+
+	it('projects nothing for a single-frame document even with the flag on', () => {
+		const { tab } = makeFramesTab([RED]);
+		tab.toggleOnionSkin();
+
+		expect(tab.onionSkinProjection).toEqual([]);
+	});
+
+	it('empties while Playback runs and returns when it stops', () => {
+		const { tab, frameIds } = makeFramesTab([RED, GREEN]);
+		tab.setActiveFrame(frameIds[0]);
+		tab.toggleOnionSkin();
+		expect(descriptorsOf(tab)).toEqual([{ frameId: frameIds[1], kind: 'next', distance: 1 }]);
+
+		tab.startPlayback();
+		expect(tab.onionSkinProjection).toEqual([]);
+
+		tab.stopPlayback();
+		expect(descriptorsOf(tab)).toEqual([{ frameId: frameIds[1], kind: 'next', distance: 1 }]);
+	});
+
+	it('re-targets ghosts when the Active Frame moves', () => {
+		const { tab, frameIds } = makeFramesTab([RED, GREEN, BLUE]);
+		tab.toggleOnionSkin();
+		// The last frame is active - a previous ghost only.
+		expect(descriptorsOf(tab)).toEqual([
+			{ frameId: frameIds[1], kind: 'previous', distance: 1 }
+		]);
+
+		tab.setActiveFrame(frameIds[0]);
+
+		expect(descriptorsOf(tab)).toEqual([{ frameId: frameIds[1], kind: 'next', distance: 1 }]);
+	});
+
+	it('refreshes ghost pixels when a neighbor-frame edit lands and when it is undone', () => {
+		const { tab, shared, frameIds } = makeFramesTab([RED, GREEN]);
+		tab.toggleOnionSkin();
+		// Active = frame 1 (last): the ghost shows frame 0 (RED).
+		expect(ghostPixel(tab, 0, 0)).toEqual(RED);
+
+		tab.setActiveFrame(frameIds[0]);
+		paintActiveFrame(tab, shared, BLUE, 0, 0);
+		tab.setActiveFrame(frameIds[1]);
+		expect(ghostPixel(tab, 0, 0)).toEqual(BLUE);
+
+		tab.undo();
+		// Undo restores the captured document (including its active frame); re-anchor
+		// on frame 1 so the ghost reads frame 0 again.
+		tab.setActiveFrame(frameIds[1]);
+		expect(ghostPixel(tab, 0, 0)).toEqual(RED);
+	});
+
+	it('computes the projection without touching the active frame, history, or dirty state', () => {
+		const { tab, notifier, frameIds } = makeFramesTab([RED, GREEN, BLUE]);
+		tab.setActiveFrame(frameIds[1]);
+		tab.toggleOnionSkin();
+
+		const activeBefore = tab.document.active_frame_id();
+		const canUndoBefore = tab.canUndo;
+		const canRedoBefore = tab.canRedo;
+		notifier.reset();
+
+		void tab.onionSkinProjection;
+
+		expect(tab.document.active_frame_id()).toBe(activeBefore);
+		expect(tab.canUndo).toBe(canUndoBefore);
+		expect(tab.canRedo).toBe(canRedoBefore);
+		expect(notifier.dirtyCalls).toEqual([]);
 	});
 });

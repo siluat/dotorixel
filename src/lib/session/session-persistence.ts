@@ -24,7 +24,8 @@ const DEFAULT_VIEWPORT = {
 	panX: 0,
 	panY: 0,
 	showGrid: true,
-	gridColor: '#cccccc'
+	gridColor: '#cccccc',
+	showOnionSkin: false
 } as const;
 
 function isReferenceLayer(layer: LayerSnapshot): layer is ReferenceLayerSnapshot {
@@ -242,7 +243,9 @@ export class SessionPersistence {
 				const doc = await this.#storage.getDocument(docId);
 				if (!doc) return null;
 
-				const viewport = ws.viewports[docId] ?? DEFAULT_VIEWPORT;
+				const record = ws.viewports[docId] ?? DEFAULT_VIEWPORT;
+				// A viewport record written before the onion-skin flag existed reads as off.
+				const viewport = { ...record, showOnionSkin: record.showOnionSkin ?? false };
 
 				tabs.push({
 					id: doc.id,

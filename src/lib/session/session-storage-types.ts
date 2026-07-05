@@ -435,6 +435,11 @@ export interface ViewportRecord {
 	panY: number;
 	showGrid: boolean;
 	gridColor: string;
+	/**
+	 * Absent on records written before this field existed. Hydration should
+	 * treat absence as "off".
+	 */
+	showOnionSkin?: boolean;
 }
 
 export interface ReferenceImageRecord {

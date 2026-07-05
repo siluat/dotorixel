@@ -56,6 +56,10 @@ _Avoid_: animation (the capability and the milestone, not the runtime preview), 
 The transient frame pointer Playback advances through the axis, distinct from the Active Frame (the edit pointer, which never moves during Playback). While playing it drives the display buffer — the renderer reads the Playhead frame's `composite_at`, committed art with no Floating Selection overlay — but never editing. Play starts it at the first Frame; pause, a loop-off completion, or a tab/document change discards it, returning the display to the Active Frame.
 _Avoid_: active frame (the edit pointer), current frame (informal), cursor (an input/text term).
 
+**Onion Skin**:
+The per-tab view aid that renders adjacent Frames' composites as dimmed, tinted **ghosts** beneath the Active Frame's composite in the canvas viewport — the previous neighbor warm, the next cool — never part of any document pixel output, never visible during Playback. The flag lives beside the grid toggle in the per-tab viewport state (persisted with the workspace, reset on saved-document reopen); ghost sources are the neighbors' `composite_at`.
+_Avoid_: ghosting (the GIF-export disposal artifact), tracing (Reference Layer vocabulary), overlay (the tool / Floating Selection preview term), underlay (the Reference render step).
+
 ### Timeline
 
 **Reorder Interaction**:

@@ -51,6 +51,7 @@ Phase 1 modernizes the native layout from Pebble UI to the web's docked structur
 - Collapse EditorController into an Input Pipeline module — architecture deepening, fully specified after a grilling pass, ready for an agent ([issues/221](../issues/221-collapse-editor-controller-into-input-pipeline.md))
 - Consolidate source-over compositing into one core primitive — architecture deepening, fully specified after a grilling pass, ready for an agent; independent of 221 ([issues/222](../issues/222-consolidate-source-over-compositing.md))
 - Say the schema-migration chain once — architecture deepening, fully specified after a grilling pass, ready for an agent; independent of 221/222, best landed before the project file format work adds V8 ([issues/223](../issues/223-single-expression-schema-migration-chain.md))
+- One authority for active-layer editability — architecture deepening, fully specified after a grilling pass, ready for an agent; independent of 221–223, also seals a mid-stroke layer-switch hazard ([issues/224](../issues/224-single-authority-active-layer-editability.md))
 
 ## Future triggers
 

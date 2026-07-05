@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 218 | [Onion skin transport toggle + ghost treatment — design (.pen)](../issues/218-onion-skin-design.md) | 2026-07-05 |
 | 216 | [Animated GIF export — pixel-art-faithful encoder, end-to-end](../issues/216-gif-export.md) | 2026-07-05 |
 | 215 | [Spritesheet (PNG) export — horizontal strip, end-to-end](../issues/215-spritesheet-export.md) | 2026-07-05 |
 | 214 | [Prefactor: export formats declare their source (still snapshot vs Document)](../issues/214-export-format-source-prefactor.md) | 2026-07-05 |

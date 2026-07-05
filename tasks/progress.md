@@ -2,11 +2,11 @@
 
 ## Currently Working On
 
-Onion skinning — adjacent-frame ghosts while editing ([PRD](../issues/217-onion-skinning.md)). PRD published and broken into 3 sub-issues (0/3 done): [218 design (.pen)](../issues/218-onion-skin-design.md) (HITL) and [219 state](../issues/219-onion-skin-state.md) (AFK) are both unblocked and can run in parallel; [220 rendering + toggle](../issues/220-onion-skin-render-ui.md) rides both.
+Onion skinning — adjacent-frame ghosts while editing ([PRD](../issues/217-onion-skinning.md)): 1/3 sub-issues done — 218 (design spec) shipped. Remaining: **[219 state](../issues/219-onion-skin-state.md) (AFK, unblocked)** → [220 rendering + toggle](../issues/220-onion-skin-render-ui.md) (needs 219).
 
 ## Last Completed
 
-[216 — Animated GIF export](../issues/216-gif-export.md): the second document-source format, closing the [213 GIF/spritesheet export PRD](../issues/213-gif-spritesheet-export.md) (all three sub-issues done). The encoder contract — axis-order frames, centisecond timing, infinite loop, alpha-128 binary transparency, exact palettes with quantization fallback, no ghosting — is pinned by decode round-trip tests; no new i18n strings (GIF stays an untranslated acronym like PNG/SVG).
+[218 — Onion skin transport toggle + ghost treatment — design (.pen)](../issues/218-onion-skin-design.md): the 217 spec — a lucide-ghost toggle third in the transport strip's left cluster (on-state mirrors Loop), ghosts at ~60% tint blend + ~40% alpha via the newly approved `$--onion-prev` / `$--onion-next` red/blue pair (single values — the canvas backdrop is theme-independent). 220 mirrors the pair into the web `--ds-*` tokens.
 
 ## Next Up
 

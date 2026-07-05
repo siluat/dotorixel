@@ -3,7 +3,6 @@
 ## Milestone 4: Animation-Capable Editor
 
 - Onion skinning — [PRD](../issues/217-onion-skinning.md)
-  - [218 — Onion skin transport toggle + ghost treatment — design (.pen)](../issues/218-onion-skin-design.md)
   - [219 — Onion skin state — neighbor selection, ghost projection, persisted per-tab flag](../issues/219-onion-skin-state.md)
   - [220 — Onion skin rendering + transport toggle — end-to-end](../issues/220-onion-skin-render-ui.md) (blocked by 218, 219)
 - Feedback link to Google Form

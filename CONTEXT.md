@@ -90,6 +90,12 @@ _Avoid_: whole-document transform (informal), canvas flip / canvas rotate as tie
 The region tier of flip and rotate — mirrors or quarter-turns only the Marquee region of the active Pixel Layer's active-frame Cel; the Document's dimensions, other layers, other frames, and the Reference Layer are untouched. A no-op without a Marquee or while a Reference Layer is active — a no-op pushes no History entry and never marks the Document dirty.
 _Avoid_: selection transform (Selection names the tool/feature, not the region), region transform ("region" is used generically for pixel-buffer slices).
 
+### Input
+
+**Input Pipeline**:
+The session-level module in front of the canvas viewport that admits or blocks draw/sample input (shortcut-hints admission), restores a temporary tool switch when a stroke ends or cancels, and owns the keyboard and Constrain-latch lifecycles. Reads and plain commands do not pass through it — templates bind `workspace.shared` / `workspace.activeTab` directly.
+_Avoid_: editor controller (the deleted facade), canvas interaction (the per-view pointer capture machine), input handler (generic).
+
 ### Sampling
 
 **Sampling Session**:

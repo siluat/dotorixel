@@ -66,81 +66,19 @@ export class SessionStorage {
 					docStore.createIndex('updatedAt', 'updatedAt');
 					db.createObjectStore('workspace', { keyPath: 'id' });
 				}
-				if (oldVersion < 2) {
+				// normalizeToV7 already *is* the version chain expressed once —
+				// including the V5 re-normalization quirk — so migrating the store is
+				// one pass through it, no per-version blocks. Skip-on-error is uniform:
+				// an unmigratable record at any version is left untouched, never fatal.
+				if (oldVersion >= 1 && oldVersion < DB_VERSION) {
 					const store = tx.objectStore('documents');
 					let cursor = await store.openCursor();
 					while (cursor) {
-						const doc = cursor.value;
-						if (!('schemaVersion' in doc)) {
-							await cursor.update(migrateDocumentToV2(doc));
-						}
-						cursor = await cursor.continue();
-					}
-				}
-				if (oldVersion < 3) {
-					const store = tx.objectStore('documents');
-					let cursor = await store.openCursor();
-					while (cursor) {
-						const doc = cursor.value;
-						if ('schemaVersion' in doc && doc.schemaVersion === 2) {
-							await cursor.update(migrateV2ToV3(doc));
-						}
-						cursor = await cursor.continue();
-					}
-				}
-				if (oldVersion < 4) {
-					const store = tx.objectStore('documents');
-					let cursor = await store.openCursor();
-					while (cursor) {
-						const doc = cursor.value;
-						if ('schemaVersion' in doc && doc.schemaVersion === 3) {
-							await cursor.update(migrateV3ToV4(doc));
-						}
-						cursor = await cursor.continue();
-					}
-				}
-				if (oldVersion < 5) {
-					const store = tx.objectStore('documents');
-					let cursor = await store.openCursor();
-					while (cursor) {
-						const doc = cursor.value;
-						if ('schemaVersion' in doc && doc.schemaVersion === 4) {
-							await cursor.update(migrateV4ToV5(doc));
-						}
-						cursor = await cursor.continue();
-					}
-				}
-				if (oldVersion < 6) {
-					const store = tx.objectStore('documents');
-					let cursor = await store.openCursor();
-					while (cursor) {
-						const doc = cursor.value;
-						if ('schemaVersion' in doc && doc.schemaVersion === 5) {
-							try {
-								// Route through migrateV4ToV5 to re-normalize legacy Reference
-								// order, matching the read-path dispatch. One unmigratable record
-								// must not abort the whole upgrade — that would fail the DB open.
-								await cursor.update(migrateV5ToV6(migrateV4ToV5(doc)));
-							} catch (error) {
-								console.warn(`Skipping unmigratable V5 document ${doc.id}`, error);
-							}
-						}
-						cursor = await cursor.continue();
-					}
-				}
-				if (oldVersion < 7) {
-					const store = tx.objectStore('documents');
-					let cursor = await store.openCursor();
-					while (cursor) {
-						const doc = cursor.value;
-						// Records from earlier versions were already chained up to V6 by the
-						// blocks above, so a single V6 → V7 step here finishes every record.
-						if ('schemaVersion' in doc && doc.schemaVersion === 6) {
-							try {
-								await cursor.update(migrateV6ToV7(doc));
-							} catch (error) {
-								console.warn(`Skipping unmigratable V6 document ${doc.id}`, error);
-							}
+						try {
+							const record = normalizeToV7(cursor.value);
+							if (record !== cursor.value) await cursor.update(record);
+						} catch (error) {
+							console.warn(`Skipping unmigratable document ${cursor.value.id}`, error);
 						}
 						cursor = await cursor.continue();
 					}

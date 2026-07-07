@@ -6,7 +6,7 @@ None
 
 ## Last Completed
 
-[222 — Consolidate source-over compositing into one core primitive](../issues/222-consolidate-source-over-compositing.md): one source-over primitive now backs every Rust blend, and the Floating Selection preview renders through a single core patch-composite call instead of a per-layer read-back plus a TS re-blend. Bit-identical (existing suites unchanged); the WASM-free thumbnail path is pinned to the core composite by a new ≤1-per-channel parity test. 223/224 remain independent and unblocked.
+[223 — Say the schema-migration chain once](../issues/223-single-expression-schema-migration-chain.md): the V1→V7 schema-upgrade order is now expressed exactly once and reused by both the read path and the IndexedDB upgrade handler (now DDL plus a single normalize pass). Intended behaviour change locked in — skip-on-error is uniform: a corrupt record at any version is skipped with a warning instead of failing the DB open. 224 remains independent and unblocked.
 
 ## Next Up
 
@@ -14,7 +14,6 @@ None
 - Apple Phase 1 — Enable clear canvas (existing disabled button)
 - Apple Phase 1 — Enable PNG export (existing disabled button)
 - Apple Phase 1 — Shift-constrain for shape tools (macOS keyboard modifier)
-- [223 — Say the schema-migration chain once](../issues/223-single-expression-schema-migration-chain.md)
 - [224 — One authority for active-layer editability](../issues/224-single-authority-active-layer-editability.md)
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)

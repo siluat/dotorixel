@@ -1,6 +1,6 @@
 ---
 title: "Say the schema-migration chain once"
-status: ready-for-agent
+status: done
 created: 2026-07-05
 ---
 
@@ -140,3 +140,31 @@ None — independent of issues 221 and 222.
   re-normalization quirk and would keep the cursor machinery alive); uniform
   skip-on-error confirmed as an intended behaviour change; mapping dedup as a
   module-private helper; `normalizeToV7` name kept.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/session/session-storage.ts` | The `upgrade` handler's seven per-version cursor blocks collapse into one DDL block plus a single `normalizeToV7` pass (~80 → ~20 lines); one store scan instead of seven. |
+| `src/lib/session/session-persistence.ts` | Module-private `recordToTabSnapshot(doc, viewport)` extracted; `getSavedDocumentSnapshot` and `restore` now share it, viewport resolved at each call site. |
+| `src/lib/session/session-storage.test.ts` | Added "survives an unmigratable early-version (V3) record" test pinning the uniform skip-on-error policy. |
+
+### Key Decisions
+
+- Single-pass upgrade reuses `normalizeToV7` rather than a step-list data
+  structure: the read path already *is* the chain's single expression and
+  inherits the V5 re-normalization quirk for free.
+- Uniform skip-on-error landed as the intended behaviour change — a corrupt
+  V2–V4 record is now skipped with a warning and left untouched (extending the
+  V5→V6 / V6→V7 policy) instead of aborting the whole DB open.
+- The corrupt-record test seeds a V3 record with `layers: []`, which trips
+  `migrateV3ToV4`'s explicit empty-stack guard — the clearest unmigratable
+  early-version case.
+
+### Notes
+
+- Byte-identical upgrade across every historical version is proven by the
+  unchanged V1–V6 upgrade tests. Verified: 97 session unit tests, `bun run
+  check` (0 errors), and 14 e2e specs (workspace + reference-images, including
+  the reload-persistence case) all pass.
+- No Rust core / wasm / Apple changes; independent of issues 221 and 222.

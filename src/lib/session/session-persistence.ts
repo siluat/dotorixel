@@ -10,6 +10,7 @@ import { decodeReferenceBlob } from '$lib/reference-images/decode-reference-blob
 import type { SessionStorage } from './session-storage';
 import type {
 	DisplayStateRecord,
+	DocumentRecord,
 	LayerRecordV6,
 	MarqueeRecord,
 	ReferenceImageRecord,
@@ -108,6 +109,31 @@ async function hydrateLayer(layer: LayerRecordV6): Promise<LayerSnapshot> {
 		...layer,
 		placement: { ...layer.placement },
 		sourceRgba: new Uint8Array(decoded.data)
+	};
+}
+
+/**
+ * Maps a persisted document record to a Tab snapshot, hydrating every layer. The
+ * viewport is resolved by the caller: reopening a saved document resets it to
+ * DEFAULT_VIEWPORT, while restoring a workspace tab carries its per-tab viewport.
+ */
+async function recordToTabSnapshot(
+	doc: DocumentRecord,
+	viewport: TabSnapshot['viewport']
+): Promise<TabSnapshot> {
+	return {
+		id: doc.id,
+		name: doc.name,
+		width: doc.width,
+		height: doc.height,
+		marquee: copyMarquee(doc.marquee),
+		layers: await Promise.all(doc.layers.map((layer) => hydrateLayer(layer))),
+		frames: doc.frames.map((frame) => ({ id: frame.id, durationMs: frame.durationMs })),
+		activeFrameId: doc.activeFrameId,
+		activeLayerId: doc.activeLayerId,
+		nextLayerNumber: doc.nextLayerNumber,
+		timelinePanelCollapsed: doc.timelinePanelCollapsed,
+		viewport
 	};
 }
 
@@ -213,20 +239,8 @@ export class SessionPersistence {
 	async getSavedDocumentSnapshot(id: string): Promise<TabSnapshot | null> {
 		const doc = await this.#storage.getDocument(id);
 		if (!doc || !doc.saved) return null;
-		return {
-			id: doc.id,
-			name: doc.name,
-			width: doc.width,
-			height: doc.height,
-			marquee: copyMarquee(doc.marquee),
-			layers: await Promise.all(doc.layers.map((layer) => hydrateLayer(layer))),
-			frames: doc.frames.map((frame) => ({ id: frame.id, durationMs: frame.durationMs })),
-			activeFrameId: doc.activeFrameId,
-			activeLayerId: doc.activeLayerId,
-			nextLayerNumber: doc.nextLayerNumber,
-			timelinePanelCollapsed: doc.timelinePanelCollapsed,
-			viewport: DEFAULT_VIEWPORT
-		};
+		// Reopening a saved document resets the viewport.
+		return recordToTabSnapshot(doc, DEFAULT_VIEWPORT);
 	}
 
 	async deleteDocument(id: string): Promise<void> {
@@ -247,20 +261,7 @@ export class SessionPersistence {
 				// A viewport record written before the onion-skin flag existed reads as off.
 				const viewport = { ...record, showOnionSkin: record.showOnionSkin ?? false };
 
-				tabs.push({
-					id: doc.id,
-					name: doc.name,
-					width: doc.width,
-					height: doc.height,
-					marquee: copyMarquee(doc.marquee),
-					layers: await Promise.all(doc.layers.map((layer) => hydrateLayer(layer))),
-					frames: doc.frames.map((frame) => ({ id: frame.id, durationMs: frame.durationMs })),
-					activeFrameId: doc.activeFrameId,
-					activeLayerId: doc.activeLayerId,
-					nextLayerNumber: doc.nextLayerNumber,
-					timelinePanelCollapsed: doc.timelinePanelCollapsed,
-					viewport
-				});
+				tabs.push(await recordToTabSnapshot(doc, viewport));
 			}
 
 			if (tabs.length === 0) return null;

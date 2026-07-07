@@ -186,6 +186,9 @@ export function createFakeDocument(width: number, height: number): FakeDocument 
 			}
 			return new Uint8Array(pixels);
 		},
+		composite_with_layer_patch: () => {
+			throw new Error('createFakeDocument: composite_with_layer_patch not implemented');
+		},
 		get_pixel: (x, y) => {
 			if (x < 0 || y < 0 || x >= width || y >= height) {
 				return { r: 0, g: 0, b: 0, a: 0 };

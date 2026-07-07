@@ -93,6 +93,38 @@ impl Color {
 
         Ok(Self::new(r, g, b, 255))
     }
+
+    /// Straight-alpha source-over blend of `self` (the source) over `dst`, both
+    /// non-premultiplied RGBA. Returns [`Color::TRANSPARENT`] when the composited
+    /// alpha is zero (both operands fully transparent).
+    pub fn source_over(self, dst: Color) -> Color {
+        self.source_over_scaled(dst, 1.0)
+    }
+
+    /// [`source_over`](Self::source_over) with the source's alpha first scaled by
+    /// `src_opacity` (clamped to `0.0..=1.0`) — the layer-opacity blend path.
+    pub fn source_over_scaled(self, dst: Color, src_opacity: f32) -> Color {
+        let src_a = (self.a as f32 / 255.0) * src_opacity.clamp(0.0, 1.0);
+        let dst_a = dst.a as f32 / 255.0;
+        let out_a = src_a + dst_a * (1.0 - src_a);
+        if out_a == 0.0 {
+            return Color::TRANSPARENT;
+        }
+
+        let blend_channel = |src_channel: u8, dst_channel: u8| {
+            let src_channel = src_channel as f32 / 255.0;
+            let dst_channel = dst_channel as f32 / 255.0;
+            ((src_channel * src_a + dst_channel * dst_a * (1.0 - src_a)) / out_a * 255.0).round()
+                as u8
+        };
+
+        Color::new(
+            blend_channel(self.r, dst.r),
+            blend_channel(self.g, dst.g),
+            blend_channel(self.b, dst.b),
+            (out_a * 255.0).round() as u8,
+        )
+    }
 }
 
 impl fmt::Display for Color {
@@ -319,5 +351,65 @@ mod tests {
     fn error_implements_std_error() {
         let err = ColorParseError::MissingHash;
         let _dyn_err: &dyn std::error::Error = &err;
+    }
+
+    // source_over tests
+
+    #[test]
+    fn source_over_opaque_src_over_opaque_dst_returns_src() {
+        let src = Color::new(0, 0, 255, 255);
+        let dst = Color::new(255, 0, 0, 255);
+        assert_eq!(src.source_over(dst), src);
+    }
+
+    #[test]
+    fn source_over_transparent_src_leaves_dst() {
+        let src = Color::new(10, 20, 30, 0);
+        let dst = Color::new(255, 0, 0, 255);
+        assert_eq!(src.source_over(dst), dst);
+    }
+
+    #[test]
+    fn source_over_opaque_src_over_transparent_dst_returns_src() {
+        let src = Color::new(0, 0, 255, 255);
+        assert_eq!(src.source_over(Color::TRANSPARENT), src);
+    }
+
+    #[test]
+    fn source_over_of_two_transparent_colors_is_transparent() {
+        let src = Color::new(0, 0, 255, 0);
+        let dst = Color::new(255, 0, 0, 0);
+        assert_eq!(src.source_over(dst), Color::TRANSPARENT);
+    }
+
+    #[test]
+    fn source_over_semi_transparent_src_blends_and_rounds() {
+        let src = Color::new(0, 0, 255, 128);
+        let dst = Color::new(255, 0, 0, 255);
+        assert_eq!(src.source_over(dst), Color::new(127, 0, 128, 255));
+    }
+
+    #[test]
+    fn source_over_scaled_halves_source_alpha_over_transparent() {
+        let src = Color::new(0, 0, 255, 255);
+        assert_eq!(
+            src.source_over_scaled(Color::TRANSPARENT, 0.5),
+            Color::new(0, 0, 255, 128)
+        );
+    }
+
+    #[test]
+    fn source_over_scaled_with_zero_opacity_leaves_dst() {
+        let src = Color::new(0, 0, 255, 255);
+        let dst = Color::new(255, 0, 0, 255);
+        assert_eq!(src.source_over_scaled(dst, 0.0), dst);
+    }
+
+    #[test]
+    fn source_over_scaled_clamps_opacity_to_unit_range() {
+        let src = Color::new(0, 0, 255, 255);
+        let dst = Color::new(255, 0, 0, 255);
+        assert_eq!(src.source_over_scaled(dst, 5.0), src.source_over(dst));
+        assert_eq!(src.source_over_scaled(dst, -1.0), dst);
     }
 }

@@ -7,13 +7,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 172 | 131 | 41 | 173 | 76% | 43% |
-| cubic-dev-ai[bot] | 153 | 116 | 37 | 186 | 76% | 38% |
-| coderabbitai[bot] | 236 | 163 | 73 | 136 | 69% | 55% |
+| cubic-dev-ai[bot] | 157 | 119 | 38 | 186 | 76% | 39% |
+| coderabbitai[bot] | 237 | 164 | 73 | 138 | 69% | 54% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #309 | cubic-dev-ai[bot] | Accept | `composite_with_layer_patch`'s `# Errors` docs omitted the newly added `PatchDimensionsOverflow` variant; added the bullet so the public error contract is complete (round 2) |
+| #309 | cubic-dev-ai[bot] | Accept | cubic's own Accept% cell carried over 76% where 117/155 rounds to 75%; corrected — recomputed to 119/157 = 76% after this round's two accepts (round 2) |
+| #309 | coderabbitai[bot] | Miss | Did not flag the `# Errors` doc omission of `PatchDimensionsOverflow` (APPROVED the updated diff) |
+| #309 | coderabbitai[bot] | Miss | Did not flag the carried-over cubic Accept% rounding in the metrics table |
+| #309 | coderabbitai[bot] | Accept | `composite_with_layer_patch` sized `patch.len()` against `patch_width*patch_height*4` computed in u32 (overflow → debug panic / release-unsound validation) and `apply_layer_patch` narrowed coords to i32; switched the boundary to checked-usize sizing (new `PatchDimensionsOverflow`) + i64 clipping, mirroring `selection::region_buffer_len`/`composite_region` |
+| #309 | cubic-dev-ai[bot] | Accept | Same u32 patch-size overflow bypassing the size check / risking a panic (duplicate); fixed by the checked-usize sizing guard |
+| #309 | cubic-dev-ai[bot] | Reject | NaN layer opacity survives `clamp` and yields transparent-black; pre-existing behavior faithfully preserved by this bit-identical refactor (original `blend_pixel_canvas_over` had the same clamp+NaN flow, suites pass unmodified), and non-finite opacity belongs normalized where opacity enters the system, not in the innermost stateless blend primitive — out of scope |
 | #307 | greptile-apps[bot] | Reject | Wanted ghost rasters cached like the Reference raster; recompute-per-render is an explicit PRD 217 decision ("ghost offscreen canvases rebuild per render like the artwork blit", caching a measured follow-up only if profiling demands) — ghosts are deliberately symmetric with the artwork composite blit, and the Reference cache exists for natural-resolution imports (≤10MB), a different cost profile from canvas-sized buffers |
 | #307 | cubic-dev-ai[bot] | Reject | Same ghost-raster re-creation finding (`frameId`-keyed cache proposal); declined for the same PRD-pinned recompute-on-invalidation decision and artwork-blit symmetry |
 | #307 | coderabbitai[bot] | Reject | Wanted the `--ds-onion-*` inline note in design-tokens.css removed as duplicating design-system.md; the note is the repo's reserved why-comment use — non-obvious constraints at the edit site (dark-override absence is intentional; renderer constants must stay in sync) — and the committable suggestion backticks the hex values, breaking the stylesheet |

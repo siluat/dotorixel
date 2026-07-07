@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 222 | [Consolidate source-over compositing into one core primitive](../issues/222-consolidate-source-over-compositing.md) | 2026-07-05 |
 | 221 | [Collapse EditorController into an Input Pipeline module](../issues/221-collapse-editor-controller-into-input-pipeline.md) | 2026-07-05 |
 | 220 | [Onion skin rendering + transport toggle — end-to-end](../issues/220-onion-skin-render-ui.md) | 2026-07-05 |
 | 219 | [Onion skin state — neighbor selection, ghost projection, persisted per-tab flag](../issues/219-onion-skin-state.md) | 2026-07-05 |

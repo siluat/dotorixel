@@ -37,65 +37,6 @@ export interface FloatingSelectionLifecycleDeps {
 
 const DUPLICATE_FLOATING_OFFSET: FloatingSelectionOffset = { dx: 1, dy: 1 };
 
-function blendSourceOver(
-	target: Uint8Array,
-	targetIndex: number,
-	source: Uint8Array,
-	sourceIndex: number,
-	opacity = 1
-): void {
-	const srcA = (source[sourceIndex + 3] / 255) * Math.max(0, Math.min(1, opacity));
-	if (srcA === 0) return;
-
-	const dstA = target[targetIndex + 3] / 255;
-	const outA = srcA + dstA * (1 - srcA);
-
-	for (let channel = 0; channel < 3; channel++) {
-		const src = source[sourceIndex + channel] / 255;
-		const dst = target[targetIndex + channel] / 255;
-		target[targetIndex + channel] = Math.round(
-			((src * srcA + dst * dstA * (1 - srcA)) / outA) * 255
-		);
-	}
-	target[targetIndex + 3] = Math.round(outA * 255);
-}
-
-function compositeFloatingSelectionIntoLayer(
-	layerPixels: Uint8Array,
-	canvasWidth: number,
-	canvasHeight: number,
-	floating: FloatingSelection
-): void {
-	const { sourceRegion, offset, buffer } = floating;
-	const expectedLength = sourceRegion.width * sourceRegion.height * 4;
-	if (buffer.length !== expectedLength) return;
-
-	const destX = sourceRegion.x + offset.dx;
-	const destY = sourceRegion.y + offset.dy;
-	for (let row = 0; row < sourceRegion.height; row++) {
-		const targetY = destY + row;
-		if (targetY < 0 || targetY >= canvasHeight) continue;
-		for (let col = 0; col < sourceRegion.width; col++) {
-			const targetX = destX + col;
-			if (targetX < 0 || targetX >= canvasWidth) continue;
-
-			const sourceIndex = (row * sourceRegion.width + col) * 4;
-			const targetIndex = (targetY * canvasWidth + targetX) * 4;
-			blendSourceOver(layerPixels, targetIndex, buffer, sourceIndex);
-		}
-	}
-}
-
-function blendLayerPixelsOver(
-	target: Uint8Array,
-	layerPixels: Uint8Array,
-	opacity: number | undefined
-): void {
-	for (let sourceIndex = 0; sourceIndex < layerPixels.length; sourceIndex += 4) {
-		blendSourceOver(target, sourceIndex, layerPixels, sourceIndex, opacity ?? 1);
-	}
-}
-
 function withDocumentActiveLayer<T>(
 	document: Document,
 	layerId: string,
@@ -355,29 +296,18 @@ export class FloatingSelectionLifecycle {
 
 	previewPixels(): Uint8Array {
 		const document = this.#deps.getDocument();
-		if (!this.#floating) return document.composite();
+		const floating = this.#floating;
+		if (!floating) return document.composite();
 
-		const records = document.layers_metadata();
-		const output = new Uint8Array(document.width * document.height * 4);
-		for (let layerIndex = 0; layerIndex < records.length; layerIndex++) {
-			const record = records[layerIndex];
-			if (!record.visible) continue;
-			const layerPixels = document.layer_pixels_at(layerIndex);
-			if (!layerPixels) continue;
-
-			const previewPixels =
-				record.id === this.#floating.sourceLayerId ? layerPixels.slice() : layerPixels;
-			if (previewPixels !== layerPixels) {
-				compositeFloatingSelectionIntoLayer(
-					previewPixels,
-					document.width,
-					document.height,
-					this.#floating
-				);
-			}
-			blendLayerPixelsOver(output, previewPixels, record.opacity);
-		}
-		return output;
+		const { sourceRegion, offset, buffer } = floating;
+		return document.composite_with_layer_patch(
+			floating.sourceLayerId,
+			buffer,
+			sourceRegion.width,
+			sourceRegion.height,
+			sourceRegion.x + offset.dx,
+			sourceRegion.y + offset.dy
+		);
 	}
 
 	pixelLayerSnapshotPixels(layerId: string, currentPixels: Uint8Array): Uint8Array {

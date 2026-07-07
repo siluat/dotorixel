@@ -339,9 +339,11 @@ export function migrateV6ToV7(doc: DocumentSchemaV6): DocumentSchemaV7 {
 
 /**
  * Source-over composite of every visible layer at its declared opacity.
- * Used to build a single thumbnail buffer for the saved-work browser — the
- * Rust core renders the in-editor canvas via a parallel implementation, so
- * minor numeric differences here are tolerated.
+ * Used to build a single thumbnail buffer for the saved-work browser. A
+ * deliberate WASM-free parallel to the Rust core composite so the landing route
+ * ships no wasm bundle; the two share one source-over formula and are pinned
+ * together by `composite-parity.test.ts` — they agree to within 1 per channel,
+ * the only gap being Rust `f32` vs JS `f64` rounding.
  */
 export function compositeV3(doc: DocumentSchemaV3): Uint8Array {
 	const out = new Uint8Array(doc.width * doc.height * 4);

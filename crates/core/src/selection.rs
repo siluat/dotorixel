@@ -244,32 +244,10 @@ pub fn composite_region(canvas: &mut PixelCanvas, buffer: &[u8], dest_region: Ma
                 .get_pixel(dest_x as u32, dest_y as u32)
                 .expect("destination coordinate checked against canvas bounds");
             canvas
-                .set_pixel(dest_x as u32, dest_y as u32, source_over(src, dst))
+                .set_pixel(dest_x as u32, dest_y as u32, src.source_over(dst))
                 .expect("destination coordinate checked against canvas bounds");
         }
     }
-}
-
-fn source_over(src: Color, dst: Color) -> Color {
-    let src_a = src.a as f32 / 255.0;
-    let dst_a = dst.a as f32 / 255.0;
-    let out_a = src_a + dst_a * (1.0 - src_a);
-    if out_a == 0.0 {
-        return Color::TRANSPARENT;
-    }
-
-    let blend_channel = |src_channel: u8, dst_channel: u8| {
-        let src_channel = src_channel as f32 / 255.0;
-        let dst_channel = dst_channel as f32 / 255.0;
-        ((src_channel * src_a + dst_channel * dst_a * (1.0 - src_a)) / out_a * 255.0).round() as u8
-    };
-
-    Color::new(
-        blend_channel(src.r, dst.r),
-        blend_channel(src.g, dst.g),
-        blend_channel(src.b, dst.b),
-        (out_a * 255.0).round() as u8,
-    )
 }
 
 #[cfg(test)]

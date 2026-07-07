@@ -783,6 +783,8 @@ impl Document {
     ///
     /// # Errors
     ///
+    /// - [`CompositePatchError::PatchDimensionsOverflow`] when
+    ///   `patch_width * patch_height * 4` overflows the address space.
     /// - [`CompositePatchError::PatchSizeMismatch`] when `patch.len()` is not
     ///   `patch_width * patch_height * 4`.
     /// - [`CompositePatchError::LayerNotFound`] when no layer has `layer_id`.

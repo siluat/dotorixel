@@ -776,6 +776,73 @@ describe('SessionStorage', () => {
 			expect(validStored!.layers[0].cels[0].pixels).toEqual(validPixels);
 			expect(malformedStored!.schemaVersion).toBe(5);
 		});
+
+		it('survives an unmigratable early-version (V3) record and still upgrades the valid ones', async () => {
+			storage.close();
+			await new Promise<void>((resolve, reject) => {
+				const request = indexedDB.deleteDatabase('dotorixel');
+				request.onsuccess = () => resolve();
+				request.onerror = () => reject(request.error);
+			});
+
+			const validId = crypto.randomUUID();
+			const validLayerId = crypto.randomUUID();
+			const validPixels = new Uint8Array([4, 5, 6, 255]);
+			const v3Db = await openDB('dotorixel', 3, {
+				upgrade(db) {
+					const store = db.createObjectStore('documents', { keyPath: 'id' });
+					store.createIndex('updatedAt', 'updatedAt');
+					db.createObjectStore('workspace', { keyPath: 'id' });
+				}
+			});
+			await v3Db.put('documents', {
+				schemaVersion: 3,
+				id: validId,
+				name: 'Valid V3',
+				width: 1,
+				height: 1,
+				layers: [
+					{ id: validLayerId, name: 'Layer 1', pixels: validPixels, visible: true, opacity: 1 }
+				],
+				activeLayerId: validLayerId,
+				nextLayerNumber: 2,
+				timelinePanelCollapsed: false,
+				saved: true,
+				createdAt: new Date('2026-05-01'),
+				updatedAt: new Date('2026-05-02')
+			});
+			// A V3 record with an empty layer stack — migrateV3ToV4 throws on it.
+			await v3Db.put('documents', {
+				schemaVersion: 3,
+				id: 'malformed',
+				name: 'Malformed',
+				width: 1,
+				height: 1,
+				layers: [],
+				activeLayerId: 'missing-layer',
+				nextLayerNumber: 1,
+				timelinePanelCollapsed: false,
+				saved: true,
+				createdAt: new Date('2026-05-01'),
+				updatedAt: new Date('2026-05-02')
+			});
+			v3Db.close();
+
+			// The upgrade must not abort — open succeeds despite the unmigratable record.
+			storage = await SessionStorage.open();
+			storage.close();
+
+			const rawDb = await openDB('dotorixel', 7);
+			const validStored = await rawDb.get('documents', validId);
+			const malformedStored = await rawDb.get('documents', 'malformed');
+			rawDb.close();
+
+			// Valid record migrated to V7; the unmigratable one is left untouched, not fatal.
+			expect(validStored!.schemaVersion).toBe(7);
+			expect(validStored!.frames).toHaveLength(1);
+			expect(validStored!.layers[0].cels[0].pixels).toEqual(validPixels);
+			expect(malformedStored!.schemaVersion).toBe(3);
+		});
 	});
 
 	describe('getAllSavedDocuments', () => {

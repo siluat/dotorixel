@@ -170,6 +170,7 @@ impl std::error::Error for DocumentBuildError {}
 pub enum CompositePatchError {
     LayerNotFound { id: Uuid },
     PatchSizeMismatch { expected: usize, actual: usize },
+    PatchDimensionsOverflow { width: u32, height: u32 },
     ReferenceLayerTarget { id: Uuid },
 }
 
@@ -180,6 +181,10 @@ impl fmt::Display for CompositePatchError {
             Self::PatchSizeMismatch { expected, actual } => write!(
                 f,
                 "Layer patch must be patch_width * patch_height * 4 = {expected} bytes, got {actual}."
+            ),
+            Self::PatchDimensionsOverflow { width, height } => write!(
+                f,
+                "Layer patch dimensions {width} × {height} are too large: width * height * 4 overflows the address space."
             ),
             Self::ReferenceLayerTarget { id } => write!(
                 f,
@@ -792,7 +797,7 @@ impl Document {
         dest_x: i32,
         dest_y: i32,
     ) -> Result<Vec<u8>, CompositePatchError> {
-        let expected = (patch_width * patch_height * 4) as usize;
+        let expected = patch_buffer_len(patch_width, patch_height)?;
         if patch.len() != expected {
             return Err(CompositePatchError::PatchSizeMismatch {
                 expected,
@@ -1400,10 +1405,25 @@ fn blend_pixel_canvas_over(dst: &mut [u8], canvas: &PixelCanvas, opacity: f32) {
     }
 }
 
+/// The byte length of a `patch_width × patch_height` RGBA patch, or
+/// [`CompositePatchError::PatchDimensionsOverflow`] when the product overflows
+/// the address space. Mirrors `selection::region_buffer_len`, but returns an
+/// error at this untrusted boundary rather than panicking.
+fn patch_buffer_len(patch_width: u32, patch_height: u32) -> Result<usize, CompositePatchError> {
+    (patch_width as usize)
+        .checked_mul(patch_height as usize)
+        .and_then(|pixels| pixels.checked_mul(4))
+        .ok_or(CompositePatchError::PatchDimensionsOverflow {
+            width: patch_width,
+            height: patch_height,
+        })
+}
+
 /// Source-over blends `patch` (a `patch_width × patch_height` RGBA buffer) onto
 /// `canvas` with its top-left at `(dest_x, dest_y)`, clipping rows and columns
 /// that fall outside the canvas. Fully transparent patch pixels are skipped so
-/// they leave the underlying pixel untouched.
+/// they leave the underlying pixel untouched. Coordinate math is widened to
+/// `i64` so an out-of-range placement is clipped rather than overflowing.
 fn apply_layer_patch(
     canvas: &mut PixelCanvas,
     patch: &[u8],
@@ -1412,19 +1432,19 @@ fn apply_layer_patch(
     dest_x: i32,
     dest_y: i32,
 ) {
-    let canvas_width = canvas.width() as i32;
-    let canvas_height = canvas.height() as i32;
-    for row in 0..patch_height as i32 {
-        let target_y = dest_y + row;
+    let canvas_width = i64::from(canvas.width());
+    let canvas_height = i64::from(canvas.height());
+    for row in 0..i64::from(patch_height) {
+        let target_y = i64::from(dest_y) + row;
         if target_y < 0 || target_y >= canvas_height {
             continue;
         }
-        for col in 0..patch_width as i32 {
-            let target_x = dest_x + col;
+        for col in 0..i64::from(patch_width) {
+            let target_x = i64::from(dest_x) + col;
             if target_x < 0 || target_x >= canvas_width {
                 continue;
             }
-            let src_index = ((row * patch_width as i32 + col) * 4) as usize;
+            let src_index = ((row * i64::from(patch_width) + col) * 4) as usize;
             let src = Color::new(
                 patch[src_index],
                 patch[src_index + 1],
@@ -3521,6 +3541,24 @@ mod tests {
             Err(CompositePatchError::PatchSizeMismatch {
                 expected: 4,
                 actual: 3,
+            })
+        );
+    }
+
+    #[test]
+    fn composite_with_layer_patch_rejects_overflowing_patch_dimensions() {
+        let id = Uuid::new_v4();
+        let doc = Document::new(1, 1, id, "L1".to_string()).unwrap();
+
+        // patch_width * patch_height * 4 overflows the address space: the boundary
+        // must report it, not panic (debug) or wrap to a wrong size (release).
+        let patch = vec![0u8, 0, 0, 0];
+
+        assert_eq!(
+            doc.composite_with_layer_patch(id, &patch, u32::MAX, u32::MAX, 0, 0),
+            Err(CompositePatchError::PatchDimensionsOverflow {
+                width: u32::MAX,
+                height: u32::MAX,
             })
         );
     }

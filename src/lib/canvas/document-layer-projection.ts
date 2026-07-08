@@ -22,6 +22,14 @@ export interface DocumentLayerProjectionRead {
 	readonly stackIndexById: ReadonlyMap<string, number>;
 	readonly activeLayer?: DocumentLayerRead;
 	readonly activeLayerKind?: DocumentLayerKind;
+	/**
+	 * Whether the active Layer accepts pixel edits (paint, Marquee ops). The
+	 * single authority for the editability rule — a Reference Layer takes no
+	 * paint and no Marquee, every other active layer does. Enforcement lives at
+	 * the TabState entries that consult this; tools and the stroke engine trust
+	 * their preconditions rather than re-deciding the rule.
+	 */
+	readonly isActiveLayerEditable: boolean;
 	readonly referenceLayer?: DocumentLayerRead;
 	readonly referenceLayerUnderlay?: ReferenceLayerUnderlay;
 }
@@ -105,6 +113,7 @@ export class DocumentLayerProjection {
 			stackIndexById,
 			activeLayer,
 			activeLayerKind: activeLayer?.kind,
+			isActiveLayerEditable: activeLayer?.kind !== 'reference',
 			referenceLayer:
 				referenceStackIndex === undefined
 					? undefined

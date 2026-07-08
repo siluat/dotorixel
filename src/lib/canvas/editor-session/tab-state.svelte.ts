@@ -36,6 +36,7 @@ import {
 import { createCanvasSamplingSession, type CanvasSamplingSession } from '../sampling/session.svelte';
 import type { LoupeInputSource } from '../sampling/types';
 import { createToolRunner, type ToolRunner, type EditorEffects } from '../tool-runner.svelte';
+import { isPixelMutationTool } from '../tool-registry';
 import { exportAsPng } from '../export';
 import type { PointerType } from '../canvas-interaction.svelte';
 import type { ReferenceLayerSnapshot, TabSnapshot } from '../workspace-snapshot';
@@ -595,6 +596,13 @@ export class TabState {
 	}
 
 	drawStart = (button: number, pointerType: PointerType): void => {
+		// Editability is enforced here, at the document-state entry: a pixel-mutation
+		// stroke on a non-editable active layer (a Reference Layer) never dispatches,
+		// so it opens no session and does not disturb Playback. Non-mutation tools
+		// (the eyedropper) still proceed — Reference Sampling stays available.
+		if (isPixelMutationTool(this.shared.activeTool) && !this.layerProjection.isActiveLayerEditable) {
+			return;
+		}
 		// A tool stroke edits the Active Frame's Cel — exit the playback preview
 		// first so the user draws on (and sees) the frame being edited, not the
 		// moving Playhead. `#mutate` covers undoable document mutations; this covers
@@ -609,7 +617,7 @@ export class TabState {
 	};
 
 	draw = (current: CanvasPoint, previous: CanvasPoint | null): void => {
-		if (this.layerProjection.activeLayerKind !== 'reference') {
+		if (this.layerProjection.isActiveLayerEditable) {
 			this.#floatingSelection.commitIfSelectionDragStartsOutside(current, previous);
 		}
 		this.#applyEffects(this.#toolRunner.draw(current, previous));
@@ -773,7 +781,7 @@ export class TabState {
 
 	nudgeMarquee = (dx: number, dy: number): void => {
 		if (this.isDrawing) return;
-		if (this.layerProjection.activeLayerKind === 'reference') return;
+		if (!this.layerProjection.isActiveLayerEditable) return;
 		this.#recordFloatingPreviewChanged(this.#floatingSelection.nudgeMarquee({ dx, dy }));
 	};
 
@@ -788,7 +796,7 @@ export class TabState {
 
 	pasteSelectionClipboard = (clipboard: SelectionClipboardData): void => {
 		if (this.isDrawing) return;
-		if (this.layerProjection.activeLayerKind === 'reference') return;
+		if (!this.layerProjection.isActiveLayerEditable) return;
 		if (clipboard.width <= 0 || clipboard.height <= 0 || clipboard.pixels.length === 0) return;
 		if (clipboard.pixels.length !== clipboard.width * clipboard.height * 4) return;
 
@@ -803,7 +811,7 @@ export class TabState {
 	};
 
 	selectionCutSnapshot = (): SelectionCutSnapshot | null => {
-		if (this.layerProjection.activeLayerKind === 'reference') return null;
+		if (!this.layerProjection.isActiveLayerEditable) return null;
 
 		const marquee = this.document.marquee();
 		if (!marquee) return null;
@@ -844,18 +852,23 @@ export class TabState {
 	};
 
 	/**
-	 * Removes the layer with `id`. No-op when only one layer remains (last-layer
-	 * guard parallels the UI's disabled affordance and keeps history clean — no
-	 * snapshot is pushed in that branch). When the removed layer was active, the
-	 * active pointer moves to an adjacent layer (delegated to the core). Pushes
-	 * an undo snapshot, bumps `renderVersion`, and marks the tab dirty. Throws
-	 * if `id` does not refer to an existing layer.
+	 * Removes the layer with `id`. A no-op while a stroke is drawing (a live
+	 * stroke's target must not vanish mid-stroke) and when only one layer remains
+	 * (last-layer guard parallels the UI's disabled affordance and keeps history
+	 * clean — no snapshot is pushed in that branch). When the removed layer was
+	 * active, the active pointer moves to an adjacent layer (delegated to the
+	 * core). Pushes an undo snapshot, bumps `renderVersion`, and marks the tab
+	 * dirty. Throws if `id` does not refer to an existing layer.
 	 */
 	removeLayer = (id: string): void => {
+		// Mid-stroke seal: never move or destroy the stroke's target while drawing.
+		if (this.isDrawing) return;
 		this.#mutate({ type: 'remove-layer', id });
 	};
 
 	setActiveLayer = (id: string): void => {
+		// Mid-stroke seal: never move or destroy the stroke's target while drawing.
+		if (this.isDrawing) return;
 		// A persisted-UI mutation rather than undoable, so it routes the
 		// commit-before-mutation policy through the lifecycle directly instead of
 		// the undoable `#mutate` boundary.
@@ -945,12 +958,15 @@ export class TabState {
 	};
 
 	/**
-	 * Removes the frame with `id`. No-op when only one frame remains (last-frame
-	 * guard keeps history clean — no snapshot). When the removed frame was active,
-	 * the active pointer moves to an adjacent frame (delegated to the core). Pushes
-	 * an undo snapshot on the real-removal branch.
+	 * Removes the frame with `id`. A no-op while a stroke is drawing (a live
+	 * stroke's target must not vanish mid-stroke) and when only one frame remains
+	 * (last-frame guard keeps history clean — no snapshot). When the removed frame
+	 * was active, the active pointer moves to an adjacent frame (delegated to the
+	 * core). Pushes an undo snapshot on the real-removal branch.
 	 */
 	removeFrame = (id: string): void => {
+		// Mid-stroke seal: never move or destroy the stroke's target while drawing.
+		if (this.isDrawing) return;
 		this.#mutate({ type: 'remove-frame', id });
 	};
 
@@ -964,12 +980,15 @@ export class TabState {
 	};
 
 	/**
-	 * Sets the active frame by id. Like `setActiveLayer`, this is a persisted-UI
-	 * mutation (not undoable), so it routes the commit-before-mutation policy
-	 * through the lifecycle directly — committing a pending Floating Selection
-	 * onto the frame it was lifted from before the active frame changes.
+	 * Sets the active frame by id. A no-op while a stroke is drawing (the active
+	 * frame must not switch mid-stroke). Like `setActiveLayer`, this is a
+	 * persisted-UI mutation (not undoable), so it routes the commit-before-mutation
+	 * policy through the lifecycle directly — committing a pending Floating
+	 * Selection onto the frame it was lifted from before the active frame changes.
 	 */
 	setActiveFrame = (id: string): void => {
+		// Mid-stroke seal: never move or destroy the stroke's target while drawing.
+		if (this.isDrawing) return;
 		this.#floatingSelection.commitIfPending();
 		this.#documentChangeJournal.commit({
 			kind: 'persisted-document-ui',

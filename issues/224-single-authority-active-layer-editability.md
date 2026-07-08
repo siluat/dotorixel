@@ -1,6 +1,6 @@
 ---
 title: "One authority for active-layer editability"
-status: ready-for-agent
+status: done
 created: 2026-07-05
 ---
 
@@ -157,3 +157,25 @@ None — independent of issues 221, 222, and 223.
   is a different rule); four targeted `isDrawing` guards included here as
   the precondition that makes deleting the tools' internal gates sound, with
   full guard uniformization deferred to the prepare-to-mutate-gate candidate.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `document-layer-projection.ts` | Added the `isActiveLayerEditable` predicate (`activeLayerKind !== 'reference'`) — the single authority; the formula lives here only |
+| `tab-state.svelte.ts` | Sole enforcement point: `drawStart` gate (pin a); `draw`/`nudgeMarquee`/`pasteSelectionClipboard`/`selectionCutSnapshot` consult the predicate; four `isDrawing` guards on `setActiveLayer`/`setActiveFrame`/`removeLayer`/`removeFrame` (pin b) |
+| `stroke-engine.ts` | Deleted the `begin()` reference gate, `noOpStroke`, and `isActiveLayerReference`; the engine now trusts its precondition |
+| `tools/selection-tool.ts` | Deleted the private `isReferenceLayerActive` helper and its three internal gate checks |
+| `CONTEXT.md` | Pixel Layer entry gained the editability ownership clause |
+| tests | Projection predicate units; `drawStart` pin (a) + eyedropper-proceeds pins; four mid-stroke seal tests; rewrote 3 tests that relied on the now-sealed mid-stroke switch; deleted the tool-runner reference-gate suite |
+
+### Key Decisions
+
+- **The reference-gate tests lived in `tool-runner.svelte.test.ts`, not the stroke-engine suite** the issue named — same seam. Deleted the 7-tool + move no-op tests there; kept eyedropper-on-reference (still valid).
+- **Three existing tests depended on a mid-stroke `setActiveLayer`** (the exact hazard pin (b) seals), so "assertions unchanged" did not hold for them. Rewrote: 806 → mid-drag switch-to-reference is sealed; 1579 → mid-drag switch ignored, `drawCancel` restores to source; 1415 → moved the switch after `drawEnd`, still verifying the valid idle-floating source-commit.
+
+### Notes
+
+- The four mid-stroke guards fire only through Timeline/Layer panel pointer handlers — no keyboard path. On desktop (single pointer) the seal is essentially unreachable; the real trigger is multi-touch (draw + second-finger tap), which single-pointer e2e cannot cover → flagged for manual regression on a touch device.
+- Verification: unit 1620 pass, `svelte-check` clean, editor e2e 89 pass.
+- Full uniformization of the mutating surface stays with the future prepare-to-mutate-gate work; these four guards fold into that gate when it lands.

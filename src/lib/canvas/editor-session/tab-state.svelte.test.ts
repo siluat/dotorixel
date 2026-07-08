@@ -803,7 +803,7 @@ describe('TabState — effect dispatcher', () => {
 		expect(tab.document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
 	});
 
-	it('keeps outside-drag Selection no-op on Reference-active documents with a Floating Selection', () => {
+	it('seals a mid-stroke setActiveLayer to a Reference Layer during a Selection drag', () => {
 		const pixelId = crypto.randomUUID();
 		const referenceId = crypto.randomUUID();
 		const pixels = new Uint8Array(5 * 5 * 4);
@@ -843,34 +843,26 @@ describe('TabState — effect dispatcher', () => {
 		tab.document.set_marquee(marqueeRegionFromDrag(1, 1, 1, 1));
 
 		tab.drawStart(0, 'mouse');
-		tab.draw({ x: 1, y: 1 }, null);
-		tab.draw({ x: 2, y: 1 }, { x: 1, y: 1 });
-		tab.setActiveLayer(referenceId);
-		tab.drawEnd();
+		tab.draw({ x: 1, y: 1 }, null); // anchor inside the Marquee → lift-and-drag
+		tab.draw({ x: 2, y: 1 }, { x: 1, y: 1 }); // a Floating Selection lifts and moves
 		notifier.reset();
+		const renderBefore = tab.renderVersion;
 
-		tab.drawStart(0, 'mouse');
-		tab.draw({ x: 0, y: 0 }, null);
+		// A second input tries to switch the active layer to the Reference Layer
+		// mid-stroke. The isDrawing guard ignores it, so the stroke keeps operating
+		// on its original Pixel Layer instead of continuing onto a Reference Layer.
+		tab.setActiveLayer(referenceId);
 
-		expect(tab.document.active_layer_id()).toBe(referenceId);
-		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 0 });
-		const pixelLayerIndex = tab.document.layers_metadata().findIndex((record) => record.id === pixelId);
-		expect(pixelLayerIndex).not.toBe(-1);
-		const pixelLayerPixels = tab.document.layer_pixels_at(pixelLayerIndex)!;
-		expect(getPixelFromBuffer(pixelLayerPixels, 5, 1, 1)).toEqual({
-			r: 0,
-			g: 0,
-			b: 0,
-			a: 0
-		});
-		expect(getPixelFromBuffer(pixelLayerPixels, 5, 2, 1)).toEqual({
-			r: 0,
-			g: 0,
-			b: 0,
-			a: 0
-		});
-		expect(getRenderedPixel(tab, 2, 1)).toEqual(RED);
+		expect(tab.document.active_layer_id()).toBe(pixelId);
+		expect(tab.renderVersion).toBe(renderBefore); // the ignored switch changed nothing
 		expect(notifier.dirtyCalls).toEqual([]);
+		expect(tab.floatingSelectionOffset).toEqual({ dx: 1, dy: 0 });
+
+		tab.drawEnd();
+
+		// The seal holds after the stroke ends: the Pixel Layer stays the active
+		// target and its lifted pixel never bled onto the Reference Layer.
+		expect(tab.document.active_layer_id()).toBe(pixelId);
 	});
 
 	it('keeps repeated Floating Selection drags cancelable until explicit commit', () => {
@@ -1460,11 +1452,13 @@ describe('TabState — effect dispatcher', () => {
 		tab.drawStart(0, 'mouse');
 		tab.draw({ x: 1, y: 1 }, null);
 		tab.draw({ x: 2, y: 2 }, { x: 1, y: 1 });
-		tab.setActiveLayer(topId);
-
-		expect(getRenderedPixel(tab, 2, 2)).toEqual(BLUE);
-
 		tab.drawEnd();
+
+		// The drag has ended, so the Floating Selection is now idle. Switching the
+		// active layer commits it onto its SOURCE layer (the one it was lifted
+		// from), not the newly-active layer. (Mid-drag the switch would be sealed;
+		// see the editability-enforcement suite.)
+		tab.setActiveLayer(topId);
 		tab.commitFloatingSelection();
 
 		expect(tab.document.active_layer_id()).toBe(topId);
@@ -1584,7 +1578,7 @@ describe('TabState — effect dispatcher', () => {
 		expect(notifier.dirtyCalls).toEqual([]);
 	});
 
-	it('drawCancel restores a lifted Floating Selection source layer after active layer changes', () => {
+	it('seals a mid-drag setActiveLayer, and drawCancel restores the lifted Floating Selection to its source', () => {
 		const bottomPixels = new Uint8Array(5 * 5 * 4);
 		bottomPixels.set(makePixelRgba(RED), (1 * 5 + 1) * 4);
 		bottomPixels.set(makePixelRgba(GREEN), (1 * 5 + 2) * 4);
@@ -1626,12 +1620,14 @@ describe('TabState — effect dispatcher', () => {
 		tab.drawStart(0, 'mouse');
 		tab.draw({ x: 1, y: 1 }, null);
 		tab.draw({ x: 2, y: 2 }, { x: 1, y: 1 });
+		// A second input tries to switch the active layer mid-drag; the isDrawing
+		// guard ignores it, so the stroke stays on its source (bottom) layer.
 		tab.setActiveLayer(topId);
 		notifier.reset();
 
 		tab.drawCancel();
 
-		expect(tab.document.active_layer_id()).toBe(topId);
+		expect(tab.document.active_layer_id()).toBe(bottomId); // the mid-drag switch was sealed
 		expect(getPixelFromBuffer(tab.document.layer_pixels_at(0)!, 5, 1, 1)).toEqual(RED);
 		expect(getPixelFromBuffer(tab.document.layer_pixels_at(0)!, 5, 2, 1)).toEqual(GREEN);
 		expect(getPixelFromBuffer(tab.document.layer_pixels_at(1)!, 5, 2, 2)).toEqual(BLUE);
@@ -1856,6 +1852,99 @@ describe('TabState — sample gating', () => {
 	});
 });
 
+
+describe('TabState — active-layer editability enforcement', () => {
+	it('a mutation-tool drawStart on a Reference Layer starts no stroke and leaves Playback running', () => {
+		const manual = createFakeFrameScheduler();
+		const { document } = makeReferenceDocumentWithPlacement({ x: 0, y: 0, scale: 1 });
+		const { tab, shared } = makeTab({ document, frameScheduler: manual.scheduler });
+		shared.activeTool = 'pencil';
+		tab.startPlayback();
+		expect(tab.isPlaying).toBe(true);
+
+		tab.drawStart(0, 'mouse');
+
+		// The blocked attempt never opens a (no-op) stroke session and never
+		// reaches the playback-stop that a real stroke start would trigger.
+		expect(tab.isDrawing).toBe(false);
+		expect(tab.isPlaying).toBe(true);
+	});
+
+	it('an eyedropper drawStart on a Reference Layer proceeds, sampling the Reference source', () => {
+		const { document } = makeReferenceDocumentWithPlacement({ x: 0, y: 0, scale: 1 });
+		const { tab, shared } = makeTab({ document });
+		shared.foregroundColor = BLACK;
+		shared.activeTool = 'eyedropper';
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 0, y: 0 }, null);
+		tab.drawEnd();
+
+		// The eyedropper is not a pixel-mutation tool, so the editability gate lets
+		// it through; on a Reference Layer it samples the reference source, whose
+		// top-left pixel is red.
+		expect(shared.foregroundColor).toEqual(RED);
+	});
+
+	it('ignores setActiveLayer while a stroke is drawing (mid-stroke target switch is sealed)', () => {
+		const { tab, shared } = makeTab();
+		tab.addLayer('Layer 2');
+		const bottomLayerId = tab.document.layers_metadata()[0].id;
+		const activeLayerBefore = tab.document.active_layer_id();
+		expect(bottomLayerId).not.toBe(activeLayerBefore);
+
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+		expect(tab.isDrawing).toBe(true);
+
+		tab.setActiveLayer(bottomLayerId);
+
+		expect(tab.document.active_layer_id()).toBe(activeLayerBefore);
+	});
+
+	it('ignores setActiveFrame while a stroke is drawing', () => {
+		const { tab, shared } = makeTab();
+		const firstFrameId = tab.document.active_frame_id();
+		tab.addFrame();
+		const activeFrameBefore = tab.document.active_frame_id();
+		expect(firstFrameId).not.toBe(activeFrameBefore);
+
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+
+		tab.setActiveFrame(firstFrameId);
+
+		expect(tab.document.active_frame_id()).toBe(activeFrameBefore);
+	});
+
+	it('ignores removeLayer while a stroke is drawing', () => {
+		const { tab, shared } = makeTab();
+		tab.addLayer('Layer 2');
+		const bottomLayerId = tab.document.layers_metadata()[0].id;
+		const layerCountBefore = tab.document.layer_count();
+
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+
+		tab.removeLayer(bottomLayerId);
+
+		expect(tab.document.layer_count()).toBe(layerCountBefore);
+	});
+
+	it('ignores removeFrame while a stroke is drawing', () => {
+		const { tab, shared } = makeTab();
+		const firstFrameId = tab.document.active_frame_id();
+		tab.addFrame();
+		const frameCountBefore = tab.document.frame_count();
+
+		shared.activeTool = 'pencil';
+		tab.drawStart(0, 'mouse');
+
+		tab.removeFrame(firstFrameId);
+
+		expect(tab.document.frame_count()).toBe(frameCountBefore);
+	});
+});
 
 describe('TabState — reference sampling integration', () => {
 	const blob = new Blob([new Uint8Array([0])], { type: 'image/png' });

@@ -5,7 +5,6 @@ import { selectionTool } from './selection-tool';
 
 function createHost(
 	options: {
-		readonly activeLayerKind?: 'pixel' | 'reference';
 		readonly isShiftHeld?: () => boolean;
 	} = {}
 ): {
@@ -17,14 +16,9 @@ function createHost(
 	const setMarquee = vi.fn((region: MarqueeRegion | null | undefined) => {
 		state.currentMarquee = region ?? undefined;
 	});
-	const activeLayerKind = options.activeLayerKind ?? 'pixel';
 	const document = {
 		width: 8,
 		height: 8,
-		active_layer_id: () => 'layer-1',
-		layers_metadata: () => [
-			{ id: 'layer-1', name: 'Layer 1', visible: true, opacity: 1, kind: activeLayerKind }
-		],
 		marquee: () => state.currentMarquee,
 		set_marquee: setMarquee
 	} as unknown as Document;
@@ -224,21 +218,6 @@ describe('selectionTool', () => {
 		expect(session.modifierChanged()).toEqual([]);
 		expect(ctx.setMarquee).not.toHaveBeenCalled();
 		expect(ctx.currentMarquee).toBeUndefined();
-	});
-
-	it('silently no-ops while dragging with a Reference Layer active', () => {
-		const initial = region(1, 1, 2, 2);
-		const ctx = createHost({ activeLayerKind: 'reference' });
-		ctx.currentMarquee = initial;
-		const session = selectionTool.open(ctx.host, strokeSpec);
-
-		expect(session.start()).toEqual([]);
-		expect(session.draw({ x: 0, y: 0 }, null)).toEqual([]);
-		expect(session.draw({ x: 4, y: 4 }, { x: 0, y: 0 })).toEqual([]);
-
-		expect(ctx.currentMarquee).toBe(initial);
-		expect(ctx.setMarquee).not.toHaveBeenCalled();
-		expect(session.end()).toEqual([]);
 	});
 
 	it('does not commit a Marquee for a click without a drag sample', () => {

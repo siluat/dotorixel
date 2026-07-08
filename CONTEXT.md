@@ -15,7 +15,7 @@ A named slot inside a Document — exactly one of Pixel Layer or Reference Layer
 _Avoid_: tile, slice, stack (the *collection* of layers; an individual entry is a Layer). Not a synonym for **Frame** — Layer (space) and Frame (time) are orthogonal axes; a Pixel Layer spans every frame, holding one Cel per frame.
 
 **Pixel Layer**:
-The Layer variant that owns a pixel buffer matching the Document's canvas — the only kind drawing tools target and exports include.
+The Layer variant that owns a pixel buffer matching the Document's canvas — the only kind drawing tools target and exports include. Whether the active layer is **editable** — a Pixel Layer takes paint and Marquee operations, a Reference Layer takes neither — is owned by one authority: the Document Layer Projection's `isActiveLayerEditable` predicate (`activeLayerKind !== 'reference'`), enforced only at the TabState entries that consult it. The stroke engine and Selection tool trust this precondition rather than re-deciding the rule, and four `isDrawing` guards on `setActiveLayer`/`setActiveFrame`/`removeLayer`/`removeFrame` keep the active layer from switching or vanishing under a live stroke.
 _Avoid_: paint layer, draw layer, raster layer.
 
 **Reference Layer**:

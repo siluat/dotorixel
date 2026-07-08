@@ -6,7 +6,6 @@ import { createDocumentSamplingPort } from './sampling/adapters/document';
 import { SharedState } from './shared-state.svelte';
 import type { Color } from './color';
 import type { Document, PixelCanvas } from './canvas-model';
-import type { ToolType } from './tool-registry';
 import { canvasFactory, singleLayerDocument } from './wasm-backend';
 
 const BLACK: Color = { r: 0, g: 0, b: 0, a: 255 };
@@ -116,56 +115,10 @@ describe('ToolRunner — pencil tool', () => {
 });
 
 describe('ToolRunner — Reference Layer active', () => {
-	const drawingTools: readonly ToolType[] = [
-		'pencil',
-		'eraser',
-		'floodfill',
-		'line',
-		'rectangle',
-		'ellipse',
-		'selection'
-	];
-
-	it.each(drawingTools)('%s silently no-ops without mutating pixels', (tool) => {
-		const doc = createReferenceActiveDocument();
-		const { runner, shared } = createRunner(undefined, BLACK, WHITE, doc);
-		shared.activeTool = tool;
-		const beforeComposite = Array.from(doc.composite());
-
-		const startEffects = runner.drawStart(0, 'mouse');
-		const firstDrawEffects = runner.draw({ x: 1, y: 1 }, null);
-		const dragEffects = runner.draw({ x: 3, y: 3 }, { x: 1, y: 1 });
-		const endEffects = runner.drawEnd();
-
-		expect(startEffects).toEqual([]);
-		expect(firstDrawEffects).toEqual([]);
-		expect(dragEffects).toEqual([]);
-		expect(endEffects).toEqual([]);
-		expect(Array.from(doc.composite())).toEqual(beforeComposite);
-	});
-
-	it('move silently no-ops instead of shifting Pixel Layer pixels', () => {
-		const pixelLayerPixels = new Uint8Array(8 * 8 * 4);
-		pixelLayerPixels.set([0, 0, 0, 255], 0);
-		const doc = createReferenceActiveDocument(pixelLayerPixels);
-		const { runner, shared } = createRunner(undefined, BLACK, WHITE, doc);
-		shared.activeTool = 'move';
-		const beforeComposite = Array.from(doc.composite());
-		const beforePixelLayer = Array.from(getFirstPixelLayerPixels(doc));
-
-		const startEffects = runner.drawStart(0, 'mouse');
-		const firstDrawEffects = runner.draw({ x: 0, y: 0 }, null);
-		const dragEffects = runner.draw({ x: 2, y: 3 }, { x: 0, y: 0 });
-		const endEffects = runner.drawEnd();
-
-		expect(startEffects).toEqual([]);
-		expect(firstDrawEffects).toEqual([]);
-		expect(dragEffects).toEqual([]);
-		expect(endEffects).toEqual([]);
-		expect(Array.from(doc.composite())).toEqual(beforeComposite);
-		expect(Array.from(getFirstPixelLayerPixels(doc))).toEqual(beforePixelLayer);
-	});
-
+	// The editability gate now lives at the TabState entry (drawStart), not here:
+	// the ToolRunner and stroke engine trust that a pixel-mutation stroke never
+	// reaches them on a non-editable active layer. The eyedropper is not gated —
+	// it samples the Reference source, verified below.
 	it('eyedropper samples the Reference source without mutating Pixel Layer pixels', () => {
 		const doc = createReferenceActiveDocument();
 		const { runner, shared, samplingSession } = createRunner(undefined, BLACK, WHITE, doc);

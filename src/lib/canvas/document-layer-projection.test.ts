@@ -133,4 +133,26 @@ describe('DocumentLayerProjection', () => {
 		expect(sourceSpy).toHaveBeenCalledTimes(2);
 		expect(second.sourceKey).toBe(first.sourceKey);
 	});
+
+	it('reports the active layer as not editable when a Reference Layer is active', () => {
+		const { document } = makeReferenceDocument();
+		const projection = new DocumentLayerProjection();
+
+		expect(projection.read(document).isActiveLayerEditable).toBe(false);
+	});
+
+	it('reports the active layer as editable when a Pixel Layer is active', () => {
+		const document = singleLayerDocument(8, 8, new Uint8Array(8 * 8 * 4));
+		const projection = new DocumentLayerProjection();
+
+		expect(projection.read(document).isActiveLayerEditable).toBe(true);
+	});
+
+	it('editability follows the active layer kind, not the mere presence of a Reference Layer', () => {
+		const { document, pixelId } = makeReferenceDocument();
+		document.set_active_layer(pixelId);
+		const projection = new DocumentLayerProjection();
+
+		expect(projection.read(document).isActiveLayerEditable).toBe(true);
+	});
 });

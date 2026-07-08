@@ -1,4 +1,4 @@
-import type { CanvasCoords, Document, MarqueeRegion } from '../canvas-model';
+import type { CanvasCoords, MarqueeRegion } from '../canvas-model';
 import { MARQUEE_PREVIEW_CHANGED, NO_EFFECTS, type ToolEffects } from '../draw-tool';
 import { constrainAxis } from '../tool-constraints';
 import { customTool } from '../tool-authoring';
@@ -6,14 +6,6 @@ import { copyMarqueeRegion, marqueeRegionFromDrag } from '../wasm-backend';
 
 function canvasCoordsFromPoint(point: CanvasCoords): CanvasCoords {
 	return { x: Math.floor(point.x), y: Math.floor(point.y) };
-}
-
-function isReferenceLayerActive(document: Document): boolean {
-	const activeLayerId = document.active_layer_id();
-	return (
-		document.layers_metadata().find((record) => record.id === activeLayerId)?.kind ===
-		'reference'
-	);
 }
 
 function marqueeFromDrag(
@@ -144,7 +136,6 @@ export const selectionTool = customTool({
 				return NO_EFFECTS;
 			},
 			draw(current, previous) {
-				if (isReferenceLayerActive(host.document)) return NO_EFFECTS;
 				if (previous === null || anchor === null) {
 					anchor = canvasCoordsFromPoint(current);
 					mode =
@@ -171,7 +162,6 @@ export const selectionTool = customTool({
 				return previewMarqueeFromDrag(currentCoords);
 			},
 			modifierChanged() {
-				if (isReferenceLayerActive(host.document)) return NO_EFFECTS;
 				if (!anchor || !hasUserDragged || !lastCurrentCoords) return NO_EFFECTS;
 				if (mode === 'defineMarquee') return previewMarqueeFromDrag(lastCurrentCoords);
 				if (mode === 'liftAndDrag' && hasFloatingSelectionStarted) {
@@ -185,10 +175,6 @@ export const selectionTool = customTool({
 				return NO_EFFECTS;
 			},
 			end() {
-				if (isReferenceLayerActive(host.document)) {
-					resetStrokeState();
-					return NO_EFFECTS;
-				}
 				if (!anchor) {
 					resetStrokeState();
 					return NO_EFFECTS;

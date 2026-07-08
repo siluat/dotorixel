@@ -86,6 +86,7 @@ function createTestLayerProjection(document: Document): DocumentLayerProjectionR
 		stackIndexById,
 		activeLayer,
 		activeLayerKind: activeLayer?.kind,
+		isActiveLayerEditable: activeLayer?.kind !== 'reference',
 		referenceLayer: stackLayers.find((layer) => layer.kind === 'reference')
 	};
 }

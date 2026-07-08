@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 224 | [One authority for active-layer editability](../issues/224-single-authority-active-layer-editability.md) | 2026-07-08 |
 | 223 | [Say the schema-migration chain once](../issues/223-single-expression-schema-migration-chain.md) | 2026-07-07 |
 | 222 | [Consolidate source-over compositing into one core primitive](../issues/222-consolidate-source-over-compositing.md) | 2026-07-05 |
 | 221 | [Collapse EditorController into an Input Pipeline module](../issues/221-collapse-editor-controller-into-input-pipeline.md) | 2026-07-05 |

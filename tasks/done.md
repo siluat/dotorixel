@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| — | Planning — re-baseline Apple native catch-up ([RFC 013](../issues/013-apple-native-catchup.md)) to full web parity; 6-phase roadmap replaces the stale M2-parity plan | 2026-07-09 |
 | 224 | [One authority for active-layer editability](../issues/224-single-authority-active-layer-editability.md) | 2026-07-08 |
 | 223 | [Say the schema-migration chain once](../issues/223-single-expression-schema-migration-chain.md) | 2026-07-07 |
 | 222 | [Consolidate source-over compositing into one core primitive](../issues/222-consolidate-source-over-compositing.md) | 2026-07-05 |

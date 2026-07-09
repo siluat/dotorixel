@@ -15,14 +15,27 @@
 - Editor for Game Developers (Milestone 5)
 - Beyond the Editor (Milestone 6)
 
-## Apple Native: Phase 1 — [RFC](../issues/013-apple-native-catchup.md)
+## Apple Native: full web parity — [RFC](../issues/013-apple-native-catchup.md)
 
-Phase 1 modernizes the native layout from Pebble UI to the web's docked structure.
+Phased catch-up to full parity with completed web editor features. See the RFC for
+the 6-phase roadmap and sequencing rationale. Phase 1 (docked layout) is largely
+done; the remaining Phase 1 items are actionable now. Phases 2–6 are decomposed into
+issues (`/to-issues`) when reached.
+
+### Phase 1 — Layout finish (actionable)
 
 - Responsive tiers: iPad compact / iPad regular / Mac
 - Enable clear canvas (existing disabled button)
 - Enable PNG export (existing disabled button)
 - Shift-constrain for shape tools (macOS keyboard modifier)
+
+### Phases 2–6 — roadmap (decompose when reached)
+
+- Phase 2 — Full tool set + color (line/rect/ellipse/fill/eyedropper/move, FG/BG swap, HSV, pixel-perfect, shortcuts)
+- Phase 3 — Layer system (Document/Layer, composite render, layer panel, Swift state redesign) ★ foundation
+- Phase 4 — Multi-tab + persistence (Workspace, SwiftData auto-save/restore)
+- Phase 5 — Reference + selection + transforms (M3 bundle)
+- Phase 6 — Animation + extended export (frames/timeline/playback/onion skin, SVG/GIF/spritesheet)
 
 ## Deferred
 

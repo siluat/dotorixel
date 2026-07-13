@@ -4,6 +4,7 @@ import SwiftUI
 /// Pure display view; mirrors web `StatusBar.svelte`.
 struct StatusBar: View {
     let editorState: EditorState
+    let tier: LayoutTier
 
     var body: some View {
         HStack {
@@ -16,7 +17,7 @@ struct StatusBar: View {
                 .foregroundStyle(DesignTokens.textTertiary)
         }
         .padding(.horizontal, 16)
-        .frame(height: 28)
+        .frame(height: DesignTokens.statusBarHeight(tier))
         .frame(maxWidth: .infinity)
         .background(DesignTokens.bgSurface)
         .overlay(alignment: .top) {

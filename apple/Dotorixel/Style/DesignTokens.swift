@@ -60,10 +60,25 @@ enum DesignTokens {
     static let fontSize: CGFloat = 13
     /// Icon size within buttons
     static let iconSize: CGFloat = 18
-    /// Left toolbar fixed width (PRD spec)
-    static let leftToolbarWidth: CGFloat = 44
-    /// Right panel fixed width (PRD spec)
-    static let rightPanelWidth: CGFloat = 220
     /// Opacity for disabled controls (matches web .action-btn:disabled)
     static let disabledOpacity: Double = 0.4
+
+    // MARK: - Tier-dependent docked sizing
+
+    // Panel/bar dimensions change between the "wide" (`.wide`/`.compact`) and
+    // "x-wide" (`.xWide`) tiers, matching the web editor's 1440px breakpoint
+    // (`src/routes/editor/+page.svelte` grid template). `.compact` reuses the wide
+    // sizing — a full compact layout is deferred (issue 013 RFC).
+
+    /// Right panel width — 200pt (wide) / 240pt (x-wide).
+    static func rightPanelWidth(_ tier: LayoutTier) -> CGFloat { tier.docked(wide: 200, xWide: 240) }
+
+    /// Left toolbar strip width and tool-button hit box — 44pt (wide) / 48pt (x-wide).
+    static func leftToolbarWidth(_ tier: LayoutTier) -> CGFloat { tier.docked(wide: 44, xWide: 48) }
+
+    /// Top bar height — 44pt (wide) / 48pt (x-wide).
+    static func topBarHeight(_ tier: LayoutTier) -> CGFloat { tier.docked(wide: 44, xWide: 48) }
+
+    /// Status bar height — 28pt (wide) / 32pt (x-wide).
+    static func statusBarHeight(_ tier: LayoutTier) -> CGFloat { tier.docked(wide: 28, xWide: 32) }
 }

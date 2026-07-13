@@ -6,14 +6,27 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 172 | 131 | 41 | 173 | 76% | 43% |
-| cubic-dev-ai[bot] | 157 | 119 | 38 | 186 | 76% | 39% |
-| coderabbitai[bot] | 237 | 164 | 73 | 138 | 69% | 54% |
+| greptile-apps[bot] | 174 | 133 | 41 | 176 | 76% | 43% |
+| cubic-dev-ai[bot] | 161 | 123 | 38 | 186 | 76% | 40% |
+| coderabbitai[bot] | 237 | 164 | 73 | 142 | 69% | 54% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #313 | cubic-dev-ai[bot] | Accept | Issue 226 named `.regular`/`.expanded` as LayoutTier cases, but the rename shipped `.wide`/`.xWide` (`.regular` is the size-class input only); corrected the tier names in 226 |
+| #313 | greptile-apps[bot] | Accept | Same stale tier names in issue 226's scope section — `.regular`/`.expanded` don't exist on `LayoutTier`; fixed |
+| #313 | greptile-apps[bot] | Accept | Same stale tier-name mismatch repeated in issue 226's acceptance criteria; fixed |
+| #313 | cubic-dev-ai[bot] | Accept | Issue 226's XcodeGen instruction named only the top-level `packages:` key; the `DotorixelTests` target must also list `- package: SnapshotTesting` or the module won't link — spelled out both entries |
+| #313 | cubic-dev-ai[bot] | Accept | Issue 226 overclaimed leaf-view snapshots "close" the `GeometryReader → tier → size` chain; they verify tier→sizing only (a broken width→tier hand-off leaves all snapshots green) — reframed to name the residual boundary + the Metal-free docked-shell test that would close it |
+| #313 | cubic-dev-ai[bot] | Accept | Issue 225's compact "graceful clamp" AC was unenforced — a Mac window resized below 244pt (44pt toolbar + 200pt panel) clips the canvas; added a 480×400 macOS window floor via `.windowResizability(.contentMinSize)` |
+| #313 | greptile-apps[bot] | Miss | Did not flag issue 226's incomplete XcodeGen wiring (packages key without the test-target dependency) |
+| #313 | greptile-apps[bot] | Miss | Did not flag issue 226 overclaiming leaf snapshots close the width→tier chain |
+| #313 | greptile-apps[bot] | Miss | Did not flag the unenforced macOS compact-clamp guarantee (narrow-window canvas clip) |
+| #313 | coderabbitai[bot] | Miss | Did not flag the stale `.regular`/`.expanded` tier names in issue 226 (APPROVED) |
+| #313 | coderabbitai[bot] | Miss | Did not flag issue 226's incomplete XcodeGen wiring instruction |
+| #313 | coderabbitai[bot] | Miss | Did not flag issue 226 overclaiming leaf snapshots close the width→tier chain |
+| #313 | coderabbitai[bot] | Miss | Did not flag the unenforced macOS compact-clamp guarantee |
 | #309 | cubic-dev-ai[bot] | Accept | `composite_with_layer_patch`'s `# Errors` docs omitted the newly added `PatchDimensionsOverflow` variant; added the bullet so the public error contract is complete (round 2) |
 | #309 | cubic-dev-ai[bot] | Accept | cubic's own Accept% cell carried over 76% where 117/155 rounds to 75%; corrected — recomputed to 119/157 = 76% after this round's two accepts (round 2) |
 | #309 | coderabbitai[bot] | Miss | Did not flag the `# Errors` doc omission of `PatchDimensionsOverflow` (APPROVED the updated diff) |

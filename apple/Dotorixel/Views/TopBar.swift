@@ -4,6 +4,7 @@ import SwiftUI
 /// Layout and styling matches the web editor's TopBar.svelte.
 struct TopBar: View {
     let editorState: EditorState
+    let tier: LayoutTier
 
     /// TopBar-specific sizes matching web CSS values (not global design tokens).
     private let controlHeight: CGFloat = 32
@@ -69,7 +70,7 @@ struct TopBar: View {
             }
         }
         .padding(.horizontal, 6)
-        .frame(height: 44)
+        .frame(height: DesignTokens.topBarHeight(tier))
         .frame(maxWidth: .infinity)
         .background(DesignTokens.bgSurface)
         .overlay(alignment: .bottom) {

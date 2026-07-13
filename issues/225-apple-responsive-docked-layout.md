@@ -94,6 +94,7 @@ controls, or canvas overlap. The full compact adaptation is a later-phase task.
 ### Notes
 
 - **View-layer runtime AC not automatically verified.** The `GeometryReader → tier → size` chain is covered by unit tests (`resolve` + token values) and a clean compile; the *rendered* result (live resize across 1440, compact clamp) is not snapshot-tested — the project has no view-test infra. A macOS visual smoke check was attempted but blocked by this session's TCC (screen-recording) permission. Follow-up: **issue 226** (Apple view snapshot testing) covers the rendered layout.
+- **macOS window floored at 480×400** (`DotorixelApp`, `.windowResizability(.contentMinSize)`) so a narrowly-resized Mac window can't squeeze the docked chrome (44pt toolbar + 200pt panel) past the canvas; iPad's compact context is ≥320pt natively. Closes the compact-clamp edge cubic flagged in PR review.
 - `EditorState` and persisted state unchanged — tier is a view-derived value.
 - `Dotorixel.xcodeproj` is gitignored (xcodegen-generated); adding files needs `xcodegen generate` before `xcodebuild`.
 - 28 tests pass via `xcodebuild test -scheme Dotorixel -destination 'platform=macOS'`.

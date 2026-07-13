@@ -90,16 +90,6 @@ struct DesignTokensSizingTests {
         #expect(DesignTokens.btnSize == 44)
     }
 
-    @Test("Left toolbar width is 44pt")
-    func leftToolbarWidth() {
-        #expect(DesignTokens.leftToolbarWidth == 44)
-    }
-
-    @Test("Right panel width is 220pt")
-    func rightPanelWidth() {
-        #expect(DesignTokens.rightPanelWidth == 220)
-    }
-
     @Test("Small border radius matches web --ds-radius-sm: 6px")
     func radiusSm() {
         #expect(DesignTokens.radiusSm == 6)
@@ -128,5 +118,39 @@ struct DesignTokensSizingTests {
     @Test("Disabled opacity matches web .action-btn:disabled opacity: 0.4")
     func disabledOpacity() {
         #expect(DesignTokens.disabledOpacity == 0.4)
+    }
+}
+
+// MARK: - Tier-dependent sizing tests
+
+@Suite("DesignTokens — tier-dependent docked sizing (web wide vs x-wide)")
+struct DesignTokensTierSizingTests {
+
+    @Test("Right panel width: 200pt (wide/compact), 240pt x-wide")
+    func rightPanelWidth() {
+        #expect(DesignTokens.rightPanelWidth(.wide) == 200)
+        #expect(DesignTokens.rightPanelWidth(.compact) == 200)
+        #expect(DesignTokens.rightPanelWidth(.xWide) == 240)
+    }
+
+    @Test("Left toolbar width: 44pt (wide/compact), 48pt x-wide")
+    func leftToolbarWidth() {
+        #expect(DesignTokens.leftToolbarWidth(.wide) == 44)
+        #expect(DesignTokens.leftToolbarWidth(.compact) == 44)
+        #expect(DesignTokens.leftToolbarWidth(.xWide) == 48)
+    }
+
+    @Test("Top bar height: 44pt (wide/compact), 48pt x-wide")
+    func topBarHeight() {
+        #expect(DesignTokens.topBarHeight(.wide) == 44)
+        #expect(DesignTokens.topBarHeight(.compact) == 44)
+        #expect(DesignTokens.topBarHeight(.xWide) == 48)
+    }
+
+    @Test("Status bar height: 28pt (wide/compact), 32pt x-wide")
+    func statusBarHeight() {
+        #expect(DesignTokens.statusBarHeight(.wide) == 28)
+        #expect(DesignTokens.statusBarHeight(.compact) == 28)
+        #expect(DesignTokens.statusBarHeight(.xWide) == 32)
     }
 }

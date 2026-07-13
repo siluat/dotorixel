@@ -11,6 +11,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var editorState = EditorState()
     @Environment(\.displayScale) private var displayScale
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #if DEBUG
     @State private var showBenchmark = false
     #endif
@@ -22,43 +23,49 @@ struct ContentView: View {
         let showGrid = editorState.showGrid
         let canvasVersion = editorState.canvasVersion
 
-        VStack(spacing: 0) {
-            TopBar(editorState: editorState)
+        GeometryReader { rootGeo in
+            let tier = LayoutTier.resolve(
+                availableWidth: rootGeo.size.width,
+                horizontalSizeClass: horizontalSizeClass
+            )
+            VStack(spacing: 0) {
+                TopBar(editorState: editorState, tier: tier)
 
-            HStack(spacing: 0) {
-                LeftToolbar(editorState: editorState)
+                HStack(spacing: 0) {
+                    LeftToolbar(editorState: editorState, tier: tier)
 
-                GeometryReader { geo in
-                    PixelCanvasView(
-                        pixelCanvas: editorState.pixelCanvas,
-                        viewport: viewport,
-                        showGrid: showGrid,
-                        editorState: editorState,
-                        canvasVersion: canvasVersion
-                    )
-                    .onAppear { fitCanvas(in: geo.size) }
-                    .onChange(of: geo.size) { _, newSize in fitCanvas(in: newSize) }
+                    GeometryReader { geo in
+                        PixelCanvasView(
+                            pixelCanvas: editorState.pixelCanvas,
+                            viewport: viewport,
+                            showGrid: showGrid,
+                            editorState: editorState,
+                            canvasVersion: canvasVersion
+                        )
+                        .onAppear { fitCanvas(in: geo.size) }
+                        .onChange(of: geo.size) { _, newSize in fitCanvas(in: newSize) }
+                    }
+
+                    RightPanel(editorState: editorState, tier: tier)
                 }
 
-                RightPanel(editorState: editorState)
+                StatusBar(editorState: editorState, tier: tier)
             }
-
-            StatusBar(editorState: editorState)
-        }
-        .background(DesignTokens.bgBase)
-        #if DEBUG
-        .sheet(isPresented: $showBenchmark) {
-            RenderBenchmarkView()
-        }
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                Button("Benchmark") {
-                    showBenchmark = true
+            .background(DesignTokens.bgBase)
+            #if DEBUG
+            .sheet(isPresented: $showBenchmark) {
+                RenderBenchmarkView()
+            }
+            .toolbar {
+                ToolbarItem(placement: .automatic) {
+                    Button("Benchmark") {
+                        showBenchmark = true
+                    }
+                    .font(.caption)
                 }
-                .font(.caption)
             }
+            #endif
         }
-        #endif
     }
 
     /// Fits and centers the canvas within the available view area.

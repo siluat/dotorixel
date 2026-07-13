@@ -5,6 +5,7 @@ import SwiftUI
 /// by a divider. Mirrors web `RightPanel.svelte` for cross-shell parity.
 struct RightPanel: View {
     let editorState: EditorState
+    let tier: LayoutTier
 
     @State private var widthInput: String = ""
     @State private var heightInput: String = ""
@@ -27,7 +28,7 @@ struct RightPanel: View {
             }
             .padding(12)
         }
-        .frame(width: DesignTokens.rightPanelWidth)
+        .frame(width: DesignTokens.rightPanelWidth(tier))
         .frame(maxHeight: .infinity)
         .background(DesignTokens.bgSurface)
         .overlay(alignment: .leading) {

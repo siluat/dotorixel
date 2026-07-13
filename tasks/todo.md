@@ -24,7 +24,6 @@ issues (`/to-issues`) when reached.
 
 ### Phase 1 — Layout finish (actionable)
 
-- Responsive tiers: iPad compact / iPad regular / Mac
 - Enable clear canvas (existing disabled button)
 - Enable PNG export (existing disabled button)
 - Shift-constrain for shape tools (macOS keyboard modifier)
@@ -46,7 +45,7 @@ issues (`/to-issues`) when reached.
 
 ## Review backlog (not assigned to a milestone)
 
-- Apple view test infrastructure — evaluate ViewInspector / swift-snapshot-testing / XCUITest. Trigger: a regression class that's hard to catch via `EditorState` unit tests alone (e.g., reactive binding miss, layout drift, gesture flow on iPad).
+- [226 — Apple view test infrastructure (snapshot testing)](../issues/226-apple-view-test-infrastructure.md) — adopt swift-snapshot-testing for docked region views; ViewInspector/XCUITest deferred. Surfaced during 225 (rendered-layout gap).
 - Apple spacing tokens — `DesignTokens.swift` has no spacing scale; sibling views inline `4`/`8`/`12`/`16` literals. Promote to constants once the docked layout has settled and reuse is confirmed.
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate (deferred from Milestone 3 MVP)
 - Reference image import — clipboard paste support (Ctrl/Cmd+V), deferred from Milestone 3 MVP

@@ -2,15 +2,14 @@
 
 ## Currently Working On
 
-Apple native catch-up — Phase 1 quick wins ([RFC](../issues/013-apple-native-catchup.md)): both remaining Phase 1 items are decomposed into ready sub-issues (227 clear canvas, 228 PNG export); neither implementation has started.
+Apple native catch-up — Phase 1 quick wins ([RFC](../issues/013-apple-native-catchup.md)): 227 clear canvas done; [228 — enable PNG export](../issues/228-apple-enable-png-export.md) is the last remaining Phase 1 item.
 
 ## Last Completed
 
-Planning — RFC 013 Phase 1 quick wins decomposed: [227 — enable clear canvas](../issues/227-apple-enable-clear-canvas.md) and [228 — enable PNG export](../issues/228-apple-enable-png-export.md) published ready-for-agent (both are shell wiring over existing UniFFI bindings). Shift-constrain re-sequenced to Phase 2 — the Apple shell has no shape tools to constrain until then.
+[227 — Apple clear canvas enabled](../issues/227-apple-enable-clear-canvas.md): history-integrated (undo restores, redo re-clears), immediate with no confirmation dialog — full web parity. RightPanel snapshot baselines re-recorded for the now-enabled button.
 
 ## Next Up
 
-- [227 — Apple Phase 1 — Enable clear canvas](../issues/227-apple-enable-clear-canvas.md)
 - [228 — Apple Phase 1 — Enable PNG export](../issues/228-apple-enable-png-export.md)
 - Apple spacing tokens — promote inline 4/8/12/16 literals to constants (docked layout now settled)
 - Project file format (JSON-based) + save/load

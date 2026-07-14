@@ -24,7 +24,6 @@ issues (`/to-issues`) when reached.
 
 ### Phase 1 — Layout finish (actionable)
 
-- [227 — Enable clear canvas (existing disabled button)](../issues/227-apple-enable-clear-canvas.md)
 - [228 — Enable PNG export (existing disabled button)](../issues/228-apple-enable-png-export.md)
 
 ### Phases 2–6 — roadmap (decompose when reached)

@@ -1,6 +1,6 @@
 ---
 title: Apple native — enable clear canvas (existing disabled button)
-status: ready-for-agent
+status: done
 created: 2026-07-14
 ---
 
@@ -40,3 +40,28 @@ manual version bumps for `@Observable` change detection), plus enabling the butt
 ## Blocked by
 
 None - can start immediately.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/EditorState.swift` | `handleClearCanvas()` state handler — pushes the pre-clear snapshot, clears via the existing UniFFI `clear()`, bumps `canvasVersion`/`historyVersion`; shared `pushHistorySnapshot()` extracted from `handleDrawStart()` |
+| `apple/Dotorixel/Views/RightPanel.swift` | Clear button enabled (`.disabled(true)` + `.opacity` removed) and wired to `handleClearCanvas()` |
+| `apple/DotorixelTests/EditorStateTests.swift` | 5 behavior tests: pixels cleared, `canvasVersion` bump, undo restores, redo re-clears, no-op while drawing |
+| `apple/DotorixelTests/__Snapshots__/DockedRegionSnapshotTests/rightPanelWide.1.png`, `rightPanelXWide.1.png` | Baselines re-recorded on the pinned host — Clear button now renders at full opacity |
+
+### Key Decisions
+
+- Handler named `handleClearCanvas` (not `handleClear`) to stay unambiguous next to
+  the History domain's `clear()` while following the existing handler convention.
+- Mirrors web behavior exactly: immediate clear with no confirmation dialog (undo is
+  the safety net); the snapshot is pushed regardless of whether the canvas is empty.
+- Visual parity with web `.clear-btn` confirmed (text-secondary, 1px border,
+  radius 4, height 28).
+
+### Notes
+
+- Redo re-applies the clear through the existing history mechanism with no new code;
+  the test locks that contract in as regression defense.
+- Snapshot re-recording followed `apple/DotorixelTests/README.md` (pinned host:
+  iPad Pro 11-inch (M5) · iOS 26.4 · @2x); images reviewed before commit.

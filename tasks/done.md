@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 227 | [Apple native — enable clear canvas (existing disabled button)](../issues/227-apple-enable-clear-canvas.md) | 2026-07-15 |
 | — | Planning — decompose Apple Phase 1 quick wins ([RFC 013](../issues/013-apple-native-catchup.md)) into ready issues [227](../issues/227-apple-enable-clear-canvas.md) / [228](../issues/228-apple-enable-png-export.md); Shift-constrain re-sequenced to Phase 2 | 2026-07-14 |
 | 226 | [Apple view test infrastructure (snapshot testing)](../issues/226-apple-view-test-infrastructure.md) | 2026-07-14 |
 | 225 | [Apple native — size-adaptive docked layout (iPad / Mac)](../issues/225-apple-responsive-docked-layout.md) | 2026-07-13 |

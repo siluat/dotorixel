@@ -56,7 +56,7 @@ When a decision has long-term architectural consequences — extension points, d
 | Rendering | Metal | |
 | Rust Bindings | UniFFI | `apple/` crate → `apple/generated/*.swift` |
 | Build | Xcode | Project generated via XcodeGen |
-| Testing | XCTest | `apple/DotorixelTests/` |
+| Testing | Swift Testing | `apple/DotorixelTests/`; docked view snapshots via swift-snapshot-testing on a pinned iOS sim — see `DotorixelTests/README.md` |
 
 ## Task Workflow
 

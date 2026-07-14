@@ -1,6 +1,6 @@
 ---
 title: Apple view test infrastructure — snapshot testing for docked region views
-status: ready-for-agent
+status: done
 created: 2026-07-13
 ---
 
@@ -83,3 +83,46 @@ would catch actually appears. ViewInspector in particular cannot verify the
 
 - None — can start immediately. Independent of 225 (which can merge on its own); this
   hardens future Apple view work.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/project.yml` | Added `SnapshotTesting` under top-level `packages:` and as a `DotorixelTests` dependency; regenerated via `xcodegen`. |
+| `apple/DotorixelTests/DockedRegionSnapshotTests.swift` | 8 Swift Testing snapshots — `RightPanel`/`LeftToolbar`/`TopBar`/`StatusBar` × `.wide`/`.xWide` — asserting the tier-driven rendered sizing (200/240 · 44/48 · 44/48 · 28/32). |
+| `apple/DotorixelTests/README.md` | Test-suite policy: scope, pinned recording host, re-record procedure, boundaries, deferred alternatives. |
+| `apple/DotorixelTests/__Snapshots__/DockedRegionSnapshotTests/*.png` | 8 committed reference images (~136 KB total). |
+| `AGENTS.md` | Apple Shell "Testing" cell: `XCTest` → `Swift Testing` + swift-snapshot-testing pointer (also fixes a pre-existing staleness — the suite was already Swift Testing). |
+
+### Key Decisions
+
+- **Recording host**: iPad Pro 11-inch (M5), iOS 26.4 simulator (@2x). iOS-sim over macOS —
+  the conventional, more deterministic swift-snapshot-testing setup, and swift-snapshot-testing's
+  SwiftUI `.image(layout:)` helper is UIKit-only (macOS would need manual `NSHostingView` wrapping).
+  Leaf views render device-size-independently via `.sizeThatFits`, so any @2x iPad on iOS 26.4 is
+  equivalent.
+- **Layout strategy**: fix only each view's flexible axis (`.frame(height:)` for the vertical strips,
+  `.frame(width:)` for the horizontal bars) and snapshot as `.image(layout: .sizeThatFits)`, leaving
+  the tier-driven axis intrinsic so the reference image's dimensions encode the tier sizing.
+- **Explicit tests over a DRY helper**: a shared `assertSnapshot` wrapper couples to `#function`-based
+  reference naming; the explicit per-test form reads as a spec and avoids that footgun.
+- **References committed** as binary PNGs — local gate (no macOS CI yet).
+
+### Notes
+
+- Terminology: "snapshot" here is the image-reference testing technique, distinct from the History
+  `Snapshot` (undo/redo buffer). Suite/file names and docs disambiguate.
+- Residual boundary (as scoped): leaf snapshots verify *tier → sizing*, NOT *width → tier* measurement
+  or its propagation through `ContentView`'s root `GeometryReader` — that link stays covered by
+  `LayoutTierTests`. The Metal-free docked-shell boundary test remains out of scope. `ContentView`
+  itself is not snapshotted (pulls in UniFFI `EditorState` + Metal `MTKView`).
+- `.compact` snapshots deferred: `LayoutTier.docked` maps `.compact` to `.wide` sizing, so they would
+  be pixel-identical to `.wide` and add no coverage.
+- XCUITest and ViewInspector documented as deferred, not adopted (see README).
+- Environment: required installing the iOS 26.4 simulator runtime (`xcodebuild -downloadPlatform iOS`,
+  8.49 GB) — Xcode 26.4 does not accept older runtimes (17.x / 26.3) for iOS builds. Legacy
+  17.4/17.5/26.3.1 runtimes were removed to free disk for the download.
+- `Package.resolved` lives inside the git-ignored `.xcodeproj`, so the dependency version is not pinned
+  in-repo; `from: "1.19.0"` in `project.yml` is the source of truth. Low risk — snapshot images depend
+  on SwiftUI rendering, not the test-lib version.
+- Verification: full suite green — 36 tests (28 existing + 8 new) on the pinned destination.

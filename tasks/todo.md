@@ -45,7 +45,6 @@ issues (`/to-issues`) when reached.
 
 ## Review backlog (not assigned to a milestone)
 
-- [226 — Apple view test infrastructure (snapshot testing)](../issues/226-apple-view-test-infrastructure.md) — adopt swift-snapshot-testing for docked region views; ViewInspector/XCUITest deferred. Surfaced during 225 (rendered-layout gap).
 - Apple spacing tokens — `DesignTokens.swift` has no spacing scale; sibling views inline `4`/`8`/`12`/`16` literals. Promote to constants once the docked layout has settled and reuse is confirmed.
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate (deferred from Milestone 3 MVP)
 - Reference image import — clipboard paste support (Ctrl/Cmd+V), deferred from Milestone 3 MVP

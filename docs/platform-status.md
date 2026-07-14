@@ -26,7 +26,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Create / resize | ✅ | ✅ | ✅ | 1–256px, presets available, 9-position anchor selector (Web) |
-| Clear | ✅ | ✅ | ⬜ | RightPanel (docked) + Settings tab (mobile) |
+| Clear | ✅ | ✅ | ✅ | History-integrated, no confirm dialog. Web: active Pixel Layer, RightPanel (docked) + Settings tab (mobile); Apple: single canvas, RightPanel |
 | Flip / transform | ✅ | ✅ | ⬜ | Two tiers, one scope per button: Canvas Transform (panel) — all Pixel Layers × all frames, Marquee co-transformed + clipped, rotate swaps W↔H, Reference Layer fixed; Marquee Transform (SelectionActionBar) — Marquee region only, no-op without a Marquee or on a Reference Layer |
 
 ## History

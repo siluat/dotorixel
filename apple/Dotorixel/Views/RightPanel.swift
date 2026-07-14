@@ -107,8 +107,7 @@ struct RightPanel: View {
 
     private var clearButton: some View {
         Button {
-            // Action wiring intentionally deferred — button is permanently
-            // disabled until clear-canvas support lands.
+            editorState.handleClearCanvas()
         } label: {
             Text("Clear")
                 .font(.system(size: DesignTokens.fontSizeSm))
@@ -121,8 +120,6 @@ struct RightPanel: View {
                 )
         }
         .buttonStyle(.plain)
-        .disabled(true)
-        .opacity(DesignTokens.disabledOpacity)
     }
 
     // MARK: - Color section

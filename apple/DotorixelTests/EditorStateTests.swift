@@ -61,3 +61,67 @@ struct EditorStateResizeCanvasTests {
         #expect(state.canRedo == false)
     }
 }
+
+@Suite("EditorState — handleClearCanvas")
+struct EditorStateClearCanvasTests {
+
+    @Test("clear erases all pixels to transparent")
+    func clearErasesAllPixels() throws {
+        let state = EditorState(width: 16, height: 16)
+        try state.pixelCanvas.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+
+        state.handleClearCanvas()
+
+        #expect(state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+    }
+
+    @Test("clear bumps canvasVersion to trigger re-render")
+    func clearBumpsCanvasVersion() {
+        let state = EditorState(width: 16, height: 16)
+        let before = state.canvasVersion
+
+        state.handleClearCanvas()
+
+        #expect(state.canvasVersion == before + 1)
+    }
+
+    @Test("undo after clear restores the pre-clear pixels")
+    func undoAfterClearRestoresPixels() throws {
+        let state = EditorState(width: 16, height: 16)
+        let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
+        try state.pixelCanvas.setPixel(x: 3, y: 4, color: red)
+
+        state.handleClearCanvas()
+        state.handleUndo()
+
+        #expect(try state.pixelCanvas.getPixel(x: 3, y: 4) == red)
+    }
+
+    @Test("redo after undo re-applies the clear")
+    func redoReappliesClear() throws {
+        let state = EditorState(width: 16, height: 16)
+        try state.pixelCanvas.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        state.handleClearCanvas()
+        state.handleUndo()
+
+        state.handleRedo()
+
+        #expect(state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+    }
+
+    @Test("clear is a no-op while a drawing stroke is in progress")
+    func clearIsNoopWhileDrawing() throws {
+        let state = EditorState(width: 16, height: 16)
+        let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
+        try state.pixelCanvas.setPixel(x: 3, y: 4, color: red)
+        state.handleDrawStart()
+        let canvasVersionBefore = state.canvasVersion
+        let historyVersionBefore = state.historyVersion
+
+        state.handleClearCanvas()
+
+        #expect(try state.pixelCanvas.getPixel(x: 3, y: 4) == red)
+        #expect(state.canvasVersion == canvasVersionBefore)
+        #expect(state.historyVersion == historyVersionBefore)
+    }
+}

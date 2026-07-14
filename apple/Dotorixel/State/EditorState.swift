@@ -56,8 +56,7 @@ final class EditorState {
 
     func handleDrawStart() {
         isDrawing = true
-        historyManager.pushSnapshot(width: pixelCanvas.width(), height: pixelCanvas.height(), pixels: pixelCanvas.pixels())
-        historyVersion += 1
+        pushHistorySnapshot()
     }
 
     func handleDrawEnd() {
@@ -82,6 +81,12 @@ final class EditorState {
         }
     }
 
+    /// Pushes the current canvas pixels onto the undo stack.
+    private func pushHistorySnapshot() {
+        historyManager.pushSnapshot(width: pixelCanvas.width(), height: pixelCanvas.height(), pixels: pixelCanvas.pixels())
+        historyVersion += 1
+    }
+
     private func applySnapshot(_ snapshot: Snapshot) {
         guard snapshot.width == pixelCanvas.width(), snapshot.height == pixelCanvas.height() else {
             assertionFailure("Cross-dimension undo/redo not yet implemented on Apple")
@@ -94,6 +99,18 @@ final class EditorState {
         } catch {
             assertionFailure("Failed to apply snapshot: \(error)")
         }
+    }
+
+    // MARK: - Canvas clear
+
+    /// Erases every pixel to transparent, pushing the pre-clear pixels onto
+    /// the undo stack so undo restores the drawing.
+    /// No-ops silently while a drawing stroke is in progress.
+    func handleClearCanvas() {
+        guard !isDrawing else { return }
+        pushHistorySnapshot()
+        pixelCanvas.clear()
+        canvasVersion += 1
     }
 
     // MARK: - Canvas size

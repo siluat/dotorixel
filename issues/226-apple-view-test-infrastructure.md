@@ -122,7 +122,8 @@ would catch actually appears. ViewInspector in particular cannot verify the
 - Environment: required installing the iOS 26.4 simulator runtime (`xcodebuild -downloadPlatform iOS`,
   8.49 GB) — Xcode 26.4 does not accept older runtimes (17.x / 26.3) for iOS builds. Legacy
   17.4/17.5/26.3.1 runtimes were removed to free disk for the download.
-- `Package.resolved` lives inside the git-ignored `.xcodeproj`, so the dependency version is not pinned
-  in-repo; `from: "1.19.0"` in `project.yml` is the source of truth. Low risk — snapshot images depend
-  on SwiftUI rendering, not the test-lib version.
+- `Package.resolved` lives inside the git-ignored `.xcodeproj`, so SnapshotTesting is pinned in-repo via
+  `exactVersion: "1.19.3"` in `project.yml` (the version the references were recorded with) — a fresh
+  checkout resolves the same release instead of drifting to the latest 1.x. (Adopted from PR review —
+  coderabbitai / cubic-dev-ai.)
 - Verification: full suite green — 36 tests (28 existing + 8 new) on the pinned destination.

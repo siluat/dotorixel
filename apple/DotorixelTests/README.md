@@ -76,13 +76,16 @@ iPad Pro 11-inch (M5) · iOS 26.4 simulator · @2x
 ```
 
 There is no macOS CI yet, so these snapshots are a **local gate**: references are
-committed as binary PNGs under `__Snapshots__/` and diffed on each run. Any `@2x` iPad
-on the iOS 26.4 simulator produces identical leaf-view snapshots (the views are sized
-by `.sizeThatFits`, not by the device), but pin the device above when in doubt.
+committed as binary PNGs under `apple/DotorixelTests/__Snapshots__/` and diffed on each
+run. **The pinned host above is the only trusted reference — record and verify there.**
+These leaf views size to content via `.sizeThatFits` rather than to the device, so the
+device model should have little effect, but only the pinned host is verified (SF Symbols
+and system controls can still drift across OS versions).
 
 ## Running
 
 ```text
+xcodegen generate --spec apple/project.yml    # .xcodeproj is generated (git-ignored)
 xcodebuild test \
   -project apple/Dotorixel.xcodeproj \
   -scheme Dotorixel \
@@ -96,7 +99,7 @@ xcodebuild test \
 When a view legitimately changes, regenerate its reference **on the pinned host**:
 
 - Delete the affected PNG(s) under
-  `DotorixelTests/__Snapshots__/DockedRegionSnapshotTests/` and re-run — a missing
+  `apple/DotorixelTests/__Snapshots__/DockedRegionSnapshotTests/` and re-run — a missing
   reference is auto-recorded (and fails that run; re-run to verify), **or**
 - set the recording mode temporarily, e.g. `assertSnapshot(…, record: .all)` or wrap a
   run with `withSnapshotTesting(record: .all) { … }`.

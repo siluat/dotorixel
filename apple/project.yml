@@ -11,7 +11,10 @@ packages:
   # and policy. "Snapshot" here is the testing technique, not the History Snapshot.
   SnapshotTesting:
     url: https://github.com/pointfreeco/swift-snapshot-testing
-    from: "1.19.0"
+    # Pinned exact: Package.resolved lives inside the git-ignored .xcodeproj, so
+    # `from:` could drift a fresh checkout off the version the references were
+    # recorded with. This is the version snapshots were recorded/verified against.
+    exactVersion: "1.19.3"
 
 targets:
   Dotorixel:

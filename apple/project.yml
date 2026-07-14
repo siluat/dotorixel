@@ -5,6 +5,17 @@ options:
     macOS: "14.0"
     iOS: "17.0"
 
+packages:
+  # Image-reference (view snapshot) testing for the docked region views. Local
+  # test gate only — see apple/DotorixelTests/README.md for the recording host
+  # and policy. "Snapshot" here is the testing technique, not the History Snapshot.
+  SnapshotTesting:
+    url: https://github.com/pointfreeco/swift-snapshot-testing
+    # Pinned exact: Package.resolved lives inside the git-ignored .xcodeproj, so
+    # `from:` could drift a fresh checkout off the version the references were
+    # recorded with. This is the version snapshots were recorded/verified against.
+    exactVersion: "1.19.3"
+
 targets:
   Dotorixel:
     type: application
@@ -47,6 +58,7 @@ targets:
         BUNDLE_LOADER: "$(TEST_HOST)"
     dependencies:
       - target: Dotorixel
+      - package: SnapshotTesting
 
 schemes:
   Dotorixel:

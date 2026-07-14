@@ -6,14 +6,29 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 174 | 133 | 41 | 176 | 76% | 43% |
-| cubic-dev-ai[bot] | 161 | 123 | 38 | 186 | 76% | 40% |
-| coderabbitai[bot] | 237 | 164 | 73 | 142 | 69% | 54% |
+| greptile-apps[bot] | 174 | 133 | 41 | 181 | 76% | 42% |
+| cubic-dev-ai[bot] | 166 | 128 | 38 | 186 | 77% | 41% |
+| coderabbitai[bot] | 241 | 168 | 73 | 143 | 70% | 54% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #314 | coderabbitai[bot] | Accept | AGENTS.md Testing cell pointed at `DotorixelTests/README.md`; from the repo root the path needs the `apple/` prefix — corrected to `apple/DotorixelTests/README.md` |
+| #314 | cubic-dev-ai[bot] | Accept | Same AGENTS.md README path missing the `apple/` prefix (duplicate); fixed |
+| #314 | coderabbitai[bot] | Accept | README claimed any @2x iPad on iOS 26.4 renders identical leaf snapshots — an unverified cross-device guarantee (only the pinned host was tested); softened to make the pinned host the sole trusted reference |
+| #314 | cubic-dev-ai[bot] | Accept | Same @2x-iPad equivalence overclaim (duplicate); softened to pinned-host-only |
+| #314 | cubic-dev-ai[bot] | Accept | README "Running" command assumed a committed `.xcodeproj`, but it is XcodeGen-generated (git-ignored) so a fresh checkout can't run it; prepended `xcodegen generate` |
+| #314 | coderabbitai[bot] | Accept | README re-record path `DotorixelTests/__Snapshots__/…` resolves nowhere from root; fixed to repo-relative `apple/DotorixelTests/__Snapshots__/…` (matches the Running command's `apple/…` paths) |
+| #314 | cubic-dev-ai[bot] | Accept | Same wrong `__Snapshots__` re-record path (duplicate); fixed to repo-relative |
+| #314 | coderabbitai[bot] | Accept | `from: "1.19.0"` can drift a fresh checkout since Package.resolved lives in the git-ignored .xcodeproj; pinned `exactVersion: "1.19.3"` (the version references were recorded with) |
+| #314 | cubic-dev-ai[bot] | Accept | Same SnapshotTesting version-drift risk (duplicate); pinned exactVersion 1.19.3 |
+| #314 | coderabbitai[bot] | Miss | Did not flag the README "Running" command needing `xcodegen generate` before `xcodebuild` (generated .xcodeproj) |
+| #314 | greptile-apps[bot] | Miss | Did not flag the AGENTS.md README path missing the `apple/` prefix (5/5 "safe to merge", no findings) |
+| #314 | greptile-apps[bot] | Miss | Did not flag the @2x-iPad equivalence overclaim in the README |
+| #314 | greptile-apps[bot] | Miss | Did not flag the README "Running" command needing an `xcodegen generate` step |
+| #314 | greptile-apps[bot] | Miss | Did not flag the wrong `__Snapshots__` re-record path |
+| #314 | greptile-apps[bot] | Miss | Did not flag the SnapshotTesting version-drift risk (from: vs exactVersion) |
 | #313 | cubic-dev-ai[bot] | Accept | Issue 226 named `.regular`/`.expanded` as LayoutTier cases, but the rename shipped `.wide`/`.xWide` (`.regular` is the size-class input only); corrected the tier names in 226 |
 | #313 | greptile-apps[bot] | Accept | Same stale tier names in issue 226's scope section — `.regular`/`.expanded` don't exist on `LayoutTier`; fixed |
 | #313 | greptile-apps[bot] | Accept | Same stale tier-name mismatch repeated in issue 226's acceptance criteria; fixed |

@@ -24,13 +24,12 @@ issues (`/to-issues`) when reached.
 
 ### Phase 1 — Layout finish (actionable)
 
-- Enable clear canvas (existing disabled button)
-- Enable PNG export (existing disabled button)
-- Shift-constrain for shape tools (macOS keyboard modifier)
+- [227 — Enable clear canvas (existing disabled button)](../issues/227-apple-enable-clear-canvas.md)
+- [228 — Enable PNG export (existing disabled button)](../issues/228-apple-enable-png-export.md)
 
 ### Phases 2–6 — roadmap (decompose when reached)
 
-- Phase 2 — Full tool set + color (line/rect/ellipse/fill/eyedropper/move, FG/BG swap, HSV, pixel-perfect, shortcuts)
+- Phase 2 — Full tool set + color (line/rect/ellipse/fill/eyedropper/move, FG/BG swap, HSV, pixel-perfect, shortcuts, Shift-constrain — moved from Phase 1: no shape tools to constrain until Phase 2)
 - Phase 3 — Layer system (Document/Layer, composite render, layer panel, Swift state redesign) ★ foundation
 - Phase 4 — Multi-tab + persistence (Workspace, SwiftData auto-save/restore)
 - Phase 5 — Reference + selection + transforms (M3 bundle)

@@ -100,8 +100,8 @@ phases are decomposed into issues (via `/to-issues`) when reached, not up front.
 
 | Phase | Scope | Why here |
 |-------|-------|----------|
-| **1 — Layout finish** | Responsive tiers (iPad compact / regular / Mac); quick wins: enable clear canvas, enable PNG export, Shift-constrain for shapes | Shell already exists; small, no state redesign |
-| **2 — Full tool set + color** | Line, rect, ellipse, fill, eyedropper, move; FG/BG swap; recent colors + HSV; pixel-perfect; tool keyboard shortcuts; StatusBar content | Runs on the current single-canvas model — low risk, makes native genuinely usable for drawing |
+| **1 — Layout finish** | Responsive tiers (iPad compact / regular / Mac); quick wins: enable clear canvas, enable PNG export | Shell already exists; small, no state redesign |
+| **2 — Full tool set + color** | Line, rect, ellipse, fill, eyedropper, move; Shift constraint; FG/BG swap; recent colors + HSV; pixel-perfect; tool keyboard shortcuts; StatusBar content | Runs on the current single-canvas model — low risk, makes native genuinely usable for drawing |
 | **3 — Layer system** ★ | Document/Layer, composite render path, layer-panel rows; **Swift-side state-architecture redesign** (Document / active-layer ownership) | The foundation M3/M4 all build on |
 | **4 — Multi-tab + persistence** | Workspace + per-tab state; SwiftData document storage, auto-save, restore | Persist the document model once it exists, before more content features land |
 | **5 — Reference + selection + transforms** | Reference layers (import / placement / sampling); marquee selection + clipboard; flip / rotate | The M3 bundle — all sit on the Document model + persistence schema |
@@ -109,6 +109,11 @@ phases are decomposed into issues (via `/to-issues`) when reached, not up front.
 
 ### Sequencing rationale
 
+- **Re-sequencing note (2026-07-14):** Shift-constrain moved from Phase 1 to
+  Phase 2 during Phase 1 decomposition. The shell has no shape tools until Phase 2,
+  and the web implements the constraint in shell code (`tool-constraints.ts`), not
+  the shared core — so in Phase 1 there is nothing to constrain and no core function
+  to wire. The Phase 1 listing was carried over from the superseded 2026-04-06 plan.
 - **Tools before layers (2 → 3).** The full tool set needs no document model and no
   state redesign; it lands quickly on today's `EditorState`, making the app usable and
   providing a validation base for the larger refactors that follow.
@@ -238,3 +243,13 @@ docked structure, and enable features that require no UI design work.
 - Full keyboard shortcuts (.keyboardShortcut modifiers)
 
 **Timing**: After web M2 is fully complete and stable.
+
+---
+
+## Notes
+
+- **2026-07-14** — Phase 1 remaining quick wins decomposed into ready-for-agent
+  issues: [227 — enable clear canvas](227-apple-enable-clear-canvas.md),
+  [228 — enable PNG export](228-apple-enable-png-export.md). Shift-constrain
+  re-sequenced to Phase 2 (see re-sequencing note above). Responsive tiers were
+  already delivered by 225/226.

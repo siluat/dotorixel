@@ -2,17 +2,16 @@
 
 ## Currently Working On
 
-None
+Apple native catch-up — Phase 1 quick wins ([RFC](../issues/013-apple-native-catchup.md)): both remaining Phase 1 items are decomposed into ready sub-issues (227 clear canvas, 228 PNG export); neither implementation has started.
 
 ## Last Completed
 
-[226 — Apple view test infrastructure (snapshot testing)](../issues/226-apple-view-test-infrastructure.md): the docked leaf region views (RightPanel/LeftToolbar/TopBar/StatusBar) now have swift-snapshot-testing coverage at the wide/xWide tiers, recorded on a pinned iPad Pro 11" (M5) iOS 26.4 simulator (local gate — no macOS CI yet). Leaf-only by design; `ContentView`/Metal and the `width→tier` link stay out of snapshot scope (covered by `LayoutTierTests`), and XCUITest/ViewInspector are documented as deferred.
+Planning — RFC 013 Phase 1 quick wins decomposed: [227 — enable clear canvas](../issues/227-apple-enable-clear-canvas.md) and [228 — enable PNG export](../issues/228-apple-enable-png-export.md) published ready-for-agent (both are shell wiring over existing UniFFI bindings). Shift-constrain re-sequenced to Phase 2 — the Apple shell has no shape tools to constrain until then.
 
 ## Next Up
 
-- Apple Phase 1 — Enable clear canvas (existing disabled button)
-- Apple Phase 1 — Enable PNG export (existing disabled button)
-- Apple Phase 1 — Shift-constrain for shape tools (macOS keyboard modifier)
+- [227 — Apple Phase 1 — Enable clear canvas](../issues/227-apple-enable-clear-canvas.md)
+- [228 — Apple Phase 1 — Enable PNG export](../issues/228-apple-enable-png-export.md)
 - Apple spacing tokens — promote inline 4/8/12/16 literals to constants (docked layout now settled)
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)

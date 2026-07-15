@@ -1,6 +1,6 @@
 ---
 title: Apple native — stroke session architecture (prefactoring for the full tool set)
-status: ready-for-agent
+status: done
 created: 2026-07-15
 ---
 
@@ -68,3 +68,45 @@ Behavioral invariants to preserve (all covered by existing tests):
 ## Blocked by
 
 None - can start immediately.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Tools/EditorTool.swift` | Shell-owned tool identity (pencil/eraser): `displayName`, core `ToolType` mapping for FFI call sites, per-stroke session factory |
+| `apple/Dotorixel/Tools/StrokeSession.swift` | `StrokeSession` lifecycle protocol (start / draw(current:previous:) / end / cancel) + narrow `StrokeSessionHost` surface |
+| `apple/Dotorixel/Tools/StrokeEngine.swift` | Per-stroke driver: tool→session resolution, eager start, previous-sample threading, same-pixel dedup, teardown; injectable session factory for tests |
+| `apple/Dotorixel/Tools/FreehandStrokeSession.swift` | Pencil/eraser session: Bresenham interpolation moved in from the coordinator, undo snapshot at start, draw color captured at begin |
+| `apple/Dotorixel/State/EditorState.swift` | `beginStroke`/`continueStroke`/`endStroke`/`cancelStroke` replace `handleDrawStart`/`handleDrawEnd`; conforms to `StrokeSessionHost`; `activeTool` is now `EditorTool` |
+| `apple/Dotorixel/Rendering/PixelCanvasView.swift` | Coordinator reduced to a thin adapter — coordinate conversion + forwarding only |
+| `apple/Dotorixel/Rendering/InputMTKView.swift` | `drawingCancelled` added to `CanvasInputDelegate`; `touchesCancelled` routes to the cancel path |
+| `apple/Dotorixel/Extensions/ToolType+DisplayName.swift` | Deleted — display names moved to `EditorTool` |
+| `apple/DotorixelTests/EditorToolTests.swift` | `EditorTool` displayName tests (replaces `ToolTypeTests`) |
+| `apple/DotorixelTests/StrokeEngineTests.swift` | Lifecycle-order tests (spy session) incl. cancel-without-commit, plus deferred-commit seam proof (end commits, cancel discards) |
+| `apple/DotorixelTests/EditorStateTests.swift` | New stroke-lifecycle suite (paint+snapshot, interpolation, redundant-sample no-rerender, one-undo-per-stroke, cancel, eraser, capture-at-begin); two `handleDrawStart` call sites mechanically swapped to `beginStroke` |
+
+### Key Decisions
+
+- Draw color and tool are captured at stroke begin (web parity, user-approved) —
+  mid-stroke palette/tool changes no longer affect the stroke in flight; locked
+  by a test. The pre-existing behavior read both live per pixel.
+- Session lifecycle lives natively in Swift (protocol-based), not in the Rust
+  core: pointer handling is platform-divergent and the web keeps its own TS
+  implementation; the algorithms (Bresenham, per-pixel apply) stay in core.
+- `StrokeEngine` is a concrete class, no protocol — the varying seam is the
+  session, not the engine; its `makeSession` init parameter is the test seam.
+- Session `Bool` returns mean "canvas needs a re-render", not strictly "pixels
+  changed" — preserves the legacy redraw-on-same-color-restamp behavior.
+
+### Notes
+
+- `ToolType` display names for line/rectangle/ellipse were removed with the
+  extension (unreachable from the UI today); they return via `EditorTool` in
+  issue 231.
+- An out-of-canvas stroke begin no longer bumps `canvasVersion` (the old code
+  re-rendered unconditionally on pointer-down) — matches the acceptance
+  criterion "re-rendering only when pixels change".
+- macOS has no cancel source yet — `drawingCancelled` is wired only from
+  iPadOS `touchesCancelled`.
+- Verified: full iOS suite (docked snapshots unchanged) + macOS build, both
+  green; core `ToolType` references exist only inside `Tools/`.

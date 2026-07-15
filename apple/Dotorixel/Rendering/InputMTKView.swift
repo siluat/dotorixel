@@ -9,6 +9,9 @@ protocol CanvasInputDelegate: AnyObject {
     func drawingBegan(at point: CGPoint, in view: InputMTKView)
     func drawingMoved(to point: CGPoint, in view: InputMTKView)
     func drawingEnded(in view: InputMTKView)
+    /// An interrupted pointer sequence (e.g. `touchesCancelled`) — must tear
+    /// the stroke down via its cancel path, not its end path.
+    func drawingCancelled(in view: InputMTKView)
     #if os(macOS)
     func scrollWheelChanged(deltaX: CGFloat, deltaY: CGFloat, at point: CGPoint, isPrecise: Bool, in view: InputMTKView)
     func magnifyChanged(magnification: CGFloat, at point: CGPoint, in view: InputMTKView)
@@ -78,7 +81,7 @@ class InputMTKView: MTKView {
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        inputDelegate?.drawingEnded(in: self)
+        inputDelegate?.drawingCancelled(in: self)
     }
 
     #endif

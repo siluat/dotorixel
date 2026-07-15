@@ -69,7 +69,6 @@ extension PixelCanvasView: NSViewRepresentable {
 
     func updateNSView(_ mtkView: InputMTKView, context: Context) {
         let coordinator = context.coordinator
-        coordinator.pixelCanvas = pixelCanvas
         coordinator.viewport = viewport
         coordinator.editorState = editorState
 
@@ -122,7 +121,6 @@ extension PixelCanvasView: UIViewRepresentable {
 
     func updateUIView(_ mtkView: InputMTKView, context: Context) {
         let coordinator = context.coordinator
-        coordinator.pixelCanvas = pixelCanvas
         coordinator.viewport = viewport
         coordinator.editorState = editorState
 
@@ -139,12 +137,10 @@ extension PixelCanvasView: UIViewRepresentable {
 extension PixelCanvasView {
     class Coordinator: NSObject, CanvasInputDelegate {
         var renderer: PixelGridRenderer?
-        var pixelCanvas: ApplePixelCanvas?
         var viewport: AppleViewport?
         var editorState: EditorState?
 
         private var isInteracting = false
-        private var lastPixel: ScreenCanvasCoords?
 
         #if !os(macOS)
         /// Tracks cumulative pinch scale for computing per-frame deltas on iPadOS.
@@ -153,58 +149,31 @@ extension PixelCanvasView {
 
         // MARK: - CanvasInputDelegate
 
+        // Drawing events only convert coordinates and forward — the stroke
+        // lifecycle (session resolution, interpolation, dedup, history,
+        // re-render) is owned by EditorState and its StrokeEngine.
+
         func drawingBegan(at point: CGPoint, in view: InputMTKView) {
-            guard let pixelCanvas, let viewport, let editorState else { return }
+            guard let viewport, let editorState else { return }
 
             isInteracting = true
-            lastPixel = nil
-            editorState.handleDrawStart()
-
-            let devicePoint = convertToDevicePixels(point, in: view)
-            let coords = viewport.screenToCanvas(screenX: devicePoint.x, screenY: devicePoint.y)
-            applyToolAt(coords, pixelCanvas: pixelCanvas, editorState: editorState)
-            lastPixel = coords
-            triggerRedraw(editorState)
+            editorState.beginStroke(at: canvasCoords(of: point, in: view, viewport: viewport))
         }
 
         func drawingMoved(to point: CGPoint, in view: InputMTKView) {
-            guard isInteracting,
-                  let pixelCanvas, let viewport, let editorState else { return }
+            guard isInteracting, let viewport, let editorState else { return }
 
-            let devicePoint = convertToDevicePixels(point, in: view)
-            let coords = viewport.screenToCanvas(screenX: devicePoint.x, screenY: devicePoint.y)
-
-            if let last = lastPixel, coords.x == last.x && coords.y == last.y {
-                return
-            }
-
-            var didChange = false
-            if let last = lastPixel {
-                let interpolated = appleInterpolatePixels(
-                    x0: last.x, y0: last.y,
-                    x1: coords.x, y1: coords.y
-                )
-                for pixel in interpolated {
-                    if applyToolAt(pixel, pixelCanvas: pixelCanvas, editorState: editorState) {
-                        didChange = true
-                    }
-                }
-            } else {
-                if applyToolAt(coords, pixelCanvas: pixelCanvas, editorState: editorState) {
-                    didChange = true
-                }
-            }
-
-            lastPixel = coords
-            if didChange {
-                triggerRedraw(editorState)
-            }
+            editorState.continueStroke(to: canvasCoords(of: point, in: view, viewport: viewport))
         }
 
         func drawingEnded(in view: InputMTKView) {
             isInteracting = false
-            lastPixel = nil
-            editorState?.handleDrawEnd()
+            editorState?.endStroke()
+        }
+
+        func drawingCancelled(in view: InputMTKView) {
+            isInteracting = false
+            editorState?.cancelStroke()
         }
 
         // MARK: - macOS zoom/pan
@@ -310,6 +279,15 @@ extension PixelCanvasView {
 
         // MARK: - Private
 
+        private func canvasCoords(
+            of point: CGPoint,
+            in view: InputMTKView,
+            viewport: AppleViewport
+        ) -> ScreenCanvasCoords {
+            let devicePoint = convertToDevicePixels(point, in: view)
+            return viewport.screenToCanvas(screenX: devicePoint.x, screenY: devicePoint.y)
+        }
+
         /// Converts a point in SwiftUI points to device pixels.
         ///
         /// The viewport's `fitToViewport` uses device pixels (points × displayScale),
@@ -321,29 +299,6 @@ extension PixelCanvasView {
             let scale = view.contentScaleFactor
             #endif
             return (x: point.x * scale, y: point.y * scale)
-        }
-
-        @discardableResult
-        private func applyToolAt(
-            _ coords: ScreenCanvasCoords,
-            pixelCanvas: ApplePixelCanvas,
-            editorState: EditorState
-        ) -> Bool {
-            pixelCanvas.applyTool(
-                x: coords.x,
-                y: coords.y,
-                tool: editorState.activeTool,
-                foregroundColor: editorState.foregroundColor
-            )
-        }
-
-        /// Triggers a canvas re-render by incrementing the version counter.
-        ///
-        /// Does NOT call `setNeedsDisplay` directly — SwiftUI observes the version
-        /// change and calls `update*View`, which runs `configureRenderer` with fresh
-        /// pixel data before setting needs display.
-        private func triggerRedraw(_ editorState: EditorState) {
-            editorState.canvasVersion += 1
         }
     }
 }

@@ -1,6 +1,99 @@
 import Testing
 @testable import Dotorixel
 
+@Suite("EditorState — stroke lifecycle")
+struct EditorStateStrokeTests {
+
+    @Test("the first sample paints the foreground color and captures one undo snapshot")
+    func beginStrokePaintsAndCapturesUndo() throws {
+        let state = EditorState(width: 16, height: 16)
+        let versionBefore = state.canvasVersion
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 3, y: 4))
+
+        #expect(try state.pixelCanvas.getPixel(x: 3, y: 4) == state.foregroundColor)
+        #expect(state.canvasVersion == versionBefore + 1)
+        #expect(state.isDrawing)
+        #expect(state.canUndo)
+    }
+
+    @Test("a fast drag paints the interpolated segment between samples")
+    func continueStrokeInterpolatesGaps() throws {
+        let state = EditorState(width: 16, height: 16)
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+        state.continueStroke(to: ScreenCanvasCoords(x: 3, y: 3))
+
+        // Bresenham diagonal: the skipped pixels between the two samples are filled.
+        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == state.foregroundColor)
+        #expect(try state.pixelCanvas.getPixel(x: 2, y: 2) == state.foregroundColor)
+        #expect(try state.pixelCanvas.getPixel(x: 3, y: 3) == state.foregroundColor)
+    }
+
+    @Test("one undo reverts the whole stroke")
+    func oneUndoRevertsWholeStroke() {
+        let state = EditorState(width: 16, height: 16)
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+        state.continueStroke(to: ScreenCanvasCoords(x: 3, y: 3))
+        state.continueStroke(to: ScreenCanvasCoords(x: 7, y: 2))
+        state.endStroke()
+        state.handleUndo()
+
+        #expect(state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(!state.isDrawing)
+    }
+
+    @Test("cancel tears the stroke down; freehand keeps its painted pixels")
+    func cancelStrokeTearsDown() throws {
+        let state = EditorState(width: 16, height: 16)
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 3, y: 4))
+        state.cancelStroke()
+
+        #expect(!state.isDrawing)
+        #expect(try state.pixelCanvas.getPixel(x: 3, y: 4) == state.foregroundColor)
+        // The interrupted stroke still stands as one undoable step.
+        state.handleUndo()
+        #expect(state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+    }
+
+    @Test("a repeated sample on the same pixel does not trigger a re-render")
+    func redundantSampleDoesNotRerender() {
+        let state = EditorState(width: 16, height: 16)
+        state.beginStroke(at: ScreenCanvasCoords(x: 3, y: 4))
+        let versionAfterBegin = state.canvasVersion
+
+        state.continueStroke(to: ScreenCanvasCoords(x: 3, y: 4))
+
+        #expect(state.canvasVersion == versionAfterBegin)
+    }
+
+    @Test("eraser strokes erase to transparent")
+    func eraserErasesToTransparent() throws {
+        let state = EditorState(width: 16, height: 16)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+        try state.pixelCanvas.setPixel(x: 5, y: 5, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        state.activeTool = .eraser
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 5, y: 5))
+
+        #expect(try state.pixelCanvas.getPixel(x: 5, y: 5) == transparent)
+    }
+
+    @Test("mid-stroke foreground color changes don't affect the stroke in flight")
+    func midStrokeColorChangeIsIgnored() throws {
+        let state = EditorState(width: 16, height: 16)
+        let originalColor = state.foregroundColor
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+        state.foregroundColor = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
+        state.continueStroke(to: ScreenCanvasCoords(x: 2, y: 0))
+
+        #expect(try state.pixelCanvas.getPixel(x: 2, y: 0) == originalColor)
+    }
+}
+
 @Suite("EditorState — resizeCanvas")
 struct EditorStateResizeCanvasTests {
 
@@ -52,7 +145,7 @@ struct EditorStateResizeCanvasTests {
     @Test("resize clears history so canUndo doesn't lie about pre-resize snapshots")
     func resizeClearsHistory() {
         let state = EditorState(width: 16, height: 16)
-        state.handleDrawStart()
+        state.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
         #expect(state.canUndo == true)
 
         state.resizeCanvas(width: 32, height: 32)
@@ -114,7 +207,7 @@ struct EditorStateClearCanvasTests {
         let state = EditorState(width: 16, height: 16)
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
         try state.pixelCanvas.setPixel(x: 3, y: 4, color: red)
-        state.handleDrawStart()
+        state.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
         let canvasVersionBefore = state.canvasVersion
         let historyVersionBefore = state.historyVersion
 

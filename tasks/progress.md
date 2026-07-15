@@ -3,19 +3,24 @@
 ## Currently Working On
 
 Apple Phase 2 — full tool set + color ([RFC](../issues/013-apple-native-catchup.md))
-— decomposed into sub-issues 230–242 (see todo.md); next step is implementing
-[230 — stroke session architecture](../issues/230-apple-stroke-sessions.md)
+— sub-issue 230 done (1/13); the stroke-session seam is in place, unblocking
+231 / 232 / 233 / 236 / 239.
 
 ## Last Completed
 
-[229 — Apple spacing tokens](../issues/229-apple-spacing-tokens.md):
-`DesignTokens` now mirrors the web spacing scale (in-use steps 1–5; 6–8 deferred
-to a first consumer), and the docked chrome views spend it instead of inline
-literals — off-scale web-raw values stay component-scoped constants. Strictly
-behavior-preserving: all docked snapshots passed unchanged.
+[230 — Apple stroke sessions](../issues/230-apple-stroke-sessions.md): every
+Apple-shell stroke now runs through a per-stroke session (start → draw* →
+end/cancel) resolved from a shell-owned tool identity, with the seam
+test-proven for deferred-commit lifecycles. Draw color/tool are captured at
+stroke begin (web parity), and `touchesCancelled` routes through cancel.
 
 ## Next Up
 
+- [231 — Shape tools (line/rect/ellipse)](../issues/231-apple-shape-tools.md)
+- [232 — Flood fill tool](../issues/232-apple-flood-fill.md)
+- [233 — FG/BG color pair + swap + right-click BG](../issues/233-apple-fg-bg-colors.md)
+- [236 — Move tool](../issues/236-apple-move-tool.md)
+- [239 — Pixel-perfect filtering + toggle](../issues/239-apple-pixel-perfect.md)
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Apple Pencil: hover preview + palm rejection

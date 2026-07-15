@@ -11,7 +11,7 @@ final class EditorState {
     var pixelCanvas: ApplePixelCanvas
     var viewport: AppleViewport
     let historyManager = AppleHistoryManager.defaultManager()
-    var activeTool: ToolType = .pencil
+    var activeTool: EditorTool = .pencil
     var foregroundColor: Color
     var showGrid: Bool = true
 
@@ -52,16 +52,44 @@ final class EditorState {
         self.foregroundColor = Color(r: 0x2D, g: 0x2D, b: 0x2D, a: 0xFF)
     }
 
-    // MARK: - History
+    // MARK: - Stroke lifecycle
 
-    func handleDrawStart() {
+    /// Resolves the active tool into a per-stroke session and drives it.
+    private let strokeEngine = StrokeEngine()
+
+    /// Opens a stroke session from the active tool and feeds the first sample.
+    func beginStroke(at coords: ScreenCanvasCoords) {
         isDrawing = true
-        pushHistorySnapshot()
+        if strokeEngine.begin(tool: activeTool, host: self, at: coords) {
+            canvasVersion += 1
+        }
     }
 
-    func handleDrawEnd() {
+    /// Feeds one pointer sample to the active stroke.
+    func continueStroke(to coords: ScreenCanvasCoords) {
+        if strokeEngine.sample(at: coords) {
+            canvasVersion += 1
+        }
+    }
+
+    /// Ends the active stroke, committing any deferred effect.
+    func endStroke() {
+        if strokeEngine.end() {
+            canvasVersion += 1
+        }
         isDrawing = false
     }
+
+    /// Cancels the active stroke after an interrupted pointer sequence
+    /// (e.g. `touchesCancelled`), discarding any deferred effect.
+    func cancelStroke() {
+        if strokeEngine.cancel() {
+            canvasVersion += 1
+        }
+        isDrawing = false
+    }
+
+    // MARK: - History
 
     /// Restores the previous canvas state from the history stack.
     /// No-ops silently while a drawing stroke is in progress.
@@ -196,5 +224,13 @@ final class EditorState {
             canvasHeight: pixelCanvas.height(),
             viewportSize: viewportSize
         )
+    }
+}
+
+// MARK: - StrokeSessionHost
+
+extension EditorState: StrokeSessionHost {
+    func captureUndoSnapshot() {
+        pushHistorySnapshot()
     }
 }

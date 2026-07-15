@@ -8,12 +8,13 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 174 | 133 | 41 | 181 | 76% | 42% |
 | cubic-dev-ai[bot] | 166 | 128 | 38 | 186 | 77% | 41% |
-| coderabbitai[bot] | 241 | 168 | 73 | 143 | 70% | 54% |
+| coderabbitai[bot] | 242 | 168 | 74 | 143 | 69% | 54% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #316 | coderabbitai[bot] | Reject | Claimed the PNG test's CGContext decode helper mirrors rows without a y-flip; an identity-CTM bitmap draw already puts the image's top row at buffer row 0 (Apple QA1509 pattern), the asymmetric (3,4) pixel assertion passes as written, and the suggested flip would break the suite |
 | #314 | coderabbitai[bot] | Accept | AGENTS.md Testing cell pointed at `DotorixelTests/README.md`; from the repo root the path needs the `apple/` prefix — corrected to `apple/DotorixelTests/README.md` |
 | #314 | cubic-dev-ai[bot] | Accept | Same AGENTS.md README path missing the `apple/` prefix (duplicate); fixed |
 | #314 | coderabbitai[bot] | Accept | README claimed any @2x iPad on iOS 26.4 renders identical leaf snapshots — an unverified cross-device guarantee (only the pinned host was tested); softened to make the pinned host the sole trusted reference |

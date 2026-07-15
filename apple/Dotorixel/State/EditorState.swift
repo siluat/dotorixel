@@ -138,6 +138,23 @@ final class EditorState {
         canvasVersion += 1
     }
 
+    // MARK: - Export
+
+    /// Encodes the current canvas as a PNG export document at 1× scale
+    /// (one canvas pixel per image pixel), matching the web's export convention.
+    ///
+    /// - Throws: `AppleError` when PNG encoding fails.
+    func makePngExportDocument() throws -> PngExportDocument {
+        PngExportDocument(data: try pixelCanvas.encodePng())
+    }
+
+    /// Default export filename following the web convention
+    /// (`generateExportFilename` in `src/lib/canvas/export.ts`).
+    /// The save flow offers it as the suggested name; the user may override it.
+    var defaultExportFilename: String {
+        "dotorixel-\(pixelCanvas.width())x\(pixelCanvas.height()).png"
+    }
+
     // MARK: - Viewport
 
     /// Applies clamp_pan and updates the viewport. No canvasVersion bump needed —

@@ -1,6 +1,6 @@
 ---
 title: Apple native — enable PNG export (existing disabled button)
-status: ready-for-agent
+status: done
 created: 2026-07-14
 ---
 
@@ -46,3 +46,39 @@ not crash or corrupt editor state.
 ## Blocked by
 
 None - can start immediately.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Export/PngExportDocument.swift` | New — `FileDocument` wrapper holding pre-encoded PNG bytes for `.fileExporter` |
+| `apple/Dotorixel/State/EditorState.swift` | `makePngExportDocument()` (1× encode via core `encodePng()`) + `defaultExportFilename` |
+| `apple/Dotorixel/Views/TopBar.swift` | Export button enabled; `.fileExporter(contentType: .png)` save flow + failure alert |
+| `apple/DotorixelTests/PngExportTests.swift` | New suite — PNG decodability + dimensions, pixel-content preservation, filename convention |
+| `apple/DotorixelTests/__Snapshots__/DockedRegionSnapshotTests/topBar*.png` | Baselines re-recorded for the now-enabled button (pinned iPad Pro 11" sim) |
+
+### Key Decisions
+
+- One `.fileExporter(isPresented:document:contentType:defaultFilename:)` implementation
+  serves both macOS (save panel) and iPadOS (Files picker), per the RFC's
+  "SwiftUI-native controls" principle.
+- Filename convention duplicated natively (trivial, stable template — Core Placement
+  rule of thumb); cross-referenced to `generateExportFilename` in
+  `src/lib/canvas/export.ts` for sync.
+- Named `defaultExportFilename`, not `exportFilename` — it is the suggested name the
+  user can override in the save panel.
+
+### Notes
+
+- `fileWrapper(configuration:)` has no unit test: `FileDocument.WriteConfiguration`
+  has no public initializer (known SwiftUI testability limitation). Covered instead by
+  manual macOS E2E (enabled button, default filename, save, cancel); encoded-bytes
+  validity is covered by the unit suite.
+- Export-failure alert shows `AppleError`'s `String(reflecting:)` text (UniFFI
+  `errorDescription`). Accepted trade-off: encode failure of a valid in-memory canvas
+  is practically unreachable, and realistic failures (file writes) are Cocoa errors
+  with user-appropriate messages.
+- Vocabulary watch: `PngExportDocument` uses "Document" in the SwiftUI `FileDocument`
+  sense — revisit naming when Phase 3 introduces the domain **Document** on Apple.
+- iPadOS runtime save flow not manually exercised (same single implementation; unit
+  and snapshot tests run on the iPad simulator).

@@ -6,6 +6,11 @@ struct TopBar: View {
     let editorState: EditorState
     let tier: LayoutTier
 
+    @State private var exportDocument: PngExportDocument?
+    @State private var isExportPresented = false
+    @State private var isExportErrorPresented = false
+    @State private var exportErrorDescription = ""
+
     /// TopBar-specific sizes matching web CSS values (not global design tokens).
     private let controlHeight: CGFloat = 32
     private let smallIconSize: CGFloat = 14
@@ -121,7 +126,12 @@ struct TopBar: View {
 
     private var exportButton: some View {
         Button {
-            // Export — disabled for now, enabled in a separate Phase 1 task
+            do {
+                exportDocument = try editorState.makePngExportDocument()
+                isExportPresented = true
+            } catch {
+                presentExportError(error)
+            }
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.down.to.line")
@@ -136,8 +146,26 @@ struct TopBar: View {
             .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusSm))
         }
         .buttonStyle(.plain)
-        .disabled(true)
-        .opacity(DesignTokens.disabledOpacity)
+        .fileExporter(
+            isPresented: $isExportPresented,
+            document: exportDocument,
+            contentType: .png,
+            defaultFilename: editorState.defaultExportFilename
+        ) { result in
+            if case .failure(let error) = result {
+                presentExportError(error)
+            }
+        }
+        .alert("Export Failed", isPresented: $isExportErrorPresented) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(exportErrorDescription)
+        }
+    }
+
+    private func presentExportError(_ error: Error) {
+        exportErrorDescription = error.localizedDescription
+        isExportErrorPresented = true
     }
 }
 

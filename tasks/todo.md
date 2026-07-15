@@ -18,13 +18,9 @@
 ## Apple Native: full web parity — [RFC](../issues/013-apple-native-catchup.md)
 
 Phased catch-up to full parity with completed web editor features. See the RFC for
-the 6-phase roadmap and sequencing rationale. Phase 1 (docked layout) is largely
-done; the remaining Phase 1 items are actionable now. Phases 2–6 are decomposed into
-issues (`/to-issues`) when reached.
-
-### Phase 1 — Layout finish (actionable)
-
-- [228 — Enable PNG export (existing disabled button)](../issues/228-apple-enable-png-export.md)
+the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish) is complete;
+Phase 2 is reached and ready to decompose. Phases 2–6 are decomposed into issues
+(`/to-issues`) when reached.
 
 ### Phases 2–6 — roadmap (decompose when reached)
 

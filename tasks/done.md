@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 228 | [Apple native — enable PNG export (existing disabled button)](../issues/228-apple-enable-png-export.md) | 2026-07-15 |
 | 227 | [Apple native — enable clear canvas (existing disabled button)](../issues/227-apple-enable-clear-canvas.md) | 2026-07-15 |
 | — | Planning — decompose Apple Phase 1 quick wins ([RFC 013](../issues/013-apple-native-catchup.md)) into ready issues [227](../issues/227-apple-enable-clear-canvas.md) / [228](../issues/228-apple-enable-png-export.md); Shift-constrain re-sequenced to Phase 2 | 2026-07-14 |
 | 226 | [Apple view test infrastructure (snapshot testing)](../issues/226-apple-view-test-infrastructure.md) | 2026-07-14 |

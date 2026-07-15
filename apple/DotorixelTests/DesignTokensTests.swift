@@ -121,6 +121,37 @@ struct DesignTokensSizingTests {
     }
 }
 
+// MARK: - Spacing token tests
+
+@Suite("DesignTokens — spacing scale matches web --ds-space-*")
+struct DesignTokensSpacingTests {
+
+    @Test("space1 matches web --ds-space-1: 2px")
+    func space1() {
+        #expect(DesignTokens.space1 == 2)
+    }
+
+    @Test("space2 matches web --ds-space-2: 4px")
+    func space2() {
+        #expect(DesignTokens.space2 == 4)
+    }
+
+    @Test("space3 matches web --ds-space-3: 8px")
+    func space3() {
+        #expect(DesignTokens.space3 == 8)
+    }
+
+    @Test("space4 matches web --ds-space-4: 12px")
+    func space4() {
+        #expect(DesignTokens.space4 == 12)
+    }
+
+    @Test("space5 matches web --ds-space-5: 16px")
+    func space5() {
+        #expect(DesignTokens.space5 == 16)
+    }
+}
+
 // MARK: - Tier-dependent sizing tests
 
 @Suite("DesignTokens — tier-dependent docked sizing (web wide vs x-wide)")

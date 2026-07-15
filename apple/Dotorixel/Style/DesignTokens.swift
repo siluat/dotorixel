@@ -63,6 +63,22 @@ enum DesignTokens {
     /// Opacity for disabled controls (matches web .action-btn:disabled)
     static let disabledOpacity: Double = 0.4
 
+    // MARK: - Spacing
+
+    // Mirrors the web spacing scale. Steps 6–8 (24/32/48) are added when a
+    // first consumer appears.
+
+    /// --ds-space-1: 2px
+    static let space1: CGFloat = 2
+    /// --ds-space-2: 4px
+    static let space2: CGFloat = 4
+    /// --ds-space-3: 8px
+    static let space3: CGFloat = 8
+    /// --ds-space-4: 12px
+    static let space4: CGFloat = 12
+    /// --ds-space-5: 16px
+    static let space5: CGFloat = 16
+
     // MARK: - Tier-dependent docked sizing
 
     // Panel/bar dimensions change between the "wide" (`.wide`/`.compact`) and

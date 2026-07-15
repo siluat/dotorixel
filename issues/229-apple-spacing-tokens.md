@@ -1,6 +1,6 @@
 ---
 title: Apple spacing tokens — mirror the web spacing scale (PRD)
-status: ready-for-agent
+status: done
 created: 2026-07-15
 ---
 
@@ -155,3 +155,34 @@ proven by the existing snapshot baselines passing unchanged.
 - Sequencing: independent of RFC 013 Phase 2 content, but landing it first means
   the Phase 2 tool/color views are born on the scale instead of adding more
   literals to migrate later.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Style/DesignTokens.swift` | Spacing scale `space1`–`space5` (2/4/8/12/16pt) mirroring web `--ds-space-1`–`5`, doc comments cite the web tokens |
+| `apple/Dotorixel/Views/TopBar.swift` | In-scale literals → tokens; named `exportLabelSpacing` (web raw `gap: 6px`) and `barEdgePadding` (Apple-specific, see Notes) |
+| `apple/Dotorixel/Views/LeftToolbar.swift` | In-scale literals → tokens; named `stripEdgePadding` (web raw `padding: 6px 0`) |
+| `apple/Dotorixel/Views/RightPanel.swift` | In-scale literals → tokens; named `paletteGridSpacing` (web raw `gap: 3px`) |
+| `apple/Dotorixel/Views/StatusBar.swift` | Horizontal padding literal → `space5` |
+| `apple/DotorixelTests/DesignTokensTests.swift` | New spacing suite asserting the five tokens match the web sheet |
+
+### Key Decisions
+
+- Defined only the in-use steps 1–5; steps 6–8 (24/32/48) deferred until a first
+  consumer appears, matching the token file's existing precedent.
+- Off-scale values (3, 6) stay component-scoped named constants — the global
+  namespace remains a strict mirror of the web token sheet.
+- `spacing: 0` literals kept (structural "no gap"); sizes and radii untouched.
+- Naming unified on SwiftUI vocabulary: `…Spacing` for inter-item gaps,
+  `…EdgePadding` for container insets (guide's "consistent domain vocabulary").
+
+### Notes
+
+- PRD imprecision found during implementation: TopBar's 6pt bar edge padding is
+  NOT a raw web CSS value — web `.top-bar` uses `--ds-space-5` (16px) on a bare
+  logo, while Apple's 6pt plus the 44pt logo hit box yields the same 16pt optical
+  margin. The constant's comment documents this.
+- Behavior preservation proven as specified: all 8 docked-region snapshots passed
+  against existing references (no re-recording); full suite 49 tests green on the
+  pinned simulator (iPad Pro 11-inch (M5), iOS 26.4).

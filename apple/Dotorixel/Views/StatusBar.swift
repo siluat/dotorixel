@@ -16,7 +16,7 @@ struct StatusBar: View {
                 .font(.system(size: DesignTokens.fontSizeSm))
                 .foregroundStyle(DesignTokens.textTertiary)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, DesignTokens.space5)
         .frame(height: DesignTokens.statusBarHeight(tier))
         .frame(maxWidth: .infinity)
         .background(DesignTokens.bgSurface)

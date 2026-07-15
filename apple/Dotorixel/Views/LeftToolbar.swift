@@ -5,12 +5,15 @@ struct LeftToolbar: View {
     let editorState: EditorState
     let tier: LayoutTier
 
+    /// Strip edge padding — web LeftToolbar padding: 6px 0 (raw CSS, not a token).
+    private let stripEdgePadding: CGFloat = 6
+
     var body: some View {
         // Strip width tracks the tool-button hit box (44pt wide / 48pt x-wide), so
         // both derive from one tier-dependent value — mirroring the web toolbar.
         let boxSize = DesignTokens.leftToolbarWidth(tier)
 
-        VStack(spacing: 2) {
+        VStack(spacing: DesignTokens.space1) {
             // MARK: - Tool buttons
 
             Button {
@@ -34,7 +37,7 @@ struct LeftToolbar: View {
             Rectangle()
                 .fill(DesignTokens.borderSubtle)
                 .frame(width: 28, height: 1)
-                .padding(.vertical, 2)
+                .padding(.vertical, DesignTokens.space1)
 
             // MARK: - Action buttons (undo/redo)
 
@@ -58,7 +61,7 @@ struct LeftToolbar: View {
 
             Spacer()
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, stripEdgePadding)
         .frame(width: boxSize)
         .frame(maxHeight: .infinity)
         .background(DesignTokens.bgSurface)

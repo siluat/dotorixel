@@ -2,14 +2,15 @@
 
 ## Currently Working On
 
-Apple spacing tokens — mirror the web spacing scale ([PRD](../issues/229-apple-spacing-tokens.md))
+None
 
 ## Last Completed
 
-[228 — Apple PNG export enabled](../issues/228-apple-enable-png-export.md): one
-`.fileExporter` flow serves macOS and iPadOS, default filename matches the web
-convention. Completes RFC 013 Phase 1 (layout finish); Phase 2 (full tool set +
-color) is next to decompose.
+[229 — Apple spacing tokens](../issues/229-apple-spacing-tokens.md):
+`DesignTokens` now mirrors the web spacing scale (in-use steps 1–5; 6–8 deferred
+to a first consumer), and the docked chrome views spend it instead of inline
+literals — off-scale web-raw values stay component-scoped constants. Strictly
+behavior-preserving: all docked snapshots passed unchanged.
 
 ## Next Up
 

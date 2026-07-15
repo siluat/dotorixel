@@ -145,7 +145,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Design token system | — | ✅ | ✅ | `--ds-*` tokens (web), `DesignTokens` enum (Apple), light theme |
+| Design token system | — | ✅ | ✅ | `--ds-*` tokens (web), `DesignTokens` enum (Apple; spacing scale mirrors in-use steps 1–5), light theme |
 | Pebble UI theme | — | ✅ | ⬜ | Floating panels, earth tones (web legacy; Apple removed) |
 | Editor UI theme | — | ✅ | ✅ | `--ds-*` tokens, docked layout skeleton (Apple); TopBar + LeftToolbar + RightPanel + StatusBar all implemented |
 | Responsive layout | — | ✅ | 🔧 | Web: compact/medium/wide/x-wide via matchMedia + CSS Grid, ≥44px targets. Apple: docked adapts wide↔x-wide (1440pt panel/bar sizing); iPad-compact deferred to the mobile paradigm |

@@ -2,7 +2,9 @@
 
 ## Currently Working On
 
-None
+Apple Phase 2 — full tool set + color ([RFC](../issues/013-apple-native-catchup.md))
+— decomposed into sub-issues 230–242 (see todo.md); next step is implementing
+[230 — stroke session architecture](../issues/230-apple-stroke-sessions.md)
 
 ## Last Completed
 
@@ -14,7 +16,6 @@ behavior-preserving: all docked snapshots passed unchanged.
 
 ## Next Up
 
-- Apple Phase 2 — full tool set + color ([RFC](../issues/013-apple-native-catchup.md)) — needs sub-issues (/to-issues)
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Apple Pencil: hover preview + palm rejection

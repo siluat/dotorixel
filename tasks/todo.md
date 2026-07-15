@@ -19,12 +19,29 @@
 
 Phased catch-up to full parity with completed web editor features. See the RFC for
 the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish) is complete;
-Phase 2 is reached and ready to decompose. Phases 2–6 are decomposed into issues
-(`/to-issues`) when reached.
+Phase 2 is decomposed into issues 230–242 below. Phases 3–6 are decomposed into
+issues (`/to-issues`) when reached.
 
-### Phases 2–6 — roadmap (decompose when reached)
+### Phase 2 — Full tool set + color (decomposed 2026-07-15)
 
-- Phase 2 — Full tool set + color (line/rect/ellipse/fill/eyedropper/move, FG/BG swap, HSV, pixel-perfect, shortcuts, Shift-constrain — moved from Phase 1: no shape tools to constrain until Phase 2)
+Dependency order; 230 is the prefactoring foundation, 242 closes the phase.
+
+- [230 — Stroke session architecture (prefactoring)](../issues/230-apple-stroke-sessions.md)
+- [231 — Shape tools (line/rect/ellipse)](../issues/231-apple-shape-tools.md) — blocked by 230
+- [232 — Flood fill tool](../issues/232-apple-flood-fill.md) — blocked by 230
+- [233 — FG/BG color pair + swap + right-click BG](../issues/233-apple-fg-bg-colors.md) — blocked by 230
+- [234 — Eyedropper tool](../issues/234-apple-eyedropper.md) — blocked by 230, 233
+- [235 — Sampling loupe](../issues/235-apple-sampling-loupe.md) — blocked by 234
+- [236 — Move tool](../issues/236-apple-move-tool.md) — blocked by 230
+- [237 — Recent colors](../issues/237-apple-recent-colors.md) — blocked by 230, 234
+- [238 — HSV picker](../issues/238-apple-hsv-picker.md) — blocked by 233
+- [239 — Pixel-perfect filtering + toggle](../issues/239-apple-pixel-perfect.md) — blocked by 230
+- [240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md) — blocked by 231
+- [241 — Keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md) — blocked by 231, 232, 233, 234, 236
+- [242 — i18n String Catalog (en/ko/ja)](../issues/242-apple-i18n-string-catalog.md) — blocked by 231–241
+
+### Phases 3–6 — roadmap (decompose when reached)
+
 - Phase 3 — Layer system (Document/Layer, composite render, layer panel, Swift state redesign) ★ foundation
 - Phase 4 — Multi-tab + persistence (Workspace, SwiftData auto-save/restore)
 - Phase 5 — Reference + selection + transforms (M3 bundle)

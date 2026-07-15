@@ -17,16 +17,19 @@ struct RightPanel: View {
     /// foreground swatch). Matches the web RightPanel's 28px control height.
     private let controlHeight: CGFloat = 28
 
+    /// Palette grid spacing — web RightPanel gap: 3px (raw CSS, not a token).
+    private let paletteGridSpacing: CGFloat = 3
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: DesignTokens.space5) {
                 canvasSection
                 Rectangle()
                     .fill(DesignTokens.borderSubtle)
                     .frame(height: 1)
                 colorSection
             }
-            .padding(12)
+            .padding(DesignTokens.space4)
         }
         .frame(width: DesignTokens.rightPanelWidth(tier))
         .frame(maxHeight: .infinity)
@@ -43,7 +46,7 @@ struct RightPanel: View {
     // MARK: - Canvas section
 
     private var canvasSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DesignTokens.space3) {
             sectionTitle("Canvas")
             presetRow
             sizeRow
@@ -52,7 +55,7 @@ struct RightPanel: View {
     }
 
     private var presetRow: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: DesignTokens.space2) {
             ForEach(canvasPresets(), id: \.self) { size in
                 presetButton(size: size)
             }
@@ -78,7 +81,7 @@ struct RightPanel: View {
     }
 
     private var sizeRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DesignTokens.space3) {
             sizeInput(text: $widthInput, field: .width, accessibilityLabel: "Width")
             Text("×")
                 .font(.system(size: DesignTokens.fontSizeSm))
@@ -125,7 +128,7 @@ struct RightPanel: View {
     // MARK: - Color section
 
     private var colorSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DesignTokens.space3) {
             sectionTitle("Color")
             foregroundSwatch
             sectionTitle("Palette")
@@ -154,10 +157,10 @@ struct RightPanel: View {
     private var paletteGrid: some View {
         let colors = DefaultPalette.rows.flatMap { $0 }
         let columns = Array(
-            repeating: GridItem(.flexible(), spacing: 3),
+            repeating: GridItem(.flexible(), spacing: paletteGridSpacing),
             count: DefaultPalette.columnCount
         )
-        return LazyVGrid(columns: columns, spacing: 3) {
+        return LazyVGrid(columns: columns, spacing: paletteGridSpacing) {
             ForEach(colors.indices, id: \.self) { idx in
                 paletteSwatch(color: colors[idx])
             }

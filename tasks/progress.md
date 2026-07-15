@@ -6,15 +6,15 @@ None
 
 ## Last Completed
 
-[228 — Apple PNG export enabled](../issues/228-apple-enable-png-export.md): one
-`.fileExporter` flow serves macOS and iPadOS, default filename matches the web
-convention. Completes RFC 013 Phase 1 (layout finish); Phase 2 (full tool set +
-color) is next to decompose.
+[229 — Apple spacing tokens](../issues/229-apple-spacing-tokens.md):
+`DesignTokens` now mirrors the web spacing scale (in-use steps 1–5; 6–8 deferred
+to a first consumer), and the docked chrome views spend it instead of inline
+literals — off-scale web-raw values stay component-scoped constants. Strictly
+behavior-preserving: all docked snapshots passed unchanged.
 
 ## Next Up
 
 - Apple Phase 2 — full tool set + color ([RFC](../issues/013-apple-native-catchup.md)) — needs sub-issues (/to-issues)
-- Apple spacing tokens — promote inline 4/8/12/16 literals to constants (docked layout now settled)
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Apple Pencil: hover preview + palm rejection

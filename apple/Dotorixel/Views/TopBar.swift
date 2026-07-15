@@ -15,6 +15,11 @@ struct TopBar: View {
     private let controlHeight: CGFloat = 32
     private let smallIconSize: CGFloat = 14
     private let radiusXs: CGFloat = 4
+    /// Export button icon–text gap — web `.export-btn` gap: 6px (raw CSS, not a token).
+    private let exportLabelSpacing: CGFloat = 6
+    /// Bar edge padding — not a spacing token: the 44pt logo hit box supplies
+    /// most of the optical margin the web gets from `--ds-space-5`.
+    private let barEdgePadding: CGFloat = 6
 
     var body: some View {
         HStack(spacing: 0) {
@@ -30,7 +35,7 @@ struct TopBar: View {
 
             // MARK: - Actions
 
-            HStack(spacing: 12) {
+            HStack(spacing: DesignTokens.space4) {
                 // MARK: Zoom controls group
                 HStack(spacing: 0) {
                     zoomButton(
@@ -45,7 +50,7 @@ struct TopBar: View {
                         Text("\(editorState.zoomPercent)%")
                             .font(.system(size: DesignTokens.fontSizeSm))
                             .foregroundStyle(DesignTokens.textPrimary)
-                            .padding(.horizontal, 4)
+                            .padding(.horizontal, DesignTokens.space2)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Reset zoom")
@@ -62,7 +67,7 @@ struct TopBar: View {
                         action: editorState.handleFit
                     )
                 }
-                .padding(.horizontal, 4)
+                .padding(.horizontal, DesignTokens.space2)
                 .frame(height: controlHeight)
                 .background(DesignTokens.bgHover)
                 .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusSm))
@@ -74,7 +79,7 @@ struct TopBar: View {
                 exportButton
             }
         }
-        .padding(.horizontal, 6)
+        .padding(.horizontal, barEdgePadding)
         .frame(height: DesignTokens.topBarHeight(tier))
         .frame(maxWidth: .infinity)
         .background(DesignTokens.bgSurface)
@@ -133,14 +138,14 @@ struct TopBar: View {
                 presentExportError(error)
             }
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: exportLabelSpacing) {
                 Image(systemName: "arrow.down.to.line")
                     .font(.system(size: smallIconSize))
                 Text("Export")
                     .font(.system(size: DesignTokens.fontSizeSm, weight: .medium))
             }
             .foregroundStyle(.white)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, DesignTokens.space4)
             .frame(height: controlHeight)
             .background(DesignTokens.accent)
             .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusSm))

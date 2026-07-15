@@ -109,4 +109,6 @@ None - can start immediately.
 - macOS has no cancel source yet — `drawingCancelled` is wired only from
   iPadOS `touchesCancelled`.
 - Verified: full iOS suite (docked snapshots unchanged) + macOS build, both
-  green; core `ToolType` references exist only inside `Tools/`.
+  green; in the handwritten Swift shell, core `ToolType` references exist only
+  inside `Tools/` (the generated FFI bindings and the Rust crates reference it
+  by definition).

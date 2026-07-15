@@ -4,6 +4,8 @@ import Testing
 /// Records lifecycle calls so tests can assert the engine's driving order.
 private final class SpyStrokeSession: StrokeSession {
     private(set) var calls: [String] = []
+    var drawReturnsRerender = true
+    var cancelReturnsRerender = false
 
     func start() {
         calls.append("start")
@@ -12,7 +14,7 @@ private final class SpyStrokeSession: StrokeSession {
     func draw(current: ScreenCanvasCoords, previous: ScreenCanvasCoords?) -> Bool {
         let prev = previous.map { "(\($0.x),\($0.y))" } ?? "nil"
         calls.append("draw (\(current.x),\(current.y)) prev \(prev)")
-        return true
+        return drawReturnsRerender
     }
 
     func end() -> Bool {
@@ -22,7 +24,7 @@ private final class SpyStrokeSession: StrokeSession {
 
     func cancel() -> Bool {
         calls.append("cancel")
-        return false
+        return cancelReturnsRerender
     }
 }
 
@@ -132,6 +134,35 @@ struct StrokeEngineLifecycleTests {
 
         #expect(didChange == false)
         #expect(spy.calls == ["start", "draw (2,3) prev nil", "cancel"])
+    }
+
+    @Test("a begin while a session is active routes the old session through cancel")
+    func beginWhileActiveCancelsOldSession() {
+        let first = SpyStrokeSession()
+        let second = SpyStrokeSession()
+        var pending = [first, second]
+        let engine = StrokeEngine(makeSession: { _, _ in pending.removeFirst() })
+
+        engine.begin(tool: .pencil, host: FakeStrokeSessionHost(), at: ScreenCanvasCoords(x: 1, y: 1))
+        engine.begin(tool: .pencil, host: FakeStrokeSessionHost(), at: ScreenCanvasCoords(x: 5, y: 5))
+
+        #expect(first.calls == ["start", "draw (1,1) prev nil", "cancel"])
+        #expect(second.calls == ["start", "draw (5,5) prev nil"])
+    }
+
+    @Test("begin reports a re-render when the replaced session's cancel needs one")
+    func beginPropagatesReplacedCancelRerender() {
+        let first = SpyStrokeSession()
+        first.cancelReturnsRerender = true
+        let second = SpyStrokeSession()
+        second.drawReturnsRerender = false
+        var pending = [first, second]
+        let engine = StrokeEngine(makeSession: { _, _ in pending.removeFirst() })
+
+        engine.begin(tool: .pencil, host: FakeStrokeSessionHost(), at: ScreenCanvasCoords(x: 1, y: 1))
+        let didChange = engine.begin(tool: .pencil, host: FakeStrokeSessionHost(), at: ScreenCanvasCoords(x: 5, y: 5))
+
+        #expect(didChange == true)
     }
 }
 

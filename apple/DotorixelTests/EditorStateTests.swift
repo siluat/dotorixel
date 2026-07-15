@@ -92,6 +92,18 @@ struct EditorStateStrokeTests {
 
         #expect(try state.pixelCanvas.getPixel(x: 2, y: 0) == originalColor)
     }
+
+    @Test("mid-stroke tool changes don't affect the stroke in flight")
+    func midStrokeToolChangeIsIgnored() throws {
+        let state = EditorState(width: 16, height: 16)
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+        state.activeTool = .eraser
+        state.continueStroke(to: ScreenCanvasCoords(x: 2, y: 0))
+
+        // Still painting with the pencil resolved at begin, not erasing.
+        #expect(try state.pixelCanvas.getPixel(x: 2, y: 0) == state.foregroundColor)
+    }
 }
 
 @Suite("EditorState — resizeCanvas")

@@ -21,11 +21,16 @@ final class StrokeEngine {
     /// Returns `true` when the canvas needs a re-render.
     @discardableResult
     func begin(tool: EditorTool, host: StrokeSessionHost, at coords: ScreenCanvasCoords) -> Bool {
+        // A begin can arrive while a session is active (e.g. a second finger
+        // on iPadOS): route the replaced session through cancel so no session
+        // is ever orphaned with a deferred effect or preview pending.
+        let cancelDidRerender = cancel()
         let session = makeSession(tool, host)
         self.session = session
         lastPixel = coords
         session.start()
-        return session.draw(current: coords, previous: nil)
+        let drawDidRerender = session.draw(current: coords, previous: nil)
+        return cancelDidRerender || drawDidRerender
     }
 
     /// Feeds one pointer sample to the active session. Samples landing on

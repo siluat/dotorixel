@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 230 | [Apple native — stroke session architecture (prefactoring for the full tool set)](../issues/230-apple-stroke-sessions.md) | 2026-07-15 |
 | 229 | [Apple spacing tokens — mirror the web spacing scale](../issues/229-apple-spacing-tokens.md) | 2026-07-15 |
 | 228 | [Apple native — enable PNG export (existing disabled button)](../issues/228-apple-enable-png-export.md) | 2026-07-15 |
 | 227 | [Apple native — enable clear canvas (existing disabled button)](../issues/227-apple-enable-clear-canvas.md) | 2026-07-15 |

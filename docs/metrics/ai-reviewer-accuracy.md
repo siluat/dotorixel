@@ -6,14 +6,24 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 174 | 133 | 41 | 182 | 76% | 42% |
-| cubic-dev-ai[bot] | 167 | 129 | 38 | 186 | 77% | 41% |
-| coderabbitai[bot] | 243 | 169 | 74 | 143 | 70% | 54% |
+| greptile-apps[bot] | 175 | 134 | 41 | 184 | 77% | 42% |
+| cubic-dev-ai[bot] | 170 | 132 | 38 | 186 | 78% | 42% |
+| coderabbitai[bot] | 245 | 171 | 74 | 145 | 70% | 54% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #318 | greptile-apps[bot] | Accept | `StrokeEngine.begin` silently orphaned an in-flight session (second iPadOS touch replaces it without a terminal call), breaking the every-session-exits-once contract future deferred-commit tools rely on; fixed via implicit cancel-before-replace |
+| #318 | coderabbitai[bot] | Accept | Same reentrant-begin orphan via `EditorState.beginStroke` (multi-touch `touchesBegan`); finding accepted, remedy differs — implicit cancel preserves the pre-existing second-touch restart behavior where their reject-reentrant-begins proposal would change it |
+| #318 | coderabbitai[bot] | Accept | Same orphan flagged again at `StrokeEngine.begin` (duplicate thread); fixed by the same implicit cancel |
+| #318 | cubic-dev-ai[bot] | Accept | Same orphan, plus the cancel's re-render result must propagate out of `begin` — implemented (`cancelDidRerender \|\| drawDidRerender`) with a spy propagation test |
+| #318 | cubic-dev-ai[bot] | Accept | Issue 230 verification note "core `ToolType` references exist only inside `Tools/`" was overbroad — the generated FFI bindings and Rust crates reference it by definition; scoped the claim to the handwritten Swift shell |
+| #318 | cubic-dev-ai[bot] | Accept | Key Decisions claimed tool capture-at-begin was "locked by a test" but only the color half was tested; added the mid-stroke `activeTool` change regression test |
+| #318 | greptile-apps[bot] | Miss | Did not flag the overbroad `ToolType`-references claim in issue 230's verification note |
+| #318 | greptile-apps[bot] | Miss | Did not flag the untested tool half of the capture-at-begin decision |
+| #318 | coderabbitai[bot] | Miss | Did not flag the overbroad `ToolType`-references claim in issue 230's verification note |
+| #318 | coderabbitai[bot] | Miss | Did not flag the untested tool half of the capture-at-begin decision |
 | #317 | coderabbitai[bot] | Accept | PRD 229's Solution kept the pre-implementation claim that the 6pt bar edge padding is a raw web CSS value, contradicting the Notes correction (web `.top-bar` uses `--ds-space-5`); reconciled to one authoritative explanation |
 | #317 | cubic-dev-ai[bot] | Accept | Same Solution-vs-Notes contradiction on the 6pt bar padding provenance (duplicate of coderabbit); reconciled |
 | #317 | greptile-apps[bot] | Miss | Did not flag the stale 6pt bar padding provenance in PRD 229 (5/5 "safe to merge", no findings) |

@@ -33,10 +33,11 @@ sheet's `--ds-space-*` tokens — same numeric naming, same values — and repla
 in-scale inline literals in the four docked chrome views (top bar, left toolbar,
 right panel, status bar) with those tokens.
 
-Values that are *not* web tokens (the palette grid's 3, the 6 used for bar edge
-padding — both raw CSS values on the web side too) stay component-scoped named
-constants, following the existing precedent of component-local sizes documented as
-"matching web CSS values (not global design tokens)".
+Values that are *not* web tokens stay component-scoped named constants, following
+the existing precedent of component-local sizes documented as "matching web CSS
+values (not global design tokens)". The palette grid's 3 and the label-gap /
+strip-padding 6s mirror raw web CSS values; the top bar's 6pt edge padding is the
+one exception — Apple-specific optical compensation, not a web value (see Notes).
 
 The change is strictly behavior-preserving: rendered output stays pixel-identical,
 proven by the existing snapshot baselines passing unchanged.
@@ -96,11 +97,12 @@ proven by the existing snapshot baselines passing unchanged.
 - **Substitution scope.** The four docked chrome views (top bar, left toolbar,
   right panel, status bar): stack/grid `spacing:` parameters and padding values
   that equal a scale step are replaced by the corresponding token.
-- **Off-scale values stay component-local.** 3 (palette grid gap) and 6 (bar edge
-  padding, small in-group gaps) are raw CSS values on the web side too — they
-  become (or remain) component-scoped named constants per the existing
-  component-local-sizes precedent. No Apple-only global tokens are invented; the
-  global namespace remains a strict mirror of the web token sheet.
+- **Off-scale values stay component-local.** 3 (palette grid gap) and 6 (edge
+  padding, small in-group gaps) become (or remain) component-scoped named
+  constants per the existing component-local-sizes precedent — most mirror raw
+  web CSS values, while the top bar's 6pt edge padding is Apple-specific optical
+  compensation (see Notes). No Apple-only global tokens are invented; the global
+  namespace remains a strict mirror of the web token sheet.
 - **Zero stays literal.** `spacing: 0` is structural "no gap", not a design-scale
   value.
 - **Sizes are not spacing.** Width/height/frame dimensions (control heights, icon

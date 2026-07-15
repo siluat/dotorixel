@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 174 | 133 | 41 | 181 | 76% | 42% |
-| cubic-dev-ai[bot] | 166 | 128 | 38 | 186 | 77% | 41% |
-| coderabbitai[bot] | 242 | 168 | 74 | 143 | 69% | 54% |
+| greptile-apps[bot] | 174 | 133 | 41 | 182 | 76% | 42% |
+| cubic-dev-ai[bot] | 167 | 129 | 38 | 186 | 77% | 41% |
+| coderabbitai[bot] | 243 | 169 | 74 | 143 | 70% | 54% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #317 | coderabbitai[bot] | Accept | PRD 229's Solution kept the pre-implementation claim that the 6pt bar edge padding is a raw web CSS value, contradicting the Notes correction (web `.top-bar` uses `--ds-space-5`); reconciled to one authoritative explanation |
+| #317 | cubic-dev-ai[bot] | Accept | Same Solution-vs-Notes contradiction on the 6pt bar padding provenance (duplicate of coderabbit); reconciled |
+| #317 | greptile-apps[bot] | Miss | Did not flag the stale 6pt bar padding provenance in PRD 229 (5/5 "safe to merge", no findings) |
 | #316 | coderabbitai[bot] | Reject | Claimed the PNG test's CGContext decode helper mirrors rows without a y-flip; an identity-CTM bitmap draw already puts the image's top row at buffer row 0 (Apple QA1509 pattern), the asymmetric (3,4) pixel assertion passes as written, and the suggested flip would break the suite |
 | #314 | coderabbitai[bot] | Accept | AGENTS.md Testing cell pointed at `DotorixelTests/README.md`; from the repo root the path needs the `apple/` prefix — corrected to `apple/DotorixelTests/README.md` |
 | #314 | cubic-dev-ai[bot] | Accept | Same AGENTS.md README path missing the `apple/` prefix (duplicate); fixed |

@@ -10,9 +10,9 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Pencil | ✅ | ✅ | ✅ | |
 | Eraser | ✅ | ✅ | ✅ | |
-| Line | ✅ | ✅ | ⬜ | Snapshot-restore preview |
-| Rectangle | ✅ | ✅ | ⬜ | Outline only, snapshot-restore preview |
-| Ellipse | ✅ | ✅ | ⬜ | Outline only, snapshot-restore preview |
+| Line | ✅ | ✅ | ✅ | Snapshot-restore preview |
+| Rectangle | ✅ | ✅ | ✅ | Outline only, snapshot-restore preview |
+| Ellipse | ✅ | ✅ | ✅ | Outline only, snapshot-restore preview |
 | Flood fill | ✅ | ✅ | ⬜ | BFS, 4-connectivity |
 | Eyedropper | — | ✅ | ⬜ | Drag-and-commit with live 9×9 loupe; releases to FG (left-click) or BG (right-click); skips transparent pixels |
 | Move | — | ✅ | ⬜ | Drag to reposition canvas content, snapshot-restore preview |

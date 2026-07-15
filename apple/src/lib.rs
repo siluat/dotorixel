@@ -4,7 +4,7 @@ use dotorixel_core::canvas::PixelCanvas;
 use dotorixel_core::export::PngExport;
 use dotorixel_core::history::{PixelCanvasHistory, Snapshot};
 use dotorixel_core::pixel_perfect::{FilterResult, TailState, pixel_perfect_filter};
-use dotorixel_core::tool::interpolate_pixels;
+use dotorixel_core::tool::{ellipse_outline, interpolate_pixels, rectangle_outline};
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
 
 // Re-export core types used directly in the UniFFI interface.
@@ -69,6 +69,29 @@ fn core_version() -> String {
 #[uniffi::export]
 fn apple_interpolate_pixels(x0: i32, y0: i32, x1: i32, y1: i32) -> Vec<ScreenCanvasCoords> {
     interpolate_pixels(x0, y0, x1, y1)
+        .into_iter()
+        .map(|(x, y)| ScreenCanvasCoords::new(x, y))
+        .collect()
+}
+
+/// Returns the pixel outline of a rectangle spanning two opposite corners.
+/// Wraps the core `rectangle_outline` which returns `Vec<(i32, i32)>` —
+/// converted to `Vec<ScreenCanvasCoords>` because UniFFI does not support tuples.
+#[uniffi::export]
+fn apple_rectangle_outline(x0: i32, y0: i32, x1: i32, y1: i32) -> Vec<ScreenCanvasCoords> {
+    rectangle_outline(x0, y0, x1, y1)
+        .into_iter()
+        .map(|(x, y)| ScreenCanvasCoords::new(x, y))
+        .collect()
+}
+
+/// Returns the pixel outline of an ellipse inscribed in the bounding box
+/// spanning two opposite corners. Wraps the core `ellipse_outline` which
+/// returns `Vec<(i32, i32)>` — converted to `Vec<ScreenCanvasCoords>` because
+/// UniFFI does not support tuples.
+#[uniffi::export]
+fn apple_ellipse_outline(x0: i32, y0: i32, x1: i32, y1: i32) -> Vec<ScreenCanvasCoords> {
+    ellipse_outline(x0, y0, x1, y1)
         .into_iter()
         .map(|(x, y)| ScreenCanvasCoords::new(x, y))
         .collect()

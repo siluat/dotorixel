@@ -24,9 +24,8 @@ issues (`/to-issues`) when reached.
 
 ### Phase 2 — Full tool set + color (decomposed 2026-07-15)
 
-Dependency order; 230 (stroke session foundation) is done, 242 closes the phase.
+Dependency order; 230–231 are done, 242 closes the phase.
 
-- [231 — Shape tools (line/rect/ellipse)](../issues/231-apple-shape-tools.md)
 - [232 — Flood fill tool](../issues/232-apple-flood-fill.md)
 - [233 — FG/BG color pair + swap + right-click BG](../issues/233-apple-fg-bg-colors.md)
 - [234 — Eyedropper tool](../issues/234-apple-eyedropper.md) — blocked by 233
@@ -35,9 +34,9 @@ Dependency order; 230 (stroke session foundation) is done, 242 closes the phase.
 - [237 — Recent colors](../issues/237-apple-recent-colors.md) — blocked by 234
 - [238 — HSV picker](../issues/238-apple-hsv-picker.md) — blocked by 233
 - [239 — Pixel-perfect filtering + toggle](../issues/239-apple-pixel-perfect.md)
-- [240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md) — blocked by 231
-- [241 — Keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md) — blocked by 231, 232, 233, 234, 236
-- [242 — i18n String Catalog (en/ko/ja)](../issues/242-apple-i18n-string-catalog.md) — blocked by 231–241
+- [240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md)
+- [241 — Keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md) — blocked by 232, 233, 234, 236
+- [242 — i18n String Catalog (en/ko/ja)](../issues/242-apple-i18n-string-catalog.md) — blocked by 232–241
 
 ### Phases 3–6 — roadmap (decompose when reached)
 

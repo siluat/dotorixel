@@ -9,6 +9,9 @@ struct EditorToolDisplayNameTests {
         arguments: [
             (EditorTool.pencil, "Pencil"),
             (EditorTool.eraser, "Eraser"),
+            (EditorTool.line, "Line"),
+            (EditorTool.rectangle, "Rectangle"),
+            (EditorTool.ellipse, "Ellipse"),
         ]
     )
     func toolDisplayName(tool: EditorTool, expected: String) {

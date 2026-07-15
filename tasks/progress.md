@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None
+Apple spacing tokens — mirror the web spacing scale ([PRD](../issues/229-apple-spacing-tokens.md))
 
 ## Last Completed
 
@@ -14,7 +14,6 @@ color) is next to decompose.
 ## Next Up
 
 - Apple Phase 2 — full tool set + color ([RFC](../issues/013-apple-native-catchup.md)) — needs sub-issues (/to-issues)
-- Apple spacing tokens — promote inline 4/8/12/16 literals to constants (docked layout now settled)
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Apple Pencil: hover preview + palm rejection

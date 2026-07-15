@@ -39,7 +39,7 @@ Phase 2 is reached and ready to decompose. Phases 2–6 are decomposed into issu
 
 ## Review backlog (not assigned to a milestone)
 
-- Apple spacing tokens — `DesignTokens.swift` has no spacing scale; sibling views inline `4`/`8`/`12`/`16` literals. Promote to constants once the docked layout has settled and reuse is confirmed.
+- Apple spacing tokens — mirror the web spacing scale ([PRD](../issues/229-apple-spacing-tokens.md)) — promote inline spacing literals in the docked chrome views to `DesignTokens` constants
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate (deferred from Milestone 3 MVP)
 - Reference image import — clipboard paste support (Ctrl/Cmd+V), deferred from Milestone 3 MVP
 - Design: share artwork dialog — URL sharing dialog UI (.pen)

@@ -1,3 +1,12 @@
+/// Which pointer button opened a stroke. Touch input is always `.primary`;
+/// `.secondary` is a macOS right-click or a pointer device's secondary button.
+/// Resolved into a draw color (primary → foreground, secondary → background)
+/// once at stroke begin, so sessions never see the distinction.
+enum PointerButton {
+    case primary
+    case secondary
+}
+
 /// Per-stroke drawing lifecycle. One session is created per stroke from the
 /// active tool and driven start → draw* → end, or start → draw* → cancel.
 ///
@@ -31,6 +40,7 @@ protocol StrokeSession {
 protocol StrokeSessionHost: AnyObject {
     var pixelCanvas: ApplePixelCanvas { get }
     var foregroundColor: Color { get }
+    var backgroundColor: Color { get }
 
     /// Pushes the current canvas pixels onto the undo stack.
     func captureUndoSnapshot()

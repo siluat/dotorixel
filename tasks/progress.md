@@ -3,21 +3,23 @@
 ## Currently Working On
 
 Apple Phase 2 — full tool set + color ([RFC](../issues/013-apple-native-catchup.md))
-— sub-issues 230–231 done (2/13); shape tools shipped on the session seam,
-unblocking 240.
+— sub-issues 230–231, 233 done (3/13); the FG/BG color pair landed on the
+stroke seam, unblocking 234 (eyedropper) and 238 (HSV picker).
 
 ## Last Completed
 
-[231 — Apple shape tools](../issues/231-apple-shape-tools.md): line, rectangle,
-and ellipse with snapshot-restore drag preview, riding the 230 session seam;
-outline geometry now crosses the FFI boundary. Shift-constraining stays out —
-that's 240, now unblocked.
+[233 — Apple FG/BG colors](../issues/233-apple-fg-bg-colors.md): FG/BG pair
+with web-matching defaults, swap, and right-click background drawing. The draw
+color is resolved once at stroke begin on the engine seam, so fill (232)
+inherits right-click behavior for free. Eyedropper BG commit stays in 234;
+X-key swap in 241.
 
 ## Next Up
 
 - [232 — Flood fill tool](../issues/232-apple-flood-fill.md)
-- [233 — FG/BG color pair + swap + right-click BG](../issues/233-apple-fg-bg-colors.md)
+- [234 — Eyedropper tool](../issues/234-apple-eyedropper.md)
 - [236 — Move tool](../issues/236-apple-move-tool.md)
+- [238 — HSV picker](../issues/238-apple-hsv-picker.md)
 - [239 — Pixel-perfect filtering + toggle](../issues/239-apple-pixel-perfect.md)
 - [240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md)
 - Project file format (JSON-based) + save/load

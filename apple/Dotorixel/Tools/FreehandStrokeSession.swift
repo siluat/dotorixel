@@ -6,14 +6,14 @@ final class FreehandStrokeSession: StrokeSession {
     // the engine tears the session down before the host can go away.
     private unowned let host: StrokeSessionHost
     private let coreToolType: ToolType
-    /// Captured at session creation — mid-stroke foreground color changes
-    /// don't affect a stroke already in flight.
+    /// Fixed at session creation — mid-stroke color changes don't affect a
+    /// stroke already in flight.
     private let drawColor: Color
 
-    init(host: StrokeSessionHost, coreToolType: ToolType) {
+    init(host: StrokeSessionHost, coreToolType: ToolType, drawColor: Color) {
         self.host = host
         self.coreToolType = coreToolType
-        self.drawColor = host.foregroundColor
+        self.drawColor = drawColor
     }
 
     func start() {

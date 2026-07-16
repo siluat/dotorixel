@@ -15,8 +15,8 @@ final class ShapeStrokeSession: StrokeSession {
     private unowned let host: StrokeSessionHost
     private let coreToolType: ToolType
     private let outlinePixels: OutlinePixels
-    /// Captured at session creation — mid-stroke foreground color changes
-    /// don't affect a stroke already in flight.
+    /// Fixed at session creation — mid-stroke color changes don't affect a
+    /// stroke already in flight.
     private let drawColor: Color
 
     private var preStrokePixels = Data()
@@ -28,12 +28,13 @@ final class ShapeStrokeSession: StrokeSession {
     init(
         host: StrokeSessionHost,
         coreToolType: ToolType,
+        drawColor: Color,
         outlinePixels: @escaping OutlinePixels
     ) {
         self.host = host
         self.coreToolType = coreToolType
+        self.drawColor = drawColor
         self.outlinePixels = outlinePixels
-        self.drawColor = host.foregroundColor
     }
 
     func start() {

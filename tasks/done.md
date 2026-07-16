@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 233 | [Apple native — FG/BG color pair, swap, and right-click background drawing](../issues/233-apple-fg-bg-colors.md) | 2026-07-16 |
 | 231 | [Apple native — shape tools (line, rectangle, ellipse) with drag preview](../issues/231-apple-shape-tools.md) | 2026-07-15 |
 | 230 | [Apple native — stroke session architecture (prefactoring for the full tool set)](../issues/230-apple-stroke-sessions.md) | 2026-07-15 |
 | 229 | [Apple spacing tokens — mirror the web spacing scale](../issues/229-apple-spacing-tokens.md) | 2026-07-15 |

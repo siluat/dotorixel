@@ -47,22 +47,23 @@ enum EditorTool: CaseIterable {
         }
     }
 
-    /// Opens the per-stroke session for this tool. Per-stroke inputs
-    /// (draw color) are captured by the session at creation.
-    func makeSession(host: StrokeSessionHost) -> StrokeSession {
+    /// Opens the per-stroke session for this tool. Per-stroke inputs are
+    /// fixed at creation: `drawColor` is the stroke's color for its whole
+    /// lifetime, already resolved from the pointer button.
+    func makeSession(host: StrokeSessionHost, drawColor: Color) -> StrokeSession {
         switch self {
         case .pencil, .eraser:
-            return FreehandStrokeSession(host: host, coreToolType: coreToolType)
+            return FreehandStrokeSession(host: host, coreToolType: coreToolType, drawColor: drawColor)
         case .line:
-            return ShapeStrokeSession(host: host, coreToolType: coreToolType) {
+            return ShapeStrokeSession(host: host, coreToolType: coreToolType, drawColor: drawColor) {
                 appleInterpolatePixels(x0: $0.x, y0: $0.y, x1: $1.x, y1: $1.y)
             }
         case .rectangle:
-            return ShapeStrokeSession(host: host, coreToolType: coreToolType) {
+            return ShapeStrokeSession(host: host, coreToolType: coreToolType, drawColor: drawColor) {
                 appleRectangleOutline(x0: $0.x, y0: $0.y, x1: $1.x, y1: $1.y)
             }
         case .ellipse:
-            return ShapeStrokeSession(host: host, coreToolType: coreToolType) {
+            return ShapeStrokeSession(host: host, coreToolType: coreToolType, drawColor: drawColor) {
                 appleEllipseOutline(x0: $0.x, y0: $0.y, x1: $1.x, y1: $1.y)
             }
         }

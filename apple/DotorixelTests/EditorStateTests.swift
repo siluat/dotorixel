@@ -1,6 +1,67 @@
 import Testing
 @testable import Dotorixel
 
+@Suite("EditorState — FG/BG colors")
+struct EditorStateColorTests {
+
+    @Test("defaults match the web editor: foreground black, background white")
+    func defaultsMatchWeb() {
+        let state = EditorState(width: 16, height: 16)
+
+        #expect(state.foregroundColor == Color(r: 0x00, g: 0x00, b: 0x00, a: 0xFF))
+        #expect(state.backgroundColor == Color(r: 0xFF, g: 0xFF, b: 0xFF, a: 0xFF))
+    }
+
+    @Test("swapColors exchanges foreground and background")
+    func swapColorsExchangesForegroundAndBackground() {
+        let state = EditorState(width: 16, height: 16)
+        let fg = Color(r: 0xB0, g: 0x7A, b: 0x30, a: 0xFF)
+        let bg = Color(r: 0x11, g: 0x22, b: 0x33, a: 0xFF)
+        state.foregroundColor = fg
+        state.backgroundColor = bg
+
+        state.swapColors()
+
+        #expect(state.foregroundColor == bg)
+        #expect(state.backgroundColor == fg)
+    }
+
+    @Test("a secondary-button stroke paints the background color")
+    func secondaryButtonStrokePaintsBackground() throws {
+        let state = EditorState(width: 16, height: 16)
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 3, y: 4), button: .secondary)
+        state.continueStroke(to: ScreenCanvasCoords(x: 5, y: 4))
+
+        #expect(try state.pixelCanvas.getPixel(x: 3, y: 4) == state.backgroundColor)
+        #expect(try state.pixelCanvas.getPixel(x: 5, y: 4) == state.backgroundColor)
+    }
+
+    @Test("swapping colors mid-stroke doesn't change the stroke in flight")
+    func midStrokeSwapIsIgnored() throws {
+        let state = EditorState(width: 16, height: 16)
+        let originalBackground = state.backgroundColor
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0), button: .secondary)
+        state.swapColors()
+        state.continueStroke(to: ScreenCanvasCoords(x: 2, y: 0))
+
+        #expect(try state.pixelCanvas.getPixel(x: 2, y: 0) == originalBackground)
+    }
+
+    @Test("a secondary-button eraser stroke still erases to transparent")
+    func secondaryButtonEraserStillErases() throws {
+        let state = EditorState(width: 16, height: 16)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+        try state.pixelCanvas.setPixel(x: 5, y: 5, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        state.activeTool = .eraser
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 5, y: 5), button: .secondary)
+
+        #expect(try state.pixelCanvas.getPixel(x: 5, y: 5) == transparent)
+    }
+}
+
 @Suite("EditorState — stroke lifecycle")
 struct EditorStateStrokeTests {
 

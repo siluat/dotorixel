@@ -6,7 +6,7 @@ import MetalKit
 /// `InputMTKView`, regardless of whether the input came from a mouse (macOS),
 /// touch, or Apple Pencil (iPadOS).
 protocol CanvasInputDelegate: AnyObject {
-    func drawingBegan(at point: CGPoint, in view: InputMTKView)
+    func drawingBegan(at point: CGPoint, button: PointerButton, in view: InputMTKView)
     func drawingMoved(to point: CGPoint, in view: InputMTKView)
     func drawingEnded(in view: InputMTKView)
     /// An interrupted pointer sequence (e.g. `touchesCancelled`) — must tear
@@ -30,7 +30,7 @@ class InputMTKView: MTKView {
 
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
-        inputDelegate?.drawingBegan(at: point, in: self)
+        inputDelegate?.drawingBegan(at: point, button: .primary, in: self)
     }
 
     override func mouseDragged(with event: NSEvent) {
@@ -39,6 +39,23 @@ class InputMTKView: MTKView {
     }
 
     override func mouseUp(with event: NSEvent) {
+        inputDelegate?.drawingEnded(in: self)
+    }
+
+    // Right-button events mirror the left-button sequence; not calling super
+    // also suppresses AppKit's default context-menu behavior on the canvas.
+
+    override func rightMouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        inputDelegate?.drawingBegan(at: point, button: .secondary, in: self)
+    }
+
+    override func rightMouseDragged(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        inputDelegate?.drawingMoved(to: point, in: self)
+    }
+
+    override func rightMouseUp(with event: NSEvent) {
         inputDelegate?.drawingEnded(in: self)
     }
 
@@ -67,7 +84,12 @@ class InputMTKView: MTKView {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
         let point = touch.location(in: self)
-        inputDelegate?.drawingBegan(at: point, in: self)
+        // Pointer devices (trackpad/mouse) report pressed buttons on the
+        // event; direct touch has an empty mask and draws with the primary.
+        let button: PointerButton = event?.buttonMask.contains(.secondary) == true
+            ? .secondary
+            : .primary
+        inputDelegate?.drawingBegan(at: point, button: button, in: self)
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {

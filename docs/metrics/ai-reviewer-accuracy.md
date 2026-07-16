@@ -6,14 +6,20 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 175 | 134 | 41 | 187 | 77% | 42% |
-| cubic-dev-ai[bot] | 172 | 134 | 38 | 187 | 78% | 42% |
-| coderabbitai[bot] | 248 | 172 | 76 | 147 | 69% | 54% |
+| greptile-apps[bot] | 175 | 134 | 41 | 189 | 77% | 42% |
+| cubic-dev-ai[bot] | 174 | 136 | 38 | 187 | 78% | 42% |
+| coderabbitai[bot] | 250 | 174 | 76 | 147 | 70% | 54% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #320 | coderabbitai[bot] | Accept | Swap button hit target was 24×24pt, below the 44pt HIG minimum for iPad touch; visual chrome kept at 24pt (web RightPanel parity), tappable area expanded to `DesignTokens.btnSize` + `contentShape` |
+| #320 | cubic-dev-ai[bot] | Accept | Same 24pt swap-button hit target finding (duplicate of coderabbit); fixed by the same label-frame expansion |
+| #320 | coderabbitai[bot] | Accept | platform-status "All tools draw with BG color" overstated the Apple column — flood fill is still ⬜; narrowed to "Supported paint tools" |
+| #320 | cubic-dev-ai[bot] | Accept | Same overstated "All tools" wording finding (duplicate of coderabbit); same narrowing |
+| #320 | greptile-apps[bot] | Miss | Did not flag the 24pt swap-button hit target (5/5 "safe to merge", no findings) |
+| #320 | greptile-apps[bot] | Miss | Did not flag the overstated "All tools" right-click note in platform-status |
 | #319 | cubic-dev-ai[bot] | Accept | `resizeCanvas` lacked the `isDrawing` guard its siblings have — a mid-stroke resize (iPad multi-touch) replaces the canvas under a live shape session, breaking snapshot restore and clearing history mid-stroke; guarded + no-op test |
 | #319 | cubic-dev-ai[bot] | Accept | displayName test hardcoded 5 cases so a future `EditorTool` case could ship untested; switched to `arguments: EditorTool.allCases` with an expected-label dictionary (mirrors the web's exhaustive `Record<ToolType, …>`) |
 | #319 | coderabbitai[bot] | Accept | Toolbar tool buttons had no accessibility label so VoiceOver read raw SF Symbol names; added `.accessibilityLabel(displayName)`, matching the web's `aria-label` |

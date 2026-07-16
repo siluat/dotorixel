@@ -190,6 +190,10 @@ struct RightPanel: View {
                 .font(.system(size: swapIconSize))
                 .foregroundStyle(DesignTokens.textTertiary)
                 .frame(width: swapButtonSize, height: swapButtonSize)
+                // Visual chrome stays 24pt (web RightPanel parity); the
+                // tappable area expands to the HIG minimum for iPad touch.
+                .frame(minWidth: DesignTokens.btnSize, minHeight: DesignTokens.btnSize)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Swap colors")

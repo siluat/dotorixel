@@ -146,6 +146,8 @@ final class EditorState {
     /// Resizes the canvas to the given dimensions and reclamps the viewport pan
     /// against the new bounds. Silent no-op when dimensions are unchanged or
     /// outside `canvasMinDimension...canvasMaxDimension`.
+    /// No-ops silently while a drawing stroke is in progress — a live session's
+    /// pre-stroke snapshot belongs to the current canvas and must stay restorable.
     ///
     /// Clears history on a successful resize: `applySnapshot` rejects
     /// cross-dimension restores, so leaving pre-resize snapshots on the stack
@@ -153,6 +155,7 @@ final class EditorState {
     /// fails. Dropping the stack keeps `canUndo`/`canRedo` honest until
     /// cross-dimension undo lands.
     func resizeCanvas(width: UInt32, height: UInt32) {
+        guard !isDrawing else { return }
         guard width != pixelCanvas.width() || height != pixelCanvas.height() else { return }
         guard let resized = try? pixelCanvas.resize(newWidth: width, newHeight: height) else { return }
         pixelCanvas = resized

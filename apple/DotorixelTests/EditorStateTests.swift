@@ -154,10 +154,24 @@ struct EditorStateResizeCanvasTests {
         #expect(state.canvasVersion == versionBefore)
     }
 
+    @Test("resize is a no-op while a drawing stroke is in progress")
+    func resizeIsNoopWhileDrawing() {
+        let state = EditorState(width: 16, height: 16)
+        state.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+
+        state.resizeCanvas(width: 32, height: 32)
+
+        #expect(state.pixelCanvas.width() == 16)
+        #expect(state.pixelCanvas.height() == 16)
+        // The stroke's undo entry survives — history is not cleared mid-stroke.
+        #expect(state.canUndo)
+    }
+
     @Test("resize clears history so canUndo doesn't lie about pre-resize snapshots")
     func resizeClearsHistory() {
         let state = EditorState(width: 16, height: 16)
         state.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+        state.endStroke()
         #expect(state.canUndo == true)
 
         state.resizeCanvas(width: 32, height: 32)

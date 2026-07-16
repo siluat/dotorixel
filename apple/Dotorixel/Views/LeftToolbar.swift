@@ -22,6 +22,7 @@ struct LeftToolbar: View {
                 } label: {
                     Image(systemName: tool.symbolName)
                         .font(.system(size: DesignTokens.iconSize))
+                        .accessibilityLabel(tool.displayName)
                 }
                 .buttonStyle(ToolButtonStyle(isActive: editorState.activeTool == tool, boxSize: boxSize))
             }

@@ -4,17 +4,17 @@ import Testing
 @Suite("EditorTool — displayName")
 struct EditorToolDisplayNameTests {
 
-    @Test(
-        "every tool case has a capitalized English label",
-        arguments: [
-            (EditorTool.pencil, "Pencil"),
-            (EditorTool.eraser, "Eraser"),
-            (EditorTool.line, "Line"),
-            (EditorTool.rectangle, "Rectangle"),
-            (EditorTool.ellipse, "Ellipse"),
+    @Test("every tool case has a capitalized English label", arguments: EditorTool.allCases)
+    func toolDisplayName(tool: EditorTool) {
+        // Keyed by case so a newly added tool fails here until it gets an
+        // expected label — mirrors the web's exhaustive Record<ToolType, …>.
+        let expected: [EditorTool: String] = [
+            .pencil: "Pencil",
+            .eraser: "Eraser",
+            .line: "Line",
+            .rectangle: "Rectangle",
+            .ellipse: "Ellipse",
         ]
-    )
-    func toolDisplayName(tool: EditorTool, expected: String) {
-        #expect(tool.displayName == expected)
+        #expect(tool.displayName == expected[tool])
     }
 }

@@ -16,21 +16,16 @@ struct LeftToolbar: View {
         VStack(spacing: DesignTokens.space1) {
             // MARK: - Tool buttons
 
-            Button {
-                editorState.activeTool = .pencil
-            } label: {
-                Image(systemName: "pencil")
-                    .font(.system(size: DesignTokens.iconSize))
+            ForEach(EditorTool.allCases, id: \.self) { tool in
+                Button {
+                    editorState.activeTool = tool
+                } label: {
+                    Image(systemName: tool.symbolName)
+                        .font(.system(size: DesignTokens.iconSize))
+                        .accessibilityLabel(tool.displayName)
+                }
+                .buttonStyle(ToolButtonStyle(isActive: editorState.activeTool == tool, boxSize: boxSize))
             }
-            .buttonStyle(ToolButtonStyle(isActive: editorState.activeTool == .pencil, boxSize: boxSize))
-
-            Button {
-                editorState.activeTool = .eraser
-            } label: {
-                Image(systemName: "eraser")
-                    .font(.system(size: DesignTokens.iconSize))
-            }
-            .buttonStyle(ToolButtonStyle(isActive: editorState.activeTool == .eraser, boxSize: boxSize))
 
             // MARK: - Separator
 

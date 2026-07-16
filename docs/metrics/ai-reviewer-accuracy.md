@@ -6,14 +6,25 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 175 | 134 | 41 | 184 | 77% | 42% |
-| cubic-dev-ai[bot] | 170 | 132 | 38 | 186 | 78% | 42% |
-| coderabbitai[bot] | 245 | 171 | 74 | 145 | 70% | 54% |
+| greptile-apps[bot] | 175 | 134 | 41 | 187 | 77% | 42% |
+| cubic-dev-ai[bot] | 172 | 134 | 38 | 187 | 78% | 42% |
+| coderabbitai[bot] | 248 | 172 | 76 | 147 | 69% | 54% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #319 | cubic-dev-ai[bot] | Accept | `resizeCanvas` lacked the `isDrawing` guard its siblings have — a mid-stroke resize (iPad multi-touch) replaces the canvas under a live shape session, breaking snapshot restore and clearing history mid-stroke; guarded + no-op test |
+| #319 | cubic-dev-ai[bot] | Accept | displayName test hardcoded 5 cases so a future `EditorTool` case could ship untested; switched to `arguments: EditorTool.allCases` with an expected-label dictionary (mirrors the web's exhaustive `Record<ToolType, …>`) |
+| #319 | coderabbitai[bot] | Accept | Toolbar tool buttons had no accessibility label so VoiceOver read raw SF Symbol names; added `.accessibilityLabel(displayName)`, matching the web's `aria-label` |
+| #319 | coderabbitai[bot] | Reject | `assertionFailure` on restore failure is a release no-op; the only reachable trigger (mid-stroke canvas replacement) is now guarded at the boundary per the sibling finding, and the pattern matches `EditorState.applySnapshot` |
+| #319 | coderabbitai[bot] | Reject | Wanted the ellipse icon switched `circle` → `oval`; the web shell uses lucide `Circle`, so cross-shell visual parity keeps `circle` — an Apple-only switch would diverge the shells |
+| #319 | coderabbitai[bot] | Miss | Did not flag the missing `isDrawing` guard on `resizeCanvas` under a live shape session |
+| #319 | coderabbitai[bot] | Miss | Did not flag the displayName test not covering future `EditorTool` cases |
+| #319 | cubic-dev-ai[bot] | Miss | Did not flag the missing VoiceOver labels on toolbar tool buttons |
+| #319 | greptile-apps[bot] | Miss | Did not flag the missing `isDrawing` guard on `resizeCanvas` (5/5 "safe to merge", no findings) |
+| #319 | greptile-apps[bot] | Miss | Did not flag the displayName test not covering future `EditorTool` cases |
+| #319 | greptile-apps[bot] | Miss | Did not flag the missing VoiceOver labels on toolbar tool buttons |
 | #318 | greptile-apps[bot] | Accept | `StrokeEngine.begin` silently orphaned an in-flight session (second iPadOS touch replaces it without a terminal call), breaking the every-session-exits-once contract future deferred-commit tools rely on; fixed via implicit cancel-before-replace |
 | #318 | coderabbitai[bot] | Accept | Same reentrant-begin orphan via `EditorState.beginStroke` (multi-touch `touchesBegan`); finding accepted, remedy differs — implicit cancel preserves the pre-existing second-touch restart behavior where their reject-reentrant-begins proposal would change it |
 | #318 | coderabbitai[bot] | Accept | Same orphan flagged again at `StrokeEngine.begin` (duplicate thread); fixed by the same implicit cancel |

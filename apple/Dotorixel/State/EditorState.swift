@@ -13,6 +13,7 @@ final class EditorState {
     let historyManager = AppleHistoryManager.defaultManager()
     var activeTool: EditorTool = .pencil
     var foregroundColor: Color
+    var backgroundColor: Color
     var showGrid: Bool = true
 
     /// Manually incremented to trigger SwiftUI updates when canvas pixels change.
@@ -49,7 +50,18 @@ final class EditorState {
     ) {
         self.pixelCanvas = try! ApplePixelCanvas(width: width, height: height)
         self.viewport = AppleViewport.forCanvas(canvasWidth: width, canvasHeight: height)
-        self.foregroundColor = Color(r: 0x2D, g: 0x2D, b: 0x2D, a: 0xFF)
+        // Web-matching defaults (shared-state.svelte.ts): foreground black, background white.
+        self.foregroundColor = Color(r: 0x00, g: 0x00, b: 0x00, a: 0xFF)
+        self.backgroundColor = Color(r: 0xFF, g: 0xFF, b: 0xFF, a: 0xFF)
+    }
+
+    // MARK: - Colors
+
+    /// Exchanges the foreground and background colors.
+    func swapColors() {
+        let previousForeground = foregroundColor
+        foregroundColor = backgroundColor
+        backgroundColor = previousForeground
     }
 
     // MARK: - Stroke lifecycle
@@ -58,9 +70,11 @@ final class EditorState {
     private let strokeEngine = StrokeEngine()
 
     /// Opens a stroke session from the active tool and feeds the first sample.
-    func beginStroke(at coords: ScreenCanvasCoords) {
+    /// The pointer button picks the stroke's draw color (primary → foreground,
+    /// secondary → background); touch input is always primary.
+    func beginStroke(at coords: ScreenCanvasCoords, button: PointerButton = .primary) {
         isDrawing = true
-        if strokeEngine.begin(tool: activeTool, host: self, at: coords) {
+        if strokeEngine.begin(tool: activeTool, host: self, button: button, at: coords) {
             canvasVersion += 1
         }
     }

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Right panel: Canvas section (size presets, dimension inputs, Clear) and
-/// Color section (foreground swatch, palette grid, ColorPicker), separated
+/// Color section (FG/BG pair + swap, palette grid, ColorPicker), separated
 /// by a divider. Mirrors web `RightPanel.svelte` for cross-shell parity.
 struct RightPanel: View {
     let editorState: EditorState
@@ -19,6 +19,12 @@ struct RightPanel: View {
 
     /// Palette grid spacing — web RightPanel gap: 3px (raw CSS, not a token).
     private let paletteGridSpacing: CGFloat = 3
+
+    /// Swap button extent — web RightPanel `.swap-btn`: 24px (raw CSS, not a token).
+    private let swapButtonSize: CGFloat = 24
+
+    /// Swap icon size — web RightPanel `ArrowLeftRight size={14}` (raw, not a token).
+    private let swapIconSize: CGFloat = 14
 
     var body: some View {
         ScrollView {
@@ -130,7 +136,7 @@ struct RightPanel: View {
     private var colorSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.space3) {
             sectionTitle("Color")
-            foregroundSwatch
+            fgBgRow
             sectionTitle("Palette")
             paletteGrid
             ColorPicker(
@@ -139,6 +145,16 @@ struct RightPanel: View {
                 supportsOpacity: false
             )
             .labelsHidden()
+        }
+    }
+
+    /// FG/BG pair + swap — web RightPanel `.fgbg-row`: the foreground swatch
+    /// is visually primary (accent border), the background secondary.
+    private var fgBgRow: some View {
+        HStack(spacing: DesignTokens.space3) {
+            foregroundSwatch
+            backgroundSwatch
+            swapButton
         }
     }
 
@@ -152,6 +168,31 @@ struct RightPanel: View {
             )
             .accessibilityLabel("Foreground color")
             .accessibilityValue(editorState.foregroundColor.hexString)
+    }
+
+    private var backgroundSwatch: some View {
+        RoundedRectangle(cornerRadius: 4)
+            .fill(editorState.backgroundColor.swiftUIColor)
+            .frame(width: controlHeight, height: controlHeight)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(DesignTokens.border, lineWidth: 1)
+            )
+            .accessibilityLabel("Background color")
+            .accessibilityValue(editorState.backgroundColor.hexString)
+    }
+
+    private var swapButton: some View {
+        Button {
+            editorState.swapColors()
+        } label: {
+            Image(systemName: "arrow.left.arrow.right")
+                .font(.system(size: swapIconSize))
+                .foregroundStyle(DesignTokens.textTertiary)
+                .frame(width: swapButtonSize, height: swapButtonSize)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Swap colors")
     }
 
     private var paletteGrid: some View {

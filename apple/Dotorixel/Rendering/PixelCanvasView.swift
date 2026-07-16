@@ -153,11 +153,14 @@ extension PixelCanvasView {
         // lifecycle (session resolution, interpolation, dedup, history,
         // re-render) is owned by EditorState and its StrokeEngine.
 
-        func drawingBegan(at point: CGPoint, in view: InputMTKView) {
+        func drawingBegan(at point: CGPoint, button: PointerButton, in view: InputMTKView) {
             guard let viewport, let editorState else { return }
 
             isInteracting = true
-            editorState.beginStroke(at: canvasCoords(of: point, in: view, viewport: viewport))
+            editorState.beginStroke(
+                at: canvasCoords(of: point, in: view, viewport: viewport),
+                button: button
+            )
         }
 
         func drawingMoved(to point: CGPoint, in view: InputMTKView) {

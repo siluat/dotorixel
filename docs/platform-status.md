@@ -17,7 +17,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Eyedropper | — | ✅ | ⬜ | Drag-and-commit with live 9×9 loupe; releases to FG (left-click) or BG (right-click); skips transparent pixels |
 | Move | — | ✅ | ⬜ | Drag to reposition canvas content, snapshot-restore preview |
 | Selection / Marquee | 🔧 | 🔧 | ⬜ | Persistent Marquee with clipping, Delete, drag-to-move/cancel, copy/cut/paste, keyboard nudge, Shift-square define/axis drag, action bars; selection UI hides (Marquee preserved) while a Reference Layer is active |
-| Right-click background color | — | ✅ | ⬜ | All tools draw with BG color on right-click; eraser unchanged |
+| Right-click background color | — | ✅ | ✅ | All tools draw with BG color on right-click; eraser unchanged. Apple: macOS right-click + iPadOS pointer secondary button; touch always FG |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |
 | Pixel-perfect filter | ✅ | ✅ | ⬜ | L-corner 3-window rule (Aseprite-style). Web: topBar/mAppBar toggle, default ON, persisted; disabled on non-freehand tools |
 
@@ -54,7 +54,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Color picker | — | ✅ | ✅ | Web: custom HSV picker, Apple: SwiftUI |
 | Preset palette | — | ✅ | ✅ | 18 Pebble colors |
 | Recent colors | — | ✅ | ⬜ | Last 12 used |
-| FG/BG color swap | — | ✅ | ⬜ | Swap button + per-swatch color picker |
+| FG/BG color swap | — | ✅ | ✅ | Swap button + per-swatch color picker. Apple: swap button; palette/picker set FG only |
 | Color loupe overlay | — | ✅ | ⬜ | 9×9 magnifier + hex chip during eyedropper drag (mouse) and 400ms long-press (touch); quadrant-flip keeps it visible near viewport edges |
 
 ## Rendering

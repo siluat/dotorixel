@@ -168,6 +168,19 @@ struct ShapeStrokeSessionTests {
         #expect(state.canvasVersion == versionBefore)
     }
 
+    @Test("a secondary-button shape stroke previews and commits in the background color")
+    func secondaryButtonShapeCommitsBackground() throws {
+        let state = EditorState(width: 16, height: 16)
+        state.activeTool = .rectangle
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1), button: .secondary)
+        state.continueStroke(to: ScreenCanvasCoords(x: 4, y: 3))
+        state.endStroke()
+
+        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == state.backgroundColor)
+        #expect(try state.pixelCanvas.getPixel(x: 4, y: 3) == state.backgroundColor)
+    }
+
     @Test("mid-stroke foreground color changes don't affect the shape in flight")
     func midStrokeColorChangeIsIgnored() throws {
         let state = EditorState(width: 16, height: 16)

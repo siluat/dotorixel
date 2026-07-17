@@ -15,12 +15,15 @@ Command-path no-op gaps split to 244. Apple Phase 2
 
 ## Next Up
 
+- [244 — Command no-ops still push history entries](../issues/244-command-noop-history-entries.md)
+  — ready-for-agent; triaged to land **before 236** (renames the seam 236 builds on)
 - [234 — Eyedropper tool](../issues/234-apple-eyedropper.md)
-- [236 — Move tool](../issues/236-apple-move-tool.md) — build its session on the 243 Stroke Baseline seam
+- [236 — Move tool](../issues/236-apple-move-tool.md) — build its session on the 244 Edit Baseline seam
 - [238 — HSV picker](../issues/238-apple-hsv-picker.md)
 - [239 — Pixel-perfect filtering + toggle](../issues/239-apple-pixel-perfect.md)
 - [240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md)
-- (triage) [244 — Command no-ops still push history entries](../issues/244-command-noop-history-entries.md)
+- (triage) [246 — Remove the eager push API from History](../issues/246-remove-eager-push-api.md) — blocked by 244
+- (triage) [247 — Dead `commitFloatingSelection` effect](../issues/247-dead-commit-floating-selection-effect.md)
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Apple Pencil: hover preview + palm rejection

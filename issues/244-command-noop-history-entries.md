@@ -1,6 +1,6 @@
 ---
 title: Command no-ops still push history entries (clear on empty layer, …)
-status: needs-triage
+status: done
 created: 2026-07-17
 ---
 
@@ -8,29 +8,246 @@ created: 2026-07-17
 
 ## Problem
 
-Some command paths' predictive no-op guards check only the *kind* of target,
-not its *content* (many guards are already content-aware — visibility,
-duration, reorder index), so commands that change nothing can still push an
-undo snapshot (dead undo entry + redo future destroyed):
+Command paths push an undo snapshot before knowing whether the command will
+change anything. A command that changes nothing therefore leaves a dead undo
+entry — and, worse, the eager push clears the redo stack, so one no-op command
+silently destroys the user's entire redo future.
 
-- Web: `clear-active-layer` pushes whenever the active layer is a Pixel Layer,
-  even when every pixel is already transparent (the journal's `willChange`
-  guard is kind-based).
-- Apple: `handleClearCanvas` pushes even on a blank canvas (its only guard is
-  the mid-stroke `isDrawing` seal, not a content check).
-- Other content-blind guards may exist; audit the `willChange` table during
-  triage.
+- Web: clearing the active layer pushes whenever the active layer is a Pixel
+  Layer, even when every pixel is already transparent.
+- Apple: the clear-canvas handler pushes even on a blank canvas (its only guard
+  is the mid-stroke `isDrawing` seal, not a content check).
 
-## Relation to 243
+The harm is identical to issue 243's — which is why 243's ADR rejected wontfix
+once the redo destruction was found. Frequency is not a defence here: the loss
+is silent and unrecoverable, and the paths most likely to hit it (rotate on a
+blank canvas, flip with nothing selected) are exactly what a newcomer does
+while exploring the tools.
 
-Issue 243 fixed the *stroke* half of the "no-op ⇒ no History entry" invariant
-retrospectively (Stroke Baseline, see
-[ADR: Deferred Stroke History Commit](../docs/decisions/deferred-stroke-history-commit.en.md)).
-Commands are predictively guardable, so the fix here is content-aware
-`willChange` checks (e.g. blank-layer detection), not the pending-baseline
-mechanism. Deliberately split so the two mechanisms don't mix in one change.
+## Triage: `willChange` audit (2026-07-17)
 
-## Notes
+The issue asked for an audit of the journal's `willChange` table. Six more
+content-blind guards exist beyond the reported clear:
 
-- Low frequency in practice; weigh the cost of content checks (e.g. scanning a
-  layer for blankness on every Clear) against the harm before implementing.
+| Intent | Current guard | No-op that leaks through |
+|---|---|---|
+| `clear-active-layer` | active layer kind is Pixel | already-blank layer |
+| `clear-marquee-pixels` | Marquee exists + active kind Pixel | already-blank region |
+| `flip-marquee-*`, `rotate-marquee-*` | Marquee exists + active kind Pixel | blank region, symmetric content |
+| `flip-canvas-*` | any Pixel Layer \|\| Marquee | all-blank Pixel Layers, symmetric content |
+| `rotate-canvas-*` | any Pixel Layer \|\| Marquee \|\| non-square | blank square canvas |
+| `commit-floating-selection` | source kind Pixel + non-empty buffer | all-transparent buffer |
+
+The rest of the table is sound. Already content-aware and exact:
+`reorder-layer`, `set-layer-visibility`, `set-reference-placement`,
+`resize-document`, `set-marquee`, `reorder-frame`, `set-frame-duration`.
+Genuinely always-changing: `add-pixel-layer`, `set-reference-layer`,
+`add-frame`, `duplicate-frame`. Not no-op guards at all but **validity rules**:
+`remove-layer` and `remove-frame` (refuse to remove the last one).
+
+## Triage: the original premise was overturned
+
+This issue was split from 243 asserting that "commands are predictively
+guardable, so the fix here is content-aware `willChange` checks, not the
+pending-baseline mechanism". The audit does not support that:
+
+- **Predictive checks collapse for transforms.** Predicting whether a canvas
+  flip changes anything means testing the content for symmetry — i.e. applying
+  it and comparing. The predictive framing buys nothing there; it just
+  re-implements, per intent, the comparison the core ring already owns.
+- **The guards are not an optimisation.** A false verdict skips the apply
+  entirely, so a wrong guard silently drops a *real* edit — a worse failure
+  than this bug. They carry correctness, not just a saved clone.
+- **Two authorities for "did it change" is what produced this bug.** Adding a
+  third is the wrong direction.
+- **The core is already tolerant.** Every guarded apply path (`Document::clear`,
+  `clear_marquee_pixels`, the marquee flip/rotate helpers) already no-ops
+  gracefully when there is no Marquee or the active layer is a Reference Layer.
+  The shell guards duplicate tolerance the core has.
+
+Contradicts the ADR `deferred-history-commit.en.md`, whose Decision
+records "`push` (command paths) stays eager and independent of any pending
+baseline" and whose Context claims commands are predictively guardable. That
+ADR is amended by this issue rather than superseded — see below.
+
+## Triage decisions (2026-07-17)
+
+1. **Mechanism** — route command paths through the pending-baseline seam that
+   243 built, instead of writing per-intent content checks. One core-owned
+   comparison closes all seven gaps at once and makes future intents safe by
+   default.
+2. **Naming** — the seam is renamed **Stroke Baseline → Edit Baseline**
+   (`begin_edit` / `end_edit`). A stroke and a command are both edits; naming it
+   for strokes becomes a lie the moment a clear command uses it. "Change
+   Baseline" was rejected: the journal already calls non-undoable UI mutations
+   "changes". Renaming now is the cheapest it will ever be — 243 landed a day
+   ago and 236 is queued to add another session on the seam.
+3. **`willChange` scope** — stripped to validity only. *All* no-op detection is
+   deleted, including the currently-correct content-aware guards, so the Edit
+   Baseline is the single authority.
+4. **Eager push** — the shell-side wrappers are deleted here so that no
+   production path can record history without a comparison. Removing the
+   core/FFI push API is follow-up 246.
+5. **ADR** — amend 243's ADR in place and retitle it to drop "Stroke", rather
+   than write a second ADR that contradicts the first. Its Context already
+   forward-references this issue; 243 and 244 were one decision split for
+   delivery.
+6. **Tests** — the structural change is the regression defence; tests stay thin
+   (see the brief). Exhaustive per-intent no-op tables would only re-verify the
+   core comparison N times.
+7. **Sequencing** — land before 236, which is queued to build its session on
+   this seam.
+
+## Agent Brief
+
+**Category:** bug
+**Summary:** Route command paths through the pending-baseline seam (renamed Edit
+Baseline) so a command that changes nothing records no History entry and
+preserves the redo future.
+
+**Current behavior:**
+A command captures an undo snapshot eagerly, before applying, gated by a
+per-intent `willChange` predicate that inspects only the *kind* of the target.
+Seven intents (see the audit table) can pass that gate and change nothing: the
+undo entry is dead and the eager push clears the redo stack. Stroke paths
+already avoid this via the pending baseline that 243 introduced.
+
+**Desired behavior:**
+A command applies its intent, and the History ring decides by value comparison
+whether to record an entry. When the document is unchanged: no undo entry, redo
+future untouched, no re-render, no dirty/auto-save marking, and the journal
+still reports the change as not-applied to its caller. When the document did
+change: exactly one undo entry and the redo future is cleared, as today.
+Validity rules keep rejecting before any work happens (last layer, last frame,
+unknown ids, non-Reference placement, malformed reference source) — those throw
+or refuse exactly as they do now.
+
+**Key interfaces:**
+- The generic core History ring's pending-baseline pair, currently
+  `begin_stroke` / `end_stroke` — rename to `begin_edit` / `end_edit`
+  throughout, including both species (the Document and PixelCanvas histories)
+  and both FFI bindings (wasm-bindgen and UniFFI).
+- `end_edit` must **return whether it committed** the baseline (currently
+  returns nothing). Callers need the verdict to gate follow-up work; propagate
+  the return through both bindings.
+- The web journal's `commit(DocumentChange) => DocumentChangeResult` — the
+  external contract is unchanged (`{changed: false}` for a no-op, `layerId` /
+  `frameId` carried on success); only the internals rewire to
+  validity-check → begin → apply → end → gate follow-ups on the verdict.
+  The floating-selection baseline restore must still happen *before* the
+  baseline is captured.
+- The journal's `willChange` predicate — reduced to validity only. Delete every
+  no-op check, including the exact content-aware ones.
+- The journal's public eager-snapshot method — delete it; its only production
+  caller is the command path this issue rewires.
+- The Apple editor state's clear-canvas handler and its private push-snapshot
+  helper — rewire to the baseline pair and delete the helper; gate the
+  re-render counter bump on the commit verdict.
+- The drawing-tool effect currently named `captureUndoSnapshot` — it already
+  maps to the stroke-begin call, so rename it into the Edit Baseline vocabulary.
+
+**Acceptance criteria:**
+- [ ] Clearing an already-blank Pixel Layer (web) records no History entry and
+      leaves an existing redo future intact
+- [ ] Clearing an already-blank canvas (Apple) records no History entry, leaves
+      the redo future intact, and does not bump the re-render counter
+- [ ] Rotating a blank square canvas with no Marquee records no History entry
+- [ ] A Marquee transform with no Marquee, or with a Reference Layer active,
+      records no History entry
+- [ ] A command that does change the document still records exactly one History
+      entry and clears the redo future
+- [ ] `end_edit` reports whether it committed, on both species and both FFI
+      bindings, and no-op strokes still behave as 243 specified
+- [ ] The journal's predicate rejects only validity violations; no intent's
+      history outcome is decided by a kind check
+- [ ] No production code path can record a History entry without a comparison
+- [ ] The Apple pin asserting a blank-canvas clear bumps the re-render counter
+      is inverted (paint first to keep the original assertion meaningful, and
+      add a separate blank-canvas no-op test)
+- [ ] `CONTEXT.md` glossary updated: the **Stroke Baseline** headword becomes
+      **Edit Baseline**, and the **History** entry drops its "commands guard
+      predictively / strokes retrospectively" split — both paths are
+      retrospective now, `willChange` is validity only
+- [ ] 243's ADR amended in place and retitled to drop "Stroke" (file renamed,
+      the three inbound issue links updated), with per-intent content-aware
+      guards recorded as a rejected alternative and the reason (they collapse
+      into apply-and-compare for transforms)
+- [ ] `cargo test`, `bun run test`, the Apple test suite, and `bun run test:e2e`
+      all pass — the e2e history suite drives the undo/redo chain this issue
+      rewires (including "new drawing disables redo"), so it is not optional
+      here
+
+**Suggested commit split** (the rename is mechanical and large; keep it
+reviewable):
+1. `refactor: rename Stroke Baseline to Edit Baseline`
+2. `feat: report the commit verdict from end_edit`
+3. `fix: route command paths through the Edit Baseline` (web journal + willChange
+   strip + eager wrapper removal)
+4. `fix: route the apple clear command through the Edit Baseline`
+5. `docs: fold command paths into the deferred history commit ADR`
+
+**Out of scope:**
+- Removing the core/FFI eager push API (`push_document` / `push_snapshot`) and
+  migrating the core tests off it — follow-up 246, safe only once this lands
+  and proves no caller needs it
+- The dead `commitFloatingSelection` effect branch found during triage —
+  follow-up 247
+- Stroke-path behavior — 243, done
+- Apple multi-touch stroke routing — 245
+
+## Results
+
+Landed as five commits, in the order the brief suggested.
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/history.rs` | Seam renamed `begin_stroke`/`end_stroke` → `begin_edit`/`end_edit`; `end_edit` returns whether it committed. The generic ring's docs stop naming the caller's domain ("stroke sessions", "the eyedropper") — it is generic over `T` and knows neither |
+| `wasm/src/lib.rs`, `apple/src/lib.rs` | Same rename and verdict propagated through both bindings |
+| `src/lib/canvas/editor-session/document-change-journal.svelte.ts` | Commands apply then ask the ring: validity check → `begin_edit` → apply → `end_edit` → follow-ups gated on the verdict. `willChange` replaced by `isAllowedUndoableDocument` (validity only). Eager-snapshot method deleted. Net −37 lines |
+| `src/lib/canvas/draw-tool.ts`, `tool-authoring.ts`, `tools/move-tool.ts`, `editor-session/tab-state.svelte.ts` | Tool effect `captureUndoSnapshot` → `beginEdit`; it already mapped to the stroke-begin call, so the name was the only thing wrong |
+| `apple/Dotorixel/State/EditorState.swift` | Clear opens a baseline and bumps the re-render only on the verdict; `pushHistorySnapshot` deleted. `StrokeSessionHost.captureUndoSnapshot()` → `beginEdit()`; `resolveStrokeBaseline()` → `resolveEditBaseline()` |
+| `docs/decisions/deferred-history-commit.en.md` | 243's ADR amended in place and renamed (dropped "Stroke"); records the rejected per-intent-content-guard alternative |
+| `CONTEXT.md`, `docs/platform-status.md` | **Edit Baseline** replaces **Stroke Baseline**; new **Edit** headword; History loses the predictive/retrospective split |
+
+### Key Decisions
+
+- **Reused the 243 seam instead of writing per-intent content checks** — the
+  approach this issue itself originally prescribed. The triage audit killed that
+  premise: predicting whether a canvas flip changes anything means testing for
+  symmetry, i.e. applying and comparing, so the "predictive" framing just
+  re-implements the ring's comparison once per intent. Full reasoning and the
+  other four alternatives are in the ADR.
+- **Deleted *all* no-op detection, not just the broken guards.** The guards gate
+  the apply, so a wrong one silently drops a real edit — worse than this bug.
+  One authority, not two.
+- **Two guards survive as rules, not predictions**: `set-marquee` and
+  `commit-floating-selection` would both move the Marquee even where their pixel
+  work no-ops, so the core would honour them.
+- **Shell eager-push wrappers deleted here** so no production path can record
+  history without a comparison; the core/FFI API removal is 246.
+
+### Notes
+
+- **`try`/`finally` around the apply was not optional.** An apply that throws
+  used to leave a pushed snapshot behind; an unresolved baseline would instead
+  stay pending and poison the next edit's `begin_edit`. The pre-existing "core
+  failed" test pinned this path and caught it.
+- **A rename false positive worth remembering**: Apple spells two unrelated
+  things `beginStroke` — `EditorState`'s pointer entry point and the history
+  seam call. Only the latter is the seam. Web was safe because its stroke
+  lifecycle is `drawStart`/`drawEnd`.
+- **UniFFI checksums cover docstrings.** Editing a comment on a
+  `#[uniffi::export]` function invalidates the generated Swift, and
+  `build-rust.sh` only bootstraps when `apple/generated` is *empty*, so the
+  mismatch surfaces as a runtime fatal error rather than a build failure.
+  Pre-existing; not filed.
+- **Test coverage moved rather than shrank.** The per-intent "skips X, captures
+  no snapshot" tests drove the deleted guard through hand-built fake documents,
+  and core already owns the facts they asserted
+  (`flip_marquee_is_no_op_when_active_layer_is_reference`, …). Replaced by one
+  wiring test plus three integration tests that run a real document through the
+  real history. Web count 1627 → 1622.
+- **The 28 broken tests are their own finding** — no observable behavior changed
+  for them, so they were coupled to which History API the journal calls. Filed
+  as 248.
+- Verified: `cargo test` 526 + 43, `bun run test` 1622, Apple 99, e2e 110.

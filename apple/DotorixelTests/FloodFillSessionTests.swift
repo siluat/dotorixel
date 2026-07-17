@@ -64,7 +64,7 @@ struct FloodFillSessionTests {
 
         #expect(paintedPixelCount(state) == 0)
         #expect(state.canvasVersion == versionBefore)
-        // A no-op stroke leaves no History entry: the Stroke Baseline is
+        // A no-op stroke leaves no History entry: the Edit Baseline is
         // discarded at stroke end when nothing changed (web parity, 243).
         // Pinned so a fill-only divergence can't slip in silently.
         #expect(!state.canUndo)

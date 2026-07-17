@@ -152,12 +152,16 @@ _Avoid_: pan limits / scroll bounds (informal), canvas bounds (that is only one 
 ### History
 
 **History**:
-A tab's undo/redo record — a bounded, branch-discarding LIFO: pushing a new entry clears the redo future and evicts the oldest entry once the cap is exceeded. This invariant is owned once by a shared generic ring (`History<T>`); the model split below provides two never-mixed species that each only marshal their own value type. Mixing species is unrepresentable, not guarded. A visual no-op leaves no History entry: command paths guard predictively (skip the push when nothing will change; some content-blind gaps remain — [issue 244](issues/244-command-noop-history-entries.md)), stroke paths retrospectively through the Stroke Baseline.
+A tab's undo/redo record — a bounded, branch-discarding LIFO: pushing a new entry clears the redo future and evicts the oldest entry once the cap is exceeded. This invariant is owned once by a shared generic ring (`History<T>`); the model split below provides two never-mixed species that each only marshal their own value type. Mixing species is unrepresentable, not guarded. A visual no-op leaves no History entry, and every Edit is held to that the same way: the ring compares and decides at the end of the Edit ([ADR](docs/decisions/deferred-history-commit.en.md)). Nothing predicts a no-op ahead of the work — a second authority on that question is what let content-blind gaps through ([issue 244](issues/244-command-noop-history-entries.md)).
 _Avoid_: undo stack (names only one of the two stacks), history manager (the pre-split type that fused both species behind one enum — superseded by PixelCanvas History / Document History), snapshot stack.
 
-**Stroke Baseline**:
-The value captured when a stroke session begins, held pending by the History ring and committed as an undo entry at stroke end only when the stroke actually changed the state — the retrospective half of the no-op invariant. A no-op stroke (out-of-canvas tap, same-color fill or retrace, zero-delta move, cancelled shape preview) leaves no History entry and preserves the redo future. Owned by the core ring for both species; shells mark stroke begin/end and never decide the comparison.
-_Avoid_: pending snapshot (Snapshot is the PixelCanvas species' value type), pre-stroke snapshot (the shape sessions' preview-restore copy is a session-local buffer, not this), undo baseline (the baseline equally guards redo preservation).
+**Edit**:
+One unit of work a tab can undo: a stroke session or a command. The distinction the two once had for History is gone — both open an Edit Baseline and are judged by comparison — so it survives only where the *input* differs (a stroke is driven sample by sample and can be cancelled mid-flight; a command applies at once).
+_Avoid_: change (the web journal's `DocumentChange` also carries non-undoable UI mutations like the active-layer pointer), action, operation.
+
+**Edit Baseline**:
+The value captured when an Edit begins, held pending by the History ring and committed as an undo entry at the Edit's end only when the Edit actually changed the state. A no-op Edit — an out-of-canvas tap, a same-color retrace, a zero-delta move, a cancelled shape preview, a clear on an already-blank layer, a rotate of a blank square canvas — leaves no History entry and preserves the redo future. Owned by the core ring for both species; shells mark the Edit's begin/end, read the verdict `end_edit` returns to gate the re-render and dirty marking the Edit only earns by changing something, and never decide the comparison.
+_Avoid_: Stroke Baseline (the pre-244 name, from when only strokes used it), pending snapshot (Snapshot is the PixelCanvas species' value type), pre-stroke snapshot (the shape sessions' preview-restore copy is a session-local buffer, not this), undo baseline (the baseline equally guards redo preservation).
 
 **PixelCanvas History**:
 The single-canvas undo/redo species — a LIFO of dimension-aware `Snapshot`s (width, height, pixel buffer) so pixels restore across resize. The Apple shell's history. Canonical core type `PixelCanvasHistory`.

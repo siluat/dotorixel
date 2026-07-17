@@ -2,7 +2,7 @@ import type { CanvasCoords, CanvasPoint, Document } from './canvas-model';
 import { colorToHex, type Color } from './color';
 import type { DrawingOps } from './drawing-ops';
 import {
-	CAPTURE_UNDO_SNAPSHOT,
+	BEGIN_EDIT,
 	CANVAS_CHANGED,
 	NO_EFFECTS,
 	type ToolContext,
@@ -105,14 +105,14 @@ function createStrokeDrawingOps(
 
 function undoableStartEffects(addsActiveColor: boolean, color: Color): EditorEffects {
 	return addsActiveColor
-		? [...CAPTURE_UNDO_SNAPSHOT, { type: 'addRecentColor', hex: colorToHex(color) }]
-		: CAPTURE_UNDO_SNAPSHOT;
+		? [...BEGIN_EDIT, { type: 'addRecentColor', hex: colorToHex(color) }]
+		: BEGIN_EDIT;
 }
 
 /**
  * Common case — paints pixels every sample along the drag path. Defaults:
  * supports pixel-perfect, adds the active draw color to recent colors at
- * stroke start, requests an undo snapshot at start.
+ * stroke start, opens the Edit Baseline at start.
  */
 export function continuousTool(spec: {
 	id: ToolType;
@@ -217,7 +217,7 @@ export function shapeTool(spec: {
 
 /**
  * Click-once — fires on first sample, ignores subsequent drag. Defaults:
- * requests an undo snapshot before firing, adds active color to recent colors.
+ * opens the Edit Baseline before firing, adds active color to recent colors.
  */
 export function oneShotTool(spec: {
 	id: ToolType;

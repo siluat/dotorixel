@@ -17,7 +17,7 @@ final class FreehandStrokeSession: StrokeSession {
     }
 
     func start() {
-        host.captureUndoSnapshot()
+        host.beginEdit()
     }
 
     func draw(current: ScreenCanvasCoords, previous: ScreenCanvasCoords?) -> Bool {

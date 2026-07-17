@@ -20,20 +20,22 @@ struct CanvasBindingsTests {
         #expect(try canvas.getPixel(x: 3, y: 3) == red)
     }
 
-    @Test("stroke baseline begin/end cross the FFI boundary and resolve by comparison")
-    func strokeBaselineSmoke() throws {
+    @Test("edit baseline begin/end cross the FFI boundary and report the verdict")
+    func editBaselineSmoke() throws {
         let canvas = try ApplePixelCanvas(width: 2, height: 2)
         let history = AppleHistoryManager.defaultManager()
 
-        // No-op stroke: identical pixels at begin and end → nothing committed.
-        history.beginStroke(width: canvas.width(), height: canvas.height(), pixels: canvas.pixels())
-        history.endStroke(currentWidth: canvas.width(), currentHeight: canvas.height(), currentPixels: canvas.pixels())
+        // No-op edit: identical pixels at begin and end → nothing committed.
+        history.beginEdit(width: canvas.width(), height: canvas.height(), pixels: canvas.pixels())
+        let noopCommitted = history.endEdit(currentWidth: canvas.width(), currentHeight: canvas.height(), currentPixels: canvas.pixels())
+        #expect(!noopCommitted)
         #expect(!history.canUndo())
 
-        // Real stroke: a changed pixel at end → the baseline commits.
-        history.beginStroke(width: canvas.width(), height: canvas.height(), pixels: canvas.pixels())
+        // Real edit: a changed pixel at end → the baseline commits.
+        history.beginEdit(width: canvas.width(), height: canvas.height(), pixels: canvas.pixels())
         try canvas.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
-        history.endStroke(currentWidth: canvas.width(), currentHeight: canvas.height(), currentPixels: canvas.pixels())
+        let realCommitted = history.endEdit(currentWidth: canvas.width(), currentHeight: canvas.height(), currentPixels: canvas.pixels())
+        #expect(realCommitted)
         #expect(history.canUndo())
     }
 }

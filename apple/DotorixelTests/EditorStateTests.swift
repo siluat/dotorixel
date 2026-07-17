@@ -75,7 +75,7 @@ struct EditorStateStrokeTests {
         #expect(try state.pixelCanvas.getPixel(x: 3, y: 4) == state.foregroundColor)
         #expect(state.canvasVersion == versionBefore + 1)
         #expect(state.isDrawing)
-        // The Stroke Baseline is pending, not committed — undo is sealed
+        // The Edit Baseline is pending, not committed — undo is sealed
         // while drawing, so nothing is on the stack yet.
         #expect(!state.canUndo)
 
@@ -83,7 +83,7 @@ struct EditorStateStrokeTests {
         #expect(state.canUndo)
     }
 
-    @Test("a begin during an active stroke resolves the previous Stroke Baseline first")
+    @Test("a begin during an active stroke resolves the previous Edit Baseline first")
     func beginWhileDrawingResolvesPreviousBaseline() throws {
         let state = EditorState(width: 16, height: 16)
 
@@ -297,13 +297,38 @@ struct EditorStateClearCanvasTests {
     }
 
     @Test("clear bumps canvasVersion to trigger re-render")
-    func clearBumpsCanvasVersion() {
+    func clearBumpsCanvasVersion() throws {
         let state = EditorState(width: 16, height: 16)
+        try state.pixelCanvas.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
         let before = state.canvasVersion
 
         state.handleClearCanvas()
 
         #expect(state.canvasVersion == before + 1)
+    }
+
+    @Test("clear on an already-blank canvas records no history entry and skips the re-render")
+    func clearOnBlankCanvasRecordsNothing() {
+        let state = EditorState(width: 16, height: 16)
+        let before = state.canvasVersion
+
+        state.handleClearCanvas()
+
+        #expect(!state.canUndo)
+        #expect(state.canvasVersion == before)
+    }
+
+    @Test("clear on an already-blank canvas preserves the redo future")
+    func clearOnBlankCanvasPreservesRedo() {
+        let state = EditorState(width: 16, height: 16)
+        state.beginStroke(at: ScreenCanvasCoords(x: 3, y: 4))
+        state.endStroke()
+        state.handleUndo()
+        #expect(state.canRedo)
+
+        state.handleClearCanvas()
+
+        #expect(state.canRedo)
     }
 
     @Test("undo after clear restores the pre-clear pixels")

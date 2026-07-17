@@ -3639,7 +3639,7 @@ describe('TabState — frame axis', () => {
 		expect(tab.document.frames_metadata()[0].duration_ms).toBe(500);
 	});
 
-	it('setFrameDuration is a no-op when the duration is unchanged: no snapshot, no dirty', () => {
+	it('setFrameDuration is a no-op when the duration is unchanged: no History entry, no dirty', () => {
 		const { tab, notifier } = makeTab();
 		const frameA = tab.document.active_frame_id();
 		const current = tab.document.frames_metadata()[0].duration_ms;
@@ -4052,7 +4052,7 @@ describe('TabState — onion skin projection', () => {
 });
 
 // A stroke's undo entry commits at stroke end only when the stroke actually
-// changed the document (the Stroke Baseline, issue 243). A visual no-op —
+// changed the document (the Edit Baseline, issue 243). A visual no-op —
 // out-of-canvas tap, same-color retrace, cancelled preview, zero-delta move —
 // leaves History exactly as it was, including the redo future.
 describe('TabState no-op strokes and History', () => {

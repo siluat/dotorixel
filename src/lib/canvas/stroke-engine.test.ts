@@ -216,17 +216,17 @@ describe('stroke-engine — begin effects', () => {
 		expect(effects).toEqual([]);
 	});
 
-	it('emits an undo snapshot request for pencil at begin', () => {
+	it('opens the Edit Baseline for pencil at begin', () => {
 		const { engine } = createSetup();
 		const { effects } = engine.begin({ button: 0, pointerType: 'mouse' });
-		expect(effects).toContainEqual({ type: 'captureUndoSnapshot' });
+		expect(effects).toContainEqual({ type: 'beginEdit' });
 	});
 
-	it('does not emit an undo snapshot request for eyedropper', () => {
+	it('does not open the Edit Baseline for eyedropper', () => {
 		const { engine, shared } = createSetup();
 		shared.activeTool = 'eyedropper';
 		const { effects } = engine.begin({ button: 0, pointerType: 'mouse' });
-		expect(effects).not.toContainEqual({ type: 'captureUndoSnapshot' });
+		expect(effects).not.toContainEqual({ type: 'beginEdit' });
 	});
 });
 
@@ -287,11 +287,11 @@ describe('stroke-engine — ActiveStroke adapter', () => {
 // ── Move tool (dragTransform customTool) ────────────────────────────
 
 describe('stroke-engine — move tool', () => {
-	it('emits an undo snapshot request at begin', () => {
+	it('opens the Edit Baseline at begin', () => {
 		const { engine, shared } = createSetup();
 		shared.activeTool = 'move';
 		const { effects } = engine.begin({ button: 0, pointerType: 'mouse' });
-		expect(effects).toContainEqual({ type: 'captureUndoSnapshot' });
+		expect(effects).toContainEqual({ type: 'beginEdit' });
 	});
 
 	it('first drag sample sets the anchor without shifting the canvas', () => {

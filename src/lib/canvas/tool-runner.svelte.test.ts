@@ -94,7 +94,7 @@ describe('ToolRunner — pencil tool', () => {
 	it('produces canvasChanged and addRecentColor effects', () => {
 		const { runner } = createRunner();
 		const startEffects = runner.drawStart(0, 'mouse');
-		expect(hasEffect(startEffects, 'captureUndoSnapshot')).toBe(true);
+		expect(hasEffect(startEffects, 'beginEdit')).toBe(true);
 		expect(hasEffect(startEffects, 'addRecentColor')).toBe(true);
 
 		const drawEffects = runner.draw({ x: 3, y: 3 }, null);
@@ -199,16 +199,16 @@ describe('ToolRunner — eyedropper tool', () => {
 		expect(colorPickEffect).toEqual({ type: 'colorPick', target: 'foreground', color: RED });
 	});
 
-	it('does not emit an undo snapshot request', () => {
+	it('does not open the Edit Baseline', () => {
 		const { runner, shared } = createRunner();
 		shared.activeTool = 'eyedropper';
 		const startEffects = runner.drawStart(0, 'mouse');
 		const drawEffects = runner.draw({ x: 0, y: 0 }, null);
 		const endEffects = runner.drawEnd();
 
-		expect(hasEffect(startEffects, 'captureUndoSnapshot')).toBe(false);
-		expect(hasEffect(drawEffects, 'captureUndoSnapshot')).toBe(false);
-		expect(hasEffect(endEffects, 'captureUndoSnapshot')).toBe(false);
+		expect(hasEffect(startEffects, 'beginEdit')).toBe(false);
+		expect(hasEffect(drawEffects, 'beginEdit')).toBe(false);
+		expect(hasEffect(endEffects, 'beginEdit')).toBe(false);
 	});
 });
 

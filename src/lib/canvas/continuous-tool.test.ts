@@ -60,7 +60,7 @@ describe('continuousTool sugar', () => {
 		expect(tool.id).toBe('pencil');
 	});
 
-	it('requests an undo snapshot on start', () => {
+	it('opens the Edit Baseline on start', () => {
 		const canvas = createFakePixelCanvas(8, 8);
 		const { host } = makeHost(canvas);
 		const tool = continuousTool({ id: 'pencil', apply: vi.fn(() => true) });
@@ -70,7 +70,7 @@ describe('continuousTool sugar', () => {
 			inputSource: 'mouse'
 		});
 
-		expect(session.start()).toContainEqual({ type: 'captureUndoSnapshot' });
+		expect(session.start()).toContainEqual({ type: 'beginEdit' });
 	});
 
 	it('emits addRecentColor on start by default', () => {
@@ -84,7 +84,7 @@ describe('continuousTool sugar', () => {
 		});
 
 		expect(session.start()).toEqual([
-			{ type: 'captureUndoSnapshot' },
+			{ type: 'beginEdit' },
 			{ type: 'addRecentColor', hex: '#ff0000' }
 		]);
 	});
@@ -103,7 +103,7 @@ describe('continuousTool sugar', () => {
 			inputSource: 'mouse'
 		});
 
-		expect(session.start()).toEqual([{ type: 'captureUndoSnapshot' }]);
+		expect(session.start()).toEqual([{ type: 'beginEdit' }]);
 	});
 
 	it('returns CANVAS_CHANGED from draw when apply returns true', () => {

@@ -29,10 +29,10 @@ export interface CanvasConstraints {
  * snapshot (layer stack + active pointer + Marquee + counters); pushing clears
  * the redo future and evicts the oldest snapshot once the cap is exceeded.
  *
- * `begin_stroke` / `end_stroke` carry the Stroke Baseline: the pre-stroke
- * document held pending at stroke begin and committed at stroke end only when
- * the stroke actually changed the document — a no-op stroke leaves both
- * stacks (including the redo future) untouched. The core owns the comparison.
+ * `begin_edit` / `end_edit` carry the Edit Baseline: the pre-edit document
+ * held pending at edit begin and committed at edit end only when the edit
+ * actually changed the document — a no-op edit leaves both stacks (including
+ * the redo future) untouched. The core owns the comparison.
  *
  * Structurally satisfied by WasmHistoryManager — no wrapping needed at runtime.
  */
@@ -41,8 +41,9 @@ export interface DocumentHistory {
 	can_redo(): boolean;
 	clear(): void;
 	push_document(document: Document): void;
-	begin_stroke(document: Document): void;
-	end_stroke(current: Document): void;
+	begin_edit(document: Document): void;
+	/** Returns whether an undo entry was committed. */
+	end_edit(current: Document): boolean;
 	undo_document(current: Document): Document | undefined;
 	redo_document(current: Document): Document | undefined;
 }

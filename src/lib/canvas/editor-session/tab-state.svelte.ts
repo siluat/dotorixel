@@ -481,11 +481,11 @@ export class TabState {
 		let persistableChanged = false;
 		for (const effect of effects) {
 			switch (effect.type) {
-				case 'captureUndoSnapshot':
-					// A stroke's capture begins the pending Stroke Baseline; it
+				case 'beginEdit':
+					// A stroke's capture begins the pending Edit Baseline; it
 					// commits at drawEnd/drawCancel only if the stroke changed
 					// the document (issue 243).
-					this.#documentChangeJournal.beginStroke();
+					this.#documentChangeJournal.beginEdit();
 					break;
 				case 'canvasChanged':
 					this.#documentChangeJournal.recordCanvasChanged();
@@ -631,13 +631,13 @@ export class TabState {
 		// Marquee commit's snapshot reads the live Marquee, not the stale baseline.
 		this.#floatingSelection.endSelectionDrag();
 		this.#applyEffects(this.#toolRunner.drawEnd());
-		this.#documentChangeJournal.endStroke();
+		this.#documentChangeJournal.endEdit();
 	};
 
 	drawCancel = (): void => {
 		this.#applyEffects(this.#toolRunner.drawCancel());
 		this.#floatingSelection.endSelectionDrag();
-		this.#documentChangeJournal.endStroke();
+		this.#documentChangeJournal.endEdit();
 	};
 
 	modifierChanged = (): void => {
@@ -856,9 +856,9 @@ export class TabState {
 	 * Removes the layer with `id`. A no-op while a stroke is drawing (a live
 	 * stroke's target must not vanish mid-stroke) and when only one layer remains
 	 * (last-layer guard parallels the UI's disabled affordance and keeps history
-	 * clean — no snapshot is pushed in that branch). When the removed layer was
+	 * clean — no History entry in that branch). When the removed layer was
 	 * active, the active pointer moves to an adjacent layer (delegated to the
-	 * core). Pushes an undo snapshot, bumps `renderVersion`, and marks the tab
+	 * core). Records an undo entry, bumps `renderVersion`, and marks the tab
 	 * dirty. Throws if `id` does not refer to an existing layer.
 	 */
 	removeLayer = (id: string): void => {
@@ -884,9 +884,9 @@ export class TabState {
 	 * Moves the layer with `id` to `newVisualIndex` in **panel order** (top of
 	 * panel = visual 0). Translates visual→stack via
 	 * `stack_idx = (layer_count - 1) - visual_idx` and delegates to the core.
-	 * No-op when the layer is already at that visual position (no snapshot, no
+	 * No-op when the layer is already at that visual position (no History entry, no
 	 * renderVersion bump, no markDirty — keeps history clean and parallels the
-	 * `removeLayer` last-layer guard pattern). Pushes an undo snapshot on the
+	 * `removeLayer` last-layer rule). Records an undo entry on the
 	 * real-move branch and bumps `renderVersion`. Throws if `id` does not refer
 	 * to an existing layer.
 	 */
@@ -896,9 +896,9 @@ export class TabState {
 
 	/**
 	 * Sets the visibility flag of the layer with `id`. No-op when the layer's
-	 * `visible` is already `visible` (no snapshot, no renderVersion bump, no
+	 * `visible` is already `visible` (no History entry, no renderVersion bump, no
 	 * markDirty — keeps history clean and parallels the `setActiveLayer`
-	 * idempotency pattern). On a real change, pushes an undo snapshot, bumps
+	 * idempotency pattern). On a real change, records an undo entry, bumps
 	 * `renderVersion`, and marks the tab dirty. Throws if `id` does not refer
 	 * to an existing layer.
 	 */
@@ -910,7 +910,7 @@ export class TabState {
 	 * Moves a Reference Layer's source image in canvas pixel space. `placement.x`
 	 * and `placement.y` are document-pixel coordinates; `placement.scale` must
 	 * be finite and positive. No-ops when unchanged. On a real change, records an
-	 * undo snapshot, updates the document, bumps `renderVersion`, and marks this
+	 * undo entry, updates the document, bumps `renderVersion`, and marks this
 	 * tab dirty. Throws when `id` does not exist or is not a Reference Layer.
 	 */
 	setReferencePlacement = (id: string, placement: ReferencePlacement): void => {
@@ -944,7 +944,7 @@ export class TabState {
 	/**
 	 * Inserts a transparent frame after the active frame and makes it active.
 	 * Routes through `#mutate`, so any in-flight Floating Selection commits onto
-	 * its origin frame first. Pushes an undo snapshot and marks the tab dirty.
+	 * its origin frame first. Records an undo entry and marks the tab dirty.
 	 */
 	addFrame = (): void => {
 		this.#mutate({ type: 'add-frame' });
@@ -961,9 +961,9 @@ export class TabState {
 	/**
 	 * Removes the frame with `id`. A no-op while a stroke is drawing (a live
 	 * stroke's target must not vanish mid-stroke) and when only one frame remains
-	 * (last-frame guard keeps history clean — no snapshot). When the removed frame
+	 * (last-frame rule keeps history clean — no History entry). When the removed frame
 	 * was active, the active pointer moves to an adjacent frame (delegated to the
-	 * core). Pushes an undo snapshot on the real-removal branch.
+	 * core). Records an undo entry on the real-removal branch.
 	 */
 	removeFrame = (id: string): void => {
 		// Mid-stroke seal: never move or destroy the stroke's target while drawing.
@@ -973,8 +973,8 @@ export class TabState {
 
 	/**
 	 * Moves the frame with `id` to `newIndex` — a 0-based axis position where
-	 * ordinal 1 is index 0. No-op when the frame is already there (no snapshot).
-	 * Pushes an undo snapshot on a real move.
+	 * ordinal 1 is index 0. No-op when the frame is already there (no History entry).
+	 * Records an undo entry on a real move.
 	 */
 	reorderFrame = (id: string, newIndex: number): void => {
 		this.#mutate({ type: 'reorder-frame', id, newIndex });

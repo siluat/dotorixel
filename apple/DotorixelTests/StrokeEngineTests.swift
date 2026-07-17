@@ -65,7 +65,7 @@ private final class FakeStrokeSessionHost: StrokeSessionHost {
         self.backgroundColor = Color(r: 0xFF, g: 0xFF, b: 0xFF, a: 0xFF)
     }
 
-    func captureUndoSnapshot() {
+    func beginEdit() {
         undoSnapshotCount += 1
     }
 }

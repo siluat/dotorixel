@@ -1432,13 +1432,6 @@ impl WasmHistoryManager {
         DocumentHistory::DEFAULT_MAX_SNAPSHOTS
     }
 
-    /// Captures `document` as the new top of the undo stack and clears the
-    /// redo stack. Older snapshots are evicted once the configured maximum is
-    /// exceeded.
-    pub fn push_document(&mut self, document: &WasmDocument) {
-        self.inner.push_document(&document.inner);
-    }
-
     /// Holds `document` as the pending Edit Baseline. Nothing is pushed and
     /// the redo stack stays untouched until `end_edit` resolves it.
     pub fn begin_edit(&mut self, document: &WasmDocument) {
@@ -2558,14 +2551,15 @@ mod tests {
     // -- WasmHistoryManager Document path --
 
     #[test]
-    fn wasm_history_manager_push_then_undo_document_round_trip() {
+    fn wasm_history_manager_edit_then_undo_document_round_trip() {
         let first = Uuid::new_v4();
         let second = Uuid::new_v4();
         let mut doc = WasmDocument::new(2, 2, first.to_string(), "A".into()).unwrap();
         let mut history = WasmHistoryManager::default_manager();
 
-        history.push_document(&doc);
+        history.begin_edit(&doc);
         doc.add_layer(second.to_string(), "B".into()).unwrap(); // mutate
+        history.end_edit(&doc);
 
         let restored = history
             .undo_document(&doc)
@@ -2582,8 +2576,9 @@ mod tests {
         let mut doc = WasmDocument::new(2, 2, first.to_string(), "A".into()).unwrap();
         let mut history = WasmHistoryManager::default_manager();
 
-        history.push_document(&doc);
+        history.begin_edit(&doc);
         doc.add_layer(second.to_string(), "B".into()).unwrap();
+        history.end_edit(&doc);
 
         let restored = history.undo_document(&doc).unwrap();
         let redone = history.redo_document(&restored).unwrap();
@@ -2593,7 +2588,7 @@ mod tests {
     }
 
     #[test]
-    fn wasm_history_manager_noop_stroke_leaves_history_untouched() {
+    fn wasm_history_manager_noop_edit_leaves_history_untouched() {
         let doc = WasmDocument::new(2, 2, Uuid::new_v4().to_string(), "A".into()).unwrap();
         let mut history = WasmHistoryManager::default_manager();
 
@@ -2604,7 +2599,7 @@ mod tests {
     }
 
     #[test]
-    fn wasm_history_manager_changed_stroke_commits_at_end() {
+    fn wasm_history_manager_changed_edit_commits_at_end() {
         let mut doc = WasmDocument::new(2, 2, Uuid::new_v4().to_string(), "A".into()).unwrap();
         let mut history = WasmHistoryManager::default_manager();
 

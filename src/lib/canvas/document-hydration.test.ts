@@ -310,14 +310,15 @@ describe('documentFromLayerSource — multi-frame', () => {
 });
 
 describe('DocumentHistory document path', () => {
-	it('push, undo, redo round-trip the Document state', () => {
+	it('edit, undo, redo round-trip the Document state', () => {
 		const initial = documentFromLayerSource(makeSchema());
 		const mutated = documentFromLayerSource(
 			makeSchema({ nextLayerNumber: 99, timelinePanelCollapsed: true })
 		);
 		const history = createDocumentHistory();
 
-		history.push_document(initial);
+		history.begin_edit(initial);
+		history.end_edit(mutated);
 		const undone = history.undo_document(mutated);
 
 		expect(undone).toBeDefined();

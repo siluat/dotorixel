@@ -48,11 +48,6 @@ function createFakeDocumentHistory(
 			canUndo = false;
 			canRedo = false;
 		},
-		push_document: () => {
-			events.push('snapshot');
-			canUndo = true;
-			canRedo = false;
-		},
 		begin_edit: () => {
 			events.push('begin-edit');
 		},

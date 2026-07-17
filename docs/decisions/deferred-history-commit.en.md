@@ -43,9 +43,10 @@ earned an entry.
 - Shells gate on the returned verdict the follow-up work an edit only earns by
   changing something — re-render, dirty marking — and report the edit as
   not-applied to their own callers.
-- The eager push is no longer reachable from either shell. Predicting a no-op
-  is not merely unnecessary now; a second authority on the same question is
-  what produced 244.
+- The eager push is gone from the public surface entirely (issue 246), leaving
+  the ring's private `push` reachable only through `end_edit`. Predicting a
+  no-op is not merely unnecessary now; a second authority on the same question
+  is what produced 244.
 - What survives in the journal is a **validity** check, not a prediction: the
   rules the Document actually has (the last layer or frame cannot be removed, a
   Reference Layer cannot be reordered) and boundary validation of ids and
@@ -106,7 +107,7 @@ earned an entry.
 - The Apple parity pins asserting "snapshot pushed even for a no-op" invert,
   and the web sugars' snapshot-at-start contract becomes begin-at-start /
   commit-at-end.
-- The core's public eager push (`push_document`, `push_snapshot`) keeps no
-  production caller, surviving only as a test shortcut — issue 246 removes it
-  so that "the Edit Baseline is the only way to record history" holds by
-  construction rather than by convention.
+- The core's public eager push (`push_document`, `push_snapshot`) and both its
+  FFI surfaces are gone (issue 246). `History::push` survives only as a private
+  detail of the ring that `end_edit` calls, so "the Edit Baseline is the only
+  way to record history" now holds by construction rather than by convention.

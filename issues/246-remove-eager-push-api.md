@@ -1,6 +1,6 @@
 ---
 title: Remove the eager push API from History once commands use the Edit Baseline
-status: needs-triage
+status: done
 created: 2026-07-17
 parent: 244
 ---
@@ -41,3 +41,63 @@ true by construction rather than by convention.
 - Watch for non-test callers outside the shells — document hydration touches
   history in tests, and it is worth confirming it has no production need for an
   uncompared push.
+
+## Results
+
+The census in the Notes held up. `push_snapshot` survived only as a UniFFI
+method with no Swift caller; `push_document` only as a wasm-bindgen method plus
+an interface declaration. Everything else was test setup. Deleting the core
+methods made the compiler name exactly those two binding sites and nothing
+else, which confirmed the census a second time.
+
+`History::push` is now private to the ring with `end_edit` as its only caller,
+so "the Edit Baseline is the only way to record history" holds by construction.
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/history.rs` | Deleted `PixelCanvasHistory::push_snapshot` and `DocumentHistory::push_document`. Migrated the test suite onto `begin_edit`/`end_edit` via a per-species `record_edit` setup helper; swept `stroke` → `edit` in the seam's test vocabulary |
+| `wasm/src/lib.rs` | Deleted the `push_document` wasm-bindgen surface; migrated two history tests to the begin/end pair |
+| `apple/src/lib.rs` | Deleted the `push_snapshot` UniFFI surface |
+| `src/lib/canvas/adapter-types.ts` | Dropped `push_document` from the `DocumentHistory` interface; rewrote the doc comment so the Edit Baseline is described as the only recording path |
+| `src/lib/canvas/document-hydration.test.ts` | Round-trip test drives the real wasm binding through `begin_edit`/`end_edit` |
+| `src/lib/canvas/editor-session/document-change-journal.test.ts` | Removed the dead `push_document` stub entry |
+| `docs/decisions/deferred-history-commit.en.md` | Closed the follow-up bullet naming this issue; the eager push is now described as gone rather than merely unreachable |
+
+### Key Decisions
+
+- **Hybrid test migration.** Where a push was pure setup (ordering, eviction,
+  cap), a `record_edit` helper drives the real begin/end pair and keeps the
+  call one line — it synthesizes a throwaway changed end state, since only the
+  baseline is ever stored. Where the mutation carried the test's meaning
+  (add/remove/reorder layer, pixel change), `begin_edit` / mutate / `end_edit`
+  is inlined so the test shows the real edit shape.
+- **Swept `stroke` → `edit` in the seam's vocabulary** (13 names in core, 2 in
+  wasm). 244 renamed the seam Stroke Baseline → Edit Baseline because a command
+  is an Edit too, but the test names lagged; migrating half of them would have
+  left two words for one concept. `stroke` is kept where it means the actual
+  drag gesture (`restore_active_layer_pixels`' doc comment).
+- **Left `uniffi-mutex-interior-mutability.*.md` alone.** It cites
+  `push_snapshot` and `HistoryManager`, neither of which exists now, but it is
+  treated as a snapshot of a 2026-03 decision that still stands. Judgement
+  call, not a confirmed policy — see Notes.
+
+### Notes
+
+- Two tests were removed, both for cause. `command_push_is_independent_of_a_pending_stroke`
+  asserted an eager push nests inside a pending baseline — impossible since 244
+  routed commands through the same seam, and it was the only failure the
+  migration produced. `push_clears_redo_stack` became step-for-step identical
+  to `changed_edit_discards_the_redo_future` once migrated. The document
+  species had no equivalent of the latter, so the migrated version fills that
+  gap — net coverage is up, not down.
+- `apple/generated/` is gitignored, so the regenerated Swift bindings are not
+  in the diff. `pushSnapshot` is gone from the generated surface and the Apple
+  shell builds (`xcodebuild -scheme Dotorixel -destination 'platform=macOS'`).
+- Verified: 567 Rust tests, 1624 TS tests, `svelte-check` 0 errors, `cargo fmt`
+  clean, Apple build succeeds. The three clippy warnings are pre-existing in
+  `tool.rs` / `pixel_perfect.rs` and unchanged from `main`.
+- The `uniffi-mutex` ADR question is unresolved rather than settled. It carries
+  stale names from an earlier rename that nobody corrected; whether that
+  reflects a deliberate "ADRs are historical" policy or simple neglect was not
+  established. If the policy is the latter, a sweep of stale ADR references is
+  worth its own issue.

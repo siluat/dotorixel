@@ -311,6 +311,28 @@ impl AppleHistoryManager {
             .push_snapshot(width, height, &pixels);
     }
 
+    /// Holds the current pixel state as the pending Stroke Baseline. Nothing
+    /// is pushed and the redo stack stays untouched until `end_stroke`
+    /// resolves it.
+    fn begin_stroke(&self, width: u32, height: u32, pixels: Vec<u8>) {
+        self.inner
+            .lock()
+            .unwrap()
+            .begin_stroke(width, height, &pixels);
+    }
+
+    /// Resolves the pending Stroke Baseline against the caller's current
+    /// pixel state: pushes it as the new undo top (clearing the redo stack)
+    /// only when the stroke actually changed the canvas; a no-op stroke
+    /// discards the baseline and leaves both stacks untouched. No-op when no
+    /// baseline is pending.
+    fn end_stroke(&self, current_width: u32, current_height: u32, current_pixels: Vec<u8>) {
+        self.inner
+            .lock()
+            .unwrap()
+            .end_stroke(current_width, current_height, &current_pixels);
+    }
+
     fn undo(
         &self,
         current_width: u32,

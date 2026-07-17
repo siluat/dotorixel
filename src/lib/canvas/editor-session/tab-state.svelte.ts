@@ -482,7 +482,10 @@ export class TabState {
 		for (const effect of effects) {
 			switch (effect.type) {
 				case 'captureUndoSnapshot':
-					this.#documentChangeJournal.captureUndoSnapshot();
+					// A stroke's capture begins the pending Stroke Baseline; it
+					// commits at drawEnd/drawCancel only if the stroke changed
+					// the document (issue 243).
+					this.#documentChangeJournal.beginStroke();
 					break;
 				case 'canvasChanged':
 					this.#documentChangeJournal.recordCanvasChanged();
@@ -628,11 +631,13 @@ export class TabState {
 		// Marquee commit's snapshot reads the live Marquee, not the stale baseline.
 		this.#floatingSelection.endSelectionDrag();
 		this.#applyEffects(this.#toolRunner.drawEnd());
+		this.#documentChangeJournal.endStroke();
 	};
 
 	drawCancel = (): void => {
 		this.#applyEffects(this.#toolRunner.drawCancel());
 		this.#floatingSelection.endSelectionDrag();
+		this.#documentChangeJournal.endStroke();
 	};
 
 	modifierChanged = (): void => {
@@ -828,10 +833,6 @@ export class TabState {
 			},
 			shouldClearPixels: true
 		};
-	};
-
-	pushHistorySnapshot = (): void => {
-		this.#documentChangeJournal.captureUndoSnapshot();
 	};
 
 	addLayer = (name: string): void => {

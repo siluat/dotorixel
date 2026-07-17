@@ -118,7 +118,7 @@ struct ShapeStrokeSessionTests {
         #expect(paintedPixelCount(state) == outline.count)
     }
 
-    @Test("cancel restores the canvas to its pre-stroke state and keeps history consistent")
+    @Test("cancel restores the canvas to its pre-stroke state and leaves no undo entry")
     func cancelRestoresPreStrokeCanvas() throws {
         let state = EditorState(width: 16, height: 16)
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
@@ -133,10 +133,9 @@ struct ShapeStrokeSessionTests {
         #expect(try state.pixelCanvas.getPixel(x: 2, y: 1) == red)
         #expect(paintedPixelCount(state) == 1)
         #expect(!state.isDrawing)
-        // Undo after cancel restores the identical pre-stroke state (web parity).
-        state.handleUndo()
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 1) == red)
-        #expect(paintedPixelCount(state) == 1)
+        // The cancel restored the baseline, so the stroke resolved as a no-op
+        // — no History entry to undo (243).
+        #expect(!state.canUndo)
     }
 
     @Test("a drag that leaves the canvas still erases the previous preview from the screen")

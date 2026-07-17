@@ -73,6 +73,12 @@ final class EditorState {
     /// The pointer button picks the stroke's draw color (primary → foreground,
     /// secondary → background); touch input is always primary.
     func beginStroke(at coords: ScreenCanvasCoords, button: PointerButton = .primary) {
+        // A begin can arrive while a stroke is active (e.g. a second finger on
+        // iPadOS). Close the previous stroke through the full cancel path so
+        // its Stroke Baseline resolves before the next session begins one.
+        if isDrawing {
+            cancelStroke()
+        }
         isDrawing = true
         if strokeEngine.begin(tool: activeTool, host: self, button: button, at: coords) {
             canvasVersion += 1
@@ -86,21 +92,38 @@ final class EditorState {
         }
     }
 
-    /// Ends the active stroke, committing any deferred effect.
+    /// Ends the active stroke, committing any deferred effect and resolving
+    /// the stroke's undo entry.
     func endStroke() {
         if strokeEngine.end() {
             canvasVersion += 1
         }
+        resolveStrokeBaseline()
         isDrawing = false
     }
 
     /// Cancels the active stroke after an interrupted pointer sequence
-    /// (e.g. `touchesCancelled`), discarding any deferred effect.
+    /// (e.g. `touchesCancelled`), discarding any deferred effect. A cancel
+    /// that restored the pre-stroke pixels resolves as a no-op and leaves
+    /// History untouched.
     func cancelStroke() {
         if strokeEngine.cancel() {
             canvasVersion += 1
         }
+        resolveStrokeBaseline()
         isDrawing = false
+    }
+
+    /// Resolves the pending Stroke Baseline against the post-stroke canvas —
+    /// the undo entry commits only when the stroke actually changed pixels; a
+    /// no-op stroke leaves both stacks (including the redo future) untouched.
+    private func resolveStrokeBaseline() {
+        historyManager.endStroke(
+            currentWidth: pixelCanvas.width(),
+            currentHeight: pixelCanvas.height(),
+            currentPixels: pixelCanvas.pixels()
+        )
+        historyVersion += 1
     }
 
     // MARK: - History
@@ -247,7 +270,14 @@ final class EditorState {
 // MARK: - StrokeSessionHost
 
 extension EditorState: StrokeSessionHost {
+    /// Holds the current canvas pixels as the pending Stroke Baseline. The
+    /// entry commits at stroke end only if the stroke changed the canvas —
+    /// see `resolveStrokeBaseline()`.
     func captureUndoSnapshot() {
-        pushHistorySnapshot()
+        historyManager.beginStroke(
+            width: pixelCanvas.width(),
+            height: pixelCanvas.height(),
+            pixels: pixelCanvas.pixels()
+        )
     }
 }

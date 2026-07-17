@@ -219,6 +219,31 @@ pub struct Document {
     timeline_panel_collapsed: bool,
 }
 
+// `Frame` equality is identity-only (`id` alone — a retimed frame stays the
+// same frame in sets and maps), so a derived `PartialEq` would call retimed
+// documents equal. Document value equality must see every field's content —
+// including each frame's duration — so the frame comparison is written out
+// manually. Cheap scalar fields compare first so the layer buffers (the
+// expensive part) are only scanned when everything else already matches.
+impl PartialEq for Document {
+    fn eq(&self, other: &Self) -> bool {
+        self.width == other.width
+            && self.height == other.height
+            && self.active_layer_id == other.active_layer_id
+            && self.active_frame_id == other.active_frame_id
+            && self.marquee == other.marquee
+            && self.next_layer_number == other.next_layer_number
+            && self.timeline_panel_collapsed == other.timeline_panel_collapsed
+            && self.frames.len() == other.frames.len()
+            && self
+                .frames
+                .iter()
+                .zip(&other.frames)
+                .all(|(a, b)| a.id == b.id && a.duration_ms == b.duration_ms)
+            && self.layers == other.layers
+    }
+}
+
 impl Document {
     /// Creates a new document with one transparent layer (`first_layer_id` /
     /// `first_layer_name`) marked active and one [initial frame](Frame::INITIAL)

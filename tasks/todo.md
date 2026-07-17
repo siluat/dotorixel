@@ -52,7 +52,6 @@ Dependency order; 230–233 are done, 242 closes the phase.
 
 ## Review backlog (not assigned to a milestone)
 
-- [243 — No-op strokes push empty undo entries](../issues/243-no-op-stroke-history-entries.md) — a stroke that changes nothing still pushes an undo snapshot on both shells; first Undo then looks like a no-op. Triaged 2026-07-17: deferred stroke commit in core (Stroke Baseline), in-progress
 - [244 — Command no-ops still push history entries](../issues/244-command-noop-history-entries.md) — kind-based `willChange` guards let content-blind no-ops through (Clear on empty layer, …); split from 243, needs-triage
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate (deferred from Milestone 3 MVP)
 - Reference image import — clipboard paste support (Ctrl/Cmd+V), deferred from Milestone 3 MVP

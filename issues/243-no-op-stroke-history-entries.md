@@ -1,6 +1,6 @@
 ---
 title: No-op strokes push empty undo entries (web + Apple, all session species)
-status: in-progress
+status: done
 created: 2026-07-17
 ---
 
@@ -126,3 +126,47 @@ leave History exactly as it was, including the redo stack.
   — split to issue 244.
 - Dirty-marking / auto-save semantics for no-op strokes.
 - Any change to the cap, eviction, or branch-discarding LIFO invariant.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/history.rs` | `History<T>` gains the pending Stroke Baseline (`begin_stroke` / `end_stroke(is_unchanged)`), exposed on both species; `undo`/`redo` debug-assert the no-pending precondition; `clear` discards a pending baseline. 15 new regression tests |
+| `crates/core/src/document.rs` | Manual `PartialEq for Document` — content equality that still sees retimed frames (`Frame::eq` is identity-only); cheap scalar fields compare before layer buffers |
+| `wasm/src/lib.rs` | `WasmHistoryManager.begin_stroke` / `end_stroke` + no-op / changed round-trip tests |
+| `apple/src/lib.rs` | `AppleHistoryManager.beginStroke` / `endStroke` (Mutex wrapper pattern) |
+| `apple/Dotorixel/State/EditorState.swift` | `captureUndoSnapshot` becomes the begin mark; `endStroke`/`cancelStroke` resolve via private `resolveStrokeBaseline()`; a begin while drawing routes the previous stroke through the full cancel path first |
+| `apple/Dotorixel/Tools/StrokeSession.swift` | `StrokeSessionHost.captureUndoSnapshot` doc updated to the deferred contract |
+| `src/lib/canvas/adapter-types.ts` | `DocumentHistory` interface gains `begin_stroke` / `end_stroke` |
+| `src/lib/canvas/editor-session/document-change-journal.svelte.ts` | `beginStroke()` / `endStroke()`; `captureUndoSnapshot()` stays the eager command-path push |
+| `src/lib/canvas/editor-session/tab-state.svelte.ts` | `captureUndoSnapshot` effect → `beginStroke`; `drawEnd`/`drawCancel` resolve the baseline; dead `pushHistorySnapshot` removed |
+| Tests | Apple: 2 parity pins inverted + 5 new (redo preservation, same-color retrace, cancel no-op, second-finger begin resolve, FFI smoke). Web: 6 TabState behavior tests + journal delegation spec. All suites green: core 559, wasm 43, Apple 97, web 1,627 + e2e 110 |
+
+### Key Decisions
+
+- **Core-owned equality, not shell signals**: existing did-change signals are
+  write-accurate, not value-accurate (`apply_tool` reports true when repainting
+  a pixel with its own color), so `end_stroke` compares the baseline against
+  the current value in core. Cancel needs no separate API. See
+  [ADR: Deferred Stroke History Commit](../docs/decisions/deferred-stroke-history-commit.en.md).
+- **`captureUndoSnapshot` seam name kept** on both shells: from the tool
+  author's perspective it still requests history capture; the commit timing is
+  policy behind the seam (deep module). Core/journal align with the new
+  vocabulary (`begin_stroke`/`beginStroke`).
+- **Manual `PartialEq for Document`**: a derive would inherit `Frame`'s
+  identity-only equality and call retimed documents equal.
+
+### Notes
+
+- Fixes the worse hidden symptom found in triage: a no-op stroke used to
+  **clear the redo stack** (the eager push); redo futures now survive no-op
+  strokes on both shells.
+- `canUndo` is now false mid-stroke (was true from stroke start) — invisible
+  in the UI since undo is sealed behind `isDrawing` on both shells.
+- Web needs no shell-level double-begin guard: the interaction machine blocks
+  concurrent strokes structurally (idle gate; two-touch runs `onDrawEnd`
+  before pinching). Apple's guard lives in `EditorState.beginStroke` and is
+  test-pinned.
+- Dirty-marking for no-op strokes is unchanged (out of scope, see brief).
+- Issue 236 (Apple move tool) should build its session on this seam — the
+  zero-delta move no-op then arrives for free.

@@ -36,6 +36,9 @@ struct History<T> {
     undo: VecDeque<T>,
     redo: VecDeque<T>,
     max: usize,
+    /// The pending Stroke Baseline — the pre-stroke value held between
+    /// `begin_stroke` and `end_stroke`, absent outside a stroke.
+    pending: Option<T>,
 }
 
 impl<T> History<T> {
@@ -45,6 +48,7 @@ impl<T> History<T> {
             undo: VecDeque::new(),
             redo: VecDeque::new(),
             max,
+            pending: None,
         }
     }
 
@@ -68,7 +72,14 @@ impl<T> History<T> {
 
     /// Pops the most recent undo entry and pushes `current` onto the redo
     /// stack, returning the popped value (or `None` when nothing to undo).
+    ///
+    /// Calling while a Stroke Baseline is pending is a caller error — shells
+    /// seal undo behind their `isDrawing` guards. Debug-asserted.
     fn undo(&mut self, current: T) -> Option<T> {
+        debug_assert!(
+            self.pending.is_none(),
+            "undo called while a Stroke Baseline is pending — shells must seal undo while drawing"
+        );
         let entry = self.undo.pop_back()?;
         self.redo.push_back(current);
         Some(entry)
@@ -76,15 +87,50 @@ impl<T> History<T> {
 
     /// Pops the most recent redo entry and pushes `current` onto the undo
     /// stack, returning the popped value (or `None` when nothing to redo).
+    ///
+    /// Calling while a Stroke Baseline is pending is a caller error — shells
+    /// seal redo behind their `isDrawing` guards. Debug-asserted.
     fn redo(&mut self, current: T) -> Option<T> {
+        debug_assert!(
+            self.pending.is_none(),
+            "redo called while a Stroke Baseline is pending — shells must seal redo while drawing"
+        );
         let entry = self.redo.pop_back()?;
         self.undo.push_back(current);
         Some(entry)
     }
 
+    /// Holds `baseline` as the pending Stroke Baseline. Nothing is pushed and
+    /// the redo future stays untouched until `end_stroke` resolves it.
+    ///
+    /// Beginning a stroke while another baseline is pending is a caller error
+    /// (stroke sessions are driven one at a time) — debug-asserted.
+    fn begin_stroke(&mut self, baseline: T) {
+        debug_assert!(
+            self.pending.is_none(),
+            "begin_stroke called while a Stroke Baseline is already pending"
+        );
+        self.pending = Some(baseline);
+    }
+
+    /// Resolves the pending Stroke Baseline: pushes it as the new undo top
+    /// unless `is_unchanged` reports the stroke was a no-op — a no-op
+    /// discards the baseline and leaves both stacks (including the redo
+    /// future) untouched. No-op when no baseline is pending, so sessions that
+    /// never capture history (e.g. the eyedropper) need no end-side guard.
+    fn end_stroke(&mut self, is_unchanged: impl FnOnce(&T) -> bool) {
+        let Some(baseline) = self.pending.take() else {
+            return;
+        };
+        if !is_unchanged(&baseline) {
+            self.push(baseline);
+        }
+    }
+
     fn clear(&mut self) {
         self.undo.clear();
         self.redo.clear();
+        self.pending = None;
     }
 }
 
@@ -125,6 +171,32 @@ impl PixelCanvasHistory {
             width,
             height,
             pixels: pixels.to_vec(),
+        });
+    }
+
+    /// Holds the current pixel state as the pending Stroke Baseline — see
+    /// [`PixelCanvasHistory::end_stroke`] for how it resolves. Nothing is
+    /// pushed and the redo future stays untouched until then.
+    pub fn begin_stroke(&mut self, width: u32, height: u32, pixels: &[u8]) {
+        debug_assert_rgba_len(width, height, pixels);
+        self.inner.begin_stroke(Snapshot {
+            width,
+            height,
+            pixels: pixels.to_vec(),
+        });
+    }
+
+    /// Resolves the pending Stroke Baseline against the caller's current pixel
+    /// state: pushes it as the new undo top (clearing the redo future) only
+    /// when the stroke actually changed the canvas; a no-op stroke discards
+    /// the baseline and leaves both stacks untouched. No-op when no baseline
+    /// is pending.
+    pub fn end_stroke(&mut self, current_width: u32, current_height: u32, current_pixels: &[u8]) {
+        debug_assert_rgba_len(current_width, current_height, current_pixels);
+        self.inner.end_stroke(|baseline| {
+            baseline.width == current_width
+                && baseline.height == current_height
+                && baseline.pixels == current_pixels
         });
     }
 
@@ -206,6 +278,22 @@ impl DocumentHistory {
     /// future and evicting the oldest snapshot once the cap is exceeded.
     pub fn push_document(&mut self, document: &Document) {
         self.inner.push(document.clone());
+    }
+
+    /// Holds `document` as the pending Stroke Baseline — see
+    /// [`DocumentHistory::end_stroke`] for how it resolves. Nothing is pushed
+    /// and the redo future stays untouched until then.
+    pub fn begin_stroke(&mut self, document: &Document) {
+        self.inner.begin_stroke(document.clone());
+    }
+
+    /// Resolves the pending Stroke Baseline against `current`: pushes it as
+    /// the new undo top (clearing the redo future) only when the stroke
+    /// actually changed the document; a no-op stroke discards the baseline
+    /// and leaves both stacks — including the redo future — untouched. No-op
+    /// when no baseline is pending.
+    pub fn end_stroke(&mut self, current: &Document) {
+        self.inner.end_stroke(|baseline| baseline == current);
     }
 
     /// Pops the most recent snapshot from the undo stack and pushes `current`
@@ -454,6 +542,118 @@ mod pixel_canvas_history_tests {
             count += 1;
         }
         assert_eq!(count, PixelCanvasHistory::DEFAULT_MAX_SNAPSHOTS);
+    }
+
+    // -- stroke baseline --
+
+    #[test]
+    fn noop_stroke_leaves_history_untouched() {
+        let mut history = PixelCanvasHistory::default();
+        history.begin_stroke(1, 1, &[1, 2, 3, 4]);
+        history.end_stroke(1, 1, &[1, 2, 3, 4]);
+        assert!(!history.can_undo());
+    }
+
+    #[test]
+    fn changed_stroke_commits_one_entry_restoring_the_baseline() {
+        let mut history = PixelCanvasHistory::default();
+        history.begin_stroke(1, 1, &[1, 0, 0, 0]);
+        history.end_stroke(1, 1, &[2, 0, 0, 0]);
+
+        assert!(history.can_undo());
+        let restored = history.undo(1, 1, &[2, 0, 0, 0]).unwrap();
+        assert_eq!(restored.pixels, vec![1, 0, 0, 0]);
+        assert!(!history.can_undo());
+    }
+
+    #[test]
+    fn noop_stroke_preserves_the_redo_future() {
+        let mut history = PixelCanvasHistory::default();
+        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
+        history.undo(1, 1, &[2, 0, 0, 0]);
+        assert!(history.can_redo());
+
+        history.begin_stroke(1, 1, &[1, 0, 0, 0]);
+        history.end_stroke(1, 1, &[1, 0, 0, 0]);
+
+        assert!(history.can_redo());
+    }
+
+    #[test]
+    fn changed_stroke_discards_the_redo_future() {
+        let mut history = PixelCanvasHistory::default();
+        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
+        history.undo(1, 1, &[2, 0, 0, 0]);
+        assert!(history.can_redo());
+
+        history.begin_stroke(1, 1, &[1, 0, 0, 0]);
+        history.end_stroke(1, 1, &[3, 0, 0, 0]);
+
+        assert!(!history.can_redo());
+    }
+
+    #[test]
+    fn stroke_only_commits_at_end_never_at_begin() {
+        let mut history = PixelCanvasHistory::default();
+        history.begin_stroke(1, 1, &[1, 0, 0, 0]);
+        assert!(!history.can_undo());
+        history.end_stroke(1, 1, &[2, 0, 0, 0]);
+        assert!(history.can_undo());
+    }
+
+    #[test]
+    fn dimension_change_during_stroke_is_a_real_change() {
+        let mut history = PixelCanvasHistory::default();
+        history.begin_stroke(1, 1, &[1, 0, 0, 0]);
+        history.end_stroke(2, 1, &[1, 0, 0, 0, 1, 0, 0, 0]);
+        assert!(history.can_undo());
+    }
+
+    #[test]
+    fn command_push_is_independent_of_a_pending_stroke() {
+        let mut history = PixelCanvasHistory::default();
+        history.begin_stroke(1, 1, &[1, 0, 0, 0]);
+        history.push_snapshot(1, 1, &[9, 0, 0, 0]);
+        history.end_stroke(1, 1, &[2, 0, 0, 0]);
+
+        // Both the command entry and the stroke baseline are on the stack.
+        assert_eq!(history.undo(1, 1, &[2, 0, 0, 0]).unwrap().pixels[0], 1);
+        assert_eq!(history.undo(1, 1, &[1, 0, 0, 0]).unwrap().pixels[0], 9);
+    }
+
+    #[test]
+    #[should_panic(expected = "Stroke Baseline")]
+    fn undo_during_a_pending_stroke_is_a_precondition_violation() {
+        let mut history = PixelCanvasHistory::default();
+        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
+        history.begin_stroke(1, 1, &[2, 0, 0, 0]);
+        history.undo(1, 1, &[2, 0, 0, 0]);
+    }
+
+    #[test]
+    #[should_panic(expected = "Stroke Baseline")]
+    fn redo_during_a_pending_stroke_is_a_precondition_violation() {
+        let mut history = PixelCanvasHistory::default();
+        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
+        history.undo(1, 1, &[2, 0, 0, 0]);
+        history.begin_stroke(1, 1, &[1, 0, 0, 0]);
+        history.redo(1, 1, &[1, 0, 0, 0]);
+    }
+
+    #[test]
+    fn end_stroke_without_begin_is_a_noop() {
+        let mut history = PixelCanvasHistory::default();
+        history.end_stroke(1, 1, &[1, 2, 3, 4]);
+        assert!(!history.can_undo());
+    }
+
+    #[test]
+    fn clear_discards_a_pending_stroke_baseline() {
+        let mut history = PixelCanvasHistory::default();
+        history.begin_stroke(1, 1, &[1, 0, 0, 0]);
+        history.clear();
+        history.end_stroke(1, 1, &[2, 0, 0, 0]);
+        assert!(!history.can_undo());
     }
 
     // -- dimension-aware snapshots --
@@ -705,6 +905,66 @@ mod document_history_tests {
     #[should_panic(expected = "History max must be > 0")]
     fn new_rejects_zero_max_snapshots() {
         DocumentHistory::new(0);
+    }
+
+    // -- stroke baseline --
+
+    #[test]
+    fn noop_stroke_leaves_document_history_untouched() {
+        let mut history = DocumentHistory::default();
+        let doc = doc();
+        history.begin_stroke(&doc);
+        history.end_stroke(&doc);
+        assert!(!history.can_undo());
+    }
+
+    #[test]
+    fn changed_stroke_commits_the_pre_stroke_document() {
+        let mut doc = doc();
+        let mut history = DocumentHistory::default();
+
+        history.begin_stroke(&doc);
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+        history.end_stroke(&doc);
+
+        assert!(history.can_undo());
+        let restored = history.undo_document(&doc).unwrap();
+        assert_eq!(
+            pixel_canvas(&restored.layers()[0]).get_pixel(0, 0).unwrap(),
+            Color::TRANSPARENT
+        );
+    }
+
+    #[test]
+    fn noop_stroke_preserves_the_document_redo_future() {
+        let mut doc = doc();
+        let mut history = DocumentHistory::default();
+        history.push_document(&doc);
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+        doc = history.undo_document(&doc).unwrap();
+        assert!(history.can_redo());
+
+        history.begin_stroke(&doc);
+        history.end_stroke(&doc);
+
+        assert!(history.can_redo());
+    }
+
+    #[test]
+    fn retimed_frame_is_a_real_document_change() {
+        // Frame equality is identity-only (a retimed frame stays the same
+        // frame in sets and maps), but Document value equality must still see
+        // the retiming — otherwise a stroke resolving over a retimed document
+        // would be misjudged a no-op.
+        let mut doc = doc();
+        let frame_id = doc.frames()[0].id;
+        let mut history = DocumentHistory::default();
+
+        history.begin_stroke(&doc);
+        doc.set_frame_duration(frame_id, 500).unwrap();
+        history.end_stroke(&doc);
+
+        assert!(history.can_undo());
     }
 
     #[test]

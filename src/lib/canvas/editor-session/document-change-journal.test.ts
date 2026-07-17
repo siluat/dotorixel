@@ -43,6 +43,12 @@ function createFakeDocumentHistory(
 			canUndo = true;
 			canRedo = false;
 		},
+		begin_stroke: () => {
+			events.push('begin-stroke');
+		},
+		end_stroke: () => {
+			events.push('end-stroke');
+		},
 		undo_document: (current) => {
 			events.push(`undo:${current.width}x${current.height}`);
 			if (!opts.undoDocument) return undefined;
@@ -132,6 +138,19 @@ function getLayerPixelAt(
 }
 
 describe('DocumentChangeJournal', () => {
+	it('routes stroke begin/end to the history Stroke Baseline seam', () => {
+		const events: string[] = [];
+		const document = createFakeDocument(events);
+		const journal = createJournal(events, document);
+
+		journal.beginStroke();
+		journal.endStroke();
+
+		// The no-op decision itself lives in the core ring (tested in Rust);
+		// the journal only marks the stroke boundaries.
+		expect(events).toEqual(['begin-stroke', 'end-stroke']);
+	});
+
 	it('captures undo snapshots and exposes history availability', () => {
 		const events: string[] = [];
 		const document = createFakeDocument(events);

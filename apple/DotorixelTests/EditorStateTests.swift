@@ -65,8 +65,8 @@ struct EditorStateColorTests {
 @Suite("EditorState — stroke lifecycle")
 struct EditorStateStrokeTests {
 
-    @Test("the first sample paints the foreground color and captures one undo snapshot")
-    func beginStrokePaintsAndCapturesUndo() throws {
+    @Test("the first sample paints the foreground color; the undo entry commits at stroke end")
+    func beginStrokePaintsAndCommitsUndoAtEnd() throws {
         let state = EditorState(width: 16, height: 16)
         let versionBefore = state.canvasVersion
 
@@ -75,7 +75,47 @@ struct EditorStateStrokeTests {
         #expect(try state.pixelCanvas.getPixel(x: 3, y: 4) == state.foregroundColor)
         #expect(state.canvasVersion == versionBefore + 1)
         #expect(state.isDrawing)
+        // The Stroke Baseline is pending, not committed — undo is sealed
+        // while drawing, so nothing is on the stack yet.
+        #expect(!state.canUndo)
+
+        state.endStroke()
         #expect(state.canUndo)
+    }
+
+    @Test("a begin during an active stroke resolves the previous Stroke Baseline first")
+    func beginWhileDrawingResolvesPreviousBaseline() throws {
+        let state = EditorState(width: 16, height: 16)
+
+        // A second finger can begin a stroke while one is active (iPadOS).
+        // The first stroke painted, so its baseline must commit — not leak
+        // into or get overwritten by the second stroke's begin.
+        state.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        state.beginStroke(at: ScreenCanvasCoords(x: 5, y: 5))
+        state.endStroke()
+
+        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == state.foregroundColor)
+        #expect(try state.pixelCanvas.getPixel(x: 5, y: 5) == state.foregroundColor)
+
+        // Two committed strokes → two undo steps, each reverting one.
+        state.handleUndo()
+        #expect(try state.pixelCanvas.getPixel(x: 5, y: 5).a == 0)
+        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == state.foregroundColor)
+        state.handleUndo()
+        #expect(state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+    }
+
+    @Test("retracing pixels with their own color is a no-op stroke — no undo entry")
+    func sameColorRetraceLeavesNoUndoEntry() throws {
+        let state = EditorState(width: 16, height: 16)
+        try state.pixelCanvas.setPixel(x: 3, y: 4, color: state.foregroundColor)
+        try state.pixelCanvas.setPixel(x: 4, y: 4, color: state.foregroundColor)
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 3, y: 4))
+        state.continueStroke(to: ScreenCanvasCoords(x: 4, y: 4))
+        state.endStroke()
+
+        #expect(!state.canUndo)
     }
 
     @Test("a fast drag paints the interpolated segment between samples")
@@ -224,7 +264,8 @@ struct EditorStateResizeCanvasTests {
 
         #expect(state.pixelCanvas.width() == 16)
         #expect(state.pixelCanvas.height() == 16)
-        // The stroke's undo entry survives — history is not cleared mid-stroke.
+        // The live stroke is undisturbed — its baseline still commits at end.
+        state.endStroke()
         #expect(state.canUndo)
     }
 

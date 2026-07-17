@@ -118,13 +118,19 @@ impl<T> History<T> {
     /// the baseline and leaves both stacks (including the redo future)
     /// untouched. No-op when no baseline is pending, so callers that never
     /// open a baseline need no end-side guard.
-    fn end_edit(&mut self, is_unchanged: impl FnOnce(&T) -> bool) {
+    ///
+    /// Returns whether the baseline was committed as an undo entry, so callers
+    /// can gate the follow-up work an edit only earns when it changed
+    /// something (re-render, dirty marking).
+    fn end_edit(&mut self, is_unchanged: impl FnOnce(&T) -> bool) -> bool {
         let Some(baseline) = self.pending.take() else {
-            return;
+            return false;
         };
-        if !is_unchanged(&baseline) {
-            self.push(baseline);
+        if is_unchanged(&baseline) {
+            return false;
         }
+        self.push(baseline);
+        true
     }
 
     fn clear(&mut self) {
@@ -191,13 +197,20 @@ impl PixelCanvasHistory {
     /// when the edit actually changed the canvas; a no-op edit discards the
     /// baseline and leaves both stacks untouched. No-op when no baseline is
     /// pending.
-    pub fn end_edit(&mut self, current_width: u32, current_height: u32, current_pixels: &[u8]) {
+    ///
+    /// Returns whether an undo entry was committed.
+    pub fn end_edit(
+        &mut self,
+        current_width: u32,
+        current_height: u32,
+        current_pixels: &[u8],
+    ) -> bool {
         debug_assert_rgba_len(current_width, current_height, current_pixels);
         self.inner.end_edit(|baseline| {
             baseline.width == current_width
                 && baseline.height == current_height
                 && baseline.pixels == current_pixels
-        });
+        })
     }
 
     /// Pops the most recent snapshot from the undo stack and pushes the
@@ -292,8 +305,10 @@ impl DocumentHistory {
     /// actually changed the document; a no-op edit discards the baseline and
     /// leaves both stacks — including the redo future — untouched. No-op when
     /// no baseline is pending.
-    pub fn end_edit(&mut self, current: &Document) {
-        self.inner.end_edit(|baseline| baseline == current);
+    ///
+    /// Returns whether an undo entry was committed.
+    pub fn end_edit(&mut self, current: &Document) -> bool {
+        self.inner.end_edit(|baseline| baseline == current)
     }
 
     /// Pops the most recent snapshot from the undo stack and pushes `current`
@@ -555,6 +570,17 @@ mod pixel_canvas_history_tests {
     }
 
     #[test]
+    fn end_edit_reports_whether_it_committed() {
+        let mut history = PixelCanvasHistory::default();
+
+        history.begin_edit(1, 1, &[1, 0, 0, 0]);
+        assert!(history.end_edit(1, 1, &[2, 0, 0, 0]));
+
+        history.begin_edit(1, 1, &[2, 0, 0, 0]);
+        assert!(!history.end_edit(1, 1, &[2, 0, 0, 0]));
+    }
+
+    #[test]
     fn changed_stroke_commits_one_entry_restoring_the_baseline() {
         let mut history = PixelCanvasHistory::default();
         history.begin_edit(1, 1, &[1, 0, 0, 0]);
@@ -643,7 +669,7 @@ mod pixel_canvas_history_tests {
     #[test]
     fn end_edit_without_begin_is_a_noop() {
         let mut history = PixelCanvasHistory::default();
-        history.end_edit(1, 1, &[1, 2, 3, 4]);
+        assert!(!history.end_edit(1, 1, &[1, 2, 3, 4]));
         assert!(!history.can_undo());
     }
 
@@ -916,6 +942,19 @@ mod document_history_tests {
         history.begin_edit(&doc);
         history.end_edit(&doc);
         assert!(!history.can_undo());
+    }
+
+    #[test]
+    fn end_edit_reports_whether_it_committed() {
+        let mut history = DocumentHistory::default();
+        let mut doc = doc();
+
+        history.begin_edit(&doc);
+        doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+        assert!(history.end_edit(&doc));
+
+        history.begin_edit(&doc);
+        assert!(!history.end_edit(&doc));
     }
 
     #[test]

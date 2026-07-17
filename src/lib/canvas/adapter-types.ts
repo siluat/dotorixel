@@ -42,7 +42,8 @@ export interface DocumentHistory {
 	clear(): void;
 	push_document(document: Document): void;
 	begin_edit(document: Document): void;
-	end_edit(current: Document): void;
+	/** Returns whether an undo entry was committed. */
+	end_edit(current: Document): boolean;
 	undo_document(current: Document): Document | undefined;
 	redo_document(current: Document): Document | undefined;
 }

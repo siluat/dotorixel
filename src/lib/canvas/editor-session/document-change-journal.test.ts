@@ -24,9 +24,19 @@ function createFakeDocument(events: string[]): Document {
 	} as Document;
 }
 
+/**
+ * Stands in for the core ring so journal tests can drive the wiring around it.
+ * `endEditCommits` plays the verdict the core would reach by comparison — the
+ * comparison itself is the ring's job (tested in Rust), and the no-op
+ * invariant it decides is covered here against the real history instead.
+ */
 function createFakeDocumentHistory(
 	events: string[],
-	opts: { undoDocument?: Document; redoDocument?: Document } = {}
+	opts: {
+		undoDocument?: Document;
+		redoDocument?: Document;
+		endEditCommits?: boolean;
+	} = {}
 ): DocumentHistory {
 	let canUndo = false;
 	let canRedo = false;
@@ -44,10 +54,16 @@ function createFakeDocumentHistory(
 			canRedo = false;
 		},
 		begin_edit: () => {
-			events.push('begin-stroke');
+			events.push('begin-edit');
 		},
 		end_edit: () => {
-			events.push('end-stroke');
+			events.push('end-edit');
+			const committed = opts.endEditCommits ?? true;
+			if (committed) {
+				canUndo = true;
+				canRedo = false;
+			}
+			return committed;
 		},
 		undo_document: (current) => {
 			events.push(`undo:${current.width}x${current.height}`);
@@ -148,7 +164,7 @@ describe('DocumentChangeJournal', () => {
 
 		// The no-op decision itself lives in the core ring (tested in Rust);
 		// the journal only marks the stroke boundaries.
-		expect(events).toEqual(['begin-stroke', 'end-stroke']);
+		expect(events).toEqual(['begin-edit', 'end-edit']);
 	});
 
 	it('captures undo snapshots and exposes history availability', () => {

@@ -326,11 +326,13 @@ impl AppleHistoryManager {
     /// only when the edit actually changed the canvas; a no-op edit discards
     /// the baseline and leaves both stacks untouched. No-op when no baseline
     /// is pending.
-    fn end_edit(&self, current_width: u32, current_height: u32, current_pixels: Vec<u8>) {
+    ///
+    /// Returns whether an undo entry was committed.
+    fn end_edit(&self, current_width: u32, current_height: u32, current_pixels: Vec<u8>) -> bool {
         self.inner
             .lock()
             .unwrap()
-            .end_edit(current_width, current_height, &current_pixels);
+            .end_edit(current_width, current_height, &current_pixels)
     }
 
     fn undo(

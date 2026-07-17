@@ -118,7 +118,7 @@ final class EditorState {
     /// the undo entry commits only when the stroke actually changed pixels; a
     /// no-op stroke leaves both stacks (including the redo future) untouched.
     private func resolveEditBaseline() {
-        historyManager.endEdit(
+        _ = historyManager.endEdit(
             currentWidth: pixelCanvas.width(),
             currentHeight: pixelCanvas.height(),
             currentPixels: pixelCanvas.pixels()

@@ -1449,8 +1449,10 @@ impl WasmHistoryManager {
     /// the new undo top (clearing the redo stack) only when the edit actually
     /// changed the document; a no-op edit discards the baseline and leaves
     /// both stacks untouched. No-op when no baseline is pending.
-    pub fn end_edit(&mut self, current: &WasmDocument) {
-        self.inner.end_edit(&current.inner);
+    ///
+    /// Returns whether an undo entry was committed.
+    pub fn end_edit(&mut self, current: &WasmDocument) -> bool {
+        self.inner.end_edit(&current.inner)
     }
 
     /// Pushes `current` onto the redo stack and returns the previous document

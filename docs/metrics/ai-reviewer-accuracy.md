@@ -6,14 +6,17 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 175 | 134 | 41 | 189 | 77% | 42% |
-| cubic-dev-ai[bot] | 174 | 136 | 38 | 187 | 78% | 42% |
-| coderabbitai[bot] | 250 | 174 | 76 | 147 | 70% | 54% |
+| greptile-apps[bot] | 176 | 135 | 41 | 189 | 77% | 42% |
+| cubic-dev-ai[bot] | 175 | 136 | 39 | 187 | 78% | 42% |
+| coderabbitai[bot] | 250 | 174 | 76 | 148 | 70% | 54% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #321 | greptile-apps[bot] | Accept | No-op fill taps' undo-stack trade-off was unpinned in the two no-op tests; accepted with the assertion direction inverted — `#expect(state.canUndo)` pins the spec'd capture-at-start web parity that their literal `!canUndo` would contradict |
+| #321 | cubic-dev-ai[bot] | Reject | Wanted fill history captured only when `floodFill` reports a change; capture-at-start is the issue-232 spec and exact web behavior (unconditional `captureUndoSnapshot`, no history dedupe) — a fill-only change would diverge shells and sibling sessions. Cross-cutting question tracked as issue 243 |
+| #321 | coderabbitai[bot] | Miss | Did not flag the unpinned no-op undo-stack trade-off in the fill tests (accepted from greptile) |
 | #320 | coderabbitai[bot] | Accept | Swap button hit target was 24×24pt, below the 44pt HIG minimum for iPad touch; visual chrome kept at 24pt (web RightPanel parity), tappable area expanded to `DesignTokens.btnSize` + `contentShape` |
 | #320 | cubic-dev-ai[bot] | Accept | Same 24pt swap-button hit target finding (duplicate of coderabbit); fixed by the same label-frame expansion |
 | #320 | coderabbitai[bot] | Accept | platform-status "All tools draw with BG color" overstated the Apple column — flood fill is still ⬜; narrowed to "Supported paint tools" |

@@ -52,6 +52,7 @@ Dependency order; 230–233 are done, 242 closes the phase.
 
 ## Review backlog (not assigned to a milestone)
 
+- [243 — No-op strokes push empty undo entries](../issues/243-no-op-stroke-history-entries.md) — a stroke that changes nothing still pushes an undo snapshot on both shells; first Undo then looks like a no-op. Cross-shell design question, needs-triage
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate (deferred from Milestone 3 MVP)
 - Reference image import — clipboard paste support (Ctrl/Cmd+V), deferred from Milestone 3 MVP
 - Design: share artwork dialog — URL sharing dialog UI (.pen)

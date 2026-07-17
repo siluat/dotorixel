@@ -64,6 +64,10 @@ struct FloodFillSessionTests {
 
         #expect(paintedPixelCount(state) == 0)
         #expect(state.canvasVersion == versionBefore)
+        // The snapshots are still pushed at stroke start (web parity: the web
+        // one-shot session captures history unconditionally before firing).
+        // Pinned so a fill-only divergence can't slip in silently.
+        #expect(state.canUndo)
     }
 
     @Test("filling a region with its own color is a visual no-op that doesn't corrupt state")
@@ -82,6 +86,9 @@ struct FloodFillSessionTests {
 
         #expect(state.pixelCanvas.pixels() == pixelsBefore)
         #expect(state.canvasVersion == versionBefore)
+        // Web parity: the snapshot is pushed at stroke start even for a
+        // same-color no-op fill (see outOfCanvasTapDoesNothing).
+        #expect(state.canUndo)
     }
 
     @Test("one undo reverts the entire fill; redo re-applies it")

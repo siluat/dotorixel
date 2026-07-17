@@ -507,9 +507,6 @@ export class TabState {
 				case 'moveFloatingSelection':
 					this.#recordFloatingPreviewChanged(this.#floatingSelection.moveTo(effect.offset));
 					break;
-				case 'commitFloatingSelection':
-					this.#floatingSelection.commit();
-					break;
 				case 'cancelFloatingSelection':
 					this.#recordFloatingPreviewChanged(this.#floatingSelection.cancel());
 					break;

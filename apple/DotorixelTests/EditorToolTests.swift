@@ -14,6 +14,7 @@ struct EditorToolDisplayNameTests {
             .line: "Line",
             .rectangle: "Rectangle",
             .ellipse: "Ellipse",
+            .floodFill: "Flood Fill",
         ]
         #expect(tool.displayName == expected[tool])
     }

@@ -20,7 +20,8 @@ final class EditorState {
     var canvasVersion: Int = 0
     private(set) var isDrawing: Bool = false
 
-    /// Incremented on pushSnapshot/undo/redo to trigger `canUndo`/`canRedo` re-evaluation.
+    /// Incremented when an edit resolves, and on undo/redo, to trigger
+    /// `canUndo`/`canRedo` re-evaluation.
     /// Needed because `@Observable` cannot detect internal state changes in UniFFI objects.
     private(set) var historyVersion: Int = 0
 
@@ -114,16 +115,22 @@ final class EditorState {
         isDrawing = false
     }
 
-    /// Resolves the pending Edit Baseline against the post-stroke canvas —
-    /// the undo entry commits only when the stroke actually changed pixels; a
-    /// no-op stroke leaves both stacks (including the redo future) untouched.
-    private func resolveEditBaseline() {
-        _ = historyManager.endEdit(
+    /// Resolves the pending Edit Baseline against the current canvas — the
+    /// undo entry commits only when the edit actually changed pixels; a no-op
+    /// edit leaves both stacks (including the redo future) untouched.
+    ///
+    /// Returns whether an undo entry was committed. Stroke paths discard it:
+    /// they bump the re-render off the stroke engine's own signal, which also
+    /// covers the preview a cancelled stroke must erase.
+    @discardableResult
+    private func resolveEditBaseline() -> Bool {
+        let committed = historyManager.endEdit(
             currentWidth: pixelCanvas.width(),
             currentHeight: pixelCanvas.height(),
             currentPixels: pixelCanvas.pixels()
         )
         historyVersion += 1
+        return committed
     }
 
     // MARK: - History
@@ -146,12 +153,6 @@ final class EditorState {
         }
     }
 
-    /// Pushes the current canvas pixels onto the undo stack.
-    private func pushHistorySnapshot() {
-        historyManager.pushSnapshot(width: pixelCanvas.width(), height: pixelCanvas.height(), pixels: pixelCanvas.pixels())
-        historyVersion += 1
-    }
-
     private func applySnapshot(_ snapshot: Snapshot) {
         guard snapshot.width == pixelCanvas.width(), snapshot.height == pixelCanvas.height() else {
             assertionFailure("Cross-dimension undo/redo not yet implemented on Apple")
@@ -168,14 +169,18 @@ final class EditorState {
 
     // MARK: - Canvas clear
 
-    /// Erases every pixel to transparent, pushing the pre-clear pixels onto
-    /// the undo stack so undo restores the drawing.
+    /// Erases every pixel to transparent, holding the pre-clear pixels as the
+    /// Edit Baseline so undo restores the drawing. Clearing a canvas that is
+    /// already blank changes nothing, so it records no entry, leaves the redo
+    /// future intact, and skips the re-render.
     /// No-ops silently while a drawing stroke is in progress.
     func handleClearCanvas() {
         guard !isDrawing else { return }
-        pushHistorySnapshot()
+        beginEdit()
         pixelCanvas.clear()
-        canvasVersion += 1
+        if resolveEditBaseline() {
+            canvasVersion += 1
+        }
     }
 
     // MARK: - Canvas size

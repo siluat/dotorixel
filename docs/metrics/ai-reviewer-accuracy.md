@@ -10,14 +10,25 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 176 | 135 | 41 | 199 | 77% | 40% |
-| cubic-dev-ai[bot] | 188 | 147 | 41 | 187 | 78% | 44% |
-| coderabbitai[bot] | 252 | 176 | 76 | 156 | 70% | 53% |
+| greptile-apps[bot] | 176 | 135 | 41 | 205 | 77% | 40% |
+| cubic-dev-ai[bot] | 193 | 152 | 41 | 188 | 79% | 45% |
+| coderabbitai[bot] | 255 | 179 | 76 | 159 | 70% | 53% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #323 | coderabbitai[bot] | Accept | ADR claimed `can_undo` stays false during a stroke; a pending baseline leaves entries already on the stack alone, so only a first Edit on an empty stack does — consequence qualified |
+| #323 | coderabbitai[bot] | Accept | 243's live pointer into CONTEXT.md still named the **Stroke Baseline** headword the rename removed; retargeted to **Edit Baseline** (the historical narrative elsewhere in 243 left as-is) |
+| #323 | coderabbitai[bot] | Accept | Last-layer/last-frame rules returned before the core validated the id, so a bogus id threw on a two-layer document but no-op'd silently on a one-layer one; validated on the refusing branch only. Not a regression (identical on main) and unreachable from current callers, but these were the only id-carrying intents the rewritten predicate did not check |
+| #323 | cubic-dev-ai[bot] | Accept | Test name still specified an "undo snapshot" after the effect became `beginEdit` — understated: 10 test names and 9 production doc comments were stale, all corrected |
+| #323 | cubic-dev-ai[bot] | Accept | wasm binding no-op test ignored `end_edit`'s return, so it would pass even if the new verdict contract broke; asserted, mirroring the Apple binding test |
+| #323 | cubic-dev-ai[bot] | Accept | CONTEXT.md wrote `(issue 244)` as bare text while the file links `[issue NNN](issues/NNN-slug.md)`; linked |
+| #323 | cubic-dev-ai[bot] | Accept | 243 glossary pointer named the removed **Stroke Baseline** headword (duplicate of coderabbit); same retarget |
+| #323 | cubic-dev-ai[bot] | Accept | `can_undo` consequence overstated in the ADR (duplicate of coderabbit); same qualification |
+| #323 | greptile-apps[bot] | Miss | Reviewed and reported 5/5 "safe to merge", flagging none of the six accepted findings (×6) |
+| #323 | coderabbitai[bot] | Miss | Did not flag the stale "undo snapshot" vocabulary, the wasm verdict left untested, or the unlinked issue 244 reference (×3) |
+| #323 | cubic-dev-ai[bot] | Miss | Did not flag the last-layer/last-frame id validation gap |
 | #322 | coderabbitai[bot] | Accept | Checked criterion claimed the zero-delta-move no-op holds "on both shells" while Apple has no move tool (deferred to 236); criterion scoped to Web-only for move |
 | #322 | cubic-dev-ai[bot] | Accept | Same move-scope overclaim in the checked criterion (duplicate of coderabbit); same scoping |
 | #322 | cubic-dev-ai[bot] | Reject | Claimed a +1 arithmetic error in the running totals; totals count comments (11 on #322 — the derive finding arrived as 2 comments), so 186/146 was correct. Log rows split per-comment and a counting-basis note added to remove the ambiguity |

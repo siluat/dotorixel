@@ -172,7 +172,10 @@ or refuse exactly as they do now.
       the three inbound issue links updated), with per-intent content-aware
       guards recorded as a rejected alternative and the reason (they collapse
       into apply-and-compare for transforms)
-- [ ] `cargo test`, `bun run test`, and the Apple test suite pass
+- [ ] `cargo test`, `bun run test`, the Apple test suite, and `bun run test:e2e`
+      all pass — the e2e history suite drives the undo/redo chain this issue
+      rewires (including "new drawing disables redo"), so it is not optional
+      here
 
 **Suggested commit split** (the rename is mechanical and large; keep it
 reviewable):

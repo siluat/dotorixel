@@ -52,8 +52,7 @@ Dependency order; 230–233 are done, 242 closes the phase.
 
 ## Review backlog (not assigned to a milestone)
 
-- [244 — Command no-ops still push history entries](../issues/244-command-noop-history-entries.md) — route commands through the pending-baseline seam (renamed Stroke Baseline → **Edit Baseline**), strip `willChange` to validity only, amend the 243 ADR. Triage audit found 6 more content-blind guards beyond the reported Clear. **Land before 236**, which is queued to build its session on this seam. ready-for-agent
-- [246 — Remove the eager push API from History](../issues/246-remove-eager-push-api.md) — `push_document`/`push_snapshot` lose their last production callers once 244 lands; migrate ~40 core tests to `begin_edit`/`end_edit`. Blocked by 244, needs-triage
+- [246 — Remove the eager push API from History](../issues/246-remove-eager-push-api.md) — `push_document`/`push_snapshot` now have no production caller; migrate ~40 core tests to `begin_edit`/`end_edit`. needs-triage
 - [247 — Dead `commitFloatingSelection` effect bypasses the isDrawing seal](../issues/247-dead-commit-floating-selection-effect.md) — declared and handled but never emitted; the handler commits unguarded. Found during 244 triage, needs-triage
 - [248 — Journal tests assert internal steps, not outcomes](../issues/248-journal-tests-assert-internal-steps.md) — `events` arrays pin which History API the journal calls; 244 broke 28 of them without changing behavior. Test-only refactor, needs-triage
 - [245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md) — any finger's lift ends the active stroke; associate strokes with their originating touch. Pre-existing input routing, flagged on PR #322; coordinate with Apple Pencil palm rejection. needs-triage

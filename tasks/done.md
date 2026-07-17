@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 244 | [Command no-ops still push history entries (clear on empty layer, …)](../issues/244-command-noop-history-entries.md) | 2026-07-17 |
 | 243 | [No-op strokes push empty undo entries (web + Apple, all session species)](../issues/243-no-op-stroke-history-entries.md) | 2026-07-17 |
 | 232 | [Apple native — flood fill tool](../issues/232-apple-flood-fill.md) | 2026-07-17 |
 | 233 | [Apple native — FG/BG color pair, swap, and right-click background drawing](../issues/233-apple-fg-bg-colors.md) | 2026-07-16 |

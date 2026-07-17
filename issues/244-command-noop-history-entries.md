@@ -1,6 +1,6 @@
 ---
 title: Command no-ops still push history entries (clear on empty layer, …)
-status: ready-for-agent
+status: done
 created: 2026-07-17
 ---
 
@@ -194,3 +194,60 @@ reviewable):
   follow-up 247
 - Stroke-path behavior — 243, done
 - Apple multi-touch stroke routing — 245
+
+## Results
+
+Landed as five commits, in the order the brief suggested.
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/history.rs` | Seam renamed `begin_stroke`/`end_stroke` → `begin_edit`/`end_edit`; `end_edit` returns whether it committed. The generic ring's docs stop naming the caller's domain ("stroke sessions", "the eyedropper") — it is generic over `T` and knows neither |
+| `wasm/src/lib.rs`, `apple/src/lib.rs` | Same rename and verdict propagated through both bindings |
+| `src/lib/canvas/editor-session/document-change-journal.svelte.ts` | Commands apply then ask the ring: validity check → `begin_edit` → apply → `end_edit` → follow-ups gated on the verdict. `willChange` replaced by `isAllowedUndoableDocument` (validity only). Eager-snapshot method deleted. Net −37 lines |
+| `src/lib/canvas/draw-tool.ts`, `tool-authoring.ts`, `tools/move-tool.ts`, `editor-session/tab-state.svelte.ts` | Tool effect `captureUndoSnapshot` → `beginEdit`; it already mapped to the stroke-begin call, so the name was the only thing wrong |
+| `apple/Dotorixel/State/EditorState.swift` | Clear opens a baseline and bumps the re-render only on the verdict; `pushHistorySnapshot` deleted. `StrokeSessionHost.captureUndoSnapshot()` → `beginEdit()`; `resolveStrokeBaseline()` → `resolveEditBaseline()` |
+| `docs/decisions/deferred-history-commit.en.md` | 243's ADR amended in place and renamed (dropped "Stroke"); records the rejected per-intent-content-guard alternative |
+| `CONTEXT.md`, `docs/platform-status.md` | **Edit Baseline** replaces **Stroke Baseline**; new **Edit** headword; History loses the predictive/retrospective split |
+
+### Key Decisions
+
+- **Reused the 243 seam instead of writing per-intent content checks** — the
+  approach this issue itself originally prescribed. The triage audit killed that
+  premise: predicting whether a canvas flip changes anything means testing for
+  symmetry, i.e. applying and comparing, so the "predictive" framing just
+  re-implements the ring's comparison once per intent. Full reasoning and the
+  other four alternatives are in the ADR.
+- **Deleted *all* no-op detection, not just the broken guards.** The guards gate
+  the apply, so a wrong one silently drops a real edit — worse than this bug.
+  One authority, not two.
+- **Two guards survive as rules, not predictions**: `set-marquee` and
+  `commit-floating-selection` would both move the Marquee even where their pixel
+  work no-ops, so the core would honour them.
+- **Shell eager-push wrappers deleted here** so no production path can record
+  history without a comparison; the core/FFI API removal is 246.
+
+### Notes
+
+- **`try`/`finally` around the apply was not optional.** An apply that throws
+  used to leave a pushed snapshot behind; an unresolved baseline would instead
+  stay pending and poison the next edit's `begin_edit`. The pre-existing "core
+  failed" test pinned this path and caught it.
+- **A rename false positive worth remembering**: Apple spells two unrelated
+  things `beginStroke` — `EditorState`'s pointer entry point and the history
+  seam call. Only the latter is the seam. Web was safe because its stroke
+  lifecycle is `drawStart`/`drawEnd`.
+- **UniFFI checksums cover docstrings.** Editing a comment on a
+  `#[uniffi::export]` function invalidates the generated Swift, and
+  `build-rust.sh` only bootstraps when `apple/generated` is *empty*, so the
+  mismatch surfaces as a runtime fatal error rather than a build failure.
+  Pre-existing; not filed.
+- **Test coverage moved rather than shrank.** The per-intent "skips X, captures
+  no snapshot" tests drove the deleted guard through hand-built fake documents,
+  and core already owns the facts they asserted
+  (`flip_marquee_is_no_op_when_active_layer_is_reference`, …). Replaced by one
+  wiring test plus three integration tests that run a real document through the
+  real history. Web count 1627 → 1622.
+- **The 28 broken tests are their own finding** — no observable behavior changed
+  for them, so they were coupled to which History API the journal calls. Filed
+  as 248.
+- Verified: `cargo test` 526 + 43, `bun run test` 1622, Apple 99, e2e 110.

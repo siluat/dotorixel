@@ -285,4 +285,13 @@ extension EditorState: StrokeSessionHost {
             pixels: pixelCanvas.pixels()
         )
     }
+
+    /// Commits a sampled color to the given active-color slot. Not undoable —
+    /// History stays untouched; the swatch updates via `@Observable`.
+    func commitColorPick(_ color: Color, to target: ColorPickTarget) {
+        switch target {
+        case .foreground: foregroundColor = color
+        case .background: backgroundColor = color
+        }
+    }
 }

@@ -68,6 +68,13 @@ private final class FakeStrokeSessionHost: StrokeSessionHost {
     func beginEdit() {
         undoSnapshotCount += 1
     }
+
+    func commitColorPick(_ color: Color, to target: ColorPickTarget) {
+        switch target {
+        case .foreground: foregroundColor = color
+        case .background: backgroundColor = color
+        }
+    }
 }
 
 @Suite("StrokeEngine — lifecycle")
@@ -76,7 +83,7 @@ struct StrokeEngineLifecycleTests {
     @Test("begin starts the session, then draws the first sample with no previous")
     func beginStartsThenDrawsFirstSample() {
         let spy = SpyStrokeSession()
-        let engine = StrokeEngine(makeSession: { _, _, _ in spy })
+        let engine = StrokeEngine(makeSession: { _, _, _, _ in spy })
 
         engine.begin(tool: .pencil, host: FakeStrokeSessionHost(), at: ScreenCanvasCoords(x: 2, y: 3))
 
@@ -86,7 +93,7 @@ struct StrokeEngineLifecycleTests {
     @Test("each sample reaches the session with the prior sample as previous")
     func samplesCarryPrevious() {
         let spy = SpyStrokeSession()
-        let engine = StrokeEngine(makeSession: { _, _, _ in spy })
+        let engine = StrokeEngine(makeSession: { _, _, _, _ in spy })
 
         engine.begin(tool: .pencil, host: FakeStrokeSessionHost(), at: ScreenCanvasCoords(x: 2, y: 3))
         engine.sample(at: ScreenCanvasCoords(x: 3, y: 4))
@@ -103,7 +110,7 @@ struct StrokeEngineLifecycleTests {
     @Test("a repeated sample on the same pixel never reaches the session")
     func samePixelSampleIsDropped() {
         let spy = SpyStrokeSession()
-        let engine = StrokeEngine(makeSession: { _, _, _ in spy })
+        let engine = StrokeEngine(makeSession: { _, _, _, _ in spy })
 
         engine.begin(tool: .pencil, host: FakeStrokeSessionHost(), at: ScreenCanvasCoords(x: 2, y: 3))
         let didChange = engine.sample(at: ScreenCanvasCoords(x: 2, y: 3))
@@ -115,7 +122,7 @@ struct StrokeEngineLifecycleTests {
     @Test("end routes to the session and stops further samples")
     func endTearsDownSession() {
         let spy = SpyStrokeSession()
-        let engine = StrokeEngine(makeSession: { _, _, _ in spy })
+        let engine = StrokeEngine(makeSession: { _, _, _, _ in spy })
 
         engine.begin(tool: .pencil, host: FakeStrokeSessionHost(), at: ScreenCanvasCoords(x: 2, y: 3))
         engine.end()
@@ -128,7 +135,7 @@ struct StrokeEngineLifecycleTests {
     @Test("cancel routes to the session — never end — and stops further samples")
     func cancelTearsDownSessionWithoutEnd() {
         let spy = SpyStrokeSession()
-        let engine = StrokeEngine(makeSession: { _, _, _ in spy })
+        let engine = StrokeEngine(makeSession: { _, _, _, _ in spy })
 
         engine.begin(tool: .pencil, host: FakeStrokeSessionHost(), at: ScreenCanvasCoords(x: 2, y: 3))
         engine.cancel()
@@ -143,7 +150,7 @@ struct StrokeEngineLifecycleTests {
         let first = SpyStrokeSession()
         let second = SpyStrokeSession()
         var pending = [first, second]
-        let engine = StrokeEngine(makeSession: { _, _, _ in pending.removeFirst() })
+        let engine = StrokeEngine(makeSession: { _, _, _, _ in pending.removeFirst() })
 
         engine.begin(tool: .pencil, host: FakeStrokeSessionHost(), at: ScreenCanvasCoords(x: 1, y: 1))
         engine.begin(tool: .pencil, host: FakeStrokeSessionHost(), at: ScreenCanvasCoords(x: 5, y: 5))
@@ -156,7 +163,7 @@ struct StrokeEngineLifecycleTests {
     func beginResolvesDrawColorFromButton() {
         let host = FakeStrokeSessionHost()
         var receivedColors: [Color] = []
-        let engine = StrokeEngine(makeSession: { _, _, drawColor in
+        let engine = StrokeEngine(makeSession: { _, _, drawColor, _ in
             receivedColors.append(drawColor)
             return SpyStrokeSession()
         })
@@ -175,7 +182,7 @@ struct StrokeEngineLifecycleTests {
         let second = SpyStrokeSession()
         second.drawReturnsRerender = false
         var pending = [first, second]
-        let engine = StrokeEngine(makeSession: { _, _, _ in pending.removeFirst() })
+        let engine = StrokeEngine(makeSession: { _, _, _, _ in pending.removeFirst() })
 
         engine.begin(tool: .pencil, host: FakeStrokeSessionHost(), at: ScreenCanvasCoords(x: 1, y: 1))
         let didChange = engine.begin(tool: .pencil, host: FakeStrokeSessionHost(), at: ScreenCanvasCoords(x: 5, y: 5))
@@ -193,7 +200,7 @@ struct StrokeEngineDeferredCommitTests {
     @Test("a deferred effect commits on end")
     func deferredEffectCommitsOnEnd() {
         let session = DeferredCommitStrokeSession()
-        let engine = StrokeEngine(makeSession: { _, _, _ in session })
+        let engine = StrokeEngine(makeSession: { _, _, _, _ in session })
 
         engine.begin(tool: .pencil, host: FakeStrokeSessionHost(), at: ScreenCanvasCoords(x: 1, y: 1))
         engine.sample(at: ScreenCanvasCoords(x: 2, y: 2))
@@ -205,7 +212,7 @@ struct StrokeEngineDeferredCommitTests {
     @Test("a deferred effect is discarded on cancel")
     func deferredEffectDiscardedOnCancel() {
         let session = DeferredCommitStrokeSession()
-        let engine = StrokeEngine(makeSession: { _, _, _ in session })
+        let engine = StrokeEngine(makeSession: { _, _, _, _ in session })
 
         engine.begin(tool: .pencil, host: FakeStrokeSessionHost(), at: ScreenCanvasCoords(x: 1, y: 1))
         engine.sample(at: ScreenCanvasCoords(x: 2, y: 2))

@@ -88,14 +88,6 @@ export interface DocumentChangeJournalDeps {
 	readonly markDirty: () => void;
 }
 
-function sameMarqueeRegion(
-	a: MarqueeRegion | null | undefined,
-	b: MarqueeRegion | null | undefined
-): boolean {
-	if (!a || !b) return !a && !b;
-	return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
-}
-
 function translateMarqueeRegion(
 	region: MarqueeRegion,
 	offset: { readonly dx: number; readonly dy: number }
@@ -134,11 +126,6 @@ export class DocumentChangeJournal {
 			case 'persisted-document-ui':
 				return this.#commitPersistedDocumentUi(change.intent);
 		}
-	}
-
-	captureUndoSnapshot(): void {
-		this.#history.push_document(this.#deps.getDocument());
-		this.#historyVersion++;
 	}
 
 	/**
@@ -185,15 +172,28 @@ export class DocumentChangeJournal {
 	}
 
 	#commitUndoableDocument(intent: UndoableDocumentIntent): DocumentChangeResult {
-		if (!this.#willChangeUndoableDocument(intent)) return { changed: false };
-		this.#restoreFloatingSelectionBaselineForSnapshot(intent);
-		this.captureUndoSnapshot();
-		const result = this.#applyUndoableDocumentIntent(intent);
+		if (!this.#isAllowedUndoableDocument(intent)) return { changed: false };
+		this.#restoreFloatingSelectionBaseline(intent);
+
+		this.#history.begin_edit(this.#deps.getDocument());
+		let applied: DocumentChangeResult;
+		let recorded: boolean;
+		try {
+			applied = this.#applyUndoableDocumentIntent(intent);
+		} finally {
+			// Resolve even when the apply threw: an unresolved baseline would
+			// stay pending and poison the next edit. A partial mutation still
+			// compares as a change, so it stays undoable.
+			recorded = this.#history.end_edit(this.#deps.getDocument());
+			this.#historyVersion++;
+		}
+
+		if (!recorded) return { changed: false };
 		this.#afterUndoableDocumentChanged(intent);
-		return result;
+		return applied;
 	}
 
-	#restoreFloatingSelectionBaselineForSnapshot(intent: UndoableDocumentIntent): void {
+	#restoreFloatingSelectionBaseline(intent: UndoableDocumentIntent): void {
 		if (intent.type !== 'commit-floating-selection') return;
 		const baseline = intent.sourceLayerPixelsBeforeLift;
 		if (!baseline) return;
@@ -331,106 +331,52 @@ export class DocumentChangeJournal {
 		return { changed: true };
 	}
 
-	#willChangeUndoableDocument(intent: UndoableDocumentIntent): boolean {
+	/**
+	 * Answers whether the Document's rules permit `intent` at all, before any
+	 * work happens, and validates ids and sources at the boundary.
+	 *
+	 * It deliberately does *not* predict whether the intent will change
+	 * anything. That verdict belongs to the Edit Baseline, which reaches it by
+	 * comparison after the apply — a prediction here would be a second
+	 * authority on the same question, and the kind-based guesses it replaced
+	 * were blind to content (issue 244). Every intent the core tolerates as a
+	 * graceful no-op (clearing or transforming with no Marquee, or while a
+	 * Reference Layer is active) is simply applied and judged.
+	 */
+	#isAllowedUndoableDocument(intent: UndoableDocumentIntent): boolean {
 		const document = this.#deps.getDocument();
 		switch (intent.type) {
-			case 'add-pixel-layer':
-				return true;
 			case 'set-reference-layer':
 				this.#assertValidReferenceLayerSource(intent.source);
 				return true;
 			case 'remove-layer':
 				return document.layer_count() > 1;
-			case 'reorder-layer': {
-				const layer = this.#layerOf(intent.id);
-				if (layer.kind === 'reference') return false;
-				return layer.stackIndex !== this.#effectiveReorderStackIndex(intent);
-			}
-			case 'set-layer-visibility': {
-				return this.#layerOf(intent.id).visible !== intent.visible;
-			}
-			case 'set-reference-placement': {
-				const layer = this.#layerOf(intent.id);
-				const current = document.layers_metadata()[layer.stackIndex]?.placement;
-				if (!current) {
-					throw new Error(`Layer with id ${intent.id} is not a Reference Layer`);
-				}
-				return (
-					current.x !== intent.placement.x ||
-					current.y !== intent.placement.y ||
-					current.scale !== intent.placement.scale
-				);
-			}
-			case 'resize-document':
-				return intent.width !== document.width || intent.height !== document.height;
-			case 'clear-active-layer':
-				return this.#activeLayerKind() === 'pixel';
-			case 'flip-canvas-horizontal':
-			case 'flip-canvas-vertical':
-				// A Canvas Transform mirrors every Pixel Layer's every cel and an
-				// active Marquee, independent of the active layer kind — but a
-				// Reference-only document with no Marquee gives it nothing to
-				// mirror, so skip the snapshot for that no-op.
-				return (
-					this.#deps
-						.getLayerProjection()
-						.layersInStackOrder.some((layer) => layer.kind === 'pixel') ||
-					Boolean(document.marquee())
-				);
-			case 'clear-marquee-pixels':
-			// A Marquee Transform mirrors or turns only the Marquee region of
-			// the active Pixel Layer's active-frame cel — without a Marquee or
-			// while a Reference Layer is active it has nothing to transform,
-			// so skip the snapshot for that no-op.
-			case 'flip-marquee-horizontal':
-			case 'flip-marquee-vertical':
-			case 'rotate-marquee-cw':
-			case 'rotate-marquee-ccw':
-				return Boolean(document.marquee()) && this.#activeLayerKind() === 'pixel';
-			case 'rotate-canvas-cw':
-			case 'rotate-canvas-ccw':
-				// A Canvas Transform turns every Pixel Layer's every cel, swaps the
-				// dimensions, and carries an active Marquee — the Reference Layer
-				// stays fixed. Only a square Reference-only document with no
-				// Marquee gives it nothing to change, so skip that no-op.
-				return (
-					this.#deps
-						.getLayerProjection()
-						.layersInStackOrder.some((layer) => layer.kind === 'pixel') ||
-					Boolean(document.marquee()) ||
-					document.width !== document.height
-				);
-			case 'commit-floating-selection':
-				return this.#layerKindOf(intent.sourceLayerId) === 'pixel' && intent.buffer.length > 0;
-			case 'set-marquee':
-				return (
-					this.#activeLayerKind() === 'pixel' &&
-					!sameMarqueeRegion(document.marquee(), intent.region)
-				);
-			case 'add-frame':
-			case 'duplicate-frame':
-				return true;
 			case 'remove-frame':
 				return document.frame_count() > 1;
-			case 'reorder-frame': {
-				const frames = document.frames_metadata();
-				const from = frames.findIndex((frame) => frame.id === intent.id);
-				if (from === -1) {
-					throw new Error(`Frame with id ${intent.id} not found`);
-				}
-				const to = Math.min(Math.max(intent.newIndex, 0), frames.length - 1);
-				return from !== to;
-			}
-			case 'set-frame-duration': {
-				const frame = document.frames_metadata().find((f) => f.id === intent.id);
-				if (!frame) {
-					throw new Error(`Frame with id ${intent.id} not found`);
-				}
-				// Mirror set-layer-visibility: a duration that already matches is a
-				// no-op. The compare is against the requested value as-is — the
-				// [1, 60_000] clamp lives at the WASM boundary, its single source.
-				return frame.duration_ms !== intent.durationMs;
-			}
+			case 'reorder-layer':
+				// A Reference Layer is pinned to the bottom of the stack.
+				return this.#layerOf(intent.id).kind !== 'reference';
+			case 'set-layer-visibility':
+				this.#assertLayerExists(intent.id);
+				return true;
+			case 'set-reference-placement':
+				this.#assertReferenceLayer(intent.id);
+				return true;
+			case 'reorder-frame':
+			case 'set-frame-duration':
+				this.#assertFrameExists(intent.id);
+				return true;
+			case 'set-marquee':
+				// A Marquee belongs to a Pixel Layer: unlike the transforms, the
+				// core would honour a set against a Reference Layer, so this is a
+				// rule to enforce rather than a no-op to detect.
+				return this.#activeLayerKind() === 'pixel';
+			case 'commit-floating-selection':
+				// Same shape: the composite no-ops onto a Reference Layer, but the
+				// destination Marquee would still move, so gate the whole intent.
+				return this.#layerKindOf(intent.sourceLayerId) === 'pixel' && intent.buffer.length > 0;
+			default:
+				return true;
 		}
 	}
 
@@ -460,6 +406,23 @@ export class DocumentChangeJournal {
 		const layer = this.#deps.getLayerProjection().layerById.get(id);
 		if (layer) return layer;
 		throw new Error(`Layer with id ${id} not found`);
+	}
+
+	#assertLayerExists(id: string): void {
+		this.#layerOf(id);
+	}
+
+	#assertReferenceLayer(id: string): void {
+		const layer = this.#layerOf(id);
+		if (!this.#deps.getDocument().layers_metadata()[layer.stackIndex]?.placement) {
+			throw new Error(`Layer with id ${id} is not a Reference Layer`);
+		}
+	}
+
+	#assertFrameExists(id: string): void {
+		if (!this.#deps.getDocument().frames_metadata().some((frame) => frame.id === id)) {
+			throw new Error(`Frame with id ${id} not found`);
+		}
 	}
 
 	#activeLayerKind(): DocumentLayerKind | undefined {

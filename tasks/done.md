@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 247 | [Dead `commitFloatingSelection` effect bypasses the isDrawing seal](../issues/247-dead-commit-floating-selection-effect.md) | 2026-07-17 |
 | 246 | [Remove the eager push API from History once commands use the Edit Baseline](../issues/246-remove-eager-push-api.md) | 2026-07-17 |
 | 244 | [Command no-ops still push history entries (clear on empty layer, …)](../issues/244-command-noop-history-entries.md) | 2026-07-17 |
 | 243 | [No-op strokes push empty undo entries (web + Apple, all session species)](../issues/243-no-op-stroke-history-entries.md) | 2026-07-17 |

@@ -17,7 +17,6 @@ export type ToolEffect =
 			readonly type: 'moveFloatingSelection';
 			readonly offset: { readonly dx: number; readonly dy: number };
 	  }
-	| { readonly type: 'commitFloatingSelection' }
 	| { readonly type: 'cancelFloatingSelection' };
 
 export type ToolEffects = readonly ToolEffect[];

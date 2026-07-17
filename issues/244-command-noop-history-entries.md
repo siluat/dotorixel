@@ -8,14 +8,16 @@ created: 2026-07-17
 
 ## Problem
 
-The command paths' predictive no-op guards check the *kind* of target, not its
-*content*, so some commands that change nothing still push an undo snapshot
-(dead undo entry + redo future destroyed):
+Some command paths' predictive no-op guards check only the *kind* of target,
+not its *content* (many guards are already content-aware — visibility,
+duration, reorder index), so commands that change nothing can still push an
+undo snapshot (dead undo entry + redo future destroyed):
 
 - Web: `clear-active-layer` pushes whenever the active layer is a Pixel Layer,
   even when every pixel is already transparent (the journal's `willChange`
   guard is kind-based).
-- Apple: `handleClearCanvas` always pushes, even on a blank canvas.
+- Apple: `handleClearCanvas` pushes even on a blank canvas (its only guard is
+  the mid-stroke `isDrawing` seal, not a content check).
 - Other content-blind guards may exist; audit the `willChange` table during
   triage.
 

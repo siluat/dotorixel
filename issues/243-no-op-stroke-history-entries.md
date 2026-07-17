@@ -94,8 +94,9 @@ leave History exactly as it was, including the redo stack.
   `PixelCanvasHistory`) and both FFI bindings (wasm, UniFFI). `push` stays
   eager for command paths and is independent of any pending baseline.
   Undo/redo while pending is debug-asserted (shells seal it with `isDrawing`).
-- Equality is decided in core via `PartialEq` — `Document` gains the derive.
-  No session or tool passes a did-change signal.
+- Equality is decided in core via `PartialEq` — `Document` implements it
+  manually (a derive would inherit `Frame`'s identity-only equality and miss
+  retimed frames). No session or tool passes a did-change signal.
 - Web: the `captureUndoSnapshot` tool effect becomes the begin mark routed
   through the Document Change Journal; the tab's stroke end/cancel entries
   resolve the pending baseline. The journal must resolve only when a stroke
@@ -106,19 +107,19 @@ leave History exactly as it was, including the redo stack.
   directly (no production callers) is removed.
 
 **Acceptance criteria:**
-- [ ] Each no-op stroke species above leaves `canUndo`, the undo stack, and
+- [x] Each no-op stroke species above leaves `canUndo`, the undo stack, and
       an existing redo future unchanged, on both shells.
-- [ ] A real stroke commits exactly one undo entry at stroke end; undo
+- [x] A real stroke commits exactly one undo entry at stroke end; undo
       restores the pre-stroke state; redo re-applies it; the redo future from
       before the stroke is discarded (branch-discarding invariant unchanged).
-- [ ] Cancel of a real-change-then-restore stroke (shape/move) leaves no
+- [x] Cancel of a real-change-then-restore stroke (shape/move) leaves no
       entry; cancel of a freehand stroke that painted keeps its entry.
-- [ ] Core regression tests cover the pending seam once (begin → no-op end,
+- [x] Core regression tests cover the pending seam once (begin → no-op end,
       begin → real end, redo preservation, command push during pending).
-- [ ] The Apple parity pins asserting snapshot-on-no-op are inverted to pin
+- [x] The Apple parity pins asserting snapshot-on-no-op are inverted to pin
       the new invariant; web sugar/engine tests updated to the
       begin-at-start / commit-at-end contract.
-- [ ] Command paths (clear, flip, rotate, layer/frame ops, resize) behave
+- [x] Command paths (clear, flip, rotate, layer/frame ops, resize) behave
       exactly as before.
 
 **Out of scope:**
@@ -161,8 +162,10 @@ leave History exactly as it was, including the redo stack.
 - Fixes the worse hidden symptom found in triage: a no-op stroke used to
   **clear the redo stack** (the eager push); redo futures now survive no-op
   strokes on both shells.
-- `canUndo` is now false mid-stroke (was true from stroke start) — invisible
-  in the UI since undo is sealed behind `isDrawing` on both shells.
+- The in-flight stroke's entry is no longer on the stack mid-stroke (it used
+  to be pushed at stroke start), so `canUndo` stays false during a first
+  stroke on an empty stack; entries from earlier work still report true.
+  Invisible in the UI — undo is sealed behind `isDrawing` on both shells.
 - Web needs no shell-level double-begin guard: the interaction machine blocks
   concurrent strokes structurally (idle gate; two-touch runs `onDrawEnd`
   before pinching). Apple's guard lives in `EditorState.beginStroke` and is

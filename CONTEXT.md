@@ -152,7 +152,7 @@ _Avoid_: pan limits / scroll bounds (informal), canvas bounds (that is only one 
 ### History
 
 **History**:
-A tab's undo/redo record — a bounded, branch-discarding LIFO: pushing a new entry clears the redo future and evicts the oldest entry once the cap is exceeded. This invariant is owned once by a shared generic ring (`History<T>`); the model split below provides two never-mixed species that each only marshal their own value type. Mixing species is unrepresentable, not guarded. A visual no-op leaves no History entry: command paths guard predictively (skip the push when nothing will change), stroke paths retrospectively through the Stroke Baseline.
+A tab's undo/redo record — a bounded, branch-discarding LIFO: pushing a new entry clears the redo future and evicts the oldest entry once the cap is exceeded. This invariant is owned once by a shared generic ring (`History<T>`); the model split below provides two never-mixed species that each only marshal their own value type. Mixing species is unrepresentable, not guarded. A visual no-op leaves no History entry: command paths guard predictively (skip the push when nothing will change; some content-blind gaps remain — [issue 244](issues/244-command-noop-history-entries.md)), stroke paths retrospectively through the Stroke Baseline.
 _Avoid_: undo stack (names only one of the two stacks), history manager (the pre-split type that fused both species behind one enum — superseded by PixelCanvas History / Document History), snapshot stack.
 
 **Stroke Baseline**:

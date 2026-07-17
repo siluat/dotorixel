@@ -6,14 +6,27 @@ Tracks accept/reject ratios per AI reviewer bot on PR review comments.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 176 | 135 | 41 | 189 | 77% | 42% |
-| cubic-dev-ai[bot] | 175 | 136 | 39 | 187 | 78% | 42% |
-| coderabbitai[bot] | 250 | 174 | 76 | 148 | 70% | 54% |
+| greptile-apps[bot] | 176 | 135 | 41 | 198 | 77% | 41% |
+| cubic-dev-ai[bot] | 186 | 146 | 40 | 187 | 78% | 44% |
+| coderabbitai[bot] | 251 | 175 | 76 | 156 | 70% | 53% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #322 | coderabbitai[bot] | Accept | ADR + brief said `Document` gains a `PartialEq` **derive**; the implementation is deliberately manual (derive would inherit `Frame`'s identity-only equality) — wording corrected in both records |
+| #322 | cubic-dev-ai[bot] | Accept | Same derive-vs-manual `PartialEq` finding (2 comments: ADR + brief), duplicate of coderabbit; same corrections |
+| #322 | cubic-dev-ai[bot] | Accept | Issue note "`canUndo` is now false mid-stroke" overgeneralized — a pending baseline hides only the in-flight stroke's entry, not pre-existing ones; note reworded |
+| #322 | cubic-dev-ai[bot] | Accept | CONTEXT.md History entry overstated the command-path no-op invariant while 244's content-blind gaps remain open; qualifier + issue link added |
+| #322 | cubic-dev-ai[bot] | Accept | Issue 243 marked done with all acceptance criteria unchecked; boxes ticked (all verified pre-merge) |
+| #322 | cubic-dev-ai[bot] | Accept | Issue 244 said Apple `handleClearCanvas` "always pushes" — the `isDrawing` seal makes that literally false; reworded to "pushes even on a blank canvas (mid-stroke seal is not a content check)" |
+| #322 | cubic-dev-ai[bot] | Accept | Issue 244 opener claimed command-path guards check kind-not-content in general; many are content-aware — narrowed to "some command paths" |
+| #322 | cubic-dev-ai[bot] | Accept | ADR "Every stroke session pushed" too broad — the eyedropper records no history; qualified as "every history-recording stroke session" |
+| #322 | cubic-dev-ai[bot] | Accept | ADR called the stroke path "the one place" the no-op invariant failed — 244's command gaps also violate it; reframed as the one path that cannot be predictively checked |
+| #322 | cubic-dev-ai[bot] | Accept | platform-status said entries commit "only if pixels changed" — Web compares the whole Document (retimed frames count); reworded to captured-state-changed |
+| #322 | cubic-dev-ai[bot] | Reject | Multi-touch early-commit (first finger's lift ends the replacement session) is pre-existing input routing, not a 243 regression — the new guard only ensures baselines resolve through that sequence, which they do. Split to issue 245 |
+| #322 | coderabbitai[bot] | Miss (×8) | Missed all accepted findings except the derive wording (canUndo note, CONTEXT overstate, unchecked criteria, 244 wording ×2, ADR wording ×2, platform-status) |
+| #322 | greptile-apps[bot] | Miss (×9) | Summary-only review (4/5, "safe to merge"); flagged none of the nine accepted findings |
 | #321 | greptile-apps[bot] | Accept | No-op fill taps' undo-stack trade-off was unpinned in the two no-op tests; accepted with the assertion direction inverted — `#expect(state.canUndo)` pins the spec'd capture-at-start web parity that their literal `!canUndo` would contradict |
 | #321 | cubic-dev-ai[bot] | Reject | Wanted fill history captured only when `floodFill` reports a change; capture-at-start is the issue-232 spec and exact web behavior (unconditional `captureUndoSnapshot`, no history dedupe) — a fill-only change would diverge shells and sibling sessions. Cross-cutting question tracked as issue 243 |
 | #321 | coderabbitai[bot] | Miss | Did not flag the unpinned no-op undo-stack trade-off in the fill tests (accepted from greptile) |

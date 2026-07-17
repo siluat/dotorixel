@@ -6,17 +6,19 @@ Accepted (2026-07-17)
 
 ## Context
 
-Every stroke session on both shells pushed an undo snapshot at stroke start,
-before knowing whether the stroke would change any pixels — strokes, unlike
-commands, cannot be no-op-guarded predictively. A stroke that ended as a
+Every history-recording stroke session on both shells pushed an undo snapshot
+at stroke start (the eyedropper deliberately records none), before knowing
+whether the stroke would change any pixels — strokes, unlike commands, cannot
+be no-op-guarded predictively. A stroke that ended as a
 visual no-op (out-of-canvas tap, same-color fill or retrace, zero-delta move,
 cancelled shape preview) therefore left an entry that restores an identical
 state: the next Undo appeared dead. Worse, the eager push cleared the redo
 stack, so a stray no-op stroke silently destroyed the entire redo future.
 
-The web journal already guards command paths predictively (`willChange`); the
-stroke path was the one place the "no-op ⇒ no History entry" invariant did not
-hold. (Issue 243.)
+The web journal already guards command paths predictively (`willChange`),
+though some of those guards are content-blind and leave their own no-op gaps
+(issue 244); the stroke path was the one place the "no-op ⇒ no History entry"
+invariant could not be checked predictively at all. (Issue 243.)
 
 ## Decision
 
@@ -58,8 +60,9 @@ seam — the **Stroke Baseline** — exposed on both species (`DocumentHistory`,
 
 - The comparison cost is the same order as the per-stroke clone the push
   already paid. Real strokes exit at the first differing byte; a full scan
-  happens only for actual no-ops, which are rare. `Document` gains a
-  `PartialEq` derive to support this.
+  happens only for actual no-ops, which are rare. `Document` implements
+  `PartialEq` manually to support this — a derive would inherit `Frame`'s
+  identity-only equality and call retimed documents equal.
 - `can_undo` stays false during a stroke until the commit at stroke end
   (previously true from stroke start). Shells already block undo mid-stroke,
   so this is invisible in the UI.

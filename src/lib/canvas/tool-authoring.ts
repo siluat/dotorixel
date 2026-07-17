@@ -2,7 +2,7 @@ import type { CanvasCoords, CanvasPoint, Document } from './canvas-model';
 import { colorToHex, type Color } from './color';
 import type { DrawingOps } from './drawing-ops';
 import {
-	CAPTURE_UNDO_SNAPSHOT,
+	BEGIN_EDIT,
 	CANVAS_CHANGED,
 	NO_EFFECTS,
 	type ToolContext,
@@ -105,8 +105,8 @@ function createStrokeDrawingOps(
 
 function undoableStartEffects(addsActiveColor: boolean, color: Color): EditorEffects {
 	return addsActiveColor
-		? [...CAPTURE_UNDO_SNAPSHOT, { type: 'addRecentColor', hex: colorToHex(color) }]
-		: CAPTURE_UNDO_SNAPSHOT;
+		? [...BEGIN_EDIT, { type: 'addRecentColor', hex: colorToHex(color) }]
+		: BEGIN_EDIT;
 }
 
 /**

@@ -40,7 +40,7 @@ describe('oneShotTool sugar', () => {
 		const tool = oneShotTool({ id: 'floodfill', execute: vi.fn(() => []) });
 		const session = tool.open(host, { drawColor: BLACK, drawButton: 0, inputSource: 'mouse' });
 
-		expect(session.start()).toContainEqual({ type: 'captureUndoSnapshot' });
+		expect(session.start()).toContainEqual({ type: 'beginEdit' });
 	});
 
 	it('opts out of undo snapshot requests when capturesHistory is false', () => {
@@ -53,7 +53,7 @@ describe('oneShotTool sugar', () => {
 		});
 		const session = tool.open(host, { drawColor: BLACK, drawButton: 0, inputSource: 'mouse' });
 
-		expect(session.start()).not.toContainEqual({ type: 'captureUndoSnapshot' });
+		expect(session.start()).not.toContainEqual({ type: 'beginEdit' });
 	});
 
 	it('emits addRecentColor on start by default', () => {
@@ -63,7 +63,7 @@ describe('oneShotTool sugar', () => {
 		const session = tool.open(host, { drawColor: RED, drawButton: 0, inputSource: 'mouse' });
 
 		expect(session.start()).toEqual([
-			{ type: 'captureUndoSnapshot' },
+			{ type: 'beginEdit' },
 			{ type: 'addRecentColor', hex: '#ff0000' }
 		]);
 	});
@@ -78,7 +78,7 @@ describe('oneShotTool sugar', () => {
 		});
 		const session = tool.open(host, { drawColor: BLACK, drawButton: 0, inputSource: 'mouse' });
 
-		expect(session.start()).toEqual([{ type: 'captureUndoSnapshot' }]);
+		expect(session.start()).toEqual([{ type: 'beginEdit' }]);
 	});
 
 	it('fires execute once on first draw and returns its effects', () => {

@@ -1439,18 +1439,18 @@ impl WasmHistoryManager {
         self.inner.push_document(&document.inner);
     }
 
-    /// Holds `document` as the pending Stroke Baseline. Nothing is pushed and
-    /// the redo stack stays untouched until `end_stroke` resolves it.
-    pub fn begin_stroke(&mut self, document: &WasmDocument) {
-        self.inner.begin_stroke(&document.inner);
+    /// Holds `document` as the pending Edit Baseline. Nothing is pushed and
+    /// the redo stack stays untouched until `end_edit` resolves it.
+    pub fn begin_edit(&mut self, document: &WasmDocument) {
+        self.inner.begin_edit(&document.inner);
     }
 
-    /// Resolves the pending Stroke Baseline against `current`: pushes it as
-    /// the new undo top (clearing the redo stack) only when the stroke
-    /// actually changed the document; a no-op stroke discards the baseline
-    /// and leaves both stacks untouched. No-op when no baseline is pending.
-    pub fn end_stroke(&mut self, current: &WasmDocument) {
-        self.inner.end_stroke(&current.inner);
+    /// Resolves the pending Edit Baseline against `current`: pushes it as
+    /// the new undo top (clearing the redo stack) only when the edit actually
+    /// changed the document; a no-op edit discards the baseline and leaves
+    /// both stacks untouched. No-op when no baseline is pending.
+    pub fn end_edit(&mut self, current: &WasmDocument) {
+        self.inner.end_edit(&current.inner);
     }
 
     /// Pushes `current` onto the redo stack and returns the previous document
@@ -2595,8 +2595,8 @@ mod tests {
         let doc = WasmDocument::new(2, 2, Uuid::new_v4().to_string(), "A".into()).unwrap();
         let mut history = WasmHistoryManager::default_manager();
 
-        history.begin_stroke(&doc);
-        history.end_stroke(&doc);
+        history.begin_edit(&doc);
+        history.end_edit(&doc);
 
         assert!(!history.can_undo());
     }
@@ -2606,11 +2606,11 @@ mod tests {
         let mut doc = WasmDocument::new(2, 2, Uuid::new_v4().to_string(), "A".into()).unwrap();
         let mut history = WasmHistoryManager::default_manager();
 
-        history.begin_stroke(&doc);
+        history.begin_edit(&doc);
         assert!(!history.can_undo());
         doc.add_layer(Uuid::new_v4().to_string(), "B".into())
             .unwrap();
-        history.end_stroke(&doc);
+        history.end_edit(&doc);
 
         assert!(history.can_undo());
         let restored = history.undo_document(&doc).unwrap();

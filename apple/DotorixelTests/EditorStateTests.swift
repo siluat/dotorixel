@@ -75,7 +75,7 @@ struct EditorStateStrokeTests {
         #expect(try state.pixelCanvas.getPixel(x: 3, y: 4) == state.foregroundColor)
         #expect(state.canvasVersion == versionBefore + 1)
         #expect(state.isDrawing)
-        // The Stroke Baseline is pending, not committed — undo is sealed
+        // The Edit Baseline is pending, not committed — undo is sealed
         // while drawing, so nothing is on the stack yet.
         #expect(!state.canUndo)
 
@@ -83,7 +83,7 @@ struct EditorStateStrokeTests {
         #expect(state.canUndo)
     }
 
-    @Test("a begin during an active stroke resolves the previous Stroke Baseline first")
+    @Test("a begin during an active stroke resolves the previous Edit Baseline first")
     func beginWhileDrawingResolvesPreviousBaseline() throws {
         let state = EditorState(width: 16, height: 16)
 

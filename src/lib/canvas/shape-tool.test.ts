@@ -57,7 +57,7 @@ describe('shapeTool sugar', () => {
 		const effects = session.start();
 
 		expect(effects).toEqual([
-			{ type: 'captureUndoSnapshot' },
+			{ type: 'beginEdit' },
 			{ type: 'addRecentColor', hex: '#ff0000' }
 		]);
 	});
@@ -73,7 +73,7 @@ describe('shapeTool sugar', () => {
 		});
 		const session = tool.open(host, { drawColor: BLACK, drawButton: 0, inputSource: 'mouse' });
 
-		expect(session.start()).toEqual([{ type: 'captureUndoSnapshot' }]);
+		expect(session.start()).toEqual([{ type: 'beginEdit' }]);
 	});
 
 	it('calls stroke(ctx, start, start) on the first draw (degenerate anchor)', () => {

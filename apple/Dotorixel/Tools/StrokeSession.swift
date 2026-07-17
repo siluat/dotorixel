@@ -42,9 +42,9 @@ protocol StrokeSessionHost: AnyObject {
     var foregroundColor: Color { get }
     var backgroundColor: Color { get }
 
-    /// Holds the current canvas pixels as the pending Stroke Baseline. The
+    /// Holds the current canvas pixels as the pending Edit Baseline. The
     /// host resolves it when the stroke ends or cancels: the undo entry
     /// commits only if the stroke actually changed the canvas, so a no-op
     /// stroke leaves History (including the redo future) untouched.
-    func captureUndoSnapshot()
+    func beginEdit()
 }

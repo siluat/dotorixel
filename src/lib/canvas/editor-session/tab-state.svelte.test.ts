@@ -4052,7 +4052,7 @@ describe('TabState — onion skin projection', () => {
 });
 
 // A stroke's undo entry commits at stroke end only when the stroke actually
-// changed the document (the Stroke Baseline, issue 243). A visual no-op —
+// changed the document (the Edit Baseline, issue 243). A visual no-op —
 // out-of-canvas tap, same-color retrace, cancelled preview, zero-delta move —
 // leaves History exactly as it was, including the redo future.
 describe('TabState no-op strokes and History', () => {

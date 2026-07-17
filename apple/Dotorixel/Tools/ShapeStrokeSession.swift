@@ -39,7 +39,7 @@ final class ShapeStrokeSession: StrokeSession {
 
     func start() {
         preStrokePixels = host.pixelCanvas.pixels()
-        host.captureUndoSnapshot()
+        host.beginEdit()
     }
 
     func draw(current: ScreenCanvasCoords, previous: ScreenCanvasCoords?) -> Bool {

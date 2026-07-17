@@ -26,14 +26,14 @@ struct CanvasBindingsTests {
         let history = AppleHistoryManager.defaultManager()
 
         // No-op stroke: identical pixels at begin and end → nothing committed.
-        history.beginStroke(width: canvas.width(), height: canvas.height(), pixels: canvas.pixels())
-        history.endStroke(currentWidth: canvas.width(), currentHeight: canvas.height(), currentPixels: canvas.pixels())
+        history.beginEdit(width: canvas.width(), height: canvas.height(), pixels: canvas.pixels())
+        history.endEdit(currentWidth: canvas.width(), currentHeight: canvas.height(), currentPixels: canvas.pixels())
         #expect(!history.canUndo())
 
         // Real stroke: a changed pixel at end → the baseline commits.
-        history.beginStroke(width: canvas.width(), height: canvas.height(), pixels: canvas.pixels())
+        history.beginEdit(width: canvas.width(), height: canvas.height(), pixels: canvas.pixels())
         try canvas.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
-        history.endStroke(currentWidth: canvas.width(), currentHeight: canvas.height(), currentPixels: canvas.pixels())
+        history.endEdit(currentWidth: canvas.width(), currentHeight: canvas.height(), currentPixels: canvas.pixels())
         #expect(history.canUndo())
     }
 }

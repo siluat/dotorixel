@@ -75,7 +75,7 @@ final class EditorState {
     func beginStroke(at coords: ScreenCanvasCoords, button: PointerButton = .primary) {
         // A begin can arrive while a stroke is active (e.g. a second finger on
         // iPadOS). Close the previous stroke through the full cancel path so
-        // its Stroke Baseline resolves before the next session begins one.
+        // its Edit Baseline resolves before the next session begins one.
         if isDrawing {
             cancelStroke()
         }
@@ -98,7 +98,7 @@ final class EditorState {
         if strokeEngine.end() {
             canvasVersion += 1
         }
-        resolveStrokeBaseline()
+        resolveEditBaseline()
         isDrawing = false
     }
 
@@ -110,15 +110,15 @@ final class EditorState {
         if strokeEngine.cancel() {
             canvasVersion += 1
         }
-        resolveStrokeBaseline()
+        resolveEditBaseline()
         isDrawing = false
     }
 
-    /// Resolves the pending Stroke Baseline against the post-stroke canvas —
+    /// Resolves the pending Edit Baseline against the post-stroke canvas —
     /// the undo entry commits only when the stroke actually changed pixels; a
     /// no-op stroke leaves both stacks (including the redo future) untouched.
-    private func resolveStrokeBaseline() {
-        historyManager.endStroke(
+    private func resolveEditBaseline() {
+        historyManager.endEdit(
             currentWidth: pixelCanvas.width(),
             currentHeight: pixelCanvas.height(),
             currentPixels: pixelCanvas.pixels()
@@ -270,11 +270,11 @@ final class EditorState {
 // MARK: - StrokeSessionHost
 
 extension EditorState: StrokeSessionHost {
-    /// Holds the current canvas pixels as the pending Stroke Baseline. The
+    /// Holds the current canvas pixels as the pending Edit Baseline. The
     /// entry commits at stroke end only if the stroke changed the canvas —
-    /// see `resolveStrokeBaseline()`.
-    func captureUndoSnapshot() {
-        historyManager.beginStroke(
+    /// see `resolveEditBaseline()`.
+    func beginEdit() {
+        historyManager.beginEdit(
             width: pixelCanvas.width(),
             height: pixelCanvas.height(),
             pixels: pixelCanvas.pixels()

@@ -2,24 +2,25 @@
 
 ## Currently Working On
 
-Apple Phase 2 — full tool set + color ([RFC](../issues/013-apple-native-catchup.md))
-— sub-issues 230–233 done (4/13); 241 (keyboard shortcuts) now waits only on
-234 and 236.
+None
 
 ## Last Completed
 
-[232 — Apple flood fill](../issues/232-apple-flood-fill.md): one-shot fill on
-the stroke-session seam, core algorithm exposed over FFI rather than
-reimplemented in Swift. Right-click background fill arrived free via the 233
-draw-color seam, as predicted; pinned by a regression test.
+[243 — No-op strokes push empty undo entries](../issues/243-no-op-stroke-history-entries.md):
+strokes now commit their undo entry at stroke end only when they changed the
+document (core-owned Stroke Baseline, both shells in one change) — no-op
+strokes leave History untouched and no longer destroy the redo future.
+Command-path no-op gaps split to 244. Apple Phase 2
+([RFC](../issues/013-apple-native-catchup.md)) resumes — 230–233 done (4/13).
 
 ## Next Up
 
 - [234 — Eyedropper tool](../issues/234-apple-eyedropper.md)
-- [236 — Move tool](../issues/236-apple-move-tool.md)
+- [236 — Move tool](../issues/236-apple-move-tool.md) — build its session on the 243 Stroke Baseline seam
 - [238 — HSV picker](../issues/238-apple-hsv-picker.md)
 - [239 — Pixel-perfect filtering + toggle](../issues/239-apple-pixel-perfect.md)
 - [240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md)
+- (triage) [244 — Command no-ops still push history entries](../issues/244-command-noop-history-entries.md)
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Apple Pencil: hover preview + palm rejection

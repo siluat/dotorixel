@@ -152,8 +152,12 @@ _Avoid_: pan limits / scroll bounds (informal), canvas bounds (that is only one 
 ### History
 
 **History**:
-A tab's undo/redo record — a bounded, branch-discarding LIFO: pushing a new entry clears the redo future and evicts the oldest entry once the cap is exceeded. This invariant is owned once by a shared generic ring (`History<T>`); the model split below provides two never-mixed species that each only marshal their own value type. Mixing species is unrepresentable, not guarded.
+A tab's undo/redo record — a bounded, branch-discarding LIFO: pushing a new entry clears the redo future and evicts the oldest entry once the cap is exceeded. This invariant is owned once by a shared generic ring (`History<T>`); the model split below provides two never-mixed species that each only marshal their own value type. Mixing species is unrepresentable, not guarded. A visual no-op leaves no History entry: command paths guard predictively (skip the push when nothing will change; some content-blind gaps remain — [issue 244](issues/244-command-noop-history-entries.md)), stroke paths retrospectively through the Stroke Baseline.
 _Avoid_: undo stack (names only one of the two stacks), history manager (the pre-split type that fused both species behind one enum — superseded by PixelCanvas History / Document History), snapshot stack.
+
+**Stroke Baseline**:
+The value captured when a stroke session begins, held pending by the History ring and committed as an undo entry at stroke end only when the stroke actually changed the state — the retrospective half of the no-op invariant. A no-op stroke (out-of-canvas tap, same-color fill or retrace, zero-delta move, cancelled shape preview) leaves no History entry and preserves the redo future. Owned by the core ring for both species; shells mark stroke begin/end and never decide the comparison.
+_Avoid_: pending snapshot (Snapshot is the PixelCanvas species' value type), pre-stroke snapshot (the shape sessions' preview-restore copy is a session-local buffer, not this), undo baseline (the baseline equally guards redo preservation).
 
 **PixelCanvas History**:
 The single-canvas undo/redo species — a LIFO of dimension-aware `Snapshot`s (width, height, pixel buffer) so pixels restore across resize. The Apple shell's history. Canonical core type `PixelCanvasHistory`.

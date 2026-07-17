@@ -64,10 +64,10 @@ struct FloodFillSessionTests {
 
         #expect(paintedPixelCount(state) == 0)
         #expect(state.canvasVersion == versionBefore)
-        // The snapshots are still pushed at stroke start (web parity: the web
-        // one-shot session captures history unconditionally before firing).
+        // A no-op stroke leaves no History entry: the Stroke Baseline is
+        // discarded at stroke end when nothing changed (web parity, 243).
         // Pinned so a fill-only divergence can't slip in silently.
-        #expect(state.canUndo)
+        #expect(!state.canUndo)
     }
 
     @Test("filling a region with its own color is a visual no-op that doesn't corrupt state")
@@ -86,9 +86,30 @@ struct FloodFillSessionTests {
 
         #expect(state.pixelCanvas.pixels() == pixelsBefore)
         #expect(state.canvasVersion == versionBefore)
-        // Web parity: the snapshot is pushed at stroke start even for a
-        // same-color no-op fill (see outOfCanvasTapDoesNothing).
-        #expect(state.canUndo)
+        // Web parity (243): a same-color fill is a no-op stroke — its Stroke
+        // Baseline is discarded and no undo entry appears.
+        #expect(!state.canUndo)
+    }
+
+    @Test("a no-op fill preserves the redo future")
+    func noopFillPreservesRedoFuture() throws {
+        let state = EditorState(width: 8, height: 8)
+        state.activeTool = .floodFill
+
+        // A real fill, undone: the redo future now holds it.
+        state.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        state.endStroke()
+        state.handleUndo()
+        #expect(state.canRedo)
+
+        // An out-of-canvas tap must not destroy that future (243: the eager
+        // push used to clear the redo stack on every stroke start).
+        state.beginStroke(at: ScreenCanvasCoords(x: 100, y: 100))
+        state.endStroke()
+
+        #expect(state.canRedo)
+        state.handleRedo()
+        #expect(try state.pixelCanvas.getPixel(x: 0, y: 0) == state.foregroundColor)
     }
 
     @Test("one undo reverts the entire fill; redo re-applies it")

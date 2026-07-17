@@ -1439,6 +1439,20 @@ impl WasmHistoryManager {
         self.inner.push_document(&document.inner);
     }
 
+    /// Holds `document` as the pending Stroke Baseline. Nothing is pushed and
+    /// the redo stack stays untouched until `end_stroke` resolves it.
+    pub fn begin_stroke(&mut self, document: &WasmDocument) {
+        self.inner.begin_stroke(&document.inner);
+    }
+
+    /// Resolves the pending Stroke Baseline against `current`: pushes it as
+    /// the new undo top (clearing the redo stack) only when the stroke
+    /// actually changed the document; a no-op stroke discards the baseline
+    /// and leaves both stacks untouched. No-op when no baseline is pending.
+    pub fn end_stroke(&mut self, current: &WasmDocument) {
+        self.inner.end_stroke(&current.inner);
+    }
+
     /// Pushes `current` onto the redo stack and returns the previous document
     /// snapshot, or `None` when the undo stack is empty.
     pub fn undo_document(&mut self, current: &WasmDocument) -> Option<WasmDocument> {
@@ -2574,6 +2588,33 @@ mod tests {
 
         assert_eq!(redone.layer_count(), 2);
         assert_eq!(redone.active_layer_id(), second.to_string());
+    }
+
+    #[test]
+    fn wasm_history_manager_noop_stroke_leaves_history_untouched() {
+        let doc = WasmDocument::new(2, 2, Uuid::new_v4().to_string(), "A".into()).unwrap();
+        let mut history = WasmHistoryManager::default_manager();
+
+        history.begin_stroke(&doc);
+        history.end_stroke(&doc);
+
+        assert!(!history.can_undo());
+    }
+
+    #[test]
+    fn wasm_history_manager_changed_stroke_commits_at_end() {
+        let mut doc = WasmDocument::new(2, 2, Uuid::new_v4().to_string(), "A".into()).unwrap();
+        let mut history = WasmHistoryManager::default_manager();
+
+        history.begin_stroke(&doc);
+        assert!(!history.can_undo());
+        doc.add_layer(Uuid::new_v4().to_string(), "B".into())
+            .unwrap();
+        history.end_stroke(&doc);
+
+        assert!(history.can_undo());
+        let restored = history.undo_document(&doc).unwrap();
+        assert_eq!(restored.layer_count(), 1);
     }
 
     // Note: JsError-returning paths (e.g., invalid UUID, oversize dimensions)

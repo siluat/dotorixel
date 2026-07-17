@@ -4050,3 +4050,89 @@ describe('TabState — onion skin projection', () => {
 		expect(getPixelFromBuffer(after, tab.document.width, 0, 0)).toEqual(GREEN);
 	});
 });
+
+// A stroke's undo entry commits at stroke end only when the stroke actually
+// changed the document (the Stroke Baseline, issue 243). A visual no-op —
+// out-of-canvas tap, same-color retrace, cancelled preview, zero-delta move —
+// leaves History exactly as it was, including the redo future.
+describe('TabState no-op strokes and History', () => {
+	it('an out-of-canvas tap leaves no undo entry', () => {
+		const { tab } = makeTab();
+		tab.shared.activeTool = 'pencil';
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: -2, y: -2 }, null);
+		tab.drawEnd();
+
+		expect(tab.canUndo).toBe(false);
+	});
+
+	it('a real stroke commits exactly one undo entry at stroke end', () => {
+		const { tab, shared } = makeTab();
+
+		paintActiveFrame(tab, shared, RED, 2, 2);
+
+		expect(tab.canUndo).toBe(true);
+		tab.undo();
+		expect(getPixel(tab, 2, 2).a).toBe(0);
+		expect(tab.canUndo).toBe(false);
+	});
+
+	it('a no-op stroke preserves the redo future', () => {
+		const { tab, shared } = makeTab();
+		paintActiveFrame(tab, shared, RED, 1, 1);
+		tab.undo();
+		expect(tab.canRedo).toBe(true);
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: -2, y: -2 }, null);
+		tab.drawEnd();
+
+		expect(tab.canRedo).toBe(true);
+		tab.redo();
+		expect(getPixel(tab, 1, 1)).toEqual(RED);
+	});
+
+	it('retracing pixels with their own color is a no-op stroke', () => {
+		const { tab, shared } = makeTab();
+		paintActiveFrame(tab, shared, RED, 2, 2);
+
+		// Same tool, same color, same pixel: writes happen, nothing changes.
+		paintActiveFrame(tab, shared, RED, 2, 2);
+
+		tab.undo();
+		expect(getPixel(tab, 2, 2).a).toBe(0);
+		expect(tab.canUndo).toBe(false);
+	});
+
+	it('a cancelled shape stroke leaves no undo entry', () => {
+		const { tab } = makeTab();
+		tab.shared.activeTool = 'rectangle';
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 1, y: 1 }, null);
+		tab.draw({ x: 4, y: 4 }, { x: 1, y: 1 });
+		tab.drawCancel();
+
+		expect(getPixel(tab, 1, 1).a).toBe(0);
+		expect(tab.canUndo).toBe(false);
+	});
+
+	it('a move drag that returns to its origin is a no-op stroke', () => {
+		const { tab, shared } = makeTab();
+		paintActiveFrame(tab, shared, RED, 3, 3);
+		shared.activeTool = 'move';
+
+		tab.drawStart(0, 'mouse');
+		tab.draw({ x: 2, y: 2 }, null);
+		tab.draw({ x: 4, y: 4 }, { x: 2, y: 2 });
+		tab.draw({ x: 2, y: 2 }, { x: 4, y: 4 });
+		tab.drawEnd();
+
+		expect(getPixel(tab, 3, 3)).toEqual(RED);
+		tab.undo();
+		// The only entry is the paint stroke — the boomerang move left none.
+		expect(getPixel(tab, 3, 3).a).toBe(0);
+		expect(tab.canUndo).toBe(false);
+	});
+});

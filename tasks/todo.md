@@ -52,7 +52,8 @@ Dependency order; 230–233 are done, 242 closes the phase.
 
 ## Review backlog (not assigned to a milestone)
 
-- [243 — No-op strokes push empty undo entries](../issues/243-no-op-stroke-history-entries.md) — a stroke that changes nothing still pushes an undo snapshot on both shells; first Undo then looks like a no-op. Cross-shell design question, needs-triage
+- [244 — Command no-ops still push history entries](../issues/244-command-noop-history-entries.md) — kind-based `willChange` guards let content-blind no-ops through (Clear on empty layer, …); split from 243, needs-triage
+- [245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md) — any finger's lift ends the active stroke; associate strokes with their originating touch. Pre-existing input routing, flagged on PR #322; coordinate with Apple Pencil palm rejection. needs-triage
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate (deferred from Milestone 3 MVP)
 - Reference image import — clipboard paste support (Ctrl/Cmd+V), deferred from Milestone 3 MVP
 - Design: share artwork dialog — URL sharing dialog UI (.pen)

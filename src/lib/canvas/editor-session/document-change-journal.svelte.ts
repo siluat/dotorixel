@@ -141,6 +141,25 @@ export class DocumentChangeJournal {
 		this.#historyVersion++;
 	}
 
+	/**
+	 * Holds the current document as the pending Stroke Baseline. Nothing is
+	 * pushed and the redo future stays untouched until `endStroke` resolves it.
+	 */
+	beginStroke(): void {
+		this.#history.begin_stroke(this.#deps.getDocument());
+	}
+
+	/**
+	 * Resolves the pending Stroke Baseline against the current document — the
+	 * undo entry commits (clearing the redo future) only when the stroke
+	 * actually changed the document; a no-op stroke leaves History untouched.
+	 * No-op when no baseline is pending (e.g. an eyedropper stroke).
+	 */
+	endStroke(): void {
+		this.#history.end_stroke(this.#deps.getDocument());
+		this.#historyVersion++;
+	}
+
 	recordCanvasChanged(): void {
 		this.#invalidateRenderAndMarkDirty();
 	}

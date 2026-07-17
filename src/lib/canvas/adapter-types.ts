@@ -25,14 +25,16 @@ export interface CanvasConstraints {
 /**
  * The web shell's undo/redo stack — the **Document History** species.
  *
- * `push_document` / `undo_document` / `redo_document` carry a whole `Document`
- * snapshot (layer stack + active pointer + Marquee + counters); pushing clears
- * the redo future and evicts the oldest snapshot once the cap is exceeded.
+ * Every entry carries a whole `Document` snapshot (layer stack + active
+ * pointer + Marquee + counters), and `begin_edit` / `end_edit` are the only
+ * way to record one: `begin_edit` holds the pre-edit document as the Edit
+ * Baseline, and `end_edit` commits it only when the edit actually changed the
+ * document — a no-op edit leaves both stacks (including the redo future)
+ * untouched. The core owns the comparison. Committing clears the redo future
+ * and evicts the oldest snapshot once the cap is exceeded.
  *
- * `begin_edit` / `end_edit` carry the Edit Baseline: the pre-edit document
- * held pending at edit begin and committed at edit end only when the edit
- * actually changed the document — a no-op edit leaves both stacks (including
- * the redo future) untouched. The core owns the comparison.
+ * `undo_document` / `redo_document` swap the caller's current document across
+ * the two stacks, returning the restored snapshot.
  *
  * Structurally satisfied by WasmHistoryManager — no wrapping needed at runtime.
  */
@@ -40,7 +42,6 @@ export interface DocumentHistory {
 	can_undo(): boolean;
 	can_redo(): boolean;
 	clear(): void;
-	push_document(document: Document): void;
 	begin_edit(document: Document): void;
 	/** Returns whether an undo entry was committed. */
 	end_edit(current: Document): boolean;

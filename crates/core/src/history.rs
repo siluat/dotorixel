@@ -169,17 +169,6 @@ impl PixelCanvasHistory {
         self.inner.can_redo()
     }
 
-    /// Captures pixel data as the new top of the undo stack, clearing the redo
-    /// future and evicting the oldest snapshot once the cap is exceeded.
-    pub fn push_snapshot(&mut self, width: u32, height: u32, pixels: &[u8]) {
-        debug_assert_rgba_len(width, height, pixels);
-        self.inner.push(Snapshot {
-            width,
-            height,
-            pixels: pixels.to_vec(),
-        });
-    }
-
     /// Holds the current pixel state as the pending Edit Baseline — see
     /// [`PixelCanvasHistory::end_edit`] for how it resolves. Nothing is
     /// pushed and the redo future stays untouched until then.
@@ -287,12 +276,6 @@ impl DocumentHistory {
         self.inner.can_redo()
     }
 
-    /// Captures `document` as the new top of the undo stack, clearing the redo
-    /// future and evicting the oldest snapshot once the cap is exceeded.
-    pub fn push_document(&mut self, document: &Document) {
-        self.inner.push(document.clone());
-    }
-
     /// Holds `document` as the pending Edit Baseline — see
     /// [`DocumentHistory::end_edit`] for how it resolves. Nothing is pushed
     /// and the redo future stays untouched until then.
@@ -338,6 +321,19 @@ impl Default for DocumentHistory {
 mod pixel_canvas_history_tests {
     use super::*;
 
+    /// Arranges history so one undo entry restores `pixels`, by driving the
+    /// begin/end pair a real edit drives.
+    ///
+    /// `end_edit` only commits when the canvas actually changed, so the helper
+    /// synthesizes an end state one byte off the baseline. That end state is
+    /// never stored — only the baseline is — so its value is arbitrary.
+    fn record_edit(history: &mut PixelCanvasHistory, width: u32, height: u32, pixels: &[u8]) {
+        history.begin_edit(width, height, pixels);
+        let mut changed = pixels.to_vec();
+        changed[0] = changed[0].wrapping_add(1);
+        history.end_edit(width, height, &changed);
+    }
+
     // -- initial state --
 
     #[test]
@@ -352,38 +348,27 @@ mod pixel_canvas_history_tests {
         assert!(!history.can_redo());
     }
 
-    // -- push_snapshot --
+    // -- recording an edit --
 
     #[test]
-    fn push_enables_can_undo() {
+    fn recording_an_edit_enables_can_undo() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 2, 3, 4]);
+        record_edit(&mut history, 1, 1, &[1, 2, 3, 4]);
         assert!(history.can_undo());
     }
 
     #[test]
-    fn push_keeps_can_redo_false() {
+    fn recording_an_edit_keeps_can_redo_false() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 2, 3, 4]);
+        record_edit(&mut history, 1, 1, &[1, 2, 3, 4]);
         assert!(!history.can_redo());
     }
 
     #[test]
-    fn push_clears_redo_stack() {
-        let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
-        history.undo(1, 1, &[2, 0, 0, 0]);
-        assert!(history.can_redo());
-
-        history.push_snapshot(1, 1, &[3, 0, 0, 0]);
-        assert!(!history.can_redo());
-    }
-
-    #[test]
-    fn push_stores_independent_copy() {
+    fn recording_an_edit_stores_an_independent_copy() {
         let mut history = PixelCanvasHistory::default();
         let mut pixels = vec![10, 20, 30, 40];
-        history.push_snapshot(1, 1, &pixels);
+        record_edit(&mut history, 1, 1, &pixels);
 
         pixels[0] = 255;
 
@@ -396,7 +381,7 @@ mod pixel_canvas_history_tests {
     #[test]
     fn undo_returns_most_recent_snapshot() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 2, 3, 4]);
+        record_edit(&mut history, 1, 1, &[1, 2, 3, 4]);
         let result = history.undo(1, 1, &[5, 6, 7, 8]).unwrap();
         assert_eq!(result.pixels, vec![1, 2, 3, 4]);
     }
@@ -404,7 +389,7 @@ mod pixel_canvas_history_tests {
     #[test]
     fn undo_enables_can_redo() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 2, 3, 4]);
+        record_edit(&mut history, 1, 1, &[1, 2, 3, 4]);
         history.undo(1, 1, &[5, 6, 7, 8]);
         assert!(history.can_redo());
     }
@@ -412,7 +397,7 @@ mod pixel_canvas_history_tests {
     #[test]
     fn undo_saves_current_to_redo_stack() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[1, 0, 0, 0]);
         history.undo(1, 1, &[2, 0, 0, 0]);
         let redone = history.redo(1, 1, &[99, 0, 0, 0]).unwrap();
         assert_eq!(redone.pixels, vec![2, 0, 0, 0]);
@@ -427,9 +412,9 @@ mod pixel_canvas_history_tests {
     #[test]
     fn undo_returns_snapshots_in_lifo_order() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
-        history.push_snapshot(1, 1, &[2, 0, 0, 0]);
-        history.push_snapshot(1, 1, &[3, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[1, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[2, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[3, 0, 0, 0]);
 
         assert_eq!(history.undo(1, 1, &[4, 0, 0, 0]).unwrap().pixels[0], 3);
         assert_eq!(history.undo(1, 1, &[3, 0, 0, 0]).unwrap().pixels[0], 2);
@@ -440,7 +425,7 @@ mod pixel_canvas_history_tests {
     #[test]
     fn undo_stores_independent_copy_in_redo_stack() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[1, 0, 0, 0]);
 
         let mut current = vec![2, 0, 0, 0];
         history.undo(1, 1, &current);
@@ -456,7 +441,7 @@ mod pixel_canvas_history_tests {
     #[test]
     fn redo_returns_most_recently_undone_snapshot() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[1, 0, 0, 0]);
         history.undo(1, 1, &[2, 0, 0, 0]);
         let result = history.redo(1, 1, &[1, 0, 0, 0]).unwrap();
         assert_eq!(result.pixels, vec![2, 0, 0, 0]);
@@ -465,7 +450,7 @@ mod pixel_canvas_history_tests {
     #[test]
     fn redo_enables_can_undo() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[1, 0, 0, 0]);
         history.undo(1, 1, &[2, 0, 0, 0]);
         assert!(!history.can_undo());
 
@@ -482,7 +467,7 @@ mod pixel_canvas_history_tests {
     #[test]
     fn redo_saves_current_to_undo_stack() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[1, 0, 0, 0]);
         history.undo(1, 1, &[2, 0, 0, 0]);
         history.redo(1, 1, &[1, 0, 0, 0]);
 
@@ -493,7 +478,7 @@ mod pixel_canvas_history_tests {
     #[test]
     fn redo_stores_independent_copy_in_undo_stack() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[1, 0, 0, 0]);
         history.undo(1, 1, &[2, 0, 0, 0]);
 
         let mut current = vec![1, 0, 0, 0];
@@ -510,10 +495,10 @@ mod pixel_canvas_history_tests {
     #[test]
     fn evicts_oldest_when_limit_exceeded() {
         let mut history = PixelCanvasHistory::new(3);
-        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
-        history.push_snapshot(1, 1, &[2, 0, 0, 0]);
-        history.push_snapshot(1, 1, &[3, 0, 0, 0]);
-        history.push_snapshot(1, 1, &[4, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[1, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[2, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[3, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[4, 0, 0, 0]);
 
         assert_eq!(history.undo(1, 1, &[5, 0, 0, 0]).unwrap().pixels[0], 4);
         assert_eq!(history.undo(1, 1, &[4, 0, 0, 0]).unwrap().pixels[0], 3);
@@ -526,8 +511,8 @@ mod pixel_canvas_history_tests {
     #[test]
     fn clear_resets_both_stacks() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
-        history.push_snapshot(1, 1, &[2, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[1, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[2, 0, 0, 0]);
         history.undo(1, 1, &[3, 0, 0, 0]);
 
         history.clear();
@@ -550,7 +535,7 @@ mod pixel_canvas_history_tests {
     fn default_uses_default_max_snapshots() {
         let mut history = PixelCanvasHistory::default();
         for i in 0..=PixelCanvasHistory::DEFAULT_MAX_SNAPSHOTS as u8 {
-            history.push_snapshot(1, 1, &[i, 0, 0, 0]);
+            record_edit(&mut history, 1, 1, &[i, 0, 0, 0]);
         }
         let mut count = 0;
         while history.undo(1, 1, &[0, 0, 0, 0]).is_some() {
@@ -562,7 +547,7 @@ mod pixel_canvas_history_tests {
     // -- edit baseline --
 
     #[test]
-    fn noop_stroke_leaves_history_untouched() {
+    fn noop_edit_leaves_history_untouched() {
         let mut history = PixelCanvasHistory::default();
         history.begin_edit(1, 1, &[1, 2, 3, 4]);
         history.end_edit(1, 1, &[1, 2, 3, 4]);
@@ -581,7 +566,7 @@ mod pixel_canvas_history_tests {
     }
 
     #[test]
-    fn changed_stroke_commits_one_entry_restoring_the_baseline() {
+    fn changed_edit_commits_one_entry_restoring_the_baseline() {
         let mut history = PixelCanvasHistory::default();
         history.begin_edit(1, 1, &[1, 0, 0, 0]);
         history.end_edit(1, 1, &[2, 0, 0, 0]);
@@ -593,9 +578,9 @@ mod pixel_canvas_history_tests {
     }
 
     #[test]
-    fn noop_stroke_preserves_the_redo_future() {
+    fn noop_edit_preserves_the_redo_future() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[1, 0, 0, 0]);
         history.undo(1, 1, &[2, 0, 0, 0]);
         assert!(history.can_redo());
 
@@ -606,9 +591,9 @@ mod pixel_canvas_history_tests {
     }
 
     #[test]
-    fn changed_stroke_discards_the_redo_future() {
+    fn changed_edit_discards_the_redo_future() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[1, 0, 0, 0]);
         history.undo(1, 1, &[2, 0, 0, 0]);
         assert!(history.can_redo());
 
@@ -619,7 +604,7 @@ mod pixel_canvas_history_tests {
     }
 
     #[test]
-    fn stroke_only_commits_at_end_never_at_begin() {
+    fn an_edit_only_commits_at_end_never_at_begin() {
         let mut history = PixelCanvasHistory::default();
         history.begin_edit(1, 1, &[1, 0, 0, 0]);
         assert!(!history.can_undo());
@@ -628,7 +613,7 @@ mod pixel_canvas_history_tests {
     }
 
     #[test]
-    fn dimension_change_during_stroke_is_a_real_change() {
+    fn dimension_change_during_an_edit_is_a_real_change() {
         let mut history = PixelCanvasHistory::default();
         history.begin_edit(1, 1, &[1, 0, 0, 0]);
         history.end_edit(2, 1, &[1, 0, 0, 0, 1, 0, 0, 0]);
@@ -636,31 +621,19 @@ mod pixel_canvas_history_tests {
     }
 
     #[test]
-    fn command_push_is_independent_of_a_pending_stroke() {
-        let mut history = PixelCanvasHistory::default();
-        history.begin_edit(1, 1, &[1, 0, 0, 0]);
-        history.push_snapshot(1, 1, &[9, 0, 0, 0]);
-        history.end_edit(1, 1, &[2, 0, 0, 0]);
-
-        // Both the command entry and the edit baseline are on the stack.
-        assert_eq!(history.undo(1, 1, &[2, 0, 0, 0]).unwrap().pixels[0], 1);
-        assert_eq!(history.undo(1, 1, &[1, 0, 0, 0]).unwrap().pixels[0], 9);
-    }
-
-    #[test]
     #[should_panic(expected = "Edit Baseline")]
-    fn undo_during_a_pending_stroke_is_a_precondition_violation() {
+    fn undo_during_a_pending_edit_is_a_precondition_violation() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[1, 0, 0, 0]);
         history.begin_edit(1, 1, &[2, 0, 0, 0]);
         history.undo(1, 1, &[2, 0, 0, 0]);
     }
 
     #[test]
     #[should_panic(expected = "Edit Baseline")]
-    fn redo_during_a_pending_stroke_is_a_precondition_violation() {
+    fn redo_during_a_pending_edit_is_a_precondition_violation() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[1, 0, 0, 0]);
         history.undo(1, 1, &[2, 0, 0, 0]);
         history.begin_edit(1, 1, &[1, 0, 0, 0]);
         history.redo(1, 1, &[1, 0, 0, 0]);
@@ -674,7 +647,7 @@ mod pixel_canvas_history_tests {
     }
 
     #[test]
-    fn clear_discards_a_pending_stroke_baseline() {
+    fn clear_discards_a_pending_edit_baseline() {
         let mut history = PixelCanvasHistory::default();
         history.begin_edit(1, 1, &[1, 0, 0, 0]);
         history.clear();
@@ -688,7 +661,7 @@ mod pixel_canvas_history_tests {
     fn undo_preserves_snapshot_dimensions() {
         let mut history = PixelCanvasHistory::default();
         // 1×1 canvas (4 bytes)
-        history.push_snapshot(1, 1, &[255, 0, 0, 255]);
+        record_edit(&mut history, 1, 1, &[255, 0, 0, 255]);
         // Current state is now 2×2 (16 bytes) after a resize
         let snapshot = history.undo(2, 2, &[0u8; 16]).unwrap();
         assert_eq!(snapshot.width, 1);
@@ -699,7 +672,7 @@ mod pixel_canvas_history_tests {
     #[test]
     fn redo_preserves_snapshot_dimensions() {
         let mut history = PixelCanvasHistory::default();
-        history.push_snapshot(1, 1, &[255, 0, 0, 255]);
+        record_edit(&mut history, 1, 1, &[255, 0, 0, 255]);
         // Undo from 2×2 state
         history.undo(2, 2, &[0u8; 16]);
         // Redo from restored 1×1 state
@@ -713,8 +686,8 @@ mod pixel_canvas_history_tests {
     fn mixed_dimension_undo_chain() {
         let mut history = PixelCanvasHistory::default();
         // Push 1×1, then "resize" to 2×1, then "resize" to 2×2
-        history.push_snapshot(1, 1, &[1, 0, 0, 0]);
-        history.push_snapshot(2, 1, &[1, 0, 0, 0, 2, 0, 0, 0]);
+        record_edit(&mut history, 1, 1, &[1, 0, 0, 0]);
+        record_edit(&mut history, 2, 1, &[1, 0, 0, 0, 2, 0, 0, 0]);
         // Current state is 2×2
         let current_2x2 = [0u8; 16];
 
@@ -759,6 +732,19 @@ mod document_history_tests {
         cels.sole_canvas()
     }
 
+    /// Arranges history so one undo entry restores `document`, by driving the
+    /// begin/end pair a real edit drives.
+    ///
+    /// `end_edit` only commits when the document actually changed, so the
+    /// helper synthesizes an end state carrying an extra layer. That end state
+    /// is never stored — only the baseline is — so its shape is arbitrary.
+    fn record_edit(history: &mut DocumentHistory, document: &Document) {
+        history.begin_edit(document);
+        let mut changed = document.clone();
+        changed.add_layer(Uuid::new_v4(), "Scratch".into());
+        history.end_edit(&changed);
+    }
+
     #[test]
     fn initial_can_undo_is_false() {
         let history = DocumentHistory::default();
@@ -772,16 +758,16 @@ mod document_history_tests {
     }
 
     #[test]
-    fn push_enables_can_undo() {
+    fn recording_an_edit_enables_can_undo() {
         let mut history = DocumentHistory::default();
-        history.push_document(&doc());
+        record_edit(&mut history, &doc());
         assert!(history.can_undo());
     }
 
     #[test]
-    fn push_keeps_can_redo_false() {
+    fn recording_an_edit_keeps_can_redo_false() {
         let mut history = DocumentHistory::default();
-        history.push_document(&doc());
+        record_edit(&mut history, &doc());
         assert!(!history.can_redo());
     }
 
@@ -794,7 +780,7 @@ mod document_history_tests {
     #[test]
     fn undo_enables_can_redo() {
         let mut history = DocumentHistory::default();
-        history.push_document(&doc());
+        record_edit(&mut history, &doc());
         history.undo_document(&doc());
         assert!(history.can_redo());
     }
@@ -807,8 +793,9 @@ mod document_history_tests {
         assert_eq!(doc.next_layer_number(), 2);
 
         let mut history = DocumentHistory::default();
-        history.push_document(&doc);
+        history.begin_edit(&doc);
         doc.add_layer(b, "B".into());
+        history.end_edit(&doc);
         assert_eq!(doc.next_layer_number(), 3);
 
         let restored = history.undo_document(&doc).unwrap();
@@ -822,31 +809,15 @@ mod document_history_tests {
     }
 
     #[test]
-    fn push_clears_redo_stack() {
-        let a = Uuid::new_v4();
-        let b = Uuid::new_v4();
-        let mut doc = Document::new(2, 2, a, "A".into()).unwrap();
-        let mut history = DocumentHistory::default();
-
-        history.push_document(&doc);
-        doc.add_layer(b, "B".into());
-        history.undo_document(&doc);
-        assert!(history.can_redo());
-
-        // A new push from the (restored) past must discard the former future.
-        history.push_document(&doc);
-        assert!(!history.can_redo());
-    }
-
-    #[test]
     fn redo_reapplies_post_undo_state() {
         let a = Uuid::new_v4();
         let b = Uuid::new_v4();
         let mut doc = Document::new(2, 2, a, "A".into()).unwrap();
         let mut history = DocumentHistory::default();
 
-        history.push_document(&doc);
+        history.begin_edit(&doc);
         doc.add_layer(b, "B".into()); // mutated state has [A, B]
+        history.end_edit(&doc);
         let pre_undo = doc.clone();
 
         let restored = history.undo_document(&doc).unwrap();
@@ -861,7 +832,7 @@ mod document_history_tests {
     #[test]
     fn redo_enables_can_undo() {
         let mut history = DocumentHistory::default();
-        history.push_document(&doc());
+        record_edit(&mut history, &doc());
         let restored = history.undo_document(&doc()).unwrap();
         assert!(!history.can_undo());
 
@@ -872,8 +843,8 @@ mod document_history_tests {
     #[test]
     fn clear_resets_both_stacks() {
         let mut history = DocumentHistory::default();
-        history.push_document(&doc());
-        history.push_document(&doc());
+        record_edit(&mut history, &doc());
+        record_edit(&mut history, &doc());
         history.undo_document(&doc());
 
         history.clear();
@@ -885,9 +856,9 @@ mod document_history_tests {
     #[test]
     fn undo_returns_documents_in_lifo_order() {
         let mut history = DocumentHistory::default();
-        history.push_document(&doc_with_layers(1));
-        history.push_document(&doc_with_layers(2));
-        history.push_document(&doc_with_layers(3));
+        record_edit(&mut history, &doc_with_layers(1));
+        record_edit(&mut history, &doc_with_layers(2));
+        record_edit(&mut history, &doc_with_layers(3));
 
         let current = doc_with_layers(9);
         assert_eq!(history.undo_document(&current).unwrap().layers().len(), 3);
@@ -900,10 +871,10 @@ mod document_history_tests {
     fn evicts_oldest_when_limit_exceeded() {
         let mut history = DocumentHistory::new(3);
         // Push one more than the limit; the oldest (1-layer) snapshot must go.
-        history.push_document(&doc_with_layers(1));
-        history.push_document(&doc_with_layers(2));
-        history.push_document(&doc_with_layers(3));
-        history.push_document(&doc_with_layers(4));
+        record_edit(&mut history, &doc_with_layers(1));
+        record_edit(&mut history, &doc_with_layers(2));
+        record_edit(&mut history, &doc_with_layers(3));
+        record_edit(&mut history, &doc_with_layers(4));
 
         let current = doc_with_layers(9);
         assert_eq!(history.undo_document(&current).unwrap().layers().len(), 4);
@@ -918,7 +889,7 @@ mod document_history_tests {
         let doc = doc();
         let mut history = DocumentHistory::default();
         for _ in 0..=DocumentHistory::DEFAULT_MAX_SNAPSHOTS {
-            history.push_document(&doc);
+            record_edit(&mut history, &doc);
         }
         let mut count = 0;
         while history.undo_document(&doc).is_some() {
@@ -936,7 +907,7 @@ mod document_history_tests {
     // -- edit baseline --
 
     #[test]
-    fn noop_stroke_leaves_document_history_untouched() {
+    fn noop_edit_leaves_document_history_untouched() {
         let mut history = DocumentHistory::default();
         let doc = doc();
         history.begin_edit(&doc);
@@ -958,7 +929,7 @@ mod document_history_tests {
     }
 
     #[test]
-    fn changed_stroke_commits_the_pre_stroke_document() {
+    fn changed_edit_commits_the_pre_edit_document() {
         let mut doc = doc();
         let mut history = DocumentHistory::default();
 
@@ -975,11 +946,34 @@ mod document_history_tests {
     }
 
     #[test]
-    fn noop_stroke_preserves_the_document_redo_future() {
+    fn changed_edit_discards_the_document_redo_future() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let c = Uuid::new_v4();
+        let mut doc = Document::new(2, 2, a, "A".into()).unwrap();
+        let mut history = DocumentHistory::default();
+
+        history.begin_edit(&doc);
+        doc.add_layer(b, "B".into());
+        history.end_edit(&doc);
+
+        doc = history.undo_document(&doc).unwrap();
+        assert!(history.can_redo());
+
+        // A new edit from the (restored) past must discard the former future.
+        history.begin_edit(&doc);
+        doc.add_layer(c, "C".into());
+        history.end_edit(&doc);
+        assert!(!history.can_redo());
+    }
+
+    #[test]
+    fn noop_edit_preserves_the_document_redo_future() {
         let mut doc = doc();
         let mut history = DocumentHistory::default();
-        history.push_document(&doc);
+        history.begin_edit(&doc);
         doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+        history.end_edit(&doc);
         doc = history.undo_document(&doc).unwrap();
         assert!(history.can_redo());
 
@@ -993,7 +987,7 @@ mod document_history_tests {
     fn retimed_frame_is_a_real_document_change() {
         // Frame equality is identity-only (a retimed frame stays the same
         // frame in sets and maps), but Document value equality must still see
-        // the retiming — otherwise a stroke resolving over a retimed document
+        // the retiming — otherwise an edit resolving over a retimed document
         // would be misjudged a no-op.
         let mut doc = doc();
         let frame_id = doc.frames()[0].id;
@@ -1013,8 +1007,9 @@ mod document_history_tests {
         let mut doc = Document::new(2, 2, a, "A".into()).unwrap();
         let mut history = DocumentHistory::default();
 
-        history.push_document(&doc);
+        history.begin_edit(&doc);
         doc.add_layer(b, "B".into());
+        history.end_edit(&doc);
 
         let restored = history.undo_document(&doc).unwrap();
 
@@ -1033,8 +1028,9 @@ mod document_history_tests {
         doc.set_pixel(0, 0, red).unwrap(); // stamp B for round-trip verification
 
         let mut history = DocumentHistory::default();
-        history.push_document(&doc);
+        history.begin_edit(&doc);
         doc.remove_layer(b).unwrap();
+        history.end_edit(&doc);
 
         let restored = history.undo_document(&doc).unwrap();
 
@@ -1057,8 +1053,9 @@ mod document_history_tests {
         doc.add_layer(c, "C".into()); // [A, B, C]
 
         let mut history = DocumentHistory::default();
-        history.push_document(&doc);
+        history.begin_edit(&doc);
         doc.reorder_layer(a, 2).unwrap(); // [B, C, A]
+        history.end_edit(&doc);
 
         let restored = history.undo_document(&doc).unwrap();
 
@@ -1072,8 +1069,9 @@ mod document_history_tests {
         let mut doc = Document::new(2, 2, id, "Layer 1".into()).unwrap();
         let mut history = DocumentHistory::default();
 
-        history.push_document(&doc);
+        history.begin_edit(&doc);
         doc.set_pixel(0, 0, Color::new(255, 0, 0, 255)).unwrap();
+        history.end_edit(&doc);
 
         let restored = history.undo_document(&doc).unwrap();
 

@@ -304,13 +304,6 @@ impl AppleHistoryManager {
         self.inner.lock().unwrap().can_redo()
     }
 
-    fn push_snapshot(&self, width: u32, height: u32, pixels: Vec<u8>) {
-        self.inner
-            .lock()
-            .unwrap()
-            .push_snapshot(width, height, &pixels);
-    }
-
     /// Holds the current pixel state as the pending Edit Baseline. Nothing
     /// is pushed and the redo stack stays untouched until `end_edit`
     /// resolves it.

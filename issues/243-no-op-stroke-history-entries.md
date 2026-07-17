@@ -108,7 +108,8 @@ leave History exactly as it was, including the redo stack.
 
 **Acceptance criteria:**
 - [x] Each no-op stroke species above leaves `canUndo`, the undo stack, and
-      an existing redo future unchanged, on both shells.
+      an existing redo future unchanged, on both shells (zero-delta move:
+      Web only — Apple has no move tool yet; issue 236 builds on this seam).
 - [x] A real stroke commits exactly one undo entry at stroke end; undo
       restores the pre-stroke state; redo re-applies it; the redo future from
       before the stroke is discarded (branch-discarding invariant unchanged).

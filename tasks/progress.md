@@ -2,9 +2,11 @@
 
 ## Currently Working On
 
-Apple Phase 2 — full tool set + color ([RFC](../issues/013-apple-native-catchup.md))
-— sub-issues 230–233 done (4/13); 241 (keyboard shortcuts) now waits only on
-234 and 236.
+[243 — No-op strokes push empty undo entries](../issues/243-no-op-stroke-history-entries.md)
+— backlog bug prioritized over Phase 2; deferred stroke commit in core
+(Stroke Baseline), lands on both shells in one change. Apple Phase 2
+([RFC](../issues/013-apple-native-catchup.md)) paused — 230–233 done (4/13),
+resume with 234/236/238/239/240.
 
 ## Last Completed
 

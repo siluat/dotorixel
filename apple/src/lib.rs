@@ -254,6 +254,19 @@ impl ApplePixelCanvas {
     fn apply_tool(&self, x: i32, y: i32, tool: ToolType, foreground_color: Color) -> bool {
         tool.apply(&mut self.inner.lock().unwrap(), x, y, foreground_color)
     }
+
+    /// 4-connected flood fill starting at `(x, y)`. Returns `true` when at
+    /// least one pixel was changed. Negative coordinates short-circuit to
+    /// `false`, mirroring the wasm binding's contract.
+    fn flood_fill(&self, x: i32, y: i32, fill_color: Color) -> bool {
+        if x < 0 || y < 0 {
+            return false;
+        }
+        self.inner
+            .lock()
+            .unwrap()
+            .flood_fill(x as u32, y as u32, fill_color)
+    }
 }
 
 // ---------------------------------------------------------------------------

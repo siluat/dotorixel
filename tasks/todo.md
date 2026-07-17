@@ -24,9 +24,8 @@ issues (`/to-issues`) when reached.
 
 ### Phase 2 — Full tool set + color (decomposed 2026-07-15)
 
-Dependency order; 230–231 and 233 are done, 242 closes the phase.
+Dependency order; 230–233 are done, 242 closes the phase.
 
-- [232 — Flood fill tool](../issues/232-apple-flood-fill.md)
 - [234 — Eyedropper tool](../issues/234-apple-eyedropper.md)
 - [235 — Sampling loupe](../issues/235-apple-sampling-loupe.md) — blocked by 234
 - [236 — Move tool](../issues/236-apple-move-tool.md)
@@ -34,7 +33,7 @@ Dependency order; 230–231 and 233 are done, 242 closes the phase.
 - [238 — HSV picker](../issues/238-apple-hsv-picker.md)
 - [239 — Pixel-perfect filtering + toggle](../issues/239-apple-pixel-perfect.md)
 - [240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md)
-- [241 — Keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md) — blocked by 232, 234, 236
+- [241 — Keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md) — blocked by 234, 236
 - [242 — i18n String Catalog (en/ko/ja)](../issues/242-apple-i18n-string-catalog.md) — blocked by 232–241
 
 ### Phases 3–6 — roadmap (decompose when reached)

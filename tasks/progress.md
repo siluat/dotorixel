@@ -3,20 +3,18 @@
 ## Currently Working On
 
 Apple Phase 2 — full tool set + color ([RFC](../issues/013-apple-native-catchup.md))
-— sub-issues 230–231, 233 done (3/13); the FG/BG color pair landed on the
-stroke seam, unblocking 234 (eyedropper) and 238 (HSV picker).
+— sub-issues 230–233 done (4/13); 241 (keyboard shortcuts) now waits only on
+234 and 236.
 
 ## Last Completed
 
-[233 — Apple FG/BG colors](../issues/233-apple-fg-bg-colors.md): FG/BG pair
-with web-matching defaults, swap, and right-click background drawing. The draw
-color is resolved once at stroke begin on the engine seam, so fill (232)
-inherits right-click behavior for free. Eyedropper BG commit stays in 234;
-X-key swap in 241.
+[232 — Apple flood fill](../issues/232-apple-flood-fill.md): one-shot fill on
+the stroke-session seam, core algorithm exposed over FFI rather than
+reimplemented in Swift. Right-click background fill arrived free via the 233
+draw-color seam, as predicted; pinned by a regression test.
 
 ## Next Up
 
-- [232 — Flood fill tool](../issues/232-apple-flood-fill.md)
 - [234 — Eyedropper tool](../issues/234-apple-eyedropper.md)
 - [236 — Move tool](../issues/236-apple-move-tool.md)
 - [238 — HSV picker](../issues/238-apple-hsv-picker.md)

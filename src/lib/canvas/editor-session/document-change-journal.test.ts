@@ -82,6 +82,19 @@ function createFakeDocumentHistory(
 	};
 }
 
+/** A one-Pixel-Layer document stub — enough for the layer rules and their ids. */
+function singleLayerDocumentFake(layerId: string): Document {
+	return {
+		width: 16,
+		height: 16,
+		layer_count: () => 1,
+		active_layer_id: () => layerId,
+		layers_metadata: () => [
+			{ id: layerId, name: 'Layer 1', visible: true, opacity: 1, kind: 'pixel' }
+		]
+	} as unknown as Document;
+}
+
 function createTestLayerProjection(document: Document): DocumentLayerProjectionRead {
 	const records =
 		typeof document.layers_metadata === 'function' ? document.layers_metadata() : [];
@@ -340,13 +353,9 @@ describe('DocumentChangeJournal', () => {
 		expect(events).toEqual(['begin-edit', 'add', 'end-edit']);
 	});
 
-	it('skips undo snapshots and follow-up effects for undoable no-op changes', () => {
+	it('refuses to remove the only layer, without recording or applying anything', () => {
 		const events: string[] = [];
-		const document = {
-			width: 16,
-			height: 16,
-			layer_count: () => 1
-		} as unknown as Document;
+		const document = singleLayerDocumentFake('only-layer');
 		const journal = createJournal(events, document);
 
 		const result = journal.commit({
@@ -355,6 +364,39 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: false });
+		expect(events).toEqual([]);
+	});
+
+	it('throws remove-layer for an unknown id even when the only-layer rule would refuse it', () => {
+		const events: string[] = [];
+		const document = singleLayerDocumentFake('only-layer');
+		const journal = createJournal(events, document);
+
+		expect(() =>
+			journal.commit({
+				kind: 'undoable-document',
+				intent: { type: 'remove-layer', id: 'absent' }
+			})
+		).toThrow('Layer with id absent not found');
+		expect(events).toEqual([]);
+	});
+
+	it('throws remove-frame for an unknown id even when the only-frame rule would refuse it', () => {
+		const events: string[] = [];
+		const document = {
+			width: 16,
+			height: 16,
+			frame_count: () => 1,
+			frames_metadata: () => [{ id: 'frame-1', duration_ms: 100 }]
+		} as unknown as Document;
+		const journal = createJournal(events, document);
+
+		expect(() =>
+			journal.commit({
+				kind: 'undoable-document',
+				intent: { type: 'remove-frame', id: 'absent' }
+			})
+		).toThrow('Frame with id absent not found');
 		expect(events).toEqual([]);
 	});
 
@@ -469,7 +511,7 @@ describe('DocumentChangeJournal', () => {
 		expect(events).toEqual(['begin-edit', 'end-edit', 'render', 'dirty']);
 	});
 
-	it('clears Marquee pixels with one undo snapshot and preserves the Marquee', () => {
+	it('clears Marquee pixels as one undoable change and preserves the Marquee', () => {
 		const events: string[] = [];
 		const pixels = new Uint8Array(4 * 4 * 4);
 		pixels.set([255, 0, 0, 255], 0);
@@ -945,7 +987,7 @@ describe('DocumentChangeJournal', () => {
 		expect(events).toEqual(['begin-edit', 'reorder:layer-2:0', 'end-edit', 'render', 'dirty']);
 	});
 
-	it('applies active-layer changes without an undo snapshot or metric sync', () => {
+	it('applies active-layer changes without a History entry or metric sync', () => {
 		const events: string[] = [];
 		const document = {
 			width: 16,
@@ -1001,7 +1043,7 @@ describe('DocumentChangeJournal', () => {
 		expect(events).toEqual([]);
 	});
 
-	it('validates Reference Layer source before capturing an undo snapshot', () => {
+	it('validates Reference Layer source before opening the Edit Baseline', () => {
 		const events: string[] = [];
 		const document = createFakeDocument(events);
 		const journal = createJournal(events, document);
@@ -1146,12 +1188,13 @@ describe('DocumentChangeJournal', () => {
 		expect(events).toEqual(['begin-edit', 'remove-frame:frame-9', 'end-edit', 'render', 'dirty']);
 	});
 
-	it('skips remove-frame entirely when only one frame remains (no snapshot, no apply)', () => {
+	it('refuses to remove the only frame, without recording or applying anything', () => {
 		const events: string[] = [];
 		const document = {
 			width: 16,
 			height: 16,
-			frame_count: () => 1
+			frame_count: () => 1,
+			frames_metadata: () => [{ id: 'only-frame', duration_ms: 100 }]
 		} as unknown as Document;
 		const journal = createJournal(events, document);
 
@@ -1222,7 +1265,7 @@ describe('DocumentChangeJournal', () => {
 		expect(events).toEqual([]);
 	});
 
-	it('applies set-active-frame without an undo snapshot (persisted, not undoable, no reclamp)', () => {
+	it('applies set-active-frame without a History entry (persisted, not undoable, no reclamp)', () => {
 		const events: string[] = [];
 		const document = {
 			width: 16,

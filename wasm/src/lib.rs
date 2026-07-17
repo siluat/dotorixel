@@ -2598,8 +2598,8 @@ mod tests {
         let mut history = WasmHistoryManager::default_manager();
 
         history.begin_edit(&doc);
-        history.end_edit(&doc);
 
+        assert!(!history.end_edit(&doc));
         assert!(!history.can_undo());
     }
 
@@ -2612,7 +2612,7 @@ mod tests {
         assert!(!history.can_undo());
         doc.add_layer(Uuid::new_v4().to_string(), "B".into())
             .unwrap();
-        history.end_edit(&doc);
+        assert!(history.end_edit(&doc));
 
         assert!(history.can_undo());
         let restored = history.undo_document(&doc).unwrap();

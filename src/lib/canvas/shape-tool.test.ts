@@ -44,7 +44,7 @@ describe('shapeTool sugar', () => {
 		expect(tool.id).toBe('line');
 	});
 
-	it('requests an undo snapshot on start and emits addRecentColor by default', () => {
+	it('opens the Edit Baseline on start and emits addRecentColor by default', () => {
 		const canvas = createFakePixelCanvas(8, 8);
 		const { host } = makeHost(canvas);
 		const tool = shapeTool({

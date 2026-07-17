@@ -112,7 +112,7 @@ function undoableStartEffects(addsActiveColor: boolean, color: Color): EditorEff
 /**
  * Common case — paints pixels every sample along the drag path. Defaults:
  * supports pixel-perfect, adds the active draw color to recent colors at
- * stroke start, requests an undo snapshot at start.
+ * stroke start, opens the Edit Baseline at start.
  */
 export function continuousTool(spec: {
 	id: ToolType;
@@ -217,7 +217,7 @@ export function shapeTool(spec: {
 
 /**
  * Click-once — fires on first sample, ignores subsequent drag. Defaults:
- * requests an undo snapshot before firing, adds active color to recent colors.
+ * opens the Edit Baseline before firing, adds active color to recent colors.
  */
 export function oneShotTool(spec: {
 	id: ToolType;

@@ -3639,7 +3639,7 @@ describe('TabState — frame axis', () => {
 		expect(tab.document.frames_metadata()[0].duration_ms).toBe(500);
 	});
 
-	it('setFrameDuration is a no-op when the duration is unchanged: no snapshot, no dirty', () => {
+	it('setFrameDuration is a no-op when the duration is unchanged: no History entry, no dirty', () => {
 		const { tab, notifier } = makeTab();
 		const frameA = tab.document.active_frame_id();
 		const current = tab.document.frames_metadata()[0].duration_ms;

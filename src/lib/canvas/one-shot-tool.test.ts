@@ -34,7 +34,7 @@ describe('oneShotTool sugar', () => {
 		expect(tool.id).toBe('floodfill');
 	});
 
-	it('requests an undo snapshot on start by default', () => {
+	it('opens the Edit Baseline on start by default', () => {
 		const canvas = createFakePixelCanvas(8, 8);
 		const { host } = makeHost(canvas);
 		const tool = oneShotTool({ id: 'floodfill', execute: vi.fn(() => []) });
@@ -43,7 +43,7 @@ describe('oneShotTool sugar', () => {
 		expect(session.start()).toContainEqual({ type: 'beginEdit' });
 	});
 
-	it('opts out of undo snapshot requests when capturesHistory is false', () => {
+	it('opts out of opening the Edit Baseline when capturesHistory is false', () => {
 		const canvas = createFakePixelCanvas(8, 8);
 		const { host } = makeHost(canvas);
 		const tool = oneShotTool({

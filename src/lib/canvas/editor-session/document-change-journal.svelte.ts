@@ -349,10 +349,16 @@ export class DocumentChangeJournal {
 			case 'set-reference-layer':
 				this.#assertValidReferenceLayerSource(intent.source);
 				return true;
+			// The rule refuses regardless of which id was named, so validate the
+			// id here — on the branch that returns before the core ever sees it.
 			case 'remove-layer':
-				return document.layer_count() > 1;
+				if (document.layer_count() > 1) return true;
+				this.#assertLayerExists(intent.id);
+				return false;
 			case 'remove-frame':
-				return document.frame_count() > 1;
+				if (document.frame_count() > 1) return true;
+				this.#assertFrameExists(intent.id);
+				return false;
 			case 'reorder-layer':
 				// A Reference Layer is pinned to the bottom of the stack.
 				return this.#layerOf(intent.id).kind !== 'reference';

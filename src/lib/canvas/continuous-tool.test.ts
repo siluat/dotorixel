@@ -60,7 +60,7 @@ describe('continuousTool sugar', () => {
 		expect(tool.id).toBe('pencil');
 	});
 
-	it('requests an undo snapshot on start', () => {
+	it('opens the Edit Baseline on start', () => {
 		const canvas = createFakePixelCanvas(8, 8);
 		const { host } = makeHost(canvas);
 		const tool = continuousTool({ id: 'pencil', apply: vi.fn(() => true) });

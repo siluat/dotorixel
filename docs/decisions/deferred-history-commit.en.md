@@ -94,9 +94,11 @@ earned an entry.
   scan where a kind check was free — the accepted price for one authority.
   `Document` implements `PartialEq` manually to support this — a derive would
   inherit `Frame`'s identity-only equality and call retimed documents equal.
-- `can_undo` stays false during a stroke until the commit at stroke end
-  (previously true from stroke start). Shells already block undo mid-stroke, so
-  this is invisible in the UI.
+- An Edit no longer flips `can_undo` on its own: on an empty stack it stays
+  false until the commit at the Edit's end (previously true from stroke start).
+  A pending baseline leaves entries already on the stack alone, so `can_undo`
+  stays true mid-Edit wherever there was something to undo. Shells block undo
+  mid-stroke anyway, so this is invisible in the UI.
 - The web journal applies its intent inside a `try`/`finally`: an apply that
   throws must still resolve the baseline, or it would stay pending and poison
   the next edit's `begin_edit`. A partial mutation compares as a change and

@@ -58,7 +58,9 @@ Apple parity tests. Two findings beyond the original report:
 **Direction decided** (maintainer-confirmed): deferred stroke commit, owned by
 the core — see
 [ADR: Deferred History Commit](../docs/decisions/deferred-history-commit.en.md)
-and the **Stroke Baseline** entry in CONTEXT.md. Push-time dedupe (direction 2)
+and the **Edit Baseline** entry in CONTEXT.md (this seam shipped as the *Stroke
+Baseline*; 244 renamed it once commands started using it too). Push-time dedupe
+(direction 2)
 was rejected because a no-op stroke's entry equals the *current* state, not the
 stack top — it never fixes the immediate dead undo. Direction 3 (wontfix) was
 rejected on the redo-destruction finding.

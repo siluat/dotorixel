@@ -57,7 +57,7 @@ Apple parity tests. Two findings beyond the original report:
 
 **Direction decided** (maintainer-confirmed): deferred stroke commit, owned by
 the core — see
-[ADR: Deferred Stroke History Commit](../docs/decisions/deferred-stroke-history-commit.en.md)
+[ADR: Deferred History Commit](../docs/decisions/deferred-history-commit.en.md)
 and the **Stroke Baseline** entry in CONTEXT.md. Push-time dedupe (direction 2)
 was rejected because a no-op stroke's entry equals the *current* state, not the
 stack top — it never fixes the immediate dead undo. Direction 3 (wontfix) was
@@ -150,7 +150,7 @@ leave History exactly as it was, including the redo stack.
   write-accurate, not value-accurate (`apply_tool` reports true when repainting
   a pixel with its own color), so `end_stroke` compares the baseline against
   the current value in core. Cancel needs no separate API. See
-  [ADR: Deferred Stroke History Commit](../docs/decisions/deferred-stroke-history-commit.en.md).
+  [ADR: Deferred History Commit](../docs/decisions/deferred-history-commit.en.md).
 - **`captureUndoSnapshot` seam name kept** on both shells: from the tool
   author's perspective it still requests history capture; the commit timing is
   policy behind the seam (deep module). Core/journal align with the new

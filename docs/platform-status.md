@@ -35,7 +35,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | PixelCanvas History (single-canvas) | ✅ | ⬜ | ✅ | Dimension-aware snapshots (pixels + W/H) so resize is undoable. Apple's undo path; the Web binding no longer exposes it — Web routes undo through Document History |
 | Document History | ✅ | ✅ | ⬜ | Whole-`Document` snapshots (layer stack + Marquee + counters); Web's undo path. Its own species — never mixed with the PixelCanvas path (unrepresentable, not runtime-guarded). Not on Apple bindings yet |
-| Stroke Baseline (no-op discard) | ✅ | ✅ | ✅ | Stroke undo entries commit at stroke end only if the captured state changed (Apple: pixels, Web: whole Document); no-op strokes leave History untouched and preserve redo. Core-owned comparison |
+| Edit Baseline (no-op discard) | ✅ | ✅ | ✅ | Undo entries commit at an Edit's end only if the captured state changed (Apple: pixels, Web: whole Document); no-op Edits — strokes and commands alike — leave History untouched and preserve redo. Core-owned comparison; `end_edit` returns the verdict so shells can skip the re-render an Edit did not earn |
 
 ## Viewport
 

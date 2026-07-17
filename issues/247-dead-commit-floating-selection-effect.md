@@ -33,6 +33,6 @@ path precisely because it looks supported.
 
 ## Notes
 
-- Found while tracing whether any command commits while a Stroke Baseline is
-  pending (it does not — this dead branch was the only candidate).
+- Found while tracing whether any command commits while another Edit Baseline
+  is pending (it does not — this dead branch was the only candidate).
 - No user-visible symptom today; this is latent-hazard cleanup.

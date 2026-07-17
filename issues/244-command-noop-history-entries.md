@@ -65,7 +65,7 @@ pending-baseline mechanism". The audit does not support that:
   gracefully when there is no Marquee or the active layer is a Reference Layer.
   The shell guards duplicate tolerance the core has.
 
-Contradicts the ADR `deferred-stroke-history-commit.en.md`, whose Decision
+Contradicts the ADR `deferred-history-commit.en.md`, whose Decision
 records "`push` (command paths) stays eager and independent of any pending
 baseline" and whose Context claims commands are predictively guardable. That
 ADR is amended by this issue rather than superseded — see below.

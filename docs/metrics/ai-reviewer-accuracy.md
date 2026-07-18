@@ -10,14 +10,19 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 179 | 136 | 43 | 211 | 76% | 39% |
-| cubic-dev-ai[bot] | 197 | 156 | 41 | 191 | 79% | 45% |
-| coderabbitai[bot] | 259 | 181 | 78 | 164 | 70% | 52% |
+| greptile-apps[bot] | 179 | 136 | 43 | 212 | 76% | 39% |
+| cubic-dev-ai[bot] | 199 | 157 | 42 | 191 | 79% | 45% |
+| coderabbitai[bot] | 261 | 182 | 79 | 164 | 70% | 53% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #330 | coderabbitai[bot] | Accept | 249 todo entry kept "blocked by 238" after 238 shipped in the same PR, contradicting progress.md's "unblocked by 238"; clause dropped |
+| #330 | cubic-dev-ai[bot] | Accept | Same stale blocked-by clause on the 249 todo entry (duplicate of coderabbit); same drop |
+| #330 | coderabbitai[bot] | Reject | Wanted VoiceOver adjustable actions on the HSV picker's drag-only controls; the web picker has the identical gap (slider roles, no keyboard handlers) and 238's scope is web parity — the two-axis SV mapping needs one shared cross-shell interaction design, split to issue 250 |
+| #330 | cubic-dev-ai[bot] | Reject | Same VoiceOver adjustability finding (duplicate of coderabbit); same cross-shell deferral to issue 250 |
+| #330 | greptile-apps[bot] | Miss | Did not flag the stale blocked-by clause on the 249 todo entry (5/5 "safe to merge", no findings) |
 | #329 | greptile-apps[bot] | Accept | Index-keyed Recent-row `ForEach` reading `recentColors[idx]` inside cells; the claimed stale-read/mis-tap failure doesn't occur (`@Observable` body invalidation + monotonic list count), but accepted as idiom — dedupe guarantees uniqueness, so swatches are now keyed by color value |
 | #329 | coderabbitai[bot] | Accept | platform-status Notes carried recording-timing implementation detail ("recorded at stroke start + eyedropper commit"); stripped per the Notes-column guideline — "Last 12 used" already carries the used-not-browsed semantics |
 | #329 | coderabbitai[bot] | Miss | Did not flag the index-keyed Recent-row `ForEach` (accepted from greptile) |

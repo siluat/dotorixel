@@ -20,6 +20,14 @@ protocol CanvasInputDelegate: AnyObject {
     /// Constrain latch). Fired on every event that surfaces modifier flags;
     /// the receiver dedups unchanged values.
     func shiftStateChanged(isHeld: Bool, in view: InputMTKView)
+    /// The physical Alt/Option key's held state (iPad hardware keyboard) —
+    /// drives the temporary eyedropper switch. macOS reads Option globally
+    /// via `ShortcutKeyMonitorModifier` instead, so this fires on iPad only.
+    func altStateChanged(isHeld: Bool, in view: InputMTKView)
+    /// A character key pressed on an iPad hardware keyboard, normalized for
+    /// the shortcut controller. macOS captures keys via
+    /// `ShortcutKeyMonitorModifier` instead, so this fires on iPad only.
+    func characterKeyPressed(_ character: Character, modifiers: ShortcutModifiers, in view: InputMTKView)
     #if os(macOS)
     func scrollWheelChanged(deltaX: CGFloat, deltaY: CGFloat, at point: CGPoint, isPrecise: Bool, in view: InputMTKView)
     func magnifyChanged(magnification: CGFloat, at point: CGPoint, in view: InputMTKView)
@@ -120,10 +128,32 @@ class InputMTKView: MTKView {
         presses.contains { $0.key?.keyCode == .keyboardLeftShift || $0.key?.keyCode == .keyboardRightShift }
     }
 
+    private func isAltPress(_ presses: Set<UIPress>) -> Bool {
+        presses.contains { $0.key?.keyCode == .keyboardLeftAlt || $0.key?.keyCode == .keyboardRightAlt }
+    }
+
+    /// Forwards a character key to the shortcut controller. ⌘Z/⇧⌘Z are
+    /// excluded — the Edit-menu commands own undo/redo key equivalents on
+    /// both platforms, and forwarding here would double-fire them.
+    private func forwardCharacterPresses(_ presses: Set<UIPress>) {
+        for press in presses {
+            guard let key = press.key,
+                  let character = key.charactersIgnoringModifiers.lowercased().first
+            else { continue }
+            let modifiers = ShortcutModifiers(key.modifierFlags)
+            if KeyboardShortcutController.isMenuOwnedShortcut(character, modifiers: modifiers) { continue }
+            inputDelegate?.characterKeyPressed(character, modifiers: modifiers, in: self)
+        }
+    }
+
     override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         if isShiftPress(presses) {
             inputDelegate?.shiftStateChanged(isHeld: true, in: self)
         }
+        if isAltPress(presses) {
+            inputDelegate?.altStateChanged(isHeld: true, in: self)
+        }
+        forwardCharacterPresses(presses)
         super.pressesBegan(presses, with: event)
     }
 
@@ -135,12 +165,18 @@ class InputMTKView: MTKView {
         if isShiftPress(presses) {
             inputDelegate?.shiftStateChanged(isHeld: event?.modifierFlags.contains(.shift) ?? false, in: self)
         }
+        if isAltPress(presses) {
+            inputDelegate?.altStateChanged(isHeld: event?.modifierFlags.contains(.alternate) ?? false, in: self)
+        }
         super.pressesEnded(presses, with: event)
     }
 
     override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         if isShiftPress(presses) {
             inputDelegate?.shiftStateChanged(isHeld: event?.modifierFlags.contains(.shift) ?? false, in: self)
+        }
+        if isAltPress(presses) {
+            inputDelegate?.altStateChanged(isHeld: event?.modifierFlags.contains(.alternate) ?? false, in: self)
         }
         super.pressesCancelled(presses, with: event)
     }
@@ -184,3 +220,16 @@ class InputMTKView: MTKView {
 
     #endif
 }
+
+#if !os(macOS)
+extension ShortcutModifiers {
+    /// Maps UIKit key modifier flags to the platform-neutral set.
+    init(_ flags: UIKeyModifierFlags) {
+        self = []
+        if flags.contains(.command) { insert(.command) }
+        if flags.contains(.shift) { insert(.shift) }
+        if flags.contains(.alternate) { insert(.option) }
+        if flags.contains(.control) { insert(.control) }
+    }
+}
+#endif

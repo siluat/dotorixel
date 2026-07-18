@@ -9,7 +9,8 @@ import SwiftUI
 /// - RightPanel (right, fixed width)
 /// - StatusBar (bottom, full width)
 struct ContentView: View {
-    @State private var editorState = EditorState()
+    // Owned by DotorixelApp so the Edit-menu commands share it.
+    let editorState: EditorState
     @Environment(\.displayScale) private var displayScale
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #if DEBUG
@@ -22,6 +23,7 @@ struct ContentView: View {
         let viewport = editorState.viewport
         let showGrid = editorState.showGrid
         let canvasVersion = editorState.canvasVersion
+        let isTextInputFocused = editorState.isTextInputFocused
 
         GeometryReader { rootGeo in
             let tier = LayoutTier.resolve(
@@ -40,7 +42,8 @@ struct ContentView: View {
                             viewport: viewport,
                             showGrid: showGrid,
                             editorState: editorState,
-                            canvasVersion: canvasVersion
+                            canvasVersion: canvasVersion,
+                            isTextInputFocused: isTextInputFocused
                         )
                         .onAppear { fitCanvas(in: geo.size) }
                         .onChange(of: geo.size) { _, newSize in fitCanvas(in: newSize) }
@@ -57,6 +60,11 @@ struct ContentView: View {
                 StatusBar(editorState: editorState, tier: tier)
             }
             .background(DesignTokens.bgBase)
+            #if os(macOS)
+            // App-level key capture (letters, ⌘Y, Alt) — see the modifier
+            // for the ownership split with the Edit-menu commands.
+            .modifier(ShortcutKeyMonitorModifier(editorState: editorState))
+            #endif
             #if DEBUG
             .sheet(isPresented: $showBenchmark) {
                 RenderBenchmarkView()

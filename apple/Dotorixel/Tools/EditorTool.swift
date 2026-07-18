@@ -44,6 +44,22 @@ enum EditorTool: CaseIterable {
         }
     }
 
+    /// Lowercase keyboard letter that activates the tool (web parity:
+    /// `TOOL_SHORTCUTS` in `tool-registry.ts`; assignment rationale in
+    /// docs/decisions/keyboard-shortcut-review.md).
+    var shortcutKey: Character {
+        switch self {
+        case .pencil: return "p"
+        case .eraser: return "e"
+        case .line: return "l"
+        case .rectangle: return "u"
+        case .ellipse: return "o"
+        case .floodFill: return "f"
+        case .eyedropper: return "i"
+        case .move: return "v"
+        }
+    }
+
     /// Whether a stroke with this tool records its draw color into the
     /// recent-colors list at stroke begin — the Apple analog of the web
     /// tool authoring `addsActiveColor` flag. False for tools that don't

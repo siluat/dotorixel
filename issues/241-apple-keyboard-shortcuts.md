@@ -1,6 +1,6 @@
 ---
 title: Apple native — editor keyboard shortcuts
-status: ready-for-agent
+status: done
 created: 2026-07-15
 ---
 
@@ -65,3 +65,37 @@ is out of scope.
 - [233 — FG/BG color pair](233-apple-fg-bg-colors.md)
 - [234 — eyedropper tool](234-apple-eyedropper.md)
 - [236 — move tool](236-apple-move-tool.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/KeyboardShortcutController.swift` | New: pure Swift port of the web `createKeyboardInput` — `KeyboardShortcutHost` protocol, single keydown decision table (`resolveKeyDown`), Alt-hold temporary eyedropper with `consumePendingToolRestore()`, key-repeat policy, `isMenuOwnedShortcut` |
+| `apple/Dotorixel/State/EditorState.swift` | Host conformance; `setActiveTool` (no latch toggle) + `toggleGrid`; `isTextInputFocused` signal; deferred tool restore applied in `endStroke`/`cancelStroke` |
+| `apple/Dotorixel/Tools/EditorTool.swift` | `shortcutKey` per tool (p/e/l/u/o/f/i/v, web `TOOL_SHORTCUTS` parity) |
+| `apple/Dotorixel/DotorixelApp.swift` | `EditorState` lifted to App scope; empty `.undoRedo` command group replaced with real Undo (⌘Z) / Redo (⇧⌘Z) commands, enabled off `canUndo`/`canRedo` |
+| `apple/Dotorixel/Views/ShortcutKeyMonitor.swift` | New: macOS local NSEvent monitors (keyDown + flagsChanged) — first-responder-independent capture; resets held-key state when the window resigns key |
+| `apple/Dotorixel/ContentView.swift` | Takes injected `EditorState`; attaches the macOS monitor modifier |
+| `apple/Dotorixel/Rendering/InputMTKView.swift` | iPad hardware-keyboard capture: character keys + Option via `presses*`, new `CanvasInputDelegate` methods, `ShortcutModifiers` UIKit mapping |
+| `apple/Dotorixel/Rendering/PixelCanvasView.swift` | Coordinator forwards key events to the controller; iPad reclaims first responder when the size fields release focus (240 follow-up) |
+| `apple/Dotorixel/Views/RightPanel.swift` | Publishes size-field focus to `isTextInputFocused` |
+| `apple/Dotorixel/Views/LeftToolbar.swift` | Tool tooltips/accessibility labels carry shortcut hints ("Pencil (P)") |
+| `apple/Dotorixel/Views/TopBar.swift` | Grid button routed through the shared `toggleGrid()` command |
+| `apple/DotorixelTests/KeyboardShortcutControllerTests.swift` | New: 25 tests — fake-host controller suites (tool keys, X/G, undo/redo combos, Alt-hold incl. deferred restore, repeat, menu-owned) + `EditorState` integration |
+| `apple/DotorixelTests/EditorToolTests.swift` | Exhaustive `shortcutKey` map suite |
+
+### Key Decisions
+
+- **Pure controller + host protocol** (mirror of web `KeyboardInputHost`), unit-tested with a fake host — shortcut logic lives entirely outside the SwiftUI modifier layer per the AC.
+- **Shortcut ownership split**: ⌘Z/⇧⌘Z belong to the Edit-menu commands on both platforms (menu enable/disable comes free); the controller owns everything else (letters, X/G, ⌘Y, Alt-hold). `isMenuOwnedShortcut` is the shared guard both wirings use to prevent double-fire.
+- **`setActiveTool` vs `activateTool`**: keyboard path sets the tool directly and never toggles the Constrain latch (a toolbar re-tap does) — same vocabulary split as the web.
+- **Key-repeat policy (web parity)**: held undo/redo keeps firing, tool keys re-activate harmlessly, G/X repeats are swallowed without dispatching.
+- **macOS capture via local NSEvent monitors** rather than responder-chain key handling — shortcuts work regardless of first responder; the text-input guard is state-driven (`isTextInputFocused`), not responder-based.
+
+### Notes
+
+- The controller's ⌘Z/⇧⌘Z branch is unreachable through production wiring (the menu owns those combos) — kept deliberately so the decision table stays a full mirror of the web handler and as a backstop if the menu path changes.
+- ⌘Z while a size field is focused triggers canvas undo via the Edit menu (the system text-undo group was replaced). Accepted: the issue only requires plain letters to keep flowing to the fields.
+- 240's open note (iPad first-responder recovery after a text field takes it) is addressed by the `updateUIView` reclaim.
+- Automated coverage is at the controller/`EditorState` level (202 tests green on the pinned iPad host; macOS target builds). Real-hardware pass (macOS keys, iPad hardware keyboard incl. checking the Edit menu doesn't double-fire ⌘Z) is recommended before relying on it.
+- The `/` shortcut-hints overlay and Space-pan remain web-only (out of scope here; M/marquee is Phase 5).

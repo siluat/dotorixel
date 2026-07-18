@@ -85,7 +85,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Mouse / trackpad | — | ✅ | ✅ | |
 | Touch | — | ✅ | ✅ | Pointer Events / UITouch; Web: pinch-zoom + two-finger pan + touch deferral + long-press eyedropper |
 | Apple Pencil | — | — | ✅ | |
-| Keyboard shortcuts | — | ✅ | ✅ | Web: tools, grid, undo/redo, Alt eyedropper, Space pan, X color swap, Shift constrain, `/` hints, selection C/X/V. Apple: undo/redo + Shift constrain (macOS; iPad hardware keyboard best-effort) |
+| Keyboard shortcuts | — | ✅ | ✅ | Both: tool keys, X swap, G grid, ⌘Z/⇧⌘Z/⌘Y, Alt-hold eyedropper (deferred mid-stroke restore), Shift constrain, text-field guard. Apple adds Edit-menu undo/redo; Space pan + `/` hints + selection C/X/V web-only |
 | Constrain latch | — | ✅ | ✅ | Re-tap the active constrainable tool (line/rect/ellipse; selection web-only) to latch the Shift constraint keyboard-free; OR-combined with Shift; mid-stroke toggle re-resolves the in-flight shape instantly |
 | Tool selection a11y | — | ✅ | ⬜ | Tool buttons form an ARIA radiogroup: aria-checked + roving tabindex, Arrow-key nav (wraps), Space/Enter activates (latch on constrainable). Latch state announced via a polite SR live region |
 
@@ -150,7 +150,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Pebble UI theme | — | ✅ | ⬜ | Floating panels, earth tones (web legacy; Apple removed) |
 | Editor UI theme | — | ✅ | ✅ | `--ds-*` tokens, docked layout skeleton (Apple); TopBar + LeftToolbar + RightPanel + StatusBar all implemented |
 | Responsive layout | — | ✅ | 🔧 | Web: compact/medium/wide/x-wide via matchMedia + CSS Grid, ≥44px targets. Apple: docked adapts wide↔x-wide (1440pt panel/bar sizing); iPad-compact deferred to the mobile paradigm |
-| Toolbar tooltip | — | ✅ | ⬜ | Custom styled tooltip on hover (tool name + shortcut badge), Svelte action, GeistPixel-Square font |
+| Toolbar tooltip | — | ✅ | ✅ | Tool name + shortcut hint on hover. Web: custom styled tooltip (GeistPixel-Square). Apple: native macOS tooltip; the hint also rides the accessibility label on both OSes |
 | Tab bar slide indicator | — | ✅ | ⬜ | ease-in-out-cubic 180ms, pure CSS `--active-index` |
 | Landing page | — | ✅ | — | Hero (+ editor mockup) / Features / Roadmap sections, nav with GitHub link, i18n (EN/KO/JA), responsive at 600/1024px, `--ds-*` tokens |
 | Safe area handling | — | ✅ | ⬜ | `viewport-fit=cover` + `env(safe-area-inset-*)` on all routes |

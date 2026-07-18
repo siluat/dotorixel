@@ -143,7 +143,7 @@ struct TopBar: View {
 
     private var gridToggleButton: some View {
         Button {
-            editorState.showGrid.toggle()
+            editorState.toggleGrid()
         } label: {
             Image(systemName: "grid")
                 .font(.system(size: 16))

@@ -54,6 +54,11 @@ struct RightPanel: View {
         }
         .onAppear { syncDimensionInputs() }
         .onChange(of: editorState.canvasVersion) { _, _ in syncDimensionInputs() }
+        // Publish text focus so keyboard shortcuts pause while the size
+        // fields receive typed letters (`KeyboardShortcutHost` guard).
+        .onChange(of: focusedField) { _, newValue in
+            editorState.isTextInputFocused = newValue != nil
+        }
     }
 
     // MARK: - Canvas section

@@ -16,6 +16,10 @@ final class EditorState {
     var backgroundColor: Color
     var showGrid: Bool = true
 
+    /// State behind the loupe overlay shown while an eyedropper stroke is
+    /// active — see `StrokeSessionHost.samplingLoupe`.
+    let samplingLoupe = SamplingLoupeState()
+
     /// Manually incremented to trigger SwiftUI updates when canvas pixels change.
     var canvasVersion: Int = 0
     private(set) var isDrawing: Bool = false

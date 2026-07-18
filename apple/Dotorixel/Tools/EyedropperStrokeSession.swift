@@ -3,6 +3,9 @@
 /// picked at stroke begin. Only a valid opaque sample commits — releasing out
 /// of bounds or over a transparent pixel leaves the active color unchanged.
 ///
+/// Each sample also drives the sampling loupe overlay through the host seam:
+/// shown with a fresh 9×9 grid on every `draw`, dismissed on `end`/`cancel`.
+///
 /// Never captures an undo snapshot: `start` deliberately skips `beginEdit`,
 /// so color picks are not undoable (web parity).
 final class EyedropperStrokeSession: StrokeSession {
@@ -21,10 +24,16 @@ final class EyedropperStrokeSession: StrokeSession {
 
     func draw(current: ScreenCanvasCoords, previous: ScreenCanvasCoords?) -> Bool {
         targetPixel = current
+        host.samplingLoupe.show(grid: sampleGrid(
+            canvas: host.pixelCanvas,
+            center: current,
+            size: LoupeGeometry.gridSize
+        ))
         return false
     }
 
     func end() -> Bool {
+        host.samplingLoupe.dismiss()
         guard let target = targetPixel,
               let x = UInt32(exactly: target.x),
               let y = UInt32(exactly: target.y),
@@ -36,6 +45,7 @@ final class EyedropperStrokeSession: StrokeSession {
     }
 
     func cancel() -> Bool {
+        host.samplingLoupe.dismiss()
         targetPixel = nil
         return false
     }

@@ -57,6 +57,7 @@ private final class FakeStrokeSessionHost: StrokeSessionHost {
     let pixelCanvas: ApplePixelCanvas
     var foregroundColor: Color
     var backgroundColor: Color
+    let samplingLoupe = SamplingLoupeState()
     private(set) var undoSnapshotCount = 0
 
     init() {

@@ -51,6 +51,11 @@ protocol StrokeSessionHost: AnyObject {
     var foregroundColor: Color { get }
     var backgroundColor: Color { get }
 
+    /// State behind the loupe overlay shown while a sampling stroke is
+    /// active. Sampling sessions own its lifecycle (show on each sample,
+    /// dismiss on end/cancel); drawing sessions never touch it.
+    var samplingLoupe: SamplingLoupeState { get }
+
     /// Holds the current canvas pixels as the pending Edit Baseline. The
     /// host resolves it when the stroke ends or cancels: the undo entry
     /// commits only if the stroke actually changed the canvas, so a no-op

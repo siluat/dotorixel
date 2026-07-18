@@ -1,6 +1,6 @@
 ---
 title: Apple native — sampling loupe overlay for the eyedropper
-status: ready-for-agent
+status: done
 created: 2026-07-15
 ---
 
@@ -58,3 +58,48 @@ pass.
 ## Blocked by
 
 - [234 — eyedropper tool](234-apple-eyedropper.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Sampling/LoupeGeometry.swift` | Web `loupe-config.ts` mirror — single source for grid/cell/offset constants and the derived loupe box size |
+| `apple/Dotorixel/Sampling/LoupePosition.swift` | Pure position math: `tr` default quadrant, edge flips, clamp safety net; touch centers horizontally with the 80pt offset |
+| `apple/Dotorixel/Sampling/SampleGrid.swift` | 9×9 neighborhood read via the existing `getPixel` FFI; out-of-canvas cells are `nil`, distinct from transparent (`a == 0`) |
+| `apple/Dotorixel/Sampling/SamplingLoupeState.swift` | `@Observable` loupe surface: grid + visibility driven by the session, pointer feed pushed by the input layer, derived `position` |
+| `apple/Dotorixel/Sampling/LoupeView.swift` | SwiftUI overlay: grid (transparent checker, out-of-canvas hatch, center rings) + hex chip with a muted em-dash state |
+| `apple/Dotorixel/Tools/StrokeSession.swift` | `StrokeSessionHost` gains the `samplingLoupe` seam; drawing sessions never touch it |
+| `apple/Dotorixel/Tools/EyedropperStrokeSession.swift` | Shows/updates the loupe on every `draw`, dismisses on `end`/`cancel` |
+| `apple/Dotorixel/Rendering/InputMTKView.swift` | `drawingBegan` carries a `LoupeInputSource` (finger → touch; pencil/pointer/mouse → mouse) |
+| `apple/Dotorixel/Rendering/PixelCanvasView.swift` | Coordinator pushes the pointer + canvas-area size to the loupe before each stroke sample |
+| `apple/Dotorixel/ContentView.swift` | Hit-test-free `LoupeView` overlay on the canvas area, offset by the derived position |
+| `apple/DotorixelTests/SampleGridTests.swift` | Grid centering, row-major layout, out-of-bounds vs transparent |
+| `apple/DotorixelTests/LoupePositionTests.swift` | Mouse default/flips/clamp, touch centering/flip/clamp (7 tests) |
+| `apple/DotorixelTests/SamplingLoupeTests.swift` | Lifecycle through the `EditorState` public API + position derivation (7 tests) |
+| `apple/DotorixelTests/LoupeViewSnapshotTests.swift` | Two snapshot baselines (all cell states + rings + chip; transparent-center em-dash) on the pinned host |
+
+### Key Decisions
+
+- The session drives the loupe through a `samplingLoupe` handle on
+  `StrokeSessionHost` (web parity: the session owns the loupe lifecycle), while
+  the pointer's view position + input source are pushed independently by the
+  input layer — mirroring the web's split between session grid updates and the
+  always-safe `updatePointer`.
+- Only a direct finger touch (`UITouch.type == .direct`) uses the touch
+  offsets; Apple Pencil and indirect pointers behave like a mouse, since the
+  pencil tip does not cover the loupe the way a finger does.
+- The commit path is unchanged: `end()` still samples the canvas directly at
+  the target pixel — the same pixel the grid centers on — so the loupe is
+  purely presentational.
+- The transparent-cell checkerboard matches the Metal shader's orientation
+  (top-left and bottom-right light) so the transparency signal is consistent
+  with the canvas.
+
+### Notes
+
+- The hex chip uses the system monospaced font — the web's `GalmuriMono11` is
+  not bundled in the Apple shell. Bundle it in a later parity pass if visual
+  fidelity matters.
+- The loupe appears only during eyedropper strokes. The web's tool-independent
+  400ms long-press touch sampling (and its loupe) is out of scope; coordinate
+  with the Apple Pencil palm-rejection work when it lands.

@@ -6,7 +6,10 @@ import MetalKit
 /// `InputMTKView`, regardless of whether the input came from a mouse (macOS),
 /// touch, or Apple Pencil (iPadOS).
 protocol CanvasInputDelegate: AnyObject {
-    func drawingBegan(at point: CGPoint, button: PointerButton, in view: InputMTKView)
+    /// `inputSource` picks the loupe positioning offsets: only a direct
+    /// finger touch is `.touch`; mouse, trackpad, and Apple Pencil are
+    /// `.mouse` (the pencil tip does not cover the loupe the way a finger does).
+    func drawingBegan(at point: CGPoint, button: PointerButton, inputSource: LoupeInputSource, in view: InputMTKView)
     func drawingMoved(to point: CGPoint, in view: InputMTKView)
     func drawingEnded(in view: InputMTKView)
     /// An interrupted pointer sequence (e.g. `touchesCancelled`) — must tear
@@ -30,7 +33,7 @@ class InputMTKView: MTKView {
 
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
-        inputDelegate?.drawingBegan(at: point, button: .primary, in: self)
+        inputDelegate?.drawingBegan(at: point, button: .primary, inputSource: .mouse, in: self)
     }
 
     override func mouseDragged(with event: NSEvent) {
@@ -47,7 +50,7 @@ class InputMTKView: MTKView {
 
     override func rightMouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
-        inputDelegate?.drawingBegan(at: point, button: .secondary, in: self)
+        inputDelegate?.drawingBegan(at: point, button: .secondary, inputSource: .mouse, in: self)
     }
 
     override func rightMouseDragged(with event: NSEvent) {
@@ -89,7 +92,10 @@ class InputMTKView: MTKView {
         let button: PointerButton = event?.buttonMask.contains(.secondary) == true
             ? .secondary
             : .primary
-        inputDelegate?.drawingBegan(at: point, button: button, in: self)
+        // Only a direct finger touch needs the loupe's touch offsets; pencil
+        // and indirect pointers behave like a mouse.
+        let inputSource: LoupeInputSource = touch.type == .direct ? .touch : .mouse
+        inputDelegate?.drawingBegan(at: point, button: button, inputSource: inputSource, in: self)
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {

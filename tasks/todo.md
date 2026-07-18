@@ -24,9 +24,8 @@ issues (`/to-issues`) when reached.
 
 ### Phase 2 — Full tool set + color (decomposed 2026-07-15)
 
-Dependency order; 230–234 are done, 242 closes the phase.
+Dependency order; 230–235 are done, 242 closes the phase.
 
-- [235 — Sampling loupe](../issues/235-apple-sampling-loupe.md)
 - [236 — Move tool](../issues/236-apple-move-tool.md)
 - [237 — Recent colors](../issues/237-apple-recent-colors.md)
 - [238 — HSV picker](../issues/238-apple-hsv-picker.md)

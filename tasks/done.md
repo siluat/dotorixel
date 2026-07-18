@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 235 | [Apple native — sampling loupe overlay for the eyedropper](../issues/235-apple-sampling-loupe.md) | 2026-07-18 |
 | 234 | [Apple native — eyedropper tool (drag to sample, commit on release)](../issues/234-apple-eyedropper.md) | 2026-07-18 |
 | 247 | [Dead `commitFloatingSelection` effect bypasses the isDrawing seal](../issues/247-dead-commit-floating-selection-effect.md) | 2026-07-17 |
 | 246 | [Remove the eager push API from History once commands use the Edit Baseline](../issues/246-remove-eager-push-api.md) | 2026-07-17 |

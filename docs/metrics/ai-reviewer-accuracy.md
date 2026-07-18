@@ -10,14 +10,18 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 177 | 135 | 42 | 209 | 76% | 39% |
-| cubic-dev-ai[bot] | 196 | 155 | 41 | 189 | 79% | 45% |
-| coderabbitai[bot] | 258 | 180 | 78 | 162 | 70% | 53% |
+| greptile-apps[bot] | 178 | 135 | 43 | 210 | 76% | 39% |
+| cubic-dev-ai[bot] | 197 | 156 | 41 | 189 | 79% | 45% |
+| coderabbitai[bot] | 258 | 180 | 78 | 163 | 70% | 52% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #328 | cubic-dev-ai[bot] | Accept | `shiftedPixels` allocated a temporary `Data` per copied row on every pointer sample (`subdata` in the mid-drag hot path); switched to direct raw-buffer row copies so the function allocates only the output buffer |
+| #328 | greptile-apps[bot] | Reject | Claimed the Move SF Symbol might not resolve on supported targets; `arrow.up.and.down.and.arrow.left.and.right` ships since SF Symbols 2 (iOS 14 / macOS 11 per the system `name_availability.plist`) and targets are iOS 17 / macOS 14 — plus the re-recorded toolbar snapshots render it |
+| #328 | greptile-apps[bot] | Miss | Did not flag the per-row temporary-`Data` allocation in the `shiftedPixels` hot path |
+| #328 | coderabbitai[bot] | Miss | Did not flag the per-row temporary-`Data` allocation in the `shiftedPixels` hot path (APPROVED, no line comments) |
 | #327 | coderabbitai[bot] | Reject | Claimed `LoupeInputSource`/`LoupeQuadrant` need explicit `Equatable` "or the file won't compile"; associated-value-free enums conform implicitly, and the branch builds + passes the full suite as-is |
 | #327 | coderabbitai[bot] | Accept | Tests README re-record steps pointed only at the DockedRegionSnapshotTests snapshot directory after LoupeViewSnapshotTests was added; path made suite-generic |
 | #327 | cubic-dev-ai[bot] | Accept | Loupe observable reads sat in ContentView's body, so pointer-rate loupe updates re-invalidated the Metal canvas view and its texture upload; reads isolated in a child overlay view |

@@ -149,8 +149,9 @@ struct DockedRegionSnapshotTests {
     /// Locale regression, not tier sizing: each leaf view rendered under the
     /// ko locale baselines the String Catalog resolution path (section titles,
     /// button labels, status-bar tool name) and pins that the longer Korean
-    /// strings don't break the docked layout. One non-en locale suffices —
-    /// ko exercises the widest text-length deltas of the supported set.
+    /// strings don't break the docked layout. ko is the only baselined locale
+    /// (scope decision in issue 242); LeftToolbar is icon-only, so its ko
+    /// snapshot guards layout drift rather than text.
 
     @Test("RightPanel renders Korean chrome at wide")
     func rightPanelKoreanLocale() {

@@ -97,9 +97,10 @@ Label-set stability — the Phase 2 UI slices that introduce user-facing strings
 - Accessibility labels resolve via `Locale.current` (system language), not the
   injected environment locale — snapshot tests cover visible text only; VoiceOver
   spot-check by switching the simulator/system language is still recommended.
-- Adding a user-facing string without ko/ja translations now fails
-  `StringCatalogCompletenessTests` — the "catalog entry, not hardcoded literal"
-  contract is test-enforced.
+- `StringCatalogCompletenessTests` guards translation coverage for entries
+  already in the catalog (missing ko/ja fails the suite). A brand-new hardcoded
+  literal that never enters the catalog is **not** detected — that half of the
+  "catalog entry, not hardcoded literal" contract remains review-enforced.
 - ja has no snapshot baseline (per scope decision); its terminology is guarded by
   the unit tests instead.
 - This closes RFC 013 Phase 2; the RFC stays open for Phases 3–6.

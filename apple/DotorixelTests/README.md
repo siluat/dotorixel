@@ -44,10 +44,13 @@ past the panel width) — state-dependent layout the empty-state tier snapshots
 never exercise.
 
 Four snapshots are **locale regressions** (issue 242): each leaf view rendered at
-`.wide` under `.environment(\.locale, ko)` baselines the String Catalog resolution
-path and pins that the translated (longer) Korean chrome doesn't break the docked
-layout. One non-en locale suffices; translation *coverage* per entry is guarded
-separately by `StringCatalogCompletenessTests`.
+`.wide` under `.environment(\.locale, ko)` pins that the Korean chrome resolves
+through the String Catalog and renders without breaking the docked layout.
+(`LeftToolbar` is icon-only — its ko snapshot guards layout drift, not text; its
+composed accessibility labels resolve via `Locale.current`, outside the injected
+environment.) Other locales have no rendered baselines (scope decision in the
+issue); translation *coverage* per entry is guarded separately by
+`StringCatalogCompletenessTests`.
 
 Each test fixes only the view's **flexible** axis (`.frame(height:)` for the vertical
 strips, `.frame(width:)` for the horizontal bars) and snapshots with

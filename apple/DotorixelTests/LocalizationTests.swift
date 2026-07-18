@@ -69,6 +69,31 @@ struct StringCatalogCompletenessTests {
     }
 }
 
+/// The interpolated accessibility strings ("\(h) degrees", …) are inline
+/// literals at their call sites, so they hit the LocalizedStringKey overload
+/// and generate format keys ("%lld degrees"). These pin that the catalog
+/// entries match the call-site-generated keys — a mismatch falls back to
+/// English silently, with no compile- or test-time signal otherwise.
+@Suite("Localization — interpolated format entries")
+struct FormatEntryLocalizationTests {
+
+    // Interpolated resources, shaped exactly like the view call sites.
+    // NOTE: String(localized:locale:) can't be used here — its locale
+    // parameter only formats interpolated arguments; localization lookup is
+    // switched via LocalizedStringResource.locale (see resolve(_:in:)).
+    @Test("Format entries resolve in ko via call-site-shaped keys")
+    func formatEntriesResolveInKorean() {
+        #expect(resolve("\(30) degrees", in: "ko") == "30도")
+        #expect(
+            resolve("Saturation \(50), brightness \(75)", in: "ko")
+                == "채도 50, 명도 75"
+        )
+        #expect(resolve("Recent color \("#FF0000")", in: "ko") == "최근 색상 #FF0000")
+        #expect(resolve("Palette color \("#FF0000")", in: "ko") == "팔레트 색상 #FF0000")
+        #expect(resolve("\(16) by \(16)", in: "ko") == "16 × 16")
+    }
+}
+
 /// Resolves a localized resource in an explicit locale, independent of the
 /// test host's system language.
 func resolve(_ resource: LocalizedStringResource, in localeIdentifier: String) -> String {

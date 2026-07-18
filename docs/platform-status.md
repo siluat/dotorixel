@@ -93,7 +93,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Internationalization | — | ✅ | ✅ | EN/KO/JA on both shells, shared terminology. Web: Paraglide.js, URL path routing (root `/` EN, auto-detect + localStorage). Apple: String Catalog, follows system language, no in-app picker |
+| Internationalization | — | ✅ | ✅ | EN/KO/JA on both shells, shared terminology. Web: Paraglide.js, URL path routing (root `/`, auto-detect + localStorage). Apple: String Catalog, follows system language, no in-app picker |
 
 ## Analytics
 

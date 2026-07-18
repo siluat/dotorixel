@@ -10,14 +10,23 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 186 | 142 | 44 | 218 | 76% | 39% |
-| cubic-dev-ai[bot] | 207 | 165 | 42 | 194 | 80% | 46% |
-| coderabbitai[bot] | 268 | 187 | 81 | 171 | 70% | 52% |
+| greptile-apps[bot] | 187 | 142 | 45 | 222 | 76% | 39% |
+| cubic-dev-ai[bot] | 213 | 169 | 44 | 194 | 79% | 47% |
+| coderabbitai[bot] | 268 | 187 | 81 | 175 | 70% | 52% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #334 | greptile-apps[bot] | Reject | Claimed HSV accessibility values bypass the catalog ("plain interpolated `String`"); the call sites are inline literals that select the `LocalizedStringKey` overload — `FormatEntryLocalizationTests` now pins the format-key match (`"\(30) degrees"` → `"30도"`) |
+| #334 | cubic-dev-ai[bot] | Reject | Same HSV-values-bypass claim (duplicate of greptile); same refutation |
+| #334 | cubic-dev-ai[bot] | Accept | Issue note overclaimed the completeness gate as enforcing the whole "catalog entry, not hardcoded literal" contract; reworded to the narrower in-catalog guarantee |
+| #334 | cubic-dev-ai[bot] | Accept | Partial: ko baseline doesn't establish ja layout safety — README claim narrowed to Korean-only; ja snapshot declined (scope decision: single-locale baselines) |
+| #334 | cubic-dev-ai[bot] | Accept | README implied the LeftToolbar ko snapshot verifies localized chrome; it is icon-only and its composed labels resolve via `Locale.current` — caveat added |
+| #334 | cubic-dev-ai[bot] | Accept | platform-status "root `/` EN" contradicted the web root's browser-language auto-detection; reworded |
+| #334 | cubic-dev-ai[bot] | Reject | Claimed the bundle-localizations test doesn't exercise XcodeGen regen; the `.xcodeproj` is git-ignored generated-only output, so the test can only ever run against a regenerated project |
+| #334 | greptile-apps[bot] | Miss (×4) | Flagged none of the four accepted doc-accuracy findings (completeness-gate scope, ja layout claim, LeftToolbar coverage claim, root-path wording) |
+| #334 | coderabbitai[bot] | Miss (×4) | Posted only a walkthrough summary; flagged none of the four accepted doc-accuracy findings |
 | #333 | greptile-apps[bot] | Accept | Partial: iPad `WindowGroup` would share the app-scoped state if a second scene appeared; per-scene state rejected (premature until Phase 4), but the implicit single-scene default is now an explicit `UIApplicationSupportsMultipleScenes: NO` declaration |
 | #333 | greptile-apps[bot] | Reject | Wanted the held-key-code clear on `resignFirstResponder` to not treat the first post-refocus repeat as fresh; the failure modes are mutually exclusive (releases only reach the first responder) and the current choice trades one visible toggle in a contrived hold-across-focus case against silently eating the first real press |
 | #333 | coderabbitai[bot] | Reject | Claimed the metrics log contradicted the "PR objectives" on the teardown-focus finding; the log matches the code as of round two (`onDisappear` exists) — the stale text was the round-one PR summary comment |

@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 242 | [Apple native — i18n via String Catalog (en/ko/ja)](../issues/242-apple-i18n-string-catalog.md) | 2026-07-18 |
 | 241 | [Apple native — editor keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md) | 2026-07-18 |
 | 240 | [Apple native — Shift constrain + constrain latch for shape tools](../issues/240-apple-shift-constrain.md) | 2026-07-18 |
 | 239 | [Apple native — pixel-perfect stroke filtering + toggle](../issues/239-apple-pixel-perfect.md) | 2026-07-18 |

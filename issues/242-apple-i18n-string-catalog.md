@@ -1,6 +1,6 @@
 ---
 title: Apple native — i18n via String Catalog (en/ko/ja)
-status: ready-for-agent
+status: done
 created: 2026-07-15
 ---
 
@@ -64,3 +64,43 @@ Label-set stability — the Phase 2 UI slices that introduce user-facing strings
 - [239 — pixel-perfect toggle](239-apple-pixel-perfect.md)
 - [240 — Shift constrain + latch](240-apple-shift-constrain.md)
 - [241 — keyboard shortcuts](241-apple-keyboard-shortcuts.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Localizable.xcstrings` | String Catalog — 40 entries, en source + translated ko/ja; web-catalog key mapping recorded per entry in `comment` (`web: tool_pencil` …); `Dotorixel`/`HSV` marked `shouldTranslate: false` |
+| `apple/Dotorixel/Tools/EditorTool.swift` | `displayName: String` → `LocalizedStringResource` (Foundation-only, no SwiftUI dependency) so the status bar re-resolves per locale |
+| `apple/Dotorixel/Views/LeftToolbar.swift` | Composed tool label ("Pencil (P)") resolved eagerly via `String(localized:)` — follows system language |
+| `apple/Dotorixel/Views/RightPanel.swift` | Preset accessibility label Int-cast so the catalog format key is a stable `%lld by %lld` |
+| `apple/DotorixelTests/LocalizationTests.swift` | New: bundle-localizations contract (en/ko/ja survive XcodeGen regen), catalog completeness gate, tool-terminology web-parity tests (8 tools × 3 locales) |
+| `apple/DotorixelTests/DockedRegionSnapshotTests.swift` | 4 ko-locale snapshots (`.wide`, all leaf views) + baselines under `__Snapshots__/` — translated chrome renders without layout breakage |
+| `apple/DotorixelTests/EditorToolTests.swift` | Old en-only displayName suite removed — superseded by the terminology-parity suite |
+| `apple/DotorixelTests/README.md` | Documents the locale-snapshot coverage class |
+
+### Key Decisions
+
+- **Native-convention keys** (English literal as key) over web-style semantic keys
+  (`tool_pencil`): SwiftUI auto-extraction keeps view code natural-language and the
+  diff minimal; cross-shell mapping lives in each entry's `comment` field instead.
+- **`LocalizedStringResource` for `displayName`**: Foundation type keeps
+  `EditorTool` framework-free, resolves with an explicit locale in unit tests, and
+  follows the SwiftUI environment locale in `Text` (verified by the ko snapshot).
+- **Completeness gate reads the `.xcstrings` source via `#filePath`** — the
+  compiled bundle drops per-entry translation state. Same local-gate policy as the
+  snapshot tests; revisit if remote CI changes the checkout layout.
+- ko chosen as the snapshot locale (widest text-length deltas); DEBUG-only
+  benchmark screen excluded from the catalog per scope review.
+
+### Notes
+
+- Accessibility labels resolve via `Locale.current` (system language), not the
+  injected environment locale — snapshot tests cover visible text only; VoiceOver
+  spot-check by switching the simulator/system language is still recommended.
+- `StringCatalogCompletenessTests` guards translation coverage for entries
+  already in the catalog (missing ko/ja fails the suite). A brand-new hardcoded
+  literal that never enters the catalog is **not** detected — that half of the
+  "catalog entry, not hardcoded literal" contract remains review-enforced.
+- ja has no snapshot baseline (per scope decision); its terminology is guarded by
+  the unit tests instead.
+- This closes RFC 013 Phase 2; the RFC stays open for Phases 3–6.

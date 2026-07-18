@@ -18,15 +18,9 @@
 ## Apple Native: full web parity — [RFC](../issues/013-apple-native-catchup.md)
 
 Phased catch-up to full parity with completed web editor features. See the RFC for
-the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish) is complete;
-Phase 2 is decomposed into issues 230–242 below. Phases 3–6 are decomposed into
-issues (`/to-issues`) when reached.
-
-### Phase 2 — Full tool set + color (decomposed 2026-07-15)
-
-Dependency order; 230–241 are done, 242 closes the phase.
-
-- [242 — i18n String Catalog (en/ko/ja)](../issues/242-apple-i18n-string-catalog.md)
+the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish) and Phase 2
+(full tool set + color + i18n, issues 230–242) are complete; Phases 3–6 are
+decomposed into issues (`/to-issues`) when reached.
 
 ### Phases 3–6 — roadmap (decompose when reached)
 

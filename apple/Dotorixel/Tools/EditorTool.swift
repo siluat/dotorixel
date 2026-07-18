@@ -1,3 +1,5 @@
+import Foundation
+
 /// Shell-owned tool identity for the Apple editor.
 ///
 /// Distinct from the core `ToolType`, which exists for per-pixel `apply` and
@@ -16,8 +18,9 @@ enum EditorTool: CaseIterable {
     case eyedropper
     case move
 
-    /// User-visible label for the tool.
-    var displayName: String {
+    /// User-visible label for the tool, resolved through the String Catalog
+    /// (en/ko/ja — terminology matches the web's message catalogs).
+    var displayName: LocalizedStringResource {
         switch self {
         case .pencil: return "Pencil"
         case .eraser: return "Eraser"

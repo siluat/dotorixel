@@ -1,0 +1,660 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%lld by %lld" : {
+      "comment" : "Canvas preset button accessibility label, e.g. \"16 by 16\".",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld × %lld"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld × %lld"
+          }
+        }
+      }
+    },
+    "%lld degrees" : {
+      "comment" : "Hue strip accessibility value.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld度"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld도"
+          }
+        }
+      }
+    },
+    "Background color" : {
+      "comment" : "BG swatch accessibility label. web: color_background (concept)",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "背景色"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "배경색"
+          }
+        }
+      }
+    },
+    "Canvas" : {
+      "comment" : "Right panel section title. web: section_canvas",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンバス"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "캔버스"
+          }
+        }
+      }
+    },
+    "Clear" : {
+      "comment" : "Clear-canvas button in the right panel's Canvas section. web: action_clearCanvas",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンバスをクリア"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "캔버스 지우기"
+          }
+        }
+      }
+    },
+    "Color" : {
+      "comment" : "Right panel section title. web: section_color",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カラー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "색상"
+          }
+        }
+      }
+    },
+    "Dotorixel" : {
+      "comment" : "Brand name — window title, never translated.",
+      "shouldTranslate" : false
+    },
+    "Ellipse" : {
+      "comment" : "Tool display name. web: tool_ellipse",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "楕円"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "타원"
+          }
+        }
+      }
+    },
+    "Eraser" : {
+      "comment" : "Tool display name. web: tool_eraser",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "消しゴム"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지우개"
+          }
+        }
+      }
+    },
+    "Export" : {
+      "comment" : "Export button label. web: label_export",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き出し"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내보내기"
+          }
+        }
+      }
+    },
+    "Export Failed" : {
+      "comment" : "Export error alert title.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き出しに失敗しました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내보내기 실패"
+          }
+        }
+      }
+    },
+    "Eyedropper" : {
+      "comment" : "Tool display name. web: tool_eyedropper",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スポイト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "스포이트"
+          }
+        }
+      }
+    },
+    "Fit to view" : {
+      "comment" : "Zoom controls accessibility label. web: action_fitToView",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面に合わせる"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면에 맞추기"
+          }
+        }
+      }
+    },
+    "Flood Fill" : {
+      "comment" : "Tool display name. web: tool_floodfill",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "塗りつぶし"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "채우기"
+          }
+        }
+      }
+    },
+    "Foreground color" : {
+      "comment" : "FG swatch accessibility label. web: color_foreground (concept)",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前景色"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전경색"
+          }
+        }
+      }
+    },
+    "HSV" : {
+      "comment" : "Right panel section title — acronym, same in every locale. web: section_hsv",
+      "shouldTranslate" : false
+    },
+    "Height" : {
+      "comment" : "Canvas height input accessibility label. web: canvas_height",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンバス高さ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "캔버스 높이"
+          }
+        }
+      }
+    },
+    "Hue" : {
+      "comment" : "Hue strip accessibility label. web: color_hue",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "色相"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "색상"
+          }
+        }
+      }
+    },
+    "Line" : {
+      "comment" : "Tool display name. web: tool_line",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直線"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "직선"
+          }
+        }
+      }
+    },
+    "Move" : {
+      "comment" : "Tool display name. web: tool_move",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移動"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이동"
+          }
+        }
+      }
+    },
+    "OK" : {
+      "comment" : "Export error alert dismiss button.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "확인"
+          }
+        }
+      }
+    },
+    "Off" : {
+      "comment" : "Toggle accessibility value.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "꺼짐"
+          }
+        }
+      }
+    },
+    "On" : {
+      "comment" : "Toggle accessibility value.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "켜짐"
+          }
+        }
+      }
+    },
+    "Palette" : {
+      "comment" : "Right panel section title. web: section_palette",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パレット"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "팔레트"
+          }
+        }
+      }
+    },
+    "Palette color %@" : {
+      "comment" : "Palette swatch accessibility label; %@ is a hex code.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パレットの色 %@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "팔레트 색상 %@"
+          }
+        }
+      }
+    },
+    "Pencil" : {
+      "comment" : "Tool display name. web: tool_pencil",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鉛筆"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연필"
+          }
+        }
+      }
+    },
+    "Recent" : {
+      "comment" : "Recent-colors row label. web: color_recent",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近の色"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "최근 색상"
+          }
+        }
+      }
+    },
+    "Recent color %@" : {
+      "comment" : "Recent swatch accessibility label; %@ is a hex code.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近の色 %@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "최근 색상 %@"
+          }
+        }
+      }
+    },
+    "Rectangle" : {
+      "comment" : "Tool display name. web: tool_rectangle",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "四角形"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사각형"
+          }
+        }
+      }
+    },
+    "Redo" : {
+      "comment" : "Edit-menu command bound to editor History. web: action_redo",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "やり直す"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 실행"
+          }
+        }
+      }
+    },
+    "Reset zoom" : {
+      "comment" : "Zoom percentage button accessibility label. web: action_resetZoom",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "100%にリセット"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "100%로 초기화"
+          }
+        }
+      }
+    },
+    "Saturation %lld, brightness %lld" : {
+      "comment" : "SV square accessibility value (percentages). web: aria_saturationValue",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "彩度 %lld、明度 %lld"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "채도 %lld, 명도 %lld"
+          }
+        }
+      }
+    },
+    "Saturation and brightness" : {
+      "comment" : "SV square accessibility label. web: color_saturationBrightness",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "彩度と明度"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "채도와 명도"
+          }
+        }
+      }
+    },
+    "Swap colors" : {
+      "comment" : "FG/BG swap button accessibility label. web: color_swap",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前景色と背景色を入れ替え"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전경색과 배경색 교환"
+          }
+        }
+      }
+    },
+    "Toggle grid" : {
+      "comment" : "Grid toggle accessibility label. web: action_toggleGrid",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グリッド切替"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "격자 전환"
+          }
+        }
+      }
+    },
+    "Toggle pixel perfect" : {
+      "comment" : "Pixel-perfect toggle accessibility label. web: action_pixelPerfectOn/Off",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピクセルパーフェクト切替"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "픽셀 퍼펙트 전환"
+          }
+        }
+      }
+    },
+    "Undo" : {
+      "comment" : "Edit-menu command bound to editor History. web: action_undo",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元に戻す"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "실행 취소"
+          }
+        }
+      }
+    },
+    "Width" : {
+      "comment" : "Canvas width input accessibility label. web: canvas_width",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンバス幅"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "캔버스 너비"
+          }
+        }
+      }
+    },
+    "Zoom in" : {
+      "comment" : "Zoom controls accessibility label. web: action_zoomIn",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拡大"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "확대"
+          }
+        }
+      }
+    },
+    "Zoom out" : {
+      "comment" : "Zoom controls accessibility label. web: action_zoomOut",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "縮小"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "축소"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

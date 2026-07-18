@@ -20,6 +20,8 @@ struct TopBar: View {
     /// Bar edge padding — not a spacing token: the 44pt logo hit box supplies
     /// most of the optical margin the web gets from `--ds-space-5`.
     private let barEdgePadding: CGFloat = 6
+    /// Web `.toolbar-btn.is-disabled` opacity.
+    private let disabledToggleOpacity: CGFloat = 0.4
 
     var body: some View {
         HStack(spacing: 0) {
@@ -72,6 +74,9 @@ struct TopBar: View {
                 .background(DesignTokens.bgHover)
                 .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusSm))
 
+                // MARK: Pixel-perfect toggle
+                pixelPerfectToggleButton
+
                 // MARK: Grid toggle
                 gridToggleButton
 
@@ -108,6 +113,32 @@ struct TopBar: View {
         .buttonStyle(ZoomButtonStyle(cornerRadius: radiusXs))
     }
 
+    // MARK: - Pixel-perfect toggle
+
+    /// Web parity: disabled (dimmed, inert) whenever the active tool's
+    /// strokes bypass the L-corner filter; the on-state accent only shows
+    /// while the toggle is actionable.
+    private var pixelPerfectToggleButton: some View {
+        let isDisabled = !editorState.activeTool.supportsPixelPerfect
+        return Button {
+            editorState.pixelPerfect.toggle()
+        } label: {
+            PixelPerfectIcon()
+                .fill(
+                    editorState.pixelPerfect && !isDisabled
+                        ? DesignTokens.accent : DesignTokens.textSecondary
+                )
+                .frame(width: 16, height: 16)
+                .frame(width: controlHeight, height: controlHeight)
+                .contentShape(Rectangle())
+        }
+        .disabled(isDisabled)
+        .opacity(isDisabled ? disabledToggleOpacity : 1)
+        .accessibilityLabel("Toggle pixel perfect")
+        .accessibilityValue(editorState.pixelPerfect ? "On" : "Off")
+        .buttonStyle(BarToggleButtonStyle())
+    }
+
     // MARK: - Grid toggle
 
     private var gridToggleButton: some View {
@@ -124,7 +155,7 @@ struct TopBar: View {
         }
         .accessibilityLabel("Toggle grid")
         .accessibilityValue(editorState.showGrid ? "On" : "Off")
-        .buttonStyle(GridToggleButtonStyle())
+        .buttonStyle(BarToggleButtonStyle())
     }
 
     // MARK: - Export
@@ -174,6 +205,26 @@ struct TopBar: View {
     }
 }
 
+// MARK: - Pixel-perfect icon
+
+/// Four-square diagonal staircase — mirrors the web `PixelPerfectIcon.svelte`
+/// SVG (16×16 viewBox, 4×4 squares stepping down-right).
+private struct PixelPerfectIcon: Shape {
+    func path(in rect: CGRect) -> Path {
+        let step = rect.width / 4
+        var path = Path()
+        for i in 0..<4 {
+            path.addRect(CGRect(
+                x: rect.minX + CGFloat(i) * step,
+                y: rect.minY + CGFloat(i) * step,
+                width: step,
+                height: step
+            ))
+        }
+        return path
+    }
+}
+
 // MARK: - TopBar-specific button styles
 
 /// Small button inside the zoom controls group — no background, hover/press states.
@@ -204,14 +255,15 @@ private struct ZoomButtonBody: View {
     }
 }
 
-/// Grid toggle button — bgHover background by default, hover/press states.
-private struct GridToggleButtonStyle: ButtonStyle {
+/// Bar toggle button (grid, pixel-perfect) — bgHover background by default,
+/// hover/press states.
+private struct BarToggleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        GridToggleButtonBody(configuration: configuration)
+        BarToggleButtonBody(configuration: configuration)
     }
 }
 
-private struct GridToggleButtonBody: View {
+private struct BarToggleButtonBody: View {
     let configuration: ButtonStyleConfiguration
     @State private var isHovered = false
 

@@ -58,6 +58,18 @@ enum EditorTool: CaseIterable {
         }
     }
 
+    /// Whether this tool's strokes run through the pixel-perfect L-corner
+    /// filter (web parity: freehand tools only). Drives the TopBar toggle's
+    /// enabled state — shapes, fill, and other tools bypass the filter.
+    var supportsPixelPerfect: Bool {
+        switch self {
+        case .pencil, .eraser:
+            return true
+        case .line, .rectangle, .ellipse, .floodFill, .eyedropper, .move:
+            return false
+        }
+    }
+
     /// Opens the per-stroke session for this tool. Per-stroke inputs are
     /// fixed at creation: `drawColor` is the stroke's color for its whole
     /// lifetime, already resolved from `button`; the raw button is also
@@ -70,9 +82,15 @@ enum EditorTool: CaseIterable {
     func makeSession(host: StrokeSessionHost, drawColor: Color, button: PointerButton) -> StrokeSession {
         switch self {
         case .pencil:
-            return FreehandStrokeSession(host: host, coreToolType: .pencil, drawColor: drawColor)
+            return FreehandStrokeSession(
+                host: host, coreToolType: .pencil, drawColor: drawColor,
+                pixelPerfect: host.isPixelPerfectEnabled
+            )
         case .eraser:
-            return FreehandStrokeSession(host: host, coreToolType: .eraser, drawColor: drawColor)
+            return FreehandStrokeSession(
+                host: host, coreToolType: .eraser, drawColor: drawColor,
+                pixelPerfect: host.isPixelPerfectEnabled
+            )
         case .line:
             return ShapeStrokeSession(host: host, coreToolType: .line, drawColor: drawColor) {
                 appleInterpolatePixels(x0: $0.x, y0: $0.y, x1: $1.x, y1: $1.y)

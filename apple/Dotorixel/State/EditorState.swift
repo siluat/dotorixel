@@ -15,6 +15,9 @@ final class EditorState {
     var foregroundColor: Color
     var backgroundColor: Color
     var showGrid: Bool = true
+    /// Pixel-perfect freehand mode (web default: on). Strokes snapshot the
+    /// flag at begin, so toggling mid-stroke only affects the next stroke.
+    var pixelPerfect: Bool = true
 
     /// Colors recently *used* to draw or sampled by the eyedropper —
     /// most-recent first. In-memory only for now; persistence arrives with
@@ -284,6 +287,8 @@ final class EditorState {
 // MARK: - StrokeSessionHost
 
 extension EditorState: StrokeSessionHost {
+    var isPixelPerfectEnabled: Bool { pixelPerfect }
+
     /// Holds the current canvas pixels as the pending Edit Baseline. The
     /// entry commits at stroke end only if the stroke changed the canvas —
     /// see `resolveEditBaseline()`.

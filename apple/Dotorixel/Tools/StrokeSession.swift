@@ -51,6 +51,11 @@ protocol StrokeSessionHost: AnyObject {
     var foregroundColor: Color { get }
     var backgroundColor: Color { get }
 
+    /// Whether freehand strokes should run through the pixel-perfect
+    /// L-corner filter. Sessions snapshot this at creation — a mid-stroke
+    /// toggle never affects the stroke in flight.
+    var isPixelPerfectEnabled: Bool { get }
+
     /// State behind the loupe overlay shown while a sampling stroke is
     /// active. Sampling sessions own its lifecycle (show on each sample,
     /// dismiss on end/cancel); drawing sessions never touch it.

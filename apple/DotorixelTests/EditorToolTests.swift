@@ -21,3 +21,25 @@ struct EditorToolDisplayNameTests {
         #expect(tool.displayName == expected[tool])
     }
 }
+
+@Suite("EditorTool — supportsPixelPerfect")
+struct EditorToolSupportsPixelPerfectTests {
+
+    @Test("only freehand tools support pixel-perfect filtering", arguments: EditorTool.allCases)
+    func supportsPixelPerfect(tool: EditorTool) {
+        // Keyed by case so a newly added tool fails here until it decides
+        // whether its strokes run through the L-corner filter (web parity:
+        // only pencil and eraser do).
+        let expected: [EditorTool: Bool] = [
+            .pencil: true,
+            .eraser: true,
+            .line: false,
+            .rectangle: false,
+            .ellipse: false,
+            .floodFill: false,
+            .eyedropper: false,
+            .move: false,
+        ]
+        #expect(tool.supportsPixelPerfect == expected[tool])
+    }
+}

@@ -177,8 +177,10 @@ struct RightPanel: View {
             alignment: .leading,
             spacing: recentRowSpacing
         ) {
-            ForEach(editorState.recentColors.indices, id: \.self) { idx in
-                recentSwatch(color: editorState.recentColors[idx])
+            // Dedupe guarantees uniqueness, so the color value is its own
+            // stable row identity.
+            ForEach(editorState.recentColors, id: \.self) { color in
+                recentSwatch(color: color)
             }
         }
     }

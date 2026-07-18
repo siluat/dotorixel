@@ -5,14 +5,14 @@
 /// eagerly so callers never see an opened-but-not-started session, and
 /// feeding samples as `(current, previous)` pairs.
 final class StrokeEngine {
-    private let makeSession: (EditorTool, StrokeSessionHost, Color) -> StrokeSession
+    private let makeSession: (EditorTool, StrokeSessionHost, Color, PointerButton) -> StrokeSession
     private var session: StrokeSession?
     private var lastPixel: ScreenCanvasCoords?
 
     /// The `makeSession` override exists for tests to inject session doubles;
     /// production callers use the default tool-to-session resolution.
-    init(makeSession: @escaping (EditorTool, StrokeSessionHost, Color) -> StrokeSession = { tool, host, drawColor in
-        tool.makeSession(host: host, drawColor: drawColor)
+    init(makeSession: @escaping (EditorTool, StrokeSessionHost, Color, PointerButton) -> StrokeSession = { tool, host, drawColor, button in
+        tool.makeSession(host: host, drawColor: drawColor, button: button)
     }) {
         self.makeSession = makeSession
     }
@@ -28,7 +28,7 @@ final class StrokeEngine {
         // Resolved once here: the whole stroke draws with the color the button
         // selected at begin, and sessions stay unaware of the FG/BG distinction.
         let drawColor = button == .secondary ? host.backgroundColor : host.foregroundColor
-        let session = makeSession(tool, host, drawColor)
+        let session = makeSession(tool, host, drawColor, button)
         self.session = session
         lastPixel = coords
         session.start()

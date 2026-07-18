@@ -13,6 +13,7 @@ enum EditorTool: CaseIterable {
     case rectangle
     case ellipse
     case floodFill
+    case eyedropper
 
     /// User-visible label for the tool.
     var displayName: String {
@@ -23,6 +24,7 @@ enum EditorTool: CaseIterable {
         case .rectangle: return "Rectangle"
         case .ellipse: return "Ellipse"
         case .floodFill: return "Flood Fill"
+        case .eyedropper: return "Eyedropper"
         }
     }
 
@@ -35,17 +37,20 @@ enum EditorTool: CaseIterable {
         case .rectangle: return "rectangle"
         case .ellipse: return "circle"
         case .floodFill: return "drop.fill"
+        case .eyedropper: return "eyedropper"
         }
     }
 
     /// Opens the per-stroke session for this tool. Per-stroke inputs are
     /// fixed at creation: `drawColor` is the stroke's color for its whole
-    /// lifetime, already resolved from the pointer button.
+    /// lifetime, already resolved from `button`; the raw button is also
+    /// passed so non-drawing tools (eyedropper) can resolve it into their
+    /// own per-stroke input (the color-pick target) at the same point.
     ///
     /// This switch is also where shell tools map down to the core `ToolType`
     /// for per-pixel apply — pixel-stamping cases hand it to their session;
     /// tools without a core counterpart (flood fill) never touch it.
-    func makeSession(host: StrokeSessionHost, drawColor: Color) -> StrokeSession {
+    func makeSession(host: StrokeSessionHost, drawColor: Color, button: PointerButton) -> StrokeSession {
         switch self {
         case .pencil:
             return FreehandStrokeSession(host: host, coreToolType: .pencil, drawColor: drawColor)
@@ -67,6 +72,11 @@ enum EditorTool: CaseIterable {
             return OneShotStrokeSession(host: host) { host, coords in
                 host.pixelCanvas.floodFill(x: coords.x, y: coords.y, fillColor: drawColor)
             }
+        case .eyedropper:
+            return EyedropperStrokeSession(
+                host: host,
+                commitTarget: button == .secondary ? .background : .foreground
+            )
         }
     }
 }

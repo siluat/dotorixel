@@ -14,7 +14,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Rectangle | ✅ | ✅ | ✅ | Outline only, snapshot-restore preview |
 | Ellipse | ✅ | ✅ | ✅ | Outline only, snapshot-restore preview |
 | Flood fill | ✅ | ✅ | ✅ | BFS, 4-connectivity; one-shot tap fill on both shells |
-| Eyedropper | — | ✅ | ⬜ | Drag-and-commit with live 9×9 loupe; releases to FG (left-click) or BG (right-click); skips transparent pixels |
+| Eyedropper | — | ✅ | ✅ | Drag-and-commit; releases to FG (left-click/touch) or BG (right-click); skips transparent and out-of-bounds samples; not undoable. Loupe overlay tracked in its own row (Apple pending) |
 | Move | — | ✅ | ⬜ | Drag to reposition canvas content, snapshot-restore preview |
 | Selection / Marquee | 🔧 | 🔧 | ⬜ | Persistent Marquee with clipping, Delete, drag-to-move/cancel, copy/cut/paste, keyboard nudge, Shift-square define/axis drag, action bars; selection UI hides (Marquee preserved) while a Reference Layer is active |
 | Right-click background color | — | ✅ | ✅ | Supported paint tools draw with BG on right-click; eraser stays transparent. Apple: macOS right-click + iPadOS pointer secondary button; touch always FG |

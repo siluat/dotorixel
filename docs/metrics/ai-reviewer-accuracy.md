@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 177 | 135 | 42 | 205 | 76% | 40% |
-| cubic-dev-ai[bot] | 193 | 152 | 41 | 188 | 79% | 45% |
-| coderabbitai[bot] | 256 | 179 | 77 | 159 | 70% | 53% |
+| greptile-apps[bot] | 177 | 135 | 42 | 206 | 76% | 40% |
+| cubic-dev-ai[bot] | 194 | 153 | 41 | 188 | 79% | 45% |
+| coderabbitai[bot] | 256 | 179 | 77 | 160 | 70% | 53% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #326 | cubic-dev-ai[bot] | Accept | Test file/struct `EyedropperSessionTests` used the CONTEXT.md-banned term "eyedropper session" (eyedropper is a tool, not a session); renamed to `EyedropperStrokeSessionTests` after the class under test rather than the bot's `Sampling*` suggestions — Apple has no Sampling Session until 235 |
+| #326 | coderabbitai[bot] | Miss | Did not flag the banned "eyedropper session" term in the test name (APPROVED, no actionable comments) |
+| #326 | greptile-apps[bot] | Miss | Did not flag the banned "eyedropper session" term in the test name (5/5 "safe to merge", no findings) |
 | #324 | greptile-apps[bot] | Reject | Claimed removing the eager push drops a command's entry when a stroke baseline is pending; the eager push had no production caller before this PR (commands use begin/end since #323) and web commands early-return on `isDrawing`, so the nesting is unreachable. The release-mode `pending` overwrite is real but pre-existing and already tracked as #247 |
 | #324 | coderabbitai[bot] | Reject | Asked the wasm no-op test to assert redo preservation; core pins that contract for both species and wasm's `end_edit` is a one-line pass-through, so the assertion duplicates core coverage at the forwarding layer |
 | #323 | coderabbitai[bot] | Accept | ADR claimed `can_undo` stays false during a stroke; a pending baseline leaves entries already on the stack alone, so only a first Edit on an empty stack does — consequence qualified |

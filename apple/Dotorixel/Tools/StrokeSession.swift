@@ -1,10 +1,19 @@
 /// Which pointer button opened a stroke. Touch input is always `.primary`;
 /// `.secondary` is a macOS right-click or a pointer device's secondary button.
-/// Resolved into a draw color (primary → foreground, secondary → background)
-/// once at stroke begin, so sessions never see the distinction.
+/// Resolved once at stroke begin into the session's per-stroke inputs — a
+/// draw color, or a `ColorPickTarget` for sampling tools (primary →
+/// foreground, secondary → background) — so sessions never see the distinction.
 enum PointerButton {
     case primary
     case secondary
+}
+
+/// Which active-color slot a sampled color commits to. Resolved from the
+/// pointer button once at stroke begin (primary → foreground, secondary →
+/// background) — the same resolution point as the draw color.
+enum ColorPickTarget {
+    case foreground
+    case background
 }
 
 /// Per-stroke drawing lifecycle. One session is created per stroke from the
@@ -47,4 +56,9 @@ protocol StrokeSessionHost: AnyObject {
     /// commits only if the stroke actually changed the canvas, so a no-op
     /// stroke leaves History (including the redo future) untouched.
     func beginEdit()
+
+    /// Commits a sampled color to the given active-color slot. Color picks
+    /// are not undoable (web parity) — this never touches the Edit Baseline
+    /// or History.
+    func commitColorPick(_ color: Color, to target: ColorPickTarget)
 }

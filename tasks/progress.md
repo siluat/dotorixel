@@ -2,21 +2,23 @@
 
 ## Currently Working On
 
-None
+Apple native catch-up — Phase 2
+([RFC](../issues/013-apple-native-catchup.md)): 5/13 sub-issues done (230–234);
+234 just unblocked 235 (loupe) and 237 (recent colors).
 
 ## Last Completed
 
-[247 — Dead `commitFloatingSelection` effect](../issues/247-dead-commit-floating-selection-effect.md):
-the unemitted tool effect is gone, so `commitIfPending` is now the only external
-way to commit a Floating Selection — no tool can bypass the `isDrawing` seal
-mid-stroke. The tool-seam counterpart to what 246 did for history recording, and
-the last latent hazard found in the 244 audit. Apple Phase 2
-([RFC](../issues/013-apple-native-catchup.md)) resumes — 230–233 done (4/13).
+[234 — Eyedropper tool](../issues/234-apple-eyedropper.md): Apple shell
+eyedropper with web-parity drag-to-refine sampling. Color picks are not
+undoable — the session never opens an Edit Baseline, so History needed no API
+change. Visible feedback is the FG/BG swatch only until the loupe (235) lands;
+recent colors deferred to 237.
 
 ## Next Up
 
-- [234 — Eyedropper tool](../issues/234-apple-eyedropper.md) — unblocks 235, 237, 241
-- [236 — Move tool](../issues/236-apple-move-tool.md) — build its session on the Edit Baseline seam
+- [235 — Sampling loupe](../issues/235-apple-sampling-loupe.md)
+- [236 — Move tool](../issues/236-apple-move-tool.md) — build its session on the Edit Baseline seam; unblocks 241
+- [237 — Recent colors](../issues/237-apple-recent-colors.md)
 - [238 — HSV picker](../issues/238-apple-hsv-picker.md)
 - [239 — Pixel-perfect filtering + toggle](../issues/239-apple-pixel-perfect.md)
 - [240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md)

@@ -213,8 +213,12 @@ extension PixelCanvasView {
             editorState?.keyboardShortcuts.setAltHeld(isHeld)
         }
 
-        func characterKeyPressed(_ character: Character, modifiers: ShortcutModifiers, in view: InputMTKView) {
-            editorState?.keyboardShortcuts.handleKeyDown(character, modifiers: modifiers)
+        func characterKeyPressed(
+            _ character: Character, modifiers: ShortcutModifiers, isRepeat: Bool, in view: InputMTKView
+        ) -> Bool {
+            editorState?.keyboardShortcuts.handleKeyDown(
+                character, modifiers: modifiers, isRepeat: isRepeat
+            ) ?? false
         }
 
         // MARK: - macOS zoom/pan

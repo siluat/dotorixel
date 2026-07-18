@@ -25,9 +25,13 @@ protocol CanvasInputDelegate: AnyObject {
     /// via `ShortcutKeyMonitorModifier` instead, so this fires on iPad only.
     func altStateChanged(isHeld: Bool, in view: InputMTKView)
     /// A character key pressed on an iPad hardware keyboard, normalized for
-    /// the shortcut controller. macOS captures keys via
-    /// `ShortcutKeyMonitorModifier` instead, so this fires on iPad only.
-    func characterKeyPressed(_ character: Character, modifiers: ShortcutModifiers, in view: InputMTKView)
+    /// the shortcut controller. Returns whether the key was consumed as a
+    /// shortcut, so the view keeps consumed presses out of the responder
+    /// chain. macOS captures keys via `ShortcutKeyMonitorModifier` instead,
+    /// so this fires on iPad only.
+    func characterKeyPressed(
+        _ character: Character, modifiers: ShortcutModifiers, isRepeat: Bool, in view: InputMTKView
+    ) -> Bool
     #if os(macOS)
     func scrollWheelChanged(deltaX: CGFloat, deltaY: CGFloat, at point: CGPoint, isPrecise: Bool, in view: InputMTKView)
     func magnifyChanged(magnification: CGFloat, at point: CGPoint, in view: InputMTKView)
@@ -132,17 +136,47 @@ class InputMTKView: MTKView {
         presses.contains { $0.key?.keyCode == .keyboardLeftAlt || $0.key?.keyCode == .keyboardRightAlt }
     }
 
-    /// Forwards a character key to the shortcut controller. ⌘Z/⇧⌘Z are
+    /// Key codes currently held down — `UIPress` has no repeat flag, so a
+    /// `pressesBegan` for a code already in this set is a keyboard
+    /// auto-repeat (the physical release always passes through
+    /// `pressesEnded`/`pressesCancelled`, which remove the code).
+    private var heldKeyCodes: Set<UIKeyboardHIDUsage> = []
+
+    /// Forwards character keys to the shortcut controller. ⌘Z/⇧⌘Z are
     /// excluded — the Edit-menu commands own undo/redo key equivalents on
     /// both platforms, and forwarding here would double-fire them.
-    private func forwardCharacterPresses(_ presses: Set<UIPress>) {
+    /// Returns whether every press in the set was consumed as a shortcut
+    /// (modifier-only and unhandled presses count as not consumed).
+    private func forwardCharacterPresses(_ presses: Set<UIPress>) -> Bool {
+        var allConsumed = !presses.isEmpty
         for press in presses {
             guard let key = press.key,
                   let character = key.charactersIgnoringModifiers.lowercased().first
-            else { continue }
+            else {
+                allConsumed = false
+                continue
+            }
+            let isRepeat = !heldKeyCodes.insert(key.keyCode).inserted
             let modifiers = ShortcutModifiers(key.modifierFlags)
-            if KeyboardShortcutController.isMenuOwnedShortcut(character, modifiers: modifiers) { continue }
-            inputDelegate?.characterKeyPressed(character, modifiers: modifiers, in: self)
+            if KeyboardShortcutController.isMenuOwnedShortcut(character, modifiers: modifiers) {
+                allConsumed = false
+                continue
+            }
+            let consumed = inputDelegate?.characterKeyPressed(
+                character, modifiers: modifiers, isRepeat: isRepeat, in: self
+            ) ?? false
+            if !consumed {
+                allConsumed = false
+            }
+        }
+        return allConsumed
+    }
+
+    private func releaseHeldKeyCodes(_ presses: Set<UIPress>) {
+        for press in presses {
+            if let keyCode = press.key?.keyCode {
+                heldKeyCodes.remove(keyCode)
+            }
         }
     }
 
@@ -153,8 +187,11 @@ class InputMTKView: MTKView {
         if isAltPress(presses) {
             inputDelegate?.altStateChanged(isHeld: true, in: self)
         }
-        forwardCharacterPresses(presses)
-        super.pressesBegan(presses, with: event)
+        // Consumed shortcuts stop here — forwarding them up the responder
+        // chain would hand them to system focus/default handling too.
+        if !forwardCharacterPresses(presses) {
+            super.pressesBegan(presses, with: event)
+        }
     }
 
     // A release reports the event's combined modifier state, not a bare
@@ -162,6 +199,7 @@ class InputMTKView: MTKView {
     // constraint (the macOS `flagsChanged` path gets this for free).
 
     override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        releaseHeldKeyCodes(presses)
         if isShiftPress(presses) {
             inputDelegate?.shiftStateChanged(isHeld: event?.modifierFlags.contains(.shift) ?? false, in: self)
         }
@@ -172,6 +210,7 @@ class InputMTKView: MTKView {
     }
 
     override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        releaseHeldKeyCodes(presses)
         if isShiftPress(presses) {
             inputDelegate?.shiftStateChanged(isHeld: event?.modifierFlags.contains(.shift) ?? false, in: self)
         }

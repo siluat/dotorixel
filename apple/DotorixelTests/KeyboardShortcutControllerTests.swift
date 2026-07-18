@@ -285,6 +285,23 @@ struct KeyboardShortcutControllerAltHoldTests {
         controller.setAltHeld(true)
         #expect(host.activeTool == .eyedropper)
     }
+
+    @Test("reset mid-stroke keeps the restore deferred to stroke end")
+    func resetMidStrokeDefersRestore() {
+        let host = FakeShortcutHost()
+        host.activeTool = .pencil
+        let controller = makeController(host: host)
+
+        controller.setAltHeld(true)
+        host.isDrawing = true
+        controller.reset()
+
+        // The active stroke keeps its tool; the restore stays pending.
+        #expect(host.activeTool == .eyedropper)
+
+        host.isDrawing = false
+        #expect(controller.consumePendingToolRestore() == .pencil)
+    }
 }
 
 @Suite("KeyboardShortcutController — key repeat")
@@ -420,5 +437,26 @@ struct EditorStateKeyboardShortcutTests {
         state.keyboardShortcuts.handleKeyDown(EditorTool.eraser.shortcutKey)
 
         #expect(state.activeTool == .pencil)
+    }
+
+    @Test("focusing a text field ends a temporary Alt switch")
+    func textFieldFocusEndsTemporarySwitch() {
+        let state = EditorState(width: 16, height: 16)
+        state.activeTool = .pencil
+
+        state.keyboardShortcuts.setAltHeld(true)
+        #expect(state.activeTool == .eyedropper)
+
+        // Moving focus into a size field means the Alt release may never
+        // reach the canvas (iPad loses first responder) — the temporary
+        // switch must end now instead of sticking.
+        state.isTextInputFocused = true
+
+        #expect(state.activeTool == .pencil)
+
+        // The cleared held flag must not swallow the next real Alt press.
+        state.isTextInputFocused = false
+        state.keyboardShortcuts.setAltHeld(true)
+        #expect(state.activeTool == .eyedropper)
     }
 }

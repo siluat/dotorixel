@@ -35,7 +35,17 @@ final class EditorState {
     /// Whether a text field (the canvas-size inputs) has keyboard focus —
     /// the signal that suppresses editor shortcuts so typed letters stay in
     /// the field. Set by the owning views on focus change.
-    var isTextInputFocused: Bool = false
+    ///
+    /// Entering text focus also clears held-key state: on iPad the canvas
+    /// loses first responder, so release events (e.g. the Alt that opened a
+    /// temporary eyedropper) would never arrive.
+    var isTextInputFocused: Bool = false {
+        didSet {
+            if isTextInputFocused && !oldValue {
+                keyboardShortcuts.reset()
+            }
+        }
+    }
 
     /// Editor keyboard shortcuts (tool keys, X/G, undo/redo combos,
     /// Alt-hold eyedropper). Platform wiring feeds it normalized key events;

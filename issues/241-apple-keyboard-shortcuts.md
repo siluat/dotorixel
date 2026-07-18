@@ -95,7 +95,7 @@ is out of scope.
 ### Notes
 
 - The controller's ⌘Z/⇧⌘Z branch is unreachable through production wiring (the menu owns those combos) — kept deliberately so the decision table stays a full mirror of the web handler and as a backstop if the menu path changes.
-- ⌘Z while a size field is focused triggers canvas undo via the Edit menu (the system text-undo group was replaced). Accepted: the issue only requires plain letters to keep flowing to the fields.
+- PR #333 review follow-ups: macOS runs a single `Window` scene (app-scoped state must not alias across ⌘N windows until Phase 4 multi-tab); the Edit-menu undo/redo disable while a size field is focused (web parity); iPad detects key auto-repeat via a held-key-code set (`UIPress` has no repeat flag) and keeps consumed shortcut presses out of the responder chain; entering text focus resets held-key state so a temporary Alt-eyedropper can't stick when the release lands elsewhere.
 - 240's open note (iPad first-responder recovery after a text field takes it) is addressed by the `updateUIView` reclaim.
 - Automated coverage is at the controller/`EditorState` level (202 tests green on the pinned iPad host; macOS target builds). Real-hardware pass (macOS keys, iPad hardware keyboard incl. checking the Edit menu doesn't double-fire ⌘Z) is recommended before relying on it.
 - The `/` shortcut-hints overlay and Space-pan remain web-only (out of scope here; M/marquee is Phase 5).

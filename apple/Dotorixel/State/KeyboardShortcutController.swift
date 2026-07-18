@@ -75,11 +75,14 @@ final class KeyboardShortcutController {
         }
     }
 
-    /// Clears held-key state when key focus is lost (window resigns key /
-    /// scene deactivates — web blur parity): the matching release events
-    /// will never arrive, so a pending temporary switch restores now.
+    /// Clears held-key state when key focus is lost (window resigns key,
+    /// a text field takes focus — web blur parity): the matching release
+    /// events may never arrive, so a pending temporary switch restores now.
+    /// Mid-stroke the restore stays deferred to `consumePendingToolRestore()`
+    /// like a normal Alt release — the active stroke keeps its tool.
     func reset() {
         isAltHeld = false
+        guard host?.isDrawing != true else { return }
         if let tool = toolBeforeModifier {
             toolBeforeModifier = nil
             host?.setActiveTool(tool)

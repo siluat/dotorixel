@@ -54,7 +54,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | HSV conversion | — | ✅ | ⬜ | `rgbToHsv()` / `hsvToRgb()` |
 | Color picker | — | ✅ | ✅ | Web: custom HSV picker, Apple: SwiftUI |
 | Preset palette | — | ✅ | ✅ | 18 Pebble colors |
-| Recent colors | — | ✅ | ⬜ | Last 12 used |
+| Recent colors | — | ✅ | ✅ | Last 12 used, deduped, most-recent first. Apple: in-memory only until Phase 4 persistence |
 | FG/BG color swap | — | ✅ | ✅ | Swap button + per-swatch color picker. Apple: swap button; palette/picker set FG only |
 | Color loupe overlay | — | ✅ | ✅ | 9×9 magnifier + hex chip during eyedropper drag; quadrant-flip/clamp keeps it visible near edges. Web also shows it on 400ms long-press (touch); Apple: eyedropper strokes only, finger gets the touch offset (pencil = mouse) |
 

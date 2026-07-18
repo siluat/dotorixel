@@ -66,4 +66,10 @@ protocol StrokeSessionHost: AnyObject {
     /// are not undoable (web parity) — this never touches the Edit Baseline
     /// or History.
     func commitColorPick(_ color: Color, to target: ColorPickTarget)
+
+    /// Records a color into the recent-colors list. The list tracks colors
+    /// *used* (web parity): the engine records the draw color when a drawing
+    /// stroke begins, and the host records eyedropper commits — sessions
+    /// never call this directly.
+    func recordRecentColor(_ color: Color)
 }

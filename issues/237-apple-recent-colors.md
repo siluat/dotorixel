@@ -1,6 +1,6 @@
 ---
 title: Apple native — recent colors row
-status: ready-for-agent
+status: done
 created: 2026-07-15
 ---
 
@@ -52,3 +52,42 @@ into those two moments rather than scattering calls per tool.
 
 - [230 — stroke session architecture](230-apple-stroke-sessions.md)
 - [234 — eyedropper tool](234-apple-eyedropper.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/EditorState.swift` | `recentColors: [Color]` state + `recordRecentColor` (dedupe, cap 12, most-recent first); `commitColorPick` folds eyedropper commits into the list |
+| `apple/Dotorixel/Tools/StrokeSession.swift` | `StrokeSessionHost.recordRecentColor` seam — sessions never call it directly |
+| `apple/Dotorixel/Tools/EditorTool.swift` | `recordsDrawColor` per-tool declaration (web `addsActiveColor` analog; eraser/eyedropper/move opt out) |
+| `apple/Dotorixel/Tools/StrokeEngine.swift` | single stroke-begin recording point, next to draw-color resolution |
+| `apple/Dotorixel/Views/RightPanel.swift` | "Recent" label + swatch row below the color picker; hidden while empty; tap sets foreground |
+| `apple/DotorixelTests/RecentColorsTests.swift` | recording points + list semantics (8 tests via `EditorState` public interface) |
+| `apple/DotorixelTests/DockedRegionSnapshotTests.swift` | populated Recent row content-regression snapshot + committed baseline |
+| `apple/DotorixelTests/README.md` | notes the one content-regression snapshot in the tier-sizing suite |
+| `apple/DotorixelTests/StrokeEngineTests.swift` | fake host protocol conformance (no-op — behavior covered in `RecentColorsTests`) |
+
+### Key Decisions
+
+- **`[Color]` storage, not hex strings.** Type-safe (no hex parsing can fail);
+  numeric RGB equality makes the web's case-insensitive dedupe inherent. In
+  practice every recorded color is opaque, so alpha never splits entries the
+  web would merge.
+- **Two recording moments, sessions untouched.** Stroke begin records in
+  `StrokeEngine.begin` gated by the per-tool `recordsDrawColor` flag (mirrors
+  web tool authoring's `addsActiveColor`); eyedropper commits record inside
+  `commitColorPick`. No session class changed.
+- **Naming: `recordRecentColor` vs web `addRecentColor`.** Deliberate — the
+  issue's own vocabulary is "record", and it pairs with `recordsDrawColor`
+  inside the Apple shell.
+- **The Recent row wraps** (`LazyVGrid`, 22pt swatches) instead of mirroring
+  the web's single flex row that squeezes all twelve swatches into the panel
+  width.
+
+### Notes
+
+- **Parity gap:** the list is in-memory only; the web persists it in the
+  workspace snapshot. Closes with Phase 4 (multi-tab + persistence).
+- Tap-sets-foreground is verified by inspection + snapshot only — the Apple
+  test stack has no interaction layer (ViewInspector deliberately deferred,
+  see `apple/DotorixelTests/README.md`).

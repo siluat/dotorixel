@@ -16,6 +16,11 @@ final class EditorState {
     var backgroundColor: Color
     var showGrid: Bool = true
 
+    /// Colors recently *used* to draw or sampled by the eyedropper —
+    /// most-recent first. In-memory only for now; persistence arrives with
+    /// Phase 4 (the web keeps this in the workspace snapshot).
+    private(set) var recentColors: [Color] = []
+
     /// State behind the loupe overlay shown while an eyedropper stroke is
     /// active — see `StrokeSessionHost.samplingLoupe`.
     let samplingLoupe = SamplingLoupeState()
@@ -292,10 +297,28 @@ extension EditorState: StrokeSessionHost {
 
     /// Commits a sampled color to the given active-color slot. Not undoable —
     /// History stays untouched; the swatch updates via `@Observable`.
+    /// A commit is a color *use*, so it also lands in the recent list
+    /// (web parity: the sampling session folds both into its commit).
     func commitColorPick(_ color: Color, to target: ColorPickTarget) {
         switch target {
         case .foreground: foregroundColor = color
         case .background: backgroundColor = color
+        }
+        recordRecentColor(color)
+    }
+
+    /// Maximum entries in `recentColors` — web parity (`addRecentColor` in
+    /// `src/lib/canvas/color.ts`).
+    private static let maxRecentColors = 12
+
+    /// Folds a used color into `recentColors`, most-recent first. Re-using a
+    /// listed color moves it to the front instead of duplicating it; the
+    /// list caps at `maxRecentColors`, dropping the oldest.
+    func recordRecentColor(_ color: Color) {
+        recentColors.removeAll { $0 == color }
+        recentColors.insert(color, at: 0)
+        if recentColors.count > Self.maxRecentColors {
+            recentColors.removeLast(recentColors.count - Self.maxRecentColors)
         }
     }
 }

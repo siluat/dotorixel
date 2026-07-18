@@ -26,6 +26,12 @@ struct RightPanel: View {
     /// Swap icon size — web RightPanel `ArrowLeftRight size={14}` (raw, not a token).
     private let swapIconSize: CGFloat = 14
 
+    /// Recent swatch extent — web RightPanel `.recent-swatch`: 22px (raw CSS, not a token).
+    private let recentSwatchSize: CGFloat = 22
+
+    /// Recent row gap — web RightPanel `.recent-row` gap: 3px (raw CSS, not a token).
+    private let recentRowSpacing: CGFloat = 3
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignTokens.space5) {
@@ -145,7 +151,50 @@ struct RightPanel: View {
                 supportsOpacity: false
             )
             .labelsHidden()
+            if !editorState.recentColors.isEmpty {
+                recentLabel
+                recentRow
+            }
         }
+    }
+
+    // Web `.recent-label`: sm/tertiary — quieter than a section title.
+    private var recentLabel: some View {
+        Text("Recent")
+            .font(.system(size: DesignTokens.fontSizeSm))
+            .foregroundStyle(DesignTokens.textTertiary)
+    }
+
+    /// Recent swatches, most-recent first. The web squeezes all twelve into
+    /// one flex row; here the grid wraps instead so swatches keep their
+    /// 22pt extent inside the fixed panel width.
+    private var recentRow: some View {
+        LazyVGrid(
+            columns: [GridItem(
+                .adaptive(minimum: recentSwatchSize, maximum: recentSwatchSize),
+                spacing: recentRowSpacing
+            )],
+            alignment: .leading,
+            spacing: recentRowSpacing
+        ) {
+            // Dedupe guarantees uniqueness, so the color value is its own
+            // stable row identity.
+            ForEach(editorState.recentColors, id: \.self) { color in
+                recentSwatch(color: color)
+            }
+        }
+    }
+
+    private func recentSwatch(color: Color) -> some View {
+        Button {
+            editorState.foregroundColor = color
+        } label: {
+            RoundedRectangle(cornerRadius: 3)
+                .fill(color.swiftUIColor)
+                .frame(width: recentSwatchSize, height: recentSwatchSize)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Recent color \(color.hexString)")
     }
 
     /// FG/BG pair + swap — web RightPanel `.fgbg-row`: the foreground swatch

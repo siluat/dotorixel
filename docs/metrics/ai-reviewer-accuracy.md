@@ -10,14 +10,19 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 178 | 135 | 43 | 210 | 76% | 39% |
-| cubic-dev-ai[bot] | 197 | 156 | 41 | 189 | 79% | 45% |
-| coderabbitai[bot] | 258 | 180 | 78 | 163 | 70% | 52% |
+| greptile-apps[bot] | 179 | 136 | 43 | 211 | 76% | 39% |
+| cubic-dev-ai[bot] | 197 | 156 | 41 | 191 | 79% | 45% |
+| coderabbitai[bot] | 259 | 181 | 78 | 164 | 70% | 52% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #329 | greptile-apps[bot] | Accept | Index-keyed Recent-row `ForEach` reading `recentColors[idx]` inside cells; the claimed stale-read/mis-tap failure doesn't occur (`@Observable` body invalidation + monotonic list count), but accepted as idiom — dedupe guarantees uniqueness, so swatches are now keyed by color value |
+| #329 | coderabbitai[bot] | Accept | platform-status Notes carried recording-timing implementation detail ("recorded at stroke start + eyedropper commit"); stripped per the Notes-column guideline — "Last 12 used" already carries the used-not-browsed semantics |
+| #329 | coderabbitai[bot] | Miss | Did not flag the index-keyed Recent-row `ForEach` (accepted from greptile) |
+| #329 | greptile-apps[bot] | Miss | Did not flag the implementation-timing phrasing in the platform-status Notes column |
+| #329 | cubic-dev-ai[bot] | Miss (×2) | Flagged neither accepted finding — index-keyed `ForEach`, platform-status Notes phrasing (APPROVED, no comments) |
 | #328 | cubic-dev-ai[bot] | Accept | `shiftedPixels` allocated a temporary `Data` per copied row on every pointer sample (`subdata` in the mid-drag hot path); switched to direct raw-buffer row copies so the function allocates only the output buffer |
 | #328 | greptile-apps[bot] | Reject | Claimed the Move SF Symbol might not resolve on supported targets; `arrow.up.and.down.and.arrow.left.and.right` ships since SF Symbols 2 (iOS 14 / macOS 11 per the system `name_availability.plist`) and targets are iOS 17 / macOS 14 — plus the re-recorded toolbar snapshots render it |
 | #328 | greptile-apps[bot] | Miss | Did not flag the per-row temporary-`Data` allocation in the `shiftedPixels` hot path |

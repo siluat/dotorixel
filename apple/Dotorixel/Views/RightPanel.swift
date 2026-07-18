@@ -1,8 +1,9 @@
 import SwiftUI
 
 /// Right panel: Canvas section (size presets, dimension inputs, Clear) and
-/// Color section (FG/BG pair + swap, palette grid, ColorPicker), separated
-/// by a divider. Mirrors web `RightPanel.svelte` for cross-shell parity.
+/// Color section (FG/BG pair + swap, HSV picker, palette grid, Recent row),
+/// separated by a divider. Mirrors web `RightPanel.svelte` for cross-shell
+/// parity.
 struct RightPanel: View {
     let editorState: EditorState
     let tier: LayoutTier
@@ -143,14 +144,13 @@ struct RightPanel: View {
         VStack(alignment: .leading, spacing: DesignTokens.space3) {
             sectionTitle("Color")
             fgBgRow
+            sectionTitle("HSV")
+            HsvPickerView(
+                selectedColor: editorState.foregroundColor,
+                onColorChange: { editorState.foregroundColor = $0 }
+            )
             sectionTitle("Palette")
             paletteGrid
-            ColorPicker(
-                "Color picker",
-                selection: foregroundBinding,
-                supportsOpacity: false
-            )
-            .labelsHidden()
             if !editorState.recentColors.isEmpty {
                 recentLabel
                 recentRow
@@ -283,19 +283,6 @@ struct RightPanel: View {
         Text(text)
             .font(.system(size: DesignTokens.fontSizeSm, weight: .semibold))
             .foregroundStyle(DesignTokens.textSecondary)
-    }
-
-    /// Bridges UniFFI `Color` ↔ `SwiftUI.Color` so SwiftUI's `ColorPicker`
-    /// can drive `editorState.foregroundColor` directly.
-    private var foregroundBinding: Binding<SwiftUI.Color> {
-        Binding(
-            get: { editorState.foregroundColor.swiftUIColor },
-            set: { newColor in
-                editorState.foregroundColor = Color(
-                    resolved: newColor.resolve(in: .init())
-                )
-            }
-        )
     }
 
     private func syncDimensionInputs() {

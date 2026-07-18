@@ -24,7 +24,7 @@ struct DockedRegionSnapshotTests {
     /// Fixed extent for a view's flexible axis so `.sizeThatFits` produces a
     /// deterministic image. The tier-driven axis stays intrinsic — that is the
     /// dimension each snapshot verifies (panel/toolbar width; top/status bar height).
-    private let stripHeight: CGFloat = 480   // vertical strips: RightPanel, LeftToolbar
+    private let stripHeight: CGFloat = 560   // vertical strips: RightPanel, LeftToolbar
     private let barWidth: CGFloat = 640       // horizontal bars: TopBar, StatusBar
 
     private func state() -> EditorState { EditorState(width: 16, height: 16) }

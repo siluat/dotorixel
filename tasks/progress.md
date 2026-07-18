@@ -3,22 +3,22 @@
 ## Currently Working On
 
 Apple native catch-up — Phase 2
-([RFC](../issues/013-apple-native-catchup.md)): 8/13 sub-issues done (230–237);
-remaining unblocked: 238–241 (242 needs 232–241).
+([RFC](../issues/013-apple-native-catchup.md)): 9/13 sub-issues done (230–238);
+remaining unblocked: 239–241 (242 needs 239–241).
 
 ## Last Completed
 
-[237 — Recent colors](../issues/237-apple-recent-colors.md): Apple recent
-colors row — recorded at stroke begin + eyedropper commit through the host
-seam, list logic native per Core Placement. In-memory only; the persistence
-parity gap closes with Phase 4.
+[238 — HSV picker](../issues/238-apple-hsv-picker.md): native HSV picker
+(SV square + hue strip) replaced the system `ColorPicker`; color section now
+matches the web's order. Follow-up registered:
+[249 — hex display row](../issues/249-apple-hex-display-row.md).
 
 ## Next Up
 
-- [238 — HSV picker](../issues/238-apple-hsv-picker.md)
 - [239 — Pixel-perfect filtering + toggle](../issues/239-apple-pixel-perfect.md)
 - [240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md)
 - [241 — Keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md)
+- [249 — Apple hex display row](../issues/249-apple-hex-display-row.md) — web parity, unblocked by 238
 - (triage) [248 — Journal tests assert internal steps](../issues/248-journal-tests-assert-internal-steps.md)
 - (triage) [245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md) — coordinate with Apple Pencil palm rejection
 - Project file format (JSON-based) + save/load

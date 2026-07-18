@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 238 | [Apple native — HSV picker in the color section](../issues/238-apple-hsv-picker.md) | 2026-07-18 |
 | 237 | [Apple native — recent colors row](../issues/237-apple-recent-colors.md) | 2026-07-18 |
 | 236 | [Apple native — move tool (drag to shift canvas pixels)](../issues/236-apple-move-tool.md) | 2026-07-18 |
 | 235 | [Apple native — sampling loupe overlay for the eyedropper](../issues/235-apple-sampling-loupe.md) | 2026-07-18 |

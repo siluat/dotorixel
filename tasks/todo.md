@@ -24,9 +24,8 @@ issues (`/to-issues`) when reached.
 
 ### Phase 2 — Full tool set + color (decomposed 2026-07-15)
 
-Dependency order; 230–237 are done, 242 closes the phase.
+Dependency order; 230–238 are done, 242 closes the phase.
 
-- [238 — HSV picker](../issues/238-apple-hsv-picker.md)
 - [239 — Pixel-perfect filtering + toggle](../issues/239-apple-pixel-perfect.md)
 - [240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md)
 - [241 — Keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md)
@@ -50,6 +49,7 @@ Dependency order; 230–237 are done, 242 closes the phase.
 
 - [248 — Journal tests assert internal steps, not outcomes](../issues/248-journal-tests-assert-internal-steps.md) — `events` arrays pin which History API the journal calls; 244 broke 28 of them without changing behavior. Test-only refactor, needs-triage
 - [245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md) — any finger's lift ends the active stroke; associate strokes with their originating touch. Pre-existing input routing, flagged on PR #322; coordinate with Apple Pencil palm rejection. needs-triage
+- [249 — Apple hex display row](../issues/249-apple-hex-display-row.md) — web parity: read-only `#RRGGBB` row between the FG/BG pair and the HSV picker. Surfaced during 238; blocked by 238. ready-for-agent
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate (deferred from Milestone 3 MVP)
 - Reference image import — clipboard paste support (Ctrl/Cmd+V), deferred from Milestone 3 MVP
 - Design: share artwork dialog — URL sharing dialog UI (.pen)

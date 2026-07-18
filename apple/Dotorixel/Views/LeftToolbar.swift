@@ -17,14 +17,22 @@ struct LeftToolbar: View {
             // MARK: - Tool buttons
 
             ForEach(EditorTool.allCases, id: \.self) { tool in
+                let isActive = editorState.activeTool == tool
+                // Re-tapping the active constrainable tool toggles the
+                // Constrain latch (web parity) — the latch has no separate
+                // button; the badge on the active tool shows its state.
                 Button {
-                    editorState.activeTool = tool
+                    editorState.activateTool(tool)
                 } label: {
                     Image(systemName: tool.symbolName)
                         .font(.system(size: DesignTokens.iconSize))
                         .accessibilityLabel(tool.displayName)
                 }
-                .buttonStyle(ToolButtonStyle(isActive: editorState.activeTool == tool, boxSize: boxSize))
+                .buttonStyle(ToolButtonStyle(
+                    isActive: isActive,
+                    boxSize: boxSize,
+                    showsConstrainBadge: isActive && tool.isConstrainable && editorState.isConstrainLatchOn
+                ))
             }
 
             // MARK: - Separator

@@ -81,6 +81,20 @@ struct DockedRegionSnapshotTests {
         )
     }
 
+    /// Content regression (not tier sizing): the active constrainable tool
+    /// carries the Constrain badge (accent dot, top-right) while the latch is
+    /// on — the default-state strips above never show it.
+    @Test("LeftToolbar renders the Constrain badge on the active latched tool")
+    func leftToolbarConstrainBadge() {
+        let latched = state()
+        latched.activeTool = .line
+        latched.isConstrainLatchOn = true
+        assertSnapshot(
+            of: LeftToolbar(editorState: latched, tier: .wide).frame(height: stripHeight),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
     // MARK: - TopBar (height: 44 wide / 48 x-wide)
 
     @Test("TopBar renders wide height (44pt)")

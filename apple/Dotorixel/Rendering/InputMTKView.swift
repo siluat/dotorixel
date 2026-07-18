@@ -15,6 +15,11 @@ protocol CanvasInputDelegate: AnyObject {
     /// An interrupted pointer sequence (e.g. `touchesCancelled`) — must tear
     /// the stroke down via its cancel path, not its end path.
     func drawingCancelled(in view: InputMTKView)
+    /// The physical Shift key's held state, re-read from an input event —
+    /// one of the two Shift-constrain sources (the other is the toolbar
+    /// Constrain latch). Fired on every event that surfaces modifier flags;
+    /// the receiver dedups unchanged values.
+    func shiftStateChanged(isHeld: Bool, in view: InputMTKView)
     #if os(macOS)
     func scrollWheelChanged(deltaX: CGFloat, deltaY: CGFloat, at point: CGPoint, isPrecise: Bool, in view: InputMTKView)
     func magnifyChanged(magnification: CGFloat, at point: CGPoint, in view: InputMTKView)
@@ -31,7 +36,20 @@ class InputMTKView: MTKView {
     override var acceptsFirstResponder: Bool { true }
     override var isFlipped: Bool { true }
 
+    /// Shift press/release while the canvas is first responder — the source
+    /// that lets a stationary mid-stroke Shift change reshape the preview.
+    override func flagsChanged(with event: NSEvent) {
+        inputDelegate?.shiftStateChanged(isHeld: event.modifierFlags.contains(.shift), in: self)
+        // Unlike the mouse handlers (which suppress AppKit's context menu),
+        // modifier changes have no default behavior to block — keep the
+        // responder chain intact.
+        super.flagsChanged(with: event)
+    }
+
     override func mouseDown(with event: NSEvent) {
+        // Re-sync on stroke begin: a Shift press while another view held
+        // first responder never reached `flagsChanged`.
+        inputDelegate?.shiftStateChanged(isHeld: event.modifierFlags.contains(.shift), in: self)
         let point = convert(event.locationInWindow, from: nil)
         inputDelegate?.drawingBegan(at: point, button: .primary, inputSource: .mouse, in: self)
     }
@@ -49,6 +67,7 @@ class InputMTKView: MTKView {
     // also suppresses AppKit's default context-menu behavior on the canvas.
 
     override func rightMouseDown(with event: NSEvent) {
+        inputDelegate?.shiftStateChanged(isHeld: event.modifierFlags.contains(.shift), in: self)
         let point = convert(event.locationInWindow, from: nil)
         inputDelegate?.drawingBegan(at: point, button: .secondary, inputSource: .mouse, in: self)
     }
@@ -84,8 +103,49 @@ class InputMTKView: MTKView {
 
     #else
 
+    // iPad hardware-keyboard Shift: presses reach the view only while it is
+    // first responder; touch events also carry modifier flags as a fallback
+    // re-sync. The toolbar Constrain latch covers every other input.
+
+    override var canBecomeFirstResponder: Bool { true }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil {
+            becomeFirstResponder()
+        }
+    }
+
+    private func isShiftPress(_ presses: Set<UIPress>) -> Bool {
+        presses.contains { $0.key?.keyCode == .keyboardLeftShift || $0.key?.keyCode == .keyboardRightShift }
+    }
+
+    override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        if isShiftPress(presses) {
+            inputDelegate?.shiftStateChanged(isHeld: true, in: self)
+        }
+        super.pressesBegan(presses, with: event)
+    }
+
+    override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        if isShiftPress(presses) {
+            inputDelegate?.shiftStateChanged(isHeld: false, in: self)
+        }
+        super.pressesEnded(presses, with: event)
+    }
+
+    override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        if isShiftPress(presses) {
+            inputDelegate?.shiftStateChanged(isHeld: false, in: self)
+        }
+        super.pressesCancelled(presses, with: event)
+    }
+
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
+        if let event {
+            inputDelegate?.shiftStateChanged(isHeld: event.modifierFlags.contains(.shift), in: self)
+        }
         let point = touch.location(in: self)
         // Pointer devices (trackpad/mouse) report pressed buttons on the
         // event; direct touch has an empty mask and draws with the primary.

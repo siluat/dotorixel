@@ -12,6 +12,9 @@ struct ToolButtonStyle: ButtonStyle {
     /// Outer touch-target box. Defaults to the 44pt HIG minimum; the LeftToolbar
     /// passes 48pt on the x-wide tier to match the web's larger hit areas.
     var boxSize: CGFloat = DesignTokens.btnSize
+    /// Constrain-latch badge on the button's visual box (web `.constrain-badge`:
+    /// an 8px accent dot at the top-right corner, inset 2).
+    var showsConstrainBadge: Bool = false
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
@@ -25,6 +28,14 @@ struct ToolButtonStyle: ButtonStyle {
             .foregroundStyle(isActive ? DesignTokens.accent : tint)
             .background(background(isPressed: isPressed))
             .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusSm))
+            .overlay(alignment: .topTrailing) {
+                if showsConstrainBadge {
+                    Circle()
+                        .fill(DesignTokens.accent)
+                        .frame(width: 8, height: 8)
+                        .padding(2)
+                }
+            }
             .frame(width: boxSize, height: boxSize)
             .contentShape(Rectangle())
             .opacity(isEnabled ? 1.0 : DesignTokens.disabledOpacity)

@@ -70,6 +70,19 @@ enum EditorTool: CaseIterable {
         }
     }
 
+    /// Whether this tool's stroke responds to the Shift constraint — line
+    /// snaps to 45° multiples, rectangle/ellipse force a square/circle (web
+    /// parity: `isConstrainableTool`). Drives the toolbar's Constrain-latch
+    /// affordance: re-tapping the active constrainable tool toggles the latch.
+    var isConstrainable: Bool {
+        switch self {
+        case .line, .rectangle, .ellipse:
+            return true
+        case .pencil, .eraser, .floodFill, .eyedropper, .move:
+            return false
+        }
+    }
+
     /// Opens the per-stroke session for this tool. Per-stroke inputs are
     /// fixed at creation: `drawColor` is the stroke's color for its whole
     /// lifetime, already resolved from `button`; the raw button is also
@@ -92,15 +105,24 @@ enum EditorTool: CaseIterable {
                 pixelPerfect: host.isPixelPerfectEnabled
             )
         case .line:
-            return ShapeStrokeSession(host: host, coreToolType: .line, drawColor: drawColor) {
+            return ShapeStrokeSession(
+                host: host, coreToolType: .line, drawColor: drawColor,
+                constrain: constrainLine
+            ) {
                 appleInterpolatePixels(x0: $0.x, y0: $0.y, x1: $1.x, y1: $1.y)
             }
         case .rectangle:
-            return ShapeStrokeSession(host: host, coreToolType: .rectangle, drawColor: drawColor) {
+            return ShapeStrokeSession(
+                host: host, coreToolType: .rectangle, drawColor: drawColor,
+                constrain: constrainSquare
+            ) {
                 appleRectangleOutline(x0: $0.x, y0: $0.y, x1: $1.x, y1: $1.y)
             }
         case .ellipse:
-            return ShapeStrokeSession(host: host, coreToolType: .ellipse, drawColor: drawColor) {
+            return ShapeStrokeSession(
+                host: host, coreToolType: .ellipse, drawColor: drawColor,
+                constrain: constrainSquare
+            ) {
                 appleEllipseOutline(x0: $0.x, y0: $0.y, x1: $1.x, y1: $1.y)
             }
         case .floodFill:

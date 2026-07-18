@@ -188,6 +188,12 @@ extension PixelCanvasView {
             editorState?.cancelStroke()
         }
 
+        func shiftStateChanged(isHeld: Bool, in view: InputMTKView) {
+            // EditorState dedups unchanged values and routes a mid-stroke
+            // flip into the active session's modifier refresh.
+            editorState?.isShiftKeyHeld = isHeld
+        }
+
         // MARK: - macOS zoom/pan
 
         #if os(macOS)

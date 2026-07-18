@@ -58,6 +58,7 @@ private final class FakeStrokeSessionHost: StrokeSessionHost {
     var foregroundColor: Color
     var backgroundColor: Color
     var isPixelPerfectEnabled = true
+    var isConstrainHeld = false
     let samplingLoupe = SamplingLoupeState()
     private(set) var undoSnapshotCount = 0
 

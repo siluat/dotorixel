@@ -10,17 +10,25 @@ final class ShapeStrokeSession: StrokeSession {
     /// The core geometry functions treat anchor == current as a single pixel.
     typealias OutlinePixels = (ScreenCanvasCoords, ScreenCanvasCoords) -> [ScreenCanvasCoords]
 
+    /// Shift-constrain for one shape species — snaps the current point
+    /// relative to the anchor (line → 45° multiples, rect/ellipse → square).
+    typealias Constrain = (ScreenCanvasCoords, ScreenCanvasCoords) -> ScreenCanvasCoords
+
     // `unowned` breaks the transient host → engine → session → host cycle;
     // the engine tears the session down before the host can go away.
     private unowned let host: StrokeSessionHost
     private let coreToolType: ToolType
     private let outlinePixels: OutlinePixels
+    private let constrain: Constrain
     /// Fixed at session creation — mid-stroke color changes don't affect a
     /// stroke already in flight.
     private let drawColor: Color
 
     private var preStrokePixels = Data()
     private var anchor: ScreenCanvasCoords?
+    /// The raw (unconstrained) pointer position of the last sample — kept so
+    /// a mid-stroke modifier change can re-derive the preview from it.
+    private var lastCurrent: ScreenCanvasCoords?
     /// Whether the last drawn preview painted any in-bounds pixel — restoring
     /// the snapshot needs a re-render exactly when it erases such a preview.
     private var lastPreviewPainted = false
@@ -29,11 +37,13 @@ final class ShapeStrokeSession: StrokeSession {
         host: StrokeSessionHost,
         coreToolType: ToolType,
         drawColor: Color,
+        constrain: @escaping Constrain,
         outlinePixels: @escaping OutlinePixels
     ) {
         self.host = host
         self.coreToolType = coreToolType
         self.drawColor = drawColor
+        self.constrain = constrain
         self.outlinePixels = outlinePixels
     }
 
@@ -43,15 +53,19 @@ final class ShapeStrokeSession: StrokeSession {
     }
 
     func draw(current: ScreenCanvasCoords, previous: ScreenCanvasCoords?) -> Bool {
-        guard let anchor else {
-            self.anchor = current
+        lastCurrent = current
+        guard anchor != nil else {
+            anchor = current
             lastPreviewPainted = paintShape(from: current, to: current)
             return lastPreviewPainted
         }
-        let restoreErasedPreview = lastPreviewPainted
-        restorePreStrokePixels()
-        lastPreviewPainted = paintShape(from: anchor, to: current)
-        return restoreErasedPreview || lastPreviewPainted
+        return repaintPreview()
+    }
+
+    func modifierChanged() -> Bool {
+        // Nothing to reshape before the first sample lands.
+        guard anchor != nil else { return false }
+        return repaintPreview()
     }
 
     func end() -> Bool {
@@ -62,6 +76,18 @@ final class ShapeStrokeSession: StrokeSession {
     func cancel() -> Bool {
         restorePreStrokePixels()
         return lastPreviewPainted
+    }
+
+    /// Restores the pre-stroke snapshot and redraws anchor → current, with
+    /// the constrain state live-read (web parity): pressing or releasing
+    /// Shift — or tapping the latch — reshapes the preview immediately.
+    private func repaintPreview() -> Bool {
+        guard let anchor, let lastCurrent else { return false }
+        let restoreErasedPreview = lastPreviewPainted
+        restorePreStrokePixels()
+        let end = host.isConstrainHeld ? constrain(anchor, lastCurrent) : lastCurrent
+        lastPreviewPainted = paintShape(from: anchor, to: end)
+        return restoreErasedPreview || lastPreviewPainted
     }
 
     private func paintShape(from: ScreenCanvasCoords, to: ScreenCanvasCoords) -> Bool {

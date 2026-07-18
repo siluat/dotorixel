@@ -19,6 +19,7 @@ matches the web's order. Follow-up registered:
 - [240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md)
 - [241 — Keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md)
 - [249 — Apple hex display row](../issues/249-apple-hex-display-row.md) — web parity, unblocked by 238
+- (triage) [250 — HSV picker assistive adjustability](../issues/250-hsv-picker-assistive-adjustability.md) — flagged on PR #330
 - (triage) [248 — Journal tests assert internal steps](../issues/248-journal-tests-assert-internal-steps.md)
 - (triage) [245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md) — coordinate with Apple Pencil palm rejection
 - Project file format (JSON-based) + save/load

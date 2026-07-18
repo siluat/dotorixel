@@ -4,7 +4,7 @@ import Testing
 /// Eyedropper tool behavior, exercised through the `EditorState` public
 /// stroke API: drag to sample, commit on release (web parity, 234).
 @Suite("Eyedropper strokes — drag to sample, commit on release")
-struct EyedropperSessionTests {
+struct EyedropperStrokeSessionTests {
 
     private let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
 

@@ -65,7 +65,7 @@ swatch updating on release.
 | `apple/Dotorixel/Tools/EditorTool.swift` | `eyedropper` case (display order after fill, web parity); `makeSession` now also receives the raw `button` so sampling tools resolve their commit target at the stroke-begin resolution point |
 | `apple/Dotorixel/Tools/StrokeEngine.swift` | Passes the pointer button through to `makeSession` |
 | `apple/Dotorixel/State/EditorState.swift` | `commitColorPick` conformance — writes FG/BG, never touches History |
-| `apple/DotorixelTests/EyedropperSessionTests.swift` | Six behavior tests through the public `EditorState` stroke API (commit on release, drag refine, BG on secondary, opacity/bounds guards, no undo entry, cancel discards) |
+| `apple/DotorixelTests/EyedropperStrokeSessionTests.swift` | Six behavior tests through the public `EditorState` stroke API (commit on release, drag refine, BG on secondary, opacity/bounds guards, no undo entry, cancel discards) |
 | `apple/DotorixelTests/EditorToolTests.swift` | displayName expectation table gains Eyedropper |
 | `apple/DotorixelTests/StrokeEngineTests.swift` | `makeSession` closure arity + fake host conformance updated |
 | `apple/DotorixelTests/__Snapshots__/DockedRegionSnapshotTests/leftToolbar*.png` | Re-recorded on the pinned host with the new toolbar button |

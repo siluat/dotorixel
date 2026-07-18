@@ -59,6 +59,12 @@ struct RightPanel: View {
         .onChange(of: focusedField) { _, newValue in
             editorState.isTextInputFocused = newValue != nil
         }
+        // The size fields are the only inputs feeding the flag, and no
+        // focus-change closure fires once the panel leaves the hierarchy —
+        // clear it on teardown so shortcuts can't stay suppressed.
+        .onDisappear {
+            editorState.isTextInputFocused = false
+        }
     }
 
     // MARK: - Canvas section

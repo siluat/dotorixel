@@ -128,6 +128,13 @@ class InputMTKView: MTKView {
         }
     }
 
+    override func resignFirstResponder() -> Bool {
+        // Key releases can't reach a non-first-responder — a code left in
+        // the held set would mark that key's next press as an auto-repeat.
+        heldKeyCodes.removeAll()
+        return super.resignFirstResponder()
+    }
+
     private func isShiftPress(_ presses: Set<UIPress>) -> Bool {
         presses.contains { $0.key?.keyCode == .keyboardLeftShift || $0.key?.keyCode == .keyboardRightShift }
     }
@@ -145,31 +152,25 @@ class InputMTKView: MTKView {
     /// Forwards character keys to the shortcut controller. ⌘Z/⇧⌘Z are
     /// excluded — the Edit-menu commands own undo/redo key equivalents on
     /// both platforms, and forwarding here would double-fire them.
-    /// Returns whether every press in the set was consumed as a shortcut
-    /// (modifier-only and unhandled presses count as not consumed).
-    private func forwardCharacterPresses(_ presses: Set<UIPress>) -> Bool {
-        var allConsumed = !presses.isEmpty
+    /// Returns the presses NOT consumed as shortcuts (modifier-only and
+    /// unhandled presses pass through) for responder-chain forwarding.
+    private func forwardCharacterPresses(_ presses: Set<UIPress>) -> Set<UIPress> {
+        var unhandledPresses = presses
         for press in presses {
             guard let key = press.key,
                   let character = key.charactersIgnoringModifiers.lowercased().first
-            else {
-                allConsumed = false
-                continue
-            }
+            else { continue }
             let isRepeat = !heldKeyCodes.insert(key.keyCode).inserted
             let modifiers = ShortcutModifiers(key.modifierFlags)
-            if KeyboardShortcutController.isMenuOwnedShortcut(character, modifiers: modifiers) {
-                allConsumed = false
-                continue
-            }
+            if KeyboardShortcutController.isMenuOwnedShortcut(character, modifiers: modifiers) { continue }
             let consumed = inputDelegate?.characterKeyPressed(
                 character, modifiers: modifiers, isRepeat: isRepeat, in: self
             ) ?? false
-            if !consumed {
-                allConsumed = false
+            if consumed {
+                unhandledPresses.remove(press)
             }
         }
-        return allConsumed
+        return unhandledPresses
     }
 
     private func releaseHeldKeyCodes(_ presses: Set<UIPress>) {
@@ -189,8 +190,9 @@ class InputMTKView: MTKView {
         }
         // Consumed shortcuts stop here — forwarding them up the responder
         // chain would hand them to system focus/default handling too.
-        if !forwardCharacterPresses(presses) {
-            super.pressesBegan(presses, with: event)
+        let unhandledPresses = forwardCharacterPresses(presses)
+        if !unhandledPresses.isEmpty {
+            super.pressesBegan(unhandledPresses, with: event)
         }
     }
 

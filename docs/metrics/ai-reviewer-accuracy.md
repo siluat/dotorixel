@@ -10,14 +10,31 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 180 | 137 | 43 | 213 | 76% | 39% |
-| cubic-dev-ai[bot] | 201 | 159 | 42 | 191 | 79% | 45% |
-| coderabbitai[bot] | 263 | 183 | 80 | 165 | 70% | 53% |
+| greptile-apps[bot] | 184 | 141 | 43 | 218 | 77% | 39% |
+| cubic-dev-ai[bot] | 207 | 165 | 42 | 193 | 80% | 46% |
+| coderabbitai[bot] | 267 | 187 | 80 | 170 | 70% | 52% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #333 | greptile-apps[bot] | Accept | App-scoped `EditorState` was aliased across ⌘N-spawned macOS windows (shared canvas/focus/history); macOS now runs a single `Window` scene — single-document until Phase 4 multi-tab |
+| #333 | cubic-dev-ai[bot] | Accept | Same multi-window state aliasing (duplicate of greptile); same single-`Window` fix |
+| #333 | greptile-apps[bot] | Accept | iPad hardware-keyboard auto-repeat always arrived as `isRepeat: false`, so held G/X would re-fire; a held-key-code set now detects repeats (`UIPress` has no repeat flag) |
+| #333 | cubic-dev-ai[bot] | Accept | Same iPad auto-repeat gap (duplicate of greptile); same held-key-set fix |
+| #333 | coderabbitai[bot] | Accept | Edit-menu ⌘Z/⇧⌘Z bypassed the controller's text-input guard and undid the canvas while typing in a size field; the commands now disable on `isTextInputFocused` |
+| #333 | cubic-dev-ai[bot] | Accept | Same menu undo/redo text-focus gap (duplicate of coderabbit); same disable |
+| #333 | coderabbitai[bot] | Accept | `reset()` restored the temporary Alt-eyedropper tool mid-stroke, bypassing the deferred-restore seam; it now defers to `consumePendingToolRestore()` while drawing |
+| #333 | cubic-dev-ai[bot] | Accept | Same `reset()` mid-stroke restore (duplicate of coderabbit); same deferral |
+| #333 | cubic-dev-ai[bot] | Accept | Option released while a size field held focus left the temporary eyedropper stuck (the release never reaches a non-first-responder canvas); entering text focus now resets held-key state |
+| #333 | coderabbitai[bot] | Accept | Consumed shortcut presses were still forwarded to `super.pressesBegan`, handing them to system default handling; the delegate now returns consumption and consumed presses stop at the view |
+| #333 | coderabbitai[bot] | Accept | Follow-up: the all-or-nothing consumption check re-forwarded a consumed shortcut when its set also held an unconsumed press; only the unhandled subset forwards now |
+| #333 | greptile-apps[bot] | Accept | `isTextInputFocused` could outlive `RightPanel` teardown (no focus-change closure fires after removal), silently suppressing every shortcut; initially skipped as unreachable in the docked layout |
+| #333 | greptile-apps[bot] | Accept | Re-raise of the teardown flag after round one; accepted — `onDisappear` now clears the flag as a lifecycle invariant (3-line defense vs. silent full-shortcut loss) |
+| #333 | cubic-dev-ai[bot] | Accept | Held G/X key codes leaked when focus moved into a size field (release lost with first responder), marking the next press an auto-repeat no-op; `resignFirstResponder` clears the set |
+| #333 | greptile-apps[bot] | Miss (×5) | Flagged neither the menu undo/redo text-focus gap, the consumed-press forwarding (both rounds), the `reset()` mid-stroke restore, the Option-stuck-on-focus-move, nor the held-key-code leak |
+| #333 | coderabbitai[bot] | Miss (×5) | Flagged neither the multi-window state aliasing, the iPad auto-repeat gap, the teardown focus flag, the Option-stuck-on-focus-move, nor the held-key-code leak |
+| #333 | cubic-dev-ai[bot] | Miss (×2) | Flagged neither the teardown focus flag nor the consumed-press forwarding |
 | #332 | greptile-apps[bot] | Accept | iPad canvas only claimed first responder in `didMoveToWindow`, so `presses*` (mid-drag Shift) stopped arriving after another control took focus; `touchesBegan` now re-acquires it |
 | #332 | cubic-dev-ai[bot] | Accept | Same first-responder loss finding (duplicate of greptile); same re-acquire fix |
 | #332 | coderabbitai[bot] | Accept | Releasing one of two held Shift keys dropped the constraint — `pressesEnded/Cancelled` sent a bare `false`; now report the event's combined modifier state |

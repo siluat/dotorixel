@@ -35,6 +35,10 @@ targets:
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
+        # Explicit single-scene policy (iPadOS): the app-scoped EditorState
+        # must not be aliased by a second scene — mirror of the macOS
+        # single-`Window` decision, revisit with Phase 4 multi-tab.
+        INFOPLIST_KEY_UIApplicationSupportsMultipleScenes: NO
       configs:
         debug:
           CODE_SIGN_IDENTITY: "-"

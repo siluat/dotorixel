@@ -29,8 +29,10 @@ struct DotorixelApp: App {
         .defaultSize(width: 960, height: 640)
         .windowResizability(.contentMinSize)
         #else
-        // iPad's compact context is ≥320pt natively and needs no size floor;
-        // multiple scenes are not declared, so the shared state is safe.
+        // iPad's compact context is ≥320pt natively and needs no size floor.
+        // Multiple scenes are explicitly disabled in project.yml
+        // (UIApplicationSupportsMultipleScenes: NO), so the app-scoped
+        // state is never aliased across scenes.
         WindowGroup {
             ContentView(editorState: editorState)
         }

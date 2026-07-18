@@ -10,14 +10,19 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 184 | 141 | 43 | 218 | 77% | 39% |
-| cubic-dev-ai[bot] | 207 | 165 | 42 | 193 | 80% | 46% |
-| coderabbitai[bot] | 267 | 187 | 80 | 170 | 70% | 52% |
+| greptile-apps[bot] | 186 | 142 | 44 | 218 | 76% | 39% |
+| cubic-dev-ai[bot] | 207 | 165 | 42 | 194 | 80% | 46% |
+| coderabbitai[bot] | 268 | 187 | 81 | 171 | 70% | 52% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #333 | greptile-apps[bot] | Accept | Partial: iPad `WindowGroup` would share the app-scoped state if a second scene appeared; per-scene state rejected (premature until Phase 4), but the implicit single-scene default is now an explicit `UIApplicationSupportsMultipleScenes: NO` declaration |
+| #333 | greptile-apps[bot] | Reject | Wanted the held-key-code clear on `resignFirstResponder` to not treat the first post-refocus repeat as fresh; the failure modes are mutually exclusive (releases only reach the first responder) and the current choice trades one visible toggle in a contrived hold-across-focus case against silently eating the first real press |
+| #333 | coderabbitai[bot] | Reject | Claimed the metrics log contradicted the "PR objectives" on the teardown-focus finding; the log matches the code as of round two (`onDisappear` exists) — the stale text was the round-one PR summary comment |
+| #333 | coderabbitai[bot] | Miss | Did not flag the undeclared iPad single-scene policy (accepted from greptile) |
+| #333 | cubic-dev-ai[bot] | Miss | Did not flag the undeclared iPad single-scene policy (accepted from greptile) |
 | #333 | greptile-apps[bot] | Accept | App-scoped `EditorState` was aliased across ⌘N-spawned macOS windows (shared canvas/focus/history); macOS now runs a single `Window` scene — single-document until Phase 4 multi-tab |
 | #333 | cubic-dev-ai[bot] | Accept | Same multi-window state aliasing (duplicate of greptile); same single-`Window` fix |
 | #333 | greptile-apps[bot] | Accept | iPad hardware-keyboard auto-repeat always arrived as `isRepeat: false`, so held G/X would re-fire; a held-key-code set now detects repeats (`UIPress` has no repeat flag) |

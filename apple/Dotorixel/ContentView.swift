@@ -45,14 +45,9 @@ struct ContentView: View {
                         .onAppear { fitCanvas(in: geo.size) }
                         .onChange(of: geo.size) { _, newSize in fitCanvas(in: newSize) }
                         // Sampling loupe: floats over the canvas area while an
-                        // eyedropper stroke is active. `position` is already
-                        // flipped/clamped to the canvas-area bounds.
+                        // eyedropper stroke is active.
                         .overlay(alignment: .topLeading) {
-                            if let loupePosition = editorState.samplingLoupe.position {
-                                LoupeView(grid: editorState.samplingLoupe.grid)
-                                    .offset(x: loupePosition.x, y: loupePosition.y)
-                                    .allowsHitTesting(false)
-                            }
+                            SamplingLoupeOverlay(loupe: editorState.samplingLoupe)
                         }
                     }
 
@@ -75,6 +70,24 @@ struct ContentView: View {
                 }
             }
             #endif
+        }
+    }
+
+    /// Isolates the loupe's observable reads from `ContentView`'s body:
+    /// pointer-rate grid/position updates re-render only this overlay, not
+    /// the Metal-backed canvas view underneath (whose update path re-uploads
+    /// the canvas texture).
+    private struct SamplingLoupeOverlay: View {
+        let loupe: SamplingLoupeState
+
+        var body: some View {
+            // `position` is already flipped/clamped to the canvas-area
+            // bounds; nil while no sampling stroke is active.
+            if let position = loupe.position {
+                LoupeView(grid: loupe.grid)
+                    .offset(x: position.x, y: position.y)
+                    .allowsHitTesting(false)
+            }
         }
     }
 

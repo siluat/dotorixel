@@ -67,7 +67,7 @@ struct LoupeView: View {
         Group {
             if let color {
                 if color.a > 0 {
-                    color.swiftUIColor
+                    color.opaqueSwiftUIColor
                 } else {
                     CheckerboardFill()
                 }
@@ -118,7 +118,7 @@ struct LoupeView: View {
         Group {
             if let cell = centerCell {
                 if cell.a > 0 {
-                    cell.swiftUIColor
+                    cell.opaqueSwiftUIColor
                 } else {
                     CheckerboardFill()
                 }
@@ -131,6 +131,21 @@ struct LoupeView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 3)
                 .strokeBorder(DesignTokens.border, lineWidth: 1)
+        )
+    }
+}
+
+private extension Color {
+    /// The sampled RGB at full opacity. The loupe treats every `a > 0` sample
+    /// as opaque (web parity: `rgb(r, g, b)` in `Loupe.svelte`) — a cell shows
+    /// the stored color values, not a blend against whatever sits behind the
+    /// overlay. The hex chip already reads RGB only, so this keeps the cell,
+    /// swatch, and hex text telling the same story.
+    var opaqueSwiftUIColor: SwiftUI.Color {
+        SwiftUI.Color(
+            red: Double(r) / 255.0,
+            green: Double(g) / 255.0,
+            blue: Double(b) / 255.0
         )
     }
 }

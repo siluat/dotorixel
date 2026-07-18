@@ -103,7 +103,7 @@ xcodebuild test \
 When a view legitimately changes, regenerate its reference **on the pinned host**:
 
 - Delete the affected PNG(s) under
-  `apple/DotorixelTests/__Snapshots__/DockedRegionSnapshotTests/` and re-run — a missing
+  `apple/DotorixelTests/__Snapshots__/<suite name>/` and re-run — a missing
   reference is auto-recorded (and fails that run; re-run to verify), **or**
 - set the recording mode temporarily, e.g. `assertSnapshot(…, record: .all)` or wrap a
   run with `withSnapshotTesting(record: .all) { … }`.

@@ -24,9 +24,8 @@ issues (`/to-issues`) when reached.
 
 ### Phase 2 — Full tool set + color (decomposed 2026-07-15)
 
-Dependency order; 230–236 are done, 242 closes the phase.
+Dependency order; 230–237 are done, 242 closes the phase.
 
-- [237 — Recent colors](../issues/237-apple-recent-colors.md)
 - [238 — HSV picker](../issues/238-apple-hsv-picker.md)
 - [239 — Pixel-perfect filtering + toggle](../issues/239-apple-pixel-perfect.md)
 - [240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md)

@@ -44,6 +44,20 @@ enum EditorTool: CaseIterable {
         }
     }
 
+    /// Whether a stroke with this tool records its draw color into the
+    /// recent-colors list at stroke begin — the Apple analog of the web
+    /// tool authoring `addsActiveColor` flag. False for tools that don't
+    /// paint with the active color: the eraser clears pixels, the eyedropper
+    /// records at commit instead, and move paints nothing.
+    var recordsDrawColor: Bool {
+        switch self {
+        case .pencil, .line, .rectangle, .ellipse, .floodFill:
+            return true
+        case .eraser, .eyedropper, .move:
+            return false
+        }
+    }
+
     /// Opens the per-stroke session for this tool. Per-stroke inputs are
     /// fixed at creation: `drawColor` is the stroke's color for its whole
     /// lifetime, already resolved from `button`; the raw button is also

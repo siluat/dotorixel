@@ -38,6 +38,11 @@ This layer is **additive**, not a duplicate of the existing unit tests:
   renders. The tier flows through a `GeometryReader`-measured width at layout time, so
   only a pixel render (or a live-UI test) can confirm it; structural inspection cannot.
 
+One snapshot is a **content regression**, not tier sizing: `RightPanel` with a
+populated Recent row baselines the row's rendering (most-recent-first order, wrap
+past the panel width) — state-dependent layout the empty-state tier snapshots
+never exercise.
+
 Each test fixes only the view's **flexible** axis (`.frame(height:)` for the vertical
 strips, `.frame(width:)` for the horizontal bars) and snapshots with
 `.image(layout: .sizeThatFits)`, leaving the tier-driven axis intrinsic. The reference

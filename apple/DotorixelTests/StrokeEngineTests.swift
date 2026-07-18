@@ -76,6 +76,10 @@ private final class FakeStrokeSessionHost: StrokeSessionHost {
         case .background: backgroundColor = color
         }
     }
+
+    // Recording behavior is covered end-to-end in RecentColorsTests via the
+    // real host; the engine tests only need protocol conformance.
+    func recordRecentColor(_ color: Color) {}
 }
 
 @Suite("StrokeEngine — lifecycle")

@@ -47,6 +47,22 @@ struct DockedRegionSnapshotTests {
         )
     }
 
+    /// Content regression (not tier sizing): the Recent row renders its
+    /// swatches most-recent first, wrapping past the panel width. Eight
+    /// entries make the wrap visible (seven 22pt swatches fit one row).
+    @Test("RightPanel renders a populated Recent row")
+    func rightPanelPopulatedRecentRow() {
+        let populated = state()
+        let channels: [UInt8] = [0x20, 0x50, 0x80, 0xA0, 0xC0, 0xE0, 0xF0, 0xFF]
+        for value in channels {
+            populated.recordRecentColor(Color(r: value, g: 0x40, b: 0x40, a: 0xFF))
+        }
+        assertSnapshot(
+            of: RightPanel(editorState: populated, tier: .wide).frame(height: stripHeight),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
     // MARK: - LeftToolbar (width: 44 wide / 48 x-wide)
 
     @Test("LeftToolbar renders wide width (44pt)")

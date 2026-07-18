@@ -3,19 +3,18 @@
 ## Currently Working On
 
 Apple native catch-up — Phase 2
-([RFC](../issues/013-apple-native-catchup.md)): 7/13 sub-issues done (230–236);
-remaining unblocked: 237–241 (242 needs 232–241).
+([RFC](../issues/013-apple-native-catchup.md)): 8/13 sub-issues done (230–237);
+remaining unblocked: 238–241 (242 needs 232–241).
 
 ## Last Completed
 
-[236 — Move tool](../issues/236-apple-move-tool.md): Apple move tool as a
-custom session on the 230 architecture — anchor-relative shift with web-parity
-clipping semantics; shift logic stays native per the Core Placement criteria.
-Unblocked 241 (keyboard shortcuts).
+[237 — Recent colors](../issues/237-apple-recent-colors.md): Apple recent
+colors row — recorded at stroke begin + eyedropper commit through the host
+seam, list logic native per Core Placement. In-memory only; the persistence
+parity gap closes with Phase 4.
 
 ## Next Up
 
-- [237 — Recent colors](../issues/237-apple-recent-colors.md)
 - [238 — HSV picker](../issues/238-apple-hsv-picker.md)
 - [239 — Pixel-perfect filtering + toggle](../issues/239-apple-pixel-perfect.md)
 - [240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md)

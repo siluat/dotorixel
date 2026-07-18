@@ -28,6 +28,12 @@ final class StrokeEngine {
         // Resolved once here: the whole stroke draws with the color the button
         // selected at begin, and sessions stay unaware of the FG/BG distinction.
         let drawColor = button == .secondary ? host.backgroundColor : host.foregroundColor
+        // The recent-colors list records colors *used*, not browsed (web
+        // parity): stroke begin is the single recording point for drawing
+        // tools, so sessions never scatter recording calls.
+        if tool.recordsDrawColor {
+            host.recordRecentColor(drawColor)
+        }
         let session = makeSession(tool, host, drawColor, button)
         self.session = session
         lastPixel = coords

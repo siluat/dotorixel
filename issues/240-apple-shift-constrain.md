@@ -1,6 +1,6 @@
 ---
 title: Apple native — Shift constrain + constrain latch for shape tools
-status: ready-for-agent
+status: done
 created: 2026-07-15
 ---
 
@@ -57,3 +57,51 @@ other input.
 ## Blocked by
 
 - [231 — shape tools](231-apple-shape-tools.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Tools/ToolConstraints.swift` | Swift equivalents of the web's `constrainLine` (45° snap incl. the 2:1 half-angle boundaries) and `constrainSquare` (negative-drag normalization, zero delta counts positive) — pure shell-side integer math, mirroring the web's placement decision |
+| `apple/Dotorixel/Tools/StrokeSession.swift` | `modifierChanged() -> Bool` added to the session protocol (protocol-extension default: no-op) + `StrokeSessionHost.isConstrainHeld` — the single OR-combined seam sessions live-read |
+| `apple/Dotorixel/Tools/StrokeEngine.swift` | `modifierChanged()` forwarding to the active session |
+| `apple/Dotorixel/Tools/ShapeStrokeSession.swift` | Per-tool constrain function injected next to the geometry closure; constrain state live-read on every sample; `repaintPreview()` shared by `draw` and `modifierChanged` |
+| `apple/Dotorixel/Tools/EditorTool.swift` | `isConstrainable` (line/rect/ellipse); session factory wires line→`constrainLine`, rect/ellipse→`constrainSquare` |
+| `apple/Dotorixel/State/EditorState.swift` | `isShiftKeyHeld` + `isConstrainLatchOn` (didSet → engine modifier refresh while drawing), `isConstrainHeld` OR seam, `activateTool` re-tap gesture |
+| `apple/Dotorixel/Views/LeftToolbar.swift` | Tool buttons route through `activateTool`; active constrainable tool carries the badge while the latch is on |
+| `apple/Dotorixel/Style/ToolButtonStyle.swift` | `showsConstrainBadge` — 8pt accent dot, top-right of the visual box (web `.constrain-badge`) |
+| `apple/Dotorixel/Rendering/InputMTKView.swift` | macOS: `flagsChanged` + mouse-down re-sync; iPadOS: `pressesBegan/Ended/Cancelled` for hardware Shift (view becomes first responder) + touch-event modifier-flag fallback |
+| `apple/Dotorixel/Rendering/PixelCanvasView.swift` | `shiftStateChanged` delegate forwarding into `EditorState.isShiftKeyHeld` |
+| `apple/DotorixelTests/ToolConstraintsTests.swift` | 45° quadrants + 2:1 boundaries, square normalization with negative drags, zero-delta web parity |
+| `apple/DotorixelTests/ConstrainStrokeTests.swift` | Via the `EditorState` public stroke API: latch-snapped line commit, Shift-forced square, mid-stroke latch and Shift toggles re-render the stationary preview both ways, pencil ignores constrain; `ToolActivationTests` — re-tap toggles / inactive selects / non-constrainable never toggles |
+| `apple/DotorixelTests/EditorToolTests.swift` | `isConstrainable` classification keyed by case (new tool fails until classified) |
+| `apple/DotorixelTests/DockedRegionSnapshotTests.swift` + `__Snapshots__/…/leftToolbarConstrainBadge.1.png` | Badge content-regression baseline, recorded on the pinned host and visually reviewed |
+| `apple/DotorixelTests/StrokeEngineTests.swift` | Fake host gained `isConstrainHeld` conformance |
+
+### Key Decisions
+
+- Latch UI mirrors the web exactly (user-approved): **no separate latch button** — re-tapping
+  the active constrainable tool toggles the latch (`activateTool`, web `tool-ui.ts` parity),
+  and the badge on the active tool button is the visible state.
+- The issue text referenced "the session's modifier-refresh hook from 230", but no such hook
+  existed — `modifierChanged` was added here, as a protocol-extension default no-op so
+  freehand/one-shot/deferred sessions are untouched.
+- Shift and latch are OR-combined in `EditorState` behind `StrokeSessionHost.isConstrainHeld`;
+  sessions structurally cannot distinguish the sources.
+- iPad hardware Shift is best-effort per the issue's platform scope: `presses*` (requires
+  first responder, taken on `didMoveToWindow`) plus modifier-flag re-sync from touch events.
+
+### Notes
+
+- The latch is in-memory only (resets on relaunch by design); it joins the Phase 4
+  persistence scope alongside 239's pixel-perfect toggle only if the web ever persists it
+  (it doesn't today).
+- iPad first-responder recovery after another view takes it is not handled — 241
+  (keyboard shortcuts) is the natural place to consolidate key handling.
+- `paintedPixelCount` is now duplicated across 4 test suites (pre-existing per-suite
+  convention); extract-to-test-support is a candidate for a test refactor slice (cf. 248).
+- macOS `flagsChanged` calls `super` (unlike the mouse handlers, which suppress the AppKit
+  context menu) — modifier changes have no default behavior to block.
+- Verified: full iOS suite (173 tests) green on the pinned simulator, macOS build green.
+  The live NSEvent wiring is untested by unit tests — worth a quick manual Shift-drag check
+  on macOS when convenient.

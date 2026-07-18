@@ -3,19 +3,19 @@
 ## Currently Working On
 
 Apple native catch-up — Phase 2
-([RFC](../issues/013-apple-native-catchup.md)): 10/13 sub-issues done (230–239);
-remaining unblocked: 240–241 (242 needs 240–241).
+([RFC](../issues/013-apple-native-catchup.md)): 11/13 sub-issues done (230–240);
+remaining: 241, then 242 closes the phase.
 
 ## Last Completed
 
-[239 — Pixel-perfect filtering + toggle](../issues/239-apple-pixel-perfect.md):
-freehand strokes run the shared L-corner filter behind a TopBar toggle
-(default on, disabled for non-freehand tools). Toggle state is in-memory
-until Phase 4 persistence.
+[240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md):
+Shift and the toolbar Constrain latch are OR-combined at one session seam
+(latch = re-tap the active shape tool, web parity); mid-stroke toggles reshape
+the preview instantly via a new session `modifierChanged` hook. Latch is
+in-memory until Phase 4 persistence.
 
 ## Next Up
 
-- [240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md)
 - [241 — Keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md)
 - [249 — Apple hex display row](../issues/249-apple-hex-display-row.md) — web parity, unblocked by 238
 - (triage) [250 — HSV picker assistive adjustability](../issues/250-hsv-picker-assistive-adjustability.md) — flagged on PR #330

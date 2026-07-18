@@ -19,6 +19,19 @@ final class EditorState {
     /// flag at begin, so toggling mid-stroke only affects the next stroke.
     var pixelPerfect: Bool = true
 
+    /// Whether the physical Shift key is held (macOS modifier flags, iPad
+    /// hardware keyboard). One of the two Shift-constrain sources.
+    var isShiftKeyHeld: Bool = false {
+        didSet { if isShiftKeyHeld != oldValue { modifierStateChanged() } }
+    }
+
+    /// Sticky toolbar Constrain latch — the touch-first stand-in for holding
+    /// Shift. Session-transient by design (in-memory only): it resets on
+    /// relaunch, mirroring how a held key is never remembered.
+    var isConstrainLatchOn: Bool = false {
+        didSet { if isConstrainLatchOn != oldValue { modifierStateChanged() } }
+    }
+
     /// Colors recently *used* to draw or sampled by the eyedropper —
     /// most-recent first. In-memory only for now; persistence arrives with
     /// Phase 4 (the web keeps this in the workspace snapshot).
@@ -66,6 +79,19 @@ final class EditorState {
         // Web-matching defaults (shared-state.svelte.ts): foreground black, background white.
         self.foregroundColor = Color(r: 0x00, g: 0x00, b: 0x00, a: 0xFF)
         self.backgroundColor = Color(r: 0xFF, g: 0xFF, b: 0xFF, a: 0xFF)
+    }
+
+    // MARK: - Tools
+
+    /// Activates a tool the way a toolbar tap does (web parity: `activateTool`
+    /// in `tool-ui.ts`): re-activating the already-active constrainable tool
+    /// toggles the Constrain latch; anything else selects the tool.
+    func activateTool(_ tool: EditorTool) {
+        if tool == activeTool && tool.isConstrainable {
+            isConstrainLatchOn.toggle()
+        } else {
+            activeTool = tool
+        }
     }
 
     // MARK: - Colors
@@ -125,6 +151,16 @@ final class EditorState {
         }
         resolveEditBaseline()
         isDrawing = false
+    }
+
+    /// Routes a Shift/latch flip into the active stroke so a stationary
+    /// preview reshapes immediately — sessions otherwise read modifiers only
+    /// when a new pointer sample arrives. A no-op outside a stroke.
+    private func modifierStateChanged() {
+        guard isDrawing else { return }
+        if strokeEngine.modifierChanged() {
+            canvasVersion += 1
+        }
     }
 
     /// Resolves the pending Edit Baseline against the current canvas — the
@@ -288,6 +324,10 @@ final class EditorState {
 
 extension EditorState: StrokeSessionHost {
     var isPixelPerfectEnabled: Bool { pixelPerfect }
+
+    /// The single seam shape sessions read: physical Shift and the Constrain
+    /// latch OR-combined, so the latch is indistinguishable from a held key.
+    var isConstrainHeld: Bool { isShiftKeyHeld || isConstrainLatchOn }
 
     /// Holds the current canvas pixels as the pending Edit Baseline. The
     /// entry commits at stroke end only if the stroke changed the canvas —

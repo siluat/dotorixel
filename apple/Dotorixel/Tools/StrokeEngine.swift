@@ -54,6 +54,15 @@ final class StrokeEngine {
         return session.draw(current: coords, previous: previous)
     }
 
+    /// Notifies the active session that a stroke modifier (Shift, the
+    /// Constrain latch) changed, so a stationary preview can re-render
+    /// immediately. Returns `true` when the canvas needs a re-render.
+    @discardableResult
+    func modifierChanged() -> Bool {
+        guard let session else { return false }
+        return session.modifierChanged()
+    }
+
     /// Ends the active session, committing any deferred effect.
     /// Returns `true` when the canvas needs a re-render.
     @discardableResult

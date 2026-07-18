@@ -10,14 +10,21 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 179 | 136 | 43 | 212 | 76% | 39% |
-| cubic-dev-ai[bot] | 199 | 157 | 42 | 191 | 79% | 45% |
-| coderabbitai[bot] | 261 | 182 | 79 | 164 | 70% | 53% |
+| greptile-apps[bot] | 180 | 137 | 43 | 213 | 76% | 39% |
+| cubic-dev-ai[bot] | 201 | 159 | 42 | 191 | 79% | 45% |
+| coderabbitai[bot] | 263 | 183 | 80 | 165 | 70% | 53% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #332 | greptile-apps[bot] | Accept | iPad canvas only claimed first responder in `didMoveToWindow`, so `presses*` (mid-drag Shift) stopped arriving after another control took focus; `touchesBegan` now re-acquires it |
+| #332 | cubic-dev-ai[bot] | Accept | Same first-responder loss finding (duplicate of greptile); same re-acquire fix |
+| #332 | coderabbitai[bot] | Accept | Releasing one of two held Shift keys dropped the constraint — `pressesEnded/Cancelled` sent a bare `false`; now report the event's combined modifier state |
+| #332 | cubic-dev-ai[bot] | Accept | Same dual-Shift release finding (duplicate of coderabbit); same combined-modifier fix |
+| #332 | coderabbitai[bot] | Reject | Wanted issue 240 kept off `status: done` until the manual macOS Shift-drag check; workflow marks done at the `/task-done` commit and the residual check gates the merge via the PR test plan |
+| #332 | greptile-apps[bot] | Miss | Did not flag the dual-Shift release drop in `pressesEnded/Cancelled` |
+| #332 | coderabbitai[bot] | Miss | Did not flag the first-responder loss that silently stops `presses*` |
 | #330 | coderabbitai[bot] | Accept | 249 todo entry kept "blocked by 238" after 238 shipped in the same PR, contradicting progress.md's "unblocked by 238"; clause dropped |
 | #330 | cubic-dev-ai[bot] | Accept | Same stale blocked-by clause on the 249 todo entry (duplicate of coderabbit); same drop |
 | #330 | coderabbitai[bot] | Reject | Wanted VoiceOver adjustable actions on the HSV picker's drag-only controls; the web picker has the identical gap (slider roles, no keyboard handlers) and 238's scope is web parity — the two-axis SV mapping needs one shared cross-shell interaction design, split to issue 250 |

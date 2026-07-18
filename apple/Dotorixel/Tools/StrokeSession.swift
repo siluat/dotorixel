@@ -42,6 +42,21 @@ protocol StrokeSession {
     /// a re-render (e.g. a restored preview).
     @discardableResult
     func cancel() -> Bool
+
+    /// A stroke modifier (Shift, the Constrain latch) changed while the
+    /// pointer is stationary. Sessions whose preview depends on a modifier
+    /// re-render it here; the default ignores the change. Returns `true`
+    /// when the canvas needs a re-render.
+    @discardableResult
+    func modifierChanged() -> Bool
+}
+
+extension StrokeSession {
+    /// Most sessions read no modifiers — the change is a no-op for them.
+    @discardableResult
+    func modifierChanged() -> Bool {
+        false
+    }
 }
 
 /// Editor services a stroke session may touch — deliberately narrow so
@@ -55,6 +70,12 @@ protocol StrokeSessionHost: AnyObject {
     /// L-corner filter. Sessions snapshot this at creation — a mid-stroke
     /// toggle never affects the stroke in flight.
     var isPixelPerfectEnabled: Bool { get }
+
+    /// Whether the Shift-constrain state is held — physical Shift and the
+    /// toolbar Constrain latch, OR-combined by the host so sessions cannot
+    /// tell the sources apart. Shape sessions live-read this on every draw
+    /// sample; a mid-stroke change re-renders via `modifierChanged`.
+    var isConstrainHeld: Bool { get }
 
     /// State behind the loupe overlay shown while a sampling stroke is
     /// active. Sampling sessions own its lifecycle (show on each sample,

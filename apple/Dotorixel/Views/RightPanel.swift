@@ -101,7 +101,9 @@ struct RightPanel: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(size) by \(size)")
+        // Int-cast so the catalog key is a stable "%lld by %lld" — UInt32
+        // interpolation would generate a different format specifier.
+        .accessibilityLabel("\(Int(size)) by \(Int(size))")
     }
 
     private var sizeRow: some View {

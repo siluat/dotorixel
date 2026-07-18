@@ -2,21 +2,18 @@
 
 ## Currently Working On
 
-Apple native catch-up — Phase 2
-([RFC](../issues/013-apple-native-catchup.md)): 12/13 sub-issues done (230–241);
-242 (i18n String Catalog) closes the phase and is now unblocked.
+None.
 
 ## Last Completed
 
-[241 — Apple keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md):
-web-parity shortcut set (tool keys, X/G, ⌘Z/⇧⌘Z/⌘Y, Alt-hold eyedropper with
-deferred mid-stroke restore) via a pure controller; ⌘Z/⇧⌘Z are owned by the
-Edit-menu commands on both platforms. Real-hardware keyboard pass still
-recommended.
+[242 — Apple i18n String Catalog (en/ko/ja)](../issues/242-apple-i18n-string-catalog.md):
+Apple shell chrome fully localized (system-language switching); a completeness
+gate now fails tests when a user-facing string lacks ko/ja translations. **Closes
+RFC 013 Phase 2** — the RFC stays open for Phases 3–6.
 
 ## Next Up
 
-- [242 — i18n String Catalog (en/ko/ja)](../issues/242-apple-i18n-string-catalog.md) — closes Phase 2
+- Apple Phase 3 — Layer system ★ foundation — needs `/to-issues` decomposition ([RFC](../issues/013-apple-native-catchup.md))
 - [249 — Apple hex display row](../issues/249-apple-hex-display-row.md) — web parity, ready-for-agent
 - (triage) [250 — HSV picker assistive adjustability](../issues/250-hsv-picker-assistive-adjustability.md) — flagged on PR #330
 - (triage) [248 — Journal tests assert internal steps](../issues/248-journal-tests-assert-internal-steps.md)

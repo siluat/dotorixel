@@ -22,8 +22,10 @@ struct LeftToolbar: View {
                 // Constrain latch (web parity) — the latch has no separate
                 // button; the badge on the active tool shows its state.
                 // Shortcut hint rides along with the label (web parity:
-                // toolbar tooltip "Pencil (P)").
-                let hintedLabel = "\(tool.displayName) (\(String(tool.shortcutKey).uppercased()))"
+                // toolbar tooltip "Pencil (P)"). Resolved eagerly via
+                // String(localized:) — follows the system language
+                // (Locale.current), not the SwiftUI environment locale.
+                let hintedLabel = "\(String(localized: tool.displayName)) (\(String(tool.shortcutKey).uppercased()))"
                 Button {
                     editorState.activateTool(tool)
                 } label: {

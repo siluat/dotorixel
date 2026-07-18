@@ -143,4 +143,52 @@ struct DockedRegionSnapshotTests {
             as: .image(layout: .sizeThatFits)
         )
     }
+
+    // MARK: - Korean locale (issue 242 acceptance: translated chrome, no layout breakage)
+
+    /// Locale regression, not tier sizing: each leaf view rendered under the
+    /// ko locale baselines the String Catalog resolution path (section titles,
+    /// button labels, status-bar tool name) and pins that the longer Korean
+    /// strings don't break the docked layout. One non-en locale suffices —
+    /// ko exercises the widest text-length deltas of the supported set.
+
+    @Test("RightPanel renders Korean chrome at wide")
+    func rightPanelKoreanLocale() {
+        assertSnapshot(
+            of: RightPanel(editorState: state(), tier: .wide)
+                .frame(height: stripHeight)
+                .environment(\.locale, Locale(identifier: "ko")),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
+    @Test("LeftToolbar renders Korean chrome at wide")
+    func leftToolbarKoreanLocale() {
+        assertSnapshot(
+            of: LeftToolbar(editorState: state(), tier: .wide)
+                .frame(height: stripHeight)
+                .environment(\.locale, Locale(identifier: "ko")),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
+    @Test("TopBar renders Korean chrome at wide")
+    func topBarKoreanLocale() {
+        assertSnapshot(
+            of: TopBar(editorState: state(), tier: .wide)
+                .frame(width: barWidth)
+                .environment(\.locale, Locale(identifier: "ko")),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
+    @Test("StatusBar renders Korean chrome at wide")
+    func statusBarKoreanLocale() {
+        assertSnapshot(
+            of: StatusBar(editorState: state(), tier: .wide)
+                .frame(width: barWidth)
+                .environment(\.locale, Locale(identifier: "ko")),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
 }

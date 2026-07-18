@@ -127,22 +127,32 @@ class InputMTKView: MTKView {
         super.pressesBegan(presses, with: event)
     }
 
+    // A release reports the event's combined modifier state, not a bare
+    // `false` — releasing one of two held Shift keys must keep the
+    // constraint (the macOS `flagsChanged` path gets this for free).
+
     override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         if isShiftPress(presses) {
-            inputDelegate?.shiftStateChanged(isHeld: false, in: self)
+            inputDelegate?.shiftStateChanged(isHeld: event?.modifierFlags.contains(.shift) ?? false, in: self)
         }
         super.pressesEnded(presses, with: event)
     }
 
     override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         if isShiftPress(presses) {
-            inputDelegate?.shiftStateChanged(isHeld: false, in: self)
+            inputDelegate?.shiftStateChanged(isHeld: event?.modifierFlags.contains(.shift) ?? false, in: self)
         }
         super.pressesCancelled(presses, with: event)
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
+        // Re-acquire first responder at stroke start — another control may
+        // have taken it since `didMoveToWindow`, which would silently stop
+        // `presses*` (and with it mid-drag Shift changes) from arriving.
+        if !isFirstResponder {
+            becomeFirstResponder()
+        }
         if let event {
             inputDelegate?.shiftStateChanged(isHeld: event.modifierFlags.contains(.shift), in: self)
         }

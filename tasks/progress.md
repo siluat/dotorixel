@@ -3,21 +3,21 @@
 ## Currently Working On
 
 Apple native catch-up — Phase 2
-([RFC](../issues/013-apple-native-catchup.md)): 11/13 sub-issues done (230–240);
-remaining: 241, then 242 closes the phase.
+([RFC](../issues/013-apple-native-catchup.md)): 12/13 sub-issues done (230–241);
+242 (i18n String Catalog) closes the phase and is now unblocked.
 
 ## Last Completed
 
-[240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md):
-Shift and the toolbar Constrain latch are OR-combined at one session seam
-(latch = re-tap the active shape tool, web parity); mid-stroke toggles reshape
-the preview instantly via a new session `modifierChanged` hook. Latch is
-in-memory until Phase 4 persistence.
+[241 — Apple keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md):
+web-parity shortcut set (tool keys, X/G, ⌘Z/⇧⌘Z/⌘Y, Alt-hold eyedropper with
+deferred mid-stroke restore) via a pure controller; ⌘Z/⇧⌘Z are owned by the
+Edit-menu commands on both platforms. Real-hardware keyboard pass still
+recommended.
 
 ## Next Up
 
-- [241 — Keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md)
-- [249 — Apple hex display row](../issues/249-apple-hex-display-row.md) — web parity, unblocked by 238
+- [242 — i18n String Catalog (en/ko/ja)](../issues/242-apple-i18n-string-catalog.md) — closes Phase 2
+- [249 — Apple hex display row](../issues/249-apple-hex-display-row.md) — web parity, ready-for-agent
 - (triage) [250 — HSV picker assistive adjustability](../issues/250-hsv-picker-assistive-adjustability.md) — flagged on PR #330
 - (triage) [248 — Journal tests assert internal steps](../issues/248-journal-tests-assert-internal-steps.md)
 - (triage) [245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md) — coordinate with Apple Pencil palm rejection

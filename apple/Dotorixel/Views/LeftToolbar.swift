@@ -21,13 +21,17 @@ struct LeftToolbar: View {
                 // Re-tapping the active constrainable tool toggles the
                 // Constrain latch (web parity) — the latch has no separate
                 // button; the badge on the active tool shows its state.
+                // Shortcut hint rides along with the label (web parity:
+                // toolbar tooltip "Pencil (P)").
+                let hintedLabel = "\(tool.displayName) (\(String(tool.shortcutKey).uppercased()))"
                 Button {
                     editorState.activateTool(tool)
                 } label: {
                     Image(systemName: tool.symbolName)
                         .font(.system(size: DesignTokens.iconSize))
-                        .accessibilityLabel(tool.displayName)
+                        .accessibilityLabel(hintedLabel)
                 }
+                .help(hintedLabel)
                 .buttonStyle(ToolButtonStyle(
                     isActive: isActive,
                     boxSize: boxSize,

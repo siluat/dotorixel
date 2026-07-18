@@ -44,6 +44,28 @@ struct EditorToolSupportsPixelPerfectTests {
     }
 }
 
+@Suite("EditorTool — shortcutKey")
+struct EditorToolShortcutKeyTests {
+
+    @Test("every tool case has its web-parity shortcut letter", arguments: EditorTool.allCases)
+    func shortcutKey(tool: EditorTool) {
+        // Keyed by case so a newly added tool fails here until it gets a
+        // shortcut assignment (web parity: TOOL_SHORTCUTS in tool-registry;
+        // rationale in docs/decisions/keyboard-shortcut-review.md).
+        let expected: [EditorTool: Character] = [
+            .pencil: "p",
+            .eraser: "e",
+            .line: "l",
+            .rectangle: "u",
+            .ellipse: "o",
+            .floodFill: "f",
+            .eyedropper: "i",
+            .move: "v",
+        ]
+        #expect(tool.shortcutKey == expected[tool])
+    }
+}
+
 @Suite("EditorTool — isConstrainable")
 struct EditorToolIsConstrainableTests {
 

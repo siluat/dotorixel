@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 241 | [Apple native — editor keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md) | 2026-07-18 |
 | 240 | [Apple native — Shift constrain + constrain latch for shape tools](../issues/240-apple-shift-constrain.md) | 2026-07-18 |
 | 239 | [Apple native — pixel-perfect stroke filtering + toggle](../issues/239-apple-pixel-perfect.md) | 2026-07-18 |
 | 238 | [Apple native — HSV picker in the color section](../issues/238-apple-hsv-picker.md) | 2026-07-18 |

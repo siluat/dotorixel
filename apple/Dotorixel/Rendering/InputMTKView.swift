@@ -20,6 +20,18 @@ protocol CanvasInputDelegate: AnyObject {
     /// Constrain latch). Fired on every event that surfaces modifier flags;
     /// the receiver dedups unchanged values.
     func shiftStateChanged(isHeld: Bool, in view: InputMTKView)
+    /// The physical Alt/Option key's held state (iPad hardware keyboard) —
+    /// drives the temporary eyedropper switch. macOS reads Option globally
+    /// via `ShortcutKeyMonitorModifier` instead, so this fires on iPad only.
+    func altStateChanged(isHeld: Bool, in view: InputMTKView)
+    /// A character key pressed on an iPad hardware keyboard, normalized for
+    /// the shortcut controller. Returns whether the key was consumed as a
+    /// shortcut, so the view keeps consumed presses out of the responder
+    /// chain. macOS captures keys via `ShortcutKeyMonitorModifier` instead,
+    /// so this fires on iPad only.
+    func characterKeyPressed(
+        _ character: Character, modifiers: ShortcutModifiers, isRepeat: Bool, in view: InputMTKView
+    ) -> Bool
     #if os(macOS)
     func scrollWheelChanged(deltaX: CGFloat, deltaY: CGFloat, at point: CGPoint, isPrecise: Bool, in view: InputMTKView)
     func magnifyChanged(magnification: CGFloat, at point: CGPoint, in view: InputMTKView)
@@ -116,15 +128,72 @@ class InputMTKView: MTKView {
         }
     }
 
+    override func resignFirstResponder() -> Bool {
+        // Key releases can't reach a non-first-responder — a code left in
+        // the held set would mark that key's next press as an auto-repeat.
+        heldKeyCodes.removeAll()
+        return super.resignFirstResponder()
+    }
+
     private func isShiftPress(_ presses: Set<UIPress>) -> Bool {
         presses.contains { $0.key?.keyCode == .keyboardLeftShift || $0.key?.keyCode == .keyboardRightShift }
+    }
+
+    private func isAltPress(_ presses: Set<UIPress>) -> Bool {
+        presses.contains { $0.key?.keyCode == .keyboardLeftAlt || $0.key?.keyCode == .keyboardRightAlt }
+    }
+
+    /// Key codes currently held down — `UIPress` has no repeat flag, so a
+    /// `pressesBegan` for a code already in this set is a keyboard
+    /// auto-repeat (the physical release always passes through
+    /// `pressesEnded`/`pressesCancelled`, which remove the code).
+    private var heldKeyCodes: Set<UIKeyboardHIDUsage> = []
+
+    /// Forwards character keys to the shortcut controller. ⌘Z/⇧⌘Z are
+    /// excluded — the Edit-menu commands own undo/redo key equivalents on
+    /// both platforms, and forwarding here would double-fire them.
+    /// Returns the presses NOT consumed as shortcuts (modifier-only and
+    /// unhandled presses pass through) for responder-chain forwarding.
+    private func forwardCharacterPresses(_ presses: Set<UIPress>) -> Set<UIPress> {
+        var unhandledPresses = presses
+        for press in presses {
+            guard let key = press.key,
+                  let character = key.charactersIgnoringModifiers.lowercased().first
+            else { continue }
+            let isRepeat = !heldKeyCodes.insert(key.keyCode).inserted
+            let modifiers = ShortcutModifiers(key.modifierFlags)
+            if KeyboardShortcutController.isMenuOwnedShortcut(character, modifiers: modifiers) { continue }
+            let consumed = inputDelegate?.characterKeyPressed(
+                character, modifiers: modifiers, isRepeat: isRepeat, in: self
+            ) ?? false
+            if consumed {
+                unhandledPresses.remove(press)
+            }
+        }
+        return unhandledPresses
+    }
+
+    private func releaseHeldKeyCodes(_ presses: Set<UIPress>) {
+        for press in presses {
+            if let keyCode = press.key?.keyCode {
+                heldKeyCodes.remove(keyCode)
+            }
+        }
     }
 
     override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         if isShiftPress(presses) {
             inputDelegate?.shiftStateChanged(isHeld: true, in: self)
         }
-        super.pressesBegan(presses, with: event)
+        if isAltPress(presses) {
+            inputDelegate?.altStateChanged(isHeld: true, in: self)
+        }
+        // Consumed shortcuts stop here — forwarding them up the responder
+        // chain would hand them to system focus/default handling too.
+        let unhandledPresses = forwardCharacterPresses(presses)
+        if !unhandledPresses.isEmpty {
+            super.pressesBegan(unhandledPresses, with: event)
+        }
     }
 
     // A release reports the event's combined modifier state, not a bare
@@ -132,15 +201,23 @@ class InputMTKView: MTKView {
     // constraint (the macOS `flagsChanged` path gets this for free).
 
     override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        releaseHeldKeyCodes(presses)
         if isShiftPress(presses) {
             inputDelegate?.shiftStateChanged(isHeld: event?.modifierFlags.contains(.shift) ?? false, in: self)
+        }
+        if isAltPress(presses) {
+            inputDelegate?.altStateChanged(isHeld: event?.modifierFlags.contains(.alternate) ?? false, in: self)
         }
         super.pressesEnded(presses, with: event)
     }
 
     override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        releaseHeldKeyCodes(presses)
         if isShiftPress(presses) {
             inputDelegate?.shiftStateChanged(isHeld: event?.modifierFlags.contains(.shift) ?? false, in: self)
+        }
+        if isAltPress(presses) {
+            inputDelegate?.altStateChanged(isHeld: event?.modifierFlags.contains(.alternate) ?? false, in: self)
         }
         super.pressesCancelled(presses, with: event)
     }
@@ -184,3 +261,16 @@ class InputMTKView: MTKView {
 
     #endif
 }
+
+#if !os(macOS)
+extension ShortcutModifiers {
+    /// Maps UIKit key modifier flags to the platform-neutral set.
+    init(_ flags: UIKeyModifierFlags) {
+        self = []
+        if flags.contains(.command) { insert(.command) }
+        if flags.contains(.shift) { insert(.shift) }
+        if flags.contains(.alternate) { insert(.option) }
+        if flags.contains(.control) { insert(.control) }
+    }
+}
+#endif

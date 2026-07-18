@@ -14,6 +14,11 @@ struct PixelCanvasView {
     /// Observed by SwiftUI to trigger re-renders when canvas pixels change.
     /// The value itself is unused — only its change matters for the diff.
     var canvasVersion: Int = 0
+    /// Whether the canvas-size fields hold keyboard focus. Passed as a
+    /// stored property (read at ContentView scope, like `canvasVersion`) so
+    /// its change re-runs the update pass — the iPad first-responder
+    /// reclaim below depends on it.
+    var isTextInputFocused: Bool = false
 }
 
 // MARK: - Shared helpers
@@ -124,6 +129,16 @@ extension PixelCanvasView: UIViewRepresentable {
         coordinator.viewport = viewport
         coordinator.editorState = editorState
 
+        // Reclaim key focus when the canvas-size fields release it —
+        // `presses*` (hardware-keyboard shortcuts) only reach the canvas
+        // while it is first responder. Deferred: first-responder moves are
+        // not allowed during a SwiftUI view update.
+        if !isTextInputFocused && !mtkView.isFirstResponder {
+            DispatchQueue.main.async {
+                mtkView.becomeFirstResponder()
+            }
+        }
+
         guard let renderer = coordinator.renderer else { return }
         configureRenderer(renderer, mtkView: mtkView)
         mtkView.setNeedsDisplay()
@@ -192,6 +207,18 @@ extension PixelCanvasView {
             // EditorState dedups unchanged values and routes a mid-stroke
             // flip into the active session's modifier refresh.
             editorState?.isShiftKeyHeld = isHeld
+        }
+
+        func altStateChanged(isHeld: Bool, in view: InputMTKView) {
+            editorState?.keyboardShortcuts.setAltHeld(isHeld)
+        }
+
+        func characterKeyPressed(
+            _ character: Character, modifiers: ShortcutModifiers, isRepeat: Bool, in view: InputMTKView
+        ) -> Bool {
+            editorState?.keyboardShortcuts.handleKeyDown(
+                character, modifiers: modifiers, isRepeat: isRepeat
+            ) ?? false
         }
 
         // MARK: - macOS zoom/pan

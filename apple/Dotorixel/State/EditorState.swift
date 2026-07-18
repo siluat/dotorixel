@@ -32,6 +32,26 @@ final class EditorState {
         didSet { if isConstrainLatchOn != oldValue { modifierStateChanged() } }
     }
 
+    /// Whether a text field (the canvas-size inputs) has keyboard focus —
+    /// the signal that suppresses editor shortcuts so typed letters stay in
+    /// the field. Set by the owning views on focus change.
+    ///
+    /// Entering text focus also clears held-key state: on iPad the canvas
+    /// loses first responder, so release events (e.g. the Alt that opened a
+    /// temporary eyedropper) would never arrive.
+    var isTextInputFocused: Bool = false {
+        didSet {
+            if isTextInputFocused && !oldValue {
+                keyboardShortcuts.reset()
+            }
+        }
+    }
+
+    /// Editor keyboard shortcuts (tool keys, X/G, undo/redo combos,
+    /// Alt-hold eyedropper). Platform wiring feeds it normalized key events;
+    /// it dispatches back into this state via `KeyboardShortcutHost`.
+    let keyboardShortcuts = KeyboardShortcutController()
+
     /// Colors recently *used* to draw or sampled by the eyedropper —
     /// most-recent first. In-memory only for now; persistence arrives with
     /// Phase 4 (the web keeps this in the workspace snapshot).
@@ -79,6 +99,7 @@ final class EditorState {
         // Web-matching defaults (shared-state.svelte.ts): foreground black, background white.
         self.foregroundColor = Color(r: 0x00, g: 0x00, b: 0x00, a: 0xFF)
         self.backgroundColor = Color(r: 0xFF, g: 0xFF, b: 0xFF, a: 0xFF)
+        keyboardShortcuts.host = self
     }
 
     // MARK: - Tools
@@ -92,6 +113,18 @@ final class EditorState {
         } else {
             activeTool = tool
         }
+    }
+
+    /// Sets the active tool directly — the keyboard/programmatic path.
+    /// Unlike `activateTool`, re-selecting the active constrainable tool
+    /// never toggles the Constrain latch (web parity: `setActiveTool`).
+    func setActiveTool(_ tool: EditorTool) {
+        activeTool = tool
+    }
+
+    /// Toggles grid visibility (the G shortcut and TopBar button behavior).
+    func toggleGrid() {
+        showGrid.toggle()
     }
 
     // MARK: - Colors
@@ -139,6 +172,7 @@ final class EditorState {
         }
         resolveEditBaseline()
         isDrawing = false
+        restoreTemporaryTool()
     }
 
     /// Cancels the active stroke after an interrupted pointer sequence
@@ -151,6 +185,16 @@ final class EditorState {
         }
         resolveEditBaseline()
         isDrawing = false
+        restoreTemporaryTool()
+    }
+
+    /// Applies a pending Alt-eyedropper tool restore once the stroke is
+    /// down — the Apple analog of the web Input Pipeline's
+    /// `restoreTemporaryTool` (an Alt released mid-stroke defers to here).
+    private func restoreTemporaryTool() {
+        if let tool = keyboardShortcuts.consumePendingToolRestore() {
+            setActiveTool(tool)
+        }
     }
 
     /// Routes a Shift/latch flip into the active stroke so a stationary
@@ -319,6 +363,13 @@ final class EditorState {
         )
     }
 }
+
+// MARK: - KeyboardShortcutHost
+
+// The requirements (`isDrawing`, `isTextInputFocused`, `activeTool`,
+// `setActiveTool`, `handleUndo`, `handleRedo`, `toggleGrid`, `swapColors`)
+// are all fulfilled by the primary declaration above.
+extension EditorState: KeyboardShortcutHost {}
 
 // MARK: - StrokeSessionHost
 

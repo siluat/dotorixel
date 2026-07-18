@@ -10,6 +10,10 @@ Unit and view-layer tests for the Apple shell, written with
 guard the docked editor's **rendered layout** against regressions. It renders each
 leaf region view offscreen and compares the pixels to a committed reference image.
 
+`LoupeViewSnapshotTests` uses the same technique and pinned host to baseline the
+sampling loupe overlay (`LoupeView`): the 9×9 grid's cell states (opaque,
+transparent checker, out-of-canvas hatch), the center-cell rings, and the hex chip.
+
 > "Snapshot" here is the image-reference **testing technique**, not the History
 > `Snapshot` (the undo/redo pixel buffer) in the domain model. They are unrelated.
 

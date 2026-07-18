@@ -142,6 +142,10 @@ extension PixelCanvasView {
 
         private var isInteracting = false
 
+        /// The input source resolved at stroke begin — reused for the loupe
+        /// pointer pushes on every subsequent move of the same stroke.
+        private var strokeInputSource: LoupeInputSource = .mouse
+
         #if !os(macOS)
         /// Tracks cumulative pinch scale for computing per-frame deltas on iPadOS.
         private var lastPinchScale: CGFloat = 1.0
@@ -153,10 +157,14 @@ extension PixelCanvasView {
         // lifecycle (session resolution, interpolation, dedup, history,
         // re-render) is owned by EditorState and its StrokeEngine.
 
-        func drawingBegan(at point: CGPoint, button: PointerButton, in view: InputMTKView) {
+        func drawingBegan(at point: CGPoint, button: PointerButton, inputSource: LoupeInputSource, in view: InputMTKView) {
             guard let viewport, let editorState else { return }
 
             isInteracting = true
+            strokeInputSource = inputSource
+            // Pointer push precedes the stroke so the loupe has a position
+            // the moment the first sample shows it.
+            pushLoupePointer(point, in: view, editorState: editorState)
             editorState.beginStroke(
                 at: canvasCoords(of: point, in: view, viewport: viewport),
                 button: button
@@ -166,6 +174,7 @@ extension PixelCanvasView {
         func drawingMoved(to point: CGPoint, in view: InputMTKView) {
             guard isInteracting, let viewport, let editorState else { return }
 
+            pushLoupePointer(point, in: view, editorState: editorState)
             editorState.continueStroke(to: canvasCoords(of: point, in: view, viewport: viewport))
         }
 
@@ -281,6 +290,17 @@ extension PixelCanvasView {
         #endif
 
         // MARK: - Private
+
+        /// Feeds the loupe's position inputs in canvas-area points — the
+        /// coordinate space the SwiftUI overlay is laid out in, so no device
+        /// -pixel conversion applies.
+        private func pushLoupePointer(_ point: CGPoint, in view: InputMTKView, editorState: EditorState) {
+            editorState.samplingLoupe.updatePointer(
+                screen: point,
+                viewport: view.bounds.size,
+                inputSource: strokeInputSource
+            )
+        }
 
         private func canvasCoords(
             of point: CGPoint,

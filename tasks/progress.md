@@ -3,20 +3,19 @@
 ## Currently Working On
 
 Apple native catch-up — Phase 2
-([RFC](../issues/013-apple-native-catchup.md)): 5/13 sub-issues done (230–234);
-234 just unblocked 235 (loupe) and 237 (recent colors).
+([RFC](../issues/013-apple-native-catchup.md)): 6/13 sub-issues done (230–235);
+remaining unblocked: 236–240 (241 needs 236, 242 needs 232–241).
 
 ## Last Completed
 
-[234 — Eyedropper tool](../issues/234-apple-eyedropper.md): Apple shell
-eyedropper with web-parity drag-to-refine sampling. Color picks are not
-undoable — the session never opens an Edit Baseline, so History needed no API
-change. Visible feedback is the FG/BG swatch only until the loupe (235) lands;
-recent colors deferred to 237.
+[235 — Sampling loupe](../issues/235-apple-sampling-loupe.md): web-parity
+loupe overlay during Apple eyedropper strokes — 9×9 grid + hex chip, flip/clamp
+positioning, finger-vs-pencil offsets. Loupe shows only during eyedropper
+strokes; the web's tool-independent long-press touch sampling stays out of
+scope (coordinate with Apple Pencil palm rejection).
 
 ## Next Up
 
-- [235 — Sampling loupe](../issues/235-apple-sampling-loupe.md)
 - [236 — Move tool](../issues/236-apple-move-tool.md) — build its session on the Edit Baseline seam; unblocks 241
 - [237 — Recent colors](../issues/237-apple-recent-colors.md)
 - [238 — HSV picker](../issues/238-apple-hsv-picker.md)

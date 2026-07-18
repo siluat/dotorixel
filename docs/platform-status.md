@@ -14,7 +14,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Rectangle | ✅ | ✅ | ✅ | Outline only, snapshot-restore preview |
 | Ellipse | ✅ | ✅ | ✅ | Outline only, snapshot-restore preview |
 | Flood fill | ✅ | ✅ | ✅ | BFS, 4-connectivity; one-shot tap fill on both shells |
-| Eyedropper | — | ✅ | ✅ | Drag-and-commit; releases to FG (left-click/touch) or BG (right-click); skips transparent and out-of-bounds samples; not undoable. Loupe overlay tracked in its own row (Apple pending) |
+| Eyedropper | — | ✅ | ✅ | Drag-and-commit; releases to FG (left-click/touch) or BG (right-click); skips transparent and out-of-bounds samples; not undoable. Loupe overlay tracked in its own row |
 | Move | — | ✅ | ⬜ | Drag to reposition canvas content, snapshot-restore preview |
 | Selection / Marquee | 🔧 | 🔧 | ⬜ | Persistent Marquee with clipping, Delete, drag-to-move/cancel, copy/cut/paste, keyboard nudge, Shift-square define/axis drag, action bars; selection UI hides (Marquee preserved) while a Reference Layer is active |
 | Right-click background color | — | ✅ | ✅ | Supported paint tools draw with BG on right-click; eraser stays transparent. Apple: macOS right-click + iPadOS pointer secondary button; touch always FG |
@@ -56,7 +56,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Preset palette | — | ✅ | ✅ | 18 Pebble colors |
 | Recent colors | — | ✅ | ⬜ | Last 12 used |
 | FG/BG color swap | — | ✅ | ✅ | Swap button + per-swatch color picker. Apple: swap button; palette/picker set FG only |
-| Color loupe overlay | — | ✅ | ⬜ | 9×9 magnifier + hex chip during eyedropper drag (mouse) and 400ms long-press (touch); quadrant-flip keeps it visible near viewport edges |
+| Color loupe overlay | — | ✅ | ✅ | 9×9 magnifier + hex chip during eyedropper drag; quadrant-flip/clamp keeps it visible near edges. Web also shows it on 400ms long-press (touch); Apple: eyedropper strokes only, finger gets the touch offset (pencil = mouse) |
 
 ## Rendering
 

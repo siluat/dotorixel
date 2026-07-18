@@ -44,6 +44,16 @@ struct ContentView: View {
                         )
                         .onAppear { fitCanvas(in: geo.size) }
                         .onChange(of: geo.size) { _, newSize in fitCanvas(in: newSize) }
+                        // Sampling loupe: floats over the canvas area while an
+                        // eyedropper stroke is active. `position` is already
+                        // flipped/clamped to the canvas-area bounds.
+                        .overlay(alignment: .topLeading) {
+                            if let loupePosition = editorState.samplingLoupe.position {
+                                LoupeView(grid: editorState.samplingLoupe.grid)
+                                    .offset(x: loupePosition.x, y: loupePosition.y)
+                                    .allowsHitTesting(false)
+                            }
+                        }
                     }
 
                     RightPanel(editorState: editorState, tier: tier)

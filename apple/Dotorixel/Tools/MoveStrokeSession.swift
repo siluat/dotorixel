@@ -73,22 +73,27 @@ final class MoveStrokeSession: StrokeSession {
 func shiftedPixels(_ source: Data, width: Int, height: Int, dx: Int, dy: Int) -> Data {
     var result = Data(count: width * height * 4)
 
-    for srcY in 0..<height {
-        let destY = srcY + dy
-        if destY < 0 || destY >= height { continue }
+    // Rows copy straight between the raw buffers: this runs once per pointer
+    // sample mid-drag, so the hot path allocates nothing beyond the output.
+    result.withUnsafeMutableBytes { dest in
+        source.withUnsafeBytes { src in
+            guard let destBase = dest.baseAddress, let srcBase = src.baseAddress else { return }
+            for srcY in 0..<height {
+                let destY = srcY + dy
+                if destY < 0 || destY >= height { continue }
 
-        let srcXStart = max(0, -dx)
-        let srcXEnd = min(width, width - dx)
-        if srcXStart >= srcXEnd { continue }
+                let srcXStart = max(0, -dx)
+                let srcXEnd = min(width, width - dx)
+                if srcXStart >= srcXEnd { continue }
 
-        let destXStart = srcXStart + dx
-        let copyLen = (srcXEnd - srcXStart) * 4
-        let srcOffset = (srcY * width + srcXStart) * 4
-        let destOffset = (destY * width + destXStart) * 4
-        result.replaceSubrange(
-            destOffset..<(destOffset + copyLen),
-            with: source.subdata(in: srcOffset..<(srcOffset + copyLen))
-        )
+                let destXStart = srcXStart + dx
+                let copyLen = (srcXEnd - srcXStart) * 4
+                let srcOffset = (srcY * width + srcXStart) * 4
+                let destOffset = (destY * width + destXStart) * 4
+                destBase.advanced(by: destOffset)
+                    .copyMemory(from: srcBase.advanced(by: srcOffset), byteCount: copyLen)
+            }
+        }
     }
 
     return result

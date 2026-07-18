@@ -3,19 +3,18 @@
 ## Currently Working On
 
 Apple native catch-up — Phase 2
-([RFC](../issues/013-apple-native-catchup.md)): 9/13 sub-issues done (230–238);
-remaining unblocked: 239–241 (242 needs 239–241).
+([RFC](../issues/013-apple-native-catchup.md)): 10/13 sub-issues done (230–239);
+remaining unblocked: 240–241 (242 needs 240–241).
 
 ## Last Completed
 
-[238 — HSV picker](../issues/238-apple-hsv-picker.md): native HSV picker
-(SV square + hue strip) replaced the system `ColorPicker`; color section now
-matches the web's order. Follow-up registered:
-[249 — hex display row](../issues/249-apple-hex-display-row.md).
+[239 — Pixel-perfect filtering + toggle](../issues/239-apple-pixel-perfect.md):
+freehand strokes run the shared L-corner filter behind a TopBar toggle
+(default on, disabled for non-freehand tools). Toggle state is in-memory
+until Phase 4 persistence.
 
 ## Next Up
 
-- [239 — Pixel-perfect filtering + toggle](../issues/239-apple-pixel-perfect.md)
 - [240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md)
 - [241 — Keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md)
 - [249 — Apple hex display row](../issues/249-apple-hex-display-row.md) — web parity, unblocked by 238

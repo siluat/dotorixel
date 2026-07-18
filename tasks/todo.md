@@ -24,9 +24,8 @@ issues (`/to-issues`) when reached.
 
 ### Phase 2 — Full tool set + color (decomposed 2026-07-15)
 
-Dependency order; 230–238 are done, 242 closes the phase.
+Dependency order; 230–239 are done, 242 closes the phase.
 
-- [239 — Pixel-perfect filtering + toggle](../issues/239-apple-pixel-perfect.md)
 - [240 — Shift constrain + latch](../issues/240-apple-shift-constrain.md)
 - [241 — Keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md)
 - [242 — i18n String Catalog (en/ko/ja)](../issues/242-apple-i18n-string-catalog.md) — blocked by 232–241

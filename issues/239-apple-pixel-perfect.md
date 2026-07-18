@@ -1,6 +1,6 @@
 ---
 title: Apple native — pixel-perfect stroke filtering + toggle
-status: ready-for-agent
+status: done
 created: 2026-07-15
 ---
 
@@ -60,3 +60,38 @@ eraser**. Default on.
 ## Blocked by
 
 - [230 — stroke session architecture](230-apple-stroke-sessions.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Tools/FreehandStrokeSession.swift` | Stroke-scoped L-corner filtering: tail carry between batches, first-touch-wins pre-stroke color cache, batch-seam dedupe; raw apply path when the toggle is off |
+| `apple/Dotorixel/Tools/StrokeSession.swift` | `StrokeSessionHost.isPixelPerfectEnabled` seam, snapshotted at session creation |
+| `apple/Dotorixel/Tools/EditorTool.swift` | `supportsPixelPerfect` (pencil/eraser only); freehand sessions receive the snapshotted flag |
+| `apple/Dotorixel/State/EditorState.swift` | `pixelPerfect` state (default on) + host conformance |
+| `apple/Dotorixel/Views/TopBar.swift` | Toggle left of the grid toggle: staircase icon mirroring the web SVG, accent on-state, dimmed + inert for non-freehand tools; `GridToggleButtonStyle` generalized to `BarToggleButtonStyle` |
+| `apple/DotorixelTests/PixelPerfectStrokeTests.swift` | Seven behavior pins through the `EditorState` stroke API covering every acceptance criterion |
+| `apple/DotorixelTests/EditorToolTests.swift` | Exhaustive `supportsPixelPerfect` table test |
+| `apple/DotorixelTests/DockedRegionSnapshotTests.swift` | TopBar wide/x-wide baselines re-recorded + new disabled-toggle content snapshot |
+| `apple/DotorixelTests/StrokeEngineTests.swift` | Fake host gained the new protocol property |
+
+### Key Decisions
+
+- Filter plumbing lives inside `FreehandStrokeSession` rather than a separate
+  decorator (the web's ops-wrapper shape): Apple has no `DrawingOps` seam, the
+  session is the only consumer, and one self-contained module reads better than
+  a two-hop indirection.
+- The enabled flag is snapshotted at session creation via the host seam —
+  the same semantics as the web stroke engine's begin-time snapshot.
+- `EditorState.pixelPerfect` keeps the web's property name for cross-shell
+  vocabulary (matching `showGrid`); the host seam exposes the question-form
+  `isPixelPerfectEnabled`.
+
+### Notes
+
+- Toggle state is in-memory only; persistence parity arrives with Phase 4
+  (the web keeps it in the workspace snapshot).
+- Accessibility labels are hardcoded English like the rest of TopBar;
+  242 (String Catalog) localizes them.
+- Snapshot baselines re-recorded on the pinned host (iPad Pro 11-inch (M5),
+  iOS 26.4 simulator).

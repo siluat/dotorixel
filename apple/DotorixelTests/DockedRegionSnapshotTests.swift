@@ -99,6 +99,19 @@ struct DockedRegionSnapshotTests {
         )
     }
 
+    /// Content regression (not tier sizing): with a non-freehand tool active
+    /// the pixel-perfect toggle renders disabled (dimmed, no accent) — the
+    /// default-state bars above always show it enabled and on.
+    @Test("TopBar renders the pixel-perfect toggle disabled for a non-freehand tool")
+    func topBarPixelPerfectDisabled() {
+        let nonFreehand = state()
+        nonFreehand.activeTool = .floodFill
+        assertSnapshot(
+            of: TopBar(editorState: nonFreehand, tier: .wide).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
     // MARK: - StatusBar (height: 28 wide / 32 x-wide)
 
     @Test("StatusBar renders wide height (28pt)")

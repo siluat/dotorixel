@@ -14,6 +14,7 @@ enum EditorTool: CaseIterable {
     case ellipse
     case floodFill
     case eyedropper
+    case move
 
     /// User-visible label for the tool.
     var displayName: String {
@@ -25,6 +26,7 @@ enum EditorTool: CaseIterable {
         case .ellipse: return "Ellipse"
         case .floodFill: return "Flood Fill"
         case .eyedropper: return "Eyedropper"
+        case .move: return "Move"
         }
     }
 
@@ -38,6 +40,7 @@ enum EditorTool: CaseIterable {
         case .ellipse: return "circle"
         case .floodFill: return "drop.fill"
         case .eyedropper: return "eyedropper"
+        case .move: return "arrow.up.and.down.and.arrow.left.and.right"
         }
     }
 
@@ -77,6 +80,8 @@ enum EditorTool: CaseIterable {
                 host: host,
                 commitTarget: button == .secondary ? .background : .foreground
             )
+        case .move:
+            return MoveStrokeSession(host: host)
         }
     }
 }

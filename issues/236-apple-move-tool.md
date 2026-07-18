@@ -1,6 +1,6 @@
 ---
 title: Apple native — move tool (drag to shift canvas pixels)
-status: ready-for-agent
+status: done
 created: 2026-07-15
 ---
 
@@ -53,3 +53,33 @@ Status bar shows the tool's display name.
 ## Blocked by
 
 - [230 — stroke session architecture](230-apple-stroke-sessions.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Tools/MoveStrokeSession.swift` | New: `shiftedPixels` (row-by-row shift, edge clipping, transparent vacated areas — web `shiftPixels` parity) + `MoveStrokeSession` (snapshot at start, restore + re-shift relative to anchor per sample, restore on cancel) |
+| `apple/Dotorixel/Tools/EditorTool.swift` | `.move` case after `.eyedropper` (web display order): display name, SF Symbol, session factory. LeftToolbar/StatusBar pick it up via `allCases`/`displayName` |
+| `apple/DotorixelTests/MoveStrokeSessionTests.swift` | New: `PixelShiftTests` (diagonal shift, zero-delta identity, clipping at all 4 edges, full-canvas displacement) + `MoveStrokeSessionTests` via the `EditorState` public stroke API (drag+commit, anchor-relative reversal, destructive clipping, undo/redo, cancel with no history entry) |
+| `apple/DotorixelTests/EditorToolTests.swift` | `.move` added to the exhaustive displayName table |
+| `apple/DotorixelTests/__Snapshots__/DockedRegionSnapshotTests/leftToolbar{Wide,XWide}.1.png` | Re-recorded on the pinned host (Move button after eyedropper) |
+
+### Key Decisions
+
+- **Shift stays native (Swift)** per the issue's Core Placement call — simple, stable
+  logic mirroring the web's TS implementation; the doc comment records "promote to
+  the core if a third implementation is ever needed".
+- **`end` is a no-op** — the last per-sample shift already produced the final
+  state, so release has nothing to commit (same structure as `ShapeStrokeSession`).
+  No-op strokes (zero final delta) leave History untouched via the existing Edit
+  Baseline resolution (243).
+- SF Symbol `arrow.up.and.down.and.arrow.left.and.right` as the equivalent of the
+  web's lucide `Move` icon.
+
+### Notes
+
+- `paintedPixelCount` test helper is now duplicated in three suites
+  (FloodFill/Shape/Move) — candidate for a shared test helper if a fourth copy
+  appears.
+- Tests: full Apple suite 132 tests green on the pinned host (iPad Pro 11-inch
+  (M5), iOS 26.4 sim).

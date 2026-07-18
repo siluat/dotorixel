@@ -10,14 +10,21 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 177 | 135 | 42 | 206 | 76% | 40% |
-| cubic-dev-ai[bot] | 194 | 153 | 41 | 188 | 79% | 45% |
-| coderabbitai[bot] | 256 | 179 | 77 | 160 | 70% | 53% |
+| greptile-apps[bot] | 177 | 135 | 42 | 209 | 76% | 39% |
+| cubic-dev-ai[bot] | 196 | 155 | 41 | 189 | 79% | 45% |
+| coderabbitai[bot] | 258 | 180 | 78 | 162 | 70% | 53% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #327 | coderabbitai[bot] | Reject | Claimed `LoupeInputSource`/`LoupeQuadrant` need explicit `Equatable` "or the file won't compile"; associated-value-free enums conform implicitly, and the branch builds + passes the full suite as-is |
+| #327 | coderabbitai[bot] | Accept | Tests README re-record steps pointed only at the DockedRegionSnapshotTests snapshot directory after LoupeViewSnapshotTests was added; path made suite-generic |
+| #327 | cubic-dev-ai[bot] | Accept | Loupe observable reads sat in ContentView's body, so pointer-rate loupe updates re-invalidated the Metal canvas view and its texture upload; reads isolated in a child overlay view |
+| #327 | cubic-dev-ai[bot] | Accept | Partially transparent samples rendered blended while the web loupe shows `a > 0` cells as opaque RGB; cells + chip swatch now render full-opacity RGB, snapshot pins a semi-transparent pixel |
+| #327 | coderabbitai[bot] | Miss | Did not flag the loupe overlay re-render coupling or the partial-alpha blend mismatch (×2) |
+| #327 | cubic-dev-ai[bot] | Miss | Did not flag the suite-specific snapshot re-record path in the tests README |
+| #327 | greptile-apps[bot] | Miss | Reviewed with 5/5 "safe to merge", flagging none of the three accepted findings (×3) |
 | #326 | cubic-dev-ai[bot] | Accept | Test file/struct `EyedropperSessionTests` used the CONTEXT.md-banned term "eyedropper session" (eyedropper is a tool, not a session); renamed to `EyedropperStrokeSessionTests` after the class under test rather than the bot's `Sampling*` suggestions — Apple has no Sampling Session until 235 |
 | #326 | coderabbitai[bot] | Miss | Did not flag the banned "eyedropper session" term in the test name (APPROVED, no actionable comments) |
 | #326 | greptile-apps[bot] | Miss | Did not flag the banned "eyedropper session" term in the test name (5/5 "safe to merge", no findings) |

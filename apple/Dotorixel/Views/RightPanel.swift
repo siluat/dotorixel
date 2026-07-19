@@ -283,6 +283,9 @@ struct RightPanel: View {
             RoundedRectangle(cornerRadius: 4)
                 .stroke(DesignTokens.border, lineWidth: 1)
         )
+        // One VoiceOver element ("# FF8A65"), not two swipe stops — the
+        // two-tone split is visual styling, not semantic structure.
+        .accessibilityElement(children: .combine)
     }
 
     private var paletteGrid: some View {

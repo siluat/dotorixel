@@ -40,7 +40,6 @@ decomposed into issues (`/to-issues`) when reached.
 
 - [248 — Journal tests assert internal steps, not outcomes](../issues/248-journal-tests-assert-internal-steps.md) — `events` arrays pin which History API the journal calls; 244 broke 28 of them without changing behavior. Test-only refactor, needs-triage
 - [245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md) — any finger's lift ends the active stroke; associate strokes with their originating touch. Pre-existing input routing, flagged on PR #322; coordinate with Apple Pencil palm rejection. needs-triage
-- [249 — Apple hex display row](../issues/249-apple-hex-display-row.md) — web parity: read-only `#RRGGBB` row between the FG/BG pair and the HSV picker. Surfaced during 238. ready-for-agent
 - [250 — HSV picker assistive adjustability](../issues/250-hsv-picker-assistive-adjustability.md) — web keyboard + Apple VoiceOver operation for the drag-only picker; flagged on PR #330. needs-triage
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate (deferred from Milestone 3 MVP)
 - Reference image import — clipboard paste support (Ctrl/Cmd+V), deferred from Milestone 3 MVP

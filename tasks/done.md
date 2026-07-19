@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 249 | [Apple native — hex display row under the FG/BG pair](../issues/249-apple-hex-display-row.md) | 2026-07-19 |
 | 242 | [Apple native — i18n via String Catalog (en/ko/ja)](../issues/242-apple-i18n-string-catalog.md) | 2026-07-18 |
 | 241 | [Apple native — editor keyboard shortcuts](../issues/241-apple-keyboard-shortcuts.md) | 2026-07-18 |
 | 240 | [Apple native — Shift constrain + constrain latch for shape tools](../issues/240-apple-shift-constrain.md) | 2026-07-18 |

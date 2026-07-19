@@ -52,7 +52,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Color model (RGBA) | ✅ | ✅ | ✅ | Hex conversion in Core + Web |
 | HSV conversion | — | ✅ | ✅ | Shell-side math on both shells (simple, stable — Core Placement) |
-| Color picker | — | ✅ | ✅ | Custom HSV picker (SV square + hue strip) on both shells; achromatic colors keep the current hue. Web shows a hex readout row; Apple pending (249) |
+| Color picker | — | ✅ | ✅ | Custom HSV picker (SV square + hue strip) on both shells; achromatic colors keep the current hue. Read-only hex readout row on both shells |
 | Preset palette | — | ✅ | ✅ | 18 Pebble colors |
 | Recent colors | — | ✅ | ✅ | Last 12 used, deduped, most-recent first. Apple: in-memory only until Phase 4 persistence |
 | FG/BG color swap | — | ✅ | ✅ | Swap button + per-swatch color picker. Apple: swap button; palette/picker set FG only |

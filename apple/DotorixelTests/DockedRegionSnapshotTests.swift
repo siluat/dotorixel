@@ -63,6 +63,20 @@ struct DockedRegionSnapshotTests {
         )
     }
 
+    /// Content regression (not tier sizing): the hex row between the FG/BG
+    /// pair and the HSV picker shows the current foreground's uppercase hex
+    /// digits. A non-default foreground makes the live binding visible — the
+    /// default-state strips above would render the same row as 000000.
+    @Test("RightPanel renders the hex row for a non-default foreground")
+    func rightPanelHexRowNonDefaultForeground() {
+        let recolored = state()
+        recolored.foregroundColor = Color(r: 0xFF, g: 0x8A, b: 0x65, a: 0xFF)
+        assertSnapshot(
+            of: RightPanel(editorState: recolored, tier: .wide).frame(height: stripHeight),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
     // MARK: - LeftToolbar (width: 44 wide / 48 x-wide)
 
     @Test("LeftToolbar renders wide width (44pt)")

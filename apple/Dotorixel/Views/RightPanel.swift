@@ -157,6 +157,7 @@ struct RightPanel: View {
         VStack(alignment: .leading, spacing: DesignTokens.space3) {
             sectionTitle("Color")
             fgBgRow
+            hexRow
             sectionTitle("HSV")
             HsvPickerView(
                 selectedColor: editorState.foregroundColor,
@@ -259,6 +260,32 @@ struct RightPanel: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Swap colors")
+    }
+
+    /// Read-only hex readout — web RightPanel `.hex-row`: a tertiary `#`
+    /// prefix and the foreground's uppercase hex digits on an elevated,
+    /// bordered strip. `Color.hexString` produces `#RRGGBB`; the hash is
+    /// split off for the two-tone styling.
+    private var hexRow: some View {
+        HStack(spacing: DesignTokens.space2) {
+            Text("#")
+                .foregroundStyle(DesignTokens.textTertiary)
+            Text(String(editorState.foregroundColor.hexString.dropFirst()))
+                .foregroundStyle(DesignTokens.textPrimary)
+            Spacer(minLength: 0)
+        }
+        .font(.system(size: DesignTokens.fontSizeSm))
+        .padding(.horizontal, DesignTokens.space3)
+        .frame(height: controlHeight)
+        .background(DesignTokens.bgElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(DesignTokens.border, lineWidth: 1)
+        )
+        // One VoiceOver element ("# FF8A65"), not two swipe stops — the
+        // two-tone split is visual styling, not semantic structure.
+        .accessibilityElement(children: .combine)
     }
 
     private var paletteGrid: some View {

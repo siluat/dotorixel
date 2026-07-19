@@ -10,14 +10,18 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 187 | 142 | 45 | 222 | 76% | 39% |
-| cubic-dev-ai[bot] | 213 | 169 | 44 | 194 | 79% | 47% |
-| coderabbitai[bot] | 268 | 187 | 81 | 175 | 70% | 52% |
+| greptile-apps[bot] | 189 | 143 | 46 | 222 | 76% | 39% |
+| cubic-dev-ai[bot] | 214 | 170 | 44 | 194 | 79% | 47% |
+| coderabbitai[bot] | 268 | 187 | 81 | 176 | 70% | 52% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #335 | greptile-apps[bot] | Accept | Hex row's `#`/digits rendered as two `Text`s, so VoiceOver exposed two swipe stops for one value; combined into a single element via `.accessibilityElement(children: .combine)` |
+| #335 | cubic-dev-ai[bot] | Accept | Same VoiceOver two-fragment split on the hex row (duplicate of greptile); same combine fix |
+| #335 | greptile-apps[bot] | Reject | Claimed a translucent foreground displays a misleading 6-digit hex; the foreground is opaque by construction on both shells (init/palette/HSV conversion all emit `a: 0xFF`, the eyedropper commits only canvas pixels) and the web contract is an alpha-less `#RRGGBB` readout |
+| #335 | coderabbitai[bot] | Miss | Did not flag the VoiceOver two-fragment split on the hex row (APPROVED, no actionable comments) |
 | #334 | greptile-apps[bot] | Reject | Claimed HSV accessibility values bypass the catalog ("plain interpolated `String`"); the call sites are inline literals that select the `LocalizedStringKey` overload — `FormatEntryLocalizationTests` now pins the format-key match (`"\(30) degrees"` → `"30도"`) |
 | #334 | cubic-dev-ai[bot] | Reject | Same HSV-values-bypass claim (duplicate of greptile); same refutation |
 | #334 | cubic-dev-ai[bot] | Accept | Issue note overclaimed the completeness gate as enforcing the whole "catalog entry, not hardcoded literal" contract; reworded to the narrower in-catalog guarantee |

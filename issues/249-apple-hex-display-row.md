@@ -1,6 +1,6 @@
 ---
 title: Apple native — hex display row under the FG/BG pair
-status: ready-for-agent
+status: done
 created: 2026-07-18
 ---
 
@@ -46,3 +46,29 @@ web's placement and look:
 
 - [238 — HSV picker](238-apple-hsv-picker.md) — defines the color section
   ordering this row slots into.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Views/RightPanel.swift` | `hexRow` added to `colorSection` between `fgBgRow` and the HSV title — tertiary `#` + primary uppercase digits (split from `Color.hexString`), 28pt height, 8pt padding, 4pt gap, elevated bg, 1pt border, 4pt radius |
+| `apple/DotorixelTests/DockedRegionSnapshotTests.swift` | New content-regression snapshot: RightPanel with a non-default foreground (`#FF8A65`) pins the live binding — the default-state strips would render 000000 |
+| `apple/DotorixelTests/__Snapshots__/DockedRegionSnapshotTests/rightPanel*.png` | All five RightPanel baselines re-recorded on the pinned host (wide / x-wide / recent-populated / ko / new hex-row) and visually reviewed |
+
+### Key Decisions
+
+- Token-scale spacing (4pt gap → `space2`, 8pt padding → `space3`) follows the
+  existing `fgBgRow` precedent of mapping raw web CSS onto matching `DesignTokens`
+  values; corner radius stays a raw `4` per the file's convention.
+- `Text("#")` uses the same literal style as the existing `Text("×")` — neither
+  is in the String Catalog, so both fall back to the literal in every locale and
+  the completeness gate is unaffected. A `Text(verbatim:)` cleanup for both
+  symbols is a possible (unfiled) follow-up.
+
+### Notes
+
+- Live-update coverage (palette tap / HSV drag / eyedropper / swap) rides the
+  `@Observable` `foregroundColor` binding — the non-default-foreground snapshot
+  is the regression guard for it; no per-source tests were added.
+- Full Apple suite green after re-record: 214 tests / 45 suites on the pinned
+  host (iPad Pro 11-inch (M5) · iOS 26.4 sim).

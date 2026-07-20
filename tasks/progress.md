@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None.
+[245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md)
 
 ## Last Completed
 
@@ -14,7 +14,6 @@ single dedicated contract test. Test-only, production untouched.
 ## Next Up
 
 - Apple Phase 3 — Layer system ★ foundation — needs `/to-issues` decomposition ([RFC](../issues/013-apple-native-catchup.md))
-- (triage) [245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md) — coordinate with Apple Pencil palm rejection
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Apple Pencil: hover preview + palm rejection

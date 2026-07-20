@@ -6,15 +6,14 @@ None.
 
 ## Last Completed
 
-[249 — Apple hex display row](../issues/249-apple-hex-display-row.md):
-Apple color section now shows the read-only `#RRGGBB` row (web parity); a
-non-default-foreground snapshot pins the live binding. Possible follow-up noted
-in the issue: `Text(verbatim:)` for the `#`/`×` symbol literals.
+Triage of [250 — HSV picker assistive adjustability](../issues/250-hsv-picker-assistive-adjustability.md):
+Option A (split axes) chosen, agent brief written, status now `ready-for-agent`.
+Implementation is a separate item in Next Up.
 
 ## Next Up
 
 - Apple Phase 3 — Layer system ★ foundation — needs `/to-issues` decomposition ([RFC](../issues/013-apple-native-catchup.md))
-- (triage) [250 — HSV picker assistive adjustability](../issues/250-hsv-picker-assistive-adjustability.md) — flagged on PR #330
+- [250 — HSV picker assistive adjustability](../issues/250-hsv-picker-assistive-adjustability.md) — ready-for-agent (Option A; agent brief in issue)
 - (triage) [248 — Journal tests assert internal steps](../issues/248-journal-tests-assert-internal-steps.md)
 - (triage) [245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md) — coordinate with Apple Pencil palm rejection
 - Project file format (JSON-based) + save/load

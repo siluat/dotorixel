@@ -63,6 +63,7 @@
 	"aria_constrainStatusOff": "固定がオフになりました。このツールをもう一度押すとオンになります。",
 	"aria_selectionActions": "選択操作",
 	"aria_saturationValue": "彩度 {s}%、明度 {v}%",
+	"aria_hueValue": "{h}度",
 	"aria_fgBgGroup": "前景色 {fg}、背景色 {bg}",
 
 	"label_tool": "ツール:",

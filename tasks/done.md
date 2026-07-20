@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 250 | [HSV picker — assistive-technology adjustability (web keyboard, Apple VoiceOver)](../issues/250-hsv-picker-assistive-adjustability.md) | 2026-07-20 |
 | — | Triage — [250 — HSV picker assistive adjustability](../issues/250-hsv-picker-assistive-adjustability.md) → ready-for-agent; Option A (split axes) chosen, agent brief written | 2026-07-20 |
 | 249 | [Apple native — hex display row under the FG/BG pair](../issues/249-apple-hex-display-row.md) | 2026-07-19 |
 | 242 | [Apple native — i18n via String Catalog (en/ko/ja)](../issues/242-apple-i18n-string-catalog.md) | 2026-07-18 |

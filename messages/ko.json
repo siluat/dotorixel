@@ -63,6 +63,7 @@
 	"aria_constrainStatusOff": "고정이 꺼졌습니다. 이 도구를 다시 누르면 켜집니다.",
 	"aria_selectionActions": "선택 작업",
 	"aria_saturationValue": "채도 {s}%, 명도 {v}%",
+	"aria_hueValue": "{h}도",
 	"aria_fgBgGroup": "전경색 {fg}, 배경색 {bg}",
 
 	"label_tool": "도구:",

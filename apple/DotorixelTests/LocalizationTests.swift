@@ -84,10 +84,8 @@ struct FormatEntryLocalizationTests {
     @Test("Format entries resolve in ko via call-site-shaped keys")
     func formatEntriesResolveInKorean() {
         #expect(resolve("\(30) degrees", in: "ko") == "30도")
-        #expect(
-            resolve("Saturation \(50), brightness \(75)", in: "ko")
-                == "채도 50, 명도 75"
-        )
+        // Split SV elements' percent values are symbol-only and stay untranslated.
+        #expect(resolve("\(50)%", in: "ko") == "50%")
         #expect(resolve("Recent color \("#FF0000")", in: "ko") == "최근 색상 #FF0000")
         #expect(resolve("Palette color \("#FF0000")", in: "ko") == "팔레트 색상 #FF0000")
         #expect(resolve("\(16) by \(16)", in: "ko") == "16 × 16")

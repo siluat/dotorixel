@@ -91,6 +91,10 @@
 		onColorChange(newHex);
 	}
 
+	function clampUnit(value: number): number {
+		return Math.max(0, Math.min(1, value));
+	}
+
 	function handleSvPointerDown(e: PointerEvent): void {
 		isDraggingSv = true;
 		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -108,9 +112,35 @@
 
 	function updateSvFromEvent(e: PointerEvent): void {
 		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-		const s = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-		const v = Math.max(0, Math.min(1, 1 - (e.clientY - rect.top) / rect.height));
+		const s = clampUnit((e.clientX - rect.left) / rect.width);
+		const v = clampUnit(1 - (e.clientY - rect.top) / rect.height);
 		hsv = { h: hsv.h, s, v };
+		emitColor();
+	}
+
+	/** Per-arrow-key step: 1% of the saturation/brightness range, 10% with Shift. */
+	const svKeyStep = 0.01;
+	const svKeyStepShift = 0.1;
+
+	function handleSvKeydown(e: KeyboardEvent): void {
+		const step = e.shiftKey ? svKeyStepShift : svKeyStep;
+		switch (e.key) {
+			case 'ArrowRight':
+				hsv = { ...hsv, s: clampUnit(hsv.s + step) };
+				break;
+			case 'ArrowLeft':
+				hsv = { ...hsv, s: clampUnit(hsv.s - step) };
+				break;
+			case 'ArrowUp':
+				hsv = { ...hsv, v: clampUnit(hsv.v + step) };
+				break;
+			case 'ArrowDown':
+				hsv = { ...hsv, v: clampUnit(hsv.v - step) };
+				break;
+			default:
+				return;
+		}
+		e.preventDefault();
 		emitColor();
 	}
 
@@ -131,9 +161,29 @@
 
 	function updateHueFromEvent(e: PointerEvent): void {
 		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-		const t = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-		const h = t * 360;
+		const h = clampUnit((e.clientY - rect.top) / rect.height) * 360;
 		hsv = { h, s: hsv.s, v: hsv.v };
+		emitColor();
+	}
+
+	/** Per-arrow-key step: 1° of the hue range, 10° with Shift. */
+	const hueKeyStep = 1;
+	const hueKeyStepShift = 10;
+
+	function handleHueKeydown(e: KeyboardEvent): void {
+		const step = e.shiftKey ? hueKeyStepShift : hueKeyStep;
+		switch (e.key) {
+			// The strip runs top (0°) to bottom (360°), so ArrowDown increases hue.
+			case 'ArrowDown':
+				hsv = { ...hsv, h: Math.min(360, hsv.h + step) };
+				break;
+			case 'ArrowUp':
+				hsv = { ...hsv, h: Math.max(0, hsv.h - step) };
+				break;
+			default:
+				return;
+		}
+		e.preventDefault();
 		emitColor();
 	}
 
@@ -149,12 +199,15 @@
 		style:height="{height}px"
 		role="slider"
 		aria-label={m.color_saturationBrightness()}
+		aria-valuemin={0}
+		aria-valuemax={100}
 		aria-valuenow={Math.round(hsv.s * 100)}
 		aria-valuetext={m.aria_saturationValue({ s: Math.round(hsv.s * 100), v: Math.round(hsv.v * 100) })}
 		tabindex="0"
 		onpointerdown={handleSvPointerDown}
 		onpointermove={handleSvPointerMove}
 		onpointerup={handleSvPointerUp}
+		onkeydown={handleSvKeydown}
 	>
 		<canvas bind:this={svCanvas}></canvas>
 		<div
@@ -170,13 +223,16 @@
 		style:height="{height}px"
 		role="slider"
 		aria-label={m.color_hue()}
+		aria-orientation="vertical"
 		aria-valuemin={0}
 		aria-valuemax={360}
 		aria-valuenow={Math.round(hsv.h)}
+		aria-valuetext={m.aria_hueValue({ h: Math.round(hsv.h) })}
 		tabindex="0"
 		onpointerdown={handleHuePointerDown}
 		onpointermove={handleHuePointerMove}
 		onpointerup={handleHuePointerUp}
+		onkeydown={handleHueKeydown}
 	>
 		<canvas bind:this={hueCanvas}></canvas>
 		<div
@@ -199,6 +255,12 @@
 		cursor: crosshair;
 		border-radius: var(--picker-border-radius, 0);
 		overflow: hidden;
+	}
+
+	.sv-area:focus-visible,
+	.hue-strip:focus-visible {
+		outline: 2px solid var(--ds-accent);
+		outline-offset: -2px;
 	}
 
 	.sv-area canvas {

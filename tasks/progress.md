@@ -6,14 +6,14 @@ None.
 
 ## Last Completed
 
-Triage of [250 — HSV picker assistive adjustability](../issues/250-hsv-picker-assistive-adjustability.md):
-Option A (split axes) chosen, agent brief written, status now `ready-for-agent`.
-Implementation is a separate item in Next Up.
+[250 — HSV picker assistive adjustability](../issues/250-hsv-picker-assistive-adjustability.md):
+the HSV picker is now operable by assistive tech on both shells (web arrow keys, Apple VoiceOver)
+via split axes, reusing the pointer edit paths. Hue arrows follow the visual direction;
+per-shell step sizes are recorded in the issue.
 
 ## Next Up
 
 - Apple Phase 3 — Layer system ★ foundation — needs `/to-issues` decomposition ([RFC](../issues/013-apple-native-catchup.md))
-- [250 — HSV picker assistive adjustability](../issues/250-hsv-picker-assistive-adjustability.md) — ready-for-agent (Option A; agent brief in issue)
 - (triage) [248 — Journal tests assert internal steps](../issues/248-journal-tests-assert-internal-steps.md)
 - (triage) [245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md) — coordinate with Apple Pencil palm rejection
 - Project file format (JSON-based) + save/load

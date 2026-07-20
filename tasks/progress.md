@@ -6,14 +6,14 @@ None.
 
 ## Last Completed
 
-Triage of [248 — Journal tests assert internal steps](../issues/248-journal-tests-assert-internal-steps.md):
-proceed decided (journal/history wiring is under active refactoring — 243/244/246/247),
-agent brief written, status now `ready-for-agent`. Implementation is a separate item in Next Up.
+[248 — Journal tests assert internal steps](../issues/248-journal-tests-assert-internal-steps.md):
+journal tests now assert history outcomes (`canUndo`/`canRedo`, real undo restoration) instead of
+History API call sequences; the one deliberate coupling — Edit Baseline ordering — is pinned by a
+single dedicated contract test. Test-only, production untouched.
 
 ## Next Up
 
 - Apple Phase 3 — Layer system ★ foundation — needs `/to-issues` decomposition ([RFC](../issues/013-apple-native-catchup.md))
-- [248 — Journal tests assert internal steps](../issues/248-journal-tests-assert-internal-steps.md) — ready-for-agent (agent brief in issue)
 - (triage) [245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md) — coordinate with Apple Pencil palm rejection
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)

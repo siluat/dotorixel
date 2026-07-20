@@ -38,7 +38,6 @@ decomposed into issues (`/to-issues`) when reached.
 
 ## Review backlog (not assigned to a milestone)
 
-- [248 — Journal tests assert internal steps, not outcomes](../issues/248-journal-tests-assert-internal-steps.md) — `events` arrays pin which History API the journal calls; 244 broke 28 of them without changing behavior. Test-only refactor, ready-for-agent (agent brief in issue)
 - [245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md) — any finger's lift ends the active stroke; associate strokes with their originating touch. Pre-existing input routing, flagged on PR #322; coordinate with Apple Pencil palm rejection. needs-triage
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate (deferred from Milestone 3 MVP)
 - Reference image import — clipboard paste support (Ctrl/Cmd+V), deferred from Milestone 3 MVP

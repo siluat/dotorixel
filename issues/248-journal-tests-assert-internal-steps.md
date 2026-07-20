@@ -1,6 +1,6 @@
 ---
 title: Document Change Journal tests assert internal steps, not outcomes
-status: ready-for-agent
+status: done
 created: 2026-07-17
 ---
 
@@ -136,3 +136,35 @@ that undo restores the prior document state.
 - Removing the fake history entirely — it stays for verdict-controlled
   wiring tests.
 - Other test files, including the Rust core's history tests.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/canvas/editor-session/document-change-journal.test.ts` | All History-API sequence assertions replaced with outcome assertions (`canUndo`/`canRedo`, `changed` verdict, real undo restoration); one dedicated ordering-contract test added |
+
+### Key Decisions
+
+- The shared fake history no longer records into `events` — it is a pure
+  verdict state machine (`canUndo`/`canRedo` + `endEditCommits` /
+  `undoDocument` / `redoDocument` controls). Which History APIs the journal
+  calls is pinned only by the single ordering-contract test.
+- The dedicated ordering test covers three scenarios in one `it`: the success
+  bracket (begin → apply → end), the baton closing on a throwing apply, and
+  the baseline never opening on pre-validation failure.
+- Real-document tests switched to the real `createDocumentHistory` (8 sites),
+  making `changed`/`canUndo` genuine core-ring verdicts instead of fake
+  echoes.
+- Refusal/no-op/persisted-ui tests now assert `canUndo === false`, keeping
+  the "records nothing" pin as an outcome (previously implied only by the
+  absence of `begin-edit` in the asserted sequence).
+
+### Notes
+
+- The two stroke-boundary tests merged into one real-history test
+  (beginEdit → real mutation → endEdit → undo restores); net test count
+  unchanged at 48.
+- Baton-close-on-throw is covered in TS only via the ordering-contract test;
+  the ring's own invariants remain Rust-tested.
+- Three pre-244 `snapshot` remnants in test titles were cleaned up along the
+  way.

@@ -10,14 +10,20 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 189 | 143 | 46 | 222 | 76% | 39% |
-| cubic-dev-ai[bot] | 214 | 170 | 44 | 194 | 79% | 47% |
-| coderabbitai[bot] | 268 | 187 | 81 | 176 | 70% | 52% |
+| greptile-apps[bot] | 191 | 143 | 48 | 223 | 75% | 39% |
+| cubic-dev-ai[bot] | 214 | 170 | 44 | 195 | 79% | 47% |
+| coderabbitai[bot] | 270 | 188 | 82 | 176 | 70% | 52% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #336 | greptile-apps[bot] | Reject | Claimed keyboard hue reaching exactly 360° emits a wrong color; `hsvToRgb` maps 360 into the `h≥300` branch with x=0 → exact 0° red on both shells, and the drag path always produced h=360 at the strip bottom |
+| #336 | greptile-apps[bot] | Reject | Claimed the SV area's saturation-only `aria-valuenow` leaves stale state after brightness edits; `aria-valuetext` carries both axes, takes precedence per ARIA 1.2, and is the contract issue 250 chose for the 2-axis web slider |
+| #336 | coderabbitai[bot] | Reject | Claimed the hardcoded `%` bypasses the `%lld%%` catalog entry; the interpolated literal generates exactly that format key, and the entry is intentionally do-not-translate (pinned by `FormatEntryLocalizationTests`) |
+| #336 | coderabbitai[bot] | Accept | Saturation/brightness adjustment tests clamped only the upper end; added lower-bound (0) decrement coverage to the Apple model tests and mirrored it in the web clamp suite |
+| #336 | greptile-apps[bot] | Miss | Did not flag the missing lower-bound clamp coverage (accepted from coderabbit) |
+| #336 | cubic-dev-ai[bot] | Miss | Did not flag the missing lower-bound clamp coverage (APPROVED, no findings) |
 | #335 | greptile-apps[bot] | Accept | Hex row's `#`/digits rendered as two `Text`s, so VoiceOver exposed two swipe stops for one value; combined into a single element via `.accessibilityElement(children: .combine)` |
 | #335 | cubic-dev-ai[bot] | Accept | Same VoiceOver two-fragment split on the hex row (duplicate of greptile); same combine fix |
 | #335 | greptile-apps[bot] | Reject | Claimed a translucent foreground displays a misleading 6-digit hex; the foreground is opaque by construction on both shells (init/palette/HSV conversion all emit `a: 0xFF`, the eyedropper commits only canvas pixels) and the web contract is an alpha-less `#RRGGBB` readout |

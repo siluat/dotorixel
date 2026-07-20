@@ -29,9 +29,10 @@ function createFakeDocument(events: string[]): Document {
  * `endEditCommits` plays the verdict the core would reach by comparison — the
  * comparison itself is the ring's job (tested in Rust), and the no-op
  * invariant it decides is covered here against the real history instead.
+ * Records nothing into `events`: which History APIs the journal calls is
+ * implementation, pinned only by the dedicated ordering-contract test.
  */
 function createFakeDocumentHistory(
-	events: string[],
 	opts: {
 		undoDocument?: Document;
 		redoDocument?: Document;
@@ -44,15 +45,11 @@ function createFakeDocumentHistory(
 		can_undo: () => canUndo,
 		can_redo: () => canRedo,
 		clear: () => {
-			events.push('history-clear');
 			canUndo = false;
 			canRedo = false;
 		},
-		begin_edit: () => {
-			events.push('begin-edit');
-		},
+		begin_edit: () => {},
 		end_edit: () => {
-			events.push('end-edit');
 			const committed = opts.endEditCommits ?? true;
 			if (committed) {
 				canUndo = true;
@@ -60,15 +57,13 @@ function createFakeDocumentHistory(
 			}
 			return committed;
 		},
-		undo_document: (current) => {
-			events.push(`undo:${current.width}x${current.height}`);
+		undo_document: () => {
 			if (!opts.undoDocument) return undefined;
 			canUndo = false;
 			canRedo = true;
 			return opts.undoDocument;
 		},
-		redo_document: (current) => {
-			events.push(`redo:${current.width}x${current.height}`);
+		redo_document: () => {
 			if (!opts.redoDocument) return undefined;
 			canUndo = true;
 			canRedo = false;
@@ -132,7 +127,7 @@ function createJournal(
 		getLayerProjection: () => createTestLayerProjection(getDocument()),
 		replaceDocument: (nextDocument) =>
 			events.push(`replace:${nextDocument.width}x${nextDocument.height}`),
-		createDocumentHistory: () => createFakeDocumentHistory(events),
+		createDocumentHistory: () => createFakeDocumentHistory(),
 		createLayerId: () => 'layer-2',
 		createFrameId: () => 'frame-2',
 		rememberReferenceLayerBlob: (layerId) => events.push(`remember:${layerId}`),
@@ -162,32 +157,101 @@ function getLayerPixelAt(
 }
 
 describe('DocumentChangeJournal', () => {
-	it('routes stroke begin/end to the history Edit Baseline seam', () => {
+	it('brackets the apply inside the Edit Baseline: opens before, closes after — even on a throwing apply', () => {
+		// The one deliberate sequence coupling in this suite. If the baseline
+		// opened after the apply, the undo entry would capture post-edit state
+		// and restore the wrong document; if a throwing apply left it open,
+		// the next edit would record against a stale baseline. Every other
+		// test asserts outcomes — this test alone pins History call order.
+		const calls: string[] = [];
 		const events: string[] = [];
-		const document = createFakeDocument(events);
-		const journal = createJournal(events, document);
+		const fake = createFakeDocumentHistory();
+		const history: DocumentHistory = {
+			...fake,
+			begin_edit: (document) => {
+				calls.push('begin-edit');
+				fake.begin_edit(document);
+			},
+			end_edit: (current) => {
+				calls.push('end-edit');
+				return fake.end_edit(current);
+			}
+		};
+		const document = {
+			width: 16,
+			height: 16,
+			add_layer(_id: string, name: string) {
+				calls.push(`apply:${name}`);
+				if (name === 'boom') throw new Error('core failed');
+			}
+		} as unknown as Document;
+		const journal = createJournal(events, document, {
+			createDocumentHistory: () => history
+		});
 
-		journal.beginEdit();
-		journal.endEdit();
+		journal.commit({
+			kind: 'undoable-document',
+			intent: { type: 'add-pixel-layer', name: 'Layer 2' }
+		});
+		expect(calls).toEqual(['begin-edit', 'apply:Layer 2', 'end-edit']);
 
-		// The no-op decision itself lives in the core ring (tested in Rust);
-		// the journal only marks the stroke boundaries.
-		expect(events).toEqual(['begin-edit', 'end-edit']);
+		calls.length = 0;
+		expect(() =>
+			journal.commit({
+				kind: 'undoable-document',
+				intent: { type: 'add-pixel-layer', name: 'boom' }
+			})
+		).toThrow('core failed');
+		expect(calls).toEqual(['begin-edit', 'apply:boom', 'end-edit']);
+
+		// Input validation runs before the baseline opens: a rejected intent
+		// must not leave an open baseline behind.
+		calls.length = 0;
+		expect(() =>
+			journal.commit({
+				kind: 'undoable-document',
+				intent: {
+					type: 'set-reference-layer',
+					source: {
+						name: 'bad.png',
+						sourceBlob: new Blob(),
+						sourceRgba: new Uint8Array(3),
+						naturalWidth: 1,
+						naturalHeight: 1
+					}
+				}
+			})
+		).toThrow('Reference Layer source RGBA length must match dimensions');
+		expect(calls).toEqual([]);
 	});
 
-	it('exposes history availability across a recorded edit', () => {
+	it('records the edit between beginEdit and endEdit as one undoable History entry', () => {
 		const events: string[] = [];
-		const document = createFakeDocument(events);
-		const journal = createJournal(events, document);
+		let current = singleLayerDocument(4, 4, new Uint8Array(4 * 4 * 4));
+		const journal = createJournal(events, current, {
+			getDocument: () => current,
+			replaceDocument: (document) => {
+				current = document;
+			},
+			createDocumentHistory
+		});
 
 		expect(journal.canUndo).toBe(false);
 		expect(journal.canRedo).toBe(false);
 
+		// The stroke's edits happen outside the journal (the tool paints the
+		// document); the journal only marks the boundaries for the core ring.
 		journal.beginEdit();
+		current.add_layer(crypto.randomUUID(), 'Layer 2');
 		journal.endEdit();
 
 		expect(journal.canUndo).toBe(true);
 		expect(journal.canRedo).toBe(false);
+
+		expect(journal.undo()).toEqual({ changed: true });
+		expect(current.layer_count()).toBe(1);
+		expect(journal.canUndo).toBe(false);
+		expect(journal.canRedo).toBe(true);
 	});
 
 	it('restores undo and redo documents through the journal follow-up sequence', () => {
@@ -196,7 +260,7 @@ describe('DocumentChangeJournal', () => {
 		const previous = { width: 8, height: 8 } as unknown as Document;
 		const next = { width: 32, height: 24 } as unknown as Document;
 		let current = initial;
-		const history = createFakeDocumentHistory(events, {
+		const history = createFakeDocumentHistory({
 			undoDocument: previous,
 			redoDocument: next
 		});
@@ -221,15 +285,11 @@ describe('DocumentChangeJournal', () => {
 		expect(journal.canUndo).toBe(true);
 		expect(journal.canRedo).toBe(false);
 		expect(events).toEqual([
-			'begin-edit',
-			'end-edit',
-			'undo:16x16',
 			'replace:8x8',
 			'sync',
 			'reclamp',
 			'render',
 			'dirty',
-			'redo:8x8',
 			'replace:32x24',
 			'sync',
 			'reclamp',
@@ -240,11 +300,11 @@ describe('DocumentChangeJournal', () => {
 
 	it('skips follow-up effects when undo has no restored document', () => {
 		const events: string[] = [];
-		const document = createFakeDocument(events);
-		const journal = createJournal(events, document);
+		const document = singleLayerDocument(4, 4, new Uint8Array(4 * 4 * 4));
+		const journal = createJournal(events, document, { createDocumentHistory });
 
 		expect(journal.undo()).toEqual({ changed: false });
-		expect(events).toEqual(['undo:16x16']);
+		expect(events).toEqual([]);
 	});
 
 	it('applies an undoable add-layer change through the journal sequence', () => {
@@ -258,7 +318,7 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: true, layerId: 'layer-2' });
-		expect(events).toEqual(['begin-edit', 'add:layer-2:Layer 2', 'end-edit', 'reclamp', 'render', 'dirty']);
+		expect(events).toEqual(['add:layer-2:Layer 2', 'reclamp', 'render', 'dirty']);
 	});
 
 	it('applies undoable marquee changes without viewport reclamp', () => {
@@ -284,7 +344,7 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: true });
-		expect(events).toEqual(['begin-edit', 'marquee:1', 'end-edit', 'render', 'dirty']);
+		expect(events).toEqual(['marquee:1', 'render', 'dirty']);
 	});
 
 	it.each([
@@ -319,6 +379,7 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: false });
+		expect(journal.canUndo).toBe(false);
 		expect(events).toEqual([]);
 	});
 
@@ -345,7 +406,7 @@ describe('DocumentChangeJournal', () => {
 				intent: { type: 'add-pixel-layer', name: 'Layer 2' }
 			})
 		).toThrow('core failed');
-		expect(events).toEqual(['begin-edit', 'add', 'end-edit']);
+		expect(events).toEqual(['add']);
 	});
 
 	it('refuses to remove the only layer, without recording or applying anything', () => {
@@ -359,6 +420,7 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: false });
+		expect(journal.canUndo).toBe(false);
 		expect(events).toEqual([]);
 	});
 
@@ -373,6 +435,7 @@ describe('DocumentChangeJournal', () => {
 				intent: { type: 'remove-layer', id: 'absent' }
 			})
 		).toThrow('Layer with id absent not found');
+		expect(journal.canUndo).toBe(false);
 		expect(events).toEqual([]);
 	});
 
@@ -392,6 +455,7 @@ describe('DocumentChangeJournal', () => {
 				intent: { type: 'remove-frame', id: 'absent' }
 			})
 		).toThrow('Frame with id absent not found');
+		expect(journal.canUndo).toBe(false);
 		expect(events).toEqual([]);
 	});
 
@@ -399,7 +463,7 @@ describe('DocumentChangeJournal', () => {
 		const events: string[] = [];
 		const document = createFakeDocument(events);
 		const journal = createJournal(events, document, {
-			createDocumentHistory: () => createFakeDocumentHistory(events, { endEditCommits: false })
+			createDocumentHistory: () => createFakeDocumentHistory({ endEditCommits: false })
 		});
 
 		const result = journal.commit({
@@ -410,7 +474,7 @@ describe('DocumentChangeJournal', () => {
 		// The intent still applies — only the core decides whether it earned a
 		// History entry, and the follow-ups ride on that verdict.
 		expect(result).toEqual({ changed: false });
-		expect(events).toEqual(['begin-edit', 'add:layer-2:Layer 2', 'end-edit']);
+		expect(events).toEqual(['add:layer-2:Layer 2']);
 		expect(journal.canUndo).toBe(false);
 	});
 
@@ -494,7 +558,10 @@ describe('DocumentChangeJournal', () => {
 		const pixels = new Uint8Array(16 * 16 * 4);
 		pixels.set([0, 0, 0, 255], 0);
 		const document = singleLayerDocument(16, 16, pixels);
-		const journal = createJournal(events, document, { clearActiveLayerPixels });
+		const journal = createJournal(events, document, {
+			clearActiveLayerPixels,
+			createDocumentHistory
+		});
 
 		const result = journal.commit({
 			kind: 'undoable-document',
@@ -502,8 +569,9 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: true });
+		expect(journal.canUndo).toBe(true);
 		expect(Array.from(document.layer_pixels_at(0)!.slice(0, 4))).toEqual([0, 0, 0, 0]);
-		expect(events).toEqual(['begin-edit', 'end-edit', 'render', 'dirty']);
+		expect(events).toEqual(['render', 'dirty']);
 	});
 
 	it('clears Marquee pixels as one undoable change and preserves the Marquee', () => {
@@ -514,7 +582,7 @@ describe('DocumentChangeJournal', () => {
 		const document = singleLayerDocument(4, 4, pixels);
 		const marquee = marqueeRegionFromDrag(1, 1, 2, 2);
 		document.set_marquee(marquee);
-		const journal = createJournal(events, document);
+		const journal = createJournal(events, document, { createDocumentHistory });
 
 		const result = journal.commit({
 			kind: 'undoable-document',
@@ -527,7 +595,7 @@ describe('DocumentChangeJournal', () => {
 			0, 0, 0, 0
 		]);
 		expect(document.marquee()).toMatchObject({ x: 1, y: 1, width: 2, height: 2 });
-		expect(events).toEqual(['begin-edit', 'end-edit', 'render', 'dirty']);
+		expect(events).toEqual(['render', 'dirty']);
 	});
 
 	it('undo restores pixels cleared through the Marquee', () => {
@@ -568,7 +636,7 @@ describe('DocumentChangeJournal', () => {
 		pixels.set([0, 255, 0, 255], 4);
 		const document = singleLayerDocument(2, 1, pixels);
 		document.set_marquee(marqueeRegionFromDrag(0, 0, 1, 0));
-		const journal = createJournal(events, document);
+		const journal = createJournal(events, document, { createDocumentHistory });
 
 		const result = journal.commit({
 			kind: 'undoable-document',
@@ -578,7 +646,7 @@ describe('DocumentChangeJournal', () => {
 		expect(result).toEqual({ changed: true });
 		expect(Array.from(document.layer_pixels_at(0)!.slice(0, 4))).toEqual([0, 255, 0, 255]);
 		expect(Array.from(document.layer_pixels_at(0)!.slice(4, 8))).toEqual([255, 0, 0, 255]);
-		expect(events).toEqual(['begin-edit', 'end-edit', 'render', 'dirty']);
+		expect(events).toEqual(['render', 'dirty']);
 	});
 
 	it('undo restores and redo re-applies a marquee flip', () => {
@@ -615,7 +683,7 @@ describe('DocumentChangeJournal', () => {
 		pixels.set([0, 255, 0, 255], 4);
 		const document = singleLayerDocument(2, 1, pixels);
 		document.set_marquee(marqueeRegionFromDrag(0, 0, 0, 0));
-		const journal = createJournal(events, document);
+		const journal = createJournal(events, document, { createDocumentHistory });
 
 		const result = journal.commit({
 			kind: 'undoable-document',
@@ -628,7 +696,7 @@ describe('DocumentChangeJournal', () => {
 		expect(Array.from(document.layer_pixels_at(0)!.slice(0, 4))).toEqual([0, 255, 0, 255]);
 		expect(Array.from(document.layer_pixels_at(0)!.slice(4, 8))).toEqual([255, 0, 0, 255]);
 		expect(document.marquee()).toMatchObject({ x: 1, y: 0, width: 1, height: 1 });
-		expect(events).toEqual(['begin-edit', 'end-edit', 'render', 'dirty']);
+		expect(events).toEqual(['render', 'dirty']);
 	});
 
 	it('undo restores pixels and the Marquee together after a canvas flip', () => {
@@ -668,7 +736,7 @@ describe('DocumentChangeJournal', () => {
 		pixels.set([0, 0, 255, 255], (1 * 3 + 2) * 4);
 		const document = singleLayerDocument(3, 3, pixels);
 		document.set_marquee(marqueeRegionFromDrag(0, 1, 2, 1));
-		const journal = createJournal(events, document);
+		const journal = createJournal(events, document, { createDocumentHistory });
 
 		const result = journal.commit({
 			kind: 'undoable-document',
@@ -681,7 +749,7 @@ describe('DocumentChangeJournal', () => {
 		expect(getPixelAt(document, 1, 1)).toEqual([0, 255, 0, 255]);
 		expect(getPixelAt(document, 1, 2)).toEqual([0, 0, 255, 255]);
 		expect(document.marquee()).toMatchObject({ x: 1, y: 0, width: 1, height: 3 });
-		expect(events).toEqual(['begin-edit', 'end-edit', 'render', 'dirty']);
+		expect(events).toEqual(['render', 'dirty']);
 	});
 
 	it('undo restores and redo re-applies a rotate, including the Marquee', () => {
@@ -720,7 +788,7 @@ describe('DocumentChangeJournal', () => {
 		pixels.set([0, 255, 0, 255], 4); // (1,0) green
 		const document = singleLayerDocument(2, 1, pixels);
 		document.set_marquee(marqueeRegionFromDrag(1, 0, 1, 0));
-		const journal = createJournal(events, document);
+		const journal = createJournal(events, document, { createDocumentHistory });
 
 		const result = journal.commit({
 			kind: 'undoable-document',
@@ -737,7 +805,7 @@ describe('DocumentChangeJournal', () => {
 		expect(document.marquee()).toMatchObject({ x: 0, y: 1, width: 1, height: 1 });
 		// A canvas rotate always swaps dimensions — metrics and viewport
 		// refresh like resize-document.
-		expect(events).toEqual(['begin-edit', 'end-edit', 'sync', 'reclamp', 'render', 'dirty']);
+		expect(events).toEqual(['sync', 'reclamp', 'render', 'dirty']);
 	});
 
 	it('undo restores dimensions, pixels, and the Marquee together after a canvas rotate', () => {
@@ -790,7 +858,7 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: true });
-		expect(events).toEqual(['begin-edit', 'rotate-canvas-cw', 'end-edit', 'sync', 'reclamp', 'render', 'dirty']);
+		expect(events).toEqual(['rotate-canvas-cw', 'sync', 'reclamp', 'render', 'dirty']);
 	});
 
 	it('commits a Floating Selection move as one undoable document change', () => {
@@ -939,7 +1007,7 @@ describe('DocumentChangeJournal', () => {
 		const sourceLayerId = document.active_layer_id();
 		const sourceLayerPixelsBeforeLift = document.layer_pixels_at(0)!.slice();
 		const buffer = document.lift_marquee_pixels();
-		const journal = createJournal(events, document);
+		const journal = createJournal(events, document, { createDocumentHistory });
 
 		const result = journal.commit({
 			kind: 'undoable-document',
@@ -954,6 +1022,7 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: true });
+		expect(journal.canUndo).toBe(true);
 		expect(getPixelAt(document, 0, 1)).toEqual([0, 255, 0, 255]);
 		expect(getPixelAt(document, 1, 1)).toEqual([0, 0, 0, 0]);
 		expect(getPixelAt(document, 2, 1)).toEqual([0, 0, 0, 0]);
@@ -979,7 +1048,7 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: true });
-		expect(events).toEqual(['begin-edit', 'reorder:layer-2:0', 'end-edit', 'render', 'dirty']);
+		expect(events).toEqual(['reorder:layer-2:0', 'render', 'dirty']);
 	});
 
 	it('applies active-layer changes without a History entry or metric sync', () => {
@@ -998,6 +1067,7 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: true });
+		expect(journal.canUndo).toBe(false);
 		expect(events).toEqual(['active:layer-2', 'reclamp', 'render', 'dirty']);
 	});
 
@@ -1017,6 +1087,7 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: true });
+		expect(journal.canUndo).toBe(false);
 		expect(events).toEqual(['timeline:true', 'render', 'dirty']);
 	});
 
@@ -1035,10 +1106,11 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: false });
+		expect(journal.canUndo).toBe(false);
 		expect(events).toEqual([]);
 	});
 
-	it('validates Reference Layer source before opening the Edit Baseline', () => {
+	it('rejects an invalid Reference Layer source without applying or recording anything', () => {
 		const events: string[] = [];
 		const document = createFakeDocument(events);
 		const journal = createJournal(events, document);
@@ -1058,6 +1130,7 @@ describe('DocumentChangeJournal', () => {
 				}
 			})
 		).toThrow('Reference Layer source RGBA length must match dimensions');
+		expect(journal.canUndo).toBe(false);
 		expect(events).toEqual([]);
 	});
 
@@ -1095,7 +1168,7 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: true, layerId: 'layer-2' });
-		expect(events).toEqual(['begin-edit', 'reference:layer-2:sketch.png:4:1x1', 'remember:layer-2', 'end-edit', 'reclamp', 'render', 'dirty']);
+		expect(events).toEqual(['reference:layer-2:sketch.png:4:1x1', 'remember:layer-2', 'reclamp', 'render', 'dirty']);
 	});
 
 	it('routes document resize through the injected resize adapter', () => {
@@ -1124,10 +1197,10 @@ describe('DocumentChangeJournal', () => {
 
 		expect(result).toEqual({ changed: true });
 		expect(captured).toEqual({ width: 32, height: 24, anchor: 'center' });
-		expect(events).toEqual(['begin-edit', 'resize:32:24:center', 'end-edit', 'sync', 'reclamp', 'render', 'dirty']);
+		expect(events).toEqual(['resize:32:24:center', 'sync', 'reclamp', 'render', 'dirty']);
 	});
 
-	it('applies an undoable add-frame change: snapshot, mints a frame id, render + dirty (no reclamp)', () => {
+	it('applies an undoable add-frame change: mints a frame id, render + dirty (no reclamp)', () => {
 		const events: string[] = [];
 		const document = {
 			width: 16,
@@ -1143,10 +1216,10 @@ describe('DocumentChangeJournal', () => {
 
 		expect(result).toEqual({ changed: true, frameId: 'frame-2' });
 		// No 'reclamp': frame ops leave the canvas size and active layer untouched.
-		expect(events).toEqual(['begin-edit', 'add-frame:frame-2', 'end-edit', 'render', 'dirty']);
+		expect(events).toEqual(['add-frame:frame-2', 'render', 'dirty']);
 	});
 
-	it('applies an undoable duplicate-frame change: snapshot, mints a frame id, render + dirty', () => {
+	it('applies an undoable duplicate-frame change: mints a frame id, render + dirty', () => {
 		const events: string[] = [];
 		const document = {
 			width: 16,
@@ -1161,7 +1234,7 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: true, frameId: 'frame-2' });
-		expect(events).toEqual(['begin-edit', 'duplicate-frame:frame-2', 'end-edit', 'render', 'dirty']);
+		expect(events).toEqual(['duplicate-frame:frame-2', 'render', 'dirty']);
 	});
 
 	it('applies an undoable remove-frame change when more than one frame remains', () => {
@@ -1180,7 +1253,7 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: true });
-		expect(events).toEqual(['begin-edit', 'remove-frame:frame-9', 'end-edit', 'render', 'dirty']);
+		expect(events).toEqual(['remove-frame:frame-9', 'render', 'dirty']);
 	});
 
 	it('refuses to remove the only frame, without recording or applying anything', () => {
@@ -1199,6 +1272,7 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: false });
+		expect(journal.canUndo).toBe(false);
 		expect(events).toEqual([]);
 	});
 
@@ -1218,10 +1292,10 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: true });
-		expect(events).toEqual(['begin-edit', 'reorder-frame:c:0', 'end-edit', 'render', 'dirty']);
+		expect(events).toEqual(['reorder-frame:c:0', 'render', 'dirty']);
 	});
 
-	it('applies an undoable set-frame-duration change: snapshot, render + dirty (no reclamp)', () => {
+	it('applies an undoable set-frame-duration change: render + dirty (no reclamp)', () => {
 		const events: string[] = [];
 		const document = {
 			width: 16,
@@ -1239,7 +1313,7 @@ describe('DocumentChangeJournal', () => {
 
 		expect(result).toEqual({ changed: true });
 		// No 'reclamp': retiming a frame changes neither dimensions nor the active layer.
-		expect(events).toEqual(['begin-edit', 'set-frame-duration:frame-1:250', 'end-edit', 'render', 'dirty']);
+		expect(events).toEqual(['set-frame-duration:frame-1:250', 'render', 'dirty']);
 	});
 
 	it('throws set-frame-duration for a frame id that is not on the axis', () => {
@@ -1257,6 +1331,7 @@ describe('DocumentChangeJournal', () => {
 				intent: { type: 'set-frame-duration', id: 'absent', durationMs: 250 }
 			})
 		).toThrow('Frame with id absent not found');
+		expect(journal.canUndo).toBe(false);
 		expect(events).toEqual([]);
 	});
 
@@ -1276,8 +1351,9 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: true });
-		// No 'snapshot' (not undoable) and no 'reclamp' (active layer unchanged),
-		// unlike set-active-layer.
+		// Not undoable — canUndo stays false — and no 'reclamp' (active layer
+		// unchanged), unlike set-active-layer.
+		expect(journal.canUndo).toBe(false);
 		expect(events).toEqual(['set-active-frame:frame-2', 'render', 'dirty']);
 	});
 
@@ -1296,6 +1372,7 @@ describe('DocumentChangeJournal', () => {
 		});
 
 		expect(result).toEqual({ changed: false });
+		expect(journal.canUndo).toBe(false);
 		expect(events).toEqual([]);
 	});
 });

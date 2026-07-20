@@ -93,7 +93,7 @@ describe('HsvPicker keyboard interaction — SV area', () => {
 		expect(onColorChange).toHaveBeenLastCalledWith('#e65d5d');
 	});
 
-	it('clamps at the range ends without wrapping', async () => {
+	it('clamps at the upper range ends without wrapping', async () => {
 		// #ff0000 → s=1 (100%), v=1 (100%)
 		const { svArea, pressKey } = renderPicker('#ff0000');
 
@@ -102,6 +102,17 @@ describe('HsvPicker keyboard interaction — SV area', () => {
 
 		expect(svArea.getAttribute('aria-valuenow')).toBe('100');
 		expect(svArea.getAttribute('aria-valuetext')).toBe('Saturation 100%, Brightness 100%');
+	});
+
+	it('clamps at the lower range ends without wrapping', async () => {
+		// #000000 → s=0 (0%), v=0 (0%)
+		const { svArea, pressKey } = renderPicker('#000000');
+
+		await pressKey(svArea, 'ArrowLeft', { shiftKey: true });
+		await pressKey(svArea, 'ArrowDown', { shiftKey: true });
+
+		expect(svArea.getAttribute('aria-valuenow')).toBe('0');
+		expect(svArea.getAttribute('aria-valuetext')).toBe('Saturation 0%, Brightness 0%');
 	});
 });
 

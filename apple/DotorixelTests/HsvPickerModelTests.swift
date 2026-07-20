@@ -47,7 +47,7 @@ struct HsvPickerModelTests {
         #expect(model.hsv == HsvColor(h: 240, s: 0, v: 0))
     }
 
-    @Test("VoiceOver saturation adjustment steps by 5% and clamps at the range end")
+    @Test("VoiceOver saturation adjustment steps by 5% and clamps at both range ends")
     func adjustSaturationStepsAndClamps() {
         var model = HsvPickerModel(color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
 
@@ -57,9 +57,13 @@ struct HsvPickerModelTests {
         model.adjustSaturation(.increment)
         model.adjustSaturation(.increment)
         #expect(model.hsv == HsvColor(h: 0, s: 1, v: 1))
+
+        model.setSaturationValue(s: 0.03, v: 1)
+        model.adjustSaturation(.decrement)
+        #expect(model.hsv == HsvColor(h: 0, s: 0, v: 1))
     }
 
-    @Test("VoiceOver brightness adjustment steps by 5% and clamps at the range end")
+    @Test("VoiceOver brightness adjustment steps by 5% and clamps at both range ends")
     func adjustBrightnessStepsAndClamps() {
         var model = HsvPickerModel(color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
 
@@ -69,6 +73,10 @@ struct HsvPickerModelTests {
         model.adjustBrightness(.increment)
         model.adjustBrightness(.increment)
         #expect(model.hsv == HsvColor(h: 0, s: 1, v: 1))
+
+        model.setSaturationValue(s: 1, v: 0.03)
+        model.adjustBrightness(.decrement)
+        #expect(model.hsv == HsvColor(h: 0, s: 1, v: 0))
     }
 
     @Test("VoiceOver hue adjustment steps by 10 degrees and clamps without wrapping")

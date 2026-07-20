@@ -80,10 +80,28 @@ struct HsvPickerView: View {
                     }
             )
         }
-        .accessibilityLabel("Saturation and brightness")
-        .accessibilityValue(
-            "Saturation \(Int((model.hsv.s * 100).rounded())), brightness \(Int((model.hsv.v * 100).rounded()))"
-        )
+        // Split-axis mapping (issue 250): adjustable actions are one-axis, so
+        // VoiceOver operates the two-axis square as two independent elements.
+        .accessibilityRepresentation {
+            HStack {
+                SwiftUI.Color.clear
+                    .accessibilityElement()
+                    .accessibilityLabel("Saturation")
+                    .accessibilityValue("\(Int((model.hsv.s * 100).rounded()))%")
+                    .accessibilityAdjustableAction { direction in
+                        adjust(direction) { model.adjustSaturation($0) }
+                    }
+                SwiftUI.Color.clear
+                    .accessibilityElement()
+                    .accessibilityLabel("Brightness")
+                    .accessibilityValue("\(Int((model.hsv.v * 100).rounded()))%")
+                    .accessibilityAdjustableAction { direction in
+                        adjust(direction) { model.adjustBrightness($0) }
+                    }
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Saturation and brightness")
+        }
     }
 
     private var svThumb: some View {
@@ -123,6 +141,9 @@ struct HsvPickerView: View {
         .frame(width: DesignTokens.btnSize)
         .accessibilityLabel("Hue")
         .accessibilityValue("\(Int(model.hsv.h.rounded())) degrees")
+        .accessibilityAdjustableAction { direction in
+            adjust(direction) { model.adjustHue($0) }
+        }
     }
 
     private var hueIndicator: some View {
@@ -144,5 +165,21 @@ struct HsvPickerView: View {
 
     private func clampUnit(_ value: CGFloat) -> Double {
         Double(max(0, min(1, value)))
+    }
+
+    // MARK: - VoiceOver adjustment
+
+    /// Maps a VoiceOver adjustment to a model edit and emits the new color,
+    /// exactly as the drag gestures do.
+    private func adjust(
+        _ direction: AccessibilityAdjustmentDirection,
+        _ edit: (HsvPickerModel.AdjustmentDirection) -> Void
+    ) {
+        switch direction {
+        case .increment: edit(.increment)
+        case .decrement: edit(.decrement)
+        @unknown default: return
+        }
+        onColorChange(model.color)
     }
 }

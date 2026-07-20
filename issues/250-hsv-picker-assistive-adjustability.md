@@ -1,6 +1,6 @@
 ---
 title: HSV picker — assistive-technology adjustability (web keyboard, Apple VoiceOver)
-status: ready-for-agent
+status: done
 created: 2026-07-18
 ---
 
@@ -135,3 +135,25 @@ custom actions, so VoiceOver users cannot operate them.
   current test setup; assert at the model level
 - Any change to pointer/drag interaction or picker visuals
 - Accessibility of other color controls (palette swatches, recent colors)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `src/lib/color-picker/HsvPicker.svelte` | Arrow-key handlers (SV area: ←/→ saturation, ↑/↓ brightness; hue strip: ↑/↓ hue), 1 % / 1° steps with Shift ×10, range clamping, `aria-valuemin/max` on the SV area, `aria-orientation` + `aria-valuetext` on the hue strip, `:focus-visible` accent outline |
+| `src/lib/color-picker/HsvPicker.svelte.test.ts` | New component suite (8 tests): keyboard edits, clamping, Shift steps, live ARIA updates, preventDefault scoping, slider range metadata |
+| `messages/{en,ko,ja}.json` | New `aria_hueValue` message backing the hue strip's `aria-valuetext` |
+| `apple/Dotorixel/Views/HsvPickerModel.swift` | `AdjustmentDirection` enum + `adjustSaturation`/`adjustBrightness` (5 % step) and `adjustHue` (10° step), clamped, routed through the existing `setSaturationValue`/`setHue` paths |
+| `apple/Dotorixel/Views/HsvPickerView.swift` | SV square exposed as two adjustable elements (saturation, brightness) via `accessibilityRepresentation`; hue strip gains `accessibilityAdjustableAction`; shared mapper emits through `onColorChange` exactly like the drag gestures |
+| `apple/DotorixelTests/HsvPickerModelTests.swift` | 3 new model tests covering the adjustable-action edit paths (step + clamp, no wrap) |
+| `apple/Dotorixel/Localizable.xcstrings` | New `Saturation`/`Brightness` labels (ko/ja), `%lld%%` marked do-not-translate; removed the now-unused combined SV value key |
+| `apple/DotorixelTests/LocalizationTests.swift` | Format-entry test updated to the new call-site-shaped keys |
+
+### Key Decisions
+- Hue arrow keys follow the **visual direction** (ArrowDown = indicator moves down = hue increases), chosen over the ARIA "Up = increase" convention; announced values stay correct for screen-reader users either way.
+- Step sizes: web 1 % / 1° with Shift ×10; Apple VoiceOver 5 % / 10° (no Shift-like modifier exists). Per-shell internal consistency preferred over cross-shell equality, as the brief allowed.
+- Percent accessibility values (`%lld%%`) are symbol-only and marked `shouldTranslate: false` in the String Catalog.
+
+### Notes
+- VoiceOver behavior is asserted at the model level only (XCUITest out of scope per the brief); view wiring follows the standard split-element adjustable idiom.
+- Web component tests simulate the controlled-component parent echo (`rerender` with the emitted hex) — the picker resets its internal HSV if the parent never echoes the emitted color back, which is pre-existing contract behavior shared with pointer drags.

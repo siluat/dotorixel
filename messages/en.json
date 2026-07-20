@@ -63,6 +63,7 @@
 	"aria_constrainStatusOff": "Constrain is off. Activate this tool again to turn it on.",
 	"aria_selectionActions": "Selection actions",
 	"aria_saturationValue": "Saturation {s}%, Brightness {v}%",
+	"aria_hueValue": "{h} degrees",
 	"aria_fgBgGroup": "Foreground color {fg}, background color {bg}",
 
 	"label_tool": "Tool:",

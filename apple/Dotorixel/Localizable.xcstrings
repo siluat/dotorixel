@@ -35,6 +35,10 @@
         }
       }
     },
+    "%lld%%" : {
+      "comment" : "Percent accessibility value for the split SV-square elements (issue 250).",
+      "shouldTranslate" : false
+    },
     "Background color" : {
       "comment" : "BG swatch accessibility label. web: color_background (concept)",
       "localizations" : {
@@ -48,6 +52,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "배경색"
+          }
+        }
+      }
+    },
+    "Brightness" : {
+      "comment" : "Split SV-square brightness element accessibility label (issue 250).",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "明度"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "명도"
           }
         }
       }
@@ -502,19 +523,19 @@
         }
       }
     },
-    "Saturation %lld, brightness %lld" : {
-      "comment" : "SV square accessibility value (percentages). web: aria_saturationValue",
+    "Saturation" : {
+      "comment" : "Split SV-square saturation element accessibility label (issue 250).",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "彩度 %lld、明度 %lld"
+            "value" : "彩度"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "채도 %lld, 명도 %lld"
+            "value" : "채도"
           }
         }
       }

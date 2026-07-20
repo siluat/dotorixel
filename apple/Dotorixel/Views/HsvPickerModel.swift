@@ -33,6 +33,40 @@ struct HsvPickerModel {
         lastSyncedColor = hsv.color
     }
 
+    /// Direction of a VoiceOver adjustable-action edit, mirroring SwiftUI's
+    /// `AccessibilityAdjustmentDirection` without importing SwiftUI here.
+    enum AdjustmentDirection {
+        case increment
+        case decrement
+    }
+
+    /// VoiceOver adjustable-action step for saturation and brightness (5%).
+    /// Coarser than the web's arrow-key step because VoiceOver has no
+    /// Shift-like modifier to accelerate traversal.
+    static let svAdjustmentStep = 0.05
+
+    /// VoiceOver adjustable-action step for hue (10°), matching the same
+    /// coarser-than-web rationale as `svAdjustmentStep`.
+    static let hueAdjustmentStep: Double = 10
+
+    /// Adjusts saturation one step in the given direction, clamped to 0–1.
+    mutating func adjustSaturation(_ direction: AdjustmentDirection) {
+        let delta = direction == .increment ? Self.svAdjustmentStep : -Self.svAdjustmentStep
+        setSaturationValue(s: min(1, max(0, hsv.s + delta)), v: hsv.v)
+    }
+
+    /// Adjusts brightness (value) one step in the given direction, clamped to 0–1.
+    mutating func adjustBrightness(_ direction: AdjustmentDirection) {
+        let delta = direction == .increment ? Self.svAdjustmentStep : -Self.svAdjustmentStep
+        setSaturationValue(s: hsv.s, v: min(1, max(0, hsv.v + delta)))
+    }
+
+    /// Adjusts hue one step in the given direction, clamped to 0–360 (no wrap).
+    mutating func adjustHue(_ direction: AdjustmentDirection) {
+        let delta = direction == .increment ? Self.hueAdjustmentStep : -Self.hueAdjustmentStep
+        setHue(min(360, max(0, hsv.h + delta)))
+    }
+
     /// Repositions the picker to an externally selected color (palette tap,
     /// eyedropper commit, swap). The picker's own emitted color echoing back
     /// is ignored. Achromatic colors (s=0 or v=0) have no defined hue, so the

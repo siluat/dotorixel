@@ -256,17 +256,21 @@ class InputMTKView: MTKView {
 
     /// Every touch currently on the glass (or pressed on an indirect
     /// device), event-wide — including touches a recognizer claimed away
-    /// from this view. Hover phases (`.regionEntered`/`.regionMoved`/
-    /// `.regionExited`) are excluded: a hovering pencil must not block
-    /// drawing.
+    /// from this view. Filtering is an exclude-list on purpose: whether a
+    /// claimed-but-still-down touch reports `.moved` or a per-view
+    /// `.cancelled` in a later event is undocumented, and a genuinely dead
+    /// touch leaves the event right after its terminal delivery — so
+    /// counting everything except lifts and hovers can overblock at most
+    /// the one begin a cancellation coincides with, never underblock.
+    /// Hover phases are excluded: a hovering pencil must not block drawing.
     private func downTouchSnapshot(of event: UIEvent) -> [ObjectIdentifier: TouchKind] {
         var snapshot: [ObjectIdentifier: TouchKind] = [:]
         for touch in event.allTouches ?? [] {
             switch touch.phase {
-            case .began, .moved, .stationary:
-                snapshot[ObjectIdentifier(touch)] = TouchKind(touch.type)
+            case .ended, .regionEntered, .regionMoved, .regionExited:
+                continue
             default:
-                break
+                snapshot[ObjectIdentifier(touch)] = TouchKind(touch.type)
             }
         }
         return snapshot

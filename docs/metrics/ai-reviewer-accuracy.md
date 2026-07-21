@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 192 | 144 | 48 | 223 | 75% | 39% |
-| cubic-dev-ai[bot] | 216 | 171 | 45 | 195 | 79% | 47% |
-| coderabbitai[bot] | 271 | 188 | 83 | 177 | 69% | 52% |
+| greptile-apps[bot] | 193 | 145 | 48 | 223 | 75% | 39% |
+| cubic-dev-ai[bot] | 216 | 171 | 45 | 196 | 79% | 47% |
+| coderabbitai[bot] | 271 | 188 | 83 | 178 | 69% | 51% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #338 | greptile-apps[bot] | Accept | Round 2: claimed the allTouches snapshot's phase whitelist drops recognizer-claimed touches if they report `.cancelled` in a later event, re-opening the third-finger gap; the mechanism-as-stated contradicts the touch lifecycle, but accepted as zero-cost hardening — exclude-list filter (only lifts + hovers drop) holds the gate under both undocumented readings |
+| #338 | coderabbitai[bot] | Miss | Round 2 (APPROVED): did not flag the phase-whitelist fragility in the allTouches snapshot (accepted from greptile) |
+| #338 | cubic-dev-ai[bot] | Miss | Round 2 (APPROVED): did not flag the phase-whitelist fragility in the allTouches snapshot (accepted from greptile) |
 | #338 | greptile-apps[bot] | Accept | Recognizer-claimed touches left the router's down-count via `touchesCancelled`, so a third finger mid-pinch could draw (the PR-body-disclosed known limitation, re-raised as P1); accepted — begin-boundary `event.allTouches` sync now keeps claimed-but-down fingers blocking |
 | #338 | cubic-dev-ai[bot] | Accept | Same recognizer-claimed down-count staleness (duplicate of greptile), with the `event.allTouches` reconciliation remedy; same begin-boundary sync fix |
 | #338 | coderabbitai[bot] | Reject | Wanted Pencil to preempt a pending/active finger stroke; the finger-wins behavior is deliberate web parity (the web machine ignores pen pointerdown while a touch draw is live) and pencil-vs-finger priority is verbatim out of scope in the 245 brief — the palm-rejection work owns that policy |

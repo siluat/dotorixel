@@ -157,7 +157,11 @@ Mapped onto the Apple shell:
   router's down-touch set with `event.allTouches` at every begin boundary
   (`syncDownTouches`), so claimed-but-still-down fingers keep blocking new
   strokes until they physically lift. Hover phases are excluded — a
-  hovering pencil never blocks drawing.
+  hovering pencil never blocks drawing. Round 2 (greptile) hardened the
+  snapshot filter to an exclude-list (only lifts and hovers drop out), so
+  the gate holds even if a claimed-but-down touch reports a per-view
+  `.cancelled` phase in a later event — undocumented either way, and the
+  exclude-list is safe under both readings.
 - The router's episode rule ("no stroke until every touch lifts") relies on
   the view feeding **all** touch events to the router, not just the
   originating touch's — documented on `downTouches`.

@@ -222,8 +222,13 @@ class InputMTKView: MTKView {
         super.pressesCancelled(presses, with: event)
     }
 
+    /// Routes multi-touch events into single-stroke drawing commands: the
+    /// router decides which touch drives the stroke and when a second finger
+    /// ends it (issue 245); this view only feeds events and executes the
+    /// returned commands. Touches are identified without retaining them.
+    private var strokeRouter = TouchStrokeRouter<ObjectIdentifier>()
+
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { return }
         // Re-acquire first responder at stroke start — another control may
         // have taken it since `didMoveToWindow`, which would silently stop
         // `presses*` (and with it mid-drag Shift changes) from arriving.
@@ -232,37 +237,107 @@ class InputMTKView: MTKView {
         }
         if let event {
             inputDelegate?.shiftStateChanged(isHeld: event.modifierFlags.contains(.shift), in: self)
+            // Recognizer-claimed touches were cancelled for this view but
+            // their fingers may still be on the glass — re-sync the router
+            // with the event-wide truth so a mid-gesture begin stays blocked.
+            strokeRouter.syncDownTouches(downTouchSnapshot(of: event))
         }
-        let point = touch.location(in: self)
-        // Pointer devices (trackpad/mouse) report pressed buttons on the
-        // event; direct touch has an empty mask and draws with the primary.
-        let button: PointerButton = event?.buttonMask.contains(.secondary) == true
-            ? .secondary
-            : .primary
-        // Only a direct finger touch needs the loupe's touch offsets; pencil
-        // and indirect pointers behave like a mouse.
-        let inputSource: LoupeInputSource = touch.type == .direct ? .touch : .mouse
-        inputDelegate?.drawingBegan(at: point, button: button, inputSource: inputSource, in: self)
+        for touch in touches {
+            execute(
+                strokeRouter.touchBegan(
+                    ObjectIdentifier(touch),
+                    kind: TouchKind(touch.type),
+                    at: touch.location(in: self)
+                ),
+                event: event
+            )
+        }
+    }
+
+    /// Every touch currently on the glass (or pressed on an indirect
+    /// device), event-wide — including touches a recognizer claimed away
+    /// from this view. Filtering is an exclude-list on purpose: whether a
+    /// claimed-but-still-down touch reports `.moved` or a per-view
+    /// `.cancelled` in a later event is undocumented, and a genuinely dead
+    /// touch leaves the event right after its terminal delivery — so
+    /// counting everything except lifts and hovers can overblock at most
+    /// the one begin a cancellation coincides with, never underblock.
+    /// Hover phases are excluded: a hovering pencil must not block drawing.
+    private func downTouchSnapshot(of event: UIEvent) -> [ObjectIdentifier: TouchKind] {
+        var snapshot: [ObjectIdentifier: TouchKind] = [:]
+        for touch in event.allTouches ?? [] {
+            switch touch.phase {
+            case .ended, .regionEntered, .regionMoved, .regionExited:
+                continue
+            default:
+                snapshot[ObjectIdentifier(touch)] = TouchKind(touch.type)
+            }
+        }
+        return snapshot
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { return }
-        let point = touch.location(in: self)
-        inputDelegate?.drawingMoved(to: point, in: self)
+        for touch in touches {
+            execute(
+                strokeRouter.touchMoved(ObjectIdentifier(touch), to: touch.location(in: self)),
+                event: event
+            )
+        }
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        inputDelegate?.drawingEnded(in: self)
+        for touch in touches {
+            execute(strokeRouter.touchEnded(ObjectIdentifier(touch)), event: event)
+        }
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        inputDelegate?.drawingCancelled(in: self)
+        for touch in touches {
+            execute(strokeRouter.touchCancelled(ObjectIdentifier(touch)), event: event)
+        }
+    }
+
+    private func execute(_ commands: [StrokeRoutingCommand], event: UIEvent?) {
+        for command in commands {
+            switch command {
+            case .begin(let point, let kind):
+                // Pointer devices (trackpad/mouse) report pressed buttons on
+                // the event; direct touch has an empty mask and draws with
+                // the primary.
+                let button: PointerButton = event?.buttonMask.contains(.secondary) == true
+                    ? .secondary
+                    : .primary
+                // Only a direct finger touch needs the loupe's touch offsets;
+                // pencil and indirect pointers behave like a mouse.
+                let inputSource: LoupeInputSource = kind == .direct ? .touch : .mouse
+                inputDelegate?.drawingBegan(at: point, button: button, inputSource: inputSource, in: self)
+            case .move(let point):
+                inputDelegate?.drawingMoved(to: point, in: self)
+            case .end:
+                inputDelegate?.drawingEnded(in: self)
+            case .cancel:
+                inputDelegate?.drawingCancelled(in: self)
+            }
+        }
     }
 
     #endif
 }
 
 #if !os(macOS)
+extension TouchKind {
+    /// Maps UIKit's touch species onto the router's platform-neutral kinds.
+    /// `.indirect` (non-pointer indirect input) has no drawing semantics of
+    /// its own — treat it like a finger.
+    init(_ type: UITouch.TouchType) {
+        switch type {
+        case .pencil: self = .pencil
+        case .indirectPointer: self = .indirectPointer
+        default: self = .direct
+        }
+    }
+}
+
 extension ShortcutModifiers {
     /// Maps UIKit key modifier flags to the platform-neutral set.
     init(_ flags: UIKeyModifierFlags) {

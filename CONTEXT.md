@@ -96,6 +96,18 @@ _Avoid_: selection transform (Selection names the tool/feature, not the region),
 The session-level module in front of the canvas viewport that admits or blocks draw/sample input (shortcut-hints admission), restores a temporary tool switch when a stroke ends or cancels, and owns the keyboard and Constrain-latch lifecycles. Reads and plain commands do not pass through it — templates bind `workspace.shared` / `workspace.activeTab` directly.
 _Avoid_: editor controller (the deleted facade), canvas interaction (the per-view pointer capture machine), input handler (generic).
 
+**Originating Touch**:
+The touch a stroke is bound to for its whole lifetime — only this touch's move/end/cancel events drive the stroke; every other touch's events never feed it. Owned per shell by the pointer-capture layer (web: the canvas interaction machine's per-pointer state; Apple: `TouchStrokeRouter`).
+_Avoid_: first touch (ordinal, not identity), primary touch (names a pointer button), active touch (several touches can be down at once).
+
+**Gesture Signal**:
+Two direct (finger) touches down at once — the moment drawing yields to viewport gestures (pinch-zoom, two-finger pan). A dragged stroke commits what it drew; a Deferred Begin is discarded. Pencil and indirect pointers never count toward the signal, so a lone resting finger doesn't disturb a pencil stroke. Once fired, no stroke begins until every touch lifts.
+_Avoid_: multi-touch (pencil + resting finger is multi-touch but not a gesture signal), pinch start (names one gesture; the signal also covers two-finger pan), second touch (the count matters, not the ordinal).
+
+**Deferred Begin**:
+A direct finger's stroke begin held pending until that touch first moves or lifts, so a touch that turns out to be a Gesture Signal start never paints — a tap lands its dot on release. Finger-only: pencil, mouse, and indirect pointers begin immediately.
+_Avoid_: touch delay (UIKit's `delaysTouchesBegan` is a different mechanism), pending stroke (no stroke exists yet — only its begin is pending), tap deferral (drags defer too, until the first move).
+
 ### Sampling
 
 **Sampling Session**:

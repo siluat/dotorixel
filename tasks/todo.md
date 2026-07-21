@@ -38,7 +38,6 @@ decomposed into issues (`/to-issues`) when reached.
 
 ## Review backlog (not assigned to a milestone)
 
-- [245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md) — second touch ends the active stroke and yields to gestures (web parity); strokes bound to their originating touch. Pre-existing input routing, flagged on PR #322; palm rejection out of scope. ready-for-agent
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate (deferred from Milestone 3 MVP)
 - Reference image import — clipboard paste support (Ctrl/Cmd+V), deferred from Milestone 3 MVP
 - Design: share artwork dialog — URL sharing dialog UI (.pen)

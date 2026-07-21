@@ -2,6 +2,8 @@
 
 | # | Task | Date |
 |---|------|------|
+| 245 | [Apple multi-touch stroke routing — associate strokes with their originating touch](../issues/245-apple-multitouch-stroke-routing.md) | 2026-07-21 |
+| — | Triage — [245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md) → ready-for-agent; web-parity direction chosen (second finger ends the stroke, deferred touch begin), agent brief written | 2026-07-20 |
 | 248 | [Document Change Journal tests assert internal steps, not outcomes](../issues/248-journal-tests-assert-internal-steps.md) | 2026-07-20 |
 | — | Triage — [248 — Journal tests assert internal steps](../issues/248-journal-tests-assert-internal-steps.md) → ready-for-agent; proceed decided (active journal/history refactor area), agent brief written | 2026-07-20 |
 | 250 | [HSV picker — assistive-technology adjustability (web keyboard, Apple VoiceOver)](../issues/250-hsv-picker-assistive-adjustability.md) | 2026-07-20 |

@@ -2,21 +2,22 @@
 
 ## Currently Working On
 
-[245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md)
+None.
 
 ## Last Completed
 
-[248 — Journal tests assert internal steps](../issues/248-journal-tests-assert-internal-steps.md):
-journal tests now assert history outcomes (`canUndo`/`canRedo`, real undo restoration) instead of
-History API call sequences; the one deliberate coupling — Edit Baseline ordering — is pinned by a
-single dedicated contract test. Test-only, production untouched.
+[245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md):
+Apple strokes now bind to their Originating Touch; a second finger ends the stroke and yields to
+gestures, and the finger begin is deferred so a pinch start never paints (web parity). Bonus: a
+lone resting finger no longer disturbs a pencil stroke. Known gap for the palm-rejection work:
+recognizer-claimed touches escape the down-count, so a third finger mid-pinch can still draw.
 
 ## Next Up
 
 - Apple Phase 3 — Layer system ★ foundation — needs `/to-issues` decomposition ([RFC](../issues/013-apple-native-catchup.md))
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
-- Apple Pencil: hover preview + palm rejection
+- Apple Pencil: hover preview + palm rejection — input routing seam ready (245)
 - Feedback link to Google Form
 - (review) In-editor feedback widget
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate

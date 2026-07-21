@@ -1,6 +1,6 @@
 ---
 title: Apple multi-touch stroke routing — associate strokes with their originating touch
-status: ready-for-agent
+status: done
 created: 2026-07-17
 ---
 
@@ -116,3 +116,52 @@ Mapped onto the Apple shell:
   outcome is required here.
 - macOS mouse/trackpad paths and the web shell — unchanged.
 - Reworking `EditorState.beginStroke`'s defensive cancel-on-begin.
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Rendering/TouchStrokeRouter.swift` | New platform-neutral state machine: routes touch events (opaque id + kind + point) into stroke commands (`begin/move/end/cancel`). Owns the Originating Touch binding, the Deferred Begin for direct fingers, and the two-direct-touch Gesture Signal |
+| `apple/Dotorixel/Rendering/InputMTKView.swift` | iOS touch handlers rewired as thin wiring: feed every touch event to the router, execute returned commands against `CanvasInputDelegate`. Touches identified via `ObjectIdentifier` (never retained). macOS paths and the delegate contract untouched |
+| `apple/DotorixelTests/TouchStrokeRouterTests.swift` | 9 tests / 4 suites. A `RoutedEditor` harness drives router commands into a real `EditorState` and asserts pixels + history outcomes (no call-sequence assertions), mirroring the production wiring |
+| `CONTEXT.md` | Registered the input vocabulary: Originating Touch, Gesture Signal, Deferred Begin |
+| `docs/platform-status.md` | Touch / Apple Pencil rows updated to the new cross-platform truth |
+
+### Key Decisions
+
+- **Deferred Begin instead of the cancel path** for the "initial-sample-only stroke
+  resolves clean" criterion: `FreehandStrokeSession.cancel()` deliberately keeps
+  painted pixels (interrupted strokes preserve work), so cancelling could never
+  un-paint the touch-down dot. Deferring the begin — the web's own mechanism
+  (`pendingCoords`) — means the dot never lands, without touching any session
+  or History semantics.
+- **Shell-native placement** (no Rust core involvement), per the Core Placement
+  criteria: the logic is inseparable from UIKit touch identity and gesture-
+  recognizer interplay (platform divergence), sits on the per-event input hot
+  path (binding friction), and the web shell already owns an equivalent machine
+  (no cross-platform sharing to gain).
+- **Gesture Signal counts direct touches only** (web parity: only `touch`
+  pointers enter the two-pointer check). Bonus beyond the brief's minimum: a
+  single resting finger neither replaces, feeds, nor ends a pencil stroke —
+  a pre-palm-rejection tolerance that the palm-rejection work will extend.
+- Router is a generic pure `struct` (`TouchStrokeRouter<TouchID: Hashable>`),
+  compiled into both platforms (CoreGraphics only) — the testable seam the
+  agent brief asked for, and the seam palm rejection will refine.
+
+### Notes
+
+- **Known limitation**: when a gesture recognizer claims the touches
+  (`cancelsTouchesInView`), they leave the router's down-touch count via
+  `touchesCancelled`, so a *third* finger landing mid-pinch can start a
+  (deferred) stroke and draw if it moves. Strictly better than pre-245
+  behavior (which painted on touch-down), but a full seal needs an
+  `event.allTouches` sync at the view boundary — left to the palm-rejection
+  work, which owns this seam next.
+- The router's episode rule ("no stroke until every touch lifts") relies on
+  the view feeding **all** touch events to the router, not just the
+  originating touch's — documented on `downTouches`.
+- Pinch-zoom / two-finger-pan recognizers are untouched and not unit-testable;
+  their interplay with the new routing was not manually verified on a device —
+  worth a pass during the palm-rejection work or the next simulator session.
+- Full Apple suite green (226 tests / 49 suites) on the pinned iPad simulator;
+  macOS target builds clean.

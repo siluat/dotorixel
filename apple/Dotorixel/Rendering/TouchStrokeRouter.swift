@@ -54,6 +54,17 @@ struct TouchStrokeRouter<TouchID: Hashable> {
         .begin(point: point, kind: .direct)
     }
 
+    /// Replaces the down-touch set with the platform's authoritative
+    /// snapshot (`event.allTouches` at a begin boundary). Touches a gesture
+    /// recognizer claimed leave via `touchCancelled` while their fingers stay
+    /// on the glass — the snapshot restores them so the episode keeps
+    /// blocking new strokes — and touches whose lift never reached the view
+    /// drop out. The stroke itself is untouched: only begin admission reads
+    /// this set.
+    mutating func syncDownTouches(_ snapshot: [TouchID: TouchKind]) {
+        downTouches = snapshot
+    }
+
     mutating func touchBegan(_ id: TouchID, kind: TouchKind, at point: CGPoint) -> [StrokeRoutingCommand] {
         downTouches[id] = kind
         switch stroke {

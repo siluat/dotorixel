@@ -10,14 +10,19 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 191 | 143 | 48 | 223 | 75% | 39% |
-| cubic-dev-ai[bot] | 214 | 170 | 44 | 195 | 79% | 47% |
-| coderabbitai[bot] | 270 | 188 | 82 | 176 | 70% | 52% |
+| greptile-apps[bot] | 192 | 144 | 48 | 223 | 75% | 39% |
+| cubic-dev-ai[bot] | 216 | 171 | 45 | 195 | 79% | 47% |
+| coderabbitai[bot] | 271 | 188 | 83 | 177 | 69% | 52% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #338 | greptile-apps[bot] | Accept | Recognizer-claimed touches left the router's down-count via `touchesCancelled`, so a third finger mid-pinch could draw (the PR-body-disclosed known limitation, re-raised as P1); accepted — begin-boundary `event.allTouches` sync now keeps claimed-but-down fingers blocking |
+| #338 | cubic-dev-ai[bot] | Accept | Same recognizer-claimed down-count staleness (duplicate of greptile), with the `event.allTouches` reconciliation remedy; same begin-boundary sync fix |
+| #338 | coderabbitai[bot] | Reject | Wanted Pencil to preempt a pending/active finger stroke; the finger-wins behavior is deliberate web parity (the web machine ignores pen pointerdown while a touch draw is live) and pencil-vs-finger priority is verbatim out of scope in the 245 brief — the palm-rejection work owns that policy |
+| #338 | cubic-dev-ai[bot] | Reject | Same Pencil-preemption proposal (duplicate of coderabbit); same web-parity + out-of-scope refutation |
+| #338 | coderabbitai[bot] | Miss | Did not flag the recognizer-claimed down-count staleness (accepted from greptile/cubic) |
 | #336 | greptile-apps[bot] | Reject | Claimed keyboard hue reaching exactly 360° emits a wrong color; `hsvToRgb` maps 360 into the `h≥300` branch with x=0 → exact 0° red on both shells, and the drag path always produced h=360 at the strip bottom |
 | #336 | greptile-apps[bot] | Reject | Claimed the SV area's saturation-only `aria-valuenow` leaves stale state after brightness edits; `aria-valuetext` carries both axes, takes precedence per ARIA 1.2, and is the contract issue 250 chose for the 2-axis web slider |
 | #336 | coderabbitai[bot] | Reject | Claimed the hardcoded `%` bypasses the `%lld%%` catalog entry; the interpolated literal generates exactly that format key, and the entry is intentionally do-not-translate (pinned by `FormatEntryLocalizationTests`) |

@@ -9,8 +9,9 @@ None.
 [245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md):
 Apple strokes now bind to their Originating Touch; a second finger ends the stroke and yields to
 gestures, and the finger begin is deferred so a pinch start never paints (web parity). Bonus: a
-lone resting finger no longer disturbs a pencil stroke. Known gap for the palm-rejection work:
-recognizer-claimed touches escape the down-count, so a third finger mid-pinch can still draw.
+lone resting finger no longer disturbs a pencil stroke. The recognizer-claimed-touch gap was
+closed during PR review (begin-boundary `allTouches` sync); pencil-vs-finger priority stays with
+the palm-rejection work.
 
 ## Next Up
 

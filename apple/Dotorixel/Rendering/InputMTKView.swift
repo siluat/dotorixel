@@ -237,6 +237,10 @@ class InputMTKView: MTKView {
         }
         if let event {
             inputDelegate?.shiftStateChanged(isHeld: event.modifierFlags.contains(.shift), in: self)
+            // Recognizer-claimed touches were cancelled for this view but
+            // their fingers may still be on the glass — re-sync the router
+            // with the event-wide truth so a mid-gesture begin stays blocked.
+            strokeRouter.syncDownTouches(downTouchSnapshot(of: event))
         }
         for touch in touches {
             execute(
@@ -248,6 +252,24 @@ class InputMTKView: MTKView {
                 event: event
             )
         }
+    }
+
+    /// Every touch currently on the glass (or pressed on an indirect
+    /// device), event-wide — including touches a recognizer claimed away
+    /// from this view. Hover phases (`.regionEntered`/`.regionMoved`/
+    /// `.regionExited`) are excluded: a hovering pencil must not block
+    /// drawing.
+    private func downTouchSnapshot(of event: UIEvent) -> [ObjectIdentifier: TouchKind] {
+        var snapshot: [ObjectIdentifier: TouchKind] = [:]
+        for touch in event.allTouches ?? [] {
+            switch touch.phase {
+            case .began, .moved, .stationary:
+                snapshot[ObjectIdentifier(touch)] = TouchKind(touch.type)
+            default:
+                break
+            }
+        }
+        return snapshot
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {

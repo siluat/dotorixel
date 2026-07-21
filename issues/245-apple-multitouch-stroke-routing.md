@@ -150,13 +150,14 @@ Mapped onto the Apple shell:
 
 ### Notes
 
-- **Known limitation**: when a gesture recognizer claims the touches
-  (`cancelsTouchesInView`), they leave the router's down-touch count via
-  `touchesCancelled`, so a *third* finger landing mid-pinch can start a
-  (deferred) stroke and draw if it moves. Strictly better than pre-245
-  behavior (which painted on touch-down), but a full seal needs an
-  `event.allTouches` sync at the view boundary — left to the palm-rejection
-  work, which owns this seam next.
+- ~~**Known limitation**: a third finger landing mid-pinch could start a
+  stroke, because recognizer-claimed touches leave the down-count via
+  `touchesCancelled`.~~ **Closed during PR #338 review** (flagged by
+  greptile-apps P1 and cubic-dev-ai P2): the view now reconciles the
+  router's down-touch set with `event.allTouches` at every begin boundary
+  (`syncDownTouches`), so claimed-but-still-down fingers keep blocking new
+  strokes until they physically lift. Hover phases are excluded — a
+  hovering pencil never blocks drawing.
 - The router's episode rule ("no stroke until every touch lifts") relies on
   the view feeding **all** touch events to the router, not just the
   originating touch's — documented on `downTouches`.

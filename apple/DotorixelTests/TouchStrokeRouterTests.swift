@@ -26,6 +26,14 @@ private final class RoutedEditor {
         apply(router.touchCancelled(id))
     }
 
+    /// Mirrors the view's begin-boundary reconciliation: before routing a
+    /// begin, the view hands the router the event-wide snapshot of touches
+    /// on the glass (`event.allTouches`), which still contains touches a
+    /// gesture recognizer claimed away from the view.
+    func sync(_ snapshot: [Int: TouchKind]) {
+        router.syncDownTouches(snapshot)
+    }
+
     func pencilDown(_ id: Int, x: Int, y: Int) {
         apply(router.touchBegan(id, kind: .pencil, at: point(x, y)))
     }
@@ -157,6 +165,34 @@ struct TouchStrokeRouterMultiTouchTests {
         #expect(!editor.state.canUndo)
 
         // Every touch lifted — the next tap draws again.
+        editor.fingerDown(4, x: 1, y: 1)
+        editor.fingerUp(4)
+        #expect(try editor.state.pixelCanvas.getPixel(x: 1, y: 1) == editor.state.foregroundColor)
+    }
+
+    @Test("touches a gesture recognizer claimed keep blocking new strokes until they lift")
+    func recognizerClaimedTouchesKeepBlockingStrokes() throws {
+        let editor = RoutedEditor()
+
+        // Two fingers enter a pinch; the recognizer claims them (cancelled
+        // for the view) while both stay on the glass.
+        editor.fingerDown(1, x: 2, y: 2)
+        editor.fingerDown(2, x: 8, y: 8)
+        editor.fingerCancel(1)
+        editor.fingerCancel(2)
+
+        // A third finger lands mid-pinch: the begin-boundary sync restores
+        // the claimed fingers to the census, so it must stay blocked.
+        editor.sync([1: .direct, 2: .direct, 3: .direct])
+        editor.fingerDown(3, x: 5, y: 5)
+        editor.fingerMove(3, x: 6, y: 5)
+        editor.fingerUp(3)
+        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(!editor.state.canUndo)
+
+        // Everything lifted — the view never hears the claimed touches' ends,
+        // but the next begin's snapshot carries only itself. Drawing resumes.
+        editor.sync([4: .direct])
         editor.fingerDown(4, x: 1, y: 1)
         editor.fingerUp(4)
         #expect(try editor.state.pixelCanvas.getPixel(x: 1, y: 1) == editor.state.foregroundColor)

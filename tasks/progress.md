@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None.
+Apple Pencil — hover preview + palm rejection ([PRD](../issues/251-apple-pencil-hover-palm-rejection.md))
 
 ## Last Completed
 
@@ -18,7 +18,6 @@ the palm-rejection work.
 - Apple Phase 3 — Layer system ★ foundation — needs `/to-issues` decomposition ([RFC](../issues/013-apple-native-catchup.md))
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
-- Apple Pencil: hover preview + palm rejection — input routing seam ready (245)
 - Feedback link to Google Form
 - (review) In-editor feedback widget
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate

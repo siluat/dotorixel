@@ -84,7 +84,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Mouse / trackpad | — | ✅ | ✅ | |
 | Touch | — | ✅ | ✅ | Pointer Events / UITouch. Both: pinch-zoom + two-finger pan; strokes bind to the originating touch; finger begin deferred so a pinch start never paints; a second finger ends the stroke. Web adds long-press eyedropper |
-| Apple Pencil | — | — | ✅ | Draws immediately (no finger deferral); a lone resting finger neither feeds nor ends the pencil stroke |
+| Apple Pencil | — | — | ✅ | Draws immediately (no finger deferral). Touching pencil outranks fingers: begins over a resting palm, an active stroke ignores them entirely, pinch/pan suppressed until it lifts. Hover preview pending |
 | Keyboard shortcuts | — | ✅ | ✅ | Both: tool keys, X swap, G grid, ⌘Z/⇧⌘Z/⌘Y, Alt-hold eyedropper (deferred mid-stroke restore), Shift constrain, text-field guard. Apple adds Edit-menu undo/redo; Space pan + `/` hints + selection C/X/V web-only |
 | Constrain latch | — | ✅ | ✅ | Re-tap the active constrainable tool (line/rect/ellipse; selection web-only) to latch the Shift constraint keyboard-free; OR-combined with Shift; mid-stroke toggle re-resolves the in-flight shape instantly |
 | Tool selection a11y | — | ✅ | ⬜ | Tool buttons form an ARIA radiogroup: aria-checked + roving tabindex, Arrow-key nav (wraps), Space/Enter activates (latch on constrainable). Latch state announced via a polite SR live region |

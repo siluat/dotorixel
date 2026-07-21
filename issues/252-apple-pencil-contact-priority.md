@@ -1,6 +1,6 @@
 ---
 title: Apple Pencil contact priority — palm rejection for touching pencil + gesture suppression
-status: ready-for-agent
+status: done
 created: 2026-07-21
 ---
 
@@ -67,3 +67,37 @@ executes returned commands, and gates the recognizers.
 ## Blocked by
 
 None - can start immediately
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Rendering/TouchStrokeRouter.swift` | Pencil-priority rules in the routing seam: `admitPencilBegin` (a pencil begin is always admitted; preempts a finger stroke — drag commits, held Deferred Begin discarded), an active pencil stroke ignores direct begins entirely, `Stroke.active` now carries its `TouchKind`, and `isPencilStrokeActive` exposes the gesture gate |
+| `apple/Dotorixel/Rendering/InputMTKView.swift` | `gestureRecognizerShouldBegin` override gates pinch/two-finger pan on the router's pencil-stroke state (recognizers attach to the view, so no delegate wiring needed) |
+| `apple/Dotorixel/Rendering/PixelCanvasView.swift` | Comment pointing the recognizer setup at the view-level gate |
+| `apple/DotorixelTests/TouchStrokeRouterTests.swift` | New `TouchStrokeRouter — pencil priority (palm rejection)` suite: 6 tests through the `RoutedEditor` harness asserting pixels + history (deferred-begin preemption, begin over 1–2 resting touches, in-flight drag commit, full-palm ignore, post-pencil episode, gesture-gate lifetime) |
+| `CONTEXT.md` | Originating Touch / Gesture Signal entries extended with the pencil-priority semantics |
+
+### Key Decisions
+
+- **Episode rule binds finger begins only (maintainer-confirmed).** The acceptance
+  criterion "no new stroke begins until every touch lifts" conflicted with PRD rule 1
+  ("pencil begin is always admitted") for the palm-still-resting case. Resolved in
+  favor of rule 1: consecutive pencil lines never require lifting the hand; only
+  finger begins wait for the episode to end.
+- **Gesture suppression via `UIView.gestureRecognizerShouldBegin` override**, not
+  recognizer delegates — the recognizers attach to `InputMTKView`, so the built-in
+  hook suffices and keeps the wiring thin.
+- **Pencil preemption reuses the Gesture Signal resolution semantics** (drag commits
+  as one history entry; a held Deferred Begin is discarded) instead of inventing a
+  third resolution path.
+
+### Notes
+
+- `gestureRecognizerShouldBegin` gates **every** recognizer attached to the view
+  (today: pinch + pan only). The 253 hover recognizer must be exempted there if it
+  attaches to the same view — called out in the override's doc comment.
+- Recognizer interplay (pinch/pan actually refusing to begin mid-pencil-stroke) is
+  not simulator-testable — folded into the 255 device verification pass.
+- A second pencil begin during an active pencil stroke preempts it (commit + begin)
+  — physically impossible with one pencil; chosen as the safe default.

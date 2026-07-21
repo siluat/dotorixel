@@ -297,6 +297,19 @@ class InputMTKView: MTKView {
         }
     }
 
+    /// Gates the viewport-gesture recognizers (pinch, two-finger pan) on the
+    /// router's pencil-stroke state (issue 252): a palm resting mid-stroke
+    /// must not pan or zoom the canvas out from under the pencil line. The
+    /// gate re-opens the moment the pencil lifts.
+    ///
+    /// This hook covers *every* recognizer attached to this view — today
+    /// only the two viewport gestures. A future recognizer that must run
+    /// during a pencil stroke (e.g. pencil hover, issue 253) needs an
+    /// exemption here.
+    override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        !strokeRouter.isPencilStrokeActive
+    }
+
     private func execute(_ commands: [StrokeRoutingCommand], event: UIEvent?) {
         for command in commands {
             switch command {

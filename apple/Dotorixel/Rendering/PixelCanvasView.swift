@@ -105,9 +105,6 @@ extension PixelCanvasView: UIViewRepresentable {
             mtkView.delegate = renderer
         }
 
-        // Both recognizers are gated by the view's
-        // `gestureRecognizerShouldBegin` (pencil-stroke suppression, issue
-        // 252) — they attach to the view, so no delegate wiring is needed.
         let pinch = UIPinchGestureRecognizer(
             target: context.coordinator,
             action: #selector(Coordinator.handlePinch(_:))
@@ -123,6 +120,12 @@ extension PixelCanvasView: UIViewRepresentable {
         pan.maximumNumberOfTouches = 2
         pan.cancelsTouchesInView = true
         mtkView.addGestureRecognizer(pan)
+
+        // Register both as viewport gestures so the view suppresses them
+        // during a pencil stroke — gating new begins (via the view's
+        // `gestureRecognizerShouldBegin`, no delegate needed) and cancelling
+        // any already in flight when the pencil lands (issue 252).
+        mtkView.viewportGestureRecognizers = [pinch, pan]
 
         return mtkView
     }

@@ -228,6 +228,12 @@ class InputMTKView: MTKView {
     /// returned commands. Touches are identified without retaining them.
     private var strokeRouter = TouchStrokeRouter<ObjectIdentifier>()
 
+    /// The viewport-navigation recognizers (pinch, two-finger pan) the pencil
+    /// stroke suppresses (issue 252) — populated by the view's owner. Only
+    /// these are gated and cancelled; any other recognizer (e.g. pencil
+    /// hover, issue 253) is left alone.
+    var viewportGestureRecognizers: [UIGestureRecognizer] = []
+
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         // Re-acquire first responder at stroke start — another control may
         // have taken it since `didMoveToWindow`, which would silently stop
@@ -297,23 +303,42 @@ class InputMTKView: MTKView {
         }
     }
 
-    /// Gates the viewport-gesture recognizers (pinch, two-finger pan) on the
-    /// router's pencil-stroke state (issue 252): a palm resting mid-stroke
-    /// must not pan or zoom the canvas out from under the pencil line. The
-    /// gate re-opens the moment the pencil lifts.
-    ///
-    /// This hook covers *every* recognizer attached to this view — today
-    /// only the two viewport gestures. A future recognizer that must run
-    /// during a pencil stroke (e.g. pencil hover, issue 253) needs an
-    /// exemption here.
+    /// Blocks a viewport gesture (pinch, two-finger pan) from *beginning*
+    /// during a pencil stroke (issue 252): a palm resting mid-stroke must
+    /// not pan or zoom the canvas out from under the pencil line. Recognizers
+    /// outside `viewportGestureRecognizers` (e.g. pencil hover, issue 253)
+    /// are unaffected. The gate re-opens the moment the pencil lifts.
     override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        !strokeRouter.isPencilStrokeActive
+        guard viewportGestureRecognizers.contains(where: { $0 === gestureRecognizer }) else {
+            return true
+        }
+        return !strokeRouter.isPencilStrokeActive
+    }
+
+    /// Cancels any in-flight viewport gesture the instant a pencil stroke is
+    /// admitted. `gestureRecognizerShouldBegin` only gates the `.possible →
+    /// .began` transition, so a pinch/pan already running when the pencil
+    /// lands over a resting palm would keep moving the canvas — the
+    /// should-begin gate never sees it again (issue 252). Toggling
+    /// `isEnabled` forces an active recognizer to `.cancelled` and re-arms
+    /// it for after the pencil lifts.
+    private func cancelActiveViewportGestures() {
+        for recognizer in viewportGestureRecognizers where recognizer.isEnabled {
+            recognizer.isEnabled = false
+            recognizer.isEnabled = true
+        }
     }
 
     private func execute(_ commands: [StrokeRoutingCommand], event: UIEvent?) {
         for command in commands {
             switch command {
             case .begin(let point, let kind):
+                // A landing pencil outranks the viewport gestures: tear down
+                // any pinch/pan already in flight so it can't slide the
+                // canvas under the new stroke (issue 252).
+                if kind == .pencil {
+                    cancelActiveViewportGestures()
+                }
                 // Pointer devices (trackpad/mouse) report pressed buttons on
                 // the event; direct touch has an empty mask and draws with
                 // the primary.

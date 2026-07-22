@@ -3,15 +3,16 @@
 ## Currently Working On
 
 Apple Pencil — hover preview + palm rejection ([PRD](../issues/251-apple-pencil-hover-palm-rejection.md))
+— 1/4 sub-issues done (252 palm rejection); 253 (hover preview) is now unblocked.
 
 ## Last Completed
 
-[245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md):
-Apple strokes now bind to their Originating Touch; a second finger ends the stroke and yields to
-gestures, and the finger begin is deferred so a pinch start never paints (web parity). Bonus: a
-lone resting finger no longer disturbs a pencil stroke. The recognizer-claimed-touch gap was
-closed during PR review (begin-boundary `allTouches` sync); pencil-vs-finger priority stays with
-the palm-rejection work.
+[252 — Apple Pencil contact priority](../issues/252-apple-pencil-contact-priority.md):
+A touching pencil now outranks direct touches in the Apple shell — a resting palm can neither
+block, cut, nor pollute a pencil stroke, and pinch/pan stay suppressed until the pencil lifts.
+The episode rule now binds finger begins only (a pencil begin is always admitted). Recognizer
+interplay on real hardware is deferred to 255; the 253 hover recognizer needs an exemption in
+the view-level gesture gate.
 
 ## Next Up
 
@@ -31,3 +32,4 @@ the palm-rejection work.
 - Canvas resize via border drag
 - Timelapse recording
 - TimelinePanel mobile touch targets — frame + row icon buttons ≥44px on the mobile Timeline tab
+- Web pen priority — palm rejection + hover target cell (web counterpart of 252–254)

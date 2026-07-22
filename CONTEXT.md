@@ -97,11 +97,11 @@ The session-level module in front of the canvas viewport that admits or blocks d
 _Avoid_: editor controller (the deleted facade), canvas interaction (the per-view pointer capture machine), input handler (generic).
 
 **Originating Touch**:
-The touch a stroke is bound to for its whole lifetime — only this touch's move/end/cancel events drive the stroke; every other touch's events never feed it. Owned per shell by the pointer-capture layer (web: the canvas interaction machine's per-pointer state; Apple: `TouchStrokeRouter`).
+The touch a stroke is bound to for its whole lifetime — only this touch's move/end/cancel events drive the stroke; every other touch's events never feed it. A touching pencil outranks direct touches (Apple shell): a pencil begin is always admitted — resting fingers, a palm, or an open episode never block it — and it preempts an in-flight finger stroke (the drag commits as one history entry; a held Deferred Begin is discarded), the pencil becoming the new stroke's Originating Touch. Owned per shell by the pointer-capture layer (web: the canvas interaction machine's per-pointer state; Apple: `TouchStrokeRouter`).
 _Avoid_: first touch (ordinal, not identity), primary touch (names a pointer button), active touch (several touches can be down at once).
 
 **Gesture Signal**:
-Two direct (finger) touches down at once — the moment drawing yields to viewport gestures (pinch-zoom, two-finger pan). A dragged stroke commits what it drew; a Deferred Begin is discarded. Pencil and indirect pointers never count toward the signal, so a lone resting finger doesn't disturb a pencil stroke. Once fired, no stroke begins until every touch lifts.
+Two direct (finger) touches down at once — the moment drawing yields to viewport gestures (pinch-zoom, two-finger pan). A dragged stroke commits what it drew; a Deferred Begin is discarded. Pencil and indirect pointers never count toward the signal, and the signal never fires during a pencil stroke: any number of direct touches — a full palm — neither draw, end the stroke, nor operate the viewport (the gesture recognizers are gated until the pencil lifts). Once fired, no finger stroke begins until every touch lifts; a pencil begin is admitted regardless.
 _Avoid_: multi-touch (pencil + resting finger is multi-touch but not a gesture signal), pinch start (names one gesture; the signal also covers two-finger pan), second touch (the count matters, not the ordinal).
 
 **Deferred Begin**:

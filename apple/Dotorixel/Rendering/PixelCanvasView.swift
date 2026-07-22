@@ -105,11 +105,20 @@ extension PixelCanvasView: UIViewRepresentable {
             mtkView.delegate = renderer
         }
 
+        // Viewport navigation is a finger gesture: restricting both
+        // recognizers to direct touches keeps a pencil out of them (issue
+        // 252). A pencil landing during an active pinch/pan then always
+        // reaches `touchesBegan` — so its stroke cancels the gesture instead
+        // of being swallowed by `cancelsTouchesInView` — and can never be
+        // miscounted toward the two-finger signal.
+        let directTouchOnly = [UITouch.TouchType.direct.rawValue as NSNumber]
+
         let pinch = UIPinchGestureRecognizer(
             target: context.coordinator,
             action: #selector(Coordinator.handlePinch(_:))
         )
         pinch.cancelsTouchesInView = true
+        pinch.allowedTouchTypes = directTouchOnly
         mtkView.addGestureRecognizer(pinch)
 
         let pan = UIPanGestureRecognizer(
@@ -119,7 +128,14 @@ extension PixelCanvasView: UIViewRepresentable {
         pan.minimumNumberOfTouches = 2
         pan.maximumNumberOfTouches = 2
         pan.cancelsTouchesInView = true
+        pan.allowedTouchTypes = directTouchOnly
         mtkView.addGestureRecognizer(pan)
+
+        // Register both as viewport gestures so the view suppresses them
+        // during a pencil stroke — gating new begins (via the view's
+        // `gestureRecognizerShouldBegin`, no delegate needed) and cancelling
+        // any already in flight when the pencil lands (issue 252).
+        mtkView.viewportGestureRecognizers = [pinch, pan]
 
         return mtkView
     }

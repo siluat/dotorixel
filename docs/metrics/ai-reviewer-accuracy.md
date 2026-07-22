@@ -10,14 +10,19 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 193 | 145 | 48 | 223 | 75% | 39% |
-| cubic-dev-ai[bot] | 216 | 171 | 45 | 196 | 79% | 47% |
-| coderabbitai[bot] | 271 | 188 | 83 | 178 | 69% | 51% |
+| greptile-apps[bot] | 193 | 145 | 48 | 225 | 75% | 39% |
+| cubic-dev-ai[bot] | 218 | 173 | 45 | 196 | 79% | 47% |
+| coderabbitai[bot] | 272 | 189 | 83 | 179 | 69% | 51% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #339 | coderabbitai[bot] | Accept | `gestureRecognizerShouldBegin` only gates the `.possible → .began` transition, so a pinch/pan already active when the pencil lands over a resting palm kept moving the canvas under the stroke; the view now cancels in-flight viewport recognizers (isEnabled toggle) on pencil begin |
+| #339 | cubic-dev-ai[bot] | Accept | Same already-active viewport gesture surviving pencil begin (duplicate of coderabbit, P1); same isEnabled-toggle cancel |
+| #339 | cubic-dev-ai[bot] | Accept | Partial: platform-status Apple Pencil row marked ✅ while its note said "Hover preview pending" — inconsistent; declined `🔧` (row tracks pencil input routing — draw + palm rejection — which is done) and removed the stale note instead (hover gets its own row when 253 lands) |
+| #339 | coderabbitai[bot] | Miss | Did not flag the platform-status Apple Pencil marker/note inconsistency (accepted from cubic) |
+| #339 | greptile-apps[bot] | Miss (×2) | Reviewed 5/5 "safe to merge"; flagged neither the in-flight viewport gesture surviving pencil begin nor the platform-status marker/note inconsistency |
 | #338 | greptile-apps[bot] | Accept | Round 2: claimed the allTouches snapshot's phase whitelist drops recognizer-claimed touches if they report `.cancelled` in a later event, re-opening the third-finger gap; the mechanism-as-stated contradicts the touch lifecycle, but accepted as zero-cost hardening — exclude-list filter (only lifts + hovers drop) holds the gate under both undocumented readings |
 | #338 | coderabbitai[bot] | Miss | Round 2 (APPROVED): did not flag the phase-whitelist fragility in the allTouches snapshot (accepted from greptile) |
 | #338 | cubic-dev-ai[bot] | Miss | Round 2 (APPROVED): did not flag the phase-whitelist fragility in the allTouches snapshot (accepted from greptile) |

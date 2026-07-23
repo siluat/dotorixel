@@ -1,6 +1,6 @@
 ---
 title: Apple Pencil hover gate — block direct-touch stroke begins while the pencil hovers
-status: ready-for-agent
+status: done
 created: 2026-07-21
 ---
 
@@ -50,3 +50,36 @@ marks.
   (same routing seam)
 - [253 — Apple Pencil hover preview](253-apple-pencil-hover-preview.md)
   (reuses its hover event plumbing)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Rendering/TouchStrokeRouter.swift` | Added `isPencilHovering` state + `setPencilHovering(_:)` setter; the hover gate in `touchBegan` blocks direct-touch begins (after the pencil branch, before the stroke switch) |
+| `apple/Dotorixel/Rendering/InputMTKView.swift` | `setPencilHovering(_:)` forwards hover state to the private router |
+| `apple/Dotorixel/Rendering/PixelCanvasView.swift` | `handleHover` arms the gate on `.began`/`.changed` and disarms on `.ended`/`.cancelled`/`.failed`, alongside the existing Hover Point wiring |
+| `apple/DotorixelTests/TouchStrokeRouterTests.swift` | New suite — 5 tests pinning the gate through the routed-editor harness (pixels + history) |
+
+### Key Decisions
+
+- **Gate placement — after the pencil branch, before the stroke switch.** A
+  pencil begin is never gated (criterion 5), and a hovering pencil makes direct
+  touches fully inert to the stroke machine (never starts, discards, or ends a
+  stroke) while still being censused for episode-blocking — the cleanest
+  palm-rejection semantic.
+- **Plain `Bool` input, reusing 253's hover recognizer.** The routing seam stays
+  UIKit-free; the view feeds `setPencilHovering` from the same hover events that
+  drive the Hover Point.
+- **Native-per-shell placement, not Rust core.** Input routing is shell-owned
+  (CONTEXT.md); the web counterpart ("Web pen priority") is separate backlog work
+  on the canvas interaction machine.
+
+### Notes
+
+- Live pinch/pan during hover and hover tracking are recognizer/hardware
+  behavior — the gate leaves the viewport recognizers untouched (only
+  `isPencilStrokeActive` gates them, false during hover), so they keep working.
+  Validated by the **255 device pass**, now unblocked. Completes 3/4 of PRD 251.
+- The CONTEXT.md domain model was not extended with the hover-gate rule; folding
+  a line into the Hover Point / Originating Touch entries is a reasonable
+  follow-up.

@@ -47,6 +47,12 @@ struct TouchStrokeRouter<TouchID: Hashable> {
         return false
     }
 
+    /// Whether a pencil is hovering near the glass (issue 254). While true, a
+    /// direct touch never begins a stroke — aiming with the pencil can't leave
+    /// an accidental mark. Fed by the view from the same hover events issue 253
+    /// wires up; a plain boolean keeps the seam UIKit-free.
+    private var isPencilHovering = false
+
     /// Every touch currently down, drawing or not — the owner must feed all
     /// touch events, not just the originating touch's. Drawing only resumes
     /// once this empties: a touch left over from a gesture must not draw.
@@ -76,10 +82,25 @@ struct TouchStrokeRouter<TouchID: Hashable> {
         downTouches = snapshot
     }
 
+    /// Records whether a pencil is hovering (issue 254), fed by the view from
+    /// its hover recognizer. Gates only *new* direct-touch begins — it never
+    /// ends an in-flight stroke and never affects pencil begins.
+    mutating func setPencilHovering(_ isHovering: Bool) {
+        isPencilHovering = isHovering
+    }
+
     mutating func touchBegan(_ id: TouchID, kind: TouchKind, at point: CGPoint) -> [StrokeRoutingCommand] {
         downTouches[id] = kind
         if kind == .pencil {
             return admitPencilBegin(id, at: point)
+        }
+        // Hover gate (issue 254): while the pencil hovers, no direct touch
+        // begins a stroke — its Deferred Begin is never created. The touch is
+        // still censused above, so the episode keeps blocking until it lifts;
+        // viewport gestures (owned by the recognizers) stay available. Checked
+        // after the pencil branch so a pencil begin is never gated.
+        if isPencilHovering, kind == .direct {
+            return []
         }
         switch stroke {
         case .none:

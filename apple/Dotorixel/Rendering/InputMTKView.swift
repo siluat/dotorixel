@@ -282,6 +282,14 @@ class InputMTKView: MTKView {
         return snapshot
     }
 
+    /// Feeds the router the pencil's hover state (issue 254): while a pencil
+    /// hovers, the router blocks direct-touch stroke begins. Driven by the
+    /// hover recognizer (issue 253), which reports pencil hover only — so on
+    /// hardware without pencil hover this simply never fires.
+    func setPencilHovering(_ isHovering: Bool) {
+        strokeRouter.setPencilHovering(isHovering)
+    }
+
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
             execute(

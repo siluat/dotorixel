@@ -53,6 +53,13 @@ private final class RoutedEditor {
         apply(router.touchEnded(id))
     }
 
+    /// Mirrors the view's pencil-hover recognizer feeding the routing seam a
+    /// plain boolean (issue 254): `.began`/`.changed` set it true, exit sets
+    /// it false. No drawing command flows from hover.
+    func hover(_ isHovering: Bool) {
+        router.setPencilHovering(isHovering)
+    }
+
     private func point(_ x: Int, _ y: Int) -> CGPoint {
         CGPoint(x: x, y: y)
     }
@@ -396,6 +403,97 @@ struct TouchStrokeRouterPencilPriorityTests {
         editor.fingerMove(2, x: 6, y: 5)
         #expect(!editor.isPencilStrokeActive)
         editor.fingerUp(2)
+    }
+}
+
+@Suite("TouchStrokeRouter — pencil hover gate (palm rejection)")
+struct TouchStrokeRouterHoverGateTests {
+
+    @Test("while the pencil hovers, a finger drag paints nothing and leaves no history")
+    func fingerDragWhileHoveringLeavesNoTrace() {
+        let editor = RoutedEditor()
+
+        editor.hover(true)
+        editor.fingerDown(1, x: 2, y: 2)
+        editor.fingerMove(1, x: 3, y: 2)
+        editor.fingerMove(1, x: 4, y: 2)
+        editor.fingerUp(1)
+
+        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(!editor.state.canUndo)
+    }
+
+    @Test("after the pencil exits hover and all touches lift, a fresh finger draws normally")
+    func fingerDrawsAgainAfterHoverExit() throws {
+        let editor = RoutedEditor()
+
+        // A finger blocked during hover, then lifts with the pencil.
+        editor.hover(true)
+        editor.fingerDown(1, x: 2, y: 2)
+        editor.fingerUp(1)
+        editor.hover(false)
+
+        // The next single finger draws again.
+        editor.fingerDown(2, x: 5, y: 5)
+        editor.fingerUp(2)
+
+        #expect(try editor.state.pixelCanvas.getPixel(x: 5, y: 5) == editor.state.foregroundColor)
+        #expect(editor.state.canUndo)
+    }
+
+    @Test("the pencil entering hover mid-finger-stroke neither ends nor alters that stroke")
+    func hoverDuringFingerStrokeDoesNotEndIt() throws {
+        let editor = RoutedEditor()
+
+        editor.fingerDown(1, x: 2, y: 2)
+        editor.fingerMove(1, x: 3, y: 2)
+        // The pencil comes into hover range while the finger stroke is live.
+        editor.hover(true)
+        editor.fingerMove(1, x: 4, y: 2)
+        editor.fingerUp(1)
+
+        // The stroke kept drawing through the hover and committed as one entry.
+        for x: UInt32 in 2...4 {
+            #expect(try editor.state.pixelCanvas.getPixel(x: x, y: 2) == editor.state.foregroundColor)
+        }
+        #expect(editor.state.canUndo)
+        editor.state.handleUndo()
+        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(!editor.state.canUndo)
+    }
+
+    @Test("a pencil begin during hover is unaffected by the gate and paints immediately")
+    func pencilBeginDuringHoverPaintsImmediately() throws {
+        let editor = RoutedEditor()
+
+        // The gate is finger-only: the pencil that owns the hover still draws
+        // the instant it touches down.
+        editor.hover(true)
+        editor.pencilDown(1, x: 3, y: 3)
+        #expect(try editor.state.pixelCanvas.getPixel(x: 3, y: 3) == editor.state.foregroundColor)
+
+        editor.pencilUp(1)
+        #expect(editor.state.canUndo)
+    }
+
+    @Test("two direct touches while the pencil hovers leave the canvas and history untouched")
+    func twoFingersWhileHoveringLeaveNoTrace() {
+        let editor = RoutedEditor()
+
+        // Both begins are gated; pinch-zoom / two-finger pan stay a
+        // recognizer concern (never suppressed — the stroke gate reads only
+        // the pencil stroke, which never starts here).
+        editor.hover(true)
+        editor.fingerDown(1, x: 2, y: 2)
+        editor.fingerDown(2, x: 8, y: 8)
+        editor.fingerMove(1, x: 3, y: 2)
+        editor.fingerMove(2, x: 9, y: 8)
+        editor.fingerUp(1)
+        editor.fingerUp(2)
+
+        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(!editor.state.canUndo)
+        #expect(!editor.isPencilStrokeActive)
     }
 }
 

@@ -108,6 +108,10 @@ _Avoid_: multi-touch (pencil + resting finger is multi-touch but not a gesture s
 A direct finger's stroke begin held pending until that touch first moves or lifts, so a touch that turns out to be a Gesture Signal start never paints — a tap lands its dot on release. Finger-only: pencil, mouse, and indirect pointers begin immediately.
 _Avoid_: touch delay (UIKit's `delaysTouchesBegan` is a different mechanism), pending stroke (no stroke exists yet — only its begin is pending), tap deferral (drags defer too, until the first move).
 
+**Hover Point**:
+The pencil's current target cell in canvas coordinates while it hovers over the canvas (Apple shell, hover-capable iPads) — or nil when no preview should show. Non-nil only while a pencil hovers in range over an in-bounds cell; cleared when the pencil leaves hover range, moves off-canvas, or a stroke begins. Tool-independent — every drawing tool gets the same single-cell target highlight. Fed by a pencil-only hover recognizer (finger and indirect-pointer hover never produce one), owned by the Apple `EditorState`, and rendered as a highlight overlay above the Metal view.
+_Avoid_: cursor (no finger/mouse equivalent is admitted yet), hover preview (names the feature, not the published value), target pixel (the value is a cell, and "pixel" is the painted datum).
+
 ### Sampling
 
 **Sampling Session**:

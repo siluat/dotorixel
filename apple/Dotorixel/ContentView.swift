@@ -47,6 +47,12 @@ struct ContentView: View {
                         )
                         .onAppear { fitCanvas(in: geo.size) }
                         .onChange(of: geo.size) { _, newSize in fitCanvas(in: newSize) }
+                        // Pencil hover preview: highlights the target cell
+                        // while the Apple Pencil hovers (issue 253). Below the
+                        // loupe so an active sampling stroke's magnifier wins.
+                        .overlay(alignment: .topLeading) {
+                            HoverHighlightOverlay(editorState: editorState, displayScale: displayScale)
+                        }
                         // Sampling loupe: floats over the canvas area while an
                         // eyedropper stroke is active.
                         .overlay(alignment: .topLeading) {
@@ -78,6 +84,55 @@ struct ContentView: View {
                 }
             }
             #endif
+        }
+    }
+
+    /// Isolates the hover highlight's observable reads (Hover Point + viewport)
+    /// from `ContentView`'s body, the same way `SamplingLoupeOverlay` does — so
+    /// per-move hover updates re-render only this overlay, not the Metal-backed
+    /// canvas view underneath.
+    private struct HoverHighlightOverlay: View {
+        let editorState: EditorState
+        let displayScale: CGFloat
+
+        // The target cell is outlined twice so it reads on any pixel color: a
+        // white halo behind a thinner accent line. The halo must stay wider
+        // than the outline for the two-tone edge to show.
+        private let haloWidth: CGFloat = 2
+        private let outlineWidth: CGFloat = 1
+        private let haloOpacity: Double = 0.85
+
+        var body: some View {
+            // Non-nil only while the pencil hovers over an in-bounds cell —
+            // EditorState owns that visibility contract; this view just draws.
+            if let cell = editorState.hoverPoint {
+                let rect = cellRect(cell, viewport: editorState.viewport)
+                Rectangle()
+                    .strokeBorder(SwiftUI.Color.white.opacity(haloOpacity), lineWidth: haloWidth)
+                    .overlay {
+                        Rectangle().strokeBorder(DesignTokens.accent, lineWidth: outlineWidth)
+                    }
+                    .frame(width: rect.width, height: rect.height)
+                    .offset(x: rect.minX, y: rect.minY)
+                    .allowsHitTesting(false)
+            }
+        }
+
+        /// Maps a canvas cell to its display rect in canvas-area points. The
+        /// viewport transform places a cell at `round(pan) + cell × eps` device
+        /// pixels (the inverse of `screenToCanvas`); dividing by the display
+        /// scale converts to the points the overlay is laid out in, so pan and
+        /// zoom reposition the highlight for free.
+        private func cellRect(_ cell: ScreenCanvasCoords, viewport: AppleViewport) -> CGRect {
+            let eps = viewport.effectivePixelSize()
+            let deviceX = viewport.panX().rounded() + Double(cell.x) * eps
+            let deviceY = viewport.panY().rounded() + Double(cell.y) * eps
+            return CGRect(
+                x: deviceX / displayScale,
+                y: deviceY / displayScale,
+                width: eps / displayScale,
+                height: eps / displayScale
+            )
         }
     }
 

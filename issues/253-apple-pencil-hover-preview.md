@@ -1,6 +1,6 @@
 ---
 title: Apple Pencil hover preview — Hover Point state + target-cell highlight overlay
-status: ready-for-agent
+status: done
 created: 2026-07-21
 ---
 
@@ -56,3 +56,42 @@ Pencil Pro), highlight the canvas pixel cell it would paint, live.
 - [252 — Apple Pencil contact priority](252-apple-pencil-contact-priority.md)
   (modifies the same routing seam and input view; sequential merge keeps
   the wiring conflict-free)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/EditorState.swift` | Publishes the **Hover Point** (`hoverPoint: ScreenCanvasCoords?`) and owns its visibility contract: `updateHoverPoint(to:)` shows an in-bounds target and clears an off-canvas one, `clearHoverPoint()` handles hover exit, and `beginStroke` clears it the moment a stroke starts. Value-type only — no per-event allocation |
+| `apple/Dotorixel/Rendering/PixelCanvasView.swift` | A `UIHoverGestureRecognizer` restricted to `allowedTouchTypes = [.pencil]` (iOS only), kept out of `viewportGestureRecognizers` so the 252 stroke gate never touches it; `Coordinator.handleHover` converts the location to canvas coords and feeds the Hover Point (state only, no drawing command — `CanvasInputDelegate` unchanged) |
+| `apple/Dotorixel/ContentView.swift` | `HoverHighlightOverlay` above the Metal view (Loupe pattern): derives the cell's display rect from the viewport transform (`round(pan) + cell × eps`, inverse of `screenToCanvas`) so pan/zoom reposition it for free; two-tone (white halo + accent) single-cell outline |
+| `apple/DotorixelTests/EditorStateTests.swift` | New `EditorState — Hover Point` suite: 5 editor-state-seam tests (in-bounds publish, off-canvas clear on all four edges, hover-exit clear, stroke-begin clear, live re-target) asserting the published Hover Point only — no rendering assertions |
+| `CONTEXT.md` | Registered **Hover Point** in the Input vocabulary |
+
+### Key Decisions
+
+- **Hover feeds state, not a drawing command**, so the `CanvasInputDelegate`
+  protocol is untouched — `handleHover` sits on the Coordinator alongside
+  `handlePinch`/`handleTwoFingerPan`, reading `editorState`/`viewport`
+  directly (PRD: extend the delegate only if routing can't stay in the view).
+- **The Hover Point is a `ScreenCanvasCoords`** (the existing canvas-cell
+  type), keeping domain vocabulary consistent with `beginStroke`.
+- **Bounds check lives on `EditorState`** (`isInCanvasBounds`), so the
+  "in-bounds after conversion" half of the visibility contract is unit-tested
+  at the state seam rather than in the untestable view layer.
+- **The hover recognizer is excluded from `viewportGestureRecognizers`**, so
+  252's `gestureRecognizerShouldBegin` gate leaves it alone with no exemption
+  code needed (the gate already returns `true` for non-viewport recognizers).
+
+### Notes
+
+- **255 device pass carries the untestable parts**: finger/indirect-pointer
+  exclusion (enforced by the recognizer's touch-type restriction), the live
+  highlight tracking, and pan/zoom glue are not simulator-verifiable — the
+  simulator cannot emit pencil hover. The view/recognizer wiring is kept thin
+  so everything meaningful is unit-tested at the state seam.
+- **254 is now unblocked** (hover gate: block finger begins while hovering).
+- `updateHoverPoint` has no `isDrawing` guard: a hovering pencil and a
+  touching pencil never physically coexist, and 254 will block finger begins
+  while hovering — the tested 5-behavior contract is kept minimal.
+- Full iOS suite green (238 tests); macOS target builds clean, macOS input
+  paths untouched.

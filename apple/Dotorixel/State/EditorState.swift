@@ -327,6 +327,11 @@ final class EditorState {
             canvasHeight: height,
             viewportSize: viewportSize
         )
+        // The new canvas geometry can leave a published Hover Point out of
+        // bounds, and no hover event fires while the pencil holds still — clear
+        // it here so the overlay never marks a cell the resize deleted. The
+        // next hover republishes against the new dimensions.
+        hoverPoint = nil
         historyManager.clear()
         historyVersion += 1
         canvasVersion += 1

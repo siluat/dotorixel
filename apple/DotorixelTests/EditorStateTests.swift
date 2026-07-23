@@ -269,6 +269,17 @@ struct EditorStateHoverPointTests {
         state.updateHoverPoint(to: ScreenCanvasCoords(x: 9, y: 1))
         #expect(state.hoverPoint == ScreenCanvasCoords(x: 9, y: 1))
     }
+
+    @Test("resizing the canvas clears a now-out-of-bounds Hover Point")
+    func resizeClearsOutOfBoundsHoverPoint() {
+        let state = EditorState(width: 16, height: 16)
+        // The last cell of the 16-wide canvas — off-canvas once it shrinks to 8.
+        state.updateHoverPoint(to: ScreenCanvasCoords(x: 15, y: 15))
+
+        state.resizeCanvas(width: 8, height: 16)
+
+        #expect(state.hoverPoint == nil)
+    }
 }
 
 @Suite("EditorState — resizeCanvas")

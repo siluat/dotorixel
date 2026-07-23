@@ -79,7 +79,8 @@ marks.
 - Live pinch/pan during hover and hover tracking are recognizer/hardware
   behavior — the gate leaves the viewport recognizers untouched (only
   `isPencilStrokeActive` gates them, false during hover), so they keep working.
-  Validated by the **255 device pass**, now unblocked. Completes 3/4 of PRD 251.
-- The CONTEXT.md domain model was not extended with the hover-gate rule; folding
-  a line into the Hover Point / Originating Touch entries is a reasonable
-  follow-up.
+  The **255 device pass** (now unblocked) will validate this on hardware.
+  Completes 3/4 of PRD 251.
+- The CONTEXT.md domain model gains a **Hover Gate** entry documenting the new
+  begin-admission rule, alongside the existing Originating Touch / Gesture Signal
+  / Deferred Begin / Hover Point entries.

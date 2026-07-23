@@ -112,6 +112,10 @@ _Avoid_: touch delay (UIKit's `delaysTouchesBegan` is a different mechanism), pe
 The pencil's current target cell in canvas coordinates while it hovers over the canvas (Apple shell, hover-capable iPads) — or nil when no preview should show. Non-nil only while a pencil hovers in range over an in-bounds cell; cleared when the pencil leaves hover range, moves off-canvas, or a stroke begins. Tool-independent — every drawing tool gets the same single-cell target highlight. Fed by a pencil-only hover recognizer (finger and indirect-pointer hover never produce one), owned by the Apple `EditorState`, and rendered as a highlight overlay above the Metal view.
 _Avoid_: cursor (no finger/mouse equivalent is admitted yet), hover preview (names the feature, not the published value), target pixel (the value is a cell, and "pixel" is the painted datum).
 
+**Hover Gate**:
+While a pencil hovers over the canvas (Apple shell, hover-capable iPads), a direct-touch stroke begin is blocked outright — palm rejection while aiming, so a palm or finger that lands never starts a stroke. Gates only *new* begins: it never ends an in-flight stroke, never affects a pencil begin (which draws immediately), and leaves the viewport recognizers untouched (pinch-zoom and two-finger pan stay available). Fed by the same pencil-only hover recognizer as the Hover Point; on hardware without pencil hover it simply never arms.
+_Avoid_: palm rejection (names the goal; the touching-pencil priority in Originating Touch is palm rejection too), hover lock (nothing is locked — only begins are gated).
+
 ### Sampling
 
 **Sampling Session**:

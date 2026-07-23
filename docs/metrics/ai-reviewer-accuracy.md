@@ -10,14 +10,18 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 195 | 146 | 49 | 225 | 75% | 39% |
+| greptile-apps[bot] | 196 | 147 | 49 | 226 | 75% | 39% |
 | cubic-dev-ai[bot] | 221 | 175 | 46 | 196 | 79% | 47% |
-| coderabbitai[bot] | 273 | 190 | 83 | 180 | 70% | 51% |
+| coderabbitai[bot] | 274 | 191 | 83 | 181 | 70% | 51% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #341 | greptile-apps[bot] | Accept | The router's hover-gate early return added a begin-admission invariant absent from the domain glossary (CONTEXT.md had only Deferred Begin / Gesture Signal / contact pencil priority); added a **Hover Gate** entry alongside Originating Touch / Gesture Signal / Deferred Begin / Hover Point |
+| #341 | coderabbitai[bot] | Accept | Issue 254's "Validated by the 255 device pass" read as completed while platform-status.md + progress.md mark 255 pending; reworded to future tense ("the 255 device pass will validate this on hardware"), keeping "now unblocked" |
+| #341 | greptile-apps[bot] | Miss | Did not flag the "Validated by 255" completed-vs-pending phrasing in issue 254 (accepted from coderabbit) |
+| #341 | coderabbitai[bot] | Miss | Did not flag the missing CONTEXT.md Hover Gate documentation (accepted from greptile) |
 | #340 | greptile-apps[bot] | Reject | Round 2: viewport pan/zoom/fit/reset "stale hover target" — the same canvas-cell-glue design as the first-round pan/zoom thread; the overlay recomputes the cell's rect from the live viewport, so it stays glued to the same cell (PRD 251 acceptance). A blanket clear would blink the highlight out mid-gesture; tip re-targeting is a 255 device-pass call |
 | #340 | greptile-apps[bot] | Accept | Hover Point goes stale on canvas resize — a published cell (e.g. (15,15) on 16×16) survives a shrink to 8×16, so the overlay marks a deleted cell until the next hover; cleared in `resizeCanvas` |
 | #340 | coderabbitai[bot] | Accept | Same resize-stale Hover Point, asked to revalidate/clear after resize + add a regression test (duplicate of greptile); same `resizeCanvas` clear, test added |

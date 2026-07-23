@@ -10,14 +10,18 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 193 | 145 | 48 | 225 | 75% | 39% |
-| cubic-dev-ai[bot] | 219 | 174 | 45 | 196 | 79% | 47% |
-| coderabbitai[bot] | 272 | 189 | 83 | 180 | 69% | 51% |
+| greptile-apps[bot] | 194 | 146 | 48 | 225 | 75% | 39% |
+| cubic-dev-ai[bot] | 221 | 175 | 46 | 196 | 79% | 47% |
+| coderabbitai[bot] | 273 | 190 | 83 | 180 | 70% | 51% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #340 | greptile-apps[bot] | Accept | Hover Point goes stale on canvas resize — a published cell (e.g. (15,15) on 16×16) survives a shrink to 8×16, so the overlay marks a deleted cell until the next hover; cleared in `resizeCanvas` |
+| #340 | coderabbitai[bot] | Accept | Same resize-stale Hover Point, asked to revalidate/clear after resize + add a regression test (duplicate of greptile); same `resizeCanvas` clear, test added |
+| #340 | cubic-dev-ai[bot] | Accept | Same out-of-bounds Hover Point persisting after resize (duplicate); same clear |
+| #340 | cubic-dev-ai[bot] | Reject | Viewport pan/zoom "tracks the wrong cell" — `hoverPoint` is stored in canvas coords and the overlay recomputes its rect from the live viewport each render, so the highlight stays glued to the same canvas cell (the PRD 251 acceptance criterion); the pencil-tip re-target-after-pan question is a hardware-UX call folded into the 255 device pass |
 | #339 | cubic-dev-ai[bot] | Accept | Round 2: a pencil landing during an already-recognized pinch/pan could be swallowed by `cancelsTouchesInView` before reaching `touchesBegan`, so the prior commit's cancel-on-pencil-begin never fired; fixed by restricting both recognizers to `.direct` touch types (P1, confidence 7) |
 | #339 | coderabbitai[bot] | Miss | Round 2 (APPROVED): did not flag the pencil-swallowed-before-cancel gap in the in-flight gesture cancellation (accepted from cubic) |
 | #339 | coderabbitai[bot] | Accept | `gestureRecognizerShouldBegin` only gates the `.possible → .began` transition, so a pinch/pan already active when the pencil lands over a resting palm kept moving the canvas under the stroke; the view now cancels in-flight viewport recognizers (isEnabled toggle) on pencil begin |

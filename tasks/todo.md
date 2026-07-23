@@ -4,9 +4,8 @@
 
 - Feedback link to Google Form
 - Apple Pencil: hover preview + palm rejection ([PRD](../issues/251-apple-pencil-hover-palm-rejection.md))
-  - [253 — Pencil hover preview: Hover Point + target-cell highlight](../issues/253-apple-pencil-hover-preview.md)
-  - [254 — Pencil hover gate: block finger begins while hovering](../issues/254-apple-pencil-hover-finger-block.md) (blocked by 253)
-  - [255 — Device verification pass (HITL)](../issues/255-apple-pencil-device-verification.md) (blocked by 253, 254)
+  - [254 — Pencil hover gate: block finger begins while hovering](../issues/254-apple-pencil-hover-finger-block.md)
+  - [255 — Device verification pass (HITL)](../issues/255-apple-pencil-device-verification.md) (blocked by 254)
 - (review) In-editor feedback widget
 - (review) Public roadmap & feature voting system — depends on user base size
 - Project file format (JSON-based) + save/load

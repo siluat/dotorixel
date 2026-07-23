@@ -137,6 +137,19 @@ extension PixelCanvasView: UIViewRepresentable {
         // any already in flight when the pencil lands (issue 252).
         mtkView.viewportGestureRecognizers = [pinch, pan]
 
+        // Apple Pencil hover (issue 253): a hover recognizer restricted to the
+        // pencil touch type feeds the Hover Point. Trackpad/mouse hover is
+        // deliberately excluded (only the touch-type restriction relaxes that
+        // later). It is deliberately kept out of `viewportGestureRecognizers`,
+        // so the pencil-stroke gate leaves it alone. On hardware without pencil
+        // hover the recognizer simply never fires.
+        let hover = UIHoverGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handleHover(_:))
+        )
+        hover.allowedTouchTypes = [UITouch.TouchType.pencil.rawValue as NSNumber]
+        mtkView.addGestureRecognizer(hover)
+
         return mtkView
     }
 
@@ -311,6 +324,27 @@ extension PixelCanvasView {
                 editorState.handleViewportChange(zoomed)
             case .ended, .cancelled:
                 lastPinchScale = 1.0
+            default:
+                break
+            }
+        }
+
+        /// Feeds the pencil's hover position into the Hover Point (issue 253).
+        /// `.began`/`.changed` publish the target cell — EditorState clears it
+        /// when the converted point falls off-canvas — and `.ended`/`.cancelled`
+        /// clear it as the pencil leaves hover range. Hover feeds state only,
+        /// never a drawing command, so it stays off the `CanvasInputDelegate`.
+        @objc func handleHover(_ recognizer: UIHoverGestureRecognizer) {
+            guard let view = recognizer.view as? InputMTKView,
+                  let viewport, let editorState else { return }
+
+            switch recognizer.state {
+            case .began, .changed:
+                editorState.updateHoverPoint(
+                    to: canvasCoords(of: recognizer.location(in: view), in: view, viewport: viewport)
+                )
+            case .ended, .cancelled, .failed:
+                editorState.clearHoverPoint()
             default:
                 break
             }

@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 253 | [Apple Pencil hover preview — Hover Point state + target-cell highlight overlay](../issues/253-apple-pencil-hover-preview.md) | 2026-07-23 |
 | 252 | [Apple Pencil contact priority — palm rejection for touching pencil + gesture suppression](../issues/252-apple-pencil-contact-priority.md) | 2026-07-22 |
 | 245 | [Apple multi-touch stroke routing — associate strokes with their originating touch](../issues/245-apple-multitouch-stroke-routing.md) | 2026-07-21 |
 | — | Triage — [245 — Apple multi-touch stroke routing](../issues/245-apple-multitouch-stroke-routing.md) → ready-for-agent; web-parity direction chosen (second finger ends the stroke, deferred touch begin), agent brief written | 2026-07-20 |

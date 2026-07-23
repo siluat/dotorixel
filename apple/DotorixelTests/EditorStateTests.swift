@@ -207,6 +207,81 @@ struct EditorStateStrokeTests {
     }
 }
 
+@Suite("EditorState — Hover Point")
+struct EditorStateHoverPointTests {
+
+    @Test("a pencil hover over an in-bounds cell publishes that Hover Point")
+    func hoverOverCanvasPublishesHoverPoint() {
+        let state = EditorState(width: 16, height: 16)
+
+        state.updateHoverPoint(to: ScreenCanvasCoords(x: 5, y: 7))
+
+        #expect(state.hoverPoint == ScreenCanvasCoords(x: 5, y: 7))
+    }
+
+    @Test("a hover outside the canvas bounds publishes no Hover Point")
+    func hoverOffCanvasClearsHoverPoint() {
+        let state = EditorState(width: 16, height: 16)
+
+        // The last in-bounds cell (indices 0...15) still shows.
+        state.updateHoverPoint(to: ScreenCanvasCoords(x: 15, y: 15))
+        #expect(state.hoverPoint == ScreenCanvasCoords(x: 15, y: 15))
+
+        // One step past each edge clears the (previously-set) Hover Point.
+        for offCanvas in [
+            ScreenCanvasCoords(x: 16, y: 8),
+            ScreenCanvasCoords(x: -1, y: 8),
+            ScreenCanvasCoords(x: 8, y: 16),
+            ScreenCanvasCoords(x: 8, y: -1),
+        ] {
+            state.updateHoverPoint(to: offCanvas)
+            #expect(state.hoverPoint == nil)
+        }
+    }
+
+    @Test("hover exit clears the Hover Point")
+    func hoverExitClearsHoverPoint() {
+        let state = EditorState(width: 16, height: 16)
+        state.updateHoverPoint(to: ScreenCanvasCoords(x: 4, y: 4))
+
+        state.clearHoverPoint()
+
+        #expect(state.hoverPoint == nil)
+    }
+
+    @Test("the moment a stroke begins, the Hover Point clears")
+    func strokeBeginClearsHoverPoint() {
+        let state = EditorState(width: 16, height: 16)
+        state.updateHoverPoint(to: ScreenCanvasCoords(x: 6, y: 6))
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 6, y: 6))
+
+        #expect(state.hoverPoint == nil)
+    }
+
+    @Test("moving the hovering pencil re-targets the Hover Point live")
+    func hoverMoveRetargetsHoverPoint() {
+        let state = EditorState(width: 16, height: 16)
+
+        state.updateHoverPoint(to: ScreenCanvasCoords(x: 2, y: 3))
+        #expect(state.hoverPoint == ScreenCanvasCoords(x: 2, y: 3))
+
+        state.updateHoverPoint(to: ScreenCanvasCoords(x: 9, y: 1))
+        #expect(state.hoverPoint == ScreenCanvasCoords(x: 9, y: 1))
+    }
+
+    @Test("resizing the canvas clears a now-out-of-bounds Hover Point")
+    func resizeClearsOutOfBoundsHoverPoint() {
+        let state = EditorState(width: 16, height: 16)
+        // The last cell of the 16-wide canvas — off-canvas once it shrinks to 8.
+        state.updateHoverPoint(to: ScreenCanvasCoords(x: 15, y: 15))
+
+        state.resizeCanvas(width: 8, height: 16)
+
+        #expect(state.hoverPoint == nil)
+    }
+}
+
 @Suite("EditorState — resizeCanvas")
 struct EditorStateResizeCanvasTests {
 

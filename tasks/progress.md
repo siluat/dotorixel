@@ -3,16 +3,17 @@
 ## Currently Working On
 
 Apple Pencil — hover preview + palm rejection ([PRD](../issues/251-apple-pencil-hover-palm-rejection.md))
-— 1/4 sub-issues done (252 palm rejection); 253 (hover preview) is now unblocked.
+— 2/4 sub-issues done (252 palm rejection, 253 hover preview); 254 (hover gate:
+block finger begins while hovering) is now unblocked, 255 (device pass) waits on 254.
 
 ## Last Completed
 
-[252 — Apple Pencil contact priority](../issues/252-apple-pencil-contact-priority.md):
-A touching pencil now outranks direct touches in the Apple shell — a resting palm can neither
-block, cut, nor pollute a pencil stroke, and pinch/pan stay suppressed until the pencil lifts.
-The episode rule now binds finger begins only (a pencil begin is always admitted). Recognizer
-interplay on real hardware is deferred to 255; the 253 hover recognizer needs an exemption in
-the view-level gesture gate.
+[253 — Apple Pencil hover preview](../issues/253-apple-pencil-hover-preview.md):
+EditorState now publishes a **Hover Point** (the in-bounds canvas cell a hovering
+pencil targets, else nil) that a pencil-only hover recognizer feeds and a SwiftUI
+overlay highlights, glued to the cell through pan/zoom. It clears on stroke begin,
+hover exit, or off-canvas. The visibility contract is pinned by state-seam tests;
+finger/pointer exclusion and live-tracking/glue verification fall to the 255 device pass.
 
 ## Next Up
 

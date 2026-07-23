@@ -65,6 +65,12 @@ final class EditorState {
     var canvasVersion: Int = 0
     private(set) var isDrawing: Bool = false
 
+    /// The pencil's current hover target in canvas coordinates, or nil when no
+    /// preview should show — see the Hover Point entry in `CONTEXT.md`. Fed by
+    /// the pencil-hover recognizer through `updateHoverPoint`/`clearHoverPoint`;
+    /// SwiftUI renders the target-cell highlight from it.
+    private(set) var hoverPoint: ScreenCanvasCoords?
+
     /// Incremented when an edit resolves, and on undo/redo, to trigger
     /// `canUndo`/`canRedo` re-evaluation.
     /// Needed because `@Observable` cannot detect internal state changes in UniFFI objects.
@@ -145,6 +151,9 @@ final class EditorState {
     /// The pointer button picks the stroke's draw color (primary → foreground,
     /// secondary → background); touch input is always primary.
     func beginStroke(at coords: ScreenCanvasCoords, button: PointerButton = .primary) {
+        // The pencil is touching down (or a finger stroke starting) — the
+        // hover target gives way to the paint it was previewing.
+        hoverPoint = nil
         // A begin can arrive while a stroke is active (e.g. a second finger on
         // iPadOS). Close the previous stroke through the full cancel path so
         // its Edit Baseline resolves before the next session begins one.
@@ -225,6 +234,26 @@ final class EditorState {
         return committed
     }
 
+    // MARK: - Hover preview
+
+    /// Publishes the pencil's hover target as the Hover Point. An in-bounds
+    /// target shows; a target outside the canvas (the pencil moved off-canvas)
+    /// clears it — the highlight only ever marks a real cell.
+    func updateHoverPoint(to coords: ScreenCanvasCoords) {
+        hoverPoint = isInCanvasBounds(coords) ? coords : nil
+    }
+
+    private func isInCanvasBounds(_ coords: ScreenCanvasCoords) -> Bool {
+        coords.x >= 0 && coords.y >= 0
+            && coords.x < Int32(pixelCanvas.width())
+            && coords.y < Int32(pixelCanvas.height())
+    }
+
+    /// Clears the Hover Point when the pencil leaves hover range.
+    func clearHoverPoint() {
+        hoverPoint = nil
+    }
+
     // MARK: - History
 
     /// Restores the previous canvas state from the history stack.
@@ -298,6 +327,11 @@ final class EditorState {
             canvasHeight: height,
             viewportSize: viewportSize
         )
+        // The new canvas geometry can leave a published Hover Point out of
+        // bounds, and no hover event fires while the pencil holds still — clear
+        // it here so the overlay never marks a cell the resize deleted. The
+        // next hover republishes against the new dimensions.
+        hoverPoint = nil
         historyManager.clear()
         historyVersion += 1
         canvasVersion += 1

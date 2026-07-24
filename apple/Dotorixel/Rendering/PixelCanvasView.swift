@@ -329,21 +329,26 @@ extension PixelCanvasView {
             }
         }
 
-        /// Feeds the pencil's hover position into the Hover Point (issue 253).
-        /// `.began`/`.changed` publish the target cell — EditorState clears it
-        /// when the converted point falls off-canvas — and `.ended`/`.cancelled`
-        /// clear it as the pencil leaves hover range. Hover feeds state only,
-        /// never a drawing command, so it stays off the `CanvasInputDelegate`.
+        /// Feeds the pencil's hover position into the Hover Point (issue 253)
+        /// and the routing seam's hover gate (issue 254). `.began`/`.changed`
+        /// publish the target cell and arm the gate — EditorState clears the
+        /// cell when the converted point falls off-canvas — and
+        /// `.ended`/`.cancelled` clear both as the pencil leaves hover range.
+        /// While the gate is armed the router blocks direct-touch stroke begins
+        /// (palm rejection). Hover feeds state only, never a drawing command, so
+        /// it stays off the `CanvasInputDelegate`.
         @objc func handleHover(_ recognizer: UIHoverGestureRecognizer) {
             guard let view = recognizer.view as? InputMTKView,
                   let viewport, let editorState else { return }
 
             switch recognizer.state {
             case .began, .changed:
+                view.setPencilHovering(true)
                 editorState.updateHoverPoint(
                     to: canvasCoords(of: recognizer.location(in: view), in: view, viewport: viewport)
                 )
             case .ended, .cancelled, .failed:
+                view.setPencilHovering(false)
                 editorState.clearHoverPoint()
             default:
                 break

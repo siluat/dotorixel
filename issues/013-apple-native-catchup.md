@@ -253,3 +253,15 @@ docked structure, and enable features that require no UI design work.
   [228 — enable PNG export](228-apple-enable-png-export.md). Shift-constrain
   re-sequenced to Phase 2 (see re-sequencing note above). Responsive tiers were
   already delivered by 225/226.
+- **2026-07-26** — Phase 3 (Layer system) decomposed into ready-for-agent issues
+  via `/to-tickets`:
+  [256 — UniFFI Document bindings](256-apple-uniffi-document-bindings.md) →
+  [257 — Document-backed editor state + composite render](257-apple-document-editor-state.md) →
+  [258 — layer panel rows / active / visibility](258-apple-layer-panel-rows.md) →
+  {[259 — add/remove](259-apple-layer-add-remove.md) ∥
+  [260 — reorder](260-apple-layer-reorder.md)}. Expand–contract on the UniFFI
+  surface: 256 expands (old canvas bindings untouched), 257 swaps the editor and
+  contracts the canvas-snapshot history path. Layer opacity/rename UI excluded —
+  no web UI exists for either (parity scope). Canvas-resize undo folded into 257
+  (whole-document snapshots make cross-dimension restore representable — web
+  parity, replaces the clear-history workaround).

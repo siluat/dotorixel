@@ -2,10 +2,9 @@
 
 ## Currently Working On
 
-Apple Pencil — hover preview + palm rejection ([PRD](../issues/251-apple-pencil-hover-palm-rejection.md))
-— 3/4 sub-issues done (252 palm rejection, 253 hover preview, 254 hover gate). Only
-255 (device verification) remains: a human on-device pass (HITL) validating the
-palm / hover / gesture interplay on real hardware.
+Apple Phase 3 — Layer system ([RFC](../issues/013-apple-native-catchup.md))
+— decomposed into sub-issues 256–260 (2026-07-26); none started yet. Frontier:
+[256 — UniFFI Document bindings](../issues/256-apple-uniffi-document-bindings.md).
 
 ## Last Completed
 
@@ -18,7 +17,7 @@ gesture/hover interplay falls to the 255 device pass.
 
 ## Next Up
 
-- Apple Phase 3 — Layer system ★ foundation — needs `/to-tickets` decomposition ([RFC](../issues/013-apple-native-catchup.md))
+- [255 — Apple Pencil device verification pass (HITL)](../issues/255-apple-pencil-device-verification.md) — deferred until real-hardware access; last open sub-issue of the 251 PRD
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Feedback link to Google Form

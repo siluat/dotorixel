@@ -20,12 +20,20 @@
 
 Phased catch-up to full parity with completed web editor features. See the RFC for
 the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish) and Phase 2
-(full tool set + color + i18n, issues 230–242) are complete; Phases 3–6 are
-decomposed into issues (`/to-tickets`) when reached.
+(full tool set + color + i18n, issues 230–242) are complete; Phase 3 is decomposed
+into issues 256–260 below; Phases 4–6 are decomposed into issues (`/to-tickets`)
+when reached.
 
-### Phases 3–6 — roadmap (decompose when reached)
+### Phase 3 — Layer system ★ foundation (issues 256–260)
 
-- Phase 3 — Layer system (Document/Layer, composite render, layer panel, Swift state redesign) ★ foundation
+- [256 — Apple UniFFI Document bindings](../issues/256-apple-uniffi-document-bindings.md)
+- [257 — Apple editor on the Document model — state redesign + composite render](../issues/257-apple-document-editor-state.md) (blocked by 256)
+- [258 — Apple layer panel — rows, active selection, visibility](../issues/258-apple-layer-panel-rows.md) (blocked by 257)
+- [259 — Apple layer panel — add and remove layers](../issues/259-apple-layer-add-remove.md) (blocked by 258)
+- [260 — Apple layer panel — reorder layers](../issues/260-apple-layer-reorder.md) (blocked by 258; parallel with 259)
+
+### Phases 4–6 — roadmap (decompose when reached)
+
 - Phase 4 — Multi-tab + persistence (Workspace, SwiftData auto-save/restore)
 - Phase 5 — Reference + selection + transforms (M3 bundle)
 - Phase 6 — Animation + extended export (frames/timeline/playback/onion skin, SVG/GIF/spritesheet)

@@ -68,5 +68,5 @@ Hold the web's layer system until all Apple Phase 1 sub-issues land.
 
 ### Follow-up triggers
 
-- When Apple Phase 1 finishes and Apple Phase 2 starts, file a new issue for Apple's Document migration.
-- The `PixelCanvas` public API can only be removed from the core after Apple is also migrated.
+- ~~When Apple Phase 1 finishes and Apple Phase 2 starts, file a new issue for Apple's Document migration.~~ *Closed (2026-07-26): filed and completed as Phase 3 of issue 013 — issue 257.*
+- ~~The `PixelCanvas` public API can only be removed from the core after Apple is also migrated.~~ *Condition met (2026-07-26): Apple is migrated, but `PixelCanvas` stays — it backs the core's cel buffers and the render benchmark's `ApplePixelCanvas` binding.*

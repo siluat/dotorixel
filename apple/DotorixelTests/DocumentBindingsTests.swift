@@ -162,6 +162,37 @@ struct DocumentBindingsTests {
         #expect(Array(png.prefix(8)) == [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
     }
 
+    @Test("active-layer pixels snapshot and restore round-trip, leaving other layers untouched")
+    func activeLayerPixelsRoundTrip() throws {
+        let baseId = UUID().uuidString.lowercased()
+        let doc = try AppleDocument(width: 2, height: 2, firstLayerId: baseId, firstLayerName: "Layer 1")
+        let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
+        let blue = Color(r: 0x00, g: 0x00, b: 0xFF, a: 0xFF)
+        try doc.setPixel(x: 0, y: 0, color: red)
+
+        // The snapshot reads the *active* layer: a second layer on top becomes
+        // active, so its buffer starts transparent, not the base layer's red.
+        let snapshot = try doc.activeLayerPixels()
+        #expect(snapshot.count == 2 * 2 * 4)
+        #expect(Array(snapshot[0..<4]) == [0xFF, 0x00, 0x00, 0xFF])
+
+        try doc.addLayer(newId: UUID().uuidString, name: "Layer 2")
+        let topSnapshot = try doc.activeLayerPixels()
+        #expect(Array(topSnapshot[0..<4]) == [0x00, 0x00, 0x00, 0x00])
+
+        // Restore writes only the active layer; the base layer keeps its red.
+        try doc.setPixel(x: 1, y: 1, color: blue)
+        try doc.restoreActiveLayerPixels(data: topSnapshot)
+        #expect(try doc.getPixel(x: 1, y: 1) == Color(r: 0x00, g: 0x00, b: 0x00, a: 0x00))
+        try doc.setActiveLayer(id: baseId)
+        #expect(try doc.getPixel(x: 0, y: 0) == red)
+
+        // A buffer whose length is not width × height × 4 is rejected.
+        #expect(throws: AppleError.self) {
+            try doc.restoreActiveLayerPixels(data: Data([0x00, 0x00]))
+        }
+    }
+
     @Test("history: a no-change edit records no entry; a pixel edit undoes and redoes")
     func historyPixelEdit() throws {
         let doc = try AppleDocument(width: 2, height: 2, firstLayerId: UUID().uuidString, firstLayerName: "Layer 1")

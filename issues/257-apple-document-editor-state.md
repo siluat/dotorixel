@@ -1,6 +1,6 @@
 ---
 title: Apple editor on the Document model — state redesign + composite render path (single-layer parity)
-status: ready-for-agent
+status: done
 created: 2026-07-26
 ---
 
@@ -62,3 +62,34 @@ This issue adds no layer UI — the panel arrives in the follow-up issues.
 ## Blocked by
 
 - [256 — Apple UniFFI Document bindings](256-apple-uniffi-document-bindings.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/EditorState.swift` | Editor state on `AppleDocument` + `AppleDocumentHistory`; undo/redo replace the document reference (reclamping pan, dropping an out-of-bounds Hover Point); resize is an undoable Edit; clear/export/hover bounds/viewport read the document |
+| `apple/Dotorixel/Tools/StrokeSession.swift` | New `DrawingSurface` protocol — the stroke-session seam enforced by type (drawing ops + composite reads only; layer structure/history/resize/export unreachable); shared `containsPixel` / `preStrokePixelSnapshot` helpers |
+| `apple/Dotorixel/Tools/*.swift` | All sessions (freehand, shape, move, eyedropper, flood fill) target the surface seam; shape/move snapshot–restore via active-layer pixels |
+| `apple/Dotorixel/Sampling/SampleGrid.swift` | `compositeSample` + composite-backed `sampleGrid` — sampling reads what the user sees |
+| `apple/Dotorixel/Rendering/PixelCanvasView.swift`, `PixelGridRenderer.swift` | Metal uploads `document.composite()`; renderer subclassable for the render-path spy seam |
+| `apple/src/lib.rs` | `active_layer_pixels`/`restore_active_layer_pixels` bindings (delegating to core); **contract**: `AppleHistoryManager` and unused `history_default_max_snapshots` removed |
+| `crates/core/src/document.rs` | `Document::active_layer_pixels()` accessor — read counterpart of `restore_active_layer_pixels` |
+| `apple/DotorixelTests/` | Suites migrated to the document surface; new `RenderPathTests` (hidden layer vanishes from the uploaded buffer), resize-undo and composite-sampling tests, shared `DocumentTestSupport` fixtures |
+| `docs/decisions/web-document-layer-apple-preserved.en.md` | Amended: the deferred Apple migration landed; the data-model divergence trade-off is closed |
+| `CONTEXT.md` | History entries updated — Document History is both shells' history; PixelCanvas History has no shell consumer |
+
+### Key Decisions
+
+- First layer follows the web naming convention ("Layer 1"); ids cross the FFI boundary as lowercase UUID strings (256 convention).
+- Resize keeps today's top-left content anchoring (the web's anchor selector UI stays out of scope) and commits through the Edit Baseline — a rejected resize resolves as a no-op edit and records nothing.
+- Eyedropper and loupe sample the **composite** — the seam carries the "sample what the user sees" rule, so multi-layer sampling needs no rework.
+- The session seam is enforced by type: `StrokeSessionHost` exposes `any DrawingSurface`, not the whole `AppleDocument` (review follow-up on the "sessions see a drawing surface" spec line).
+- Contract scope widened deliberately (user decision): the `AppleHistoryManager` binding and its binding tests were deleted, not just editor consumption; `ApplePixelCanvas` survives for the render benchmark.
+- `PixelGridRenderer` is no longer `final` so the render-path test can spy on the canvas-texture upload seam (user-chosen test seam).
+
+### Notes
+
+- Undo/redo adopt a **new** document object (core value-snapshot semantics) — anything holding the old reference re-reads through `EditorState`.
+- Platform nuance: the web eyedropper samples the active layer (`try_get_pixel`, Reference-aware) while Apple samples the composite; identical on a single-layer document, worth revisiting when the Apple layer panel (258+) lands.
+- Verified: `cargo test --workspace` 568 green; full Apple suite 261 tests / 55 suites on the pinned simulator; macOS target builds clean.
+- `apple/generated` was regenerated manually after each binding change — the mtime-based staleness guard remains a backlog item.

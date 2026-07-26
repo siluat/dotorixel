@@ -54,7 +54,7 @@ private final class DeferredCommitStrokeSession: StrokeSession {
 }
 
 private final class FakeStrokeSessionHost: StrokeSessionHost {
-    let pixelCanvas: ApplePixelCanvas
+    let drawingSurface: any DrawingSurface
     var foregroundColor: Color
     var backgroundColor: Color
     var isPixelPerfectEnabled = true
@@ -63,7 +63,7 @@ private final class FakeStrokeSessionHost: StrokeSessionHost {
     private(set) var undoSnapshotCount = 0
 
     init() {
-        self.pixelCanvas = try! ApplePixelCanvas(width: 4, height: 4)
+        self.drawingSurface = makeSingleLayerDocument(width: 4, height: 4)
         self.foregroundColor = Color(r: 0x2D, g: 0x2D, b: 0x2D, a: 0xFF)
         self.backgroundColor = Color(r: 0xFF, g: 0xFF, b: 0xFF, a: 0xFF)
     }

@@ -22,7 +22,7 @@ struct PngExportTests {
     @Test("exported PNG keeps drawn pixels in their colors and undrawn pixels transparent")
     func exportPreservesPixelContent() throws {
         let state = EditorState(width: 16, height: 16)
-        try state.pixelCanvas.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        try state.document.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
 
         let document = try state.makePngExportDocument()
 

@@ -38,7 +38,7 @@ struct ContentView: View {
 
                     GeometryReader { geo in
                         PixelCanvasView(
-                            pixelCanvas: editorState.pixelCanvas,
+                            document: editorState.document,
                             viewport: viewport,
                             showGrid: showGrid,
                             editorState: editorState,
@@ -164,8 +164,8 @@ struct ContentView: View {
         )
         editorState.viewportSize = deviceSize
         editorState.viewport = editorState.viewport.fitToViewport(
-            canvasWidth: editorState.pixelCanvas.width(),
-            canvasHeight: editorState.pixelCanvas.height(),
+            canvasWidth: editorState.document.width(),
+            canvasHeight: editorState.document.height(),
             viewportSize: deviceSize
         )
     }

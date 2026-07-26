@@ -15,7 +15,9 @@ struct Uniforms {
 /// Metal renderer for the pixel canvas.
 /// Draws a fullscreen quad with checkerboard transparency, pixel data, and grid overlay.
 /// Designed for on-demand rendering — the view only redraws when `setNeedsDisplay` is called.
-final class PixelGridRenderer: NSObject, MTKViewDelegate {
+/// Subclassable so tests can spy on the canvas-texture upload seam
+/// (`RenderPathTests`); production code never subclasses it.
+class PixelGridRenderer: NSObject, MTKViewDelegate {
 
     private let device: MTLDevice
     private let commandQueue: MTLCommandQueue

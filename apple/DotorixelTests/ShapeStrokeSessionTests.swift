@@ -19,15 +19,15 @@ struct ShapeStrokeSessionTests {
         state.endStroke()
 
         let fg = state.foregroundColor
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == fg)
-        #expect(try state.pixelCanvas.getPixel(x: 4, y: 1) == fg)
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 3) == fg)
-        #expect(try state.pixelCanvas.getPixel(x: 4, y: 3) == fg)
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 1) == fg)
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 2) == fg)
+        #expect(try state.document.getPixel(x: 1, y: 1) == fg)
+        #expect(try state.document.getPixel(x: 4, y: 1) == fg)
+        #expect(try state.document.getPixel(x: 1, y: 3) == fg)
+        #expect(try state.document.getPixel(x: 4, y: 3) == fg)
+        #expect(try state.document.getPixel(x: 2, y: 1) == fg)
+        #expect(try state.document.getPixel(x: 1, y: 2) == fg)
         // Outline only — the interior stays untouched.
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 2) == transparent)
-        #expect(try state.pixelCanvas.getPixel(x: 3, y: 2) == transparent)
+        #expect(try state.document.getPixel(x: 2, y: 2) == transparent)
+        #expect(try state.document.getPixel(x: 3, y: 2) == transparent)
     }
 
     @Test("shrinking the drag restores pixels the larger preview painted")
@@ -35,7 +35,7 @@ struct ShapeStrokeSessionTests {
         let state = EditorState(width: 16, height: 16)
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
         // Pre-existing art on the larger preview's path but not the smaller's.
-        try state.pixelCanvas.setPixel(x: 5, y: 1, color: red)
+        try state.document.setPixel(x: 5, y: 1, color: red)
         state.activeTool = .rectangle
 
         state.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
@@ -43,13 +43,13 @@ struct ShapeStrokeSessionTests {
         state.continueStroke(to: ScreenCanvasCoords(x: 3, y: 3))
 
         // The 1,1→6,6 preview's far edges are back to their pre-stroke state…
-        #expect(try state.pixelCanvas.getPixel(x: 6, y: 6) == transparent)
-        #expect(try state.pixelCanvas.getPixel(x: 6, y: 1) == transparent)
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 6) == transparent)
-        #expect(try state.pixelCanvas.getPixel(x: 5, y: 1) == red)
+        #expect(try state.document.getPixel(x: 6, y: 6) == transparent)
+        #expect(try state.document.getPixel(x: 6, y: 1) == transparent)
+        #expect(try state.document.getPixel(x: 1, y: 6) == transparent)
+        #expect(try state.document.getPixel(x: 5, y: 1) == red)
         // …while the current 1,1→3,3 preview is painted.
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == state.foregroundColor)
-        #expect(try state.pixelCanvas.getPixel(x: 3, y: 3) == state.foregroundColor)
+        #expect(try state.document.getPixel(x: 1, y: 1) == state.foregroundColor)
+        #expect(try state.document.getPixel(x: 3, y: 3) == state.foregroundColor)
     }
 
     @Test("a single click (press + release without moving) stamps one pixel")
@@ -60,7 +60,7 @@ struct ShapeStrokeSessionTests {
         state.beginStroke(at: ScreenCanvasCoords(x: 3, y: 4))
         state.endStroke()
 
-        #expect(try state.pixelCanvas.getPixel(x: 3, y: 4) == state.foregroundColor)
+        #expect(try state.document.getPixel(x: 3, y: 4) == state.foregroundColor)
         #expect(paintedPixelCount(state) == 1)
     }
 
@@ -69,19 +69,19 @@ struct ShapeStrokeSessionTests {
         let state = EditorState(width: 16, height: 16)
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
         // Pre-existing art on the outline path, painted over by the shape.
-        try state.pixelCanvas.setPixel(x: 2, y: 1, color: red)
+        try state.document.setPixel(x: 2, y: 1, color: red)
         state.activeTool = .rectangle
 
         state.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         state.continueStroke(to: ScreenCanvasCoords(x: 4, y: 3))
         state.endStroke()
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 1) == state.foregroundColor)
+        #expect(try state.document.getPixel(x: 2, y: 1) == state.foregroundColor)
 
         state.handleUndo()
 
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 1) == red)
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == transparent)
-        #expect(try state.pixelCanvas.getPixel(x: 4, y: 3) == transparent)
+        #expect(try state.document.getPixel(x: 2, y: 1) == red)
+        #expect(try state.document.getPixel(x: 1, y: 1) == transparent)
+        #expect(try state.document.getPixel(x: 4, y: 3) == transparent)
     }
 
     @Test("a line drag commits only the anchor→release segment, not the drag path")
@@ -97,7 +97,7 @@ struct ShapeStrokeSessionTests {
 
         let committed = Set(appleInterpolatePixels(x0: 0, y0: 0, x1: 4, y1: 4))
         for pixel in committed {
-            #expect(try state.pixelCanvas.getPixel(x: UInt32(pixel.x), y: UInt32(pixel.y)) == state.foregroundColor)
+            #expect(try state.document.getPixel(x: UInt32(pixel.x), y: UInt32(pixel.y)) == state.foregroundColor)
         }
         #expect(paintedPixelCount(state) == committed.count)
     }
@@ -113,7 +113,7 @@ struct ShapeStrokeSessionTests {
 
         let outline = Set(appleEllipseOutline(x0: 0, y0: 0, x1: 6, y1: 4))
         for pixel in outline {
-            #expect(try state.pixelCanvas.getPixel(x: UInt32(pixel.x), y: UInt32(pixel.y)) == state.foregroundColor)
+            #expect(try state.document.getPixel(x: UInt32(pixel.x), y: UInt32(pixel.y)) == state.foregroundColor)
         }
         #expect(paintedPixelCount(state) == outline.count)
     }
@@ -122,7 +122,7 @@ struct ShapeStrokeSessionTests {
     func cancelRestoresPreStrokeCanvas() throws {
         let state = EditorState(width: 16, height: 16)
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
-        try state.pixelCanvas.setPixel(x: 2, y: 1, color: red)
+        try state.document.setPixel(x: 2, y: 1, color: red)
         state.activeTool = .rectangle
 
         state.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
@@ -130,7 +130,7 @@ struct ShapeStrokeSessionTests {
         state.cancelStroke()
 
         // The preview is fully discarded — no shape committed.
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 1) == red)
+        #expect(try state.document.getPixel(x: 2, y: 1) == red)
         #expect(paintedPixelCount(state) == 1)
         #expect(!state.isDrawing)
         // The cancel restored the baseline, so the stroke resolved as a no-op
@@ -176,8 +176,8 @@ struct ShapeStrokeSessionTests {
         state.continueStroke(to: ScreenCanvasCoords(x: 4, y: 3))
         state.endStroke()
 
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == state.backgroundColor)
-        #expect(try state.pixelCanvas.getPixel(x: 4, y: 3) == state.backgroundColor)
+        #expect(try state.document.getPixel(x: 1, y: 1) == state.backgroundColor)
+        #expect(try state.document.getPixel(x: 4, y: 3) == state.backgroundColor)
     }
 
     @Test("mid-stroke foreground color changes don't affect the shape in flight")
@@ -192,12 +192,8 @@ struct ShapeStrokeSessionTests {
         state.endStroke()
 
         // The redrawn preview still uses the color captured at stroke begin.
-        #expect(try state.pixelCanvas.getPixel(x: 4, y: 3) == originalColor)
+        #expect(try state.document.getPixel(x: 4, y: 3) == originalColor)
     }
 
     /// Number of canvas pixels with a non-zero alpha channel.
-    private func paintedPixelCount(_ state: EditorState) -> Int {
-        let pixels = state.pixelCanvas.pixels()
-        return stride(from: 3, to: pixels.count, by: 4).count { pixels[$0] != 0 }
-    }
 }

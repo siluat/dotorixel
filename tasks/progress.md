@@ -3,21 +3,22 @@
 ## Currently Working On
 
 Apple Phase 3 — Layer system ([RFC](../issues/013-apple-native-catchup.md))
-— 1/5 sub-issues done (256). Frontier:
-[257 — Apple editor on the Document model](../issues/257-apple-document-editor-state.md),
-now unblocked; 258–260 wait on 257.
+— 2/5 sub-issues done (256, 257). Frontier:
+[258 — Apple layer panel rows](../issues/258-apple-layer-panel-rows.md),
+now unblocked; 259–260 wait on 258.
 
 ## Last Completed
 
-[256 — Apple UniFFI Document bindings](../issues/256-apple-uniffi-document-bindings.md):
-the UniFFI crate now exposes the core Document model and layer-aware
-DocumentHistory to Swift — the expand step of the expand–contract sequence, with
-existing canvas/history bindings and shell behavior untouched. The 257 editor
-swap consumes this surface and performs the contract.
+[257 — Apple editor on the Document model](../issues/257-apple-document-editor-state.md):
+the Apple editor now runs on Document + DocumentHistory with single-layer
+regression parity — resize became undoable (web parity), sampling and the
+Metal render path read the composite, and the canvas-snapshot history path
+(AppleHistoryManager) was removed as the contract step. The layer panel UI
+(258–260) builds on this.
 
 ## Next Up
 
-- [257 — Apple editor on the Document model — state redesign + composite render](../issues/257-apple-document-editor-state.md) — Phase 3 frontier
+- [258 — Apple layer panel — rows, active selection, visibility](../issues/258-apple-layer-panel-rows.md) — Phase 3 frontier
 - [255 — Apple Pencil device verification pass (HITL)](../issues/255-apple-pencil-device-verification.md) — deferred until real-hardware access; last open sub-issue of the 251 PRD
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)

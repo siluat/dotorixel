@@ -1084,6 +1084,18 @@ impl Document {
         }
     }
 
+    /// Returns the RGBA pixel buffer of the active layer's active-frame cel —
+    /// the stroke-start snapshot shape and move tools restore during
+    /// preview — or `None` when the active layer is a Reference Layer.
+    ///
+    /// The read counterpart of
+    /// [`restore_active_layer_pixels`](Self::restore_active_layer_pixels);
+    /// note the Reference-Layer asymmetry — this returns `None` where restore
+    /// is a documented no-op.
+    pub fn active_layer_pixels(&self) -> Option<&[u8]> {
+        self.active_pixel_canvas().map(PixelCanvas::pixels)
+    }
+
     /// Overwrites the active layer's pixel buffer with `data`. Used by tools
     /// that take a stroke-start snapshot and restore it during preview
     /// (shape tools, move tool). Other layers are unaffected.
@@ -3756,6 +3768,30 @@ mod tests {
                 assert_eq!(pixel_canvas(&doc.layers[1]).get_pixel(x, y).unwrap(), red);
             }
         }
+    }
+
+    #[test]
+    fn active_layer_pixels_reads_the_active_layer_and_is_none_for_reference() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let r = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let mut doc = Document::new(2, 2, a, "A".to_string()).unwrap();
+        set_pixel_canvas(
+            &mut doc.layers[0],
+            PixelCanvas::with_color(2, 2, red).unwrap(),
+        );
+
+        // The Pixel Layer is active: the buffer is its cel's pixels.
+        let pixels = doc.active_layer_pixels().unwrap();
+        assert_eq!(pixels.len(), 2 * 2 * 4);
+        assert_eq!(&pixels[0..4], &[255, 0, 0, 255]);
+
+        // Adding a Reference Layer makes it active: no pixel buffer to snapshot.
+        doc.add_reference_layer(r, "Ref".to_string(), vec![0u8; 4], 1, 1)
+            .unwrap();
+        assert_eq!(doc.active_layer_pixels(), None);
     }
 
     #[test]

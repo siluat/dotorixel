@@ -87,8 +87,8 @@ struct RightPanel: View {
     }
 
     private func presetButton(size: UInt32) -> some View {
-        let isActive = editorState.pixelCanvas.width() == size
-            && editorState.pixelCanvas.height() == size
+        let isActive = editorState.document.width() == size
+            && editorState.document.height() == size
         return Button {
             editorState.resizeCanvas(width: size, height: size)
         } label: {
@@ -326,8 +326,8 @@ struct RightPanel: View {
     }
 
     private func syncDimensionInputs() {
-        widthInput = String(editorState.pixelCanvas.width())
-        heightInput = String(editorState.pixelCanvas.height())
+        widthInput = String(editorState.document.width())
+        heightInput = String(editorState.document.height())
     }
 
     private func commitDimensions() {

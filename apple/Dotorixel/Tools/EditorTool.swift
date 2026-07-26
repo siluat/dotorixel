@@ -146,7 +146,7 @@ enum EditorTool: CaseIterable {
             }
         case .floodFill:
             return OneShotStrokeSession(host: host) { host, coords in
-                host.pixelCanvas.floodFill(x: coords.x, y: coords.y, fillColor: drawColor)
+                host.drawingSurface.floodFill(x: coords.x, y: coords.y, fillColor: drawColor)
             }
         case .eyedropper:
             return EyedropperStrokeSession(

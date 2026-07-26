@@ -8,7 +8,7 @@ struct StatusBar: View {
 
     var body: some View {
         HStack {
-            Text("\(editorState.pixelCanvas.width()) × \(editorState.pixelCanvas.height())")
+            Text("\(editorState.document.width()) × \(editorState.document.height())")
                 .font(.system(size: DesignTokens.fontSizeSm))
                 .foregroundStyle(DesignTokens.textSecondary)
             Spacer()

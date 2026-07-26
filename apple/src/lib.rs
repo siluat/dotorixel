@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use dotorixel_core::canvas::PixelCanvas;
 use dotorixel_core::export::PngExport;
-use dotorixel_core::history::{DocumentHistory, PixelCanvasHistory, Snapshot};
+use dotorixel_core::history::DocumentHistory;
 use dotorixel_core::pixel_perfect::{FilterResult, TailState, pixel_perfect_filter};
 use dotorixel_core::tool::{ellipse_outline, interpolate_pixels, rectangle_outline};
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
@@ -151,13 +151,6 @@ fn canvas_is_valid_dimension(value: u32) -> bool {
     PixelCanvas::is_valid_dimension(value)
 }
 
-// --- History constants ---
-
-#[uniffi::export]
-fn history_default_max_snapshots() -> u64 {
-    PixelCanvasHistory::DEFAULT_MAX_SNAPSHOTS as u64
-}
-
 // --- Viewport static utilities ---
 
 #[uniffi::export]
@@ -291,94 +284,6 @@ impl ApplePixelCanvas {
 }
 
 // ---------------------------------------------------------------------------
-// AppleHistoryManager
-// ---------------------------------------------------------------------------
-
-/// History manager wrapper with interior mutability for thread-safe FFI access.
-#[derive(uniffi::Object)]
-pub struct AppleHistoryManager {
-    inner: Mutex<PixelCanvasHistory>,
-}
-
-#[uniffi::export]
-impl AppleHistoryManager {
-    /// `max_snapshots` is `u64` because UniFFI does not support `usize`.
-    #[uniffi::constructor]
-    fn new(max_snapshots: u64) -> Arc<Self> {
-        Arc::new(Self {
-            inner: Mutex::new(PixelCanvasHistory::new(max_snapshots as usize)),
-        })
-    }
-
-    #[uniffi::constructor]
-    fn default_manager() -> Arc<Self> {
-        Arc::new(Self {
-            inner: Mutex::new(PixelCanvasHistory::default()),
-        })
-    }
-
-    fn can_undo(&self) -> bool {
-        self.inner.lock().unwrap().can_undo()
-    }
-
-    fn can_redo(&self) -> bool {
-        self.inner.lock().unwrap().can_redo()
-    }
-
-    /// Holds the current pixel state as the pending Edit Baseline. Nothing
-    /// is pushed and the redo stack stays untouched until `end_edit`
-    /// resolves it.
-    fn begin_edit(&self, width: u32, height: u32, pixels: Vec<u8>) {
-        self.inner
-            .lock()
-            .unwrap()
-            .begin_edit(width, height, &pixels);
-    }
-
-    /// Resolves the pending Edit Baseline against the caller's current
-    /// pixel state: pushes it as the new undo top (clearing the redo stack)
-    /// only when the edit actually changed the canvas; a no-op edit discards
-    /// the baseline and leaves both stacks untouched. No-op when no baseline
-    /// is pending.
-    ///
-    /// Returns whether an undo entry was committed.
-    fn end_edit(&self, current_width: u32, current_height: u32, current_pixels: Vec<u8>) -> bool {
-        self.inner
-            .lock()
-            .unwrap()
-            .end_edit(current_width, current_height, &current_pixels)
-    }
-
-    fn undo(
-        &self,
-        current_width: u32,
-        current_height: u32,
-        current_pixels: Vec<u8>,
-    ) -> Option<Snapshot> {
-        self.inner
-            .lock()
-            .unwrap()
-            .undo(current_width, current_height, &current_pixels)
-    }
-
-    fn redo(
-        &self,
-        current_width: u32,
-        current_height: u32,
-        current_pixels: Vec<u8>,
-    ) -> Option<Snapshot> {
-        self.inner
-            .lock()
-            .unwrap()
-            .redo(current_width, current_height, &current_pixels)
-    }
-
-    fn clear(&self) {
-        self.inner.lock().unwrap().clear();
-    }
-}
-
-// ---------------------------------------------------------------------------
 // AppleDocument
 // ---------------------------------------------------------------------------
 
@@ -507,6 +412,36 @@ impl AppleDocument {
     /// Clears the active layer's active-frame cel to transparent.
     fn clear(&self) {
         self.inner.lock().unwrap().clear();
+    }
+
+    /// The active layer's pixel buffer (RGBA row-major, `width * height * 4`
+    /// bytes) — the stroke-start snapshot shape and move sessions restore
+    /// during preview. Errors when the active layer holds no pixel buffer
+    /// (a Reference Layer).
+    fn active_layer_pixels(&self) -> Result<Vec<u8>, AppleError> {
+        let document = self.inner.lock().unwrap();
+        document
+            .active_layer_pixels()
+            .map(<[u8]>::to_vec)
+            .ok_or_else(|| AppleError::Document {
+                message: format!(
+                    "Active layer {} has no pixel buffer",
+                    document.active_layer_id()
+                ),
+            })
+    }
+
+    /// Overwrites the active layer's pixel buffer with `data` — the write
+    /// counterpart of `active_layer_pixels`, with the core's Reference-Layer
+    /// asymmetry: restoring onto a Reference Layer is a silent no-op where
+    /// the read errors. Other layers are unaffected. Errors when `data.len()`
+    /// is not exactly `width * height * 4`.
+    fn restore_active_layer_pixels(&self, data: Vec<u8>) -> Result<(), AppleError> {
+        Ok(self
+            .inner
+            .lock()
+            .unwrap()
+            .restore_active_layer_pixels(&data)?)
     }
 
     /// Inserts a transparent layer directly above the active layer and makes

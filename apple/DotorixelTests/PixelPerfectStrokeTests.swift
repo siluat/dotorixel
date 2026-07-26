@@ -22,10 +22,10 @@ struct PixelPerfectStrokeTests {
         state.continueStroke(to: ScreenCanvasCoords(x: 1, y: 1))
         state.endStroke()
 
-        #expect(try state.pixelCanvas.getPixel(x: 0, y: 0) == fg)
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == fg)
+        #expect(try state.document.getPixel(x: 0, y: 0) == fg)
+        #expect(try state.document.getPixel(x: 1, y: 1) == fg)
         // The tip is reverted to its pre-stroke (transparent) pixel.
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 0) == transparent)
+        #expect(try state.document.getPixel(x: 1, y: 0) == transparent)
     }
 
     @Test("with pixel-perfect off, the raw interpolated stroke is kept")
@@ -41,9 +41,9 @@ struct PixelPerfectStrokeTests {
         state.endStroke()
 
         // No filtering: the corner tip stays painted.
-        #expect(try state.pixelCanvas.getPixel(x: 0, y: 0) == fg)
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 0) == fg)
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == fg)
+        #expect(try state.document.getPixel(x: 0, y: 0) == fg)
+        #expect(try state.document.getPixel(x: 1, y: 0) == fg)
+        #expect(try state.document.getPixel(x: 1, y: 1) == fg)
     }
 
     @Test("an L-corner spanning sample batches is detected despite the shared junction pixel")
@@ -61,10 +61,10 @@ struct PixelPerfectStrokeTests {
         state.continueStroke(to: ScreenCanvasCoords(x: 2, y: 2))
         state.endStroke()
 
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 0) == fg)
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 1) == fg)
+        #expect(try state.document.getPixel(x: 1, y: 0) == fg)
+        #expect(try state.document.getPixel(x: 2, y: 1) == fg)
         // The corner tip at the batch seam is reverted.
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 0) == transparent)
+        #expect(try state.document.getPixel(x: 2, y: 0) == transparent)
     }
 
     @Test("an eraser L-corner reverts the tip to its pre-stroke color, not transparency")
@@ -74,7 +74,7 @@ struct PixelPerfectStrokeTests {
         // Solid red art the eraser cuts through.
         for y in 0..<3 {
             for x in 0..<3 {
-                try state.pixelCanvas.setPixel(x: UInt32(x), y: UInt32(y), color: red)
+                try state.document.setPixel(x: UInt32(x), y: UInt32(y), color: red)
             }
         }
         state.activeTool = .eraser
@@ -84,18 +84,18 @@ struct PixelPerfectStrokeTests {
         state.continueStroke(to: ScreenCanvasCoords(x: 1, y: 1))
         state.endStroke()
 
-        #expect(try state.pixelCanvas.getPixel(x: 0, y: 0) == transparent)
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == transparent)
+        #expect(try state.document.getPixel(x: 0, y: 0) == transparent)
+        #expect(try state.document.getPixel(x: 1, y: 1) == transparent)
         // The tip is restored to the red it held before the stroke —
         // reverting an eraser stroke must not leave a transparent hole.
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 0) == red)
+        #expect(try state.document.getPixel(x: 1, y: 0) == red)
     }
 
     @Test("a pixel repainted later in the stroke reverts to its pre-stroke color, not an intra-stroke intermediate")
     func revertRestoresFirstTouchColor() throws {
         let state = EditorState(width: 8, height: 8)
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
-        try state.pixelCanvas.setPixel(x: 1, y: 0, color: red)
+        try state.document.setPixel(x: 1, y: 0, color: red)
         state.activeTool = .pencil
         let fg = state.foregroundColor
 
@@ -109,11 +109,11 @@ struct PixelPerfectStrokeTests {
         state.continueStroke(to: ScreenCanvasCoords(x: 1, y: 1))
         state.endStroke()
 
-        #expect(try state.pixelCanvas.getPixel(x: 0, y: 0) == fg)
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 0) == fg)
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == fg)
+        #expect(try state.document.getPixel(x: 0, y: 0) == fg)
+        #expect(try state.document.getPixel(x: 2, y: 0) == fg)
+        #expect(try state.document.getPixel(x: 1, y: 1) == fg)
         // The corner tip reverts to the pre-stroke red captured on first touch.
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 0) == red)
+        #expect(try state.document.getPixel(x: 1, y: 0) == red)
     }
 
     @Test("toggling mid-stroke doesn't affect the in-flight stroke; the next stroke uses the new setting")
@@ -129,14 +129,14 @@ struct PixelPerfectStrokeTests {
         state.pixelPerfect = false
         state.continueStroke(to: ScreenCanvasCoords(x: 1, y: 1))
         state.endStroke()
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 0) == transparent)
+        #expect(try state.document.getPixel(x: 1, y: 0) == transparent)
 
         // The next stroke picks up the new (off) setting: raw corner kept.
         state.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))
         state.continueStroke(to: ScreenCanvasCoords(x: 5, y: 4))
         state.continueStroke(to: ScreenCanvasCoords(x: 5, y: 5))
         state.endStroke()
-        #expect(try state.pixelCanvas.getPixel(x: 5, y: 4) == fg)
+        #expect(try state.document.getPixel(x: 5, y: 4) == fg)
     }
 
     @Test("one undo reverts the entire filtered stroke as one step")
@@ -153,9 +153,9 @@ struct PixelPerfectStrokeTests {
 
         // Every pixel the stroke touched — painted or reverted — is back to
         // its pre-stroke state after a single undo.
-        #expect(try state.pixelCanvas.getPixel(x: 0, y: 0) == transparent)
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 0) == transparent)
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == transparent)
+        #expect(try state.document.getPixel(x: 0, y: 0) == transparent)
+        #expect(try state.document.getPixel(x: 1, y: 0) == transparent)
+        #expect(try state.document.getPixel(x: 1, y: 1) == transparent)
         #expect(!state.canUndo)
     }
 }

@@ -184,9 +184,9 @@ The value captured when an Edit begins, held pending by the History ring and com
 _Avoid_: Stroke Baseline (the pre-244 name, from when only strokes used it), pending snapshot (Snapshot is the PixelCanvas species' value type), pre-stroke snapshot (the shape sessions' preview-restore copy is a session-local buffer, not this), undo baseline (the baseline equally guards redo preservation).
 
 **PixelCanvas History**:
-The single-canvas undo/redo species — a LIFO of dimension-aware `Snapshot`s (width, height, pixel buffer) so pixels restore across resize. The Apple shell's history. Canonical core type `PixelCanvasHistory`.
+The single-canvas undo/redo species — a LIFO of dimension-aware `Snapshot`s (width, height, pixel buffer) so pixels restore across resize. No shell consumes it since the Apple editor moved onto Document History (issue 257); it survives in the core as the single-canvas species. Canonical core type `PixelCanvasHistory`.
 _Avoid_: canvas history (informal), HistoryManager (the pre-split fused name this species was extracted from).
 
 **Document History**:
-The layer-aware undo/redo species — a LIFO of whole-`Document` snapshots (layer stack, active-layer pointer, Marquee, counters). The web shell's history; wrapped by the WASM binding. Canonical core type `DocumentHistory`.
+The layer-aware undo/redo species — a LIFO of whole-`Document` snapshots (layer stack, active-layer pointer, Marquee, counters). Both shells' history — wrapped by the WASM binding for the web and by `AppleDocumentHistory` (UniFFI) for the Apple shell. Canonical core type `DocumentHistory`.
 _Avoid_: document undo, layer history.

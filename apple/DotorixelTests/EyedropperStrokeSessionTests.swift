@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Dotorixel
 
@@ -11,13 +12,28 @@ struct EyedropperStrokeSessionTests {
     @Test("releasing over an opaque pixel commits its color to the foreground")
     func releaseOverOpaquePixelCommitsForeground() throws {
         let state = EditorState(width: 8, height: 8)
-        try state.pixelCanvas.setPixel(x: 5, y: 5, color: red)
+        try state.document.setPixel(x: 5, y: 5, color: red)
         state.activeTool = .eyedropper
 
         // Press over an empty pixel, drag onto the red one, release there:
         // the committed color is the pixel under the pointer at release.
         state.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         state.continueStroke(to: ScreenCanvasCoords(x: 5, y: 5))
+        state.endStroke()
+
+        #expect(state.foregroundColor == red)
+    }
+
+    @Test("sampling reads the composite — a lower layer's color shows through the active layer's transparent pixels")
+    func samplesCompositeNotActiveLayer() throws {
+        let state = EditorState(width: 8, height: 8)
+        // Paint the base layer, then stack a transparent layer on top as the
+        // active one: what the user sees at (5, 5) is still the base red.
+        try state.document.setPixel(x: 5, y: 5, color: red)
+        try state.document.addLayer(newId: UUID().uuidString, name: "Layer 2")
+        state.activeTool = .eyedropper
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 5, y: 5))
         state.endStroke()
 
         #expect(state.foregroundColor == red)
@@ -38,7 +54,7 @@ struct EyedropperStrokeSessionTests {
     @Test("a secondary-button release commits to the background color")
     func secondaryButtonCommitsBackground() throws {
         let state = EditorState(width: 8, height: 8)
-        try state.pixelCanvas.setPixel(x: 3, y: 3, color: red)
+        try state.document.setPixel(x: 3, y: 3, color: red)
         state.activeTool = .eyedropper
         let initialForeground = state.foregroundColor
 
@@ -53,7 +69,7 @@ struct EyedropperStrokeSessionTests {
     func releaseOutOfBoundsCommitsNothing() throws {
         let state = EditorState(width: 8, height: 8)
         // Pressed over an opaque pixel — only the release position matters.
-        try state.pixelCanvas.setPixel(x: 0, y: 0, color: red)
+        try state.document.setPixel(x: 0, y: 0, color: red)
         state.activeTool = .eyedropper
         let initialForeground = state.foregroundColor
 
@@ -81,7 +97,7 @@ struct EyedropperStrokeSessionTests {
 
         // The color pick added no entry: one undo reverts the pencil dot…
         state.handleUndo()
-        #expect(try state.pixelCanvas.getPixel(x: 0, y: 0).a == 0)
+        #expect(try state.document.getPixel(x: 0, y: 0).a == 0)
         // …and nothing is left to undo.
         #expect(!state.canUndo)
     }
@@ -89,7 +105,7 @@ struct EyedropperStrokeSessionTests {
     @Test("a canceled stroke discards the pending sample without committing")
     func cancelDiscardsPendingSample() throws {
         let state = EditorState(width: 8, height: 8)
-        try state.pixelCanvas.setPixel(x: 4, y: 4, color: red)
+        try state.document.setPixel(x: 4, y: 4, color: red)
         state.activeTool = .eyedropper
         let initialForeground = state.foregroundColor
 

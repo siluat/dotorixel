@@ -25,7 +25,7 @@ final class EyedropperStrokeSession: StrokeSession {
     func draw(current: ScreenCanvasCoords, previous: ScreenCanvasCoords?) -> Bool {
         targetPixel = current
         host.samplingLoupe.show(grid: sampleGrid(
-            canvas: host.pixelCanvas,
+            surface: host.drawingSurface,
             center: current,
             size: LoupeGeometry.gridSize
         ))
@@ -35,9 +35,9 @@ final class EyedropperStrokeSession: StrokeSession {
     func end() -> Bool {
         host.samplingLoupe.dismiss()
         guard let target = targetPixel,
-              let x = UInt32(exactly: target.x),
-              let y = UInt32(exactly: target.y),
-              let sampled = try? host.pixelCanvas.getPixel(x: x, y: y),
+              // Sample what the user sees — the composite, not the active
+              // layer's buffer (the web's sampling rule).
+              let sampled = compositeSample(surface: host.drawingSurface, x: target.x, y: target.y),
               sampled.a > 0
         else { return false }
         host.commitColorPick(sampled, to: commitTarget)

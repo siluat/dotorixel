@@ -7,12 +7,12 @@ import Foundation
 /// Row-by-row bulk copy — the Swift equivalent of the web shell's
 /// `shiftPixels`, kept native per the Core Placement criteria (simple, stable
 /// logic; promote to the core if a third implementation is ever needed).
-/// Move tool session: shifts the whole canvas by the drag delta. The first
-/// sample marks the anchor; every subsequent sample restores the pre-stroke
-/// snapshot and re-shifts by (current − anchor), so the transform is always
-/// relative to the drag origin — never cumulative. The last shift is already
-/// the final state, so `end` has nothing left to commit; `cancel` restores
-/// the pre-stroke snapshot.
+/// Move tool session: shifts the active layer's pixels by the drag delta. The
+/// first sample marks the anchor; every subsequent sample restores the
+/// pre-stroke snapshot and re-shifts by (current − anchor), so the transform
+/// is always relative to the drag origin — never cumulative. The last shift is
+/// already the final state, so `end` has nothing left to commit; `cancel`
+/// restores the pre-stroke snapshot.
 final class MoveStrokeSession: StrokeSession {
     // `unowned` breaks the transient host → engine → session → host cycle;
     // the engine tears the session down before the host can go away.
@@ -27,7 +27,7 @@ final class MoveStrokeSession: StrokeSession {
     }
 
     func start() {
-        preStrokePixels = host.pixelCanvas.pixels()
+        preStrokePixels = host.drawingSurface.preStrokePixelSnapshot()
         host.beginEdit()
     }
 
@@ -38,8 +38,8 @@ final class MoveStrokeSession: StrokeSession {
         }
         let shifted = shiftedPixels(
             preStrokePixels,
-            width: Int(host.pixelCanvas.width()),
-            height: Int(host.pixelCanvas.height()),
+            width: Int(host.drawingSurface.width()),
+            height: Int(host.drawingSurface.height()),
             dx: Int(current.x - anchor.x),
             dy: Int(current.y - anchor.y)
         )
@@ -59,11 +59,11 @@ final class MoveStrokeSession: StrokeSession {
         return true
     }
 
-    /// The canvas is not replaced mid-stroke (sessions are torn down first),
-    /// so the buffer always matches the canvas dimensions.
+    /// The document is not replaced mid-stroke (sessions are torn down
+    /// first), so the buffer always matches the active layer's dimensions.
     private func restorePixels(_ pixels: Data) {
         do {
-            try host.pixelCanvas.restorePixels(data: pixels)
+            try host.drawingSurface.restoreActiveLayerPixels(data: pixels)
         } catch {
             assertionFailure("Failed to restore pixels: \(error)")
         }

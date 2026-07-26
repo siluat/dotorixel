@@ -1,3 +1,5 @@
+import Foundation
+
 /// Which pointer button opened a stroke. Touch input is always `.primary`;
 /// `.secondary` is a macOS right-click or a pointer device's secondary button.
 /// Resolved once at stroke begin into the session's per-stroke inputs — a
@@ -59,10 +61,56 @@ extension StrokeSession {
     }
 }
 
+/// The Document viewed as a drawing surface — the active-layer drawing ops
+/// and composite reads a stroke session may touch, and nothing structural.
+/// `AppleDocument` is the sole conformer; the protocol exists so the
+/// stroke-session seam is enforced by type ("sessions see a drawing surface,
+/// not the whole editor"): layer structure, history, resize, and export are
+/// unreachable through it.
+protocol DrawingSurface: AnyObject {
+    func width() -> UInt32
+    func height() -> UInt32
+    /// RGBA row-major blend of every visible layer — what the user sees.
+    func composite() -> Data
+    func getPixel(x: UInt32, y: UInt32) throws -> Color
+    func setPixel(x: UInt32, y: UInt32, color: Color) throws
+    func applyTool(x: Int32, y: Int32, tool: ToolType, foregroundColor: Color) -> Bool
+    func floodFill(x: Int32, y: Int32, fillColor: Color) -> Bool
+    func activeLayerPixels() throws -> Data
+    func restoreActiveLayerPixels(data: Data) throws
+}
+
+extension AppleDocument: DrawingSurface {}
+
+extension DrawingSurface {
+    /// Whether `(x, y)` falls inside the surface's `width × height`.
+    func containsPixel(x: Int32, y: Int32) -> Bool {
+        x >= 0 && y >= 0 && x < Int32(width()) && y < Int32(height())
+    }
+
+    /// The active layer's pixels as a session-local pre-stroke snapshot
+    /// (shape preview restore, move re-shift) — distinct from the Edit
+    /// Baseline, which History owns. The active layer is always a Pixel
+    /// Layer today, so a failed read is an invariant break: surfaced in
+    /// debug, degraded to an empty buffer in release.
+    func preStrokePixelSnapshot() -> Data {
+        do {
+            return try activeLayerPixels()
+        } catch {
+            assertionFailure("Failed to snapshot pre-stroke pixels: \(error)")
+            return Data()
+        }
+    }
+}
+
 /// Editor services a stroke session may touch — deliberately narrow so
 /// sessions depend on this seam, not on the whole editor state.
 protocol StrokeSessionHost: AnyObject {
-    var pixelCanvas: ApplePixelCanvas { get }
+    /// The drawing surface strokes draw into — the active document viewed
+    /// through the `DrawingSurface` seam, so sessions can paint the active
+    /// layer and read the composite but cannot reach layer structure or
+    /// history.
+    var drawingSurface: any DrawingSurface { get }
     var foregroundColor: Color { get }
     var backgroundColor: Color { get }
 
@@ -82,10 +130,10 @@ protocol StrokeSessionHost: AnyObject {
     /// dismiss on end/cancel); drawing sessions never touch it.
     var samplingLoupe: SamplingLoupeState { get }
 
-    /// Holds the current canvas pixels as the pending Edit Baseline. The
-    /// host resolves it when the stroke ends or cancels: the undo entry
-    /// commits only if the stroke actually changed the canvas, so a no-op
-    /// stroke leaves History (including the redo future) untouched.
+    /// Holds the current document as the pending Edit Baseline. The host
+    /// resolves it when the stroke ends or cancels: the undo entry commits
+    /// only if the stroke actually changed the document, so a no-op stroke
+    /// leaves History (including the redo future) untouched.
     func beginEdit()
 
     /// Commits a sampled color to the given active-color slot. Color picks

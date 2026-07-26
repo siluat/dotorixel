@@ -37,6 +37,7 @@ pub enum LayerKind {
 /// Lightweight discriminant of [`LayerKind`] for shell-facing accessors that
 /// must report a layer's kind without exposing the per-variant payload.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "uniffi", derive(uniffi::Enum))]
 pub enum LayerKindTag {
     Pixel,
     Reference,

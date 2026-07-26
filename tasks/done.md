@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 256 | [Apple UniFFI Document bindings — expose the Document model and DocumentHistory to Swift](../issues/256-apple-uniffi-document-bindings.md) | 2026-07-26 |
 | 254 | [Apple Pencil hover gate — block direct-touch stroke begins while the pencil hovers](../issues/254-apple-pencil-hover-finger-block.md) | 2026-07-23 |
 | 253 | [Apple Pencil hover preview — Hover Point state + target-cell highlight overlay](../issues/253-apple-pencil-hover-preview.md) | 2026-07-23 |
 | 252 | [Apple Pencil contact priority — palm rejection for touching pencil + gesture suppression](../issues/252-apple-pencil-contact-priority.md) | 2026-07-22 |

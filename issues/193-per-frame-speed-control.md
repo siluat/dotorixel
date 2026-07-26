@@ -295,7 +295,7 @@ they were for 189/192.
      (`toSnapshot` / `documentFromLayerSource`).
   5. **UI** — TimelinePanel control wired against the design, i18n, E2E.
 
-  `/to-issues` will cut these into independently-grabbable tracer slices.
+  `/to-tickets` will cut these into independently-grabbable tracer slices.
 - **This feature shows no motion on its own.** Its value is *authored, editable,
   durable timing data*; the visible payoff arrives with the preview and export
   consumers. Reviewers and the demo should expect "set a duration, see the

@@ -18,7 +18,7 @@ gesture/hover interplay falls to the 255 device pass.
 
 ## Next Up
 
-- Apple Phase 3 — Layer system ★ foundation — needs `/to-issues` decomposition ([RFC](../issues/013-apple-native-catchup.md))
+- Apple Phase 3 — Layer system ★ foundation — needs `/to-tickets` decomposition ([RFC](../issues/013-apple-native-catchup.md))
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Feedback link to Google Form

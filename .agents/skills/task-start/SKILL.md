@@ -20,8 +20,8 @@ Follow these steps in order when starting a task.
 3. **Select task from "Next Up"**:
    - Before presenting options, look up each candidate in `tasks/todo.md` and determine its state using the Step 4 classification. Annotate each option's description with that state so the user can see what selecting it leads to:
      - Links to an issue file → `issue: NNN-slug.md (ready to implement)`
-     - Item or its parent has a `[PRD]`/`[RFC]` link but no sub-issues → `PRD: NNN-slug.md — needs sub-issues (/to-issues)`
-     - Plain text, no links → `no issue yet — starts at /to-prd`
+     - Item or its parent has a `[PRD]`/`[RFC]` link but no sub-issues → `PRD: NNN-slug.md — needs sub-issues (/to-tickets)`
+     - Plain text, no links → `no issue yet — starts at /to-spec`
      - Design task → `design (.pen) — starts at /ui-design`
    - 2 or more items → use `AskUserQuestion` to let the user choose which task to work on.
    - 1 item → start that task directly.
@@ -39,7 +39,7 @@ Follow these steps in order when starting a task.
 
 The item needs a PRD before implementation can begin.
 
-5. Invoke the `/to-prd` skill for this item.
+5. Invoke the `/to-spec` skill for this item.
 
 6. After the PRD is created, update "Currently Working On" in `tasks/progress.md` to the PRD title with a link (e.g., `Export UI — format selector and filename input ([PRD](../issues/033-export-ui-web.md))`).
 
@@ -49,7 +49,7 @@ Stop after the PRD is created.
 
 The item has a PRD but hasn't been broken into implementable sub-issues yet.
 
-5. Invoke the `/to-issues` skill for this item.
+5. Invoke the `/to-tickets` skill for this item.
 
 6. Ensure "Currently Working On" in `tasks/progress.md` is set to the PRD title with a link. If already set, leave unchanged.
 

@@ -333,7 +333,7 @@ function and the `TabState` real-WASM integration tests are the top behavior sea
      document-change.
   5. **UI** — transport strip wired against the design, i18n, E2E.
 
-  `/to-issues` will cut these into independently-grabbable tracer slices.
+  `/to-tickets` will cut these into independently-grabbable tracer slices.
 - **This slice subsumes the "Animation preview — play/pause in editor" todo item.**
   Reconcile `tasks/todo.md` (and `progress.md` Next Up) so the two M4 lines — "Timeline
   UI" and "Animation preview" — collapse into this one PRD-linked entry.

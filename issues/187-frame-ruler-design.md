@@ -133,4 +133,4 @@ Decisions agreed during the grill (do not re-litigate):
 - The `.pen` itself lives in the Pencil-app worktree (`…/dotorixel-codex/docs/pencil-dotorixel.pen`) — **commit it from there** (not tracked-as-changed in this worktree).
 - Header metric (bare icons / single uniform gap) intentionally **diverges from the current implementation** (24×24 icon buttons); flagged for a future design↔implementation sync.
 - During the work, a session-level Pencil **render-cache glitch** (+50px offset / blank screenshots while node data is correct) was hit repeatedly; resolved by building fresh in a single batch + user refresh. Documented in `docs/agents/pencil-canvas.md` so future agents skip the trial-and-error.
-- **PRD 186 stays open** — the implementation slices (core cel-grid → persistence V6 → ruler shell → add/duplicate/delete/reorder) are pending `/to-issues`.
+- **PRD 186 stays open** — the implementation slices (core cel-grid → persistence V6 → ruler shell → add/duplicate/delete/reorder) are pending `/to-tickets`.

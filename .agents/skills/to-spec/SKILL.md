@@ -1,9 +1,9 @@
 ---
-name: to-prd
-description: Turn the current conversation context into a PRD and publish it to the project issue tracker. Use when user wants to create a PRD from the current context.
+name: to-spec
+description: Turn the current conversation into a spec and publish it to the project issue tracker — no interview, just synthesis of what you've already discussed.
 ---
 
-This skill takes the current conversation context and codebase understanding and produces a PRD. Do NOT interview the user — just synthesize what you already know.
+This skill takes the current conversation context and codebase understanding and produces a spec. **This project calls that document a PRD** — `tasks/todo.md` marks it with a `[PRD]` link and sub-issues reference it as their `parent`. Use "PRD" in everything you write; "spec" is only the skill's name. Do NOT interview the user — just synthesize what you already know.
 
 The issue tracker and triage label vocabulary should have been provided to you.
 

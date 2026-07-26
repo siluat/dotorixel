@@ -110,7 +110,7 @@ This feature deliberately reuses the existing region-operation seams
 (`lift_region` / `clear_region` / `composite_region`), the Document mutator +
 Reference-Layer no-op contract, the Document Change Journal intent pattern, and
 the resize-document prior art for whole-document changes. The slicing into
-issues is left to `/to-issues`, but the natural seams and decisions are:
+issues is left to `/to-tickets`, but the natural seams and decisions are:
 
 ### Target resolution (the central rule)
 
@@ -317,7 +317,7 @@ operations) and the existing journal tests.
   shell can adopt them later with only native UI wiring — this keeps the
   cross-platform door open per the Core Placement criteria (complex, shared,
   pixel-level logic is exactly what the core is for).
-- `/to-issues` should consider sequencing roughly as: (1) Rust buffer/region/
+- `/to-tickets` should consider sequencing roughly as: (1) Rust buffer/region/
   canvas transform primitives + unit tests; (2) Document mutators + WASM facade +
   journal intents for flip and region/whole-layer (no Reference rotation yet);
   (3) UI surfaces + i18n for the above; (4) whole-document rotate including

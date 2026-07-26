@@ -174,7 +174,7 @@ Three scenarios in `e2e/`:
 
 - The `sampling-session` controller is the **single source of truth** for whether the loupe is visible. Both the Eyedropper tool runner path and the long-press path delegate to it. This unification is the architectural lever that prevents the two interaction paths from diverging in subtle ways over time.
 - The pure-function modules (`sample-grid`, `loupe-position`) are deliberately framework-independent. If cross-shell parity becomes a goal, both are candidates for Rust port without API redesign.
-- When this PRD is decomposed via `/prd-to-issues`, recommended sub-issue ordering:
+- When this PRD is decomposed via `/to-tickets`, recommended sub-issue ordering:
   1. Design spec (`.pen`) for visual values (grid cell size, chrome, offsets, patterns, typography, animations).
   2. `sample-grid` module + tests.
   3. `loupe-position` module + tests.

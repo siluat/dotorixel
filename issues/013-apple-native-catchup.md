@@ -96,7 +96,7 @@ web features postdate it. The table above is the true current baseline.
 ## Re-planned roadmap
 
 Six phases, ordered by dependency and by keeping the app usable throughout. Later
-phases are decomposed into issues (via `/to-issues`) when reached, not up front.
+phases are decomposed into issues (via `/to-tickets`) when reached, not up front.
 
 | Phase | Scope | Why here |
 |-------|-------|----------|

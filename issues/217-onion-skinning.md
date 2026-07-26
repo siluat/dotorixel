@@ -182,14 +182,14 @@ canvas:
 
 ## Further Notes
 
-- **Sequencing sketch for `/to-issues`** (each slice keeps `main` shippable):
+- **Sequencing sketch for `/to-tickets`** (each slice keeps `main` shippable):
   1. `.pen` design slice (HITL, `/ui-design`) — transport toggle + ghost treatment.
   2. Shell state slice — the pure neighbor function, the tab-state ghost projection,
      the viewport flag + persistence.
   3. Render + UI slice — the renderer draw step, the transport toggle wiring, i18n,
      E2E.
 
-  `/to-issues` owns the actual cuts.
+  `/to-tickets` owns the actual cuts.
 - **Direction fit**: serves all three future directions at once — learning aid (seeing
   motion flow is a teaching primitive), game dev (walk/idle cycles), casual (smoother
   hobby animations) — a multi-direction investment per the project guidance.

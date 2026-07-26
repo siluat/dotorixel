@@ -192,6 +192,27 @@ struct DocumentBindingsTests {
         #expect(!history.canRedo())
     }
 
+    @Test("malformed and duplicate layer ids surface as errors without mutating the document")
+    func layerIdValidation() throws {
+        let baseId = UUID().uuidString.lowercased()
+        let doc = try AppleDocument(width: 2, height: 2, firstLayerId: baseId, firstLayerName: "Layer 1")
+
+        // Both guards live only in the binding layer (`parse_layer_id`,
+        // add_layer's duplicate-id check) — the Rust core tests can't reach them.
+        #expect(throws: AppleError.self) {
+            try doc.addLayer(newId: "not-a-uuid", name: "Layer 2")
+        }
+        #expect(throws: AppleError.self) {
+            try doc.addLayer(newId: baseId, name: "Layer 2")
+        }
+        #expect(doc.layers().map(\.id) == [baseId])
+        #expect(doc.nextLayerNumber() == 2)
+
+        #expect(throws: AppleError.self) {
+            _ = try AppleDocument(width: 2, height: 2, firstLayerId: "not-a-uuid", firstLayerName: "Layer 1")
+        }
+    }
+
     @Test("history restores layer structure and dimensions across undo/redo")
     func historyStructureAndResize() throws {
         let baseId = UUID().uuidString.lowercased()

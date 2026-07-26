@@ -126,7 +126,7 @@ final class FreehandStrokeSession: StrokeSession {
     private func cachePreStrokeColor(x: Int32, y: Int32) {
         let coords = ScreenCanvasCoords(x: x, y: y)
         guard preStrokeColors[coords] == nil, x >= 0, y >= 0,
-              let color = try? host.pixelCanvas.getPixel(x: UInt32(x), y: UInt32(y))
+              let color = try? host.drawingSurface.getPixel(x: UInt32(x), y: UInt32(y))
         else { return }
         preStrokeColors[coords] = color
     }
@@ -135,14 +135,14 @@ final class FreehandStrokeSession: StrokeSession {
     /// coordinates are always in-canvas (caching requires a successful read).
     private func revertAt(x: Int32, y: Int32) -> Bool {
         guard let original = preStrokeColors[ScreenCanvasCoords(x: x, y: y)] else { return false }
-        let current = try? host.pixelCanvas.getPixel(x: UInt32(x), y: UInt32(y))
+        let current = try? host.drawingSurface.getPixel(x: UInt32(x), y: UInt32(y))
         guard current != original else { return false }
-        try? host.pixelCanvas.setPixel(x: UInt32(x), y: UInt32(y), color: original)
+        try? host.drawingSurface.setPixel(x: UInt32(x), y: UInt32(y), color: original)
         return true
     }
 
     private func applyAt(_ coords: ScreenCanvasCoords) -> Bool {
-        host.pixelCanvas.applyTool(
+        host.drawingSurface.applyTool(
             x: coords.x,
             y: coords.y,
             tool: coreToolType,

@@ -13,7 +13,7 @@ struct SamplingLoupeTests {
     @Test("beginning an eyedropper stroke shows the loupe with the target-centered grid")
     func eyedropperBeginShowsLoupe() throws {
         let state = EditorState(width: 16, height: 16)
-        try state.pixelCanvas.setPixel(x: 5, y: 5, color: red)
+        try state.document.setPixel(x: 5, y: 5, color: red)
         state.activeTool = .eyedropper
 
         state.beginStroke(at: ScreenCanvasCoords(x: 5, y: 5))
@@ -25,7 +25,7 @@ struct SamplingLoupeTests {
     @Test("the grid tracks the drag onto a new target pixel")
     func gridTracksDrag() throws {
         let state = EditorState(width: 16, height: 16)
-        try state.pixelCanvas.setPixel(x: 5, y: 5, color: red)
+        try state.document.setPixel(x: 5, y: 5, color: red)
         state.activeTool = .eyedropper
 
         state.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))

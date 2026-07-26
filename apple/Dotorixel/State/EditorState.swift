@@ -2,15 +2,19 @@ import SwiftUI
 
 /// Central editor state shared across all views via `@Observable`.
 ///
-/// Wraps UniFFI objects (`ApplePixelCanvas`, `AppleViewport`) and provides
-/// SwiftUI-compatible properties. Since `ApplePixelCanvas` is a reference type
+/// Wraps UniFFI objects (`AppleDocument`, `AppleViewport`) and provides
+/// SwiftUI-compatible properties. Since `AppleDocument` is a reference type
 /// whose internal mutations are invisible to `@Observable`, the `canvasVersion`
 /// counter must be incremented manually to trigger Metal re-renders.
 @Observable
 final class EditorState {
-    var pixelCanvas: ApplePixelCanvas
+    /// The Document being edited — one pixel layer for now; the layer panel
+    /// arrives with issues 258+.
+    var document: AppleDocument
     var viewport: AppleViewport
-    let historyManager = AppleHistoryManager.defaultManager()
+    /// Layer-aware undo/redo: whole-`Document` snapshots, so pixel edits,
+    /// layer-structure changes, and resizes all restore through one path.
+    let documentHistory = AppleDocumentHistory.defaultHistory()
     var activeTool: EditorTool = .pencil
     var foregroundColor: Color
     var backgroundColor: Color
@@ -83,13 +87,13 @@ final class EditorState {
     var canUndo: Bool {
         // Read to register @Observable dependency — actual state lives in UniFFI object
         _ = historyVersion
-        return historyManager.canUndo()
+        return documentHistory.canUndo()
     }
 
     var canRedo: Bool {
         // Read to register @Observable dependency — actual state lives in UniFFI object
         _ = historyVersion
-        return historyManager.canRedo()
+        return documentHistory.canRedo()
     }
 
     var zoomPercent: Int {
@@ -100,7 +104,14 @@ final class EditorState {
         width: UInt32 = 16,
         height: UInt32 = 16
     ) {
-        self.pixelCanvas = try! ApplePixelCanvas(width: width, height: height)
+        // The first layer follows the web's naming convention ("Layer 1");
+        // no UI shows it until the layer panel lands.
+        self.document = try! AppleDocument(
+            width: width,
+            height: height,
+            firstLayerId: UUID().uuidString,
+            firstLayerName: "Layer 1"
+        )
         self.viewport = AppleViewport.forCanvas(canvasWidth: width, canvasHeight: height)
         // Web-matching defaults (shared-state.svelte.ts): foreground black, background white.
         self.foregroundColor = Color(r: 0x00, g: 0x00, b: 0x00, a: 0xFF)
@@ -216,20 +227,16 @@ final class EditorState {
         }
     }
 
-    /// Resolves the pending Edit Baseline against the current canvas — the
-    /// undo entry commits only when the edit actually changed pixels; a no-op
-    /// edit leaves both stacks (including the redo future) untouched.
+    /// Resolves the pending Edit Baseline against the current document — the
+    /// undo entry commits only when the edit actually changed the document; a
+    /// no-op edit leaves both stacks (including the redo future) untouched.
     ///
     /// Returns whether an undo entry was committed. Stroke paths discard it:
     /// they bump the re-render off the stroke engine's own signal, which also
     /// covers the preview a cancelled stroke must erase.
     @discardableResult
     private func resolveEditBaseline() -> Bool {
-        let committed = historyManager.endEdit(
-            currentWidth: pixelCanvas.width(),
-            currentHeight: pixelCanvas.height(),
-            currentPixels: pixelCanvas.pixels()
-        )
+        let committed = documentHistory.endEdit(current: document)
         historyVersion += 1
         return committed
     }
@@ -244,9 +251,7 @@ final class EditorState {
     }
 
     private func isInCanvasBounds(_ coords: ScreenCanvasCoords) -> Bool {
-        coords.x >= 0 && coords.y >= 0
-            && coords.x < Int32(pixelCanvas.width())
-            && coords.y < Int32(pixelCanvas.height())
+        document.containsPixel(x: coords.x, y: coords.y)
     }
 
     /// Clears the Hover Point when the pencil leaves hover range.
@@ -256,49 +261,54 @@ final class EditorState {
 
     // MARK: - History
 
-    /// Restores the previous canvas state from the history stack.
+    /// Restores the previous document state from the history stack.
     /// No-ops silently while a drawing stroke is in progress.
     func handleUndo() {
         guard !isDrawing else { return }
-        if let snapshot = historyManager.undo(currentWidth: pixelCanvas.width(), currentHeight: pixelCanvas.height(), currentPixels: pixelCanvas.pixels()) {
-            applySnapshot(snapshot)
+        if let restored = documentHistory.undo(current: document) {
+            applyRestoredDocument(restored)
         }
     }
 
-    /// Restores the next canvas state from the history stack.
+    /// Restores the next document state from the history stack.
     /// No-ops silently while a drawing stroke is in progress.
     func handleRedo() {
         guard !isDrawing else { return }
-        if let snapshot = historyManager.redo(currentWidth: pixelCanvas.width(), currentHeight: pixelCanvas.height(), currentPixels: pixelCanvas.pixels()) {
-            applySnapshot(snapshot)
+        if let restored = documentHistory.redo(current: document) {
+            applyRestoredDocument(restored)
         }
     }
 
-    private func applySnapshot(_ snapshot: Snapshot) {
-        guard snapshot.width == pixelCanvas.width(), snapshot.height == pixelCanvas.height() else {
-            assertionFailure("Cross-dimension undo/redo not yet implemented on Apple")
-            return
+    /// Adopts a document returned by undo/redo. History hands back a new
+    /// object (core value-snapshot semantics), so the reference is replaced.
+    /// A cross-dimension restore (a resize undone or redone) can strand the
+    /// pan or a published Hover Point against geometry that no longer
+    /// exists — reclamp and re-check them like `resizeCanvas` does.
+    private func applyRestoredDocument(_ restored: AppleDocument) {
+        document = restored
+        viewport = viewport.clampPan(
+            canvasWidth: document.width(),
+            canvasHeight: document.height(),
+            viewportSize: viewportSize
+        )
+        if let hoverPoint, !isInCanvasBounds(hoverPoint) {
+            self.hoverPoint = nil
         }
-        do {
-            try pixelCanvas.restorePixels(data: snapshot.pixels)
-            canvasVersion += 1
-            historyVersion += 1
-        } catch {
-            assertionFailure("Failed to apply snapshot: \(error)")
-        }
+        canvasVersion += 1
+        historyVersion += 1
     }
 
     // MARK: - Canvas clear
 
-    /// Erases every pixel to transparent, holding the pre-clear pixels as the
-    /// Edit Baseline so undo restores the drawing. Clearing a canvas that is
-    /// already blank changes nothing, so it records no entry, leaves the redo
-    /// future intact, and skips the re-render.
+    /// Erases every pixel of the active layer to transparent, holding the
+    /// pre-clear document as the Edit Baseline so undo restores the drawing.
+    /// Clearing an already-blank layer changes nothing, so it records no
+    /// entry, leaves the redo future intact, and skips the re-render.
     /// No-ops silently while a drawing stroke is in progress.
     func handleClearCanvas() {
         guard !isDrawing else { return }
         beginEdit()
-        pixelCanvas.clear()
+        document.clear()
         if resolveEditBaseline() {
             canvasVersion += 1
         }
@@ -306,22 +316,25 @@ final class EditorState {
 
     // MARK: - Canvas size
 
-    /// Resizes the canvas to the given dimensions and reclamps the viewport pan
-    /// against the new bounds. Silent no-op when dimensions are unchanged or
-    /// outside `canvasMinDimension...canvasMaxDimension`.
+    /// Resizes the document to the given dimensions as one undoable Edit
+    /// (web parity — whole-document snapshots restore pixels and dimensions
+    /// together) and reclamps the viewport pan against the new bounds.
+    /// Silent no-op when dimensions are unchanged or outside
+    /// `canvasMinDimension...canvasMaxDimension`.
     /// No-ops silently while a drawing stroke is in progress — a live session's
-    /// pre-stroke snapshot belongs to the current canvas and must stay restorable.
-    ///
-    /// Clears history on a successful resize: `applySnapshot` rejects
-    /// cross-dimension restores, so leaving pre-resize snapshots on the stack
-    /// would surface as `canUndo == true` while the actual restore silently
-    /// fails. Dropping the stack keeps `canUndo`/`canRedo` honest until
-    /// cross-dimension undo lands.
+    /// pre-stroke snapshot belongs to the current document and must stay restorable.
     func resizeCanvas(width: UInt32, height: UInt32) {
         guard !isDrawing else { return }
-        guard width != pixelCanvas.width() || height != pixelCanvas.height() else { return }
-        guard let resized = try? pixelCanvas.resize(newWidth: width, newHeight: height) else { return }
-        pixelCanvas = resized
+        guard width != document.width() || height != document.height() else { return }
+        beginEdit()
+        // Content keeps its current anchoring (top-left); the web's anchor
+        // selector UI is out of scope for the Apple shell today.
+        guard (try? document.resize(newWidth: width, newHeight: height, anchor: .topLeft)) != nil else {
+            // The document is unchanged, so resolving the baseline discards
+            // it without recording an entry.
+            resolveEditBaseline()
+            return
+        }
         viewport = viewport.clampPan(
             canvasWidth: width,
             canvasHeight: height,
@@ -332,26 +345,26 @@ final class EditorState {
         // it here so the overlay never marks a cell the resize deleted. The
         // next hover republishes against the new dimensions.
         hoverPoint = nil
-        historyManager.clear()
-        historyVersion += 1
+        resolveEditBaseline()
         canvasVersion += 1
     }
 
     // MARK: - Export
 
-    /// Encodes the current canvas as a PNG export document at 1× scale
-    /// (one canvas pixel per image pixel), matching the web's export convention.
+    /// Encodes the document's export composite as a PNG export document at 1×
+    /// scale (one canvas pixel per image pixel), matching the web's export
+    /// convention.
     ///
     /// - Throws: `AppleError` when PNG encoding fails.
     func makePngExportDocument() throws -> PngExportDocument {
-        PngExportDocument(data: try pixelCanvas.encodePng())
+        PngExportDocument(data: try document.encodeExportPng())
     }
 
     /// Default export filename following the web convention
     /// (`generateExportFilename` in `src/lib/canvas/export.ts`).
     /// The save flow offers it as the suggested name; the user may override it.
     var defaultExportFilename: String {
-        "dotorixel-\(pixelCanvas.width())x\(pixelCanvas.height()).png"
+        "dotorixel-\(document.width())x\(document.height()).png"
     }
 
     // MARK: - Viewport
@@ -360,8 +373,8 @@ final class EditorState {
     /// replacing the viewport reference triggers @Observable change detection.
     func handleViewportChange(_ newViewport: AppleViewport) {
         viewport = newViewport.clampPan(
-            canvasWidth: pixelCanvas.width(),
-            canvasHeight: pixelCanvas.height(),
+            canvasWidth: document.width(),
+            canvasHeight: document.height(),
             viewportSize: viewportSize
         )
     }
@@ -391,8 +404,8 @@ final class EditorState {
 
     func handleFit() {
         viewport = viewport.fitToViewport(
-            canvasWidth: pixelCanvas.width(),
-            canvasHeight: pixelCanvas.height(),
+            canvasWidth: document.width(),
+            canvasHeight: document.height(),
             viewportSize: viewportSize
         )
     }
@@ -408,21 +421,21 @@ extension EditorState: KeyboardShortcutHost {}
 // MARK: - StrokeSessionHost
 
 extension EditorState: StrokeSessionHost {
+    /// The document viewed through the `DrawingSurface` seam — sessions
+    /// paint the active layer and read the composite, nothing structural.
+    var drawingSurface: any DrawingSurface { document }
+
     var isPixelPerfectEnabled: Bool { pixelPerfect }
 
     /// The single seam shape sessions read: physical Shift and the Constrain
     /// latch OR-combined, so the latch is indistinguishable from a held key.
     var isConstrainHeld: Bool { isShiftKeyHeld || isConstrainLatchOn }
 
-    /// Holds the current canvas pixels as the pending Edit Baseline. The
-    /// entry commits at stroke end only if the stroke changed the canvas —
+    /// Holds the current document as the pending Edit Baseline. The entry
+    /// commits at stroke end only if the stroke changed the document —
     /// see `resolveEditBaseline()`.
     func beginEdit() {
-        historyManager.beginEdit(
-            width: pixelCanvas.width(),
-            height: pixelCanvas.height(),
-            pixels: pixelCanvas.pixels()
-        )
+        documentHistory.beginEdit(document: document)
     }
 
     /// Commits a sampled color to the given active-color slot. Not undoable —

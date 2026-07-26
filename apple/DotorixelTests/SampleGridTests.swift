@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Dotorixel
 
@@ -10,22 +11,33 @@ struct SampleGridTests {
 
     @Test("grid is row-major with the target pixel's color at the center index")
     func gridCentersOnTargetPixel() throws {
-        let canvas = try ApplePixelCanvas(width: 16, height: 16)
-        try canvas.setPixel(x: 5, y: 5, color: red)
+        let document = makeSingleLayerDocument(width: 16, height: 16)
+        try document.setPixel(x: 5, y: 5, color: red)
 
-        let grid = sampleGrid(canvas: canvas, center: ScreenCanvasCoords(x: 5, y: 5), size: 9)
+        let grid = sampleGrid(surface: document, center: ScreenCanvasCoords(x: 5, y: 5), size: 9)
 
         #expect(grid.count == 81)
         #expect(grid[40] == red)
     }
 
+    @Test("grid samples the composite — a lower layer's color shows through the active layer's transparent pixels")
+    func gridSamplesComposite() throws {
+        let document = makeSingleLayerDocument(width: 16, height: 16)
+        try document.setPixel(x: 5, y: 5, color: red)
+        try document.addLayer(newId: UUID().uuidString, name: "Layer 2")
+
+        let grid = sampleGrid(surface: document, center: ScreenCanvasCoords(x: 5, y: 5), size: 9)
+
+        #expect(grid[40] == red)
+    }
+
     @Test("cells outside the canvas are nil, distinct from transparent pixels")
     func outOfBoundsCellsAreNilNotTransparent() throws {
-        let canvas = try ApplePixelCanvas(width: 16, height: 16)
+        let document = makeSingleLayerDocument(width: 16, height: 16)
 
         // Center on the canvas origin: cells whose coordinates go negative
         // must read as "no pixel", not as transparent pixels.
-        let grid = sampleGrid(canvas: canvas, center: ScreenCanvasCoords(x: 0, y: 0), size: 9)
+        let grid = sampleGrid(surface: document, center: ScreenCanvasCoords(x: 0, y: 0), size: 9)
 
         // Top-left cell (-4,-4) is outside; the center is a real (transparent) pixel.
         #expect(grid[0] == nil)

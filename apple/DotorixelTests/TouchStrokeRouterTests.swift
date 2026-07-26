@@ -99,11 +99,11 @@ struct TouchStrokeRouterSingleFingerTests {
         editor.fingerUp(1)
 
         for x: UInt32 in 2...4 {
-            #expect(try editor.state.pixelCanvas.getPixel(x: x, y: 2) == editor.state.foregroundColor)
+            #expect(try editor.state.document.getPixel(x: x, y: 2) == editor.state.foregroundColor)
         }
         #expect(editor.state.canUndo)
         editor.state.handleUndo()
-        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(editor.state.document.composite().allSatisfy { $0 == 0 })
         #expect(!editor.state.canUndo)
     }
 
@@ -112,10 +112,10 @@ struct TouchStrokeRouterSingleFingerTests {
         let editor = RoutedEditor()
 
         editor.fingerDown(1, x: 5, y: 5)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 5, y: 5).a == 0)
+        #expect(try editor.state.document.getPixel(x: 5, y: 5).a == 0)
 
         editor.fingerUp(1)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 5, y: 5) == editor.state.foregroundColor)
+        #expect(try editor.state.document.getPixel(x: 5, y: 5) == editor.state.foregroundColor)
         #expect(editor.state.canUndo)
     }
 }
@@ -132,7 +132,7 @@ struct TouchStrokeRouterMultiTouchTests {
         editor.fingerUp(1)
         editor.fingerUp(2)
 
-        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(editor.state.document.composite().allSatisfy { $0 == 0 })
         #expect(!editor.state.canUndo)
     }
 
@@ -149,16 +149,16 @@ struct TouchStrokeRouterMultiTouchTests {
         editor.fingerUp(2)
 
         for x: UInt32 in 2...4 {
-            #expect(try editor.state.pixelCanvas.getPixel(x: x, y: 2) == editor.state.foregroundColor)
+            #expect(try editor.state.document.getPixel(x: x, y: 2) == editor.state.foregroundColor)
         }
-        #expect(try editor.state.pixelCanvas.getPixel(x: 6, y: 2).a == 0)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 8, y: 8).a == 0)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 9, y: 8).a == 0)
+        #expect(try editor.state.document.getPixel(x: 6, y: 2).a == 0)
+        #expect(try editor.state.document.getPixel(x: 8, y: 8).a == 0)
+        #expect(try editor.state.document.getPixel(x: 9, y: 8).a == 0)
 
         // Exactly one undo entry — the committed drag.
         #expect(editor.state.canUndo)
         editor.state.handleUndo()
-        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(editor.state.document.composite().allSatisfy { $0 == 0 })
         #expect(!editor.state.canUndo)
     }
 
@@ -175,13 +175,13 @@ struct TouchStrokeRouterMultiTouchTests {
         editor.fingerMove(3, x: 6, y: 5)
         editor.fingerUp(3)
         editor.fingerUp(2)
-        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(editor.state.document.composite().allSatisfy { $0 == 0 })
         #expect(!editor.state.canUndo)
 
         // Every touch lifted — the next tap draws again.
         editor.fingerDown(4, x: 1, y: 1)
         editor.fingerUp(4)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 1, y: 1) == editor.state.foregroundColor)
+        #expect(try editor.state.document.getPixel(x: 1, y: 1) == editor.state.foregroundColor)
     }
 
     @Test("touches a gesture recognizer claimed keep blocking new strokes until they lift")
@@ -201,7 +201,7 @@ struct TouchStrokeRouterMultiTouchTests {
         editor.fingerDown(3, x: 5, y: 5)
         editor.fingerMove(3, x: 6, y: 5)
         editor.fingerUp(3)
-        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(editor.state.document.composite().allSatisfy { $0 == 0 })
         #expect(!editor.state.canUndo)
 
         // Everything lifted — the view never hears the claimed touches' ends,
@@ -209,7 +209,7 @@ struct TouchStrokeRouterMultiTouchTests {
         editor.sync([4: .direct])
         editor.fingerDown(4, x: 1, y: 1)
         editor.fingerUp(4)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 1, y: 1) == editor.state.foregroundColor)
+        #expect(try editor.state.document.getPixel(x: 1, y: 1) == editor.state.foregroundColor)
     }
 }
 
@@ -227,7 +227,7 @@ struct TouchStrokeRouterCancellationTests {
         // Freehand cancel keeps what it painted (existing semantics) and the
         // edit resolves — the stroke is over, not stuck mid-flight.
         for x: UInt32 in 2...4 {
-            #expect(try editor.state.pixelCanvas.getPixel(x: x, y: 2) == editor.state.foregroundColor)
+            #expect(try editor.state.document.getPixel(x: x, y: 2) == editor.state.foregroundColor)
         }
         #expect(editor.state.canUndo)
         #expect(!editor.state.isDrawing)
@@ -240,12 +240,12 @@ struct TouchStrokeRouterCancellationTests {
         // E.g. a gesture recognizer claims the touch right after it lands.
         editor.fingerDown(1, x: 2, y: 2)
         editor.fingerCancel(1)
-        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(editor.state.document.composite().allSatisfy { $0 == 0 })
         #expect(!editor.state.canUndo)
 
         editor.fingerDown(2, x: 5, y: 5)
         editor.fingerUp(2)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 5, y: 5) == editor.state.foregroundColor)
+        #expect(try editor.state.document.getPixel(x: 5, y: 5) == editor.state.foregroundColor)
     }
 }
 
@@ -258,17 +258,17 @@ struct TouchStrokeRouterPencilPriorityTests {
 
         editor.fingerDown(1, x: 10, y: 10)
         editor.pencilDown(2, x: 3, y: 3)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 3, y: 3) == editor.state.foregroundColor)
+        #expect(try editor.state.document.getPixel(x: 3, y: 3) == editor.state.foregroundColor)
 
         editor.pencilUp(2)
         editor.fingerUp(1)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 10, y: 10).a == 0)
+        #expect(try editor.state.document.getPixel(x: 10, y: 10).a == 0)
 
         // Exactly one history entry — the pencil stroke; the finger's
         // discarded deferred begin contributes nothing.
         #expect(editor.state.canUndo)
         editor.state.handleUndo()
-        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(editor.state.document.composite().allSatisfy { $0 == 0 })
         #expect(!editor.state.canUndo)
     }
 
@@ -288,15 +288,15 @@ struct TouchStrokeRouterPencilPriorityTests {
         editor.fingerUp(2)
 
         for x: UInt32 in 3...4 {
-            #expect(try editor.state.pixelCanvas.getPixel(x: x, y: 3) == editor.state.foregroundColor)
+            #expect(try editor.state.document.getPixel(x: x, y: 3) == editor.state.foregroundColor)
         }
-        #expect(try editor.state.pixelCanvas.getPixel(x: 10, y: 10).a == 0)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 12, y: 12).a == 0)
+        #expect(try editor.state.document.getPixel(x: 10, y: 10).a == 0)
+        #expect(try editor.state.document.getPixel(x: 12, y: 12).a == 0)
 
         // One entry — the pencil stroke alone.
         #expect(editor.state.canUndo)
         editor.state.handleUndo()
-        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(editor.state.document.composite().allSatisfy { $0 == 0 })
         #expect(!editor.state.canUndo)
     }
 
@@ -315,19 +315,19 @@ struct TouchStrokeRouterPencilPriorityTests {
 
         // The drag committed exactly what it drew before the pencil landed.
         for x: UInt32 in 2...4 {
-            #expect(try editor.state.pixelCanvas.getPixel(x: x, y: 2) == editor.state.foregroundColor)
+            #expect(try editor.state.document.getPixel(x: x, y: 2) == editor.state.foregroundColor)
         }
-        #expect(try editor.state.pixelCanvas.getPixel(x: 6, y: 2).a == 0)
+        #expect(try editor.state.document.getPixel(x: 6, y: 2).a == 0)
         for x: UInt32 in 8...9 {
-            #expect(try editor.state.pixelCanvas.getPixel(x: x, y: 8) == editor.state.foregroundColor)
+            #expect(try editor.state.document.getPixel(x: x, y: 8) == editor.state.foregroundColor)
         }
 
         // Two history entries: the pencil stroke undoes first, then the drag.
         editor.state.handleUndo()
-        #expect(try editor.state.pixelCanvas.getPixel(x: 8, y: 8).a == 0)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 2, y: 2) == editor.state.foregroundColor)
+        #expect(try editor.state.document.getPixel(x: 8, y: 8).a == 0)
+        #expect(try editor.state.document.getPixel(x: 2, y: 2) == editor.state.foregroundColor)
         editor.state.handleUndo()
-        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(editor.state.document.composite().allSatisfy { $0 == 0 })
         #expect(!editor.state.canUndo)
     }
 
@@ -350,16 +350,16 @@ struct TouchStrokeRouterPencilPriorityTests {
 
         // The stroke ran uninterrupted, sampling only the pencil's path.
         for x: UInt32 in 2...5 {
-            #expect(try editor.state.pixelCanvas.getPixel(x: x, y: 2) == editor.state.foregroundColor)
+            #expect(try editor.state.document.getPixel(x: x, y: 2) == editor.state.foregroundColor)
         }
-        #expect(try editor.state.pixelCanvas.getPixel(x: 10, y: 10).a == 0)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 11, y: 10).a == 0)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 12, y: 12).a == 0)
+        #expect(try editor.state.document.getPixel(x: 10, y: 10).a == 0)
+        #expect(try editor.state.document.getPixel(x: 11, y: 10).a == 0)
+        #expect(try editor.state.document.getPixel(x: 12, y: 12).a == 0)
 
         // One continuous stroke — a single undo entry reverts it all.
         #expect(editor.state.canUndo)
         editor.state.handleUndo()
-        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(editor.state.document.composite().allSatisfy { $0 == 0 })
         #expect(!editor.state.canUndo)
     }
 
@@ -377,13 +377,13 @@ struct TouchStrokeRouterPencilPriorityTests {
         editor.fingerDown(4, x: 6, y: 6)
         editor.fingerMove(4, x: 7, y: 6)
         editor.fingerUp(4)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 6, y: 6).a == 0)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 7, y: 6).a == 0)
+        #expect(try editor.state.document.getPixel(x: 6, y: 6).a == 0)
+        #expect(try editor.state.document.getPixel(x: 7, y: 6).a == 0)
 
         // The pencil, however, draws its next line without the hand lifting.
         editor.pencilDown(5, x: 4, y: 4)
         editor.pencilUp(5)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 4, y: 4) == editor.state.foregroundColor)
+        #expect(try editor.state.document.getPixel(x: 4, y: 4) == editor.state.foregroundColor)
     }
 
     @Test("the viewport-gesture gate holds exactly for the pencil stroke's lifetime")
@@ -419,7 +419,7 @@ struct TouchStrokeRouterHoverGateTests {
         editor.fingerMove(1, x: 4, y: 2)
         editor.fingerUp(1)
 
-        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(editor.state.document.composite().allSatisfy { $0 == 0 })
         #expect(!editor.state.canUndo)
     }
 
@@ -437,7 +437,7 @@ struct TouchStrokeRouterHoverGateTests {
         editor.fingerDown(2, x: 5, y: 5)
         editor.fingerUp(2)
 
-        #expect(try editor.state.pixelCanvas.getPixel(x: 5, y: 5) == editor.state.foregroundColor)
+        #expect(try editor.state.document.getPixel(x: 5, y: 5) == editor.state.foregroundColor)
         #expect(editor.state.canUndo)
     }
 
@@ -454,11 +454,11 @@ struct TouchStrokeRouterHoverGateTests {
 
         // The stroke kept drawing through the hover and committed as one entry.
         for x: UInt32 in 2...4 {
-            #expect(try editor.state.pixelCanvas.getPixel(x: x, y: 2) == editor.state.foregroundColor)
+            #expect(try editor.state.document.getPixel(x: x, y: 2) == editor.state.foregroundColor)
         }
         #expect(editor.state.canUndo)
         editor.state.handleUndo()
-        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(editor.state.document.composite().allSatisfy { $0 == 0 })
         #expect(!editor.state.canUndo)
     }
 
@@ -470,7 +470,7 @@ struct TouchStrokeRouterHoverGateTests {
         // the instant it touches down.
         editor.hover(true)
         editor.pencilDown(1, x: 3, y: 3)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 3, y: 3) == editor.state.foregroundColor)
+        #expect(try editor.state.document.getPixel(x: 3, y: 3) == editor.state.foregroundColor)
 
         editor.pencilUp(1)
         #expect(editor.state.canUndo)
@@ -491,7 +491,7 @@ struct TouchStrokeRouterHoverGateTests {
         editor.fingerUp(1)
         editor.fingerUp(2)
 
-        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(editor.state.document.composite().allSatisfy { $0 == 0 })
         #expect(!editor.state.canUndo)
         #expect(!editor.isPencilStrokeActive)
     }
@@ -505,7 +505,7 @@ struct TouchStrokeRouterPencilTests {
         let editor = RoutedEditor()
 
         editor.pencilDown(1, x: 3, y: 3)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 3, y: 3) == editor.state.foregroundColor)
+        #expect(try editor.state.document.getPixel(x: 3, y: 3) == editor.state.foregroundColor)
 
         editor.pencilUp(1)
         #expect(editor.state.canUndo)
@@ -525,15 +525,15 @@ struct TouchStrokeRouterPencilTests {
         editor.pencilUp(1)
 
         for x: UInt32 in 2...5 {
-            #expect(try editor.state.pixelCanvas.getPixel(x: x, y: 2) == editor.state.foregroundColor)
+            #expect(try editor.state.document.getPixel(x: x, y: 2) == editor.state.foregroundColor)
         }
-        #expect(try editor.state.pixelCanvas.getPixel(x: 10, y: 10).a == 0)
-        #expect(try editor.state.pixelCanvas.getPixel(x: 11, y: 10).a == 0)
+        #expect(try editor.state.document.getPixel(x: 10, y: 10).a == 0)
+        #expect(try editor.state.document.getPixel(x: 11, y: 10).a == 0)
 
         // One continuous stroke — a single undo entry reverts it all.
         #expect(editor.state.canUndo)
         editor.state.handleUndo()
-        #expect(editor.state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(editor.state.document.composite().allSatisfy { $0 == 0 })
         #expect(!editor.state.canUndo)
     }
 }

@@ -26,8 +26,7 @@ when reached.
 
 ### Phase 3 — Layer system ★ foundation (issues 256–260)
 
-- [257 — Apple editor on the Document model — state redesign + composite render](../issues/257-apple-document-editor-state.md)
-- [258 — Apple layer panel — rows, active selection, visibility](../issues/258-apple-layer-panel-rows.md) (blocked by 257)
+- [258 — Apple layer panel — rows, active selection, visibility](../issues/258-apple-layer-panel-rows.md)
 - [259 — Apple layer panel — add and remove layers](../issues/259-apple-layer-add-remove.md) (blocked by 258)
 - [260 — Apple layer panel — reorder layers](../issues/260-apple-layer-reorder.md) (blocked by 258; parallel with 259)
 

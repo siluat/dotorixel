@@ -6,6 +6,8 @@ Accepted (2026-05-06)
 
 Amended (2026-06-14, issue 181): the preserved single-canvas `HistoryManager` below was renamed `PixelCanvasHistory` over a shared generic history ring (issue 180) — a rename, not a data-model migration; Apple stays on the single-`PixelCanvas` model.
 
+Amended (2026-07-26, issue 257): the deferred migration this ADR anticipated has landed — the Apple editor now runs on `Document` + `DocumentHistory` (Phase 3 of issue 013), and the editor's canvas-snapshot history path (`AppleHistoryManager` binding) was removed. The "temporary data-model divergence" trade-off below is closed. The core's `PixelCanvas` public API remains (per the follow-up trigger, it also still backs the render benchmark's `ApplePixelCanvas` binding and the core's cel buffers).
+
 ## Context
 
 Introducing the layer system in Milestone 3 (`086-layer-system-basic-infrastructure`) is a data-model change with the potential to affect both shells. The Rust core's `PixelCanvas` is a single flat buffer today, and the change extends it into a `Document → Layer stack`.
@@ -66,5 +68,5 @@ Hold the web's layer system until all Apple Phase 1 sub-issues land.
 
 ### Follow-up triggers
 
-- When Apple Phase 1 finishes and Apple Phase 2 starts, file a new issue for Apple's Document migration.
-- The `PixelCanvas` public API can only be removed from the core after Apple is also migrated.
+- ~~When Apple Phase 1 finishes and Apple Phase 2 starts, file a new issue for Apple's Document migration.~~ *Closed (2026-07-26): filed and completed as Phase 3 of issue 013 — issue 257.*
+- ~~The `PixelCanvas` public API can only be removed from the core after Apple is also migrated.~~ *Condition met (2026-07-26): Apple is migrated, but `PixelCanvas` stays — it backs the core's cel buffers and the render benchmark's `ApplePixelCanvas` binding.*

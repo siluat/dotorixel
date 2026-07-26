@@ -99,21 +99,21 @@ struct MoveStrokeSessionTests {
     @Test("a drag translates the whole drawing and release commits it")
     func dragTranslatesAndCommits() throws {
         let state = EditorState(width: 8, height: 8)
-        try state.pixelCanvas.setPixel(x: 2, y: 2, color: red)
+        try state.document.setPixel(x: 2, y: 2, color: red)
         state.activeTool = .move
 
         state.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))
         state.continueStroke(to: ScreenCanvasCoords(x: 7, y: 6))
         state.endStroke()
 
-        #expect(try state.pixelCanvas.getPixel(x: 5, y: 4) == red)
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 2) == transparent)
+        #expect(try state.document.getPixel(x: 5, y: 4) == red)
+        #expect(try state.document.getPixel(x: 2, y: 2) == transparent)
     }
 
     @Test("reversing a drag back to the anchor restores the original positions")
     func reversedDragRestoresOriginalPositions() throws {
         let state = EditorState(width: 8, height: 8)
-        try state.pixelCanvas.setPixel(x: 2, y: 2, color: red)
+        try state.document.setPixel(x: 2, y: 2, color: red)
         state.activeTool = .move
 
         state.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))
@@ -123,15 +123,15 @@ struct MoveStrokeSessionTests {
         state.continueStroke(to: ScreenCanvasCoords(x: 4, y: 4))
         state.endStroke()
 
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 2) == red)
+        #expect(try state.document.getPixel(x: 2, y: 2) == red)
         #expect(paintedPixelCount(state) == 1)
     }
 
     @Test("pixels dragged off-canvas are clipped and vacated areas stay transparent")
     func offCanvasPixelsAreClippedOnCommit() throws {
         let state = EditorState(width: 8, height: 8)
-        try state.pixelCanvas.setPixel(x: 6, y: 6, color: red)
-        try state.pixelCanvas.setPixel(x: 1, y: 1, color: red)
+        try state.document.setPixel(x: 6, y: 6, color: red)
+        try state.document.setPixel(x: 1, y: 1, color: red)
         state.activeTool = .move
 
         // +3,+3: (6,6) lands past the edge and is clipped; (1,1) → (4,4).
@@ -139,7 +139,7 @@ struct MoveStrokeSessionTests {
         state.continueStroke(to: ScreenCanvasCoords(x: 5, y: 5))
         state.endStroke()
 
-        #expect(try state.pixelCanvas.getPixel(x: 4, y: 4) == red)
+        #expect(try state.document.getPixel(x: 4, y: 4) == red)
         #expect(paintedPixelCount(state) == 1)
 
         // The clip is destructive: dragging back does not resurrect (6,6).
@@ -147,14 +147,14 @@ struct MoveStrokeSessionTests {
         state.continueStroke(to: ScreenCanvasCoords(x: 2, y: 2))
         state.endStroke()
 
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == red)
+        #expect(try state.document.getPixel(x: 1, y: 1) == red)
         #expect(paintedPixelCount(state) == 1)
     }
 
     @Test("one undo restores the pre-move canvas; redo re-applies the move")
     func undoRestoresAndRedoReapplies() throws {
         let state = EditorState(width: 8, height: 8)
-        try state.pixelCanvas.setPixel(x: 2, y: 2, color: red)
+        try state.document.setPixel(x: 2, y: 2, color: red)
         state.activeTool = .move
 
         state.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))
@@ -162,25 +162,25 @@ struct MoveStrokeSessionTests {
         state.endStroke()
 
         state.handleUndo()
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 2) == red)
+        #expect(try state.document.getPixel(x: 2, y: 2) == red)
         #expect(paintedPixelCount(state) == 1)
 
         state.handleRedo()
-        #expect(try state.pixelCanvas.getPixel(x: 4, y: 3) == red)
+        #expect(try state.document.getPixel(x: 4, y: 3) == red)
         #expect(paintedPixelCount(state) == 1)
     }
 
     @Test("cancel restores the pre-stroke pixels and leaves no undo entry")
     func cancelRestoresPreStrokePixels() throws {
         let state = EditorState(width: 8, height: 8)
-        try state.pixelCanvas.setPixel(x: 2, y: 2, color: red)
+        try state.document.setPixel(x: 2, y: 2, color: red)
         state.activeTool = .move
 
         state.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))
         state.continueStroke(to: ScreenCanvasCoords(x: 6, y: 5))
         state.cancelStroke()
 
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 2) == red)
+        #expect(try state.document.getPixel(x: 2, y: 2) == red)
         #expect(paintedPixelCount(state) == 1)
         // The cancel restored the baseline, so the stroke resolved as a no-op
         // — no History entry to undo.
@@ -188,8 +188,4 @@ struct MoveStrokeSessionTests {
     }
 
     /// Number of canvas pixels with a non-zero alpha channel.
-    private func paintedPixelCount(_ state: EditorState) -> Int {
-        let pixels = state.pixelCanvas.pixels()
-        return stride(from: 3, to: pixels.count, by: 4).count { pixels[$0] != 0 }
-    }
 }

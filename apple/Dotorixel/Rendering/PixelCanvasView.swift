@@ -7,7 +7,7 @@ private let defaultGridColor = SIMD4<Float>(0.878, 0.863, 0.843, 1.0)
 /// SwiftUI wrapper for the Metal-backed pixel canvas renderer.
 /// Uses `NSViewRepresentable` on macOS, `UIViewRepresentable` on iOS.
 struct PixelCanvasView {
-    let pixelCanvas: ApplePixelCanvas
+    let document: AppleDocument
     let viewport: AppleViewport
     let showGrid: Bool
     var editorState: EditorState
@@ -25,9 +25,11 @@ struct PixelCanvasView {
 
 extension PixelCanvasView {
     func configureRenderer(_ renderer: PixelGridRenderer, mtkView: MTKView) {
-        let width = pixelCanvas.width()
-        let height = pixelCanvas.height()
-        let pixels = pixelCanvas.pixels()
+        let width = document.width()
+        let height = document.height()
+        // The composite of every visible layer — the screen shows the
+        // document, never a single layer's buffer.
+        let pixels = document.composite()
 
         renderer.updateCanvasTexture(pixels: pixels, width: width, height: height)
 

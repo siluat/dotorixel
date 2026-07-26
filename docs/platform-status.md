@@ -14,7 +14,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Rectangle | ✅ | ✅ | ✅ | Outline only, snapshot-restore preview |
 | Ellipse | ✅ | ✅ | ✅ | Outline only, snapshot-restore preview |
 | Flood fill | ✅ | ✅ | ✅ | BFS, 4-connectivity; one-shot tap fill on both shells |
-| Eyedropper | — | ✅ | ✅ | Drag-and-commit; releases to FG (left-click/touch) or BG (right-click); skips transparent and out-of-bounds samples; not undoable. Loupe overlay tracked in its own row |
+| Eyedropper | — | ✅ | ✅ | Drag-and-commit; releases to FG (left-click/touch) or BG (right-click); skips transparent and out-of-bounds samples; not undoable. Apple samples the composite; Web samples the active layer. Loupe overlay tracked in its own row |
 | Move | — | ✅ | ✅ | Drag shifts the whole canvas relative to the drag anchor (never cumulative); off-canvas pixels clipped on commit, vacated areas transparent |
 | Selection / Marquee | 🔧 | 🔧 | ⬜ | Persistent Marquee with clipping, Delete, drag-to-move/cancel, copy/cut/paste, keyboard nudge, Shift-square define/axis drag, action bars; selection UI hides (Marquee preserved) while a Reference Layer is active |
 | Right-click background color | — | ✅ | ✅ | Supported paint tools draw with BG on right-click; eraser stays transparent. Apple: macOS right-click + iPadOS pointer secondary button; touch always FG |
@@ -25,16 +25,16 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Create / resize | ✅ | ✅ | ✅ | 1–256px, presets available, 9-position anchor selector (Web) |
-| Clear | ✅ | ✅ | ✅ | History-integrated, no confirm dialog. Web: active Pixel Layer, RightPanel (docked) + Settings tab (mobile); Apple: single canvas, RightPanel |
+| Create / resize | ✅ | ✅ | ✅ | 1–256px, presets available; resize undoable on both shells (restores pixels + dimensions). Anchor: 9-position selector (Web), top-left fixed (Apple) |
+| Clear | ✅ | ✅ | ✅ | History-integrated, no confirm dialog; clears the active Pixel Layer on both shells. Web: RightPanel (docked) + Settings tab (mobile); Apple: RightPanel |
 | Flip / transform | ✅ | ✅ | ⬜ | Two tiers, one scope per button: Canvas Transform (panel) — all Pixel Layers × all frames, Marquee co-transformed + clipped, rotate swaps W↔H, Reference Layer fixed; Marquee Transform (SelectionActionBar) — Marquee region only, no-op without a Marquee or on a Reference Layer |
 
 ## History
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| PixelCanvas History (single-canvas) | ✅ | ⬜ | ✅ | Dimension-aware snapshots (pixels + W/H) so resize is undoable. Apple's undo path; the Web binding no longer exposes it — Web routes undo through Document History |
-| Document History | ✅ | ✅ | ⬜ | Whole-`Document` snapshots (layer stack + Marquee + counters); Web's undo path. Its own species — never mixed with the PixelCanvas path (unrepresentable, not runtime-guarded). Apple: bindings ready, editor not migrated |
+| PixelCanvas History (single-canvas) | ✅ | ⬜ | ⬜ | Dimension-aware snapshots (pixels + W/H). Core-only species — no shell consumes it since Apple moved onto Document History |
+| Document History | ✅ | ✅ | ✅ | Whole-`Document` snapshots (layer stack + Marquee + counters); both shells' undo path. Its own species — never mixed with the PixelCanvas path (unrepresentable, not runtime-guarded) |
 | Edit Baseline (no-op discard) | ✅ | ✅ | ✅ | Commits at an Edit's end only if state changed (Apple: pixels, Web: whole Document); no-op Edits — strokes and commands alike — preserve redo. Core-owned comparison, and the only way to record: no eager push exists |
 
 ## Viewport
@@ -63,7 +63,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Pixel rendering | — | ✅ | ✅ | Canvas2D / Metal |
-| Multi-layer composite | ✅ | ✅ | ⬜ | Visible Pixel Layers blended bottom-to-top; Reference drawn separately as viewport underlay. Composites any frame (active = one case) — read seam for playback/onion/export |
+| Multi-layer composite | ✅ | ✅ | ✅ | Visible Pixel Layers blended bottom-to-top; Reference drawn separately as viewport underlay (Web). Composites any frame (active = one case) — read seam for playback/onion/export. Apple: Metal uploads the composite; no layer UI yet |
 | Checkerboard transparency | — | ✅ | ✅ | |
 | Grid overlay + toggle | — | ✅ | ✅ | Auto-hidden below 4px |
 
@@ -118,7 +118,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Document/Layer model | 🔧 | 🔧 | ⬜ | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple: bindings ready, editor still single-canvas |
+| Document/Layer model | 🔧 | 🔧 | 🔧 | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple: editor state on Document (single layer); layer panel UI pending (258–260) |
 | Frame cel-grid | ✅ | ✅ | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: undoable add/duplicate/remove/reorder + set-active journal intents (undo restores frame+cel); multi-frame V7 persistence round-trips through the snapshot |
 | Per-frame duration | ✅ | ✅ | ⬜ | Each frame holds a display duration; default 100ms (10fps); identity unchanged when retimed. 1–60000ms clamp at the shell boundary (core trusts the value). Web complete: active-frame editor in the timeline corner (ms + derived fps), undoable, V7-persisted. Apple pending |
 | Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and rotation-aware source sampling. Editability (Reference takes no paint/Marquee) has one authority enforced at the document-state boundary; a live stroke's target layer/frame can't switch or vanish mid-stroke. Fixed under canvas transforms (nothing produces new quarter-turns; saved ones still render). Placement invariant (finite pos, scale > 0, quarter-turn 0..=3) enforced by the core constructor |

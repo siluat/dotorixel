@@ -1,6 +1,37 @@
 import Testing
 @testable import Dotorixel
 
+@Suite("EditorState — Document model")
+struct EditorStateDocumentTests {
+
+    @Test("a new editor holds a single-layer document of the requested dimensions")
+    func newEditorHoldsSingleLayerDocument() {
+        let state = EditorState(width: 16, height: 12)
+
+        #expect(state.document.width() == 16)
+        #expect(state.document.height() == 12)
+        let layers = state.document.layers()
+        #expect(layers.count == 1)
+        #expect(layers[0].visible)
+        #expect(state.document.activeLayerId() == layers[0].id)
+    }
+
+    @Test("a stroke draws into the document's active layer; undo and redo restore whole-document snapshots")
+    func strokeDrawsIntoActiveLayerAndUndoRedoRestore() throws {
+        let state = EditorState(width: 16, height: 16)
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 3, y: 4))
+        state.endStroke()
+        #expect(try state.document.getPixel(x: 3, y: 4) == state.foregroundColor)
+
+        state.handleUndo()
+        #expect(state.document.composite().allSatisfy { $0 == 0 })
+
+        state.handleRedo()
+        #expect(try state.document.getPixel(x: 3, y: 4) == state.foregroundColor)
+    }
+}
+
 @Suite("EditorState — FG/BG colors")
 struct EditorStateColorTests {
 
@@ -33,8 +64,8 @@ struct EditorStateColorTests {
         state.beginStroke(at: ScreenCanvasCoords(x: 3, y: 4), button: .secondary)
         state.continueStroke(to: ScreenCanvasCoords(x: 5, y: 4))
 
-        #expect(try state.pixelCanvas.getPixel(x: 3, y: 4) == state.backgroundColor)
-        #expect(try state.pixelCanvas.getPixel(x: 5, y: 4) == state.backgroundColor)
+        #expect(try state.document.getPixel(x: 3, y: 4) == state.backgroundColor)
+        #expect(try state.document.getPixel(x: 5, y: 4) == state.backgroundColor)
     }
 
     @Test("swapping colors mid-stroke doesn't change the stroke in flight")
@@ -46,19 +77,19 @@ struct EditorStateColorTests {
         state.swapColors()
         state.continueStroke(to: ScreenCanvasCoords(x: 2, y: 0))
 
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 0) == originalBackground)
+        #expect(try state.document.getPixel(x: 2, y: 0) == originalBackground)
     }
 
     @Test("a secondary-button eraser stroke still erases to transparent")
     func secondaryButtonEraserStillErases() throws {
         let state = EditorState(width: 16, height: 16)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
-        try state.pixelCanvas.setPixel(x: 5, y: 5, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        try state.document.setPixel(x: 5, y: 5, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
         state.activeTool = .eraser
 
         state.beginStroke(at: ScreenCanvasCoords(x: 5, y: 5), button: .secondary)
 
-        #expect(try state.pixelCanvas.getPixel(x: 5, y: 5) == transparent)
+        #expect(try state.document.getPixel(x: 5, y: 5) == transparent)
     }
 }
 
@@ -72,7 +103,7 @@ struct EditorStateStrokeTests {
 
         state.beginStroke(at: ScreenCanvasCoords(x: 3, y: 4))
 
-        #expect(try state.pixelCanvas.getPixel(x: 3, y: 4) == state.foregroundColor)
+        #expect(try state.document.getPixel(x: 3, y: 4) == state.foregroundColor)
         #expect(state.canvasVersion == versionBefore + 1)
         #expect(state.isDrawing)
         // The Edit Baseline is pending, not committed — undo is sealed
@@ -94,22 +125,22 @@ struct EditorStateStrokeTests {
         state.beginStroke(at: ScreenCanvasCoords(x: 5, y: 5))
         state.endStroke()
 
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == state.foregroundColor)
-        #expect(try state.pixelCanvas.getPixel(x: 5, y: 5) == state.foregroundColor)
+        #expect(try state.document.getPixel(x: 1, y: 1) == state.foregroundColor)
+        #expect(try state.document.getPixel(x: 5, y: 5) == state.foregroundColor)
 
         // Two committed strokes → two undo steps, each reverting one.
         state.handleUndo()
-        #expect(try state.pixelCanvas.getPixel(x: 5, y: 5).a == 0)
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == state.foregroundColor)
+        #expect(try state.document.getPixel(x: 5, y: 5).a == 0)
+        #expect(try state.document.getPixel(x: 1, y: 1) == state.foregroundColor)
         state.handleUndo()
-        #expect(state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(state.document.composite().allSatisfy { $0 == 0 })
     }
 
     @Test("retracing pixels with their own color is a no-op stroke — no undo entry")
     func sameColorRetraceLeavesNoUndoEntry() throws {
         let state = EditorState(width: 16, height: 16)
-        try state.pixelCanvas.setPixel(x: 3, y: 4, color: state.foregroundColor)
-        try state.pixelCanvas.setPixel(x: 4, y: 4, color: state.foregroundColor)
+        try state.document.setPixel(x: 3, y: 4, color: state.foregroundColor)
+        try state.document.setPixel(x: 4, y: 4, color: state.foregroundColor)
 
         state.beginStroke(at: ScreenCanvasCoords(x: 3, y: 4))
         state.continueStroke(to: ScreenCanvasCoords(x: 4, y: 4))
@@ -126,9 +157,9 @@ struct EditorStateStrokeTests {
         state.continueStroke(to: ScreenCanvasCoords(x: 3, y: 3))
 
         // Bresenham diagonal: the skipped pixels between the two samples are filled.
-        #expect(try state.pixelCanvas.getPixel(x: 1, y: 1) == state.foregroundColor)
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 2) == state.foregroundColor)
-        #expect(try state.pixelCanvas.getPixel(x: 3, y: 3) == state.foregroundColor)
+        #expect(try state.document.getPixel(x: 1, y: 1) == state.foregroundColor)
+        #expect(try state.document.getPixel(x: 2, y: 2) == state.foregroundColor)
+        #expect(try state.document.getPixel(x: 3, y: 3) == state.foregroundColor)
     }
 
     @Test("one undo reverts the whole stroke")
@@ -141,7 +172,7 @@ struct EditorStateStrokeTests {
         state.endStroke()
         state.handleUndo()
 
-        #expect(state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(state.document.composite().allSatisfy { $0 == 0 })
         #expect(!state.isDrawing)
     }
 
@@ -153,10 +184,10 @@ struct EditorStateStrokeTests {
         state.cancelStroke()
 
         #expect(!state.isDrawing)
-        #expect(try state.pixelCanvas.getPixel(x: 3, y: 4) == state.foregroundColor)
+        #expect(try state.document.getPixel(x: 3, y: 4) == state.foregroundColor)
         // The interrupted stroke still stands as one undoable step.
         state.handleUndo()
-        #expect(state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(state.document.composite().allSatisfy { $0 == 0 })
     }
 
     @Test("a repeated sample on the same pixel does not trigger a re-render")
@@ -174,12 +205,12 @@ struct EditorStateStrokeTests {
     func eraserErasesToTransparent() throws {
         let state = EditorState(width: 16, height: 16)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
-        try state.pixelCanvas.setPixel(x: 5, y: 5, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        try state.document.setPixel(x: 5, y: 5, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
         state.activeTool = .eraser
 
         state.beginStroke(at: ScreenCanvasCoords(x: 5, y: 5))
 
-        #expect(try state.pixelCanvas.getPixel(x: 5, y: 5) == transparent)
+        #expect(try state.document.getPixel(x: 5, y: 5) == transparent)
     }
 
     @Test("mid-stroke foreground color changes don't affect the stroke in flight")
@@ -191,7 +222,7 @@ struct EditorStateStrokeTests {
         state.foregroundColor = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
         state.continueStroke(to: ScreenCanvasCoords(x: 2, y: 0))
 
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 0) == originalColor)
+        #expect(try state.document.getPixel(x: 2, y: 0) == originalColor)
     }
 
     @Test("mid-stroke tool changes don't affect the stroke in flight")
@@ -203,7 +234,7 @@ struct EditorStateStrokeTests {
         state.continueStroke(to: ScreenCanvasCoords(x: 2, y: 0))
 
         // Still painting with the pencil resolved at begin, not erasing.
-        #expect(try state.pixelCanvas.getPixel(x: 2, y: 0) == state.foregroundColor)
+        #expect(try state.document.getPixel(x: 2, y: 0) == state.foregroundColor)
     }
 }
 
@@ -291,8 +322,8 @@ struct EditorStateResizeCanvasTests {
 
         state.resizeCanvas(width: 32, height: 24)
 
-        #expect(state.pixelCanvas.width() == 32)
-        #expect(state.pixelCanvas.height() == 24)
+        #expect(state.document.width() == 32)
+        #expect(state.document.height() == 24)
     }
 
     @Test("resize bumps canvasVersion to trigger re-render")
@@ -325,8 +356,8 @@ struct EditorStateResizeCanvasTests {
         state.resizeCanvas(width: canvasMaxDimension() + 1, height: 16)
         state.resizeCanvas(width: 16, height: canvasMaxDimension() + 1)
 
-        #expect(state.pixelCanvas.width() == 16)
-        #expect(state.pixelCanvas.height() == 16)
+        #expect(state.document.width() == 16)
+        #expect(state.document.height() == 16)
         #expect(state.canvasVersion == versionBefore)
     }
 
@@ -337,24 +368,58 @@ struct EditorStateResizeCanvasTests {
 
         state.resizeCanvas(width: 32, height: 32)
 
-        #expect(state.pixelCanvas.width() == 16)
-        #expect(state.pixelCanvas.height() == 16)
+        #expect(state.document.width() == 16)
+        #expect(state.document.height() == 16)
         // The live stroke is undisturbed — its baseline still commits at end.
         state.endStroke()
         #expect(state.canUndo)
     }
 
-    @Test("resize clears history so canUndo doesn't lie about pre-resize snapshots")
-    func resizeClearsHistory() {
+    @Test("resize commits an undoable edit; undo and redo restore both pixels and dimensions")
+    func resizeIsUndoableAndRedoable() throws {
         let state = EditorState(width: 16, height: 16)
-        state.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+        let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
+        // A pixel the 8×8 shrink crops away — only a whole-document restore
+        // can bring it back.
+        try state.document.setPixel(x: 10, y: 10, color: red)
+
+        state.resizeCanvas(width: 8, height: 8)
+        #expect(state.canUndo)
+
+        state.handleUndo()
+        #expect(state.document.width() == 16)
+        #expect(state.document.height() == 16)
+        #expect(try state.document.getPixel(x: 10, y: 10) == red)
+
+        state.handleRedo()
+        #expect(state.document.width() == 8)
+        #expect(state.document.height() == 8)
+    }
+
+    @Test("pre-resize edits stay undoable after a resize")
+    func preResizeEditsSurviveResize() throws {
+        let state = EditorState(width: 16, height: 16)
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
         state.endStroke()
-        #expect(state.canUndo == true)
+        state.resizeCanvas(width: 8, height: 8)
 
-        state.resizeCanvas(width: 32, height: 32)
+        // Undo the resize, then the stroke — two separate edits.
+        state.handleUndo()
+        #expect(state.document.width() == 16)
+        #expect(try state.document.getPixel(x: 2, y: 2) == state.foregroundColor)
+        state.handleUndo()
+        #expect(state.document.composite().allSatisfy { $0 == 0 })
+    }
 
-        #expect(state.canUndo == false)
-        #expect(state.canRedo == false)
+    @Test("a rejected resize (invalid dimensions) leaves no history entry")
+    func rejectedResizeLeavesNoHistoryEntry() {
+        let state = EditorState(width: 16, height: 16)
+
+        state.resizeCanvas(width: 0, height: 16)
+        state.resizeCanvas(width: canvasMaxDimension() + 1, height: 16)
+
+        #expect(!state.canUndo)
     }
 }
 
@@ -364,17 +429,17 @@ struct EditorStateClearCanvasTests {
     @Test("clear erases all pixels to transparent")
     func clearErasesAllPixels() throws {
         let state = EditorState(width: 16, height: 16)
-        try state.pixelCanvas.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        try state.document.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
 
         state.handleClearCanvas()
 
-        #expect(state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(state.document.composite().allSatisfy { $0 == 0 })
     }
 
     @Test("clear bumps canvasVersion to trigger re-render")
     func clearBumpsCanvasVersion() throws {
         let state = EditorState(width: 16, height: 16)
-        try state.pixelCanvas.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        try state.document.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
         let before = state.canvasVersion
 
         state.handleClearCanvas()
@@ -410,38 +475,38 @@ struct EditorStateClearCanvasTests {
     func undoAfterClearRestoresPixels() throws {
         let state = EditorState(width: 16, height: 16)
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
-        try state.pixelCanvas.setPixel(x: 3, y: 4, color: red)
+        try state.document.setPixel(x: 3, y: 4, color: red)
 
         state.handleClearCanvas()
         state.handleUndo()
 
-        #expect(try state.pixelCanvas.getPixel(x: 3, y: 4) == red)
+        #expect(try state.document.getPixel(x: 3, y: 4) == red)
     }
 
     @Test("redo after undo re-applies the clear")
     func redoReappliesClear() throws {
         let state = EditorState(width: 16, height: 16)
-        try state.pixelCanvas.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        try state.document.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
         state.handleClearCanvas()
         state.handleUndo()
 
         state.handleRedo()
 
-        #expect(state.pixelCanvas.pixels().allSatisfy { $0 == 0 })
+        #expect(state.document.composite().allSatisfy { $0 == 0 })
     }
 
     @Test("clear is a no-op while a drawing stroke is in progress")
     func clearIsNoopWhileDrawing() throws {
         let state = EditorState(width: 16, height: 16)
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
-        try state.pixelCanvas.setPixel(x: 3, y: 4, color: red)
+        try state.document.setPixel(x: 3, y: 4, color: red)
         state.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
         let canvasVersionBefore = state.canvasVersion
         let historyVersionBefore = state.historyVersion
 
         state.handleClearCanvas()
 
-        #expect(try state.pixelCanvas.getPixel(x: 3, y: 4) == red)
+        #expect(try state.document.getPixel(x: 3, y: 4) == red)
         #expect(state.canvasVersion == canvasVersionBefore)
         #expect(state.historyVersion == historyVersionBefore)
     }

@@ -1,8 +1,8 @@
 import Foundation
 
 /// Shape preview session shared by line, rectangle, and ellipse: snapshots the
-/// canvas pixels at stroke start, then on every drag sample restores the
-/// snapshot and redraws the shape from the stroke's anchor to the current
+/// active layer's pixels at stroke start, then on every drag sample restores
+/// the snapshot and redraws the shape from the stroke's anchor to the current
 /// pointer position. The last preview is already the final shape, so `end` has
 /// nothing left to commit; `cancel` restores the pre-stroke snapshot.
 final class ShapeStrokeSession: StrokeSession {
@@ -48,7 +48,7 @@ final class ShapeStrokeSession: StrokeSession {
     }
 
     func start() {
-        preStrokePixels = host.pixelCanvas.pixels()
+        preStrokePixels = host.drawingSurface.preStrokePixelSnapshot()
         host.beginEdit()
     }
 
@@ -93,7 +93,7 @@ final class ShapeStrokeSession: StrokeSession {
     private func paintShape(from: ScreenCanvasCoords, to: ScreenCanvasCoords) -> Bool {
         var didPaint = false
         for pixel in outlinePixels(from, to) {
-            if host.pixelCanvas.applyTool(
+            if host.drawingSurface.applyTool(
                 x: pixel.x, y: pixel.y,
                 tool: coreToolType,
                 foregroundColor: drawColor
@@ -104,11 +104,11 @@ final class ShapeStrokeSession: StrokeSession {
         return didPaint
     }
 
-    /// The canvas is not replaced mid-stroke (sessions are torn down first),
-    /// so the snapshot always matches the canvas dimensions.
+    /// The document is not replaced mid-stroke (sessions are torn down
+    /// first), so the snapshot always matches the active layer's dimensions.
     private func restorePreStrokePixels() {
         do {
-            try host.pixelCanvas.restorePixels(data: preStrokePixels)
+            try host.drawingSurface.restoreActiveLayerPixels(data: preStrokePixels)
         } catch {
             assertionFailure("Failed to restore pre-stroke pixels: \(error)")
         }

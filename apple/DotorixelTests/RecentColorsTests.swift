@@ -39,7 +39,7 @@ struct RecentColorsTests {
     func eyedropperCommitRecordsSampledColor() throws {
         let state = EditorState(width: 16, height: 16)
         let sampled = Color(r: 0xB0, g: 0x7A, b: 0x30, a: 0xFF)
-        try state.pixelCanvas.setPixel(x: 5, y: 5, color: sampled)
+        try state.document.setPixel(x: 5, y: 5, color: sampled)
         state.activeTool = .eyedropper
 
         state.beginStroke(at: ScreenCanvasCoords(x: 5, y: 5))

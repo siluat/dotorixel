@@ -10,14 +10,20 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 196 | 147 | 49 | 226 | 75% | 39% |
-| cubic-dev-ai[bot] | 222 | 176 | 46 | 197 | 79% | 47% |
-| coderabbitai[bot] | 274 | 191 | 83 | 181 | 70% | 51% |
+| greptile-apps[bot] | 197 | 147 | 50 | 227 | 75% | 39% |
+| cubic-dev-ai[bot] | 223 | 176 | 47 | 198 | 79% | 47% |
+| coderabbitai[bot] | 276 | 192 | 84 | 181 | 70% | 51% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #342 | coderabbitai[bot] | Accept | Binding-only layer-id error paths (malformed UUID in `parse_layer_id`, duplicate-id guard in add_layer) had no coverage — core tests can't reach them; added a layerIdValidation round-trip to DocumentBindingsTests |
+| #342 | coderabbitai[bot] | Reject | encode_export_png "release the lock before encoding" — µs–ms encode at ≤256px on an effectively single-threaded shell path; the interior-mutability ADR keeps "profile first" as the locking re-evaluation trigger |
+| #342 | greptile-apps[bot] | Reject | "Stale generated bindings break builds" — pre-existing bootstrap-only behavior of build-rust.sh (skips regeneration whenever apple/generated is non-empty), not introduced by this PR; fresh clones bootstrap correctly; an mtime staleness guard is tracked in the review backlog |
+| #342 | cubic-dev-ai[bot] | Reject | `maxSnapshots == 0` panics across FFI — the core documents 0 as a caller error by contract, the binding mirrors the existing AppleHistoryManager::new shape, and the only caller passes compile-time constants |
+| #342 | greptile-apps[bot] | Miss | Did not flag the uncovered binding-only layer-id error paths (accepted from coderabbit) |
+| #342 | cubic-dev-ai[bot] | Miss | Did not flag the uncovered binding-only layer-id error paths (accepted from coderabbit) |
 | #341 | greptile-apps[bot] | Accept | The router's hover-gate early return added a begin-admission invariant absent from the domain glossary (CONTEXT.md had only Deferred Begin / Gesture Signal / contact pencil priority); added a **Hover Gate** entry alongside Originating Touch / Gesture Signal / Deferred Begin / Hover Point |
 | #341 | coderabbitai[bot] | Accept | Issue 254's "Validated by the 255 device pass" read as completed while platform-status.md + progress.md mark 255 pending; reworded to future tense ("the 255 device pass will validate this on hardware"), keeping "now unblocked" |
 | #341 | cubic-dev-ai[bot] | Accept | Same "Validated by the 255 device pass" completed-vs-pending phrasing (duplicate of coderabbit); already resolved by c344eff before cubic's comment was triaged |

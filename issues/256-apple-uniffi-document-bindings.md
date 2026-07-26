@@ -1,6 +1,6 @@
 ---
 title: Apple UniFFI Document bindings — expose the Document model and DocumentHistory to Swift
-status: ready-for-agent
+status: done
 created: 2026-07-26
 ---
 
@@ -64,3 +64,27 @@ web bindings already use string ids).
 ## Blocked by
 
 None — can start immediately
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/src/lib.rs` | `AppleDocument` + `AppleDocumentHistory` UniFFI objects (Mutex interior-mutability per the ADR), `AppleLayerMetadata` record, `AppleError::Document` variant + `From<DrawError>`/`From<LayerError>` |
+| `crates/core/src/layer.rs` | `LayerKindTag` gains a `uniffi::Enum` cfg_attr derive — the sole core change |
+| `apple/Cargo.toml` | `uuid` dependency for id parsing at the FFI boundary |
+| `apple/DotorixelTests/DocumentBindingsTests.swift` | 9 Swift Testing round-trips through the generated bindings covering every acceptance criterion |
+
+### Key Decisions
+
+- Layer ids cross the boundary as **lowercase** UUID strings (`Uuid::to_string()` emits lowercase hex); Swift's uppercase `UUID().uuidString` is accepted on input and normalized on read.
+- Layer kind crosses as the core `LayerKindTag` enum rather than the web binding's `"pixel"`/`"reference"` strings — UniFFI supports enums directly, giving Swift a typed contract.
+- `flood_fill` mirrors `ApplePixelCanvas`'s contract: negative coordinates short-circuit to `false`.
+- `encode_export_png` composes `composite_for_export()` + `PixelCanvas::from_pixels().encode_png()` — no new core export surface.
+- `AppleDocumentHistory.undo/redo` return the restored document as a **new** `AppleDocument` object; the shell replaces its reference (matches core's value-snapshot semantics).
+- `reorder_layer`'s index and `new(max_snapshots:)` use `u64` (UniFFI has no `usize`), following the existing `AppleHistoryManager` precedent.
+
+### Notes
+
+- Expand step only: `ApplePixelCanvas`/`AppleHistoryManager` and all consumers are untouched; the editor migration + contract happen in issue 257.
+- `apple/generated/` is git-ignored — bindings regenerate via the Xcode build-script bootstrap or `uniffi-bindgen` manually.
+- Verified: `cargo test --workspace` green; full Apple suite (253 tests / 53 suites) green on the pinned simulator.

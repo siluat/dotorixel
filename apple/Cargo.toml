@@ -17,4 +17,5 @@ path = "src/bin/uniffi-bindgen.rs"
 [dependencies]
 uniffi = { version = "0.31", features = ["cli"] }
 thiserror = "2"
+uuid = "1"
 dotorixel-core = { path = "../crates/core", features = ["uniffi"] }

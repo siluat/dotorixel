@@ -3,20 +3,21 @@
 ## Currently Working On
 
 Apple Phase 3 — Layer system ([RFC](../issues/013-apple-native-catchup.md))
-— decomposed into sub-issues 256–260 (2026-07-26); none started yet. Frontier:
-[256 — UniFFI Document bindings](../issues/256-apple-uniffi-document-bindings.md).
+— 1/5 sub-issues done (256). Frontier:
+[257 — Apple editor on the Document model](../issues/257-apple-document-editor-state.md),
+now unblocked; 258–260 wait on 257.
 
 ## Last Completed
 
-[254 — Apple Pencil hover gate](../issues/254-apple-pencil-hover-finger-block.md):
-the routing seam now blocks direct-touch stroke begins while a pencil hovers,
-completing palm rejection on hover-capable hardware — a hovering pencil renders
-fingers inert to the stroke machine without ending an in-flight stroke or gating
-the pencil itself. Pinned by routed-editor seam tests (pixels + history); live
-gesture/hover interplay falls to the 255 device pass.
+[256 — Apple UniFFI Document bindings](../issues/256-apple-uniffi-document-bindings.md):
+the UniFFI crate now exposes the core Document model and layer-aware
+DocumentHistory to Swift — the expand step of the expand–contract sequence, with
+existing canvas/history bindings and shell behavior untouched. The 257 editor
+swap consumes this surface and performs the contract.
 
 ## Next Up
 
+- [257 — Apple editor on the Document model — state redesign + composite render](../issues/257-apple-document-editor-state.md) — Phase 3 frontier
 - [255 — Apple Pencil device verification pass (HITL)](../issues/255-apple-pencil-device-verification.md) — deferred until real-hardware access; last open sub-issue of the 251 PRD
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)

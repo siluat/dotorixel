@@ -34,7 +34,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | PixelCanvas History (single-canvas) | ✅ | ⬜ | ✅ | Dimension-aware snapshots (pixels + W/H) so resize is undoable. Apple's undo path; the Web binding no longer exposes it — Web routes undo through Document History |
-| Document History | ✅ | ✅ | ⬜ | Whole-`Document` snapshots (layer stack + Marquee + counters); Web's undo path. Its own species — never mixed with the PixelCanvas path (unrepresentable, not runtime-guarded). Not on Apple bindings yet |
+| Document History | ✅ | ✅ | ⬜ | Whole-`Document` snapshots (layer stack + Marquee + counters); Web's undo path. Its own species — never mixed with the PixelCanvas path (unrepresentable, not runtime-guarded). Apple: bindings ready, editor not migrated |
 | Edit Baseline (no-op discard) | ✅ | ✅ | ✅ | Commits at an Edit's end only if state changed (Apple: pixels, Web: whole Document); no-op Edits — strokes and commands alike — preserve redo. Core-owned comparison, and the only way to record: no eager push exists |
 
 ## Viewport
@@ -118,7 +118,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Document/Layer model | 🔧 | 🔧 | ⬜ | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple remains single-canvas |
+| Document/Layer model | 🔧 | 🔧 | ⬜ | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple: bindings ready, editor still single-canvas |
 | Frame cel-grid | ✅ | ✅ | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: undoable add/duplicate/remove/reorder + set-active journal intents (undo restores frame+cel); multi-frame V7 persistence round-trips through the snapshot |
 | Per-frame duration | ✅ | ✅ | ⬜ | Each frame holds a display duration; default 100ms (10fps); identity unchanged when retimed. 1–60000ms clamp at the shell boundary (core trusts the value). Web complete: active-frame editor in the timeline corner (ms + derived fps), undoable, V7-persisted. Apple pending |
 | Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and rotation-aware source sampling. Editability (Reference takes no paint/Marquee) has one authority enforced at the document-state boundary; a live stroke's target layer/frame can't switch or vanish mid-stroke. Fixed under canvas transforms (nothing produces new quarter-turns; saved ones still render). Placement invariant (finite pos, scale > 0, quarter-turn 0..=3) enforced by the core constructor |

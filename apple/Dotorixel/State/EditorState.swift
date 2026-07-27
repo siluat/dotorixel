@@ -8,8 +8,8 @@ import SwiftUI
 /// counter must be incremented manually to trigger Metal re-renders.
 @Observable
 final class EditorState {
-    /// The Document being edited — one pixel layer for now; the layer panel
-    /// arrives with issues 258+.
+    /// The Document being edited. The layer panel lists its stack and picks
+    /// the drawing target; add/remove and reorder arrive with issues 259–260.
     var document: AppleDocument
     var viewport: AppleViewport
     /// Layer-aware undo/redo: whole-`Document` snapshots, so pixel edits,
@@ -104,8 +104,8 @@ final class EditorState {
         width: UInt32 = 16,
         height: UInt32 = 16
     ) {
-        // The first layer follows the web's naming convention ("Layer 1");
-        // no UI shows it until the layer panel lands.
+        // The first layer follows the web's naming convention ("Layer 1") —
+        // the name the layer panel row displays.
         self.document = try! AppleDocument(
             width: width,
             height: height,
@@ -241,6 +241,25 @@ final class EditorState {
         return committed
     }
 
+    /// Runs one undoable Edit: holds the current document as the pending
+    /// Edit Baseline, applies `mutate`, and resolves the baseline. Returns
+    /// whether an undo entry was committed — a `mutate` that fails (returns
+    /// false) or leaves the document unchanged discards the baseline and
+    /// records nothing. Callers guard `isDrawing` first: opening a baseline
+    /// while a stroke's is pending is the overlap the mid-stroke seals
+    /// exist to prevent.
+    @discardableResult
+    private func performEdit(_ mutate: () -> Bool) -> Bool {
+        beginEdit()
+        guard mutate() else {
+            // The document is unchanged, so resolving the baseline discards
+            // it without recording an entry.
+            resolveEditBaseline()
+            return false
+        }
+        return resolveEditBaseline()
+    }
+
     // MARK: - Hover preview
 
     /// Publishes the pencil's hover target as the Hover Point. An in-bounds
@@ -298,6 +317,52 @@ final class EditorState {
         historyVersion += 1
     }
 
+    // MARK: - Layers
+
+    /// The layer rows in **panel order** — top of the stack first, the order
+    /// the layer panel renders. `document.layers()` is stack order
+    /// (bottom-first); the panel mirrors it (web parity:
+    /// `stack_idx = (count - 1) - visual_idx`).
+    var layersInPanelOrder: [AppleLayerMetadata] {
+        // Read to register the @Observable dependency — layer structure
+        // lives in the UniFFI object, invisible to observation.
+        _ = canvasVersion
+        return document.layers().reversed()
+    }
+
+    /// The drawing-target layer's id — the panel's active-row predicate.
+    /// Reads `canvasVersion` to register the @Observable dependency (the
+    /// pointer lives in the UniFFI object, invisible to observation).
+    var activeLayerId: String {
+        _ = canvasVersion
+        return document.activeLayerId()
+    }
+
+    /// Makes the layer with `id` the drawing target — the layer panel's
+    /// row-tap action. Not undoable (web parity: a persisted-UI mutation,
+    /// never a History entry) and a silent no-op while a stroke is drawing —
+    /// the stroke's target must not switch mid-stroke — or for an unknown id.
+    func setActiveLayer(id: String) {
+        guard !isDrawing else { return }
+        guard id != document.activeLayerId() else { return }
+        guard (try? document.setActiveLayer(id: id)) != nil else { return }
+        canvasVersion += 1
+    }
+
+    /// Sets the visibility flag of the layer with `id` — the layer panel's
+    /// eye action. A real change records one undo entry and re-renders the
+    /// composite; a no-op change records nothing (web parity — `endEdit`
+    /// discards a baseline the document didn't diverge from). Silently
+    /// ignores an unknown id.
+    /// No-ops silently while a drawing stroke is in progress — committing
+    /// here would replace the stroke's pending Edit Baseline.
+    func setLayerVisibility(id: String, visible: Bool) {
+        guard !isDrawing else { return }
+        if performEdit({ (try? document.setLayerVisibility(id: id, visible: visible)) != nil }) {
+            canvasVersion += 1
+        }
+    }
+
     // MARK: - Canvas clear
 
     /// Erases every pixel of the active layer to transparent, holding the
@@ -307,9 +372,7 @@ final class EditorState {
     /// No-ops silently while a drawing stroke is in progress.
     func handleClearCanvas() {
         guard !isDrawing else { return }
-        beginEdit()
-        document.clear()
-        if resolveEditBaseline() {
+        if performEdit({ document.clear(); return true }) {
             canvasVersion += 1
         }
     }
@@ -326,15 +389,12 @@ final class EditorState {
     func resizeCanvas(width: UInt32, height: UInt32) {
         guard !isDrawing else { return }
         guard width != document.width() || height != document.height() else { return }
-        beginEdit()
         // Content keeps its current anchoring (top-left); the web's anchor
         // selector UI is out of scope for the Apple shell today.
-        guard (try? document.resize(newWidth: width, newHeight: height, anchor: .topLeft)) != nil else {
-            // The document is unchanged, so resolving the baseline discards
-            // it without recording an entry.
-            resolveEditBaseline()
-            return
+        let resized = performEdit {
+            (try? document.resize(newWidth: width, newHeight: height, anchor: .topLeft)) != nil
         }
+        guard resized else { return }
         viewport = viewport.clampPan(
             canvasWidth: width,
             canvasHeight: height,
@@ -345,7 +405,6 @@ final class EditorState {
         // it here so the overlay never marks a cell the resize deleted. The
         // next hover republishes against the new dimensions.
         hoverPoint = nil
-        resolveEditBaseline()
         canvasVersion += 1
     }
 

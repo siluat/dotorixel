@@ -63,7 +63,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Pixel rendering | — | ✅ | ✅ | Canvas2D / Metal |
-| Multi-layer composite | ✅ | ✅ | ✅ | Visible Pixel Layers blended bottom-to-top; Reference drawn separately as viewport underlay (Web). Composites any frame (active = one case) — read seam for playback/onion/export. Apple: Metal uploads the composite; no layer UI yet |
+| Multi-layer composite | ✅ | ✅ | ✅ | Visible Pixel Layers blended bottom-to-top; Reference drawn separately as viewport underlay (Web). Composites any frame (active = one case) — read seam for playback/onion/export. Apple: Metal uploads the composite; panel toggles visibility live |
 | Checkerboard transparency | — | ✅ | ✅ | |
 | Grid overlay + toggle | — | ✅ | ✅ | Auto-hidden below 4px |
 
@@ -118,7 +118,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Document/Layer model | 🔧 | 🔧 | 🔧 | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple: editor state on Document (single layer); layer panel UI pending (258–260) |
+| Document/Layer model | 🔧 | 🔧 | 🔧 | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple: layer panel with active-row select + visibility eye (mid-stroke seal covers both); add/remove/reorder UI pending |
 | Frame cel-grid | ✅ | ✅ | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: undoable add/duplicate/remove/reorder + set-active journal intents (undo restores frame+cel); multi-frame V7 persistence round-trips through the snapshot |
 | Per-frame duration | ✅ | ✅ | ⬜ | Each frame holds a display duration; default 100ms (10fps); identity unchanged when retimed. 1–60000ms clamp at the shell boundary (core trusts the value). Web complete: active-frame editor in the timeline corner (ms + derived fps), undoable, V7-persisted. Apple pending |
 | Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and rotation-aware source sampling. Editability (Reference takes no paint/Marquee) has one authority enforced at the document-state boundary; a live stroke's target layer/frame can't switch or vanish mid-stroke. Fixed under canvas transforms (nothing produces new quarter-turns; saved ones still render). Placement invariant (finite pos, scale > 0, quarter-turn 0..=3) enforced by the core constructor |

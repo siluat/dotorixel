@@ -24,7 +24,10 @@ struct DockedRegionSnapshotTests {
     /// Fixed extent for a view's flexible axis so `.sizeThatFits` produces a
     /// deterministic image. The tier-driven axis stays intrinsic — that is the
     /// dimension each snapshot verifies (panel/toolbar width; top/status bar height).
-    private let stripHeight: CGFloat = 560   // vertical strips: RightPanel, LeftToolbar
+    private let stripHeight: CGFloat = 560   // vertical strip: LeftToolbar
+    /// RightPanel needs a taller strip since the Layers section (issue 258)
+    /// pushed the Color section's Recent row past 560pt.
+    private let rightPanelStripHeight: CGFloat = 700
     private let barWidth: CGFloat = 640       // horizontal bars: TopBar, StatusBar
 
     private func state() -> EditorState { EditorState(width: 16, height: 16) }
@@ -34,7 +37,7 @@ struct DockedRegionSnapshotTests {
     @Test("RightPanel renders wide width (200pt)")
     func rightPanelWide() {
         assertSnapshot(
-            of: RightPanel(editorState: state(), tier: .wide).frame(height: stripHeight),
+            of: RightPanel(editorState: state(), tier: .wide).frame(height: rightPanelStripHeight),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -42,7 +45,7 @@ struct DockedRegionSnapshotTests {
     @Test("RightPanel renders x-wide width (240pt)")
     func rightPanelXWide() {
         assertSnapshot(
-            of: RightPanel(editorState: state(), tier: .xWide).frame(height: stripHeight),
+            of: RightPanel(editorState: state(), tier: .xWide).frame(height: rightPanelStripHeight),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -58,7 +61,7 @@ struct DockedRegionSnapshotTests {
             populated.recordRecentColor(Color(r: value, g: 0x40, b: 0x40, a: 0xFF))
         }
         assertSnapshot(
-            of: RightPanel(editorState: populated, tier: .wide).frame(height: stripHeight),
+            of: RightPanel(editorState: populated, tier: .wide).frame(height: rightPanelStripHeight),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -72,7 +75,28 @@ struct DockedRegionSnapshotTests {
         let recolored = state()
         recolored.foregroundColor = Color(r: 0xFF, g: 0x8A, b: 0x65, a: 0xFF)
         assertSnapshot(
-            of: RightPanel(editorState: recolored, tier: .wide).frame(height: stripHeight),
+            of: RightPanel(editorState: recolored, tier: .wide).frame(height: rightPanelStripHeight),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
+    /// Content regression (not tier sizing): the Layers section on a
+    /// multi-layer document (issue 258) — rows render in panel order (top of
+    /// stack first), the active row carries the tint + leading accent bar +
+    /// medium-weight name, and a hidden row shows the slashed eye with a
+    /// dimmed name. Layer 2 hidden and Layer 1 active exercises every state
+    /// on distinct rows.
+    @Test("RightPanel renders a multi-layer Layers section with active and hidden rows")
+    func rightPanelMultiLayerRows() throws {
+        let layered = state()
+        let bottomId = layered.document.activeLayerId()
+        let middleId = makeLayerId()
+        try layered.document.addLayer(newId: middleId, name: "Layer 2")
+        try layered.document.addLayer(newId: makeLayerId(), name: "Layer 3")
+        layered.setLayerVisibility(id: middleId, visible: false)
+        layered.setActiveLayer(id: bottomId)
+        assertSnapshot(
+            of: RightPanel(editorState: layered, tier: .wide).frame(height: rightPanelStripHeight),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -171,7 +195,7 @@ struct DockedRegionSnapshotTests {
     func rightPanelKoreanLocale() {
         assertSnapshot(
             of: RightPanel(editorState: state(), tier: .wide)
-                .frame(height: stripHeight)
+                .frame(height: rightPanelStripHeight)
                 .environment(\.locale, Locale(identifier: "ko")),
             as: .image(layout: .sizeThatFits)
         )

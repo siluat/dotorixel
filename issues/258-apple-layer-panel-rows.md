@@ -1,6 +1,6 @@
 ---
 title: Apple layer panel — rows, active layer selection, visibility toggle
-status: ready-for-agent
+status: done
 created: 2026-07-26
 ---
 
@@ -54,3 +54,26 @@ documents, while single-layer visibility toggling is already demoable live.
 ## Blocked by
 
 - [257 — Apple editor on the Document model](257-apple-document-editor-state.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/EditorState.swift` | Layer commands: `setActiveLayer` (not undoable, no-op on active row / mid-stroke), `setLayerVisibility` (one undo entry per real change, mid-stroke seal), `layersInPanelOrder` + `activeLayerId` observable facades; `performEdit` extracts the shared edit bracket (also adopted by clear/resize) |
+| `apple/Dotorixel/Views/RightPanel.swift` | Layers section between Canvas and Color: 44pt rows in panel order, active row tint + leading accent bar + medium name, eye toggle with slashed/dimmed hidden state |
+| `apple/Dotorixel/Localizable.xcstrings` | `Layers`, `Hide %@`, `Show %@` with en/ko/ja matching web `layer_panel_title` / `aria_hideLayer` / `aria_showLayer` |
+| `apple/DotorixelTests/EditorStateLayerTests.swift` | 8 behavior tests pinning target switching, history semantics, mid-stroke seals, hidden-layer drawability, panel order |
+| `apple/DotorixelTests/DockedRegionSnapshotTests.swift` | New multi-layer content snapshot (active + hidden rows); RightPanel baselines re-recorded on the pinned host with a taller 700pt strip |
+| `apple/DotorixelTests/DocumentTestSupport.swift` | `makeLayerId()` — encodes the core's lowercase-id normalization once (swept through the layer test files) |
+
+### Key Decisions
+
+- **Layers section lives in RightPanel** (between Canvas and Color): the web keeps layer rows in the Timeline panel, which the Apple shell doesn't have until Phase 6 — the section can migrate then.
+- **Mid-stroke seal extended to `setLayerVisibility`** — a deliberate strengthening over the web (which lacks the guard): committing mid-stroke would replace the stroke's pending Edit Baseline (deferred-history-commit ADR), corrupting undo on iPad multitouch. User-visible semantics are unchanged.
+- **`setActiveLayer` reuses `canvasVersion`** as its re-render signal rather than adding a third version counter; the redundant composite upload on a selection-only change is accepted.
+- **Core lowercases layer ids** — Swift `UUID().uuidString` is uppercase, so ids that get string-compared are generated via `makeLayerId()`.
+
+### Notes
+
+- Multi-layer behavior is pinned by programmatically-built documents (`addLayer` binding); the add/remove (259) and reorder (260) UI unblocks live multi-layer demoing.
+- Two review passes (Standards/Spec) ran post-implementation; all findings resolved — the mid-stroke visibility seal was the one real defect caught.

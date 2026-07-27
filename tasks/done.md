@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 258 | [Apple layer panel — rows, active layer selection, visibility toggle](../issues/258-apple-layer-panel-rows.md) | 2026-07-27 |
 | 257 | [Apple editor on the Document model — state redesign + composite render path](../issues/257-apple-document-editor-state.md) | 2026-07-26 |
 | 256 | [Apple UniFFI Document bindings — expose the Document model and DocumentHistory to Swift](../issues/256-apple-uniffi-document-bindings.md) | 2026-07-26 |
 | 254 | [Apple Pencil hover gate — block direct-touch stroke begins while the pencil hovers](../issues/254-apple-pencil-hover-finger-block.md) | 2026-07-23 |

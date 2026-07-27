@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 197 | 147 | 50 | 228 | 75% | 39% |
-| cubic-dev-ai[bot] | 223 | 176 | 47 | 199 | 79% | 47% |
-| coderabbitai[bot] | 277 | 193 | 84 | 181 | 70% | 52% |
+| greptile-apps[bot] | 198 | 147 | 51 | 228 | 74% | 39% |
+| cubic-dev-ai[bot] | 224 | 176 | 48 | 199 | 79% | 47% |
+| coderabbitai[bot] | 278 | 193 | 85 | 181 | 69% | 52% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #344 | greptile-apps[bot] | Reject | Claimed undoing a visibility toggle restores a stale active-layer selection; whole-`Document` snapshot restore (active pointer included) is the pinned 256/257 design and the web undo path (`#replaceDocument`) behaves identically — inherent to snapshot history, not introduced by the toggle |
+| #344 | cubic-dev-ai[bot] | Reject | Same stale-active-layer-on-undo finding (duplicate of greptile); same web-parity + snapshot-history refutation |
+| #344 | coderabbitai[bot] | Reject | Wanted "parallel with 259" removed as conflicting with one-task-at-a-time; the annotation documents the dependency graph (the RFC's `{259 ∥ 260}`), execution stays single-task via `/task-start`, and the phrasing predates this PR on `main` |
 | #343 | coderabbitai[bot] | Accept | ADR follow-up triggers still read as open work after the 257 amendment; annotated both as closed. Partial: the requested body rewrite was declined — ADR bodies are point-in-time records, the Status amendment is the current-state marker (181 precedent) |
 | #343 | greptile-apps[bot] | Miss | Did not flag the ADR follow-up triggers reading as open work (accepted from coderabbit) |
 | #343 | cubic-dev-ai[bot] | Miss | Did not flag the ADR follow-up triggers reading as open work (accepted from coderabbit) |

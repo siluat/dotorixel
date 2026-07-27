@@ -285,6 +285,23 @@
         }
       }
     },
+    "Hide %@" : {
+      "comment" : "Layer visibility toggle accessibility label; %@ is the layer name. web: aria_hideLayer",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を隠す"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 숨기기"
+          }
+        }
+      }
+    },
     "Hue" : {
       "comment" : "Hue strip accessibility label. web: color_hue",
       "localizations" : {
@@ -298,6 +315,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "색상"
+          }
+        }
+      }
+    },
+    "Layers" : {
+      "comment" : "Right panel section title for the layer panel. web: layer_panel_title",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レイヤー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "레이어"
           }
         }
       }
@@ -553,6 +587,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "채도와 명도"
+          }
+        }
+      }
+    },
+    "Show %@" : {
+      "comment" : "Layer visibility toggle accessibility label; %@ is the layer name. web: aria_showLayer",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 표시"
           }
         }
       }

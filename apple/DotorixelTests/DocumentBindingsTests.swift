@@ -73,7 +73,7 @@ struct DocumentBindingsTests {
 
     @Test("add inserts above the active layer and becomes active; remove surfaces the sole-layer error and moves the active pointer")
     func addRemoveSetActiveRoundTrip() throws {
-        let baseId = UUID().uuidString.lowercased()
+        let baseId = makeLayerId()
         let doc = try AppleDocument(width: 4, height: 4, firstLayerId: baseId, firstLayerName: "Layer 1")
 
         // A document must always keep at least one layer.
@@ -81,7 +81,7 @@ struct DocumentBindingsTests {
             try doc.removeLayer(id: baseId)
         }
 
-        let secondId = UUID().uuidString.lowercased()
+        let secondId = makeLayerId()
         try doc.addLayer(newId: secondId, name: "Layer 2")
         #expect(doc.layers().map(\.id) == [baseId, secondId])
         #expect(doc.activeLayerId() == secondId)
@@ -89,7 +89,7 @@ struct DocumentBindingsTests {
 
         // Insert lands directly above the *active* layer, not at the top.
         try doc.setActiveLayer(id: baseId)
-        let thirdId = UUID().uuidString.lowercased()
+        let thirdId = makeLayerId()
         try doc.addLayer(newId: thirdId, name: "Layer 3")
         #expect(doc.layers().map(\.id) == [baseId, thirdId, secondId])
         #expect(doc.activeLayerId() == thirdId)
@@ -108,9 +108,9 @@ struct DocumentBindingsTests {
 
     @Test("visibility and reorder round-trip; the active pointer survives reordering")
     func visibilityReorderRoundTrip() throws {
-        let aId = UUID().uuidString.lowercased()
-        let bId = UUID().uuidString.lowercased()
-        let cId = UUID().uuidString.lowercased()
+        let aId = makeLayerId()
+        let bId = makeLayerId()
+        let cId = makeLayerId()
         let doc = try AppleDocument(width: 4, height: 4, firstLayerId: aId, firstLayerName: "Layer 1")
         try doc.addLayer(newId: bId, name: "Layer 2")
         try doc.addLayer(newId: cId, name: "Layer 3")
@@ -164,7 +164,7 @@ struct DocumentBindingsTests {
 
     @Test("active-layer pixels snapshot and restore round-trip, leaving other layers untouched")
     func activeLayerPixelsRoundTrip() throws {
-        let baseId = UUID().uuidString.lowercased()
+        let baseId = makeLayerId()
         let doc = try AppleDocument(width: 2, height: 2, firstLayerId: baseId, firstLayerName: "Layer 1")
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
         let blue = Color(r: 0x00, g: 0x00, b: 0xFF, a: 0xFF)
@@ -225,7 +225,7 @@ struct DocumentBindingsTests {
 
     @Test("malformed and duplicate layer ids surface as errors without mutating the document")
     func layerIdValidation() throws {
-        let baseId = UUID().uuidString.lowercased()
+        let baseId = makeLayerId()
         let doc = try AppleDocument(width: 2, height: 2, firstLayerId: baseId, firstLayerName: "Layer 1")
 
         // Both guards live only in the binding layer (`parse_layer_id`,
@@ -246,13 +246,13 @@ struct DocumentBindingsTests {
 
     @Test("history restores layer structure and dimensions across undo/redo")
     func historyStructureAndResize() throws {
-        let baseId = UUID().uuidString.lowercased()
+        let baseId = makeLayerId()
         let doc = try AppleDocument(width: 4, height: 4, firstLayerId: baseId, firstLayerName: "Layer 1")
         let history = AppleDocumentHistory.defaultHistory()
 
         // Edit 1 — layer-structure change.
         history.beginEdit(document: doc)
-        let secondId = UUID().uuidString.lowercased()
+        let secondId = makeLayerId()
         try doc.addLayer(newId: secondId, name: "Layer 2")
         #expect(history.endEdit(current: doc))
 

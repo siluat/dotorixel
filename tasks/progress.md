@@ -3,22 +3,23 @@
 ## Currently Working On
 
 Apple Phase 3 — Layer system ([RFC](../issues/013-apple-native-catchup.md))
-— 2/5 sub-issues done (256, 257). Frontier:
-[258 — Apple layer panel rows](../issues/258-apple-layer-panel-rows.md),
-now unblocked; 259–260 wait on 258.
+— 3/5 sub-issues done (256–258). Frontier:
+[259 — add/remove](../issues/259-apple-layer-add-remove.md) and
+[260 — reorder](../issues/260-apple-layer-reorder.md), both now unblocked
+(parallel).
 
 ## Last Completed
 
-[257 — Apple editor on the Document model](../issues/257-apple-document-editor-state.md):
-the Apple editor now runs on Document + DocumentHistory with single-layer
-regression parity — resize became undoable (web parity), sampling and the
-Metal render path read the composite, and the canvas-snapshot history path
-(AppleHistoryManager) was removed as the contract step. The layer panel UI
-(258–260) builds on this.
+[258 — Apple layer panel — rows, active selection, visibility](../issues/258-apple-layer-panel-rows.md):
+the first visible layer UI (RightPanel Layers section) with web-parity
+history semantics. Notable: the mid-stroke seal now also covers the eye
+toggle — a deliberate strengthening over the web that protects the
+stroke's pending Edit Baseline on iPad multitouch.
 
 ## Next Up
 
-- [258 — Apple layer panel — rows, active selection, visibility](../issues/258-apple-layer-panel-rows.md) — Phase 3 frontier
+- [259 — Apple layer panel — add and remove layers](../issues/259-apple-layer-add-remove.md) — Phase 3 frontier
+- [260 — Apple layer panel — reorder layers](../issues/260-apple-layer-reorder.md) — Phase 3 frontier, parallel with 259
 - [255 — Apple Pencil device verification pass (HITL)](../issues/255-apple-pencil-device-verification.md) — deferred until real-hardware access; last open sub-issue of the 251 PRD
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)

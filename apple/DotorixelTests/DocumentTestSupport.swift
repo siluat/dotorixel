@@ -1,6 +1,12 @@
 import Foundation
 @testable import Dotorixel
 
+/// A fresh layer id in the core's canonical form — the core normalizes ids
+/// to lowercase, so string comparisons against ids it returns hold.
+func makeLayerId() -> String {
+    UUID().uuidString.lowercased()
+}
+
 /// A single-layer document fixture mirroring the editor's own construction
 /// (web-parity "Layer 1" naming) — for tests that need a drawing surface
 /// without a full `EditorState`.

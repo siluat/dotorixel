@@ -63,7 +63,7 @@ _Avoid_: ghosting (the GIF-export disposal artifact), tracing (Reference Layer v
 ### Timeline
 
 **Reorder Interaction**:
-The pointer- and keyboard-driven lifecycle for reordering items along one visual axis — begin → clamped preview (allowed-target snap + displacement translate) → drop commit, including tap-vs-drag discrimination and trailing-click suppression when the item doubles as a select target. One implementation; the Timeline's Layer rows (vertical) and Frame ruler cells (horizontal) are its two adapters.
+The pointer- and keyboard-driven lifecycle for reordering items along one visual axis — begin → clamped preview (allowed-target snap + displacement translate) → drop commit, including tap-vs-drag discrimination and trailing-click suppression when the item doubles as a select target. Owned per shell: the web has one implementation with two adapters, the Timeline's Layer rows (vertical) and Frame ruler cells (horizontal); the Apple shell's SwiftUI counterpart (`LayerReorderDrag`, driven from a per-row handle) covers Layer rows, its only reorderable axis until frames arrive.
 _Avoid_: drag reorder (names only the pointer species), drag & drop (implies data transfer), sort (a data operation, not an interaction).
 
 ### Selection

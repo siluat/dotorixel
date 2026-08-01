@@ -19,14 +19,10 @@
 ## Apple Native: full web parity — [RFC](../issues/013-apple-native-catchup.md)
 
 Phased catch-up to full parity with completed web editor features. See the RFC for
-the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish) and Phase 2
-(full tool set + color + i18n, issues 230–242) are complete; Phase 3 is decomposed
-into issues 256–261 (256–259, 261 done — remaining item below); Phases 4–6 are
-decomposed into issues (`/to-tickets`) when reached.
-
-### Phase 3 — Layer system ★ foundation (issues 256–261)
-
-- [260 — Apple layer panel — reorder layers](../issues/260-apple-layer-reorder.md)
+the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish), Phase 2
+(full tool set + color + i18n, issues 230–242), and Phase 3 (layer system, issues
+256–261) are complete; Phases 4–6 are decomposed into issues (`/to-tickets`) when
+reached.
 
 ### Phases 4–6 — roadmap (decompose when reached)
 
@@ -56,6 +52,8 @@ decomposed into issues (`/to-tickets`) when reached.
 - Timelapse recording — capture drawing process for playback/export
 - Web pen priority — palm rejection + hover target cell, the web counterpart of the 252–254 Apple Pencil work. Pointer Events already report `pointerType: 'pen'` (Apple Pencil / S Pen / Surface pen), and the interaction machine already defers only `'touch'` begins and keeps pen out of the two-touch gesture check — but a pen begin is still blocked while any interaction is active, and a two-touch palm ends an in-flight pen stroke and enters pinching (isomorphic to the pre-252 Apple gap). Port the pen-priority semantics (CONTEXT.md: Originating Touch / Gesture Signal) to `canvas-interaction.svelte.ts`; hover preview arrives via pen hover pointer events (iPadOS 16.4+ Safari, S Pen, Windows stylus) with natural degradation. Whether to also admit mouse-hover target cell on desktop is a separate decision
 - TimelinePanel mobile touch targets — the header/row icon buttons (add-layer, add-reference, visibility, remove, reorder, fit-to-canvas) stay 24px on compact/medium, below the ≥44px touch guideline (`web-styling.md`) and the 187 spec §5 ("header actions ≥44px"). Pre-existing controls untouched by 191; enlarge to ≥44px on the mobile Timeline tab and coordinate with the 192 Frames action group.
+- Apple layer reorder — interrupted-drag recovery. SwiftUI `DragGesture` has no cancel callback, so a drag whose `onEnded` never arrives (app backgrounded, gesture torn down) leaves `TimelinePanel.reorderDrag` non-nil: the row offsets stay applied and the body's `scrollDisabled(reorderDrag != nil)` lock stays on until the next drag replaces the state. The web clears the equivalent state on `pointerCancel`. Needs a hands-on read of how reachable this is on iPadOS before choosing a guard (deferred from 260)
+- Apple layer panel predicates — `canReorderLayers` vs the adjacent `canRemoveLayer` differ in number. Kept as-is in 260 because the concepts differ (reordering a stack vs removing one layer); revisit if a third panel predicate lands and the set reads inconsistent
 - Apple bindings staleness guard — `build-rust.sh` bootstraps Swift bindings only when `apple/generated` is empty, so a workspace built before a binding-surface change compiles against stale bindings until regenerated manually; add an mtime-based regeneration guard (surfaced by greptile on PR #342; recurs as Phase 3 keeps growing the binding surface)
 - Flaky e2e: Reference Window reload persistence — `e2e/editor/reference-images.test.ts` "window position survives a page reload" failed once, then passed on solo and full re-runs (2026-07-04, surfaced during 205 verification). Timing-sensitive chain: drag via raw pointer events → reload → IndexedDB workspace restore. Investigate/stabilize if it recurs
 

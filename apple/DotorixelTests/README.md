@@ -46,8 +46,12 @@ This layer is **additive**, not a duplicate of the existing unit tests:
 Some snapshots are **content regressions**, not tier sizing: `RightPanel` with a
 populated Recent row baselines the row's rendering (most-recent-first order, wrap
 past the panel width), and `TimelinePanel` with a three-layer stack baselines the
-sidebar's active/hidden row treatments — state-dependent layout the empty-state
-snapshots never exercise.
+sidebar's active/hidden row treatments and its enabled reorder handles — the
+sole-layer snapshot carries the disabled pair (remove and reorder). These are
+state-dependent layouts the empty-state snapshots never exercise. The reorder
+drag's own preview has no baseline: its offsets are pinned as pure geometry by
+`LayerReorderDragTests`, and a mid-drag render would need the panel's gesture
+state injected from outside.
 
 Five snapshots are **locale regressions** (issue 242): each leaf view rendered
 under `.environment(\.locale, ko)` — the four tier-driven views at `.wide`,

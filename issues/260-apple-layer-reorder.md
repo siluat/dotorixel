@@ -1,6 +1,6 @@
 ---
 title: Apple layer panel — reorder layers
-status: ready-for-agent
+status: done
 created: 2026-07-26
 ---
 
@@ -48,3 +48,63 @@ order.
 - [261 — Apple Timeline panel shell — layer sidebar at its final home](261-apple-timeline-panel-shell.md)
   (re-sequenced 2026-08-01: reorder's drag affordance should be built once,
   in the layer sidebar's final home, not in the interim RightPanel section)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/EditorState.swift` | `reorderLayer(id:toPanelIndex:)` — the drop commit. Translates panel→stack (`stack = (count - 1) - panel`, the inverse of `layersInPanelOrder`) and delegates to the core, which preserves the active layer by id. Clamps an out-of-range panel index to the stack ends, mirroring the core's own silent clamp. Mid-stroke seal like the other layer commands. Plus `canReorderLayers`, the disabled-handle predicate. |
+| `apple/Dotorixel/Views/LayerReorderDrag.swift` | New pure geometry struct: one in-flight drag resolved into `targetPanelIndex` (nearest-row snap, bounded to the panel) and per-row preview `offset(forPanelIndex:)` (dragged row tracks the finger within the panel; passed rows shift one row the other way). No SwiftUI, no document. |
+| `apple/Dotorixel/Views/TimelinePanel.swift` | Per-row drag handle at the trailing edge, `DragGesture(minimumDistance: 0)` feeding view-local `reorderDrag` state, drop committing through `EditorState`. Dragged row gets an opaque fill, the web's lift shadow, and the top stacking depth. The body locks scrolling while a drag is live — the gesture shares its axis with the panel's scroll. |
+| `apple/Dotorixel/Style/PanelIconButton.swift` | `PanelIconGlyph` extracted (glyph size, disabled dimming, 44pt touch box); `PanelIconButton` now wraps it. The handle reuses the metrics without a tap action. |
+| `apple/Dotorixel/Localizable.xcstrings` | `Reorder %@` × en/ko/ja (web parity: `aria_reorderLayer`). |
+| `apple/DotorixelTests/EditorStateLayerReorderTests.swift` | 7 tests: panel→stack translation judged by the rendered composite; one undo entry per real move with undo restoring order *and* composite; a drop at the current position records nothing and leaves the redo future intact; active layer preserved (including when it is the moved row); out-of-range clamp; mid-stroke seal; `canReorderLayers`. |
+| `apple/DotorixelTests/LayerReorderDragTests.swift` | 3 tests: half-a-row snap threshold, clamped target + preview past both ends, displacement of passed rows. |
+| `apple/DotorixelTests/LocalizationTests.swift` | `Reorder %@` added to the call-site-shaped format-key checks. |
+| `apple/DotorixelTests/README.md` | Snapshot scope: which baseline carries enabled vs disabled handles, and why the drag preview has none. |
+| `apple/DotorixelTests/__Snapshots__/…` | 4 `TimelinePanel` baselines re-recorded on the pinned host (rows gained a handle). |
+| `CONTEXT.md` | Reorder Interaction now reads as owned per shell — the entry claimed a single implementation, which this issue made untrue. |
+
+### Key Decisions
+
+- **Drag handle over `List` + `.onMove`.** The SwiftUI-native list idiom was
+  rejected on three counts: a `List` brings its own scrolling, breaking the
+  sidebar/frame-area alignment the panel exists to keep; its default chrome
+  fights the 44pt dense rows; and the index logic would live inside SwiftUI
+  with no seam to test. The handle keeps the row layout and puts the geometry
+  in a pure struct. Matches the web, which also uses a dedicated handle.
+- **Reorder geometry stays native, not in the Rust core.** The core already
+  owns `reorder_layer` (the stack mutation); what is new here is drag geometry
+  — simple, stable, and per-shell by nature. The web has its own
+  `reorder-interaction.svelte.ts` for the same reason; binding friction would
+  be disproportionate.
+- **No-op detection is delegated to the Edit Baseline**, not predicted before
+  the move: a drop at the current position leaves the document unchanged, so
+  `endEdit` discards the baseline. Same path the visibility toggle takes.
+- **The shell clamps the panel index** instead of trusting callers. The raw
+  translation would produce a negative stack index and trap on the `UInt64`
+  conversion; the core clamps silently, so the seam mirrors that rather than
+  crashing on a drag released past the last row.
+- **`accessibilityAdjustableAction` on the handle** gives the same command a
+  pointer-free path (VoiceOver adjust / rotor), the counterpart of the web's
+  arrow-key reorder.
+
+### Notes
+
+- **Touch and pointer feel is unverified by automation.** The project defers
+  XCUITest, and the simulator offers no touch injection, so the gesture was
+  exercised only through unit-level seams and snapshots. The scroll-axis
+  conflict guard (`scrollDisabled` while a drag is live) in particular wants a
+  hands-on check with ≥4 layers, where the panel actually scrolls.
+- **Interrupted-drag recovery is a known gap** — SwiftUI's `DragGesture` has no
+  cancel callback, so a drag whose `onEnded` never arrives leaves the preview
+  offsets and the scroll lock in place until the next drag. Deferred to the
+  review backlog with the reasoning.
+- **Narrow-column regression, accepted.** At the narrowest supported canvas
+  column (236pt, the macOS window floor) the third row control squeezes the
+  layer name out entirely; it previously truncated to "L…". Nothing overflows
+  the panel, so the narrow-column snapshot's own guarantee holds. A responsive
+  row rule for that width belongs with the frame ruler work, not here.
+- The frame placeholder cells deliberately do not shift with the sidebar during
+  a drag (the web shifts its frame rows): the placeholders are identical and
+  carry no layer identity. The Phase 6 ruler will need the offsets.

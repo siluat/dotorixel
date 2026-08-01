@@ -21,8 +21,8 @@
 Phased catch-up to full parity with completed web editor features. See the RFC for
 the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish) and Phase 2
 (full tool set + color + i18n, issues 230–242) are complete; Phase 3 is decomposed
-into issues 256–261 below; Phases 4–6 are decomposed into issues (`/to-tickets`)
-when reached.
+into issues 256–261 (256–259 done — remaining items below); Phases 4–6 are
+decomposed into issues (`/to-tickets`) when reached.
 
 ### Phase 3 — Layer system ★ foundation (issues 256–261)
 

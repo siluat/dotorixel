@@ -10,14 +10,20 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 198 | 147 | 51 | 228 | 74% | 39% |
-| cubic-dev-ai[bot] | 224 | 176 | 48 | 199 | 79% | 47% |
-| coderabbitai[bot] | 278 | 193 | 85 | 181 | 69% | 52% |
+| greptile-apps[bot] | 198 | 147 | 51 | 229 | 74% | 39% |
+| cubic-dev-ai[bot] | 227 | 177 | 50 | 199 | 78% | 47% |
+| coderabbitai[bot] | 280 | 194 | 86 | 181 | 69% | 52% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #345 | coderabbitai[bot] | Accept | Partial: todo.md prose "decomposed into issues 256–261 below" over-promised the full list (only remaining items are listed) — reworded to "(256–259 done — remaining items below)"; the suggested heading change declined — the heading's full range records the decomposition scope, list-holds-remaining is todo.md's remove-on-completion design (pre-PR "(issues 256–260)" precedent) |
+| #345 | cubic-dev-ai[bot] | Accept | Same todo.md prose finding (duplicate of coderabbit); same rewording, same heading-change decline |
+| #345 | coderabbitai[bot] | Reject | Claimed "mid-stroke seals on all" is wrong because setActiveLayer "does not seal"; the repo's vocabulary defines the seal as the `isDrawing` no-op guard itself — the web labels `setActiveLayer`'s guard "Mid-stroke seal" verbatim (tab-state.svelte.ts) and CONTEXT.md groups all four guards under one invariant |
+| #345 | cubic-dev-ai[bot] | Reject | Wanted 261's Blocked-by pruned because 259 is done; Blocked-by sections record dependency edges as declared, not live gates (259 lists the already-done 258 the same way), and liveness lives in tasks/progress.md + front-matter status |
+| #345 | cubic-dev-ai[bot] | Reject | Wanted `isDrawing` wired into the remove/add buttons' `.disabled`; web parity disables only at the sole-layer guard, 258's eye/row-select ship the same silent seal without disabled styling, and `isDrawing` toggling per stroke would flicker the panel to surface a sub-second multitouch race guard |
+| #345 | greptile-apps[bot] | Miss | Did not flag the todo.md remaining-items prose (accepted from coderabbit/cubic; 5/5 "safe to merge", no findings) |
 | #344 | greptile-apps[bot] | Reject | Claimed undoing a visibility toggle restores a stale active-layer selection; whole-`Document` snapshot restore (active pointer included) is the pinned 256/257 design and the web undo path (`#replaceDocument`) behaves identically — inherent to snapshot history, not introduced by the toggle |
 | #344 | cubic-dev-ai[bot] | Reject | Same stale-active-layer-on-undo finding (duplicate of greptile); same web-parity + snapshot-history refutation |
 | #344 | coderabbitai[bot] | Reject | Wanted "parallel with 259" removed as conflicting with one-task-at-a-time; the annotation documents the dependency graph (the RFC's `{259 ∥ 260}`), execution stays single-task via `/task-start`, and the phrasing predates this PR on `main` |

@@ -21,13 +21,12 @@
 Phased catch-up to full parity with completed web editor features. See the RFC for
 the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish) and Phase 2
 (full tool set + color + i18n, issues 230–242) are complete; Phase 3 is decomposed
-into issues 256–261 (256–259 done — remaining items below); Phases 4–6 are
+into issues 256–261 (256–259, 261 done — remaining item below); Phases 4–6 are
 decomposed into issues (`/to-tickets`) when reached.
 
 ### Phase 3 — Layer system ★ foundation (issues 256–261)
 
-- [261 — Apple Timeline panel shell — layer sidebar at its final home](../issues/261-apple-timeline-panel-shell.md)
-- [260 — Apple layer panel — reorder layers](../issues/260-apple-layer-reorder.md) (blocked by 261 — reorder lands in the sidebar's final home)
+- [260 — Apple layer panel — reorder layers](../issues/260-apple-layer-reorder.md)
 
 ### Phases 4–6 — roadmap (decompose when reached)
 

@@ -5,12 +5,15 @@ import SnapshotTesting
 
 /// Rendered-layout regression tests for the docked editor's leaf region views.
 ///
-/// These verify the **tier → rendered sizing** step: given a `LayoutTier`, does the
+/// Most verify the **tier → rendered sizing** step: given a `LayoutTier`, does the
 /// view actually render at the tier-driven dimension (e.g. the right panel is 240pt
 /// wide at `.xWide`)? `DesignTokensTierSizingTests` already covers the token *values*
 /// and `LayoutTierTests` covers `width → tier`; only a pixel render can confirm the
 /// view *applies* the token, since the tier flows through a `GeometryReader`-measured
 /// width that structural inspection can't see.
+///
+/// `TimelinePanel` is the exception — it takes no tier, so its snapshots pin the
+/// expanded ⇄ collapsed sizing instead.
 ///
 /// Scope, the pinned recording host, and the re-record procedure live in
 /// `apple/DotorixelTests/README.md`.
@@ -24,11 +27,8 @@ struct DockedRegionSnapshotTests {
     /// Fixed extent for a view's flexible axis so `.sizeThatFits` produces a
     /// deterministic image. The tier-driven axis stays intrinsic — that is the
     /// dimension each snapshot verifies (panel/toolbar width; top/status bar height).
-    private let stripHeight: CGFloat = 560   // vertical strip: LeftToolbar
-    /// RightPanel needs a taller strip since the Layers section (issue 258)
-    /// pushed the Color section's Recent row past 560pt.
-    private let rightPanelStripHeight: CGFloat = 700
-    private let barWidth: CGFloat = 640       // horizontal bars: TopBar, StatusBar
+    private let stripHeight: CGFloat = 560   // vertical strip: LeftToolbar, RightPanel
+    private let barWidth: CGFloat = 640       // horizontal bars: TopBar, StatusBar, TimelinePanel
 
     private func state() -> EditorState { EditorState(width: 16, height: 16) }
 
@@ -37,7 +37,7 @@ struct DockedRegionSnapshotTests {
     @Test("RightPanel renders wide width (200pt)")
     func rightPanelWide() {
         assertSnapshot(
-            of: RightPanel(editorState: state(), tier: .wide).frame(height: rightPanelStripHeight),
+            of: RightPanel(editorState: state(), tier: .wide).frame(height: stripHeight),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -45,7 +45,7 @@ struct DockedRegionSnapshotTests {
     @Test("RightPanel renders x-wide width (240pt)")
     func rightPanelXWide() {
         assertSnapshot(
-            of: RightPanel(editorState: state(), tier: .xWide).frame(height: rightPanelStripHeight),
+            of: RightPanel(editorState: state(), tier: .xWide).frame(height: stripHeight),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -61,7 +61,7 @@ struct DockedRegionSnapshotTests {
             populated.recordRecentColor(Color(r: value, g: 0x40, b: 0x40, a: 0xFF))
         }
         assertSnapshot(
-            of: RightPanel(editorState: populated, tier: .wide).frame(height: rightPanelStripHeight),
+            of: RightPanel(editorState: populated, tier: .wide).frame(height: stripHeight),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -75,19 +75,43 @@ struct DockedRegionSnapshotTests {
         let recolored = state()
         recolored.foregroundColor = Color(r: 0xFF, g: 0x8A, b: 0x65, a: 0xFF)
         assertSnapshot(
-            of: RightPanel(editorState: recolored, tier: .wide).frame(height: rightPanelStripHeight),
+            of: RightPanel(editorState: recolored, tier: .wide).frame(height: stripHeight),
             as: .image(layout: .sizeThatFits)
         )
     }
 
-    /// Content regression (not tier sizing): the Layers section on a
-    /// multi-layer document (issue 258) — rows render in panel order (top of
-    /// stack first), the active row carries the tint + leading accent bar +
-    /// medium-weight name, and a hidden row shows the slashed eye with a
-    /// dimmed name. Layer 2 hidden and Layer 1 active exercises every state
-    /// on distinct rows.
-    @Test("RightPanel renders a multi-layer Layers section with active and hidden rows")
-    func rightPanelMultiLayerRows() throws {
+    // MARK: - TimelinePanel (height: 200 expanded / 44 collapsed)
+
+    /// The panel's tier-independent sizing (issue 261): unlike the four
+    /// tier-driven regions above, neither the web nor the 092 spec varies the
+    /// bottom-docked panel at the 1440 breakpoint — the height these snapshots
+    /// pin is the expanded/collapsed split, not a tier.
+
+    @Test("TimelinePanel renders expanded (200pt) with the sole-layer remove disabled")
+    func timelinePanelExpanded() {
+        assertSnapshot(
+            of: TimelinePanel(editorState: state()).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
+    @Test("TimelinePanel renders collapsed to its header strip (44pt)")
+    func timelinePanelCollapsed() {
+        let collapsed = state()
+        collapsed.toggleTimelinePanel()
+        assertSnapshot(
+            of: TimelinePanel(editorState: collapsed).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
+    /// Content regression (not sizing): the layer sidebar in its new home —
+    /// rows in panel order (top of stack first), the active row's tint +
+    /// leading accent bar + medium-weight name, and a hidden row's slashed
+    /// eye with a dimmed name. Layer 2 hidden and Layer 1 active exercises
+    /// every state on distinct rows (migrated from the RightPanel baseline).
+    @Test("TimelinePanel renders a multi-layer sidebar with active and hidden rows")
+    func timelinePanelMultiLayerRows() throws {
         let layered = state()
         let bottomId = layered.document.activeLayerId()
         let middleId = makeLayerId()
@@ -96,7 +120,23 @@ struct DockedRegionSnapshotTests {
         layered.setLayerVisibility(id: middleId, visible: false)
         layered.setActiveLayer(id: bottomId)
         assertSnapshot(
-            of: RightPanel(editorState: layered, tier: .wide).frame(height: rightPanelStripHeight),
+            of: TimelinePanel(editorState: layered).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
+    /// The canvas column at the macOS window's 480pt floor: 480 minus the
+    /// 44pt toolbar and 200pt right panel. Narrower than the sidebar's own
+    /// 256pt spec width, so it is where the panel has to yield.
+    private let narrowestCanvasColumnWidth: CGFloat = 236
+
+    /// Layout regression (issue 346 review): at the narrowest supported canvas
+    /// column the sidebar can't hold its spec width — the row controls and the
+    /// frame area must stay inside the panel rather than overflow it.
+    @Test("TimelinePanel keeps its content inside the narrowest supported canvas column")
+    func timelinePanelNarrowColumn() {
+        assertSnapshot(
+            of: TimelinePanel(editorState: state()).frame(width: narrowestCanvasColumnWidth),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -195,7 +235,17 @@ struct DockedRegionSnapshotTests {
     func rightPanelKoreanLocale() {
         assertSnapshot(
             of: RightPanel(editorState: state(), tier: .wide)
-                .frame(height: rightPanelStripHeight)
+                .frame(height: stripHeight)
+                .environment(\.locale, Locale(identifier: "ko")),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
+    @Test("TimelinePanel renders Korean chrome")
+    func timelinePanelKoreanLocale() {
+        assertSnapshot(
+            of: TimelinePanel(editorState: state())
+                .frame(width: barWidth)
                 .environment(\.locale, Locale(identifier: "ko")),
             as: .image(layout: .sizeThatFits)
         )

@@ -1,6 +1,6 @@
 ---
 title: Apple Timeline panel shell — layer sidebar at its final home
-status: ready-for-agent
+status: done
 created: 2026-08-01
 ---
 
@@ -66,3 +66,58 @@ RightPanel:
 ## Blocked by
 
 - [259 — Apple layer panel — add and remove layers](259-apple-layer-add-remove.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Views/TimelinePanel.swift` | New bottom-docked panel: header (`+` / `Layers` label / chevron), divider, body of layer sidebar (256pt) → divider → frame placeholder. Collapsed renders the header strip alone — the body and add action leave the hierarchy, so no row control stays focusable. Sidebar and frame column scroll as one unit, keeping row N aligned with cell N. |
+| `apple/Dotorixel/Style/PanelIconButton.swift` | Shared panel icon-button view (compact glyph + 44pt hit area + disabled dimming), the 259 Standards review's extraction. Used by add / remove / visibility / chevron and the RightPanel swap. |
+| `apple/Dotorixel/Views/RightPanel.swift` | Layers section removed; swap button moved onto `PanelIconButton` (5 sizing constants dropped). |
+| `apple/Dotorixel/State/EditorState.swift` | `isTimelinePanelCollapsed` (`private(set)`) + `toggleTimelinePanel()`. In-memory only; not undoable. No layer command changed. |
+| `apple/Dotorixel/ContentView.swift` | Panel docked in the canvas column only, matching the web grid's `toolbar timeline panel` row. The canvas `GeometryReader` shrinks by the panel height and its existing `onChange(of: geo.size)` refits the viewport on every collapse/expand. |
+| `apple/Dotorixel/Style/DesignTokens.swift` | `timelinePanelHeight` (200) and `timelineSidebarWidth` (256); header doc corrected to describe what the file actually mirrors. |
+| `apple/Dotorixel/Localizable.xcstrings` | 4 entries × en/ko/ja: `Layers · %@`, `Collapse layers panel`, `Expand layers panel`, `Frames arrive with animation support`. |
+| `apple/DotorixelTests/EditorStateTests.swift` | `EditorState — Timeline panel collapse`: default expanded + toggle round-trip; collapsing records no history entry and no re-render signal. |
+| `apple/DotorixelTests/DesignTokensTests.swift` | Panel height and sidebar width value tests. |
+| `apple/DotorixelTests/DockedRegionSnapshotTests.swift` | 4 `TimelinePanel` snapshots (expanded / collapsed / multi-layer / ko). The multi-layer layer-row baseline moved here from `RightPanel`; 5 RightPanel baselines re-recorded. |
+| `apple/DotorixelTests/README.md` | Documents `TimelinePanel` as the one docked region with no tier-driven axis. |
+
+### Key Decisions
+
+- **Panel height 200pt, not the spec's proportion.** 092 §8 specifies desktop
+  expanded 180 (header 32 + body 148, ≈4.5 rows of 32 visible). Apple rows are
+  44pt for touch, so scaling the spec's row count would give 244pt and eat the
+  canvas viewport on a portrait iPad. 200pt keeps the header plus ≈3.5 rows.
+  No tier variance — neither the web nor the spec varies this panel at the 1440
+  breakpoint, so it is the one docked region without a `LayoutTier` parameter.
+  The sidebar takes the spec's 256pt as a *maximum*: below a 256pt canvas
+  column (reachable at the macOS window's 480pt floor) a hard width pushes the
+  header controls outside the panel, so it yields instead.
+- **Frame area follows the spec's M3 treatment** (092 §7): one static cell column
+  per layer plus a hint, so the frame ruler grows into reserved space in Phase 6.
+  The hint is user-facing wording ("Frames arrive with animation support") rather
+  than the web's internal milestone phrasing, and is in the String Catalog.
+- **Docked to the canvas column only.** The web grid places `timeline` between
+  `toolbar` and `panel`, not spanning them; the Apple layout now nests
+  canvas + panel in a `VStack` inside the region `HStack` to match.
+- **Layer row type scale restored to the spec value.** 258 used 11pt to fit the
+  200pt right panel; the 256pt sidebar takes the 13pt of 092 §1 (`name-text`
+  fontSize 13, "13px Inter · truncate end") and web `.name`
+  (`--ds-font-size-md`), with `lineLimit(1)` + tail truncation for the ellipsis.
+- **Disabled icon dimming corrected to the web value.** 258/259 dimmed the
+  disabled remove `✕` to 0.55; web `.remove-btn:disabled` is 0.35. Remove is the
+  only panel icon that disables today, so `PanelIconButton` holds one constant —
+  a second disable-capable button would make it per-call-site.
+
+### Notes
+
+- Collapse state is session-transient by design; Phase 4 owns persistence
+  alongside recent colors and pixel-perfect.
+- `PanelIconButton` is deliberately distinct from `IconButtonStyle` (the TopBar's
+  chrome: full 44pt fill, 18pt glyph, hover/press background). Both live in
+  `Style/` so the two icon-button idioms are found together.
+- The composed `ContentView` layout stays outside snapshot coverage (the
+  Metal-backed canvas boundary documented in the tests README); the docked result
+  was verified by running the app on the pinned iPad simulator.
+- Reorder (260) now builds its drag interaction in this final home, as intended.

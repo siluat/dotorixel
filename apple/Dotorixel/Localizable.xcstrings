@@ -124,6 +124,23 @@
         }
       }
     },
+    "Collapse layers panel" : {
+      "comment" : "Timeline panel chevron accessibility label while expanded. web: aria_collapseTimelinePanel",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レイヤーパネルを折りたたむ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "레이어 패널 접기"
+          }
+        }
+      }
+    },
     "Color" : {
       "comment" : "Right panel section title. web: section_color",
       "localizations" : {
@@ -192,6 +209,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "지우개"
+          }
+        }
+      }
+    },
+    "Expand layers panel" : {
+      "comment" : "Timeline panel chevron accessibility label while collapsed. web: aria_expandTimelinePanel",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レイヤーパネルを展開"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "레이어 패널 펼치기"
           }
         }
       }
@@ -298,6 +332,23 @@
         }
       }
     },
+    "Frames arrive with animation support" : {
+      "comment" : "Timeline panel frame-area placeholder hint; the frame ruler grows here in Phase 6",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フレームはアニメーション対応とともに追加されます"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프레임은 애니메이션 지원과 함께 추가됩니다"
+          }
+        }
+      }
+    },
     "HSV" : {
       "comment" : "Right panel section title — acronym, same in every locale. web: section_hsv",
       "shouldTranslate" : false
@@ -383,6 +434,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "레이어"
+          }
+        }
+      }
+    },
+    "Layers · %@" : {
+      "comment" : "Timeline panel collapsed header summary; %@ is the active layer name. web: layer_panel_collapsed_label",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レイヤー · %@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "레이어 · %@"
           }
         }
       }

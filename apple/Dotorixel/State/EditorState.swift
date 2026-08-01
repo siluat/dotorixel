@@ -62,6 +62,11 @@ final class EditorState {
     /// Phase 4 (the web keeps this in the workspace snapshot).
     private(set) var recentColors: [Color] = []
 
+    /// Whether the bottom-docked Timeline panel is collapsed to its header
+    /// strip. In-memory only for now; persistence arrives with Phase 4
+    /// (the web keeps this in the workspace snapshot).
+    private(set) var isTimelinePanelCollapsed: Bool = false
+
     /// State behind the loupe overlay shown while an eyedropper stroke is
     /// active — see `StrokeSessionHost.samplingLoupe`.
     let samplingLoupe = SamplingLoupeState()
@@ -412,6 +417,15 @@ final class EditorState {
         if performEdit({ (try? document.setLayerVisibility(id: id, visible: visible)) != nil }) {
             canvasVersion += 1
         }
+    }
+
+    // MARK: - Timeline panel
+
+    /// Collapses the Timeline panel to its header strip, or expands it again —
+    /// the header chevron's action. Not undoable (web parity: a persisted-UI
+    /// mutation, never a History entry).
+    func toggleTimelinePanel() {
+        isTimelinePanelCollapsed.toggle()
     }
 
     // MARK: - Canvas clear

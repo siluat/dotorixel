@@ -118,11 +118,11 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Document/Layer model | 🔧 | 🔧 | 🔧 | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple: layer panel with select + visibility + add/remove (mid-stroke seals on all); reorder pending; panel moves to a Timeline panel shell next |
+| Document/Layer model | 🔧 | 🔧 | 🔧 | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple: layer panel with select + visibility + add/remove (mid-stroke seals on all); reorder pending |
 | Frame cel-grid | ✅ | ✅ | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: undoable add/duplicate/remove/reorder + set-active journal intents (undo restores frame+cel); multi-frame V7 persistence round-trips through the snapshot |
 | Per-frame duration | ✅ | ✅ | ⬜ | Each frame holds a display duration; default 100ms (10fps); identity unchanged when retimed. 1–60000ms clamp at the shell boundary (core trusts the value). Web complete: active-frame editor in the timeline corner (ms + derived fps), undoable, V7-persisted. Apple pending |
 | Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and rotation-aware source sampling. Editability (Reference takes no paint/Marquee) has one authority enforced at the document-state boundary; a live stroke's target layer/frame can't switch or vanish mid-stroke. Fixed under canvas transforms (nothing produces new quarter-turns; saved ones still render). Placement invariant (finite pos, scale > 0, quarter-turn 0..=3) enforced by the core constructor |
-| Timeline panel | — | 🔧 | ⬜ | Layer × Frame grid (occupancy dots, Reference span, 2-channel active highlight); ruler/cell select; header add/duplicate/delete + ruler-cell drag-reorder; per-document collapse; full-width transport strip (Play/Pause · Loop · Ghost · `n/N`) + ▼ playhead marker lane. Mobile row-button touch targets pending |
+| Timeline panel | — | 🔧 | 🔧 | Bottom-docked below the canvas on both shells — layers live here, not in a side panel. Web: Layer × Frame grid (occupancy dots, Reference span, 2-channel active highlight), ruler/cell select, header add/duplicate/delete + ruler-cell drag-reorder, per-document collapse, transport strip + ▼ playhead lane; mobile row touch targets pending. Apple: layer sidebar + collapse (session-only), frame area reserved as a placeholder until Phase 6 |
 | Playback (animation) | — | ✅ | ⬜ | Per-tab engine: transient Playhead + rAF clock holds each frame its `duration_ms` (carry → no drift), loops or stops at end. Previews committed art via `composite_at` — no Document mutation/history/dirty, never persisted; tab/document change stops it. Transport strip (Play/Pause · Loop · ▼ playhead) wired on docked + mobile |
 | Onion skinning | — | ✅ | ⬜ | Adjacent-frame ghosts while drawing (prev/next 1, clamped, no wrap): prev warm / next cool, dimmed, committed art on top; hidden during Playback; never in exports; per-tab persisted toggle in the transport strip |
 
@@ -149,7 +149,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Design token system | — | ✅ | ✅ | `--ds-*` tokens (web), `DesignTokens` enum (Apple; spacing scale mirrors in-use steps 1–5), light theme |
 | Pebble UI theme | — | ✅ | ⬜ | Floating panels, earth tones (web legacy; Apple removed) |
-| Editor UI theme | — | ✅ | ✅ | `--ds-*` tokens, docked layout skeleton (Apple); TopBar + LeftToolbar + RightPanel + StatusBar all implemented |
+| Editor UI theme | — | ✅ | ✅ | `--ds-*` tokens, docked layout skeleton (Apple); TopBar + LeftToolbar + RightPanel + TimelinePanel + StatusBar all implemented |
 | Responsive layout | — | ✅ | 🔧 | Web: compact/medium/wide/x-wide via matchMedia + CSS Grid, ≥44px targets. Apple: docked adapts wide↔x-wide (1440pt panel/bar sizing); iPad-compact deferred to the mobile paradigm |
 | Toolbar tooltip | — | ✅ | ✅ | Tool name + shortcut hint on hover. Web: custom styled tooltip (GeistPixel-Square). Apple: native macOS tooltip; the hint also rides the accessibility label on both OSes |
 | Tab bar slide indicator | — | ✅ | ⬜ | ease-in-out-cubic 180ms, pure CSS `--active-index` |

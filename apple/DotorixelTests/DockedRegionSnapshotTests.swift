@@ -125,6 +125,22 @@ struct DockedRegionSnapshotTests {
         )
     }
 
+    /// The canvas column at the macOS window's 480pt floor: 480 minus the
+    /// 44pt toolbar and 200pt right panel. Narrower than the sidebar's own
+    /// 256pt spec width, so it is where the panel has to yield.
+    private let narrowestCanvasColumnWidth: CGFloat = 236
+
+    /// Layout regression (issue 346 review): at the narrowest supported canvas
+    /// column the sidebar can't hold its spec width — the row controls and the
+    /// frame area must stay inside the panel rather than overflow it.
+    @Test("TimelinePanel keeps its content inside the narrowest supported canvas column")
+    func timelinePanelNarrowColumn() {
+        assertSnapshot(
+            of: TimelinePanel(editorState: state()).frame(width: narrowestCanvasColumnWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
     // MARK: - LeftToolbar (width: 44 wide / 48 x-wide)
 
     @Test("LeftToolbar renders wide width (44pt)")

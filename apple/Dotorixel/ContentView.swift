@@ -2,10 +2,9 @@ import SwiftUI
 
 /// Main editor view using a docked layout matching the web editor's structure.
 ///
-/// VStack + HStack layout with five named regions:
+/// A canvas area that fills the remaining space, ringed by five chrome regions:
 /// - TopBar (top, full width)
 /// - LeftToolbar (left, fixed width)
-/// - Canvas area (center, fills remaining space)
 /// - TimelinePanel (below the canvas, spanning the canvas column only)
 /// - RightPanel (right, fixed width)
 /// - StatusBar (bottom, full width)

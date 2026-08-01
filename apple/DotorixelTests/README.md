@@ -49,8 +49,9 @@ past the panel width), and `TimelinePanel` with a three-layer stack baselines th
 sidebar's active/hidden row treatments — state-dependent layout the empty-state
 snapshots never exercise.
 
-Five snapshots are **locale regressions** (issue 242): each leaf view rendered at
-`.wide` under `.environment(\.locale, ko)` pins that the Korean chrome resolves
+Five snapshots are **locale regressions** (issue 242): each leaf view rendered
+under `.environment(\.locale, ko)` — the four tier-driven views at `.wide`,
+`TimelinePanel` at its fixed width — pins that the Korean chrome resolves
 through the String Catalog and renders without breaking the docked layout.
 (`LeftToolbar` is icon-only — its ko snapshot guards layout drift, not text; its
 composed accessibility labels resolve via `Locale.current`, outside the injected

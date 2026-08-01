@@ -86,11 +86,14 @@ RightPanel:
 ### Key Decisions
 
 - **Panel height 200pt, not the spec's proportion.** 092 §8 specifies desktop
-  expanded 180 (header 32 + ≈4.5 rows of 32). Apple rows are 44pt for touch, so
-  scaling the spec's row count would give 244pt and eat the canvas viewport on a
-  portrait iPad. 200pt keeps the header plus ≈3.5 rows. No tier variance — neither
-  the web nor the spec varies this panel at the 1440 breakpoint, so it is the one
-  docked region without a `LayoutTier` parameter.
+  expanded 180 (header 32 + body 148, ≈4.5 rows of 32 visible). Apple rows are
+  44pt for touch, so scaling the spec's row count would give 244pt and eat the
+  canvas viewport on a portrait iPad. 200pt keeps the header plus ≈3.5 rows.
+  No tier variance — neither the web nor the spec varies this panel at the 1440
+  breakpoint, so it is the one docked region without a `LayoutTier` parameter.
+  The sidebar takes the spec's 256pt as a *maximum*: below a 256pt canvas
+  column (reachable at the macOS window's 480pt floor) a hard width pushes the
+  header controls outside the panel, so it yields instead.
 - **Frame area follows the spec's M3 treatment** (092 §7): one static cell column
   per layer plus a hint, so the frame ruler grows into reserved space in Phase 6.
   The hint is user-facing wording ("Frames arrive with animation support") rather

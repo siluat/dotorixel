@@ -82,6 +82,11 @@ struct TimelinePanel: View {
             Text("Layers · \(activeLayerName)")
                 .font(.system(size: DesignTokens.fontSize, weight: .medium))
                 .foregroundStyle(DesignTokens.textSecondary)
+                // Same one-line truncation the row names take, so a long
+                // active-layer name can't wrap inside the fixed-height strip
+                // or squeeze the collapse chevron.
+                .lineLimit(1)
+                .truncationMode(.tail)
         } else {
             Text("Layers")
                 .font(.system(size: DesignTokens.fontSize, weight: .semibold))
@@ -136,6 +141,11 @@ struct TimelinePanel: View {
         .frame(height: bodyHeight)
     }
 
+    /// Holds the spec width wherever the canvas column can seat it, and yields
+    /// below that — a hard `width` would push the header's add and collapse
+    /// controls outside the panel once the column drops under 256pt, which the
+    /// macOS window's 480pt floor reaches (480 − 44 toolbar − 200 right panel).
+    /// The web narrows its sidebar at the mobile tier for the same reason.
     private var layerSidebar: some View {
         VStack(spacing: 0) {
             // Panel order: top of the stack renders at the top.
@@ -143,7 +153,7 @@ struct TimelinePanel: View {
                 layerRow(layer)
             }
         }
-        .frame(width: DesignTokens.timelineSidebarWidth)
+        .frame(maxWidth: DesignTokens.timelineSidebarWidth)
     }
 
     private func layerRow(_ layer: AppleLayerMetadata) -> some View {

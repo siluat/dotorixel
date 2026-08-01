@@ -19,9 +19,9 @@ transparent checker, out-of-canvas hatch), the center-cell rings, and the hex ch
 
 ### What is covered — and why snapshots
 
-The four leaf region views — `RightPanel`, `LeftToolbar`, `TopBar`, `StatusBar` —
-are snapshotted at the `.wide` and `.xWide` layout tiers, asserting the tier-driven
-sizing actually renders:
+The four tier-driven leaf region views — `RightPanel`, `LeftToolbar`, `TopBar`,
+`StatusBar` — are snapshotted at the `.wide` and `.xWide` layout tiers, asserting the
+tier-driven sizing actually renders:
 
 | View | Tier-driven axis | `.wide` | `.xWide` |
 |------|------------------|---------|----------|
@@ -29,6 +29,11 @@ sizing actually renders:
 | `LeftToolbar` | width | 44pt | 48pt |
 | `TopBar` | height | 44pt | 48pt |
 | `StatusBar` | height | 28pt | 32pt |
+
+`TimelinePanel` is the one docked region with **no** tier-driven axis — neither the
+web nor the `092` design spec varies the bottom-docked panel at the 1440 breakpoint.
+Its snapshots pin the expanded (200pt) ⇄ collapsed (44pt header strip) split instead,
+plus the layer sidebar's multi-layer content (panel order, active row, hidden row).
 
 This layer is **additive**, not a duplicate of the existing unit tests:
 
@@ -38,12 +43,13 @@ This layer is **additive**, not a duplicate of the existing unit tests:
   renders. The tier flows through a `GeometryReader`-measured width at layout time, so
   only a pixel render (or a live-UI test) can confirm it; structural inspection cannot.
 
-One snapshot is a **content regression**, not tier sizing: `RightPanel` with a
+Some snapshots are **content regressions**, not tier sizing: `RightPanel` with a
 populated Recent row baselines the row's rendering (most-recent-first order, wrap
-past the panel width) — state-dependent layout the empty-state tier snapshots
-never exercise.
+past the panel width), and `TimelinePanel` with a three-layer stack baselines the
+sidebar's active/hidden row treatments — state-dependent layout the empty-state
+snapshots never exercise.
 
-Four snapshots are **locale regressions** (issue 242): each leaf view rendered at
+Five snapshots are **locale regressions** (issue 242): each leaf view rendered at
 `.wide` under `.environment(\.locale, ko)` pins that the Korean chrome resolves
 through the String Catalog and renders without breaking the docked layout.
 (`LeftToolbar` is icon-only — its ko snapshot guards layout drift, not text; its

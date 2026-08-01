@@ -2,10 +2,11 @@ import SwiftUI
 
 /// Main editor view using a docked layout matching the web editor's structure.
 ///
-/// VStack + HStack layout with four named regions:
+/// VStack + HStack layout with five named regions:
 /// - TopBar (top, full width)
 /// - LeftToolbar (left, fixed width)
 /// - Canvas area (center, fills remaining space)
+/// - TimelinePanel (below the canvas, spanning the canvas column only)
 /// - RightPanel (right, fixed width)
 /// - StatusBar (bottom, full width)
 struct ContentView: View {
@@ -36,28 +37,38 @@ struct ContentView: View {
                 HStack(spacing: 0) {
                     LeftToolbar(editorState: editorState, tier: tier)
 
-                    GeometryReader { geo in
-                        PixelCanvasView(
-                            document: editorState.document,
-                            viewport: viewport,
-                            showGrid: showGrid,
-                            editorState: editorState,
-                            canvasVersion: canvasVersion,
-                            isTextInputFocused: isTextInputFocused
-                        )
-                        .onAppear { fitCanvas(in: geo.size) }
-                        .onChange(of: geo.size) { _, newSize in fitCanvas(in: newSize) }
-                        // Pencil hover preview: highlights the target cell
-                        // while the Apple Pencil hovers (issue 253). Below the
-                        // loupe so an active sampling stroke's magnifier wins.
-                        .overlay(alignment: .topLeading) {
-                            HoverHighlightOverlay(editorState: editorState, displayScale: displayScale)
+                    VStack(spacing: 0) {
+                        GeometryReader { geo in
+                            PixelCanvasView(
+                                document: editorState.document,
+                                viewport: viewport,
+                                showGrid: showGrid,
+                                editorState: editorState,
+                                canvasVersion: canvasVersion,
+                                isTextInputFocused: isTextInputFocused
+                            )
+                            .onAppear { fitCanvas(in: geo.size) }
+                            .onChange(of: geo.size) { _, newSize in fitCanvas(in: newSize) }
+                            // Pencil hover preview: highlights the target cell
+                            // while the Apple Pencil hovers (issue 253). Below the
+                            // loupe so an active sampling stroke's magnifier wins.
+                            .overlay(alignment: .topLeading) {
+                                HoverHighlightOverlay(editorState: editorState, displayScale: displayScale)
+                            }
+                            // Sampling loupe: floats over the canvas area while an
+                            // eyedropper stroke is active.
+                            .overlay(alignment: .topLeading) {
+                                SamplingLoupeOverlay(loupe: editorState.samplingLoupe)
+                            }
                         }
-                        // Sampling loupe: floats over the canvas area while an
-                        // eyedropper stroke is active.
-                        .overlay(alignment: .topLeading) {
-                            SamplingLoupeOverlay(loupe: editorState.samplingLoupe)
-                        }
+
+                        // Docked to the canvas column only — the toolbar and
+                        // right panel run full height beside it, matching the
+                        // web grid's `toolbar timeline panel` row. The canvas
+                        // `GeometryReader` above shrinks by the panel's height,
+                        // and its `onChange(of: geo.size)` refits the viewport
+                        // whenever the panel collapses or expands.
+                        TimelinePanel(editorState: editorState)
                     }
 
                     RightPanel(editorState: editorState, tier: tier)

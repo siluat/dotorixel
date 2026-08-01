@@ -119,6 +119,16 @@ struct DesignTokensSizingTests {
     func disabledOpacity() {
         #expect(DesignTokens.disabledOpacity == 0.4)
     }
+
+    @Test("Timeline panel expanded height is 200pt — header + ~3.5 rows at the 44pt touch row")
+    func timelinePanelHeight() {
+        #expect(DesignTokens.timelinePanelHeight == 200)
+    }
+
+    @Test("Timeline layer sidebar width matches the 092 spec / web --sidebar-width: 256px")
+    func timelineSidebarWidth() {
+        #expect(DesignTokens.timelineSidebarWidth == 256)
+    }
 }
 
 // MARK: - Spacing token tests

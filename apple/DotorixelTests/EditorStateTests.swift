@@ -511,3 +511,33 @@ struct EditorStateClearCanvasTests {
         #expect(state.historyVersion == historyVersionBefore)
     }
 }
+
+/// The Timeline panel's collapse state (issue 261) — the chevron's command.
+@Suite("EditorState — Timeline panel collapse")
+struct EditorStateTimelinePanelTests {
+
+    @Test("the panel starts expanded and the chevron toggles it back and forth")
+    func panelStartsExpandedAndTogglesBothWays() {
+        let state = EditorState(width: 16, height: 16)
+        #expect(!state.isTimelinePanelCollapsed)
+
+        state.toggleTimelinePanel()
+        #expect(state.isTimelinePanelCollapsed)
+
+        state.toggleTimelinePanel()
+        #expect(!state.isTimelinePanelCollapsed)
+    }
+
+    @Test("collapsing is a view-only mutation: no history entry, no re-render signal")
+    func collapsingRecordsNoHistoryEntry() {
+        let state = EditorState(width: 16, height: 16)
+        let canvasVersionBefore = state.canvasVersion
+
+        state.toggleTimelinePanel()
+
+        // Web parity: the chevron is persisted UI, never a History entry —
+        // and it touches no pixels, so the Metal re-render stays untriggered.
+        #expect(!state.canUndo)
+        #expect(state.canvasVersion == canvasVersionBefore)
+    }
+}

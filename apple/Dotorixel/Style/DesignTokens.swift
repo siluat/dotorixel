@@ -1,7 +1,11 @@
 import SwiftUI
 
-/// Design tokens matching the web editor's `design-tokens.css`.
-/// Light theme only — dark mode is out of scope for this task.
+/// Design values shared with the web editor. Colors, spacing, radii, and type
+/// sizes mirror `design-tokens.css`; the docked sizing below has no `--ds-*`
+/// counterpart, mirroring instead the editor's grid template and the Timeline
+/// panel's component-scoped properties. Each section names its own source.
+///
+/// Light theme only — the web's dark palette has no Apple mirror yet.
 enum DesignTokens {
     // MARK: - Surface Colors
 
@@ -62,6 +66,23 @@ enum DesignTokens {
     static let iconSize: CGFloat = 18
     /// Opacity for disabled controls (matches web .action-btn:disabled)
     static let disabledOpacity: Double = 0.4
+
+    // MARK: - Timeline panel
+
+    // The bottom-docked panel is one size across the docked tiers — neither the
+    // web nor the 092 spec varies it at the 1440 breakpoint, unlike the side
+    // panels and bars below.
+
+    /// Timeline panel height while expanded. The 092 spec's desktop panel is
+    /// 180 (header 32 + ~4.5 rows of 32); the Apple rows are `btnSize` for
+    /// touch, so this keeps the header plus ~3.5 rows rather than scaling the
+    /// spec's row count and eating the canvas viewport. Collapsed, the panel
+    /// is `btnSize` — the header strip alone.
+    static let timelinePanelHeight: CGFloat = 200
+
+    /// Layer sidebar width within the Timeline panel — web TimelinePanel
+    /// `--sidebar-width` / 092 spec: 256px.
+    static let timelineSidebarWidth: CGFloat = 256
 
     // MARK: - Spacing
 

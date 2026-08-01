@@ -42,6 +42,10 @@ RightPanel:
 - **RightPanel Layers section removed** — one home for layer UI.
 - Collapse state is in-memory only (Phase 4 owns persistence, like recent
   colors and pixel-perfect).
+- **Cleanup while migrating** (from the 259 Standards review): the panel
+  icon buttons (add `+`, remove `✕`, visibility eye) repeat the same
+  compact-chrome/44pt-hit-area shape and comment — extract a shared
+  icon-button helper so the idiom and its rationale live once.
 - Touch targets ≥ 44 pt; any new labels in the String Catalog (en/ko/ja);
   docked snapshot baselines updated (RightPanel shrinks, new panel strip).
 

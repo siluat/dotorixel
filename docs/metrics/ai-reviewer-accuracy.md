@@ -10,14 +10,24 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 198 | 147 | 51 | 229 | 74% | 39% |
-| cubic-dev-ai[bot] | 227 | 177 | 50 | 199 | 78% | 47% |
-| coderabbitai[bot] | 280 | 194 | 86 | 181 | 69% | 52% |
+| greptile-apps[bot] | 199 | 148 | 51 | 233 | 74% | 39% |
+| cubic-dev-ai[bot] | 233 | 182 | 51 | 199 | 78% | 48% |
+| coderabbitai[bot] | 281 | 195 | 86 | 185 | 69% | 51% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #346 | greptile-apps[bot] | Accept | Hard 256pt layer sidebar overflows a narrow canvas column — reachable at the macOS window's 480pt floor (480 − 44 toolbar − 200 right panel = 236pt); the whole panel centered and pushed the add button, collapse chevron, and visibility toggle outside it. Sidebar now takes 256pt as a maximum; 236pt regression snapshot added |
+| #346 | cubic-dev-ai[bot] | Accept | Same narrow-column sidebar overflow (duplicate of greptile); same maxWidth fix |
+| #346 | coderabbitai[bot] | Accept | Tests README claimed all five locale snapshots render at `.wide`, but TimelinePanel takes no `LayoutTier` and renders at a fixed width; split the sentence |
+| #346 | cubic-dev-ai[bot] | Accept | Same `.wide` locale-snapshot wording (duplicate of coderabbit); same split |
+| #346 | cubic-dev-ai[bot] | Accept | Partial: ContentView doc said "five named regions" over six bullets. The suggested 5→6 was declined — the file's convention counts chrome regions with the canvas listed separately (pre-PR "four" over five bullets); reworded to name the canvas as the content area so no count contradicts the list |
+| #346 | cubic-dev-ai[bot] | Accept | Partial: issue 261's height rationale wrote "180 (header 32 + ≈4.5 rows of 32)", which sums to 176. The suggested "≈4.6 rows" was declined as a value absent from the spec; quoted 092 §8's own decomposition ("header 32 + body 148, ≈4.5 rows visible") instead |
+| #346 | cubic-dev-ai[bot] | Accept | Collapsed header summary lacked the one-line truncation the row names take — not reachable today (no layer-rename UI on Apple) but an inconsistency this PR introduced; added `lineLimit(1)` + tail truncation |
+| #346 | cubic-dev-ai[bot] | Reject | Claimed the vertical divider stops at its intrinsic height below four layers; `.frame(minHeight: bodyHeight, alignment: .top)` on the HStack already proposes the full body height to `verticalDivider`'s `maxHeight: .infinity`. Verified against the committed single-layer baseline — the divider is continuous well past the sole row's 44pt |
+| #346 | greptile-apps[bot] | Miss (×4) | Flagged only the sidebar overflow; missed the `.wide` locale-snapshot wording, the ContentView region count, the issue-261 height arithmetic, and the untruncated collapsed header |
+| #346 | coderabbitai[bot] | Miss (×4) | Flagged only the locale-snapshot wording; missed the narrow-column sidebar overflow, the ContentView region count, the issue-261 height arithmetic, and the untruncated collapsed header |
 | #345 | coderabbitai[bot] | Accept | Partial: todo.md prose "decomposed into issues 256–261 below" over-promised the full list (only remaining items are listed) — reworded to "(256–259 done — remaining items below)"; the suggested heading change declined — the heading's full range records the decomposition scope, list-holds-remaining is todo.md's remove-on-completion design (pre-PR "(issues 256–260)" precedent) |
 | #345 | cubic-dev-ai[bot] | Accept | Same todo.md prose finding (duplicate of coderabbit); same rewording, same heading-change decline |
 | #345 | coderabbitai[bot] | Reject | Claimed "mid-stroke seals on all" is wrong because setActiveLayer "does not seal"; the repo's vocabulary defines the seal as the `isDrawing` no-op guard itself — the web labels `setActiveLayer`'s guard "Mid-stroke seal" verbatim (tab-state.svelte.ts) and CONTEXT.md groups all four guards under one invariant |

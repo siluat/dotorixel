@@ -38,10 +38,14 @@ struct RightPanel: View {
 
     /// Web Timeline sidebar visual references (raw CSS, not tokens): the
     /// active row's leading accent bar is `--ds-border-width-thick` (2px);
-    /// a hidden row's name dims to opacity 0.45; the eye icon is 14px.
+    /// a hidden row's name dims to opacity 0.45; the eye icon is 14px; the
+    /// add/remove glyphs are 14px text ("+" / "✕"); a disabled control dims
+    /// to opacity 0.55.
     private let activeBarWidth: CGFloat = 2
     private let hiddenNameOpacity: Double = 0.45
     private let eyeIconSize: CGFloat = 14
+    private let layerActionIconSize: CGFloat = 14
+    private let disabledControlOpacity: Double = 0.55
 
     var body: some View {
         ScrollView {
@@ -165,7 +169,11 @@ struct RightPanel: View {
 
     private var layersSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.space3) {
-            sectionTitle("Layers")
+            HStack(spacing: DesignTokens.space2) {
+                sectionTitle("Layers")
+                Spacer(minLength: 0)
+                addLayerButton
+            }
             VStack(spacing: 0) {
                 // Panel order: top of the stack renders at the top.
                 ForEach(editorState.layersInPanelOrder, id: \.id) { layer in
@@ -175,11 +183,31 @@ struct RightPanel: View {
         }
     }
 
+    /// The section header's add action: a transparent layer lands directly
+    /// above the active one and becomes the drawing target (web parity: the
+    /// Timeline header's `+`).
+    private var addLayerButton: some View {
+        Button {
+            editorState.addLayer()
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: layerActionIconSize))
+                .foregroundStyle(DesignTokens.textSecondary)
+                // Visual chrome stays compact; the tappable area expands to
+                // the HIG minimum (same idiom as the swap button).
+                .frame(minWidth: DesignTokens.btnSize, minHeight: DesignTokens.btnSize)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Add layer")
+    }
+
     private func layerRow(_ layer: AppleLayerMetadata) -> some View {
         let isActive = editorState.activeLayerId == layer.id
         return HStack(spacing: DesignTokens.space2) {
             visibilityToggle(layer)
             rowSelectButton(layer, isActive: isActive)
+            removeLayerButton(layer)
         }
         // Full-height 44pt rows keep both targets at the HIG touch minimum.
         .frame(minHeight: DesignTokens.btnSize)
@@ -217,6 +245,27 @@ struct RightPanel: View {
         .buttonStyle(.plain)
         .accessibilityLabel(Text(verbatim: layer.name))
         .accessibilityAddTraits(isActive ? .isSelected : [])
+    }
+
+    /// The row's remove action. Disabled at the sole-layer guard — a
+    /// document always keeps at least one layer — mirroring the web's
+    /// disabled `✕` affordance.
+    private func removeLayerButton(_ layer: AppleLayerMetadata) -> some View {
+        Button {
+            editorState.removeLayer(id: layer.id)
+        } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: layerActionIconSize))
+                .foregroundStyle(DesignTokens.textTertiary)
+                .opacity(editorState.canRemoveLayer ? 1 : disabledControlOpacity)
+                // Visual chrome stays compact; the tappable area expands to
+                // the HIG minimum (same idiom as the swap button).
+                .frame(minWidth: DesignTokens.btnSize, minHeight: DesignTokens.btnSize)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!editorState.canRemoveLayer)
+        .accessibilityLabel("Delete \(layer.name)")
     }
 
     private func visibilityToggle(_ layer: AppleLayerMetadata) -> some View {

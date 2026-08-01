@@ -102,10 +102,10 @@ phases are decomposed into issues (via `/to-tickets`) when reached, not up front
 |-------|-------|----------|
 | **1 — Layout finish** | Responsive tiers (iPad compact / regular / Mac); quick wins: enable clear canvas, enable PNG export | Shell already exists; small, no state redesign |
 | **2 — Full tool set + color** | Line, rect, ellipse, fill, eyedropper, move; Shift constraint; FG/BG swap; recent colors + HSV; pixel-perfect; tool keyboard shortcuts; StatusBar content | Runs on the current single-canvas model — low risk, makes native genuinely usable for drawing |
-| **3 — Layer system** ★ | Document/Layer, composite render path, layer-panel rows; **Swift-side state-architecture redesign** (Document / active-layer ownership) | The foundation M3/M4 all build on |
+| **3 — Layer system** ★ | Document/Layer, composite render path, layer panel in a frames-less Timeline panel shell (its final home — see the 2026-08-01 reference-layout note); **Swift-side state-architecture redesign** (Document / active-layer ownership) | The foundation M3/M4 all build on |
 | **4 — Multi-tab + persistence** | Workspace + per-tab state; SwiftData document storage, auto-save, restore | Persist the document model once it exists, before more content features land |
 | **5 — Reference + selection + transforms** | Reference layers (import / placement / sampling); marquee selection + clipboard; flip / rotate | The M3 bundle — all sit on the Document model + persistence schema |
-| **6 — Animation + extended export** | Frames, timeline, per-frame duration, playback transport, onion skinning; SVG / GIF / spritesheet export | The M4 bundle — the deepest, most interaction-heavy layer |
+| **6 — Animation + extended export** | Frames + the frame axis extended into the Phase 3 Timeline panel shell, per-frame duration, playback transport, onion skinning; SVG / GIF / spritesheet export | The M4 bundle — the deepest, most interaction-heavy layer |
 
 ### Sequencing rationale
 
@@ -144,6 +144,14 @@ with SwiftUI-native controls and conventions. No separate `.pen` design files fo
 native — the web design is the single source of truth, adapted to platform idioms
 during implementation. Rationale: one-person team, small token set, avoids two-shell
 design maintenance while keeping a platform-native feel.
+
+**Reference-layout note (2026-08-01):** the layout reference is the web's *current*
+docked layout, not the four-region snapshot listed above — it includes the
+bottom-docked Timeline panel (layer sidebar home since the web's M3). Reading the
+list as fixed is what produced 258's interim RightPanel Layers section; that
+placement is superseded by issue 261 (Timeline panel shell within Phase 3, before
+reorder). Phase 6 *extends* that shell with the frame axis — mirroring how the web
+extended, not rebuilt, its frames-less M3 panel.
 
 ## Parallel development principles
 

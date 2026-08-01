@@ -8,8 +8,9 @@ import SwiftUI
 /// counter must be incremented manually to trigger Metal re-renders.
 @Observable
 final class EditorState {
-    /// The Document being edited. The layer panel lists its stack and picks
-    /// the drawing target; add/remove and reorder arrive with issues 259–260.
+    /// The Document being edited. The layer panel lists its stack, picks
+    /// the drawing target, and adds/removes layers; reorder arrives with
+    /// issue 260.
     var document: AppleDocument
     var viewport: AppleViewport
     /// Layer-aware undo/redo: whole-`Document` snapshots, so pixel edits,
@@ -347,6 +348,56 @@ final class EditorState {
         guard id != document.activeLayerId() else { return }
         guard (try? document.setActiveLayer(id: id)) != nil else { return }
         canvasVersion += 1
+    }
+
+    /// The localized default name for the layer numbered `number` — web
+    /// parity (`layer_default_name`: "Layer {n}"). Resolved once at creation
+    /// and stored in the document, like the web's add-layer call site.
+    /// Int-cast so the catalog key is a stable "Layer %lld" — UInt32
+    /// interpolation would generate a different format specifier.
+    static func defaultLayerName(number: UInt32) -> LocalizedStringResource {
+        "Layer \(Int(number))"
+    }
+
+    /// Creates a transparent pixel layer directly above the active layer and
+    /// makes it the drawing target (core semantics) — the layer panel's add
+    /// action, auto-named with the localized default name and the document's
+    /// monotonic layer counter.
+    /// No-ops silently while a drawing stroke is in progress — admitting it
+    /// would both switch the stroke's target to the new layer and replace the
+    /// stroke's pending Edit Baseline (iPad multitouch).
+    func addLayer() {
+        guard !isDrawing else { return }
+        let name = String(localized: Self.defaultLayerName(number: document.nextLayerNumber()))
+        if performEdit({ (try? document.addLayer(newId: UUID().uuidString, name: name)) != nil }) {
+            canvasVersion += 1
+        }
+    }
+
+    /// Whether a layer can currently be removed — false only at the
+    /// sole-layer guard (a document always keeps at least one layer). The
+    /// panel renders remove buttons disabled while this is false, the UI
+    /// face of the guard `removeLayer` enforces. Reads `canvasVersion` to
+    /// register the @Observable dependency (the layer stack lives in the
+    /// UniFFI object, invisible to observation).
+    var canRemoveLayer: Bool {
+        _ = canvasVersion
+        return document.layers().count > 1
+    }
+
+    /// Removes the layer with `id` — the layer panel's per-row remove
+    /// action. When the removed layer was active, the active pointer moves
+    /// to an adjacent layer (delegated to the core). The core's sole-layer
+    /// guard rejects removing the last layer (surfaced in the UI as a
+    /// disabled affordance); that branch and an unknown id record no
+    /// history entry.
+    /// No-ops silently while a drawing stroke is in progress (web parity —
+    /// a live stroke's target must not vanish mid-stroke).
+    func removeLayer(id: String) {
+        guard !isDrawing else { return }
+        if performEdit({ (try? document.removeLayer(id: id)) != nil }) {
+            canvasVersion += 1
+        }
     }
 
     /// Sets the visibility flag of the layer with `id` — the layer panel's

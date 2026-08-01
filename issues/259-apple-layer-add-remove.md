@@ -1,6 +1,6 @@
 ---
 title: Apple layer panel — add and remove layers
-status: ready-for-agent
+status: done
 created: 2026-07-26
 ---
 
@@ -56,3 +56,25 @@ multi-layer workflow becomes fully live on the Apple shell.
 ## Blocked by
 
 - [258 — Apple layer panel — rows, active selection, visibility](258-apple-layer-panel-rows.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/EditorState.swift` | Layer commands: `addLayer` (transparent layer above active + activates, localized name + monotonic counter, mid-stroke seal), `removeLayer` (core-delegated adjacent-activation, sole-layer guard, mid-stroke seal), `canRemoveLayer` (disabled-affordance predicate), `defaultLayerName(number:)` |
+| `apple/Dotorixel/Views/RightPanel.swift` | Layers header `+` add button; per-row `✕` remove button, disabled + dimmed at the sole-layer guard; 44pt targets via the swap-button idiom |
+| `apple/Dotorixel/Localizable.xcstrings` | `Layer %lld`, `Add layer`, `Delete %@` with en/ko/ja matching web `layer_default_name` / `aria_addLayer` / `aria_removeLayer` |
+| `apple/DotorixelTests/EditorStateLayerTests.swift` | New `EditorStateLayerAddRemoveTests` suite — 9 tests pinning insert position/activation, exactly-one-undo-entry + full restore (pixels, stack position, active pointer), sole-layer guard history-cleanliness, both mid-stroke seals, counter monotonicity |
+| `apple/DotorixelTests/LocalizationTests.swift` | `DefaultLayerNameLocalizationTests` (per-locale name resolution) + `Delete %@` call-site-shaped format pin |
+| `apple/DotorixelTests/__Snapshots__/DockedRegionSnapshotTests/` | 6 RightPanel references re-recorded on the pinned host |
+
+### Key Decisions
+
+- **Mid-stroke seal extended to `addLayer`** (the issue mandated it only for remove): the core's `add_layer` activates the new layer, so admitting it mid-stroke would switch the stroke's target *and* replace the pending Edit Baseline — same rationale as 258's eye-toggle seal.
+- **First layer name stays hardcoded "Layer 1"** — exact web parity: the web hardcodes it at document creation and localizes only added layers.
+- **`canRemoveLayer` reads `canvasVersion`** for @Observable registration, following 258's facade pattern.
+
+### Notes
+
+- **Placement superseded**: the RightPanel Layers section location was revisited with the user right after this issue — the layer UI migrates to a bottom-docked Timeline panel shell in [261](261-apple-timeline-panel-shell.md) (before reorder 260), not at Phase 6 as 258's note said. Everything this issue built except the section view (commands, history semantics, localization, behavior tests) is placement-independent and carries over.
+- The E2E demo app was launched on the pinned simulator for HITL review; the user's design review of the panel prompted the placement discussion above. No functional issues were reported.

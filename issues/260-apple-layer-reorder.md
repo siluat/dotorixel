@@ -45,5 +45,6 @@ order.
 
 ## Blocked by
 
-- [258 — Apple layer panel — rows, active selection, visibility](258-apple-layer-panel-rows.md)
-  (independent of 259 — the two can proceed in parallel)
+- [261 — Apple Timeline panel shell — layer sidebar at its final home](261-apple-timeline-panel-shell.md)
+  (re-sequenced 2026-08-01: reorder's drag affordance should be built once,
+  in the layer sidebar's final home, not in the interim RightPanel section)

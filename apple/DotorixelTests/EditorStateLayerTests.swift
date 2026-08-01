@@ -4,7 +4,8 @@ import Testing
 
 /// Layer panel behavior on `EditorState` (issue 258): active-layer selection
 /// and visibility toggling with web-parity history semantics. Multi-layer
-/// fixtures are built programmatically — add/remove UI arrives with 259.
+/// fixtures are built programmatically — add/remove commands are covered by
+/// `EditorStateLayerAddRemoveTests` (issue 259).
 @Suite("EditorState — layer panel")
 struct EditorStateLayerTests {
 
@@ -162,5 +163,177 @@ struct EditorStateLayerTests {
         // `layers()` is stack order (bottom-first); the panel shows the
         // top of the stack at the top of the list.
         #expect(state.layersInPanelOrder.map(\.name) == ["Layer 3", "Layer 2", "Layer 1"])
+    }
+}
+
+/// Layer add/remove commands on `EditorState` (issue 259): the panel's add
+/// and per-row remove actions with web-parity history semantics.
+@Suite("EditorState — layer add/remove")
+struct EditorStateLayerAddRemoveTests {
+
+    @Test("addLayer inserts a transparent layer directly above the active layer and makes it active")
+    func addLayerInsertsTransparentLayerAboveActiveAndActivates() throws {
+        let state = EditorState(width: 8, height: 8)
+        let bottomId = state.document.activeLayerId()
+
+        state.addLayer()
+
+        // Stack order is bottom-first: the original layer keeps index 0 and
+        // the new layer sits directly above it as the new drawing target.
+        let layers = state.document.layers()
+        #expect(layers.map(\.id) == [bottomId, state.document.activeLayerId()])
+        #expect(state.document.activeLayerId() != bottomId)
+
+        // The new layer starts fully transparent.
+        #expect(try state.document.activeLayerPixels().allSatisfy { $0 == 0 })
+    }
+
+    @Test("addLayer records exactly one undo entry: one undo restores the pre-add document")
+    func addLayerRecordsExactlyOneUndoEntry() throws {
+        let state = EditorState(width: 8, height: 8)
+        let bottomId = state.document.activeLayerId()
+
+        state.addLayer()
+
+        // One undo restores the pre-add document — single layer, original
+        // active pointer — and empties the stack (exactly one entry).
+        state.handleUndo()
+        #expect(state.document.layers().map(\.id) == [bottomId])
+        #expect(state.document.activeLayerId() == bottomId)
+        #expect(!state.canUndo)
+
+        // Redo brings the added layer back as the active drawing target.
+        state.handleRedo()
+        #expect(state.document.layers().count == 2)
+        #expect(state.document.activeLayerId() == state.document.layers()[1].id)
+    }
+
+    @Test("addLayer no-ops while a stroke is drawing: the stroke's target never switches mid-stroke")
+    func addLayerNoOpsWhileDrawing() throws {
+        let state = EditorState(width: 8, height: 8)
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        // A second finger taps the add button mid-stroke (iPad multitouch) —
+        // the mid-stroke seal ignores it: admitting it would both switch the
+        // stroke's target to the new layer and replace the stroke's pending
+        // Edit Baseline.
+        state.addLayer()
+        #expect(state.document.layers().count == 1)
+        state.endStroke()
+
+        // The stroke's own undo entry survived intact.
+        state.handleUndo()
+        #expect(paintedPixelCount(state) == 0)
+        #expect(!state.canUndo)
+    }
+
+    @Test("layer names count monotonically — a removed layer's number is never reused")
+    func layerNamesCountMonotonically() throws {
+        let state = EditorState(width: 8, height: 8)
+
+        state.addLayer()
+        let secondId = state.document.activeLayerId()
+        #expect(state.document.layers().map(\.name) == ["Layer 1", "Layer 2"])
+
+        // Web parity: the document's layer counter never decrements, so
+        // names stay unique across the document's lifetime.
+        try state.document.removeLayer(id: secondId)
+        state.addLayer()
+        #expect(state.document.layers().map(\.name) == ["Layer 1", "Layer 3"])
+    }
+
+    @Test("removeLayer deletes the active layer: the active pointer moves to an adjacent layer and its pixels leave the composite")
+    func removeActiveLayerMovesPointerAndDropsPixelsFromComposite() throws {
+        let state = EditorState(width: 8, height: 8)
+        let bottomId = state.document.activeLayerId()
+        state.addLayer()
+        let topId = state.document.activeLayerId()
+
+        // Draw on the top (active) layer so the composite has its pixel.
+        state.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
+        state.endStroke()
+        #expect(paintedPixelCount(state) == 1)
+
+        state.removeLayer(id: topId)
+
+        // The layer is gone, the active pointer moved to the adjacent layer
+        // (delegated to the core), and the composite dropped its pixels.
+        #expect(state.document.layers().map(\.id) == [bottomId])
+        #expect(state.document.activeLayerId() == bottomId)
+        #expect(paintedPixelCount(state) == 0)
+    }
+
+    @Test("undoing a remove restores the removed layer with its pixels, stack position, and active state")
+    func undoRemoveRestoresLayerPixelsPositionAndActiveState() throws {
+        let state = EditorState(width: 8, height: 8)
+        state.addLayer()
+        let middleId = state.document.activeLayerId()
+        state.beginStroke(at: ScreenCanvasCoords(x: 3, y: 3))
+        state.endStroke()
+        state.addLayer()
+        state.setActiveLayer(id: middleId)
+        let stackBefore = state.document.layers().map(\.id)
+
+        state.removeLayer(id: middleId)
+        #expect(state.document.layers().count == 2)
+
+        // One undo restores the removed mid-stack layer in place: same stack
+        // order, same active pointer, pixels back in the composite.
+        state.handleUndo()
+        #expect(state.document.layers().map(\.id) == stackBefore)
+        #expect(state.document.activeLayerId() == middleId)
+        #expect(paintedPixelCount(state) == 1)
+        #expect(try state.document.activeLayerPixels().contains { $0 != 0 })
+
+        // The remove recorded exactly one entry: the next undo peels the
+        // second add, not another remove-restore.
+        state.handleUndo()
+        #expect(state.document.layers().count == 2)
+    }
+
+    @Test("the sole-layer guard: removing the last remaining layer no-ops and records no history entry")
+    func removingLastLayerNoOpsAndRecordsNothing() throws {
+        let state = EditorState(width: 8, height: 8)
+        let onlyId = state.document.activeLayerId()
+
+        let versionBefore = state.canvasVersion
+        state.removeLayer(id: onlyId)
+
+        // The layer survives, nothing was recorded, and no re-render signal
+        // fired — the guard branch is history-clean (web parity).
+        #expect(state.document.layers().map(\.id) == [onlyId])
+        #expect(!state.canUndo)
+        #expect(state.canvasVersion == versionBefore)
+    }
+
+    @Test("removeLayer no-ops while a stroke is drawing: a live stroke's target must not vanish mid-stroke")
+    func removeLayerNoOpsWhileDrawing() throws {
+        let state = EditorState(width: 8, height: 8)
+        state.addLayer()
+        let topId = state.document.activeLayerId()
+
+        state.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        // A second finger taps the row's remove button mid-stroke (iPad
+        // multitouch) — the mid-stroke seal ignores it (web parity).
+        state.removeLayer(id: topId)
+        #expect(state.document.layers().count == 2)
+        state.continueStroke(to: ScreenCanvasCoords(x: 3, y: 1))
+        state.endStroke()
+
+        // The whole stroke landed on the layer it began on.
+        #expect(try state.document.activeLayerPixels().contains { $0 != 0 })
+        #expect(state.document.activeLayerId() == topId)
+    }
+
+    @Test("canRemoveLayer reads the sole-layer guard — the panel's disabled-affordance predicate")
+    func canRemoveLayerReadsSoleLayerGuard() throws {
+        let state = EditorState(width: 8, height: 8)
+        #expect(!state.canRemoveLayer)
+
+        state.addLayer()
+        #expect(state.canRemoveLayer)
+
+        state.removeLayer(id: state.document.activeLayerId())
+        #expect(!state.canRemoveLayer)
     }
 }

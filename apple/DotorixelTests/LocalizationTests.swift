@@ -89,6 +89,7 @@ struct FormatEntryLocalizationTests {
         #expect(resolve("Recent color \("#FF0000")", in: "ko") == "최근 색상 #FF0000")
         #expect(resolve("Palette color \("#FF0000")", in: "ko") == "팔레트 색상 #FF0000")
         #expect(resolve("\(16) by \(16)", in: "ko") == "16 × 16")
+        #expect(resolve("Delete \("Layer 1")", in: "ko") == "Layer 1 삭제")
     }
 }
 
@@ -98,6 +99,21 @@ func resolve(_ resource: LocalizedStringResource, in localeIdentifier: String) -
     var resource = resource
     resource.locale = Locale(identifier: localeIdentifier)
     return String(localized: resource)
+}
+
+/// Cross-shell terminology: added layers are auto-named with the web's
+/// `layer_default_name` message ("Layer {n}" / "레이어 {n}" / "レイヤー {n}").
+/// The name is resolved once at creation and stored in the document — web
+/// parity, where the message is applied at the add-layer call site.
+@Suite("Localization — default layer name (web terminology parity)")
+struct DefaultLayerNameLocalizationTests {
+
+    @Test("Default layer names resolve per locale")
+    func defaultLayerNameResolvesPerLocale() {
+        #expect(resolve(EditorState.defaultLayerName(number: 2), in: "en") == "Layer 2")
+        #expect(resolve(EditorState.defaultLayerName(number: 2), in: "ko") == "레이어 2")
+        #expect(resolve(EditorState.defaultLayerName(number: 2), in: "ja") == "レイヤー 2")
+    }
 }
 
 /// Cross-shell terminology: tool names must match the web's message catalogs

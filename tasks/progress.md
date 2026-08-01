@@ -3,23 +3,23 @@
 ## Currently Working On
 
 Apple Phase 3 — Layer system ([RFC](../issues/013-apple-native-catchup.md))
-— 3/5 sub-issues done (256–258). Frontier:
-[259 — add/remove](../issues/259-apple-layer-add-remove.md) and
-[260 — reorder](../issues/260-apple-layer-reorder.md), both now unblocked
-(parallel).
+— 4/6 sub-issues done (256–259). Frontier:
+[261 — Timeline panel shell](../issues/261-apple-timeline-panel-shell.md)
+(new — layer sidebar moves to its final home), then
+[260 — reorder](../issues/260-apple-layer-reorder.md) (now blocked by 261).
 
 ## Last Completed
 
-[258 — Apple layer panel — rows, active selection, visibility](../issues/258-apple-layer-panel-rows.md):
-the first visible layer UI (RightPanel Layers section) with web-parity
-history semantics. Notable: the mid-stroke seal now also covers the eye
-toggle — a deliberate strengthening over the web that protects the
-stroke's pending Edit Baseline on iPad multitouch.
+[259 — Apple layer panel — add and remove layers](../issues/259-apple-layer-add-remove.md):
+the full layer workflow is live through UI alone (add/remove with web-parity
+history semantics; the mid-stroke seal extends to add). Notable: a
+placement review with the user superseded 258's "migrate at Phase 6" note —
+the layer UI moves to a Timeline panel shell now (issue 261), and the RFC's
+layout-reference wording was corrected accordingly.
 
 ## Next Up
 
-- [259 — Apple layer panel — add and remove layers](../issues/259-apple-layer-add-remove.md) — Phase 3 frontier
-- [260 — Apple layer panel — reorder layers](../issues/260-apple-layer-reorder.md) — Phase 3 frontier, parallel with 259
+- [261 — Apple Timeline panel shell — layer sidebar at its final home](../issues/261-apple-timeline-panel-shell.md) — Phase 3 frontier; blocks 260
 - [255 — Apple Pencil device verification pass (HITL)](../issues/255-apple-pencil-device-verification.md) — deferred until real-hardware access; last open sub-issue of the 251 PRD
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)

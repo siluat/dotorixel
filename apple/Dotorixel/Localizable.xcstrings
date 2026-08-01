@@ -39,6 +39,23 @@
       "comment" : "Percent accessibility value for the split SV-square elements (issue 250).",
       "shouldTranslate" : false
     },
+    "Add layer" : {
+      "comment" : "Layers section add button accessibility label. web: aria_addLayer",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レイヤーを追加"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "레이어 추가"
+          }
+        }
+      }
+    },
     "Background color" : {
       "comment" : "BG swatch accessibility label. web: color_background (concept)",
       "localizations" : {
@@ -120,6 +137,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "색상"
+          }
+        }
+      }
+    },
+    "Delete %@" : {
+      "comment" : "Layer row remove button accessibility label; %@ is the layer name. web: aria_removeLayer",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を削除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 삭제"
           }
         }
       }
@@ -315,6 +349,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "색상"
+          }
+        }
+      }
+    },
+    "Layer %lld" : {
+      "comment" : "Default name for an added layer; %lld is the document's monotonic layer counter. web: layer_default_name",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レイヤー %lld"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "레이어 %lld"
           }
         }
       }

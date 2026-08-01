@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 259 | [Apple layer panel — add and remove layers](../issues/259-apple-layer-add-remove.md) | 2026-08-01 |
 | 258 | [Apple layer panel — rows, active layer selection, visibility toggle](../issues/258-apple-layer-panel-rows.md) | 2026-07-27 |
 | 257 | [Apple editor on the Document model — state redesign + composite render path](../issues/257-apple-document-editor-state.md) | 2026-07-26 |
 | 256 | [Apple UniFFI Document bindings — expose the Document model and DocumentHistory to Swift](../issues/256-apple-uniffi-document-bindings.md) | 2026-07-26 |

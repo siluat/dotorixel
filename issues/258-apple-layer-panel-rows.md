@@ -69,6 +69,7 @@ documents, while single-layer visibility toggling is already demoable live.
 ### Key Decisions
 
 - **Layers section lives in RightPanel** (between Canvas and Color): the web keeps layer rows in the Timeline panel, which the Apple shell doesn't have until Phase 6 — the section can migrate then.
+  - **Superseded (2026-08-01)**: placement revisited with the user after 259 — the section migrates to a Timeline panel shell in [261](261-apple-timeline-panel-shell.md), within Phase 3 and before reorder (260), not at Phase 6. The web reference layout includes the Timeline panel; the four-region reading was stale.
 - **Mid-stroke seal extended to `setLayerVisibility`** — a deliberate strengthening over the web (which lacks the guard): committing mid-stroke would replace the stroke's pending Edit Baseline (deferred-history-commit ADR), corrupting undo on iPad multitouch. User-visible semantics are unchanged.
 - **`setActiveLayer` reuses `canvasVersion`** as its re-render signal rather than adding a third version counter; the redundant composite upload on a selection-only change is accepted.
 - **Core lowercases layer ids** — Swift `UUID().uuidString` is uppercase, so ids that get string-compared are generated via `makeLayerId()`.

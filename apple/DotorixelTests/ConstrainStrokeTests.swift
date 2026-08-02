@@ -106,7 +106,6 @@ struct ConstrainStrokeTests {
         #expect(paintedPixelCount(state.activeTab) == raw.count)
     }
 
-    /// Number of canvas pixels with a non-zero alpha channel.
 }
 
 /// The toolbar's tool-activation gesture (web parity: `activateTool` in

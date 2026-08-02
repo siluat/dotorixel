@@ -11,10 +11,10 @@ struct TabStateLayerTests {
 
     /// Reads one RGBA pixel of the *active* layer's buffer.
     private func activeLayerPixel(
-        _ state: Workspace, x: UInt32, y: UInt32
+        _ tab: TabState, x: UInt32, y: UInt32
     ) throws -> [UInt8] {
-        let pixels = try state.activeTab.document.activeLayerPixels()
-        let offset = Int((y * state.activeTab.document.width() + x) * 4)
+        let pixels = try tab.document.activeLayerPixels()
+        let offset = Int((y * tab.document.width() + x) * 4)
         return Array(pixels[offset..<offset + 4])
     }
 
@@ -33,7 +33,7 @@ struct TabStateLayerTests {
         state.activeTab.endStroke()
 
         // The stroke landed on the re-activated bottom layer…
-        #expect(try activeLayerPixel(state, x: 2, y: 2) == [0x00, 0x00, 0x00, 0xFF])
+        #expect(try activeLayerPixel(state.activeTab, x: 2, y: 2) == [0x00, 0x00, 0x00, 0xFF])
 
         // …and nowhere else: the top layer's buffer stayed transparent.
         state.activeTab.setActiveLayer(id: topId)
@@ -71,8 +71,8 @@ struct TabStateLayerTests {
         state.activeTab.endStroke()
 
         // The whole stroke landed on the layer it began on.
-        #expect(try activeLayerPixel(state, x: 1, y: 1) == [0x00, 0x00, 0x00, 0xFF])
-        #expect(try activeLayerPixel(state, x: 3, y: 1) == [0x00, 0x00, 0x00, 0xFF])
+        #expect(try activeLayerPixel(state.activeTab, x: 1, y: 1) == [0x00, 0x00, 0x00, 0xFF])
+        #expect(try activeLayerPixel(state.activeTab, x: 3, y: 1) == [0x00, 0x00, 0x00, 0xFF])
         state.activeTab.setActiveLayer(id: bottomId)
         #expect(try state.activeTab.document.activeLayerPixels().allSatisfy { $0 == 0 })
     }
@@ -149,7 +149,7 @@ struct TabStateLayerTests {
         state.activeTab.endStroke()
 
         // The paint landed on the hidden layer's own buffer…
-        #expect(try activeLayerPixel(state, x: 4, y: 4) == [0x00, 0x00, 0x00, 0xFF])
+        #expect(try activeLayerPixel(state.activeTab, x: 4, y: 4) == [0x00, 0x00, 0x00, 0xFF])
         // …while the composite keeps excluding it.
         #expect(paintedPixelCount(state.activeTab) == 0)
     }

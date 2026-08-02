@@ -148,5 +148,4 @@ struct FloodFillSessionTests {
         #expect(try state.activeTab.document.getPixel(x: 7, y: 7) == state.shared.backgroundColor)
     }
 
-    /// Number of canvas pixels with a non-zero alpha channel.
 }

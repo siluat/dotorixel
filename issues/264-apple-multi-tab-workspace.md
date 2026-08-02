@@ -53,6 +53,11 @@ the shell.
 - Workspace logic (naming, activation, close index math, shared-vs-per-tab
   state) is unit-tested; the tab strip appears in docked-view snapshots
   across the layout tiers.
+- The canvas coordinator's originating-tab capture (`strokeTab` in
+  `PixelCanvasView.Coordinator`, wired in 262 review) is regression-tested
+  here, where `setActiveTab` first makes a mid-stroke tab switch
+  constructible: a stroke begun on tab A must end/cancel on A even when B
+  activates mid-stroke.
 
 ## Blocked by
 

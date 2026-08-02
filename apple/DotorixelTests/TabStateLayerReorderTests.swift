@@ -14,10 +14,10 @@ struct TabStateLayerReorderTests {
     /// Reads one RGBA pixel of the composite — the rendered stacking these
     /// tests judge the reorder by.
     private func compositePixel(
-        _ state: Workspace, x: UInt32, y: UInt32
+        _ tab: TabState, x: UInt32, y: UInt32
     ) -> [UInt8] {
-        let pixels = state.activeTab.document.composite()
-        let offset = Int((y * state.activeTab.document.width() + x) * 4)
+        let pixels = tab.document.composite()
+        let offset = Int((y * tab.document.width() + x) * 4)
         return Array(pixels[offset..<offset + 4])
     }
 
@@ -44,13 +44,13 @@ struct TabStateLayerReorderTests {
     @Test("moving the top row to the panel's bottom puts its pixels under the other layer's")
     func movingTopRowToPanelBottomRestacksTheComposite() {
         let (state, bottomId, topId) = makeOverlappingStack()
-        #expect(compositePixel(state, x: 2, y: 2) == red)
+        #expect(compositePixel(state.activeTab, x: 2, y: 2) == red)
 
         // Panel order is [top, bottom]; index 1 is the panel's bottom row.
         state.activeTab.reorderLayer(id: topId, toPanelIndex: 1)
 
         #expect(state.activeTab.layersInPanelOrder.map(\.id) == [bottomId, topId])
-        #expect(compositePixel(state, x: 2, y: 2) == black)
+        #expect(compositePixel(state.activeTab, x: 2, y: 2) == black)
     }
 
     @Test("a real move records exactly one undo entry; undo restores the previous order and composite")
@@ -62,13 +62,13 @@ struct TabStateLayerReorderTests {
         // One undo restores the pre-move order and the composite it rendered…
         state.activeTab.handleUndo()
         #expect(state.activeTab.layersInPanelOrder.map(\.id) == [topId, bottomId])
-        #expect(compositePixel(state, x: 2, y: 2) == red)
+        #expect(compositePixel(state.activeTab, x: 2, y: 2) == red)
 
         // …and the move recorded exactly one entry: the next undo peels the
         // red stroke, not another restack.
         state.activeTab.handleUndo()
         #expect(state.activeTab.layersInPanelOrder.map(\.id) == [topId, bottomId])
-        #expect(compositePixel(state, x: 2, y: 2) == black)
+        #expect(compositePixel(state.activeTab, x: 2, y: 2) == black)
     }
 
     @Test("a drop at the row's current position records nothing and leaves the redo future intact")
@@ -161,7 +161,7 @@ struct TabStateLayerReorderTests {
         // The stroke's own undo entry survived intact: one undo erases the
         // stroke and leaves the pre-stroke composite.
         state.activeTab.handleUndo()
-        #expect(compositePixel(state, x: 5, y: 5) == [0x00, 0x00, 0x00, 0x00])
-        #expect(compositePixel(state, x: 2, y: 2) == red)
+        #expect(compositePixel(state.activeTab, x: 5, y: 5) == [0x00, 0x00, 0x00, 0x00])
+        #expect(compositePixel(state.activeTab, x: 2, y: 2) == red)
     }
 }

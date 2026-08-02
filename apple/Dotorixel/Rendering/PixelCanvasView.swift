@@ -186,7 +186,13 @@ extension PixelCanvasView {
         var viewport: AppleViewport?
         var workspace: Workspace?
 
-        private var isInteracting = false
+        /// The tab whose stroke this coordinator is driving, captured at
+        /// `drawingBegan` — nil while no stroke is active. The full
+        /// begin → move → end/cancel sequence must land on one document even
+        /// if the active tab changes mid-stroke (multi-tab, Phase 4):
+        /// re-resolving `activeTab` per event would strand the originating
+        /// tab mid-edit and target another tab's document.
+        private var strokeTab: TabState?
 
         /// The input source resolved at stroke begin — reused for the loupe
         /// pointer pushes on every subsequent move of the same stroke.
@@ -204,36 +210,35 @@ extension PixelCanvasView {
         // re-render) is owned by the active TabState and its StrokeEngine.
 
         func drawingBegan(at point: CGPoint, button: PointerButton, inputSource: LoupeInputSource, in view: InputMTKView) {
-            guard let viewport, let workspace else { return }
+            guard let workspace else { return }
 
-            isInteracting = true
-            strokeInputSource = inputSource
             let tab = workspace.activeTab
+            strokeTab = tab
+            strokeInputSource = inputSource
             // Pointer push precedes the stroke so the loupe has a position
             // the moment the first sample shows it.
             pushLoupePointer(point, in: view, tab: tab)
             tab.beginStroke(
-                at: canvasCoords(of: point, in: view, viewport: viewport),
+                at: canvasCoords(of: point, in: view, viewport: tab.viewport),
                 button: button
             )
         }
 
         func drawingMoved(to point: CGPoint, in view: InputMTKView) {
-            guard isInteracting, let viewport, let workspace else { return }
+            guard let tab = strokeTab else { return }
 
-            let tab = workspace.activeTab
             pushLoupePointer(point, in: view, tab: tab)
-            tab.continueStroke(to: canvasCoords(of: point, in: view, viewport: viewport))
+            tab.continueStroke(to: canvasCoords(of: point, in: view, viewport: tab.viewport))
         }
 
         func drawingEnded(in view: InputMTKView) {
-            isInteracting = false
-            workspace?.activeTab.endStroke()
+            strokeTab?.endStroke()
+            strokeTab = nil
         }
 
         func drawingCancelled(in view: InputMTKView) {
-            isInteracting = false
-            workspace?.activeTab.cancelStroke()
+            strokeTab?.cancelStroke()
+            strokeTab = nil
         }
 
         func shiftStateChanged(isHeld: Bool, in view: InputMTKView) {

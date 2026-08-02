@@ -59,6 +59,9 @@ struct TabStatePerTabTests {
         // Web parity: fresh tabs are named "Untitled N".
         #expect(tab.name == "Untitled 1")
         #expect(!tab.documentId.isEmpty)
+        // Two independently created workspaces must never share a document id.
+        let otherTab = Workspace(width: 16, height: 16).activeTab
+        #expect(tab.documentId != otherTab.documentId)
     }
 
     @Test("the Timeline panel collapse flag is tab-scoped and toggles from the tab")

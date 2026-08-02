@@ -187,5 +187,4 @@ struct MoveStrokeSessionTests {
         #expect(!state.activeTab.canUndo)
     }
 
-    /// Number of canvas pixels with a non-zero alpha channel.
 }

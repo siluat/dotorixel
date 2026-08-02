@@ -195,5 +195,4 @@ struct ShapeStrokeSessionTests {
         #expect(try state.activeTab.document.getPixel(x: 4, y: 3) == originalColor)
     }
 
-    /// Number of canvas pixels with a non-zero alpha channel.
 }

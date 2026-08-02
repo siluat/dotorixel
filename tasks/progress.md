@@ -2,7 +2,7 @@
 
 ## Currently Working On
 
-None
+Apple catch-up Phase 4 — multi-tab + persistence ([RFC](../issues/013-apple-native-catchup.md), issues 262–266)
 
 ## Last Completed
 
@@ -14,7 +14,8 @@ gesture wants a hands-on pass; two follow-ups from it are in the review backlog.
 
 ## Next Up
 
-- Phase 4 of the [Apple catch-up RFC](../issues/013-apple-native-catchup.md) — multi-tab + persistence; needs `/to-tickets` to decompose
+- [262 — Apple workspace state split (prefactor)](../issues/262-apple-workspace-state-split.md) — Phase 4 frontier; parallel with 263
+- [263 — Apple UniFFI persistence bindings (expand)](../issues/263-apple-uniffi-persistence-bindings.md) — Phase 4 frontier; parallel with 262
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Feedback link to Google Form

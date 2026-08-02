@@ -273,3 +273,17 @@ docked structure, and enable features that require no UI design work.
   no web UI exists for either (parity scope). Canvas-resize undo folded into 257
   (whole-document snapshots make cross-dimension restore representable — web
   parity, replaces the clear-history workaround).
+- **2026-08-02** — Phase 4 (Multi-tab + persistence) decomposed into
+  ready-for-agent issues via `/to-tickets`:
+  {[262 — workspace state split (prefactor)](262-apple-workspace-state-split.md) ∥
+  [263 — UniFFI persistence bindings (expand)](263-apple-uniffi-persistence-bindings.md)} →
+  [264 — multi-tab workspace UI](264-apple-multi-tab-workspace.md) →
+  [265 — SwiftData session auto-save + restore](265-apple-swiftdata-session-persistence.md) →
+  [266 — save dialog + saved work browser](266-apple-save-dialog-saved-work.md).
+  262 performs the Swift-side state-architecture redesign in isolation; 263 is
+  expand-only on the UniFFI surface (256 pattern) wrapping the core's existing
+  `Document::from_layers`. 264 ships tab close behind an interim
+  discard-confirmation that 266 replaces with the save dialog. Persistence
+  schema covers the current Apple document model only — reference layers,
+  frames, and marquee arrive as Phase 5–6 schema extensions, the way the web
+  migrated v3→v7. Document rename excluded (no web UI — parity scope).

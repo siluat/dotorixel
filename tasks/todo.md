@@ -21,12 +21,19 @@
 Phased catch-up to full parity with completed web editor features. See the RFC for
 the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish), Phase 2
 (full tool set + color + i18n, issues 230–242), and Phase 3 (layer system, issues
-256–261) are complete; Phases 4–6 are decomposed into issues (`/to-tickets`) when
+256–261) are complete; Phases 5–6 are decomposed into issues (`/to-tickets`) when
 reached.
 
-### Phases 4–6 — roadmap (decompose when reached)
+### Phase 4 — Multi-tab + persistence (issues 262–266)
 
-- Phase 4 — Multi-tab + persistence (Workspace, SwiftData auto-save/restore)
+- [262 — Workspace state split (prefactor)](../issues/262-apple-workspace-state-split.md)
+- [263 — UniFFI persistence bindings (expand)](../issues/263-apple-uniffi-persistence-bindings.md) — parallel with 262
+- [264 — Multi-tab workspace UI](../issues/264-apple-multi-tab-workspace.md) — blocked by 262
+- [265 — SwiftData session auto-save + restore](../issues/265-apple-swiftdata-session-persistence.md) — blocked by 263, 264
+- [266 — Save dialog + saved work browser](../issues/266-apple-save-dialog-saved-work.md) — blocked by 265
+
+### Phases 5–6 — roadmap (decompose when reached)
+
 - Phase 5 — Reference + selection + transforms (M3 bundle)
 - Phase 6 — Animation + extended export (frames/timeline/playback/onion skin, SVG/GIF/spritesheet)
 

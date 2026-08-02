@@ -91,6 +91,7 @@ struct FormatEntryLocalizationTests {
         #expect(resolve("\(16) by \(16)", in: "ko") == "16 × 16")
         #expect(resolve("Delete \("Layer 1")", in: "ko") == "Layer 1 삭제")
         #expect(resolve("Reorder \("Layer 1")", in: "ko") == "Layer 1 순서 변경")
+        #expect(resolve("Close \("Untitled 1")", in: "ko") == "Untitled 1 닫기")
     }
 }
 

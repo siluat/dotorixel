@@ -34,6 +34,8 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 TopBar(workspace: workspace, tier: tier)
 
+                TabStrip(workspace: workspace)
+
                 HStack(spacing: 0) {
                     LeftToolbar(workspace: workspace, tier: tier)
 
@@ -47,8 +49,9 @@ struct ContentView: View {
                                 canvasVersion: canvasVersion,
                                 isTextInputFocused: isTextInputFocused
                             )
-                            .onAppear { fitCanvas(in: geo.size) }
-                            .onChange(of: geo.size) { _, newSize in fitCanvas(in: newSize) }
+                            .onAppear { presentActiveTab(in: geo.size) }
+                            .onChange(of: geo.size) { _, newSize in presentActiveTab(in: newSize) }
+                            .onChange(of: tab.documentId) { _, _ in presentActiveTab(in: geo.size) }
                             // Pencil hover preview: highlights the target cell
                             // while the Apple Pencil hovers (issue 253). Below the
                             // loupe so an active sampling stroke's magnifier wins.
@@ -66,8 +69,9 @@ struct ContentView: View {
                         // right panel run full height beside it, matching the
                         // web grid's `toolbar timeline panel` row. The canvas
                         // `GeometryReader` above shrinks by the panel's height,
-                        // and its `onChange(of: geo.size)` refits the viewport
-                        // whenever the panel collapses or expands.
+                        // and its `onChange(of: geo.size)` re-presents the
+                        // viewport whenever the panel collapses or expands —
+                        // a fitted tab keeps its zoom, the pan reclamps.
                         TimelinePanel(tab: tab)
                     }
 
@@ -165,20 +169,15 @@ struct ContentView: View {
         }
     }
 
-    /// Fits and centers the canvas within the available view area.
-    /// Multiplies by `displayScale` because the Metal renderer uses `drawableSize`
-    /// (device pixels), not SwiftUI points.
-    private func fitCanvas(in pointSize: CGSize) {
-        let deviceSize = ViewportSize(
+    /// Presents the active tab in the canvas area — the workspace fits a
+    /// tab the first time it is shown and preserves its zoom/pan (pan
+    /// reclamped) ever after. This wrapper only converts the area's point
+    /// size to the device pixels the viewport math runs in (the Metal
+    /// renderer uses `drawableSize`: points × scale).
+    private func presentActiveTab(in pointSize: CGSize) {
+        workspace.presentActiveTab(in: ViewportSize(
             width: pointSize.width * displayScale,
             height: pointSize.height * displayScale
-        )
-        let tab = workspace.activeTab
-        tab.viewportSize = deviceSize
-        tab.viewport = tab.viewport.fitToViewport(
-            canvasWidth: tab.document.width(),
-            canvasHeight: tab.document.height(),
-            viewportSize: deviceSize
-        )
+        ))
     }
 }

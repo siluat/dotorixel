@@ -90,6 +90,23 @@
         }
       }
     },
+    "Cancel" : {
+      "comment" : "Tab close confirmation — cancel button (issue 264). Web terminology parity: save_dialog_cancel.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンセル"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "취소"
+          }
+        }
+      }
+    },
     "Canvas" : {
       "comment" : "Right panel section title. web: section_canvas",
       "localizations" : {
@@ -120,6 +137,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "캔버스 지우기"
+          }
+        }
+      }
+    },
+    "Close %@" : {
+      "comment" : "Tab close button accessibility label; %@ is the tab's display name (issue 264). Web terminology parity: action_close.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を閉じる"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 닫기"
           }
         }
       }
@@ -171,6 +205,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 삭제"
+          }
+        }
+      }
+    },
+    "Discard" : {
+      "comment" : "Tab close confirmation — destructive confirm button (issue 264).",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "破棄"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "버리기"
+          }
+        }
+      }
+    },
+    "Discard this drawing?" : {
+      "comment" : "Tab close confirmation title (issue 264). Interim until the save dialog (issue 266): nothing is persisted yet, so closing a tab discards its drawing.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この絵を破棄しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 그림을 버리시겠습니까?"
           }
         }
       }
@@ -485,6 +553,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "이동"
+          }
+        }
+      }
+    },
+    "New tab" : {
+      "comment" : "New-tab button accessibility label in the tab strip (issue 264).",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいタブ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "새 탭"
           }
         }
       }

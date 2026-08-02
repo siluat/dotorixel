@@ -84,6 +84,11 @@ enum DesignTokens {
     /// `--sidebar-width` / 092 spec: 256px.
     static let timelineSidebarWidth: CGFloat = 256
 
+    /// Tab strip height — web `.tab-strip` renders 36px at every docked
+    /// breakpoint (≥1024px), so like the Timeline panel it has no tier-driven
+    /// axis on the Apple shell.
+    static let tabStripHeight: CGFloat = 36
+
     // MARK: - Spacing
 
     // Mirrors the web spacing scale. Steps 6–8 (24/32/48) are added when a

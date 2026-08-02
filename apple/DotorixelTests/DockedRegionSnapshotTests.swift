@@ -141,6 +141,35 @@ struct DockedRegionSnapshotTests {
         )
     }
 
+    // MARK: - TabStrip (height: 36, tier-independent)
+
+    /// Like `TimelinePanel`, the tab strip has no tier-driven axis: the web
+    /// `.tab-strip` renders 36px at both docked breakpoints. These snapshots
+    /// pin the height and the strip's content states instead. No ko baseline:
+    /// the strip's only visible text is tab names — unlocalized document
+    /// data — so a ko render would be pixel-identical (the alert and
+    /// accessibility strings never render offscreen).
+
+    @Test("TabStrip renders the sole tab with its close affordance disabled")
+    func tabStripSoleTab() {
+        assertSnapshot(
+            of: TabStrip(workspace: state()).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
+    @Test("TabStrip renders the active tab elevated with the accent underline among inactive tabs")
+    func tabStripMultiTabActiveDistinction() {
+        let multiTab = state()
+        multiTab.addTab()
+        multiTab.addTab()
+        multiTab.setActiveTab(1)
+        assertSnapshot(
+            of: TabStrip(workspace: multiTab).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
     // MARK: - LeftToolbar (width: 44 wide / 48 x-wide)
 
     @Test("LeftToolbar renders wide width (44pt)")

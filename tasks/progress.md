@@ -3,18 +3,18 @@
 ## Currently Working On
 
 Apple catch-up Phase 4 — multi-tab + persistence ([RFC](../issues/013-apple-native-catchup.md), issues 262–266).
-2 of 5 done (262, 263); frontier is 264, which unblocks 265 (263's side is ready).
+3 of 5 done (262–264); frontier is 265, now fully unblocked — 266 waits behind it.
 
 ## Last Completed
 
-[263 — Apple UniFFI persistence bindings](../issues/263-apple-uniffi-persistence-bindings.md):
-expand-only document snapshot reads + `from_layers` hydration through UniFFI —
-read and hydration share one symmetric `AppleLayerSnapshot` record (single-frame
-scope; core build errors surface as thrown errors). Existing bindings untouched.
+[264 — Apple multi-tab workspace UI](../issues/264-apple-multi-tab-workspace.md):
+SwiftUI tab strip with add/switch/close on the 262 state split — activation
+commits the outgoing tab's in-flight stroke, and closing shows an interim
+discard confirm until 266's save dialog replaces it.
 
 ## Next Up
 
-- [264 — Apple multi-tab workspace UI](../issues/264-apple-multi-tab-workspace.md) — Phase 4 frontier; last blocker of 265
+- [265 — Apple SwiftData session auto-save + restore](../issues/265-apple-swiftdata-session-persistence.md) — Phase 4 frontier; last blocker of 266
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Feedback link to Google Form

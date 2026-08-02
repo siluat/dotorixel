@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 263 | [Apple UniFFI persistence bindings — document snapshot reads and from_layers hydration](../issues/263-apple-uniffi-persistence-bindings.md) | 2026-08-02 |
 | 262 | [Apple workspace state split — extract per-tab state from EditorState](../issues/262-apple-workspace-state-split.md) | 2026-08-02 |
 | 260 | [Apple layer panel — reorder layers](../issues/260-apple-layer-reorder.md) | 2026-08-02 |
 | 261 | [Apple Timeline panel shell — layer sidebar at its final home](../issues/261-apple-timeline-panel-shell.md) | 2026-08-01 |

@@ -281,4 +281,117 @@ struct DocumentBindingsTests {
         #expect(redoneResize.width() == 2)
         #expect(redoneResize.height() == 2)
     }
+
+    @Test("layer snapshots expose every layer's persistence fields in stack order")
+    func layerSnapshotsRead() throws {
+        let baseId = makeLayerId()
+        let doc = try AppleDocument(width: 2, height: 2, firstLayerId: baseId, firstLayerName: "Layer 1")
+        try doc.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+
+        let topId = makeLayerId()
+        try doc.addLayer(newId: topId, name: "Layer 2")
+        try doc.setLayerVisibility(id: topId, visible: false)
+
+        let snapshots = try doc.layerSnapshots()
+        #expect(snapshots.map(\.id) == [baseId, topId])
+        #expect(snapshots.map(\.name) == ["Layer 1", "Layer 2"])
+        #expect(snapshots.map(\.visible) == [true, false])
+        #expect(snapshots.map(\.opacity) == [1.0, 1.0])
+
+        // Unlike `activeLayerPixels`, the snapshot carries *every* layer's
+        // buffer — the drawn pixel lives on the (inactive) base layer.
+        #expect(snapshots.map(\.pixels.count) == [2 * 2 * 4, 2 * 2 * 4])
+        #expect(Array(snapshots[0].pixels.prefix(4)) == [0xFF, 0x00, 0x00, 0xFF])
+        #expect(snapshots[1].pixels.allSatisfy { $0 == 0 })
+
+        // A document built through the editor path starts expanded.
+        #expect(!doc.isTimelinePanelCollapsed())
+    }
+
+    @Test("a persisted document round-trips: snapshot reads feed the hydration constructor and everything matches")
+    func snapshotHydrationRoundTrip() throws {
+        let bottomId = makeLayerId()
+        let topId = makeLayerId()
+
+        // The original is itself built through the hydration constructor —
+        // it is the only path that can produce non-default opacity and a
+        // collapsed Timeline panel (the editor bindings expose no setters).
+        var bottomPixels = Data(count: 2 * 2 * 4)
+        bottomPixels.replaceSubrange(0..<4, with: [0xFF, 0x00, 0x00, 0xFF] as [UInt8])
+        let original = try AppleDocument.fromLayers(
+            width: 2,
+            height: 2,
+            layers: [
+                AppleLayerSnapshot(
+                    id: bottomId, name: "Layer 1", visible: true, opacity: 1.0, pixels: bottomPixels),
+                AppleLayerSnapshot(
+                    id: topId, name: "Layer 2", visible: false, opacity: 0.5,
+                    pixels: Data(count: 2 * 2 * 4)),
+            ],
+            activeLayerId: bottomId, // non-default: not the top layer
+            nextLayerNumber: 7,
+            timelinePanelCollapsed: true
+        )
+
+        // A hydrated document is a live editing surface: draw on it before
+        // snapshotting so the round-trip carries a post-hydration edit too.
+        try original.setPixel(x: 1, y: 1, color: Color(r: 0x00, g: 0x00, b: 0xFF, a: 0xFF))
+
+        let snapshots = try original.layerSnapshots()
+        let hydrated = try AppleDocument.fromLayers(
+            width: original.width(),
+            height: original.height(),
+            layers: snapshots,
+            activeLayerId: original.activeLayerId(),
+            nextLayerNumber: original.nextLayerNumber(),
+            timelinePanelCollapsed: original.isTimelinePanelCollapsed()
+        )
+
+        #expect(hydrated.composite() == original.composite())
+        let rehydrated = try hydrated.layerSnapshots()
+        #expect(rehydrated.map(\.id) == [bottomId, topId])
+        #expect(rehydrated.map(\.name) == ["Layer 1", "Layer 2"])
+        #expect(rehydrated.map(\.visible) == [true, false])
+        #expect(rehydrated.map(\.opacity) == [1.0, 0.5])
+        #expect(rehydrated.map(\.pixels) == snapshots.map(\.pixels))
+        #expect(hydrated.activeLayerId() == bottomId)
+        #expect(hydrated.nextLayerNumber() == 7)
+        #expect(hydrated.isTimelinePanelCollapsed())
+    }
+
+    @Test("hydration surfaces the core build errors instead of crashing")
+    func hydrationBuildErrors() throws {
+        let layerId = makeLayerId()
+        func snapshot(id: String, pixels: Data = Data(count: 2 * 2 * 4)) -> AppleLayerSnapshot {
+            AppleLayerSnapshot(id: id, name: "Layer 1", visible: true, opacity: 1.0, pixels: pixels)
+        }
+        func hydrate(layers: [AppleLayerSnapshot], activeLayerId: String) throws -> AppleDocument {
+            try AppleDocument.fromLayers(
+                width: 2, height: 2, layers: layers, activeLayerId: activeLayerId,
+                nextLayerNumber: 2, timelinePanelCollapsed: false)
+        }
+
+        // Empty stack.
+        #expect(throws: AppleError.self) {
+            _ = try hydrate(layers: [], activeLayerId: layerId)
+        }
+
+        // Duplicate layer id.
+        #expect(throws: AppleError.self) {
+            _ = try hydrate(
+                layers: [snapshot(id: layerId), snapshot(id: layerId)], activeLayerId: layerId)
+        }
+
+        // Pixel buffer inconsistent with the document dimensions.
+        #expect(throws: AppleError.self) {
+            _ = try hydrate(
+                layers: [snapshot(id: layerId, pixels: Data(count: 3 * 3 * 4))],
+                activeLayerId: layerId)
+        }
+
+        // Active layer id not present in the stack.
+        #expect(throws: AppleError.self) {
+            _ = try hydrate(layers: [snapshot(id: layerId)], activeLayerId: makeLayerId())
+        }
+    }
 }

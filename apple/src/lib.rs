@@ -6,7 +6,7 @@ use dotorixel_core::history::DocumentHistory;
 use dotorixel_core::pixel_perfect::{FilterResult, TailState, pixel_perfect_filter};
 use dotorixel_core::tool::{ellipse_outline, interpolate_pixels, rectangle_outline};
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
-use dotorixel_core::{Document, ResizeAnchor};
+use dotorixel_core::{Document, Layer, ResizeAnchor};
 use uuid::Uuid;
 
 // Re-export core types used directly in the UniFFI interface.
@@ -69,6 +69,14 @@ impl From<dotorixel_core::DrawError> for AppleError {
 
 impl From<dotorixel_core::LayerError> for AppleError {
     fn from(e: dotorixel_core::LayerError) -> Self {
+        Self::Document {
+            message: e.to_string(),
+        }
+    }
+}
+
+impl From<dotorixel_core::document::DocumentBuildError> for AppleError {
+    fn from(e: dotorixel_core::document::DocumentBuildError) -> Self {
         Self::Document {
             message: e.to_string(),
         }
@@ -298,6 +306,21 @@ pub struct AppleLayerMetadata {
     pub kind: LayerKindTag,
 }
 
+/// One Pixel Layer's full persistence snapshot — everything session
+/// persistence stores per layer, read in stack order via
+/// [`AppleDocument::layer_snapshots`] and fed back verbatim to the
+/// hydration constructor. `pixels` is the layer's RGBA row-major buffer
+/// (`width * height * 4` bytes); the id crosses the boundary as a lowercase
+/// UUID string, per the [`AppleLayerMetadata`] convention.
+#[derive(uniffi::Record)]
+pub struct AppleLayerSnapshot {
+    pub id: String,
+    pub name: String,
+    pub visible: bool,
+    pub opacity: f32,
+    pub pixels: Vec<u8>,
+}
+
 fn parse_layer_id(id: &str) -> Result<Uuid, AppleError> {
     Uuid::parse_str(id).map_err(|e| AppleError::Document {
         message: format!("Invalid layer id {id:?}: {e}"),
@@ -326,6 +349,50 @@ impl AppleDocument {
     ) -> Result<Arc<Self>, AppleError> {
         let id = parse_layer_id(&first_layer_id)?;
         let document = Document::new(width, height, id, first_layer_name)?;
+        Ok(Arc::new(Self {
+            inner: Mutex::new(document),
+        }))
+    }
+
+    /// Rebuilds a document from persisted parts — the hydration counterpart
+    /// of [`Self::layer_snapshots`]: `layers` is the persisted stack in stack
+    /// order, restored verbatim (ids, names, visibility, opacity, pixels).
+    /// Errors when a layer id or `active_layer_id` is not a valid UUID
+    /// string, when a pixel buffer's length is not `width * height * 4`, or
+    /// when the stack fails the core's build validation (empty stack,
+    /// duplicate ids, active layer not present).
+    #[uniffi::constructor]
+    fn from_layers(
+        width: u32,
+        height: u32,
+        layers: Vec<AppleLayerSnapshot>,
+        active_layer_id: String,
+        next_layer_number: u32,
+        timeline_panel_collapsed: bool,
+    ) -> Result<Arc<Self>, AppleError> {
+        let layers = layers
+            .into_iter()
+            .map(|snapshot| {
+                let id = parse_layer_id(&snapshot.id)?;
+                let canvas = PixelCanvas::from_pixels(width, height, snapshot.pixels)?;
+                Ok(Layer::from_pixel_canvas(
+                    id,
+                    snapshot.name,
+                    snapshot.visible,
+                    snapshot.opacity,
+                    canvas,
+                ))
+            })
+            .collect::<Result<Vec<_>, AppleError>>()?;
+        let active_id = parse_layer_id(&active_layer_id)?;
+        let document = Document::from_layers(
+            width,
+            height,
+            layers,
+            active_id,
+            next_layer_number,
+            timeline_panel_collapsed,
+        )?;
         Ok(Arc::new(Self {
             inner: Mutex::new(document),
         }))
@@ -429,6 +496,45 @@ impl AppleDocument {
                     document.active_layer_id()
                 ),
             })
+    }
+
+    /// Every layer's persistence snapshot in stack order — the per-layer
+    /// fields session persistence stores (id, name, visibility, opacity, and
+    /// the full pixel buffer, active or not). Errors when the stack contains
+    /// a Reference Layer: persistence snapshots cover Pixel Layers only, and
+    /// the Apple shell cannot create Reference Layers yet, so failing loudly
+    /// beats silently dropping a layer.
+    fn layer_snapshots(&self) -> Result<Vec<AppleLayerSnapshot>, AppleError> {
+        let document = self.inner.lock().unwrap();
+        document
+            .layers()
+            .iter()
+            .enumerate()
+            .map(|(index, layer)| {
+                let pixels =
+                    document
+                        .layer_pixels_at(index)
+                        .ok_or_else(|| AppleError::Document {
+                            message: format!(
+                                "Layer {} is a Reference Layer; persistence snapshots cover Pixel Layers only",
+                                layer.id
+                            ),
+                        })?;
+                Ok(AppleLayerSnapshot {
+                    id: layer.id.to_string(),
+                    name: layer.name.clone(),
+                    visible: layer.visible,
+                    opacity: layer.opacity,
+                    pixels: pixels.to_vec(),
+                })
+            })
+            .collect()
+    }
+
+    /// Whether the bottom-docked Timeline panel is collapsed to its header
+    /// strip — presentation state that persists with the document.
+    fn is_timeline_panel_collapsed(&self) -> bool {
+        self.inner.lock().unwrap().is_timeline_panel_collapsed()
     }
 
     /// Overwrites the active layer's pixel buffer with `data` — the write

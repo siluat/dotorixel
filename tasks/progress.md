@@ -3,20 +3,18 @@
 ## Currently Working On
 
 Apple catch-up Phase 4 — multi-tab + persistence ([RFC](../issues/013-apple-native-catchup.md), issues 262–266).
-1 of 5 done (262); frontier is 263 and the newly unblocked 264.
+2 of 5 done (262, 263); frontier is 264, which unblocks 265 (263's side is ready).
 
 ## Last Completed
 
-[262 — Apple workspace state split](../issues/262-apple-workspace-state-split.md):
-`EditorState` dissolved into `Workspace` / `TabState` / `SharedState` mirroring
-the web's ownership boundaries — no behavior change (snapshots byte-identical,
-no UniFFI change). Tab identity ("Untitled N", `documentId`) and the
-`createTab` seam are in place for the multi-tab slice.
+[263 — Apple UniFFI persistence bindings](../issues/263-apple-uniffi-persistence-bindings.md):
+expand-only document snapshot reads + `from_layers` hydration through UniFFI —
+read and hydration share one symmetric `AppleLayerSnapshot` record (single-frame
+scope; core build errors surface as thrown errors). Existing bindings untouched.
 
 ## Next Up
 
-- [263 — Apple UniFFI persistence bindings (expand)](../issues/263-apple-uniffi-persistence-bindings.md) — Phase 4 frontier
-- [264 — Apple multi-tab workspace UI](../issues/264-apple-multi-tab-workspace.md) — Phase 4 frontier; unblocked by 262
+- [264 — Apple multi-tab workspace UI](../issues/264-apple-multi-tab-workspace.md) — Phase 4 frontier; last blocker of 265
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Feedback link to Google Form

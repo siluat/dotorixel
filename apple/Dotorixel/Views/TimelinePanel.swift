@@ -70,6 +70,24 @@ struct TimelinePanel: View {
                 .fill(DesignTokens.borderSubtle)
                 .frame(height: dividerThickness)
         }
+        // A structural change mid-drag — a second finger adding or removing a
+        // layer, ⌘Z restoring another stack — invalidates the drag's captured
+        // geometry, so cancel the preview rather than commit against rows that
+        // no longer exist. Removing the dragged row itself also lands here: its
+        // gesture is torn down without `onEnded`, and this is what clears the
+        // state it leaves behind. The drop's own commit is exempt — it clears
+        // the drag before mutating, so this fires with nothing to cancel.
+        .onChange(of: layerIdsInPanelOrder) {
+            guard reorderDrag != nil else { return }
+            reorderDrag = nil
+        }
+    }
+
+    /// The stack's identity in panel order — what a live reorder drag's
+    /// geometry is captured against, watched to cancel the drag when it
+    /// changes. Visibility flips keep the same ids, so they don't cancel.
+    private var layerIdsInPanelOrder: [String] {
+        editorState.layersInPanelOrder.map(\.id)
     }
 
     // MARK: - Header
@@ -159,6 +177,10 @@ struct TimelinePanel: View {
         // gesture claims the press on touch-down (`minimumDistance: 0`), so the
         // lock lands before any travel could be read as a scroll instead.
         .scrollDisabled(reorderDrag != nil)
+        // Collapsing mid-drag removes the rows and tears their gestures down
+        // without `onEnded` — drop the drag with the body so no preview offsets
+        // or scroll lock survive into the next expand.
+        .onDisappear { reorderDrag = nil }
     }
 
     /// Holds the spec width wherever the canvas column can seat it, and yields
@@ -256,7 +278,7 @@ struct TimelinePanel: View {
             .onChanged { value in
                 if reorderDrag?.layerId == layer.id {
                     reorderDrag?.translation = value.translation.height
-                } else {
+                } else if reorderDrag == nil {
                     reorderDrag = LayerReorderDrag(
                         layerId: layer.id,
                         baseIndex: panelIndex,
@@ -265,6 +287,10 @@ struct TimelinePanel: View {
                         translation: value.translation.height
                     )
                 }
+                // A handle pressed while another row's drag is live falls
+                // through both branches: only the initiating pointer drives a
+                // drag (web parity), and `onEnded`'s id guard below keeps that
+                // second pointer from committing or clearing it.
             }
             .onEnded { value in
                 guard var drag = reorderDrag, drag.layerId == layer.id else { return }

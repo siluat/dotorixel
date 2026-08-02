@@ -96,10 +96,17 @@ order.
   exercised only through unit-level seams and snapshots. The scroll-axis
   conflict guard (`scrollDisabled` while a drag is live) in particular wants a
   hands-on check with ≥4 layers, where the panel actually scrolls.
-- **Interrupted-drag recovery is a known gap** — SwiftUI's `DragGesture` has no
-  cancel callback, so a drag whose `onEnded` never arrives leaves the preview
-  offsets and the scroll lock in place until the next drag. Deferred to the
-  review backlog with the reasoning.
+- **Interrupted-drag recovery is a known gap, narrowed during PR #347 review** —
+  SwiftUI's `DragGesture` has no cancel callback, so a drag whose `onEnded`
+  never arrives leaves the preview offsets and the scroll lock in place until
+  the next drag. The review pass added guards for the in-app orphan paths
+  (surfaced by greptile/cubic): a stack mutation mid-drag — second-finger
+  add/remove, ⌘Z — cancels the drag via `onChange` of the panel-order ids
+  (also covering stale-geometry commits and removal of the dragged row), a
+  collapse cancels via the body's `onDisappear`, and a second handle press
+  can no longer steal a live drag (first pointer wins, web parity). The
+  OS-interruption residual (app backgrounded mid-drag) stays in the review
+  backlog with the reasoning.
 - **Narrow-column regression, accepted.** At the narrowest supported canvas
   column (236pt, the macOS window floor) the third row control squeezes the
   layer name out entirely; it previously truncated to "L…". Nothing overflows

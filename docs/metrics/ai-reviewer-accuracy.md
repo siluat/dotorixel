@@ -10,14 +10,23 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 201 | 150 | 51 | 240 | 75% | 38% |
-| cubic-dev-ai[bot] | 239 | 187 | 52 | 204 | 78% | 48% |
-| coderabbitai[bot] | 293 | 205 | 88 | 188 | 70% | 52% |
+| greptile-apps[bot] | 201 | 150 | 51 | 243 | 75% | 38% |
+| cubic-dev-ai[bot] | 244 | 191 | 53 | 204 | 78% | 48% |
+| coderabbitai[bot] | 295 | 207 | 88 | 189 | 70% | 52% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #350 | coderabbitai[bot] | Accept | The `geo.size` change path still called `fitCanvas` unconditionally, bypassing the new fit-once mechanism whenever a Timeline collapse or window resize changed the canvas area — a cross-collapse-state tab switch reset the incoming tab's zoom/pan, breaking the PR's own per-tab viewport requirement; fit-once moved to `Workspace.presentActiveTab` (fit first show, reclamp after), all ContentView hooks route through it, regression-tested at the workspace seam |
+| #350 | cubic-dev-ai[bot] | Accept | Same refit bypass, flagged at the `fitCanvas` body with a fit-only-on-first-insertion suggestion (duplicate of coderabbit); same workspace-seam fix |
+| #350 | cubic-dev-ai[bot] | Accept | Same refit bypass, flagged at the `.onChange(of: geo.size)` hook (duplicate); same fix |
+| #350 | coderabbitai[bot] | Accept | First coordinator test claimed to pin originating-tab routing, but `setActiveTab`'s activation policy commits the stroke before the tail events run, so its assertions pass even if the `strokeTab` capture regresses; reframed as the policy-integration check and added a stranded-stroke tail test (closeTab bypasses the policy) that genuinely discriminates the capture |
+| #350 | cubic-dev-ai[bot] | Accept | Same non-discriminating first coordinator test (duplicate of coderabbit); same reframe + stranded-tail variant |
+| #350 | cubic-dev-ai[bot] | Accept | New "Close %@" interpolated label wasn't pinned in `FormatEntryLocalizationTests` like its "Delete %@"/"Reorder %@" siblings — the suite exists to catch call-site/catalog format-key mismatches that fall back to English silently; ko expectation added |
+| #350 | cubic-dev-ai[bot] | Reject | Wanted ArrowLeft/Right + Home/End roving-focus tab navigation (web parity); out of the 264 acceptance scope and an independent FocusState/onKeyPress slice — tracked in the review backlog |
+| #350 | coderabbitai[bot] | Miss | Did not flag the unpinned "Close %@" format entry (accepted from cubic) |
+| #350 | greptile-apps[bot] | Miss (×3) | Confidence 5/5 with no findings; missed the refit bypass, the non-discriminating coordinator test, and the unpinned "Close %@" entry |
 | #349 | cubic-dev-ai[bot] | Accept | Hydrating a snapshot with a NaN/Infinity/out-of-range opacity built a `Layer` outside its documented `[0.0, 1.0]` invariant — NaN slips past the compositor's clamp and renders the layer transparent; `from_layers` now rejects non-finite or out-of-range opacity at the hydration boundary, naming the layer id and value |
 | #349 | cubic-dev-ai[bot] | Accept | Partial: same opacity gap bundled with a `next_layer_number` overflow guard; opacity half accepted, counter guard declined — every u32 is structurally valid (rejecting `MAX` only moves the cliff to `MAX-1`) and a wrap costs display naming only, layer identity being UUID-based |
 | #349 | greptile-apps[bot] | Accept | Partial: same opacity + counter bundle (duplicate of cubic, P1); same split — opacity validation adopted, counter guard declined for the same reasons |

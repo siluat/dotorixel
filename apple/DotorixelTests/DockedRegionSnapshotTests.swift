@@ -30,14 +30,14 @@ struct DockedRegionSnapshotTests {
     private let stripHeight: CGFloat = 560   // vertical strip: LeftToolbar, RightPanel
     private let barWidth: CGFloat = 640       // horizontal bars: TopBar, StatusBar, TimelinePanel
 
-    private func state() -> EditorState { EditorState(width: 16, height: 16) }
+    private func state() -> Workspace { Workspace(width: 16, height: 16) }
 
     // MARK: - RightPanel (width: 200 wide / 240 x-wide)
 
     @Test("RightPanel renders wide width (200pt)")
     func rightPanelWide() {
         assertSnapshot(
-            of: RightPanel(editorState: state(), tier: .wide).frame(height: stripHeight),
+            of: RightPanel(workspace: state(), tier: .wide).frame(height: stripHeight),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -45,7 +45,7 @@ struct DockedRegionSnapshotTests {
     @Test("RightPanel renders x-wide width (240pt)")
     func rightPanelXWide() {
         assertSnapshot(
-            of: RightPanel(editorState: state(), tier: .xWide).frame(height: stripHeight),
+            of: RightPanel(workspace: state(), tier: .xWide).frame(height: stripHeight),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -58,10 +58,10 @@ struct DockedRegionSnapshotTests {
         let populated = state()
         let channels: [UInt8] = [0x20, 0x50, 0x80, 0xA0, 0xC0, 0xE0, 0xF0, 0xFF]
         for value in channels {
-            populated.recordRecentColor(Color(r: value, g: 0x40, b: 0x40, a: 0xFF))
+            populated.shared.recordRecentColor(Color(r: value, g: 0x40, b: 0x40, a: 0xFF))
         }
         assertSnapshot(
-            of: RightPanel(editorState: populated, tier: .wide).frame(height: stripHeight),
+            of: RightPanel(workspace: populated, tier: .wide).frame(height: stripHeight),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -73,9 +73,9 @@ struct DockedRegionSnapshotTests {
     @Test("RightPanel renders the hex row for a non-default foreground")
     func rightPanelHexRowNonDefaultForeground() {
         let recolored = state()
-        recolored.foregroundColor = Color(r: 0xFF, g: 0x8A, b: 0x65, a: 0xFF)
+        recolored.shared.foregroundColor = Color(r: 0xFF, g: 0x8A, b: 0x65, a: 0xFF)
         assertSnapshot(
-            of: RightPanel(editorState: recolored, tier: .wide).frame(height: stripHeight),
+            of: RightPanel(workspace: recolored, tier: .wide).frame(height: stripHeight),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -90,7 +90,7 @@ struct DockedRegionSnapshotTests {
     @Test("TimelinePanel renders expanded (200pt) with the sole-layer remove disabled")
     func timelinePanelExpanded() {
         assertSnapshot(
-            of: TimelinePanel(editorState: state()).frame(width: barWidth),
+            of: TimelinePanel(tab: state().activeTab).frame(width: barWidth),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -98,9 +98,9 @@ struct DockedRegionSnapshotTests {
     @Test("TimelinePanel renders collapsed to its header strip (44pt)")
     func timelinePanelCollapsed() {
         let collapsed = state()
-        collapsed.toggleTimelinePanel()
+        collapsed.activeTab.toggleTimelinePanel()
         assertSnapshot(
-            of: TimelinePanel(editorState: collapsed).frame(width: barWidth),
+            of: TimelinePanel(tab: collapsed.activeTab).frame(width: barWidth),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -113,14 +113,14 @@ struct DockedRegionSnapshotTests {
     @Test("TimelinePanel renders a multi-layer sidebar with active and hidden rows")
     func timelinePanelMultiLayerRows() throws {
         let layered = state()
-        let bottomId = layered.document.activeLayerId()
+        let bottomId = layered.activeTab.document.activeLayerId()
         let middleId = makeLayerId()
-        try layered.document.addLayer(newId: middleId, name: "Layer 2")
-        try layered.document.addLayer(newId: makeLayerId(), name: "Layer 3")
-        layered.setLayerVisibility(id: middleId, visible: false)
-        layered.setActiveLayer(id: bottomId)
+        try layered.activeTab.document.addLayer(newId: middleId, name: "Layer 2")
+        try layered.activeTab.document.addLayer(newId: makeLayerId(), name: "Layer 3")
+        layered.activeTab.setLayerVisibility(id: middleId, visible: false)
+        layered.activeTab.setActiveLayer(id: bottomId)
         assertSnapshot(
-            of: TimelinePanel(editorState: layered).frame(width: barWidth),
+            of: TimelinePanel(tab: layered.activeTab).frame(width: barWidth),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -136,7 +136,7 @@ struct DockedRegionSnapshotTests {
     @Test("TimelinePanel keeps its content inside the narrowest supported canvas column")
     func timelinePanelNarrowColumn() {
         assertSnapshot(
-            of: TimelinePanel(editorState: state()).frame(width: narrowestCanvasColumnWidth),
+            of: TimelinePanel(tab: state().activeTab).frame(width: narrowestCanvasColumnWidth),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -146,7 +146,7 @@ struct DockedRegionSnapshotTests {
     @Test("LeftToolbar renders wide width (44pt)")
     func leftToolbarWide() {
         assertSnapshot(
-            of: LeftToolbar(editorState: state(), tier: .wide).frame(height: stripHeight),
+            of: LeftToolbar(workspace: state(), tier: .wide).frame(height: stripHeight),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -154,7 +154,7 @@ struct DockedRegionSnapshotTests {
     @Test("LeftToolbar renders x-wide width (48pt)")
     func leftToolbarXWide() {
         assertSnapshot(
-            of: LeftToolbar(editorState: state(), tier: .xWide).frame(height: stripHeight),
+            of: LeftToolbar(workspace: state(), tier: .xWide).frame(height: stripHeight),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -165,10 +165,10 @@ struct DockedRegionSnapshotTests {
     @Test("LeftToolbar renders the Constrain badge on the active latched tool")
     func leftToolbarConstrainBadge() {
         let latched = state()
-        latched.activeTool = .line
+        latched.shared.activeTool = .line
         latched.isConstrainLatchOn = true
         assertSnapshot(
-            of: LeftToolbar(editorState: latched, tier: .wide).frame(height: stripHeight),
+            of: LeftToolbar(workspace: latched, tier: .wide).frame(height: stripHeight),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -178,7 +178,7 @@ struct DockedRegionSnapshotTests {
     @Test("TopBar renders wide height (44pt)")
     func topBarWide() {
         assertSnapshot(
-            of: TopBar(editorState: state(), tier: .wide).frame(width: barWidth),
+            of: TopBar(workspace: state(), tier: .wide).frame(width: barWidth),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -186,7 +186,7 @@ struct DockedRegionSnapshotTests {
     @Test("TopBar renders x-wide height (48pt)")
     func topBarXWide() {
         assertSnapshot(
-            of: TopBar(editorState: state(), tier: .xWide).frame(width: barWidth),
+            of: TopBar(workspace: state(), tier: .xWide).frame(width: barWidth),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -197,9 +197,9 @@ struct DockedRegionSnapshotTests {
     @Test("TopBar renders the pixel-perfect toggle disabled for a non-freehand tool")
     func topBarPixelPerfectDisabled() {
         let nonFreehand = state()
-        nonFreehand.activeTool = .floodFill
+        nonFreehand.shared.activeTool = .floodFill
         assertSnapshot(
-            of: TopBar(editorState: nonFreehand, tier: .wide).frame(width: barWidth),
+            of: TopBar(workspace: nonFreehand, tier: .wide).frame(width: barWidth),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -209,7 +209,7 @@ struct DockedRegionSnapshotTests {
     @Test("StatusBar renders wide height (28pt)")
     func statusBarWide() {
         assertSnapshot(
-            of: StatusBar(editorState: state(), tier: .wide).frame(width: barWidth),
+            of: StatusBar(workspace: state(), tier: .wide).frame(width: barWidth),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -217,7 +217,7 @@ struct DockedRegionSnapshotTests {
     @Test("StatusBar renders x-wide height (32pt)")
     func statusBarXWide() {
         assertSnapshot(
-            of: StatusBar(editorState: state(), tier: .xWide).frame(width: barWidth),
+            of: StatusBar(workspace: state(), tier: .xWide).frame(width: barWidth),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -234,7 +234,7 @@ struct DockedRegionSnapshotTests {
     @Test("RightPanel renders Korean chrome at wide")
     func rightPanelKoreanLocale() {
         assertSnapshot(
-            of: RightPanel(editorState: state(), tier: .wide)
+            of: RightPanel(workspace: state(), tier: .wide)
                 .frame(height: stripHeight)
                 .environment(\.locale, Locale(identifier: "ko")),
             as: .image(layout: .sizeThatFits)
@@ -244,7 +244,7 @@ struct DockedRegionSnapshotTests {
     @Test("TimelinePanel renders Korean chrome")
     func timelinePanelKoreanLocale() {
         assertSnapshot(
-            of: TimelinePanel(editorState: state())
+            of: TimelinePanel(tab: state().activeTab)
                 .frame(width: barWidth)
                 .environment(\.locale, Locale(identifier: "ko")),
             as: .image(layout: .sizeThatFits)
@@ -254,7 +254,7 @@ struct DockedRegionSnapshotTests {
     @Test("LeftToolbar renders Korean chrome at wide")
     func leftToolbarKoreanLocale() {
         assertSnapshot(
-            of: LeftToolbar(editorState: state(), tier: .wide)
+            of: LeftToolbar(workspace: state(), tier: .wide)
                 .frame(height: stripHeight)
                 .environment(\.locale, Locale(identifier: "ko")),
             as: .image(layout: .sizeThatFits)
@@ -264,7 +264,7 @@ struct DockedRegionSnapshotTests {
     @Test("TopBar renders Korean chrome at wide")
     func topBarKoreanLocale() {
         assertSnapshot(
-            of: TopBar(editorState: state(), tier: .wide)
+            of: TopBar(workspace: state(), tier: .wide)
                 .frame(width: barWidth)
                 .environment(\.locale, Locale(identifier: "ko")),
             as: .image(layout: .sizeThatFits)
@@ -274,7 +274,7 @@ struct DockedRegionSnapshotTests {
     @Test("StatusBar renders Korean chrome at wide")
     func statusBarKoreanLocale() {
         assertSnapshot(
-            of: StatusBar(editorState: state(), tier: .wide)
+            of: StatusBar(workspace: state(), tier: .wide)
                 .frame(width: barWidth)
                 .environment(\.locale, Locale(identifier: "ko")),
             as: .image(layout: .sizeThatFits)

@@ -10,7 +10,7 @@ struct PixelCanvasView {
     let document: AppleDocument
     let viewport: AppleViewport
     let showGrid: Bool
-    var editorState: EditorState
+    var workspace: Workspace
     /// Observed by SwiftUI to trigger re-renders when canvas pixels change.
     /// The value itself is unused — only its change matters for the diff.
     var canvasVersion: Int = 0
@@ -77,7 +77,7 @@ extension PixelCanvasView: NSViewRepresentable {
     func updateNSView(_ mtkView: InputMTKView, context: Context) {
         let coordinator = context.coordinator
         coordinator.viewport = viewport
-        coordinator.editorState = editorState
+        coordinator.workspace = workspace
 
         guard let renderer = coordinator.renderer else { return }
         configureRenderer(renderer, mtkView: mtkView)
@@ -158,7 +158,7 @@ extension PixelCanvasView: UIViewRepresentable {
     func updateUIView(_ mtkView: InputMTKView, context: Context) {
         let coordinator = context.coordinator
         coordinator.viewport = viewport
-        coordinator.editorState = editorState
+        coordinator.workspace = workspace
 
         // Reclaim key focus when the canvas-size fields release it —
         // `presses*` (hardware-keyboard shortcuts) only reach the canvas
@@ -184,7 +184,7 @@ extension PixelCanvasView {
     class Coordinator: NSObject, CanvasInputDelegate {
         var renderer: PixelGridRenderer?
         var viewport: AppleViewport?
-        var editorState: EditorState?
+        var workspace: Workspace?
 
         private var isInteracting = false
 
@@ -201,53 +201,55 @@ extension PixelCanvasView {
 
         // Drawing events only convert coordinates and forward — the stroke
         // lifecycle (session resolution, interpolation, dedup, history,
-        // re-render) is owned by EditorState and its StrokeEngine.
+        // re-render) is owned by the active TabState and its StrokeEngine.
 
         func drawingBegan(at point: CGPoint, button: PointerButton, inputSource: LoupeInputSource, in view: InputMTKView) {
-            guard let viewport, let editorState else { return }
+            guard let viewport, let workspace else { return }
 
             isInteracting = true
             strokeInputSource = inputSource
+            let tab = workspace.activeTab
             // Pointer push precedes the stroke so the loupe has a position
             // the moment the first sample shows it.
-            pushLoupePointer(point, in: view, editorState: editorState)
-            editorState.beginStroke(
+            pushLoupePointer(point, in: view, tab: tab)
+            tab.beginStroke(
                 at: canvasCoords(of: point, in: view, viewport: viewport),
                 button: button
             )
         }
 
         func drawingMoved(to point: CGPoint, in view: InputMTKView) {
-            guard isInteracting, let viewport, let editorState else { return }
+            guard isInteracting, let viewport, let workspace else { return }
 
-            pushLoupePointer(point, in: view, editorState: editorState)
-            editorState.continueStroke(to: canvasCoords(of: point, in: view, viewport: viewport))
+            let tab = workspace.activeTab
+            pushLoupePointer(point, in: view, tab: tab)
+            tab.continueStroke(to: canvasCoords(of: point, in: view, viewport: viewport))
         }
 
         func drawingEnded(in view: InputMTKView) {
             isInteracting = false
-            editorState?.endStroke()
+            workspace?.activeTab.endStroke()
         }
 
         func drawingCancelled(in view: InputMTKView) {
             isInteracting = false
-            editorState?.cancelStroke()
+            workspace?.activeTab.cancelStroke()
         }
 
         func shiftStateChanged(isHeld: Bool, in view: InputMTKView) {
-            // EditorState dedups unchanged values and routes a mid-stroke
+            // The workspace dedups unchanged values and routes a mid-stroke
             // flip into the active session's modifier refresh.
-            editorState?.isShiftKeyHeld = isHeld
+            workspace?.isShiftKeyHeld = isHeld
         }
 
         func altStateChanged(isHeld: Bool, in view: InputMTKView) {
-            editorState?.keyboardShortcuts.setAltHeld(isHeld)
+            workspace?.keyboardShortcuts.setAltHeld(isHeld)
         }
 
         func characterKeyPressed(
             _ character: Character, modifiers: ShortcutModifiers, isRepeat: Bool, in view: InputMTKView
         ) -> Bool {
-            editorState?.keyboardShortcuts.handleKeyDown(
+            workspace?.keyboardShortcuts.handleKeyDown(
                 character, modifiers: modifiers, isRepeat: isRepeat
             ) ?? false
         }
@@ -260,7 +262,7 @@ extension PixelCanvasView {
             at point: CGPoint, isPrecise: Bool,
             in view: InputMTKView
         ) {
-            guard let viewport, let editorState else { return }
+            guard let viewport, let workspace else { return }
 
             if isPrecise {
                 // Trackpad two-finger scroll → pan
@@ -269,7 +271,7 @@ extension PixelCanvasView {
                     deltaX: -deltaX * scale,
                     deltaY: -deltaY * scale
                 )
-                editorState.handleViewportChange(panned)
+                workspace.activeTab.handleViewportChange(panned)
             } else {
                 // Mouse wheel → discrete zoom at cursor position
                 guard deltaY != 0 else { return }
@@ -281,7 +283,7 @@ extension PixelCanvasView {
                 let zoomed = viewport.zoomAtPoint(
                     screenX: devicePoint.x, screenY: devicePoint.y, newZoom: newZoom
                 )
-                editorState.handleViewportChange(zoomed)
+                workspace.activeTab.handleViewportChange(zoomed)
             }
         }
 
@@ -290,7 +292,7 @@ extension PixelCanvasView {
             at point: CGPoint,
             in view: InputMTKView
         ) {
-            guard let viewport, let editorState else { return }
+            guard let viewport, let workspace else { return }
 
             let devicePoint = convertToDevicePixels(point, in: view)
             let currentZoom = viewport.zoom()
@@ -298,7 +300,7 @@ extension PixelCanvasView {
             let zoomed = viewport.zoomAtPoint(
                 screenX: devicePoint.x, screenY: devicePoint.y, newZoom: newZoom
             )
-            editorState.handleViewportChange(zoomed)
+            workspace.activeTab.handleViewportChange(zoomed)
         }
         #endif
 
@@ -307,7 +309,7 @@ extension PixelCanvasView {
         #if !os(macOS)
         @objc func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
             guard let view = recognizer.view as? InputMTKView,
-                  let viewport, let editorState else { return }
+                  let viewport, let workspace else { return }
 
             switch recognizer.state {
             case .began:
@@ -323,7 +325,7 @@ extension PixelCanvasView {
                 let zoomed = viewport.zoomAtPoint(
                     screenX: devicePoint.x, screenY: devicePoint.y, newZoom: newZoom
                 )
-                editorState.handleViewportChange(zoomed)
+                workspace.activeTab.handleViewportChange(zoomed)
             case .ended, .cancelled:
                 lastPinchScale = 1.0
             default:
@@ -333,7 +335,7 @@ extension PixelCanvasView {
 
         /// Feeds the pencil's hover position into the Hover Point (issue 253)
         /// and the routing seam's hover gate (issue 254). `.began`/`.changed`
-        /// publish the target cell and arm the gate — EditorState clears the
+        /// publish the target cell and arm the gate — the active tab clears the
         /// cell when the converted point falls off-canvas — and
         /// `.ended`/`.cancelled` clear both as the pencil leaves hover range.
         /// While the gate is armed the router blocks direct-touch stroke begins
@@ -341,17 +343,17 @@ extension PixelCanvasView {
         /// it stays off the `CanvasInputDelegate`.
         @objc func handleHover(_ recognizer: UIHoverGestureRecognizer) {
             guard let view = recognizer.view as? InputMTKView,
-                  let viewport, let editorState else { return }
+                  let viewport, let workspace else { return }
 
             switch recognizer.state {
             case .began, .changed:
                 view.setPencilHovering(true)
-                editorState.updateHoverPoint(
+                workspace.activeTab.updateHoverPoint(
                     to: canvasCoords(of: recognizer.location(in: view), in: view, viewport: viewport)
                 )
             case .ended, .cancelled, .failed:
                 view.setPencilHovering(false)
-                editorState.clearHoverPoint()
+                workspace.activeTab.clearHoverPoint()
             default:
                 break
             }
@@ -359,7 +361,7 @@ extension PixelCanvasView {
 
         @objc func handleTwoFingerPan(_ recognizer: UIPanGestureRecognizer) {
             guard let view = recognizer.view as? InputMTKView,
-                  let viewport, let editorState else { return }
+                  let viewport, let workspace else { return }
 
             switch recognizer.state {
             case .changed:
@@ -369,7 +371,7 @@ extension PixelCanvasView {
                     deltaX: translation.x * scale,
                     deltaY: translation.y * scale
                 )
-                editorState.handleViewportChange(panned)
+                workspace.activeTab.handleViewportChange(panned)
                 recognizer.setTranslation(.zero, in: view)
             case .ended, .cancelled:
                 break
@@ -384,8 +386,8 @@ extension PixelCanvasView {
         /// Feeds the loupe's position inputs in canvas-area points — the
         /// coordinate space the SwiftUI overlay is laid out in, so no device
         /// -pixel conversion applies.
-        private func pushLoupePointer(_ point: CGPoint, in view: InputMTKView, editorState: EditorState) {
-            editorState.samplingLoupe.updatePointer(
+        private func pushLoupePointer(_ point: CGPoint, in view: InputMTKView, tab: TabState) {
+            tab.samplingLoupe.updatePointer(
                 screen: point,
                 viewport: view.bounds.size,
                 inputSource: strokeInputSource

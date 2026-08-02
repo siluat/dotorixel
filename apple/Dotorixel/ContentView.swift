@@ -10,7 +10,7 @@ import SwiftUI
 /// - StatusBar (bottom, full width)
 struct ContentView: View {
     // Owned by DotorixelApp so the Edit-menu commands share it.
-    let editorState: EditorState
+    let workspace: Workspace
     @Environment(\.displayScale) private var displayScale
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #if DEBUG
@@ -20,10 +20,11 @@ struct ContentView: View {
     var body: some View {
         // Read @Observable properties at ContentView scope so SwiftUI tracks
         // them outside GeometryReader — ensures updateNSView fires on change.
-        let viewport = editorState.viewport
-        let showGrid = editorState.showGrid
-        let canvasVersion = editorState.canvasVersion
-        let isTextInputFocused = editorState.isTextInputFocused
+        let tab = workspace.activeTab
+        let viewport = tab.viewport
+        let showGrid = tab.showGrid
+        let canvasVersion = tab.canvasVersion
+        let isTextInputFocused = workspace.isTextInputFocused
 
         GeometryReader { rootGeo in
             let tier = LayoutTier.resolve(
@@ -31,18 +32,18 @@ struct ContentView: View {
                 horizontalSizeClass: horizontalSizeClass
             )
             VStack(spacing: 0) {
-                TopBar(editorState: editorState, tier: tier)
+                TopBar(workspace: workspace, tier: tier)
 
                 HStack(spacing: 0) {
-                    LeftToolbar(editorState: editorState, tier: tier)
+                    LeftToolbar(workspace: workspace, tier: tier)
 
                     VStack(spacing: 0) {
                         GeometryReader { geo in
                             PixelCanvasView(
-                                document: editorState.document,
+                                document: tab.document,
                                 viewport: viewport,
                                 showGrid: showGrid,
-                                editorState: editorState,
+                                workspace: workspace,
                                 canvasVersion: canvasVersion,
                                 isTextInputFocused: isTextInputFocused
                             )
@@ -52,12 +53,12 @@ struct ContentView: View {
                             // while the Apple Pencil hovers (issue 253). Below the
                             // loupe so an active sampling stroke's magnifier wins.
                             .overlay(alignment: .topLeading) {
-                                HoverHighlightOverlay(editorState: editorState, displayScale: displayScale)
+                                HoverHighlightOverlay(tab: tab, displayScale: displayScale)
                             }
                             // Sampling loupe: floats over the canvas area while an
                             // eyedropper stroke is active.
                             .overlay(alignment: .topLeading) {
-                                SamplingLoupeOverlay(loupe: editorState.samplingLoupe)
+                                SamplingLoupeOverlay(loupe: tab.samplingLoupe)
                             }
                         }
 
@@ -67,19 +68,19 @@ struct ContentView: View {
                         // `GeometryReader` above shrinks by the panel's height,
                         // and its `onChange(of: geo.size)` refits the viewport
                         // whenever the panel collapses or expands.
-                        TimelinePanel(editorState: editorState)
+                        TimelinePanel(tab: tab)
                     }
 
-                    RightPanel(editorState: editorState, tier: tier)
+                    RightPanel(workspace: workspace, tier: tier)
                 }
 
-                StatusBar(editorState: editorState, tier: tier)
+                StatusBar(workspace: workspace, tier: tier)
             }
             .background(DesignTokens.bgBase)
             #if os(macOS)
             // App-level key capture (letters, ⌘Y, Alt) — see the modifier
             // for the ownership split with the Edit-menu commands.
-            .modifier(ShortcutKeyMonitorModifier(editorState: editorState))
+            .modifier(ShortcutKeyMonitorModifier(workspace: workspace))
             #endif
             #if DEBUG
             .sheet(isPresented: $showBenchmark) {
@@ -102,7 +103,7 @@ struct ContentView: View {
     /// per-move hover updates re-render only this overlay, not the Metal-backed
     /// canvas view underneath.
     private struct HoverHighlightOverlay: View {
-        let editorState: EditorState
+        let tab: TabState
         let displayScale: CGFloat
 
         // The target cell is outlined twice so it reads on any pixel color: a
@@ -114,9 +115,9 @@ struct ContentView: View {
 
         var body: some View {
             // Non-nil only while the pencil hovers over an in-bounds cell —
-            // EditorState owns that visibility contract; this view just draws.
-            if let cell = editorState.hoverPoint {
-                let rect = cellRect(cell, viewport: editorState.viewport)
+            // the tab owns that visibility contract; this view just draws.
+            if let cell = tab.hoverPoint {
+                let rect = cellRect(cell, viewport: tab.viewport)
                 Rectangle()
                     .strokeBorder(SwiftUI.Color.white.opacity(haloOpacity), lineWidth: haloWidth)
                     .overlay {
@@ -172,10 +173,11 @@ struct ContentView: View {
             width: pointSize.width * displayScale,
             height: pointSize.height * displayScale
         )
-        editorState.viewportSize = deviceSize
-        editorState.viewport = editorState.viewport.fitToViewport(
-            canvasWidth: editorState.document.width(),
-            canvasHeight: editorState.document.height(),
+        let tab = workspace.activeTab
+        tab.viewportSize = deviceSize
+        tab.viewport = tab.viewport.fitToViewport(
+            canvasWidth: tab.document.width(),
+            canvasHeight: tab.document.height(),
             viewportSize: deviceSize
         )
     }

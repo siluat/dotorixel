@@ -111,9 +111,9 @@ struct DefaultLayerNameLocalizationTests {
 
     @Test("Default layer names resolve per locale")
     func defaultLayerNameResolvesPerLocale() {
-        #expect(resolve(EditorState.defaultLayerName(number: 2), in: "en") == "Layer 2")
-        #expect(resolve(EditorState.defaultLayerName(number: 2), in: "ko") == "레이어 2")
-        #expect(resolve(EditorState.defaultLayerName(number: 2), in: "ja") == "レイヤー 2")
+        #expect(resolve(TabState.defaultLayerName(number: 2), in: "en") == "Layer 2")
+        #expect(resolve(TabState.defaultLayerName(number: 2), in: "ko") == "레이어 2")
+        #expect(resolve(TabState.defaultLayerName(number: 2), in: "ja") == "レイヤー 2")
     }
 }
 

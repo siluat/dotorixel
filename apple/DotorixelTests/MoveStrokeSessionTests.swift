@@ -87,7 +87,7 @@ struct PixelShiftTests {
     }
 }
 
-/// Move tool session behavior, exercised through the `EditorState` public
+/// Move tool session behavior, exercised through the `TabState` public
 /// stroke API: dragging shifts the whole canvas by the delta from the drag
 /// anchor, release commits, cancel restores the pre-stroke pixels.
 @Suite("Move strokes — shift, commit, cancel")
@@ -98,93 +98,93 @@ struct MoveStrokeSessionTests {
 
     @Test("a drag translates the whole drawing and release commits it")
     func dragTranslatesAndCommits() throws {
-        let state = EditorState(width: 8, height: 8)
-        try state.document.setPixel(x: 2, y: 2, color: red)
-        state.activeTool = .move
+        let state = Workspace(width: 8, height: 8)
+        try state.activeTab.document.setPixel(x: 2, y: 2, color: red)
+        state.shared.activeTool = .move
 
-        state.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))
-        state.continueStroke(to: ScreenCanvasCoords(x: 7, y: 6))
-        state.endStroke()
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 7, y: 6))
+        state.activeTab.endStroke()
 
-        #expect(try state.document.getPixel(x: 5, y: 4) == red)
-        #expect(try state.document.getPixel(x: 2, y: 2) == transparent)
+        #expect(try state.activeTab.document.getPixel(x: 5, y: 4) == red)
+        #expect(try state.activeTab.document.getPixel(x: 2, y: 2) == transparent)
     }
 
     @Test("reversing a drag back to the anchor restores the original positions")
     func reversedDragRestoresOriginalPositions() throws {
-        let state = EditorState(width: 8, height: 8)
-        try state.document.setPixel(x: 2, y: 2, color: red)
-        state.activeTool = .move
+        let state = Workspace(width: 8, height: 8)
+        try state.activeTab.document.setPixel(x: 2, y: 2, color: red)
+        state.shared.activeTool = .move
 
-        state.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))
-        state.continueStroke(to: ScreenCanvasCoords(x: 6, y: 5))
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 6, y: 5))
         // Back to the anchor: relative-to-anchor, so the shift must be zero —
         // not a cumulative drift from the wander.
-        state.continueStroke(to: ScreenCanvasCoords(x: 4, y: 4))
-        state.endStroke()
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 4, y: 4))
+        state.activeTab.endStroke()
 
-        #expect(try state.document.getPixel(x: 2, y: 2) == red)
-        #expect(paintedPixelCount(state) == 1)
+        #expect(try state.activeTab.document.getPixel(x: 2, y: 2) == red)
+        #expect(paintedPixelCount(state.activeTab) == 1)
     }
 
     @Test("pixels dragged off-canvas are clipped and vacated areas stay transparent")
     func offCanvasPixelsAreClippedOnCommit() throws {
-        let state = EditorState(width: 8, height: 8)
-        try state.document.setPixel(x: 6, y: 6, color: red)
-        try state.document.setPixel(x: 1, y: 1, color: red)
-        state.activeTool = .move
+        let state = Workspace(width: 8, height: 8)
+        try state.activeTab.document.setPixel(x: 6, y: 6, color: red)
+        try state.activeTab.document.setPixel(x: 1, y: 1, color: red)
+        state.shared.activeTool = .move
 
         // +3,+3: (6,6) lands past the edge and is clipped; (1,1) → (4,4).
-        state.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
-        state.continueStroke(to: ScreenCanvasCoords(x: 5, y: 5))
-        state.endStroke()
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 5, y: 5))
+        state.activeTab.endStroke()
 
-        #expect(try state.document.getPixel(x: 4, y: 4) == red)
-        #expect(paintedPixelCount(state) == 1)
+        #expect(try state.activeTab.document.getPixel(x: 4, y: 4) == red)
+        #expect(paintedPixelCount(state.activeTab) == 1)
 
         // The clip is destructive: dragging back does not resurrect (6,6).
-        state.beginStroke(at: ScreenCanvasCoords(x: 5, y: 5))
-        state.continueStroke(to: ScreenCanvasCoords(x: 2, y: 2))
-        state.endStroke()
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 5, y: 5))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 2))
+        state.activeTab.endStroke()
 
-        #expect(try state.document.getPixel(x: 1, y: 1) == red)
-        #expect(paintedPixelCount(state) == 1)
+        #expect(try state.activeTab.document.getPixel(x: 1, y: 1) == red)
+        #expect(paintedPixelCount(state.activeTab) == 1)
     }
 
     @Test("one undo restores the pre-move canvas; redo re-applies the move")
     func undoRestoresAndRedoReapplies() throws {
-        let state = EditorState(width: 8, height: 8)
-        try state.document.setPixel(x: 2, y: 2, color: red)
-        state.activeTool = .move
+        let state = Workspace(width: 8, height: 8)
+        try state.activeTab.document.setPixel(x: 2, y: 2, color: red)
+        state.shared.activeTool = .move
 
-        state.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))
-        state.continueStroke(to: ScreenCanvasCoords(x: 6, y: 5))
-        state.endStroke()
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 6, y: 5))
+        state.activeTab.endStroke()
 
-        state.handleUndo()
-        #expect(try state.document.getPixel(x: 2, y: 2) == red)
-        #expect(paintedPixelCount(state) == 1)
+        state.activeTab.handleUndo()
+        #expect(try state.activeTab.document.getPixel(x: 2, y: 2) == red)
+        #expect(paintedPixelCount(state.activeTab) == 1)
 
-        state.handleRedo()
-        #expect(try state.document.getPixel(x: 4, y: 3) == red)
-        #expect(paintedPixelCount(state) == 1)
+        state.activeTab.handleRedo()
+        #expect(try state.activeTab.document.getPixel(x: 4, y: 3) == red)
+        #expect(paintedPixelCount(state.activeTab) == 1)
     }
 
     @Test("cancel restores the pre-stroke pixels and leaves no undo entry")
     func cancelRestoresPreStrokePixels() throws {
-        let state = EditorState(width: 8, height: 8)
-        try state.document.setPixel(x: 2, y: 2, color: red)
-        state.activeTool = .move
+        let state = Workspace(width: 8, height: 8)
+        try state.activeTab.document.setPixel(x: 2, y: 2, color: red)
+        state.shared.activeTool = .move
 
-        state.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))
-        state.continueStroke(to: ScreenCanvasCoords(x: 6, y: 5))
-        state.cancelStroke()
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 6, y: 5))
+        state.activeTab.cancelStroke()
 
-        #expect(try state.document.getPixel(x: 2, y: 2) == red)
-        #expect(paintedPixelCount(state) == 1)
+        #expect(try state.activeTab.document.getPixel(x: 2, y: 2) == red)
+        #expect(paintedPixelCount(state.activeTab) == 1)
         // The cancel restored the baseline, so the stroke resolved as a no-op
         // — no History entry to undo.
-        #expect(!state.canUndo)
+        #expect(!state.activeTab.canUndo)
     }
 
     /// Number of canvas pixels with a non-zero alpha channel.

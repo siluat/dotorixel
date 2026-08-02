@@ -6,8 +6,11 @@ import SwiftUI
 /// parity — layers live in the bottom-docked `TimelinePanel`, their home on
 /// both shells.
 struct RightPanel: View {
-    let editorState: EditorState
+    let workspace: Workspace
     let tier: LayoutTier
+
+    private var tab: TabState { workspace.activeTab }
+    private var shared: SharedState { workspace.shared }
 
     @State private var widthInput: String = ""
     @State private var heightInput: String = ""
@@ -46,17 +49,17 @@ struct RightPanel: View {
                 .frame(width: 1)
         }
         .onAppear { syncDimensionInputs() }
-        .onChange(of: editorState.canvasVersion) { _, _ in syncDimensionInputs() }
+        .onChange(of: tab.canvasVersion) { _, _ in syncDimensionInputs() }
         // Publish text focus so keyboard shortcuts pause while the size
         // fields receive typed letters (`KeyboardShortcutHost` guard).
         .onChange(of: focusedField) { _, newValue in
-            editorState.isTextInputFocused = newValue != nil
+            workspace.isTextInputFocused = newValue != nil
         }
         // The size fields are the only inputs feeding the flag, and no
         // focus-change closure fires once the panel leaves the hierarchy —
         // clear it on teardown so shortcuts can't stay suppressed.
         .onDisappear {
-            editorState.isTextInputFocused = false
+            workspace.isTextInputFocused = false
         }
     }
 
@@ -80,10 +83,10 @@ struct RightPanel: View {
     }
 
     private func presetButton(size: UInt32) -> some View {
-        let isActive = editorState.document.width() == size
-            && editorState.document.height() == size
+        let isActive = tab.document.width() == size
+            && tab.document.height() == size
         return Button {
-            editorState.resizeCanvas(width: size, height: size)
+            tab.resizeCanvas(width: size, height: size)
         } label: {
             Text("\(size)")
                 .font(.system(size: DesignTokens.fontSizeSm))
@@ -129,7 +132,7 @@ struct RightPanel: View {
 
     private var clearButton: some View {
         Button {
-            editorState.handleClearCanvas()
+            tab.handleClearCanvas()
         } label: {
             Text("Clear")
                 .font(.system(size: DesignTokens.fontSizeSm))
@@ -153,12 +156,12 @@ struct RightPanel: View {
             hexRow
             sectionTitle("HSV")
             HsvPickerView(
-                selectedColor: editorState.foregroundColor,
-                onColorChange: { editorState.foregroundColor = $0 }
+                selectedColor: shared.foregroundColor,
+                onColorChange: { shared.foregroundColor = $0 }
             )
             sectionTitle("Palette")
             paletteGrid
-            if !editorState.recentColors.isEmpty {
+            if !shared.recentColors.isEmpty {
                 recentLabel
                 recentRow
             }
@@ -186,7 +189,7 @@ struct RightPanel: View {
         ) {
             // Dedupe guarantees uniqueness, so the color value is its own
             // stable row identity.
-            ForEach(editorState.recentColors, id: \.self) { color in
+            ForEach(shared.recentColors, id: \.self) { color in
                 recentSwatch(color: color)
             }
         }
@@ -194,7 +197,7 @@ struct RightPanel: View {
 
     private func recentSwatch(color: Color) -> some View {
         Button {
-            editorState.foregroundColor = color
+            shared.foregroundColor = color
         } label: {
             RoundedRectangle(cornerRadius: 3)
                 .fill(color.swiftUIColor)
@@ -216,26 +219,26 @@ struct RightPanel: View {
 
     private var foregroundSwatch: some View {
         RoundedRectangle(cornerRadius: 4)
-            .fill(editorState.foregroundColor.swiftUIColor)
+            .fill(shared.foregroundColor.swiftUIColor)
             .frame(width: controlHeight, height: controlHeight)
             .overlay(
                 RoundedRectangle(cornerRadius: 4)
                     .stroke(DesignTokens.accent, lineWidth: 2)
             )
             .accessibilityLabel("Foreground color")
-            .accessibilityValue(editorState.foregroundColor.hexString)
+            .accessibilityValue(shared.foregroundColor.hexString)
     }
 
     private var backgroundSwatch: some View {
         RoundedRectangle(cornerRadius: 4)
-            .fill(editorState.backgroundColor.swiftUIColor)
+            .fill(shared.backgroundColor.swiftUIColor)
             .frame(width: controlHeight, height: controlHeight)
             .overlay(
                 RoundedRectangle(cornerRadius: 4)
                     .stroke(DesignTokens.border, lineWidth: 1)
             )
             .accessibilityLabel("Background color")
-            .accessibilityValue(editorState.backgroundColor.hexString)
+            .accessibilityValue(shared.backgroundColor.hexString)
     }
 
     private var swapButton: some View {
@@ -243,7 +246,7 @@ struct RightPanel: View {
             systemName: "arrow.left.arrow.right",
             accessibilityLabel: "Swap colors",
             tint: DesignTokens.textTertiary,
-            action: editorState.swapColors
+            action: workspace.swapColors
         )
     }
 
@@ -255,7 +258,7 @@ struct RightPanel: View {
         HStack(spacing: DesignTokens.space2) {
             Text("#")
                 .foregroundStyle(DesignTokens.textTertiary)
-            Text(String(editorState.foregroundColor.hexString.dropFirst()))
+            Text(String(shared.foregroundColor.hexString.dropFirst()))
                 .foregroundStyle(DesignTokens.textPrimary)
             Spacer(minLength: 0)
         }
@@ -288,7 +291,7 @@ struct RightPanel: View {
 
     private func paletteSwatch(color: Color) -> some View {
         Button {
-            editorState.foregroundColor = color
+            shared.foregroundColor = color
         } label: {
             RoundedRectangle(cornerRadius: 3)
                 .fill(color.swiftUIColor)
@@ -317,8 +320,8 @@ struct RightPanel: View {
     }
 
     private func syncDimensionInputs() {
-        widthInput = String(editorState.document.width())
-        heightInput = String(editorState.document.height())
+        widthInput = String(tab.document.width())
+        heightInput = String(tab.document.height())
     }
 
     private func commitDimensions() {
@@ -329,7 +332,7 @@ struct RightPanel: View {
             syncDimensionInputs()
             return
         }
-        editorState.resizeCanvas(width: w, height: h)
+        tab.resizeCanvas(width: w, height: h)
         syncDimensionInputs()
     }
 }

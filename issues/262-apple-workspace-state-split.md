@@ -1,6 +1,6 @@
 ---
 title: Apple workspace state split — extract per-tab state from EditorState
-status: ready-for-agent
+status: done
 created: 2026-08-02
 ---
 
@@ -53,3 +53,31 @@ phase; do it here, in isolation, while behavior is easy to verify unchanged.
 ## Blocked by
 
 None — can start immediately
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/Workspace.swift` | New workspace-level object: owns the tab collection + `SharedState`, exposes `activeTab`, hosts the keyboard controller and the transient input state (Shift, Constrain latch, text focus) with `didSet` routing into the active tab's stroke; `activateTool`/`swapColors`; `createTab` bakes ambient deps in (web parity) |
+| `apple/Dotorixel/State/TabState.swift` | New per-tab state: document, history, viewport(+size), identity (`documentId`, `name`), Timeline collapse, grid, stroke engine, hover point, sampling loupe, layers/clear/resize/export/viewport ops; conforms to `StrokeSessionHost` reading colors/pixel-perfect from `SharedState` |
+| `apple/Dotorixel/State/SharedState.swift` | New workspace-shared state: active tool, FG/BG colors, recent colors, pixel-perfect — every tab sees it by reference |
+| `apple/Dotorixel/State/EditorState.swift` | Deleted — fully dissolved into the three objects above |
+| `apple/Dotorixel/{ContentView,DotorixelApp}.swift` | App/root wiring: app owns a `Workspace`; ContentView binds `tab = workspace.activeTab` and passes workspace to bars, tab to `TimelinePanel`/overlays |
+| `apple/Dotorixel/Views/*.swift`, `Rendering/PixelCanvasView.swift` | Views reach document state through the active tab (`tab`/`shared` local accessors); `TimelinePanel` takes `tab` only; coordinator routes strokes/viewport to `workspace.activeTab`, transients to workspace |
+| `apple/DotorixelTests/WorkspaceTests.swift` | New ownership-seam tests (10): single-tab open, shared defaults/reference sharing, per-tab stroke+history, identity, Timeline collapse, keyboard-host dispatch, latch toggle, swapColors |
+| `apple/DotorixelTests/*` | All existing `EditorState` tests migrated to the new seams (`workspace.activeTab` / `workspace.shared`) — no coverage lost; files renamed `EditorStateTests`→`TabStateTests`, `EditorStateLayer{,Reorder}Tests`→`TabStateLayer{,Reorder}Tests` |
+| `CONTEXT.md` | Hover Point entry: owner updated `EditorState` → Apple tab state (`TabState`) |
+
+### Key Decisions
+
+- **Full split, no façade**: `EditorState` was dissolved rather than kept as a delegating shell — views/tests now depend on the workspace/tab seams directly, so the multi-tab slice (264) extends `addTab`/`closeTab`/`setActiveTab` without rework.
+- **Transient input state lives on `Workspace` (not `SharedState`)**: keeps the `didSet` routing (`modifierStateChanged` into the active stroke, `keyboardShortcuts.reset()` on text focus) that property observation on a separate object could not express; `SharedState` stays an exact mirror of the web's (tool, colors, recents, pixel-perfect).
+- **TabState reads workspace transients via injected closures** (`isConstrainHeld`, `consumePendingToolRestore`) — mirrors the web `createTab` ambient-deps pattern, keeps the dependency direction workspace→tab.
+- **`showGrid` is tab-scoped** (web parity: grid visibility lives in each tab's persisted viewport data).
+- **Tab identity now**: `documentId` (`doc-<uuid>`) and `name` ("Untitled N" via `nextUntitledName`) created here as the seam 264/265 will consume.
+
+### Notes
+
+- Acceptance verified: full Apple suite green (308 tests, +10 new) on the pinned iOS sim, macOS build compiles, docked-view snapshots byte-identical (no re-record), `apple/src/lib.rs` and all UniFFI surface untouched.
+- `recentColors`, `isTimelinePanelCollapsed`, pixel-perfect remain in-memory; they enter the workspace snapshot in the persistence slice (265).
+- `Workspace.activeTab` force-indexes `tabs[activeTabIndex]` — safe while the collection is never empty (single tab today); `closeTab` in 264 must preserve that invariant.

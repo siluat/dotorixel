@@ -2,7 +2,7 @@ import Testing
 @testable import Dotorixel
 
 /// Shift-constrain behavior for shape strokes, exercised through the
-/// `EditorState` public stroke API: the physical Shift key and the Constrain
+/// `TabState` public stroke API: the physical Shift key and the Constrain
 /// latch are OR-combined at the single seam sessions read, so either source
 /// snaps lines to 45° and forces rectangles/ellipses square.
 @Suite("Shape strokes — Shift constrain + latch")
@@ -12,98 +12,98 @@ struct ConstrainStrokeTests {
 
     @Test("with the Constrain latch on, a shallow line drag commits snapped to the horizontal")
     func latchSnapsLineToHorizontal() throws {
-        let state = EditorState(width: 16, height: 16)
-        state.activeTool = .line
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .line
         state.isConstrainLatchOn = true
 
-        state.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
-        state.continueStroke(to: ScreenCanvasCoords(x: 10, y: 3))
-        state.endStroke()
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 10, y: 3))
+        state.activeTab.endStroke()
 
         let snapped = Set(appleInterpolatePixels(x0: 0, y0: 0, x1: 10, y1: 0))
         for pixel in snapped {
-            #expect(try state.document.getPixel(x: UInt32(pixel.x), y: UInt32(pixel.y)) == state.foregroundColor)
+            #expect(try state.activeTab.document.getPixel(x: UInt32(pixel.x), y: UInt32(pixel.y)) == state.shared.foregroundColor)
         }
-        #expect(paintedPixelCount(state) == snapped.count)
+        #expect(paintedPixelCount(state.activeTab) == snapped.count)
     }
 
     @Test("with the physical Shift held, a rectangular drag commits forced square")
     func shiftForcesRectangleSquare() throws {
-        let state = EditorState(width: 16, height: 16)
-        state.activeTool = .rectangle
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .rectangle
         state.isShiftKeyHeld = true
 
-        state.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
-        state.continueStroke(to: ScreenCanvasCoords(x: 8, y: 5))
-        state.endStroke()
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 8, y: 5))
+        state.activeTab.endStroke()
 
         // The longer axis (dx = 6) wins: the box is 2,2 → 8,8.
         let square = Set(appleRectangleOutline(x0: 2, y0: 2, x1: 8, y1: 8))
         for pixel in square {
-            #expect(try state.document.getPixel(x: UInt32(pixel.x), y: UInt32(pixel.y)) == state.foregroundColor)
+            #expect(try state.activeTab.document.getPixel(x: UInt32(pixel.x), y: UInt32(pixel.y)) == state.shared.foregroundColor)
         }
-        #expect(paintedPixelCount(state) == square.count)
+        #expect(paintedPixelCount(state.activeTab) == square.count)
     }
 
     @Test("toggling the latch mid-stroke re-renders the stationary preview immediately, both ways")
     func midStrokeLatchToggleRefreshesPreview() throws {
-        let state = EditorState(width: 16, height: 16)
-        state.activeTool = .line
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .line
 
-        state.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
-        state.continueStroke(to: ScreenCanvasCoords(x: 10, y: 3))
-        let versionBefore = state.canvasVersion
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 10, y: 3))
+        let versionBefore = state.activeTab.canvasVersion
 
         // Latch on with the pointer stationary: the preview must snap now,
         // not on the next pointer move.
         state.isConstrainLatchOn = true
 
-        #expect(state.canvasVersion > versionBefore)
-        #expect(try state.document.getPixel(x: 10, y: 0) == state.foregroundColor)
-        #expect(try state.document.getPixel(x: 10, y: 3) == transparent)
+        #expect(state.activeTab.canvasVersion > versionBefore)
+        #expect(try state.activeTab.document.getPixel(x: 10, y: 0) == state.shared.foregroundColor)
+        #expect(try state.activeTab.document.getPixel(x: 10, y: 3) == transparent)
 
         // Latch off again: the preview relaxes back to the raw pointer.
         state.isConstrainLatchOn = false
 
-        #expect(try state.document.getPixel(x: 10, y: 3) == state.foregroundColor)
-        #expect(try state.document.getPixel(x: 10, y: 0) == transparent)
+        #expect(try state.activeTab.document.getPixel(x: 10, y: 3) == state.shared.foregroundColor)
+        #expect(try state.activeTab.document.getPixel(x: 10, y: 0) == transparent)
     }
 
     @Test("releasing Shift mid-drag relaxes the preview immediately, re-pressing re-constrains")
     func midStrokeShiftReleaseRelaxesPreview() throws {
-        let state = EditorState(width: 16, height: 16)
-        state.activeTool = .line
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .line
         state.isShiftKeyHeld = true
 
-        state.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
-        state.continueStroke(to: ScreenCanvasCoords(x: 10, y: 3))
-        #expect(try state.document.getPixel(x: 10, y: 0) == state.foregroundColor)
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 10, y: 3))
+        #expect(try state.activeTab.document.getPixel(x: 10, y: 0) == state.shared.foregroundColor)
 
         state.isShiftKeyHeld = false
-        #expect(try state.document.getPixel(x: 10, y: 3) == state.foregroundColor)
-        #expect(try state.document.getPixel(x: 10, y: 0) == transparent)
+        #expect(try state.activeTab.document.getPixel(x: 10, y: 3) == state.shared.foregroundColor)
+        #expect(try state.activeTab.document.getPixel(x: 10, y: 0) == transparent)
 
         state.isShiftKeyHeld = true
-        #expect(try state.document.getPixel(x: 10, y: 0) == state.foregroundColor)
-        #expect(try state.document.getPixel(x: 10, y: 3) == transparent)
+        #expect(try state.activeTab.document.getPixel(x: 10, y: 0) == state.shared.foregroundColor)
+        #expect(try state.activeTab.document.getPixel(x: 10, y: 3) == transparent)
     }
 
     @Test("a freehand pencil stroke ignores the constrain state entirely")
     func pencilIgnoresConstrainState() throws {
-        let state = EditorState(width: 16, height: 16)
-        state.activeTool = .pencil
-        state.pixelPerfect = false
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .pencil
+        state.shared.pixelPerfect = false
         state.isConstrainLatchOn = true
         state.isShiftKeyHeld = true
 
-        state.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
-        state.continueStroke(to: ScreenCanvasCoords(x: 5, y: 3))
-        state.endStroke()
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 5, y: 3))
+        state.activeTab.endStroke()
 
         // The raw diagonal-ish path is painted — no 45° snap ever applies.
-        #expect(try state.document.getPixel(x: 5, y: 3) == state.foregroundColor)
+        #expect(try state.activeTab.document.getPixel(x: 5, y: 3) == state.shared.foregroundColor)
         let raw = Set(appleInterpolatePixels(x0: 0, y0: 0, x1: 5, y1: 3))
-        #expect(paintedPixelCount(state) == raw.count)
+        #expect(paintedPixelCount(state.activeTab) == raw.count)
     }
 
     /// Number of canvas pixels with a non-zero alpha channel.
@@ -117,12 +117,12 @@ struct ToolActivationTests {
 
     @Test("re-activating the active constrainable tool toggles the latch instead of re-selecting")
     func reactivatingConstrainableToolTogglesLatch() {
-        let state = EditorState(width: 16, height: 16)
-        state.activeTool = .line
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .line
 
         state.activateTool(.line)
         #expect(state.isConstrainLatchOn)
-        #expect(state.activeTool == .line)
+        #expect(state.shared.activeTool == .line)
 
         state.activateTool(.line)
         #expect(!state.isConstrainLatchOn)
@@ -130,24 +130,24 @@ struct ToolActivationTests {
 
     @Test("activating an inactive tool switches tools without touching the latch")
     func activatingInactiveToolSwitchesWithoutTogglingLatch() {
-        let state = EditorState(width: 16, height: 16)
-        state.activeTool = .line
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .line
         state.isConstrainLatchOn = true
 
         state.activateTool(.rectangle)
 
-        #expect(state.activeTool == .rectangle)
+        #expect(state.shared.activeTool == .rectangle)
         #expect(state.isConstrainLatchOn)
     }
 
     @Test("re-activating the active non-constrainable tool never toggles the latch")
     func reactivatingNonConstrainableToolLeavesLatchAlone() {
-        let state = EditorState(width: 16, height: 16)
-        state.activeTool = .pencil
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .pencil
 
         state.activateTool(.pencil)
 
         #expect(!state.isConstrainLatchOn)
-        #expect(state.activeTool == .pencil)
+        #expect(state.shared.activeTool == .pencil)
     }
 }

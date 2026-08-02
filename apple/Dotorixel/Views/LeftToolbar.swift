@@ -2,7 +2,9 @@ import SwiftUI
 
 /// Left toolbar — tool selection (pencil/eraser) and undo/redo controls.
 struct LeftToolbar: View {
-    let editorState: EditorState
+    let workspace: Workspace
+
+    private var tab: TabState { workspace.activeTab }
     let tier: LayoutTier
 
     /// Strip edge padding — web LeftToolbar padding: 6px 0 (raw CSS, not a token).
@@ -17,7 +19,7 @@ struct LeftToolbar: View {
             // MARK: - Tool buttons
 
             ForEach(EditorTool.allCases, id: \.self) { tool in
-                let isActive = editorState.activeTool == tool
+                let isActive = workspace.shared.activeTool == tool
                 // Re-tapping the active constrainable tool toggles the
                 // Constrain latch (web parity) — the latch has no separate
                 // button; the badge on the active tool shows its state.
@@ -27,7 +29,7 @@ struct LeftToolbar: View {
                 // (Locale.current), not the SwiftUI environment locale.
                 let hintedLabel = "\(String(localized: tool.displayName)) (\(String(tool.shortcutKey).uppercased()))"
                 Button {
-                    editorState.activateTool(tool)
+                    workspace.activateTool(tool)
                 } label: {
                     Image(systemName: tool.symbolName)
                         .font(.system(size: DesignTokens.iconSize))
@@ -37,7 +39,7 @@ struct LeftToolbar: View {
                 .buttonStyle(ToolButtonStyle(
                     isActive: isActive,
                     boxSize: boxSize,
-                    showsConstrainBadge: isActive && tool.isConstrainable && editorState.isConstrainLatchOn
+                    showsConstrainBadge: isActive && tool.isConstrainable && workspace.isConstrainLatchOn
                 ))
             }
 
@@ -51,22 +53,22 @@ struct LeftToolbar: View {
             // MARK: - Action buttons (undo/redo)
 
             Button {
-                editorState.handleUndo()
+                tab.handleUndo()
             } label: {
                 Image(systemName: "arrow.uturn.backward")
                     .font(.system(size: 16))
             }
             .buttonStyle(ToolButtonStyle(tint: DesignTokens.textTertiary, boxSize: boxSize))
-            .disabled(!editorState.canUndo)
+            .disabled(!tab.canUndo)
 
             Button {
-                editorState.handleRedo()
+                tab.handleRedo()
             } label: {
                 Image(systemName: "arrow.uturn.forward")
                     .font(.system(size: 16))
             }
             .buttonStyle(ToolButtonStyle(tint: DesignTokens.textTertiary, boxSize: boxSize))
-            .disabled(!editorState.canRedo)
+            .disabled(!tab.canRedo)
 
             Spacer()
         }

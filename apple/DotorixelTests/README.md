@@ -71,7 +71,7 @@ image's dimensions therefore encode the tier sizing: break `rightPanelWidth` and
 
 ### What is NOT covered (scope boundaries)
 
-- **`ContentView` is not snapshotted.** It composes `EditorState` (UniFFI) with
+- **`ContentView` is not snapshotted.** It composes the workspace state (UniFFI) with
   `PixelCanvasView` (a Metal `MTKView`), which does not render cleanly offscreen. Treat
   this as a testability boundary: leaf views are the unit under test, not the whole
   Metal-backed composition.

@@ -2,20 +2,21 @@
 
 ## Currently Working On
 
-Apple catch-up Phase 4 — multi-tab + persistence ([RFC](../issues/013-apple-native-catchup.md), issues 262–266)
+Apple catch-up Phase 4 — multi-tab + persistence ([RFC](../issues/013-apple-native-catchup.md), issues 262–266).
+1 of 5 done (262); frontier is 263 and the newly unblocked 264.
 
 ## Last Completed
 
-[260 — Apple layer panel reorder](../issues/260-apple-layer-reorder.md): rows
-reorder from a per-row drag handle, closing **Phase 3 of the Apple catch-up
-RFC** — the Apple shell now has the full layer system. Touch/pointer feel is the
-one thing tests can't reach (no XCUITest, no simulator touch injection), so the
-gesture wants a hands-on pass; two follow-ups from it are in the review backlog.
+[262 — Apple workspace state split](../issues/262-apple-workspace-state-split.md):
+`EditorState` dissolved into `Workspace` / `TabState` / `SharedState` mirroring
+the web's ownership boundaries — no behavior change (snapshots byte-identical,
+no UniFFI change). Tab identity ("Untitled N", `documentId`) and the
+`createTab` seam are in place for the multi-tab slice.
 
 ## Next Up
 
-- [262 — Apple workspace state split (prefactor)](../issues/262-apple-workspace-state-split.md) — Phase 4 frontier; parallel with 263
-- [263 — Apple UniFFI persistence bindings (expand)](../issues/263-apple-uniffi-persistence-bindings.md) — Phase 4 frontier; parallel with 262
+- [263 — Apple UniFFI persistence bindings (expand)](../issues/263-apple-uniffi-persistence-bindings.md) — Phase 4 frontier
+- [264 — Apple multi-tab workspace UI](../issues/264-apple-multi-tab-workspace.md) — Phase 4 frontier; unblocked by 262
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Feedback link to Google Form

@@ -1,6 +1,6 @@
 /// Commands and state reads the keyboard controller needs from its owner —
 /// the Apple analog of the web's `KeyboardInputHost`
-/// (`keyboard-input.svelte.ts`). `EditorState` is the production host.
+/// (`keyboard-input.svelte.ts`). `Workspace` is the production host.
 protocol KeyboardShortcutHost: AnyObject {
     /// Whether a draw stroke is in progress.
     var isDrawing: Bool { get }

@@ -3,14 +3,14 @@ import Testing
 import UniformTypeIdentifiers
 @testable import Dotorixel
 
-@Suite("EditorState — PNG export")
+@Suite("TabState — PNG export")
 struct PngExportTests {
 
     @Test("export document data is a decodable PNG with canvas dimensions")
     func exportDataIsDecodablePngWithCanvasDimensions() throws {
-        let state = EditorState(width: 16, height: 16)
+        let state = Workspace(width: 16, height: 16)
 
-        let document = try state.makePngExportDocument()
+        let document = try state.activeTab.makePngExportDocument()
 
         let source = try #require(CGImageSourceCreateWithData(document.data as CFData, nil))
         #expect(CGImageSourceGetType(source) == UTType.png.identifier as CFString)
@@ -21,10 +21,10 @@ struct PngExportTests {
 
     @Test("exported PNG keeps drawn pixels in their colors and undrawn pixels transparent")
     func exportPreservesPixelContent() throws {
-        let state = EditorState(width: 16, height: 16)
-        try state.document.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        let state = Workspace(width: 16, height: 16)
+        try state.activeTab.document.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
 
-        let document = try state.makePngExportDocument()
+        let document = try state.activeTab.makePngExportDocument()
 
         let rgba = try decodedRgbaPixels(png: document.data, width: 16, height: 16)
         let bytesPerPixel = 4
@@ -44,9 +44,9 @@ struct PngExportTests {
 
     @Test("default export filename follows the web convention dotorixel-{width}x{height}.png")
     func defaultExportFilenameFollowsWebConvention() {
-        let state = EditorState(width: 32, height: 24)
+        let state = Workspace(width: 32, height: 24)
 
-        #expect(state.defaultExportFilename == "dotorixel-32x24.png")
+        #expect(state.activeTab.defaultExportFilename == "dotorixel-32x24.png")
     }
 
     /// Decodes a PNG into a flat RGBA8 buffer (row-major, top-left origin).

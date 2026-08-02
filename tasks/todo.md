@@ -26,9 +26,8 @@ reached.
 
 ### Phase 4 — Multi-tab + persistence (issues 262–266)
 
-- [262 — Workspace state split (prefactor)](../issues/262-apple-workspace-state-split.md)
-- [263 — UniFFI persistence bindings (expand)](../issues/263-apple-uniffi-persistence-bindings.md) — parallel with 262
-- [264 — Multi-tab workspace UI](../issues/264-apple-multi-tab-workspace.md) — blocked by 262
+- [263 — UniFFI persistence bindings (expand)](../issues/263-apple-uniffi-persistence-bindings.md)
+- [264 — Multi-tab workspace UI](../issues/264-apple-multi-tab-workspace.md) — unblocked (262 done)
 - [265 — SwiftData session auto-save + restore](../issues/265-apple-swiftdata-session-persistence.md) — blocked by 263, 264
 - [266 — Save dialog + saved work browser](../issues/266-apple-save-dialog-saved-work.md) — blocked by 265
 

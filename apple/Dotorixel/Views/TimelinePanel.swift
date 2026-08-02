@@ -10,7 +10,7 @@ import SwiftUI
 /// space when animation arrives (Phase 6). The layer sidebar is the panel's
 /// only live content today.
 struct TimelinePanel: View {
-    let editorState: EditorState
+    let tab: TabState
 
     /// The reorder drag currently under a handle, or nil while none is.
     /// View-local by nature: it lives and dies with the gesture and never
@@ -49,7 +49,7 @@ struct TimelinePanel: View {
         DesignTokens.timelinePanelHeight - rowHeight - dividerThickness
     }
 
-    private var isCollapsed: Bool { editorState.isTimelinePanelCollapsed }
+    private var isCollapsed: Bool { tab.isTimelinePanelCollapsed }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -87,7 +87,7 @@ struct TimelinePanel: View {
     /// geometry is captured against, watched to cancel the drag when it
     /// changes. Visibility flips keep the same ids, so they don't cancel.
     private var layerIdsInPanelOrder: [String] {
-        editorState.layersInPanelOrder.map(\.id)
+        tab.layersInPanelOrder.map(\.id)
     }
 
     // MARK: - Header
@@ -129,8 +129,8 @@ struct TimelinePanel: View {
     }
 
     private var activeLayerName: String {
-        editorState.layersInPanelOrder
-            .first { $0.id == editorState.activeLayerId }?
+        tab.layersInPanelOrder
+            .first { $0.id == tab.activeLayerId }?
             .name ?? ""
     }
 
@@ -141,7 +141,7 @@ struct TimelinePanel: View {
         PanelIconButton(
             systemName: "plus",
             accessibilityLabel: "Add layer",
-            action: editorState.addLayer
+            action: tab.addLayer
         )
     }
 
@@ -151,7 +151,7 @@ struct TimelinePanel: View {
         PanelIconButton(
             systemName: "chevron.down",
             accessibilityLabel: isCollapsed ? "Expand layers panel" : "Collapse layers panel",
-            action: editorState.toggleTimelinePanel
+            action: tab.toggleTimelinePanel
         )
         .rotationEffect(.degrees(isCollapsed ? 180 : 0))
     }
@@ -192,7 +192,7 @@ struct TimelinePanel: View {
         VStack(spacing: 0) {
             // Panel order: top of the stack renders at the top.
             ForEach(
-                Array(editorState.layersInPanelOrder.enumerated()),
+                Array(tab.layersInPanelOrder.enumerated()),
                 id: \.element.id
             ) { panelIndex, layer in
                 layerRow(layer, panelIndex: panelIndex)
@@ -202,7 +202,7 @@ struct TimelinePanel: View {
     }
 
     private func layerRow(_ layer: AppleLayerMetadata, panelIndex: Int) -> some View {
-        let isActive = editorState.activeLayerId == layer.id
+        let isActive = tab.activeLayerId == layer.id
         let isDragging = reorderDrag?.layerId == layer.id
         let reorderOffset = reorderDrag?.offset(forPanelIndex: panelIndex) ?? 0
         return HStack(spacing: DesignTokens.space2) {
@@ -251,19 +251,19 @@ struct TimelinePanel: View {
         PanelIconGlyph(
             systemName: "line.3.horizontal",
             tint: DesignTokens.textTertiary,
-            isEnabled: editorState.canReorderLayers
+            isEnabled: tab.canReorderLayers
         )
         .gesture(reorderGesture(layer, panelIndex: panelIndex))
-        .disabled(!editorState.canReorderLayers)
+        .disabled(!tab.canReorderLayers)
         .accessibilityLabel("Reorder \(layer.name)")
         // The pointer-free path to the same command: VoiceOver's adjust
         // gesture (and the rotor) steps the row through the stack.
         .accessibilityAdjustableAction { direction in
             switch direction {
             case .increment:
-                editorState.reorderLayer(id: layer.id, toPanelIndex: panelIndex + 1)
+                tab.reorderLayer(id: layer.id, toPanelIndex: panelIndex + 1)
             case .decrement:
-                editorState.reorderLayer(id: layer.id, toPanelIndex: panelIndex - 1)
+                tab.reorderLayer(id: layer.id, toPanelIndex: panelIndex - 1)
             @unknown default:
                 break
             }
@@ -282,7 +282,7 @@ struct TimelinePanel: View {
                     reorderDrag = LayerReorderDrag(
                         layerId: layer.id,
                         baseIndex: panelIndex,
-                        rowCount: editorState.layersInPanelOrder.count,
+                        rowCount: tab.layersInPanelOrder.count,
                         rowHeight: rowHeight,
                         translation: value.translation.height
                     )
@@ -296,7 +296,7 @@ struct TimelinePanel: View {
                 guard var drag = reorderDrag, drag.layerId == layer.id else { return }
                 drag.translation = value.translation.height
                 reorderDrag = nil
-                editorState.reorderLayer(id: layer.id, toPanelIndex: drag.targetPanelIndex)
+                tab.reorderLayer(id: layer.id, toPanelIndex: drag.targetPanelIndex)
             }
     }
 
@@ -306,7 +306,7 @@ struct TimelinePanel: View {
     /// target.
     private func rowSelectButton(_ layer: AppleLayerMetadata, isActive: Bool) -> some View {
         Button {
-            editorState.setActiveLayer(id: layer.id)
+            tab.setActiveLayer(id: layer.id)
         } label: {
             Text(verbatim: layer.name)
                 .font(.system(
@@ -334,8 +334,8 @@ struct TimelinePanel: View {
             systemName: "xmark",
             accessibilityLabel: "Delete \(layer.name)",
             tint: DesignTokens.textTertiary,
-            isEnabled: editorState.canRemoveLayer,
-            action: { editorState.removeLayer(id: layer.id) }
+            isEnabled: tab.canRemoveLayer,
+            action: { tab.removeLayer(id: layer.id) }
         )
     }
 
@@ -344,7 +344,7 @@ struct TimelinePanel: View {
             systemName: layer.visible ? "eye" : "eye.slash",
             accessibilityLabel: layer.visible ? "Hide \(layer.name)" : "Show \(layer.name)",
             tint: layer.visible ? DesignTokens.textSecondary : DesignTokens.textTertiary,
-            action: { editorState.setLayerVisibility(id: layer.id, visible: !layer.visible) }
+            action: { tab.setLayerVisibility(id: layer.id, visible: !layer.visible) }
         )
     }
 
@@ -365,7 +365,7 @@ struct TimelinePanel: View {
         // frame ruler inherits when it replaces this column.
         HStack(alignment: .top, spacing: 0) {
             VStack(spacing: 0) {
-                ForEach(editorState.layersInPanelOrder, id: \.id) { _ in
+                ForEach(tab.layersInPanelOrder, id: \.id) { _ in
                     placeholderFrameCell
                 }
             }

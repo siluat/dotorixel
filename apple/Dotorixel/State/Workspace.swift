@@ -48,13 +48,83 @@ final class Workspace {
     /// it dispatches back into this workspace via `KeyboardShortcutHost`.
     let keyboardShortcuts = KeyboardShortcutController()
 
-    init(width: UInt32 = 16, height: UInt32 = 16) {
+    /// Fresh tabs open at this square dimension (web parity:
+    /// `DEFAULT_CANVAS_DIMENSION` in `tab-state.svelte.ts`).
+    static let defaultCanvasDimension: UInt32 = 16
+
+    init(width: UInt32 = Workspace.defaultCanvasDimension,
+         height: UInt32 = Workspace.defaultCanvasDimension) {
         self.shared = SharedState()
         // Two-phase: `tabs` starts empty so `createTab` — an instance method
         // whose closures capture `self` — can run once phase-1 init is done.
         self.tabs = []
         self.tabs = [createTab(width: width, height: height)]
         keyboardShortcuts.host = self
+    }
+
+    // MARK: - Tab lifecycle
+
+    /// Opens a fresh default-size document in a new tab and makes it active
+    /// (web parity: `addTab` in `workspace.svelte.ts`).
+    @discardableResult
+    func addTab() -> TabState {
+        resolveOutgoingStroke(nextIndex: tabs.count)
+        let tab = createTab(
+            width: Self.defaultCanvasDimension,
+            height: Self.defaultCanvasDimension
+        )
+        tabs.append(tab)
+        activeTabIndex = tabs.count - 1
+        return tab
+    }
+
+    /// Activates the tab at `index` (web parity: `setActiveTab` in
+    /// `workspace.svelte.ts`).
+    ///
+    /// - Precondition: `index` is a valid `tabs` position — callers tap tabs
+    ///   the strip itself rendered, so no stale index reaches here.
+    func setActiveTab(_ index: Int) {
+        resolveOutgoingStroke(nextIndex: index)
+        activeTabIndex = index
+    }
+
+    /// Whether any tab may be closed — false only at the sole-tab guard
+    /// (the workspace always keeps at least one tab open). The tab strip
+    /// renders its close affordances from this, the UI face of the guard
+    /// `closeTab` enforces.
+    var canCloseTab: Bool {
+        tabs.count > 1
+    }
+
+    /// Removes the tab at `index` (web parity: `closeTab` in
+    /// `workspace.svelte.ts`): closing the active tab activates its right
+    /// neighbor, clamped to the new last tab at the end. Silently refuses
+    /// to close the sole remaining tab — `activeTab`'s force-index relies
+    /// on the collection never being empty.
+    ///
+    /// - Precondition: `index` is a valid `tabs` position. Stale indices are
+    ///   screened out at the UI boundary — the strip bounds-checks its
+    ///   pending close index at confirm time before calling in.
+    func closeTab(_ index: Int) {
+        guard canCloseTab else { return }
+        tabs.remove(at: index)
+        if index == activeTabIndex {
+            activeTabIndex = min(index, tabs.count - 1)
+        } else if index < activeTabIndex {
+            activeTabIndex -= 1
+        }
+    }
+
+    /// Commits the active tab's in-flight stroke before a different tab
+    /// becomes active — activation must never leave the outgoing tab
+    /// mid-edit, so its drawn pixels and undo entry seal here. This is the
+    /// policy layer; the canvas coordinator's originating-tab capture is the
+    /// defense beneath it, for pointer events already in flight when the
+    /// switch lands. No-op when the active tab is unchanged.
+    private func resolveOutgoingStroke(nextIndex: Int) {
+        if nextIndex != activeTabIndex && activeTab.isDrawing {
+            activeTab.endStroke()
+        }
     }
 
     // MARK: - Tools

@@ -30,10 +30,16 @@ tier-driven sizing actually renders:
 | `TopBar` | height | 44pt | 48pt |
 | `StatusBar` | height | 28pt | 32pt |
 
-`TimelinePanel` is the one docked region with **no** tier-driven axis — neither the
-web nor the `092` design spec varies the bottom-docked panel at the 1440 breakpoint.
-Its snapshots pin the expanded (200pt) ⇄ collapsed (44pt header strip) split instead,
-plus the layer sidebar's multi-layer content (panel order, active row, hidden row).
+`TimelinePanel` and `TabStrip` are the docked regions with **no** tier-driven axis —
+neither the web nor the `092` design spec varies the bottom-docked panel at the 1440
+breakpoint, and the web `.tab-strip` renders 36px at both docked breakpoints.
+`TimelinePanel`'s snapshots pin the expanded (200pt) ⇄ collapsed (44pt header strip)
+split instead, plus the layer sidebar's multi-layer content (panel order, active row,
+hidden row). `TabStrip`'s pin the 36pt height and the strip's content states — the
+sole tab with its close affordance disabled, and the active-tab treatment (elevated,
+accent underline) among inactive tabs. `TabStrip` has no ko baseline: its only
+visible text is tab names (unlocalized document data), so a ko render would be
+pixel-identical.
 
 This layer is **additive**, not a duplicate of the existing unit tests:
 

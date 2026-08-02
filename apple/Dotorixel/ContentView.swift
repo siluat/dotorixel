@@ -17,6 +17,12 @@ struct ContentView: View {
     @State private var showBenchmark = false
     #endif
 
+    /// Tabs whose canvas has been fitted once (web parity: `fittedTabs` in
+    /// `+page.svelte`) — a revisited tab keeps its own zoom/pan instead of
+    /// refitting. Keyed by `documentId`; ids of closed tabs linger harmlessly
+    /// (they are never reused).
+    @State private var fittedTabIds: Set<String> = []
+
     var body: some View {
         // Read @Observable properties at ContentView scope so SwiftUI tracks
         // them outside GeometryReader — ensures updateNSView fires on change.
@@ -34,6 +40,8 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 TopBar(workspace: workspace, tier: tier)
 
+                TabStrip(workspace: workspace)
+
                 HStack(spacing: 0) {
                     LeftToolbar(workspace: workspace, tier: tier)
 
@@ -49,6 +57,7 @@ struct ContentView: View {
                             )
                             .onAppear { fitCanvas(in: geo.size) }
                             .onChange(of: geo.size) { _, newSize in fitCanvas(in: newSize) }
+                            .onChange(of: tab.documentId) { _, _ in showActiveTab(in: geo.size) }
                             // Pencil hover preview: highlights the target cell
                             // while the Apple Pencil hovers (issue 253). Below the
                             // loupe so an active sampling stroke's magnifier wins.
@@ -165,20 +174,39 @@ struct ContentView: View {
         }
     }
 
-    /// Fits and centers the canvas within the available view area.
-    /// Multiplies by `displayScale` because the Metal renderer uses `drawableSize`
-    /// (device pixels), not SwiftUI points.
-    private func fitCanvas(in pointSize: CGSize) {
-        let deviceSize = ViewportSize(
-            width: pointSize.width * displayScale,
-            height: pointSize.height * displayScale
-        )
+    /// Presents the newly activated tab in the canvas area: adopts the
+    /// area's device size, fitting only the first time a tab is shown — a
+    /// revisited tab keeps its own zoom/pan, reclamped against the current
+    /// area (web parity: `initTabViewport` in `+page.svelte`).
+    private func showActiveTab(in pointSize: CGSize) {
         let tab = workspace.activeTab
-        tab.viewportSize = deviceSize
+        if fittedTabIds.contains(tab.documentId) {
+            tab.viewportSize = deviceSize(of: pointSize)
+            tab.handleViewportChange(tab.viewport)
+        } else {
+            fitCanvas(in: pointSize)
+        }
+    }
+
+    /// Fits and centers the canvas within the available view area.
+    private func fitCanvas(in pointSize: CGSize) {
+        let tab = workspace.activeTab
+        fittedTabIds.insert(tab.documentId)
+        tab.viewportSize = deviceSize(of: pointSize)
         tab.viewport = tab.viewport.fitToViewport(
             canvasWidth: tab.document.width(),
             canvasHeight: tab.document.height(),
-            viewportSize: deviceSize
+            viewportSize: tab.viewportSize
+        )
+    }
+
+    /// Converts the canvas area's point size to device pixels — the Metal
+    /// renderer and the viewport math use `drawableSize` (points × scale),
+    /// not SwiftUI points.
+    private func deviceSize(of pointSize: CGSize) -> ViewportSize {
+        ViewportSize(
+            width: pointSize.width * displayScale,
+            height: pointSize.height * displayScale
         )
     }
 }

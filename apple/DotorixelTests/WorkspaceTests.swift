@@ -77,6 +77,135 @@ struct TabStatePerTabTests {
     }
 }
 
+@Suite("Workspace — tab lifecycle")
+struct WorkspaceTabLifecycleTests {
+
+    @Test("addTab appends a fresh default-size document tab and makes it active")
+    func addTabAppendsAndActivates() {
+        let workspace = Workspace(width: 32, height: 24)
+
+        let tab = workspace.addTab()
+
+        #expect(workspace.tabs.count == 2)
+        #expect(workspace.activeTab === tab)
+        // Web parity: fresh tabs take the lowest unused "Untitled N".
+        #expect(tab.name == "Untitled 2")
+        // A fresh tab is default-sized, not a copy of the first tab's size.
+        #expect(tab.document.width() == 16)
+        #expect(tab.document.height() == 16)
+        #expect(tab.shared === workspace.shared)
+    }
+
+    @Test("setActiveTab switches tabs; documents and history stay per-tab")
+    func setActiveTabSwitchesAndIsolatesHistory() throws {
+        let workspace = Workspace()
+        let tabA = workspace.activeTab
+        tabA.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
+        tabA.endStroke()
+
+        let tabB = workspace.addTab()
+        #expect(workspace.activeTab === tabB)
+        #expect(tabB.document.composite().allSatisfy { $0 == 0 })
+
+        // Undo on B has nothing to undo and must never reach A's history.
+        #expect(!tabB.canUndo)
+        tabB.handleUndo()
+        #expect(try tabA.document.getPixel(x: 2, y: 2) == workspace.shared.foregroundColor)
+
+        workspace.setActiveTab(0)
+        #expect(workspace.activeTab === tabA)
+        #expect(tabA.canUndo)
+    }
+
+    @Test("activating another tab commits the outgoing tab's in-flight stroke")
+    func activationResolvesInFlightStroke() throws {
+        let workspace = Workspace()
+        let tabA = workspace.activeTab
+        workspace.addTab()
+        workspace.setActiveTab(0)
+
+        tabA.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        workspace.setActiveTab(1)
+
+        // The switch resolved the stroke: drawn pixels stay, the undo entry
+        // is sealed, and A is no longer mid-stroke.
+        #expect(!tabA.isDrawing)
+        #expect(tabA.canUndo)
+        #expect(try tabA.document.getPixel(x: 1, y: 1) == workspace.shared.foregroundColor)
+    }
+
+    @Test("addTab commits the outgoing tab's in-flight stroke before activating the new tab")
+    func addTabResolvesInFlightStroke() {
+        let workspace = Workspace()
+        let tabA = workspace.activeTab
+
+        tabA.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        workspace.addTab()
+
+        #expect(!tabA.isDrawing)
+        #expect(tabA.canUndo)
+    }
+
+    @Test("closing the active tab activates its right neighbor, or the new last tab at the end")
+    func closeActiveTabActivatesNeighbor() {
+        let workspace = Workspace()
+        let tabA = workspace.activeTab
+        let tabB = workspace.addTab()
+        let tabC = workspace.addTab()
+
+        // Close the middle, active tab: the right neighbor takes its index.
+        workspace.setActiveTab(1)
+        workspace.closeTab(1)
+        #expect(workspace.tabs.count == 2)
+        #expect(workspace.activeTab === tabC)
+        #expect(!workspace.tabs.contains(where: { $0 === tabB }))
+
+        // Close the last, active tab: activation clamps to the new last tab.
+        workspace.closeTab(1)
+        #expect(workspace.activeTab === tabA)
+    }
+
+    @Test("closing a tab before the active one keeps the same tab active")
+    func closeTabBeforeActiveKeepsActiveTab() {
+        let workspace = Workspace()
+        workspace.addTab()
+        let tabC = workspace.addTab()
+
+        workspace.closeTab(0)
+
+        #expect(workspace.activeTab === tabC)
+    }
+
+    @Test("the sole remaining tab cannot be closed")
+    func soleTabCannotBeClosed() {
+        let workspace = Workspace()
+        let onlyTab = workspace.activeTab
+        #expect(!workspace.canCloseTab)
+
+        workspace.closeTab(0)
+
+        #expect(workspace.tabs.count == 1)
+        #expect(workspace.activeTab === onlyTab)
+
+        workspace.addTab()
+        #expect(workspace.canCloseTab)
+    }
+
+    @Test("a closed tab's Untitled number is freed and reused by the next addTab")
+    func closedTabNumberIsReused() {
+        let workspace = Workspace()
+        workspace.addTab()
+        workspace.addTab()
+
+        // Close "Untitled 2": the middle number frees up.
+        workspace.closeTab(1)
+
+        #expect(workspace.addTab().name == "Untitled 2")
+        // The gap is filled again, so the next tab takes the next number up.
+        #expect(workspace.addTab().name == "Untitled 4")
+    }
+}
+
 @Suite("Workspace — keyboard host & tool activation")
 struct WorkspaceInputTests {
 

@@ -108,7 +108,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
-| Tab management (Workspace) | — | ✅ | 🔧 | Web: Workspace model, page wiring, TabStrip UI complete. Apple: workspace/tab/shared state split in place (single tab), tab UI not yet |
+| Tab management (Workspace) | — | ✅ | ✅ | Add/switch/close tab strip on both shells; tool/colors shared across tabs, document/history/viewport per tab. Web: close routes via save dialog; Apple: interim discard confirm until its save dialog |
 | Session persistence | — | ✅ | 🔧 | Web: multi-tab IndexedDB restore, debounced auto-save, retention; V7 round-trips multi-frame state; lossless V1→V7 migration; unreadable record skipped, not fatal. Apple: snapshot/hydration bindings ready (single-frame), shell auto-save pending |
 | Save dialog on tab close | — | ✅ | ⬜ | Blank canvas detection, save/delete/cancel modal, focus trap, keyboard accessible |
 | Saved work browser (desktop) | — | ✅ | ⬜ | Browse/open/delete; opens full Document snapshots while cards use composite thumbnails |

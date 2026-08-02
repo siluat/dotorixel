@@ -26,8 +26,7 @@ reached.
 
 ### Phase 4 — Multi-tab + persistence (issues 262–266)
 
-- [264 — Multi-tab workspace UI](../issues/264-apple-multi-tab-workspace.md) — unblocked (262 done)
-- [265 — SwiftData session auto-save + restore](../issues/265-apple-swiftdata-session-persistence.md) — blocked by 264 (263 done)
+- [265 — SwiftData session auto-save + restore](../issues/265-apple-swiftdata-session-persistence.md) — unblocked (263, 264 done)
 - [266 — Save dialog + saved work browser](../issues/266-apple-save-dialog-saved-work.md) — blocked by 265
 
 ### Phases 5–6 — roadmap (decompose when reached)

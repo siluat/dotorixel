@@ -26,9 +26,8 @@ reached.
 
 ### Phase 4 — Multi-tab + persistence (issues 262–266)
 
-- [263 — UniFFI persistence bindings (expand)](../issues/263-apple-uniffi-persistence-bindings.md)
 - [264 — Multi-tab workspace UI](../issues/264-apple-multi-tab-workspace.md) — unblocked (262 done)
-- [265 — SwiftData session auto-save + restore](../issues/265-apple-swiftdata-session-persistence.md) — blocked by 263, 264
+- [265 — SwiftData session auto-save + restore](../issues/265-apple-swiftdata-session-persistence.md) — blocked by 264 (263 done)
 - [266 — Save dialog + saved work browser](../issues/266-apple-save-dialog-saved-work.md) — blocked by 265
 
 ### Phases 5–6 — roadmap (decompose when reached)
@@ -62,6 +61,7 @@ reached.
 - Apple layer panel predicates — `canReorderLayers` vs the adjacent `canRemoveLayer` differ in number. Kept as-is in 260 because the concepts differ (reordering a stack vs removing one layer); revisit if a third panel predicate lands and the set reads inconsistent
 - Apple bindings staleness guard — `build-rust.sh` bootstraps Swift bindings only when `apple/generated` is empty, so a workspace built before a binding-surface change compiles against stale bindings until regenerated manually; add an mtime-based regeneration guard (surfaced by greptile on PR #342; recurs as Phase 3 keeps growing the binding surface)
 - Flaky e2e: Reference Window reload persistence — `e2e/editor/reference-images.test.ts` "window position survives a page reload" failed once, then passed on solo and full re-runs (2026-07-04, surfaced during 205 verification). Timing-sensitive chain: drag via raw pointer events → reload → IndexedDB workspace restore. Investigate/stabilize if it recurs
+- Web hydration opacity validation — the Apple binding rejects non-finite / out-of-`[0,1]` layer opacity at its `from_layers` boundary (PR #349 review); the web's `WasmDocumentBuilder.add_layer` still accepts any f32, an isomorphic gap (a persisted NaN slips past the compositor's clamp and renders the layer transparent). Port the same guard, or promote the opacity invariant into a core validating constructor (ReferencePlacement precedent), when the persistence surface next changes
 
 ## Future triggers
 

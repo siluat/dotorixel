@@ -1,6 +1,6 @@
 ---
 title: Apple UniFFI persistence bindings — document snapshot reads and from_layers hydration
-status: ready-for-agent
+status: done
 created: 2026-08-02
 ---
 
@@ -56,3 +56,23 @@ normalizes everything; this is binding work plus regeneration.
 
 None — can start immediately (parallel with
 [262](262-apple-workspace-state-split.md))
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/src/lib.rs` | Expand-only additions: `AppleLayerSnapshot` record (id, name, visible, opacity, pixels); `AppleDocument.layer_snapshots()` (every layer's persistence fields in stack order, errors on a Reference Layer); `is_timeline_panel_collapsed()`; `from_layers` hydration constructor wrapping the core's `Document::from_layers`; `From<DocumentBuildError> for AppleError` |
+| `apple/DotorixelTests/DocumentBindingsTests.swift` | 3 new binding tests: snapshot reads (inactive layers' buffers included), full round-trip (snapshot reads → hydration → composite/stack/active id/counter/collapse flag all match, incl. opacity 0.5 + collapsed + advanced counter + post-hydration edit), and the four core build errors surfacing as thrown `AppleError`s |
+
+### Key Decisions
+
+- **Symmetric snapshot record instead of the web's builder pattern**: UniFFI marshals `Vec<Record>` directly (wasm-bindgen cannot), so the read (`layer_snapshots`) and hydration (`from_layers`) share one `AppleLayerSnapshot` type — fewer FFI crossings, trivially symmetric round-trip, and `AppleLayerMetadata` stays untouched (expand-only held).
+- **`layer_snapshots` errors loudly on a Reference Layer** rather than silently dropping it — persistence data loss beats a thrown error; unreachable today since the Apple shell has no Reference Layer creation path.
+- **Naming**: `AppleLayerSnapshot` matches the web's persistence vocabulary (`LayerSnapshot` in `workspace-snapshot.ts`); distinct from the History `Snapshot` term per the CONTEXT.md glossary.
+
+### Notes
+
+- Single-frame scope, inherited from the core `from_layers` contract — multi-frame reconstruction is a later persistence concern.
+- The constructor's doc comment lists only reachable errors: the dimension-mismatch class surfaces as a buffer-length error because canvases are built against the document dimensions; `MissingInitialFrameCel`/`MultiFramePixelLayer` are structurally unreachable through `Layer::from_pixel_canvas`.
+- `apple/generated/` is git-ignored — consumers regenerate via the build bootstrap; the bindings-staleness-guard backlog item still applies.
+- Verified: full Apple suite green (311 tests), `cargo test` green (525 core), `cargo fmt`/`clippy` clean, existing bindings and shell code untouched.

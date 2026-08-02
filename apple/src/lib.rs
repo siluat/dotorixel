@@ -358,9 +358,10 @@ impl AppleDocument {
     /// of [`Self::layer_snapshots`]: `layers` is the persisted stack in stack
     /// order, restored verbatim (ids, names, visibility, opacity, pixels).
     /// Errors when a layer id or `active_layer_id` is not a valid UUID
-    /// string, when a pixel buffer's length is not `width * height * 4`, or
-    /// when the stack fails the core's build validation (empty stack,
-    /// duplicate ids, active layer not present).
+    /// string, when a layer's opacity is not a finite value in `[0.0, 1.0]`,
+    /// when a pixel buffer's length is not `width * height * 4`, or when the
+    /// stack fails the core's build validation (empty stack, duplicate ids,
+    /// active layer not present).
     #[uniffi::constructor]
     fn from_layers(
         width: u32,
@@ -374,6 +375,17 @@ impl AppleDocument {
             .into_iter()
             .map(|snapshot| {
                 let id = parse_layer_id(&snapshot.id)?;
+                // Persisted data is an external input: a NaN opacity would
+                // slip past the compositor's clamp and render the layer
+                // transparent, so malformed values fail here, at the boundary.
+                if !snapshot.opacity.is_finite() || !(0.0..=1.0).contains(&snapshot.opacity) {
+                    return Err(AppleError::Document {
+                        message: format!(
+                            "Layer {id} opacity must be a finite value between 0.0 and 1.0, got {}",
+                            snapshot.opacity
+                        ),
+                    });
+                }
                 let canvas = PixelCanvas::from_pixels(width, height, snapshot.pixels)?;
                 Ok(Layer::from_pixel_canvas(
                     id,

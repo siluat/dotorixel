@@ -10,14 +10,18 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 200 | 149 | 51 | 240 | 75% | 38% |
-| cubic-dev-ai[bot] | 237 | 185 | 52 | 204 | 78% | 48% |
-| coderabbitai[bot] | 293 | 205 | 88 | 187 | 70% | 52% |
+| greptile-apps[bot] | 201 | 150 | 51 | 240 | 75% | 38% |
+| cubic-dev-ai[bot] | 239 | 187 | 52 | 204 | 78% | 48% |
+| coderabbitai[bot] | 293 | 205 | 88 | 188 | 70% | 52% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #349 | cubic-dev-ai[bot] | Accept | Hydrating a snapshot with a NaN/Infinity/out-of-range opacity built a `Layer` outside its documented `[0.0, 1.0]` invariant — NaN slips past the compositor's clamp and renders the layer transparent; `from_layers` now rejects non-finite or out-of-range opacity at the hydration boundary, naming the layer id and value |
+| #349 | cubic-dev-ai[bot] | Accept | Partial: same opacity gap bundled with a `next_layer_number` overflow guard; opacity half accepted, counter guard declined — every u32 is structurally valid (rejecting `MAX` only moves the cliff to `MAX-1`) and a wrap costs display naming only, layer identity being UUID-based |
+| #349 | greptile-apps[bot] | Accept | Partial: same opacity + counter bundle (duplicate of cubic, P1); same split — opacity validation adopted, counter guard declined for the same reasons |
+| #349 | coderabbitai[bot] | Miss | APPROVED with no findings; missed the accepted opacity-validation gap |
 | #348 | coderabbitai[bot] | Accept | Follow-up on the originating-tab capture it flagged: a `drawingBegan` arriving after a mid-stroke tab switch overwrote `strokeTab` without closing the stranded tab's stroke — `beginStroke`'s self-cancel only covers its own tab — leaving the old tab `isDrawing` with an unresolved Edit Baseline; the coordinator now cancels a captured different-tab stroke before re-capturing |
 | #348 | coderabbitai[bot] | Accept | Issue 264's new acceptance criterion ("end/cancel on A even when B activates mid-stroke") read as contradicting the Switch rule ("stroke resolves before the switch"); reworded to state the layering — the rule is policy, the capture is the defense for events already in flight when the switch lands |
 | #348 | cubic-dev-ai[bot] | Accept | Same 264 Switch-rule vs acceptance-criterion contradiction (duplicate of coderabbit); same layering rewording |

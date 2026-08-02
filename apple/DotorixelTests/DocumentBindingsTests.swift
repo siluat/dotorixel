@@ -359,11 +359,13 @@ struct DocumentBindingsTests {
         #expect(hydrated.isTimelinePanelCollapsed())
     }
 
-    @Test("hydration surfaces the core build errors instead of crashing")
+    @Test("hydration rejects malformed persisted parts instead of crashing")
     func hydrationBuildErrors() throws {
         let layerId = makeLayerId()
-        func snapshot(id: String, pixels: Data = Data(count: 2 * 2 * 4)) -> AppleLayerSnapshot {
-            AppleLayerSnapshot(id: id, name: "Layer 1", visible: true, opacity: 1.0, pixels: pixels)
+        func snapshot(
+            id: String, opacity: Float = 1.0, pixels: Data = Data(count: 2 * 2 * 4)
+        ) -> AppleLayerSnapshot {
+            AppleLayerSnapshot(id: id, name: "Layer 1", visible: true, opacity: opacity, pixels: pixels)
         }
         func hydrate(layers: [AppleLayerSnapshot], activeLayerId: String) throws -> AppleDocument {
             try AppleDocument.fromLayers(
@@ -392,6 +394,16 @@ struct DocumentBindingsTests {
         // Active layer id not present in the stack.
         #expect(throws: AppleError.self) {
             _ = try hydrate(layers: [snapshot(id: layerId)], activeLayerId: makeLayerId())
+        }
+
+        // Non-finite or out-of-range opacity — persisted data is an external
+        // input; a NaN would slip past the compositor's clamp and render the
+        // layer transparent, so the boundary rejects it.
+        #expect(throws: AppleError.self) {
+            _ = try hydrate(layers: [snapshot(id: layerId, opacity: .nan)], activeLayerId: layerId)
+        }
+        #expect(throws: AppleError.self) {
+            _ = try hydrate(layers: [snapshot(id: layerId, opacity: 1.5)], activeLayerId: layerId)
         }
     }
 }

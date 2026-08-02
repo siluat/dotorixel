@@ -53,6 +53,14 @@ the shell.
 - Workspace logic (naming, activation, close index math, shared-vs-per-tab
   state) is unit-tested; the tab strip appears in docked-view snapshots
   across the layout tiers.
+- The canvas coordinator's originating-tab capture (`strokeTab` in
+  `PixelCanvasView.Coordinator`, wired in 262 review) is regression-tested
+  here, where `setActiveTab` first makes it exercisable. This does not
+  contradict the Switch rule above — that rule is the policy layer
+  (activation resolves an in-flight stroke first); the capture is the
+  defense beneath it, for pointer events already in flight when the
+  switch lands: those must still route to the originating tab, so a
+  stroke begun on tab A ends or cancels on A, never on B.
 
 ## Blocked by
 

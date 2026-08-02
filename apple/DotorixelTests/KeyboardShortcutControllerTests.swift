@@ -368,95 +368,95 @@ struct KeyboardShortcutControllerMenuOwnedTests {
     }
 }
 
-@Suite("EditorState — keyboard shortcut integration")
-struct EditorStateKeyboardShortcutTests {
+@Suite("Workspace — keyboard shortcut integration")
+struct WorkspaceKeyboardShortcutTests {
 
     @Test("setActiveTool never toggles the Constrain latch, unlike a toolbar re-tap")
     func setActiveToolBypassesLatch() {
-        let state = EditorState(width: 16, height: 16)
-        state.activeTool = .line
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .line
 
         state.setActiveTool(.line)
 
-        #expect(state.activeTool == .line)
+        #expect(state.shared.activeTool == .line)
         #expect(!state.isConstrainLatchOn)
     }
 
     @Test("Alt released mid-stroke restores the prior tool when the stroke ends")
     func deferredRestoreAppliesAtStrokeEnd() {
-        let state = EditorState(width: 16, height: 16)
-        state.activeTool = .pencil
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .pencil
 
         state.keyboardShortcuts.setAltHeld(true)
-        #expect(state.activeTool == .eyedropper)
+        #expect(state.shared.activeTool == .eyedropper)
 
-        state.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
         state.keyboardShortcuts.setAltHeld(false)
-        #expect(state.activeTool == .eyedropper)
+        #expect(state.shared.activeTool == .eyedropper)
 
-        state.endStroke()
-        #expect(state.activeTool == .pencil)
+        state.activeTab.endStroke()
+        #expect(state.shared.activeTool == .pencil)
     }
 
     @Test("Alt released mid-stroke restores the prior tool on cancel too")
     func deferredRestoreAppliesAtStrokeCancel() {
-        let state = EditorState(width: 16, height: 16)
-        state.activeTool = .rectangle
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .rectangle
 
         state.keyboardShortcuts.setAltHeld(true)
-        state.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
         state.keyboardShortcuts.setAltHeld(false)
 
-        state.cancelStroke()
-        #expect(state.activeTool == .rectangle)
+        state.activeTab.cancelStroke()
+        #expect(state.shared.activeTool == .rectangle)
     }
 
-    @Test("shortcut key presses route through EditorState as the live host")
+    @Test("shortcut key presses route through the Workspace as the live host")
     func editorStateActsAsHost() {
-        let state = EditorState(width: 16, height: 16)
-        let gridBefore = state.showGrid
-        let foregroundBefore = state.foregroundColor
-        let backgroundBefore = state.backgroundColor
+        let state = Workspace(width: 16, height: 16)
+        let gridBefore = state.activeTab.showGrid
+        let foregroundBefore = state.shared.foregroundColor
+        let backgroundBefore = state.shared.backgroundColor
 
         state.keyboardShortcuts.handleKeyDown(EditorTool.floodFill.shortcutKey)
-        #expect(state.activeTool == .floodFill)
+        #expect(state.shared.activeTool == .floodFill)
 
         state.keyboardShortcuts.handleKeyDown("g")
-        #expect(state.showGrid == !gridBefore)
+        #expect(state.activeTab.showGrid == !gridBefore)
 
         state.keyboardShortcuts.handleKeyDown("x")
-        #expect(state.foregroundColor == backgroundBefore)
-        #expect(state.backgroundColor == foregroundBefore)
+        #expect(state.shared.foregroundColor == backgroundBefore)
+        #expect(state.shared.backgroundColor == foregroundBefore)
     }
 
     @Test("shortcuts are ignored while a canvas-size field is focused")
     func textFieldFocusSuppressesShortcuts() {
-        let state = EditorState(width: 16, height: 16)
+        let state = Workspace(width: 16, height: 16)
         state.isTextInputFocused = true
 
         state.keyboardShortcuts.handleKeyDown(EditorTool.eraser.shortcutKey)
 
-        #expect(state.activeTool == .pencil)
+        #expect(state.shared.activeTool == .pencil)
     }
 
     @Test("focusing a text field ends a temporary Alt switch")
     func textFieldFocusEndsTemporarySwitch() {
-        let state = EditorState(width: 16, height: 16)
-        state.activeTool = .pencil
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .pencil
 
         state.keyboardShortcuts.setAltHeld(true)
-        #expect(state.activeTool == .eyedropper)
+        #expect(state.shared.activeTool == .eyedropper)
 
         // Moving focus into a size field means the Alt release may never
         // reach the canvas (iPad loses first responder) — the temporary
         // switch must end now instead of sticking.
         state.isTextInputFocused = true
 
-        #expect(state.activeTool == .pencil)
+        #expect(state.shared.activeTool == .pencil)
 
         // The cleared held flag must not swallow the next real Alt press.
         state.isTextInputFocused = false
         state.keyboardShortcuts.setAltHeld(true)
-        #expect(state.activeTool == .eyedropper)
+        #expect(state.shared.activeTool == .eyedropper)
     }
 }

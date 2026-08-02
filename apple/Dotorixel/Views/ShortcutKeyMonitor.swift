@@ -2,7 +2,7 @@
 import SwiftUI
 
 /// macOS wiring for the editor keyboard shortcuts: local NSEvent monitors
-/// feed normalized key events into `EditorState.keyboardShortcuts`.
+/// feed normalized key events into `Workspace.keyboardShortcuts`.
 ///
 /// Monitors see events before responder-chain dispatch, so shortcuts work
 /// regardless of which view is first responder — the text-input guard lives
@@ -13,7 +13,7 @@ import SwiftUI
 /// path per shortcut on each platform. Everything else the controller
 /// handles (tool letters, X, G, ⌘Y, Alt-hold) is consumed here.
 struct ShortcutKeyMonitorModifier: ViewModifier {
-    let editorState: EditorState
+    let workspace: Workspace
 
     @State private var monitors: [Any] = []
 
@@ -26,7 +26,7 @@ struct ShortcutKeyMonitorModifier: ViewModifier {
             .onReceive(
                 NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)
             ) { _ in
-                editorState.keyboardShortcuts.reset()
+                workspace.keyboardShortcuts.reset()
             }
     }
 
@@ -37,7 +37,7 @@ struct ShortcutKeyMonitorModifier: ViewModifier {
             handleKeyDown(event) ? nil : event
         }
         let flagsChanged = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { event in
-            editorState.keyboardShortcuts.setAltHeld(event.modifierFlags.contains(.option))
+            workspace.keyboardShortcuts.setAltHeld(event.modifierFlags.contains(.option))
             return event
         }
         monitors = [keyDown, flagsChanged].compactMap { $0 }
@@ -60,7 +60,7 @@ struct ShortcutKeyMonitorModifier: ViewModifier {
         if KeyboardShortcutController.isMenuOwnedShortcut(character, modifiers: modifiers) {
             return false
         }
-        return editorState.keyboardShortcuts.handleKeyDown(
+        return workspace.keyboardShortcuts.handleKeyDown(
             character, modifiers: modifiers, isRepeat: event.isARepeat
         )
     }

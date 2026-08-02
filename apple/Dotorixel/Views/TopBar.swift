@@ -3,8 +3,11 @@ import SwiftUI
 /// Top bar — app identity (left), zoom controls, grid toggle, and export (right).
 /// Layout and styling matches the web editor's TopBar.svelte.
 struct TopBar: View {
-    let editorState: EditorState
+    let workspace: Workspace
     let tier: LayoutTier
+
+    private var tab: TabState { workspace.activeTab }
+    private var shared: SharedState { workspace.shared }
 
     @State private var exportDocument: PngExportDocument?
     @State private var isExportPresented = false
@@ -43,30 +46,30 @@ struct TopBar: View {
                     zoomButton(
                         systemName: "minus",
                         accessibilityLabel: "Zoom out",
-                        action: editorState.handleZoomOut
+                        action: tab.handleZoomOut
                     )
 
                     Button {
-                        editorState.handleZoomReset()
+                        tab.handleZoomReset()
                     } label: {
-                        Text("\(editorState.zoomPercent)%")
+                        Text("\(tab.zoomPercent)%")
                             .font(.system(size: DesignTokens.fontSizeSm))
                             .foregroundStyle(DesignTokens.textPrimary)
                             .padding(.horizontal, DesignTokens.space2)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Reset zoom")
-                    .accessibilityValue("\(editorState.zoomPercent)%")
+                    .accessibilityValue("\(tab.zoomPercent)%")
 
                     zoomButton(
                         systemName: "plus",
                         accessibilityLabel: "Zoom in",
-                        action: editorState.handleZoomIn
+                        action: tab.handleZoomIn
                     )
                     zoomButton(
                         systemName: "arrow.up.left.and.arrow.down.right",
                         accessibilityLabel: "Fit to view",
-                        action: editorState.handleFit
+                        action: tab.handleFit
                     )
                 }
                 .padding(.horizontal, DesignTokens.space2)
@@ -119,13 +122,13 @@ struct TopBar: View {
     /// strokes bypass the L-corner filter; the on-state accent only shows
     /// while the toggle is actionable.
     private var pixelPerfectToggleButton: some View {
-        let isDisabled = !editorState.activeTool.supportsPixelPerfect
+        let isDisabled = !shared.activeTool.supportsPixelPerfect
         return Button {
-            editorState.pixelPerfect.toggle()
+            shared.pixelPerfect.toggle()
         } label: {
             PixelPerfectIcon()
                 .fill(
-                    editorState.pixelPerfect && !isDisabled
+                    shared.pixelPerfect && !isDisabled
                         ? DesignTokens.accent : DesignTokens.textSecondary
                 )
                 .frame(width: 16, height: 16)
@@ -135,7 +138,7 @@ struct TopBar: View {
         .disabled(isDisabled)
         .opacity(isDisabled ? disabledToggleOpacity : 1)
         .accessibilityLabel("Toggle pixel perfect")
-        .accessibilityValue(editorState.pixelPerfect ? "On" : "Off")
+        .accessibilityValue(shared.pixelPerfect ? "On" : "Off")
         .buttonStyle(BarToggleButtonStyle())
     }
 
@@ -143,18 +146,18 @@ struct TopBar: View {
 
     private var gridToggleButton: some View {
         Button {
-            editorState.toggleGrid()
+            tab.toggleGrid()
         } label: {
             Image(systemName: "grid")
                 .font(.system(size: 16))
                 .frame(width: controlHeight, height: controlHeight)
                 .foregroundStyle(
-                    editorState.showGrid ? DesignTokens.accent : DesignTokens.textSecondary
+                    tab.showGrid ? DesignTokens.accent : DesignTokens.textSecondary
                 )
                 .contentShape(Rectangle())
         }
         .accessibilityLabel("Toggle grid")
-        .accessibilityValue(editorState.showGrid ? "On" : "Off")
+        .accessibilityValue(tab.showGrid ? "On" : "Off")
         .buttonStyle(BarToggleButtonStyle())
     }
 
@@ -163,7 +166,7 @@ struct TopBar: View {
     private var exportButton: some View {
         Button {
             do {
-                exportDocument = try editorState.makePngExportDocument()
+                exportDocument = try tab.makePngExportDocument()
                 isExportPresented = true
             } catch {
                 presentExportError(error)
@@ -186,7 +189,7 @@ struct TopBar: View {
             isPresented: $isExportPresented,
             document: exportDocument,
             contentType: .png,
-            defaultFilename: editorState.defaultExportFilename
+            defaultFilename: tab.defaultExportFilename
         ) { result in
             if case .failure(let error) = result {
                 presentExportError(error)

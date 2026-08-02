@@ -33,18 +33,18 @@ struct RenderPathTests {
     @MainActor
     @Test("the canvas texture receives the composite — a hidden layer's pixels are absent")
     func hiddenLayerDisappearsFromUploadedBuffer() throws {
-        let state = EditorState(width: 2, height: 2)
+        let state = Workspace(width: 2, height: 2)
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
-        try state.document.setPixel(x: 0, y: 0, color: red)
-        let layerId = state.document.layers()[0].id
+        try state.activeTab.document.setPixel(x: 0, y: 0, color: red)
+        let layerId = state.activeTab.document.layers()[0].id
 
         let mtkView = MTKView()
         let spy = try makeSpy(view: mtkView)
         let view = PixelCanvasView(
-            document: state.document,
-            viewport: state.viewport,
+            document: state.activeTab.document,
+            viewport: state.activeTab.viewport,
             showGrid: false,
-            editorState: state
+            workspace: state
         )
 
         view.configureRenderer(spy, mtkView: mtkView)
@@ -55,10 +55,10 @@ struct RenderPathTests {
 
         // The layer's paint survives untouched — only its composite
         // contribution disappears with the visibility flag.
-        try state.document.setLayerVisibility(id: layerId, visible: false)
+        try state.activeTab.document.setLayerVisibility(id: layerId, visible: false)
         view.configureRenderer(spy, mtkView: mtkView)
         let hiddenPixels = try #require(spy.uploadedPixels)
         #expect(hiddenPixels.allSatisfy { $0 == 0 })
-        #expect(Array(try state.document.activeLayerPixels()[0..<4]) == [0xFF, 0x00, 0x00, 0xFF])
+        #expect(Array(try state.activeTab.document.activeLayerPixels()[0..<4]) == [0xFF, 0x00, 0x00, 0xFF])
     }
 }

@@ -3,16 +3,18 @@ import SwiftUI
 /// Status bar — canvas dimensions on the left, active tool name on the right.
 /// Pure display view; mirrors web `StatusBar.svelte`.
 struct StatusBar: View {
-    let editorState: EditorState
+    let workspace: Workspace
     let tier: LayoutTier
+
+    private var tab: TabState { workspace.activeTab }
 
     var body: some View {
         HStack {
-            Text("\(editorState.document.width()) × \(editorState.document.height())")
+            Text("\(tab.document.width()) × \(tab.document.height())")
                 .font(.system(size: DesignTokens.fontSizeSm))
                 .foregroundStyle(DesignTokens.textSecondary)
             Spacer()
-            Text(editorState.activeTool.displayName)
+            Text(workspace.shared.activeTool.displayName)
                 .font(.system(size: DesignTokens.fontSizeSm))
                 .foregroundStyle(DesignTokens.textTertiary)
         }

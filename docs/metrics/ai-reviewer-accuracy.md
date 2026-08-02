@@ -10,14 +10,31 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 200 | 149 | 51 | 234 | 75% | 39% |
-| cubic-dev-ai[bot] | 236 | 184 | 52 | 199 | 78% | 48% |
-| coderabbitai[bot] | 281 | 195 | 86 | 187 | 69% | 51% |
+| greptile-apps[bot] | 200 | 149 | 51 | 240 | 75% | 38% |
+| cubic-dev-ai[bot] | 237 | 185 | 52 | 204 | 78% | 48% |
+| coderabbitai[bot] | 293 | 205 | 88 | 187 | 70% | 52% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #348 | coderabbitai[bot] | Accept | Follow-up on the originating-tab capture it flagged: a `drawingBegan` arriving after a mid-stroke tab switch overwrote `strokeTab` without closing the stranded tab's stroke — `beginStroke`'s self-cancel only covers its own tab — leaving the old tab `isDrawing` with an unresolved Edit Baseline; the coordinator now cancels a captured different-tab stroke before re-capturing |
+| #348 | coderabbitai[bot] | Accept | Issue 264's new acceptance criterion ("end/cancel on A even when B activates mid-stroke") read as contradicting the Switch rule ("stroke resolves before the switch"); reworded to state the layering — the rule is policy, the capture is the defense for events already in flight when the switch lands |
+| #348 | cubic-dev-ai[bot] | Accept | Same 264 Switch-rule vs acceptance-criterion contradiction (duplicate of coderabbit); same layering rewording |
+| #348 | coderabbitai[bot] | Reject | Wanted "prefactor" corrected to "refactor" in the metrics log; "prefactor" is the repo's established vocabulary — issue 262 is titled "Workspace state split (prefactor)" and its body, todo.md, and the parent RFC all use it |
+| #348 | greptile-apps[bot] | Miss (×2) | Re-reviewed bdd1760 at 5/5 with no findings; missed the stranded-tab begin overwrite and the 264 contradiction |
+| #348 | cubic-dev-ai[bot] | Miss | Flagged only the 264 contradiction; missed the stranded-tab begin overwrite (accepted from coderabbit) |
+| #348 | coderabbitai[bot] | Accept | `PixelCanvasView.Coordinator` re-resolved `workspace.activeTab` on every stroke event, so a mid-stroke tab switch (constructible once 264 lands `setActiveTab`) would route move/end/cancel to another tab's document and strand the originating tab mid-edit; the coordinator now captures the tab at `drawingBegan` and drives the whole lifecycle — including coordinate conversion via that tab's viewport — through it, clearing on end/cancel. Unreachable in today's single-tab shell (greptile's 5/5 read), accepted as exactly the seam this prefactor exists to prepare; regression test deferred to 264 where a mid-stroke switch first becomes constructible |
+| #348 | coderabbitai[bot] | Accept | Test pixel helpers (`activeLayerPixel`, `compositePixel`) took `Workspace` but depend only on the tab; parameter narrowed to `TabState`, matching the shared `paintedPixelCount` |
+| #348 | coderabbitai[bot] | Accept | Identity test claimed "unique document identity" but asserted only non-empty; now compares two workspaces' `documentId`s |
+| #348 | coderabbitai[bot] | Accept | Orphaned `/// Number of canvas pixels…` doc comment left behind the `paintedPixelCount` helper move (ConstrainStrokeTests); deleted |
+| #348 | coderabbitai[bot] | Accept | Same orphaned doc comment, MoveStrokeSessionTests (duplicate) |
+| #348 | coderabbitai[bot] | Accept | Same orphaned doc comment, FloodFillSessionTests (duplicate) |
+| #348 | coderabbitai[bot] | Accept | Same orphaned doc comment, ShapeStrokeSessionTests (duplicate) |
+| #348 | coderabbitai[bot] | Accept | Consolidated repeat of the three-file orphaned-comment finding (duplicate) |
+| #348 | coderabbitai[bot] | Reject | Wanted `nextUntitledName` to derive tab numbers from structured state instead of parsing the display string; the parse mirrors the web's `#nextUntitledName` (UNTITLED_PATTERN) verbatim — web-parity ownership is this prefactor's goal, and an Apple-only title model would diverge again in the 265 snapshot mirror. The localization/rename hazard is real but shared by both shells; belongs to the backlogged "Document rename" slice |
+| #348 | greptile-apps[bot] | Miss (×4) | Confidence 5/5 with no findings; missed the stroke-lifecycle activeTab re-resolution and the three accepted test cleanups |
+| #348 | cubic-dev-ai[bot] | Miss (×4) | APPROVED with no findings; missed the stroke-lifecycle activeTab re-resolution and the three accepted test cleanups |
 | #347 | greptile-apps[bot] | Accept | A reorder drag's captured `baseIndex`/`rowCount` go stale when a second finger's add/remove — or ⌘Z on macOS, the mundane repro the bots missed — restacks the layers mid-drag (P1): the preview and committed target no longer match the panel, and removing the dragged row tears its gesture down without `onEnded`, stranding the offsets and scroll lock. Fixed by cancelling the live drag on any panel-order id change (`onChange`) plus a collapse `onDisappear` |
 | #347 | cubic-dev-ai[bot] | Accept | Same stale `rowCount`/`baseIndex` snapshot + orphaned drag on mid-drag mutation (duplicate of greptile); same id-change cancel |
 | #347 | cubic-dev-ai[bot] | Accept | A second simultaneous handle gesture overwrote the shared `reorderDrag`, thrashing the preview and losing one drag's commit; guarded to first-pointer-wins (`else if reorderDrag == nil`), the web reorder-interaction's own rule — `onEnded`'s id guard already kept the interloper from committing |

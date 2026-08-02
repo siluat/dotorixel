@@ -1,13 +1,29 @@
 import SwiftUI
 
-/// Central editor state shared across all views via `@Observable`.
+/// Per-tab editor state — everything scoped to one open document (web parity:
+/// `TabState` in `tab-state.svelte.ts`): the document, its history, the
+/// viewport, and the tab-scoped stroke lifecycle. References (does not own)
+/// the workspace's `SharedState` so changes to the active tool / colors
+/// propagate across tabs.
 ///
 /// Wraps UniFFI objects (`AppleDocument`, `AppleViewport`) and provides
 /// SwiftUI-compatible properties. Since `AppleDocument` is a reference type
 /// whose internal mutations are invisible to `@Observable`, the `canvasVersion`
 /// counter must be incremented manually to trigger Metal re-renders.
 @Observable
-final class EditorState {
+final class TabState {
+    /// The workspace's shared state, referenced (not owned) so changes to the
+    /// active tool / colors propagate across tabs.
+    let shared: SharedState
+
+    /// Stable identity of the open document — the key session persistence
+    /// and the tab strip will address the tab by.
+    let documentId: String
+
+    /// The document's display name (web parity: fresh tabs are named
+    /// "Untitled N" by the workspace).
+    let name: String
+
     /// The Document being edited. The layer panel lists its stack, picks the
     /// drawing target, and adds, removes, and reorders layers.
     var document: AppleDocument
@@ -15,56 +31,6 @@ final class EditorState {
     /// Layer-aware undo/redo: whole-`Document` snapshots, so pixel edits,
     /// layer-structure changes, and resizes all restore through one path.
     let documentHistory = AppleDocumentHistory.defaultHistory()
-    var activeTool: EditorTool = .pencil
-    var foregroundColor: Color
-    var backgroundColor: Color
-    var showGrid: Bool = true
-    /// Pixel-perfect freehand mode (web default: on). Strokes snapshot the
-    /// flag at begin, so toggling mid-stroke only affects the next stroke.
-    var pixelPerfect: Bool = true
-
-    /// Whether the physical Shift key is held (macOS modifier flags, iPad
-    /// hardware keyboard). One of the two Shift-constrain sources.
-    var isShiftKeyHeld: Bool = false {
-        didSet { if isShiftKeyHeld != oldValue { modifierStateChanged() } }
-    }
-
-    /// Sticky toolbar Constrain latch — the touch-first stand-in for holding
-    /// Shift. Session-transient by design (in-memory only): it resets on
-    /// relaunch, mirroring how a held key is never remembered.
-    var isConstrainLatchOn: Bool = false {
-        didSet { if isConstrainLatchOn != oldValue { modifierStateChanged() } }
-    }
-
-    /// Whether a text field (the canvas-size inputs) has keyboard focus —
-    /// the signal that suppresses editor shortcuts so typed letters stay in
-    /// the field. Set by the owning views on focus change.
-    ///
-    /// Entering text focus also clears held-key state: on iPad the canvas
-    /// loses first responder, so release events (e.g. the Alt that opened a
-    /// temporary eyedropper) would never arrive.
-    var isTextInputFocused: Bool = false {
-        didSet {
-            if isTextInputFocused && !oldValue {
-                keyboardShortcuts.reset()
-            }
-        }
-    }
-
-    /// Editor keyboard shortcuts (tool keys, X/G, undo/redo combos,
-    /// Alt-hold eyedropper). Platform wiring feeds it normalized key events;
-    /// it dispatches back into this state via `KeyboardShortcutHost`.
-    let keyboardShortcuts = KeyboardShortcutController()
-
-    /// Colors recently *used* to draw or sampled by the eyedropper —
-    /// most-recent first. In-memory only for now; persistence arrives with
-    /// Phase 4 (the web keeps this in the workspace snapshot).
-    private(set) var recentColors: [Color] = []
-
-    /// Whether the bottom-docked Timeline panel is collapsed to its header
-    /// strip. In-memory only for now; persistence arrives with Phase 4
-    /// (the web keeps this in the workspace snapshot).
-    private(set) var isTimelinePanelCollapsed: Bool = false
 
     /// State behind the loupe overlay shown while an eyedropper stroke is
     /// active — see `StrokeSessionHost.samplingLoupe`.
@@ -85,9 +51,20 @@ final class EditorState {
     /// Needed because `@Observable` cannot detect internal state changes in UniFFI objects.
     private(set) var historyVersion: Int = 0
 
-    /// Current viewport dimensions in device pixels. Updated by ContentView on
-    /// appear and resize; used by zoom/pan handlers for clamp_pan calculations.
+    /// Current viewport dimensions in device pixels. Updated by the canvas
+    /// host view on appear and resize; used by zoom/pan handlers for
+    /// clamp_pan calculations.
     var viewportSize = ViewportSize(width: 0, height: 0)
+
+    /// Reads the workspace's Shift-constrain state (physical Shift OR the
+    /// Constrain latch) — injected because the transient input state lives at
+    /// workspace scope while stroke sessions read it through this tab.
+    private let isConstrainHeldProvider: () -> Bool
+
+    /// Consumes the workspace keyboard controller's pending Alt-eyedropper
+    /// tool restore at stroke end — injected for the same scope reason as
+    /// `isConstrainHeldProvider`.
+    private let pendingToolRestoreProvider: () -> EditorTool?
 
     var canUndo: Bool {
         // Read to register @Observable dependency — actual state lives in UniFFI object
@@ -105,10 +82,29 @@ final class EditorState {
         Int(viewport.zoom() * 100)
     }
 
+    /// Whether the bottom-docked Timeline panel is collapsed to its header
+    /// strip. Tab-scoped: the web persists it per document. In-memory only
+    /// for now; persistence arrives with the session auto-save slice.
+    private(set) var isTimelinePanelCollapsed: Bool = false
+
+    /// Whether the pixel grid overlay renders. Tab-scoped (web parity: grid
+    /// visibility lives in each tab's persisted viewport data).
+    var showGrid: Bool = true
+
     init(
-        width: UInt32 = 16,
-        height: UInt32 = 16
+        shared: SharedState,
+        documentId: String,
+        name: String,
+        isConstrainHeld: @escaping () -> Bool,
+        consumePendingToolRestore: @escaping () -> EditorTool?,
+        width: UInt32,
+        height: UInt32
     ) {
+        self.shared = shared
+        self.documentId = documentId
+        self.name = name
+        self.isConstrainHeldProvider = isConstrainHeld
+        self.pendingToolRestoreProvider = consumePendingToolRestore
         // The first layer follows the web's naming convention ("Layer 1") —
         // the name the layer panel row displays.
         self.document = try! AppleDocument(
@@ -118,44 +114,6 @@ final class EditorState {
             firstLayerName: "Layer 1"
         )
         self.viewport = AppleViewport.forCanvas(canvasWidth: width, canvasHeight: height)
-        // Web-matching defaults (shared-state.svelte.ts): foreground black, background white.
-        self.foregroundColor = Color(r: 0x00, g: 0x00, b: 0x00, a: 0xFF)
-        self.backgroundColor = Color(r: 0xFF, g: 0xFF, b: 0xFF, a: 0xFF)
-        keyboardShortcuts.host = self
-    }
-
-    // MARK: - Tools
-
-    /// Activates a tool the way a toolbar tap does (web parity: `activateTool`
-    /// in `tool-ui.ts`): re-activating the already-active constrainable tool
-    /// toggles the Constrain latch; anything else selects the tool.
-    func activateTool(_ tool: EditorTool) {
-        if tool == activeTool && tool.isConstrainable {
-            isConstrainLatchOn.toggle()
-        } else {
-            activeTool = tool
-        }
-    }
-
-    /// Sets the active tool directly — the keyboard/programmatic path.
-    /// Unlike `activateTool`, re-selecting the active constrainable tool
-    /// never toggles the Constrain latch (web parity: `setActiveTool`).
-    func setActiveTool(_ tool: EditorTool) {
-        activeTool = tool
-    }
-
-    /// Toggles grid visibility (the G shortcut and TopBar button behavior).
-    func toggleGrid() {
-        showGrid.toggle()
-    }
-
-    // MARK: - Colors
-
-    /// Exchanges the foreground and background colors.
-    func swapColors() {
-        let previousForeground = foregroundColor
-        foregroundColor = backgroundColor
-        backgroundColor = previousForeground
     }
 
     // MARK: - Stroke lifecycle
@@ -163,9 +121,9 @@ final class EditorState {
     /// Resolves the active tool into a per-stroke session and drives it.
     private let strokeEngine = StrokeEngine()
 
-    /// Opens a stroke session from the active tool and feeds the first sample.
-    /// The pointer button picks the stroke's draw color (primary → foreground,
-    /// secondary → background); touch input is always primary.
+    /// Opens a stroke session from the shared active tool and feeds the first
+    /// sample. The pointer button picks the stroke's draw color (primary →
+    /// foreground, secondary → background); touch input is always primary.
     func beginStroke(at coords: ScreenCanvasCoords, button: PointerButton = .primary) {
         // The pencil is touching down (or a finger stroke starting) — the
         // hover target gives way to the paint it was previewing.
@@ -177,7 +135,7 @@ final class EditorState {
             cancelStroke()
         }
         isDrawing = true
-        if strokeEngine.begin(tool: activeTool, host: self, button: button, at: coords) {
+        if strokeEngine.begin(tool: shared.activeTool, host: self, button: button, at: coords) {
             canvasVersion += 1
         }
     }
@@ -217,15 +175,16 @@ final class EditorState {
     /// down — the Apple analog of the web Input Pipeline's
     /// `restoreTemporaryTool` (an Alt released mid-stroke defers to here).
     private func restoreTemporaryTool() {
-        if let tool = keyboardShortcuts.consumePendingToolRestore() {
-            setActiveTool(tool)
+        if let tool = pendingToolRestoreProvider() {
+            shared.activeTool = tool
         }
     }
 
     /// Routes a Shift/latch flip into the active stroke so a stationary
     /// preview reshapes immediately — sessions otherwise read modifiers only
-    /// when a new pointer sample arrives. A no-op outside a stroke.
-    private func modifierStateChanged() {
+    /// when a new pointer sample arrives. A no-op outside a stroke. Called by
+    /// the workspace, which owns the transient input state.
+    func modifierStateChanged() {
         guard isDrawing else { return }
         if strokeEngine.modifierChanged() {
             canvasVersion += 1
@@ -263,6 +222,20 @@ final class EditorState {
             return false
         }
         return resolveEditBaseline()
+    }
+
+    /// Toggles grid visibility (the G shortcut and TopBar button behavior).
+    func toggleGrid() {
+        showGrid.toggle()
+    }
+
+    // MARK: - Timeline panel
+
+    /// Collapses the Timeline panel to its header strip, or expands it again —
+    /// the header chevron's action. Not undoable (web parity: a persisted-UI
+    /// mutation, never a History entry).
+    func toggleTimelinePanel() {
+        isTimelinePanelCollapsed.toggle()
     }
 
     // MARK: - Hover preview
@@ -453,15 +426,6 @@ final class EditorState {
         }
     }
 
-    // MARK: - Timeline panel
-
-    /// Collapses the Timeline panel to its header strip, or expands it again —
-    /// the header chevron's action. Not undoable (web parity: a persisted-UI
-    /// mutation, never a History entry).
-    func toggleTimelinePanel() {
-        isTimelinePanelCollapsed.toggle()
-    }
-
     // MARK: - Canvas clear
 
     /// Erases every pixel of the active layer to transparent, holding the
@@ -569,25 +533,23 @@ final class EditorState {
     }
 }
 
-// MARK: - KeyboardShortcutHost
-
-// The requirements (`isDrawing`, `isTextInputFocused`, `activeTool`,
-// `setActiveTool`, `handleUndo`, `handleRedo`, `toggleGrid`, `swapColors`)
-// are all fulfilled by the primary declaration above.
-extension EditorState: KeyboardShortcutHost {}
-
 // MARK: - StrokeSessionHost
 
-extension EditorState: StrokeSessionHost {
+extension TabState: StrokeSessionHost {
     /// The document viewed through the `DrawingSurface` seam — sessions
     /// paint the active layer and read the composite, nothing structural.
     var drawingSurface: any DrawingSurface { document }
 
-    var isPixelPerfectEnabled: Bool { pixelPerfect }
+    /// Stroke draw colors come from the workspace-shared slots.
+    var foregroundColor: Color { shared.foregroundColor }
+    var backgroundColor: Color { shared.backgroundColor }
+
+    var isPixelPerfectEnabled: Bool { shared.pixelPerfect }
 
     /// The single seam shape sessions read: physical Shift and the Constrain
-    /// latch OR-combined, so the latch is indistinguishable from a held key.
-    var isConstrainHeld: Bool { isShiftKeyHeld || isConstrainLatchOn }
+    /// latch OR-combined at workspace scope, so the latch is indistinguishable
+    /// from a held key.
+    var isConstrainHeld: Bool { isConstrainHeldProvider() }
 
     /// Holds the current document as the pending Edit Baseline. The entry
     /// commits at stroke end only if the stroke changed the document —
@@ -596,30 +558,21 @@ extension EditorState: StrokeSessionHost {
         documentHistory.beginEdit(document: document)
     }
 
-    /// Commits a sampled color to the given active-color slot. Not undoable —
-    /// History stays untouched; the swatch updates via `@Observable`.
-    /// A commit is a color *use*, so it also lands in the recent list
-    /// (web parity: the sampling session folds both into its commit).
+    /// Commits a sampled color to the given shared active-color slot. Not
+    /// undoable — History stays untouched; the swatch updates via
+    /// `@Observable`. A commit is a color *use*, so it also lands in the
+    /// recent list (web parity: the sampling session folds both into its
+    /// commit).
     func commitColorPick(_ color: Color, to target: ColorPickTarget) {
         switch target {
-        case .foreground: foregroundColor = color
-        case .background: backgroundColor = color
+        case .foreground: shared.foregroundColor = color
+        case .background: shared.backgroundColor = color
         }
         recordRecentColor(color)
     }
 
-    /// Maximum entries in `recentColors` — web parity (`addRecentColor` in
-    /// `src/lib/canvas/color.ts`).
-    private static let maxRecentColors = 12
-
-    /// Folds a used color into `recentColors`, most-recent first. Re-using a
-    /// listed color moves it to the front instead of duplicating it; the
-    /// list caps at `maxRecentColors`, dropping the oldest.
+    /// Records a color into the workspace-shared recent list.
     func recordRecentColor(_ color: Color) {
-        recentColors.removeAll { $0 == color }
-        recentColors.insert(color, at: 0)
-        if recentColors.count > Self.maxRecentColors {
-            recentColors.removeLast(recentColors.count - Self.maxRecentColors)
-        }
+        shared.recordRecentColor(color)
     }
 }

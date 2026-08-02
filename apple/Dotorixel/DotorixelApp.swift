@@ -4,16 +4,16 @@ import SwiftUI
 struct DotorixelApp: App {
     // Owned at App scope (not ContentView) so the Edit-menu commands below
     // can reach the same state the editor views observe.
-    @State private var editorState = EditorState()
+    @State private var workspace = Workspace()
 
     var body: some Scene {
         #if os(macOS)
         // A single `Window` (not `WindowGroup`): the editor is a
         // single-document app until Phase 4 (multi-tab + persistence), and
-        // the app-scoped EditorState must not be aliased by ⌘N-spawned
+        // the app-scoped Workspace must not be aliased by ⌘N-spawned
         // windows all mutating one canvas.
         Window("Dotorixel", id: "editor") {
-            ContentView(editorState: editorState)
+            ContentView(workspace: workspace)
                 // Floor the window so the docked chrome (44pt toolbar + 200pt panel)
                 // can't be squeezed past the canvas on a narrowly-resized Mac window.
                 .frame(minWidth: 480, minHeight: 400)
@@ -23,7 +23,7 @@ struct DotorixelApp: App {
             // responder chain's NSUndoManager) with commands bound to the
             // editor's own History stacks.
             CommandGroup(replacing: .undoRedo) {
-                UndoRedoCommands(editorState: editorState)
+                UndoRedoCommands(workspace: workspace)
             }
         }
         .defaultSize(width: 960, height: 640)
@@ -34,11 +34,11 @@ struct DotorixelApp: App {
         // (UIApplicationSupportsMultipleScenes: NO), so the app-scoped
         // state is never aliased across scenes.
         WindowGroup {
-            ContentView(editorState: editorState)
+            ContentView(workspace: workspace)
         }
         .commands {
             CommandGroup(replacing: .undoRedo) {
-                UndoRedoCommands(editorState: editorState)
+                UndoRedoCommands(workspace: workspace)
             }
         }
         #endif
@@ -53,19 +53,19 @@ struct DotorixelApp: App {
 /// `KeyboardShortcutController`, so it needs the text-input guard itself —
 /// ⌘Z while typing in a size field must not undo the canvas (web parity).
 private struct UndoRedoCommands: View {
-    let editorState: EditorState
+    let workspace: Workspace
 
     var body: some View {
         Button("Undo") {
-            editorState.handleUndo()
+            workspace.activeTab.handleUndo()
         }
         .keyboardShortcut("z", modifiers: .command)
-        .disabled(editorState.isTextInputFocused || !editorState.canUndo)
+        .disabled(workspace.isTextInputFocused || !workspace.activeTab.canUndo)
 
         Button("Redo") {
-            editorState.handleRedo()
+            workspace.activeTab.handleRedo()
         }
         .keyboardShortcut("z", modifiers: [.command, .shift])
-        .disabled(editorState.isTextInputFocused || !editorState.canRedo)
+        .disabled(workspace.isTextInputFocused || !workspace.activeTab.canRedo)
     }
 }

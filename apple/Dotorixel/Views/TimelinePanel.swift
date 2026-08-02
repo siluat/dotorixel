@@ -12,6 +12,11 @@ import SwiftUI
 struct TimelinePanel: View {
     let editorState: EditorState
 
+    /// The reorder drag currently under a handle, or nil while none is.
+    /// View-local by nature: it lives and dies with the gesture and never
+    /// reaches the document until the drop commits.
+    @State private var reorderDrag: LayerReorderDrag?
+
     /// Panel rows and the header strip share the touch-minimum height — the
     /// Apple stand-in for the web's `--row-height`, which drives both there too.
     private let rowHeight = DesignTokens.btnSize
@@ -21,6 +26,17 @@ struct TimelinePanel: View {
     /// a hidden row's name dims to opacity 0.45.
     private let activeBarWidth: CGFloat = 2
     private let hiddenNameOpacity: Double = 0.45
+
+    /// The lift under a row being dragged — web `.row--dragging`:
+    /// `box-shadow: 0 4px 14px rgb(0 0 0 / 0.18)`.
+    private let draggedRowShadowOpacity: Double = 0.18
+    private let draggedRowShadowRadius: CGFloat = 14
+    private let draggedRowShadowOffsetY: CGFloat = 4
+
+    /// Row stacking while a reorder previews — see `rowDepth`.
+    private let draggedRowDepth: Double = 2
+    private let shiftedRowDepth: Double = 1
+    private let restingRowDepth: Double = 0
 
     /// The panel's separator lines — web `--ds-border-width`: 1px. Named
     /// because `bodyHeight` subtracts it, where a bare `1` would read as
@@ -54,6 +70,24 @@ struct TimelinePanel: View {
                 .fill(DesignTokens.borderSubtle)
                 .frame(height: dividerThickness)
         }
+        // A structural change mid-drag — a second finger adding or removing a
+        // layer, ⌘Z restoring another stack — invalidates the drag's captured
+        // geometry, so cancel the preview rather than commit against rows that
+        // no longer exist. Removing the dragged row itself also lands here: its
+        // gesture is torn down without `onEnded`, and this is what clears the
+        // state it leaves behind. The drop's own commit is exempt — it clears
+        // the drag before mutating, so this fires with nothing to cancel.
+        .onChange(of: layerIdsInPanelOrder) {
+            guard reorderDrag != nil else { return }
+            reorderDrag = nil
+        }
+    }
+
+    /// The stack's identity in panel order — what a live reorder drag's
+    /// geometry is captured against, watched to cancel the drag when it
+    /// changes. Visibility flips keep the same ids, so they don't cancel.
+    private var layerIdsInPanelOrder: [String] {
+        editorState.layersInPanelOrder.map(\.id)
     }
 
     // MARK: - Header
@@ -139,6 +173,14 @@ struct TimelinePanel: View {
             .frame(minHeight: bodyHeight, alignment: .top)
         }
         .frame(height: bodyHeight)
+        // A reorder drag travels along the same axis this scrolls. The handle's
+        // gesture claims the press on touch-down (`minimumDistance: 0`), so the
+        // lock lands before any travel could be read as a scroll instead.
+        .scrollDisabled(reorderDrag != nil)
+        // Collapsing mid-drag removes the rows and tears their gestures down
+        // without `onEnded` — drop the drag with the body so no preview offsets
+        // or scroll lock survive into the next expand.
+        .onDisappear { reorderDrag = nil }
     }
 
     /// Holds the spec width wherever the canvas column can seat it, and yields
@@ -149,23 +191,31 @@ struct TimelinePanel: View {
     private var layerSidebar: some View {
         VStack(spacing: 0) {
             // Panel order: top of the stack renders at the top.
-            ForEach(editorState.layersInPanelOrder, id: \.id) { layer in
-                layerRow(layer)
+            ForEach(
+                Array(editorState.layersInPanelOrder.enumerated()),
+                id: \.element.id
+            ) { panelIndex, layer in
+                layerRow(layer, panelIndex: panelIndex)
             }
         }
         .frame(maxWidth: DesignTokens.timelineSidebarWidth)
     }
 
-    private func layerRow(_ layer: AppleLayerMetadata) -> some View {
+    private func layerRow(_ layer: AppleLayerMetadata, panelIndex: Int) -> some View {
         let isActive = editorState.activeLayerId == layer.id
+        let isDragging = reorderDrag?.layerId == layer.id
+        let reorderOffset = reorderDrag?.offset(forPanelIndex: panelIndex) ?? 0
         return HStack(spacing: DesignTokens.space2) {
             visibilityToggle(layer)
             rowSelectButton(layer, isActive: isActive)
             removeLayerButton(layer)
+            reorderHandle(layer, panelIndex: panelIndex)
         }
         // Full-height touch-minimum rows keep every target at the HIG minimum.
         .frame(height: rowHeight)
-        .background(isActive ? DesignTokens.bgActive : .clear)
+        // The dragged row needs an opaque fill of its own: rows are otherwise
+        // transparent, and it travels across the ones it passes.
+        .background(isActive || isDragging ? DesignTokens.bgActive : .clear)
         .overlay(alignment: .leading) {
             if isActive {
                 Rectangle()
@@ -176,6 +226,78 @@ struct TimelinePanel: View {
                     .allowsHitTesting(false)
             }
         }
+        .shadow(
+            color: isDragging ? .black.opacity(draggedRowShadowOpacity) : .clear,
+            radius: draggedRowShadowRadius,
+            y: draggedRowShadowOffsetY
+        )
+        .offset(y: reorderOffset)
+        .zIndex(rowDepth(isDragging: isDragging, reorderOffset: reorderOffset))
+    }
+
+    /// Which rows draw over which while a reorder previews: the travelling row
+    /// over everything, a shifted row over the ones still at rest.
+    /// Web parity: `.row--dragging` z-index 2, `.row--drag-shifted` 1.
+    private func rowDepth(isDragging: Bool, reorderOffset: CGFloat) -> Double {
+        if isDragging { return draggedRowDepth }
+        return reorderOffset == 0 ? restingRowDepth : shiftedRowDepth
+    }
+
+    /// The row's reorder affordance: a drag-only handle at the trailing edge
+    /// (web parity: the row's `≡`), disabled while a sole layer has nowhere
+    /// to move to. Drag-only by design — a tap resolves to the row's own
+    /// position, which the drop treats as a no-op.
+    private func reorderHandle(_ layer: AppleLayerMetadata, panelIndex: Int) -> some View {
+        PanelIconGlyph(
+            systemName: "line.3.horizontal",
+            tint: DesignTokens.textTertiary,
+            isEnabled: editorState.canReorderLayers
+        )
+        .gesture(reorderGesture(layer, panelIndex: panelIndex))
+        .disabled(!editorState.canReorderLayers)
+        .accessibilityLabel("Reorder \(layer.name)")
+        // The pointer-free path to the same command: VoiceOver's adjust
+        // gesture (and the rotor) steps the row through the stack.
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment:
+                editorState.reorderLayer(id: layer.id, toPanelIndex: panelIndex + 1)
+            case .decrement:
+                editorState.reorderLayer(id: layer.id, toPanelIndex: panelIndex - 1)
+            @unknown default:
+                break
+            }
+        }
+    }
+
+    /// `minimumDistance: 0` so the handle claims the press immediately rather
+    /// than after a travel threshold — the row underneath is a select target,
+    /// and a handoff mid-press would select instead of drag.
+    private func reorderGesture(_ layer: AppleLayerMetadata, panelIndex: Int) -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                if reorderDrag?.layerId == layer.id {
+                    reorderDrag?.translation = value.translation.height
+                } else if reorderDrag == nil {
+                    reorderDrag = LayerReorderDrag(
+                        layerId: layer.id,
+                        baseIndex: panelIndex,
+                        rowCount: editorState.layersInPanelOrder.count,
+                        rowHeight: rowHeight,
+                        translation: value.translation.height
+                    )
+                }
+                // A handle pressed while another row's drag is live falls
+                // through both branches: only the initiating pointer drives a
+                // drag (web parity), and `onEnded`'s id guard below keeps that
+                // second pointer from committing or clearing it.
+            }
+            .onEnded { value in
+                guard var drag = reorderDrag, drag.layerId == layer.id else { return }
+                drag.translation = value.translation.height
+                reorderDrag = nil
+                editorState.reorderLayer(id: layer.id, toPanelIndex: drag.targetPanelIndex)
+            }
     }
 
     /// The row's tap surface: selects the layer as the drawing target.
@@ -232,6 +354,12 @@ struct TimelinePanel: View {
     /// The column reserves the frame ruler's width and pins the row-to-cell
     /// alignment the ruler will inherit; the axis carries the hint that says
     /// why the space is empty.
+    ///
+    /// The cells hold still during a reorder drag, where the web shifts its
+    /// frame rows with the sidebar: these placeholders are identical and carry
+    /// no layer identity, so shifting them would render no visible difference.
+    /// The ruler that replaces them (Phase 6) does carry per-layer content and
+    /// will need the row offsets.
     private var frameArea: some View {
         // Top-aligned so cell N sits beside sidebar row N — the alignment the
         // frame ruler inherits when it replaces this column.

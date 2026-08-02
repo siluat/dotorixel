@@ -659,6 +659,23 @@
         }
       }
     },
+    "Reorder %@" : {
+      "comment" : "Layer row reorder handle accessibility label; %@ is the layer name. web: aria_reorderLayer",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を並べ替え"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 순서 변경"
+          }
+        }
+      }
+    },
     "Reset zoom" : {
       "comment" : "Zoom percentage button accessibility label. web: action_resetZoom",
       "localizations" : {

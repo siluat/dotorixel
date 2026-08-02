@@ -8,9 +8,8 @@ import SwiftUI
 /// counter must be incremented manually to trigger Metal re-renders.
 @Observable
 final class EditorState {
-    /// The Document being edited. The layer panel lists its stack, picks
-    /// the drawing target, and adds/removes layers; reorder arrives with
-    /// issue 260.
+    /// The Document being edited. The layer panel lists its stack, picks the
+    /// drawing target, and adds, removes, and reorders layers.
     var document: AppleDocument
     var viewport: AppleViewport
     /// Layer-aware undo/redo: whole-`Document` snapshots, so pixel edits,
@@ -401,6 +400,41 @@ final class EditorState {
     func removeLayer(id: String) {
         guard !isDrawing else { return }
         if performEdit({ (try? document.removeLayer(id: id)) != nil }) {
+            canvasVersion += 1
+        }
+    }
+
+    /// Whether the stack has somewhere to reorder to — false only while the
+    /// document holds a single layer. The panel renders reorder handles
+    /// disabled while this is false. Reads `canvasVersion` to register the
+    /// @Observable dependency (the layer stack lives in the UniFFI object,
+    /// invisible to observation).
+    var canReorderLayers: Bool {
+        _ = canvasVersion
+        return document.layers().count > 1
+    }
+
+    /// Moves the layer with `id` to `toPanelIndex` in **panel order** (top of
+    /// panel = index 0) — the panel drag's drop commit. Translates panel→stack
+    /// (`stack_idx = (count - 1) - panel_idx`, the inverse of
+    /// `layersInPanelOrder`) and delegates the move to the core.
+    /// A `toPanelIndex` past either end lands the row at that end, mirroring
+    /// the core's own silent clamp — a drag released past the last row must
+    /// settle there, not trap on the out-of-range stack index the raw
+    /// translation would produce.
+    /// A drop at the row's current position leaves the document unchanged, so
+    /// it records no history entry (web parity); a real move records exactly
+    /// one, and the active layer is preserved across either. Silently ignores
+    /// an unknown id.
+    /// No-ops silently while a drawing stroke is in progress — restacking the
+    /// live stroke's target would also replace its pending Edit Baseline.
+    func reorderLayer(id: String, toPanelIndex: Int) {
+        guard !isDrawing else { return }
+        let lastPanelIndex = document.layers().count - 1
+        let stackIndex = lastPanelIndex - min(max(toPanelIndex, 0), lastPanelIndex)
+        if performEdit({
+            (try? document.reorderLayer(id: id, newIndex: UInt64(stackIndex))) != nil
+        }) {
             canvasVersion += 1
         }
     }

@@ -90,6 +90,7 @@ struct FormatEntryLocalizationTests {
         #expect(resolve("Palette color \("#FF0000")", in: "ko") == "팔레트 색상 #FF0000")
         #expect(resolve("\(16) by \(16)", in: "ko") == "16 × 16")
         #expect(resolve("Delete \("Layer 1")", in: "ko") == "Layer 1 삭제")
+        #expect(resolve("Reorder \("Layer 1")", in: "ko") == "Layer 1 순서 변경")
     }
 }
 

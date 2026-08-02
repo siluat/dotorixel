@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 260 | [Apple layer panel — reorder layers](../issues/260-apple-layer-reorder.md) | 2026-08-02 |
 | 261 | [Apple Timeline panel shell — layer sidebar at its final home](../issues/261-apple-timeline-panel-shell.md) | 2026-08-01 |
 | 259 | [Apple layer panel — add and remove layers](../issues/259-apple-layer-add-remove.md) | 2026-08-01 |
 | 258 | [Apple layer panel — rows, active layer selection, visibility toggle](../issues/258-apple-layer-panel-rows.md) | 2026-07-27 |

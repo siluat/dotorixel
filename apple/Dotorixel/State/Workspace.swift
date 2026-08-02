@@ -127,6 +127,31 @@ final class Workspace {
         }
     }
 
+    // MARK: - Canvas presentation
+
+    /// Tabs whose canvas has been fitted once (web parity: `fittedTabs` in
+    /// `+page.svelte`) — a revisited tab keeps its own zoom/pan instead of
+    /// refitting. Ids of closed tabs linger harmlessly (they are never
+    /// reused). Transient by design: never persisted.
+    private var fittedTabIds: Set<String> = []
+
+    /// Adopts the canvas area's device size for the active tab: fits the
+    /// canvas the first time a tab is shown; afterwards the tab keeps its
+    /// own zoom/pan, with the pan reclamped against the new area (web
+    /// parity: `initTabViewport` in `+page.svelte` — fit once per tab,
+    /// reclamp ever after). The canvas host calls this on appear, on
+    /// canvas-area size changes (window resize, Timeline collapse), and on
+    /// active-tab switch.
+    func presentActiveTab(in deviceSize: ViewportSize) {
+        let tab = activeTab
+        tab.viewportSize = deviceSize
+        if fittedTabIds.insert(tab.documentId).inserted {
+            tab.handleFit()
+        } else {
+            tab.handleViewportChange(tab.viewport)
+        }
+    }
+
     // MARK: - Tools
 
     /// Activates a tool the way a toolbar tap does (web parity: `activateTool`

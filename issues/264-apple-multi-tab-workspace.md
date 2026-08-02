@@ -70,9 +70,9 @@ the shell.
 
 | File | Description |
 |------|-------------|
-| `apple/Dotorixel/State/Workspace.swift` | Tab lifecycle on the 262 seams: `addTab` (default-size doc, lowest unused "Untitled N", activates), `closeTab` (web index semantics, sole-tab guard), `setActiveTab`, `canCloseTab`; every activation path runs `resolveOutgoingStroke` — commits the outgoing tab's in-flight stroke. Index preconditions documented (validation lives at the UI boundary) |
+| `apple/Dotorixel/State/Workspace.swift` | Tab lifecycle on the 262 seams: `addTab` (default-size doc, lowest unused "Untitled N", activates), `closeTab` (web index semantics, sole-tab guard), `setActiveTab`, `canCloseTab`; every activation path runs `resolveOutgoingStroke` — commits the outgoing tab's in-flight stroke. Index preconditions documented (validation lives at the UI boundary). `presentActiveTab(in:)` owns the fit-once-then-reclamp canvas presentation (`fittedTabIds`) |
 | `apple/Dotorixel/Views/TabStrip.swift` | New tab strip (web `TabStrip.svelte` parity): active tab elevated + accent underline, per-tab close (disabled at the sole-tab guard), trailing +, active-tab auto-scroll, destructive close-confirmation alert. Tab select surface is a real `Button` (TimelinePanel row idiom) so VoiceOver exposes activation |
-| `apple/Dotorixel/ContentView.swift` | `TabStrip` docked between TopBar and the main row (web layout); `showActiveTab` on tab switch — fits a tab only the first time it is shown (`fittedTabIds`), revisits keep their own zoom/pan reclamped (web `initTabViewport` parity) |
+| `apple/Dotorixel/ContentView.swift` | `TabStrip` docked between TopBar and the main row (web layout); appear / area-size-change / tab-switch all route through `workspace.presentActiveTab` — a tab fits only the first time it is shown, revisits keep their own zoom/pan reclamped (web `initTabViewport` parity) |
 | `apple/Dotorixel/Style/DesignTokens.swift` | `tabStripHeight = 36` — web `.tab-strip` is 36px at both docked breakpoints, so tier-independent |
 | `apple/Dotorixel/Localizable.xcstrings` | 5 new entries with ko/ja ("Discard this drawing?", "Discard", "Cancel", "Close %@", "New tab"); Xcode `" : "` formatting preserved (append-only diff) |
 | `apple/DotorixelTests/WorkspaceTests.swift` | +8 tab-lifecycle tests: add/activate/naming, per-tab history isolation, stroke commit on both activation paths, close index math (neighbor + clamp, before-active decrement), sole-tab guard + `canCloseTab`, freed-number reuse |
@@ -84,12 +84,13 @@ the shell.
 - **Activation resolves in-flight strokes by committing (`endStroke`), not cancelling** — user-confirmed: drawn pixels survive a tab switch and the undo entry seals normally. The coordinator's cancel-based defense stays beneath, for pointer events already in flight.
 - **Snapshots pin content states, not tiers**: the web strip renders 36px at both docked breakpoints, so a per-tier snapshot would be pixel-identical (TimelinePanel precedent). Deviation from the acceptance wording documented in `DotorixelTests/README.md`.
 - **Sole-tab close affordance is disabled (dimmed), not absent** — consistent with the layer panel's disabled remove/reorder treatment.
-- **Fit-once-per-tab viewport** (`fittedTabIds` in ContentView, web `fittedTabs` parity) — also closes a runtime gap: a freshly added tab used to appear unfitted because only `onAppear`/size-change triggered fitting.
+- **Fit-once-per-tab viewport** (`Workspace.presentActiveTab`, web `fittedTabs`/`initTabViewport` parity) — also closes a runtime gap: a freshly added tab used to appear unfitted because only `onAppear`/size-change triggered fitting. Moved from ContentView to the workspace during PR review so the invariant is unit-testable at the agreed seam; canvas-area size changes now reclamp a fitted tab instead of refitting it (the pre-#347-era refit-on-collapse behavior is gone, matching the web).
 
 ### Notes
 
 - Closing a **non-active** tab bypasses the activation policy, so a stroke can be stranded mid-flight on a removed tab; the coordinator cancels it at the next begin (regression-tested). Harmless in between — the removed tab is unreachable.
-- Pre-existing divergence, surfaced not introduced here: a canvas-area size change refits (web only reclamps), so switching between tabs whose Timeline collapse states differ refits the incoming tab instead of preserving its zoom/pan. Revisit if it bothers in practice.
-- `fittedTabIds` retains ids of closed tabs — harmless (ids are never reused), self-cleaning would need a close hook into the view layer.
+- ~~Pre-existing divergence: a canvas-area size change refits (web only reclamps)~~ — resolved during PR review (flagged by coderabbit + cubic): size changes now route through `presentActiveTab`, so a fitted tab's zoom survives Timeline collapse, window resize, and cross-collapse-state switches; regression-tested at the workspace seam.
+- Tab strip keyboard navigation (ArrowLeft/Right + Home/End roving focus, web parity) is deferred to the review backlog — out of the 264 acceptance scope (cubic P3).
+- `fittedTabIds` retains ids of closed tabs — harmless (ids are never reused).
 - "Cancel" / "Discard" are generic catalog keys, reusable by future alerts.
 - Verified: full Apple suite green (323 tests, +15) on the pinned sim; macOS build compiles; existing snapshots byte-identical; simulator smoke-launch confirms the docked strip renders.

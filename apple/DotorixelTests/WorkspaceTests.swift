@@ -206,6 +206,59 @@ struct WorkspaceTabLifecycleTests {
     }
 }
 
+@Suite("Workspace — canvas presentation")
+struct WorkspaceCanvasPresentationTests {
+
+    private let squareArea = ViewportSize(width: 1024, height: 1024)
+
+    @Test("the first presentation fits and centers the canvas in the area")
+    func firstPresentationFits() {
+        let workspace = Workspace()
+
+        workspace.presentActiveTab(in: squareArea)
+
+        // A fresh 16×16 tab renders 32-device-pixel cells (512px canvas);
+        // fitted into a 1024px square it doubles the zoom and centers with
+        // zero margin on both axes.
+        #expect(workspace.activeTab.viewport.zoom() == 2.0)
+        #expect(workspace.activeTab.viewport.panX() == 0.0)
+        #expect(workspace.activeTab.viewport.panY() == 0.0)
+    }
+
+    @Test("an area size change preserves a presented tab's zoom (Timeline collapse, window resize)")
+    func areaSizeChangePreservesZoom() {
+        let workspace = Workspace()
+        workspace.presentActiveTab(in: squareArea)
+        // The user zooms in; a Timeline collapse then resizes the area.
+        workspace.activeTab.handleZoomIn()
+        let chosenZoom = workspace.activeTab.viewport.zoom()
+        #expect(chosenZoom > 2.0)
+
+        workspace.presentActiveTab(in: ViewportSize(width: 1024, height: 800))
+
+        #expect(workspace.activeTab.viewport.zoom() == chosenZoom)
+        #expect(workspace.activeTab.viewportSize.height == 800)
+    }
+
+    @Test("switching fits only a tab not yet presented; a revisited tab keeps its viewport")
+    func switchingFitsOnlyUnseenTabs() {
+        let workspace = Workspace()
+        workspace.presentActiveTab(in: squareArea)
+        workspace.activeTab.handleZoomIn()
+        let firstTabZoom = workspace.activeTab.viewport.zoom()
+
+        workspace.addTab()
+        workspace.presentActiveTab(in: squareArea)
+        // The fresh tab gets its own first fit...
+        #expect(workspace.activeTab.viewport.zoom() == 2.0)
+
+        workspace.setActiveTab(0)
+        workspace.presentActiveTab(in: squareArea)
+        // ...while the revisited tab keeps the zoom the user chose.
+        #expect(workspace.activeTab.viewport.zoom() == firstTabZoom)
+    }
+}
+
 @Suite("Workspace — keyboard host & tool activation")
 struct WorkspaceInputTests {
 

@@ -17,12 +17,6 @@ struct ContentView: View {
     @State private var showBenchmark = false
     #endif
 
-    /// Tabs whose canvas has been fitted once (web parity: `fittedTabs` in
-    /// `+page.svelte`) — a revisited tab keeps its own zoom/pan instead of
-    /// refitting. Keyed by `documentId`; ids of closed tabs linger harmlessly
-    /// (they are never reused).
-    @State private var fittedTabIds: Set<String> = []
-
     var body: some View {
         // Read @Observable properties at ContentView scope so SwiftUI tracks
         // them outside GeometryReader — ensures updateNSView fires on change.
@@ -55,9 +49,9 @@ struct ContentView: View {
                                 canvasVersion: canvasVersion,
                                 isTextInputFocused: isTextInputFocused
                             )
-                            .onAppear { fitCanvas(in: geo.size) }
-                            .onChange(of: geo.size) { _, newSize in fitCanvas(in: newSize) }
-                            .onChange(of: tab.documentId) { _, _ in showActiveTab(in: geo.size) }
+                            .onAppear { presentActiveTab(in: geo.size) }
+                            .onChange(of: geo.size) { _, newSize in presentActiveTab(in: newSize) }
+                            .onChange(of: tab.documentId) { _, _ in presentActiveTab(in: geo.size) }
                             // Pencil hover preview: highlights the target cell
                             // while the Apple Pencil hovers (issue 253). Below the
                             // loupe so an active sampling stroke's magnifier wins.
@@ -75,8 +69,9 @@ struct ContentView: View {
                         // right panel run full height beside it, matching the
                         // web grid's `toolbar timeline panel` row. The canvas
                         // `GeometryReader` above shrinks by the panel's height,
-                        // and its `onChange(of: geo.size)` refits the viewport
-                        // whenever the panel collapses or expands.
+                        // and its `onChange(of: geo.size)` re-presents the
+                        // viewport whenever the panel collapses or expands —
+                        // a fitted tab keeps its zoom, the pan reclamps.
                         TimelinePanel(tab: tab)
                     }
 
@@ -174,39 +169,15 @@ struct ContentView: View {
         }
     }
 
-    /// Presents the newly activated tab in the canvas area: adopts the
-    /// area's device size, fitting only the first time a tab is shown — a
-    /// revisited tab keeps its own zoom/pan, reclamped against the current
-    /// area (web parity: `initTabViewport` in `+page.svelte`).
-    private func showActiveTab(in pointSize: CGSize) {
-        let tab = workspace.activeTab
-        if fittedTabIds.contains(tab.documentId) {
-            tab.viewportSize = deviceSize(of: pointSize)
-            tab.handleViewportChange(tab.viewport)
-        } else {
-            fitCanvas(in: pointSize)
-        }
-    }
-
-    /// Fits and centers the canvas within the available view area.
-    private func fitCanvas(in pointSize: CGSize) {
-        let tab = workspace.activeTab
-        fittedTabIds.insert(tab.documentId)
-        tab.viewportSize = deviceSize(of: pointSize)
-        tab.viewport = tab.viewport.fitToViewport(
-            canvasWidth: tab.document.width(),
-            canvasHeight: tab.document.height(),
-            viewportSize: tab.viewportSize
-        )
-    }
-
-    /// Converts the canvas area's point size to device pixels — the Metal
-    /// renderer and the viewport math use `drawableSize` (points × scale),
-    /// not SwiftUI points.
-    private func deviceSize(of pointSize: CGSize) -> ViewportSize {
-        ViewportSize(
+    /// Presents the active tab in the canvas area — the workspace fits a
+    /// tab the first time it is shown and preserves its zoom/pan (pan
+    /// reclamped) ever after. This wrapper only converts the area's point
+    /// size to the device pixels the viewport math runs in (the Metal
+    /// renderer uses `drawableSize`: points × scale).
+    private func presentActiveTab(in pointSize: CGSize) {
+        workspace.presentActiveTab(in: ViewportSize(
             width: pointSize.width * displayScale,
             height: pointSize.height * displayScale
-        )
+        ))
     }
 }

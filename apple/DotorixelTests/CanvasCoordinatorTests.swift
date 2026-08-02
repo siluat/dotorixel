@@ -30,8 +30,8 @@ struct CanvasCoordinatorStrokeTabTests {
 
     private let originCell = CGPoint(x: 0.5, y: 0.5)
 
-    @Test("pointer events already in flight when a switch lands still route to the originating tab")
-    func inFlightEventsRouteToOriginatingTab() throws {
+    @Test("a mid-stroke switch seals the outgoing stroke; the pointer tail is a no-op that never reaches the new tab")
+    func switchSealsStrokeAndTailStaysHarmless() throws {
         let workspace = Workspace()
         let tabA = workspace.activeTab
         let tabB = workspace.addTab()
@@ -41,8 +41,11 @@ struct CanvasCoordinatorStrokeTabTests {
         coordinator.drawingBegan(at: originCell, button: .primary, inputSource: .mouse, in: view)
         #expect(tabA.isDrawing)
 
-        // The switch lands mid-stroke; the tail of the pointer sequence is
-        // still in flight and must resolve on A, never on B.
+        // Integration of the two layers: the activation policy commits A's
+        // stroke at the switch, so the still-in-flight tail must land as a
+        // no-op on the already-sealed stroke — and never touch B. (The
+        // capture itself is discriminated by the stranded-stroke tests
+        // below, where no policy runs first.)
         workspace.setActiveTab(1)
         coordinator.drawingMoved(to: originCell, in: view)
         coordinator.drawingEnded(in: view)
@@ -52,6 +55,34 @@ struct CanvasCoordinatorStrokeTabTests {
         #expect(!tabB.isDrawing)
         #expect(!tabB.canUndo)
         #expect(tabB.document.composite().allSatisfy { $0 == 0 })
+    }
+
+    @Test("tail events on a stroke stranded by closeTab still route to the originating tab")
+    func tailEventsRouteToStrandedOriginatingTab() throws {
+        let workspace = Workspace()
+        let tabA = workspace.activeTab
+        let tabB = workspace.addTab()
+        let (coordinator, view) = makeCoordinator(for: workspace)
+
+        coordinator.drawingBegan(at: originCell, button: .primary, inputSource: .mouse, in: view)
+        #expect(tabB.isDrawing)
+
+        // Closing the stroke's own tab bypasses the activation policy, so
+        // the stroke is still open when the tail lands — the originating-tab
+        // capture alone decides where these events go.
+        workspace.closeTab(1)
+        #expect(workspace.activeTab === tabA)
+        coordinator.drawingMoved(to: originCell, in: view)
+        coordinator.drawingEnded(in: view)
+
+        // Routed to B: its own stroke sealed there. A re-resolve against the
+        // active tab would leave B mid-stroke and misdirect the end to A.
+        #expect(!tabB.isDrawing)
+        #expect(tabB.canUndo)
+        #expect(try tabB.document.getPixel(x: 0, y: 0) == workspace.shared.foregroundColor)
+        #expect(!tabA.isDrawing)
+        #expect(!tabA.canUndo)
+        #expect(tabA.document.composite().allSatisfy { $0 == 0 })
     }
 
     @Test("a begin on the new active tab first cancels a stroke stranded on a closed tab")

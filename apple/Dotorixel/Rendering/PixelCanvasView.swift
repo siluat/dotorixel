@@ -213,6 +213,13 @@ extension PixelCanvasView {
             guard let workspace else { return }
 
             let tab = workspace.activeTab
+            // A begin can arrive while another tab's stroke is still captured
+            // (the active tab changed mid-stroke): `beginStroke` can only
+            // cancel a stroke on its own tab, so close the stranded one
+            // through its own cancel path before capturing the new tab.
+            if let strokeTab, strokeTab !== tab {
+                strokeTab.cancelStroke()
+            }
             strokeTab = tab
             strokeInputSource = inputSource
             // Pointer push precedes the stroke so the loupe has a position

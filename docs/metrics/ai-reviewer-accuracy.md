@@ -10,14 +10,20 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 199 | 148 | 51 | 233 | 74% | 39% |
-| cubic-dev-ai[bot] | 233 | 182 | 51 | 199 | 78% | 48% |
-| coderabbitai[bot] | 281 | 195 | 86 | 185 | 69% | 51% |
+| greptile-apps[bot] | 200 | 149 | 51 | 234 | 75% | 39% |
+| cubic-dev-ai[bot] | 236 | 184 | 52 | 199 | 78% | 48% |
+| coderabbitai[bot] | 281 | 195 | 86 | 187 | 69% | 51% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #347 | greptile-apps[bot] | Accept | A reorder drag's captured `baseIndex`/`rowCount` go stale when a second finger's add/remove — or ⌘Z on macOS, the mundane repro the bots missed — restacks the layers mid-drag (P1): the preview and committed target no longer match the panel, and removing the dragged row tears its gesture down without `onEnded`, stranding the offsets and scroll lock. Fixed by cancelling the live drag on any panel-order id change (`onChange`) plus a collapse `onDisappear` |
+| #347 | cubic-dev-ai[bot] | Accept | Same stale `rowCount`/`baseIndex` snapshot + orphaned drag on mid-drag mutation (duplicate of greptile); same id-change cancel |
+| #347 | cubic-dev-ai[bot] | Accept | A second simultaneous handle gesture overwrote the shared `reorderDrag`, thrashing the preview and losing one drag's commit; guarded to first-pointer-wins (`else if reorderDrag == nil`), the web reorder-interaction's own rule — `onEnded`'s id guard already kept the interloper from committing |
+| #347 | cubic-dev-ai[bot] | Reject | Interrupted-drag stuck state (app backgrounded mid-drag, no `DragGesture` cancel callback) — the item the maintainer explicitly backlogged from 260 pending a hands-on read of whether OS teardown actually skips `onEnded` on device; the accepted guards narrow the residual to exactly that system-interruption window, with a `scenePhase` reset as the candidate |
+| #347 | greptile-apps[bot] | Miss | Did not flag the second-gesture steal of the shared drag state (accepted from cubic) |
+| #347 | coderabbitai[bot] | Miss (×2) | APPROVED with no findings; flagged neither the stale mid-drag geometry nor the gesture steal |
 | #346 | greptile-apps[bot] | Accept | Hard 256pt layer sidebar overflows a narrow canvas column — reachable at the macOS window's 480pt floor (480 − 44 toolbar − 200 right panel = 236pt); the whole panel centered and pushed the add button, collapse chevron, and visibility toggle outside it. Sidebar now takes 256pt as a maximum; 236pt regression snapshot added |
 | #346 | cubic-dev-ai[bot] | Accept | Same narrow-column sidebar overflow (duplicate of greptile); same maxWidth fix |
 | #346 | coderabbitai[bot] | Accept | Tests README claimed all five locale snapshots render at `.wide`, but TimelinePanel takes no `LayoutTier` and renders at a fixed width; split the sentence |

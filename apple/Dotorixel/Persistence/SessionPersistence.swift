@@ -63,6 +63,13 @@ actor SessionPersistence {
     /// whose records are missing or unreadable. `nil` is the fresh-session
     /// fallback signal, never an error (web parity: a corrupt store must
     /// not block the editor).
+    ///
+    /// This layer rejects only what would trap before the core can see it
+    /// (integer conversions). Value-level corruption it cannot judge —
+    /// dimensions outside the core's supported range, malformed layer data —
+    /// passes through and fails at core hydration in `Workspace(restoring:)`,
+    /// the second half of the same fresh-session fallback; duplicating those
+    /// bounds here would make this a second authority over canvas limits.
     func restore() -> WorkspaceSnapshot? {
         do {
             guard let workspace = try fetchWorkspace() else { return nil }

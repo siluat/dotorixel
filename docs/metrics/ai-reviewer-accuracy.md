@@ -11,13 +11,15 @@ only Miss rows may be grouped, with an explicit (×N) count.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 202 | 151 | 51 | 253 | 75% | 37% |
-| cubic-dev-ai[bot] | 256 | 201 | 55 | 205 | 79% | 50% |
-| coderabbitai[bot] | 299 | 211 | 88 | 196 | 71% | 52% |
+| cubic-dev-ai[bot] | 257 | 202 | 55 | 205 | 79% | 50% |
+| coderabbitai[bot] | 299 | 211 | 88 | 197 | 71% | 52% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #351 | cubic-dev-ai[bot] | Accept | Partial (re-review): corrupt zero/>256 dimensions pass the `UInt32(exactly:)` guard and defer failure to `Workspace(restoring:)` instead of `restore()`'s nil — range-check duplication declined (dimension bounds are the core hydration constructor's single authority; the deferred path lands on the same fresh-session fallback without a crash), but the exposed doc gap was real: `restore()` now states the two-layer fallback explicitly |
+| #351 | coderabbitai[bot] | Miss | Re-reviewed the hardening commit without flagging the restore-contract layering gap (accepted in part from cubic) |
 | #351 | greptile-apps[bot] | Accept | Direct `UInt32(record.width)`-style conversions in the restore path trap on a corrupt negative/oversized stored Int — a fatal error the `do`/`catch` can't turn into the documented fresh-session fallback; `UInt32(exactly:)` now fails the restore normally |
 | #351 | coderabbitai[bot] | Accept | Same UInt32-trap-on-corrupt-store finding (duplicate of greptile), with the acceptance-criterion citation and the `UInt32(exactly:)` fix shape |
 | #351 | cubic-dev-ai[bot] | Accept | Same UInt32-trap-on-corrupt-store finding (duplicate) |

@@ -20,6 +20,12 @@ final class AutoSave {
     private var isDirty = false
     private var dirtyDocIds: Set<String> = []
     private var debounceTask: Task<Void, Never>?
+    /// Bumped whenever the pending debounce is superseded (a newer mark, a
+    /// flush). `Task.cancel` alone can lose the race — a task whose sleep
+    /// already resumed would clear its replacement's `debounceTask` and save
+    /// before the new debounce window elapsed — so the woken task re-checks
+    /// its generation before touching shared state.
+    private var debounceGeneration = 0
     /// Tail of the save chain — every save awaits its predecessor, so writes
     /// never interleave and `flush()` returns only after its own save ran.
     private var saveChain: Task<Void, Never>?
@@ -46,8 +52,13 @@ final class AutoSave {
             dirtyDocIds.insert(documentId)
         }
         debounceTask?.cancel()
+        debounceGeneration += 1
+        let generation = debounceGeneration
         debounceTask = Task {
-            guard (try? await Task.sleep(for: debounce)) != nil else { return }
+            _ = try? await Task.sleep(for: debounce)
+            // Superseded while sleeping (newer mark or flush) — a stale task
+            // must not clear `debounceTask` or save early.
+            guard generation == debounceGeneration else { return }
             debounceTask = nil
             await enqueueSave().value
         }
@@ -65,6 +76,7 @@ final class AutoSave {
     /// finished. No-ops when nothing is dirty.
     func flush() async {
         debounceTask?.cancel()
+        debounceGeneration += 1
         debounceTask = nil
         await enqueueSave().value
     }
@@ -85,16 +97,18 @@ final class AutoSave {
     private func performSave() async {
         guard isDirty else { return }
         isDirty = false
-        let dirtyIds = dirtyDocIds.isEmpty ? nil : dirtyDocIds
+        // An empty set is passed through as-is: workspace-only dirt (a tab
+        // switch, a shared-slot change) must rewrite no document record.
+        // `nil` — rewrite everything — is a caller-level contract this class
+        // never sends.
+        let dirtyIds = dirtyDocIds
         dirtyDocIds.removeAll()
         do {
             try await save(getSnapshot(), dirtyIds)
         } catch {
             // Restore the dirty state so the next debounce or flush retries.
             isDirty = true
-            if let dirtyIds {
-                dirtyDocIds.formUnion(dirtyIds)
-            }
+            dirtyDocIds.formUnion(dirtyIds)
         }
     }
 }

@@ -85,16 +85,90 @@ struct SessionPersistenceTests {
         let cleanId = workspace.activeTab.documentId
         let dirtyTab = workspace.addTab()
         try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
-        let storedUpdatedAt = try #require(await persistence.documentUpdatedAt(id: cleanId))
+        let cleanFirstStored = try #require(await persistence.documentUpdatedAt(id: cleanId))
+        let dirtyFirstStored = try #require(
+            await persistence.documentUpdatedAt(id: dirtyTab.documentId))
 
         dirtyTab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
         dirtyTab.endStroke()
         try await persistence.save(workspace.toSnapshot(), dirtyDocIds: [dirtyTab.documentId])
 
-        // The clean document was not rewritten: its stored timestamp is
-        // byte-identical to the first save's.
-        #expect(await persistence.documentUpdatedAt(id: cleanId) == storedUpdatedAt)
-        #expect(try #require(await persistence.documentUpdatedAt(id: dirtyTab.documentId)) >= storedUpdatedAt)
+        // The clean document was not rewritten (timestamp byte-identical to
+        // the first save's); the dirty one was (timestamp strictly newer).
+        #expect(await persistence.documentUpdatedAt(id: cleanId) == cleanFirstStored)
+        #expect(try #require(
+            await persistence.documentUpdatedAt(id: dirtyTab.documentId)) > dirtyFirstStored)
+    }
+
+    @Test("a document with no stored record is written even when the dirty set omits it")
+    func unstoredDocumentIsWrittenDespiteCleanDirtySet() async throws {
+        let persistence = try makeInMemoryPersistence()
+
+        let workspace = Workspace(width: 4, height: 4)
+        let tabA = workspace.activeTab
+        let tabB = workspace.addTab()
+        // First save of a fresh session with only the new tab dirty — the
+        // never-stored first tab must be written anyway, or the stored tab
+        // order references a document that does not exist and the whole
+        // session is discarded on restore.
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: [tabB.documentId])
+
+        let restored = try #require(await persistence.restore())
+        #expect(restored.tabs.map(\.id) == [tabA.documentId, tabB.documentId])
+    }
+
+    @Test("a record with an out-of-range stored number restores nil instead of trapping")
+    func corruptNumericRecordRestoresNil() async throws {
+        let container = try ModelContainer(
+            for: DocumentRecord.self, WorkspaceRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let persistence = SessionPersistence(modelContainer: container)
+        let workspace = Workspace(width: 4, height: 4)
+        let docId = workspace.activeTab.documentId
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        // Corrupt the stored width behind the persistence API — the store is
+        // an external input, and a negative width must fail the restore, not
+        // trap the UInt32 conversion.
+        let context = ModelContext(container)
+        let record = try #require(try context.fetch(
+            FetchDescriptor<DocumentRecord>(predicate: #Predicate { $0.id == docId })
+        ).first)
+        record.width = -1
+        try context.save()
+
+        #expect(await persistence.restore() == nil)
+    }
+
+    @Test("a corrupt stored viewport restores as the default viewport, not a discarded session")
+    func corruptViewportFallsBackToDefault() async throws {
+        let container = try ModelContainer(
+            for: DocumentRecord.self, WorkspaceRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let persistence = SessionPersistence(modelContainer: container)
+        let workspace = Workspace(width: 4, height: 4)
+        let docId = workspace.activeTab.documentId
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        // A negative pixel size is the corrupt-value shape SwiftData can
+        // actually store (NaN fails its own JSON encoding before reaching
+        // disk); it exercises the same validation fallback.
+        let context = ModelContext(container)
+        let record = try #require(try context.fetch(
+            FetchDescriptor<WorkspaceRecord>()
+        ).first)
+        var viewports = record.viewports
+        viewports[docId]?.pixelSize = -5
+        record.viewports = viewports
+        try context.save()
+
+        // One corrupt viewport must not cost the session its documents: the
+        // tab restores with the default viewport.
+        let restored = try #require(await persistence.restore())
+        #expect(restored.tabs[0].viewport ==
+            TabViewportSnapshot(pixelSize: 32, zoom: 1.0, panX: 0, panY: 0, showGrid: true))
     }
 
     @Test("closing a tab deletes its unsaved document from the store on the next save")

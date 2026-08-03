@@ -5,12 +5,15 @@ import Testing
 /// `DirtyNotifier` port (web parity: `createFakeDirtyNotifier`).
 private final class RecordingNotifier: DirtyNotifier {
     private(set) var marked: [String] = []
+    private(set) var workspaceMarks = 0
     private(set) var removed: [String] = []
 
     func markDirty(documentId: String) { marked.append(documentId) }
+    func markWorkspaceDirty() { workspaceMarks += 1 }
     func notifyTabRemoved(documentId: String) { removed.append(documentId) }
     func reset() {
         marked = []
+        workspaceMarks = 0
         removed = []
     }
 }
@@ -57,29 +60,32 @@ struct DirtyNotifierTests {
         #expect(notifier.marked.contains(tab.documentId))
     }
 
-    @Test("shared-state mutations mark the active tab dirty, including direct view assignments")
-    func sharedMutationsMarkDirty() {
+    @Test("shared-state mutations mark the workspace dirty without naming a document")
+    func sharedMutationsMarkWorkspaceDirty() {
         let notifier = RecordingNotifier()
         let workspace = Workspace(width: 4, height: 4, notifier: notifier)
-        let doc = workspace.activeTab.documentId
 
         // The view layer assigns shared slots directly (RightPanel's color
         // wells, TopBar's pixel-perfect toggle) — marking must not depend on
-        // routing through a workspace method.
+        // routing through a workspace method. Shared slots live in the
+        // workspace record, so no document is named: naming one would
+        // rewrite its layers for an edit that never touched it.
         workspace.shared.foregroundColor = Color(r: 9, g: 9, b: 9, a: 255)
-        #expect(notifier.marked.contains(doc))
+        #expect(notifier.workspaceMarks == 1)
+        #expect(notifier.marked.isEmpty)
 
         notifier.reset()
         workspace.shared.pixelPerfect.toggle()
-        #expect(notifier.marked.contains(doc))
+        #expect(notifier.workspaceMarks == 1)
 
         notifier.reset()
         workspace.activateTool(.eraser)
-        #expect(notifier.marked.contains(doc))
+        #expect(notifier.workspaceMarks == 1)
 
         notifier.reset()
         workspace.swapColors()
-        #expect(notifier.marked.contains(doc))
+        #expect(notifier.workspaceMarks == 2)
+        #expect(notifier.marked.isEmpty)
     }
 
     @Test("tab lifecycle: adding marks the new document, closing notifies removal, switching marks")
@@ -92,7 +98,10 @@ struct DirtyNotifierTests {
 
         notifier.reset()
         workspace.setActiveTab(0)
-        #expect(!notifier.marked.isEmpty)
+        // A switch changes only the persisted active index — exactly one
+        // workspace mark, no document named.
+        #expect(notifier.workspaceMarks == 1)
+        #expect(notifier.marked.isEmpty)
 
         notifier.reset()
         workspace.closeTab(1)
@@ -112,6 +121,7 @@ struct DirtyNotifierTests {
 
         #expect(restored.tabs.count == 2)
         #expect(notifier.marked.isEmpty)
+        #expect(notifier.workspaceMarks == 0)
         #expect(notifier.removed.isEmpty)
     }
 }

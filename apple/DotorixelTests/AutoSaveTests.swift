@@ -98,10 +98,11 @@ struct AutoSaveTests {
         autoSave.notifyTabRemoved(doc)
         await autoSave.flush()
 
-        // The arrangement change still saves; the removed document is not
-        // named dirty, so it is not rewritten.
+        // The arrangement change still saves; the dirty set is empty — not
+        // nil — so no remaining document is rewritten (nil would mean
+        // "rewrite everything").
         #expect(recorder.saves.count == 1)
-        #expect(recorder.saves[0].dirtyDocIds == nil)
+        #expect(recorder.saves[0].dirtyDocIds == [])
     }
 
     @Test("a failed save restores the dirty state so the next flush retries it")

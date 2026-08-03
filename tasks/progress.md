@@ -40,4 +40,5 @@ written `false` — 266 gives it meaning.
 - Apple bindings staleness guard — regenerate Swift bindings on binding-surface change
 - Apple auto-save failure surfacing — silent retry today; log + notification later
 - Web hydration opacity validation — port the Apple `from_layers` opacity guard
+- Web session-save gaps mirrored from the 265 review — unstored-tab skip + shared-state document rewrite
 - Flaky e2e: Reference Window reload persistence — investigate if it recurs

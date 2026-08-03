@@ -78,6 +78,10 @@ final class Workspace {
     /// parity).
     init(restoring snapshot: WorkspaceSnapshot,
          notifier: DirtyNotifier = NoOpDirtyNotifier()) throws {
+        // The workspace invariant is "never empty" (`activeTab` force-indexes)
+        // — an empty snapshot must fail the restore, not produce a workspace
+        // that crashes on first read.
+        guard !snapshot.tabs.isEmpty else { throw WorkspaceRestoreError.emptySnapshot }
         self.shared = SharedState(restoring: snapshot.sharedState)
         self.notifier = notifier
         // Two-phase for the same reason as the designated fresh init: the
@@ -111,13 +115,14 @@ final class Workspace {
     }
 
     /// Routes shared-slot mutations (tool, colors, recent colors,
-    /// pixel-perfect) into dirty marking. The web scopes these marks to the
-    /// active tab's document; the workspace record itself is rewritten on
-    /// every save.
+    /// pixel-perfect) into dirty marking. Marks the workspace, not a
+    /// document: shared slots live in the workspace record, and naming the
+    /// active document would rewrite its layers and stamp `updatedAt` for an
+    /// edit that never touched it. (Deliberate divergence — the web marks
+    /// the active document here; PR #351 review.)
     private func wireSharedDirtyMarking() {
         shared.onPersistableChange = { [weak self] in
-            guard let self else { return }
-            self.notifier.markDirty(documentId: self.activeTab.documentId)
+            self?.notifier.markWorkspaceDirty()
         }
     }
 
@@ -147,10 +152,11 @@ final class Workspace {
         guard index != activeTabIndex else { return }
         resolveOutgoingStroke(nextIndex: index)
         activeTabIndex = index
-        // The active tab index is persisted workspace state. (The web omits
-        // this mark — a switch alone is only saved when something else
-        // dirties the session — an accepted gap this shell closes.)
-        notifier.markDirty(documentId: activeTab.documentId)
+        // The active tab index is persisted workspace state — no document
+        // changed, so only the workspace record is marked. (The web omits
+        // this mark entirely — a switch alone is only saved when something
+        // else dirties the session — an accepted gap this shell closes.)
+        notifier.markWorkspaceDirty()
     }
 
     /// Whether any tab may be closed — false only at the sole-tab guard
@@ -292,6 +298,13 @@ final class Workspace {
         while usedNumbers.contains(nextNumber) { nextNumber += 1 }
         return "Untitled \(nextNumber)"
     }
+}
+
+/// Restore-side failures owned by the workspace itself, before any record
+/// reaches the core's hydration validation.
+enum WorkspaceRestoreError: Error {
+    /// The snapshot holds no tabs — unrepresentable as a workspace.
+    case emptySnapshot
 }
 
 // MARK: - KeyboardShortcutHost

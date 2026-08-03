@@ -86,6 +86,10 @@ private struct AutoSaveDirtyNotifier: DirtyNotifier {
         MainActor.assumeIsolated { autoSave.markDirty(documentId) }
     }
 
+    func markWorkspaceDirty() {
+        MainActor.assumeIsolated { autoSave.markDirty() }
+    }
+
     func notifyTabRemoved(documentId: String) {
         MainActor.assumeIsolated { autoSave.notifyTabRemoved(documentId) }
     }
@@ -100,6 +104,10 @@ private final class ProxyDirtyNotifier: DirtyNotifier {
 
     func markDirty(documentId: String) {
         target?.markDirty(documentId: documentId)
+    }
+
+    func markWorkspaceDirty() {
+        target?.markWorkspaceDirty()
     }
 
     func notifyTabRemoved(documentId: String) {

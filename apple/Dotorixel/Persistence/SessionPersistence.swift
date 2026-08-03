@@ -18,9 +18,14 @@ actor SessionPersistence {
         let now = Date()
 
         for tab in snapshot.tabs {
-            let shouldWrite = dirtyDocIds?.contains(tab.id) ?? true
+            let existing = try fetchDocument(id: tab.id)
+            // A tab with no stored record is written regardless of the dirty
+            // set — skipping it would persist a tab order referencing a
+            // document that was never stored, and restore discards the whole
+            // session over the missing record.
+            let shouldWrite = existing == nil || (dirtyDocIds?.contains(tab.id) ?? true)
             guard shouldWrite else { continue }
-            if let existing = try fetchDocument(id: tab.id) {
+            if let existing {
                 update(existing, from: tab, at: now)
             } else {
                 modelContext.insert(makeRecord(from: tab, at: now))
@@ -64,7 +69,7 @@ actor SessionPersistence {
             var tabs: [TabSnapshot] = []
             for docId in workspace.tabOrder {
                 guard let record = try fetchDocument(id: docId) else { return nil }
-                tabs.append(tabSnapshot(from: record, viewport: workspace.viewports[docId]))
+                tabs.append(try tabSnapshot(from: record, viewport: workspace.viewports[docId]))
             }
             guard !tabs.isEmpty else { return nil }
             return WorkspaceSnapshot(
@@ -181,20 +186,31 @@ actor SessionPersistence {
 
     // MARK: - Stored → snapshot
 
+    /// A record whose numbers cannot round-trip (negative dimensions, an
+    /// out-of-range counter). The store is an external input: throwing joins
+    /// `restore()`'s fresh-session fallback, where a direct `UInt32(_:)`
+    /// conversion would trap outside Swift error handling and crash launch.
+    private struct CorruptRecord: Error {}
+
     /// The viewport a record restores with when the workspace record holds
-    /// none for it (web parity: `DEFAULT_VIEWPORT`).
+    /// none for it — or a corrupt one (web parity: `DEFAULT_VIEWPORT`).
     private static let defaultViewport = TabViewportSnapshot(
         pixelSize: 32, zoom: 1.0, panX: 0, panY: 0, showGrid: true
     )
 
     private func tabSnapshot(
         from record: DocumentRecord, viewport: StoredViewport?
-    ) -> TabSnapshot {
-        TabSnapshot(
+    ) throws -> TabSnapshot {
+        guard let width = UInt32(exactly: record.width),
+              let height = UInt32(exactly: record.height),
+              let nextLayerNumber = UInt32(exactly: record.nextLayerNumber) else {
+            throw CorruptRecord()
+        }
+        return TabSnapshot(
             id: record.id,
             name: record.name,
-            width: UInt32(record.width),
-            height: UInt32(record.height),
+            width: width,
+            height: height,
             layers: record.layers.map { layer in
                 AppleLayerSnapshot(
                     id: layer.id,
@@ -205,17 +221,29 @@ actor SessionPersistence {
                 )
             },
             activeLayerId: record.activeLayerId,
-            nextLayerNumber: UInt32(record.nextLayerNumber),
+            nextLayerNumber: nextLayerNumber,
             timelinePanelCollapsed: record.timelinePanelCollapsed,
-            viewport: viewport.map {
-                TabViewportSnapshot(
-                    pixelSize: UInt32($0.pixelSize),
-                    zoom: $0.zoom,
-                    panX: $0.panX,
-                    panY: $0.panY,
-                    showGrid: $0.showGrid
-                )
-            } ?? Self.defaultViewport
+            viewport: viewportSnapshot(viewport)
+        )
+    }
+
+    /// A missing viewport — or one whose values fail validation (non-finite
+    /// zoom/pan, non-positive pixel size or zoom) — restores as the default
+    /// viewport: one corrupt viewport must not discard the whole session's
+    /// documents.
+    private func viewportSnapshot(_ stored: StoredViewport?) -> TabViewportSnapshot {
+        guard let stored,
+              let pixelSize = UInt32(exactly: stored.pixelSize), pixelSize > 0,
+              stored.zoom.isFinite, stored.zoom > 0,
+              stored.panX.isFinite, stored.panY.isFinite else {
+            return Self.defaultViewport
+        }
+        return TabViewportSnapshot(
+            pixelSize: pixelSize,
+            zoom: stored.zoom,
+            panX: stored.panX,
+            panY: stored.panY,
+            showGrid: stored.showGrid
         )
     }
 

@@ -44,7 +44,9 @@ final class SharedState {
         self.activeTool = snapshot.activeTool
         self.foregroundColor = snapshot.foregroundColor
         self.backgroundColor = snapshot.backgroundColor
-        self.recentColors = snapshot.recentColors
+        // The store is an external input: capping here preserves the live
+        // `maxRecentColors` invariant against an oversized stored list.
+        self.recentColors = Array(snapshot.recentColors.prefix(Self.maxRecentColors))
         self.pixelPerfect = snapshot.pixelPerfect
     }
 

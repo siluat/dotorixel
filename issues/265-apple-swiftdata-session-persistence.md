@@ -80,7 +80,7 @@ model via the issue 263 bindings.
 | `apple/DotorixelTests/WorkspaceSnapshotTests.swift` | Capture + restore round-trip, restored-viewport-kept-on-first-presentation (3 tests) |
 | `apple/DotorixelTests/AutoSaveTests.swift` | Debounce coalescing, immediate/no-op flush, tab-removed drop, failed-save retry (5 tests) |
 | `apple/DotorixelTests/DirtyNotifierTests.swift` | Mutation → mark wiring across document edits, presentation state, shared slots, tab lifecycle; restore marks nothing (5 tests) |
-| `apple/DotorixelTests/SessionPersistenceTests.swift` | In-memory-store round-trip, empty/corrupt → nil, dirty-only rewrite, closed-tab deletion (5 tests) |
+| `apple/DotorixelTests/SessionPersistenceTests.swift` | In-memory-store round-trip, empty/corrupt → nil, dirty-only rewrite, unstored-tab always written, corrupt-number → nil, corrupt-viewport → default fallback, closed-tab deletion (8 tests) |
 
 ### Key Decisions
 
@@ -88,6 +88,7 @@ model via the issue 263 bindings.
 - **Save chain instead of timer+pending pair**: each save awaits its predecessor, so a `flush()` racing a just-elapsed debounce resolves as one real write + one `isDirty`-guarded no-op, and `flush()` returning guarantees the write happened.
 - **`@ModelActor` SessionPersistence**: saves run off the main actor (the issue's background write) with the store confined to one executor; stored `Codable` types are separate from snapshot types so the on-disk format only changes deliberately.
 - **Dirty marking hooks `SharedState` setters** (`onPersistableChange`), not workspace methods: the Apple view layer assigns shared slots directly, so the web's method-funnel shape would miss those sites. Swift observers being inert during `init` is what makes hydration mark-free.
+- **Workspace-level dirt is a separate port signal** (`markWorkspaceDirty`, PR #351 review): shared-slot changes and tab switches mark the workspace record only — naming the active document (the web's shape) would rewrite its layers and stamp `updatedAt` for an edit that never touched it, polluting the 266 recency sort. An empty dirty set therefore rewrites no document; `nil` (rewrite everything) is a contract `AutoSave` never sends.
 - **`setActiveTab` marks dirty** — the web doesn't (a switch alone is only saved when something else dirties the session); closed deliberately on Apple since the active index is persisted workspace state.
 - **`EditorTool: String` raw value is the persistence identifier**; an unknown stored value restores as `.pencil` instead of discarding the session.
 - **Restored tabs pre-marked fitted**: first presentation reclamps rather than refits, keeping the persisted zoom/pan.
@@ -100,4 +101,6 @@ model via the issue 263 bindings.
 - scenePhase flush covers backgrounding/foreground loss per the issue; a macOS quit that skips the phase change is out of scope here.
 - Mutations before the async restore completes are dropped by the notifier proxy — they belong to the pre-restore workspace being replaced, or re-mark on the next mutation.
 - Single-frame scope inherited from the 263 bindings; frames/references/marquee are Phase 5–6 schema extensions.
-- Verified: 17 new tests, full Apple suite green (345); simulator launch → terminate → relaunch smoke clean; end-to-end restore pass on the pinned iPad simulator (HITL).
+- PR #351 review hardening: store reads validate at the boundary (`UInt32(exactly:)` → restore fails to fresh instead of trapping; corrupt viewport → default-viewport fallback; hydrated recent colors re-capped), a never-stored tab is written regardless of the dirty set (a fresh session whose first save named only a new tab used to persist an unrestorable tab order — the web has the same latent gap, backlogged), `Workspace(restoring:)` rejects an empty snapshot, and the debounce carries a generation guard against a cancel racing its own wakeup.
+- SwiftData cannot store NaN at all (its composite JSON encoding traps before disk), so the viewport finiteness guard is reachable only through on-disk corruption; the test injects a negative pixel size, the corrupt shape SwiftData can store.
+- Verified: 21 new tests, full Apple suite green (348); simulator launch → terminate → relaunch smoke clean; end-to-end restore pass on the pinned iPad simulator (HITL).

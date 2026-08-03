@@ -27,7 +27,20 @@ final class TabState {
     /// The Document being edited. The layer panel lists its stack, picks the
     /// drawing target, and adds, removes, and reorders layers.
     var document: AppleDocument
-    var viewport: AppleViewport
+    var viewport: AppleViewport {
+        // The viewport is persisted per tab, so a replacement that changes
+        // its geometry marks dirty; an inert reclamp (same zoom/pan) leaves
+        // persisted state untouched (web parity: `TabViewport.reclamp`).
+        // Inert during init, so hydration never marks.
+        didSet {
+            if viewport.zoom() != oldValue.zoom()
+                || viewport.panX() != oldValue.panX()
+                || viewport.panY() != oldValue.panY()
+                || viewport.pixelSize() != oldValue.pixelSize() {
+                notifier.markDirty(documentId: documentId)
+            }
+        }
+    }
     /// Layer-aware undo/redo: whole-`Document` snapshots, so pixel edits,
     /// layer-structure changes, and resizes all restore through one path.
     let documentHistory = AppleDocumentHistory.defaultHistory()
@@ -55,6 +68,10 @@ final class TabState {
     /// host view on appear and resize; used by zoom/pan handlers for
     /// clamp_pan calculations.
     var viewportSize = ViewportSize(width: 0, height: 0)
+
+    /// Where this tab reports persistable mutations (web parity: the
+    /// `DirtyNotifier` port), keyed by `documentId`.
+    private let notifier: DirtyNotifier
 
     /// Reads the workspace's Shift-constrain state (physical Shift OR the
     /// Constrain latch) — injected because the transient input state lives at
@@ -95,25 +112,88 @@ final class TabState {
         shared: SharedState,
         documentId: String,
         name: String,
+        notifier: DirtyNotifier = NoOpDirtyNotifier(),
+        isConstrainHeld: @escaping () -> Bool,
+        consumePendingToolRestore: @escaping () -> EditorTool?,
+        document: AppleDocument,
+        viewport: AppleViewport
+    ) {
+        self.shared = shared
+        self.documentId = documentId
+        self.name = name
+        self.notifier = notifier
+        self.isConstrainHeldProvider = isConstrainHeld
+        self.pendingToolRestoreProvider = consumePendingToolRestore
+        self.document = document
+        self.viewport = viewport
+    }
+
+    /// Opens a fresh transparent document of `width × height`.
+    convenience init(
+        shared: SharedState,
+        documentId: String,
+        name: String,
+        notifier: DirtyNotifier = NoOpDirtyNotifier(),
         isConstrainHeld: @escaping () -> Bool,
         consumePendingToolRestore: @escaping () -> EditorTool?,
         width: UInt32,
         height: UInt32
     ) {
-        self.shared = shared
-        self.documentId = documentId
-        self.name = name
-        self.isConstrainHeldProvider = isConstrainHeld
-        self.pendingToolRestoreProvider = consumePendingToolRestore
         // The first layer follows the web's naming convention ("Layer 1") —
         // the name the layer panel row displays.
-        self.document = try! AppleDocument(
-            width: width,
-            height: height,
-            firstLayerId: UUID().uuidString,
-            firstLayerName: "Layer 1"
+        self.init(
+            shared: shared,
+            documentId: documentId,
+            name: name,
+            notifier: notifier,
+            isConstrainHeld: isConstrainHeld,
+            consumePendingToolRestore: consumePendingToolRestore,
+            document: try! AppleDocument(
+                width: width,
+                height: height,
+                firstLayerId: UUID().uuidString,
+                firstLayerName: "Layer 1"
+            ),
+            viewport: AppleViewport.forCanvas(canvasWidth: width, canvasHeight: height)
         )
-        self.viewport = AppleViewport.forCanvas(canvasWidth: width, canvasHeight: height)
+    }
+
+    /// Rebuilds a tab from its persistence record: the document through the
+    /// hydration constructor, the persisted viewport, and the tab-scoped
+    /// presentation flags. History starts empty (web parity: undo/redo is
+    /// session-transient). Throws when the persisted parts fail the core's
+    /// hydration validation.
+    convenience init(
+        restoring snapshot: TabSnapshot,
+        shared: SharedState,
+        notifier: DirtyNotifier = NoOpDirtyNotifier(),
+        isConstrainHeld: @escaping () -> Bool,
+        consumePendingToolRestore: @escaping () -> EditorTool?
+    ) throws {
+        self.init(
+            shared: shared,
+            documentId: snapshot.id,
+            name: snapshot.name,
+            notifier: notifier,
+            isConstrainHeld: isConstrainHeld,
+            consumePendingToolRestore: consumePendingToolRestore,
+            document: try AppleDocument.fromLayers(
+                width: snapshot.width,
+                height: snapshot.height,
+                layers: snapshot.layers,
+                activeLayerId: snapshot.activeLayerId,
+                nextLayerNumber: snapshot.nextLayerNumber,
+                timelinePanelCollapsed: snapshot.timelinePanelCollapsed
+            ),
+            viewport: AppleViewport(
+                pixelSize: snapshot.viewport.pixelSize,
+                zoom: snapshot.viewport.zoom,
+                panX: snapshot.viewport.panX,
+                panY: snapshot.viewport.panY
+            )
+        )
+        self.isTimelinePanelCollapsed = snapshot.timelinePanelCollapsed
+        self.showGrid = snapshot.viewport.showGrid
     }
 
     // MARK: - Stroke lifecycle
@@ -202,6 +282,11 @@ final class TabState {
     private func resolveEditBaseline() -> Bool {
         let committed = documentHistory.endEdit(current: document)
         historyVersion += 1
+        // A committed entry means the document actually changed — the one
+        // signal every undoable edit (stroke or command) funnels through.
+        if committed {
+            notifier.markDirty(documentId: documentId)
+        }
         return committed
     }
 
@@ -225,8 +310,11 @@ final class TabState {
     }
 
     /// Toggles grid visibility (the G shortcut and TopBar button behavior).
+    /// Persisted per tab, so it marks dirty (web parity: grid visibility
+    /// lives in the tab's viewport record).
     func toggleGrid() {
         showGrid.toggle()
+        notifier.markDirty(documentId: documentId)
     }
 
     // MARK: - Timeline panel
@@ -236,6 +324,9 @@ final class TabState {
     /// mutation, never a History entry).
     func toggleTimelinePanel() {
         isTimelinePanelCollapsed.toggle()
+        // Persisted-UI mutation (web parity): never a History entry, but it
+        // does mark the document dirty.
+        notifier.markDirty(documentId: documentId)
     }
 
     // MARK: - Hover preview
@@ -293,6 +384,7 @@ final class TabState {
         }
         canvasVersion += 1
         historyVersion += 1
+        notifier.markDirty(documentId: documentId)
     }
 
     // MARK: - Layers
@@ -325,6 +417,9 @@ final class TabState {
         guard id != document.activeLayerId() else { return }
         guard (try? document.setActiveLayer(id: id)) != nil else { return }
         canvasVersion += 1
+        // The active-layer pointer is persisted document state (web parity:
+        // a persisted-UI mutation marks dirty without a History entry).
+        notifier.markDirty(documentId: documentId)
     }
 
     /// The localized default name for the layer numbered `number` — web
@@ -469,6 +564,35 @@ final class TabState {
         // next hover republishes against the new dimensions.
         hoverPoint = nil
         canvasVersion += 1
+    }
+
+    // MARK: - Persistence
+
+    /// Captures this tab's full persistence record (web parity:
+    /// `TabState.toSnapshot` in `tab-state.svelte.ts`) — the document parts
+    /// the hydration constructor consumes plus the tab-scoped presentation
+    /// state.
+    func toSnapshot() -> TabSnapshot {
+        TabSnapshot(
+            id: documentId,
+            name: name,
+            width: document.width(),
+            height: document.height(),
+            // `layerSnapshots` errors only on a Reference Layer, which the
+            // Apple shell has no creation path for yet — an impossible state
+            // here, not a boundary to guard.
+            layers: try! document.layerSnapshots(),
+            activeLayerId: document.activeLayerId(),
+            nextLayerNumber: document.nextLayerNumber(),
+            timelinePanelCollapsed: isTimelinePanelCollapsed,
+            viewport: TabViewportSnapshot(
+                pixelSize: viewport.pixelSize(),
+                zoom: viewport.zoom(),
+                panX: viewport.panX(),
+                panY: viewport.panY(),
+                showGrid: showGrid
+            )
+        )
     }
 
     // MARK: - Export

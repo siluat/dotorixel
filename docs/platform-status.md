@@ -19,7 +19,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Selection / Marquee | 🔧 | 🔧 | ⬜ | Persistent Marquee with clipping, Delete, drag-to-move/cancel, copy/cut/paste, keyboard nudge, Shift-square define/axis drag, action bars; selection UI hides (Marquee preserved) while a Reference Layer is active |
 | Right-click background color | — | ✅ | ✅ | Supported paint tools draw with BG on right-click; eraser stays transparent. Apple: macOS right-click + iPadOS pointer secondary button; touch always FG |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |
-| Pixel-perfect filter | ✅ | ✅ | ✅ | L-corner 3-window rule (Aseprite-style). Toggle default ON, disabled on non-freehand tools; Web persists it, Apple in-memory until Phase 4 persistence |
+| Pixel-perfect filter | ✅ | ✅ | ✅ | L-corner 3-window rule (Aseprite-style). Toggle default ON, disabled on non-freehand tools; persisted with the session on both shells |
 
 ## Canvas
 
@@ -54,7 +54,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | HSV conversion | — | ✅ | ✅ | Shell-side math on both shells (simple, stable — Core Placement) |
 | Color picker | — | ✅ | ✅ | Custom HSV picker (SV square + hue strip) on both shells; achromatic colors keep the current hue. Assistive edits via split axes: web arrow keys (Shift = coarse), Apple VoiceOver adjustable. Read-only hex readout row on both shells |
 | Preset palette | — | ✅ | ✅ | 18 Pebble colors |
-| Recent colors | — | ✅ | ✅ | Last 12 used, deduped, most-recent first. Apple: in-memory only until Phase 4 persistence |
+| Recent colors | — | ✅ | ✅ | Last 12 used, deduped, most-recent first; persisted with the session on both shells |
 | FG/BG color swap | — | ✅ | ✅ | Swap button + per-swatch color picker. Apple: swap button; palette/picker set FG only |
 | Color loupe overlay | — | ✅ | ✅ | 9×9 magnifier + hex chip during eyedropper drag; quadrant-flip/clamp keeps it visible near edges. Web also shows it on 400ms long-press (touch); Apple: eyedropper strokes only, finger gets the touch offset (pencil = mouse) |
 
@@ -109,7 +109,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Tab management (Workspace) | — | ✅ | ✅ | Add/switch/close tab strip on both shells; tool/colors shared across tabs, document/history/viewport per tab. Web: close routes via save dialog; Apple: interim discard confirm until its save dialog |
-| Session persistence | — | ✅ | 🔧 | Web: multi-tab IndexedDB restore, debounced auto-save, retention; V7 round-trips multi-frame state; lossless V1→V7 migration; unreadable record skipped, not fatal. Apple: snapshot/hydration bindings ready (single-frame), shell auto-save pending |
+| Session persistence | — | ✅ | ✅ | Web: multi-tab IndexedDB restore, debounced auto-save, retention; V7 round-trips multi-frame state; lossless V1→V7 migration. Apple: SwiftData debounced auto-save + launch restore of the full current model (single-frame; frames/references arrive Phases 5–6). Both: corrupt store → fresh session, restored history empty, background/visibility-loss flush |
 | Save dialog on tab close | — | ✅ | ⬜ | Blank canvas detection, save/delete/cancel modal, focus trap, keyboard accessible |
 | Saved work browser (desktop) | — | ✅ | ⬜ | Browse/open/delete; opens full Document snapshots while cards use composite thumbnails |
 | Saved work browser (mobile) | — | ✅ | — | Bottom sheet; opens full Document snapshots while cards use composite thumbnails |
@@ -122,7 +122,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Frame cel-grid | ✅ | ✅ | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: undoable add/duplicate/remove/reorder + set-active journal intents (undo restores frame+cel); multi-frame V7 persistence round-trips through the snapshot |
 | Per-frame duration | ✅ | ✅ | ⬜ | Each frame holds a display duration; default 100ms (10fps); identity unchanged when retimed. 1–60000ms clamp at the shell boundary (core trusts the value). Web complete: active-frame editor in the timeline corner (ms + derived fps), undoable, V7-persisted. Apple pending |
 | Reference Layer (timeline kind) | ✅ | ✅ | ⬜ | Singleton viewport underlay with import/replace, fit, placement controls, draw-tool no-op cursor, and rotation-aware source sampling. Editability (Reference takes no paint/Marquee) has one authority enforced at the document-state boundary; a live stroke's target layer/frame can't switch or vanish mid-stroke. Fixed under canvas transforms (nothing produces new quarter-turns; saved ones still render). Placement invariant (finite pos, scale > 0, quarter-turn 0..=3) enforced by the core constructor |
-| Timeline panel | — | 🔧 | 🔧 | Bottom-docked below the canvas on both shells — layers live here, not in a side panel. Web: Layer × Frame grid (occupancy dots, Reference span, 2-channel active highlight), ruler/cell select, header add/duplicate/delete + ruler-cell drag-reorder, per-document collapse, transport strip + ▼ playhead lane; mobile row touch targets pending. Apple: layer sidebar with per-row drag-handle reorder + collapse (session-only), frame area reserved as a placeholder until Phase 6 |
+| Timeline panel | — | 🔧 | 🔧 | Bottom-docked below the canvas on both shells — layers live here, not in a side panel. Web: Layer × Frame grid (occupancy dots, Reference span, 2-channel active highlight), ruler/cell select, header add/duplicate/delete + ruler-cell drag-reorder, per-document collapse, transport strip + ▼ playhead lane; mobile row touch targets pending. Apple: layer sidebar with per-row drag-handle reorder + persisted per-document collapse, frame area reserved as a placeholder until Phase 6 |
 | Playback (animation) | — | ✅ | ⬜ | Per-tab engine: transient Playhead + rAF clock holds each frame its `duration_ms` (carry → no drift), loops or stops at end. Previews committed art via `composite_at` — no Document mutation/history/dirty, never persisted; tab/document change stops it. Transport strip (Play/Pause · Loop · ▼ playhead) wired on docked + mobile |
 | Onion skinning | — | ✅ | ⬜ | Adjacent-frame ghosts while drawing (prev/next 1, clamped, no wrap): prev warm / next cool, dimmed, committed art on top; hidden during Playback; never in exports; per-tab persisted toggle in the transport strip |
 

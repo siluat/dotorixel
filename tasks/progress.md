@@ -3,18 +3,19 @@
 ## Currently Working On
 
 Apple catch-up Phase 4 — multi-tab + persistence ([RFC](../issues/013-apple-native-catchup.md), issues 262–266).
-3 of 5 done (262–264); frontier is 265, now fully unblocked — 266 waits behind it.
+4 of 5 done (262–265); 266 is the last item, now unblocked.
 
 ## Last Completed
 
-[264 — Apple multi-tab workspace UI](../issues/264-apple-multi-tab-workspace.md):
-SwiftUI tab strip with add/switch/close on the 262 state split — activation
-commits the outgoing tab's in-flight stroke, and closing shows an interim
-discard confirm until 266's save dialog replaces it.
+[265 — Apple SwiftData session auto-save + restore](../issues/265-apple-swiftdata-session-persistence.md):
+debounced auto-save + launch restore over the full current Apple model.
+Invariants locked in: hydration marks nothing dirty, restored history starts
+empty, corrupt/empty store falls back to a fresh session. The `saved` flag is
+written `false` — 266 gives it meaning.
 
 ## Next Up
 
-- [265 — Apple SwiftData session auto-save + restore](../issues/265-apple-swiftdata-session-persistence.md) — Phase 4 frontier; last blocker of 266
+- [266 — Apple save dialog + saved work browser](../issues/266-apple-save-dialog-saved-work.md) — last Phase 4 item, unblocked
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Feedback link to Google Form
@@ -33,7 +34,10 @@ discard confirm until 266's save dialog replaces it.
 - Timelapse recording
 - TimelinePanel mobile touch targets — frame + row icon buttons ≥44px on the mobile Timeline tab
 - Web pen priority — palm rejection + hover target cell (web counterpart of 252–254)
+- Apple tab strip keyboard navigation — ArrowLeft/Right + Home/End roving focus
 - Apple layer reorder — interrupted-drag recovery
 - Apple layer panel predicates — `canReorderLayers` vs `canRemoveLayer` number consistency
 - Apple bindings staleness guard — regenerate Swift bindings on binding-surface change
+- Apple auto-save failure surfacing — silent retry today; log + notification later
+- Web hydration opacity validation — port the Apple `from_layers` opacity guard
 - Flaky e2e: Reference Window reload persistence — investigate if it recurs

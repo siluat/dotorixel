@@ -1,6 +1,6 @@
 ---
 title: Apple SwiftData session persistence — auto-save and restore on launch
-status: ready-for-agent
+status: done
 created: 2026-08-02
 ---
 
@@ -61,3 +61,43 @@ model via the issue 263 bindings.
 
 - [263 — Apple UniFFI persistence bindings](263-apple-uniffi-persistence-bindings.md)
 - [264 — Apple multi-tab workspace](264-apple-multi-tab-workspace.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/WorkspaceSnapshot.swift` | Persistence value types: `WorkspaceSnapshot` / `TabSnapshot` / `TabViewportSnapshot` / `SharedStateSnapshot`; layers reuse the UniFFI `AppleLayerSnapshot` |
+| `apple/Dotorixel/State/Workspace.swift` | `toSnapshot()` / `init(restoring:)` (clamped active index, `fittedTabIds` pre-marked so first presentation reclamps instead of refitting), shared-slot dirty wiring, tab-lifecycle marks (add / switch / close) |
+| `apple/Dotorixel/State/TabState.swift` | `toSnapshot()` / `init(restoring:)` (hydration constructor + persisted viewport/flags, empty History); notifier injection; marks on edit commit, undo/redo, panel collapse, grid toggle, active-layer switch, viewport change (inert reclamp exempt) |
+| `apple/Dotorixel/State/SharedState.swift` | `init(restoring:)`; `onPersistableChange` fired from slot setters so direct view assignments (color wells, pixel-perfect toggle) mark dirty |
+| `apple/Dotorixel/Tools/EditorTool.swift` | `String` raw value as the stable persistence identifier |
+| `apple/Dotorixel/Persistence/DirtyNotifier.swift` | The `DirtyNotifier` port + `NoOpDirtyNotifier` default |
+| `apple/Dotorixel/Persistence/AutoSave.swift` | Debounced auto-save (web-parity 3 s): per-document dirty tracking, save chain serializing writes, `flush()` returning only after its save ran, failed-save dirty restore |
+| `apple/Dotorixel/Persistence/SessionStore.swift` | SwiftData schema: `DocumentRecord` (saved flag written `false` until 266) + singleton `WorkspaceRecord`, with `Stored*` Codable types separate from the snapshot types |
+| `apple/Dotorixel/Persistence/SessionPersistence.swift` | `@ModelActor` store mapping: selective dirty-doc rewrite, unsaved-closed-document deletion, `restore()` → `nil` fresh-session fallback on empty/corrupt store |
+| `apple/Dotorixel/Persistence/AppSession.swift` | Launch bootstrap: restore → workspace swap, AutoSave assembly, notifier proxy armed post-restore so hydration never saves |
+| `apple/Dotorixel/DotorixelApp.swift` | `AppSession` ownership + scenePhase leave-active flush (web `visibilitychange` analog) |
+| `apple/DotorixelTests/WorkspaceSnapshotTests.swift` | Capture + restore round-trip, restored-viewport-kept-on-first-presentation (3 tests) |
+| `apple/DotorixelTests/AutoSaveTests.swift` | Debounce coalescing, immediate/no-op flush, tab-removed drop, failed-save retry (5 tests) |
+| `apple/DotorixelTests/DirtyNotifierTests.swift` | Mutation → mark wiring across document edits, presentation state, shared slots, tab lifecycle; restore marks nothing (5 tests) |
+| `apple/DotorixelTests/SessionPersistenceTests.swift` | In-memory-store round-trip, empty/corrupt → nil, dirty-only rewrite, closed-tab deletion (5 tests) |
+
+### Key Decisions
+
+- **AutoSave takes closures, not a concrete store**: `save` / `getSnapshot` injection (looser than the web's concrete `SessionPersistence` dependency) keeps the debounce logic testable with a recorder and the store swappable.
+- **Save chain instead of timer+pending pair**: each save awaits its predecessor, so a `flush()` racing a just-elapsed debounce resolves as one real write + one `isDirty`-guarded no-op, and `flush()` returning guarantees the write happened.
+- **`@ModelActor` SessionPersistence**: saves run off the main actor (the issue's background write) with the store confined to one executor; stored `Codable` types are separate from snapshot types so the on-disk format only changes deliberately.
+- **Dirty marking hooks `SharedState` setters** (`onPersistableChange`), not workspace methods: the Apple view layer assigns shared slots directly, so the web's method-funnel shape would miss those sites. Swift observers being inert during `init` is what makes hydration mark-free.
+- **`setActiveTab` marks dirty** — the web doesn't (a switch alone is only saved when something else dirties the session); closed deliberately on Apple since the active index is persisted workspace state.
+- **`EditorTool: String` raw value is the persistence identifier**; an unknown stored value restores as `.pencil` instead of discarding the session.
+- **Restored tabs pre-marked fitted**: first presentation reclamps rather than refits, keeping the persisted zoom/pan.
+
+### Notes
+
+- **AutoSave failure is silent**: a failed save restores dirty state and retries on the next debounce/flush — no log, no user-facing notice (no logging convention exists in the shell yet). Recorded in the review backlog as the Apple sibling of the IndexedDB-quota item.
+- `DocumentRecord.saved` keeps the web record field name over the boolean-question rule (`isSaved`) — stored-schema vocabulary parity, per the 263 `AppleLayerSnapshot` precedent.
+- `SessionPersistence.documentUpdatedAt(id:)` is consumed only by tests today; the 266 saved-work browser (recency sorting) is its intended consumer.
+- scenePhase flush covers backgrounding/foreground loss per the issue; a macOS quit that skips the phase change is out of scope here.
+- Mutations before the async restore completes are dropped by the notifier proxy — they belong to the pre-restore workspace being replaced, or re-mark on the next mutation.
+- Single-frame scope inherited from the 263 bindings; frames/references/marquee are Phase 5–6 schema extensions.
+- Verified: 17 new tests, full Apple suite green (345); simulator launch → terminate → relaunch smoke clean; end-to-end restore pass on the pinned iPad simulator (HITL).

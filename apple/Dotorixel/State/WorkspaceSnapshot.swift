@@ -1,0 +1,49 @@
+// Value snapshots of the workspace for session persistence (web parity:
+// `WorkspaceSnapshot` / `TabSnapshot` in `workspace-snapshot.ts`).
+// "Snapshot" here is the persistence vocabulary — the full state a session
+// store writes and restores — distinct from the History `Snapshot` (the
+// undo/redo value type). Layers reuse the UniFFI `AppleLayerSnapshot`
+// record, the same shape the hydration constructor consumes.
+
+/// A tab's persisted viewport — zoom/pan geometry plus the grid flag (web
+/// parity: the per-tab viewport record in the workspace store).
+struct TabViewportSnapshot: Equatable {
+    let pixelSize: UInt32
+    let zoom: Double
+    let panX: Double
+    let panY: Double
+    let showGrid: Bool
+}
+
+/// The workspace-shared slots every tab sees (web parity:
+/// `SharedStateRecord`).
+struct SharedStateSnapshot {
+    let activeTool: EditorTool
+    let foregroundColor: Color
+    let backgroundColor: Color
+    let recentColors: [Color]
+    let pixelPerfect: Bool
+}
+
+/// One tab's full persistence record — the document parts the hydration
+/// constructor consumes plus the tab-scoped presentation state.
+struct TabSnapshot {
+    let id: String
+    let name: String
+    let width: UInt32
+    let height: UInt32
+    /// The layer stack in stack order (bottom first), pixels included.
+    let layers: [AppleLayerSnapshot]
+    let activeLayerId: String
+    let nextLayerNumber: UInt32
+    let timelinePanelCollapsed: Bool
+    let viewport: TabViewportSnapshot
+}
+
+/// The whole-workspace persistence record: every tab in tab order, the
+/// active tab, and the shared state.
+struct WorkspaceSnapshot {
+    let tabs: [TabSnapshot]
+    let activeTabIndex: Int
+    let sharedState: SharedStateSnapshot
+}

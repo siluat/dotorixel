@@ -8,7 +8,10 @@ import Foundation
 /// (fill, eyedropper, move, …) and maps down to core `ToolType` only inside
 /// `makeSession`, the single FFI drawing call site.
 /// Case order is the toolbar display order (web parity).
-enum EditorTool: CaseIterable {
+/// The `String` raw value is the tool's stable persistence identifier —
+/// session records store it, so renaming a case is a stored-data migration,
+/// not a refactor.
+enum EditorTool: String, CaseIterable {
     case pencil
     case eraser
     case line

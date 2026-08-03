@@ -9,7 +9,12 @@ final class Workspace {
     /// The one `SharedState` instance every tab sees by reference.
     let shared: SharedState
     private(set) var tabs: [TabState]
-    private var activeTabIndex = 0
+    private(set) var activeTabIndex = 0
+
+    /// Where persistable mutations are reported (web parity: the
+    /// `DirtyNotifier` port). Shared-state mutations funnel through
+    /// `wireSharedDirtyMarking()`; tab-scoped mutations mark from `TabState`.
+    private let notifier: DirtyNotifier
 
     var activeTab: TabState {
         tabs[activeTabIndex]
@@ -53,13 +58,72 @@ final class Workspace {
     static let defaultCanvasDimension: UInt32 = 16
 
     init(width: UInt32 = Workspace.defaultCanvasDimension,
-         height: UInt32 = Workspace.defaultCanvasDimension) {
+         height: UInt32 = Workspace.defaultCanvasDimension,
+         notifier: DirtyNotifier = NoOpDirtyNotifier()) {
         self.shared = SharedState()
+        self.notifier = notifier
         // Two-phase: `tabs` starts empty so `createTab` — an instance method
         // whose closures capture `self` — can run once phase-1 init is done.
         self.tabs = []
         self.tabs = [createTab(width: width, height: height)]
         keyboardShortcuts.host = self
+        wireSharedDirtyMarking()
+    }
+
+    /// Rebuilds the whole workspace from a persistence snapshot (web parity:
+    /// the `restored` path of `createEditorSession`): every tab's document
+    /// through the hydration constructor, tab order, active tab, per-tab
+    /// viewports, and the shared state. Throws when a tab fails the core's
+    /// hydration validation; History starts empty (session-transient, web
+    /// parity).
+    init(restoring snapshot: WorkspaceSnapshot,
+         notifier: DirtyNotifier = NoOpDirtyNotifier()) throws {
+        // The workspace invariant is "never empty" (`activeTab` force-indexes)
+        // — an empty snapshot must fail the restore, not produce a workspace
+        // that crashes on first read.
+        guard !snapshot.tabs.isEmpty else { throw WorkspaceRestoreError.emptySnapshot }
+        self.shared = SharedState(restoring: snapshot.sharedState)
+        self.notifier = notifier
+        // Two-phase for the same reason as the designated fresh init: the
+        // restore closures capture `self`.
+        self.tabs = []
+        self.tabs = try snapshot.tabs.map { tabSnapshot in
+            try TabState(
+                restoring: tabSnapshot,
+                shared: shared,
+                notifier: notifier,
+                isConstrainHeld: { [weak self] in
+                    guard let self else { return false }
+                    return self.isShiftKeyHeld || self.isConstrainLatchOn
+                },
+                consumePendingToolRestore: { [weak self] in
+                    self?.keyboardShortcuts.consumePendingToolRestore()
+                }
+            )
+        }
+        // Clamped restore (web parity plus a low guard): a stored index that
+        // no longer points at a tab lands on the nearest valid tab instead
+        // of crashing `activeTab`.
+        self.activeTabIndex = max(0, min(snapshot.activeTabIndex, tabs.count - 1))
+        // Restored tabs keep their persisted zoom/pan: pre-marking them
+        // fitted makes their first presentation reclamp instead of refit.
+        self.fittedTabIds = Set(tabs.map(\.documentId))
+        keyboardShortcuts.host = self
+        // Wired after hydration assigned the shared slots, so restoring
+        // marks nothing (hydration is not a user mutation).
+        wireSharedDirtyMarking()
+    }
+
+    /// Routes shared-slot mutations (tool, colors, recent colors,
+    /// pixel-perfect) into dirty marking. Marks the workspace, not a
+    /// document: shared slots live in the workspace record, and naming the
+    /// active document would rewrite its layers and stamp `updatedAt` for an
+    /// edit that never touched it. (Deliberate divergence — the web marks
+    /// the active document here; PR #351 review.)
+    private func wireSharedDirtyMarking() {
+        shared.onPersistableChange = { [weak self] in
+            self?.notifier.markWorkspaceDirty()
+        }
     }
 
     // MARK: - Tab lifecycle
@@ -75,6 +139,7 @@ final class Workspace {
         )
         tabs.append(tab)
         activeTabIndex = tabs.count - 1
+        notifier.markDirty(documentId: tab.documentId)
         return tab
     }
 
@@ -84,8 +149,14 @@ final class Workspace {
     /// - Precondition: `index` is a valid `tabs` position — callers tap tabs
     ///   the strip itself rendered, so no stale index reaches here.
     func setActiveTab(_ index: Int) {
+        guard index != activeTabIndex else { return }
         resolveOutgoingStroke(nextIndex: index)
         activeTabIndex = index
+        // The active tab index is persisted workspace state — no document
+        // changed, so only the workspace record is marked. (The web omits
+        // this mark entirely — a switch alone is only saved when something
+        // else dirties the session — an accepted gap this shell closes.)
+        notifier.markWorkspaceDirty()
     }
 
     /// Whether any tab may be closed — false only at the sole-tab guard
@@ -107,12 +178,13 @@ final class Workspace {
     ///   pending close index at confirm time before calling in.
     func closeTab(_ index: Int) {
         guard canCloseTab else { return }
-        tabs.remove(at: index)
+        let removed = tabs.remove(at: index)
         if index == activeTabIndex {
             activeTabIndex = min(index, tabs.count - 1)
         } else if index < activeTabIndex {
             activeTabIndex -= 1
         }
+        notifier.notifyTabRemoved(documentId: removed.documentId)
     }
 
     /// Commits the active tab's in-flight stroke before a different tab
@@ -152,6 +224,25 @@ final class Workspace {
         }
     }
 
+    // MARK: - Persistence
+
+    /// Captures the whole workspace as a persistence value (web parity:
+    /// `Workspace.toSnapshot` in `workspace.svelte.ts`): every tab in tab
+    /// order, the active tab index, and the shared state.
+    func toSnapshot() -> WorkspaceSnapshot {
+        WorkspaceSnapshot(
+            tabs: tabs.map { $0.toSnapshot() },
+            activeTabIndex: activeTabIndex,
+            sharedState: SharedStateSnapshot(
+                activeTool: shared.activeTool,
+                foregroundColor: shared.foregroundColor,
+                backgroundColor: shared.backgroundColor,
+                recentColors: shared.recentColors,
+                pixelPerfect: shared.pixelPerfect
+            )
+        )
+    }
+
     // MARK: - Tools
 
     /// Activates a tool the way a toolbar tap does (web parity: `activateTool`
@@ -183,6 +274,7 @@ final class Workspace {
             shared: shared,
             documentId: "doc-\(UUID().uuidString)",
             name: nextUntitledName(),
+            notifier: notifier,
             isConstrainHeld: { [weak self] in
                 guard let self else { return false }
                 return self.isShiftKeyHeld || self.isConstrainLatchOn
@@ -206,6 +298,13 @@ final class Workspace {
         while usedNumbers.contains(nextNumber) { nextNumber += 1 }
         return "Untitled \(nextNumber)"
     }
+}
+
+/// Restore-side failures owned by the workspace itself, before any record
+/// reaches the core's hydration validation.
+enum WorkspaceRestoreError: Error {
+    /// The snapshot holds no tabs — unrepresentable as a workspace.
+    case emptySnapshot
 }
 
 // MARK: - KeyboardShortcutHost

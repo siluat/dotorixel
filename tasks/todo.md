@@ -26,8 +26,7 @@ reached.
 
 ### Phase 4 — Multi-tab + persistence (issues 262–266)
 
-- [265 — SwiftData session auto-save + restore](../issues/265-apple-swiftdata-session-persistence.md) — unblocked (263, 264 done)
-- [266 — Save dialog + saved work browser](../issues/266-apple-save-dialog-saved-work.md) — blocked by 265
+- [266 — Save dialog + saved work browser](../issues/266-apple-save-dialog-saved-work.md) — unblocked (265 done); last Phase 4 item
 
 ### Phases 5–6 — roadmap (decompose when reached)
 
@@ -60,7 +59,9 @@ reached.
 - Apple layer reorder — interrupted-drag recovery, OS-interruption residual. SwiftUI `DragGesture` has no cancel callback, so a drag whose `onEnded` never arrives leaves `TimelinePanel.reorderDrag` non-nil: row preview offsets stay applied and the body's `scrollDisabled` lock stays on until the next drag. The in-app orphan paths self-heal since PR #347 review (stack mutation mid-drag cancels via `onChange` of the panel-order ids; collapse cancels via `onDisappear`), so what remains is system-level teardown only — app backgrounded mid-drag, gesture preempted by the OS. The web clears the equivalent state on `pointerCancel`; a `scenePhase` reset is the candidate guard. Needs a hands-on read of whether teardown actually skips `onEnded` on device before adopting it (deferred from 260)
 - Apple layer panel predicates — `canReorderLayers` vs the adjacent `canRemoveLayer` differ in number. Kept as-is in 260 because the concepts differ (reordering a stack vs removing one layer); revisit if a third panel predicate lands and the set reads inconsistent
 - Apple bindings staleness guard — `build-rust.sh` bootstraps Swift bindings only when `apple/generated` is empty, so a workspace built before a binding-surface change compiles against stale bindings until regenerated manually; add an mtime-based regeneration guard (surfaced by greptile on PR #342; recurs as Phase 3 keeps growing the binding surface)
+- Apple auto-save failure surfacing — a failed SwiftData save restores the dirty state and retries silently, with no log or user-facing notice; the Apple sibling of the IndexedDB quota item above. Surface it (log, then notification) once the shell has a logging convention (noted in 265 review)
 - Flaky e2e: Reference Window reload persistence — `e2e/editor/reference-images.test.ts` "window position survives a page reload" failed once, then passed on solo and full re-runs (2026-07-04, surfaced during 205 verification). Timing-sensitive chain: drag via raw pointer events → reload → IndexedDB workspace restore. Investigate/stabilize if it recurs
+- Web session-save gaps mirrored from the 265 review — two latent issues the Apple shell fixed in PR #351 that the web `SessionPersistence`/`AutoSave` share: (1) a fresh session whose first save happens after adding a second tab skips the never-stored first document (`dirtyDocIds` miss), persisting a tab order whose restore discards the whole workspace; (2) shared-state-only changes mark the active document dirty, rewriting its record (layers included) and stamping `updatedAt` for an edit that never touched it. Port the Apple fixes (write records missing from the store regardless of the dirty set; mark workspace-level dirt without a document id)
 - Web hydration opacity validation — the Apple binding rejects non-finite / out-of-`[0,1]` layer opacity at its `from_layers` boundary (PR #349 review); the web's `WasmDocumentBuilder.add_layer` still accepts any f32, an isomorphic gap (a persisted NaN slips past the compositor's clamp and renders the layer transparent). Port the same guard, or promote the opacity invariant into a core validating constructor (ReferencePlacement precedent), when the persistence surface next changes
 
 ## Future triggers

@@ -10,14 +10,36 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 201 | 150 | 51 | 243 | 75% | 38% |
-| cubic-dev-ai[bot] | 244 | 191 | 53 | 204 | 78% | 48% |
-| coderabbitai[bot] | 295 | 207 | 88 | 189 | 70% | 52% |
+| greptile-apps[bot] | 202 | 151 | 51 | 253 | 75% | 37% |
+| cubic-dev-ai[bot] | 257 | 202 | 55 | 205 | 79% | 50% |
+| coderabbitai[bot] | 299 | 211 | 88 | 197 | 71% | 52% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #351 | cubic-dev-ai[bot] | Accept | Partial (re-review): corrupt zero/>256 dimensions pass the `UInt32(exactly:)` guard and defer failure to `Workspace(restoring:)` instead of `restore()`'s nil — range-check duplication declined (dimension bounds are the core hydration constructor's single authority; the deferred path lands on the same fresh-session fallback without a crash), but the exposed doc gap was real: `restore()` now states the two-layer fallback explicitly |
+| #351 | coderabbitai[bot] | Miss | Re-reviewed the hardening commit without flagging the restore-contract layering gap (accepted in part from cubic) |
+| #351 | greptile-apps[bot] | Accept | Direct `UInt32(record.width)`-style conversions in the restore path trap on a corrupt negative/oversized stored Int — a fatal error the `do`/`catch` can't turn into the documented fresh-session fallback; `UInt32(exactly:)` now fails the restore normally |
+| #351 | coderabbitai[bot] | Accept | Same UInt32-trap-on-corrupt-store finding (duplicate of greptile), with the acceptance-criterion citation and the `UInt32(exactly:)` fix shape |
+| #351 | cubic-dev-ai[bot] | Accept | Same UInt32-trap-on-corrupt-store finding (duplicate) |
+| #351 | coderabbitai[bot] | Accept | `Workspace(restoring:)` with an empty tabs array clamps `activeTabIndex` to 0 over an empty collection, arming an `activeTab` crash and contradicting the init's own doc comment; unreachable today (persistence filters empty), guarded with a thrown `WorkspaceRestoreError.emptySnapshot` |
+| #351 | coderabbitai[bot] | Accept | Shared-state-only changes marked the active tab's document dirty, so a tool/color change rewrote its stored layers (pixels included) and stamped `updatedAt` for an edit that never touched it — polluting the 266 recency sort; the port grew `markWorkspaceDirty()` and shared/tab-switch marks route through it |
+| #351 | cubic-dev-ai[bot] | Accept | Same shared-state-marks-rewrite-the-document finding (duplicate of coderabbit) |
+| #351 | cubic-dev-ai[bot] | Accept | Fresh session whose first save happens after adding a second tab: only the new tab is dirty, the never-stored first document is skipped, and the persisted tab order references a record that doesn't exist — restore then discards the whole workspace, drawn pixels included; save now writes any tab missing from the store regardless of the dirty set (the web shares this latent gap — backlogged) |
+| #351 | cubic-dev-ai[bot] | Accept | `notifyTabRemoved` leaves an empty dirty set, which `performSave` promoted to `nil` (= rewrite everything): closing one tab reserialized every remaining document's pixels; the empty set now passes through as-is |
+| #351 | cubic-dev-ai[bot] | Accept | A debounce task whose sleep resumed just as a newer mark cancelled it could clear the replacement's `debounceTask` reference and enqueue a save before the new window elapsed; a generation counter re-checked after the sleep closes the race |
+| #351 | cubic-dev-ai[bot] | Accept | `setActiveTab` dirty test asserted only `!marked.isEmpty` — weaker than every sibling assertion and blind to marking the wrong document; strengthened (now `workspaceMarks == 1` + no document named, post-`markWorkspaceDirty`) |
+| #351 | cubic-dev-ai[bot] | Accept | A stored session with more than 12 recent colors hydrated the oversized list past the documented cap; `SharedState(restoring:)` now re-caps — the store is an external input |
+| #351 | cubic-dev-ai[bot] | Accept | `dirtySaveSkipsCleanDocuments` asserted the dirty document's timestamp with `>=` against the *clean* document's first-save value, leaving the dirty-doc-actually-rewritten half unverified; now captures the dirty doc's own first timestamp and asserts strictly newer |
+| #351 | cubic-dev-ai[bot] | Accept | Partial: corrupt stored viewport values (non-finite zoom/pan, non-positive pixel size) were accepted verbatim — validation adopted, but a bad viewport falls back to the default viewport instead of cubic's discard-the-whole-session shape (one corrupt viewport must not cost the documents); NaN itself turns out unstorable — SwiftData's composite JSON encoding traps on it — so the test injects a negative pixel size |
+| #351 | coderabbitai[bot] | Accept | Issue-file "17 new tests" contradicted its own Results table summing 18; corrected (21/348 after the review round added tests) |
+| #351 | cubic-dev-ai[bot] | Accept | Same 17-vs-18 test-count mismatch (duplicate of coderabbit) |
+| #351 | cubic-dev-ai[bot] | Reject | Wanted a failed auto-save to re-schedule its own retry; unconditional re-scheduling risks a 3 s tight loop against a persistently failing store — a useful retry needs backoff + surfacing, designed together, and the next-mutation debounce + scenePhase flush already retry (web-parity shape); tracked in the review backlog |
+| #351 | cubic-dev-ai[bot] | Reject | Wanted editor input gated until the async restore completes (pre-restore edits are discarded by the workspace swap); documented trade-off in the issue Notes — the local restore completes in tens of ms, and a launch loading state is a UX slice beyond 265's scope |
+| #351 | greptile-apps[bot] | Miss (×10) | Flagged only the UInt32 trap; missed the other ten accepted findings (empty-snapshot guard, shared-state document rewrite, unrestorable first save, empty-dirty-set full rewrite, debounce race, weak test assertion, recent-colors cap, >= assertion, viewport validation, test-count mismatch) |
+| #351 | coderabbitai[bot] | Miss (×7) | Missed the unrestorable first save, empty-dirty-set full rewrite, debounce race, weak test assertion, recent-colors cap, >= assertion, and viewport validation (all accepted from cubic) |
+| #351 | cubic-dev-ai[bot] | Miss | Did not flag the empty-snapshot `Workspace(restoring:)` crash guard (accepted from coderabbit) |
 | #350 | coderabbitai[bot] | Accept | The `geo.size` change path still called `fitCanvas` unconditionally, bypassing the new fit-once mechanism whenever a Timeline collapse or window resize changed the canvas area — a cross-collapse-state tab switch reset the incoming tab's zoom/pan, breaking the PR's own per-tab viewport requirement; fit-once moved to `Workspace.presentActiveTab` (fit first show, reclamp after), all ContentView hooks route through it, regression-tested at the workspace seam |
 | #350 | cubic-dev-ai[bot] | Accept | Same refit bypass, flagged at the `fitCanvas` body with a fit-only-on-first-insertion suggestion (duplicate of coderabbit); same workspace-seam fix |
 | #350 | cubic-dev-ai[bot] | Accept | Same refit bypass, flagged at the `.onChange(of: geo.size)` hook (duplicate); same fix |

@@ -2,7 +2,9 @@
 
 ## Currently Working On
 
-None.
+Apple catch-up Phase 5 — reference + selection + transforms
+([RFC](../issues/013-apple-native-catchup.md)); decomposed into issues
+267–282 (2026-08-05), starting frontier {267, 277}.
 
 ## Last Completed
 
@@ -14,7 +16,8 @@ is now complete; Phase 5 decomposes via `/to-tickets` when picked up.
 
 ## Next Up
 
-- Apple catch-up Phase 5 — reference + selection + transforms; needs `/to-tickets` decomposition first
+- [267 — Apple UniFFI selection + transform bindings](../issues/267-apple-uniffi-selection-transform-bindings.md) — Phase 5 frontier
+- [277 — Apple UniFFI reference bindings](../issues/277-apple-uniffi-reference-bindings.md) — Phase 5 frontier
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Feedback link to Google Form

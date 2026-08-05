@@ -287,3 +287,30 @@ docked structure, and enable features that require no UI design work.
   schema covers the current Apple document model only — reference layers,
   frames, and marquee arrive as Phase 5–6 schema extensions, the way the web
   migrated v3→v7. Document rename excluded (no web UI — parity scope).
+- **2026-08-05** — Phase 5 (Reference + selection + transforms) decomposed into
+  ready-for-agent issues via `/to-tickets`, as two parallel tracks that each
+  open with an expand-only UniFFI issue (256/263 pattern).
+  Selection + transforms track:
+  [267 — UniFFI selection + transform bindings](267-apple-uniffi-selection-transform-bindings.md) →
+  {[268 — canvas transforms](268-apple-canvas-transforms.md) ∥
+  [269 — marquee select tool](269-apple-marquee-select-tool.md)} →
+  {[270 — constraints + status bar readout](270-apple-marquee-constraints-statusbar.md) ∥
+  [271 — marquee clipping](271-apple-marquee-clipping.md) ∥
+  [272 — floating selection](272-apple-floating-selection.md)} →
+  {[273 — keyboard ops](273-apple-selection-keyboard-ops.md) ∥
+  [274 — clipboard](274-apple-selection-clipboard.md) ∥
+  [276 — marquee persistence](276-apple-marquee-persistence.md)} →
+  [275 — action bar](275-apple-selection-action-bar.md).
+  Reference track:
+  [277 — UniFFI reference bindings](277-apple-uniffi-reference-bindings.md) →
+  [278 — import + underlay + timeline row](278-apple-reference-import-underlay.md) →
+  [279 — edit guards + sampling](279-apple-reference-edit-guards-sampling.md) →
+  [280 — placement overlay](280-apple-reference-placement-overlay.md) →
+  {[281 — navigation bounds](281-apple-reference-navigation-bounds.md) ∥
+  [282 — reference persistence](282-apple-reference-persistence.md)}.
+  Persistence schema extensions (marquee, reference) are per-track slices, the
+  way the web migrated v4/v5. **Scope memo**: the web's floating Reference
+  Images windows (gallery, window move/resize/minimize, window sampling —
+  issues 053–062 + follow-ups) are missing from the 2026-07-09 gap table above
+  and are deliberately excluded from Phase 5 (decision 2026-08-05); reaching
+  full parity on that feature set needs its own scheduling decision.

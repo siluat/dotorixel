@@ -22,11 +22,37 @@ Phased catch-up to full parity with completed web editor features. See the RFC f
 the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish), Phase 2
 (full tool set + color + i18n, issues 230–242), Phase 3 (layer system, issues
 256–261), and Phase 4 (multi-tab + persistence, issues 262–266) are complete;
-Phases 5–6 are decomposed into issues (`/to-tickets`) when reached.
+Phase 5 is decomposed below (issues 267–282); Phase 6 is decomposed
+(`/to-tickets`) when reached.
 
-### Phases 5–6 — roadmap (decompose when reached)
+### Phase 5 — Reference + selection + transforms (issues 267–282)
 
-- Phase 5 — Reference + selection + transforms (M3 bundle)
+Two parallel tracks; `{267, 277}` are the starting frontier.
+
+Selection + transforms track:
+
+- [267 — UniFFI selection + transform bindings (expand)](../issues/267-apple-uniffi-selection-transform-bindings.md)
+- [268 — Canvas transforms (right panel)](../issues/268-apple-canvas-transforms.md)
+- [269 — Marquee select tool](../issues/269-apple-marquee-select-tool.md)
+- [270 — Marquee constraints + status bar readout](../issues/270-apple-marquee-constraints-statusbar.md)
+- [271 — Marquee clipping of drawing tools](../issues/271-apple-marquee-clipping.md)
+- [272 — Floating selection](../issues/272-apple-floating-selection.md)
+- [273 — Selection keyboard ops](../issues/273-apple-selection-keyboard-ops.md)
+- [274 — Selection clipboard](../issues/274-apple-selection-clipboard.md)
+- [275 — Selection action bar](../issues/275-apple-selection-action-bar.md)
+- [276 — Marquee persistence](../issues/276-apple-marquee-persistence.md)
+
+Reference track:
+
+- [277 — UniFFI reference bindings (expand)](../issues/277-apple-uniffi-reference-bindings.md)
+- [278 — Reference import + underlay + timeline row](../issues/278-apple-reference-import-underlay.md)
+- [279 — Reference edit guards + sampling](../issues/279-apple-reference-edit-guards-sampling.md)
+- [280 — Reference placement overlay](../issues/280-apple-reference-placement-overlay.md)
+- [281 — Navigation bounds clamp](../issues/281-apple-reference-navigation-bounds.md)
+- [282 — Reference persistence](../issues/282-apple-reference-persistence.md)
+
+### Phase 6 — roadmap (decompose when reached)
+
 - Phase 6 — Animation + extended export (frames/timeline/playback/onion skin, SVG/GIF/spritesheet)
 
 ## Deferred

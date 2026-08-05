@@ -11,6 +11,9 @@ import SwiftUI
 struct ContentView: View {
     // Owned by DotorixelApp so the Edit-menu commands share it.
     let workspace: Workspace
+    /// The keep/discard flow whose dialog and browser sheets present here,
+    /// over the whole docked layout (web parity: the page-level modals).
+    let saveFlow: SaveFlow
     @Environment(\.displayScale) private var displayScale
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #if DEBUG
@@ -32,9 +35,9 @@ struct ContentView: View {
                 horizontalSizeClass: horizontalSizeClass
             )
             VStack(spacing: 0) {
-                TopBar(workspace: workspace, tier: tier)
+                TopBar(workspace: workspace, saveFlow: saveFlow, tier: tier)
 
-                TabStrip(workspace: workspace)
+                TabStrip(workspace: workspace, saveFlow: saveFlow)
 
                 HStack(spacing: 0) {
                     LeftToolbar(workspace: workspace, tier: tier)
@@ -81,6 +84,30 @@ struct ContentView: View {
                 StatusBar(workspace: workspace, tier: tier)
             }
             .background(DesignTokens.bgBase)
+            .sheet(isPresented: isSaveDialogPresented) {
+                if let pending = saveFlow.pendingSave {
+                    SaveDialog(
+                        documentName: pending.documentName,
+                        onSave: { name in Task { await saveFlow.confirmSave(name: name) } },
+                        onDelete: { Task { await saveFlow.confirmDelete() } },
+                        onCancel: { saveFlow.cancelSave() }
+                    )
+                    // The name field must not feed the app-level shortcut
+                    // monitor (the canvas-size fields' contract).
+                    .onAppear { workspace.isTextInputFocused = true }
+                    .onDisappear { workspace.isTextInputFocused = false }
+                }
+            }
+            .sheet(isPresented: isSavedWorkBrowserPresented) {
+                if let documents = saveFlow.browserDocuments {
+                    SavedWorkBrowser(
+                        documents: documents,
+                        onSelect: { id in Task { await saveFlow.selectSavedDocument(id: id) } },
+                        onDelete: { id in Task { await saveFlow.deleteSavedDocument(id: id) } },
+                        onClose: { saveFlow.closeBrowser() }
+                    )
+                }
+            }
             #if os(macOS)
             // App-level key capture (letters, ⌘Y, Alt) — see the modifier
             // for the ownership split with the Edit-menu commands.
@@ -100,6 +127,22 @@ struct ContentView: View {
             }
             #endif
         }
+    }
+
+    /// Presentation bindings over the flow's modal state: dismissing a sheet
+    /// (swipe, Escape) resolves as that surface's cancel/close.
+    private var isSaveDialogPresented: Binding<Bool> {
+        Binding(
+            get: { saveFlow.pendingSave != nil },
+            set: { if !$0 { saveFlow.cancelSave() } }
+        )
+    }
+
+    private var isSavedWorkBrowserPresented: Binding<Bool> {
+        Binding(
+            get: { saveFlow.browserDocuments != nil },
+            set: { if !$0 { saveFlow.closeBrowser() } }
+        )
     }
 
     /// Isolates the hover highlight's observable reads (Hover Point + viewport)

@@ -2,20 +2,19 @@
 
 ## Currently Working On
 
-Apple catch-up Phase 4 — multi-tab + persistence ([RFC](../issues/013-apple-native-catchup.md), issues 262–266).
-4 of 5 done (262–265); 266 is the last item, now unblocked.
+None.
 
 ## Last Completed
 
-[265 — Apple SwiftData session auto-save + restore](../issues/265-apple-swiftdata-session-persistence.md):
-debounced auto-save + launch restore over the full current Apple model.
-Invariants locked in: hydration marks nothing dirty, restored history starts
-empty, corrupt/empty store falls back to a fresh session. The `saved` flag is
-written `false` — 266 gives it meaning.
+[266 — Apple save dialog + saved work browser](../issues/266-apple-save-dialog-saved-work.md):
+the explicit keep/discard layer over session persistence — close-tab
+save/delete/cancel dialog, saved-work browser with thumbnails, reopen with a
+reset viewport. Phase 4 of the Apple catch-up ([RFC](../issues/013-apple-native-catchup.md))
+is now complete; Phase 5 decomposes via `/to-tickets` when picked up.
 
 ## Next Up
 
-- [266 — Apple save dialog + saved work browser](../issues/266-apple-save-dialog-saved-work.md) — last Phase 4 item, unblocked
+- Apple catch-up Phase 5 — reference + selection + transforms; needs `/to-tickets` decomposition first
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Feedback link to Google Form
@@ -27,9 +26,9 @@ written `false` — 266 gives it meaning.
 - Share artwork via URL
 - FG/BG swap UI improvements
 - Dark mode toggle UI
+- Document rename — now spans both shells' saved-work browsers
 - Document error conditions on `PixelCanvas` public API
 - IndexedDB quota exceeded error handling
-- Document rename
 - Canvas resize via border drag
 - Timelapse recording
 - TimelinePanel mobile touch targets — frame + row icon buttons ≥44px on the mobile Timeline tab

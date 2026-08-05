@@ -32,6 +32,38 @@ struct TabStateDocumentTests {
     }
 }
 
+@Suite("TabState — blank-document detection")
+struct TabStateBlankDetectionTests {
+
+    @Test("a fresh document is blank; a painted one is not")
+    func freshDocumentIsBlankPaintedIsNot() {
+        let state = Workspace(width: 4, height: 4)
+        let tab = state.activeTab
+
+        #expect(tab.isDocumentBlank())
+
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.endStroke()
+
+        #expect(!tab.isDocumentBlank())
+    }
+
+    @Test("painted content on a hidden layer still counts as non-blank")
+    func hiddenPaintedLayerCountsAsNonBlank() {
+        let state = Workspace(width: 4, height: 4)
+        let tab = state.activeTab
+        let paintedLayerId = tab.document.activeLayerId()
+
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.endStroke()
+        tab.setLayerVisibility(id: paintedLayerId, visible: false)
+
+        // The composite is transparent, but the hidden layer's paint must
+        // not be silently discarded by the tab-close flow.
+        #expect(!tab.isDocumentBlank())
+    }
+}
+
 @Suite("SharedState — FG/BG colors")
 struct SharedStateColorTests {
 

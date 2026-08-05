@@ -16,7 +16,7 @@ struct DotorixelApp: App {
         // the app-scoped Workspace must not be aliased by ⌘N-spawned
         // windows all mutating one canvas.
         Window("Dotorixel", id: "editor") {
-            ContentView(workspace: session.workspace)
+            ContentView(workspace: session.workspace, saveFlow: session.saveFlow)
                 // Floor the window so the docked chrome (44pt toolbar + 200pt panel)
                 // can't be squeezed past the canvas on a narrowly-resized Mac window.
                 .frame(minWidth: 480, minHeight: 400)
@@ -41,7 +41,7 @@ struct DotorixelApp: App {
         // (UIApplicationSupportsMultipleScenes: NO), so the app-scoped
         // state is never aliased across scenes.
         WindowGroup {
-            ContentView(workspace: session.workspace)
+            ContentView(workspace: session.workspace, saveFlow: session.saveFlow)
                 .task { session.start() }
         }
         .commands {

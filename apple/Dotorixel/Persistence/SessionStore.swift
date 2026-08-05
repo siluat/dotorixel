@@ -45,6 +45,19 @@ struct StoredSharedState: Codable, Equatable {
     var pixelPerfect: Bool
 }
 
+/// What the saved-work browser shows per saved document (web parity:
+/// `SavedDocumentSummary`): identity, display name, dimensions, the export
+/// composite for the thumbnail, and the last update time.
+struct SavedDocumentSummary: Equatable {
+    let id: String
+    let name: String
+    let width: UInt32
+    let height: UInt32
+    /// RGBA row-major export composite (`width * height * 4` bytes).
+    let pixels: Data
+    let updatedAt: Date
+}
+
 /// Per-document record (web parity: `DocumentRecord`). `saved` is written
 /// `false` until the save dialog (issue 266) gives it meaning; the
 /// tab-close cleanup already respects it.

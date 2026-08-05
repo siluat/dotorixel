@@ -313,3 +313,62 @@ struct WorkspaceInputTests {
         #expect(workspace.shared.backgroundColor == fg)
     }
 }
+
+/// Records document dirty marks — the minimal notifier surface the
+/// open-snapshot tests observe.
+private final class MarkRecordingNotifier: DirtyNotifier {
+    private(set) var marked: [String] = []
+
+    func markDirty(documentId: String) { marked.append(documentId) }
+    func markWorkspaceDirty() {}
+    func notifyTabRemoved(documentId: String) {}
+}
+
+@Suite("Workspace — opening a saved document snapshot")
+struct WorkspaceOpenSnapshotTests {
+
+    @Test("openSnapshot appends the document as the active tab and marks it dirty")
+    func openSnapshotAppendsActiveTabAndMarksDirty() throws {
+        // A painted source document, captured the way persistence hands it
+        // back from the store.
+        let source = Workspace(width: 4, height: 4)
+        source.activeTab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 1))
+        source.activeTab.endStroke()
+        let snapshot = source.toSnapshot().tabs[0]
+
+        let notifier = MarkRecordingNotifier()
+        let workspace = Workspace(width: 16, height: 16, notifier: notifier)
+        try workspace.openSnapshot(snapshot)
+
+        #expect(workspace.tabs.count == 2)
+        #expect(workspace.activeTab.documentId == snapshot.id)
+        #expect(workspace.activeTab.name == snapshot.name)
+        #expect(try workspace.activeTab.document.getPixel(x: 2, y: 1)
+            == source.shared.foregroundColor)
+        // The reopened tab joins the persisted session: marking its document
+        // dirty makes the next save pick it up (web parity: `openSnapshot`).
+        #expect(notifier.marked.contains(snapshot.id))
+    }
+
+    @Test("a document reopened after closing fits again on first presentation")
+    func reopenedDocumentFitsAgain() throws {
+        let source = Workspace(width: 4, height: 4)
+        let snapshot = source.toSnapshot().tabs[0]
+        let workspace = Workspace(width: 16, height: 16)
+        let area = ViewportSize(width: 800, height: 600)
+
+        try workspace.openSnapshot(snapshot)
+        workspace.presentActiveTab(in: area)
+        let fittedPixelSize = workspace.activeTab.viewport.pixelSize()
+        // Fit actually ran: the persisted default (32) cannot fill this area.
+        #expect(fittedPixelSize != 32)
+
+        workspace.closeTab(1)
+        try workspace.openSnapshot(snapshot)
+        workspace.presentActiveTab(in: area)
+
+        // The closed tab's id lingering in the fitted set must not defeat
+        // the reset-view contract — the reopened tab fits again.
+        #expect(workspace.activeTab.viewport.pixelSize() == fittedPixelSize)
+    }
+}

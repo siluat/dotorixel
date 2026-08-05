@@ -141,6 +141,23 @@
         }
       }
     },
+    "Close" : {
+      "comment" : "Saved-work browser close button accessibility label. web: action_close",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉じる"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "닫기"
+          }
+        }
+      }
+    },
     "Close %@" : {
       "comment" : "Tab close button accessibility label; %@ is the tab's display name (issue 264). Web terminology parity: action_close.",
       "localizations" : {
@@ -192,6 +209,40 @@
         }
       }
     },
+    "Delete" : {
+      "comment" : "Save dialog / browser delete button. web: save_dialog_delete, browser_delete_confirm",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "삭제"
+          }
+        }
+      }
+    },
+    "Delete \"%@\"?" : {
+      "comment" : "Browser delete confirmation title; %@ is the document name. web: browser_delete_title",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」を削除しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\"을(를) 삭제하시겠어요?"
+          }
+        }
+      }
+    },
     "Delete %@" : {
       "comment" : "Layer row remove button accessibility label; %@ is the layer name. web: aria_removeLayer",
       "localizations" : {
@@ -205,40 +256,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 삭제"
-          }
-        }
-      }
-    },
-    "Discard" : {
-      "comment" : "Tab close confirmation — destructive confirm button (issue 264).",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "破棄"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "버리기"
-          }
-        }
-      }
-    },
-    "Discard this drawing?" : {
-      "comment" : "Tab close confirmation title (issue 264). Interim until the save dialog (issue 266): nothing is persisted yet, so closing a tab discards its drawing.",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "この絵を破棄しますか？"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "이 그림을 버리시겠습니까?"
           }
         }
       }
@@ -557,6 +574,40 @@
         }
       }
     },
+    "My Works" : {
+      "comment" : "Saved-work browser title. web: browser_title",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マイワークス"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내 작업"
+          }
+        }
+      }
+    },
+    "Name" : {
+      "comment" : "Save dialog name field label. web: save_dialog_name_label",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이름"
+          }
+        }
+      }
+    },
     "New tab" : {
       "comment" : "New-tab button accessibility label in the tab strip (issue 264).",
       "localizations" : {
@@ -570,6 +621,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "새 탭"
+          }
+        }
+      }
+    },
+    "No saved works yet" : {
+      "comment" : "Saved-work browser empty-state title. web: browser_empty_title",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存された作品はまだありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "저장된 작업이 없습니다"
           }
         }
       }
@@ -812,6 +880,57 @@
         }
       }
     },
+    "Save" : {
+      "comment" : "Save dialog keep button. web: save_dialog_save",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "저장"
+          }
+        }
+      }
+    },
+    "Save your work?" : {
+      "comment" : "Close-tab save dialog title (issue 266). web: save_dialog_title",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作品を保存しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "작업을 저장하시겠어요?"
+          }
+        }
+      }
+    },
+    "Saved Works" : {
+      "comment" : "TopBar browse button accessibility label. web: label_savedWorks",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存した作品"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "저장된 작업"
+          }
+        }
+      }
+    },
     "Show %@" : {
       "comment" : "Layer visibility toggle accessibility label; %@ is the layer name. web: aria_showLayer",
       "localizations" : {
@@ -842,6 +961,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "전경색과 배경색 교환"
+          }
+        }
+      }
+    },
+    "This action cannot be undone. The saved work will be permanently removed." : {
+      "comment" : "Browser delete confirmation message. web: browser_delete_message",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この操作は元に戻せません。保存された作品は完全に削除されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 작업은 되돌릴 수 없습니다. 저장된 작업이 영구적으로 삭제됩니다."
           }
         }
       }
@@ -910,6 +1046,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "캔버스 너비"
+          }
+        }
+      }
+    },
+    "Your work is saved automatically as you draw." : {
+      "comment" : "Saved-work browser empty-state description. web: browser_empty_desc",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "描くと自動的に保存されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그림을 그리면 자동으로 저장됩니다."
           }
         }
       }

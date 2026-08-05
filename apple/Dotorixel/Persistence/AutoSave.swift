@@ -72,6 +72,13 @@ final class AutoSave {
         dirtyDocIds.remove(documentId)
     }
 
+    /// Whether a marked change is still unpersisted — stays `true` after a
+    /// flush whose store write failed (the failure restores the dirty state
+    /// so the next debounce or flush retries). Callers gating destructive
+    /// follow-ups on a flush (the save flow's close paths) read this as
+    /// "did the write stick".
+    var hasPendingChanges: Bool { isDirty }
+
     /// Persists any pending changes immediately, returning once the write
     /// finished. No-ops when nothing is dirty.
     func flush() async {

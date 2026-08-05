@@ -349,4 +349,26 @@ struct WorkspaceOpenSnapshotTests {
         // dirty makes the next save pick it up (web parity: `openSnapshot`).
         #expect(notifier.marked.contains(snapshot.id))
     }
+
+    @Test("a document reopened after closing fits again on first presentation")
+    func reopenedDocumentFitsAgain() throws {
+        let source = Workspace(width: 4, height: 4)
+        let snapshot = source.toSnapshot().tabs[0]
+        let workspace = Workspace(width: 16, height: 16)
+        let area = ViewportSize(width: 800, height: 600)
+
+        try workspace.openSnapshot(snapshot)
+        workspace.presentActiveTab(in: area)
+        let fittedPixelSize = workspace.activeTab.viewport.pixelSize()
+        // Fit actually ran: the persisted default (32) cannot fill this area.
+        #expect(fittedPixelSize != 32)
+
+        workspace.closeTab(1)
+        try workspace.openSnapshot(snapshot)
+        workspace.presentActiveTab(in: area)
+
+        // The closed tab's id lingering in the fitted set must not defeat
+        // the reset-view contract — the reopened tab fits again.
+        #expect(workspace.activeTab.viewport.pixelSize() == fittedPixelSize)
+    }
 }

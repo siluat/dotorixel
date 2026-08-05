@@ -110,7 +110,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Tab management (Workspace) | — | ✅ | ✅ | Add/switch/close tab strip on both shells; tool/colors shared across tabs, document/history/viewport per tab; close routes via the save dialog on both |
 | Session persistence | — | ✅ | ✅ | Web: multi-tab IndexedDB restore, debounced auto-save, retention; V7 round-trips multi-frame state; lossless V1→V7 migration. Apple: SwiftData debounced auto-save + launch restore of the full current model (single-frame; frames/references arrive Phases 5–6). Both: corrupt store → fresh session, restored history empty, background/visibility-loss flush |
-| Save dialog on tab close | — | ✅ | ✅ | Blank canvas detection (hidden layers count as content), save/delete/cancel modal; saved tabs close without prompting |
+| Save dialog on tab close | — | ✅ | ✅ | Blank canvas detection (hidden layers count as content), save/delete/cancel; saved tabs close without prompting. Web: focus-trapped modal; Apple: native sheet |
 | Saved work browser (desktop) | — | ✅ | ✅ | Browse/open/delete; open tabs excluded from the list; reopening resets the viewport; cards use composite thumbnails (Apple: single-frame until Phase 6) |
 | Saved work browser (mobile) | — | ✅ | — | Bottom sheet; opens full Document snapshots while cards use composite thumbnails |
 

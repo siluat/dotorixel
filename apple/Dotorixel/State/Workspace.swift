@@ -168,6 +168,11 @@ final class Workspace {
     @discardableResult
     func openSnapshot(_ snapshot: TabSnapshot) throws -> TabState {
         resolveOutgoingStroke(nextIndex: tabs.count)
+        // A document reopened in the same session must fit again: closed
+        // tabs' ids linger in `fittedTabIds`, and a lingering entry would
+        // defeat the reset-view contract above (the web is immune — its
+        // fitted set is keyed by tab object, recreated on reopen).
+        fittedTabIds.remove(snapshot.id)
         let tab = try TabState(
             restoring: snapshot,
             shared: shared,

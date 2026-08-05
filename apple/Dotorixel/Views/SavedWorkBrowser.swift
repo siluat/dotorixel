@@ -39,7 +39,9 @@ struct SavedWorkBrowser: View {
             }
         }
         .padding(24)
-        .frame(width: browserWidth, height: browserHeight, alignment: .top)
+        // Max, not fixed: a sheet narrower than the desktop size (iPad
+        // split view) proposes less, and a fixed frame would overflow it.
+        .frame(maxWidth: browserWidth, maxHeight: browserHeight, alignment: .top)
         .background(DesignTokens.bgElevated)
         .alert(
             Text("Delete \"\(deleteTarget?.name ?? "")\"?"),
@@ -68,7 +70,8 @@ struct SavedWorkBrowser: View {
                     .font(.system(size: 14))
                     .foregroundStyle(DesignTokens.textSecondary)
                     .frame(width: closeButtonSize, height: closeButtonSize)
-                    .contentShape(Rectangle())
+                    // Outset to a 44pt touch target without moving layout.
+                    .contentShape(Rectangle().inset(by: (closeButtonSize - 44) / 2))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Close")
@@ -141,7 +144,8 @@ struct SavedWorkBrowser: View {
                         .font(.system(size: 12))
                         .foregroundStyle(DesignTokens.textTertiary)
                         .frame(width: 24, height: 24)
-                        .contentShape(Rectangle())
+                        // Outset to a 44pt touch target without moving layout.
+                        .contentShape(Rectangle().inset(by: (24 - 44) / 2))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Delete \(document.name)")
@@ -157,13 +161,24 @@ struct SavedWorkBrowser: View {
         }
     }
 
-    /// "16 × 16 · 3 minutes ago" — dimensions with the localized relative
-    /// update time (web parity: `.card-meta`).
+    /// "16 × 16 · 3 minutes ago" — dimensions with the localized update
+    /// time: relative within 30 days, an absolute month/day beyond (web
+    /// parity: `formatRelativeTime`'s cutoff — "2 months ago" reads vaguer
+    /// than a date).
     private func metaLine(_ document: SavedDocumentSummary) -> String {
+        "\(document.width) × \(document.height) · \(updatedText(document.updatedAt))"
+    }
+
+    /// Web `formatRelativeTime`'s 30-day window.
+    private static let relativeTimeWindow: TimeInterval = 30 * 24 * 60 * 60
+
+    private func updatedText(_ updatedAt: Date) -> String {
+        guard Date().timeIntervalSince(updatedAt) < Self.relativeTimeWindow else {
+            return updatedAt.formatted(.dateTime.month(.abbreviated).day().locale(locale))
+        }
         let formatter = RelativeDateTimeFormatter()
         formatter.locale = locale
-        let relative = formatter.localizedString(for: document.updatedAt, relativeTo: Date())
-        return "\(document.width) × \(document.height) · \(relative)"
+        return formatter.localizedString(for: updatedAt, relativeTo: Date())
     }
 
     // MARK: - Thumbnail

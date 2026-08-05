@@ -38,22 +38,26 @@ struct SaveFlowCloseDecisionTests {
         try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
         try await persistence.saveDocumentAs(id: tab.documentId, name: "Kept")
 
-        await flow.requestCloseTab(1)
+        await flow.requestCloseTab(documentId: tab.documentId)
 
         #expect(flow.pendingSave == nil)
         #expect(workspace.tabs.count == 1)
         // The saved record is still in the store for the browser.
         #expect(await persistence.isDocumentSaved(id: tab.documentId))
+        // The stored session no longer references the closed tab — a
+        // termination right after the close must not resurrect it.
+        #expect(await persistence.restore()?.tabs.map(\.id)
+            == [workspace.tabs[0].documentId])
     }
 
     @Test("closing a blank unsaved tab closes immediately — nothing worth keeping")
     func blankUnsavedDocumentClosesWithoutDialog() async throws {
         let (flow, workspace, persistence) = try makeFlowFixture()
 
-        workspace.addTab()
+        let tab = workspace.addTab()
         try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
 
-        await flow.requestCloseTab(1)
+        await flow.requestCloseTab(documentId: tab.documentId)
 
         #expect(flow.pendingSave == nil)
         #expect(workspace.tabs.count == 1)
@@ -67,9 +71,10 @@ struct SaveFlowCloseDecisionTests {
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.endStroke()
 
-        await flow.requestCloseTab(1)
+        await flow.requestCloseTab(documentId: tab.documentId)
 
-        #expect(flow.pendingSave == SaveFlow.PendingSave(tabIndex: 1, documentName: tab.name))
+        #expect(flow.pendingSave
+            == SaveFlow.PendingSave(documentId: tab.documentId, documentName: tab.name))
         // Nothing closes until the user chooses.
         #expect(workspace.tabs.count == 2)
     }
@@ -91,7 +96,7 @@ struct SaveFlowDialogResolutionTests {
         // The document has a stored (auto-saved) record before the dialog —
         // the delete branch must actually remove it.
         try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
-        await flow.requestCloseTab(1)
+        await flow.requestCloseTab(documentId: tab.documentId)
         return (flow, workspace, persistence, tab.documentId)
     }
 
@@ -127,6 +132,75 @@ struct SaveFlowDialogResolutionTests {
         #expect(flow.pendingSave == nil)
         #expect(workspace.tabs.count == 2)
         #expect(await persistence.isDocumentSaved(id: docId) == false)
+    }
+
+    @Test("delete leaves the stored session restorable — the tab order stops referencing the dropped record")
+    func deleteKeepsStoredSessionRestorable() async throws {
+        let (flow, workspace, persistence, _) = try await makePendingFixture()
+
+        await flow.confirmDelete()
+
+        // A stale stored tab order would reference the deleted record and
+        // fail the whole session's next restore.
+        #expect(await persistence.restore()?.tabs.map(\.id)
+            == [workspace.tabs[0].documentId])
+    }
+
+    @Test("save that does not stick keeps the tab open — closing would let cleanup delete the work")
+    func failedSaveKeepsTabOpen() async throws {
+        let container = try ModelContainer(
+            for: DocumentRecord.self, WorkspaceRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let persistence = SessionPersistence(modelContainer: container)
+        let workspace = Workspace(width: 4, height: 4)
+        // A flush that persists nothing models a failing store: the
+        // document never gains a record, so `saveDocumentAs` cannot stick.
+        let flow = SaveFlow(workspace: workspace, persistence: persistence, flush: {})
+        let tab = workspace.addTab()
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.endStroke()
+        await flow.requestCloseTab(documentId: tab.documentId)
+
+        await flow.confirmSave(name: "Kept")
+
+        // The dialog dismisses but the tab survives — the user's work must
+        // not be handed to the closed-tab cleanup on a failed keep.
+        #expect(flow.pendingSave == nil)
+        #expect(workspace.tabs.count == 2)
+        #expect(await persistence.isDocumentSaved(id: tab.documentId) == false)
+    }
+
+    @Test("the dialog's choice follows the document, not its position, when the strip mutates in between")
+    func confirmSaveResolvesTabByIdentity() async throws {
+        let (flow, workspace, persistence) = try makeFlowFixture()
+        let dialogTab = workspace.addTab()
+        dialogTab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        dialogTab.endStroke()
+        let bystanderTab = workspace.addTab()
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+        await flow.requestCloseTab(documentId: dialogTab.documentId)
+
+        // The strip mutates while the dialog is up: the first tab closes,
+        // shifting every position left.
+        workspace.closeTab(0)
+        await flow.confirmSave(name: "Kept")
+
+        // The dialog's document — not whatever now sits at its old index —
+        // is the one saved and closed.
+        #expect(workspace.tabs.map(\.documentId) == [bystanderTab.documentId])
+        #expect(await persistence.isDocumentSaved(id: dialogTab.documentId))
+        #expect(await persistence.isDocumentSaved(id: bystanderTab.documentId) == false)
+    }
+
+    @Test("the browser cannot open over a pending save dialog")
+    func browserDoesNotOpenOverPendingDialog() async throws {
+        let (flow, _, _, _) = try await makePendingFixture()
+
+        await flow.openBrowser()
+
+        #expect(flow.browserDocuments == nil)
+        #expect(flow.pendingSave != nil)
     }
 }
 
@@ -198,5 +272,20 @@ struct SaveFlowBrowserTests {
 
         #expect(flow.browserDocuments?.isEmpty == true)
         #expect(workspace.tabs.count == 1)
+    }
+
+    @Test("a close request cannot raise the save dialog over the open browser")
+    func closeRequestDoesNotRaiseDialogOverBrowser() async throws {
+        let (flow, workspace, _, _) = try await makeBrowserFixture()
+        let painted = workspace.addTab()
+        painted.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        painted.endStroke()
+        await flow.openBrowser()
+
+        await flow.requestCloseTab(documentId: painted.documentId)
+
+        #expect(flow.pendingSave == nil)
+        #expect(workspace.tabs.count == 2)
+        #expect(flow.browserDocuments != nil)
     }
 }

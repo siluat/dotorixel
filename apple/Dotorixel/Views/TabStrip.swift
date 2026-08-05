@@ -51,7 +51,7 @@ struct TabStrip: View {
         let isActive = workspace.activeTab === tab
         return HStack(spacing: DesignTokens.space2) {
             selectTabButton(tab, at: index, isActive: isActive)
-            closeButton(for: tab, at: index)
+            closeButton(for: tab)
         }
         .padding(.trailing, DesignTokens.space3)
         .frame(maxHeight: .infinity)
@@ -85,9 +85,12 @@ struct TabStrip: View {
         .accessibilityAddTraits(isActive ? [.isSelected] : [])
     }
 
-    private func closeButton(for tab: TabState, at index: Int) -> some View {
+    // The close request carries the document's identity, not its position:
+    // the flow's awaits can outlive any index (a second close tap shifts
+    // the strip), and a stale index would close the wrong tab.
+    private func closeButton(for tab: TabState) -> some View {
         Button {
-            Task { await saveFlow.requestCloseTab(index) }
+            Task { await saveFlow.requestCloseTab(documentId: tab.documentId) }
         } label: {
             Image(systemName: "xmark")
                 .font(.system(size: closeIconSize, weight: .medium))

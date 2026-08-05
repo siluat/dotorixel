@@ -62,7 +62,8 @@ struct SaveSurfacesSnapshotTests {
             of: SavedWorkBrowser(
                 documents: [summary(id: "a", name: "Hero Sprite"), summary(id: "b", name: "Tile Set")],
                 onSelect: { _ in }, onDelete: { _ in }, onClose: {}
-            ),
+            )
+            .frame(width: 640, height: 480),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -72,7 +73,8 @@ struct SaveSurfacesSnapshotTests {
         assertSnapshot(
             of: SavedWorkBrowser(
                 documents: [], onSelect: { _ in }, onDelete: { _ in }, onClose: {}
-            ),
+            )
+            .frame(width: 640, height: 480),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -84,6 +86,7 @@ struct SaveSurfacesSnapshotTests {
                 documents: [summary(id: "a", name: "Hero Sprite")],
                 onSelect: { _ in }, onDelete: { _ in }, onClose: {}
             )
+            .frame(width: 640, height: 480)
             .environment(\.locale, Locale(identifier: "ko")),
             as: .image(layout: .sizeThatFits)
         )

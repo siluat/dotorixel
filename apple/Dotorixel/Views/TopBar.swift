@@ -4,6 +4,8 @@ import SwiftUI
 /// Layout and styling matches the web editor's TopBar.svelte.
 struct TopBar: View {
     let workspace: Workspace
+    /// Opens the saved-work browser from the bar's browse affordance.
+    let saveFlow: SaveFlow
     let tier: LayoutTier
 
     private var tab: TabState { workspace.activeTab }
@@ -83,6 +85,9 @@ struct TopBar: View {
                 // MARK: Grid toggle
                 gridToggleButton
 
+                // MARK: Saved work browser
+                browseSavedWorkButton
+
                 // MARK: Export
                 exportButton
             }
@@ -158,6 +163,24 @@ struct TopBar: View {
         }
         .accessibilityLabel("Toggle grid")
         .accessibilityValue(tab.showGrid ? "On" : "Off")
+        .buttonStyle(BarToggleButtonStyle())
+    }
+
+    // MARK: - Saved work browser
+
+    /// Web parity: the TopBar folder affordance opening the saved-work
+    /// browser (`onBrowseSavedWork` in `TopBar.svelte`).
+    private var browseSavedWorkButton: some View {
+        Button {
+            Task { await saveFlow.openBrowser() }
+        } label: {
+            Image(systemName: "folder")
+                .font(.system(size: 16))
+                .frame(width: controlHeight, height: controlHeight)
+                .foregroundStyle(DesignTokens.textSecondary)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel("Saved Works")
         .buttonStyle(BarToggleButtonStyle())
     }
 

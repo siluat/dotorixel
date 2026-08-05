@@ -20,13 +20,9 @@
 
 Phased catch-up to full parity with completed web editor features. See the RFC for
 the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish), Phase 2
-(full tool set + color + i18n, issues 230–242), and Phase 3 (layer system, issues
-256–261) are complete; Phases 5–6 are decomposed into issues (`/to-tickets`) when
-reached.
-
-### Phase 4 — Multi-tab + persistence (issues 262–266)
-
-- [266 — Save dialog + saved work browser](../issues/266-apple-save-dialog-saved-work.md) — unblocked (265 done); last Phase 4 item
+(full tool set + color + i18n, issues 230–242), Phase 3 (layer system, issues
+256–261), and Phase 4 (multi-tab + persistence, issues 262–266) are complete;
+Phases 5–6 are decomposed into issues (`/to-tickets`) when reached.
 
 ### Phases 5–6 — roadmap (decompose when reached)
 

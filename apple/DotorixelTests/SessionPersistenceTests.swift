@@ -171,6 +171,97 @@ struct SessionPersistenceTests {
             TabViewportSnapshot(pixelSize: 32, zoom: 1.0, panX: 0, panY: 0, showGrid: true))
     }
 
+    @Test("saveDocumentAs marks the document saved under the chosen name")
+    func saveDocumentAsMarksSaved() async throws {
+        let persistence = try makeInMemoryPersistence()
+
+        let workspace = Workspace(width: 4, height: 4)
+        let docId = workspace.activeTab.documentId
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        #expect(await persistence.isDocumentSaved(id: docId) == false)
+
+        try await persistence.saveDocumentAs(id: docId, name: "My Sprite")
+
+        #expect(await persistence.isDocumentSaved(id: docId))
+    }
+
+    @Test("a saved document survives closing its tab: the record outlives the next session save")
+    func savedDocumentSurvivesTabClose() async throws {
+        let persistence = try makeInMemoryPersistence()
+
+        let workspace = Workspace(width: 4, height: 4)
+        let keptId = workspace.addTab().documentId
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+        try await persistence.saveDocumentAs(id: keptId, name: "Kept")
+
+        workspace.closeTab(1)
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        // The restored session no longer includes the closed tab, but the
+        // saved record is still in the store for the browser to list.
+        let restored = try #require(await persistence.restore())
+        #expect(restored.tabs.map(\.id) == [workspace.activeTab.documentId])
+        #expect(await persistence.isDocumentSaved(id: keptId))
+    }
+
+    @Test("savedDocumentSummaries lists only saved documents, most recently updated first")
+    func summariesListSavedDocumentsMostRecentFirst() async throws {
+        let persistence = try makeInMemoryPersistence()
+
+        let workspace = Workspace(width: 4, height: 4)
+        let newestId = workspace.activeTab.documentId
+        let olderId = workspace.addTab().documentId
+        workspace.addTab() // stays unsaved — must not appear
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        // A newer content save bumps `updatedAt` — the first tab becomes the
+        // most recently updated regardless of save order below.
+        let newestTab = workspace.tabs[0]
+        newestTab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        newestTab.endStroke()
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: [newestId])
+
+        try await persistence.saveDocumentAs(id: olderId, name: "Older")
+        try await persistence.saveDocumentAs(id: newestId, name: "Newest")
+
+        let summaries = await persistence.savedDocumentSummaries()
+
+        #expect(summaries.map(\.id) == [newestId, olderId])
+        #expect(summaries.map(\.name) == ["Newest", "Older"])
+        #expect(summaries[0].width == 4)
+        #expect(summaries[0].height == 4)
+        // The thumbnail composite covers the canvas and carries the stroke's
+        // painted pixel (RGBA at (1,1) is non-zero).
+        let pixels = summaries[0].pixels
+        #expect(pixels.count == 4 * 4 * 4)
+        #expect(pixels[(1 * 4 + 1) * 4 + 3] != 0)
+    }
+
+    @Test("savedDocumentSnapshot returns the saved content with a reset viewport; nil for unsaved")
+    func savedDocumentSnapshotResetsViewportAndGuardsUnsaved() async throws {
+        let persistence = try makeInMemoryPersistence()
+
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        tab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 3))
+        tab.endStroke()
+        tab.handleZoomIn() // drift the live viewport away from the default
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        // Unsaved: not openable from the browser.
+        #expect(await persistence.savedDocumentSnapshot(id: tab.documentId) == nil)
+
+        try await persistence.saveDocumentAs(id: tab.documentId, name: "Kept")
+        let snapshot = try #require(await persistence.savedDocumentSnapshot(id: tab.documentId))
+
+        #expect(snapshot.id == tab.documentId)
+        #expect(snapshot.layers == workspace.toSnapshot().tabs[0].layers)
+        // Reopening resets the view (web parity: `DEFAULT_VIEWPORT`).
+        #expect(snapshot.viewport ==
+            TabViewportSnapshot(pixelSize: 32, zoom: 1.0, panX: 0, panY: 0, showGrid: true))
+    }
+
     @Test("closing a tab deletes its unsaved document from the store on the next save")
     func closedTabsUnsavedDocumentIsDeleted() async throws {
         let persistence = try makeInMemoryPersistence()

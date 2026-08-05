@@ -595,6 +595,18 @@ final class TabState {
         )
     }
 
+    /// True when every layer's pixel buffer is fully transparent (web
+    /// parity: `isDocumentBlank`). Iterates every layer — hidden ones
+    /// included, unlike the composite — so painted-then-hidden content
+    /// still counts as non-blank and the tab-close save prompt won't
+    /// silently discard it.
+    func isDocumentBlank() -> Bool {
+        // `layerSnapshots` errors only on a Reference Layer (no Apple
+        // creation path yet) — same impossible state as `toSnapshot`.
+        let layers = try! document.layerSnapshots()
+        return layers.allSatisfy { layer in layer.pixels.allSatisfy { $0 == 0 } }
+    }
+
     // MARK: - Export
 
     /// Encodes the document's export composite as a PNG export document at 1×

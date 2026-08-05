@@ -32,6 +32,20 @@ struct DockedRegionSnapshotTests {
 
     private func state() -> Workspace { Workspace(width: 16, height: 16) }
 
+    /// A flow with no store — the strip and bar only need it for tap wiring,
+    /// which never fires in a snapshot render.
+    private func flow(_ workspace: Workspace) -> SaveFlow {
+        SaveFlow(workspace: workspace, persistence: nil, flush: {})
+    }
+
+    private func tabStrip(_ workspace: Workspace) -> TabStrip {
+        TabStrip(workspace: workspace, saveFlow: flow(workspace))
+    }
+
+    private func topBar(_ workspace: Workspace, tier: LayoutTier) -> TopBar {
+        TopBar(workspace: workspace, saveFlow: flow(workspace), tier: tier)
+    }
+
     // MARK: - RightPanel (width: 200 wide / 240 x-wide)
 
     @Test("RightPanel renders wide width (200pt)")
@@ -153,7 +167,7 @@ struct DockedRegionSnapshotTests {
     @Test("TabStrip renders the sole tab with its close affordance disabled")
     func tabStripSoleTab() {
         assertSnapshot(
-            of: TabStrip(workspace: state()).frame(width: barWidth),
+            of: tabStrip(state()).frame(width: barWidth),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -165,7 +179,7 @@ struct DockedRegionSnapshotTests {
         multiTab.addTab()
         multiTab.setActiveTab(1)
         assertSnapshot(
-            of: TabStrip(workspace: multiTab).frame(width: barWidth),
+            of: tabStrip(multiTab).frame(width: barWidth),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -207,7 +221,7 @@ struct DockedRegionSnapshotTests {
     @Test("TopBar renders wide height (44pt)")
     func topBarWide() {
         assertSnapshot(
-            of: TopBar(workspace: state(), tier: .wide).frame(width: barWidth),
+            of: topBar(state(), tier: .wide).frame(width: barWidth),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -215,7 +229,7 @@ struct DockedRegionSnapshotTests {
     @Test("TopBar renders x-wide height (48pt)")
     func topBarXWide() {
         assertSnapshot(
-            of: TopBar(workspace: state(), tier: .xWide).frame(width: barWidth),
+            of: topBar(state(), tier: .xWide).frame(width: barWidth),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -228,7 +242,7 @@ struct DockedRegionSnapshotTests {
         let nonFreehand = state()
         nonFreehand.shared.activeTool = .floodFill
         assertSnapshot(
-            of: TopBar(workspace: nonFreehand, tier: .wide).frame(width: barWidth),
+            of: topBar(nonFreehand, tier: .wide).frame(width: barWidth),
             as: .image(layout: .sizeThatFits)
         )
     }
@@ -293,7 +307,7 @@ struct DockedRegionSnapshotTests {
     @Test("TopBar renders Korean chrome at wide")
     func topBarKoreanLocale() {
         assertSnapshot(
-            of: TopBar(workspace: state(), tier: .wide)
+            of: topBar(state(), tier: .wide)
                 .frame(width: barWidth)
                 .environment(\.locale, Locale(identifier: "ko")),
             as: .image(layout: .sizeThatFits)

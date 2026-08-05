@@ -159,6 +159,33 @@ final class Workspace {
         notifier.markWorkspaceDirty()
     }
 
+    /// Opens a saved document's snapshot as a new active tab (web parity:
+    /// `openSnapshot` in `workspace.svelte.ts`) — the browser's reopen path.
+    /// The tab is deliberately not pre-marked fitted: reopening resets the
+    /// view, so its first presentation fits the canvas. Marks the document
+    /// dirty so the next save includes the reopened tab. Throws when the
+    /// snapshot fails the core's hydration validation.
+    @discardableResult
+    func openSnapshot(_ snapshot: TabSnapshot) throws -> TabState {
+        resolveOutgoingStroke(nextIndex: tabs.count)
+        let tab = try TabState(
+            restoring: snapshot,
+            shared: shared,
+            notifier: notifier,
+            isConstrainHeld: { [weak self] in
+                guard let self else { return false }
+                return self.isShiftKeyHeld || self.isConstrainLatchOn
+            },
+            consumePendingToolRestore: { [weak self] in
+                self?.keyboardShortcuts.consumePendingToolRestore()
+            }
+        )
+        tabs.append(tab)
+        activeTabIndex = tabs.count - 1
+        notifier.markDirty(documentId: tab.documentId)
+        return tab
+    }
+
     /// Whether any tab may be closed — false only at the sole-tab guard
     /// (the workspace always keeps at least one tab open). The tab strip
     /// renders its close affordances from this, the UI face of the guard

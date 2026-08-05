@@ -1,6 +1,6 @@
 ---
 title: Apple save dialog and saved work browser — keep, reopen, and delete documents
-status: ready-for-agent
+status: done
 created: 2026-08-02
 ---
 
@@ -57,3 +57,37 @@ i18n: new user-facing strings go through the String Catalog.
 ## Blocked by
 
 - [265 — Apple SwiftData session persistence](265-apple-swiftdata-session-persistence.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/SaveFlow.swift` | New `@MainActor @Observable` flow model: close-tab routing (saved → close, blank → close, else dialog), save/delete/cancel resolution, saved-work browser state (open/select/delete, open-tab exclusion, vanished-record fallback, double-tap guard) |
+| `apple/Dotorixel/Persistence/SessionPersistence.swift` | `isDocumentSaved`, `saveDocumentAs` (saved flag + name), `savedDocumentSummaries` (export-composite thumbnails via core hydration, newest first, per-record corrupt skip), `savedDocumentSnapshot` (default-viewport reset, nil for unsaved) |
+| `apple/Dotorixel/Persistence/SessionStore.swift` | `SavedDocumentSummary` value type (web parity) |
+| `apple/Dotorixel/State/TabState.swift` | `isDocumentBlank()` — every layer's buffer checked, hidden layers included |
+| `apple/Dotorixel/State/Workspace.swift` | `openSnapshot(_:)` — reopen as new active tab, not pre-marked fitted (view resets), marked dirty |
+| `apple/Dotorixel/Persistence/AppSession.swift` | Owns `SaveFlow`; rebuilt with the armed store + flush after restore |
+| `apple/Dotorixel/Views/SaveDialog.swift` | Three-way close dialog (save with prefilled name / delete / cancel), web style parity |
+| `apple/Dotorixel/Views/SavedWorkBrowser.swift` | Card grid with nearest-neighbor-upscaled thumbnails, name, dimensions, relative time; per-card delete confirm; empty state |
+| `apple/Dotorixel/Views/TabStrip.swift` | Interim discard alert (264) replaced by `SaveFlow.requestCloseTab` |
+| `apple/Dotorixel/Views/TopBar.swift` | Folder button opening the browser (web browse affordance parity) |
+| `apple/Dotorixel/ContentView.swift` | Sheet presentation for both surfaces; dialog focus sets `isTextInputFocused` |
+| `apple/Dotorixel/Localizable.xcstrings` | 11 new entries (ko/ja mirror the web translations); 2 replaced discard-alert keys removed |
+| `apple/DotorixelTests/SaveFlowTests.swift` | 10 flow tests over a real in-memory store |
+| `apple/DotorixelTests/SessionPersistenceTests.swift` | +4: saveDocumentAs semantics, saved-survives-close, summaries order/thumbnail, snapshot viewport reset |
+| `apple/DotorixelTests/TabStateTests.swift`, `WorkspaceTests.swift` | Blank detection (incl. hidden-layer), openSnapshot |
+| `apple/DotorixelTests/SaveSurfacesSnapshotTests.swift` | 5 new baselines: SaveDialog (en/ko), browser (populated/empty/ko); TopBar baselines re-recorded (folder button) |
+
+### Key Decisions
+
+- Flow logic lives in a dedicated `SaveFlow` model (not `AppSession`, not view `@State`) so the whole dialog/browser flow is unit-testable against an in-memory store — the Apple analog of the web's `modal-state` + page handlers.
+- Browser thumbnails pre-upscale the composite via a nearest-neighbor `CGContext` pass: `Image.interpolation(.none)` alone does not survive every render path (offscreen snapshots interpolate regardless).
+- Sheet dismissal (swipe/Escape) resolves as cancel/close through presentation bindings, so no state is stranded.
+- The destructive button tint stays view-local in both surfaces, mirroring the web's component-scoped `--_destructive`.
+
+### Notes
+
+- Simulator E2E: app launch and both surfaces verified on the pinned iPad simulator; the full save → close → browse → reopen loop is unit-covered (`SaveFlowTests`) but was not hand-driven end-to-end on device — worth a pass during the next manual session.
+- `SavedWorkBrowser` renders relative time via `RelativeDateTimeFormatter` with the environment locale (web `formatRelativeTime` parity).
+- Phase 4 (262–266) is now complete; Phases 5–6 decompose via `/to-tickets` when reached.

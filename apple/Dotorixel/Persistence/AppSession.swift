@@ -15,6 +15,10 @@ import SwiftUI
 @Observable
 final class AppSession {
     private(set) var workspace: Workspace
+    /// The keep/discard flow over the workspace and store (issue 266).
+    /// Rebuilt alongside every workspace swap so its references never go
+    /// stale; until persistence is armed it runs with a `nil` store.
+    private(set) var saveFlow: SaveFlow
     @ObservationIgnored private var autoSave: AutoSave?
     @ObservationIgnored private let notifierProxy = ProxyDirtyNotifier()
     /// Set synchronously at the first `start()` — `autoSave` alone can't
@@ -23,7 +27,9 @@ final class AppSession {
     @ObservationIgnored private var hasStarted = false
 
     init() {
-        workspace = Workspace(notifier: notifierProxy)
+        let workspace = Workspace(notifier: notifierProxy)
+        self.workspace = workspace
+        self.saveFlow = SaveFlow(workspace: workspace, persistence: nil, flush: {})
     }
 
     /// Restores the stored session and arms auto-save. Called from the
@@ -64,6 +70,13 @@ final class AppSession {
             // Armed only after the restored workspace is in place, so
             // hydration never reaches the store as a save.
             notifierProxy.target = AutoSaveDirtyNotifier(autoSave: autoSave)
+            // The flow follows the (possibly swapped) workspace and gains
+            // the armed store + flush.
+            self.saveFlow = SaveFlow(
+                workspace: workspace,
+                persistence: persistence,
+                flush: { await autoSave.flush() }
+            )
         }
     }
 

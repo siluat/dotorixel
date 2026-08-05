@@ -6,12 +6,9 @@ import SwiftUI
 /// guard) and the trailing + opens a fresh document.
 struct TabStrip: View {
     let workspace: Workspace
-
-    /// The tab a close was requested for, driving the destructive
-    /// confirmation. Nothing is persisted yet, so closing discards the
-    /// drawing — an honest interim until the save dialog (issue 266)
-    /// replaces this alert.
-    @State private var pendingCloseIndex: Int?
+    /// Routes close taps: saved and blank documents close immediately,
+    /// anything else waits on the save dialog the flow presents.
+    let saveFlow: SaveFlow
 
     /// Web `.close-btn` / `.new-tab-btn` sizes (raw CSS values, not tokens).
     private let closeButtonSize: CGFloat = 16
@@ -45,10 +42,6 @@ struct TabStrip: View {
             Rectangle()
                 .fill(DesignTokens.borderSubtle)
                 .frame(height: 1)
-        }
-        .alert("Discard this drawing?", isPresented: isCloseConfirmationPresented) {
-            Button("Discard", role: .destructive) { confirmPendingClose() }
-            Button("Cancel", role: .cancel) {}
         }
     }
 
@@ -94,7 +87,7 @@ struct TabStrip: View {
 
     private func closeButton(for tab: TabState, at index: Int) -> some View {
         Button {
-            pendingCloseIndex = index
+            Task { await saveFlow.requestCloseTab(index) }
         } label: {
             Image(systemName: "xmark")
                 .font(.system(size: closeIconSize, weight: .medium))
@@ -123,23 +116,5 @@ struct TabStrip: View {
         .buttonStyle(.plain)
         .padding(.leading, DesignTokens.space2)
         .accessibilityLabel("New tab")
-    }
-
-    // MARK: - Close confirmation
-
-    private var isCloseConfirmationPresented: Binding<Bool> {
-        Binding(
-            get: { pendingCloseIndex != nil },
-            set: { if !$0 { pendingCloseIndex = nil } }
-        )
-    }
-
-    private func confirmPendingClose() {
-        // Bounds-checked: the strip can change between request and confirm
-        // (e.g. the + button is still tappable behind the alert on macOS).
-        if let index = pendingCloseIndex, workspace.tabs.indices.contains(index) {
-            workspace.closeTab(index)
-        }
-        pendingCloseIndex = nil
     }
 }

@@ -89,6 +89,64 @@ actor SessionPersistence {
         }
     }
 
+    /// Whether the stored document has been explicitly kept by the user
+    /// (web parity: `isDocumentSaved`). `false` when no record exists.
+    func isDocumentSaved(id: String) -> Bool {
+        (try? fetchDocument(id: id))?.saved ?? false
+    }
+
+    /// Marks the stored document saved under `name` (web parity:
+    /// `saveDocumentAs`) — the explicit keep that exempts it from the
+    /// closed-tab cleanup in `save`. No-op when no record exists.
+    func saveDocumentAs(id: String, name: String) throws {
+        guard let record = try fetchDocument(id: id) else { return }
+        record.saved = true
+        record.name = name
+        try modelContext.save()
+    }
+
+    /// Summaries of every explicitly saved document, most recently updated
+    /// first (web parity: `getAllSavedDocuments`). The pixels are the export
+    /// composite the browser renders as the thumbnail — the record's layers
+    /// hydrated through the core, so the composite matches what export
+    /// produces. One unreadable record is skipped, not the whole listing
+    /// (mirrors `restore()`'s fresh-session fallback, scoped per record).
+    func savedDocumentSummaries() -> [SavedDocumentSummary] {
+        let descriptor = FetchDescriptor<DocumentRecord>(
+            predicate: #Predicate { $0.saved },
+            sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
+        )
+        guard let records = try? modelContext.fetch(descriptor) else { return [] }
+        return records.compactMap { record in
+            guard let snapshot = try? tabSnapshot(from: record, viewport: nil),
+                  let document = try? AppleDocument.fromLayers(
+                      width: snapshot.width,
+                      height: snapshot.height,
+                      layers: snapshot.layers,
+                      activeLayerId: snapshot.activeLayerId,
+                      nextLayerNumber: snapshot.nextLayerNumber,
+                      timelinePanelCollapsed: snapshot.timelinePanelCollapsed
+                  ) else { return nil }
+            return SavedDocumentSummary(
+                id: record.id,
+                name: record.name,
+                width: snapshot.width,
+                height: snapshot.height,
+                pixels: document.compositeForExport(),
+                updatedAt: record.updatedAt
+            )
+        }
+    }
+
+    /// The tab snapshot a saved document reopens as (web parity:
+    /// `getSavedDocumentSnapshot`): its stored content with the default
+    /// viewport — reopening resets the view. `nil` when the record is
+    /// missing, unsaved, or unreadable.
+    func savedDocumentSnapshot(id: String) -> TabSnapshot? {
+        guard let record = try? fetchDocument(id: id), record.saved else { return nil }
+        return try? tabSnapshot(from: record, viewport: nil)
+    }
+
     /// Removes a document record immediately, regardless of its `saved`
     /// flag (web parity: `deleteDocument`).
     func deleteDocument(id: String) throws {

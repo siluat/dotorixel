@@ -172,6 +172,31 @@ struct SaveFlowDialogResolutionTests {
         #expect(await persistence.isDocumentSaved(id: tab.documentId) == false)
     }
 
+    @Test("a failed flush defers the discard's deletion — the stored session stays restorable")
+    func failedFlushDefersDiscardDeletion() async throws {
+        let container = try ModelContainer(
+            for: DocumentRecord.self, WorkspaceRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let persistence = SessionPersistence(modelContainer: container)
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.addTab()
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.endStroke()
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+        let flow = SaveFlow(workspace: workspace, persistence: persistence, flush: { false })
+        await flow.requestCloseTab(documentId: tab.documentId)
+
+        await flow.confirmDelete()
+
+        // The tab still closes, but the record outlives the failed flush:
+        // deleting it under a stored tab order that still references it
+        // would discard the whole session on the next restore.
+        #expect(workspace.tabs.count == 1)
+        #expect(await persistence.documentUpdatedAt(id: tab.documentId) != nil)
+        #expect(await persistence.restore() != nil)
+    }
+
     @Test("a failed flush aborts the keep — a stale record must not be marked saved")
     func failedFlushKeepsTabOpen() async throws {
         let container = try ModelContainer(

@@ -11,13 +11,15 @@ only Miss rows may be grouped, with an explicit (×N) count.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 203 | 152 | 51 | 263 | 75% | 37% |
-| cubic-dev-ai[bot] | 274 | 215 | 59 | 205 | 78% | 51% |
-| coderabbitai[bot] | 301 | 212 | 89 | 209 | 70% | 50% |
+| cubic-dev-ai[bot] | 275 | 216 | 59 | 205 | 79% | 51% |
+| coderabbitai[bot] | 301 | 212 | 89 | 210 | 70% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #352 | cubic-dev-ai[bot] | Accept | Partial (re-review): `confirmDelete` deleted the record before the trailing flush — a failed flush left the stored tab order referencing a missing record, discarding the whole session on restore; reordered to close → flush-stuck → delete, a failure deferring deletion to the closed-tab cleanup. The generalized handle/retry of trailing flush results declined: AutoSave's restored-dirty state + next debounce/scenePhase flush is the established retry model (#351 verdict), worst case a resurrected tab |
+| #352 | coderabbitai[bot] | Miss | Re-reviewed the flush-gating commit without flagging the delete-before-flush ordering hole (partial-accepted from cubic) |
 | #352 | cubic-dev-ai[bot] | Accept | Re-review: the keep path could mark a stale record saved — a failed pre-save flush leaves an older record that `saveDocumentAs` marks kept, closing the tab with the latest edits lost; flush now reports whether the write stuck and the close paths gate on it |
 | #352 | cubic-dev-ai[bot] | Accept | Re-review: the immediate-close branches skipped the post-await browser re-check the dialog branch has — an in-flight close could mutate tabs under the presented browser sheet; `closeTab` re-verifies before the mutation |
 | #352 | coderabbitai[bot] | Reject | Re-review: claimed the metrics log's reject rows dropped the Reviewer cell (three cells at lines 34–37); the committed rows carry all four cells, verified against the raw blob (5 pipes per row) |

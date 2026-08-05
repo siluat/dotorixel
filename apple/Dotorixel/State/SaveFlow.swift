@@ -87,6 +87,10 @@ final class SaveFlow {
         guard browserDocuments == nil,
               let index = tabIndex(of: documentId) else { return }
         workspace.closeTab(index)
+        // Result deliberately dropped: the tab is already closed, and a
+        // failed write restores AutoSave's dirty state so the standard
+        // retry (next debounce, scenePhase flush) picks it up — worst case
+        // the closed tab resurrects on relaunch, never a lost session.
         _ = await flush()
     }
 
@@ -114,17 +118,20 @@ final class SaveFlow {
     }
 
     /// The dialog's discard branch (web parity: `handleSaveDialogDelete`):
-    /// the tab closes and the document's record is dropped immediately. The
-    /// trailing flush rewrites the stored tab order — left stale, it would
-    /// reference the deleted record and the whole session would fail its
-    /// next restore.
+    /// the tab closes, the stored tab order stops referencing the document,
+    /// and only then is its record dropped. The order is load-bearing —
+    /// deleting first and failing the flush would leave a stored order
+    /// pointing at a missing record, and the next restore would discard the
+    /// whole session. A failed flush instead defers the deletion: the worst
+    /// outcome is the closed tab resurrecting, and the next successful save
+    /// removes the unsaved record through the closed-tab cleanup.
     func confirmDelete() async {
         guard let pending = takePendingSave() else { return }
         if let index = tabIndex(of: pending.documentId) {
             workspace.closeTab(index)
         }
+        guard await flush() else { return }
         try? await persistence?.deleteDocument(id: pending.documentId)
-        _ = await flush()
     }
 
     /// The dialog's cancel branch: dismisses, everything untouched.

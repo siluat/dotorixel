@@ -10,14 +10,33 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 202 | 151 | 51 | 253 | 75% | 37% |
-| cubic-dev-ai[bot] | 257 | 202 | 55 | 205 | 79% | 50% |
-| coderabbitai[bot] | 299 | 211 | 88 | 197 | 71% | 52% |
+| greptile-apps[bot] | 203 | 152 | 51 | 263 | 75% | 37% |
+| cubic-dev-ai[bot] | 272 | 213 | 59 | 205 | 78% | 51% |
+| coderabbitai[bot] | 300 | 212 | 88 | 207 | 71% | 51% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #352 | greptile-apps[bot] | Accept | `confirmSave` swallowed a failed explicit save and closed the tab anyway — the closed-tab cleanup then deletes the unsaved record, losing work the user chose to keep; the close is now gated on the saved flag having stuck |
+| #352 | cubic-dev-ai[bot] | Accept | Same failed-save-closes-tab finding (duplicate of greptile) |
+| #352 | coderabbitai[bot] | Accept | Close paths flushed only before `closeTab`, leaving the stored tab order referencing the closed tab (relaunch resurrects it) — and the delete path referencing a deleted record, which fails the whole session's restore; every close now re-flushes after |
+| #352 | cubic-dev-ai[bot] | Accept | Same stale-tab-order-after-close finding (duplicate of coderabbit) |
+| #352 | cubic-dev-ai[bot] | Accept | TabStrip carried a positional index across the flow's awaits — rapid closes could close the wrong document or trap `tabs.remove`; the flow is now keyed by document id with positions resolved at each mutation point |
+| #352 | cubic-dev-ai[bot] | Accept | `selectSavedDocument` didn't re-check after its await — a browser dismissed or a card deleted mid-load could still reopen (and re-persist) the document; guarded post-await (web `openingId` re-check parity) |
+| #352 | cubic-dev-ai[bot] | Accept | `deleteSavedDocument` dropped the card even when the store delete failed; the card now leaves the list only on success (web parity) |
+| #352 | cubic-dev-ai[bot] | Accept | A document reopened in the same session skipped its first-presentation fit — the closed tab's id lingered in `fittedTabIds` (the web is immune: object-keyed WeakSet); `openSnapshot` now removes the id |
+| #352 | cubic-dev-ai[bot] | Accept | Browser close (28pt) and delete (24pt) hit regions below the 44pt touch guideline; outset via contentShape inset without moving layout |
+| #352 | cubic-dev-ai[bot] | Accept | Documents older than 30 days rendered "2 months ago" instead of the web's absolute month/day fallback; the 30-day cutoff is now mirrored |
+| #352 | cubic-dev-ai[bot] | Accept | Fixed 640×480 browser frame overflows sheets narrower than desktop (iPad split view); now max-sized, snapshot tests fix the axes |
+| #352 | cubic-dev-ai[bot] | Accept | The browser and save dialog could become active together across `openBrowser`'s flush await; the two surfaces are now mutually exclusive in the flow |
+| #352 | cubic-dev-ai[bot] | Accept | platform-status note dropped the web/Apple modality difference for the save dialog; restored as "Web: focus-trapped modal; Apple: native sheet" |
+| #352 | cubic-dev-ai[bot] | Reject | Wanted per-card thumbnail caching; lists are small, card bodies re-evaluate only on list mutation — premature optimization |
+| #352 | cubic-dev-ai[bot] | Reject | Wanted empty/whitespace name validation in SaveDialog; web parity saves the field verbatim, naming UX tracked in the "Document rename" backlog item |
+| #352 | cubic-dev-ai[bot] | Reject | Claimed `browserDocuments?.isEmpty == true` cannot fail when the list goes nil — wrong in Swift: `nil == true` is false, so the assertion fails on a nil regression |
+| #352 | cubic-dev-ai[bot] | Reject | Wanted summaries to avoid per-open full hydration; mirrors the web's identical work, small collections, runs off-main on the ModelActor — premature |
+| #352 | greptile-apps[bot] | Miss (×10) | Flagged only the failed-save path; missed the other ten accepted findings (stale tab order, index race, select re-check, delete-on-failure, fitted-set reopen, touch targets, 30-day date fallback, adaptive frame, sheet exclusion, platform-status note) |
+| #352 | coderabbitai[bot] | Miss (×10) | Flagged only the stale tab order; missed the other ten accepted findings (failed-save path, index race, select re-check, delete-on-failure, fitted-set reopen, touch targets, 30-day date fallback, adaptive frame, sheet exclusion, platform-status note) |
 | #351 | cubic-dev-ai[bot] | Accept | Partial (re-review): corrupt zero/>256 dimensions pass the `UInt32(exactly:)` guard and defer failure to `Workspace(restoring:)` instead of `restore()`'s nil — range-check duplication declined (dimension bounds are the core hydration constructor's single authority; the deferred path lands on the same fresh-session fallback without a crash), but the exposed doc gap was real: `restore()` now states the two-layer fallback explicitly |
 | #351 | coderabbitai[bot] | Miss | Re-reviewed the hardening commit without flagging the restore-contract layering gap (accepted in part from cubic) |
 | #351 | greptile-apps[bot] | Accept | Direct `UInt32(record.width)`-style conversions in the restore path trap on a corrupt negative/oversized stored Int — a fatal error the `do`/`catch` can't turn into the documented fresh-session fallback; `UInt32(exactly:)` now fails the restore normally |

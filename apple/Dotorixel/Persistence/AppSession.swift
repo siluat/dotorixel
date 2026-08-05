@@ -29,7 +29,7 @@ final class AppSession {
     init() {
         let workspace = Workspace(notifier: notifierProxy)
         self.workspace = workspace
-        self.saveFlow = SaveFlow(workspace: workspace, persistence: nil, flush: {})
+        self.saveFlow = SaveFlow(workspace: workspace, persistence: nil, flush: { true })
     }
 
     /// Restores the stored session and arms auto-save. Called from the
@@ -75,7 +75,10 @@ final class AppSession {
             self.saveFlow = SaveFlow(
                 workspace: workspace,
                 persistence: persistence,
-                flush: { await autoSave.flush() }
+                flush: {
+                    await autoSave.flush()
+                    return !autoSave.hasPendingChanges
+                }
             )
         }
     }

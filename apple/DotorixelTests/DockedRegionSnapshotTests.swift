@@ -35,7 +35,7 @@ struct DockedRegionSnapshotTests {
     /// A flow with no store — the strip and bar only need it for tap wiring,
     /// which never fires in a snapshot render.
     private func flow(_ workspace: Workspace) -> SaveFlow {
-        SaveFlow(workspace: workspace, persistence: nil, flush: {})
+        SaveFlow(workspace: workspace, persistence: nil, flush: { true })
     }
 
     private func tabStrip(_ workspace: Workspace) -> TabStrip {

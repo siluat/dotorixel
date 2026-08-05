@@ -19,7 +19,7 @@ private func makeFlowFixture(
     let flow = SaveFlow(
         workspace: workspace,
         persistence: persistence,
-        flush: { try? await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil) }
+        flush: { (try? await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)) != nil }
     )
     return (flow, workspace, persistence)
 }
@@ -154,9 +154,10 @@ struct SaveFlowDialogResolutionTests {
         )
         let persistence = SessionPersistence(modelContainer: container)
         let workspace = Workspace(width: 4, height: 4)
-        // A flush that persists nothing models a failing store: the
-        // document never gains a record, so `saveDocumentAs` cannot stick.
-        let flow = SaveFlow(workspace: workspace, persistence: persistence, flush: {})
+        // A flush that claims success but persisted nothing models the
+        // missing-record edge: the document never gains a record, so
+        // `saveDocumentAs` cannot stick.
+        let flow = SaveFlow(workspace: workspace, persistence: persistence, flush: { true })
         let tab = workspace.addTab()
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.endStroke()
@@ -167,6 +168,31 @@ struct SaveFlowDialogResolutionTests {
         // The dialog dismisses but the tab survives — the user's work must
         // not be handed to the closed-tab cleanup on a failed keep.
         #expect(flow.pendingSave == nil)
+        #expect(workspace.tabs.count == 2)
+        #expect(await persistence.isDocumentSaved(id: tab.documentId) == false)
+    }
+
+    @Test("a failed flush aborts the keep — a stale record must not be marked saved")
+    func failedFlushKeepsTabOpen() async throws {
+        let container = try ModelContainer(
+            for: DocumentRecord.self, WorkspaceRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let persistence = SessionPersistence(modelContainer: container)
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.addTab()
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.endStroke()
+        // An older record exists (a past auto-save), but the store now
+        // rejects writes: the flush cannot persist the latest content.
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+        let flow = SaveFlow(workspace: workspace, persistence: persistence, flush: { false })
+        await flow.requestCloseTab(documentId: tab.documentId)
+
+        await flow.confirmSave(name: "Kept")
+
+        // Closing would preserve the stale record as "saved" while the
+        // latest edits are lost; the tab stays and nothing is marked kept.
         #expect(workspace.tabs.count == 2)
         #expect(await persistence.isDocumentSaved(id: tab.documentId) == false)
     }

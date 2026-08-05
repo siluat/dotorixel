@@ -11,13 +11,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 203 | 152 | 51 | 263 | 75% | 37% |
-| cubic-dev-ai[bot] | 272 | 213 | 59 | 205 | 78% | 51% |
-| coderabbitai[bot] | 300 | 212 | 88 | 207 | 71% | 51% |
+| cubic-dev-ai[bot] | 274 | 215 | 59 | 205 | 78% | 51% |
+| coderabbitai[bot] | 301 | 212 | 89 | 209 | 70% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #352 | cubic-dev-ai[bot] | Accept | Re-review: the keep path could mark a stale record saved — a failed pre-save flush leaves an older record that `saveDocumentAs` marks kept, closing the tab with the latest edits lost; flush now reports whether the write stuck and the close paths gate on it |
+| #352 | cubic-dev-ai[bot] | Accept | Re-review: the immediate-close branches skipped the post-await browser re-check the dialog branch has — an in-flight close could mutate tabs under the presented browser sheet; `closeTab` re-verifies before the mutation |
+| #352 | coderabbitai[bot] | Reject | Re-review: claimed the metrics log's reject rows dropped the Reviewer cell (three cells at lines 34–37); the committed rows carry all four cells, verified against the raw blob (5 pipes per row) |
+| #352 | coderabbitai[bot] | Miss (×2) | Re-reviewed the hardening commit; missed both accepted re-review findings (stale-record keep on failed flush, immediate-close browser re-check). greptile did not re-review this round — no participation, no Miss |
 | #352 | greptile-apps[bot] | Accept | `confirmSave` swallowed a failed explicit save and closed the tab anyway — the closed-tab cleanup then deletes the unsaved record, losing work the user chose to keep; the close is now gated on the saved flag having stuck |
 | #352 | cubic-dev-ai[bot] | Accept | Same failed-save-closes-tab finding (duplicate of greptile) |
 | #352 | coderabbitai[bot] | Accept | Close paths flushed only before `closeTab`, leaving the stored tab order referencing the closed tab (relaunch resurrects it) — and the delete path referencing a deleted record, which fails the whole session's restore; every close now re-flushes after |

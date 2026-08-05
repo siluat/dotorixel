@@ -33,15 +33,17 @@ final class SaveFlow {
     /// persistence, and every close falls through to the dialog's
     /// keep-nothing branches (web parity: the no-op session handle).
     private let persistence: SessionPersistence?
-    /// Persists pending auto-save state immediately (production:
-    /// `AutoSave.flush` via `AppSession`) — run before store reads and tab
-    /// closes so decisions see the live workspace, not a stale store.
-    private let flush: () async -> Void
+    /// Persists pending auto-save state immediately and reports whether the
+    /// write stuck (production: `AutoSave.flush` + its restored-dirty state,
+    /// via `AppSession`). Run before store reads and tab closes so decisions
+    /// see the live workspace; `false` means the store rejected the write,
+    /// and destructive follow-ups must not proceed over the stale record.
+    private let flush: () async -> Bool
 
     init(
         workspace: Workspace,
         persistence: SessionPersistence?,
-        flush: @escaping () async -> Void
+        flush: @escaping () async -> Bool
     ) {
         self.workspace = workspace
         self.persistence = persistence
@@ -73,14 +75,19 @@ final class SaveFlow {
 
     /// Closes the document's tab between two flushes. The one before
     /// persists the document's latest content while its tab is still in the
-    /// snapshot; the one after brings the stored tab order in line with the
-    /// close — left stale, a termination before the next debounced save
-    /// would resurrect the closed tab on relaunch.
+    /// snapshot — and must stick: closing over a failed write would strand
+    /// the latest edits in a stale record. The one after brings the stored
+    /// tab order in line with the close — left stale, a termination before
+    /// the next debounced save would resurrect the closed tab on relaunch.
     private func closeTab(documentId: String) async {
-        await flush()
-        guard let index = tabIndex(of: documentId) else { return }
+        guard await flush() else { return }
+        // Re-resolved after the await — and the browser may have opened
+        // while the flush ran: an in-flight close must not mutate the tabs
+        // under its presented sheet (the dialog branch's same re-check).
+        guard browserDocuments == nil,
+              let index = tabIndex(of: documentId) else { return }
         workspace.closeTab(index)
-        await flush()
+        _ = await flush()
     }
 
     // MARK: - Save dialog resolution
@@ -93,14 +100,16 @@ final class SaveFlow {
     /// the dialog dismisses and the tab stays open.
     func confirmSave(name: String) async {
         guard let pending = takePendingSave() else { return }
-        await flush()
+        // The flush must stick before the keep: `saveDocumentAs` on a stale
+        // record would mark content saved that is missing the latest edits.
+        guard await flush() else { return }
         if let persistence {
             try? await persistence.saveDocumentAs(id: pending.documentId, name: name)
             guard await persistence.isDocumentSaved(id: pending.documentId) else { return }
         }
         if let index = tabIndex(of: pending.documentId) {
             workspace.closeTab(index)
-            await flush()
+            _ = await flush()
         }
     }
 
@@ -115,7 +124,7 @@ final class SaveFlow {
             workspace.closeTab(index)
         }
         try? await persistence?.deleteDocument(id: pending.documentId)
-        await flush()
+        _ = await flush()
     }
 
     /// The dialog's cancel branch: dismisses, everything untouched.
@@ -148,7 +157,9 @@ final class SaveFlow {
     /// requested during the awaits — the two surfaces share one
     /// presentation host and must not coexist.
     func openBrowser() async {
-        await flush()
+        // A failed flush only staled the listing — browsing is not
+        // destructive, so the result is not gated on.
+        _ = await flush()
         let summaries = await persistence?.savedDocumentSummaries() ?? []
         guard pendingSave == nil else { return }
         let openIds = Set(workspace.tabs.map(\.documentId))

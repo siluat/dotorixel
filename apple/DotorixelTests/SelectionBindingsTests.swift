@@ -19,7 +19,7 @@ struct SelectionBindingsTests {
         #expect(doc.marquee() == nil)
 
         // from_drag normalizes any corner order to the same inclusive region.
-        let region = appleMarqueeFromDrag(x0: 5, y0: 7, x1: 2, y1: 3)
+        let region = try appleMarqueeFromDrag(x0: 5, y0: 7, x1: 2, y1: 3)
         #expect(region == AppleMarqueeRegion(x: 2, y: 3, width: 4, height: 5))
 
         try doc.setMarquee(region: region)
@@ -30,8 +30,8 @@ struct SelectionBindingsTests {
     }
 
     @Test("region helpers answer containment and canvas clipping without shell math")
-    func regionHelpers() {
-        let region = appleMarqueeFromDrag(x0: 2, y0: 3, x1: 5, y1: 7)
+    func regionHelpers() throws {
+        let region = try appleMarqueeFromDrag(x0: 2, y0: 3, x1: 5, y1: 7)
 
         // Containment is inclusive of the region's own edges only.
         #expect(appleMarqueeContains(region: region, x: 2, y: 3))
@@ -40,15 +40,43 @@ struct SelectionBindingsTests {
         #expect(!appleMarqueeContains(region: region, x: 6, y: 7))
 
         // Clipping keeps only the in-bounds overlap …
-        let partial = appleMarqueeFromDrag(x0: -2, y0: 1, x1: 3, y1: 6)
+        let partial = try appleMarqueeFromDrag(x0: -2, y0: 1, x1: 3, y1: 6)
         #expect(
             appleMarqueeClipTo(region: partial, canvasW: 4, canvasH: 4)
                 == AppleMarqueeRegion(x: 0, y: 1, width: 4, height: 3)
         )
 
         // … and a fully out-of-bounds region clips to nil.
-        let outside = appleMarqueeFromDrag(x0: 4, y0: 0, x1: 6, y1: 3)
+        let outside = try appleMarqueeFromDrag(x0: 4, y0: 0, x1: 6, y1: 3)
         #expect(appleMarqueeClipTo(region: outside, canvasW: 4, canvasH: 4) == nil)
+    }
+
+    @Test("records the core type cannot represent are rejected at the boundary")
+    func boundaryValidation() throws {
+        let doc = makeSingleLayerDocument(width: 8, height: 8)
+
+        // A field-wise record whose width the core's i32 drag arithmetic
+        // cannot span: the far corner stays in range, so only the span
+        // check catches it.
+        let oversized = AppleMarqueeRegion(x: Int32.min, y: 0, width: UInt32.max, height: 1)
+        #expect(throws: AppleError.self) {
+            try doc.setMarquee(region: oversized)
+        }
+        #expect(doc.marquee() == nil)
+
+        // A zero-size record is rejected the same way.
+        #expect(throws: AppleError.self) {
+            try doc.setMarquee(region: AppleMarqueeRegion(x: 0, y: 0, width: 0, height: 3))
+        }
+
+        // A full-i32 drag span is unrepresentable; the helper rejects it.
+        #expect(throws: AppleError.self) {
+            try appleMarqueeFromDrag(x0: Int32.min, y0: 0, x1: Int32.max, y1: 0)
+        }
+
+        // Query helpers absorb invalid records instead of throwing.
+        #expect(!appleMarqueeContains(region: oversized, x: 0, y: 0))
+        #expect(appleMarqueeClipTo(region: oversized, canvasW: 8, canvasH: 8) == nil)
     }
 
     @Test("lift, clear, and composite-back reproduce a selection move")
@@ -86,7 +114,7 @@ struct SelectionBindingsTests {
         let doc = makeSingleLayerDocument(width: 4, height: 4)
         let blue = Color(r: 0x00, g: 0x00, b: 0xFF, a: 0xFF)
         let transparent = Color(r: 0x00, g: 0x00, b: 0x00, a: 0x00)
-        let bounds = appleMarqueeFromDrag(x0: 1, y0: 1, x1: 2, y1: 2)
+        let bounds = try appleMarqueeFromDrag(x0: 1, y0: 1, x1: 2, y1: 2)
 
         // The whole canvas is one transparent 4-connected area, but the fill
         // must not escape the bounds.

@@ -330,15 +330,26 @@ impl From<MarqueeRegion> for AppleMarqueeRegion {
 
 impl AppleMarqueeRegion {
     /// Converts the record back into the core's invariant-holding type.
-    /// Errors when the record was built with a zero width/height or when its
-    /// far corner falls outside the `i32` coordinate space — states the core
-    /// type makes unrepresentable.
+    /// Errors when the record was built with a zero width/height, a
+    /// width/height above `i32::MAX`, or a far corner outside the `i32`
+    /// coordinate space — states the core type makes unrepresentable (its
+    /// drag-corner arithmetic spans at most the `i32` range).
     fn to_core(self) -> Result<MarqueeRegion, AppleError> {
         if self.width == 0 || self.height == 0 {
             return Err(AppleError::Document {
                 message: format!(
                     "Marquee region width and height must be at least 1, got {} × {}",
                     self.width, self.height
+                ),
+            });
+        }
+        if self.width > i32::MAX as u32 || self.height > i32::MAX as u32 {
+            return Err(AppleError::Document {
+                message: format!(
+                    "Marquee region width and height must be at most {}, got {} × {}",
+                    i32::MAX,
+                    self.width,
+                    self.height
                 ),
             });
         }
@@ -361,14 +372,32 @@ impl AppleMarqueeRegion {
 }
 
 /// Normalizes two drag corners (any order, inclusive) into a Marquee region —
-/// the drag-corner normalization the Marquee select tool consumes.
+/// the drag-corner normalization the Marquee select tool consumes. Errors
+/// when the corner span exceeds `i32::MAX` pixels on either axis (the core's
+/// drag arithmetic is `i32`-wide); canvas-sized drags never come close.
 #[uniffi::export]
-fn apple_marquee_from_drag(x0: i32, y0: i32, x1: i32, y1: i32) -> AppleMarqueeRegion {
-    MarqueeRegion::from_drag(x0, y0, x1, y1).into()
+fn apple_marquee_from_drag(
+    x0: i32,
+    y0: i32,
+    x1: i32,
+    y1: i32,
+) -> Result<AppleMarqueeRegion, AppleError> {
+    let span_x = (i64::from(x0) - i64::from(x1)).abs() + 1;
+    let span_y = (i64::from(y0) - i64::from(y1)).abs() + 1;
+    if span_x > i64::from(i32::MAX) || span_y > i64::from(i32::MAX) {
+        return Err(AppleError::Document {
+            message: format!(
+                "Marquee drag span must be at most {} pixels per axis, got {span_x} × {span_y}",
+                i32::MAX
+            ),
+        });
+    }
+    Ok(MarqueeRegion::from_drag(x0, y0, x1, y1).into())
 }
 
-/// Whether `(x, y)` lies inside `region`. A degenerate record (zero
-/// width/height) contains nothing.
+/// Whether `(x, y)` lies inside `region`. An invalid record (zero
+/// width/height, or extents the core type cannot represent) contains
+/// nothing.
 #[uniffi::export]
 fn apple_marquee_contains(region: AppleMarqueeRegion, x: i32, y: i32) -> bool {
     region.to_core().is_ok_and(|region| region.contains(x, y))
@@ -376,7 +405,8 @@ fn apple_marquee_contains(region: AppleMarqueeRegion, x: i32, y: i32) -> bool {
 
 /// Clips `region` to a `canvas_w × canvas_h` canvas, returning only the
 /// in-bounds overlap — `nil` when the region does not overlap the canvas or
-/// the record is degenerate (zero width/height).
+/// the record is invalid (zero width/height, or extents the core type
+/// cannot represent).
 #[uniffi::export]
 fn apple_marquee_clip_to(
     region: AppleMarqueeRegion,
@@ -790,16 +820,27 @@ impl AppleDocument {
     /// Source-over composites a row-major RGBA `buffer` at `region` on the
     /// active Pixel Layer; pixels landing outside the canvas are skipped.
     /// No-op when the active layer is a Reference Layer. Errors when `region`
-    /// is degenerate or when `buffer.len()` is not exactly
-    /// `region.width * region.height * 4` — the core treats that as a
-    /// programming error (panic), so it is validated here at the boundary.
+    /// is invalid, when its byte length overflows the address space, or when
+    /// `buffer.len()` is not exactly `region.width * region.height * 4` —
+    /// the core treats that as a programming error (panic), so it is
+    /// validated here at the boundary.
     fn composite_buffer_at(
         &self,
         buffer: Vec<u8>,
         region: AppleMarqueeRegion,
     ) -> Result<(), AppleError> {
         let region = region.to_core()?;
-        let expected = region.width() as usize * region.height() as usize * 4;
+        let expected = u64::from(region.width())
+            .checked_mul(u64::from(region.height()))
+            .and_then(|pixels| pixels.checked_mul(4))
+            .and_then(|bytes| usize::try_from(bytes).ok())
+            .ok_or_else(|| AppleError::Document {
+                message: format!(
+                    "Region dimensions are too large for an RGBA buffer: {} × {}",
+                    region.width(),
+                    region.height()
+                ),
+            })?;
         if buffer.len() != expected {
             return Err(AppleError::Document {
                 message: format!(

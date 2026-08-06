@@ -770,9 +770,10 @@ impl AppleDocument {
         self.inner.lock().unwrap().marquee().map(Into::into)
     }
 
-    /// Sets or clears the current Marquee. Errors when `region` was built
-    /// with a zero width/height or extends past the `i32` coordinate space;
-    /// the previous Marquee is preserved in that case.
+    /// Sets or clears the current Marquee. Errors when `region` is invalid —
+    /// zero or above-`i32::MAX` width/height, or a far corner outside the
+    /// `i32` coordinate space; the previous Marquee is preserved in that
+    /// case.
     fn set_marquee(&self, region: Option<AppleMarqueeRegion>) -> Result<(), AppleError> {
         let marquee = region.map(AppleMarqueeRegion::to_core).transpose()?;
         self.inner.lock().unwrap().set_marquee(marquee);
@@ -783,7 +784,8 @@ impl AppleDocument {
     /// constrained to `bounds` — the fill the Marquee clipping mode routes
     /// through. Returns `true` when at least one pixel was changed; negative
     /// coordinates short-circuit to `false`, mirroring `flood_fill`. Errors
-    /// when `bounds` is a degenerate record (zero width/height).
+    /// when `bounds` is an invalid record — zero or above-`i32::MAX`
+    /// width/height, or a far corner outside the `i32` coordinate space.
     fn flood_fill_bounded(
         &self,
         x: i32,

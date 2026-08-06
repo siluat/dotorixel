@@ -10,14 +10,24 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 203 | 152 | 51 | 263 | 75% | 37% |
-| cubic-dev-ai[bot] | 275 | 216 | 59 | 205 | 79% | 51% |
-| coderabbitai[bot] | 301 | 212 | 89 | 210 | 70% | 50% |
+| greptile-apps[bot] | 204 | 153 | 51 | 265 | 75% | 37% |
+| cubic-dev-ai[bot] | 279 | 220 | 59 | 205 | 79% | 52% |
+| coderabbitai[bot] | 303 | 214 | 89 | 212 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #353 | cubic-dev-ai[bot] | Accept | Re-review: the round-1 span-cap validation wasn't reflected in the `setMarquee`/`floodFillBounded` API docs — `floodFillBounded`'s named only the degenerate branch — so the generated Swift contract omitted why an in-range-looking record throws; both now state all three rejection branches |
+| #353 | coderabbitai[bot] | Miss | Re-review APPROVED without flagging the doc-contract gap (accepted from cubic). greptile did not re-review this round — no participation, no Miss |
+| #353 | greptile-apps[bot] | Accept | A field-wise record with `width ≈ u32::MAX` passed `to_core`'s far-corner check yet overflowed `from_drag`'s i32 span arithmetic on reconstruction (debug panic / release wrong geometry), and `appleMarqueeFromDrag` exposed the same overflow for wide corners; `to_core` now bounds width/height to `i32::MAX` and the helper validates the span in i64 |
+| #353 | coderabbitai[bot] | Accept | Partial: same `from_drag` span overflow (duplicate of greptile) with the checked-constructor remedy — Apple-boundary validation + oversized-record and full-i32-span tests adopted; the requested core checked constructor and wasm propagation declined (issue 267 is expand-only, and core/wasm `from_drag` inputs are shell-internal canvas coordinates, not arbitrary external input) |
+| #353 | coderabbitai[bot] | Accept | `composite_buffer_at`'s expected-length `usize` multiplication could overflow before the length comparison, validating a short buffer; now checked u64 arithmetic mirroring the core's `region_buffer_len` pattern |
+| #353 | cubic-dev-ai[bot] | Accept | RGBA-area overflow acceptance in `to_core` (P1, kin of coderabbit's buffer-math finding); resolved by the `i32::MAX` dimension bound — post-bound the u64 byte math cannot overflow — plus the checked consumer arithmetic, without a separate unreachable area guard in `to_core` |
+| #353 | cubic-dev-ai[bot] | Accept | Same `appleMarqueeFromDrag` full-i32-span overflow (P2, duplicate of greptile/coderabbit); wide arithmetic + explicit rejection adopted as suggested |
+| #353 | cubic-dev-ai[bot] | Accept | Query helpers (`contains`/`clip_to`) silently absorb i32-overflow records too, but their docs named only the degenerate case — an undocumented contract branch beside the erroring mutation methods; docs now cover every invalid-record branch |
+| #353 | greptile-apps[bot] | Miss (×2) | Flagged only the span overflow; missed the buffer-length checked arithmetic and the query-helper doc contract gap |
+| #353 | coderabbitai[bot] | Miss | Did not flag the query-helper doc contract gap (accepted from cubic) |
 | #352 | cubic-dev-ai[bot] | Accept | Partial (re-review): `confirmDelete` deleted the record before the trailing flush — a failed flush left the stored tab order referencing a missing record, discarding the whole session on restore; reordered to close → flush-stuck → delete, a failure deferring deletion to the closed-tab cleanup. The generalized handle/retry of trailing flush results declined: AutoSave's restored-dirty state + next debounce/scenePhase flush is the established retry model (#351 verdict), worst case a resurrected tab |
 | #352 | coderabbitai[bot] | Miss | Re-reviewed the flush-gating commit without flagging the delete-before-flush ordering hole (partial-accepted from cubic) |
 | #352 | cubic-dev-ai[bot] | Accept | Re-review: the keep path could mark a stale record saved — a failed pre-save flush leaves an older record that `saveDocumentAs` marks kept, closing the tab with the latest edits lost; flush now reports whether the write stuck and the close paths gate on it |

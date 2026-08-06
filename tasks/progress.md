@@ -3,20 +3,20 @@
 ## Currently Working On
 
 Apple catch-up Phase 5 — reference + selection + transforms
-([RFC](../issues/013-apple-native-catchup.md)); decomposed into issues
-267–282 (2026-08-05), starting frontier {267, 277}.
+([RFC](../issues/013-apple-native-catchup.md)); 1/16 sub-issues done (267),
+unblocking 268 + 269. Frontier: {268, 269, 277}.
 
 ## Last Completed
 
-[266 — Apple save dialog + saved work browser](../issues/266-apple-save-dialog-saved-work.md):
-the explicit keep/discard layer over session persistence — close-tab
-save/delete/cancel dialog, saved-work browser with thumbnails, reopen with a
-reset viewport. Phase 4 of the Apple catch-up ([RFC](../issues/013-apple-native-catchup.md))
-is now complete; Phase 5 decomposes via `/to-tickets` when picked up.
+[267 — Apple UniFFI selection + transform bindings](../issues/267-apple-uniffi-selection-transform-bindings.md):
+the full Marquee / region-op / two-tier transform surface exposed over UniFFI,
+expand-only. Marquee crosses as a Record with boundary validation (not the
+wasm-style opaque object) — see the issue's Key Decisions.
 
 ## Next Up
 
-- [267 — Apple UniFFI selection + transform bindings](../issues/267-apple-uniffi-selection-transform-bindings.md) — Phase 5 frontier
+- [268 — Apple canvas transforms (right panel)](../issues/268-apple-canvas-transforms.md) — Phase 5, unblocked by 267
+- [269 — Apple marquee select tool](../issues/269-apple-marquee-select-tool.md) — Phase 5, unblocked by 267
 - [277 — Apple UniFFI reference bindings](../issues/277-apple-uniffi-reference-bindings.md) — Phase 5 frontier
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)

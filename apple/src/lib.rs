@@ -4,6 +4,7 @@ use dotorixel_core::canvas::PixelCanvas;
 use dotorixel_core::export::PngExport;
 use dotorixel_core::history::DocumentHistory;
 use dotorixel_core::pixel_perfect::{FilterResult, TailState, pixel_perfect_filter};
+use dotorixel_core::selection::MarqueeRegion;
 use dotorixel_core::tool::{ellipse_outline, interpolate_pixels, rectangle_outline};
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
 use dotorixel_core::{Document, Layer, ResizeAnchor};
@@ -77,6 +78,14 @@ impl From<dotorixel_core::LayerError> for AppleError {
 
 impl From<dotorixel_core::document::DocumentBuildError> for AppleError {
     fn from(e: dotorixel_core::document::DocumentBuildError) -> Self {
+        Self::Document {
+            message: e.to_string(),
+        }
+    }
+}
+
+impl From<dotorixel_core::document::CompositePatchError> for AppleError {
+    fn from(e: dotorixel_core::document::CompositePatchError) -> Self {
         Self::Document {
             message: e.to_string(),
         }
@@ -289,6 +298,126 @@ impl ApplePixelCanvas {
             .unwrap()
             .flood_fill(x as u32, y as u32, fill_color)
     }
+}
+
+// ---------------------------------------------------------------------------
+// AppleMarqueeRegion
+// ---------------------------------------------------------------------------
+
+/// The Marquee rectangle as a value crossing the FFI boundary — the shell
+/// reads `x`/`y`/`width`/`height` directly and treats construction as the
+/// helpers' job ([`apple_marquee_from_drag`]). A record is constructible
+/// field-wise in Swift, so document methods validate the core invariant
+/// (`width`/`height ≥ 1`, extents within `i32`) at the boundary.
+#[derive(uniffi::Record, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct AppleMarqueeRegion {
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
+}
+
+impl From<MarqueeRegion> for AppleMarqueeRegion {
+    fn from(region: MarqueeRegion) -> Self {
+        Self {
+            x: region.x(),
+            y: region.y(),
+            width: region.width(),
+            height: region.height(),
+        }
+    }
+}
+
+impl AppleMarqueeRegion {
+    /// Converts the record back into the core's invariant-holding type.
+    /// Errors when the record was built with a zero width/height, a
+    /// width/height above `i32::MAX`, or a far corner outside the `i32`
+    /// coordinate space — states the core type makes unrepresentable (its
+    /// drag-corner arithmetic spans at most the `i32` range).
+    fn to_core(self) -> Result<MarqueeRegion, AppleError> {
+        if self.width == 0 || self.height == 0 {
+            return Err(AppleError::Document {
+                message: format!(
+                    "Marquee region width and height must be at least 1, got {} × {}",
+                    self.width, self.height
+                ),
+            });
+        }
+        if self.width > i32::MAX as u32 || self.height > i32::MAX as u32 {
+            return Err(AppleError::Document {
+                message: format!(
+                    "Marquee region width and height must be at most {}, got {} × {}",
+                    i32::MAX,
+                    self.width,
+                    self.height
+                ),
+            });
+        }
+        let right = i64::from(self.x) + i64::from(self.width) - 1;
+        let bottom = i64::from(self.y) + i64::from(self.height) - 1;
+        if right > i64::from(i32::MAX) || bottom > i64::from(i32::MAX) {
+            return Err(AppleError::Document {
+                message: format!(
+                    "Marquee region extends past the i32 coordinate space: far corner ({right}, {bottom})"
+                ),
+            });
+        }
+        Ok(MarqueeRegion::from_drag(
+            self.x,
+            self.y,
+            right as i32,
+            bottom as i32,
+        ))
+    }
+}
+
+/// Normalizes two drag corners (any order, inclusive) into a Marquee region —
+/// the drag-corner normalization the Marquee select tool consumes. Errors
+/// when the corner span exceeds `i32::MAX` pixels on either axis (the core's
+/// drag arithmetic is `i32`-wide); canvas-sized drags never come close.
+#[uniffi::export]
+fn apple_marquee_from_drag(
+    x0: i32,
+    y0: i32,
+    x1: i32,
+    y1: i32,
+) -> Result<AppleMarqueeRegion, AppleError> {
+    let span_x = (i64::from(x0) - i64::from(x1)).abs() + 1;
+    let span_y = (i64::from(y0) - i64::from(y1)).abs() + 1;
+    if span_x > i64::from(i32::MAX) || span_y > i64::from(i32::MAX) {
+        return Err(AppleError::Document {
+            message: format!(
+                "Marquee drag span must be at most {} pixels per axis, got {span_x} × {span_y}",
+                i32::MAX
+            ),
+        });
+    }
+    Ok(MarqueeRegion::from_drag(x0, y0, x1, y1).into())
+}
+
+/// Whether `(x, y)` lies inside `region`. An invalid record (zero
+/// width/height, or extents the core type cannot represent) contains
+/// nothing.
+#[uniffi::export]
+fn apple_marquee_contains(region: AppleMarqueeRegion, x: i32, y: i32) -> bool {
+    region.to_core().is_ok_and(|region| region.contains(x, y))
+}
+
+/// Clips `region` to a `canvas_w × canvas_h` canvas, returning only the
+/// in-bounds overlap — `nil` when the region does not overlap the canvas or
+/// the record is invalid (zero width/height, or extents the core type
+/// cannot represent).
+#[uniffi::export]
+fn apple_marquee_clip_to(
+    region: AppleMarqueeRegion,
+    canvas_w: u32,
+    canvas_h: u32,
+) -> Option<AppleMarqueeRegion> {
+    region
+        .to_core()
+        .ok()?
+        .clip_to(canvas_w, canvas_h)
+        .map(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -634,6 +763,182 @@ impl AppleDocument {
             .lock()
             .unwrap()
             .resize(new_width, new_height, anchor)?)
+    }
+
+    /// The current Marquee, or `nil` when no selection exists.
+    fn marquee(&self) -> Option<AppleMarqueeRegion> {
+        self.inner.lock().unwrap().marquee().map(Into::into)
+    }
+
+    /// Sets or clears the current Marquee. Errors when `region` is invalid —
+    /// zero or above-`i32::MAX` width/height, or a far corner outside the
+    /// `i32` coordinate space; the previous Marquee is preserved in that
+    /// case.
+    fn set_marquee(&self, region: Option<AppleMarqueeRegion>) -> Result<(), AppleError> {
+        let marquee = region.map(AppleMarqueeRegion::to_core).transpose()?;
+        self.inner.lock().unwrap().set_marquee(marquee);
+        Ok(())
+    }
+
+    /// 4-connected flood fill on the active layer starting at `(x, y)`,
+    /// constrained to `bounds` — the fill the Marquee clipping mode routes
+    /// through. Returns `true` when at least one pixel was changed; negative
+    /// coordinates short-circuit to `false`, mirroring `flood_fill`. Errors
+    /// when `bounds` is an invalid record — zero or above-`i32::MAX`
+    /// width/height, or a far corner outside the `i32` coordinate space.
+    fn flood_fill_bounded(
+        &self,
+        x: i32,
+        y: i32,
+        fill_color: Color,
+        bounds: AppleMarqueeRegion,
+    ) -> Result<bool, AppleError> {
+        let bounds = bounds.to_core()?;
+        if x < 0 || y < 0 {
+            return Ok(false);
+        }
+        Ok(self
+            .inner
+            .lock()
+            .unwrap()
+            .flood_fill_bounded(x as u32, y as u32, fill_color, bounds))
+    }
+
+    /// Copies pixels inside the current Marquee from the active Pixel Layer
+    /// into a row-major RGBA buffer (`width * height * 4` bytes; pixels
+    /// outside the canvas come back transparent). Returns an empty buffer
+    /// when no Marquee exists or the active layer is a Reference Layer.
+    fn lift_marquee_pixels(&self) -> Vec<u8> {
+        self.inner.lock().unwrap().lift_marquee_pixels()
+    }
+
+    /// Clears pixels inside the current Marquee on the active Pixel Layer to
+    /// transparent; the Marquee itself is preserved. No-op when no Marquee
+    /// exists or the active layer is a Reference Layer.
+    fn clear_marquee_pixels(&self) {
+        self.inner.lock().unwrap().clear_marquee_pixels();
+    }
+
+    /// Source-over composites a row-major RGBA `buffer` at `region` on the
+    /// active Pixel Layer; pixels landing outside the canvas are skipped.
+    /// No-op when the active layer is a Reference Layer. Errors when `region`
+    /// is invalid, when its byte length overflows the address space, or when
+    /// `buffer.len()` is not exactly `region.width * region.height * 4` —
+    /// the core treats that as a programming error (panic), so it is
+    /// validated here at the boundary.
+    fn composite_buffer_at(
+        &self,
+        buffer: Vec<u8>,
+        region: AppleMarqueeRegion,
+    ) -> Result<(), AppleError> {
+        let region = region.to_core()?;
+        let expected = u64::from(region.width())
+            .checked_mul(u64::from(region.height()))
+            .and_then(|pixels| pixels.checked_mul(4))
+            .and_then(|bytes| usize::try_from(bytes).ok())
+            .ok_or_else(|| AppleError::Document {
+                message: format!(
+                    "Region dimensions are too large for an RGBA buffer: {} × {}",
+                    region.width(),
+                    region.height()
+                ),
+            })?;
+        if buffer.len() != expected {
+            return Err(AppleError::Document {
+                message: format!(
+                    "Region buffer must be region.width * region.height * 4 = {expected} bytes, got {}",
+                    buffer.len()
+                ),
+            });
+        }
+        self.inner
+            .lock()
+            .unwrap()
+            .composite_buffer_at(&buffer, region);
+        Ok(())
+    }
+
+    /// The full composite with one Pixel Layer's active-frame cel replaced by
+    /// a copy carrying `patch` at `(dest_x, dest_y)` — the non-mutating read
+    /// the Metal render path uses to preview a Floating Selection. The
+    /// document itself is untouched. Errors when no layer has `layer_id`,
+    /// when it is a Reference Layer, or when `patch.len()` is not exactly
+    /// `patch_width * patch_height * 4`.
+    fn composite_with_layer_patch(
+        &self,
+        layer_id: String,
+        patch: Vec<u8>,
+        patch_width: u32,
+        patch_height: u32,
+        dest_x: i32,
+        dest_y: i32,
+    ) -> Result<Vec<u8>, AppleError> {
+        let id = parse_layer_id(&layer_id)?;
+        Ok(self.inner.lock().unwrap().composite_with_layer_patch(
+            id,
+            &patch,
+            patch_width,
+            patch_height,
+            dest_x,
+            dest_y,
+        )?)
+    }
+
+    /// Mirrors the whole canvas horizontally — every Pixel Layer's every cel
+    /// (all frames), regardless of the active layer; dimensions are
+    /// unchanged, Reference Layers stay fixed, and an active Marquee is
+    /// mirrored across the same axis and clipped to the canvas.
+    fn flip_canvas_horizontal(&self) {
+        self.inner.lock().unwrap().flip_canvas_horizontal();
+    }
+
+    /// Mirrors the whole canvas vertically. Mirror of
+    /// `flip_canvas_horizontal`.
+    fn flip_canvas_vertical(&self) {
+        self.inner.lock().unwrap().flip_canvas_vertical();
+    }
+
+    /// Rotates the whole canvas 90° clockwise — every Pixel Layer's every
+    /// cel (all frames) turns, the canvas width/height swap, Reference
+    /// Layers stay fixed, and an active Marquee is carried through the same
+    /// quarter-turn and clipped to the new canvas.
+    fn rotate_canvas_cw(&self) {
+        self.inner.lock().unwrap().rotate_canvas_cw();
+    }
+
+    /// Rotates the whole canvas 90° counter-clockwise. Mirror of
+    /// `rotate_canvas_cw`.
+    fn rotate_canvas_ccw(&self) {
+        self.inner.lock().unwrap().rotate_canvas_ccw();
+    }
+
+    /// Mirrors the current Marquee region on the active Pixel Layer's
+    /// active-frame cel horizontally; the Marquee position is unchanged.
+    /// Other layers, other frames, and pixels outside the Marquee are
+    /// untouched. No-op without a Marquee or on a Reference Layer.
+    fn flip_marquee_horizontal(&self) {
+        self.inner.lock().unwrap().flip_marquee_horizontal();
+    }
+
+    /// Mirrors the current Marquee region vertically. Mirror of
+    /// `flip_marquee_horizontal`.
+    fn flip_marquee_vertical(&self) {
+        self.inner.lock().unwrap().flip_marquee_vertical();
+    }
+
+    /// Rotates the current Marquee region on the active Pixel Layer's
+    /// active-frame cel 90° clockwise: the region's `W×H` pixels become an
+    /// `H×W` block re-centered on the region's center and clipped to the
+    /// canvas, and the Marquee updates to wrap it. No-op without a Marquee
+    /// or on a Reference Layer.
+    fn rotate_marquee_cw(&self) {
+        self.inner.lock().unwrap().rotate_marquee_cw();
+    }
+
+    /// Rotates the current Marquee region 90° counter-clockwise. Mirror of
+    /// `rotate_marquee_cw`.
+    fn rotate_marquee_ccw(&self) {
+        self.inner.lock().unwrap().rotate_marquee_ccw();
     }
 
     /// RGBA row-major composite buffer that excludes Reference Layers,

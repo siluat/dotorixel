@@ -1,6 +1,6 @@
 ---
 title: Apple UniFFI selection + transform bindings — Marquee ops and two-tier flip/rotate
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -71,3 +71,31 @@ Marquee.
 
 None — can start immediately (parallel with
 [277](277-apple-uniffi-reference-bindings.md))
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/src/lib.rs` | `AppleMarqueeRegion` record + `to_core()` boundary validation; region helpers (`apple_marquee_from_drag` / `_contains` / `_clip_to`); 14 new `AppleDocument` methods — marquee read/write, `lift_marquee_pixels` / `clear_marquee_pixels` / `composite_buffer_at`, `flood_fill_bounded`, `composite_with_layer_patch`, 4 canvas transforms, 4 marquee transforms; `CompositePatchError → AppleError` conversion. Expand only — no existing binding touched |
+| `apple/DotorixelTests/SelectionBindingsTests.swift` | 10 Swift binding tests covering every acceptance criterion through the generated bindings (round-trips, move via lift→clear→composite, bounded fill, non-mutating patch preview, both transform tiers incl. multi-layer + marquee mapping, transform round-trip) |
+
+### Key Decisions
+
+- **Marquee crosses as a UniFFI Record, not an Object** (the wasm shell wraps an
+  opaque object instead). Swift gets value semantics + `Equatable`; because a
+  record is field-wise constructible in Swift, the core invariant
+  (`width`/`height ≥ 1`, extents within `i32`) is enforced by `to_core()`
+  validation in every consuming document method — "fail at the boundary".
+- **Degenerate-record handling splits by query vs action**: pure queries
+  (`contains`, `clip_to`) absorb silently (`false`/`nil`); document mutations
+  (`set_marquee`, `composite_buffer_at`, `flood_fill_bounded`) error.
+- **`composite_buffer_at` validates buffer length at the boundary**, converting
+  the core's panic contract into an actionable `AppleError`.
+
+### Notes
+
+- Generated Swift bindings are git-ignored; they were regenerated during this
+  task via `uniffi-bindgen`. The mtime-based staleness guard remains a backlog
+  item.
+- Verified: `cargo test` 568 green, full Apple suite 388 tests / 79 suites
+  green, fmt + clippy clean.

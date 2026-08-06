@@ -27,11 +27,10 @@ Phase 5 is decomposed below (issues 267–282); Phase 6 is decomposed
 
 ### Phase 5 — Reference + selection + transforms (issues 267–282)
 
-Two parallel tracks; `{267, 277}` are the starting frontier.
+Two parallel tracks; frontier: `{268, 269, 277}` (267 done).
 
 Selection + transforms track:
 
-- [267 — UniFFI selection + transform bindings (expand)](../issues/267-apple-uniffi-selection-transform-bindings.md)
 - [268 — Canvas transforms (right panel)](../issues/268-apple-canvas-transforms.md)
 - [269 — Marquee select tool](../issues/269-apple-marquee-select-tool.md)
 - [270 — Marquee constraints + status bar readout](../issues/270-apple-marquee-constraints-statusbar.md)
@@ -85,6 +84,7 @@ Reference track:
 - Flaky e2e: Reference Window reload persistence — `e2e/editor/reference-images.test.ts` "window position survives a page reload" failed once, then passed on solo and full re-runs (2026-07-04, surfaced during 205 verification). Timing-sensitive chain: drag via raw pointer events → reload → IndexedDB workspace restore. Investigate/stabilize if it recurs
 - Web session-save gaps mirrored from the 265 review — two latent issues the Apple shell fixed in PR #351 that the web `SessionPersistence`/`AutoSave` share: (1) a fresh session whose first save happens after adding a second tab skips the never-stored first document (`dirtyDocIds` miss), persisting a tab order whose restore discards the whole workspace; (2) shared-state-only changes mark the active document dirty, rewriting its record (layers included) and stamping `updatedAt` for an edit that never touched it. Port the Apple fixes (write records missing from the store regardless of the dirty set; mark workspace-level dirt without a document id)
 - Web hydration opacity validation — the Apple binding rejects non-finite / out-of-`[0,1]` layer opacity at its `from_layers` boundary (PR #349 review); the web's `WasmDocumentBuilder.add_layer` still accepts any f32, an isomorphic gap (a persisted NaN slips past the compositor's clamp and renders the layer transparent). Port the same guard, or promote the opacity invariant into a core validating constructor (ReferencePlacement precedent), when the persistence surface next changes
+- Core/wasm `from_drag` span hardening — `MarqueeRegion::from_drag`'s `max − min + 1` is `i32` arithmetic, safe today because core and wasm callers pass shell-internal canvas coordinates (the Apple FFI validates spans at its own boundary since PR #353). If either path ever accepts unbounded external coordinates (file import, scripting), add a checked wide-arithmetic constructor in core and route all three boundaries through it (deferred from the #353 review)
 
 ## Future triggers
 

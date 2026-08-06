@@ -11,13 +11,15 @@ only Miss rows may be grouped, with an explicit (×N) count.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 204 | 153 | 51 | 265 | 75% | 37% |
-| cubic-dev-ai[bot] | 278 | 219 | 59 | 205 | 79% | 52% |
-| coderabbitai[bot] | 303 | 214 | 89 | 211 | 71% | 50% |
+| cubic-dev-ai[bot] | 279 | 220 | 59 | 205 | 79% | 52% |
+| coderabbitai[bot] | 303 | 214 | 89 | 212 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #353 | cubic-dev-ai[bot] | Accept | Re-review: the round-1 span-cap validation wasn't reflected in the `setMarquee`/`floodFillBounded` API docs — `floodFillBounded`'s named only the degenerate branch — so the generated Swift contract omitted why an in-range-looking record throws; both now state all three rejection branches |
+| #353 | coderabbitai[bot] | Miss | Re-review APPROVED without flagging the doc-contract gap (accepted from cubic). greptile did not re-review this round — no participation, no Miss |
 | #353 | greptile-apps[bot] | Accept | A field-wise record with `width ≈ u32::MAX` passed `to_core`'s far-corner check yet overflowed `from_drag`'s i32 span arithmetic on reconstruction (debug panic / release wrong geometry), and `appleMarqueeFromDrag` exposed the same overflow for wide corners; `to_core` now bounds width/height to `i32::MAX` and the helper validates the span in i64 |
 | #353 | coderabbitai[bot] | Accept | Partial: same `from_drag` span overflow (duplicate of greptile) with the checked-constructor remedy — Apple-boundary validation + oversized-record and full-i32-span tests adopted; the requested core checked constructor and wasm propagation declined (issue 267 is expand-only, and core/wasm `from_drag` inputs are shell-internal canvas coordinates, not arbitrary external input) |
 | #353 | coderabbitai[bot] | Accept | `composite_buffer_at`'s expected-length `usize` multiplication could overflow before the length comparison, validating a short buffer; now checked u64 arithmetic mirroring the core's `region_buffer_len` pattern |

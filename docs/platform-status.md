@@ -16,7 +16,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Flood fill | ✅ | ✅ | ✅ | BFS, 4-connectivity; one-shot tap fill on both shells |
 | Eyedropper | — | ✅ | ✅ | Drag-and-commit; releases to FG (left-click/touch) or BG (right-click); skips transparent and out-of-bounds samples; not undoable. Apple samples the composite; Web samples the active layer. Loupe overlay tracked in its own row |
 | Move | — | ✅ | ✅ | Drag shifts the whole canvas relative to the drag anchor (never cumulative); off-canvas pixels clipped on commit, vacated areas transparent |
-| Selection / Marquee | 🔧 | 🔧 | ⬜ | Persistent Marquee with clipping, Delete, drag-to-move/cancel, copy/cut/paste, keyboard nudge, Shift-square define/axis drag, action bars; selection UI hides (Marquee preserved) while a Reference Layer is active |
+| Selection / Marquee | 🔧 | 🔧 | 🔧 | Persistent Marquee with clipping, Delete, drag-to-move/cancel, copy/cut/paste, keyboard nudge, Shift-square define/axis drag, action bars; selection UI hides (Marquee preserved) while a Reference Layer is active. Apple: bindings ready, UI pending |
 | Right-click background color | — | ✅ | ✅ | Supported paint tools draw with BG on right-click; eraser stays transparent. Apple: macOS right-click + iPadOS pointer secondary button; touch always FG |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |
 | Pixel-perfect filter | ✅ | ✅ | ✅ | L-corner 3-window rule (Aseprite-style). Toggle default ON, disabled on non-freehand tools; persisted with the session on both shells |
@@ -27,7 +27,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Create / resize | ✅ | ✅ | ✅ | 1–256px, presets available; resize undoable on both shells (restores pixels + dimensions). Anchor: 9-position selector (Web), top-left fixed (Apple) |
 | Clear | ✅ | ✅ | ✅ | History-integrated, no confirm dialog; clears the active Pixel Layer on both shells. Web: RightPanel (docked) + Settings tab (mobile); Apple: RightPanel |
-| Flip / transform | ✅ | ✅ | ⬜ | Two tiers, one scope per button: Canvas Transform (panel) — all Pixel Layers × all frames, Marquee co-transformed + clipped, rotate swaps W↔H, Reference Layer fixed; Marquee Transform (SelectionActionBar) — Marquee region only, no-op without a Marquee or on a Reference Layer |
+| Flip / transform | ✅ | ✅ | 🔧 | Two tiers, one scope per button: Canvas Transform (panel) — all Pixel Layers × all frames, Marquee co-transformed + clipped, rotate swaps W↔H, Reference Layer fixed; Marquee Transform (SelectionActionBar) — Marquee region only, no-op without a Marquee or on a Reference Layer. Apple: bindings ready, UI pending |
 
 ## History
 

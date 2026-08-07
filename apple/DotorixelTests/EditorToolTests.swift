@@ -22,6 +22,7 @@ struct EditorToolSupportsPixelPerfectTests {
             .floodFill: false,
             .eyedropper: false,
             .move: false,
+            .selection: false,
         ]
         #expect(tool.supportsPixelPerfect == expected[tool])
     }
@@ -44,6 +45,7 @@ struct EditorToolShortcutKeyTests {
             .floodFill: "f",
             .eyedropper: "i",
             .move: "v",
+            .selection: "m",
         ]
         #expect(tool.shortcutKey == expected[tool])
     }
@@ -65,7 +67,11 @@ struct EditorToolIsConstrainableTests {
             .ellipse: true,
             .floodFill: false,
             .eyedropper: false,
+            // Web parity marks Selection constrainable, but the Shift-square
+            // constrain arrives with issue 270 — false until the behavior
+            // exists, so the latch badge never advertises a dead affordance.
             .move: false,
+            .selection: false,
         ]
         #expect(tool.isConstrainable == expected[tool])
     }

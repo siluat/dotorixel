@@ -27,11 +27,10 @@ Phase 5 is decomposed below (issues 267–282); Phase 6 is decomposed
 
 ### Phase 5 — Reference + selection + transforms (issues 267–282)
 
-Two parallel tracks; frontier: `{269, 277}` (267–268 done).
+Two parallel tracks; frontier: `{270, 271, 272, 277}` (267–269 done).
 
 Selection + transforms track:
 
-- [269 — Marquee select tool](../issues/269-apple-marquee-select-tool.md)
 - [270 — Marquee constraints + status bar readout](../issues/270-apple-marquee-constraints-statusbar.md)
 - [271 — Marquee clipping of drawing tools](../issues/271-apple-marquee-clipping.md)
 - [272 — Floating selection](../issues/272-apple-floating-selection.md)

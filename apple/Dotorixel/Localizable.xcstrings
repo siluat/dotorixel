@@ -999,6 +999,23 @@
         }
       }
     },
+    "Selection" : {
+      "comment" : "Tool display name. web: tool_selection",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택"
+          }
+        }
+      }
+    },
     "Show %@" : {
       "comment" : "Layer visibility toggle accessibility label; %@ is the layer name. web: aria_showLayer",
       "localizations" : {

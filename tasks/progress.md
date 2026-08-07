@@ -3,20 +3,22 @@
 ## Currently Working On
 
 Apple catch-up Phase 5 — reference + selection + transforms
-([RFC](../issues/013-apple-native-catchup.md)); 2/16 sub-issues done
-(267–268). Frontier: {269, 277}.
+([RFC](../issues/013-apple-native-catchup.md)); 3/16 sub-issues done
+(267–269). Frontier: {270, 271, 272, 277}.
 
 ## Last Completed
 
-[268 — Apple canvas transforms](../issues/268-apple-canvas-transforms.md):
-the Canvas Transform tier's four buttons on the Apple right panel, one
-undoable step each through the existing Edit Baseline. Issue 272 must extend
-their dispatch path with commit-before-transform when Floating Selection
-lands.
+[269 — Apple marquee select tool](../issues/269-apple-marquee-select-tool.md):
+the Selection tool on the Apple shell — drag defines, outside click
+deselects, marching-ants overlay tracks zoom/pan, define/deselect undoable.
+Inside-click and drag-to-move deliberately no-op as the 272 Floating seam;
+`isConstrainable` stays false until 270 ships the Shift-square behavior.
 
 ## Next Up
 
-- [269 — Apple marquee select tool](../issues/269-apple-marquee-select-tool.md) — Phase 5, unblocked by 267
+- [270 — Apple marquee constraints + status bar](../issues/270-apple-marquee-constraints-statusbar.md) — Phase 5, unblocked by 269
+- [271 — Apple marquee clipping of drawing tools](../issues/271-apple-marquee-clipping.md) — Phase 5, unblocked by 269
+- [272 — Apple floating selection](../issues/272-apple-floating-selection.md) — Phase 5, unblocked by 269
 - [277 — Apple UniFFI reference bindings](../issues/277-apple-uniffi-reference-bindings.md) — Phase 5 frontier
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)

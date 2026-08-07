@@ -20,6 +20,7 @@ enum EditorTool: String, CaseIterable {
     case floodFill
     case eyedropper
     case move
+    case selection
 
     /// User-visible label for the tool, resolved through the String Catalog
     /// (en/ko/ja — terminology matches the web's message catalogs).
@@ -33,6 +34,7 @@ enum EditorTool: String, CaseIterable {
         case .floodFill: return "Flood Fill"
         case .eyedropper: return "Eyedropper"
         case .move: return "Move"
+        case .selection: return "Selection"
         }
     }
 
@@ -47,6 +49,7 @@ enum EditorTool: String, CaseIterable {
         case .floodFill: return "drop.fill"
         case .eyedropper: return "eyedropper"
         case .move: return "arrow.up.and.down.and.arrow.left.and.right"
+        case .selection: return "rectangle.dashed"
         }
     }
 
@@ -63,6 +66,7 @@ enum EditorTool: String, CaseIterable {
         case .floodFill: return "f"
         case .eyedropper: return "i"
         case .move: return "v"
+        case .selection: return "m"
         }
     }
 
@@ -75,7 +79,7 @@ enum EditorTool: String, CaseIterable {
         switch self {
         case .pencil, .line, .rectangle, .ellipse, .floodFill:
             return true
-        case .eraser, .eyedropper, .move:
+        case .eraser, .eyedropper, .move, .selection:
             return false
         }
     }
@@ -87,7 +91,7 @@ enum EditorTool: String, CaseIterable {
         switch self {
         case .pencil, .eraser:
             return true
-        case .line, .rectangle, .ellipse, .floodFill, .eyedropper, .move:
+        case .line, .rectangle, .ellipse, .floodFill, .eyedropper, .move, .selection:
             return false
         }
     }
@@ -100,7 +104,9 @@ enum EditorTool: String, CaseIterable {
         switch self {
         case .line, .rectangle, .ellipse:
             return true
-        case .pencil, .eraser, .floodFill, .eyedropper, .move:
+        // Web parity marks Selection constrainable, but the Shift-square
+        // constrain arrives with issue 270 — false until the behavior exists.
+        case .pencil, .eraser, .floodFill, .eyedropper, .move, .selection:
             return false
         }
     }
@@ -158,6 +164,8 @@ enum EditorTool: String, CaseIterable {
             )
         case .move:
             return MoveStrokeSession(host: host)
+        case .selection:
+            return SelectionStrokeSession(host: host)
         }
     }
 }

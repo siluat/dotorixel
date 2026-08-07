@@ -78,6 +78,11 @@ protocol DrawingSurface: AnyObject {
     func floodFill(x: Int32, y: Int32, fillColor: Color) -> Bool
     func activeLayerPixels() throws -> Data
     func restoreActiveLayerPixels(data: Data) throws
+    /// The current Marquee, or `nil` when no selection exists. On the
+    /// surface because the Selection tool's session defines and clears it
+    /// through the same seam it draws through.
+    func marquee() -> AppleMarqueeRegion?
+    func setMarquee(region: AppleMarqueeRegion?) throws
 }
 
 extension AppleDocument: DrawingSurface {}

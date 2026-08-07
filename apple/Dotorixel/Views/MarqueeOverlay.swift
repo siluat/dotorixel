@@ -74,6 +74,11 @@ struct MarqueeOverlay: View {
                 .frame(width: rect.width, height: rect.height)
                 .offset(x: rect.minX, y: rect.minY)
                 .allowsHitTesting(false)
+                // Identity reset on a live Reduce Motion toggle: recreating
+                // the view is the one reliable way to kill a running
+                // `repeatForever` animation, and `onAppear` then re-evaluates
+                // the guard below — both directions handled with one seam.
+                .id(reduceMotion)
                 .onAppear {
                     guard !reduceMotion else { return }
                     withAnimation(.linear(duration: antsPeriod).repeatForever(autoreverses: false)) {

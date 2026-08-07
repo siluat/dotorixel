@@ -73,7 +73,6 @@ struct MarqueeOverlay: View {
                 }
                 .frame(width: rect.width, height: rect.height)
                 .offset(x: rect.minX, y: rect.minY)
-                .allowsHitTesting(false)
                 // Identity reset on a live Reduce Motion toggle: recreating
                 // the view is the one reliable way to kill a running
                 // `repeatForever` animation, and `onAppear` then re-evaluates
@@ -85,6 +84,15 @@ struct MarqueeOverlay: View {
                         antsPhase = antsCycle
                     }
                 }
+                // The display rect is canvas-clipped in document space but
+                // unbounded in screen space — pan/zoom can push it past the
+                // canvas area, and `.overlay` content is never clipped by
+                // default. Fill the proposed canvas-area frame and clip, so
+                // the ants stay off the neighboring chrome (web parity: the
+                // canvas container's `overflow: hidden`).
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .clipped()
+                .allowsHitTesting(false)
         }
     }
 }

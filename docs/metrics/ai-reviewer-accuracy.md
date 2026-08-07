@@ -10,14 +10,18 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 205 | 153 | 52 | 267 | 75% | 36% |
-| cubic-dev-ai[bot] | 282 | 222 | 60 | 205 | 79% | 52% |
-| coderabbitai[bot] | 304 | 215 | 89 | 213 | 71% | 50% |
+| greptile-apps[bot] | 205 | 153 | 52 | 268 | 75% | 36% |
+| cubic-dev-ai[bot] | 284 | 223 | 61 | 205 | 79% | 52% |
+| coderabbitai[bot] | 304 | 215 | 89 | 214 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #355 | cubic-dev-ai[bot] | Accept | The ants overlay wasn't clipped to the canvas area — SwiftUI `.overlay` content is unclipped by default, so a Marquee panned past the visible area drew over neighboring chrome; fixed with a canvas-area frame + `.clipped()` (web parity: the canvas container's `overflow: hidden`) and a rendered snapshot baseline. Triage slip: flagged in round 1, processed a round late |
+| #355 | cubic-dev-ai[bot] | Reject | Re-review asked for a snapshot/UI test of the Reduce Motion gating; a single-frame snapshot captures dash phase 0 whether the guard works or not, `accessibilityReduceMotion` is get-only (not injectable), and XCUITest is the README's documented deferred alternative |
+| #355 | greptile-apps[bot] | Miss | Missed the overlay clipping gap (accepted from cubic) |
+| #355 | coderabbitai[bot] | Miss | Missed the overlay clipping gap, including in the round-2 APPROVED re-review (accepted from cubic) |
 | #355 | coderabbitai[bot] | Accept | The marching-ants `repeatForever` was gated on Reduce Motion only at `onAppear`, so a live settings toggle left the ants running (or static) while the overlay stayed mounted; fixed with an `.id(reduceMotion)` identity reset that re-runs the appearance guard in both directions |
 | #355 | cubic-dev-ai[bot] | Accept | Same Reduce Motion live-toggle gap (P2, duplicate of coderabbit); same identity-reset fix |
 | #355 | cubic-dev-ai[bot] | Reject | Claimed the fully-off-canvas drag's live nil preview (Marquee blanked until end/cancel restore) is unintentional flicker; it mirrors the web `selection-tool.ts` exactly — null previews live, initial Marquee restored only at resolution — so diverging would split cross-shell behavior |

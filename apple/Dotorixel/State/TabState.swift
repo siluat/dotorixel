@@ -329,6 +329,17 @@ final class TabState {
         notifier.markDirty(documentId: documentId)
     }
 
+    // MARK: - Selection
+
+    /// The current Marquee, or `nil` when no selection exists — what the
+    /// marching-ants overlay renders. Reads `canvasVersion` to register the
+    /// @Observable dependency (the Marquee lives in the UniFFI object,
+    /// invisible to observation; strokes and undo/redo both bump the version).
+    var marquee: AppleMarqueeRegion? {
+        _ = canvasVersion
+        return document.marquee()
+    }
+
     // MARK: - Hover preview
 
     /// Publishes the pencil's hover target as the Hover Point. An in-bounds

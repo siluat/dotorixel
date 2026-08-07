@@ -1,6 +1,6 @@
 ---
 title: Apple marquee select tool — drag to define, click to deselect, marching-ants overlay
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -56,3 +56,45 @@ lands — pick whichever leaves 272 the cleanest seam.
 ## Blocked by
 
 - [267 — Apple UniFFI selection + transform bindings](267-apple-uniffi-selection-transform-bindings.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Tools/EditorTool.swift` | `.selection` case — last in toolbar order (web parity), shortcut `M`, `rectangle.dashed` icon; the case alone wires the toolbar button and keyboard routing |
+| `apple/Dotorixel/Tools/SelectionStrokeSession.swift` | New stroke-session species mirroring `selection-tool.ts`: live drag preview via core `from_drag` + canvas clip, outside-click deselect, inside-click no-op (the 272 Floating seam), cancel and fully-off-canvas drags restore the initial Marquee |
+| `apple/Dotorixel/Tools/StrokeSession.swift` | `DrawingSurface` seam grows `marquee()` / `setMarquee` — sessions define and clear through the seam they draw through |
+| `apple/Dotorixel/State/TabState.swift` | Observable `marquee` property (reads `canvasVersion`) driving the overlay |
+| `apple/Dotorixel/Views/MarqueeOverlay.swift` | Marching-ants overlay + pure `marqueeDisplayRect` projection (`round(pan) + region × eps`, ÷ display scale); web-parity 3px wash under a 1px accent 4-4 dash, 600ms cycle, reduce-motion respected |
+| `apple/Dotorixel/ContentView.swift` | Overlay wired above the Metal canvas, below hover highlight + loupe |
+| `apple/Dotorixel/Localizable.xcstrings` | "Selection" en/ko/ja (선택 / 選択), web `tool_selection` vocabulary |
+| `apple/DotorixelTests/SelectionStrokeSessionTests.swift` | 11 tests through the TabState stroke API: define normalization + clipping, click semantics (outside/inside/no-marquee), undo/redo restoring the Marquee, identical-redefine no-op, cancel restore, tool-switch persistence, fully-off-canvas drag |
+| `apple/DotorixelTests/MarqueeOverlayTests.swift` | 4 projection tests: zoom/pan placement, fractional-pan rounding, canvas clip, fully-outside nil |
+| `apple/DotorixelTests/{EditorToolTests,LocalizationTests}.swift` | Per-case expectation tables extended with `.selection` |
+| `apple/DotorixelTests/__Snapshots__/…/leftToolbar*.png` | Re-recorded on the pinned host (new tool button) |
+
+### Key Decisions
+
+- **Inside-click never deselects** (web parity): a click inside the Marquee is
+  the Floating Selection lifecycle's territory (272), so it no-ops — the
+  cleanest seam for 272 to replace. Deselect fires only on an outside click.
+- **`isConstrainable: false` until 270**: the web registry marks Selection
+  constrainable, but Shift-square arrives with 270 — kept false so the latch
+  badge never advertises a dead affordance (flip it in 270).
+- **Engine dedup trusted over the web's anchor re-check**: the Apple
+  `StrokeEngine` drops same-cell samples before the session, so the web
+  session's `current == anchor` click guard is unreachable here and was
+  removed ("trust the core" — the divergence is commented in the session).
+
+### Notes
+
+- Undo/redo restoring the Marquee is free via Document History
+  whole-`Document` snapshots — verified by tests, no new plumbing.
+- Touch routing needed no changes: sessions ride the existing
+  originating-touch routing; the cancel test covers "a pinch begun mid-define
+  never paints a selection".
+- reduce-motion is applied at overlay appearance; a mid-display accessibility
+  toggle keeps the ants until the overlay recreates (accepted — the web
+  reacts live via media query).
+- Verified: full Apple suite 415 tests / 83 suites green on the pinned
+  simulator. No Rust changes (consumes the 267 bindings only).

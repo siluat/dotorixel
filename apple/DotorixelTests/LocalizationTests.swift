@@ -155,6 +155,7 @@ struct ToolDisplayNameLocalizationTests {
         (.floodFill, "Flood Fill", "채우기", "塗りつぶし"),
         (.eyedropper, "Eyedropper", "스포이트", "スポイト"),
         (.move, "Move", "이동", "移動"),
+        (.selection, "Selection", "선택", "選択"),
     ]
 
     @Test("Every tool has a display-name expectation")

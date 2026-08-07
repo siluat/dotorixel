@@ -55,6 +55,12 @@ struct ContentView: View {
                             .onAppear { presentActiveTab(in: geo.size) }
                             .onChange(of: geo.size) { _, newSize in presentActiveTab(in: newSize) }
                             .onChange(of: tab.documentId) { _, _ in presentActiveTab(in: geo.size) }
+                            // Marching-ants Marquee overlay: tracks zoom/pan
+                            // above the Metal canvas, below the hover highlight
+                            // and loupe (the transient aids win).
+                            .overlay(alignment: .topLeading) {
+                                MarqueeOverlay(tab: tab, displayScale: displayScale)
+                            }
                             // Pencil hover preview: highlights the target cell
                             // while the Apple Pencil hovers (issue 253). Below the
                             // loupe so an active sampling stroke's magnifier wins.

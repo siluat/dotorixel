@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 204 | 153 | 51 | 265 | 75% | 37% |
-| cubic-dev-ai[bot] | 279 | 220 | 59 | 205 | 79% | 52% |
-| coderabbitai[bot] | 303 | 214 | 89 | 212 | 71% | 50% |
+| greptile-apps[bot] | 204 | 153 | 51 | 266 | 75% | 37% |
+| cubic-dev-ai[bot] | 280 | 221 | 59 | 205 | 79% | 52% |
+| coderabbitai[bot] | 303 | 214 | 89 | 213 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #354 | cubic-dev-ai[bot] | Accept | The four transform labels' catalog comments said "right panel's Canvas section" (prefix copied from the Clear entry) while the buttons live in the new Transform section — translator-facing metadata now names the Transform section |
+| #354 | coderabbitai[bot] | Miss | APPROVED without flagging the catalog comment section reference (accepted from cubic) |
+| #354 | greptile-apps[bot] | Miss | 5/5 no-findings summary; missed the catalog comment section reference (accepted from cubic) |
 | #353 | cubic-dev-ai[bot] | Accept | Re-review: the round-1 span-cap validation wasn't reflected in the `setMarquee`/`floodFillBounded` API docs — `floodFillBounded`'s named only the degenerate branch — so the generated Swift contract omitted why an in-range-looking record throws; both now state all three rejection branches |
 | #353 | coderabbitai[bot] | Miss | Re-review APPROVED without flagging the doc-contract gap (accepted from cubic). greptile did not re-review this round — no participation, no Miss |
 | #353 | greptile-apps[bot] | Accept | A field-wise record with `width ≈ u32::MAX` passed `to_core`'s far-corner check yet overflowed `from_drag`'s i32 span arithmetic on reconstruction (debug panic / release wrong geometry), and `appleMarqueeFromDrag` exposed the same overflow for wide corners; `to_core` now bounds width/height to `i32::MAX` and the helper validates the span in i64 |

@@ -591,6 +591,23 @@
         }
       }
     },
+    "Marquee: %lld×%lld at (%lld, %lld)" : {
+      "comment" : "Status bar Marquee readout. web: status_marquee",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択範囲: %lld×%lld (%lld, %lld)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택 영역: %lld×%lld (%lld, %lld)"
+          }
+        }
+      }
+    },
     "Move" : {
       "comment" : "Tool display name. web: tool_move",
       "localizations" : {

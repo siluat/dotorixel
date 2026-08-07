@@ -14,6 +14,9 @@ final class SelectionStrokeSession: StrokeSession {
     private var anchor: ScreenCanvasCoords?
     private var hasUserDragged = false
     private var draftMarquee: AppleMarqueeRegion?
+    /// The raw (unconstrained) pointer position of the last sample — kept so
+    /// a mid-drag modifier change can re-resolve the rectangle from it.
+    private var lastCurrent: ScreenCanvasCoords?
 
     init(host: StrokeSessionHost) {
         self.host = host
@@ -25,8 +28,9 @@ final class SelectionStrokeSession: StrokeSession {
     }
 
     func draw(current: ScreenCanvasCoords, previous: ScreenCanvasCoords?) -> Bool {
-        guard previous != nil, let anchor else {
-            self.anchor = current
+        lastCurrent = current
+        guard previous != nil, anchor != nil else {
+            anchor = current
             return false
         }
         // Any sample past the first is a drag: the engine drops same-cell
@@ -34,9 +38,13 @@ final class SelectionStrokeSession: StrokeSession {
         // anchor cell (unlike the web session, which floors sub-cell points
         // itself and must re-check).
         hasUserDragged = true
-        draftMarquee = marqueeFromDrag(anchor, current)
-        setMarquee(draftMarquee)
-        return true
+        return redefinePreview()
+    }
+
+    func modifierChanged() -> Bool {
+        // Nothing to re-resolve before the drag leaves the anchor cell.
+        guard hasUserDragged else { return false }
+        return redefinePreview()
     }
 
     func end() -> Bool {
@@ -64,6 +72,19 @@ final class SelectionStrokeSession: StrokeSession {
         // resolves as a no-op.
         guard hasUserDragged else { return false }
         setMarquee(initialMarquee)
+        return true
+    }
+
+    /// Rewrites the drag preview from the anchor and the last raw pointer,
+    /// with the constrain state live-read (web parity): pressing or releasing
+    /// Shift — or tapping the latch — re-resolves the rectangle immediately.
+    private func redefinePreview() -> Bool {
+        guard let anchor, let lastCurrent else { return false }
+        let end = host.isConstrainHeld
+            ? constrainSquare(anchor: anchor, current: lastCurrent)
+            : lastCurrent
+        draftMarquee = marqueeFromDrag(anchor, end)
+        setMarquee(draftMarquee)
         return true
     }
 

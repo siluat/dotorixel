@@ -108,6 +108,81 @@ struct ConstrainStrokeTests {
 
 }
 
+/// Shift-constrain behavior for the Selection tool's define drag (issue 270,
+/// web parity: Selection joins the constrainable set): the same OR-combined
+/// Shift/latch seam the shape tools read forces the defined Marquee square.
+@Suite("Selection define — Shift constrain + latch")
+struct ConstrainSelectionDefineTests {
+
+    @Test("with the physical Shift held, a rectangular drag defines a square Marquee")
+    func shiftForcesSquareMarquee() {
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .selection
+        state.isShiftKeyHeld = true
+
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 8, y: 5))
+        state.activeTab.endStroke()
+
+        // The longer axis (dx = 6) wins: the box is 2,2 → 8,8.
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 2, y: 2, width: 7, height: 7)
+        )
+    }
+
+    @Test("toggling Shift mid-drag re-resolves the in-flight rectangle immediately, both ways")
+    func midDragShiftToggleReresolvesPreview() {
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .selection
+
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 8, y: 5))
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 2, y: 2, width: 7, height: 4)
+        )
+
+        // Shift pressed with the pointer stationary: the preview must square
+        // now, not on the next pointer move.
+        state.isShiftKeyHeld = true
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 2, y: 2, width: 7, height: 7)
+        )
+
+        // Shift released again: the preview relaxes back to the raw pointer.
+        state.isShiftKeyHeld = false
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 2, y: 2, width: 7, height: 4)
+        )
+    }
+
+    @Test("re-tapping the active Selection tool latches, and the latch alone forces the define square")
+    func latchAloneForcesSquareKeyboardFree() {
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .selection
+
+        // Selection joins the constrainable set: the re-tap gesture latches
+        // the square constraint keyboard-free (web parity).
+        state.activateTool(.selection)
+        #expect(state.isConstrainLatchOn)
+
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 8, y: 5))
+        state.activeTab.endStroke()
+
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 2, y: 2, width: 7, height: 7)
+        )
+
+        state.activateTool(.selection)
+        #expect(!state.isConstrainLatchOn)
+    }
+}
+
 /// The toolbar's tool-activation gesture (web parity: `activateTool` in
 /// `tool-ui.ts`): re-activating the already-active constrainable tool toggles
 /// the Constrain latch; anything else selects the tool.

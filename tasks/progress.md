@@ -3,20 +3,18 @@
 ## Currently Working On
 
 Apple catch-up Phase 5 — reference + selection + transforms
-([RFC](../issues/013-apple-native-catchup.md)); 3/16 sub-issues done
-(267–269). Frontier: {270, 271, 272, 277}.
+([RFC](../issues/013-apple-native-catchup.md)); 4/16 sub-issues done
+(267–270). Frontier: {271, 272, 277}.
 
 ## Last Completed
 
-[269 — Apple marquee select tool](../issues/269-apple-marquee-select-tool.md):
-the Selection tool on the Apple shell — drag defines, outside click
-deselects, marching-ants overlay tracks zoom/pan, define/deselect undoable.
-Inside-click and drag-to-move deliberately no-op as the 272 Floating seam;
-`isConstrainable` stays false until 270 ships the Shift-square behavior.
+[270 — Apple marquee constraints + status bar readout](../issues/270-apple-marquee-constraints-statusbar.md):
+Selection defines now support Shift/latch squares with live modifier changes,
+and the localized status bar reports committed Marquee bounds. Floating
+movement remains in issue 272.
 
 ## Next Up
 
-- [270 — Apple marquee constraints + status bar](../issues/270-apple-marquee-constraints-statusbar.md) — Phase 5, unblocked by 269
 - [271 — Apple marquee clipping of drawing tools](../issues/271-apple-marquee-clipping.md) — Phase 5, unblocked by 269
 - [272 — Apple floating selection](../issues/272-apple-floating-selection.md) — Phase 5, unblocked by 269
 - [277 — Apple UniFFI reference bindings](../issues/277-apple-uniffi-reference-bindings.md) — Phase 5 frontier

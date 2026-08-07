@@ -97,16 +97,15 @@ enum EditorTool: String, CaseIterable {
     }
 
     /// Whether this tool's stroke responds to the Shift constraint — line
-    /// snaps to 45° multiples, rectangle/ellipse force a square/circle (web
-    /// parity: `isConstrainableTool`). Drives the toolbar's Constrain-latch
-    /// affordance: re-tapping the active constrainable tool toggles the latch.
+    /// snaps to 45° multiples, rectangle/ellipse force a square/circle, and
+    /// Selection forces a square Marquee (web parity: `isConstrainableTool`).
+    /// Drives the toolbar's Constrain-latch affordance: re-tapping the active
+    /// constrainable tool toggles the latch.
     var isConstrainable: Bool {
         switch self {
-        case .line, .rectangle, .ellipse:
+        case .line, .rectangle, .ellipse, .selection:
             return true
-        // Web parity marks Selection constrainable, but the Shift-square
-        // constrain arrives with issue 270 — false until the behavior exists.
-        case .pencil, .eraser, .floodFill, .eyedropper, .move, .selection:
+        case .pencil, .eraser, .floodFill, .eyedropper, .move:
             return false
         }
     }

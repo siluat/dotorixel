@@ -93,6 +93,19 @@ struct FormatEntryLocalizationTests {
         #expect(resolve("Reorder \("Layer 1")", in: "ko") == "Layer 1 순서 변경")
         #expect(resolve("Close \("Untitled 1")", in: "ko") == "Untitled 1 닫기")
     }
+
+    @Test("StatusBar Marquee format resolves all arguments in ko and ja")
+    func marqueeFormatResolvesInTranslatedLocales() {
+        let width = String(4)
+        let height = String(5)
+        let x = String(2)
+        let y = String(3)
+        let resource: LocalizedStringResource =
+            "Marquee: \(width)×\(height) at (\(x), \(y))"
+
+        #expect(resolve(resource, in: "ko") == "선택 영역: 4×5 (2, 3)")
+        #expect(resolve(resource, in: "ja") == "選択範囲: 4×5 (2, 3)")
+    }
 }
 
 /// Resolves a localized resource in an explicit locale, independent of the

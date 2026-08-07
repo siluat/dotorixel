@@ -53,6 +53,21 @@ final class TabState {
     var canvasVersion: Int = 0
     private(set) var isDrawing: Bool = false
 
+    /// View-facing snapshot of the committed Marquee while Selection renders
+    /// its draft by temporarily mutating the document. The Selection session
+    /// separately owns its edit/cancel baseline; keeping presentation state
+    /// here prevents non-canvas chrome from depending on session internals.
+    private var isSelectionStrokeInProgress = false
+    private var marqueeAtSelectionStrokeStart: AppleMarqueeRegion?
+
+    /// The Marquee presentation state for non-canvas chrome. Reads
+    /// `canvasVersion` because undo/redo and core-backed Marquee mutations are
+    /// otherwise invisible to `@Observable`.
+    var committedMarquee: AppleMarqueeRegion? {
+        _ = canvasVersion
+        return isSelectionStrokeInProgress ? marqueeAtSelectionStrokeStart : document.marquee()
+    }
+
     /// The pencil's current hover target in canvas coordinates, or nil when no
     /// preview should show — see the Hover Point entry in `CONTEXT.md`. Fed by
     /// the pencil-hover recognizer through `updateHoverPoint`/`clearHoverPoint`;
@@ -214,6 +229,8 @@ final class TabState {
         if isDrawing {
             cancelStroke()
         }
+        isSelectionStrokeInProgress = shared.activeTool == .selection
+        marqueeAtSelectionStrokeStart = isSelectionStrokeInProgress ? document.marquee() : nil
         isDrawing = true
         if strokeEngine.begin(tool: shared.activeTool, host: self, button: button, at: coords) {
             canvasVersion += 1
@@ -233,9 +250,7 @@ final class TabState {
         if strokeEngine.end() {
             canvasVersion += 1
         }
-        resolveEditBaseline()
-        isDrawing = false
-        restoreTemporaryTool()
+        finishStrokeLifecycle()
     }
 
     /// Cancels the active stroke after an interrupted pointer sequence
@@ -246,8 +261,16 @@ final class TabState {
         if strokeEngine.cancel() {
             canvasVersion += 1
         }
+        finishStrokeLifecycle()
+    }
+
+    /// Resolves the Edit Baseline and clears workspace-facing transient state
+    /// shared by normal and cancelled stroke endings.
+    private func finishStrokeLifecycle() {
         resolveEditBaseline()
         isDrawing = false
+        isSelectionStrokeInProgress = false
+        marqueeAtSelectionStrokeStart = nil
         restoreTemporaryTool()
     }
 

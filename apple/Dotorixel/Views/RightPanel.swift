@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// Right panel: Canvas section (size presets, dimension inputs, Clear) and
-/// Color section (FG/BG pair + swap, HSV picker, palette grid, Recent row),
-/// separated by a divider. Mirrors web `RightPanel.svelte` for cross-shell
-/// parity — layers live in the bottom-docked `TimelinePanel`, their home on
-/// both shells.
+/// Right panel: Canvas section (size presets, dimension inputs, Clear),
+/// Transform section (whole-canvas flip/rotate), and Color section (FG/BG
+/// pair + swap, HSV picker, palette grid, Recent row), divider-separated.
+/// Mirrors web `RightPanel.svelte` for cross-shell parity — layers live in
+/// the bottom-docked `TimelinePanel`, their home on both shells.
 struct RightPanel: View {
     let workspace: Workspace
     let tier: LayoutTier
@@ -35,6 +35,8 @@ struct RightPanel: View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignTokens.space5) {
                 canvasSection
+                sectionDivider
+                transformSection
                 sectionDivider
                 colorSection
             }
@@ -134,15 +136,74 @@ struct RightPanel: View {
         Button {
             tab.handleClearCanvas()
         } label: {
-            Text("Clear")
-                .font(.system(size: DesignTokens.fontSizeSm))
-                .frame(maxWidth: .infinity)
-                .frame(height: controlHeight)
-                .foregroundStyle(DesignTokens.textSecondary)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(DesignTokens.border, lineWidth: 1)
-                )
+            outlineControl {
+                Text("Clear")
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Quiet bordered control surface shared by the Clear and Transform
+    /// buttons — the web's `.clear-btn` / `.transform-btn` outline look at
+    /// the panel's control height.
+    private func outlineControl(@ViewBuilder content: () -> some View) -> some View {
+        content()
+            .font(.system(size: DesignTokens.fontSizeSm))
+            .frame(height: controlHeight)
+            .foregroundStyle(DesignTokens.textSecondary)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(DesignTokens.border, lineWidth: 1)
+            )
+    }
+
+    // MARK: - Transform section
+
+    /// The Canvas Transform tier's buttons (issue 268) — whole-document
+    /// flips and rotations, grouped under a section like the web
+    /// `RightPanel.svelte` Transform section.
+    private var transformSection: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.space3) {
+            sectionTitle("Transform")
+            transformButton(
+                systemName: "arrow.left.and.right.righttriangle.left.righttriangle.right",
+                label: "Flip Canvas Horizontal",
+                action: tab.flipCanvasHorizontal
+            )
+            transformButton(
+                systemName: "arrow.up.and.down.righttriangle.up.righttriangle.down",
+                label: "Flip Canvas Vertical",
+                action: tab.flipCanvasVertical
+            )
+            transformButton(
+                systemName: "rotate.right",
+                label: "Rotate Canvas Right",
+                action: tab.rotateCanvasCw
+            )
+            transformButton(
+                systemName: "rotate.left",
+                label: "Rotate Canvas Left",
+                action: tab.rotateCanvasCcw
+            )
+        }
+    }
+
+    /// Icon + label row on the shared outline control surface.
+    private func transformButton(
+        systemName: String,
+        label: LocalizedStringKey,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            outlineControl {
+                HStack(spacing: DesignTokens.space2) {
+                    Image(systemName: systemName)
+                    Text(label)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, DesignTokens.space3)
+            }
         }
         .buttonStyle(.plain)
     }

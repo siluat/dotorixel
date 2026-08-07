@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 268 | [Apple canvas transforms — flip/rotate the whole document from the right panel](../issues/268-apple-canvas-transforms.md) | 2026-08-07 |
 | 267 | [Apple UniFFI selection + transform bindings — Marquee ops and two-tier flip/rotate](../issues/267-apple-uniffi-selection-transform-bindings.md) | 2026-08-06 |
 | 266 | [Apple save dialog and saved work browser — keep, reopen, and delete documents](../issues/266-apple-save-dialog-saved-work.md) | 2026-08-05 |
 | 265 | [Apple SwiftData session persistence — auto-save and restore on launch](../issues/265-apple-swiftdata-session-persistence.md) | 2026-08-03 |

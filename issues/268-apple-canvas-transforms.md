@@ -1,6 +1,6 @@
 ---
 title: Apple canvas transforms — flip/rotate the whole document from the right panel
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -55,3 +55,35 @@ extend these buttons' dispatch path.
 ## Blocked by
 
 - [267 — Apple UniFFI selection + transform bindings](267-apple-uniffi-selection-transform-bindings.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/TabState.swift` | Four commands (`flipCanvasHorizontal`/`Vertical`, `rotateCanvasCw`/`Ccw`) through the existing `performEdit` Edit Baseline path — one press = one undo entry restoring pixels + dimensions (+ Marquee). Rotates run `reclampAfterCanvasRotation` (pan reclamp + Hover Point clear, `resizeCanvas` parity) |
+| `apple/Dotorixel/Views/RightPanel.swift` | Transform section between Canvas and Color, matching the web `RightPanel.svelte` placement; shared `outlineControl` surface extracted for the Clear + transform buttons |
+| `apple/Dotorixel/Localizable.xcstrings` | Four canvas-scoped labels + "Transform" section title, en/ko/ja copied verbatim from the web messages (purely additive) |
+| `apple/DotorixelTests/TabStateCanvasTransformTests.swift` | 10 shell-seam tests: dispatch, mirror/turn correctness, W↔H swap, undo/redo round-trip, post-rotate reclamp + hover clear, multi-layer alignment (flip and rotate), Marquee co-transform + undo restore, `isDrawing` no-op, symmetric-document no-op (no history entry) |
+| `apple/DotorixelTests/LocalizationTests.swift` | ko/ja parity pins for the four labels + section title (web terminology parity suite) |
+| `apple/DotorixelTests/__Snapshots__/DockedRegionSnapshotTests/rightPanel*.png` | Five RightPanel baselines re-recorded on the pinned host (Transform section now in frame) |
+
+### Key Decisions
+
+- **No new history plumbing**: the four commands reuse `performEdit`, so the
+  symmetric-image no-op falls out for free (`endEdit` discards an unchanged
+  baseline) and undo/redo stay whole-document snapshots.
+- **Post-transform geometry care is rotate-only**: flips keep canvas
+  dimensions, so only the rotates reclamp the pan and clear the Hover Point.
+- **Labels are inline literal keys** resolved through the String Catalog (the
+  established RightPanel pattern) — no new localization mechanism.
+
+### Notes
+
+- Issue 272 (Floating Selection) must extend these buttons' dispatch path
+  with its commit-before-transform policy, per the issue's interplay note.
+- Two-axis review (standards/spec) applied post-TDD: stale RightPanel doc
+  comment refreshed, `outlineControl` extraction, and the rotate multi-layer
+  + square-canvas rotate no-op test gaps closed.
+- Verified: full Apple suite 400 tests / 81 suites green on the pinned
+  simulator; snapshot tests passed without re-record after the style
+  extraction (pixel-identical refactor).

@@ -566,6 +566,66 @@ final class TabState {
         canvasVersion += 1
     }
 
+    // MARK: - Canvas transforms
+
+    /// Mirrors the whole document left↔right as one undoable Edit — the
+    /// right panel's Flip Canvas Horizontal button. A symmetric document
+    /// comes back unchanged, so the Edit Baseline resolves without recording
+    /// an entry (web parity: the Canvas Transform tier).
+    /// No-ops silently while a drawing stroke is in progress.
+    func flipCanvasHorizontal() {
+        guard !isDrawing else { return }
+        if performEdit({ document.flipCanvasHorizontal(); return true }) {
+            canvasVersion += 1
+        }
+    }
+
+    /// Mirrors the whole document top↔bottom as one undoable Edit — the
+    /// mirror of `flipCanvasHorizontal`.
+    /// No-ops silently while a drawing stroke is in progress.
+    func flipCanvasVertical() {
+        guard !isDrawing else { return }
+        if performEdit({ document.flipCanvasVertical(); return true }) {
+            canvasVersion += 1
+        }
+    }
+
+    /// Rotates the whole document 90° clockwise as one undoable Edit —
+    /// canvas width and height swap (undo restores pixels and dimensions
+    /// together, the same whole-document snapshot path as `resizeCanvas`).
+    /// No-ops silently while a drawing stroke is in progress.
+    func rotateCanvasCw() {
+        guard !isDrawing else { return }
+        if performEdit({ document.rotateCanvasCw(); return true }) {
+            reclampAfterCanvasRotation()
+            canvasVersion += 1
+        }
+    }
+
+    /// Rotates the whole document 90° counter-clockwise as one undoable
+    /// Edit — the mirror of `rotateCanvasCw`.
+    /// No-ops silently while a drawing stroke is in progress.
+    func rotateCanvasCcw() {
+        guard !isDrawing else { return }
+        if performEdit({ document.rotateCanvasCcw(); return true }) {
+            reclampAfterCanvasRotation()
+            canvasVersion += 1
+        }
+    }
+
+    /// Post-rotate geometry care, mirroring `resizeCanvas`: the W↔H swap can
+    /// strand the pan outside the new bounds, and a published Hover Point
+    /// marks a cell the rotation moved — reclamp the one and clear the other
+    /// (the next hover event republishes against the new dimensions).
+    private func reclampAfterCanvasRotation() {
+        viewport = viewport.clampPan(
+            canvasWidth: document.width(),
+            canvasHeight: document.height(),
+            viewportSize: viewportSize
+        )
+        hoverPoint = nil
+    }
+
     // MARK: - Persistence
 
     /// Captures this tab's full persistence record (web parity:

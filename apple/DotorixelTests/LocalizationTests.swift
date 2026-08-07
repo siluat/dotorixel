@@ -118,6 +118,29 @@ struct DefaultLayerNameLocalizationTests {
     }
 }
 
+/// Cross-shell terminology: the Canvas Transform tier's canvas-scoped button
+/// labels must match the web's messages (`action_transformFlipCanvasHorizontal`
+/// et al.) per locale.
+@Suite("Localization — canvas transform labels (web terminology parity)")
+struct CanvasTransformLabelLocalizationTests {
+
+    @Test("Canvas transform labels resolve per locale")
+    func labelsResolvePerLocale() {
+        #expect(resolve("Transform", in: "ko") == "변형")
+        #expect(resolve("Transform", in: "ja") == "変形")
+
+        #expect(resolve("Flip Canvas Horizontal", in: "ko") == "캔버스 좌우 반전")
+        #expect(resolve("Flip Canvas Vertical", in: "ko") == "캔버스 상하 반전")
+        #expect(resolve("Rotate Canvas Right", in: "ko") == "캔버스 오른쪽 회전")
+        #expect(resolve("Rotate Canvas Left", in: "ko") == "캔버스 왼쪽 회전")
+
+        #expect(resolve("Flip Canvas Horizontal", in: "ja") == "キャンバス左右反転")
+        #expect(resolve("Flip Canvas Vertical", in: "ja") == "キャンバス上下反転")
+        #expect(resolve("Rotate Canvas Right", in: "ja") == "キャンバス右回転")
+        #expect(resolve("Rotate Canvas Left", in: "ja") == "キャンバス左回転")
+    }
+}
+
 /// Cross-shell terminology: tool names must match the web's message catalogs
 /// (`messages/ko.json`, `messages/ja.json`) wherever the same concept appears.
 @Suite("Localization — tool display names (web terminology parity)")

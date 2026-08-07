@@ -3,19 +3,19 @@
 ## Currently Working On
 
 Apple catch-up Phase 5 — reference + selection + transforms
-([RFC](../issues/013-apple-native-catchup.md)); 1/16 sub-issues done (267),
-unblocking 268 + 269. Frontier: {268, 269, 277}.
+([RFC](../issues/013-apple-native-catchup.md)); 2/16 sub-issues done
+(267–268). Frontier: {269, 277}.
 
 ## Last Completed
 
-[267 — Apple UniFFI selection + transform bindings](../issues/267-apple-uniffi-selection-transform-bindings.md):
-the full Marquee / region-op / two-tier transform surface exposed over UniFFI,
-expand-only. Marquee crosses as a Record with boundary validation (not the
-wasm-style opaque object) — see the issue's Key Decisions.
+[268 — Apple canvas transforms](../issues/268-apple-canvas-transforms.md):
+the Canvas Transform tier's four buttons on the Apple right panel, one
+undoable step each through the existing Edit Baseline. Issue 272 must extend
+their dispatch path with commit-before-transform when Floating Selection
+lands.
 
 ## Next Up
 
-- [268 — Apple canvas transforms (right panel)](../issues/268-apple-canvas-transforms.md) — Phase 5, unblocked by 267
 - [269 — Apple marquee select tool](../issues/269-apple-marquee-select-tool.md) — Phase 5, unblocked by 267
 - [277 — Apple UniFFI reference bindings](../issues/277-apple-uniffi-reference-bindings.md) — Phase 5 frontier
 - Project file format (JSON-based) + save/load

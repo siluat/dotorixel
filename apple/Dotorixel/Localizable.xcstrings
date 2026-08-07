@@ -383,6 +383,40 @@
         }
       }
     },
+    "Flip Canvas Horizontal" : {
+      "comment" : "Canvas Transform button in the right panel's Canvas section. web: action_transformFlipCanvasHorizontal",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンバス左右反転"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "캔버스 좌우 반전"
+          }
+        }
+      }
+    },
+    "Flip Canvas Vertical" : {
+      "comment" : "Canvas Transform button in the right panel's Canvas section. web: action_transformFlipCanvasVertical",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンバス上下反転"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "캔버스 상하 반전"
+          }
+        }
+      }
+    },
     "Flood Fill" : {
       "comment" : "Tool display name. web: tool_floodfill",
       "localizations" : {
@@ -846,6 +880,40 @@
         }
       }
     },
+    "Rotate Canvas Left" : {
+      "comment" : "Canvas Transform button in the right panel's Canvas section. web: action_transformRotateCanvasCcw",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンバス左回転"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "캔버스 왼쪽 회전"
+          }
+        }
+      }
+    },
+    "Rotate Canvas Right" : {
+      "comment" : "Canvas Transform button in the right panel's Canvas section. web: action_transformRotateCanvasCw",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンバス右回転"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "캔버스 오른쪽 회전"
+          }
+        }
+      }
+    },
     "Saturation" : {
       "comment" : "Split SV-square saturation element accessibility label (issue 250).",
       "localizations" : {
@@ -1012,6 +1080,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "픽셀 퍼펙트 전환"
+          }
+        }
+      }
+    },
+    "Transform" : {
+      "comment" : "Right panel section title for the Canvas Transform buttons. web: section_transform",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変形"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "변형"
           }
         }
       }

@@ -159,6 +159,64 @@ struct ConstrainSelectionDefineTests {
         )
     }
 
+    @Test("a constrained drag over the canvas edge bounds the side — the clip never cuts the square")
+    func edgeBoundedDefineStaysSquare() {
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .selection
+        state.isShiftKeyHeld = true
+
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 10, y: 2))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 15, y: 9))
+        state.activeTab.endStroke()
+
+        // Raw side would be 7 (dy), but only 5 columns remain rightward of
+        // the anchor: the side bounds to 5 (web parity), not clipped to 6×8.
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 10, y: 2, width: 6, height: 6)
+        )
+    }
+
+    @Test("a constrained drag entirely outside the canvas defines nothing — the square never grows into it")
+    func fullyOffCanvasConstrainedDragDefinesNothing() {
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .selection
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 4, y: 4))
+        state.activeTab.endStroke()
+
+        // The raw drag never touches the canvas; squaring the long dy side
+        // must not extend it leftward into the canvas (web parity: the raw
+        // intersection is checked before constraining).
+        state.isShiftKeyHeld = true
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 20, y: 2))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 19, y: 15))
+        state.activeTab.endStroke()
+
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 2, y: 2, width: 3, height: 3)
+        )
+    }
+
+    @Test("a constrained drag anchored outside the canvas clamps the anchor before squaring")
+    func offCanvasAnchorClampsBeforeSquaring() {
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .selection
+        state.isShiftKeyHeld = true
+
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: -3, y: 4))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 5, y: 9))
+        state.activeTab.endStroke()
+
+        // The anchor clamps to (0, 4) first, so the square resolves from
+        // in-canvas geometry (web parity), not from the raw dx = 8.
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 0, y: 4, width: 6, height: 6)
+        )
+    }
+
     @Test("re-tapping the active Selection tool latches, and the latch alone forces the define square")
     func latchAloneForcesSquareKeyboardFree() {
         let state = Workspace(width: 16, height: 16)

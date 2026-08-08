@@ -80,12 +80,55 @@ final class SelectionStrokeSession: StrokeSession {
     /// Shift — or tapping the latch — re-resolves the rectangle immediately.
     private func redefinePreview() -> Bool {
         guard let anchor, let lastCurrent else { return false }
-        let end = host.isConstrainHeld
-            ? constrainSquare(anchor: anchor, current: lastCurrent)
-            : lastCurrent
-        draftMarquee = marqueeFromDrag(anchor, end)
+        draftMarquee = host.isConstrainHeld
+            ? squareMarqueeFromDrag(anchor, lastCurrent)
+            : marqueeFromDrag(anchor, lastCurrent)
         setMarquee(draftMarquee)
         return true
+    }
+
+    /// The constrained define (web parity: `squareMarqueeFromDrag` in
+    /// `selection-tool.ts`), which keeps the square whole at the canvas edge.
+    /// The shape tools' unbounded `constrainSquare` doesn't fit here: their
+    /// preview merely paints nothing off-canvas, but a Marquee is clipped —
+    /// an unbounded square would clip into a rectangle. So: `nil` when the
+    /// raw drag never touches the canvas (squaring must not grow a
+    /// fully-outside drag into it), the anchor clamped inside, and the side
+    /// bounded to the room the canvas leaves in the drag direction.
+    private func squareMarqueeFromDrag(
+        _ anchor: ScreenCanvasCoords, _ current: ScreenCanvasCoords
+    ) -> AppleMarqueeRegion? {
+        guard marqueeFromDrag(anchor, current) != nil else { return nil }
+        let squareAnchor = clampedToCanvas(anchor)
+        return marqueeFromDrag(
+            squareAnchor,
+            boundedSquareEnd(anchor: squareAnchor, current: current)
+        )
+    }
+
+    private func clampedToCanvas(_ point: ScreenCanvasCoords) -> ScreenCanvasCoords {
+        ScreenCanvasCoords(
+            x: min(max(point.x, 0), Int32(host.drawingSurface.width()) - 1),
+            y: min(max(point.y, 0), Int32(host.drawingSurface.height()) - 1)
+        )
+    }
+
+    /// Squares the drag box like `constrainSquare`, but bounds the side to
+    /// the space between the (in-canvas) anchor and the canvas edge in the
+    /// drag direction, so the square always fits the canvas.
+    private func boundedSquareEnd(
+        anchor: ScreenCanvasCoords, current: ScreenCanvasCoords
+    ) -> ScreenCanvasCoords {
+        let dx = current.x - anchor.x
+        let dy = current.y - anchor.y
+        let maxX = dx >= 0 ? Int32(host.drawingSurface.width()) - 1 - anchor.x : anchor.x
+        let maxY = dy >= 0 ? Int32(host.drawingSurface.height()) - 1 - anchor.y : anchor.y
+        let side = min(max(abs(dx), abs(dy)), maxX, maxY)
+
+        return ScreenCanvasCoords(
+            x: anchor.x + side * (dx >= 0 ? 1 : -1),
+            y: anchor.y + side * (dy >= 0 ? 1 : -1)
+        )
     }
 
     /// Normalizes the drag corners and clips to the canvas — `nil` when the

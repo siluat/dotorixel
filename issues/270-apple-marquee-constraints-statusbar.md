@@ -86,3 +86,9 @@ Selection-define ergonomics, matching the web:
   compact-layout `status_marqueeCompact` variant has no Apple consumer yet.
 - The latch badge on the Selection tool button lights via the existing
   `LeftToolbar` wiring — no view change was needed there.
+- PR #357 review fix (cubic P1, accepted): the first cut reused the shape
+  tools' unbounded `constrainSquare`, which let the canvas clip cut a
+  constrained define into a rectangle, grow a fully-off-canvas drag into
+  the canvas, and square from an unclamped outside anchor. Replaced with a
+  port of the web `squareMarqueeFromDrag` (raw-intersection guard → anchor
+  clamp → side bounded to the canvas), pinned by three regression tests.

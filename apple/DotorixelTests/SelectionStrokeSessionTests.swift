@@ -8,6 +8,92 @@ import Testing
 @Suite("Selection strokes — define, deselect, persistence")
 struct SelectionStrokeSessionTests {
 
+    @Test("holding Shift while defining a Marquee forces a square")
+    func shiftForcesSquareMarquee() {
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .selection
+        state.isShiftKeyHeld = true
+
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 8, y: 5))
+        state.activeTab.endStroke()
+
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 2, y: 2, width: 7, height: 7)
+        )
+    }
+
+    @Test("a constrained Marquee stays square at the canvas edge")
+    func constrainedMarqueeStaysSquareAtCanvasEdge() {
+        let state = Workspace(width: 8, height: 8)
+        state.shared.activeTool = .selection
+        state.isShiftKeyHeld = true
+
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 6, y: 2))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 10, y: 5))
+        state.activeTab.endStroke()
+
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 6, y: 2, width: 2, height: 2)
+        )
+    }
+
+    @Test("an up-left constrained Marquee stays square at the canvas edge")
+    func upLeftConstrainedMarqueeStaysSquareAtCanvasEdge() {
+        let state = Workspace(width: 8, height: 8)
+        state.shared.activeTool = .selection
+        state.isShiftKeyHeld = true
+
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: -3, y: -1))
+        state.activeTab.endStroke()
+
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 0, y: 0, width: 3, height: 3)
+        )
+    }
+
+    @Test("a constrained Marquee clamps an off-canvas anchor")
+    func constrainedMarqueeClampsOffCanvasAnchor() {
+        let state = Workspace(width: 8, height: 8)
+        state.shared.activeTool = .selection
+        state.isShiftKeyHeld = true
+
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: -2, y: 1))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 3, y: 4))
+        state.activeTab.endStroke()
+
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 0, y: 1, width: 4, height: 4)
+        )
+    }
+
+    @Test("releasing and pressing Shift mid-drag immediately reshapes the Marquee preview")
+    func midDragShiftChangeRefreshesMarquee() {
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .selection
+        state.isShiftKeyHeld = true
+
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 8, y: 5))
+
+        state.isShiftKeyHeld = false
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 2, y: 2, width: 7, height: 4)
+        )
+
+        state.isShiftKeyHeld = true
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 2, y: 2, width: 7, height: 7)
+        )
+    }
+
     @Test("a drag in any direction defines the normalized Marquee")
     func dragDefinesNormalizedMarquee() {
         let state = Workspace(width: 8, height: 8)

@@ -67,11 +67,8 @@ struct EditorToolIsConstrainableTests {
             .ellipse: true,
             .floodFill: false,
             .eyedropper: false,
-            // Web parity marks Selection constrainable, but the Shift-square
-            // constrain arrives with issue 270 — false until the behavior
-            // exists, so the latch badge never advertises a dead affordance.
             .move: false,
-            .selection: false,
+            .selection: true,
         ]
         #expect(tool.isConstrainable == expected[tool])
     }

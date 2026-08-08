@@ -114,6 +114,27 @@ struct ConstrainStrokeTests {
 @Suite("Tool activation — Constrain latch gesture")
 struct ToolActivationTests {
 
+    @Test("re-activating Selection latches square Marquee defines")
+    func selectionReactivationLatchesSquareMarquee() {
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .selection
+
+        state.activateTool(.selection)
+        #expect(state.isConstrainLatchOn)
+
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 8, y: 5))
+        state.activeTab.endStroke()
+
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 2, y: 2, width: 7, height: 7)
+        )
+
+        state.activateTool(.selection)
+        #expect(!state.isConstrainLatchOn)
+    }
+
     @Test("re-activating the active constrainable tool toggles the latch instead of re-selecting")
     func reactivatingConstrainableToolTogglesLatch() {
         let state = Workspace(width: 16, height: 16)

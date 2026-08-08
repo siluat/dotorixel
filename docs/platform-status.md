@@ -16,7 +16,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Flood fill | ✅ | ✅ | ✅ | BFS, 4-connectivity; one-shot tap fill on both shells |
 | Eyedropper | — | ✅ | ✅ | Drag-and-commit; releases to FG (left-click/touch) or BG (right-click); skips transparent and out-of-bounds samples; not undoable. Apple samples the composite; Web samples the active layer. Loupe overlay tracked in its own row |
 | Move | — | ✅ | ✅ | Drag shifts the whole canvas relative to the drag anchor (never cumulative); off-canvas pixels clipped on commit, vacated areas transparent |
-| Selection / Marquee | 🔧 | 🔧 | 🔧 | Persistent Marquee with clipping, Delete, drag-to-move/cancel, copy/cut/paste, keyboard nudge, Shift-square define/axis drag, action bars; selection UI hides (Marquee preserved) while a Reference Layer is active. Apple: define/deselect + marching ants shipped; constrain, clipping, Floating pending |
+| Selection / Marquee | 🔧 | 🔧 | 🔧 | Apple: define/deselect, marching ants, Shift/latch square, and committed status readout; drawing clipping, Floating, keyboard/clipboard/action bar pending |
 | Right-click background color | — | ✅ | ✅ | Supported paint tools draw with BG on right-click; eraser stays transparent. Apple: macOS right-click + iPadOS pointer secondary button; touch always FG |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |
 | Pixel-perfect filter | ✅ | ✅ | ✅ | L-corner 3-window rule (Aseprite-style). Toggle default ON, disabled on non-freehand tools; persisted with the session on both shells |
@@ -87,7 +87,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Apple Pencil | — | — | ✅ | Draws immediately (no finger deferral). Palm rejection: a touching pencil outranks fingers — begins over a resting palm, ignores them mid-stroke, suppresses pinch/pan — and a hovering pencil blocks finger begins entirely. Device pass (255) pending |
 | Pencil hover preview | — | — | 🔧 | Hover-capable iPads (M2+, Pencil 2/Pro): live single-cell highlight of the target while hovering; clears on touch-down, off-canvas, or hover exit. Pencil-only (finger/pointer hover excluded). State contract unit-tested; hardware pass (255) pending |
 | Keyboard shortcuts | — | ✅ | ✅ | Both: tool keys, X swap, G grid, ⌘Z/⇧⌘Z/⌘Y, Alt-hold eyedropper (deferred mid-stroke restore), Shift constrain, text-field guard. Apple adds Edit-menu undo/redo; Space pan + `/` hints + selection C/X/V web-only |
-| Constrain latch | — | ✅ | ✅ | Re-tap the active constrainable tool (line/rect/ellipse; selection web-only) to latch the Shift constraint keyboard-free; OR-combined with Shift; mid-stroke toggle re-resolves the in-flight shape instantly |
+| Constrain latch | — | ✅ | ✅ | Re-tap the active line/rect/ellipse/selection tool to latch the Shift constraint keyboard-free; OR-combined with Shift; mid-stroke toggle re-resolves the in-flight geometry instantly |
 | Tool selection a11y | — | ✅ | ⬜ | Tool buttons form an ARIA radiogroup: aria-checked + roving tabindex, Arrow-key nav (wraps), Space/Enter activates (latch on constrainable). Latch state announced via a polite SR live region |
 
 ## i18n
@@ -150,6 +150,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Design token system | — | ✅ | ✅ | `--ds-*` tokens (web), `DesignTokens` enum (Apple; spacing scale mirrors in-use steps 1–5), light theme |
 | Pebble UI theme | — | ✅ | ⬜ | Floating panels, earth tones (web legacy; Apple removed) |
 | Editor UI theme | — | ✅ | ✅ | `--ds-*` tokens, docked layout skeleton (Apple); TopBar + LeftToolbar + RightPanel + TimelinePanel + StatusBar all implemented |
+| Status bar readout | — | ✅ | ✅ | Canvas size + active tool; active Marquee shows bounds. Web compact mode shows W×H; Apple keeps the committed full readout during drag |
 | Responsive layout | — | ✅ | 🔧 | Web: compact/medium/wide/x-wide via matchMedia + CSS Grid, ≥44px targets. Apple: docked adapts wide↔x-wide (1440pt panel/bar sizing); iPad-compact deferred to the mobile paradigm |
 | Toolbar tooltip | — | ✅ | ✅ | Tool name + shortcut hint on hover. Web: custom styled tooltip (GeistPixel-Square). Apple: native macOS tooltip; the hint also rides the accessibility label on both OSes |
 | Tab bar slide indicator | — | ✅ | ⬜ | ease-in-out-cubic 180ms, pure CSS `--active-index` |

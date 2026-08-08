@@ -591,6 +591,23 @@
         }
       }
     },
+    "Marquee: %@×%@ at (%@, %@)" : {
+      "comment" : "Status bar Marquee dimensions and origin. web: status_marquee",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択範囲: %1$@×%2$@ (%3$@, %4$@)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택 영역: %1$@×%2$@ (%3$@, %4$@)"
+          }
+        }
+      }
+    },
     "Move" : {
       "comment" : "Tool display name. web: tool_move",
       "localizations" : {

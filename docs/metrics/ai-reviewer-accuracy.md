@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 205 | 153 | 52 | 268 | 75% | 36% |
-| cubic-dev-ai[bot] | 284 | 223 | 61 | 205 | 79% | 52% |
-| coderabbitai[bot] | 304 | 215 | 89 | 214 | 71% | 50% |
+| greptile-apps[bot] | 205 | 153 | 52 | 269 | 75% | 36% |
+| cubic-dev-ai[bot] | 285 | 224 | 61 | 205 | 79% | 52% |
+| coderabbitai[bot] | 304 | 215 | 89 | 215 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #356 | cubic-dev-ai[bot] | Accept | Shift-constrained Marquee tests covered only positive-direction drags from in-canvas anchors, leaving the up-left bounded-side branch and off-canvas-anchor clamp path unpinned; added public-stroke regression cases for both |
+| #356 | coderabbitai[bot] | Miss | APPROVED without flagging the two unpinned constrained-Marquee edge paths (accepted from cubic) |
+| #356 | greptile-apps[bot] | Miss | No-findings summary missed the two unpinned constrained-Marquee edge paths (accepted from cubic) |
 | #355 | cubic-dev-ai[bot] | Accept | The ants overlay wasn't clipped to the canvas area — SwiftUI `.overlay` content is unclipped by default, so a Marquee panned past the visible area drew over neighboring chrome; fixed with a canvas-area frame + `.clipped()` (web parity: the canvas container's `overflow: hidden`) and a rendered snapshot baseline. Triage slip: flagged in round 1, processed a round late |
 | #355 | cubic-dev-ai[bot] | Reject | Re-review asked for a snapshot/UI test of the Reduce Motion gating; a single-frame snapshot captures dash phase 0 whether the guard works or not, `accessibilityReduceMotion` is get-only (not injectable), and XCUITest is the README's documented deferred alternative |
 | #355 | greptile-apps[bot] | Miss | Missed the overlay clipping gap (accepted from cubic) |

@@ -265,6 +265,34 @@ struct DockedRegionSnapshotTests {
         )
     }
 
+    @Test("StatusBar renders the active Marquee dimensions and origin")
+    func statusBarMarqueeReadout() throws {
+        let selected = state()
+        try selected.activeTab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 2, y: 3, width: 4, height: 5)
+        )
+        assertSnapshot(
+            of: StatusBar(workspace: selected, tier: .wide).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
+    @Test("StatusBar keeps the committed Marquee readout while a define preview is active")
+    func statusBarCommittedMarqueeDuringDefine() throws {
+        let defining = state()
+        try defining.activeTab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 2, y: 3, width: 4, height: 5)
+        )
+        defining.shared.activeTool = .selection
+        defining.activeTab.beginStroke(at: ScreenCanvasCoords(x: 8, y: 8))
+        defining.activeTab.continueStroke(to: ScreenCanvasCoords(x: 11, y: 9))
+
+        assertSnapshot(
+            of: StatusBar(workspace: defining, tier: .wide).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
     // MARK: - Korean locale (issue 242 acceptance: translated chrome, no layout breakage)
 
     /// Locale regression, not tier sizing: each leaf view rendered under the
@@ -318,6 +346,20 @@ struct DockedRegionSnapshotTests {
     func statusBarKoreanLocale() {
         assertSnapshot(
             of: StatusBar(workspace: state(), tier: .wide)
+                .frame(width: barWidth)
+                .environment(\.locale, Locale(identifier: "ko")),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
+    @Test("StatusBar renders the Marquee readout in Korean")
+    func statusBarMarqueeReadoutKoreanLocale() throws {
+        let selected = state()
+        try selected.activeTab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 2, y: 3, width: 4, height: 5)
+        )
+        assertSnapshot(
+            of: StatusBar(workspace: selected, tier: .wide)
                 .frame(width: barWidth)
                 .environment(\.locale, Locale(identifier: "ko")),
             as: .image(layout: .sizeThatFits)

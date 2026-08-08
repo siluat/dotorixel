@@ -1,6 +1,6 @@
 ---
 title: Apple marquee constraints + status bar readout — Shift-square, constrain latch, dimensions display
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -46,3 +46,39 @@ Selection-define ergonomics, matching the web:
 ## Blocked by
 
 - [269 — Apple marquee select tool](269-apple-marquee-select-tool.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Tools/SelectionStrokeSession.swift` | Re-resolves Marquee defines through the live Shift/latch constraint and preserves square geometry at canvas edges. |
+| `apple/Dotorixel/Tools/ToolConstraints.swift` | Adds the shell-side canvas-bounded square calculation matching the web Selection tool. |
+| `apple/Dotorixel/Tools/EditorTool.swift` | Makes Selection constrainable through the shared toolbar activation contract. |
+| `apple/Dotorixel/State/TabState.swift` | Keeps non-canvas chrome on the committed Marquee while the document carries a live define preview. |
+| `apple/Dotorixel/Views/StatusBar.swift` | Shows committed Marquee dimensions and origin when a selection exists. |
+| `apple/Dotorixel/Localizable.xcstrings` | Adds the shared `status_marquee` terminology for Korean and Japanese. |
+| `apple/DotorixelTests/SelectionStrokeSessionTests.swift` | Covers Shift-square, canvas-edge bounding, and stationary mid-drag modifier changes. |
+| `apple/DotorixelTests/ConstrainStrokeTests.swift` | Covers Selection latch activation, square output, and latch release. |
+| `apple/DotorixelTests/EditorToolTests.swift` | Pins Selection as a constrainable tool. |
+| `apple/DotorixelTests/LocalizationTests.swift` | Verifies the formatted readout resolves every argument in Korean and Japanese. |
+| `apple/DotorixelTests/DockedRegionSnapshotTests.swift` | Pins readout visibility, values, localization, and committed-state rendering. |
+| `apple/DotorixelTests/__Snapshots__/DockedRegionSnapshotTests/` | Stores the English, Korean, and in-flight committed-state StatusBar baselines. |
+
+### Key Decisions
+
+- Kept the simple, stable square-bounding math in the Swift shell, mirroring
+  the web shell and avoiding disproportionate binding friction.
+- Bounded the square by the remaining canvas space on both axes before
+  clipping so an edge-crossing define never degrades into a rectangle.
+- Kept the StatusBar on a view-facing committed snapshot while the Selection
+  session independently owns its edit/cancel baseline; UI presentation does
+  not depend on active session internals.
+- Interpolated numeric values as strings so the String Catalog uses one stable
+  `%@` format key across translated locales.
+
+### Notes
+
+- The committed readout contract is ready for the Floating Selection lifecycle
+  in issue 272; this slice implements and verifies define/deselect behavior.
+- The Apple test suite passes on the pinned iPad simulator. A pre-existing
+  Swift 6 isolation warning in `AutoSave.swift` remains unrelated to this task.

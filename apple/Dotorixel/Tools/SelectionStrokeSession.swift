@@ -10,8 +10,11 @@ final class SelectionStrokeSession: StrokeSession {
     // the engine tears the session down before the host can go away.
     private unowned let host: StrokeSessionHost
 
+    /// Tool-lifecycle baseline for inside-click, off-canvas, and cancel
+    /// resolution; distinct from TabState's view-facing committed snapshot.
     private var initialMarquee: AppleMarqueeRegion?
     private var anchor: ScreenCanvasCoords?
+    private var lastCurrent: ScreenCanvasCoords?
     private var hasUserDragged = false
     private var draftMarquee: AppleMarqueeRegion?
 
@@ -34,7 +37,15 @@ final class SelectionStrokeSession: StrokeSession {
         // anchor cell (unlike the web session, which floors sub-cell points
         // itself and must re-check).
         hasUserDragged = true
+        lastCurrent = current
         draftMarquee = marqueeFromDrag(anchor, current)
+        setMarquee(draftMarquee)
+        return true
+    }
+
+    func modifierChanged() -> Bool {
+        guard hasUserDragged, let anchor, let lastCurrent else { return false }
+        draftMarquee = marqueeFromDrag(anchor, lastCurrent)
         setMarquee(draftMarquee)
         return true
     }
@@ -74,6 +85,28 @@ final class SelectionStrokeSession: StrokeSession {
     private func marqueeFromDrag(
         _ anchor: ScreenCanvasCoords, _ current: ScreenCanvasCoords
     ) -> AppleMarqueeRegion? {
+        guard host.isConstrainHeld else {
+            return clippedMarqueeFromDrag(anchor, current)
+        }
+        // Match the web selection tool: a fully off-canvas drag remains nil;
+        // otherwise bring an off-canvas anchor onto the canvas before
+        // bounding the square to the available space in both directions.
+        guard clippedMarqueeFromDrag(anchor, current) != nil else { return nil }
+        let squareAnchor = host.drawingSurface.containsPixel(x: anchor.x, y: anchor.y)
+            ? anchor
+            : clampToCanvas(anchor)
+        let squareEnd = constrainSquareWithinCanvas(
+            anchor: squareAnchor,
+            current: current,
+            canvasWidth: host.drawingSurface.width(),
+            canvasHeight: host.drawingSurface.height()
+        )
+        return clippedMarqueeFromDrag(squareAnchor, squareEnd)
+    }
+
+    private func clippedMarqueeFromDrag(
+        _ anchor: ScreenCanvasCoords, _ current: ScreenCanvasCoords
+    ) -> AppleMarqueeRegion? {
         guard let region = try? appleMarqueeFromDrag(
             x0: anchor.x, y0: anchor.y, x1: current.x, y1: current.y
         ) else {
@@ -84,6 +117,13 @@ final class SelectionStrokeSession: StrokeSession {
             region: region,
             canvasW: host.drawingSurface.width(),
             canvasH: host.drawingSurface.height()
+        )
+    }
+
+    private func clampToCanvas(_ point: ScreenCanvasCoords) -> ScreenCanvasCoords {
+        ScreenCanvasCoords(
+            x: min(max(point.x, 0), Int32(host.drawingSurface.width()) - 1),
+            y: min(max(point.y, 0), Int32(host.drawingSurface.height()) - 1)
         )
     }
 

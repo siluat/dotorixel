@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 205 | 153 | 52 | 268 | 75% | 36% |
-| cubic-dev-ai[bot] | 286 | 225 | 61 | 205 | 79% | 52% |
-| coderabbitai[bot] | 304 | 215 | 89 | 215 | 71% | 50% |
+| greptile-apps[bot] | 205 | 153 | 52 | 269 | 75% | 36% |
+| cubic-dev-ai[bot] | 287 | 226 | 61 | 205 | 79% | 52% |
+| coderabbitai[bot] | 304 | 215 | 89 | 216 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #358 | cubic-dev-ai[bot] | Accept | Partial (P2): `MarqueeClippedSurface.floodFillBounded` intersects caller bounds with the Marquee, so an invalid record no-ops (or, when oversized-but-overlapping, fills the narrowed rect) instead of throwing like the document conformer. The requested pre-intersection validation was declined — it would copy `to_core`'s three invariants into the shell, and the core's non-mutating helpers (`apple_marquee_contains`, `apple_marquee_clip_to`) already treat an invalid record as a value, not an error; the inaccurate part was the protocol doc promising the document's error semantics, now split and pinned by a test |
+| #358 | coderabbitai[bot] | Miss | APPROVED without flagging the `floodFillBounded` contract/behavior split (partial-accepted from cubic) |
+| #358 | greptile-apps[bot] | Miss | 5/5 no-findings summary; missed the same `floodFillBounded` contract split |
 | #357 | cubic-dev-ai[bot] | Accept | Round 2 (P3): the constrained-define tests only drove dx/dy ≥ 0, leaving `boundedSquareEnd`'s negative-direction branches (room = the anchor coordinate itself) unexecuted — an off-by-one hiding spot; an up-left drag bounding against the top edge now pins them. coderabbit/greptile did not re-review this round — no participation, no Miss |
 | #357 | cubic-dev-ai[bot] | Accept | The constrained define reused the shape tools' unbounded `constrainSquare` (P1): the canvas clip cut the square into a rectangle at the edge, a fully-off-canvas drag squared its long side into the canvas and selected pixels, and an outside anchor went unclamped; ported the web `squareMarqueeFromDrag` (raw-intersection guard → anchor clamp → side bounded to the canvas), pinned by three regression tests |
 | #357 | coderabbitai[bot] | Miss | APPROVED without flagging the unbounded constrained define (accepted from cubic). greptile did not review this PR — no participation, no Miss |

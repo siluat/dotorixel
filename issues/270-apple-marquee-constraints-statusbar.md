@@ -1,6 +1,6 @@
 ---
 title: Apple marquee constraints + status bar readout — Shift-square, constrain latch, dimensions display
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -27,8 +27,14 @@ Selection-define ergonomics, matching the web:
 - **StatusBar readout**: the status bar shows the active Marquee's
   dimensions and origin ("Marquee: W×H at (x, y)" full form), hidden when
   no Marquee exists, localized (en/ko/ja) via the String Catalog with the
-  web's message-key vocabulary. It reflects committed state — it updates
-  when a define/move commits, not per-frame during a drag.
+  web's message-key vocabulary. It updates live during a define drag,
+  exactly like the web StatusBar (which reads the same live marquee
+  projection the overlay uses).
+
+  > Correction (2026-08-07, confirmed with the user): the RFC-generated
+  > text originally said the readout reflects committed state only. The
+  > web StatusBar actually updates live per-frame during a drag, so the
+  > Apple readout follows web parity instead.
 
 ## Acceptance criteria
 
@@ -46,3 +52,50 @@ Selection-define ergonomics, matching the web:
 ## Blocked by
 
 - [269 — Apple marquee select tool](269-apple-marquee-select-tool.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Tools/SelectionStrokeSession.swift` | Shift/latch-aware define: the constrain state is live-read through the same `host.isConstrainHeld` seam the shape tools read, and the square resolves through a session-private port of the web `squareMarqueeFromDrag` (raw-intersection guard → anchor clamp → side bounded to the canvas) so the clip never cuts it; `modifierChanged()` + the kept raw pointer re-resolve the in-flight rectangle instantly on mid-drag toggles |
+| `apple/Dotorixel/Tools/EditorTool.swift` | `selection` joins the constrainable set — the existing `activateTool` re-tap gesture and toolbar latch badge apply to it with no further wiring |
+| `apple/Dotorixel/Views/StatusBar.swift` | `marqueeStatusText` pure helper (`LocalizedStringResource?`, `nil` hides) + readout wired into the bar between canvas size and the spacer, resolved through the SwiftUI environment locale, single-line (web `nowrap` parity) |
+| `apple/Dotorixel/Localizable.xcstrings` | "Marquee: %lld×%lld at (%lld, %lld)" entry, ko/ja values matching the web `status_marquee` message vocabulary |
+| `apple/DotorixelTests/ConstrainStrokeTests.swift` | `ConstrainSelectionDefineTests` (8 tests): Shift-square define, mid-drag toggle re-resolve both ways, latch-alone square define + re-tap toggle, edge bounding (right edge, off-canvas pointer, negative-direction top/left), off-canvas anchor clamp, fully-off-canvas nil |
+| `apple/DotorixelTests/EditorToolTests.swift` | Per-case `isConstrainable` pin updated: `.selection: true` |
+| `apple/DotorixelTests/StatusBarTests.swift` | Readout projection: nil hides, en format, ko/ja catalog resolution |
+| `apple/DotorixelTests/DockedRegionSnapshotTests.swift` | New snapshot pinning the readout rendered in the bar (recorded on the pinned host; existing 23 baselines unaffected) |
+
+### Key Decisions
+
+- **The constrained define resolves through a selection-specific
+  canvas-bounded path**, not the shape tools' unbounded `constrainSquare`:
+  a shape preview merely paints nothing off-canvas, but a Marquee is
+  clipped — an unbounded square would clip into a rectangle. The port of
+  the web `squareMarqueeFromDrag` stays session-private, mirroring the
+  web's placement (locals of `selection-tool.ts`, not
+  `tool-constraints.ts`).
+- **Readout updates live during a define drag** (web parity), not commit-only —
+  the RFC-generated spec text said committed-state-only, but the web StatusBar
+  reads the same live marquee projection the overlay uses; confirmed with the
+  user and corrected in this issue's spec above.
+- The readout helper returns an unresolved `LocalizedStringResource` so `Text`
+  resolves it through the SwiftUI environment locale — required for the ko
+  locale snapshot path (`.environment(\.locale, …)`), matching how
+  `EditorTool.displayName` localizes.
+- Region fields are Int-cast at interpolation so the catalog key stays a
+  stable `%lld` form despite the mixed Int32/UInt32 field types.
+
+### Notes
+
+- Only the full-form readout ships: Apple's `.compact` tier is the clamped
+  docked layout (RFC: full compact experience deferred), so the web's
+  compact-layout `status_marqueeCompact` variant has no Apple consumer yet.
+- The latch badge on the Selection tool button lights via the existing
+  `LeftToolbar` wiring — no view change was needed there.
+- PR #357 review fix (cubic P1, accepted): the first cut reused the shape
+  tools' unbounded `constrainSquare`, which let the canvas clip cut a
+  constrained define into a rectangle, grow a fully-off-canvas drag into
+  the canvas, and square from an unclamped outside anchor. Replaced with a
+  port of the web `squareMarqueeFromDrag` (raw-intersection guard → anchor
+  clamp → side bounded to the canvas), pinned by three regression tests.

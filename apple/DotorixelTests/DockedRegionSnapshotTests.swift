@@ -265,6 +265,22 @@ struct DockedRegionSnapshotTests {
         )
     }
 
+    @Test("StatusBar renders the active Marquee readout")
+    func statusBarMarqueeReadout() {
+        // A committed define drag (3,5 → 14,12): the readout reads
+        // "Marquee: 12×8 at (3, 5)" next to the canvas dimensions.
+        let workspace = state()
+        workspace.shared.activeTool = .selection
+        workspace.activeTab.beginStroke(at: ScreenCanvasCoords(x: 3, y: 5))
+        workspace.activeTab.continueStroke(to: ScreenCanvasCoords(x: 14, y: 12))
+        workspace.activeTab.endStroke()
+
+        assertSnapshot(
+            of: StatusBar(workspace: workspace, tier: .wide).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
     // MARK: - Korean locale (issue 242 acceptance: translated chrome, no layout breakage)
 
     /// Locale regression, not tier sizing: each leaf view rendered under the

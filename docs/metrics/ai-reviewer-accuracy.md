@@ -11,13 +11,16 @@ only Miss rows may be grouped, with an explicit (×N) count.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 205 | 153 | 52 | 268 | 75% | 36% |
-| cubic-dev-ai[bot] | 284 | 223 | 61 | 205 | 79% | 52% |
-| coderabbitai[bot] | 304 | 215 | 89 | 214 | 71% | 50% |
+| cubic-dev-ai[bot] | 286 | 225 | 61 | 205 | 79% | 52% |
+| coderabbitai[bot] | 304 | 215 | 89 | 215 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #357 | cubic-dev-ai[bot] | Accept | Round 2 (P3): the constrained-define tests only drove dx/dy ≥ 0, leaving `boundedSquareEnd`'s negative-direction branches (room = the anchor coordinate itself) unexecuted — an off-by-one hiding spot; an up-left drag bounding against the top edge now pins them. coderabbit/greptile did not re-review this round — no participation, no Miss |
+| #357 | cubic-dev-ai[bot] | Accept | The constrained define reused the shape tools' unbounded `constrainSquare` (P1): the canvas clip cut the square into a rectangle at the edge, a fully-off-canvas drag squared its long side into the canvas and selected pixels, and an outside anchor went unclamped; ported the web `squareMarqueeFromDrag` (raw-intersection guard → anchor clamp → side bounded to the canvas), pinned by three regression tests |
+| #357 | coderabbitai[bot] | Miss | APPROVED without flagging the unbounded constrained define (accepted from cubic). greptile did not review this PR — no participation, no Miss |
 | #355 | cubic-dev-ai[bot] | Accept | The ants overlay wasn't clipped to the canvas area — SwiftUI `.overlay` content is unclipped by default, so a Marquee panned past the visible area drew over neighboring chrome; fixed with a canvas-area frame + `.clipped()` (web parity: the canvas container's `overflow: hidden`) and a rendered snapshot baseline. Triage slip: flagged in round 1, processed a round late |
 | #355 | cubic-dev-ai[bot] | Reject | Re-review asked for a snapshot/UI test of the Reduce Motion gating; a single-frame snapshot captures dash phase 0 whether the guard works or not, `accessibilityReduceMotion` is get-only (not injectable), and XCUITest is the README's documented deferred alternative |
 | #355 | greptile-apps[bot] | Miss | Missed the overlay clipping gap (accepted from cubic) |

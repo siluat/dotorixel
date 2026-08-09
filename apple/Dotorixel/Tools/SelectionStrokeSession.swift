@@ -14,6 +14,9 @@ final class SelectionStrokeSession: StrokeSession {
     private var anchor: ScreenCanvasCoords?
     private var hasUserDragged = false
     private var draftMarquee: AppleMarqueeRegion?
+    /// The raw (unconstrained) pointer position of the last sample — kept so
+    /// a mid-drag modifier change can re-resolve the rectangle from it.
+    private var lastCurrent: ScreenCanvasCoords?
 
     init(host: StrokeSessionHost) {
         self.host = host
@@ -25,8 +28,9 @@ final class SelectionStrokeSession: StrokeSession {
     }
 
     func draw(current: ScreenCanvasCoords, previous: ScreenCanvasCoords?) -> Bool {
-        guard previous != nil, let anchor else {
-            self.anchor = current
+        lastCurrent = current
+        guard previous != nil, anchor != nil else {
+            anchor = current
             return false
         }
         // Any sample past the first is a drag: the engine drops same-cell
@@ -34,9 +38,13 @@ final class SelectionStrokeSession: StrokeSession {
         // anchor cell (unlike the web session, which floors sub-cell points
         // itself and must re-check).
         hasUserDragged = true
-        draftMarquee = marqueeFromDrag(anchor, current)
-        setMarquee(draftMarquee)
-        return true
+        return redefinePreview()
+    }
+
+    func modifierChanged() -> Bool {
+        // Nothing to re-resolve before the drag leaves the anchor cell.
+        guard hasUserDragged else { return false }
+        return redefinePreview()
     }
 
     func end() -> Bool {
@@ -65,6 +73,62 @@ final class SelectionStrokeSession: StrokeSession {
         guard hasUserDragged else { return false }
         setMarquee(initialMarquee)
         return true
+    }
+
+    /// Rewrites the drag preview from the anchor and the last raw pointer,
+    /// with the constrain state live-read (web parity): pressing or releasing
+    /// Shift — or tapping the latch — re-resolves the rectangle immediately.
+    private func redefinePreview() -> Bool {
+        guard let anchor, let lastCurrent else { return false }
+        draftMarquee = host.isConstrainHeld
+            ? squareMarqueeFromDrag(anchor, lastCurrent)
+            : marqueeFromDrag(anchor, lastCurrent)
+        setMarquee(draftMarquee)
+        return true
+    }
+
+    /// The constrained define (web parity: `squareMarqueeFromDrag` in
+    /// `selection-tool.ts`), which keeps the square whole at the canvas edge.
+    /// The shape tools' unbounded `constrainSquare` doesn't fit here: their
+    /// preview merely paints nothing off-canvas, but a Marquee is clipped —
+    /// an unbounded square would clip into a rectangle. So: `nil` when the
+    /// raw drag never touches the canvas (squaring must not grow a
+    /// fully-outside drag into it), the anchor clamped inside, and the side
+    /// bounded to the room the canvas leaves in the drag direction.
+    private func squareMarqueeFromDrag(
+        _ anchor: ScreenCanvasCoords, _ current: ScreenCanvasCoords
+    ) -> AppleMarqueeRegion? {
+        guard marqueeFromDrag(anchor, current) != nil else { return nil }
+        let squareAnchor = clampedToCanvas(anchor)
+        return marqueeFromDrag(
+            squareAnchor,
+            boundedSquareEnd(anchor: squareAnchor, current: current)
+        )
+    }
+
+    private func clampedToCanvas(_ point: ScreenCanvasCoords) -> ScreenCanvasCoords {
+        ScreenCanvasCoords(
+            x: min(max(point.x, 0), Int32(host.drawingSurface.width()) - 1),
+            y: min(max(point.y, 0), Int32(host.drawingSurface.height()) - 1)
+        )
+    }
+
+    /// Squares the drag box like `constrainSquare`, but bounds the side to
+    /// the space between the (in-canvas) anchor and the canvas edge in the
+    /// drag direction, so the square always fits the canvas.
+    private func boundedSquareEnd(
+        anchor: ScreenCanvasCoords, current: ScreenCanvasCoords
+    ) -> ScreenCanvasCoords {
+        let dx = current.x - anchor.x
+        let dy = current.y - anchor.y
+        let maxX = dx >= 0 ? Int32(host.drawingSurface.width()) - 1 - anchor.x : anchor.x
+        let maxY = dy >= 0 ? Int32(host.drawingSurface.height()) - 1 - anchor.y : anchor.y
+        let side = min(max(abs(dx), abs(dy)), maxX, maxY)
+
+        return ScreenCanvasCoords(
+            x: anchor.x + side * (dx >= 0 ? 1 : -1),
+            y: anchor.y + side * (dy >= 0 ? 1 : -1)
+        )
     }
 
     /// Normalizes the drag corners and clips to the canvas — `nil` when the

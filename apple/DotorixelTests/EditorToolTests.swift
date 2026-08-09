@@ -54,11 +54,11 @@ struct EditorToolShortcutKeyTests {
 @Suite("EditorTool — isConstrainable")
 struct EditorToolIsConstrainableTests {
 
-    @Test("only shape tools respond to the Shift constraint", arguments: EditorTool.allCases)
+    @Test("only shape tools and selection respond to the Shift constraint", arguments: EditorTool.allCases)
     func isConstrainable(tool: EditorTool) {
         // Keyed by case so a newly added tool fails here until it decides
         // whether its stroke responds to Shift/latch (web parity: line 45°,
-        // rectangle/ellipse square).
+        // rectangle/ellipse square, selection square Marquee).
         let expected: [EditorTool: Bool] = [
             .pencil: false,
             .eraser: false,
@@ -67,11 +67,8 @@ struct EditorToolIsConstrainableTests {
             .ellipse: true,
             .floodFill: false,
             .eyedropper: false,
-            // Web parity marks Selection constrainable, but the Shift-square
-            // constrain arrives with issue 270 — false until the behavior
-            // exists, so the latch badge never advertises a dead affordance.
             .move: false,
-            .selection: false,
+            .selection: true,
         ]
         #expect(tool.isConstrainable == expected[tool])
     }

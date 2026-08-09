@@ -177,6 +177,24 @@ struct ConstrainSelectionDefineTests {
         )
     }
 
+    @Test("an up-left constrained drag bounds against the top/left edges — the negative-direction paths")
+    func negativeDirectionDefineBoundsAgainstNearEdges() {
+        let state = Workspace(width: 16, height: 16)
+        state.shared.activeTool = .selection
+        state.isShiftKeyHeld = true
+
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 14, y: 10))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 2))
+        state.activeTab.endStroke()
+
+        // Raw side would be 12 (|dx|), but only 10 rows remain above the
+        // anchor: the side bounds to 10 and the square grows up-left.
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 4, y: 0, width: 11, height: 11)
+        )
+    }
+
     @Test("a constrained drag entirely outside the canvas defines nothing — the square never grows into it")
     func fullyOffCanvasConstrainedDragDefinesNothing() {
         let state = Workspace(width: 16, height: 16)

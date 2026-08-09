@@ -7,6 +7,8 @@
 final class StrokeEngine {
     private let makeSession: (EditorTool, StrokeSessionHost, Color, PointerButton) -> StrokeSession
     private var session: StrokeSession?
+    /// Retains the per-stroke host for as long as sessions hold it `unowned`.
+    private var marqueeClippingHost: (any StrokeSessionHost)?
     private var lastPixel: ScreenCanvasCoords?
 
     /// The `makeSession` override exists for tests to inject session doubles;
@@ -34,7 +36,9 @@ final class StrokeEngine {
         if tool.recordsDrawColor {
             host.recordRecentColor(drawColor)
         }
-        let session = makeSession(tool, host, drawColor, button)
+        let marqueeClippingHost = MarqueeClippingStrokeHost(base: host)
+        self.marqueeClippingHost = marqueeClippingHost
+        let session = makeSession(tool, marqueeClippingHost, drawColor, button)
         self.session = session
         lastPixel = coords
         session.start()
@@ -86,6 +90,40 @@ final class StrokeEngine {
 
     private func tearDown() {
         session = nil
+        marqueeClippingHost = nil
         lastPixel = nil
+    }
+}
+
+/// Delegates editor services while replacing only the drawing surface with
+/// the Marquee snapshot captured at stroke begin.
+private final class MarqueeClippingStrokeHost: StrokeSessionHost {
+    private unowned let base: StrokeSessionHost
+    let drawingSurface: any DrawingSurface
+
+    init(base: StrokeSessionHost) {
+        self.base = base
+        let surface = base.drawingSurface
+        if let marquee = surface.marquee() {
+            self.drawingSurface = MarqueeClippedDrawingSurface(base: surface, marquee: marquee)
+        } else {
+            self.drawingSurface = surface
+        }
+    }
+
+    var foregroundColor: Color { base.foregroundColor }
+    var backgroundColor: Color { base.backgroundColor }
+    var isPixelPerfectEnabled: Bool { base.isPixelPerfectEnabled }
+    var isConstrainHeld: Bool { base.isConstrainHeld }
+    var samplingLoupe: SamplingLoupeState { base.samplingLoupe }
+
+    func beginEdit() { base.beginEdit() }
+
+    func commitColorPick(_ color: Color, to target: ColorPickTarget) {
+        base.commitColorPick(color, to: target)
+    }
+
+    func recordRecentColor(_ color: Color) {
+        base.recordRecentColor(color)
     }
 }

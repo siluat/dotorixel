@@ -63,9 +63,9 @@ extension StrokeSession {
 
 /// The Document viewed as a drawing surface — the active-layer drawing ops
 /// and composite reads a stroke session may touch, and nothing structural.
-/// `AppleDocument` is the sole conformer; the protocol exists so the
-/// stroke-session seam is enforced by type ("sessions see a drawing surface,
-/// not the whole editor"): layer structure, history, resize, and export are
+/// `AppleDocument` provides the base surface; per-stroke decorators may
+/// enforce drawing policies without exposing the whole editor. The seam is
+/// enforced by type: layer structure, history, resize, and export are
 /// unreachable through it.
 protocol DrawingSurface: AnyObject {
     func width() -> UInt32
@@ -76,6 +76,9 @@ protocol DrawingSurface: AnyObject {
     func setPixel(x: UInt32, y: UInt32, color: Color) throws
     func applyTool(x: Int32, y: Int32, tool: ToolType, foregroundColor: Color) -> Bool
     func floodFill(x: Int32, y: Int32, fillColor: Color) -> Bool
+    func floodFillBounded(
+        x: Int32, y: Int32, fillColor: Color, bounds: AppleMarqueeRegion
+    ) throws -> Bool
     func activeLayerPixels() throws -> Data
     func restoreActiveLayerPixels(data: Data) throws
     /// The current Marquee, or `nil` when no selection exists. On the
@@ -86,6 +89,93 @@ protocol DrawingSurface: AnyObject {
 }
 
 extension AppleDocument: DrawingSurface {}
+
+/// Per-stroke view of a drawing surface that drops pixel-tool writes outside
+/// the Marquee captured when the stroke began and bounds flood fill to it.
+/// Reads and whole-layer writes pass through unchanged, which keeps
+/// Eyedropper and Move outside the clipping policy.
+final class MarqueeClippedDrawingSurface: DrawingSurface {
+    private let base: any DrawingSurface
+    private let marqueeSnapshot: AppleMarqueeRegion
+
+    init(base: any DrawingSurface, marquee: AppleMarqueeRegion) {
+        self.base = base
+        self.marqueeSnapshot = marquee
+    }
+
+    func width() -> UInt32 { base.width() }
+    func height() -> UInt32 { base.height() }
+    func composite() -> Data { base.composite() }
+    func getPixel(x: UInt32, y: UInt32) throws -> Color {
+        try base.getPixel(x: x, y: y)
+    }
+
+    func setPixel(x: UInt32, y: UInt32, color: Color) throws {
+        guard let signedX = Int32(exactly: x), let signedY = Int32(exactly: y),
+              appleMarqueeContains(region: marqueeSnapshot, x: signedX, y: signedY)
+        else { return }
+        try base.setPixel(x: x, y: y, color: color)
+    }
+
+    func applyTool(x: Int32, y: Int32, tool: ToolType, foregroundColor: Color) -> Bool {
+        guard appleMarqueeContains(region: marqueeSnapshot, x: x, y: y) else { return false }
+        return base.applyTool(x: x, y: y, tool: tool, foregroundColor: foregroundColor)
+    }
+
+    func floodFill(x: Int32, y: Int32, fillColor: Color) -> Bool {
+        guard appleMarqueeContains(region: marqueeSnapshot, x: x, y: y) else { return false }
+        do {
+            return try base.floodFillBounded(
+                x: x, y: y, fillColor: fillColor, bounds: marqueeSnapshot
+            )
+        } catch {
+            assertionFailure("Failed to flood fill within the stroke Marquee: \(error)")
+            return false
+        }
+    }
+
+    func floodFillBounded(
+        x: Int32, y: Int32, fillColor: Color, bounds: AppleMarqueeRegion
+    ) throws -> Bool {
+        let left = max(Int64(marqueeSnapshot.x), Int64(bounds.x))
+        let top = max(Int64(marqueeSnapshot.y), Int64(bounds.y))
+        let right = min(
+            Int64(marqueeSnapshot.x) + Int64(marqueeSnapshot.width),
+            Int64(bounds.x) + Int64(bounds.width)
+        )
+        let bottom = min(
+            Int64(marqueeSnapshot.y) + Int64(marqueeSnapshot.height),
+            Int64(bounds.y) + Int64(bounds.height)
+        )
+        guard left < right, top < bottom,
+              let clippedX = Int32(exactly: left), let clippedY = Int32(exactly: top),
+              let clippedWidth = UInt32(exactly: right - left),
+              let clippedHeight = UInt32(exactly: bottom - top)
+        else { return false }
+        return try base.floodFillBounded(
+            x: x,
+            y: y,
+            fillColor: fillColor,
+            bounds: AppleMarqueeRegion(
+                x: clippedX, y: clippedY, width: clippedWidth, height: clippedHeight
+            )
+        )
+    }
+
+    func activeLayerPixels() throws -> Data {
+        try base.activeLayerPixels()
+    }
+
+    func restoreActiveLayerPixels(data: Data) throws {
+        try base.restoreActiveLayerPixels(data: data)
+    }
+
+    func marquee() -> AppleMarqueeRegion? { base.marquee() }
+
+    func setMarquee(region: AppleMarqueeRegion?) throws {
+        try base.setMarquee(region: region)
+    }
+}
 
 extension DrawingSurface {
     /// Whether `(x, y)` falls inside the surface's `width × height`.

@@ -1,6 +1,6 @@
 ---
 title: Apple marquee clipping — drawing tools write only inside the active marquee
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -50,3 +50,29 @@ region; without one, behavior is unchanged.
 ## Blocked by
 
 - [269 — Apple marquee select tool](269-apple-marquee-select-tool.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Tools/StrokeEngine.swift` | Captures a Marquee-aware drawing surface once at stroke begin and retains it for the session lifetime. |
+| `apple/Dotorixel/Tools/StrokeSession.swift` | Adds the drawing-surface decorator that clips pixel writes and bounds flood fill while passing reads and whole-layer writes through. |
+| `apple/DotorixelTests/MarqueeClippingTests.swift` | Covers every affected tool, composition order, bounded fill, snapshotting, pass-through, unaffected tools, and no-op History behavior. |
+| `apple/DotorixelTests/SelectionStrokeSessionTests.swift` | Keeps the existing tool-switch persistence check aligned with the clipping contract. |
+
+### Key Decisions
+
+- Apply clipping once through a per-stroke drawing-surface decorator, preserving
+  the existing tool sessions and ensuring pixel-perfect filtering resolves
+  before writes reach the clip.
+- Pass reads and whole-layer snapshot/restore operations through unchanged so
+  Eyedropper and Move retain their existing behavior.
+- Intersect every bounded-fill request with the captured Marquee, sealing the
+  clipping contract even for future callers of the drawing-surface seam.
+
+### Notes
+
+- A fully clipped stroke relies on the existing Edit Baseline comparison, so it
+  creates no History entry and preserves an existing redo future.
+- The complete Apple test suite passes: 440 tests across 87 suites on the pinned
+  iPad Pro 11-inch (M5), iOS 26.4 simulator.

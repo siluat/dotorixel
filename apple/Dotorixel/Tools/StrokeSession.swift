@@ -78,7 +78,14 @@ protocol DrawingSurface: AnyObject {
     func floodFill(x: Int32, y: Int32, fillColor: Color) -> Bool
     /// The fill bounded to a rectangle — how a Marquee-clipped surface fills:
     /// the region's edges bound the flood, and a seed outside it fills
-    /// nothing. Errors only on an invalid `bounds` record.
+    /// nothing.
+    ///
+    /// `bounds` binds only as far as the surface admits it: a clipped surface
+    /// narrows it to its own clip first, so a rectangle it narrows away —
+    /// including an invalid record — fills nothing, the convention
+    /// `appleMarqueeContains` and `appleMarqueeClipTo` already follow
+    /// (an invalid record contains nothing). The document conformer, being
+    /// the FFI boundary, instead errors on an invalid record.
     func floodFillBounded(
         x: Int32, y: Int32, fillColor: Color, bounds: AppleMarqueeRegion
     ) throws -> Bool

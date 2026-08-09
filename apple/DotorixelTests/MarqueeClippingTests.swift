@@ -260,6 +260,25 @@ struct MarqueeClippedSurfaceBoundedFillTests {
         #expect(try document.getPixel(x: 1, y: 2) == transparent)
     }
 
+    @Test("an invalid bounds record fills nothing rather than erroring")
+    func invalidBoundsFillNothing() throws {
+        let document = makeSingleLayerDocument(width: 8, height: 8)
+        let surface = clippedSurface(
+            document, marquee: AppleMarqueeRegion(x: 0, y: 0, width: 4, height: 8)
+        )
+
+        // A zero-width record is a rectangle the clip narrows away, so it
+        // reads as "covers nothing" — the convention appleMarqueeContains
+        // follows — instead of the document's boundary error.
+        let didFill = try surface.floodFillBounded(
+            x: 2, y: 2, fillColor: blue,
+            bounds: AppleMarqueeRegion(x: 2, y: 0, width: 0, height: 8)
+        )
+
+        #expect(!didFill)
+        #expect(try document.getPixel(x: 2, y: 2) == transparent)
+    }
+
     @Test("bounds that miss the Marquee fill nothing")
     func disjointBoundsFillNothing() throws {
         let document = makeSingleLayerDocument(width: 8, height: 8)

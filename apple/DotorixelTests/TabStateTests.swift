@@ -447,6 +447,8 @@ struct TabStateResizeCanvasTests {
         #expect(state.activeTab.document.marquee() == marquee)
 
         state.activeTab.handleRedo()
+        #expect(state.activeTab.document.width() == 8)
+        #expect(state.activeTab.document.height() == 8)
         #expect(state.activeTab.document.marquee() == AppleMarqueeRegion(
             x: 6,
             y: 6,

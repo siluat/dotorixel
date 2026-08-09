@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 206 | 154 | 52 | 268 | 75% | 36% |
-| cubic-dev-ai[bot] | 287 | 226 | 61 | 205 | 79% | 52% |
-| coderabbitai[bot] | 304 | 215 | 89 | 216 | 71% | 50% |
+| greptile-apps[bot] | 206 | 154 | 52 | 269 | 75% | 36% |
+| cubic-dev-ai[bot] | 288 | 227 | 61 | 205 | 79% | 53% |
+| coderabbitai[bot] | 305 | 216 | 89 | 216 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #359 | coderabbitai[bot] | Accept | The Marquee resize test asserted the clipped region after redo but not the 8×8 dimensions, so a Marquee-specific partial restore could pass; the test now pins both dimensions with the region |
+| #359 | cubic-dev-ai[bot] | Accept | Same missing redo-dimension assertions in the Marquee resize regression (duplicate of coderabbit); same test strengthening |
+| #359 | greptile-apps[bot] | Miss | Re-reviewed the resize fix as 5/5 safe to merge without flagging the incomplete redo assertion pair (accepted from coderabbit/cubic) |
 | #359 | greptile-apps[bot] | Accept | A Marquee left fully outside the canvas after a shrink made every clipped drawing tool a no-op; the Apple top-left resize now clips the Marquee to the new canvas or clears it when no overlap survives, in the same undoable edit |
 | #359 | cubic-dev-ai[bot] | Accept | Same stale-Marquee-after-resize finding (duplicate of greptile); same resize normalization fix |
 | #359 | coderabbitai[bot] | Miss | APPROVED without flagging the stale Marquee that could disable every clipped drawing tool after a canvas shrink (accepted from greptile/cubic) |

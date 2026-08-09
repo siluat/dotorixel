@@ -186,6 +186,27 @@ struct MarqueeClippingTests {
         #expect(paintedPixelCount(state.activeTab) == 3)
     }
 
+    @Test("a Marquee cropped away by resize does not disable drawing")
+    func fullyCroppedMarqueeDoesNotDisableDrawing() throws {
+        let state = Workspace(width: 16, height: 16)
+        try state.activeTab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 10, y: 10, width: 2, height: 2)
+        )
+        state.shared.activeTool = .pencil
+        state.shared.pixelPerfect = false
+
+        state.activeTab.resizeCanvas(width: 8, height: 8)
+        #expect(state.activeTab.document.marquee() == nil)
+
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        state.activeTab.endStroke()
+
+        #expect(
+            try state.activeTab.document.getPixel(x: 1, y: 1)
+                == state.shared.foregroundColor
+        )
+    }
+
     @Test("Move translates the whole layer despite an active Marquee")
     func moveIgnoresMarquee() throws {
         let state = Workspace(width: 8, height: 8)

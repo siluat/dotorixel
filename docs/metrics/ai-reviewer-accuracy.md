@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 205 | 153 | 52 | 268 | 75% | 36% |
-| cubic-dev-ai[bot] | 286 | 225 | 61 | 205 | 79% | 52% |
-| coderabbitai[bot] | 304 | 215 | 89 | 215 | 71% | 50% |
+| greptile-apps[bot] | 206 | 154 | 52 | 268 | 75% | 36% |
+| cubic-dev-ai[bot] | 287 | 226 | 61 | 205 | 79% | 52% |
+| coderabbitai[bot] | 304 | 215 | 89 | 216 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #359 | greptile-apps[bot] | Accept | A Marquee left fully outside the canvas after a shrink made every clipped drawing tool a no-op; the Apple top-left resize now clips the Marquee to the new canvas or clears it when no overlap survives, in the same undoable edit |
+| #359 | cubic-dev-ai[bot] | Accept | Same stale-Marquee-after-resize finding (duplicate of greptile); same resize normalization fix |
+| #359 | coderabbitai[bot] | Miss | APPROVED without flagging the stale Marquee that could disable every clipped drawing tool after a canvas shrink (accepted from greptile/cubic) |
 | #357 | cubic-dev-ai[bot] | Accept | Round 2 (P3): the constrained-define tests only drove dx/dy ≥ 0, leaving `boundedSquareEnd`'s negative-direction branches (room = the anchor coordinate itself) unexecuted — an off-by-one hiding spot; an up-left drag bounding against the top edge now pins them. coderabbit/greptile did not re-review this round — no participation, no Miss |
 | #357 | cubic-dev-ai[bot] | Accept | The constrained define reused the shape tools' unbounded `constrainSquare` (P1): the canvas clip cut the square into a rectangle at the edge, a fully-off-canvas drag squared its long side into the canvas and selected pixels, and an outside anchor went unclamped; ported the web `squareMarqueeFromDrag` (raw-intersection guard → anchor clamp → side bounded to the canvas), pinned by three regression tests |
 | #357 | coderabbitai[bot] | Miss | APPROVED without flagging the unbounded constrained define (accepted from cubic). greptile did not review this PR — no participation, no Miss |

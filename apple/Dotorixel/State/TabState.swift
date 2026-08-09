@@ -353,6 +353,24 @@ final class TabState {
         document.containsPixel(x: coords.x, y: coords.y)
     }
 
+    /// Keeps the Marquee inside the current canvas after its geometry changes.
+    /// The Apple resize path is top-left anchored, so the selection keeps its
+    /// origin and only the cropped overlap survives; no overlap clears it.
+    private func clipMarqueeToCanvas() {
+        guard let marquee = document.marquee() else { return }
+        let clipped = appleMarqueeClipTo(
+            region: marquee,
+            canvasW: document.width(),
+            canvasH: document.height()
+        )
+        do {
+            try document.setMarquee(region: clipped)
+        } catch {
+            // A core-produced Marquee clipped by the core helper is valid.
+            assertionFailure("Failed to clip Marquee after canvas resize: \(error)")
+        }
+    }
+
     /// Clears the Hover Point when the pencil leaves hover range.
     func clearHoverPoint() {
         hoverPoint = nil
@@ -549,8 +567,9 @@ final class TabState {
     // MARK: - Canvas size
 
     /// Resizes the document to the given dimensions as one undoable Edit
-    /// (web parity — whole-document snapshots restore pixels and dimensions
-    /// together) and reclamps the viewport pan against the new bounds.
+    /// (web parity — whole-document snapshots restore pixels, dimensions, and
+    /// Marquee together), clips the Marquee to the new canvas, and reclamps
+    /// the viewport pan against the new bounds.
     /// Silent no-op when dimensions are unchanged or outside
     /// `canvasMinDimension...canvasMaxDimension`.
     /// No-ops silently while a drawing stroke is in progress — a live session's
@@ -561,7 +580,13 @@ final class TabState {
         // Content keeps its current anchoring (top-left); the web's anchor
         // selector UI is out of scope for the Apple shell today.
         let resized = performEdit {
-            (try? document.resize(newWidth: width, newHeight: height, anchor: .topLeft)) != nil
+            guard (try? document.resize(
+                newWidth: width,
+                newHeight: height,
+                anchor: .topLeft
+            )) != nil else { return false }
+            clipMarqueeToCanvas()
+            return true
         }
         guard resized else { return }
         viewport = viewport.clampPan(

@@ -22,16 +22,15 @@ Phased catch-up to full parity with completed web editor features. See the RFC f
 the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish), Phase 2
 (full tool set + color + i18n, issues 230–242), Phase 3 (layer system, issues
 256–261), and Phase 4 (multi-tab + persistence, issues 262–266) are complete;
-Phase 5 is decomposed below (issues 267–282); Phase 6 is decomposed
+Phase 5 is decomposed below (issues 267–282, 267–271 done); Phase 6 is decomposed
 (`/to-tickets`) when reached.
 
 ### Phase 5 — Reference + selection + transforms (issues 267–282)
 
-Two parallel tracks; frontier: `{271, 272, 277}` (267–270 done).
+Two parallel tracks; frontier: `{272, 277}` (267–271 done).
 
 Selection + transforms track:
 
-- [271 — Marquee clipping of drawing tools](../issues/271-apple-marquee-clipping.md)
 - [272 — Floating selection](../issues/272-apple-floating-selection.md)
 - [273 — Selection keyboard ops](../issues/273-apple-selection-keyboard-ops.md)
 - [274 — Selection clipboard](../issues/274-apple-selection-clipboard.md)

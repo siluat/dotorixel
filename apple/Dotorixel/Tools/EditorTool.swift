@@ -96,6 +96,20 @@ enum EditorTool: String, CaseIterable {
         }
     }
 
+    /// Whether an active Marquee clips this tool's output — the Marquee's
+    /// second job (CONTEXT.md), applied at the stroke engine's clipping seam
+    /// so no session sees it. False for the tools the web leaves unclipped
+    /// too: the eyedropper only reads, move translates the whole layer, and
+    /// the selection tool defines the Marquee itself.
+    var clipsToMarquee: Bool {
+        switch self {
+        case .pencil, .eraser, .line, .rectangle, .ellipse, .floodFill:
+            return true
+        case .eyedropper, .move, .selection:
+            return false
+        }
+    }
+
     /// Whether this tool's stroke responds to the Shift constraint — line
     /// snaps to 45° multiples, rectangle/ellipse force a square/circle, and
     /// selection defines a square Marquee (web parity: `isConstrainableTool`).

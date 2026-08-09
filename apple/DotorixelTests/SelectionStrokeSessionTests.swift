@@ -162,11 +162,13 @@ struct SelectionStrokeSessionTests {
         state.shared.activeTool = .selection
         defineMarquee(state, from: (2, 2), to: (4, 4))
 
+        // Inside the Marquee: an edit outside it paints nothing (271 clips
+        // drawing tools), which would say nothing about persistence.
         state.shared.activeTool = .pencil
-        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 6, y: 6))
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 3, y: 3))
         state.activeTab.endStroke()
 
-        #expect(try state.activeTab.document.getPixel(x: 6, y: 6) == state.shared.foregroundColor)
+        #expect(try state.activeTab.document.getPixel(x: 3, y: 3) == state.shared.foregroundColor)
         #expect(
             state.activeTab.document.marquee()
                 == AppleMarqueeRegion(x: 2, y: 2, width: 3, height: 3)

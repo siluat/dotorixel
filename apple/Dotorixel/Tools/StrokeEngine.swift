@@ -8,6 +8,10 @@ final class StrokeEngine {
     private let makeSession: (EditorTool, StrokeSessionHost, Color, PointerButton) -> StrokeSession
     private var session: StrokeSession?
     private var lastPixel: ScreenCanvasCoords?
+    /// Retains the per-stroke Marquee-clipping host for the stroke's
+    /// lifetime — sessions hold their host `unowned`. Nil when the stroke
+    /// draws through the host itself.
+    private var clippingHost: MarqueeClippedStrokeHost?
 
     /// The `makeSession` override exists for tests to inject session doubles;
     /// production callers use the default tool-to-session resolution.
@@ -34,7 +38,10 @@ final class StrokeEngine {
         if tool.recordsDrawColor {
             host.recordRecentColor(drawColor)
         }
-        let session = makeSession(tool, host, drawColor, button)
+        // The clipping seam: a Marquee-clipped host stands in for the real one
+        // whenever the tool's output is clipped, so no session sees the Marquee.
+        clippingHost = marqueeClippingHost(tool: tool, host: host)
+        let session = makeSession(tool, clippingHost ?? host, drawColor, button)
         self.session = session
         lastPixel = coords
         session.start()
@@ -84,8 +91,23 @@ final class StrokeEngine {
         return didChange
     }
 
+    /// A host whose drawing surface drops writes outside the Marquee, or
+    /// `nil` when the stroke draws unclipped — no Marquee, or a tool an
+    /// active one doesn't clip (move, eyedropper, the Selection tool itself).
+    ///
+    /// The Marquee is read once, at stroke begin: a mid-stroke mutation never
+    /// changes the clip the stroke in flight draws through, mirroring how the
+    /// pixel-perfect flag is snapshotted.
+    private func marqueeClippingHost(
+        tool: EditorTool, host: StrokeSessionHost
+    ) -> MarqueeClippedStrokeHost? {
+        guard tool.clipsToMarquee, let region = host.drawingSurface.marquee() else { return nil }
+        return MarqueeClippedStrokeHost(base: host, region: region)
+    }
+
     private func tearDown() {
         session = nil
         lastPixel = nil
+        clippingHost = nil
     }
 }

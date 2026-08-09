@@ -63,10 +63,10 @@ extension StrokeSession {
 
 /// The Document viewed as a drawing surface — the active-layer drawing ops
 /// and composite reads a stroke session may touch, and nothing structural.
-/// `AppleDocument` is the sole conformer; the protocol exists so the
-/// stroke-session seam is enforced by type ("sessions see a drawing surface,
-/// not the whole editor"): layer structure, history, resize, and export are
-/// unreachable through it.
+/// `AppleDocument` conforms, and `MarqueeClippedSurface` decorates it; the
+/// protocol exists so the stroke-session seam is enforced by type ("sessions
+/// see a drawing surface, not the whole editor"): layer structure, history,
+/// resize, and export are unreachable through it.
 protocol DrawingSurface: AnyObject {
     func width() -> UInt32
     func height() -> UInt32
@@ -76,6 +76,12 @@ protocol DrawingSurface: AnyObject {
     func setPixel(x: UInt32, y: UInt32, color: Color) throws
     func applyTool(x: Int32, y: Int32, tool: ToolType, foregroundColor: Color) -> Bool
     func floodFill(x: Int32, y: Int32, fillColor: Color) -> Bool
+    /// The fill bounded to a rectangle — how a Marquee-clipped surface fills:
+    /// the region's edges bound the flood, and a seed outside it fills
+    /// nothing. Errors only on an invalid `bounds` record.
+    func floodFillBounded(
+        x: Int32, y: Int32, fillColor: Color, bounds: AppleMarqueeRegion
+    ) throws -> Bool
     func activeLayerPixels() throws -> Data
     func restoreActiveLayerPixels(data: Data) throws
     /// The current Marquee, or `nil` when no selection exists. On the

@@ -28,6 +28,29 @@ struct EditorToolSupportsPixelPerfectTests {
     }
 }
 
+@Suite("EditorTool — clipsToMarquee")
+struct EditorToolClipsToMarqueeTests {
+
+    @Test("every drawing tool is clipped by an active Marquee", arguments: EditorTool.allCases)
+    func clipsToMarquee(tool: EditorTool) {
+        // Keyed by case so a newly added tool fails here until it decides
+        // whether an active Marquee clips its output (web parity: the
+        // authoring sugars clip, the escape-hatch tools don't).
+        let expected: [EditorTool: Bool] = [
+            .pencil: true,
+            .eraser: true,
+            .line: true,
+            .rectangle: true,
+            .ellipse: true,
+            .floodFill: true,
+            .eyedropper: false,
+            .move: false,
+            .selection: false,
+        ]
+        #expect(tool.clipsToMarquee == expected[tool])
+    }
+}
+
 @Suite("EditorTool — shortcutKey")
 struct EditorToolShortcutKeyTests {
 

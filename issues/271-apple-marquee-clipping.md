@@ -1,6 +1,6 @@
 ---
 title: Apple marquee clipping — drawing tools write only inside the active marquee
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -50,3 +50,50 @@ region; without one, behavior is unchanged.
 ## Blocked by
 
 - [269 — Apple marquee select tool](269-apple-marquee-select-tool.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Tools/MarqueeClippedSurface.swift` | The clipping seam: `MarqueeClippedSurface` drops out-of-Marquee `applyTool`/`setPixel` writes before they reach the document and routes `floodFill` through the 267 bounded fill (a caller's own bounds narrow the clip via `overlap`, never escape it); reads and whole-layer ops (composite, snapshot/restore) pass through. `MarqueeClippedStrokeHost` swaps only the surface and forwards the rest of the host |
+| `apple/Dotorixel/Tools/StrokeEngine.swift` | Builds the clipping host at stroke begin from a Marquee read once, retains it for the stroke (sessions hold their host `unowned`), and drops it at teardown — no session was touched |
+| `apple/Dotorixel/Tools/EditorTool.swift` | `clipsToMarquee` per-case flag (sibling of `supportsPixelPerfect`/`isConstrainable`): true for pencil/eraser/line/rectangle/ellipse/fill, false for eyedropper/move/selection |
+| `apple/Dotorixel/Tools/StrokeSession.swift` | `DrawingSurface` gains `floodFillBounded` so the decorator reaches the core's bounded fill through the interface rather than a concrete document |
+| `apple/DotorixelTests/MarqueeClippingTests.swift` | 13 tests: pencil/eraser/rectangle clip, fill stops at the edges + outside-seed no-op, pass-through without a Marquee, pixel-perfect composition order, per-stroke Marquee snapshot, fully-clipped stroke leaves undo/redo untouched, move/eyedropper unclipped, and the surface's own nested-bounds overlap |
+| `apple/DotorixelTests/EditorToolTests.swift` | Per-case `clipsToMarquee` pin — a new tool fails here until it decides |
+| `apple/DotorixelTests/SelectionStrokeSessionTests.swift` | The Marquee-persistence test drew outside the Marquee, which 271 now clips; the stroke moved inside so the test still measures persistence |
+| `docs/platform-status.md` | Selection / Marquee row: clipping shipped on Apple, Floating still pending |
+
+### Key Decisions
+
+- **The clip lives in the stroke engine, not in the tools.** The engine
+  resolves a Marquee-clipped host once per stroke, so `FreehandStrokeSession`,
+  `ShapeStrokeSession`, and `OneShotStrokeSession` are byte-for-byte
+  unchanged and the "which tools clip" policy sits in one declarative
+  `EditorTool` flag beside its siblings. The alternative (inject a surface at
+  `makeSession`, mirroring where the web decides) would have edited three
+  session classes for the same behavior.
+- **The pixel-perfect composition order falls out of the placement**: the
+  L-corner filter runs inside the session and its paint/revert actions leave
+  through the clipped surface, so the clip sees the *filtered* output (web
+  parity). Pinned by a test whose L has one arm outside the Marquee — a
+  clip-then-filter order would leave the corner tip painted.
+- **The Marquee is snapshotted per stroke**, matching the pixel-perfect flag:
+  a mid-stroke Marquee rewrite never moves the clip a stroke in flight is
+  drawing through.
+- **`floodFillBounded` on the decorator intersects rather than passes through**
+  (web parity with `getBoundsIntersection`). No session calls it today; left
+  as a pass-through it would have let a future selection operation fill
+  outside the Marquee by supplying its own bounds.
+
+### Notes
+
+- Line and ellipse have no dedicated clipping test — they share
+  `ShapeStrokeSession` with the tested rectangle, and per-case coverage is
+  forced by the `clipsToMarquee` table test.
+- Tests run at the `TabState` stroke API (the seam the per-tool session suites
+  use); the two nested-bounds tests are the exception, since no session path
+  reaches that branch.
+- The iOS simulator intermittently fails a run with "Test crashed with signal
+  kill before establishing connection" during bootstrap; re-running passes.
+  Unrelated to this change (seen with the suite untouched).

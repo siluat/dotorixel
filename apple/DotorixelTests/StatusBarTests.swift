@@ -33,4 +33,10 @@ struct StatusBarMarqueeReadoutTests {
         let region = AppleMarqueeRegion(x: 3, y: 5, width: 12, height: 8)
         #expect(resolved(region, locale: "ko") == "선택 영역: 12×8 (3, 5)")
     }
+
+    @Test("the readout resolves the Japanese catalog entry (web message vocabulary)")
+    func resolvesJapaneseEntry() {
+        let region = AppleMarqueeRegion(x: 3, y: 5, width: 12, height: 8)
+        #expect(resolved(region, locale: "ja") == "選択範囲: 12×8 (3, 5)")
+    }
 }

@@ -28,6 +28,8 @@ struct StatusBar: View {
                 Text(marqueeText)
                     .font(.system(size: DesignTokens.fontSizeSm))
                     .foregroundStyle(DesignTokens.textSecondary)
+                    // Web parity: `.status-marquee` is `white-space: nowrap`.
+                    .lineLimit(1)
             }
             Spacer()
             Text(workspace.shared.activeTool.displayName)

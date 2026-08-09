@@ -177,6 +177,25 @@ struct ConstrainSelectionDefineTests {
         )
     }
 
+    @Test("a constrained drag whose pointer leaves the canvas still bounds to a square")
+    func offCanvasPointerDefineStaysSquare() {
+        let state = Workspace(width: 8, height: 8)
+        state.shared.activeTool = .selection
+        state.isShiftKeyHeld = true
+
+        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 6, y: 2))
+        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 10, y: 5))
+        state.activeTab.endStroke()
+
+        // Raw side would be 4 (dx) with the pointer past the edge, but only
+        // one column remains rightward: the side bounds to 1 — never the
+        // 2×5 rectangle an unbounded square would clip into.
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 6, y: 2, width: 2, height: 2)
+        )
+    }
+
     @Test("an up-left constrained drag bounds against the top/left edges — the negative-direction paths")
     func negativeDirectionDefineBoundsAgainstNearEdges() {
         let state = Workspace(width: 16, height: 16)

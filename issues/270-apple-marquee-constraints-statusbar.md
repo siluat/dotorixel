@@ -57,17 +57,24 @@ Selection-define ergonomics, matching the web:
 
 | File | Description |
 |------|-------------|
-| `apple/Dotorixel/Tools/SelectionStrokeSession.swift` | Shift/latch-aware define: the constrain state is live-read through the same `host.isConstrainHeld` seam the shape tools use, resolved via `constrainSquare`; `modifierChanged()` + the kept raw pointer re-resolve the in-flight rectangle instantly on mid-drag toggles |
+| `apple/Dotorixel/Tools/SelectionStrokeSession.swift` | Shift/latch-aware define: the constrain state is live-read through the same `host.isConstrainHeld` seam the shape tools read, and the square resolves through a session-private port of the web `squareMarqueeFromDrag` (raw-intersection guard → anchor clamp → side bounded to the canvas) so the clip never cuts it; `modifierChanged()` + the kept raw pointer re-resolve the in-flight rectangle instantly on mid-drag toggles |
 | `apple/Dotorixel/Tools/EditorTool.swift` | `selection` joins the constrainable set — the existing `activateTool` re-tap gesture and toolbar latch badge apply to it with no further wiring |
-| `apple/Dotorixel/Views/StatusBar.swift` | `marqueeStatusText` pure helper (`LocalizedStringResource?`, `nil` hides) + readout wired into the bar between canvas size and the spacer, resolved through the SwiftUI environment locale |
+| `apple/Dotorixel/Views/StatusBar.swift` | `marqueeStatusText` pure helper (`LocalizedStringResource?`, `nil` hides) + readout wired into the bar between canvas size and the spacer, resolved through the SwiftUI environment locale, single-line (web `nowrap` parity) |
 | `apple/Dotorixel/Localizable.xcstrings` | "Marquee: %lld×%lld at (%lld, %lld)" entry, ko/ja values matching the web `status_marquee` message vocabulary |
-| `apple/DotorixelTests/ConstrainStrokeTests.swift` | `ConstrainSelectionDefineTests`: Shift-square define, mid-drag toggle re-resolve both ways, latch-alone square define + re-tap toggle |
+| `apple/DotorixelTests/ConstrainStrokeTests.swift` | `ConstrainSelectionDefineTests` (8 tests): Shift-square define, mid-drag toggle re-resolve both ways, latch-alone square define + re-tap toggle, edge bounding (right edge, off-canvas pointer, negative-direction top/left), off-canvas anchor clamp, fully-off-canvas nil |
 | `apple/DotorixelTests/EditorToolTests.swift` | Per-case `isConstrainable` pin updated: `.selection: true` |
-| `apple/DotorixelTests/StatusBarTests.swift` | Readout projection: nil hides, en format, ko catalog resolution |
+| `apple/DotorixelTests/StatusBarTests.swift` | Readout projection: nil hides, en format, ko/ja catalog resolution |
 | `apple/DotorixelTests/DockedRegionSnapshotTests.swift` | New snapshot pinning the readout rendered in the bar (recorded on the pinned host; existing 23 baselines unaffected) |
 
 ### Key Decisions
 
+- **The constrained define resolves through a selection-specific
+  canvas-bounded path**, not the shape tools' unbounded `constrainSquare`:
+  a shape preview merely paints nothing off-canvas, but a Marquee is
+  clipped — an unbounded square would clip into a rectangle. The port of
+  the web `squareMarqueeFromDrag` stays session-private, mirroring the
+  web's placement (locals of `selection-tool.ts`, not
+  `tool-constraints.ts`).
 - **Readout updates live during a define drag** (web parity), not commit-only —
   the RFC-generated spec text said committed-state-only, but the web StatusBar
   reads the same live marquee projection the overlay uses; confirmed with the

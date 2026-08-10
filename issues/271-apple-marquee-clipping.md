@@ -55,7 +55,8 @@ region; without one, behavior is unchanged.
 
 | File | Description |
 |------|-------------|
-| `crates/core/src/document.rs` | Makes canvas resize move the Marquee with its anchor, then clip or clear it as a shared document invariant for both shells. |
+| `crates/core/src/document.rs` | Makes canvas resize move the Marquee with its anchor, then clip or clear it without coordinate overflow as a shared document invariant for both shells. |
+| `crates/core/src/selection.rs` | Provides a wide-coordinate translate-and-clip operation so extreme off-canvas Marquee origins clear safely during resize. |
 | `apple/Dotorixel/Tools/EditorTool.swift` | Declares the clipping policy per tool; drawing tools opt in while Eyedropper, Move, and Selection opt out. |
 | `apple/Dotorixel/Tools/MarqueeClipping.swift` | Keeps the clipping host and drawing-surface decorator together; clips pixel writes and intersects bounded fills while passing reads and whole-layer writes through. |
 | `apple/Dotorixel/Tools/StrokeEngine.swift` | Snapshots the Marquee once at stroke begin and applies the clipping host only to tools whose policy opts in. |
@@ -82,6 +83,9 @@ region; without one, behavior is unchanged.
   with the same anchor offset as pixel content, then clip or clear it. This
   matches canvas flip/rotate and fixes stale selections in both shells without
   a shell-specific correction.
+- Fuse resize's Marquee translation and clipping in `i64` coordinates. A valid
+  FFI region may begin at an `i32` edge while lying fully off-canvas; computing
+  overlap before narrowing clears it instead of overflowing the origin.
 
 ### Notes
 

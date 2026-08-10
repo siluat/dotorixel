@@ -1116,8 +1116,9 @@ impl Document {
     /// `anchor`'s placement factor (`placement.x += (new_w − old_w) × fx`,
     /// `placement.y += (new_h − old_h) × fy`); scale, source buffer, and
     /// natural dimensions are unchanged. The Marquee moves by the same integer
-    /// content offset, then is clipped to the new canvas bounds and cleared
-    /// when no overlap remains. The active layer pointer is preserved.
+    /// content offset using wide coordinate arithmetic, then is clipped to the
+    /// new canvas bounds and cleared when no overlap remains. The active layer
+    /// pointer is preserved.
     pub fn resize(
         &mut self,
         new_width: u32,
@@ -1161,9 +1162,8 @@ impl Document {
         self.width = new_width;
         self.height = new_height;
         if let Some(region) = self.marquee {
-            self.marquee = region
-                .translate(content_dx, content_dy)
-                .clip_to(new_width, new_height);
+            self.marquee =
+                region.translate_and_clip_to(content_dx, content_dy, new_width, new_height);
         }
         Ok(())
     }
@@ -4458,6 +4458,51 @@ mod tests {
             doc.resize(new_width, new_height, anchor).unwrap();
 
             assert_eq!(doc.marquee(), expected, "{label}");
+        }
+    }
+
+    #[test]
+    fn resize_clears_extreme_off_canvas_marquee_without_coordinate_overflow() {
+        let cases = [
+            (
+                "minimum x on right-anchored shrink",
+                (8, 8),
+                (4, 4),
+                ResizeAnchor::TopRight,
+                MarqueeRegion::from_drag(i32::MIN, 0, i32::MIN, 0),
+            ),
+            (
+                "minimum y on bottom-anchored shrink",
+                (8, 8),
+                (4, 4),
+                ResizeAnchor::BottomLeft,
+                MarqueeRegion::from_drag(0, i32::MIN, 0, i32::MIN),
+            ),
+            (
+                "maximum x on right-anchored growth",
+                (4, 4),
+                (8, 8),
+                ResizeAnchor::TopRight,
+                MarqueeRegion::from_drag(i32::MAX, 0, i32::MAX, 0),
+            ),
+            (
+                "maximum y on bottom-anchored growth",
+                (4, 4),
+                (8, 8),
+                ResizeAnchor::BottomLeft,
+                MarqueeRegion::from_drag(0, i32::MAX, 0, i32::MAX),
+            ),
+        ];
+
+        for (label, (old_width, old_height), (new_width, new_height), anchor, marquee) in cases {
+            let mut doc =
+                Document::new(old_width, old_height, Uuid::new_v4(), "Layer 1".to_string())
+                    .unwrap();
+            doc.set_marquee(Some(marquee));
+
+            doc.resize(new_width, new_height, anchor).unwrap();
+
+            assert_eq!(doc.marquee(), None, "{label}");
         }
     }
 

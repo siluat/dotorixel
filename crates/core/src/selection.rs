@@ -72,6 +72,27 @@ impl MarqueeRegion {
         }
     }
 
+    /// Translates in wide coordinates before clipping, so an off-canvas
+    /// origin at an `i32` edge cannot overflow before its overlap is known.
+    pub(crate) fn translate_and_clip_to(
+        &self,
+        dx: i32,
+        dy: i32,
+        canvas_w: u32,
+        canvas_h: u32,
+    ) -> Option<Self> {
+        let left = i64::from(self.x) + i64::from(dx);
+        let top = i64::from(self.y) + i64::from(dy);
+        Self::from_bounds_clipped_to(
+            left,
+            top,
+            left + i64::from(self.width),
+            top + i64::from(self.height),
+            canvas_w,
+            canvas_h,
+        )
+    }
+
     /// Returns the region a horizontal canvas flip carries it to: mirrored
     /// across the canvas's vertical center line, `x → canvas_w − x − width`.
     pub fn mirrored_horizontal(&self, canvas_w: u32) -> Self {
@@ -134,20 +155,40 @@ impl MarqueeRegion {
     }
 
     pub fn clip_to(&self, canvas_w: u32, canvas_h: u32) -> Option<Self> {
-        let left = i64::from(self.x).max(0);
-        let top = i64::from(self.y).max(0);
-        let right = (i64::from(self.x) + i64::from(self.width)).min(i64::from(canvas_w));
-        let bottom = (i64::from(self.y) + i64::from(self.height)).min(i64::from(canvas_h));
+        let left = i64::from(self.x);
+        let top = i64::from(self.y);
+        Self::from_bounds_clipped_to(
+            left,
+            top,
+            left + i64::from(self.width),
+            top + i64::from(self.height),
+            canvas_w,
+            canvas_h,
+        )
+    }
+
+    fn from_bounds_clipped_to(
+        left: i64,
+        top: i64,
+        right: i64,
+        bottom: i64,
+        canvas_w: u32,
+        canvas_h: u32,
+    ) -> Option<Self> {
+        let left = left.max(0);
+        let top = top.max(0);
+        let right = right.min(i64::from(canvas_w));
+        let bottom = bottom.min(i64::from(canvas_h));
 
         if left >= right || top >= bottom {
             return None;
         }
 
         Some(Self {
-            x: left as i32,
-            y: top as i32,
-            width: (right - left) as u32,
-            height: (bottom - top) as u32,
+            x: i32::try_from(left).ok()?,
+            y: i32::try_from(top).ok()?,
+            width: u32::try_from(right - left).ok()?,
+            height: u32::try_from(bottom - top).ok()?,
         })
     }
 }

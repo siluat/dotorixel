@@ -428,6 +428,52 @@ struct TabStateResizeCanvasTests {
         #expect(state.activeTab.document.height() == 8)
     }
 
+    @Test("resize clips a partially cropped Marquee and undo restores it")
+    func resizeClipsMarqueeAndUndoRestoresIt() throws {
+        let state = Workspace(width: 16, height: 16)
+        let marquee = AppleMarqueeRegion(x: 6, y: 6, width: 4, height: 4)
+        try state.activeTab.document.setMarquee(region: marquee)
+
+        state.activeTab.resizeCanvas(width: 8, height: 8)
+
+        #expect(
+            state.activeTab.document.marquee()
+                == AppleMarqueeRegion(x: 6, y: 6, width: 2, height: 2)
+        )
+
+        state.activeTab.handleUndo()
+        #expect(state.activeTab.document.width() == 16)
+        #expect(state.activeTab.document.height() == 16)
+        #expect(state.activeTab.document.marquee() == marquee)
+
+        state.activeTab.handleRedo()
+        #expect(state.activeTab.document.width() == 8)
+        #expect(state.activeTab.document.height() == 8)
+        #expect(state.activeTab.document.marquee() == AppleMarqueeRegion(
+            x: 6,
+            y: 6,
+            width: 2,
+            height: 2
+        ))
+    }
+
+    @Test("resize clears a Marquee fully outside the new canvas")
+    func resizeClearsFullyCroppedMarquee() throws {
+        let state = Workspace(width: 16, height: 16)
+        let marquee = AppleMarqueeRegion(x: 10, y: 10, width: 2, height: 2)
+        try state.activeTab.document.setMarquee(region: marquee)
+
+        state.activeTab.resizeCanvas(width: 8, height: 8)
+
+        #expect(state.activeTab.document.marquee() == nil)
+
+        state.activeTab.handleUndo()
+        #expect(state.activeTab.document.marquee() == marquee)
+
+        state.activeTab.handleRedo()
+        #expect(state.activeTab.document.marquee() == nil)
+    }
+
     @Test("pre-resize edits stay undoable after a resize")
     func preResizeEditsSurviveResize() throws {
         let state = Workspace(width: 16, height: 16)

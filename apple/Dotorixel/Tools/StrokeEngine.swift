@@ -7,6 +7,8 @@
 final class StrokeEngine {
     private let makeSession: (EditorTool, StrokeSessionHost, Color, PointerButton) -> StrokeSession
     private var session: StrokeSession?
+    /// Retains the per-stroke host for as long as sessions hold it `unowned`.
+    private var marqueeClippingHost: MarqueeClippingStrokeHost?
     private var lastPixel: ScreenCanvasCoords?
 
     /// The `makeSession` override exists for tests to inject session doubles;
@@ -34,7 +36,16 @@ final class StrokeEngine {
         if tool.recordsDrawColor {
             host.recordRecentColor(drawColor)
         }
-        let session = makeSession(tool, host, drawColor, button)
+        let sessionHost: any StrokeSessionHost
+        if tool.clipsToMarquee, let marquee = host.drawingSurface.marquee() {
+            let clippingHost = MarqueeClippingStrokeHost(base: host, marquee: marquee)
+            self.marqueeClippingHost = clippingHost
+            sessionHost = clippingHost
+        } else {
+            self.marqueeClippingHost = nil
+            sessionHost = host
+        }
+        let session = makeSession(tool, sessionHost, drawColor, button)
         self.session = session
         lastPixel = coords
         session.start()
@@ -86,6 +97,7 @@ final class StrokeEngine {
 
     private func tearDown() {
         session = nil
+        marqueeClippingHost = nil
         lastPixel = nil
     }
 }

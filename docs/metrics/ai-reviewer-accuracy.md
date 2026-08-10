@@ -10,14 +10,29 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 205 | 153 | 52 | 268 | 75% | 36% |
-| cubic-dev-ai[bot] | 286 | 225 | 61 | 205 | 79% | 52% |
-| coderabbitai[bot] | 304 | 215 | 89 | 215 | 71% | 50% |
+| greptile-apps[bot] | 207 | 155 | 52 | 262 | 75% | 37% |
+| cubic-dev-ai[bot] | 294 | 230 | 64 | 205 | 78% | 53% |
+| coderabbitai[bot] | 306 | 217 | 89 | 214 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #359 | cubic-dev-ai[bot] | Accept | Running-Totals Miss values had drifted from the weighted log before this PR: a full recount confirmed cubic at 205 but corrected greptile from 269 to 262 and coderabbit from 217 to 214 |
+| #359 | cubic-dev-ai[bot] | Accept | Anchored resize translated an FFI-valid off-canvas Marquee origin with `i32` addition before clipping, panicking at the coordinate limits in debug builds; resize now combines translation and clipping in `i64`, with minimum/maximum X/Y regression cases |
+| #359 | coderabbitai[bot] | Miss | APPROVED the anchored-resize commit without flagging the extreme-coordinate translation overflow later accepted from cubic; greptile did not review this commit, so no Miss |
+| #359 | cubic-dev-ai[bot] | Reject | Asked to rewrite the point-in-time `What to build` specification with the final per-tool capability design; repository convention preserves the original brief and accumulates implementation changes in Results / Key Decisions, where the explicit opt-in policy is already recorded |
+| #359 | greptile-apps[bot] | Accept | Same non-TopLeft resize finding (duplicate of cubic/coderabbit): clipping the Marquee at its stale coordinates detached it from anchored pixel content; core resize now translates it by the same content offset before clipping |
+| #359 | coderabbitai[bot] | Accept | Same non-TopLeft resize finding (duplicate of cubic/greptile): clipping the Marquee at its stale coordinates detached it from anchored pixel content; core resize now translates it by the same content offset before clipping |
+| #359 | cubic-dev-ai[bot] | Accept | Non-TopLeft resize moved pixel content but only clipped the Marquee at its old coordinates, so selection and content diverged; core resize now translates both by the same anchor offset before clipping, pinned across grow/shrink and multiple anchors |
+| #359 | cubic-dev-ai[bot] | Reject | Requested a direct disjoint-bounds seam test that only restates the explicit empty-intersection guard; the review scope intentionally excludes low-value disjoint/invalid bounds cases, while the existing intersection test pins the nontrivial no-widening contract |
+| #359 | cubic-dev-ai[bot] | Reject | Claimed the six existing #359 log rows were absent from Running Totals, but adding them to the merge-base values yields the current totals exactly; the proposed increments would double-count the stale-Marquee review round |
+| #359 | coderabbitai[bot] | Accept | The Marquee resize test asserted the clipped region after redo but not the 8×8 dimensions, so a Marquee-specific partial restore could pass; the test now pins both dimensions with the region |
+| #359 | cubic-dev-ai[bot] | Accept | Same missing redo-dimension assertions in the Marquee resize regression (duplicate of coderabbit); same test strengthening |
+| #359 | greptile-apps[bot] | Miss | Re-reviewed the resize fix as 5/5 safe to merge without flagging the incomplete redo assertion pair (accepted from coderabbit/cubic) |
+| #359 | greptile-apps[bot] | Accept | A Marquee left fully outside the canvas after a shrink made every clipped drawing tool a no-op; shared core resize now clips the Marquee to the new canvas or clears it when no overlap survives for both Web and Apple, while Apple's resize remains one undoable edit |
+| #359 | cubic-dev-ai[bot] | Accept | Same stale-Marquee-after-resize finding (duplicate of greptile); same shared core resize invariant for both shells |
+| #359 | coderabbitai[bot] | Miss | APPROVED without flagging the stale Marquee that could disable every clipped drawing tool after a canvas shrink (accepted from greptile/cubic) |
 | #357 | cubic-dev-ai[bot] | Accept | Round 2 (P3): the constrained-define tests only drove dx/dy ≥ 0, leaving `boundedSquareEnd`'s negative-direction branches (room = the anchor coordinate itself) unexecuted — an off-by-one hiding spot; an up-left drag bounding against the top edge now pins them. coderabbit/greptile did not re-review this round — no participation, no Miss |
 | #357 | cubic-dev-ai[bot] | Accept | The constrained define reused the shape tools' unbounded `constrainSquare` (P1): the canvas clip cut the square into a rectangle at the edge, a fully-off-canvas drag squared its long side into the canvas and selected pixels, and an outside anchor went unclamped; ported the web `squareMarqueeFromDrag` (raw-intersection guard → anchor clamp → side bounded to the canvas), pinned by three regression tests |
 | #357 | coderabbitai[bot] | Miss | APPROVED without flagging the unbounded constrained define (accepted from cubic). greptile did not review this PR — no participation, no Miss |

@@ -110,6 +110,20 @@ enum EditorTool: String, CaseIterable {
         }
     }
 
+    /// Whether drawing output from this tool is constrained to the Marquee
+    /// captured at stroke begin. Non-drawing tools opt out explicitly so their
+    /// semantics never depend on which `DrawingSurface` operations they happen
+    /// to call; Selection can therefore move selected pixels beyond the source
+    /// Marquee when floating-selection behavior is added.
+    var clipsToMarquee: Bool {
+        switch self {
+        case .pencil, .eraser, .line, .rectangle, .ellipse, .floodFill:
+            return true
+        case .eyedropper, .move, .selection:
+            return false
+        }
+    }
+
     /// Opens the per-stroke session for this tool. Per-stroke inputs are
     /// fixed at creation: `drawColor` is the stroke's color for its whole
     /// lifetime, already resolved from `button`; the raw button is also

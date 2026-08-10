@@ -55,7 +55,7 @@ region; without one, behavior is unchanged.
 
 | File | Description |
 |------|-------------|
-| `crates/core/src/document.rs` | Makes canvas resize clip or clear the Marquee as a shared document invariant for both shells. |
+| `crates/core/src/document.rs` | Makes canvas resize move the Marquee with its anchor, then clip or clear it as a shared document invariant for both shells. |
 | `apple/Dotorixel/Tools/EditorTool.swift` | Declares the clipping policy per tool; drawing tools opt in while Eyedropper, Move, and Selection opt out. |
 | `apple/Dotorixel/Tools/MarqueeClipping.swift` | Keeps the clipping host and drawing-surface decorator together; clips pixel writes and intersects bounded fills while passing reads and whole-layer writes through. |
 | `apple/Dotorixel/Tools/StrokeEngine.swift` | Snapshots the Marquee once at stroke begin and applies the clipping host only to tools whose policy opts in. |
@@ -78,9 +78,10 @@ region; without one, behavior is unchanged.
   clipped shape previews; unaffected tools bypass the decorator by policy.
 - Intersect every bounded-fill request with the captured Marquee, sealing the
   clipping contract even for future callers of the drawing-surface seam.
-- Keep resize's Marquee clipping invariant in core `Document::resize`, matching
-  canvas flip/rotate and fixing the same stale-selection failure in both shells
-  without a shell-specific correction.
+- Keep resize's Marquee transform invariant in core `Document::resize`: move it
+  with the same anchor offset as pixel content, then clip or clear it. This
+  matches canvas flip/rotate and fixes stale selections in both shells without
+  a shell-specific correction.
 
 ### Notes
 

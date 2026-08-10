@@ -30,7 +30,7 @@ impl ResizeAnchor {
     /// Uses integer factors (0, 1, 2) divided by 2 to avoid floating point.
     /// For odd deltas, integer division truncates toward zero — this is standard
     /// pixel editor behavior (matches Aseprite).
-    fn content_offset(
+    pub(crate) fn content_offset(
         self,
         old_width: u32,
         old_height: u32,

@@ -10,14 +10,20 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 206 | 154 | 52 | 269 | 75% | 36% |
-| cubic-dev-ai[bot] | 288 | 227 | 61 | 205 | 79% | 53% |
-| coderabbitai[bot] | 305 | 216 | 89 | 216 | 71% | 50% |
+| greptile-apps[bot] | 207 | 155 | 52 | 269 | 75% | 37% |
+| cubic-dev-ai[bot] | 292 | 228 | 64 | 205 | 78% | 53% |
+| coderabbitai[bot] | 306 | 217 | 89 | 216 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #359 | cubic-dev-ai[bot] | Reject | Asked to rewrite the point-in-time `What to build` specification with the final per-tool capability design; repository convention preserves the original brief and accumulates implementation changes in Results / Key Decisions, where the explicit opt-in policy is already recorded |
+| #359 | greptile-apps[bot] | Accept | Same non-TopLeft resize finding (duplicate of cubic/coderabbit): clipping the Marquee at its stale coordinates detached it from anchored pixel content; core resize now translates it by the same content offset before clipping |
+| #359 | coderabbitai[bot] | Accept | Same non-TopLeft resize finding (duplicate of cubic/greptile): clipping the Marquee at its stale coordinates detached it from anchored pixel content; core resize now translates it by the same content offset before clipping |
+| #359 | cubic-dev-ai[bot] | Accept | Non-TopLeft resize moved pixel content but only clipped the Marquee at its old coordinates, so selection and content diverged; core resize now translates both by the same anchor offset before clipping, pinned across grow/shrink and multiple anchors |
+| #359 | cubic-dev-ai[bot] | Reject | Requested a direct disjoint-bounds seam test that only restates the explicit empty-intersection guard; the review scope intentionally excludes low-value disjoint/invalid bounds cases, while the existing intersection test pins the nontrivial no-widening contract |
+| #359 | cubic-dev-ai[bot] | Reject | Claimed the six existing #359 log rows were absent from Running Totals, but adding them to the merge-base values yields the current totals exactly; the proposed increments would double-count the stale-Marquee review round |
 | #359 | coderabbitai[bot] | Accept | The Marquee resize test asserted the clipped region after redo but not the 8×8 dimensions, so a Marquee-specific partial restore could pass; the test now pins both dimensions with the region |
 | #359 | cubic-dev-ai[bot] | Accept | Same missing redo-dimension assertions in the Marquee resize regression (duplicate of coderabbit); same test strengthening |
 | #359 | greptile-apps[bot] | Miss | Re-reviewed the resize fix as 5/5 safe to merge without flagging the incomplete redo assertion pair (accepted from coderabbit/cubic) |

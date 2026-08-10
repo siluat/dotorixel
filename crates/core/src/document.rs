@@ -1115,15 +1115,17 @@ impl Document {
     /// the same `anchor`. Each Reference Layer's placement is translated by the
     /// `anchor`'s placement factor (`placement.x += (new_w − old_w) × fx`,
     /// `placement.y += (new_h − old_h) × fy`); scale, source buffer, and
-    /// natural dimensions are unchanged. The Marquee is clipped to the new
-    /// canvas bounds and cleared when no overlap remains. The active layer
-    /// pointer is preserved.
+    /// natural dimensions are unchanged. The Marquee moves by the same integer
+    /// content offset, then is clipped to the new canvas bounds and cleared
+    /// when no overlap remains. The active layer pointer is preserved.
     pub fn resize(
         &mut self,
         new_width: u32,
         new_height: u32,
         anchor: ResizeAnchor,
     ) -> Result<(), PixelCanvasError> {
+        let (content_dx, content_dy) =
+            anchor.content_offset(self.width, self.height, new_width, new_height);
         let (fx, fy) = anchor.placement_factor();
         let dw = new_width as f32 - self.width as f32;
         let dh = new_height as f32 - self.height as f32;
@@ -1159,7 +1161,9 @@ impl Document {
         self.width = new_width;
         self.height = new_height;
         if let Some(region) = self.marquee {
-            self.marquee = region.clip_to(new_width, new_height);
+            self.marquee = region
+                .translate(content_dx, content_dy)
+                .clip_to(new_width, new_height);
         }
         Ok(())
     }
@@ -4404,6 +4408,57 @@ mod tests {
         fully_cropped.resize(8, 8, ResizeAnchor::TopLeft).unwrap();
 
         assert_eq!(fully_cropped.marquee(), None);
+    }
+
+    #[test]
+    fn resize_moves_marquee_with_the_same_anchor_offset_as_pixel_content() {
+        let cases = [
+            (
+                "center grow",
+                (4, 4),
+                (8, 8),
+                ResizeAnchor::Center,
+                MarqueeRegion::from_drag(1, 1, 2, 2),
+                Some(MarqueeRegion::from_drag(3, 3, 4, 4)),
+            ),
+            (
+                "bottom-right grow",
+                (4, 4),
+                (8, 8),
+                ResizeAnchor::BottomRight,
+                MarqueeRegion::from_drag(1, 1, 2, 2),
+                Some(MarqueeRegion::from_drag(5, 5, 6, 6)),
+            ),
+            (
+                "center shrink",
+                (8, 8),
+                (4, 4),
+                ResizeAnchor::Center,
+                MarqueeRegion::from_drag(2, 2, 5, 5),
+                Some(MarqueeRegion::from_drag(0, 0, 3, 3)),
+            ),
+            (
+                "top-right shrink",
+                (8, 8),
+                (4, 4),
+                ResizeAnchor::TopRight,
+                MarqueeRegion::from_drag(4, 1, 7, 2),
+                Some(MarqueeRegion::from_drag(0, 1, 3, 2)),
+            ),
+        ];
+
+        for (label, (old_width, old_height), (new_width, new_height), anchor, marquee, expected) in
+            cases
+        {
+            let mut doc =
+                Document::new(old_width, old_height, Uuid::new_v4(), "Layer 1".to_string())
+                    .unwrap();
+            doc.set_marquee(Some(marquee));
+
+            doc.resize(new_width, new_height, anchor).unwrap();
+
+            assert_eq!(doc.marquee(), expected, "{label}");
+        }
     }
 
     #[test]

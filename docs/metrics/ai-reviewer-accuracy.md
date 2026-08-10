@@ -10,14 +10,15 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 207 | 155 | 52 | 269 | 75% | 37% |
-| cubic-dev-ai[bot] | 293 | 229 | 64 | 205 | 78% | 53% |
-| coderabbitai[bot] | 306 | 217 | 89 | 217 | 71% | 50% |
+| greptile-apps[bot] | 207 | 155 | 52 | 262 | 75% | 37% |
+| cubic-dev-ai[bot] | 294 | 230 | 64 | 205 | 78% | 53% |
+| coderabbitai[bot] | 306 | 217 | 89 | 214 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #359 | cubic-dev-ai[bot] | Accept | Running-Totals Miss values had drifted from the weighted log before this PR: a full recount confirmed cubic at 205 but corrected greptile from 269 to 262 and coderabbit from 217 to 214 |
 | #359 | cubic-dev-ai[bot] | Accept | Anchored resize translated an FFI-valid off-canvas Marquee origin with `i32` addition before clipping, panicking at the coordinate limits in debug builds; resize now combines translation and clipping in `i64`, with minimum/maximum X/Y regression cases |
 | #359 | coderabbitai[bot] | Miss | APPROVED the anchored-resize commit without flagging the extreme-coordinate translation overflow later accepted from cubic; greptile did not review this commit, so no Miss |
 | #359 | cubic-dev-ai[bot] | Reject | Asked to rewrite the point-in-time `What to build` specification with the final per-tool capability design; repository convention preserves the original brief and accumulates implementation changes in Results / Key Decisions, where the explicit opt-in policy is already recorded |

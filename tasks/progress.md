@@ -11,6 +11,7 @@ Apple catch-up Phase 5 — reference + selection + transforms
 [271 — Apple marquee clipping of drawing tools](../issues/271-apple-marquee-clipping.md):
 Apple drawing tools now respect a stroke-scoped Marquee, while Move and
 Eyedropper remain unrestricted and fully clipped strokes preserve History.
+Shared core resize now clips or clears the Marquee for both Web and Apple.
 
 ## Next Up
 

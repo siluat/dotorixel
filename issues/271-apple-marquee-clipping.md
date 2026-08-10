@@ -20,10 +20,9 @@ region; without one, behavior is unchanged.
 
 - A single clipping seam at the stroke-composition layer (the Apple analog
   of the web's ops decorator): out-of-Marquee writes are dropped before
-  they reach the document, so individual tool sessions remain unchanged.
-  An explicit tool capability determines which sessions receive the
-  decorator. Compose with the existing pixel-perfect filtering the way the
-  web fixes the order (clip sees the filtered output).
+  they reach the document, so no per-tool changes are needed. Compose with
+  the existing pixel-perfect filtering the way the web fixes the order
+  (clip sees the filtered output).
 - **Flood Fill** uses the bounded fill from the 267 bindings: the Marquee
   edges bound the fill; a seed outside the Marquee no-ops.
 - The Marquee is snapshotted per stroke — mid-stroke Marquee mutations are

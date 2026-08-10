@@ -38,11 +38,11 @@ final class StrokeEngine {
         }
         let sessionHost: any StrokeSessionHost
         if tool.clipsToMarquee, let marquee = host.drawingSurface.marquee() {
-            let marqueeClippingHost = MarqueeClippingStrokeHost(base: host, marquee: marquee)
-            self.marqueeClippingHost = marqueeClippingHost
-            sessionHost = marqueeClippingHost
+            let clippingHost = MarqueeClippingStrokeHost(base: host, marquee: marquee)
+            self.marqueeClippingHost = clippingHost
+            sessionHost = clippingHost
         } else {
-            marqueeClippingHost = nil
+            self.marqueeClippingHost = nil
             sessionHost = host
         }
         let session = makeSession(tool, sessionHost, drawColor, button)

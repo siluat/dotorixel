@@ -73,3 +73,25 @@ struct EditorToolIsConstrainableTests {
         #expect(tool.isConstrainable == expected[tool])
     }
 }
+
+@Suite("EditorTool — clipsToMarquee")
+struct EditorToolClipsToMarqueeTests {
+
+    @Test("only drawing tools clip their output to the Marquee", arguments: EditorTool.allCases)
+    func clipsToMarquee(tool: EditorTool) {
+        // Keyed by case so a newly added tool must declare whether its stroke
+        // output belongs to the active Marquee clipping policy.
+        let expected: [EditorTool: Bool] = [
+            .pencil: true,
+            .eraser: true,
+            .line: true,
+            .rectangle: true,
+            .ellipse: true,
+            .floodFill: true,
+            .eyedropper: false,
+            .move: false,
+            .selection: false,
+        ]
+        #expect(tool.clipsToMarquee == expected[tool])
+    }
+}

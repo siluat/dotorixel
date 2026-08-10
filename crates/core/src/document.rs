@@ -1115,7 +1115,9 @@ impl Document {
     /// the same `anchor`. Each Reference Layer's placement is translated by the
     /// `anchor`'s placement factor (`placement.x += (new_w − old_w) × fx`,
     /// `placement.y += (new_h − old_h) × fy`); scale, source buffer, and
-    /// natural dimensions are unchanged. The active layer pointer is preserved.
+    /// natural dimensions are unchanged. The Marquee is clipped to the new
+    /// canvas bounds and cleared when no overlap remains. The active layer
+    /// pointer is preserved.
     pub fn resize(
         &mut self,
         new_width: u32,
@@ -1156,6 +1158,9 @@ impl Document {
         self.layers = resized;
         self.width = new_width;
         self.height = new_height;
+        if let Some(region) = self.marquee {
+            self.marquee = region.clip_to(new_width, new_height);
+        }
         Ok(())
     }
 
@@ -4375,6 +4380,30 @@ mod tests {
         assert_eq!(after.natural_height(), 2);
         // Scale is unchanged by the transform.
         assert_eq!(after.placement().scale(), placement.scale());
+    }
+
+    #[test]
+    fn resize_clips_marquee_to_new_canvas_or_clears_it_without_overlap() {
+        let mut partially_clipped =
+            Document::new(16, 16, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        partially_clipped.set_marquee(Some(MarqueeRegion::from_drag(6, 6, 9, 9)));
+
+        partially_clipped
+            .resize(8, 8, ResizeAnchor::TopLeft)
+            .unwrap();
+
+        assert_eq!(
+            partially_clipped.marquee(),
+            Some(MarqueeRegion::from_drag(6, 6, 7, 7))
+        );
+
+        let mut fully_cropped =
+            Document::new(16, 16, Uuid::new_v4(), "Layer 1".to_string()).unwrap();
+        fully_cropped.set_marquee(Some(MarqueeRegion::from_drag(10, 10, 11, 11)));
+
+        fully_cropped.resize(8, 8, ResizeAnchor::TopLeft).unwrap();
+
+        assert_eq!(fully_cropped.marquee(), None);
     }
 
     #[test]

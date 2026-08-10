@@ -20,9 +20,10 @@ region; without one, behavior is unchanged.
 
 - A single clipping seam at the stroke-composition layer (the Apple analog
   of the web's ops decorator): out-of-Marquee writes are dropped before
-  they reach the document, so no per-tool changes are needed. Compose with
-  the existing pixel-perfect filtering the way the web fixes the order
-  (clip sees the filtered output).
+  they reach the document, so individual tool sessions remain unchanged.
+  An explicit tool capability determines which sessions receive the
+  decorator. Compose with the existing pixel-perfect filtering the way the
+  web fixes the order (clip sees the filtered output).
 - **Flood Fill** uses the bounded fill from the 267 bindings: the Marquee
   edges bound the fill; a seed outside the Marquee no-ops.
 - The Marquee is snapshotted per stroke — mid-stroke Marquee mutations are
@@ -55,24 +56,38 @@ region; without one, behavior is unchanged.
 
 | File | Description |
 |------|-------------|
-| `apple/Dotorixel/Tools/StrokeEngine.swift` | Captures a Marquee-aware drawing surface once at stroke begin and retains it for the session lifetime. |
-| `apple/Dotorixel/Tools/StrokeSession.swift` | Adds the drawing-surface decorator that clips pixel writes and bounds flood fill while passing reads and whole-layer writes through. |
-| `apple/DotorixelTests/MarqueeClippingTests.swift` | Covers every affected tool, composition order, bounded fill, snapshotting, pass-through, unaffected tools, and no-op History behavior. |
-| `apple/DotorixelTests/SelectionStrokeSessionTests.swift` | Keeps the existing tool-switch persistence check aligned with the clipping contract. |
+| `crates/core/src/document.rs` | Makes canvas resize clip or clear the Marquee as a shared document invariant for both shells. |
+| `apple/Dotorixel/Tools/EditorTool.swift` | Declares the clipping policy per tool; drawing tools opt in while Eyedropper, Move, and Selection opt out. |
+| `apple/Dotorixel/Tools/MarqueeClipping.swift` | Keeps the clipping host and drawing-surface decorator together; clips pixel writes and intersects bounded fills while passing reads and whole-layer writes through. |
+| `apple/Dotorixel/Tools/StrokeEngine.swift` | Snapshots the Marquee once at stroke begin and applies the clipping host only to tools whose policy opts in. |
+| `apple/Dotorixel/Tools/StrokeSession.swift` | Extends the drawing-surface contract with bounded fill so decorators can narrow caller bounds without exposing the document. |
+| `apple/DotorixelTests/EditorToolTests.swift` | Pins every tool's explicit clipping-policy decision. |
+| `apple/DotorixelTests/MarqueeClippingTests.swift` | Covers every affected tool, composition order, bounded-fill intersection, snapshotting, pass-through, unaffected tools, and no-op History behavior. |
+| `apple/DotorixelTests/SelectionStrokeSessionTests.swift` | Keeps the existing tool-switch persistence check isolated from pixel-perfect behavior. |
+| `apple/DotorixelTests/TabStateTests.swift` | Covers resize clipping and clearing through Apple history, including undo and redo. |
 
 ### Key Decisions
 
-- Apply clipping once through a per-stroke drawing-surface decorator, preserving
-  the existing tool sessions and ensuring pixel-perfect filtering resolves
-  before writes reach the clip.
-- Pass reads and whole-layer snapshot/restore operations through unchanged so
-  Eyedropper and Move retain their existing behavior.
+- Declare clipping as an exhaustive `EditorTool` capability: drawing tools opt
+  in, while Eyedropper, Move, and Selection opt out. Selection therefore has a
+  deliberate path for moving a future Floating Selection beyond its source
+  Marquee instead of relying on which surface calls its session happens to use.
+- Apply opted-in clipping once through a per-stroke drawing-surface decorator,
+  preserving existing tool sessions and ensuring pixel-perfect filtering
+  resolves before writes reach the clip.
+- Pass reads and whole-layer snapshot/restore operations through unchanged for
+  clipped shape previews; unaffected tools bypass the decorator by policy.
 - Intersect every bounded-fill request with the captured Marquee, sealing the
   clipping contract even for future callers of the drawing-surface seam.
+- Keep resize's Marquee clipping invariant in core `Document::resize`, matching
+  canvas flip/rotate and fixing the same stale-selection failure in both shells
+  without a shell-specific correction.
 
 ### Notes
 
 - A fully clipped stroke relies on the existing Edit Baseline comparison, so it
   creates no History entry and preserves an existing redo future.
-- The complete Apple test suite passes: 440 tests across 87 suites on the pinned
+- `MarqueeClippingTests.swift` contains 13 `@Test` declarations across two
+  `@Suite`s, exercising 15 cases after parameterized shape coverage expands.
+- The complete Apple test suite passes: 445 tests across 89 suites on the pinned
   iPad Pro 11-inch (M5), iOS 26.4 simulator.

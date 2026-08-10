@@ -76,6 +76,11 @@ protocol DrawingSurface: AnyObject {
     func setPixel(x: UInt32, y: UInt32, color: Color) throws
     func applyTool(x: Int32, y: Int32, tool: ToolType, foregroundColor: Color) -> Bool
     func floodFill(x: Int32, y: Int32, fillColor: Color) -> Bool
+    /// Fills inside `bounds`, further narrowed by any clipping policy the
+    /// surface enforces. A Marquee-clipped surface intersects caller bounds
+    /// with its captured Marquee, so callers can narrow the clip but never
+    /// escape it; an empty intersection fills nothing. The document conformer
+    /// remains the FFI boundary that validates bounds and may throw.
     func floodFillBounded(
         x: Int32, y: Int32, fillColor: Color, bounds: AppleMarqueeRegion
     ) throws -> Bool

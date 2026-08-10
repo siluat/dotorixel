@@ -255,3 +255,30 @@ struct MarqueeClippingTests {
         return result
     }
 }
+
+@Suite("Marquee-clipped drawing surface")
+struct MarqueeClippedDrawingSurfaceTests {
+    private let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+    private let blue = Color(r: 0, g: 0, b: 0xFF, a: 0xFF)
+
+    @Test("caller bounds and the Marquee jointly bound flood fill")
+    func callerBoundsIntersectMarquee() throws {
+        let document = makeSingleLayerDocument(width: 8, height: 8)
+        let surface = MarqueeClippedDrawingSurface(
+            base: document,
+            marquee: AppleMarqueeRegion(x: 0, y: 0, width: 4, height: 8)
+        )
+
+        let didFill = try surface.floodFillBounded(
+            x: 2,
+            y: 2,
+            fillColor: blue,
+            bounds: AppleMarqueeRegion(x: 2, y: 0, width: 6, height: 8)
+        )
+
+        #expect(didFill)
+        #expect(try document.getPixel(x: 3, y: 2) == blue)
+        #expect(try document.getPixel(x: 4, y: 2) == transparent)
+        #expect(try document.getPixel(x: 1, y: 2) == transparent)
+    }
+}

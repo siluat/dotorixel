@@ -6,8 +6,9 @@ import SwiftUI
 ///
 /// Monitors see events before responder-chain dispatch. Character shortcuts
 /// stay app-level (subject to the text-input guard), while Arrow/Delete/Escape
-/// selection editing is admitted only when the canvas owns first responder so
-/// adjustable controls and presented surfaces keep their standard keys.
+/// selection editing is admitted only when the canvas owns first responder and
+/// VoiceOver is inactive, so adjustable controls, assistive navigation, and
+/// presented surfaces keep their standard keys.
 ///
 /// Ownership split: ⌘Z/⇧⌘Z belong to the Edit-menu commands
 /// (`UndoRedoCommands`) and pass through untouched — a single execution
@@ -61,11 +62,15 @@ struct ShortcutKeyMonitorModifier: ViewModifier {
         if KeyboardShortcutController.isMenuOwnedShortcut(key, modifiers: modifiers) {
             return false
         }
+        let canHandleSelectionEditingKeys = KeyboardShortcutController.canHandleSelectionEditingKeys(
+            canvasOwnsFirstResponder: event.window?.firstResponder is InputMTKView,
+            isVoiceOverEnabled: NSWorkspace.shared.isVoiceOverEnabled
+        )
         return workspace.keyboardShortcuts.handleKeyDown(
             key,
             modifiers: modifiers,
             isRepeat: event.isARepeat,
-            canHandleSelectionEditingKeys: event.window?.firstResponder is InputMTKView
+            canHandleSelectionEditingKeys: canHandleSelectionEditingKeys
         )
     }
 }

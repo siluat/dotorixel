@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 208 | 156 | 52 | 273 | 75% | 36% |
-| cubic-dev-ai[bot] | 303 | 236 | 67 | 211 | 78% | 53% |
-| coderabbitai[bot] | 314 | 224 | 90 | 219 | 71% | 51% |
+| greptile-apps[bot] | 209 | 157 | 52 | 273 | 75% | 37% |
+| cubic-dev-ai[bot] | 303 | 236 | 67 | 212 | 78% | 53% |
+| coderabbitai[bot] | 314 | 224 | 90 | 220 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #361 | greptile-apps[bot] | Accept | macOS selection-key admission relied only on AppKit first responder, so VoiceOver accessibility focus and Quick Nav could still lose Arrow/Delete/Escape; selection editing keys now pass through whenever VoiceOver is active |
+| #361 | cubic-dev-ai[bot] | Miss | Re-reviewed the latest commit with zero findings but missed the VoiceOver accessibility-focus key capture accepted from greptile |
+| #361 | coderabbitai[bot] | Miss | Re-reviewed the latest commit with no actionable comments but missed the VoiceOver accessibility-focus key capture accepted from greptile |
 | #361 | cubic-dev-ai[bot] | Reject | Proposed an Apple shell editability guard before Marquee pixel clear, but the Rust Document already no-ops on Reference Layers and the Core Edit Baseline deliberately remains the single authority on whether the command changed anything |
 | #361 | cubic-dev-ai[bot] | Reject | Proposed filtering modified Delete/Escape only on Apple without a concrete conflicting command; the task explicitly preserves Web parity, and canvas first-responder scoping already prevents capture in other controls and presented surfaces |
 | #361 | cubic-dev-ai[bot] | Accept | Floating Delete had no direct regression for committing the nudge before clearing the translated Marquee as a distinct History entry; added the full two-Undo round trip |

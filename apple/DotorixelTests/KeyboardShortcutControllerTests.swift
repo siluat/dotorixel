@@ -437,6 +437,22 @@ struct KeyboardShortcutControllerMarqueeTextInputTests {
 @Suite("KeyboardShortcutController — selection editing target")
 struct KeyboardShortcutControllerSelectionEditingTargetTests {
 
+    @Test("selection editing ownership requires canvas focus without VoiceOver")
+    func selectionEditingOwnershipPolicy() {
+        #expect(KeyboardShortcutController.canHandleSelectionEditingKeys(
+            canvasOwnsFirstResponder: true,
+            isVoiceOverEnabled: false
+        ))
+        #expect(!KeyboardShortcutController.canHandleSelectionEditingKeys(
+            canvasOwnsFirstResponder: false,
+            isVoiceOverEnabled: false
+        ))
+        #expect(!KeyboardShortcutController.canHandleSelectionEditingKeys(
+            canvasOwnsFirstResponder: true,
+            isVoiceOverEnabled: true
+        ))
+    }
+
     @Test("selection keys pass through outside the canvas while app-level shortcuts remain active")
     func selectionKeysRequireCanvasTarget() {
         let host = FakeShortcutHost()

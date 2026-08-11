@@ -131,6 +131,16 @@ final class KeyboardShortcutController {
         return isMenuOwnedShortcut(character, modifiers: modifiers)
     }
 
+    /// Whether macOS may consume canvas-scoped selection-editing keys. AppKit
+    /// first responder and VoiceOver accessibility focus are independent, so
+    /// assistive navigation keeps ownership whenever VoiceOver is active.
+    static func canHandleSelectionEditingKeys(
+        canvasOwnsFirstResponder: Bool,
+        isVoiceOverEnabled: Bool
+    ) -> Bool {
+        canvasOwnsFirstResponder && !isVoiceOverEnabled
+    }
+
     /// Routes one key press. Returns whether the key was consumed as a
     /// shortcut — callers swallow handled events so they don't also reach
     /// platform default handling.

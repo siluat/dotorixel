@@ -1,36 +1,47 @@
 import Foundation
 
-/// Selection tool session: a drag defines the Marquee live through the
-/// core's drag normalization, clipped to the canvas (web parity:
-/// `selection-tool.ts`). The first sample marks the anchor; every subsequent
-/// sample rewrites the document Marquee as the drag preview — the final
-/// rewrite is already the committed state, judged by the Edit Baseline.
+/// Selection tool session: a drag outside the Marquee defines it through the
+/// core's clipped normalization; a drag inside lifts or continues a tab-owned
+/// Floating Selection. Pointer release ends only the gesture, so the Floating
+/// Selection remains available for another drag or an explicit commit.
 final class SelectionStrokeSession: StrokeSession {
     // `unowned` breaks the transient host → engine → session → host cycle;
     // the engine tears the session down before the host can go away.
-    private unowned let host: StrokeSessionHost
+    private unowned let host: any SelectionSessionHost
 
     private var initialMarquee: AppleMarqueeRegion?
     private var anchor: ScreenCanvasCoords?
     private var hasUserDragged = false
+    private var isDefiningMarquee = false
+    private var isMovingFloatingSelection = false
+    private var floatingDragBaseline = FloatingSelectionOffset.zero
     private var draftMarquee: AppleMarqueeRegion?
     /// The raw (unconstrained) pointer position of the last sample — kept so
     /// a mid-drag modifier change can re-resolve the rectangle from it.
     private var lastCurrent: ScreenCanvasCoords?
 
-    init(host: StrokeSessionHost) {
+    init(host: any SelectionSessionHost) {
         self.host = host
     }
 
     func start() {
-        initialMarquee = host.drawingSurface.marquee()
-        host.beginEdit()
+        initialMarquee = host.selectionMarqueeForInteraction
+        floatingDragBaseline = host.floatingSelectionOffset ?? .zero
     }
 
     func draw(current: ScreenCanvasCoords, previous: ScreenCanvasCoords?) -> Bool {
         lastCurrent = current
         guard previous != nil, anchor != nil else {
             anchor = current
+            if host.floatingSelectionOffset != nil,
+               let initialMarquee,
+               !appleMarqueeContains(
+                   region: initialMarquee,
+                   x: current.x,
+                   y: current.y
+               ) {
+                host.commitFloatingSelection()
+            }
             return false
         }
         // Any sample past the first is a drag: the engine drops same-cell
@@ -38,21 +49,39 @@ final class SelectionStrokeSession: StrokeSession {
         // anchor cell (unlike the web session, which floors sub-cell points
         // itself and must re-check).
         hasUserDragged = true
+        if let initialMarquee, let anchor,
+           appleMarqueeContains(region: initialMarquee, x: anchor.x, y: anchor.y) {
+            if host.floatingSelectionOffset == nil {
+                guard host.liftFloatingSelection(from: initialMarquee) else { return false }
+            }
+            isMovingFloatingSelection = true
+            let gestureOffset = FloatingSelectionOffset(
+                dx: Int64(current.x) - Int64(anchor.x),
+                dy: Int64(current.y) - Int64(anchor.y)
+            )
+            return host.moveFloatingSelection(to: floatingDragBaseline + gestureOffset)
+        }
+        if !isDefiningMarquee {
+            host.beginEdit()
+            isDefiningMarquee = true
+        }
         return redefinePreview()
     }
 
     func modifierChanged() -> Bool {
         // Nothing to re-resolve before the drag leaves the anchor cell.
-        guard hasUserDragged else { return false }
+        guard hasUserDragged, isDefiningMarquee else { return false }
         return redefinePreview()
     }
 
     func end() -> Bool {
+        if isMovingFloatingSelection { return false }
         // A click without a meaningful drag: deselect only outside the
         // Marquee — an inside click belongs to the Floating Selection
         // lifecycle (issue 272) and must not clear it (web parity).
         if !hasUserDragged, let initialMarquee, let anchor,
            !appleMarqueeContains(region: initialMarquee, x: anchor.x, y: anchor.y) {
+            host.beginEdit()
             setMarquee(nil)
             return true
         }
@@ -67,10 +96,14 @@ final class SelectionStrokeSession: StrokeSession {
     }
 
     func cancel() -> Bool {
+        if isMovingFloatingSelection {
+            host.cancelFloatingSelection()
+            return false
+        }
         // An interrupted define (e.g. a pinch begun mid-drag) discards the
         // preview: the initial Marquee comes back and the Edit Baseline
         // resolves as a no-op.
-        guard hasUserDragged else { return false }
+        guard hasUserDragged, isDefiningMarquee else { return false }
         setMarquee(initialMarquee)
         return true
     }

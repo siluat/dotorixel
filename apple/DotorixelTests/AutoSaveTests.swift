@@ -74,6 +74,41 @@ struct AutoSaveTests {
         #expect(recorder.saves[0].dirtyDocIds == [doc])
     }
 
+    @Test("flush snapshots pre-lift pixels without resolving a live Floating Selection")
+    func flushPreservesLiveFloatingSelection() async throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let recorder = SaveRecorder()
+        let autoSave = makeAutoSave(
+            workspace: workspace,
+            recorder: recorder,
+            debounce: .seconds(60)
+        )
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+
+        try tab.document.setPixel(x: 1, y: 1, color: red)
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        )
+        workspace.activateTool(.selection)
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
+        tab.endStroke()
+
+        autoSave.markDirty(tab.documentId)
+        await autoSave.flush()
+
+        let savedPixels = try #require(recorder.saves.first?.snapshot.tabs[0].layers[0].pixels)
+        let sourceOffset = (1 * 4 + 1) * 4
+        #expect(Array(savedPixels[sourceOffset..<(sourceOffset + 4)]) == [0xFF, 0, 0, 0xFF])
+        #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 0))
+        #expect(try tab.document.getPixel(x: 1, y: 1) == transparent)
+        let preview = try tab.renderPixels()
+        let destinationOffset = (1 * 4 + 2) * 4
+        #expect(Array(preview[destinationOffset..<(destinationOffset + 4)]) == [0xFF, 0, 0, 0xFF])
+    }
+
     @Test("flush with nothing dirty performs no save")
     func flushWithNothingDirtyIsNoOp() async throws {
         let workspace = Workspace(width: 4, height: 4)

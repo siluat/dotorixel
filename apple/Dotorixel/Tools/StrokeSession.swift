@@ -160,3 +160,28 @@ protocol StrokeSessionHost: AnyObject {
     /// never call this directly.
     func recordRecentColor(_ color: Color)
 }
+
+/// The selection-specific editor surface: Marquee definition still uses the
+/// generic drawing surface, while Floating Selection ownership stays at the
+/// tab boundary instead of leaking buffer state into a stroke session.
+protocol SelectionSessionHost: StrokeSessionHost {
+    var selectionMarqueeForInteraction: AppleMarqueeRegion? { get }
+    var floatingSelectionOffset: FloatingSelectionOffset? { get }
+
+    @discardableResult
+    func liftFloatingSelection(from sourceRegion: AppleMarqueeRegion) -> Bool
+
+    @discardableResult
+    func moveFloatingSelection(to offset: FloatingSelectionOffset) -> Bool
+
+    /// Resolves the live Floating Selection into one document History edit.
+    /// Returns `true` only when the commit completed successfully. A failed
+    /// apply still resolves its Edit Baseline and lifecycle before returning
+    /// `false`, so callers can safely stop the triggering mutation.
+    @discardableResult
+    func commitFloatingSelection() -> Bool
+
+    /// Discards the live translation and restores the exact pre-lift state.
+    @discardableResult
+    func cancelFloatingSelection() -> Bool
+}

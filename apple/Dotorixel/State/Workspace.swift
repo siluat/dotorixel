@@ -281,11 +281,29 @@ final class Workspace {
     /// in `tool-ui.ts`): re-activating the already-active constrainable tool
     /// toggles the Constrain latch; anything else selects the tool.
     func activateTool(_ tool: EditorTool) {
-        if tool == shared.activeTool && tool.isConstrainable {
-            isConstrainLatchOn.toggle()
-        } else {
-            shared.activeTool = tool
+        if tool == shared.activeTool {
+            if tool.isConstrainable {
+                isConstrainLatchOn.toggle()
+            }
+            return
         }
+        switchActiveTool(to: tool)
+    }
+
+    /// The shared transition policy for toolbar and keyboard tool changes.
+    /// A same-tool toolbar tap is handled before this seam because only that
+    /// input species owns the Constrain-latch gesture.
+    private func switchActiveTool(to tool: EditorTool) {
+        guard tool != shared.activeTool else { return }
+        // A stroke owns the tool session it resolved at begin. Replacing the
+        // tool mid-gesture would invalidate that session (most visibly after
+        // a Floating Selection commit), so every tool-change input follows
+        // the same in-flight no-op policy.
+        guard !activeTab.isDrawing else { return }
+        guard activeTab.floatingSelectionOffset == nil
+                || activeTab.commitFloatingSelection()
+        else { return }
+        shared.activeTool = tool
     }
 
     // MARK: - Colors
@@ -353,7 +371,7 @@ extension Workspace: KeyboardShortcutHost {
     /// Unlike `activateTool`, re-selecting the active constrainable tool
     /// never toggles the Constrain latch (web parity: `setActiveTool`).
     func setActiveTool(_ tool: EditorTool) {
-        shared.activeTool = tool
+        switchActiveTool(to: tool)
     }
 
     func handleUndo() {

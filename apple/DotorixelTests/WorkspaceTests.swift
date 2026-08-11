@@ -146,6 +146,77 @@ struct WorkspaceTabLifecycleTests {
         #expect(tabA.canUndo)
     }
 
+    @Test("tab switching ends the gesture but preserves its tab-local Floating Selection")
+    func tabSwitchPreservesFloatingSelection() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tabA = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        try tabA.document.setPixel(x: 1, y: 1, color: red)
+        try tabA.document.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        )
+        workspace.addTab()
+        workspace.setActiveTab(0)
+        workspace.activateTool(.selection)
+
+        tabA.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tabA.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
+        workspace.setActiveTab(1)
+
+        #expect(!tabA.isDrawing)
+        #expect(tabA.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 0))
+
+        workspace.setActiveTab(0)
+        let firstPreview = try tabA.renderPixels()
+        let firstDestinationOffset = (1 * 4 + 2) * 4
+        #expect(
+            Array(firstPreview[firstDestinationOffset..<(firstDestinationOffset + 4)])
+                == [0xFF, 0, 0, 0xFF]
+        )
+
+        tabA.beginStroke(at: ScreenCanvasCoords(x: 2, y: 1))
+        tabA.continueStroke(to: ScreenCanvasCoords(x: 3, y: 1))
+        tabA.endStroke()
+        #expect(tabA.floatingSelectionOffset == FloatingSelectionOffset(dx: 2, dy: 0))
+    }
+
+    @Test("drawing on a revisited tab commits its Floating Selection first")
+    func drawingOnRevisitedTabCommitsFloatingSelectionFirst() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tabA = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+
+        try tabA.document.setPixel(x: 1, y: 1, color: red)
+        try tabA.document.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        )
+        workspace.activateTool(.selection)
+        tabA.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tabA.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
+        tabA.endStroke()
+
+        workspace.addTab()
+        workspace.activateTool(.pencil)
+        workspace.setActiveTab(0)
+
+        // The committed Marquee moves with the pixels, so the Pencil starts
+        // inside that destination and paints through the normal clipping path.
+        tabA.beginStroke(at: ScreenCanvasCoords(x: 2, y: 1))
+        tabA.endStroke()
+
+        try #require(tabA.floatingSelectionOffset == nil)
+        #expect(try tabA.document.getPixel(x: 1, y: 1) == transparent)
+        #expect(try tabA.document.getPixel(x: 2, y: 1) == workspace.shared.foregroundColor)
+
+        tabA.handleUndo()
+        #expect(try tabA.document.getPixel(x: 2, y: 1) == red)
+
+        tabA.handleUndo()
+        #expect(try tabA.document.getPixel(x: 1, y: 1) == red)
+        #expect(try tabA.document.getPixel(x: 2, y: 1) == transparent)
+    }
+
     @Test("closing the active tab activates its right neighbor, or the new last tab at the end")
     func closeActiveTabActivatesNeighbor() {
         let workspace = Workspace()

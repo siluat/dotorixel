@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Dotorixel
 
@@ -55,6 +56,51 @@ struct WorkspaceSnapshotCaptureTests {
         #expect(firstTab.viewport.panX == first.viewport.panX())
         #expect(firstTab.viewport.panY == first.viewport.panY())
         #expect(firstTab.viewport.pixelSize == first.viewport.pixelSize())
+    }
+
+    @Test("a live Floating Selection snapshots pre-lift source pixels without resolving it")
+    func floatingSelectionSnapshotUsesPreLiftPixels() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let blue = Color(r: 0, g: 0, b: 0xFF, a: 0xFF)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+
+        try tab.document.setPixel(x: 1, y: 1, color: red)
+        try tab.document.setPixel(x: 2, y: 1, color: blue)
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        )
+        workspace.activateTool(.selection)
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
+        tab.endStroke()
+
+        let snapshot = workspace.toSnapshot()
+        let pixels = try #require(
+            snapshot.tabs[0].layers.first {
+                $0.id == tab.document.activeLayerId()
+            }
+        ).pixels
+        #expect(pixel(in: pixels, width: 4, x: 1, y: 1) == red)
+        #expect(pixel(in: pixels, width: 4, x: 2, y: 1) == blue)
+
+        // Snapshot projection is read-only: the live document stays lifted
+        // and its destination remains a render-only source-over patch.
+        #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 0))
+        #expect(try tab.document.getPixel(x: 1, y: 1) == transparent)
+        #expect(try tab.document.getPixel(x: 2, y: 1) == blue)
+        #expect(pixel(in: try tab.renderPixels(), width: 4, x: 2, y: 1) == red)
+    }
+
+    private func pixel(in pixels: Data, width: Int, x: Int, y: Int) -> Color {
+        let offset = (y * width + x) * 4
+        return Color(
+            r: pixels[offset],
+            g: pixels[offset + 1],
+            b: pixels[offset + 2],
+            a: pixels[offset + 3]
+        )
     }
 }
 

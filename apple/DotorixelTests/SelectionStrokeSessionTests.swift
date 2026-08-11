@@ -121,10 +121,11 @@ struct SelectionStrokeSessionTests {
     func identicalRedefineRecordsNothing() {
         let state = Workspace(width: 8, height: 8)
         state.shared.activeTool = .selection
-        defineMarquee(state, from: (2, 2), to: (4, 4))
-        // The same drag again: the document ends where it began, so the Edit
+        defineMarquee(state, from: (0, 0), to: (7, 7))
+        // Starting outside avoids the inside-drag Floating path. Clipping
+        // this second drag produces the same full-canvas Marquee, so the Edit
         // Baseline resolves without an entry (web parity: a no-op define).
-        defineMarquee(state, from: (2, 2), to: (4, 4))
+        defineMarquee(state, from: (-1, -1), to: (7, 7))
 
         // One undo steps past the single define — back to no Marquee at all.
         state.activeTab.handleUndo()

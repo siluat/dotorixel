@@ -88,9 +88,12 @@ final class TabState {
         // UniFFI while Floating lifecycle changes bump the canvas version.
         _ = historyVersion
         _ = canvasVersion
-        // A live Floating Selection is transient rather than a History entry,
-        // but Undo is still its user-facing cancel action.
-        return floatingSelection.isActive || documentHistory.canUndo()
+        // A live Floating Selection and a pending recovery are transient
+        // rather than History entries, but Undo is still their user-facing
+        // resolution action.
+        return floatingSelection.isActive
+            || floatingSelection.hasPendingRecovery
+            || documentHistory.canUndo()
     }
 
     var canRedo: Bool {
@@ -98,8 +101,10 @@ final class TabState {
         _ = historyVersion
         _ = canvasVersion
         // Redo cannot replace the Document while the lifecycle still owns a
-        // source Layer within it.
-        return !floatingSelection.isActive && documentHistory.canRedo()
+        // source Layer or its pending recovery snapshot.
+        return !floatingSelection.isActive
+            && !floatingSelection.hasPendingRecovery
+            && documentHistory.canRedo()
     }
 
     var zoomPercent: Int {
@@ -222,6 +227,10 @@ final class TabState {
         if isDrawing {
             cancelStroke()
         }
+        // A degraded cancel keeps a persistence-safe recovery snapshot but
+        // releases its interactive Floating owner. Repair the live Document
+        // before any tool is allowed to open a new edit against its source.
+        guard resolveFloatingSelectionRecovery() else { return }
         // The active tool is workspace-shared while Floating Selections are
         // tab-local. A tab can therefore be revisited with another tool
         // selected; resolve its pending selection before that tool opens a
@@ -316,6 +325,7 @@ final class TabState {
     /// exist to prevent.
     @discardableResult
     private func performEdit(_ mutate: () -> Bool) -> Bool {
+        guard resolveFloatingSelectionRecovery() else { return false }
         // A Floating Selection is its own pending edit. Resolve it first so
         // this command receives a fresh baseline and a distinct undo step.
         guard !floatingSelection.isActive || commitFloatingSelection() else {
@@ -393,6 +403,28 @@ final class TabState {
         hoverPoint = nil
     }
 
+    /// Retries the exact source-pixel restoration retained after a degraded
+    /// Floating cancellation. The recovery is not a History entry: success
+    /// only refreshes the canvas, while failure keeps the snapshot available
+    /// for persistence and a later retry.
+    @discardableResult
+    private func resolveFloatingSelectionRecovery() -> Bool {
+        guard floatingSelection.hasPendingRecovery else { return true }
+
+        switch floatingSelection.retryPendingRecovery(in: document) {
+        case .noRecovery:
+            return true
+        case .restored:
+            canvasVersion += 1
+            return true
+        case let .failed(didMutateDocument, _):
+            if didMutateDocument {
+                canvasVersion += 1
+            }
+            return false
+        }
+    }
+
     // MARK: - History
 
     /// Restores the previous document state from the history stack.
@@ -406,6 +438,12 @@ final class TabState {
             _ = cancelFloatingSelection()
             return
         }
+        // A degraded cancel has not entered History. Undo retries its exact
+        // recovery and never consumes the preceding committed edit.
+        if floatingSelection.hasPendingRecovery {
+            _ = resolveFloatingSelectionRecovery()
+            return
+        }
         if let restored = documentHistory.undo(current: document) {
             applyRestoredDocument(restored)
         }
@@ -415,9 +453,12 @@ final class TabState {
     /// No-ops silently while a drawing stroke is in progress.
     func handleRedo() {
         // Replacing the Document while a Floating Selection owns references
-        // into its source would orphan that transient state. Redo becomes
-        // available again after the selection is committed or cancelled.
-        guard !isDrawing, !floatingSelection.isActive else { return }
+        // into its source would orphan that transient state. A degraded
+        // cancellation's recovery snapshot has the same replacement guard;
+        // Redo returns after both states are resolved.
+        guard !isDrawing,
+              !floatingSelection.isActive,
+              !floatingSelection.hasPendingRecovery else { return }
         if let restored = documentHistory.redo(current: document) {
             applyRestoredDocument(restored)
         }
@@ -472,6 +513,7 @@ final class TabState {
         guard !isDrawing else { return }
         guard id != document.activeLayerId() else { return }
         guard document.layers().contains(where: { $0.id == id }) else { return }
+        guard resolveFloatingSelectionRecovery() else { return }
         guard !floatingSelection.isActive || commitFloatingSelection() else { return }
         guard (try? document.setActiveLayer(id: id)) != nil else { return }
         canvasVersion += 1
@@ -700,7 +742,9 @@ final class TabState {
             // Apple shell has no creation path for yet — an impossible state
             // here, not a boundary to guard.
             layers: persistenceLayerSnapshots(),
-            activeLayerId: document.activeLayerId(),
+            activeLayerId: floatingSelection.snapshotActiveLayerId(
+                currentActiveLayerId: document.activeLayerId()
+            ),
             nextLayerNumber: document.nextLayerNumber(),
             timelinePanelCollapsed: isTimelinePanelCollapsed,
             viewport: TabViewportSnapshot(
@@ -724,9 +768,10 @@ final class TabState {
         }
     }
 
-    /// Persistence-facing Layers project a live Floating Selection back onto
-    /// its source Layer. The transparent source hole is only a render-session
-    /// detail and must not affect saves or the tab-close blank-document guard.
+    /// Persistence-facing Layers project a live Floating Selection — or a
+    /// pending degraded recovery — back onto its source Layer. The transparent
+    /// source hole is only a render-session detail and must not affect saves,
+    /// export, or the tab-close blank-document guard.
     private func persistenceLayerSnapshots() -> [AppleLayerSnapshot] {
         // `layerSnapshots` errors only on a Reference Layer (no Apple
         // creation path yet) — the same impossible state as `toSnapshot`.
@@ -746,9 +791,25 @@ final class TabState {
     /// scale (one canvas pixel per image pixel), matching the web's export
     /// convention.
     ///
-    /// - Throws: `AppleError` when PNG encoding fails.
+    /// - Throws: `AppleError` when a recovery projection cannot be rebuilt or
+    ///   PNG encoding fails.
     func makePngExportDocument() throws -> PngExportDocument {
-        PngExportDocument(data: try document.encodeExportPng())
+        let exportDocument: AppleDocument
+        if floatingSelection.hasPendingRecovery {
+            exportDocument = try AppleDocument.fromLayers(
+                width: document.width(),
+                height: document.height(),
+                layers: persistenceLayerSnapshots(),
+                activeLayerId: floatingSelection.snapshotActiveLayerId(
+                    currentActiveLayerId: document.activeLayerId()
+                ),
+                nextLayerNumber: document.nextLayerNumber(),
+                timelinePanelCollapsed: isTimelinePanelCollapsed
+            )
+        } else {
+            exportDocument = document
+        }
+        return PngExportDocument(data: try exportDocument.encodeExportPng())
     }
 
     /// Default export filename following the web convention
@@ -895,14 +956,14 @@ extension TabState: SelectionSessionHost {
         case let .degraded(
             didRestoreSourcePixels,
             didRestoreMarquee,
-            message
+            _
         ):
-            // Once the transient projection is gone, any unrestored state is
-            // durable and must participate in session persistence.
+            // A degraded cancellation participates in auto-save. When source
+            // recovery is pending, the lifecycle projects retained pre-lift
+            // pixels instead of exposing the live source hole to persistence.
             if !didRestoreSourcePixels || !didRestoreMarquee {
                 notifier.markDirty(documentId: documentId)
             }
-            assertionFailure(message)
             return false
         }
     }

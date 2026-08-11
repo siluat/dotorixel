@@ -5,6 +5,7 @@ import Foundation
 /// generated UniFFI object and gives boundary failures a direct test seam.
 protocol FloatingSelectionDocument: AnyObject {
     func activeLayerId() -> String
+    func setActiveLayer(id: String) throws
     func activeLayerPixels() throws -> Data
     func restoreActiveLayerPixels(data: Data) throws
     func marquee() -> AppleMarqueeRegion?
@@ -81,6 +82,12 @@ final class FloatingSelectionLifecycle {
         )
     }
 
+    enum RecoveryOutcome {
+        case noRecovery
+        case restored
+        case failed(didMutateDocument: Bool, message: String)
+    }
+
     private struct FloatingSelection {
         let buffer: Data
         let sourceLayerId: String
@@ -90,9 +97,17 @@ final class FloatingSelectionLifecycle {
         var offset: FloatingSelectionOffset
     }
 
+    private struct PersistenceRecovery {
+        let sourceLayerId: String
+        let sourceLayerPixelsBeforeLift: Data
+        let activeLayerIdBeforeRecovery: String
+    }
+
     private var floating: FloatingSelection?
+    private var persistenceRecovery: PersistenceRecovery?
 
     var isActive: Bool { floating != nil }
+    var hasPendingRecovery: Bool { persistenceRecovery != nil }
     var offset: FloatingSelectionOffset? { floating?.offset }
 
     /// Lifts the active Marquee once and clears its source pixels immediately.
@@ -101,7 +116,7 @@ final class FloatingSelectionLifecycle {
         _ sourceRegion: AppleMarqueeRegion,
         in document: any FloatingSelectionDocument
     ) -> Bool {
-        guard floating == nil else { return false }
+        guard floating == nil, persistenceRecovery == nil else { return false }
 
         do {
             let sourceLayerId = document.activeLayerId()
@@ -164,14 +179,24 @@ final class FloatingSelectionLifecycle {
         )
     }
 
-    /// Persistence projection for one Layer. A live Floating Selection is
-    /// session-transient, so its source Layer saves the complete pre-lift
-    /// pixels rather than the transparent hole in the live preview document.
+    /// Persistence projection for one Layer. A live Floating Selection — or a
+    /// degraded cancellation awaiting source recovery — saves the complete
+    /// pre-lift pixels rather than the transparent hole in the live document.
     func snapshotPixels(for layerId: String, currentPixels: Data) -> Data {
-        guard let floating, floating.sourceLayerId == layerId else {
-            return currentPixels
+        if let floating, floating.sourceLayerId == layerId {
+            return floating.sourceLayerPixelsBeforeLift
         }
-        return floating.sourceLayerPixelsBeforeLift
+        if let persistenceRecovery, persistenceRecovery.sourceLayerId == layerId {
+            return persistenceRecovery.sourceLayerPixelsBeforeLift
+        }
+        return currentPixels
+    }
+
+    /// Persistence projection for the active-Layer pointer. A retry may have
+    /// restored the source pixels but failed to reinstate the pointer; saving
+    /// the pre-recovery identity keeps that partial boundary failure transient.
+    func snapshotActiveLayerId(currentActiveLayerId: String) -> String {
+        persistenceRecovery?.activeLayerIdBeforeRecovery ?? currentActiveLayerId
     }
 
     /// Restores the pre-lift document before opening the Edit Baseline, then
@@ -246,7 +271,8 @@ final class FloatingSelectionLifecycle {
         // degraded document must not retain an unresolvable transient owner.
         self.floating = nil
 
-        let isSourceLayerActive = document.activeLayerId() == floating.sourceLayerId
+        let activeLayerIdBeforeRecovery = document.activeLayerId()
+        let isSourceLayerActive = activeLayerIdBeforeRecovery == floating.sourceLayerId
         var didRestoreSourcePixels = false
         var failures: [String] = []
 
@@ -274,12 +300,74 @@ final class FloatingSelectionLifecycle {
         }
 
         guard didRestoreSourcePixels, didRestoreMarquee else {
+            if !didRestoreSourcePixels {
+                persistenceRecovery = PersistenceRecovery(
+                    sourceLayerId: floating.sourceLayerId,
+                    sourceLayerPixelsBeforeLift: floating.sourceLayerPixelsBeforeLift,
+                    activeLayerIdBeforeRecovery: activeLayerIdBeforeRecovery
+                )
+            }
             return .degraded(
                 didRestoreSourcePixels: didRestoreSourcePixels,
                 didRestoreMarquee: didRestoreMarquee,
                 message: "Failed to restore Floating Selection exactly (\(failures.joined(separator: "; ")))"
             )
         }
+        return .restored
+    }
+
+    /// Retries a source-pixel recovery left by degraded cancellation. The
+    /// source Layer becomes active only for the restore and the caller's
+    /// original active Layer is reinstated before recovery is considered
+    /// complete. Any failure keeps the persistence projection available.
+    func retryPendingRecovery(
+        in document: any FloatingSelectionDocument
+    ) -> RecoveryOutcome {
+        guard let recovery = persistenceRecovery else { return .noRecovery }
+
+        let desiredActiveLayerId = recovery.activeLayerIdBeforeRecovery
+        var failures: [String] = []
+        var didActivateSource = document.activeLayerId() == recovery.sourceLayerId
+
+        if !didActivateSource {
+            do {
+                try document.setActiveLayer(id: recovery.sourceLayerId)
+                didActivateSource = true
+            } catch {
+                failures.append("activate source Layer: \(error)")
+            }
+        }
+
+        var didRestoreSourcePixels = false
+        if didActivateSource {
+            do {
+                try document.restoreActiveLayerPixels(
+                    data: recovery.sourceLayerPixelsBeforeLift
+                )
+                didRestoreSourcePixels = true
+            } catch {
+                failures.append("source pixels: \(error)")
+            }
+        }
+
+        if document.activeLayerId() != desiredActiveLayerId {
+            do {
+                try document.setActiveLayer(id: desiredActiveLayerId)
+            } catch {
+                failures.append("restore active Layer: \(error)")
+            }
+        }
+        let didRestoreActiveLayer = document.activeLayerId() == desiredActiveLayerId
+
+        guard didRestoreSourcePixels, didRestoreActiveLayer else {
+            return .failed(
+                didMutateDocument: didRestoreSourcePixels
+                    || document.activeLayerId() != desiredActiveLayerId,
+                message: "Failed to recover Floating Selection (\(failures.joined(separator: "; ")))"
+            )
+        }
+
+        persistenceRecovery = nil
         return .restored
     }
 

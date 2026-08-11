@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 207 | 155 | 52 | 269 | 75% | 37% |
-| cubic-dev-ai[bot] | 297 | 232 | 65 | 210 | 78% | 52% |
-| coderabbitai[bot] | 311 | 222 | 89 | 216 | 71% | 51% |
+| greptile-apps[bot] | 207 | 155 | 52 | 270 | 75% | 36% |
+| cubic-dev-ai[bot] | 298 | 233 | 65 | 210 | 78% | 53% |
+| coderabbitai[bot] | 311 | 222 | 89 | 217 | 71% | 51% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #360 | cubic-dev-ai[bot] | Accept | A degraded Floating Selection cancel could discard its pre-lift persistence projection, mark the live source-Layer hole dirty, and overwrite recoverable stored pixels |
+| #360 | coderabbitai[bot] | Miss | Missed degraded cancel persisting the lifted-pixel hole (accepted from cubic) |
+| #360 | greptile-apps[bot] | Miss | Missed degraded cancel persisting the lifted-pixel hole (accepted from cubic) |
 | #360 | coderabbitai[bot] | Accept | Partial: cancel could retain an unresolvable Floating Selection after a source-Layer mismatch or restore failure; cancellation now always releases the transient owner, independently restores safe portions, and reports degraded recovery for canvas/dirty handling. Invalid projection was not a cancel wedge because `moveTo` rejects it and cancel does not project |
 | #360 | coderabbitai[bot] | Accept | `try!` in the Metal render update could terminate the app if the Floating patch FFI invariant broke; debug builds now assert while release builds fall back to the current live document composite |
 | #360 | coderabbitai[bot] | Accept | Partial: `SelectionSessionHost` left the lift/move `Bool` outcomes undocumented; added the real success/rejection contracts without the inaccurate claims that transparent regions fail or every failed lift leaves the Document unchanged |

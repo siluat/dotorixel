@@ -610,11 +610,15 @@ struct FloatingSelectionEditBaselineTests {
 
     @Test("cancel never overwrites a different active Layer")
     func cancelWithActiveLayerMismatchUsesDegradedRecovery() throws {
+        let sourcePixels = Data([0xFF, 0, 0, 0xFF])
         let originalMarquee = AppleMarqueeRegion(
             x: 0, y: 0, width: 1, height: 1
         )
         let source = AppleMarqueeRegion(x: 1, y: 0, width: 1, height: 1)
-        let document = FloatingSelectionDocumentFake(marquee: originalMarquee)
+        let document = FloatingSelectionDocumentFake(
+            pixels: sourcePixels,
+            marquee: originalMarquee
+        )
         let lifecycle = FloatingSelectionLifecycle()
 
         #expect(lifecycle.liftFromMarquee(source, in: document))
@@ -638,6 +642,30 @@ struct FloatingSelectionEditBaselineTests {
         #expect(document.pixels == otherLayerPixels)
         #expect(document.currentMarquee == originalMarquee)
         #expect(!lifecycle.isActive)
+        #expect(lifecycle.hasPendingRecovery)
+
+        let liveSourceHole = try #require(document.pixels(for: document.sourceLayerId))
+        #expect(
+            lifecycle.snapshotPixels(
+                for: document.sourceLayerId,
+                currentPixels: liveSourceHole
+            ) == sourcePixels
+        )
+        // Recovery projection survives repeated snapshots until source repair
+        // actually succeeds; taking a snapshot is not a save acknowledgement.
+        #expect(
+            lifecycle.snapshotPixels(
+                for: document.sourceLayerId,
+                currentPixels: liveSourceHole
+            ) == sourcePixels
+        )
+        #expect(
+            lifecycle.snapshotPixels(
+                for: "other-layer",
+                currentPixels: otherLayerPixels
+            ) == otherLayerPixels
+        )
+        #expect(!lifecycle.liftFromMarquee(source, in: document))
     }
 
     @Test("cancel still restores the Marquee when pixel restoration fails")
@@ -669,6 +697,7 @@ struct FloatingSelectionEditBaselineTests {
         #expect(document.pixels == Data(repeating: 0, count: 4))
         #expect(document.currentMarquee == originalMarquee)
         #expect(!lifecycle.isActive)
+        #expect(lifecycle.hasPendingRecovery)
     }
 
     @Test("cancel still restores pixels when Marquee restoration fails")
@@ -704,6 +733,123 @@ struct FloatingSelectionEditBaselineTests {
         #expect(document.pixels == sourcePixels)
         #expect(document.currentMarquee == source)
         #expect(!lifecycle.isActive)
+        #expect(!lifecycle.hasPendingRecovery)
+
+        let currentPixels = Data([0, 0xFF, 0, 0xFF])
+        #expect(
+            lifecycle.snapshotPixels(
+                for: document.sourceLayerId,
+                currentPixels: currentPixels
+            ) == currentPixels
+        )
+        guard case .noRecovery = lifecycle.retryPendingRecovery(in: document) else {
+            Issue.record("A Marquee-only failure must not create pixel recovery")
+            return
+        }
+    }
+
+    @Test("retry restores only the source Layer and reinstates the active Layer")
+    func retryPendingRecoveryPreservesOtherLayer() throws {
+        let sourcePixels = Data([0xFF, 0, 0, 0xFF])
+        let otherLayerPixels = Data([0, 0, 0xFF, 0xFF])
+        let source = AppleMarqueeRegion(x: 0, y: 0, width: 1, height: 1)
+        let document = FloatingSelectionDocumentFake(pixels: sourcePixels)
+        let lifecycle = FloatingSelectionLifecycle()
+
+        #expect(lifecycle.liftFromMarquee(source, in: document))
+        document.activeLayerIdentifier = "other-layer"
+        document.pixels = otherLayerPixels
+        guard case .degraded = lifecycle.cancel(in: document) else {
+            Issue.record("A Layer mismatch must leave pixel recovery pending")
+            return
+        }
+
+        guard case .restored = lifecycle.retryPendingRecovery(in: document) else {
+            Issue.record("A valid retry must restore the pending source pixels")
+            return
+        }
+
+        #expect(!lifecycle.hasPendingRecovery)
+        #expect(document.activeLayerIdentifier == "other-layer")
+        #expect(document.setActiveLayerCallIds == [document.sourceLayerId, "other-layer"])
+        #expect(document.pixels(for: document.sourceLayerId) == sourcePixels)
+        #expect(document.pixels(for: "other-layer") == otherLayerPixels)
+    }
+
+    @Test("retry returns to the original active Layer after pixel restoration fails")
+    func failedRetryPreservesRecoveryAndOtherLayer() throws {
+        let sourcePixels = Data([0xFF, 0, 0, 0xFF])
+        let otherLayerPixels = Data([0, 0, 0xFF, 0xFF])
+        let source = AppleMarqueeRegion(x: 0, y: 0, width: 1, height: 1)
+        let document = FloatingSelectionDocumentFake(pixels: sourcePixels)
+        let lifecycle = FloatingSelectionLifecycle()
+
+        #expect(lifecycle.liftFromMarquee(source, in: document))
+        document.activeLayerIdentifier = "other-layer"
+        document.pixels = otherLayerPixels
+        _ = lifecycle.cancel(in: document)
+        document.pixelRestoreError = FloatingSelectionFakeError.pixelRestoreFailed
+
+        guard case .failed = lifecycle.retryPendingRecovery(in: document) else {
+            Issue.record("A throwing pixel retry must report failure")
+            return
+        }
+
+        #expect(lifecycle.hasPendingRecovery)
+        #expect(document.activeLayerIdentifier == "other-layer")
+        #expect(document.setActiveLayerCallIds == [document.sourceLayerId, "other-layer"])
+        #expect(document.pixels(for: document.sourceLayerId) == Data(repeating: 0, count: 4))
+        #expect(document.pixels(for: "other-layer") == otherLayerPixels)
+        #expect(
+            lifecycle.snapshotPixels(
+                for: document.sourceLayerId,
+                currentPixels: Data(repeating: 0, count: 4)
+            ) == sourcePixels
+        )
+    }
+
+    @Test("an active-Layer restore failure keeps recovery and its original target")
+    func activeLayerRestoreFailureRetainsOriginalTargetForNextRetry() throws {
+        let sourcePixels = Data([0xFF, 0, 0, 0xFF])
+        let otherLayerPixels = Data([0, 0, 0xFF, 0xFF])
+        let source = AppleMarqueeRegion(x: 0, y: 0, width: 1, height: 1)
+        let document = FloatingSelectionDocumentFake(pixels: sourcePixels)
+        let lifecycle = FloatingSelectionLifecycle()
+
+        #expect(lifecycle.liftFromMarquee(source, in: document))
+        document.activeLayerIdentifier = "other-layer"
+        document.pixels = otherLayerPixels
+        _ = lifecycle.cancel(in: document)
+        document.activeLayerSetFailuresRemaining["other-layer"] = 1
+
+        guard case let .failed(didMutateDocument, _) = lifecycle.retryPendingRecovery(
+            in: document
+        ) else {
+            Issue.record("A failed active-Layer restore must report failure")
+            return
+        }
+        #expect(didMutateDocument)
+        #expect(lifecycle.hasPendingRecovery)
+        #expect(document.activeLayerIdentifier == document.sourceLayerId)
+        #expect(
+            lifecycle.snapshotActiveLayerId(
+                currentActiveLayerId: document.activeLayerIdentifier
+            ) == "other-layer"
+        )
+        #expect(document.pixels(for: "other-layer") == otherLayerPixels)
+
+        guard case .restored = lifecycle.retryPendingRecovery(in: document) else {
+            Issue.record("The next retry must retain and restore the original active Layer")
+            return
+        }
+        #expect(!lifecycle.hasPendingRecovery)
+        #expect(document.activeLayerIdentifier == "other-layer")
+        #expect(document.pixels(for: document.sourceLayerId) == sourcePixels)
+        #expect(document.pixels(for: "other-layer") == otherLayerPixels)
+        #expect(
+            document.setActiveLayerCallIds
+                == [document.sourceLayerId, "other-layer", "other-layer"]
+        )
     }
 }
 
@@ -711,6 +857,8 @@ private enum FloatingSelectionFakeError: Error {
     case compositeFailed
     case pixelRestoreFailed
     case marqueeRestoreFailed
+    case activeLayerSetFailed
+    case unknownLayer
 }
 
 private final class FloatingSelectionDocumentFake: FloatingSelectionDocument {
@@ -721,13 +869,19 @@ private final class FloatingSelectionDocumentFake: FloatingSelectionDocument {
 
     let sourceLayerId = "source-layer"
     var activeLayerIdentifier: String
-    var pixels: Data
+    private var layerPixels: [String: Data]
+    var pixels: Data {
+        get { layerPixels[activeLayerIdentifier] ?? Data() }
+        set { layerPixels[activeLayerIdentifier] = newValue }
+    }
     var currentMarquee: AppleMarqueeRegion?
     var compositeError: Error?
     var pixelRestoreError: Error?
     var marqueeRestoreError: Error?
+    var activeLayerSetFailuresRemaining: [String: Int] = [:]
     private(set) var pixelRestoreCallCount = 0
     private(set) var setMarqueeCallCount = 0
+    private(set) var setActiveLayerCallIds: [String] = []
 
     init(
         pixels: Data = Data([0xFF, 0, 0, 0xFF]),
@@ -736,7 +890,7 @@ private final class FloatingSelectionDocumentFake: FloatingSelectionDocument {
         )
     ) {
         activeLayerIdentifier = sourceLayerId
-        self.pixels = pixels
+        layerPixels = [sourceLayerId: pixels]
         currentMarquee = marquee
     }
 
@@ -745,6 +899,16 @@ private final class FloatingSelectionDocumentFake: FloatingSelectionDocument {
     }
 
     func activeLayerId() -> String { activeLayerIdentifier }
+    func setActiveLayer(id: String) throws {
+        setActiveLayerCallIds.append(id)
+        let failuresRemaining = activeLayerSetFailuresRemaining[id, default: 0]
+        if failuresRemaining > 0 {
+            activeLayerSetFailuresRemaining[id] = failuresRemaining - 1
+            throw FloatingSelectionFakeError.activeLayerSetFailed
+        }
+        guard layerPixels[id] != nil else { throw FloatingSelectionFakeError.unknownLayer }
+        activeLayerIdentifier = id
+    }
     func activeLayerPixels() throws -> Data { pixels }
     func restoreActiveLayerPixels(data: Data) throws {
         pixelRestoreCallCount += 1
@@ -775,6 +939,10 @@ private final class FloatingSelectionDocumentFake: FloatingSelectionDocument {
     func compositeBufferAt(buffer: Data, region: AppleMarqueeRegion) throws {
         if let compositeError { throw compositeError }
         pixels = buffer
+    }
+
+    func pixels(for layerId: String) -> Data? {
+        layerPixels[layerId]
     }
 }
 

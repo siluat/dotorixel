@@ -5,6 +5,11 @@ import Foundation
 /// Floating Selection. Pointer release ends only the gesture, so the Floating
 /// Selection remains available for another drag or an explicit commit.
 final class SelectionStrokeSession: StrokeSession {
+    private enum FloatingDragAxis {
+        case horizontal
+        case vertical
+    }
+
     // `unowned` breaks the transient host → engine → session → host cycle;
     // the engine tears the session down before the host can go away.
     private unowned let host: any SelectionSessionHost
@@ -15,6 +20,7 @@ final class SelectionStrokeSession: StrokeSession {
     private var isDefiningMarquee = false
     private var isMovingFloatingSelection = false
     private var floatingDragBaseline = FloatingSelectionOffset.zero
+    private var floatingDragAxis: FloatingDragAxis?
     private var draftMarquee: AppleMarqueeRegion?
     /// The raw (unconstrained) pointer position of the last sample — kept so
     /// a mid-drag modifier change can re-resolve the rectangle from it.
@@ -27,6 +33,7 @@ final class SelectionStrokeSession: StrokeSession {
     func start() {
         initialMarquee = host.selectionMarqueeForInteraction
         floatingDragBaseline = host.floatingSelectionOffset ?? .zero
+        floatingDragAxis = nil
     }
 
     func draw(current: ScreenCanvasCoords, previous: ScreenCanvasCoords?) -> Bool {
@@ -55,10 +62,7 @@ final class SelectionStrokeSession: StrokeSession {
                 guard host.liftFloatingSelection(from: initialMarquee) else { return false }
             }
             isMovingFloatingSelection = true
-            let gestureOffset = FloatingSelectionOffset(
-                dx: Int64(current.x) - Int64(anchor.x),
-                dy: Int64(current.y) - Int64(anchor.y)
-            )
+            let gestureOffset = resolvedFloatingGestureOffset(anchor: anchor, current: current)
             return host.moveFloatingSelection(to: floatingDragBaseline + gestureOffset)
         }
         if !isDefiningMarquee {
@@ -70,7 +74,15 @@ final class SelectionStrokeSession: StrokeSession {
 
     func modifierChanged() -> Bool {
         // Nothing to re-resolve before the drag leaves the anchor cell.
-        guard hasUserDragged, isDefiningMarquee else { return false }
+        guard hasUserDragged else { return false }
+        if isMovingFloatingSelection, let anchor, let lastCurrent {
+            let gestureOffset = resolvedFloatingGestureOffset(
+                anchor: anchor,
+                current: lastCurrent
+            )
+            return host.moveFloatingSelection(to: floatingDragBaseline + gestureOffset)
+        }
+        guard isDefiningMarquee else { return false }
         return redefinePreview()
     }
 
@@ -120,6 +132,35 @@ final class SelectionStrokeSession: StrokeSession {
             : marqueeFromDrag(anchor, lastCurrent)
         setMarquee(draftMarquee)
         return true
+    }
+
+    /// Constrain chooses the dominant axis when it becomes active and keeps
+    /// that axis stable until it turns off, even if the pointer crosses dominance.
+    private func resolvedFloatingGestureOffset(
+        anchor: ScreenCanvasCoords,
+        current: ScreenCanvasCoords
+    ) -> FloatingSelectionOffset {
+        let rawOffset = FloatingSelectionOffset(
+            dx: Int64(current.x) - Int64(anchor.x),
+            dy: Int64(current.y) - Int64(anchor.y)
+        )
+        guard host.isConstrainHeld else {
+            floatingDragAxis = nil
+            return rawOffset
+        }
+        if floatingDragAxis == nil {
+            floatingDragAxis = abs(rawOffset.dx) >= abs(rawOffset.dy)
+                ? .horizontal
+                : .vertical
+        }
+        switch floatingDragAxis {
+        case .horizontal:
+            return FloatingSelectionOffset(dx: rawOffset.dx, dy: 0)
+        case .vertical:
+            return FloatingSelectionOffset(dx: 0, dy: rawOffset.dy)
+        case nil:
+            return rawOffset
+        }
     }
 
     /// The constrained define (web parity: `squareMarqueeFromDrag` in

@@ -198,6 +198,33 @@ struct SelectionStrokeSessionTests {
         #expect(!state.activeTab.canUndo)
     }
 
+    @Test("Shift locks a Floating drag to its dominant axis and re-resolves live")
+    func shiftLocksFloatingDragToDominantAxis() throws {
+        let state = Workspace(width: 8, height: 8)
+        let tab = state.activeTab
+        state.shared.activeTool = .selection
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        )
+
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 4, y: 3))
+        #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 3, dy: 2))
+
+        state.isShiftKeyHeld = true
+        #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 3, dy: 0))
+
+        // Vertical movement becomes larger, but the axis chosen when Shift
+        // engaged remains locked for the rest of that held interval.
+        tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 6))
+        #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 0))
+
+        state.isShiftKeyHeld = false
+        #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 5))
+
+        tab.cancelStroke()
+    }
+
     /// Defines a Marquee through the public stroke API — the arrange step
     /// the deselect/persistence tests build on.
     private func defineMarquee(

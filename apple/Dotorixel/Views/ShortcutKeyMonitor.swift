@@ -52,17 +52,38 @@ struct ShortcutKeyMonitorModifier: ViewModifier {
 
     /// Returns whether the event was consumed as an editor shortcut.
     private func handleKeyDown(_ event: NSEvent) -> Bool {
-        guard let character = event.charactersIgnoringModifiers?.lowercased().first else {
+        guard let key = ShortcutKey(event) else {
             return false
         }
         let modifiers = ShortcutModifiers(event.modifierFlags)
         // ⌘Z/⇧⌘Z pass through to the Edit-menu commands (single owner).
-        if KeyboardShortcutController.isMenuOwnedShortcut(character, modifiers: modifiers) {
+        if KeyboardShortcutController.isMenuOwnedShortcut(key, modifiers: modifiers) {
             return false
         }
         return workspace.keyboardShortcuts.handleKeyDown(
-            character, modifiers: modifiers, isRepeat: event.isARepeat
+            key, modifiers: modifiers, isRepeat: event.isARepeat
         )
+    }
+}
+
+private extension ShortcutKey {
+    init?(_ event: NSEvent) {
+        switch event.specialKey {
+        case .upArrow: self = .arrowUp
+        case .downArrow: self = .arrowDown
+        case .leftArrow: self = .arrowLeft
+        case .rightArrow: self = .arrowRight
+        case .deleteForward: self = .deleteForward
+        default:
+            guard let character = event.charactersIgnoringModifiers?.lowercased().first else {
+                return nil
+            }
+            switch character {
+            case "\u{7F}": self = .deleteBackward
+            case "\u{1B}": self = .escape
+            default: self = .character(character)
+            }
+        }
     }
 }
 

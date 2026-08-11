@@ -153,6 +153,14 @@ final class FloatingSelectionLifecycle {
         return true
     }
 
+    /// Adds one keyboard translation to the current offset. Repeated nudges
+    /// stay inside this lifecycle so they resolve as the Floating Selection's
+    /// single commit instead of separate History edits.
+    func nudge(by delta: FloatingSelectionOffset) -> Bool {
+        guard let offset = floating?.offset else { return false }
+        return moveTo(offset + delta)
+    }
+
     /// The Marquee projected to the Floating Selection's current destination.
     /// Without a Floating Selection, the live Document Marquee passes through.
     func displayedMarquee(

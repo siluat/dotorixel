@@ -12,12 +12,20 @@ private final class FakeShortcutHost: KeyboardShortcutHost {
     private(set) var redoCount = 0
     private(set) var gridToggleCount = 0
     private(set) var swapColorsCount = 0
+    private(set) var marqueeNudges: [FloatingSelectionOffset] = []
+    private(set) var marqueePixelClearCount = 0
+    private(set) var marqueeDismissCount = 0
 
     func setActiveTool(_ tool: EditorTool) { activeTool = tool }
     func handleUndo() { undoCount += 1 }
     func handleRedo() { redoCount += 1 }
     func toggleGrid() { gridToggleCount += 1 }
     func swapColors() { swapColorsCount += 1 }
+    func nudgeMarquee(by delta: FloatingSelectionOffset) {
+        marqueeNudges.append(delta)
+    }
+    func clearMarqueePixels() { marqueePixelClearCount += 1 }
+    func clearMarqueeOrFloating() { marqueeDismissCount += 1 }
 }
 
 private func makeController(host: FakeShortcutHost) -> KeyboardShortcutController {
@@ -353,6 +361,76 @@ struct KeyboardShortcutControllerRepeatTests {
         let controller = makeController(host: host)
 
         #expect(!controller.handleKeyDown("g", isRepeat: true))
+    }
+}
+
+@Suite("KeyboardShortcutController — Marquee nudge")
+struct KeyboardShortcutControllerMarqueeNudgeTests {
+
+    @Test("arrows nudge by one pixel, Shift by ten, and repeats keep moving")
+    func arrowsNudgeMarquee() {
+        let host = FakeShortcutHost()
+        let controller = makeController(host: host)
+
+        #expect(controller.handleKeyDown(.arrowLeft))
+        #expect(controller.handleKeyDown(.arrowUp, modifiers: .shift))
+        #expect(controller.handleKeyDown(.arrowDown, isRepeat: true))
+
+        #expect(
+            host.marqueeNudges == [
+                FloatingSelectionOffset(dx: -1, dy: 0),
+                FloatingSelectionOffset(dx: 0, dy: -10),
+                FloatingSelectionOffset(dx: 0, dy: 1),
+            ]
+        )
+    }
+}
+
+@Suite("KeyboardShortcutController — Marquee pixel clear")
+struct KeyboardShortcutControllerMarqueePixelClearTests {
+
+    @Test("Delete and Backspace clear once; repeated presses stay consumed")
+    func deleteClearsMarqueePixels() {
+        let host = FakeShortcutHost()
+        let controller = makeController(host: host)
+
+        #expect(controller.handleKeyDown(.deleteBackward))
+        #expect(controller.handleKeyDown(.deleteForward, isRepeat: true))
+
+        #expect(host.marqueePixelClearCount == 1)
+    }
+}
+
+@Suite("KeyboardShortcutController — Marquee dismissal")
+struct KeyboardShortcutControllerMarqueeDismissalTests {
+
+    @Test("Escape dismisses once; repeated presses stay consumed")
+    func escapeDismissesMarqueeOrFloating() {
+        let host = FakeShortcutHost()
+        let controller = makeController(host: host)
+
+        #expect(controller.handleKeyDown(.escape))
+        #expect(controller.handleKeyDown(.escape, isRepeat: true))
+
+        #expect(host.marqueeDismissCount == 1)
+    }
+}
+
+@Suite("KeyboardShortcutController — Marquee text-input guard")
+struct KeyboardShortcutControllerMarqueeTextInputTests {
+
+    @Test("selection editing keys pass through while a text field is focused")
+    func selectionKeysPassThroughWhileTyping() {
+        let host = FakeShortcutHost()
+        host.isTextInputFocused = true
+        let controller = makeController(host: host)
+
+        #expect(!controller.handleKeyDown(.arrowRight))
+        #expect(!controller.handleKeyDown(.deleteBackward))
+        #expect(!controller.handleKeyDown(.escape))
+        #expect(host.marqueeNudges.isEmpty)
+        #expect(host.marqueePixelClearCount == 0)
+        #expect(host.marqueeDismissCount == 0)
     }
 }
 

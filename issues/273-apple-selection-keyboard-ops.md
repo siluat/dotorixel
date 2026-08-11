@@ -1,6 +1,6 @@
 ---
 title: Apple selection keyboard ops — arrow nudge, Delete, Escape, Shift axis lock
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -49,3 +49,25 @@ matching the web:
 ## Blocked by
 
 - [272 — Apple floating selection](272-apple-floating-selection.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/KeyboardShortcutController.swift` | Added platform-neutral arrow, Delete, and Escape routing with repeat and text-input policies. |
+| `apple/Dotorixel/Rendering/InputMTKView.swift`, `apple/Dotorixel/Views/ShortcutKeyMonitor.swift` | Normalized iPadOS and macOS hardware-keyboard editing keys into the shared controller. |
+| `apple/Dotorixel/State/TabState.swift`, `apple/Dotorixel/State/Workspace.swift` | Added Marquee/Floating nudge, pixel clear, and dismissal commands with Reference and History policies. |
+| `apple/Dotorixel/Tools/FloatingSelectionLifecycle.swift`, `apple/Dotorixel/Tools/SelectionStrokeSession.swift` | Added accumulated keyboard translation and live dominant-axis Constrain locking. |
+| `apple/DotorixelTests/` | Covered routing, text-field guards, nudge accumulation, single undo, Delete/Escape policies, and live axis locking. |
+
+### Key Decisions
+
+- Use a platform-neutral semantic key type so AppKit and UIKit key codes do not leak into shortcut policy.
+- Keep keyboard nudges inside the transient Floating Selection; History records only the eventual commit.
+- Let the Core Edit Baseline decide whether Delete changed pixels instead of predicting no-ops in the shell.
+- Choose the dominant axis when Constrain activates and hold it until Constrain turns off, matching web behavior.
+
+### Notes
+
+- Verified all 492 Apple tests on the pinned iPad simulator; the macOS app build also passed.
+- Live hardware event routing remains best verified with a manual Mac/iPad keyboard pass; policy and state seams are automated.

@@ -269,11 +269,11 @@ extension PixelCanvasView {
             workspace?.keyboardShortcuts.setAltHeld(isHeld)
         }
 
-        func characterKeyPressed(
-            _ character: Character, modifiers: ShortcutModifiers, isRepeat: Bool, in view: InputMTKView
+        func shortcutKeyPressed(
+            _ key: ShortcutKey, modifiers: ShortcutModifiers, isRepeat: Bool, in view: InputMTKView
         ) -> Bool {
             workspace?.keyboardShortcuts.handleKeyDown(
-                character, modifiers: modifiers, isRepeat: isRepeat
+                key, modifiers: modifiers, isRepeat: isRepeat
             ) ?? false
         }
 

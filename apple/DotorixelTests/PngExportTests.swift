@@ -1,3 +1,4 @@
+import Foundation
 import ImageIO
 import Testing
 import UniformTypeIdentifiers
@@ -35,6 +36,73 @@ struct PngExportTests {
             .filter { $0 != drawn + alphaOffset }
             .map { rgba[$0] }
         #expect(undrawnAlphas.allSatisfy { $0 == 0 })
+    }
+
+    @Test("export projects pre-lift pixels while degraded recovery is pending")
+    func exportPreservesPendingFloatingRecovery() throws {
+        let state = Workspace(width: 4, height: 4)
+        let tab = state.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let sourceLayerId = tab.document.activeLayerId()
+
+        try tab.document.setPixel(x: 1, y: 1, color: red)
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        )
+        state.activateTool(.selection)
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
+        tab.endStroke()
+
+        // Production Layer actions commit first. Reach the defensive recovery
+        // branch directly so export is tested against a real live source hole.
+        try tab.document.addLayer(newId: UUID().uuidString, name: "Other")
+        #expect(!tab.cancelFloatingSelection())
+        let liveSource = try #require(
+            try tab.document.layerSnapshots().first { $0.id == sourceLayerId }
+        )
+        let sourceOffset = rgbaByteOffset(x: 1, y: 1, width: 4)
+        #expect(Array(liveSource.pixels[sourceOffset..<(sourceOffset + 4)]) == [0, 0, 0, 0])
+
+        let png = try tab.makePngExportDocument()
+        let rgba = try decodedRgbaPixels(png: png.data, width: 4, height: 4)
+        let destinationOffset = rgbaByteOffset(x: 2, y: 1, width: 4)
+
+        #expect(Array(rgba[sourceOffset..<(sourceOffset + 4)]) == [0xFF, 0, 0, 0xFF])
+        #expect(Array(rgba[destinationOffset..<(destinationOffset + 4)]) == [0, 0, 0, 0])
+    }
+
+    @Test("export projects pre-lift pixels while a Floating Selection is active")
+    func exportPreservesLiveFloatingSelection() throws {
+        let state = Workspace(width: 4, height: 4)
+        let tab = state.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+
+        try tab.document.setPixel(x: 1, y: 1, color: red)
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        )
+        state.activateTool(.selection)
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
+        tab.endStroke()
+
+        let floatingOffset = FloatingSelectionOffset(dx: 1, dy: 0)
+        #expect(tab.floatingSelectionOffset == floatingOffset)
+        #expect(try tab.document.getPixel(x: 1, y: 1) == transparent)
+        #expect(try tab.document.getPixel(x: 2, y: 1) == transparent)
+
+        let png = try tab.makePngExportDocument()
+        let rgba = try decodedRgbaPixels(png: png.data, width: 4, height: 4)
+        let sourceOffset = rgbaByteOffset(x: 1, y: 1, width: 4)
+        let destinationOffset = rgbaByteOffset(x: 2, y: 1, width: 4)
+
+        #expect(Array(rgba[sourceOffset..<(sourceOffset + 4)]) == [0xFF, 0, 0, 0xFF])
+        #expect(Array(rgba[destinationOffset..<(destinationOffset + 4)]) == [0, 0, 0, 0])
+        #expect(tab.floatingSelectionOffset == floatingOffset)
+        #expect(try tab.document.getPixel(x: 1, y: 1) == transparent)
+        #expect(try tab.document.getPixel(x: 2, y: 1) == transparent)
     }
 
     /// Byte offset of pixel (x, y) in a row-major RGBA8 buffer.

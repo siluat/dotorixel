@@ -160,3 +160,38 @@ protocol StrokeSessionHost: AnyObject {
     /// never call this directly.
     func recordRecentColor(_ color: Color)
 }
+
+/// The selection-specific editor surface: Marquee definition still uses the
+/// generic drawing surface, while Floating Selection ownership stays at the
+/// tab boundary instead of leaking buffer state into a stroke session.
+protocol SelectionSessionHost: StrokeSessionHost {
+    var selectionMarqueeForInteraction: AppleMarqueeRegion? { get }
+    var floatingSelectionOffset: FloatingSelectionOffset? { get }
+
+    /// Captures the source pixels and pre-lift state, clears the source, and
+    /// activates the Floating Selection lifecycle. Returns `true` only after
+    /// all three steps complete; returns `false` when a selection is already
+    /// active or source capture or boundary validation fails.
+    @discardableResult
+    func liftFloatingSelection(from sourceRegion: AppleMarqueeRegion) -> Bool
+
+    /// Accepts a different offset when its projected Marquee is representable
+    /// across the FFI boundary. Returns `false` when no Floating Selection is
+    /// active, the offset is unchanged, or the projection is invalid; an
+    /// invalid candidate leaves the last valid offset active.
+    @discardableResult
+    func moveFloatingSelection(to offset: FloatingSelectionOffset) -> Bool
+
+    /// Resolves the live Floating Selection into one document History edit.
+    /// Returns `true` only when the commit completed successfully. A failed
+    /// apply still resolves its Edit Baseline and lifecycle before returning
+    /// `false`, so callers can safely stop the triggering mutation.
+    @discardableResult
+    func commitFloatingSelection() -> Bool
+
+    /// Discards the live translation and attempts to restore the exact
+    /// pre-lift state. Returns `true` after an exact restore; a boundary
+    /// failure still resolves the transient lifecycle but returns `false`.
+    @discardableResult
+    func cancelFloatingSelection() -> Bool
+}

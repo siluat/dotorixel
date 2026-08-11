@@ -1,6 +1,6 @@
 ---
 title: Apple floating selection — drag to lift, move preview, commit as one undo step
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -62,3 +62,27 @@ release — commit happens on the web's explicit triggers.
 ## Blocked by
 
 - [269 — Apple marquee select tool](269-apple-marquee-select-tool.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Tools/FloatingSelectionLifecycle.swift` | Added the tab-local Floating Selection lifecycle with transient lift state, non-mutating patch preview, exact cancel, and one-Edit commit semantics. |
+| `apple/Dotorixel/Tools/SelectionStrokeSession.swift`, `apple/Dotorixel/Tools/StrokeSession.swift`, `apple/Dotorixel/Tools/EditorTool.swift` | Routed inside-Marquee drags through lift and repeated move gestures while outside pointer-down commits through a selection-specific host contract. |
+| `apple/Dotorixel/State/TabState.swift`, `apple/Dotorixel/State/Workspace.swift` | Owned Floating state per tab and integrated History, undo/redo, tool/layer/edit commit triggers, tab switching, blank detection, and persistence projection. |
+| `apple/Dotorixel/ContentView.swift`, `apple/Dotorixel/Rendering/PixelCanvasView.swift` | Fed the Metal renderer from the tab's projected composite so live Floating pixels render without destination mutation. |
+| `apple/DotorixelTests/FloatingSelectionTests.swift` | Covered lift/preview, repeated movement, commit triggers, single-step undo/redo, no-op discard, clipping, cancellation, and boundary-failure History behavior. |
+| `apple/DotorixelTests/AutoSaveTests.swift`, `apple/DotorixelTests/RenderPathTests.swift`, `apple/DotorixelTests/SelectionStrokeSessionTests.swift`, `apple/DotorixelTests/TouchStrokeRouterTests.swift`, `apple/DotorixelTests/WorkspaceSnapshotTests.swift`, `apple/DotorixelTests/WorkspaceTests.swift` | Added integration coverage for rendering, finger/Pencil/pinch routing, tab-local continuity, auto-save and snapshot safety, and shared-tool transitions. |
+
+### Key Decisions
+
+- Keep the Floating Selection as tab-owned transient state, never a Layer and never serialized.
+- Clear the live source only for preview, render the destination through the patch-composite read, and project pre-lift pixels into persistence snapshots.
+- Restore the exact pre-lift document before opening one Document History Edit; let the core classify net-zero commits and resolve every opened baseline even if application fails.
+- Preserve a live Floating Selection across tab switches, while tool changes and conflicting document mutations commit it first.
+- Treat Undo as cancellation while the Floating Selection is live and defer Redo until it is resolved.
+
+### Notes
+
+- Escape cancellation and keyboard movement remain in issue 273; clipboard/paste in 274; action-bar commit/cancel and Marquee transforms in 275; relaunch persistence in 276.
+- Finger, Apple Pencil, and pinch safety are covered at the routing boundary; the Floating Selection itself remains deliberately absent from saved session data.

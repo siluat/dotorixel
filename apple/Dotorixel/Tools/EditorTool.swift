@@ -178,7 +178,10 @@ enum EditorTool: String, CaseIterable {
         case .move:
             return MoveStrokeSession(host: host)
         case .selection:
-            return SelectionStrokeSession(host: host)
+            guard let selectionHost = host as? any SelectionSessionHost else {
+                preconditionFailure("Selection tool requires a SelectionSessionHost")
+            }
+            return SelectionStrokeSession(host: selectionHost)
         }
     }
 }

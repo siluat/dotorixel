@@ -17,11 +17,10 @@ private final class CanvasTextureSpy: PixelGridRenderer {
     }
 }
 
-/// Pins that the render path draws the *document composite*: what reaches the
-/// canvas texture is the blend of visible layers, not any single layer's
-/// buffer. No UI toggles visibility yet (the layer panel arrives in issues
-/// 258+), so this seam test is the only guard on composite rendering.
-@Suite("Render path — document composite")
+/// Pins the tab's render projection at the Metal texture boundary: committed
+/// content is the visible Layer composite, while a live Floating Selection is
+/// a non-mutating patch at its projected destination.
+@Suite("Render path — canvas texture projection")
 struct RenderPathTests {
 
     @MainActor
@@ -41,7 +40,7 @@ struct RenderPathTests {
         let mtkView = MTKView()
         let spy = try makeSpy(view: mtkView)
         let view = PixelCanvasView(
-            document: state.activeTab.document,
+            tab: state.activeTab,
             viewport: state.activeTab.viewport,
             showGrid: false,
             workspace: state
@@ -60,5 +59,40 @@ struct RenderPathTests {
         let hiddenPixels = try #require(spy.uploadedPixels)
         #expect(hiddenPixels.allSatisfy { $0 == 0 })
         #expect(Array(try state.activeTab.document.activeLayerPixels()[0..<4]) == [0xFF, 0x00, 0x00, 0xFF])
+    }
+
+    @MainActor
+    @Test("the canvas texture receives the Floating Selection patch preview")
+    func floatingSelectionPreviewReachesUploadedBuffer() throws {
+        let state = Workspace(width: 3, height: 1)
+        let tab = state.activeTab
+        try tab.document.setPixel(
+            x: 0,
+            y: 0,
+            color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        )
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 0, y: 0, width: 1, height: 1)
+        )
+        state.shared.activeTool = .selection
+        tab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 1, y: 0))
+        tab.endStroke()
+
+        let mtkView = MTKView()
+        let spy = try makeSpy(view: mtkView)
+        let view = PixelCanvasView(
+            tab: tab,
+            viewport: tab.viewport,
+            showGrid: false,
+            workspace: state
+        )
+
+        view.configureRenderer(spy, mtkView: mtkView)
+
+        let pixels = try #require(spy.uploadedPixels)
+        #expect(Array(pixels[0..<4]) == [0, 0, 0, 0])
+        #expect(Array(pixels[4..<8]) == [0xFF, 0, 0, 0xFF])
+        #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 0))
     }
 }

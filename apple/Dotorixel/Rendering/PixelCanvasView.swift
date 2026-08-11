@@ -7,7 +7,7 @@ private let defaultGridColor = SIMD4<Float>(0.878, 0.863, 0.843, 1.0)
 /// SwiftUI wrapper for the Metal-backed pixel canvas renderer.
 /// Uses `NSViewRepresentable` on macOS, `UIViewRepresentable` on iOS.
 struct PixelCanvasView {
-    let document: AppleDocument
+    let tab: TabState
     let viewport: AppleViewport
     let showGrid: Bool
     var workspace: Workspace
@@ -25,11 +25,22 @@ struct PixelCanvasView {
 
 extension PixelCanvasView {
     func configureRenderer(_ renderer: PixelGridRenderer, mtkView: MTKView) {
+        let document = tab.document
         let width = document.width()
         let height = document.height()
-        // The composite of every visible layer — the screen shows the
-        // document, never a single layer's buffer.
-        let pixels = document.composite()
+        // The tab owns render projection: normally the document composite,
+        // or a source-Layer-positioned patch while a Floating Selection is
+        // active. Its internally-captured buffer and dimensions are valid by
+        // construction, so a binding error is an invariant failure.
+        let pixels: Data
+        do {
+            pixels = try tab.renderPixels()
+        } catch {
+            assertionFailure("Failed to render Floating Selection projection: \(error)")
+            // Release builds keep rendering the current live document
+            // composite, which may include a Floating Selection's source clear.
+            pixels = document.composite()
+        }
 
         renderer.updateCanvasTexture(pixels: pixels, width: width, height: height)
 

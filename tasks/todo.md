@@ -27,11 +27,10 @@ Phase 5 is decomposed below (issues 267–282); Phase 6 is decomposed
 
 ### Phase 5 — Reference + selection + transforms (issues 267–282)
 
-Two parallel tracks; frontier: `{272, 277}` (267–271 done).
+Two parallel tracks; frontier: `{273, 274, 276, 277}` (267–272 done).
 
 Selection + transforms track:
 
-- [272 — Floating selection](../issues/272-apple-floating-selection.md)
 - [273 — Selection keyboard ops](../issues/273-apple-selection-keyboard-ops.md)
 - [274 — Selection clipboard](../issues/274-apple-selection-clipboard.md)
 - [275 — Selection action bar](../issues/275-apple-selection-action-bar.md)

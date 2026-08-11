@@ -86,6 +86,108 @@ private final class RoutedEditor {
     }
 }
 
+@Suite("TouchStrokeRouter — Floating Selection parity")
+struct TouchStrokeRouterFloatingSelectionTests {
+
+    @Test("a finger lift-drag leaves a persistent Floating Selection")
+    func fingerMovesFloatingSelection() throws {
+        let editor = try makeSelectionEditor()
+
+        editor.fingerDown(1, x: 1, y: 1)
+        editor.fingerMove(1, x: 2, y: 1)
+        editor.fingerUp(1)
+
+        #expect(
+            editor.state.activeTab.floatingSelectionOffset
+                == FloatingSelectionOffset(dx: 1, dy: 0)
+        )
+        #expect(editor.state.activeTab.canUndo)
+        #expect(!editor.state.activeTab.documentHistory.canUndo())
+        #expect(try previewPixel(editor, x: 2, y: 1) == [0xFF, 0, 0, 0xFF])
+    }
+
+    @Test("a pinch signal ends only the finger gesture and preserves the Floating Selection")
+    func pinchMidMovePreservesFloatingSelection() throws {
+        let editor = try makeSelectionEditor()
+
+        editor.fingerDown(1, x: 1, y: 1)
+        editor.fingerMove(1, x: 2, y: 1)
+        editor.fingerDown(2, x: 8, y: 8)
+        editor.fingerMove(1, x: 3, y: 1)
+
+        #expect(!editor.state.activeTab.isDrawing)
+        #expect(
+            editor.state.activeTab.floatingSelectionOffset
+                == FloatingSelectionOffset(dx: 1, dy: 0)
+        )
+        #expect(editor.state.activeTab.canUndo)
+        #expect(!editor.state.activeTab.documentHistory.canUndo())
+        #expect(try previewPixel(editor, x: 2, y: 1) == [0xFF, 0, 0, 0xFF])
+    }
+
+    @Test("Apple Pencil moves the Floating Selection while palm touches are ignored")
+    func pencilMovesFloatingSelectionThroughPalmTouches() throws {
+        let editor = try makeSelectionEditor()
+
+        editor.pencilDown(1, x: 1, y: 1)
+        editor.pencilMove(1, x: 2, y: 1)
+        editor.fingerDown(2, x: 8, y: 8)
+        editor.fingerDown(3, x: 10, y: 10)
+        editor.pencilMove(1, x: 3, y: 1)
+        editor.pencilUp(1)
+
+        #expect(
+            editor.state.activeTab.floatingSelectionOffset
+                == FloatingSelectionOffset(dx: 2, dy: 0)
+        )
+        #expect(editor.state.activeTab.canUndo)
+        #expect(!editor.state.activeTab.documentHistory.canUndo())
+        #expect(try previewPixel(editor, x: 3, y: 1) == [0xFF, 0, 0, 0xFF])
+    }
+
+    @Test("system cancellation restores the pre-lift selection state without history")
+    func cancellationRestoresPreLiftSelectionState() throws {
+        let editor = try makeSelectionEditor()
+        let tab = editor.state.activeTab
+        let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+
+        editor.fingerDown(1, x: 1, y: 1)
+        editor.fingerMove(1, x: 2, y: 1)
+        editor.fingerCancel(1)
+
+        #expect(tab.floatingSelectionOffset == nil)
+        #expect(try tab.document.getPixel(x: 1, y: 1) == red)
+        #expect(try tab.document.getPixel(x: 2, y: 1).a == 0)
+        #expect(tab.document.marquee() == source)
+        #expect(!tab.documentHistory.canUndo())
+        #expect(!tab.canUndo)
+        #expect(!tab.isDrawing)
+    }
+
+    private func makeSelectionEditor() throws -> RoutedEditor {
+        let editor = RoutedEditor()
+        let tab = editor.state.activeTab
+        try tab.document.setPixel(
+            x: 1,
+            y: 1,
+            color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        )
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        )
+        editor.state.activateTool(.selection)
+        return editor
+    }
+
+    private func previewPixel(_ editor: RoutedEditor, x: Int, y: Int) throws -> [UInt8] {
+        let pixels = try editor.state.activeTab.renderPixels()
+        let width = Int(editor.state.activeTab.document.width())
+        let offset = (y * width + x) * 4
+        return Array(pixels[offset..<(offset + 4)])
+    }
+}
+
 @Suite("TouchStrokeRouter — single-finger drawing")
 struct TouchStrokeRouterSingleFingerTests {
 

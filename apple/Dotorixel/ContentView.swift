@@ -45,7 +45,7 @@ struct ContentView: View {
                     VStack(spacing: 0) {
                         GeometryReader { geo in
                             PixelCanvasView(
-                                document: tab.document,
+                                tab: tab,
                                 viewport: viewport,
                                 showGrid: showGrid,
                                 workspace: workspace,

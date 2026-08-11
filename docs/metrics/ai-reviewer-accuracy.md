@@ -10,14 +10,19 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 207 | 155 | 52 | 272 | 75% | 36% |
-| cubic-dev-ai[bot] | 299 | 234 | 65 | 211 | 78% | 53% |
-| coderabbitai[bot] | 314 | 224 | 90 | 217 | 71% | 51% |
+| greptile-apps[bot] | 208 | 156 | 52 | 273 | 75% | 36% |
+| cubic-dev-ai[bot] | 301 | 236 | 65 | 211 | 78% | 53% |
+| coderabbitai[bot] | 314 | 224 | 90 | 219 | 71% | 51% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #361 | cubic-dev-ai[bot] | Accept | Floating Delete had no direct regression for committing the nudge before clearing the translated Marquee as a distinct History entry; added the full two-Undo round trip |
+| #361 | cubic-dev-ai[bot] | Accept | The app-level macOS event monitor consumed Arrow/Delete/Escape before non-canvas responders; selection editing keys now require canvas first-responder ownership while character shortcuts remain app-level |
+| #361 | greptile-apps[bot] | Accept | Same app-level selection-key capture finding (resolved duplicate of cubic); same canvas first-responder scope fix |
+| #361 | greptile-apps[bot] | Miss | Flagged global key capture but missed the Floating Delete two-entry History test gap accepted from cubic |
+| #361 | coderabbitai[bot] | Miss (×2) | APPROVED without flagging either the app-level selection-key capture or the Floating Delete History test gap accepted from cubic/greptile |
 | #360 | coderabbitai[bot] | Accept | PNG export rebuilt a projected Document only for pending recovery; a normal live Floating Selection therefore exported the raw source hole and omitted the lifted pixels |
 | #360 | cubic-dev-ai[bot] | Accept | Same live-Floating PNG export hole (duplicate of CodeRabbit); export must use the pre-lift projection for both active and recovery states |
 | #360 | coderabbitai[bot] | Reject | The PNG recovery test already forces the degraded path by switching the active Layer through the raw binding, asserts cancellation failure and the live source hole, then verifies the projected export; exposing TabState's private recovery flag would add a white-box seam without stronger discrimination |

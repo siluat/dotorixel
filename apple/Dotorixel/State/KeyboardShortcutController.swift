@@ -144,14 +144,24 @@ final class KeyboardShortcutController {
     }
 
     /// Semantic-key overload used by platform wiring for arrows and editing
-    /// keys that do not have a stable character representation.
+    /// keys that do not have a stable character representation. macOS wiring
+    /// limits selection-editing keys to a canvas-owned responder target;
+    /// iPad delivery is already scoped to the canvas first responder.
     @discardableResult
     func handleKeyDown(
         _ key: ShortcutKey,
         modifiers: ShortcutModifiers = [],
-        isRepeat: Bool = false
+        isRepeat: Bool = false,
+        canHandleSelectionEditingKeys: Bool = true
     ) -> Bool {
-        guard let host, let command = resolveKeyDown(key, modifiers: modifiers, host: host) else {
+        guard let host,
+              let command = resolveKeyDown(
+                  key,
+                  modifiers: modifiers,
+                  canHandleSelectionEditingKeys: canHandleSelectionEditingKeys,
+                  host: host
+              )
+        else {
             return false
         }
         switch command {
@@ -192,13 +202,15 @@ final class KeyboardShortcutController {
     private func resolveKeyDown(
         _ key: ShortcutKey,
         modifiers: ShortcutModifiers,
+        canHandleSelectionEditingKeys: Bool,
         host: KeyboardShortcutHost
     ) -> ShortcutCommand? {
         // Web parity: every shortcut is gated on the target not being a text
         // input, so the canvas-size fields keep receiving plain letters.
         guard !host.isTextInputFocused else { return nil }
 
-        if let delta = marqueeNudge(for: key),
+        if canHandleSelectionEditingKeys,
+           let delta = marqueeNudge(for: key),
            !modifiers.contains(.command),
            !modifiers.contains(.option),
            !modifiers.contains(.control) {
@@ -209,10 +221,11 @@ final class KeyboardShortcutController {
             ))
         }
 
-        if key == .deleteBackward || key == .deleteForward {
+        if canHandleSelectionEditingKeys,
+           key == .deleteBackward || key == .deleteForward {
             return .clearMarqueePixels
         }
-        if key == .escape {
+        if canHandleSelectionEditingKeys, key == .escape {
             return .clearMarqueeOrFloating
         }
 

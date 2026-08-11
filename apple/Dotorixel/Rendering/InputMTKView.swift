@@ -59,6 +59,7 @@ class InputMTKView: MTKView {
     }
 
     override func mouseDown(with event: NSEvent) {
+        claimKeyboardFocus()
         // Re-sync on stroke begin: a Shift press while another view held
         // first responder never reached `flagsChanged`.
         inputDelegate?.shiftStateChanged(isHeld: event.modifierFlags.contains(.shift), in: self)
@@ -79,6 +80,7 @@ class InputMTKView: MTKView {
     // also suppresses AppKit's default context-menu behavior on the canvas.
 
     override func rightMouseDown(with event: NSEvent) {
+        claimKeyboardFocus()
         inputDelegate?.shiftStateChanged(isHeld: event.modifierFlags.contains(.shift), in: self)
         let point = convert(event.locationInWindow, from: nil)
         inputDelegate?.drawingBegan(at: point, button: .secondary, inputSource: .mouse, in: self)
@@ -91,6 +93,14 @@ class InputMTKView: MTKView {
 
     override func rightMouseUp(with event: NSEvent) {
         inputDelegate?.drawingEnded(in: self)
+    }
+
+    /// Selection-editing keys are canvas-scoped on macOS. Pointer input makes
+    /// that ownership explicit because the custom mouse handlers do not call
+    /// `super`, which would otherwise participate in responder targeting.
+    private func claimKeyboardFocus() {
+        guard let window, window.firstResponder !== self else { return }
+        window.makeFirstResponder(self)
     }
 
     override func scrollWheel(with event: NSEvent) {

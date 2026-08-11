@@ -4,9 +4,10 @@ import SwiftUI
 /// macOS wiring for the editor keyboard shortcuts: local NSEvent monitors
 /// feed normalized key events into `Workspace.keyboardShortcuts`.
 ///
-/// Monitors see events before responder-chain dispatch, so shortcuts work
-/// regardless of which view is first responder — the text-input guard lives
-/// in the controller (via `isTextInputFocused`), not in responder targeting.
+/// Monitors see events before responder-chain dispatch. Character shortcuts
+/// stay app-level (subject to the text-input guard), while Arrow/Delete/Escape
+/// selection editing is admitted only when the canvas owns first responder so
+/// adjustable controls and presented surfaces keep their standard keys.
 ///
 /// Ownership split: ⌘Z/⇧⌘Z belong to the Edit-menu commands
 /// (`UndoRedoCommands`) and pass through untouched — a single execution
@@ -61,7 +62,10 @@ struct ShortcutKeyMonitorModifier: ViewModifier {
             return false
         }
         return workspace.keyboardShortcuts.handleKeyDown(
-            key, modifiers: modifiers, isRepeat: event.isARepeat
+            key,
+            modifiers: modifiers,
+            isRepeat: event.isARepeat,
+            canHandleSelectionEditingKeys: event.window?.firstResponder is InputMTKView
         )
     }
 }

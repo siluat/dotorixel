@@ -434,6 +434,38 @@ struct KeyboardShortcutControllerMarqueeTextInputTests {
     }
 }
 
+@Suite("KeyboardShortcutController — selection editing target")
+struct KeyboardShortcutControllerSelectionEditingTargetTests {
+
+    @Test("selection keys pass through outside the canvas while app-level shortcuts remain active")
+    func selectionKeysRequireCanvasTarget() {
+        let host = FakeShortcutHost()
+        let controller = makeController(host: host)
+
+        #expect(!controller.handleKeyDown(
+            .arrowRight,
+            canHandleSelectionEditingKeys: false
+        ))
+        #expect(!controller.handleKeyDown(
+            .deleteBackward,
+            canHandleSelectionEditingKeys: false
+        ))
+        #expect(!controller.handleKeyDown(
+            .escape,
+            canHandleSelectionEditingKeys: false
+        ))
+        #expect(controller.handleKeyDown(
+            .character(EditorTool.line.shortcutKey),
+            canHandleSelectionEditingKeys: false
+        ))
+
+        #expect(host.marqueeNudges.isEmpty)
+        #expect(host.marqueePixelClearCount == 0)
+        #expect(host.marqueeDismissCount == 0)
+        #expect(host.activeTool == .line)
+    }
+}
+
 @Suite("KeyboardShortcutController — menu-owned combos")
 struct KeyboardShortcutControllerMenuOwnedTests {
 

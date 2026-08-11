@@ -28,11 +28,19 @@ extension PixelCanvasView {
         let document = tab.document
         let width = document.width()
         let height = document.height()
-        // The tab owns render projection: normally the committed composite,
+        // The tab owns render projection: normally the document composite,
         // or a source-Layer-positioned patch while a Floating Selection is
         // active. Its internally-captured buffer and dimensions are valid by
         // construction, so a binding error is an invariant failure.
-        let pixels = try! tab.renderPixels()
+        let pixels: Data
+        do {
+            pixels = try tab.renderPixels()
+        } catch {
+            assertionFailure("Failed to render Floating Selection projection: \(error)")
+            // Release builds keep rendering the current live document
+            // composite, which may include a Floating Selection's source clear.
+            pixels = document.composite()
+        }
 
         renderer.updateCanvasTexture(pixels: pixels, width: width, height: height)
 

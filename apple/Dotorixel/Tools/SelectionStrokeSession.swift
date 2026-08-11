@@ -97,6 +97,8 @@ final class SelectionStrokeSession: StrokeSession {
 
     func cancel() -> Bool {
         if isMovingFloatingSelection {
+            // A system interruption has no trustworthy endpoint, so roll back
+            // the whole pending Floating edit rather than only the current drag.
             host.cancelFloatingSelection()
             return false
         }

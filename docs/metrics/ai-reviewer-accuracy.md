@@ -10,14 +10,25 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 207 | 155 | 52 | 262 | 75% | 37% |
-| cubic-dev-ai[bot] | 294 | 230 | 64 | 205 | 78% | 53% |
-| coderabbitai[bot] | 306 | 217 | 89 | 214 | 71% | 50% |
+| greptile-apps[bot] | 207 | 155 | 52 | 269 | 75% | 37% |
+| cubic-dev-ai[bot] | 297 | 232 | 65 | 210 | 78% | 52% |
+| coderabbitai[bot] | 311 | 222 | 89 | 216 | 71% | 51% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #360 | coderabbitai[bot] | Accept | Partial: cancel could retain an unresolvable Floating Selection after a source-Layer mismatch or restore failure; cancellation now always releases the transient owner, independently restores safe portions, and reports degraded recovery for canvas/dirty handling. Invalid projection was not a cancel wedge because `moveTo` rejects it and cancel does not project |
+| #360 | coderabbitai[bot] | Accept | `try!` in the Metal render update could terminate the app if the Floating patch FFI invariant broke; debug builds now assert while release builds fall back to the current live document composite |
+| #360 | coderabbitai[bot] | Accept | Partial: `SelectionSessionHost` left the lift/move `Bool` outcomes undocumented; added the real success/rejection contracts without the inaccurate claims that transparent regions fail or every failed lift leaves the Document unchanged |
+| #360 | coderabbitai[bot] | Accept | Touch routing covered freehand cancellation and direct Floating cancellation separately but not their integration; a routed finger-cancel regression now pins exact pre-lift pixels/Marquee restoration with no History entry |
+| #360 | coderabbitai[bot] | Accept | Partial: the Selection session did not explain why a system interruption cancels the whole pending Floating edit; added a why-focused comment without duplicating lifecycle restoration details |
+| #360 | cubic-dev-ai[bot] | Reject | Claimed a no-drag tap outside a Floating Selection should commit without deselecting; the two edits intentionally compose issue 272's pointer-down commit with issue 269's outside-click deselect and match the Web flow |
+| #360 | cubic-dev-ai[bot] | Accept | `previewPixel` duplicated the 16px fixture width, silently reading the wrong row after a fixture-size change; stride now derives from `document.width()` |
+| #360 | cubic-dev-ai[bot] | Accept | The Selection/Marquee platform note replaced cross-platform status with Apple-only detail and made shipped Web operations read as pending; restored a concise Web/Apple split |
+| #360 | greptile-apps[bot] | Miss (×7) | Reviewed 5/5 safe to merge without flagging the seven accepted findings: cancel escape, render fallback, lift/move contracts, routed cancel coverage, cancel rationale, test-width derivation, and cross-platform status wording |
+| #360 | cubic-dev-ai[bot] | Miss (×5) | Missed the five findings accepted from CodeRabbit: cancel escape, render fallback, lift/move contracts, routed cancel coverage, and cancel rationale |
+| #360 | coderabbitai[bot] | Miss (×2) | Missed both findings accepted from cubic: test-width derivation and cross-platform status wording |
 | #359 | cubic-dev-ai[bot] | Accept | Running-Totals Miss values had drifted from the weighted log before this PR: a full recount confirmed cubic at 205 but corrected greptile from 269 to 262 and coderabbit from 217 to 214 |
 | #359 | cubic-dev-ai[bot] | Accept | Anchored resize translated an FFI-valid off-canvas Marquee origin with `i32` addition before clipping, panicking at the coordinate limits in debug builds; resize now combines translation and clipping in `i64`, with minimum/maximum X/Y regression cases |
 | #359 | coderabbitai[bot] | Miss | APPROVED the anchored-resize commit without flagging the extreme-coordinate translation overflow later accepted from cubic; greptile did not review this commit, so no Miss |

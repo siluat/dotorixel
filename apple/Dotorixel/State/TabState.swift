@@ -887,8 +887,23 @@ extension TabState: SelectionSessionHost {
 
     @discardableResult
     func cancelFloatingSelection() -> Bool {
-        guard floatingSelection.cancel(in: document) else { return false }
+        guard let outcome = floatingSelection.cancel(in: document) else { return false }
         canvasVersion += 1
-        return true
+        switch outcome {
+        case .restored:
+            return true
+        case let .degraded(
+            didRestoreSourcePixels,
+            didRestoreMarquee,
+            message
+        ):
+            // Once the transient projection is gone, any unrestored state is
+            // durable and must participate in session persistence.
+            if !didRestoreSourcePixels || !didRestoreMarquee {
+                notifier.markDirty(documentId: documentId)
+            }
+            assertionFailure(message)
+            return false
+        }
     }
 }

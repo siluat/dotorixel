@@ -607,10 +607,110 @@ struct FloatingSelectionEditBaselineTests {
         #expect(!history.hasPendingBaseline)
         #expect(document.pixels == hiddenRed)
     }
+
+    @Test("cancel never overwrites a different active Layer")
+    func cancelWithActiveLayerMismatchUsesDegradedRecovery() throws {
+        let originalMarquee = AppleMarqueeRegion(
+            x: 0, y: 0, width: 1, height: 1
+        )
+        let source = AppleMarqueeRegion(x: 1, y: 0, width: 1, height: 1)
+        let document = FloatingSelectionDocumentFake(marquee: originalMarquee)
+        let lifecycle = FloatingSelectionLifecycle()
+
+        #expect(lifecycle.liftFromMarquee(source, in: document))
+        let otherLayerPixels = Data([0, 0, 0xFF, 0xFF])
+        document.activeLayerIdentifier = "other-layer"
+        document.pixels = otherLayerPixels
+
+        let outcome = lifecycle.cancel(in: document)
+
+        guard case let .degraded(
+            didRestoreSourcePixels,
+            didRestoreMarquee,
+            _
+        ) = outcome else {
+            Issue.record("A Layer mismatch must report degraded cancellation")
+            return
+        }
+        #expect(!didRestoreSourcePixels)
+        #expect(didRestoreMarquee)
+        #expect(document.pixelRestoreCallCount == 0)
+        #expect(document.pixels == otherLayerPixels)
+        #expect(document.currentMarquee == originalMarquee)
+        #expect(!lifecycle.isActive)
+    }
+
+    @Test("cancel still restores the Marquee when pixel restoration fails")
+    func pixelRestoreFailureDoesNotSkipMarqueeRestore() throws {
+        let originalMarquee = AppleMarqueeRegion(
+            x: 0, y: 0, width: 1, height: 1
+        )
+        let source = AppleMarqueeRegion(x: 1, y: 0, width: 1, height: 1)
+        let document = FloatingSelectionDocumentFake(marquee: originalMarquee)
+        let lifecycle = FloatingSelectionLifecycle()
+
+        #expect(lifecycle.liftFromMarquee(source, in: document))
+        document.pixelRestoreError = FloatingSelectionFakeError.pixelRestoreFailed
+
+        let outcome = lifecycle.cancel(in: document)
+
+        guard case let .degraded(
+            didRestoreSourcePixels,
+            didRestoreMarquee,
+            _
+        ) = outcome else {
+            Issue.record("A pixel restore error must report degraded cancellation")
+            return
+        }
+        #expect(!didRestoreSourcePixels)
+        #expect(didRestoreMarquee)
+        #expect(document.pixelRestoreCallCount == 1)
+        #expect(document.setMarqueeCallCount == 2)
+        #expect(document.pixels == Data(repeating: 0, count: 4))
+        #expect(document.currentMarquee == originalMarquee)
+        #expect(!lifecycle.isActive)
+    }
+
+    @Test("cancel still restores pixels when Marquee restoration fails")
+    func marqueeRestoreFailureDoesNotSkipPixelRestore() throws {
+        let sourcePixels = Data([0xFF, 0, 0, 0xFF])
+        let originalMarquee = AppleMarqueeRegion(
+            x: 0, y: 0, width: 1, height: 1
+        )
+        let source = AppleMarqueeRegion(x: 1, y: 0, width: 1, height: 1)
+        let document = FloatingSelectionDocumentFake(
+            pixels: sourcePixels,
+            marquee: originalMarquee
+        )
+        let lifecycle = FloatingSelectionLifecycle()
+
+        #expect(lifecycle.liftFromMarquee(source, in: document))
+        document.marqueeRestoreError = FloatingSelectionFakeError.marqueeRestoreFailed
+
+        let outcome = lifecycle.cancel(in: document)
+
+        guard case let .degraded(
+            didRestoreSourcePixels,
+            didRestoreMarquee,
+            _
+        ) = outcome else {
+            Issue.record("A Marquee restore error must report degraded cancellation")
+            return
+        }
+        #expect(didRestoreSourcePixels)
+        #expect(!didRestoreMarquee)
+        #expect(document.pixelRestoreCallCount == 1)
+        #expect(document.setMarqueeCallCount == 2)
+        #expect(document.pixels == sourcePixels)
+        #expect(document.currentMarquee == source)
+        #expect(!lifecycle.isActive)
+    }
 }
 
 private enum FloatingSelectionFakeError: Error {
     case compositeFailed
+    case pixelRestoreFailed
+    case marqueeRestoreFailed
 }
 
 private final class FloatingSelectionDocumentFake: FloatingSelectionDocument {
@@ -620,9 +720,14 @@ private final class FloatingSelectionDocumentFake: FloatingSelectionDocument {
     }
 
     let sourceLayerId = "source-layer"
+    var activeLayerIdentifier: String
     var pixels: Data
     var currentMarquee: AppleMarqueeRegion?
     var compositeError: Error?
+    var pixelRestoreError: Error?
+    var marqueeRestoreError: Error?
+    private(set) var pixelRestoreCallCount = 0
+    private(set) var setMarqueeCallCount = 0
 
     init(
         pixels: Data = Data([0xFF, 0, 0, 0xFF]),
@@ -630,6 +735,7 @@ private final class FloatingSelectionDocumentFake: FloatingSelectionDocument {
             x: 0, y: 0, width: 1, height: 1
         )
     ) {
+        activeLayerIdentifier = sourceLayerId
         self.pixels = pixels
         currentMarquee = marquee
     }
@@ -638,11 +744,19 @@ private final class FloatingSelectionDocumentFake: FloatingSelectionDocument {
         State(pixels: pixels, marquee: currentMarquee)
     }
 
-    func activeLayerId() -> String { sourceLayerId }
+    func activeLayerId() -> String { activeLayerIdentifier }
     func activeLayerPixels() throws -> Data { pixels }
-    func restoreActiveLayerPixels(data: Data) throws { pixels = data }
+    func restoreActiveLayerPixels(data: Data) throws {
+        pixelRestoreCallCount += 1
+        if let pixelRestoreError { throw pixelRestoreError }
+        pixels = data
+    }
     func marquee() -> AppleMarqueeRegion? { currentMarquee }
-    func setMarquee(region: AppleMarqueeRegion?) throws { currentMarquee = region }
+    func setMarquee(region: AppleMarqueeRegion?) throws {
+        setMarqueeCallCount += 1
+        if let marqueeRestoreError { throw marqueeRestoreError }
+        currentMarquee = region
+    }
     func liftMarqueePixels() -> Data { pixels }
     func clearMarqueePixels() { pixels = Data(repeating: 0, count: pixels.count) }
     func composite() -> Data { pixels }

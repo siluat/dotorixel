@@ -16,7 +16,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Flood fill | ✅ | ✅ | ✅ | BFS, 4-connectivity; one-shot tap fill on both shells |
 | Eyedropper | — | ✅ | ✅ | Drag-and-commit; releases to FG (left-click/touch) or BG (right-click); skips transparent and out-of-bounds samples; not undoable. Apple samples the composite; Web samples the active layer. Loupe overlay tracked in its own row |
 | Move | — | ✅ | ✅ | Drag shifts the whole canvas relative to the drag anchor (never cumulative); off-canvas pixels clipped on commit, vacated areas transparent |
-| Selection / Marquee | 🔧 | 🔧 | 🔧 | Apple: define/deselect, ants, Shift-square, drawing clip, and persistent Floating move/commit with one-step history; keyboard ops, clipboard, action bar, persistence, Reference behavior pending. |
+| Selection / Marquee | 🔧 | 🔧 | 🔧 | Web: move/cancel, Delete, clipboard, nudge, axis drag, actions, Reference-aware UI. Apple: define/deselect + Floating move/commit/undo; keyboard, clipboard, actions, persistence, Reference pending. |
 | Right-click background color | — | ✅ | ✅ | Supported paint tools draw with BG on right-click; eraser stays transparent. Apple: macOS right-click + iPadOS pointer secondary button; touch always FG |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |
 | Pixel-perfect filter | ✅ | ✅ | ✅ | L-corner 3-window rule (Aseprite-style). Toggle default ON, disabled on non-freehand tools; persisted with the session on both shells |

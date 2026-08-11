@@ -72,6 +72,15 @@ final class FloatingSelectionLifecycle {
         case failed(didCommit: Bool, message: String)
     }
 
+    enum CancelOutcome {
+        case restored
+        case degraded(
+            didRestoreSourcePixels: Bool,
+            didRestoreMarquee: Bool,
+            message: String
+        )
+    }
+
     private struct FloatingSelection {
         let buffer: Data
         let sourceLayerId: String
@@ -228,26 +237,50 @@ final class FloatingSelectionLifecycle {
         return didCommit ? .committed : .unchanged
     }
 
-    /// Cancels the whole Floating Selection and restores the exact pixels and
-    /// Marquee captured before lift. This path never opens History.
-    func cancel(in document: any FloatingSelectionDocument) -> Bool {
-        guard let floating else { return false }
-        guard document.activeLayerId() == floating.sourceLayerId else {
-            assertionFailure("Floating Selection source Layer changed before cancel")
-            return false
+    /// Cancels the whole pending Floating edit rather than merely ending its
+    /// current pointer gesture. Exact restoration never opens History.
+    func cancel(in document: any FloatingSelectionDocument) -> CancelOutcome? {
+        guard let floating else { return nil }
+
+        // Cancellation is terminal even when a boundary operation fails. A
+        // degraded document must not retain an unresolvable transient owner.
+        self.floating = nil
+
+        let isSourceLayerActive = document.activeLayerId() == floating.sourceLayerId
+        var didRestoreSourcePixels = false
+        var failures: [String] = []
+
+        if isSourceLayerActive {
+            do {
+                try document.restoreActiveLayerPixels(
+                    data: floating.sourceLayerPixelsBeforeLift
+                )
+                didRestoreSourcePixels = true
+            } catch {
+                failures.append("source pixels: \(error)")
+            }
+        } else {
+            // The protocol intentionally exposes only active-Layer writes. Do
+            // not risk replacing a different Layer with the source snapshot.
+            failures.append("source Layer is no longer active")
         }
 
+        var didRestoreMarquee = false
         do {
-            try document.restoreActiveLayerPixels(
-                data: floating.sourceLayerPixelsBeforeLift
-            )
             try document.setMarquee(region: floating.marqueeBeforeLift)
-            self.floating = nil
-            return true
+            didRestoreMarquee = true
         } catch {
-            assertionFailure("Failed to cancel Floating Selection: \(error)")
-            return false
+            failures.append("Marquee: \(error)")
         }
+
+        guard didRestoreSourcePixels, didRestoreMarquee else {
+            return .degraded(
+                didRestoreSourcePixels: didRestoreSourcePixels,
+                didRestoreMarquee: didRestoreMarquee,
+                message: "Failed to restore Floating Selection exactly (\(failures.joined(separator: "; ")))"
+            )
+        }
+        return .restored
     }
 
     private func projectedRegion(for floating: FloatingSelection) -> AppleMarqueeRegion? {

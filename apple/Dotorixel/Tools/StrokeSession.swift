@@ -168,9 +168,17 @@ protocol SelectionSessionHost: StrokeSessionHost {
     var selectionMarqueeForInteraction: AppleMarqueeRegion? { get }
     var floatingSelectionOffset: FloatingSelectionOffset? { get }
 
+    /// Captures the source pixels and pre-lift state, clears the source, and
+    /// activates the Floating Selection lifecycle. Returns `true` only after
+    /// all three steps complete; returns `false` when a selection is already
+    /// active or source capture or boundary validation fails.
     @discardableResult
     func liftFloatingSelection(from sourceRegion: AppleMarqueeRegion) -> Bool
 
+    /// Accepts a different offset when its projected Marquee is representable
+    /// across the FFI boundary. Returns `false` when no Floating Selection is
+    /// active, the offset is unchanged, or the projection is invalid; an
+    /// invalid candidate leaves the last valid offset active.
     @discardableResult
     func moveFloatingSelection(to offset: FloatingSelectionOffset) -> Bool
 
@@ -181,7 +189,9 @@ protocol SelectionSessionHost: StrokeSessionHost {
     @discardableResult
     func commitFloatingSelection() -> Bool
 
-    /// Discards the live translation and restores the exact pre-lift state.
+    /// Discards the live translation and attempts to restore the exact
+    /// pre-lift state. Returns `true` after an exact restore; a boundary
+    /// failure still resolves the transient lifecycle but returns `false`.
     @discardableResult
     func cancelFloatingSelection() -> Bool
 }

@@ -145,6 +145,26 @@ struct TouchStrokeRouterFloatingSelectionTests {
         #expect(try previewPixel(editor, x: 3, y: 1) == [0xFF, 0, 0, 0xFF])
     }
 
+    @Test("system cancellation restores the pre-lift selection state without history")
+    func cancellationRestoresPreLiftSelectionState() throws {
+        let editor = try makeSelectionEditor()
+        let tab = editor.state.activeTab
+        let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+
+        editor.fingerDown(1, x: 1, y: 1)
+        editor.fingerMove(1, x: 2, y: 1)
+        editor.fingerCancel(1)
+
+        #expect(tab.floatingSelectionOffset == nil)
+        #expect(try tab.document.getPixel(x: 1, y: 1) == red)
+        #expect(try tab.document.getPixel(x: 2, y: 1).a == 0)
+        #expect(tab.document.marquee() == source)
+        #expect(!tab.documentHistory.canUndo())
+        #expect(!tab.canUndo)
+        #expect(!tab.isDrawing)
+    }
+
     private func makeSelectionEditor() throws -> RoutedEditor {
         let editor = RoutedEditor()
         let tab = editor.state.activeTab
@@ -162,7 +182,8 @@ struct TouchStrokeRouterFloatingSelectionTests {
 
     private func previewPixel(_ editor: RoutedEditor, x: Int, y: Int) throws -> [UInt8] {
         let pixels = try editor.state.activeTab.renderPixels()
-        let offset = (y * 16 + x) * 4
+        let width = Int(editor.state.activeTab.document.width())
+        let offset = (y * width + x) * 4
         return Array(pixels[offset..<(offset + 4)])
     }
 }

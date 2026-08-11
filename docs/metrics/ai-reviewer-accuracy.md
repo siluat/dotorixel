@@ -11,13 +11,15 @@ only Miss rows may be grouped, with an explicit (×N) count.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 208 | 156 | 52 | 273 | 75% | 36% |
-| cubic-dev-ai[bot] | 301 | 236 | 65 | 211 | 78% | 53% |
+| cubic-dev-ai[bot] | 303 | 236 | 67 | 211 | 78% | 53% |
 | coderabbitai[bot] | 314 | 224 | 90 | 219 | 71% | 51% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #361 | cubic-dev-ai[bot] | Reject | Proposed an Apple shell editability guard before Marquee pixel clear, but the Rust Document already no-ops on Reference Layers and the Core Edit Baseline deliberately remains the single authority on whether the command changed anything |
+| #361 | cubic-dev-ai[bot] | Reject | Proposed filtering modified Delete/Escape only on Apple without a concrete conflicting command; the task explicitly preserves Web parity, and canvas first-responder scoping already prevents capture in other controls and presented surfaces |
 | #361 | cubic-dev-ai[bot] | Accept | Floating Delete had no direct regression for committing the nudge before clearing the translated Marquee as a distinct History entry; added the full two-Undo round trip |
 | #361 | cubic-dev-ai[bot] | Accept | The app-level macOS event monitor consumed Arrow/Delete/Escape before non-canvas responders; selection editing keys now require canvas first-responder ownership while character shortcuts remain app-level |
 | #361 | greptile-apps[bot] | Accept | Same app-level selection-key capture finding (resolved duplicate of cubic); same canvas first-responder scope fix |

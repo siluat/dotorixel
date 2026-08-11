@@ -791,11 +791,11 @@ final class TabState {
     /// scale (one canvas pixel per image pixel), matching the web's export
     /// convention.
     ///
-    /// - Throws: `AppleError` when a recovery projection cannot be rebuilt or
+    /// - Throws: `AppleError` when a transient projection cannot be rebuilt or
     ///   PNG encoding fails.
     func makePngExportDocument() throws -> PngExportDocument {
         let exportDocument: AppleDocument
-        if floatingSelection.hasPendingRecovery {
+        if floatingSelection.isActive || floatingSelection.hasPendingRecovery {
             exportDocument = try AppleDocument.fromLayers(
                 width: document.width(),
                 height: document.height(),

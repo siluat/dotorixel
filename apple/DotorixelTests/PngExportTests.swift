@@ -72,6 +72,39 @@ struct PngExportTests {
         #expect(Array(rgba[destinationOffset..<(destinationOffset + 4)]) == [0, 0, 0, 0])
     }
 
+    @Test("export projects pre-lift pixels while a Floating Selection is active")
+    func exportPreservesLiveFloatingSelection() throws {
+        let state = Workspace(width: 4, height: 4)
+        let tab = state.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+
+        try tab.document.setPixel(x: 1, y: 1, color: red)
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        )
+        state.activateTool(.selection)
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
+        tab.endStroke()
+
+        let floatingOffset = FloatingSelectionOffset(dx: 1, dy: 0)
+        #expect(tab.floatingSelectionOffset == floatingOffset)
+        #expect(try tab.document.getPixel(x: 1, y: 1) == transparent)
+        #expect(try tab.document.getPixel(x: 2, y: 1) == transparent)
+
+        let png = try tab.makePngExportDocument()
+        let rgba = try decodedRgbaPixels(png: png.data, width: 4, height: 4)
+        let sourceOffset = rgbaByteOffset(x: 1, y: 1, width: 4)
+        let destinationOffset = rgbaByteOffset(x: 2, y: 1, width: 4)
+
+        #expect(Array(rgba[sourceOffset..<(sourceOffset + 4)]) == [0xFF, 0, 0, 0xFF])
+        #expect(Array(rgba[destinationOffset..<(destinationOffset + 4)]) == [0, 0, 0, 0])
+        #expect(tab.floatingSelectionOffset == floatingOffset)
+        #expect(try tab.document.getPixel(x: 1, y: 1) == transparent)
+        #expect(try tab.document.getPixel(x: 2, y: 1) == transparent)
+    }
+
     /// Byte offset of pixel (x, y) in a row-major RGBA8 buffer.
     private func rgbaByteOffset(x: Int, y: Int, width: Int) -> Int {
         (y * width + x) * 4

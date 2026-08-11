@@ -861,6 +861,10 @@ private enum FloatingSelectionFakeError: Error {
     case unknownLayer
 }
 
+/// Lifecycle-orchestration fake that treats pixels as opaque whole-Layer
+/// tokens. Its lift, clear, and composite operations intentionally do not
+/// emulate region geometry; geometry-sensitive coverage belongs to the real
+/// `AppleDocument`, the Rust core, and `SelectionBindingsTests`.
 private final class FloatingSelectionDocumentFake: FloatingSelectionDocument {
     struct State: Equatable {
         let pixels: Data

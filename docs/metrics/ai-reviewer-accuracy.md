@@ -10,14 +10,20 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 207 | 155 | 52 | 270 | 75% | 36% |
-| cubic-dev-ai[bot] | 298 | 233 | 65 | 210 | 78% | 53% |
-| coderabbitai[bot] | 311 | 222 | 89 | 217 | 71% | 51% |
+| greptile-apps[bot] | 207 | 155 | 52 | 272 | 75% | 36% |
+| cubic-dev-ai[bot] | 299 | 234 | 65 | 211 | 78% | 53% |
+| coderabbitai[bot] | 314 | 224 | 90 | 217 | 71% | 51% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #360 | coderabbitai[bot] | Accept | PNG export rebuilt a projected Document only for pending recovery; a normal live Floating Selection therefore exported the raw source hole and omitted the lifted pixels |
+| #360 | cubic-dev-ai[bot] | Accept | Same live-Floating PNG export hole (duplicate of CodeRabbit); export must use the pre-lift projection for both active and recovery states |
+| #360 | coderabbitai[bot] | Reject | The PNG recovery test already forces the degraded path by switching the active Layer through the raw binding, asserts cancellation failure and the live source hole, then verifies the projected export; exposing TabState's private recovery flag would add a white-box seam without stronger discrimination |
+| #360 | coderabbitai[bot] | Accept | The lifecycle fake's whole-buffer Marquee operations were intentionally region-agnostic but undocumented and an out-of-bounds-looking fixture implied production geometry; documented the fake contract without duplicating the core region engine inside the test double |
+| #360 | greptile-apps[bot] | Miss (×2) | No-finding follow-up review missed the live-Floating PNG export hole and the misleading undocumented region contract in the lifecycle fake |
+| #360 | cubic-dev-ai[bot] | Miss | Flagged the live-Floating export hole but missed the fake's region-contract gap accepted from CodeRabbit |
 | #360 | cubic-dev-ai[bot] | Accept | A degraded Floating Selection cancel could discard its pre-lift persistence projection, mark the live source-Layer hole dirty, and overwrite recoverable stored pixels |
 | #360 | coderabbitai[bot] | Miss | Missed degraded cancel persisting the lifted-pixel hole (accepted from cubic) |
 | #360 | greptile-apps[bot] | Miss | Missed degraded cancel persisting the lifted-pixel hole (accepted from cubic) |

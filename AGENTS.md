@@ -114,6 +114,15 @@ When a task item is completed, notify the user and suggest using the `/task-done
 - **body**: only when additional context is needed
 - scope: introduce when the project grows enough to need it
 - **PR title**: follows the same Conventional Commits format — squash merge makes it the final commit message on `main`. Do not include issue numbers (`(#NNN)`) in the title; GitHub appends the PR number automatically on squash, and the issue link belongs in the PR description.
+- **PR readiness**: create PRs as ready for review by default. Create a Draft PR only when the user explicitly requests Draft status.
+
+### GitHub Authentication Diagnostics
+
+- A failed `gh auth status` inside the restricted sandbox is not sufficient evidence that credentials are invalid.
+- Before asking the user to reauthenticate, rerun the read-only authentication check with network-enabled or escalated execution.
+- Request `gh auth login` only when that second check reports `401`, `Bad credentials`, or an explicitly expired/revoked token.
+- Treat `403 Resource not accessible by integration` as a GitHub App permission problem, not a GitHub CLI authentication problem; use the authenticated CLI fallback when authorized.
+- Never print an unmasked authentication token.
 
 ### Markdown
 

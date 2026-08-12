@@ -385,4 +385,16 @@ extension Workspace: KeyboardShortcutHost {
     func toggleGrid() {
         activeTab.toggleGrid()
     }
+
+    func nudgeMarquee(by delta: FloatingSelectionOffset) {
+        activeTab.nudgeMarquee(by: delta)
+    }
+
+    func clearMarqueePixels() {
+        activeTab.clearMarqueePixels()
+    }
+
+    func clearMarqueeOrFloating() {
+        activeTab.clearMarqueeOrFloating()
+    }
 }

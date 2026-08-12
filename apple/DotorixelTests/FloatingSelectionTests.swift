@@ -552,6 +552,136 @@ struct FloatingSelectionTests {
     }
 }
 
+@Suite("Selection keyboard operations — TabState commands")
+struct SelectionKeyboardOperationTests {
+
+    @Test("repeated nudges accumulate in one Floating Selection and commit as one undo step")
+    func repeatedNudgesCommitAsOneUndoStep() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+        let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+
+        try tab.document.setPixel(x: 1, y: 1, color: red)
+        try tab.document.setMarquee(region: source)
+
+        tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 0))
+        tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 0, dy: 1))
+
+        #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 1))
+        #expect(!tab.documentHistory.canUndo())
+        #expect(tab.commitFloatingSelection())
+        #expect(try tab.document.getPixel(x: 1, y: 1) == transparent)
+        #expect(try tab.document.getPixel(x: 2, y: 2) == red)
+
+        tab.handleUndo()
+
+        #expect(try tab.document.getPixel(x: 1, y: 1) == red)
+        #expect(try tab.document.getPixel(x: 2, y: 2) == transparent)
+        #expect(tab.document.marquee() == source)
+        #expect(!tab.canUndo)
+    }
+
+    @Test("Delete clears Marquee pixels as one undoable edit")
+    func deleteClearsMarqueePixelsAndUndoes() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+        let marquee = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+
+        try tab.document.setPixel(x: 1, y: 1, color: red)
+        try tab.document.setMarquee(region: marquee)
+
+        tab.clearMarqueePixels()
+
+        #expect(try tab.document.getPixel(x: 1, y: 1) == transparent)
+        #expect(tab.document.marquee() == marquee)
+        #expect(tab.canUndo)
+
+        tab.handleUndo()
+
+        #expect(try tab.document.getPixel(x: 1, y: 1) == red)
+        #expect(tab.document.marquee() == marquee)
+        #expect(!tab.canUndo)
+    }
+
+    @Test("Delete commits a Floating nudge before clearing it as a distinct edit")
+    func deleteCommitsFloatingSelectionBeforeClear() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+        let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        let destination = AppleMarqueeRegion(x: 2, y: 1, width: 1, height: 1)
+
+        try tab.document.setPixel(x: 1, y: 1, color: red)
+        try tab.document.setMarquee(region: source)
+        tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 0))
+
+        tab.clearMarqueePixels()
+
+        #expect(tab.floatingSelectionOffset == nil)
+        #expect(try tab.document.getPixel(x: 1, y: 1) == transparent)
+        #expect(try tab.document.getPixel(x: 2, y: 1) == transparent)
+        #expect(tab.document.marquee() == destination)
+
+        tab.handleUndo()
+
+        #expect(try tab.document.getPixel(x: 1, y: 1) == transparent)
+        #expect(try tab.document.getPixel(x: 2, y: 1) == red)
+        #expect(tab.document.marquee() == destination)
+        #expect(tab.canUndo)
+
+        tab.handleUndo()
+
+        #expect(try tab.document.getPixel(x: 1, y: 1) == red)
+        #expect(try tab.document.getPixel(x: 2, y: 1) == transparent)
+        #expect(tab.document.marquee() == source)
+        #expect(!tab.canUndo)
+    }
+
+    @Test("Escape cancels a Floating Selection without recording History")
+    func escapeCancelsFloatingSelection() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+        let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+
+        try tab.document.setPixel(x: 1, y: 1, color: red)
+        try tab.document.setMarquee(region: source)
+        tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 0))
+
+        tab.clearMarqueeOrFloating()
+
+        #expect(tab.floatingSelectionOffset == nil)
+        #expect(try tab.document.getPixel(x: 1, y: 1) == red)
+        #expect(try tab.document.getPixel(x: 2, y: 1) == transparent)
+        #expect(tab.document.marquee() == source)
+        #expect(!tab.canUndo)
+    }
+
+    @Test("Escape deselects an idle Marquee and Undo restores it")
+    func escapeDeselectsIdleMarquee() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let marquee = AppleMarqueeRegion(x: 1, y: 1, width: 2, height: 2)
+        try tab.document.setMarquee(region: marquee)
+
+        tab.clearMarqueeOrFloating()
+
+        #expect(tab.document.marquee() == nil)
+        #expect(tab.canUndo)
+
+        tab.handleUndo()
+
+        #expect(tab.document.marquee() == marquee)
+        #expect(!tab.canUndo)
+    }
+}
+
 @Suite("Floating Selection lifecycle — Edit Baseline contract")
 struct FloatingSelectionEditBaselineTests {
 

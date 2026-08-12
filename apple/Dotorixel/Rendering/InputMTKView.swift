@@ -24,13 +24,13 @@ protocol CanvasInputDelegate: AnyObject {
     /// drives the temporary eyedropper switch. macOS reads Option globally
     /// via `ShortcutKeyMonitorModifier` instead, so this fires on iPad only.
     func altStateChanged(isHeld: Bool, in view: InputMTKView)
-    /// A character key pressed on an iPad hardware keyboard, normalized for
-    /// the shortcut controller. Returns whether the key was consumed as a
+    /// A key pressed on an iPad hardware keyboard, normalized for the
+    /// shortcut controller. Returns whether the key was consumed as a
     /// shortcut, so the view keeps consumed presses out of the responder
     /// chain. macOS captures keys via `ShortcutKeyMonitorModifier` instead,
     /// so this fires on iPad only.
-    func characterKeyPressed(
-        _ character: Character, modifiers: ShortcutModifiers, isRepeat: Bool, in view: InputMTKView
+    func shortcutKeyPressed(
+        _ key: ShortcutKey, modifiers: ShortcutModifiers, isRepeat: Bool, in view: InputMTKView
     ) -> Bool
     #if os(macOS)
     func scrollWheelChanged(deltaX: CGFloat, deltaY: CGFloat, at point: CGPoint, isPrecise: Bool, in view: InputMTKView)
@@ -59,6 +59,7 @@ class InputMTKView: MTKView {
     }
 
     override func mouseDown(with event: NSEvent) {
+        claimKeyboardFocus()
         // Re-sync on stroke begin: a Shift press while another view held
         // first responder never reached `flagsChanged`.
         inputDelegate?.shiftStateChanged(isHeld: event.modifierFlags.contains(.shift), in: self)
@@ -79,6 +80,7 @@ class InputMTKView: MTKView {
     // also suppresses AppKit's default context-menu behavior on the canvas.
 
     override func rightMouseDown(with event: NSEvent) {
+        claimKeyboardFocus()
         inputDelegate?.shiftStateChanged(isHeld: event.modifierFlags.contains(.shift), in: self)
         let point = convert(event.locationInWindow, from: nil)
         inputDelegate?.drawingBegan(at: point, button: .secondary, inputSource: .mouse, in: self)
@@ -91,6 +93,14 @@ class InputMTKView: MTKView {
 
     override func rightMouseUp(with event: NSEvent) {
         inputDelegate?.drawingEnded(in: self)
+    }
+
+    /// Selection-editing keys are canvas-scoped on macOS. Pointer input makes
+    /// that ownership explicit because the custom mouse handlers do not call
+    /// `super`, which would otherwise participate in responder targeting.
+    private func claimKeyboardFocus() {
+        guard let window, window.firstResponder !== self else { return }
+        window.makeFirstResponder(self)
     }
 
     override func scrollWheel(with event: NSEvent) {
@@ -149,22 +159,24 @@ class InputMTKView: MTKView {
     /// `pressesEnded`/`pressesCancelled`, which remove the code).
     private var heldKeyCodes: Set<UIKeyboardHIDUsage> = []
 
-    /// Forwards character keys to the shortcut controller. ⌘Z/⇧⌘Z are
+    /// Forwards semantic keys to the shortcut controller. ⌘Z/⇧⌘Z are
     /// excluded — the Edit-menu commands own undo/redo key equivalents on
     /// both platforms, and forwarding here would double-fire them.
     /// Returns the presses NOT consumed as shortcuts (modifier-only and
     /// unhandled presses pass through) for responder-chain forwarding.
-    private func forwardCharacterPresses(_ presses: Set<UIPress>) -> Set<UIPress> {
+    private func forwardShortcutPresses(_ presses: Set<UIPress>) -> Set<UIPress> {
         var unhandledPresses = presses
         for press in presses {
-            guard let key = press.key,
-                  let character = key.charactersIgnoringModifiers.lowercased().first
+            guard let platformKey = press.key,
+                  let shortcutKey = shortcutKey(from: platformKey)
             else { continue }
-            let isRepeat = !heldKeyCodes.insert(key.keyCode).inserted
-            let modifiers = ShortcutModifiers(key.modifierFlags)
-            if KeyboardShortcutController.isMenuOwnedShortcut(character, modifiers: modifiers) { continue }
-            let consumed = inputDelegate?.characterKeyPressed(
-                character, modifiers: modifiers, isRepeat: isRepeat, in: self
+            let isRepeat = !heldKeyCodes.insert(platformKey.keyCode).inserted
+            let modifiers = ShortcutModifiers(platformKey.modifierFlags)
+            if KeyboardShortcutController.isMenuOwnedShortcut(shortcutKey, modifiers: modifiers) {
+                continue
+            }
+            let consumed = inputDelegate?.shortcutKeyPressed(
+                shortcutKey, modifiers: modifiers, isRepeat: isRepeat, in: self
             ) ?? false
             if consumed {
                 unhandledPresses.remove(press)
@@ -190,7 +202,7 @@ class InputMTKView: MTKView {
         }
         // Consumed shortcuts stop here — forwarding them up the responder
         // chain would hand them to system focus/default handling too.
-        let unhandledPresses = forwardCharacterPresses(presses)
+        let unhandledPresses = forwardShortcutPresses(presses)
         if !unhandledPresses.isEmpty {
             super.pressesBegan(unhandledPresses, with: event)
         }
@@ -220,6 +232,23 @@ class InputMTKView: MTKView {
             inputDelegate?.altStateChanged(isHeld: event?.modifierFlags.contains(.alternate) ?? false, in: self)
         }
         super.pressesCancelled(presses, with: event)
+    }
+
+    private func shortcutKey(from key: UIKey) -> ShortcutKey? {
+        switch key.keyCode {
+        case .keyboardUpArrow: return .arrowUp
+        case .keyboardDownArrow: return .arrowDown
+        case .keyboardLeftArrow: return .arrowLeft
+        case .keyboardRightArrow: return .arrowRight
+        case .keyboardDeleteOrBackspace: return .deleteBackward
+        case .keyboardDeleteForward: return .deleteForward
+        case .keyboardEscape: return .escape
+        default:
+            guard let character = key.charactersIgnoringModifiers.lowercased().first else {
+                return nil
+            }
+            return .character(character)
+        }
     }
 
     /// Routes multi-touch events into single-stroke drawing commands: the

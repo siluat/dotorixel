@@ -3,19 +3,17 @@
 ## Currently Working On
 
 Apple catch-up Phase 5 — reference + selection + transforms
-([RFC](../issues/013-apple-native-catchup.md)); 6/16 sub-issues done
-(267–272). Frontier: {273, 274, 276, 277}.
+([RFC](../issues/013-apple-native-catchup.md)); 7/16 sub-issues done
+(267–273). Frontier: {274, 276, 277}.
 
 ## Last Completed
 
-[272 — Apple floating selection](../issues/272-apple-floating-selection.md):
-Apple Selection now supports lift-and-move with live preview, repeated drags,
-single-entry commit, and exact undo/redo. Floating state remains transient
-across tab switches and persistence; keyboard operations remain in 273.
+[273 — Apple selection keyboard ops](../issues/273-apple-selection-keyboard-ops.md):
+Apple Selection now supports hardware-keyboard nudge, Delete, Escape, and live
+dominant-axis Constrain locking with web-parity History behavior.
 
 ## Next Up
 
-- [273 — Apple selection keyboard ops](../issues/273-apple-selection-keyboard-ops.md) — Phase 5, unblocked by 272
 - [274 — Apple selection clipboard](../issues/274-apple-selection-clipboard.md) — Phase 5, unblocked by 272
 - [276 — Apple marquee persistence](../issues/276-apple-marquee-persistence.md) — Phase 5, unblocked by 272
 - [277 — Apple UniFFI reference bindings](../issues/277-apple-uniffi-reference-bindings.md) — Phase 5 frontier

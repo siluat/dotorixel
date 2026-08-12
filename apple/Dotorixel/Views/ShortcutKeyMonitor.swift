@@ -4,9 +4,11 @@ import SwiftUI
 /// macOS wiring for the editor keyboard shortcuts: local NSEvent monitors
 /// feed normalized key events into `Workspace.keyboardShortcuts`.
 ///
-/// Monitors see events before responder-chain dispatch, so shortcuts work
-/// regardless of which view is first responder — the text-input guard lives
-/// in the controller (via `isTextInputFocused`), not in responder targeting.
+/// Monitors see events before responder-chain dispatch. Character shortcuts
+/// stay app-level (subject to the text-input guard), while Arrow/Delete/Escape
+/// selection editing is admitted only when the canvas owns first responder and
+/// VoiceOver is inactive, so adjustable controls, assistive navigation, and
+/// presented surfaces keep their standard keys.
 ///
 /// Ownership split: ⌘Z/⇧⌘Z belong to the Edit-menu commands
 /// (`UndoRedoCommands`) and pass through untouched — a single execution
@@ -52,17 +54,45 @@ struct ShortcutKeyMonitorModifier: ViewModifier {
 
     /// Returns whether the event was consumed as an editor shortcut.
     private func handleKeyDown(_ event: NSEvent) -> Bool {
-        guard let character = event.charactersIgnoringModifiers?.lowercased().first else {
+        guard let key = ShortcutKey(event) else {
             return false
         }
         let modifiers = ShortcutModifiers(event.modifierFlags)
         // ⌘Z/⇧⌘Z pass through to the Edit-menu commands (single owner).
-        if KeyboardShortcutController.isMenuOwnedShortcut(character, modifiers: modifiers) {
+        if KeyboardShortcutController.isMenuOwnedShortcut(key, modifiers: modifiers) {
             return false
         }
-        return workspace.keyboardShortcuts.handleKeyDown(
-            character, modifiers: modifiers, isRepeat: event.isARepeat
+        let canHandleSelectionEditingKeys = KeyboardShortcutController.canHandleSelectionEditingKeys(
+            canvasOwnsFirstResponder: event.window?.firstResponder is InputMTKView,
+            isVoiceOverEnabled: NSWorkspace.shared.isVoiceOverEnabled
         )
+        return workspace.keyboardShortcuts.handleKeyDown(
+            key,
+            modifiers: modifiers,
+            isRepeat: event.isARepeat,
+            canHandleSelectionEditingKeys: canHandleSelectionEditingKeys
+        )
+    }
+}
+
+private extension ShortcutKey {
+    init?(_ event: NSEvent) {
+        switch event.specialKey {
+        case .upArrow: self = .arrowUp
+        case .downArrow: self = .arrowDown
+        case .leftArrow: self = .arrowLeft
+        case .rightArrow: self = .arrowRight
+        case .deleteForward: self = .deleteForward
+        default:
+            guard let character = event.charactersIgnoringModifiers?.lowercased().first else {
+                return nil
+            }
+            switch character {
+            case "\u{7F}": self = .deleteBackward
+            case "\u{1B}": self = .escape
+            default: self = .character(character)
+            }
+        }
     }
 }
 

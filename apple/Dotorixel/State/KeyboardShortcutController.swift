@@ -19,6 +19,12 @@ protocol KeyboardShortcutHost: AnyObject {
     func toggleGrid()
     /// Swap foreground/background colors.
     func swapColors()
+    /// Translate the active Marquee or Floating Selection by canvas pixels.
+    func nudgeMarquee(by delta: FloatingSelectionOffset)
+    /// Clear pixels inside the active Marquee, preserving the Marquee itself.
+    func clearMarqueePixels()
+    /// Cancel a Floating Selection, otherwise clear the idle Marquee.
+    func clearMarqueeOrFloating()
 }
 
 /// Platform-neutral modifier state accompanying a key press.
@@ -29,6 +35,20 @@ struct ShortcutModifiers: OptionSet {
     static let shift = ShortcutModifiers(rawValue: 1 << 1)
     static let option = ShortcutModifiers(rawValue: 1 << 2)
     static let control = ShortcutModifiers(rawValue: 1 << 3)
+}
+
+/// Platform-neutral key identity. Character shortcuts keep their existing
+/// layout-aware value; non-character editing keys use semantic cases so
+/// AppKit and UIKit do not leak key-code details into shortcut policy.
+enum ShortcutKey: Equatable {
+    case character(Character)
+    case arrowUp
+    case arrowDown
+    case arrowLeft
+    case arrowRight
+    case deleteBackward
+    case deleteForward
+    case escape
 }
 
 /// Editor keyboard shortcut logic, ported from the web's
@@ -106,6 +126,21 @@ final class KeyboardShortcutController {
         modifiers.contains(.command) && character == "z"
     }
 
+    static func isMenuOwnedShortcut(_ key: ShortcutKey, modifiers: ShortcutModifiers) -> Bool {
+        guard case let .character(character) = key else { return false }
+        return isMenuOwnedShortcut(character, modifiers: modifiers)
+    }
+
+    /// Whether macOS may consume canvas-scoped selection-editing keys. AppKit
+    /// first responder and VoiceOver accessibility focus are independent, so
+    /// assistive navigation keeps ownership whenever VoiceOver is active.
+    static func canHandleSelectionEditingKeys(
+        canvasOwnsFirstResponder: Bool,
+        isVoiceOverEnabled: Bool
+    ) -> Bool {
+        canvasOwnsFirstResponder && !isVoiceOverEnabled
+    }
+
     /// Routes one key press. Returns whether the key was consumed as a
     /// shortcut — callers swallow handled events so they don't also reach
     /// platform default handling.
@@ -115,7 +150,28 @@ final class KeyboardShortcutController {
     /// repeats are swallowed without dispatching so the grid doesn't flicker.
     @discardableResult
     func handleKeyDown(_ character: Character, modifiers: ShortcutModifiers = [], isRepeat: Bool = false) -> Bool {
-        guard let host, let command = resolveKeyDown(character, modifiers: modifiers, host: host) else {
+        handleKeyDown(.character(character), modifiers: modifiers, isRepeat: isRepeat)
+    }
+
+    /// Semantic-key overload used by platform wiring for arrows and editing
+    /// keys that do not have a stable character representation. macOS wiring
+    /// limits selection-editing keys to a canvas-owned responder target;
+    /// iPad delivery is already scoped to the canvas first responder.
+    @discardableResult
+    func handleKeyDown(
+        _ key: ShortcutKey,
+        modifiers: ShortcutModifiers = [],
+        isRepeat: Bool = false,
+        canHandleSelectionEditingKeys: Bool = true
+    ) -> Bool {
+        guard let host,
+              let command = resolveKeyDown(
+                  key,
+                  modifiers: modifiers,
+                  canHandleSelectionEditingKeys: canHandleSelectionEditingKeys,
+                  host: host
+              )
+        else {
             return false
         }
         switch command {
@@ -125,6 +181,18 @@ final class KeyboardShortcutController {
         case .toggleGrid: if !isRepeat { host.toggleGrid() }
         case .swapColors: if !isRepeat { host.swapColors() }
         case .activateTool(let tool): host.setActiveTool(tool)
+        case .nudgeMarquee(let delta):
+            if !host.isDrawing {
+                host.nudgeMarquee(by: delta)
+            }
+        case .clearMarqueePixels:
+            if !isRepeat && !host.isDrawing {
+                host.clearMarqueePixels()
+            }
+        case .clearMarqueeOrFloating:
+            if !isRepeat && !host.isDrawing {
+                host.clearMarqueeOrFloating()
+            }
         }
         return true
     }
@@ -135,17 +203,43 @@ final class KeyboardShortcutController {
         case toggleGrid
         case swapColors
         case activateTool(EditorTool)
+        case nudgeMarquee(FloatingSelectionOffset)
+        case clearMarqueePixels
+        case clearMarqueeOrFloating
     }
 
     /// The single keydown decision table, ported from the web handler.
     private func resolveKeyDown(
-        _ character: Character,
+        _ key: ShortcutKey,
         modifiers: ShortcutModifiers,
+        canHandleSelectionEditingKeys: Bool,
         host: KeyboardShortcutHost
     ) -> ShortcutCommand? {
         // Web parity: every shortcut is gated on the target not being a text
         // input, so the canvas-size fields keep receiving plain letters.
         guard !host.isTextInputFocused else { return nil }
+
+        if canHandleSelectionEditingKeys,
+           let delta = marqueeNudge(for: key),
+           !modifiers.contains(.command),
+           !modifiers.contains(.option),
+           !modifiers.contains(.control) {
+            let multiplier: Int64 = modifiers.contains(.shift) ? 10 : 1
+            return .nudgeMarquee(FloatingSelectionOffset(
+                dx: delta.dx * multiplier,
+                dy: delta.dy * multiplier
+            ))
+        }
+
+        if canHandleSelectionEditingKeys,
+           key == .deleteBackward || key == .deleteForward {
+            return .clearMarqueePixels
+        }
+        if canHandleSelectionEditingKeys, key == .escape {
+            return .clearMarqueeOrFloating
+        }
+
+        guard case let .character(character) = key else { return nil }
 
         // ⌘Z / ⇧⌘Z / ⌘Y — undo/redo combos mirror the web handler.
         if modifiers.contains(.command) {
@@ -173,5 +267,15 @@ final class KeyboardShortcutController {
             return .activateTool(tool)
         }
         return nil
+    }
+
+    private func marqueeNudge(for key: ShortcutKey) -> FloatingSelectionOffset? {
+        switch key {
+        case .arrowUp: FloatingSelectionOffset(dx: 0, dy: -1)
+        case .arrowDown: FloatingSelectionOffset(dx: 0, dy: 1)
+        case .arrowLeft: FloatingSelectionOffset(dx: -1, dy: 0)
+        case .arrowRight: FloatingSelectionOffset(dx: 1, dy: 0)
+        default: nil
+        }
     }
 }

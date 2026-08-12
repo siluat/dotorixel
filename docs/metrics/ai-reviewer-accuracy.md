@@ -10,14 +10,24 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 207 | 155 | 52 | 272 | 75% | 36% |
-| cubic-dev-ai[bot] | 299 | 234 | 65 | 211 | 78% | 53% |
-| coderabbitai[bot] | 314 | 224 | 90 | 217 | 71% | 51% |
+| greptile-apps[bot] | 209 | 157 | 52 | 273 | 75% | 37% |
+| cubic-dev-ai[bot] | 303 | 236 | 67 | 212 | 78% | 53% |
+| coderabbitai[bot] | 314 | 224 | 90 | 220 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #361 | greptile-apps[bot] | Accept | macOS selection-key admission relied only on AppKit first responder, so VoiceOver accessibility focus and Quick Nav could still lose Arrow/Delete/Escape; selection editing keys now pass through whenever VoiceOver is active |
+| #361 | cubic-dev-ai[bot] | Miss | Re-reviewed the latest commit with zero findings but missed the VoiceOver accessibility-focus key capture accepted from greptile |
+| #361 | coderabbitai[bot] | Miss | Re-reviewed the latest commit with no actionable comments but missed the VoiceOver accessibility-focus key capture accepted from greptile |
+| #361 | cubic-dev-ai[bot] | Reject | Proposed an Apple shell editability guard before Marquee pixel clear, but the Rust Document already no-ops on Reference Layers and the Core Edit Baseline deliberately remains the single authority on whether the command changed anything |
+| #361 | cubic-dev-ai[bot] | Reject | Proposed filtering modified Delete/Escape only on Apple without a concrete conflicting command; the task explicitly preserves Web parity, and canvas first-responder scoping already prevents capture in other controls and presented surfaces |
+| #361 | cubic-dev-ai[bot] | Accept | Floating Delete had no direct regression for committing the nudge before clearing the translated Marquee as a distinct History entry; added the full two-Undo round trip |
+| #361 | cubic-dev-ai[bot] | Accept | The app-level macOS event monitor consumed Arrow/Delete/Escape before non-canvas responders; selection editing keys now require canvas first-responder ownership while character shortcuts remain app-level |
+| #361 | greptile-apps[bot] | Accept | Same app-level selection-key capture finding (resolved duplicate of cubic); same canvas first-responder scope fix |
+| #361 | greptile-apps[bot] | Miss | Flagged global key capture but missed the Floating Delete two-entry History test gap accepted from cubic |
+| #361 | coderabbitai[bot] | Miss (×2) | APPROVED without flagging either the app-level selection-key capture or the Floating Delete History test gap accepted from cubic/greptile |
 | #360 | coderabbitai[bot] | Accept | PNG export rebuilt a projected Document only for pending recovery; a normal live Floating Selection therefore exported the raw source hole and omitted the lifted pixels |
 | #360 | cubic-dev-ai[bot] | Accept | Same live-Floating PNG export hole (duplicate of CodeRabbit); export must use the pre-lift projection for both active and recovery states |
 | #360 | coderabbitai[bot] | Reject | The PNG recovery test already forces the degraded path by switching the active Layer through the raw binding, asserts cancellation failure and the live source hole, then verifies the projected export; exposing TabState's private recovery flag would add a white-box seam without stronger discrimination |

@@ -379,6 +379,51 @@ final class TabState {
         return floatingSelection.offset
     }
 
+    /// Translates the active Marquee by lifting it into a Floating Selection
+    /// on the first key press, then accumulating later nudges in that same
+    /// transient buffer. History is recorded only when the Floating Selection
+    /// commits. Reference Layers are not editable and therefore ignore it.
+    func nudgeMarquee(by delta: FloatingSelectionOffset) {
+        guard !isDrawing, isActiveLayerEditable else { return }
+        guard delta != .zero else { return }
+
+        if !floatingSelection.isActive {
+            guard let marquee = document.marquee() else { return }
+            guard floatingSelection.liftFromMarquee(marquee, in: document) else { return }
+        }
+        if floatingSelection.nudge(by: delta) {
+            canvasVersion += 1
+        }
+    }
+
+    /// Clears committed pixels inside the Marquee as one undoable Edit. A
+    /// live Floating Selection follows the web policy: commit its move first,
+    /// then clear the translated Marquee as a distinct Edit.
+    func clearMarqueePixels() {
+        guard !isDrawing else { return }
+        if performEdit({ document.clearMarqueePixels(); return true }) {
+            canvasVersion += 1
+        }
+    }
+
+    /// Escape policy shared with the web: an active Floating Selection is
+    /// cancelled by exact pre-lift restoration without touching History;
+    /// otherwise the idle Marquee is removed as an undoable Edit.
+    func clearMarqueeOrFloating() {
+        guard !isDrawing, isActiveLayerEditable else { return }
+        if floatingSelection.isActive {
+            _ = cancelFloatingSelection()
+            return
+        }
+        if performEdit({ (try? document.setMarquee(region: nil)) != nil }) {
+            canvasVersion += 1
+        }
+    }
+
+    private var isActiveLayerEditable: Bool {
+        document.layers().first(where: { $0.id == document.activeLayerId() })?.kind == .pixel
+    }
+
     /// Renderer-facing pixel buffer: committed composite normally, or the
     /// non-mutating Floating Selection patch preview while one is active.
     func renderPixels() throws -> Data {

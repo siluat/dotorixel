@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 273 | [Apple selection keyboard ops — arrow nudge, Delete, Escape, Shift axis lock](../issues/273-apple-selection-keyboard-ops.md) | 2026-08-11 |
 | 272 | [Apple floating selection — drag to lift, move preview, commit as one undo step](../issues/272-apple-floating-selection.md) | 2026-08-11 |
 | 271 | [Apple marquee clipping — drawing tools write only inside the active marquee](../issues/271-apple-marquee-clipping.md) | 2026-08-09 |
 | 270 | [Apple marquee constraints + status bar readout — Shift-square, constrain latch, dimensions display](../issues/270-apple-marquee-constraints-statusbar.md) | 2026-08-07 |

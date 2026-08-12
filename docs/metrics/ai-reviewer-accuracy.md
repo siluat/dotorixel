@@ -11,13 +11,15 @@ only Miss rows may be grouped, with an explicit (×N) count.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 209 | 157 | 52 | 279 | 75% | 36% |
-| cubic-dev-ai[bot] | 307 | 240 | 67 | 214 | 78% | 53% |
+| cubic-dev-ai[bot] | 309 | 240 | 69 | 214 | 78% | 53% |
 | coderabbitai[bot] | 318 | 227 | 91 | 223 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #362 | cubic-dev-ai[bot] | Reject | Re-review proposed restoring Web's permissive Shift/Control clipboard variants; Apple intentionally requires exact ⌘C/X/V because its local event monitor precedes the responder chain and must not consume unrelated modified commands |
+| #362 | cubic-dev-ai[bot] | Reject | Re-review claimed the pending-recovery Copy test would pass without its guard, but a transparent Pixel Layer Marquee lifts a non-empty RGBA buffer and would replace the seeded red clipboard, so the equality assertion pins the guard |
 | #362 | coderabbitai[bot] | Accept | Clipboard shortcuts bypassed the canvas-first-responder and VoiceOver ownership gate and admitted extra Shift/Control modifiers; C/X/V now require selection-editing ownership and exact Command-only modifiers |
 | #362 | coderabbitai[bot] | Accept | A failed empty-buffer lift left the attempted source region as the live Marquee; the failure path now restores the captured baseline Marquee |
 | #362 | coderabbitai[bot] | Accept | The Keyboard shortcuts platform row still called selection C/X/V web-only after Apple support shipped; updated the cross-platform status |

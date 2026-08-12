@@ -10,14 +10,25 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 209 | 157 | 52 | 279 | 75% | 36% |
-| cubic-dev-ai[bot] | 309 | 240 | 69 | 214 | 78% | 53% |
-| coderabbitai[bot] | 318 | 227 | 91 | 223 | 71% | 50% |
+| greptile-apps[bot] | 209 | 157 | 52 | 285 | 75% | 36% |
+| cubic-dev-ai[bot] | 316 | 246 | 70 | 214 | 78% | 53% |
+| coderabbitai[bot] | 320 | 229 | 91 | 227 | 72% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #363 | coderabbitai[bot] | Accept | The action bar remained tappable during an active stroke although every command silently rejected mid-stroke; presentation now hides while the stroke owns editing |
+| #363 | coderabbitai[bot] | Accept | The transform status note implied Apple's current shell transformed every frame; it now distinguishes Core/Web multi-frame scope from Apple's current single frame |
+| #363 | cubic-dev-ai[bot] | Accept | A Floating Selection fully outside the Document lost its clipped anchor and therefore its only touch Commit/Cancel controls; Floating state now uses an unclipped projected anchor |
+| #363 | cubic-dev-ai[bot] | Accept | Marquees panned fully above or below the viewport could return an off-screen Y; both placement candidates are now range-checked before the nearest-edge fallback |
+| #363 | cubic-dev-ai[bot] | Accept | Same active-stroke action-bar finding as CodeRabbit; the shared presentation gate now hides the surface until the stroke ends |
+| #363 | cubic-dev-ai[bot] | Accept | The localization expectation list had no completeness pin; action cases are now iterable and the test requires exact all-case coverage |
+| #363 | cubic-dev-ai[bot] | Reject | `progress.md` intentionally filters `todo.md` to dependency-ready work; the four omitted items still await hardware, a design trigger, a logging convention, or recurrence |
+| #363 | cubic-dev-ai[bot] | Accept | Partial: added shell-level no-Marquee and active-stroke transform guard regressions; Reference integration remains deferred until Apple bindings exist in issue 277 |
+| #363 | cubic-dev-ai[bot] | Accept | Same single-frame Apple transform-status ambiguity as CodeRabbit; the row now names each platform's frame scope explicitly |
+| #363 | greptile-apps[bot] | Miss (×6) | Reported the PR safe with no concrete defect and missed all six accepted issues: stroke visibility, off-canvas Floating anchor, vertical clamp, frame-scope wording, localization completeness, and transform guard coverage |
+| #363 | coderabbitai[bot] | Miss (×4) | Missed the off-canvas Floating anchor, vertical viewport clamp, localization completeness, and transform guard coverage accepted from cubic |
 | #362 | cubic-dev-ai[bot] | Reject | Re-review proposed restoring Web's permissive Shift/Control clipboard variants; Apple intentionally requires exact ⌘C/X/V because its local event monitor precedes the responder chain and must not consume unrelated modified commands |
 | #362 | cubic-dev-ai[bot] | Reject | Re-review claimed the pending-recovery Copy test would pass without its guard, but a transparent Pixel Layer Marquee lifts a non-empty RGBA buffer and would replace the seeded red clipboard, so the equality assertion pins the guard |
 | #362 | coderabbitai[bot] | Accept | Clipboard shortcuts bypassed the canvas-first-responder and VoiceOver ownership gate and admitted extra Shift/Control modifiers; C/X/V now require selection-editing ownership and exact Command-only modifiers |

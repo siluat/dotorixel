@@ -38,13 +38,14 @@ func selectionActionBarPosition(
         max(marqueeRect.midX - barSize.width / 2, selectionActionBarEdgeMargin),
         maxX
     )
+    let maxY = max(0, viewportSize.height - barSize.height)
     let aboveY = marqueeRect.minY - selectionActionBarGap - barSize.height
-    if aboveY >= 0 {
+    if aboveY >= 0, aboveY <= maxY {
         return CGPoint(x: x, y: aboveY)
     }
 
     let belowY = marqueeRect.maxY + selectionActionBarGap
-    if belowY + barSize.height <= viewportSize.height {
+    if belowY >= 0, belowY <= maxY {
         return CGPoint(x: x, y: belowY)
     }
 
@@ -52,8 +53,32 @@ func selectionActionBarPosition(
     let spaceBelow = max(0, viewportSize.height - marqueeRect.maxY)
     let stickyY = spaceAbove <= spaceBelow
         ? 0
-        : max(0, viewportSize.height - barSize.height)
+        : maxY
     return CGPoint(x: x, y: stickyY)
+}
+
+func selectionActionBarAnchorRect(
+    marquee: AppleMarqueeRegion,
+    hasFloatingSelection: Bool,
+    canvasWidth: UInt32,
+    canvasHeight: UInt32,
+    viewport: AppleViewport,
+    displayScale: CGFloat
+) -> CGRect? {
+    if hasFloatingSelection {
+        return unclippedMarqueeDisplayRect(
+            region: marquee,
+            viewport: viewport,
+            displayScale: displayScale
+        )
+    }
+    return marqueeDisplayRect(
+        region: marquee,
+        canvasWidth: canvasWidth,
+        canvasHeight: canvasHeight,
+        viewport: viewport,
+        displayScale: displayScale
+    )
 }
 
 protocol SelectionActionBarHost: AnyObject {
@@ -69,7 +94,7 @@ protocol SelectionActionBarHost: AnyObject {
     func commitFloatingSelection()
 }
 
-enum SelectionActionBarAction: Hashable {
+enum SelectionActionBarAction: CaseIterable, Hashable {
     case copy
     case cut
     case paste
@@ -144,9 +169,10 @@ struct SelectionActionBarPresentation: Equatable {
         hasMarquee: Bool,
         hasFloatingSelection: Bool,
         canPaste: Bool,
-        isActiveLayerEditable: Bool
+        isActiveLayerEditable: Bool,
+        isEditingAvailable: Bool
     ) -> SelectionActionBarPresentation? {
-        guard hasMarquee, isActiveLayerEditable else {
+        guard hasMarquee, isActiveLayerEditable, isEditingAvailable else {
             return nil
         }
         if hasFloatingSelection {
@@ -179,17 +205,20 @@ struct SelectionActionBar: View {
 
     var body: some View {
         GeometryReader { geometry in
+            let hasFloatingSelection = tab.floatingSelectionOffset != nil
             let presentation = SelectionActionBarPresentation.resolve(
                 hasMarquee: tab.marquee != nil,
-                hasFloatingSelection: tab.floatingSelectionOffset != nil,
+                hasFloatingSelection: hasFloatingSelection,
                 canPaste: workspace.selectionClipboard != nil,
-                isActiveLayerEditable: tab.isActiveLayerEditable
+                isActiveLayerEditable: tab.isActiveLayerEditable,
+                isEditingAvailable: !tab.isDrawing
             )
 
             if let presentation,
                let marquee = tab.marquee,
-               let marqueeRect = marqueeDisplayRect(
-                   region: marquee,
+               let marqueeRect = selectionActionBarAnchorRect(
+                   marquee: marquee,
+                   hasFloatingSelection: hasFloatingSelection,
                    canvasWidth: tab.document.width(),
                    canvasHeight: tab.document.height(),
                    viewport: tab.viewport,

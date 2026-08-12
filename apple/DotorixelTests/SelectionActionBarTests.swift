@@ -26,7 +26,8 @@ struct SelectionActionBarPresentationTests {
             hasMarquee: true,
             hasFloatingSelection: false,
             canPaste: true,
-            isActiveLayerEditable: true
+            isActiveLayerEditable: true,
+            isEditingAvailable: true
         )
 
         #expect(presentation?.items == [
@@ -48,7 +49,8 @@ struct SelectionActionBarPresentationTests {
             hasMarquee: true,
             hasFloatingSelection: true,
             canPaste: true,
-            isActiveLayerEditable: true
+            isActiveLayerEditable: true,
+            isEditingAvailable: true
         )
 
         #expect(presentation?.items == [
@@ -63,7 +65,8 @@ struct SelectionActionBarPresentationTests {
             hasMarquee: true,
             hasFloatingSelection: false,
             canPaste: false,
-            isActiveLayerEditable: true
+            isActiveLayerEditable: true,
+            isEditingAvailable: true
         )
 
         #expect(presentation?.items.first(where: { $0.action == .paste })?.isEnabled == false)
@@ -74,19 +77,28 @@ struct SelectionActionBarPresentationTests {
         )
     }
 
-    @Test("the bar is hidden without a Marquee and while a Reference Layer is active")
+    @Test("the bar is hidden without a Marquee, on a Reference Layer, and during a stroke")
     func hiddenStates() {
         #expect(SelectionActionBarPresentation.resolve(
             hasMarquee: false,
             hasFloatingSelection: false,
             canPaste: true,
-            isActiveLayerEditable: true
+            isActiveLayerEditable: true,
+            isEditingAvailable: true
         ) == nil)
         #expect(SelectionActionBarPresentation.resolve(
             hasMarquee: true,
             hasFloatingSelection: false,
             canPaste: true,
-            isActiveLayerEditable: false
+            isActiveLayerEditable: false,
+            isEditingAvailable: true
+        ) == nil)
+        #expect(SelectionActionBarPresentation.resolve(
+            hasMarquee: true,
+            hasFloatingSelection: false,
+            canPaste: true,
+            isActiveLayerEditable: true,
+            isEditingAvailable: false
         ) == nil)
     }
 }
@@ -172,5 +184,45 @@ struct SelectionActionBarPlacementTests {
             viewportSize: viewport,
             barSize: bar
         ) == CGPoint(x: 20, y: 0))
+    }
+
+    @Test("the bar sticks to the nearest vertical edge when the Marquee is off-screen")
+    func clampsVerticallyForOffscreenMarquee() {
+        let viewport = CGSize(width: 320, height: 240)
+        let bar = CGSize(width: 200, height: 44)
+
+        #expect(selectionActionBarPosition(
+            marqueeRect: CGRect(x: 100, y: -100, width: 40, height: 20),
+            viewportSize: viewport,
+            barSize: bar
+        ) == CGPoint(x: 20, y: 0))
+        #expect(selectionActionBarPosition(
+            marqueeRect: CGRect(x: 100, y: 400, width: 40, height: 20),
+            viewportSize: viewport,
+            barSize: bar
+        ) == CGPoint(x: 20, y: 196))
+    }
+
+    @Test("a fully off-canvas Floating Selection keeps an unclipped action anchor")
+    func floatingSelectionUsesUnclippedAnchor() {
+        let marquee = AppleMarqueeRegion(x: -20, y: -10, width: 4, height: 2)
+        let viewport = AppleViewport(pixelSize: 10, zoom: 1, panX: 0, panY: 0)
+
+        #expect(selectionActionBarAnchorRect(
+            marquee: marquee,
+            hasFloatingSelection: false,
+            canvasWidth: 16,
+            canvasHeight: 16,
+            viewport: viewport,
+            displayScale: 1
+        ) == nil)
+        #expect(selectionActionBarAnchorRect(
+            marquee: marquee,
+            hasFloatingSelection: true,
+            canvasWidth: 16,
+            canvasHeight: 16,
+            viewport: viewport,
+            displayScale: 1
+        ) == CGRect(x: -200, y: -100, width: 40, height: 20))
     }
 }

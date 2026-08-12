@@ -165,6 +165,11 @@ struct SelectionActionBarLabelLocalizationTests {
         (.cancel, "Cancel", "취소", "キャンセル"),
     ]
 
+    @Test("Every action has a localization expectation")
+    func expectationsCoverAllActions() {
+        #expect(Self.expectations.map(\.action) == SelectionActionBarAction.allCases)
+    }
+
     @Test("Action labels resolve per locale", arguments: expectations)
     func labelsResolvePerLocale(_ expected: (
         action: SelectionActionBarAction,

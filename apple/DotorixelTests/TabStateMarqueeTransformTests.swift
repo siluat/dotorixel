@@ -7,6 +7,13 @@ struct TabStateMarqueeTransformTests {
     private let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
     private let green = Color(r: 0, g: 0xFF, b: 0, a: 0xFF)
 
+    private func applyEveryTransform(to tab: TabState) {
+        tab.flipMarqueeHorizontal()
+        tab.flipMarqueeVertical()
+        tab.rotateMarqueeCw()
+        tab.rotateMarqueeCcw()
+    }
+
     @Test("flipMarqueeHorizontal mirrors only the Marquee as one undoable Edit")
     func flipHorizontalMirrorsAndUndoRestores() throws {
         let workspace = Workspace(width: 4, height: 2)
@@ -107,5 +114,45 @@ struct TabStateMarqueeTransformTests {
         #expect(try tab.document.getPixel(x: 1, y: 1) == red)
         #expect(try tab.document.getPixel(x: 2, y: 1) == green)
         #expect(!tab.canUndo)
+    }
+
+    @Test("all transforms are History-neutral without a Marquee")
+    func transformsNoOpWithoutMarquee() throws {
+        let workspace = Workspace(width: 2, height: 2)
+        let tab = workspace.activeTab
+        try tab.document.setPixel(x: 0, y: 0, color: red)
+        let pixelsBefore = tab.document.composite()
+        let versionBefore = tab.canvasVersion
+
+        applyEveryTransform(to: tab)
+
+        #expect(tab.document.composite() == pixelsBefore)
+        #expect(tab.canvasVersion == versionBefore)
+        #expect(!tab.canUndo)
+    }
+
+    @Test("all transforms ignore an active stroke")
+    func transformsNoOpDuringStroke() throws {
+        let workspace = Workspace(width: 2, height: 1)
+        let tab = workspace.activeTab
+        try tab.document.setPixel(x: 0, y: 0, color: red)
+        try tab.document.setPixel(x: 1, y: 0, color: green)
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 0, y: 0, width: 2, height: 1)
+        )
+        tab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+        let pixelsDuringStroke = tab.document.composite()
+        let marqueeDuringStroke = tab.marquee
+        let versionDuringStroke = tab.canvasVersion
+
+        applyEveryTransform(to: tab)
+
+        #expect(tab.document.composite() == pixelsDuringStroke)
+        #expect(tab.marquee == marqueeDuringStroke)
+        #expect(tab.canvasVersion == versionDuringStroke)
+        #expect(tab.isDrawing)
+        #expect(!tab.canUndo)
+
+        tab.endStroke()
     }
 }

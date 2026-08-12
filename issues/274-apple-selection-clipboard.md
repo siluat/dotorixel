@@ -1,6 +1,6 @@
 ---
 title: Apple selection clipboard — copy, cut, and paste as floating selection
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -52,3 +52,26 @@ single slot — not the OS clipboard) with ⌘C / ⌘X / ⌘V:
 ## Blocked by
 
 - [272 — Apple floating selection](272-apple-floating-selection.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/Workspace.swift` | Added a workspace-shared Selection Clipboard and routed Copy, Cut, and Paste through the active tab. |
+| `apple/Dotorixel/State/TabState.swift` | Added selection clipboard boundaries, visible-canvas paste placement, edit guards, and Floating/History orchestration. |
+| `apple/Dotorixel/Tools/FloatingSelectionLifecycle.swift` | Added validated clipboard snapshots and origin-aware pasted Floating Selection preview, commit, cancel, and recovery behavior. |
+| `apple/Dotorixel/State/KeyboardShortcutController.swift` | Routed ⌘C/⌘X/⌘V through the existing input, repeat, modifier, and drawing guards. |
+| `apple/DotorixelTests/FloatingSelectionTests.swift` | Covered Copy/Cut/Paste round-trips, positioning, History, commit-first, cross-tab, cancel, and Reference-active no-op behavior. |
+| `apple/DotorixelTests/KeyboardShortcutControllerTests.swift` | Covered Selection Clipboard shortcut dispatch and guards. |
+
+### Key Decisions
+
+- Keep the clipboard app-local and workspace-scoped, never in the OS clipboard or Layer stack.
+- Model Floating Selection provenance explicitly while retaining one lifecycle for lifted and pasted content.
+- Keep visible-canvas coordinate math in the Apple shell behind a private viewport query because the simple shell geometry does not justify binding overhead.
+- Make `SelectionClipboard` valid by construction so invalid pixel buffer dimensions cannot cross into the lifecycle.
+
+### Notes
+
+- The Selection Clipboard is session-transient and is not persisted across relaunches.
+- Verified the full Apple test suite on the pinned iPad simulator and a macOS app build.

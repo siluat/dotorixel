@@ -15,6 +15,9 @@ private final class FakeShortcutHost: KeyboardShortcutHost {
     private(set) var marqueeNudges: [FloatingSelectionOffset] = []
     private(set) var marqueePixelClearCount = 0
     private(set) var marqueeDismissCount = 0
+    private(set) var selectionCopyCount = 0
+    private(set) var selectionCutCount = 0
+    private(set) var selectionPasteCount = 0
 
     func setActiveTool(_ tool: EditorTool) { activeTool = tool }
     func handleUndo() { undoCount += 1 }
@@ -26,6 +29,9 @@ private final class FakeShortcutHost: KeyboardShortcutHost {
     }
     func clearMarqueePixels() { marqueePixelClearCount += 1 }
     func clearMarqueeOrFloating() { marqueeDismissCount += 1 }
+    func copySelection() { selectionCopyCount += 1 }
+    func cutSelection() { selectionCutCount += 1 }
+    func pasteSelectionClipboard() { selectionPasteCount += 1 }
 }
 
 private func makeController(host: FakeShortcutHost) -> KeyboardShortcutController {
@@ -81,6 +87,63 @@ struct KeyboardShortcutControllerToolKeyTests {
         controller.handleKeyDown(EditorTool.eraser.shortcutKey, modifiers: modifier)
 
         #expect(host.activeTool == .pencil)
+    }
+}
+
+@Suite("KeyboardShortcutController — Selection Clipboard")
+struct KeyboardShortcutControllerSelectionClipboardTests {
+
+    @Test("⌘C, ⌘X, and ⌘V dispatch Selection Clipboard commands")
+    func commandShortcutsDispatchClipboardCommands() {
+        let host = FakeShortcutHost()
+        let controller = makeController(host: host)
+
+        #expect(controller.handleKeyDown("c", modifiers: .command))
+        #expect(controller.handleKeyDown("x", modifiers: .command))
+        #expect(controller.handleKeyDown("v", modifiers: .command))
+
+        #expect(host.selectionCopyCount == 1)
+        #expect(host.selectionCutCount == 1)
+        #expect(host.selectionPasteCount == 1)
+    }
+
+    @Test("Clipboard shortcuts pass through text fields and Option combinations")
+    func clipboardShortcutsRespectInputGuards() {
+        let host = FakeShortcutHost()
+        let controller = makeController(host: host)
+
+        host.isTextInputFocused = true
+        #expect(!controller.handleKeyDown("c", modifiers: .command))
+        #expect(!controller.handleKeyDown("x", modifiers: .command))
+        #expect(!controller.handleKeyDown("v", modifiers: .command))
+
+        host.isTextInputFocused = false
+        #expect(!controller.handleKeyDown("c", modifiers: [.command, .option]))
+        #expect(!controller.handleKeyDown("x", modifiers: [.command, .option]))
+        #expect(!controller.handleKeyDown("v", modifiers: [.command, .option]))
+
+        #expect(host.selectionCopyCount == 0)
+        #expect(host.selectionCutCount == 0)
+        #expect(host.selectionPasteCount == 0)
+    }
+
+    @Test("Repeated and mid-stroke clipboard shortcuts are consumed without dispatch")
+    func clipboardShortcutsDoNotRepeatOrInterruptDrawing() {
+        let host = FakeShortcutHost()
+        let controller = makeController(host: host)
+
+        #expect(controller.handleKeyDown("c", modifiers: .command, isRepeat: true))
+        #expect(controller.handleKeyDown("x", modifiers: .command, isRepeat: true))
+        #expect(controller.handleKeyDown("v", modifiers: .command, isRepeat: true))
+
+        host.isDrawing = true
+        #expect(controller.handleKeyDown("c", modifiers: .command))
+        #expect(controller.handleKeyDown("x", modifiers: .command))
+        #expect(controller.handleKeyDown("v", modifiers: .command))
+
+        #expect(host.selectionCopyCount == 0)
+        #expect(host.selectionCutCount == 0)
+        #expect(host.selectionPasteCount == 0)
     }
 }
 

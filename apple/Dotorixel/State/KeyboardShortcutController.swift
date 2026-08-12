@@ -25,6 +25,12 @@ protocol KeyboardShortcutHost: AnyObject {
     func clearMarqueePixels()
     /// Cancel a Floating Selection, otherwise clear the idle Marquee.
     func clearMarqueeOrFloating()
+    /// Copy the active Marquee into the workspace Selection Clipboard.
+    func copySelection()
+    /// Cut the active Marquee into the workspace Selection Clipboard.
+    func cutSelection()
+    /// Paste the workspace Selection Clipboard as a Floating Selection.
+    func pasteSelectionClipboard()
 }
 
 /// Platform-neutral modifier state accompanying a key press.
@@ -193,6 +199,18 @@ final class KeyboardShortcutController {
             if !isRepeat && !host.isDrawing {
                 host.clearMarqueeOrFloating()
             }
+        case .copySelection:
+            if !isRepeat && !host.isDrawing {
+                host.copySelection()
+            }
+        case .cutSelection:
+            if !isRepeat && !host.isDrawing {
+                host.cutSelection()
+            }
+        case .pasteSelectionClipboard:
+            if !isRepeat && !host.isDrawing {
+                host.pasteSelectionClipboard()
+            }
         }
         return true
     }
@@ -206,6 +224,9 @@ final class KeyboardShortcutController {
         case nudgeMarquee(FloatingSelectionOffset)
         case clearMarqueePixels
         case clearMarqueeOrFloating
+        case copySelection
+        case cutSelection
+        case pasteSelectionClipboard
     }
 
     /// The single keydown decision table, ported from the web handler.
@@ -243,6 +264,11 @@ final class KeyboardShortcutController {
 
         // ⌘Z / ⇧⌘Z / ⌘Y — undo/redo combos mirror the web handler.
         if modifiers.contains(.command) {
+            if !modifiers.contains(.option) {
+                if character == "c" { return .copySelection }
+                if character == "x" { return .cutSelection }
+                if character == "v" { return .pasteSelectionClipboard }
+            }
             if character == "z" {
                 return modifiers.contains(.shift) ? .redo : .undo
             }

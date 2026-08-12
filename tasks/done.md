@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 274 | [Apple selection clipboard — copy, cut, and paste as floating selection](../issues/274-apple-selection-clipboard.md) | 2026-08-12 |
 | 273 | [Apple selection keyboard ops — arrow nudge, Delete, Escape, Shift axis lock](../issues/273-apple-selection-keyboard-ops.md) | 2026-08-11 |
 | 272 | [Apple floating selection — drag to lift, move preview, commit as one undo step](../issues/272-apple-floating-selection.md) | 2026-08-11 |
 | 271 | [Apple marquee clipping — drawing tools write only inside the active marquee](../issues/271-apple-marquee-clipping.md) | 2026-08-09 |

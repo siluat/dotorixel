@@ -11,6 +11,10 @@ final class Workspace {
     private(set) var tabs: [TabState]
     private(set) var activeTabIndex = 0
 
+    /// App-local, workspace-shared Selection Clipboard. It is deliberately
+    /// outside every tab so Copy in one tab can Paste in another.
+    private(set) var selectionClipboard: SelectionClipboard?
+
     /// Where persistable mutations are reported (web parity: the
     /// `DirtyNotifier` port). Shared-state mutations funnel through
     /// `wireSharedDirtyMarking()`; tab-scoped mutations mark from `TabState`.
@@ -313,6 +317,30 @@ final class Workspace {
         let previousForeground = shared.foregroundColor
         shared.foregroundColor = shared.backgroundColor
         shared.backgroundColor = previousForeground
+    }
+
+    // MARK: - Selection Clipboard
+
+    /// Copies the active tab's Marquee without mutating its Document or
+    /// History. Invalid sources leave the existing clipboard untouched.
+    func copySelection() {
+        guard let snapshot = activeTab.selectionClipboardSnapshot() else { return }
+        selectionClipboard = snapshot
+    }
+
+    /// Copies then clears the active Marquee. The clipboard is workspace
+    /// state rather than Document History, so Undo restores pixels while the
+    /// freshly cut buffer remains available for Paste.
+    func cutSelection() {
+        guard let snapshot = activeTab.cutSelection() else { return }
+        selectionClipboard = snapshot
+    }
+
+    /// Pastes the workspace-shared local buffer into whichever tab is active.
+    /// An empty clipboard is a silent no-op.
+    func pasteSelectionClipboard() {
+        guard let selectionClipboard else { return }
+        activeTab.pasteSelectionClipboard(selectionClipboard)
     }
 
     /// Constructs a `TabState` with the workspace's ambient deps baked in

@@ -2,6 +2,458 @@ import Foundation
 import Testing
 @testable import Dotorixel
 
+@Suite("Selection Clipboard — Workspace commands")
+struct SelectionClipboardWorkspaceTests {
+
+    @Test("Copy stores the active Marquee pixels without mutating the document")
+    func copyStoresMarqueePixelsWithoutDocumentMutation() throws {
+        let workspace = Workspace(width: 3, height: 2)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let green = Color(r: 0, g: 0xFF, b: 0, a: 0xFF)
+        let marquee = AppleMarqueeRegion(x: 1, y: 0, width: 2, height: 1)
+
+        try tab.document.setPixel(x: 1, y: 0, color: red)
+        try tab.document.setPixel(x: 2, y: 0, color: green)
+        try tab.document.setMarquee(region: marquee)
+
+        workspace.copySelection()
+
+        #expect(
+            workspace.selectionClipboard
+                == SelectionClipboard(
+                    pixels: Data([0xFF, 0, 0, 0xFF, 0, 0xFF, 0, 0xFF]),
+                    width: 2,
+                    height: 1
+                )
+        )
+        #expect(try tab.document.getPixel(x: 1, y: 0) == red)
+        #expect(try tab.document.getPixel(x: 2, y: 0) == green)
+        #expect(tab.document.marquee() == marquee)
+        #expect(!tab.canUndo)
+    }
+
+    @Test("Copy reads a live Floating Selection without committing it")
+    func copyReadsLiveFloatingSelectionWithoutCommit() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let green = Color(r: 0, g: 0xFF, b: 0, a: 0xFF)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+
+        try tab.document.setPixel(x: 1, y: 1, color: red)
+        try tab.document.setPixel(x: 2, y: 1, color: green)
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 2, height: 1)
+        )
+        tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 1))
+
+        workspace.copySelection()
+
+        #expect(
+            workspace.selectionClipboard
+                == SelectionClipboard(
+                    pixels: Data([0xFF, 0, 0, 0xFF, 0, 0xFF, 0, 0xFF]),
+                    width: 2,
+                    height: 1
+                )
+        )
+        #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 1))
+        #expect(try tab.document.getPixel(x: 1, y: 1) == transparent)
+        #expect(!tab.documentHistory.canUndo())
+    }
+
+    @Test("Cut copies and clears the Marquee as one undoable edit")
+    func cutCopiesAndClearsAsOneUndoableEdit() throws {
+        let workspace = Workspace(width: 3, height: 2)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let green = Color(r: 0, g: 0xFF, b: 0, a: 0xFF)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+        let marquee = AppleMarqueeRegion(x: 1, y: 0, width: 2, height: 1)
+
+        try tab.document.setPixel(x: 1, y: 0, color: red)
+        try tab.document.setPixel(x: 2, y: 0, color: green)
+        try tab.document.setMarquee(region: marquee)
+
+        workspace.cutSelection()
+
+        #expect(
+            workspace.selectionClipboard
+                == SelectionClipboard(
+                    pixels: Data([0xFF, 0, 0, 0xFF, 0, 0xFF, 0, 0xFF]),
+                    width: 2,
+                    height: 1
+                )
+        )
+        #expect(try tab.document.getPixel(x: 1, y: 0) == transparent)
+        #expect(try tab.document.getPixel(x: 2, y: 0) == transparent)
+        #expect(tab.document.marquee() == marquee)
+        #expect(tab.canUndo)
+
+        tab.handleUndo()
+
+        #expect(try tab.document.getPixel(x: 1, y: 0) == red)
+        #expect(try tab.document.getPixel(x: 2, y: 0) == green)
+        #expect(workspace.selectionClipboard?.pixels == Data([
+            0xFF, 0, 0, 0xFF, 0, 0xFF, 0, 0xFF,
+        ]))
+        #expect(!tab.canUndo)
+    }
+
+    @Test("Cut then Paste round-trips the exact pixels through a Floating Selection")
+    func cutThenPasteRoundTripsPixels() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let green = Color(r: 0, g: 0xFF, b: 0, a: 0xFF)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+
+        try tab.document.setPixel(x: 0, y: 0, color: red)
+        try tab.document.setPixel(x: 1, y: 0, color: green)
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 0, y: 0, width: 2, height: 1)
+        )
+
+        workspace.cutSelection()
+        workspace.pasteSelectionClipboard()
+
+        #expect(try tab.document.getPixel(x: 0, y: 0) == transparent)
+        #expect(try tab.document.getPixel(x: 1, y: 0) == transparent)
+        #expect(renderedPixel(in: try tab.renderPixels(), width: 4, x: 1, y: 1) == red)
+        #expect(renderedPixel(in: try tab.renderPixels(), width: 4, x: 2, y: 1) == green)
+
+        #expect(tab.commitFloatingSelection())
+        #expect(try tab.document.getPixel(x: 1, y: 1) == red)
+        #expect(try tab.document.getPixel(x: 2, y: 1) == green)
+    }
+
+    @Test("Paste centers a Floating Selection in the visible canvas area")
+    func pasteCentersFloatingSelectionInVisibleCanvasArea() throws {
+        let workspace = Workspace(width: 8, height: 8)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let green = Color(r: 0, g: 0xFF, b: 0, a: 0xFF)
+        let blue = Color(r: 0, g: 0, b: 0xFF, a: 0xFF)
+        let yellow = Color(r: 0xFF, g: 0xFF, b: 0, a: 0xFF)
+
+        try tab.document.setPixel(x: 0, y: 0, color: red)
+        try tab.document.setPixel(x: 1, y: 0, color: green)
+        try tab.document.setPixel(x: 0, y: 1, color: blue)
+        try tab.document.setPixel(x: 1, y: 1, color: yellow)
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 0, y: 0, width: 2, height: 2)
+        )
+        workspace.copySelection()
+        tab.document.clear()
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 7, y: 7, width: 1, height: 1)
+        )
+        tab.viewportSize = ViewportSize(width: 40, height: 40)
+        tab.viewport = AppleViewport(
+            pixelSize: 10,
+            zoom: 1,
+            panX: -20,
+            panY: -10
+        )
+
+        workspace.pasteSelectionClipboard()
+
+        #expect(tab.floatingSelectionOffset == .zero)
+        #expect(tab.marquee == AppleMarqueeRegion(x: 3, y: 2, width: 2, height: 2))
+        #expect(try tab.document.getPixel(x: 3, y: 2).a == 0)
+        #expect(renderedPixel(in: try tab.renderPixels(), width: 8, x: 3, y: 2) == red)
+        #expect(renderedPixel(in: try tab.renderPixels(), width: 8, x: 4, y: 2) == green)
+        #expect(renderedPixel(in: try tab.renderPixels(), width: 8, x: 3, y: 3) == blue)
+        #expect(renderedPixel(in: try tab.renderPixels(), width: 8, x: 4, y: 3) == yellow)
+        #expect(!tab.documentHistory.canUndo())
+    }
+
+    @Test("Paste falls back to the canvas center when none of it is visible")
+    func pasteFallsBackToCanvasCenter() throws {
+        let workspace = Workspace(width: 8, height: 8)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+
+        try tab.document.setPixel(x: 0, y: 0, color: red)
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 0, y: 0, width: 2, height: 2)
+        )
+        workspace.copySelection()
+        tab.document.clear()
+        tab.viewportSize = ViewportSize(width: 40, height: 40)
+        tab.viewport = AppleViewport(
+            pixelSize: 10,
+            zoom: 1,
+            panX: 1_000,
+            panY: 1_000
+        )
+
+        workspace.pasteSelectionClipboard()
+
+        #expect(tab.floatingSelectionOffset == .zero)
+        #expect(tab.marquee == AppleMarqueeRegion(x: 3, y: 3, width: 2, height: 2))
+        #expect(renderedPixel(in: try tab.renderPixels(), width: 8, x: 3, y: 3) == red)
+        #expect(!tab.documentHistory.canUndo())
+    }
+
+    @Test("Committing a Paste is one undo step that restores the previous Marquee")
+    func committingPasteIsOneUndoStep() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let green = Color(r: 0, g: 0xFF, b: 0, a: 0xFF)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+        let previousMarquee = AppleMarqueeRegion(x: 3, y: 3, width: 1, height: 1)
+
+        try tab.document.setPixel(x: 0, y: 0, color: red)
+        try tab.document.setPixel(x: 1, y: 0, color: green)
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 0, y: 0, width: 2, height: 1)
+        )
+        workspace.copySelection()
+        tab.document.clear()
+        try tab.document.setMarquee(region: previousMarquee)
+
+        workspace.pasteSelectionClipboard()
+        #expect(tab.commitFloatingSelection())
+
+        let destination = AppleMarqueeRegion(x: 1, y: 1, width: 2, height: 1)
+        #expect(try tab.document.getPixel(x: 1, y: 1) == red)
+        #expect(try tab.document.getPixel(x: 2, y: 1) == green)
+        #expect(tab.document.marquee() == destination)
+        #expect(tab.documentHistory.canUndo())
+
+        tab.handleUndo()
+
+        #expect(try tab.document.getPixel(x: 1, y: 1) == transparent)
+        #expect(try tab.document.getPixel(x: 2, y: 1) == transparent)
+        #expect(tab.document.marquee() == previousMarquee)
+        #expect(workspace.selectionClipboard?.pixels == Data([
+            0xFF, 0, 0, 0xFF, 0, 0xFF, 0, 0xFF,
+        ]))
+        #expect(!tab.canUndo)
+    }
+
+    @Test("Paste commits an existing Floating Selection before starting a new one")
+    func pasteCommitsExistingFloatingSelectionFirst() throws {
+        let workspace = Workspace(width: 6, height: 6)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let blue = Color(r: 0, g: 0, b: 0xFF, a: 0xFF)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+
+        try tab.document.setPixel(x: 0, y: 0, color: red)
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 0, y: 0, width: 1, height: 1)
+        )
+        workspace.copySelection()
+        tab.document.clear()
+
+        try tab.document.setPixel(x: 4, y: 4, color: blue)
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 4, y: 4, width: 1, height: 1)
+        )
+        tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 0))
+
+        workspace.pasteSelectionClipboard()
+
+        #expect(try tab.document.getPixel(x: 4, y: 4) == transparent)
+        #expect(try tab.document.getPixel(x: 5, y: 4) == blue)
+        #expect(tab.marquee == AppleMarqueeRegion(x: 2, y: 2, width: 1, height: 1))
+        #expect(try tab.document.getPixel(x: 2, y: 2) == transparent)
+        #expect(renderedPixel(in: try tab.renderPixels(), width: 6, x: 2, y: 2) == red)
+        #expect(tab.documentHistory.canUndo())
+
+        tab.handleUndo()
+
+        #expect(tab.marquee == AppleMarqueeRegion(x: 5, y: 4, width: 1, height: 1))
+        #expect(try tab.document.getPixel(x: 5, y: 4) == blue)
+        #expect(tab.documentHistory.canUndo())
+
+        tab.handleUndo()
+
+        #expect(try tab.document.getPixel(x: 4, y: 4) == blue)
+        #expect(try tab.document.getPixel(x: 5, y: 4) == transparent)
+        #expect(!tab.canUndo)
+    }
+
+    @Test("Escape cancels a pasted Floating Selection without entering History")
+    func escapeCancelsPastedFloatingSelectionExactly() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let previousMarquee = AppleMarqueeRegion(x: 3, y: 3, width: 1, height: 1)
+
+        try tab.document.setPixel(x: 0, y: 0, color: red)
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 0, y: 0, width: 1, height: 1)
+        )
+        workspace.copySelection()
+        tab.document.clear()
+        try tab.document.setMarquee(region: previousMarquee)
+
+        workspace.pasteSelectionClipboard()
+        tab.clearMarqueeOrFloating()
+
+        #expect(tab.floatingSelectionOffset == nil)
+        #expect(tab.document.marquee() == previousMarquee)
+        #expect(try tab.document.activeLayerPixels().allSatisfy { $0 == 0 })
+        #expect(!tab.canUndo)
+    }
+
+    @Test("Selection Clipboard is shared across tabs in one Workspace")
+    func selectionClipboardIsSharedAcrossTabs() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let sourceTab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+
+        try sourceTab.document.setPixel(x: 1, y: 1, color: red)
+        try sourceTab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        )
+        workspace.copySelection()
+
+        let destinationTab = workspace.addTab()
+        workspace.pasteSelectionClipboard()
+
+        #expect(workspace.activeTab === destinationTab)
+        #expect(destinationTab.marquee == AppleMarqueeRegion(x: 7, y: 7, width: 1, height: 1))
+        #expect(
+            renderedPixel(
+                in: try destinationTab.renderPixels(),
+                width: Int(Workspace.defaultCanvasDimension),
+                x: 7,
+                y: 7
+            ) == red
+        )
+        #expect(try sourceTab.document.getPixel(x: 1, y: 1) == red)
+    }
+
+    @Test("Empty clipboard and missing Marquee commands are silent no-ops")
+    func invalidClipboardCommandsAreNoOps() throws {
+        let emptyWorkspace = Workspace(width: 3, height: 3)
+        let emptyTab = emptyWorkspace.activeTab
+
+        emptyWorkspace.copySelection()
+        emptyWorkspace.cutSelection()
+        emptyWorkspace.pasteSelectionClipboard()
+
+        #expect(emptyWorkspace.selectionClipboard == nil)
+        #expect(emptyTab.floatingSelectionOffset == nil)
+        #expect(!emptyTab.canUndo)
+
+        let seededWorkspace = Workspace(width: 3, height: 3)
+        let seededTab = seededWorkspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        try seededTab.document.setPixel(x: 0, y: 0, color: red)
+        try seededTab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 0, y: 0, width: 1, height: 1)
+        )
+        seededWorkspace.copySelection()
+        try seededTab.document.setMarquee(region: nil)
+        let clipboardBeforeNoOps = seededWorkspace.selectionClipboard
+
+        seededWorkspace.copySelection()
+        seededWorkspace.cutSelection()
+
+        #expect(seededWorkspace.selectionClipboard == clipboardBeforeNoOps)
+        #expect(try seededTab.document.getPixel(x: 0, y: 0) == red)
+        #expect(!seededTab.canUndo)
+    }
+
+    @Test("Reference-active tabs reject Copy, Cut, and Paste without side effects")
+    func referenceActiveTabRejectsClipboardCommands() throws {
+        let document = ReferenceActiveClipboardDocument()
+        let tab = TabState(
+            shared: SharedState(),
+            documentId: "reference-clipboard",
+            name: "Reference Clipboard",
+            isConstrainHeld: { false },
+            consumePendingToolRestore: { nil },
+            document: document,
+            viewport: AppleViewport.forCanvas(canvasWidth: 4, canvasHeight: 4)
+        )
+        let clipboard = try #require(SelectionClipboard(
+            pixels: Data([0xFF, 0, 0, 0xFF]),
+            width: 1,
+            height: 1
+        ))
+
+        #expect(tab.selectionClipboardSnapshot() == nil)
+        #expect(tab.cutSelection() == nil)
+        tab.pasteSelectionClipboard(clipboard)
+
+        #expect(document.marqueeReadCount == 0)
+        #expect(document.clipboardReadCount == 0)
+        #expect(document.layerPixelsReadCount == 0)
+        #expect(document.pixelClearCount == 0)
+        #expect(tab.floatingSelectionOffset == nil)
+        #expect(!tab.canUndo)
+    }
+
+    private func renderedPixel(in pixels: Data, width: Int, x: Int, y: Int) -> Color {
+        let offset = (y * width + x) * 4
+        return Color(
+            r: pixels[offset],
+            g: pixels[offset + 1],
+            b: pixels[offset + 2],
+            a: pixels[offset + 3]
+        )
+    }
+}
+
+private final class ReferenceActiveClipboardDocument: AppleDocument, @unchecked Sendable {
+    private let referenceLayerId = "reference-layer"
+
+    private(set) var marqueeReadCount = 0
+    private(set) var clipboardReadCount = 0
+    private(set) var layerPixelsReadCount = 0
+    private(set) var pixelClearCount = 0
+
+    init() {
+        super.init(noHandle: AppleDocument.NoHandle())
+    }
+
+    required init(unsafeFromHandle handle: UInt64) {
+        super.init(unsafeFromHandle: handle)
+    }
+
+    override func activeLayerId() -> String {
+        referenceLayerId
+    }
+
+    override func layers() -> [AppleLayerMetadata] {
+        [
+            AppleLayerMetadata(
+                id: referenceLayerId,
+                name: "Reference",
+                visible: true,
+                kind: .reference
+            ),
+        ]
+    }
+
+    override func marquee() -> AppleMarqueeRegion? {
+        marqueeReadCount += 1
+        return AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+    }
+
+    override func liftMarqueePixels() -> Data {
+        clipboardReadCount += 1
+        return Data([0xFF, 0, 0, 0xFF])
+    }
+
+    override func activeLayerPixels() throws -> Data {
+        layerPixelsReadCount += 1
+        return Data(repeating: 0, count: 4 * 4 * 4)
+    }
+
+    override func clearMarqueePixels() {
+        pixelClearCount += 1
+    }
+}
+
 @Suite("Floating Selection — lift, preview, and release")
 struct FloatingSelectionTests {
 

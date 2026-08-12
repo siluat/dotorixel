@@ -1,6 +1,6 @@
 ---
 title: Apple marquee persistence — selection survives relaunch
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -49,3 +49,31 @@ the SwiftData session schema so a selection survives quit and relaunch.
 - [269 — Apple marquee select tool](269-apple-marquee-select-tool.md)
 - [272 — Apple floating selection](272-apple-floating-selection.md) (flush
   policy for a pending Floating)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/WorkspaceSnapshot.swift` | Added the optional Marquee to each persisted tab snapshot. |
+| `apple/Dotorixel/State/TabState.swift` | Saves and hydrates the document Marquee with the rest of the tab state. |
+| `apple/Dotorixel/Persistence/SessionStore.swift` | Added an optional, value-typed Marquee field to the SwiftData document record. |
+| `apple/Dotorixel/Persistence/SessionPersistence.swift` | Maps Marquee state in both directions and safely clips or drops invalid stored regions. |
+| `apple/Dotorixel/Persistence/AppSession.swift` | Kept the production dirty-to-auto-save wiring module-internal so its real debounce path can be integration-tested. |
+| `apple/DotorixelTests/DirtyNotifierTests.swift` | Covers dirty marks for define, deselect, and committed Marquee moves. |
+| `apple/DotorixelTests/SessionPersistenceTests.swift` | Covers round-trip, deselect, legacy disk migration, boundary validation, Floating snapshots, and the real debounced auto-save path. |
+
+### Key Decisions
+
+- Store the Marquee as an optional composite value so pre-Marquee SwiftData
+  stores use lightweight migration and restore selection-free.
+- Treat stored Marquee metadata as an external boundary: exact-convert its
+  integers, drop malformed or empty values, and delegate valid geometry
+  clipping to the shared core.
+- Keep Floating Selection transient. A save serializes the pre-lift pixel
+  baseline and source Marquee without mutating the live Floating interaction.
+
+### Notes
+
+- A regression fixture writes an actual pre-Marquee SwiftData file and opens
+  it with the current schema; pixels and selection-free state survive.
+- The full Apple test suite passes on the pinned iPad simulator.

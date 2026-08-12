@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 276 | [Apple marquee persistence — selection survives relaunch](../issues/276-apple-marquee-persistence.md) | 2026-08-12 |
 | 275 | [Apple selection action bar — idle and floating states with marquee transforms](../issues/275-apple-selection-action-bar.md) | 2026-08-12 |
 | 274 | [Apple selection clipboard — copy, cut, and paste as floating selection](../issues/274-apple-selection-clipboard.md) | 2026-08-12 |
 | 273 | [Apple selection keyboard ops — arrow nudge, Delete, Escape, Shift axis lock](../issues/273-apple-selection-keyboard-ops.md) | 2026-08-11 |

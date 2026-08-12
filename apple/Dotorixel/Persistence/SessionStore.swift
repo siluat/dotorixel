@@ -34,6 +34,15 @@ struct StoredViewport: Codable, Equatable {
     var showGrid: Bool
 }
 
+/// A Document's persisted Marquee. Optional on `DocumentRecord` so stores
+/// written before Marquee persistence restore as having no selection.
+struct StoredMarquee: Codable, Equatable {
+    var x: Int
+    var y: Int
+    var width: Int
+    var height: Int
+}
+
 /// The shared slots in stored form. `activeTool` is the `EditorTool` raw
 /// value; an unknown value (a case renamed without migration) restores as
 /// the default tool rather than corrupting the whole session.
@@ -71,6 +80,7 @@ final class DocumentRecord {
     var layers: [StoredLayer]
     var activeLayerId: String
     var nextLayerNumber: Int
+    var marquee: StoredMarquee?
     var timelinePanelCollapsed: Bool
     var saved: Bool
     var createdAt: Date
@@ -84,6 +94,7 @@ final class DocumentRecord {
         layers: [StoredLayer],
         activeLayerId: String,
         nextLayerNumber: Int,
+        marquee: StoredMarquee? = nil,
         timelinePanelCollapsed: Bool,
         saved: Bool,
         createdAt: Date,
@@ -96,6 +107,7 @@ final class DocumentRecord {
         self.layers = layers
         self.activeLayerId = activeLayerId
         self.nextLayerNumber = nextLayerNumber
+        self.marquee = marquee
         self.timelinePanelCollapsed = timelinePanelCollapsed
         self.saved = saved
         self.createdAt = createdAt

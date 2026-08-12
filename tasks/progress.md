@@ -3,19 +3,17 @@
 ## Currently Working On
 
 Apple catch-up Phase 5 — reference + selection + transforms
-([RFC](../issues/013-apple-native-catchup.md)); 9/16 sub-issues done
-(267–275). Frontier: {276, 277}.
+([RFC](../issues/013-apple-native-catchup.md)); 10/16 sub-issues done
+(267–276). Selection + transforms are complete; Reference frontier: 277.
 
 ## Last Completed
 
-[275 — Apple selection action bar](../issues/275-apple-selection-action-bar.md):
-Apple Selection now exposes touch-first Idle and Floating commands plus
-region transforms in a viewport-clamped, accessible bar. Marquee persistence
-and Reference integration remain Phase 5 follow-ups.
+[276 — Apple marquee persistence](../issues/276-apple-marquee-persistence.md):
+Apple Marquee state now survives relaunch, including legacy-store migration
+and safe handling of invalid stored bounds. Floating Selection remains transient.
 
 ## Next Up
 
-- [276 — Apple marquee persistence](../issues/276-apple-marquee-persistence.md) — Phase 5, unblocked by 272
 - [277 — Apple UniFFI reference bindings](../issues/277-apple-uniffi-reference-bindings.md) — Phase 5 frontier
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)

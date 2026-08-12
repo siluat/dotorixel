@@ -206,6 +206,7 @@ final class TabState {
         )
         self.isTimelinePanelCollapsed = snapshot.timelinePanelCollapsed
         self.showGrid = snapshot.viewport.showGrid
+        try document.setMarquee(region: snapshot.marquee)
     }
 
     // MARK: - Stroke lifecycle
@@ -899,6 +900,7 @@ final class TabState {
                 currentActiveLayerId: document.activeLayerId()
             ),
             nextLayerNumber: document.nextLayerNumber(),
+            marquee: document.marquee(),
             timelinePanelCollapsed: isTimelinePanelCollapsed,
             viewport: TabViewportSnapshot(
                 pixelSize: viewport.pixelSize(),

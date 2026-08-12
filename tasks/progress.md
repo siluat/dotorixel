@@ -3,18 +3,18 @@
 ## Currently Working On
 
 Apple catch-up Phase 5 — reference + selection + transforms
-([RFC](../issues/013-apple-native-catchup.md)); 7/16 sub-issues done
-(267–273). Frontier: {274, 276, 277}.
+([RFC](../issues/013-apple-native-catchup.md)); 8/16 sub-issues done
+(267–274). Frontier: {275, 276, 277}.
 
 ## Last Completed
 
-[273 — Apple selection keyboard ops](../issues/273-apple-selection-keyboard-ops.md):
-Apple Selection now supports hardware-keyboard nudge, Delete, Escape, and live
-dominant-axis Constrain locking with web-parity History behavior.
+[274 — Apple selection clipboard](../issues/274-apple-selection-clipboard.md):
+Apple Selection now supports workspace-shared Copy, Cut, and Paste as a
+Floating Selection with viewport-aware placement and web-parity History.
 
 ## Next Up
 
-- [274 — Apple selection clipboard](../issues/274-apple-selection-clipboard.md) — Phase 5, unblocked by 272
+- [275 — Apple selection action bar](../issues/275-apple-selection-action-bar.md) — Phase 5, unblocked by 272 and 274
 - [276 — Apple marquee persistence](../issues/276-apple-marquee-persistence.md) — Phase 5, unblocked by 272
 - [277 — Apple UniFFI reference bindings](../issues/277-apple-uniffi-reference-bindings.md) — Phase 5 frontier
 - Project file format (JSON-based) + save/load

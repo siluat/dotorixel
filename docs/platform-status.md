@@ -16,7 +16,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Flood fill | ✅ | ✅ | ✅ | BFS, 4-connectivity; one-shot tap fill on both shells |
 | Eyedropper | — | ✅ | ✅ | Drag-and-commit; releases to FG (left-click/touch) or BG (right-click); skips transparent and out-of-bounds samples; not undoable. Apple samples the composite; Web samples the active layer. Loupe overlay tracked in its own row |
 | Move | — | ✅ | ✅ | Drag shifts the whole canvas relative to the drag anchor (never cumulative); off-canvas pixels clipped on commit, vacated areas transparent |
-| Selection / Marquee | 🔧 | 🔧 | 🔧 | Web complete. Apple: define/Floating plus nudge, Delete, Escape, and live axis lock; clipboard, actions, persistence, and Reference-aware UI pending. |
+| Selection / Marquee | 🔧 | 🔧 | 🔧 | Web complete. Apple: define/Floating, nudge/Delete/Escape/live axis lock, and workspace-scoped clipboard; action bar, persistence, and Reference-aware UI pending. |
 | Right-click background color | — | ✅ | ✅ | Supported paint tools draw with BG on right-click; eraser stays transparent. Apple: macOS right-click + iPadOS pointer secondary button; touch always FG |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |
 | Pixel-perfect filter | ✅ | ✅ | ✅ | L-corner 3-window rule (Aseprite-style). Toggle default ON, disabled on non-freehand tools; persisted with the session on both shells |
@@ -86,7 +86,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Touch | — | ✅ | ✅ | Pointer Events / UITouch. Both: pinch-zoom + two-finger pan; strokes bind to the originating touch; finger begin deferred so a pinch start never paints; a second finger ends the stroke. Web adds long-press eyedropper |
 | Apple Pencil | — | — | ✅ | Draws immediately (no finger deferral). Palm rejection: a touching pencil outranks fingers — begins over a resting palm, ignores them mid-stroke, suppresses pinch/pan — and a hovering pencil blocks finger begins entirely. Device pass (255) pending |
 | Pencil hover preview | — | — | 🔧 | Hover-capable iPads (M2+, Pencil 2/Pro): live single-cell highlight of the target while hovering; clears on touch-down, off-canvas, or hover exit. Pencil-only (finger/pointer hover excluded). State contract unit-tested; hardware pass (255) pending |
-| Keyboard shortcuts | — | ✅ | ✅ | Both: tools, X/G, undo/redo, Alt eyedropper, Shift constrain, text guard, selection arrows/Delete/Escape. Apple adds Edit-menu undo/redo; Space pan, `/` hints, selection C/X/V remain web-only. |
+| Keyboard shortcuts | — | ✅ | ✅ | Both: tools, X/G, undo/redo, Alt eyedropper, Shift constrain, text guard, selection arrows/Delete/Escape/C/X/V. Apple adds Edit-menu undo/redo; Space pan and `/` hints remain web-only. |
 | Constrain latch | — | ✅ | ✅ | Re-tap the active constrainable tool (line/rect/ellipse/selection) to latch the Shift constraint keyboard-free; OR-combined with Shift; mid-stroke toggle re-resolves the in-flight shape instantly |
 | Tool selection a11y | — | ✅ | ⬜ | Tool buttons form an ARIA radiogroup: aria-checked + roving tabindex, Arrow-key nav (wraps), Space/Enter activates (latch on constrainable). Latch state announced via a polite SR live region |
 

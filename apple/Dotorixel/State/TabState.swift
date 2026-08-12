@@ -101,7 +101,7 @@ final class TabState {
         _ = historyVersion
         _ = canvasVersion
         // Redo cannot replace the Document while the lifecycle still owns a
-        // source Layer or its pending recovery snapshot.
+        // Floating Selection Layer or its pending recovery snapshot.
         return !floatingSelection.isActive
             && !floatingSelection.hasPendingRecovery
             && documentHistory.canRedo()
@@ -229,12 +229,12 @@ final class TabState {
         }
         // A degraded cancel keeps a persistence-safe recovery snapshot but
         // releases its interactive Floating owner. Repair the live Document
-        // before any tool is allowed to open a new edit against its source.
+        // before any tool is allowed to open a new edit against its Layer.
         guard resolveFloatingSelectionRecovery() else { return }
         // The active tool is workspace-shared while Floating Selections are
         // tab-local. A tab can therefore be revisited with another tool
         // selected; resolve its pending selection before that tool opens a
-        // History baseline against the temporary source hole.
+        // History baseline against transient Floating state.
         if shared.activeTool != .selection,
            floatingSelection.isActive,
            !commitFloatingSelection() {
@@ -379,6 +379,74 @@ final class TabState {
         return floatingSelection.offset
     }
 
+    /// Non-mutating Copy projection for the workspace-shared Selection
+    /// Clipboard. Copy is inert during a stroke, on a Reference Layer, or
+    /// while a degraded Floating cancellation still owns baseline recovery.
+    func selectionClipboardSnapshot() -> SelectionClipboard? {
+        guard !isDrawing,
+              isActiveLayerEditable,
+              !floatingSelection.hasPendingRecovery else { return nil }
+        return floatingSelection.clipboardSnapshot(in: document)
+    }
+
+    /// Captures and clears the active Marquee as one undoable Edit. Pending
+    /// recovery resolves before capture, then a live Floating Selection
+    /// commits so Cut targets its translated Marquee as a distinct History step.
+    func cutSelection() -> SelectionClipboard? {
+        guard !isDrawing, isActiveLayerEditable else { return nil }
+        guard resolveFloatingSelectionRecovery() else { return nil }
+        if floatingSelection.isActive, !commitFloatingSelection() { return nil }
+        guard let snapshot = floatingSelection.clipboardSnapshot(in: document) else {
+            return nil
+        }
+        if performEdit({ document.clearMarqueePixels(); return true }) {
+            canvasVersion += 1
+        }
+        return snapshot
+    }
+
+    /// Starts a clipboard-backed Floating Selection at the center of the
+    /// visible canvas area. The clipboard and Document stay unchanged until
+    /// the Floating Selection is explicitly committed.
+    func pasteSelectionClipboard(_ clipboard: SelectionClipboard) {
+        guard !isDrawing, isActiveLayerEditable else { return }
+        guard resolveFloatingSelectionRecovery() else { return }
+        if floatingSelection.isActive, !commitFloatingSelection() { return }
+        guard let destination = pasteDestination(for: clipboard) else { return }
+        if floatingSelection.pasteClipboard(
+            clipboard,
+            at: destination,
+            in: document
+        ) {
+            canvasVersion += 1
+        }
+    }
+
+    private func pasteDestination(
+        for clipboard: SelectionClipboard
+    ) -> AppleMarqueeRegion? {
+        let canvasWidth = Double(document.width())
+        let canvasHeight = Double(document.height())
+        let center = viewport.visibleCanvasCenter(
+            canvasWidth: document.width(),
+            canvasHeight: document.height(),
+            viewportSize: viewportSize
+        ) ?? CanvasPosition(x: canvasWidth / 2, y: canvasHeight / 2)
+        let originX = Int64(floor(center.x - Double(clipboard.width) / 2))
+        let originY = Int64(floor(center.y - Double(clipboard.height) / 2))
+        guard let x = Int32(exactly: originX), let y = Int32(exactly: originY),
+              Int32(exactly: originX + Int64(clipboard.width) - 1) != nil,
+              Int32(exactly: originY + Int64(clipboard.height) - 1) != nil else {
+            return nil
+        }
+        return AppleMarqueeRegion(
+            x: x,
+            y: y,
+            width: clipboard.width,
+            height: clipboard.height
+        )
+    }
+
     /// Translates the active Marquee by lifting it into a Floating Selection
     /// on the first key press, then accumulating later nudges in that same
     /// transient buffer. History is recorded only when the Floating Selection
@@ -407,7 +475,7 @@ final class TabState {
     }
 
     /// Escape policy shared with the web: an active Floating Selection is
-    /// cancelled by exact pre-lift restoration without touching History;
+    /// cancelled by exact baseline restoration without touching History;
     /// otherwise the idle Marquee is removed as an undoable Edit.
     func clearMarqueeOrFloating() {
         guard !isDrawing, isActiveLayerEditable else { return }
@@ -448,7 +516,7 @@ final class TabState {
         hoverPoint = nil
     }
 
-    /// Retries the exact source-pixel restoration retained after a degraded
+    /// Retries the exact baseline-pixel restoration retained after a degraded
     /// Floating cancellation. The recovery is not a History entry: success
     /// only refreshes the canvas, while failure keeps the snapshot available
     /// for persistence and a later retry.
@@ -477,7 +545,7 @@ final class TabState {
     func handleUndo() {
         guard !isDrawing else { return }
         // A Floating Selection has not entered History yet. Undo first
-        // cancels that transient operation, restoring its exact pre-lift
+        // cancels that transient operation, restoring its exact baseline
         // pixels without consuming the previous committed edit.
         if floatingSelection.isActive {
             _ = cancelFloatingSelection()
@@ -498,7 +566,7 @@ final class TabState {
     /// No-ops silently while a drawing stroke is in progress.
     func handleRedo() {
         // Replacing the Document while a Floating Selection owns references
-        // into its source would orphan that transient state. A degraded
+        // into its Layer would orphan that transient state. A degraded
         // cancellation's recovery snapshot has the same replacement guard;
         // Redo returns after both states are resolved.
         guard !isDrawing,
@@ -814,9 +882,9 @@ final class TabState {
     }
 
     /// Persistence-facing Layers project a live Floating Selection — or a
-    /// pending degraded recovery — back onto its source Layer. The transparent
-    /// source hole is only a render-session detail and must not affect saves,
-    /// export, or the tab-close blank-document guard.
+    /// pending degraded recovery — back onto its baseline Layer pixels. Any
+    /// transient preview mutation must not affect saves, export, or the
+    /// tab-close blank-document guard.
     private func persistenceLayerSnapshots() -> [AppleLayerSnapshot] {
         // `layerSnapshots` errors only on a Reference Layer (no Apple
         // creation path yet) — the same impossible state as `toSnapshot`.
@@ -999,17 +1067,59 @@ extension TabState: SelectionSessionHost {
         case .restored:
             return true
         case let .degraded(
-            didRestoreSourcePixels,
+            didRestoreLayerPixels,
             didRestoreMarquee,
             _
         ):
-            // A degraded cancellation participates in auto-save. When source
-            // recovery is pending, the lifecycle projects retained pre-lift
-            // pixels instead of exposing the live source hole to persistence.
-            if !didRestoreSourcePixels || !didRestoreMarquee {
+            // A degraded cancellation participates in auto-save. While
+            // recovery is pending, the lifecycle projects retained baseline
+            // pixels instead of exposing a partial restore to persistence.
+            if !didRestoreLayerPixels || !didRestoreMarquee {
                 notifier.markDirty(documentId: documentId)
             }
             return false
         }
+    }
+}
+
+private struct CanvasPosition {
+    let x: Double
+    let y: Double
+}
+
+private extension AppleViewport {
+    /// Center of the visible canvas intersection in canvas coordinates, or
+    /// `nil` when the viewport geometry is invalid or misses the canvas.
+    func visibleCanvasCenter(
+        canvasWidth: UInt32,
+        canvasHeight: UInt32,
+        viewportSize: ViewportSize
+    ) -> CanvasPosition? {
+        let effectivePixelSize = effectivePixelSize()
+        guard effectivePixelSize.isFinite, effectivePixelSize > 0,
+              viewportSize.width.isFinite, viewportSize.width > 0,
+              viewportSize.height.isFinite, viewportSize.height > 0 else {
+            return nil
+        }
+
+        // Rendering consumes rounded pan values, so visibility must use the
+        // same projection or fractional pan could shift the chosen center.
+        let roundedPanX = panX().rounded()
+        let roundedPanY = panY().rounded()
+        let visibleLeft = max(0, -roundedPanX / effectivePixelSize)
+        let visibleTop = max(0, -roundedPanY / effectivePixelSize)
+        let visibleRight = min(
+            Double(canvasWidth),
+            (viewportSize.width - roundedPanX) / effectivePixelSize
+        )
+        let visibleBottom = min(
+            Double(canvasHeight),
+            (viewportSize.height - roundedPanY) / effectivePixelSize
+        )
+        guard visibleLeft < visibleRight, visibleTop < visibleBottom else { return nil }
+        return CanvasPosition(
+            x: (visibleLeft + visibleRight) / 2,
+            y: (visibleTop + visibleBottom) / 2
+        )
     }
 }

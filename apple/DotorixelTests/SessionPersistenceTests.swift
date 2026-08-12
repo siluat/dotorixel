@@ -13,6 +13,108 @@ private func makeInMemoryPersistence() throws -> SessionPersistence {
     return SessionPersistence(modelContainer: container)
 }
 
+/// The exact pre-Marquee store shape. Keeping this as a separate SwiftData
+/// schema lets the migration test write a real legacy SQLite store rather
+/// than approximating one with a current `DocumentRecord(marquee: nil)`.
+private enum LegacySessionSchema: VersionedSchema {
+    static let versionIdentifier = Schema.Version(1, 0, 0)
+    static let models: [any PersistentModel.Type] = [
+        DocumentRecord.self,
+        WorkspaceRecord.self,
+    ]
+
+    @Model
+    final class DocumentRecord {
+        @Attribute(.unique) var id: String
+        var name: String
+        var width: Int
+        var height: Int
+        var layers: [StoredLayer]
+        var activeLayerId: String
+        var nextLayerNumber: Int
+        var timelinePanelCollapsed: Bool
+        var saved: Bool
+        var createdAt: Date
+        var updatedAt: Date
+
+        init(from tab: TabSnapshot, at now: Date) {
+            id = tab.id
+            name = tab.name
+            width = Int(tab.width)
+            height = Int(tab.height)
+            layers = tab.layers.map {
+                StoredLayer(
+                    id: $0.id,
+                    name: $0.name,
+                    visible: $0.visible,
+                    opacity: $0.opacity,
+                    pixels: $0.pixels
+                )
+            }
+            activeLayerId = tab.activeLayerId
+            nextLayerNumber = Int(tab.nextLayerNumber)
+            timelinePanelCollapsed = tab.timelinePanelCollapsed
+            saved = false
+            createdAt = now
+            updatedAt = now
+        }
+    }
+
+    @Model
+    final class WorkspaceRecord {
+        @Attribute(.unique) var id: String
+        var tabOrder: [String]
+        var activeTabIndex: Int
+        var sharedState: StoredSharedState
+        var viewports: [String: StoredViewport]
+
+        init(from snapshot: WorkspaceSnapshot) {
+            id = "current"
+            tabOrder = snapshot.tabs.map(\.id)
+            activeTabIndex = snapshot.activeTabIndex
+            sharedState = StoredSharedState(
+                activeTool: snapshot.sharedState.activeTool.rawValue,
+                foregroundColor: StoredColor(snapshot.sharedState.foregroundColor),
+                backgroundColor: StoredColor(snapshot.sharedState.backgroundColor),
+                recentColors: snapshot.sharedState.recentColors.map(StoredColor.init),
+                pixelPerfect: snapshot.sharedState.pixelPerfect
+            )
+            viewports = Dictionary(uniqueKeysWithValues: snapshot.tabs.map { tab in
+                (tab.id, StoredViewport(
+                    pixelSize: Int(tab.viewport.pixelSize),
+                    zoom: tab.viewport.zoom,
+                    panX: tab.viewport.panX,
+                    panY: tab.viewport.panY,
+                    showGrid: tab.viewport.showGrid
+                ))
+            })
+        }
+    }
+}
+
+private extension StoredColor {
+    init(_ color: Color) {
+        self.init(r: color.r, g: color.g, b: color.b, a: color.a)
+    }
+}
+
+private func writeLegacyStore(_ snapshot: WorkspaceSnapshot, to url: URL) throws {
+    let schema = Schema(versionedSchema: LegacySessionSchema.self)
+    let configuration = ModelConfiguration(
+        schema: schema,
+        url: url,
+        cloudKitDatabase: .none
+    )
+    let container = try ModelContainer(for: schema, configurations: configuration)
+    let context = ModelContext(container)
+    let now = Date()
+    snapshot.tabs.forEach {
+        context.insert(LegacySessionSchema.DocumentRecord(from: $0, at: now))
+    }
+    context.insert(LegacySessionSchema.WorkspaceRecord(from: snapshot))
+    try context.save()
+}
+
 @Suite("SessionPersistence — SwiftData store round-trip")
 @MainActor
 struct SessionPersistenceTests {
@@ -55,6 +157,159 @@ struct SessionPersistenceTests {
         #expect(restored.sharedState.foregroundColor == snapshot.sharedState.foregroundColor)
         #expect(restored.sharedState.backgroundColor == snapshot.sharedState.backgroundColor)
         #expect(restored.sharedState.recentColors == snapshot.sharedState.recentColors)
+    }
+
+    @Test("a Marquee survives a store round-trip and workspace hydration")
+    func marqueeRoundTrips() async throws {
+        let persistence = try makeInMemoryPersistence()
+        let workspace = Workspace(width: 8, height: 8)
+        let tab = workspace.activeTab
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        workspace.activateTool(.selection)
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 2))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 4, y: 5))
+        tab.endStroke()
+        let expected = AppleMarqueeRegion(x: 1, y: 2, width: 4, height: 4)
+
+        try await persistence.save(
+            workspace.toSnapshot(), dirtyDocIds: [tab.documentId]
+        )
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        #expect(restored.activeTab.marquee == expected)
+    }
+
+    @Test("a Marquee user action reaches the store through the real debounced AutoSave wiring")
+    func marqueeActionAutoSavesAndRestores() async throws {
+        let persistence = try makeInMemoryPersistence()
+        let notifier = ProxyDirtyNotifier()
+        let workspace = Workspace(width: 8, height: 8, notifier: notifier)
+        let tab = workspace.activeTab
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+        let autoSave = AutoSave(
+            save: { try await persistence.save($0, dirtyDocIds: $1) },
+            getSnapshot: { workspace.toSnapshot() },
+            debounce: .milliseconds(50)
+        )
+        notifier.target = AutoSaveDirtyNotifier(autoSave: autoSave)
+
+        workspace.activateTool(.selection)
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 2))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 4, y: 5))
+        tab.endStroke()
+
+        // No manual flush or persistence call: the public user action must
+        // cross DirtyNotifier and the actual AutoSave debounce on its own.
+        try await Task.sleep(for: .milliseconds(400))
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        #expect(restored.activeTab.marquee == AppleMarqueeRegion(
+            x: 1, y: 2, width: 4, height: 4
+        ))
+    }
+
+    @Test("deselecting rewrites a previously stored Marquee as absent")
+    func deselectClearsStoredMarquee() async throws {
+        let persistence = try makeInMemoryPersistence()
+        let workspace = Workspace(width: 8, height: 8)
+        let tab = workspace.activeTab
+        workspace.activateTool(.selection)
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 3, y: 3))
+        tab.endStroke()
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        tab.beginStroke(at: ScreenCanvasCoords(x: 6, y: 6))
+        tab.endStroke()
+        try await persistence.save(
+            workspace.toSnapshot(), dirtyDocIds: [tab.documentId]
+        )
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        #expect(restored.activeTab.marquee == nil)
+    }
+
+    @Test("a record without a stored Marquee restores selection-free with its pixels unchanged")
+    func absentMarqueeRestoresSelectionFree() async throws {
+        let persistence = try makeInMemoryPersistence()
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        tab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 1))
+        tab.endStroke()
+        let expectedPixels = tab.document.composite()
+
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        #expect(storedSnapshot.tabs[0].marquee == nil)
+        #expect(restored.activeTab.marquee == nil)
+        #expect(restored.activeTab.document.composite() == expectedPixels)
+    }
+
+    @Test("a pre-Marquee SwiftData store migrates selection-free with its pixels unchanged")
+    func preMarqueeStoreMigratesSelectionFree() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storeURL = directory.appending(path: "session.store")
+
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        tab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 1))
+        tab.endStroke()
+        let expectedPixels = tab.document.composite()
+        try writeLegacyStore(workspace.toSnapshot(), to: storeURL)
+
+        let currentSchema = Schema([DocumentRecord.self, WorkspaceRecord.self])
+        let configuration = ModelConfiguration(
+            schema: currentSchema,
+            url: storeURL,
+            cloudKitDatabase: .none
+        )
+        let container = try ModelContainer(
+            for: currentSchema,
+            configurations: configuration
+        )
+        let persistence = SessionPersistence(modelContainer: container)
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        #expect(storedSnapshot.tabs[0].marquee == nil)
+        #expect(restored.activeTab.marquee == nil)
+        #expect(restored.activeTab.document.composite() == expectedPixels)
+    }
+
+    @Test("saving during a Floating Selection restores baseline pixels and the source Marquee")
+    func floatingSelectionSaveRestoresBaseline() async throws {
+        let persistence = try makeInMemoryPersistence()
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let blue = Color(r: 0, g: 0, b: 0xFF, a: 0xFF)
+        let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        try tab.document.setPixel(x: 1, y: 1, color: red)
+        try tab.document.setPixel(x: 2, y: 1, color: blue)
+        try tab.document.setMarquee(region: source)
+        workspace.activateTool(.selection)
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
+        tab.endStroke()
+        #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 0))
+
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        #expect(restored.activeTab.marquee == source)
+        #expect(restored.activeTab.floatingSelectionOffset == nil)
+        #expect(try restored.activeTab.document.getPixel(x: 1, y: 1) == red)
+        #expect(try restored.activeTab.document.getPixel(x: 2, y: 1) == blue)
     }
 
     @Test("an empty store restores nil — the caller falls back to a fresh session")
@@ -139,6 +394,32 @@ struct SessionPersistenceTests {
         try context.save()
 
         #expect(await persistence.restore() == nil)
+    }
+
+    @Test("an out-of-bounds stored Marquee clips to the canvas without discarding the session")
+    func outOfBoundsMarqueeClipsOnRestore() async throws {
+        let container = try ModelContainer(
+            for: DocumentRecord.self, WorkspaceRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let persistence = SessionPersistence(modelContainer: container)
+        let workspace = Workspace(width: 8, height: 8)
+        let docId = workspace.activeTab.documentId
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        let context = ModelContext(container)
+        let record = try #require(try context.fetch(
+            FetchDescriptor<DocumentRecord>(predicate: #Predicate { $0.id == docId })
+        ).first)
+        record.marquee = StoredMarquee(x: 6, y: 6, width: 4, height: 4)
+        try context.save()
+
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        #expect(restored.activeTab.marquee == AppleMarqueeRegion(
+            x: 6, y: 6, width: 2, height: 2
+        ))
     }
 
     @Test("a corrupt stored viewport restores as the default viewport, not a discarded session")

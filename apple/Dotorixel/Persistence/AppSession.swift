@@ -95,7 +95,7 @@ final class AppSession {
 ///
 /// Dirty marks originate from UI mutations, which run on the main actor;
 /// `assumeIsolated` makes that contract explicit at the port boundary.
-private struct AutoSaveDirtyNotifier: DirtyNotifier {
+struct AutoSaveDirtyNotifier: DirtyNotifier {
     let autoSave: AutoSave
 
     func markDirty(documentId: String) {
@@ -115,7 +115,7 @@ private struct AutoSaveDirtyNotifier: DirtyNotifier {
 /// the workspace takes its notifier at init, but auto-save can only be
 /// built once the (async-restored) workspace is in place. Signals before
 /// arming are dropped by design (see `AppSession.start`).
-private final class ProxyDirtyNotifier: DirtyNotifier {
+final class ProxyDirtyNotifier: DirtyNotifier {
     var target: DirtyNotifier?
 
     func markDirty(documentId: String) {

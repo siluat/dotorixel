@@ -60,6 +60,35 @@ struct DirtyNotifierTests {
         #expect(notifier.marked.contains(tab.documentId))
     }
 
+    @Test("defining, deselecting, and committing a moved Marquee mark the document dirty")
+    func marqueeMutationsMarkDirty() {
+        let notifier = RecordingNotifier()
+        let workspace = Workspace(width: 8, height: 8, notifier: notifier)
+        let tab = workspace.activeTab
+        workspace.activateTool(.selection)
+        notifier.reset()
+
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 2))
+        tab.endStroke()
+        #expect(notifier.marked.contains(tab.documentId))
+
+        notifier.reset()
+        tab.beginStroke(at: ScreenCanvasCoords(x: 6, y: 6))
+        tab.endStroke()
+        #expect(notifier.marked.contains(tab.documentId))
+
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 2))
+        tab.endStroke()
+        notifier.reset()
+
+        tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 0))
+        #expect(notifier.marked.isEmpty)
+        workspace.activateTool(.pencil)
+        #expect(notifier.marked.contains(tab.documentId))
+    }
+
     @Test("shared-state mutations mark the workspace dirty without naming a document")
     func sharedMutationsMarkWorkspaceDirty() {
         let notifier = RecordingNotifier()

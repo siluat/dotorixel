@@ -27,11 +27,11 @@ Phase 5 is decomposed below (issues 267–282); Phase 6 is decomposed
 
 ### Phase 5 — Reference + selection + transforms (issues 267–282)
 
-Two parallel tracks; frontier: `{276, 277}` (267–275 done).
+Reference track frontier: `{277}` (267–276 done; selection + transforms complete).
 
 Selection + transforms track:
 
-- [276 — Marquee persistence](../issues/276-apple-marquee-persistence.md)
+- Complete (issues 267–276).
 
 Reference track:
 

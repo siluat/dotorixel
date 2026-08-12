@@ -36,6 +36,7 @@ struct TabSnapshot {
     let layers: [AppleLayerSnapshot]
     let activeLayerId: String
     let nextLayerNumber: UInt32
+    let marquee: AppleMarqueeRegion?
     let timelinePanelCollapsed: Bool
     let viewport: TabViewportSnapshot
 }

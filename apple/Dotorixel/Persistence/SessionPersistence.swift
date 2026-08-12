@@ -193,6 +193,7 @@ actor SessionPersistence {
             layers: tab.layers.map(storedLayer),
             activeLayerId: tab.activeLayerId,
             nextLayerNumber: Int(tab.nextLayerNumber),
+            marquee: storedMarquee(tab.marquee),
             timelinePanelCollapsed: tab.timelinePanelCollapsed,
             // `saved` gains meaning with the save dialog (issue 266); until
             // then every auto-saved document is unsaved working state.
@@ -209,6 +210,7 @@ actor SessionPersistence {
         record.layers = tab.layers.map(storedLayer)
         record.activeLayerId = tab.activeLayerId
         record.nextLayerNumber = Int(tab.nextLayerNumber)
+        record.marquee = storedMarquee(tab.marquee)
         record.timelinePanelCollapsed = tab.timelinePanelCollapsed
         record.updatedAt = now
     }
@@ -225,6 +227,17 @@ actor SessionPersistence {
 
     private func storedColor(_ color: Color) -> StoredColor {
         StoredColor(r: color.r, g: color.g, b: color.b, a: color.a)
+    }
+
+    private func storedMarquee(_ marquee: AppleMarqueeRegion?) -> StoredMarquee? {
+        marquee.map {
+            StoredMarquee(
+                x: Int($0.x),
+                y: Int($0.y),
+                width: Int($0.width),
+                height: Int($0.height)
+            )
+        }
     }
 
     private func storedSharedState(_ shared: SharedStateSnapshot) -> StoredSharedState {
@@ -287,8 +300,35 @@ actor SessionPersistence {
             },
             activeLayerId: record.activeLayerId,
             nextLayerNumber: nextLayerNumber,
+            marquee: marqueeSnapshot(
+                record.marquee,
+                canvasWidth: width,
+                canvasHeight: height
+            ),
             timelinePanelCollapsed: record.timelinePanelCollapsed,
             viewport: viewportSnapshot(viewport)
+        )
+    }
+
+    /// A missing or malformed Marquee is selection-free, while a valid one
+    /// is clipped by the core's canonical region geometry. Corrupt selection
+    /// metadata must not discard otherwise readable document pixels.
+    private func marqueeSnapshot(
+        _ stored: StoredMarquee?,
+        canvasWidth: UInt32,
+        canvasHeight: UInt32
+    ) -> AppleMarqueeRegion? {
+        guard let stored,
+              let x = Int32(exactly: stored.x),
+              let y = Int32(exactly: stored.y),
+              let width = UInt32(exactly: stored.width), width > 0,
+              let height = UInt32(exactly: stored.height), height > 0 else {
+            return nil
+        }
+        return appleMarqueeClipTo(
+            region: AppleMarqueeRegion(x: x, y: y, width: width, height: height),
+            canvasW: canvasWidth,
+            canvasH: canvasHeight
         )
     }
 

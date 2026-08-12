@@ -18,14 +18,30 @@ func marqueeDisplayRect(
         region: region, canvasW: canvasWidth, canvasH: canvasHeight
     ) else { return nil }
 
+    return unclippedMarqueeDisplayRect(
+        region: clipped,
+        viewport: viewport,
+        displayScale: displayScale
+    )
+}
+
+/// Projects a Marquee into canvas-area points without clipping it to the
+/// Document. Floating Selection controls use this anchor even when the
+/// translated buffer sits fully off-canvas; the rendered ants keep using the
+/// clipped projection above.
+func unclippedMarqueeDisplayRect(
+    region: AppleMarqueeRegion,
+    viewport: AppleViewport,
+    displayScale: CGFloat
+) -> CGRect {
     let eps = viewport.effectivePixelSize()
-    let deviceX = viewport.panX().rounded() + Double(clipped.x) * eps
-    let deviceY = viewport.panY().rounded() + Double(clipped.y) * eps
+    let deviceX = viewport.panX().rounded() + Double(region.x) * eps
+    let deviceY = viewport.panY().rounded() + Double(region.y) * eps
     return CGRect(
         x: deviceX / displayScale,
         y: deviceY / displayScale,
-        width: Double(clipped.width) * eps / displayScale,
-        height: Double(clipped.height) * eps / displayScale
+        width: Double(region.width) * eps / displayScale,
+        height: Double(region.height) * eps / displayScale
     )
 }
 

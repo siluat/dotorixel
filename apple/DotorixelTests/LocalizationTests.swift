@@ -141,6 +141,48 @@ struct CanvasTransformLabelLocalizationTests {
     }
 }
 
+/// Selection action bar labels are shared by visible controls and VoiceOver,
+/// and match the web action terminology in every supported locale.
+@Suite("Localization — selection action bar labels")
+struct SelectionActionBarLabelLocalizationTests {
+
+    static let expectations: [(
+        action: SelectionActionBarAction,
+        en: String,
+        ko: String,
+        ja: String
+    )] = [
+        (.copy, "Copy", "복사", "コピー"),
+        (.cut, "Cut", "잘라내기", "切り取り"),
+        (.paste, "Paste", "붙여넣기", "貼り付け"),
+        (.flipHorizontal, "Flip Horizontal", "좌우 반전", "左右反転"),
+        (.flipVertical, "Flip Vertical", "상하 반전", "上下反転"),
+        (.rotateCw, "Rotate Right", "오른쪽 회전", "右回転"),
+        (.rotateCcw, "Rotate Left", "왼쪽 회전", "左回転"),
+        (.delete, "Delete", "삭제", "削除"),
+        (.deselect, "Deselect", "선택 해제", "選択解除"),
+        (.commit, "Done", "완료", "完了"),
+        (.cancel, "Cancel", "취소", "キャンセル"),
+    ]
+
+    @Test("Every action has a localization expectation")
+    func expectationsCoverAllActions() {
+        #expect(Self.expectations.map(\.action) == SelectionActionBarAction.allCases)
+    }
+
+    @Test("Action labels resolve per locale", arguments: expectations)
+    func labelsResolvePerLocale(_ expected: (
+        action: SelectionActionBarAction,
+        en: String,
+        ko: String,
+        ja: String
+    )) {
+        #expect(resolve(expected.action.label, in: "en") == expected.en)
+        #expect(resolve(expected.action.label, in: "ko") == expected.ko)
+        #expect(resolve(expected.action.label, in: "ja") == expected.ja)
+    }
+}
+
 /// Cross-shell terminology: tool names must match the web's message catalogs
 /// (`messages/ko.json`, `messages/ja.json`) wherever the same concept appears.
 @Suite("Localization — tool display names (web terminology parity)")

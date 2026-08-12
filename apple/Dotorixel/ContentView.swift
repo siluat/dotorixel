@@ -61,6 +61,17 @@ struct ContentView: View {
                             .overlay(alignment: .topLeading) {
                                 MarqueeOverlay(tab: tab, displayScale: displayScale)
                             }
+                            // Touch-first Marquee actions: shares the keyboard
+                            // and pointer command paths, follows the same
+                            // zoom/pan projection as the ants, and clamps its
+                            // interactive surface inside the canvas area.
+                            .overlay(alignment: .topLeading) {
+                                SelectionActionBar(
+                                    workspace: workspace,
+                                    tab: tab,
+                                    displayScale: displayScale
+                                )
+                            }
                             // Pencil hover preview: highlights the target cell
                             // while the Apple Pencil hovers (issue 253). Below the
                             // loupe so an active sampling stroke's magnifier wins.

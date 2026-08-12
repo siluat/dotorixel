@@ -264,7 +264,7 @@ final class KeyboardShortcutController {
 
         // ⌘Z / ⇧⌘Z / ⌘Y — undo/redo combos mirror the web handler.
         if modifiers.contains(.command) {
-            if !modifiers.contains(.option) {
+            if canHandleSelectionEditingKeys, modifiers == .command {
                 if character == "c" { return .copySelection }
                 if character == "x" { return .cutSelection }
                 if character == "v" { return .pasteSelectionClipboard }

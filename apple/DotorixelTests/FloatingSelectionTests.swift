@@ -2,6 +2,16 @@ import Foundation
 import Testing
 @testable import Dotorixel
 
+private func pixel(in pixels: Data, width: Int, x: Int, y: Int) -> Color {
+    let offset = (y * width + x) * 4
+    return Color(
+        r: pixels[offset],
+        g: pixels[offset + 1],
+        b: pixels[offset + 2],
+        a: pixels[offset + 3]
+    )
+}
+
 @Suite("Selection Clipboard — Workspace commands")
 struct SelectionClipboardWorkspaceTests {
 
@@ -120,8 +130,8 @@ struct SelectionClipboardWorkspaceTests {
 
         #expect(try tab.document.getPixel(x: 0, y: 0) == transparent)
         #expect(try tab.document.getPixel(x: 1, y: 0) == transparent)
-        #expect(renderedPixel(in: try tab.renderPixels(), width: 4, x: 1, y: 1) == red)
-        #expect(renderedPixel(in: try tab.renderPixels(), width: 4, x: 2, y: 1) == green)
+        #expect(pixel(in: try tab.renderPixels(), width: 4, x: 1, y: 1) == red)
+        #expect(pixel(in: try tab.renderPixels(), width: 4, x: 2, y: 1) == green)
 
         #expect(tab.commitFloatingSelection())
         #expect(try tab.document.getPixel(x: 1, y: 1) == red)
@@ -162,10 +172,10 @@ struct SelectionClipboardWorkspaceTests {
         #expect(tab.floatingSelectionOffset == .zero)
         #expect(tab.marquee == AppleMarqueeRegion(x: 3, y: 2, width: 2, height: 2))
         #expect(try tab.document.getPixel(x: 3, y: 2).a == 0)
-        #expect(renderedPixel(in: try tab.renderPixels(), width: 8, x: 3, y: 2) == red)
-        #expect(renderedPixel(in: try tab.renderPixels(), width: 8, x: 4, y: 2) == green)
-        #expect(renderedPixel(in: try tab.renderPixels(), width: 8, x: 3, y: 3) == blue)
-        #expect(renderedPixel(in: try tab.renderPixels(), width: 8, x: 4, y: 3) == yellow)
+        #expect(pixel(in: try tab.renderPixels(), width: 8, x: 3, y: 2) == red)
+        #expect(pixel(in: try tab.renderPixels(), width: 8, x: 4, y: 2) == green)
+        #expect(pixel(in: try tab.renderPixels(), width: 8, x: 3, y: 3) == blue)
+        #expect(pixel(in: try tab.renderPixels(), width: 8, x: 4, y: 3) == yellow)
         #expect(!tab.documentHistory.canUndo())
     }
 
@@ -193,7 +203,7 @@ struct SelectionClipboardWorkspaceTests {
 
         #expect(tab.floatingSelectionOffset == .zero)
         #expect(tab.marquee == AppleMarqueeRegion(x: 3, y: 3, width: 2, height: 2))
-        #expect(renderedPixel(in: try tab.renderPixels(), width: 8, x: 3, y: 3) == red)
+        #expect(pixel(in: try tab.renderPixels(), width: 8, x: 3, y: 3) == red)
         #expect(!tab.documentHistory.canUndo())
     }
 
@@ -262,7 +272,7 @@ struct SelectionClipboardWorkspaceTests {
         #expect(try tab.document.getPixel(x: 5, y: 4) == blue)
         #expect(tab.marquee == AppleMarqueeRegion(x: 2, y: 2, width: 1, height: 1))
         #expect(try tab.document.getPixel(x: 2, y: 2) == transparent)
-        #expect(renderedPixel(in: try tab.renderPixels(), width: 6, x: 2, y: 2) == red)
+        #expect(pixel(in: try tab.renderPixels(), width: 6, x: 2, y: 2) == red)
         #expect(tab.documentHistory.canUndo())
 
         tab.handleUndo()
@@ -320,7 +330,7 @@ struct SelectionClipboardWorkspaceTests {
         #expect(workspace.activeTab === destinationTab)
         #expect(destinationTab.marquee == AppleMarqueeRegion(x: 7, y: 7, width: 1, height: 1))
         #expect(
-            renderedPixel(
+            pixel(
                 in: try destinationTab.renderPixels(),
                 width: Int(Workspace.defaultCanvasDimension),
                 x: 7,
@@ -362,6 +372,52 @@ struct SelectionClipboardWorkspaceTests {
         #expect(!seededTab.canUndo)
     }
 
+    @Test("Copy preserves the workspace clipboard while Floating recovery is pending")
+    func copyNoOpsWhileFloatingRecoveryIsPending() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+
+        try tab.document.setPixel(x: 1, y: 1, color: red)
+        try tab.document.setMarquee(region: source)
+        workspace.copySelection()
+        let clipboardBeforeRecovery = try #require(workspace.selectionClipboard)
+
+        tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 0))
+        try tab.document.addLayer(newId: UUID().uuidString, name: "Other")
+        #expect(!tab.cancelFloatingSelection())
+
+        workspace.copySelection()
+
+        #expect(workspace.selectionClipboard == clipboardBeforeRecovery)
+    }
+
+    @Test("Cut preserves the workspace clipboard when Floating recovery fails")
+    func cutNoOpsWhenFloatingRecoveryFails() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+
+        try tab.document.setPixel(x: 1, y: 1, color: red)
+        try tab.document.setMarquee(region: source)
+        workspace.copySelection()
+        let clipboardBeforeRecovery = try #require(workspace.selectionClipboard)
+
+        tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 0))
+        let sourceLayerId = tab.document.activeLayerId()
+        try tab.document.addLayer(newId: UUID().uuidString, name: "Other")
+        try tab.document.removeLayer(id: sourceLayerId)
+        #expect(!tab.cancelFloatingSelection())
+        let activeLayerPixelsBeforeCut = try tab.document.activeLayerPixels()
+
+        workspace.cutSelection()
+
+        #expect(workspace.selectionClipboard == clipboardBeforeRecovery)
+        #expect(try tab.document.activeLayerPixels() == activeLayerPixelsBeforeCut)
+    }
+
     @Test("Reference-active tabs reject Copy, Cut, and Paste without side effects")
     func referenceActiveTabRejectsClipboardCommands() throws {
         let document = ReferenceActiveClipboardDocument()
@@ -392,15 +448,6 @@ struct SelectionClipboardWorkspaceTests {
         #expect(!tab.canUndo)
     }
 
-    private func renderedPixel(in pixels: Data, width: Int, x: Int, y: Int) -> Color {
-        let offset = (y * width + x) * 4
-        return Color(
-            r: pixels[offset],
-            g: pixels[offset + 1],
-            b: pixels[offset + 2],
-            a: pixels[offset + 3]
-        )
-    }
 }
 
 private final class ReferenceActiveClipboardDocument: AppleDocument, @unchecked Sendable {
@@ -993,15 +1040,6 @@ struct FloatingSelectionTests {
         #expect(!tab.canUndo)
     }
 
-    private func pixel(in pixels: Data, width: Int, x: Int, y: Int) -> Color {
-        let offset = (y * width + x) * 4
-        return Color(
-            r: pixels[offset],
-            g: pixels[offset + 1],
-            b: pixels[offset + 2],
-            a: pixels[offset + 3]
-        )
-    }
 }
 
 @Suite("Selection keyboard operations — TabState commands")
@@ -1136,6 +1174,22 @@ struct SelectionKeyboardOperationTests {
 
 @Suite("Floating Selection lifecycle — Edit Baseline contract")
 struct FloatingSelectionEditBaselineTests {
+
+    @Test("an empty lift restores the original Marquee")
+    func emptyLiftRestoresOriginalMarquee() {
+        let originalMarquee = AppleMarqueeRegion(x: 0, y: 0, width: 1, height: 1)
+        let attemptedRegion = AppleMarqueeRegion(x: 1, y: 0, width: 1, height: 1)
+        let document = FloatingSelectionDocumentFake(
+            pixels: Data(),
+            marquee: originalMarquee
+        )
+        let lifecycle = FloatingSelectionLifecycle()
+
+        #expect(!lifecycle.liftFromMarquee(attemptedRegion, in: document))
+
+        #expect(document.currentMarquee == originalMarquee)
+        #expect(document.setMarqueeCallCount == 2)
+    }
 
     @Test("a failed apply resolves its Edit Baseline and classifies partial mutation as committed")
     func failedApplyResolvesEditBaseline() throws {

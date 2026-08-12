@@ -10,14 +10,25 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 209 | 157 | 52 | 273 | 75% | 37% |
-| cubic-dev-ai[bot] | 303 | 236 | 67 | 212 | 78% | 53% |
-| coderabbitai[bot] | 314 | 224 | 90 | 220 | 71% | 50% |
+| greptile-apps[bot] | 209 | 157 | 52 | 279 | 75% | 36% |
+| cubic-dev-ai[bot] | 307 | 240 | 67 | 214 | 78% | 53% |
+| coderabbitai[bot] | 318 | 227 | 91 | 223 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #362 | coderabbitai[bot] | Accept | Clipboard shortcuts bypassed the canvas-first-responder and VoiceOver ownership gate and admitted extra Shift/Control modifiers; C/X/V now require selection-editing ownership and exact Command-only modifiers |
+| #362 | coderabbitai[bot] | Accept | A failed empty-buffer lift left the attempted source region as the live Marquee; the failure path now restores the captured baseline Marquee |
+| #362 | coderabbitai[bot] | Accept | The Keyboard shortcuts platform row still called selection C/X/V web-only after Apple support shipped; updated the cross-platform status |
+| #362 | coderabbitai[bot] | Reject | Blanket 80% docstring coverage would require redundant comments on private implementation and test functions; the new consumer-facing production APIs already carry contract documentation consistent with repository policy |
+| #362 | cubic-dev-ai[bot] | Accept | Copy could replace the workspace clipboard with stale or transparent pixels while degraded Floating recovery was pending; Copy now preserves the clipboard until recovery resolves elsewhere |
+| #362 | cubic-dev-ai[bot] | Accept | Cut captured pixels before attempting pending recovery, so a failed retry could replace the clipboard without cutting; recovery now succeeds before capture or Cut no-ops |
+| #362 | cubic-dev-ai[bot] | Accept | Same stale Keyboard shortcuts status finding as CodeRabbit; the row now records Apple selection C/X/V support |
+| #362 | cubic-dev-ai[bot] | Accept | New clipboard tests duplicated the file's RGBA pixel indexing helper; all suites now share one file-private helper |
+| #362 | greptile-apps[bot] | Miss (×6) | Reported the PR safe with no concrete failure and missed all six accepted issues: shortcut ownership/modifiers, empty-lift Marquee restore, platform status, Copy recovery, Cut recovery, and duplicated test helper |
+| #362 | cubic-dev-ai[bot] | Miss (×2) | Missed the shortcut ownership/modifier capture and empty-lift Marquee restoration findings accepted from CodeRabbit |
+| #362 | coderabbitai[bot] | Miss (×3) | Missed the pending-recovery Copy and Cut boundary failures and duplicated pixel helper accepted from cubic |
 | #361 | greptile-apps[bot] | Accept | macOS selection-key admission relied only on AppKit first responder, so VoiceOver accessibility focus and Quick Nav could still lose Arrow/Delete/Escape; selection editing keys now pass through whenever VoiceOver is active |
 | #361 | cubic-dev-ai[bot] | Miss | Re-reviewed the latest commit with zero findings but missed the VoiceOver accessibility-focus key capture accepted from greptile |
 | #361 | coderabbitai[bot] | Miss | Re-reviewed the latest commit with no actionable comments but missed the VoiceOver accessibility-focus key capture accepted from greptile |

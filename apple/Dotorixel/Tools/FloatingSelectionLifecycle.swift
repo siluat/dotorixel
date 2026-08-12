@@ -179,7 +179,10 @@ final class FloatingSelectionLifecycle {
             let baselineMarquee = document.marquee()
             try document.setMarquee(region: sourceRegion)
             let buffer = document.liftMarqueePixels()
-            guard !buffer.isEmpty else { return false }
+            guard !buffer.isEmpty else {
+                try document.setMarquee(region: baselineMarquee)
+                return false
+            }
 
             document.clearMarqueePixels()
             floating = FloatingSelection(

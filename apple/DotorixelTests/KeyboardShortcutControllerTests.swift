@@ -107,7 +107,7 @@ struct KeyboardShortcutControllerSelectionClipboardTests {
         #expect(host.selectionPasteCount == 1)
     }
 
-    @Test("Clipboard shortcuts pass through text fields and Option combinations")
+    @Test("Clipboard shortcuts pass through text fields, non-canvas targets, and extra modifiers")
     func clipboardShortcutsRespectInputGuards() {
         let host = FakeShortcutHost()
         let controller = makeController(host: host)
@@ -118,9 +118,30 @@ struct KeyboardShortcutControllerSelectionClipboardTests {
         #expect(!controller.handleKeyDown("v", modifiers: .command))
 
         host.isTextInputFocused = false
-        #expect(!controller.handleKeyDown("c", modifiers: [.command, .option]))
-        #expect(!controller.handleKeyDown("x", modifiers: [.command, .option]))
-        #expect(!controller.handleKeyDown("v", modifiers: [.command, .option]))
+        for modifiers: ShortcutModifiers in [
+            [.command, .option],
+            [.command, .shift],
+            [.command, .control],
+        ] {
+            #expect(!controller.handleKeyDown("c", modifiers: modifiers))
+            #expect(!controller.handleKeyDown("x", modifiers: modifiers))
+            #expect(!controller.handleKeyDown("v", modifiers: modifiers))
+        }
+        #expect(!controller.handleKeyDown(
+            .character("c"),
+            modifiers: .command,
+            canHandleSelectionEditingKeys: false
+        ))
+        #expect(!controller.handleKeyDown(
+            .character("x"),
+            modifiers: .command,
+            canHandleSelectionEditingKeys: false
+        ))
+        #expect(!controller.handleKeyDown(
+            .character("v"),
+            modifiers: .command,
+            canHandleSelectionEditingKeys: false
+        ))
 
         #expect(host.selectionCopyCount == 0)
         #expect(host.selectionCutCount == 0)

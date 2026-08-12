@@ -380,17 +380,21 @@ final class TabState {
     }
 
     /// Non-mutating Copy projection for the workspace-shared Selection
-    /// Clipboard. Copy is inert during a stroke and on a Reference Layer.
+    /// Clipboard. Copy is inert during a stroke, on a Reference Layer, or
+    /// while a degraded Floating cancellation still owns baseline recovery.
     func selectionClipboardSnapshot() -> SelectionClipboard? {
-        guard !isDrawing, isActiveLayerEditable else { return nil }
+        guard !isDrawing,
+              isActiveLayerEditable,
+              !floatingSelection.hasPendingRecovery else { return nil }
         return floatingSelection.clipboardSnapshot(in: document)
     }
 
-    /// Captures and clears the active Marquee as one undoable Edit. A live
-    /// Floating Selection resolves first so Cut targets its translated
-    /// Marquee and remains a distinct History step.
+    /// Captures and clears the active Marquee as one undoable Edit. Pending
+    /// recovery resolves before capture, then a live Floating Selection
+    /// commits so Cut targets its translated Marquee as a distinct History step.
     func cutSelection() -> SelectionClipboard? {
         guard !isDrawing, isActiveLayerEditable else { return nil }
+        guard resolveFloatingSelectionRecovery() else { return nil }
         if floatingSelection.isActive, !commitFloatingSelection() { return nil }
         guard let snapshot = floatingSelection.clipboardSnapshot(in: document) else {
             return nil

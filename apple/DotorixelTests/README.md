@@ -14,6 +14,11 @@ leaf region view offscreen and compares the pixels to a committed reference imag
 sampling loupe overlay (`LoupeView`): the 9×9 grid's cell states (opaque,
 transparent checker, out-of-canvas hatch), the center-cell rings, and the hex chip.
 
+`SelectionActionBarSnapshotTests` baselines the Marquee action surface's two
+rendered states: the scrollable Idle command row and the compact Floating Selection
+Commit/Cancel row. Its state, command wiring, enabled logic, and clamp geometry are
+covered separately by unit tests; the images pin the composed 44pt controls.
+
 > "Snapshot" here is the image-reference **testing technique**, not the History
 > `Snapshot` (the undo/redo pixel buffer) in the domain model. They are unrelated.
 

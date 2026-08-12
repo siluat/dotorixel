@@ -39,6 +39,176 @@
       "comment" : "Percent accessibility value for the split SV-square elements (issue 250).",
       "shouldTranslate" : false
     },
+    "Copy" : {
+      "comment" : "Selection action bar Copy button. web: action_selectionCopy",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コピー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복사"
+          }
+        }
+      }
+    },
+    "Cut" : {
+      "comment" : "Selection action bar Cut button. web: action_selectionCut",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切り取り"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "잘라내기"
+          }
+        }
+      }
+    },
+    "Deselect" : {
+      "comment" : "Selection action bar Deselect button. web: action_selectionDeselect",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択解除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택 해제"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "comment" : "Selection action bar Floating Selection commit button. web: action_selectionDone",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료"
+          }
+        }
+      }
+    },
+    "Flip Horizontal" : {
+      "comment" : "Selection action bar Marquee Transform button. web: action_transformFlipHorizontal",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左右反転"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "좌우 반전"
+          }
+        }
+      }
+    },
+    "Flip Vertical" : {
+      "comment" : "Selection action bar Marquee Transform button. web: action_transformFlipVertical",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上下反転"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "상하 반전"
+          }
+        }
+      }
+    },
+    "Paste" : {
+      "comment" : "Selection action bar Paste button. web: action_selectionPaste",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "貼り付け"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "붙여넣기"
+          }
+        }
+      }
+    },
+    "Rotate Left" : {
+      "comment" : "Selection action bar counter-clockwise Marquee Transform button. web: action_transformRotateCcw",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左回転"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "왼쪽 회전"
+          }
+        }
+      }
+    },
+    "Rotate Right" : {
+      "comment" : "Selection action bar clockwise Marquee Transform button. web: action_transformRotateCw",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右回転"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오른쪽 회전"
+          }
+        }
+      }
+    },
+    "Selection actions" : {
+      "comment" : "VoiceOver group label for the Selection action bar. web: aria_selectionActions",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択操作"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택 작업"
+          }
+        }
+      }
+    },
     "Add layer" : {
       "comment" : "Layers section add button accessibility label. web: aria_addLayer",
       "localizations" : {
@@ -210,7 +380,7 @@
       }
     },
     "Delete" : {
-      "comment" : "Save dialog / browser delete button. web: save_dialog_delete, browser_delete_confirm",
+      "comment" : "Delete button shared by save/browser surfaces and the Selection action bar. web: save_dialog_delete, browser_delete_confirm, action_selectionDelete",
       "localizations" : {
         "ja" : {
           "stringUnit" : {

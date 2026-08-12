@@ -3,24 +3,23 @@
 ## Currently Working On
 
 Apple catch-up Phase 5 — reference + selection + transforms
-([RFC](../issues/013-apple-native-catchup.md)); 8/16 sub-issues done
-(267–274). Frontier: {275, 276, 277}.
+([RFC](../issues/013-apple-native-catchup.md)); 9/16 sub-issues done
+(267–275). Frontier: {276, 277}.
 
 ## Last Completed
 
-[274 — Apple selection clipboard](../issues/274-apple-selection-clipboard.md):
-Apple Selection now supports workspace-shared Copy, Cut, and Paste as a
-Floating Selection with viewport-aware placement and web-parity History.
+[275 — Apple selection action bar](../issues/275-apple-selection-action-bar.md):
+Apple Selection now exposes touch-first Idle and Floating commands plus
+region transforms in a viewport-clamped, accessible bar. Marquee persistence
+and Reference integration remain Phase 5 follow-ups.
 
 ## Next Up
 
-- [275 — Apple selection action bar](../issues/275-apple-selection-action-bar.md) — Phase 5, unblocked by 272 and 274
 - [276 — Apple marquee persistence](../issues/276-apple-marquee-persistence.md) — Phase 5, unblocked by 272
 - [277 — Apple UniFFI reference bindings](../issues/277-apple-uniffi-reference-bindings.md) — Phase 5 frontier
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Feedback link to Google Form
-- [255 — Apple Pencil device verification pass (HITL)](../issues/255-apple-pencil-device-verification.md) — waiting on real-hardware access
 - (review) In-editor feedback widget
 - Reference image window polish — opacity slider, lock toggle, flip H/V, rotate
 - Reference image import — clipboard paste support
@@ -37,9 +36,6 @@ Floating Selection with viewport-aware placement and web-parity History.
 - Web pen priority — palm rejection + hover target cell (web counterpart of 252–254)
 - Apple tab strip keyboard navigation — ArrowLeft/Right + Home/End roving focus
 - Apple layer reorder — interrupted-drag recovery
-- Apple layer panel predicates — `canReorderLayers` vs `canRemoveLayer` number consistency
 - Apple bindings staleness guard — regenerate Swift bindings on binding-surface change
-- Apple auto-save failure surfacing — silent retry today; log + notification later
 - Web hydration opacity validation — port the Apple `from_layers` opacity guard
 - Web session-save gaps mirrored from the 265 review — unstored-tab skip + shared-state document rewrite
-- Flaky e2e: Reference Window reload persistence — investigate if it recurs

@@ -1,6 +1,6 @@
 ---
 title: Apple selection action bar — idle and floating states with marquee transforms
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -54,3 +54,29 @@ transforms themselves come bound from 267; the bar is their trigger.
 
 - [272 — Apple floating selection](272-apple-floating-selection.md)
 - [274 — Apple selection clipboard](274-apple-selection-clipboard.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/ContentView.swift` | Mounted the Selection action bar in the canvas overlay stack. |
+| `apple/Dotorixel/Views/SelectionActionBar.swift` | Added Idle and Floating presentations, viewport-aware placement, accessible 44 pt controls, and command dispatch. |
+| `apple/Dotorixel/State/TabState.swift` | Added History-integrated Marquee transform commands and the shared active-layer editability projection. |
+| `apple/Dotorixel/Localizable.xcstrings` | Added English, Korean, and Japanese action and accessibility labels. |
+| `apple/DotorixelTests/SelectionActionBarTests.swift` | Covered presentation states, enabled logic, command routing, touch sizing, and edge clamping. |
+| `apple/DotorixelTests/SelectionActionBarSnapshotTests.swift` | Added rendered baselines for Idle and Floating action-bar states. |
+| `apple/DotorixelTests/TabStateMarqueeTransformTests.swift` | Verified region-only transforms and one-step Undo behavior at the Apple state boundary. |
+| `apple/DotorixelTests/LocalizationTests.swift` | Pinned every action label across the three supported locales. |
+| `apple/DotorixelTests/README.md` | Documented the new snapshot suite and its coverage boundary. |
+
+### Key Decisions
+
+- Kept pixel transforms and no-op detection in the Rust core; the Apple shell only owns command routing, History boundaries, observation updates, and presentation.
+- Modeled action sets, dispatch, and geometry behind explicit test seams while keeping the feature in one cohesive module.
+- Preserved 44 pt targets on narrow viewports by horizontally scrolling the Idle action row instead of shrinking controls.
+- Reused the command boundary's active-layer editability predicate so the bar automatically hides for Reference Layers without duplicating layer policy in SwiftUI.
+
+### Notes
+
+- The full Apple test suite passes on the pinned iPad simulator; the macOS app build also passes.
+- Snapshot baselines cover both action-bar states; state, routing, localization, History, and placement behavior are covered by unit tests.

@@ -488,7 +488,47 @@ final class TabState {
         }
     }
 
-    private var isActiveLayerEditable: Bool {
+    /// Mirrors the active Pixel Layer's Marquee left↔right as one undoable
+    /// Edit. The core owns region-local pixel transformation and no-op
+    /// detection; the shell only seals strokes and records a real result.
+    func flipMarqueeHorizontal() {
+        guard !isDrawing, isActiveLayerEditable else { return }
+        if performEdit({ document.flipMarqueeHorizontal(); return true }) {
+            canvasVersion += 1
+        }
+    }
+
+    /// Mirrors the active Pixel Layer's Marquee top↔bottom as one undoable Edit.
+    func flipMarqueeVertical() {
+        guard !isDrawing, isActiveLayerEditable else { return }
+        if performEdit({ document.flipMarqueeVertical(); return true }) {
+            canvasVersion += 1
+        }
+    }
+
+    /// Rotates the active Pixel Layer's Marquee 90° clockwise as one
+    /// undoable Edit; the core updates both pixels and Marquee bounds.
+    func rotateMarqueeCw() {
+        guard !isDrawing, isActiveLayerEditable else { return }
+        if performEdit({ document.rotateMarqueeCw(); return true }) {
+            canvasVersion += 1
+        }
+    }
+
+    /// Rotates the active Pixel Layer's Marquee 90° counter-clockwise as one
+    /// undoable Edit; the core updates both pixels and Marquee bounds.
+    func rotateMarqueeCcw() {
+        guard !isDrawing, isActiveLayerEditable else { return }
+        if performEdit({ document.rotateMarqueeCcw(); return true }) {
+            canvasVersion += 1
+        }
+    }
+
+    /// One projection for whether selection commands may target the active
+    /// Layer. The action bar reads the same predicate the command boundary
+    /// enforces, so a future Reference Layer hides the surface without
+    /// duplicating Layer-kind policy in the view.
+    var isActiveLayerEditable: Bool {
         document.layers().first(where: { $0.id == document.activeLayerId() })?.kind == .pixel
     }
 

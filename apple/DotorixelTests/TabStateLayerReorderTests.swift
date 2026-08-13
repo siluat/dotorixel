@@ -10,6 +10,34 @@ import Testing
 /// tests pin — an inverted mapping would silently move layers the wrong way.
 @Suite("TabState — layer reorder")
 struct TabStateLayerReorderTests {
+    @Test("the Reference row never exposes reorder while Pixel rows reorder only among themselves")
+    func referenceRowIsFixedBelowPixelRows() throws {
+        let state = Workspace(width: 8, height: 8)
+        let firstPixelId = state.activeTab.document.activeLayerId()
+        try state.activeTab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png",
+            rgba: Data([0, 0, 0, 0xFF]),
+            width: 1,
+            height: 1
+        ))
+        let referenceId = state.activeTab.document.activeLayerId()
+
+        #expect(!state.activeTab.canReorderLayers)
+        #expect(!state.activeTab.canReorderLayer(id: referenceId))
+        #expect(!state.activeTab.canReorderLayer(id: firstPixelId))
+
+        state.activeTab.setActiveLayer(id: firstPixelId)
+        state.activeTab.addLayer()
+        let secondPixelId = state.activeTab.document.activeLayerId()
+
+        #expect(state.activeTab.canReorderLayers)
+        #expect(state.activeTab.canReorderLayer(id: firstPixelId))
+        #expect(state.activeTab.canReorderLayer(id: secondPixelId))
+        #expect(!state.activeTab.canReorderLayer(id: referenceId))
+
+        state.activeTab.reorderLayer(id: referenceId, toPanelIndex: 0)
+        #expect(state.activeTab.document.layers().first?.id == referenceId)
+    }
 
     /// Reads one RGBA pixel of the composite — the rendered stacking these
     /// tests judge the reorder by.

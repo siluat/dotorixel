@@ -139,6 +139,25 @@ struct DockedRegionSnapshotTests {
         )
     }
 
+    /// Content regression (issue 278): the Reference row is fixed at the
+    /// bottom, carries its photo kind marker, visibility and delete actions,
+    /// and has no trailing reorder handle. The header also exposes the native
+    /// Reference-import entry point beside Add Layer.
+    @Test("TimelinePanel renders the fixed Reference underlay row")
+    func timelinePanelReferenceRow() throws {
+        let referenced = state()
+        try referenced.activeTab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png",
+            rgba: Data([0xFF, 0x80, 0, 0xFF]),
+            width: 1,
+            height: 1
+        ))
+        assertSnapshot(
+            of: TimelinePanel(tab: referenced.activeTab).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
     /// The canvas column at the macOS window's 480pt floor: 480 minus the
     /// 44pt toolbar and 200pt right panel. Narrower than the sidebar's own
     /// 256pt spec width, so it is where the panel has to yield.

@@ -596,6 +596,21 @@ pub struct AppleLayerSnapshot {
     pub pixels: Vec<u8>,
 }
 
+fn pixel_layer_snapshot(
+    document: &Document,
+    stack_index: usize,
+    layer: &Layer,
+) -> Option<AppleLayerSnapshot> {
+    let pixels = document.layer_pixels_at(stack_index)?;
+    Some(AppleLayerSnapshot {
+        id: layer.id.to_string(),
+        name: layer.name.clone(),
+        visible: layer.visible,
+        opacity: layer.opacity,
+        pixels: pixels.to_vec(),
+    })
+}
+
 fn parse_layer_id(id: &str) -> Result<Uuid, AppleError> {
     Uuid::parse_str(id).map_err(|e| AppleError::Document {
         message: format!("Invalid layer id {id:?}: {e}"),
@@ -805,23 +820,29 @@ impl AppleDocument {
             .iter()
             .enumerate()
             .map(|(index, layer)| {
-                let pixels =
-                    document
-                        .layer_pixels_at(index)
-                        .ok_or_else(|| AppleError::Document {
-                            message: format!(
-                                "Layer {} is a Reference Layer; persistence snapshots cover Pixel Layers only",
-                                layer.id
-                            ),
-                        })?;
-                Ok(AppleLayerSnapshot {
-                    id: layer.id.to_string(),
-                    name: layer.name.clone(),
-                    visible: layer.visible,
-                    opacity: layer.opacity,
-                    pixels: pixels.to_vec(),
+                pixel_layer_snapshot(&document, index, layer).ok_or_else(|| {
+                    AppleError::Document {
+                        message: format!(
+                            "Layer {} is a Reference Layer; persistence snapshots cover Pixel Layers only",
+                            layer.id
+                        ),
+                    }
                 })
             })
+            .collect()
+    }
+
+    /// Pixel-only persistence projection in stack order. This is the Apple
+    /// shell's temporary issue-278 boundary: auto-save remains healthy while
+    /// a Reference Layer is open by omitting that unsupported variant. Issue
+    /// 282 replaces this projection with a reference-aware snapshot schema.
+    fn pixel_layer_snapshots(&self) -> Vec<AppleLayerSnapshot> {
+        let document = self.inner.lock().unwrap();
+        document
+            .layers()
+            .iter()
+            .enumerate()
+            .filter_map(|(index, layer)| pixel_layer_snapshot(&document, index, layer))
             .collect()
     }
 

@@ -16,6 +16,8 @@ struct TimelinePanel: View {
     /// View-local by nature: it lives and dies with the gesture and never
     /// reaches the document until the drop commits.
     @State private var reorderDrag: LayerReorderDrag?
+    @State private var isReferenceImporterPresented = false
+    @State private var referenceImportErrorMessage: String?
 
     /// Panel rows and the header strip share the touch-minimum height — the
     /// Apple stand-in for the web's `--row-height`, which drives both there too.
@@ -81,6 +83,25 @@ struct TimelinePanel: View {
             guard reorderDrag != nil else { return }
             reorderDrag = nil
         }
+        .fileImporter(
+            isPresented: $isReferenceImporterPresented,
+            allowedContentTypes: ReferenceImageImporter.supportedContentTypes
+        ) { result in
+            importReference(from: result)
+        }
+        .alert(
+            "Reference import failed",
+            isPresented: Binding(
+                get: { referenceImportErrorMessage != nil },
+                set: { if !$0 { referenceImportErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                referenceImportErrorMessage = nil
+            }
+        } message: {
+            Text(referenceImportErrorMessage ?? "")
+        }
     }
 
     /// The stack's identity in panel order — what a live reorder drag's
@@ -96,6 +117,7 @@ struct TimelinePanel: View {
         HStack(spacing: DesignTokens.space2) {
             if !isCollapsed {
                 addLayerButton
+                addReferenceButton
             }
             headerLabel
             Spacer(minLength: 0)
@@ -143,6 +165,29 @@ struct TimelinePanel: View {
             accessibilityLabel: "Add layer",
             action: tab.addLayer
         )
+    }
+
+    /// Native file-picker entry point for the singleton tracing underlay.
+    /// Selecting another image replaces the current Reference in one Edit.
+    private var addReferenceButton: some View {
+        PanelIconButton(
+            systemName: "photo.badge.plus",
+            accessibilityLabel: "Add reference image",
+            action: { isReferenceImporterPresented = true }
+        )
+    }
+
+    private func importReference(from result: Result<URL, Error>) {
+        switch result {
+        case let .success(url):
+            do {
+                try tab.importReference(at: url)
+            } catch {
+                referenceImportErrorMessage = error.localizedDescription
+            }
+        case let .failure(error):
+            referenceImportErrorMessage = error.localizedDescription
+        }
     }
 
     /// Points down while expanded and up while collapsed — "click to expand",
@@ -207,9 +252,14 @@ struct TimelinePanel: View {
         let reorderOffset = reorderDrag?.offset(forPanelIndex: panelIndex) ?? 0
         return HStack(spacing: DesignTokens.space2) {
             visibilityToggle(layer)
+            if layer.kind == .reference {
+                referenceKindIcon
+            }
             rowSelectButton(layer, isActive: isActive)
             removeLayerButton(layer)
-            reorderHandle(layer, panelIndex: panelIndex)
+            if layer.kind == .pixel {
+                reorderHandle(layer, panelIndex: panelIndex)
+            }
         }
         // Full-height touch-minimum rows keep every target at the HIG minimum.
         .frame(height: rowHeight)
@@ -251,10 +301,10 @@ struct TimelinePanel: View {
         PanelIconGlyph(
             systemName: "line.3.horizontal",
             tint: DesignTokens.textTertiary,
-            isEnabled: tab.canReorderLayers
+            isEnabled: tab.canReorderLayer(id: layer.id)
         )
         .gesture(reorderGesture(layer, panelIndex: panelIndex))
-        .disabled(!tab.canReorderLayers)
+        .disabled(!tab.canReorderLayer(id: layer.id))
         .accessibilityLabel("Reorder \(layer.name)")
         // The pointer-free path to the same command: VoiceOver's adjust
         // gesture (and the rotor) steps the row through the stack.
@@ -282,7 +332,7 @@ struct TimelinePanel: View {
                     reorderDrag = LayerReorderDrag(
                         layerId: layer.id,
                         baseIndex: panelIndex,
-                        rowCount: tab.layersInPanelOrder.count,
+                        rowCount: tab.pixelLayersInPanelOrder.count,
                         rowHeight: rowHeight,
                         translation: value.translation.height
                     )
@@ -334,7 +384,7 @@ struct TimelinePanel: View {
             systemName: "xmark",
             accessibilityLabel: "Delete \(layer.name)",
             tint: DesignTokens.textTertiary,
-            isEnabled: tab.canRemoveLayer,
+            isEnabled: tab.canRemoveLayer(id: layer.id),
             action: { tab.removeLayer(id: layer.id) }
         )
     }
@@ -346,6 +396,16 @@ struct TimelinePanel: View {
             tint: layer.visible ? DesignTokens.textSecondary : DesignTokens.textTertiary,
             action: { tab.setLayerVisibility(id: layer.id, visible: !layer.visible) }
         )
+    }
+
+    /// Non-interactive kind marker. The photo glyph makes the Reference row's
+    /// fixed underlay role distinct without narrowing ordinary Pixel names.
+    private var referenceKindIcon: some View {
+        Image(systemName: "photo")
+            .font(.system(size: 12))
+            .foregroundStyle(DesignTokens.textTertiary)
+            .frame(width: 14, height: 14)
+            .accessibilityHidden(true)
     }
 
     // MARK: - Frame area (placeholder until Phase 6)

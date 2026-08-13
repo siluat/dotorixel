@@ -8,12 +8,18 @@ private final class CanvasTextureSpy: PixelGridRenderer {
     var uploadedPixels: Data?
     var uploadedWidth: UInt32?
     var uploadedHeight: UInt32?
+    var uploadedReferenceProjection: ReferenceLayerRenderProjection?
 
     override func updateCanvasTexture(pixels: Data, width: UInt32, height: UInt32) {
         uploadedPixels = pixels
         uploadedWidth = width
         uploadedHeight = height
         super.updateCanvasTexture(pixels: pixels, width: width, height: height)
+    }
+
+    override func updateReferenceUnderlay(_ projection: ReferenceLayerRenderProjection?) {
+        uploadedReferenceProjection = projection
+        super.updateReferenceUnderlay(projection)
     }
 }
 
@@ -59,6 +65,46 @@ struct RenderPathTests {
         let hiddenPixels = try #require(spy.uploadedPixels)
         #expect(hiddenPixels.allSatisfy { $0 == 0 })
         #expect(Array(try state.activeTab.document.activeLayerPixels()[0..<4]) == [0xFF, 0x00, 0x00, 0xFF])
+    }
+
+    @MainActor
+    @Test("a visible Reference source reaches Metal separately from the Pixel-only canvas texture")
+    func visibleReferenceReachesSeparateUnderlayTexture() throws {
+        let state = Workspace(width: 4, height: 4)
+        let redReference = Data([0xFF, 0, 0, 0xFF])
+        try state.activeTab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png",
+            rgba: redReference,
+            width: 1,
+            height: 1
+        ))
+        let referenceId = state.activeTab.document.activeLayerId()
+        let mtkView = MTKView()
+        let spy = try makeSpy(view: mtkView)
+        let view = PixelCanvasView(
+            tab: state.activeTab,
+            viewport: state.activeTab.viewport,
+            showGrid: false,
+            workspace: state
+        )
+
+        view.configureRenderer(spy, mtkView: mtkView)
+
+        let viewport = state.activeTab.viewport
+        let expectedProjection = state.activeTab.referenceLayerUnderlay?.projectForRendering(
+            effectivePixelSize: Float(viewport.effectivePixelSize()),
+            panX: Float(viewport.panX()),
+            panY: Float(viewport.panY())
+        )
+        #expect(spy.uploadedReferenceProjection == expectedProjection)
+        #expect(expectedProjection?.sourceKey == referenceId)
+        #expect(expectedProjection?.sourceRgba == redReference)
+        #expect(spy.uploadedPixels?.allSatisfy { $0 == 0 } == true)
+
+        state.activeTab.setLayerVisibility(id: referenceId, visible: false)
+        view.configureRenderer(spy, mtkView: mtkView)
+        #expect(spy.uploadedReferenceProjection == nil)
+        #expect(spy.uploadedPixels?.allSatisfy { $0 == 0 } == true)
     }
 
     @MainActor

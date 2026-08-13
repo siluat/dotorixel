@@ -42,18 +42,25 @@ extension PixelCanvasView {
             pixels = document.composite()
         }
 
-        renderer.updateCanvasTexture(pixels: pixels, width: width, height: height)
-
         let drawableSize = mtkView.drawableSize
         let eps = Float(viewport.effectivePixelSize())
+        let panX = Float(viewport.panX())
+        let panY = Float(viewport.panY())
+
+        renderer.updateCanvasTexture(pixels: pixels, width: width, height: height)
+        renderer.updateReferenceUnderlay(tab.referenceLayerUnderlay?.projectForRendering(
+            effectivePixelSize: eps,
+            panX: panX,
+            panY: panY
+        ))
 
         renderer.updateUniforms(
             canvasWidth: width,
             canvasHeight: height,
             viewportWidth: Float(drawableSize.width),
             viewportHeight: Float(drawableSize.height),
-            panX: Float(viewport.panX()),
-            panY: Float(viewport.panY()),
+            panX: panX,
+            panY: panY,
             effectivePixelSize: eps,
             showGrid: showGrid,
             gridColor: defaultGridColor

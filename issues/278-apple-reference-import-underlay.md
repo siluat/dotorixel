@@ -1,6 +1,6 @@
 ---
 title: Apple reference import + underlay — image import, viewport underlay render, timeline row
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -63,3 +63,29 @@ row in the Timeline panel.
 ## Blocked by
 
 - [277 — Apple UniFFI reference bindings](277-apple-uniffi-reference-bindings.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Reference/ReferenceImageImporter.swift` | Validates PNG/JPEG/WebP/GIF files through the inclusive 10 MiB limit and decodes straight RGBA with localized, actionable errors. |
+| `apple/Dotorixel/Reference/ReferenceLayerUnderlay.swift` | Projects the core-owned Reference footprint through the live viewport into one renderer-facing value. |
+| `apple/Dotorixel/Rendering/PixelCanvasView.swift` | Sends the visible Reference projection to Metal separately from the Pixel-only composite. |
+| `apple/Dotorixel/Rendering/PixelGridRenderer.swift` | Uploads and caches the original Reference source as a nearest-neighbor texture. |
+| `apple/Dotorixel/Rendering/Shaders.metal` | Composites the transformed Reference below Pixel Layers while preserving checkerboard and grid behavior. |
+| `apple/Dotorixel/State/TabState.swift` | Adds the import boundary, undoable singleton add/replace/delete behavior, fixed Reference stack policy, and Pixel-only persistence projection. |
+| `apple/Dotorixel/Views/TimelinePanel.swift` | Adds the native file picker, import errors, and fixed bottom Reference row with visibility and delete controls. |
+| `apple/src/lib.rs` | Exposes the temporary Pixel-only snapshot projection without duplicating Pixel Layer snapshot assembly. |
+| `apple/Dotorixel/Localizable.xcstrings` | Localizes Reference import labels and actionable errors in English, Korean, and Japanese. |
+| `apple/DotorixelTests/` | Covers validation/decode, no-mutation failures, singleton history, viewport projection, Metal routing, row policy, Pixel-only export/thumbnails, auto-save, and relaunch behavior. |
+
+### Key Decisions
+
+- Kept file decoding and viewport rendering native to the Apple shell because both are platform-specific boundaries; the shared core remains authoritative for Reference identity, placement, history, and sampling geometry.
+- Passed one production render projection into Metal so tests exercise the same placement × viewport contract the shader consumes.
+- Preserved the issue-278 persistence boundary as an explicit Pixel-only projection: Reference imports never abort auto-save, while full Reference durability remains owned by issue 282.
+
+### Notes
+
+- Reference source, placement, and visibility are intentionally absent after relaunch until issue 282; Pixel Layers and saved-work thumbnails remain healthy and Pixel-only.
+- Direct Reference editing, sampling, placement interaction, and Reference-aware navigation bounds remain in issues 279–281.

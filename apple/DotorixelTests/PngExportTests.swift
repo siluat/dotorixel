@@ -38,6 +38,30 @@ struct PngExportTests {
         #expect(undrawnAlphas.allSatisfy { $0 == 0 })
     }
 
+    @Test("Reference visibility never changes exported PNG bytes")
+    func referenceIsExcludedWhetherVisibleOrHidden() throws {
+        let state = Workspace(width: 4, height: 4)
+        let tab = state.activeTab
+        try tab.document.setPixel(
+            x: 1,
+            y: 2,
+            color: Color(r: 0x12, g: 0x34, b: 0x56, a: 0xFF)
+        )
+        try tab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png",
+            rgba: Data([0xFF, 0, 0, 0xFF]),
+            width: 1,
+            height: 1
+        ))
+        let referenceId = tab.document.activeLayerId()
+
+        let visible = try tab.makePngExportDocument().data
+        tab.setLayerVisibility(id: referenceId, visible: false)
+        let hidden = try tab.makePngExportDocument().data
+
+        #expect(visible == hidden)
+    }
+
     @Test("export projects pre-lift pixels while degraded recovery is pending")
     func exportPreservesPendingFloatingRecovery() throws {
         let state = Workspace(width: 4, height: 4)

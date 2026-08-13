@@ -63,7 +63,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Pixel rendering | — | ✅ | ✅ | Canvas2D / Metal |
-| Multi-layer composite | ✅ | ✅ | ✅ | Visible Pixel Layers blended bottom-to-top; Reference drawn separately as viewport underlay (Web). Composites any frame (active = one case) — read seam for playback/onion/export. Apple: Metal uploads the composite; panel toggles visibility live |
+| Multi-layer composite | ✅ | ✅ | ✅ | Visible Pixel Layers blend bottom-to-top; Reference renders separately below the composite on both shells. Frame-addressed reads support playback, onion skinning, and export |
 | Checkerboard transparency | — | ✅ | ✅ | |
 | Grid overlay + toggle | — | ✅ | ✅ | Auto-hidden below 4px |
 
@@ -109,9 +109,9 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Tab management (Workspace) | — | ✅ | ✅ | Add/switch/close tab strip on both shells; tool/colors shared across tabs, document/history/viewport per tab; close routes via the save dialog on both |
-| Session persistence | — | ✅ | ✅ | Web: multi-tab IndexedDB restore, debounced auto-save, retention; V7 round-trips multi-frame state; lossless V1→V7 migration. Apple: SwiftData debounced auto-save + launch restore of the full current model (single-frame; frames/references arrive Phases 5–6). Both: corrupt store → fresh session, restored history empty, background/visibility-loss flush |
+| Session persistence | — | ✅ | ✅ | Web: IndexedDB V7 multi-frame restore. Apple: SwiftData single-frame restore; Reference is temporarily omitted while Pixel Layers keep saving. Both recover corrupt stores to a fresh session |
 | Save dialog on tab close | — | ✅ | ✅ | Blank canvas detection (hidden layers count as content), save/delete/cancel; saved tabs close without prompting. Web: focus-trapped modal; Apple: native sheet |
-| Saved work browser (desktop) | — | ✅ | ✅ | Browse/open/delete; open tabs excluded from the list; reopening resets the viewport; cards use composite thumbnails (Apple: single-frame until Phase 6) |
+| Saved work browser (desktop) | — | ✅ | ✅ | Browse/open/delete; open tabs excluded; reopening resets the viewport. Cards use Pixel-only composite thumbnails; Apple remains single-frame until Phase 6 |
 | Saved work browser (mobile) | — | ✅ | — | Bottom sheet; opens full Document snapshots while cards use composite thumbnails |
 
 ## Layers
@@ -121,8 +121,8 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Document/Layer model | 🔧 | 🔧 | 🔧 | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple: layer panel with select + visibility + add/remove/reorder (mid-stroke seals on all) |
 | Frame cel-grid | ✅ | ✅ | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: undoable add/duplicate/remove/reorder + set-active journal intents (undo restores frame+cel); multi-frame V7 persistence round-trips through the snapshot |
 | Per-frame duration | ✅ | ✅ | ⬜ | Each frame holds a display duration; default 100ms (10fps); identity unchanged when retimed. 1–60000ms clamp at the shell boundary (core trusts the value). Web complete: active-frame editor in the timeline corner (ms + derived fps), undoable, V7-persisted. Apple pending |
-| Reference Layer (timeline kind) | ✅ | ✅ | 🔧 | Singleton viewport underlay with Pixel-only composites, fit/placement, and rotation-aware sampling. Apple: shell foundation ready; import/render/edit UI and persistence pending. |
-| Timeline panel | — | 🔧 | 🔧 | Bottom-docked below the canvas on both shells — layers live here, not in a side panel. Web: Layer × Frame grid (occupancy dots, Reference span, 2-channel active highlight), ruler/cell select, header add/duplicate/delete + ruler-cell drag-reorder, per-document collapse, transport strip + ▼ playhead lane; mobile row touch targets pending. Apple: layer sidebar with per-row drag-handle reorder + persisted per-document collapse, frame area reserved as a placeholder until Phase 6 |
+| Reference Layer (timeline kind) | ✅ | ✅ | 🔧 | Singleton viewport underlay with Pixel-only composites. Apple: native import/render/row complete; editing, sampling, placement, navigation bounds, and persistence pending |
+| Timeline panel | — | 🔧 | 🔧 | Web uses a bottom-docked Layer × Frame grid. Apple uses a layer sidebar with drag reorder, fixed bottom Reference row, and placeholder frame area; Web mobile row targets remain pending |
 | Playback (animation) | — | ✅ | ⬜ | Per-tab engine: transient Playhead + rAF clock holds each frame its `duration_ms` (carry → no drift), loops or stops at end. Previews committed art via `composite_at` — no Document mutation/history/dirty, never persisted; tab/document change stops it. Transport strip (Play/Pause · Loop · ▼ playhead) wired on docked + mobile |
 | Onion skinning | — | ✅ | ⬜ | Adjacent-frame ghosts while drawing (prev/next 1, clamped, no wrap): prev warm / next cool, dimmed, committed art on top; hidden during Playback; never in exports; per-tab persisted toggle in the transport strip |
 
@@ -131,10 +131,10 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Gallery store + persistence | — | ✅ | ⬜ | Per-doc reactive store; round-trips through `WorkspaceRecord.references?` (optional, absent → empty); references for closed-but-saved docs are not retained yet |
-| Import pipeline | — | ✅ | ⬜ | File picker; PNG/JPEG/WebP/GIF, ≤10 MB; `createImageBitmap` decode + `OffscreenCanvas` thumbnail (256px longest edge, aspect preserved) |
+| Import pipeline | — | ✅ | ✅ | PNG/JPEG/WebP/GIF, ≤10 MiB, actionable failures. Web also creates 256px thumbnails; Apple decodes native RGBA for its singleton Reference Layer |
 | Drag-and-drop import | — | ✅ | ⬜ | Drag onto modal/sheet adds to gallery. Drag onto canvas adds AND displays each ref with cascade offsets, drop position centered on cursor (clamped so the title bar stays on-screen). Partial batches keep valid imports and surface per-file rejections |
 | Browser UI | — | ✅ | ⬜ | TopBar `Images` button; ReferenceBrowser modal (wide/x-wide), ReferenceBrowserSheet (compact/medium); gallery card with thumbnail/filename/dimensions, delete confirmation, empty state, Eye/EyeOff display toggle |
-| Display on canvas | — | ✅ | ⬜ | Per-instance window state (`refId`, visible, position/size, minimized, zOrder) persists through `WorkspaceRecord`. Initial placement = viewport center + cascade offset; size = `min(natural, viewport × 0.3)` on longer edge with 80px floor. Viewport shrink aspect-preservingly refits windows but does not regrow |
+| Display on canvas | — | ✅ | 🔧 | Web uses persistent movable multi-window references. Apple renders one fit-to-canvas underlay below pixels; direct placement and relaunch persistence remain pending |
 | Multi-window z-order + cascade | — | ✅ | ⬜ | Newly displayed/focused window goes to top of `zOrder`; topmost is `data-active`. Cascade offset 24px from viewport center per visible window; resets to 0 when all dismissed. Root pointerdown raises (close/minimize guards prevent flicker). zOrder persists through reload |
 | Move + resize | — | ✅ | ⬜ | Title-bar drag follows unclamped, clamps to viewport on release (throw-and-snap-back). Resize handle (44×44 hit area) clamps live, aspect-locked, 80px floor. Auto-save fires once per completed gesture; one window gesture at a time |
 | Minimize (window-shade) | — | ✅ | ⬜ | Title-bar minimize button + title-bar double-click toggle `minimized`. Body/resize handle removed from DOM (accessibility tree shows title bar only); pre-minimize size restored on toggle. Window remains draggable while minimized |

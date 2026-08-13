@@ -93,6 +93,41 @@ struct WorkspaceSnapshotCaptureTests {
         #expect(pixel(in: try tab.renderPixels(), width: 4, x: 2, y: 1) == red)
     }
 
+    @Test("a Reference-carrying tab snapshots Pixel Layers and a valid active Pixel while omitting the 282 gap")
+    func referenceLayerIsSkippedAtSnapshotBoundary() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let pixelLayerId = tab.document.activeLayerId()
+        try tab.document.setPixel(
+            x: 2,
+            y: 1,
+            color: Color(r: 0x44, g: 0x55, b: 0x66, a: 0xFF)
+        )
+        try tab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png",
+            rgba: Data([0xFF, 0, 0, 0xFF]),
+            width: 1,
+            height: 1
+        ))
+        #expect(tab.document.layers().map(\.kind) == [.reference, .pixel])
+        #expect(tab.document.activeLayerId() != pixelLayerId)
+
+        let snapshot = workspace.toSnapshot()
+
+        #expect(snapshot.tabs[0].layers.map(\.id) == [pixelLayerId])
+        #expect(snapshot.tabs[0].activeLayerId == pixelLayerId)
+        #expect(pixel(
+            in: snapshot.tabs[0].layers[0].pixels,
+            width: 4,
+            x: 2,
+            y: 1
+        ) == Color(r: 0x44, g: 0x55, b: 0x66, a: 0xFF))
+
+        let restored = try Workspace(restoring: snapshot)
+        #expect(restored.activeTab.document.layers().map(\.kind) == [.pixel])
+        #expect(restored.activeTab.document.composite() == tab.document.composite())
+    }
+
     private func pixel(in pixels: Data, width: Int, x: Int, y: Int) -> Color {
         let offset = (y * width + x) * 4
         return Color(

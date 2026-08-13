@@ -8,6 +8,12 @@ struct Uniforms {
     float  effectivePixelSize;
     float  showGrid;
     float4 gridColor;
+    float2 referenceScreenOrigin;
+    float2 referenceScreenSize;
+    float  referenceOpacity;
+    uint   referenceRotation;
+    float  hasReference;
+    float  referencePadding;
 };
 
 struct VertexOut {
@@ -38,11 +44,22 @@ vertex VertexOut vertex_main(uint vid [[vertex_id]],
     return out;
 }
 
-/// Fragment shader: checkerboard → pixel color → grid overlay.
+/// Inverts a clockwise Reference quarter-turn in normalized footprint space.
+float2 reference_source_uv(float2 footprintUV, uint rotation) {
+    switch (rotation % 4) {
+        case 1: return float2(footprintUV.y, 1.0 - footprintUV.x);
+        case 2: return float2(1.0 - footprintUV.x, 1.0 - footprintUV.y);
+        case 3: return float2(1.0 - footprintUV.y, footprintUV.x);
+        default: return footprintUV;
+    }
+}
+
+/// Fragment shader: checkerboard → Reference underlay → pixel color → grid.
 /// Reproduces the web Canvas2D renderer's visual output.
 fragment float4 fragment_main(VertexOut in [[stage_in]],
                               constant Uniforms &u [[buffer(0)]],
-                              texture2d<float> canvasTex [[texture(0)]]) {
+                              texture2d<float> canvasTex [[texture(0)]],
+                              texture2d<float> referenceTex [[texture(1)]]) {
     constexpr sampler nearestSampler(min_filter::nearest, mag_filter::nearest,
                                      address::clamp_to_edge);
 
@@ -73,7 +90,22 @@ fragment float4 fragment_main(VertexOut in [[stage_in]],
         checker = isDark ? checkerDark : checkerLight;
     }
 
-    float4 color = mix(checker, float4(pixelColor.rgb, 1.0), pixelColor.a);
+    float4 color = checker;
+
+    // --- Original-source Reference underlay ---
+    if (u.hasReference > 0.5 && all(u.referenceScreenSize > 0.0)) {
+        float2 footprintUV = (in.position.xy - u.referenceScreenOrigin) / u.referenceScreenSize;
+        if (all(footprintUV >= 0.0) && all(footprintUV < 1.0)) {
+            float2 sourceUV = reference_source_uv(footprintUV, u.referenceRotation);
+            float4 referenceColor = referenceTex.sample(nearestSampler, sourceUV);
+            float referenceAlpha = referenceColor.a * u.referenceOpacity;
+            color = mix(color, float4(referenceColor.rgb, 1.0), referenceAlpha);
+        }
+    }
+
+    // Pixel composite stays above the Reference and remains the only texture
+    // used by export and saved-work thumbnails.
+    color = mix(color, float4(pixelColor.rgb, 1.0), pixelColor.a);
 
     // --- Grid overlay ---
     if (u.showGrid > 0.5 && eps >= 4.0) {

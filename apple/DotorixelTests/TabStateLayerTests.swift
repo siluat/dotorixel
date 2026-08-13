@@ -259,6 +259,34 @@ struct TabStateLayerAddRemoveTests {
         #expect(state.activeTab.layersInPanelOrder.last?.id == referenceId)
     }
 
+    @Test("deleting the Reference releases its cached source")
+    func deleteReferenceClearsSourceCache() throws {
+        let state = Workspace(width: 4, height: 4)
+        let originalSource = Data([0x10, 0x20, 0x30, 0xFF])
+        try state.activeTab.setReferenceLayer(ReferenceImageSource(
+            name: "original.png",
+            rgba: originalSource,
+            width: 1,
+            height: 1
+        ))
+        let referenceId = state.activeTab.document.activeLayerId()
+        #expect(state.activeTab.referenceLayerUnderlay?.sourceRgba == originalSource)
+
+        state.activeTab.removeLayer(id: referenceId)
+
+        // Reusing the id makes stale cache retention observable without
+        // exposing cache internals through TabState's production interface.
+        let replacementSource = Data([0x40, 0x50, 0x60, 0xFF])
+        try state.activeTab.document.addReferenceLayer(
+            newId: referenceId,
+            name: "replacement.png",
+            sourceRgba: replacementSource,
+            sourceWidth: 1,
+            sourceHeight: 1
+        )
+        #expect(state.activeTab.referenceLayerUnderlay?.sourceRgba == replacementSource)
+    }
+
     @Test("the last Pixel Layer cannot be deleted while a Reference is present")
     func finalPixelLayerCannotBeDeletedBehindReference() throws {
         let state = Workspace(width: 4, height: 4)

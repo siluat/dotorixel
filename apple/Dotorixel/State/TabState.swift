@@ -822,7 +822,13 @@ final class TabState {
     func removeLayer(id: String) {
         guard !isDrawing else { return }
         guard canRemoveLayer(id: id) else { return }
+        let isRemovingReference = document.layers().contains {
+            $0.id == id && $0.kind == .reference
+        }
         if performEdit({ (try? document.removeLayer(id: id)) != nil }) {
+            if isRemovingReference {
+                referenceSourceCache.clear()
+            }
             canvasVersion += 1
         }
     }

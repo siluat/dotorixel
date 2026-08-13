@@ -10,14 +10,18 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 212 | 159 | 53 | 293 | 75% | 35% |
-| cubic-dev-ai[bot] | 324 | 253 | 71 | 217 | 78% | 54% |
-| coderabbitai[bot] | 327 | 235 | 92 | 231 | 72% | 50% |
+| greptile-apps[bot] | 212 | 159 | 53 | 294 | 75% | 35% |
+| cubic-dev-ai[bot] | 325 | 254 | 71 | 217 | 78% | 54% |
+| coderabbitai[bot] | 328 | 235 | 93 | 232 | 72% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #366 | cubic-dev-ai[bot] | Accept | Deleting a Reference retained its decoded RGBA source in the per-tab cache; successful Reference removal now clears the cached buffer immediately |
+| #366 | coderabbitai[bot] | Reject | Pixel reorder destinations at or below the fixed Reference row are already clamped above it by the authoritative Core contract |
+| #366 | greptile-apps[bot] | Miss | Missed the decoded Reference source retained after successful layer removal |
+| #366 | coderabbitai[bot] | Miss | Missed the decoded Reference source retained after successful layer removal |
 | #366 | greptile-apps[bot] | Accept | Compressed-byte validation did not bound decoded dimensions; the Apple importer now preflights a 64 MiB RGBA pixel cap with checked arithmetic before ImageIO materialization |
 | #366 | greptile-apps[bot] | Reject | Import intentionally activates the Reference per the core contract; active-Reference edit guards and the non-editable visual signal are the explicit scope of follow-up issue 279 |
 | #366 | coderabbitai[bot] | Accept | Partial: added the decoded-pixel cap and overflow-safe Apple allocation; declined expanding this Apple-only issue into the Web importer, whose analogous gap needs separate tracking |

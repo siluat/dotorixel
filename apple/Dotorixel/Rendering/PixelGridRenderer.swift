@@ -2,7 +2,7 @@ import MetalKit
 import SwiftUI
 
 /// Uniforms shared between Swift and Metal shader.
-/// 48 bytes, naturally aligned — must match `Uniforms` in Shaders.metal exactly.
+/// 80 bytes, naturally aligned — must match `Uniforms` in Shaders.metal exactly.
 struct Uniforms {
     var canvasSize: SIMD2<Float>       // 8 bytes
     var viewportSize: SIMD2<Float>     // 8 bytes
@@ -10,6 +10,12 @@ struct Uniforms {
     var effectivePixelSize: Float      // 4 bytes
     var showGrid: Float                // 4 bytes
     var gridColor: SIMD4<Float>        // 16 bytes
+    var referenceScreenOrigin: SIMD2<Float> // 8 bytes
+    var referenceScreenSize: SIMD2<Float>   // 8 bytes
+    var referenceOpacity: Float        // 4 bytes
+    var referenceRotation: UInt32      // 4 bytes
+    var hasReference: Float            // 4 bytes
+    var referencePadding: Float        // 4 bytes
 }
 
 /// Metal renderer for the pixel canvas.
@@ -24,15 +30,23 @@ class PixelGridRenderer: NSObject, MTKViewDelegate {
     private let pipelineState: MTLRenderPipelineState
 
     private var canvasTexture: MTLTexture?
+    private var referenceTexture: MTLTexture?
     private var currentCanvasWidth: UInt32 = 0
     private var currentCanvasHeight: UInt32 = 0
+    private var currentReferenceKey: String?
     private var uniforms = Uniforms(
         canvasSize: .zero,
         viewportSize: .zero,
         panOffset: .zero,
         effectivePixelSize: 1,
         showGrid: 0,
-        gridColor: .zero
+        gridColor: .zero,
+        referenceScreenOrigin: .zero,
+        referenceScreenSize: .zero,
+        referenceOpacity: 0,
+        referenceRotation: 0,
+        hasReference: 0,
+        referencePadding: 0
     )
 
     init?(mtkView: MTKView) {
@@ -118,6 +132,66 @@ class PixelGridRenderer: NSObject, MTKViewDelegate {
         }
     }
 
+    /// Uploads the original Reference source to its own texture and consumes
+    /// the viewport projection produced by `ReferenceLayerUnderlay`. A hidden
+    /// or absent Reference leaves the Pixel-only canvas texture untouched.
+    func updateReferenceUnderlay(_ projection: ReferenceLayerRenderProjection?) {
+        guard let projection else {
+            uniforms.hasReference = 0
+            return
+        }
+
+        if referenceTexture == nil || currentReferenceKey != projection.sourceKey {
+            let descriptor = MTLTextureDescriptor.texture2DDescriptor(
+                pixelFormat: .rgba8Unorm,
+                width: Int(projection.naturalWidth),
+                height: Int(projection.naturalHeight),
+                mipmapped: false
+            )
+            descriptor.usage = .shaderRead
+            guard let newTexture = device.makeTexture(descriptor: descriptor) else {
+                referenceTexture = nil
+                currentReferenceKey = nil
+                uniforms.hasReference = 0
+                return
+            }
+            projection.sourceRgba.withUnsafeBytes { rawBuffer in
+                guard let baseAddress = rawBuffer.baseAddress else { return }
+                newTexture.replace(
+                    region: MTLRegion(
+                        origin: MTLOrigin(x: 0, y: 0, z: 0),
+                        size: MTLSize(
+                            width: Int(projection.naturalWidth),
+                            height: Int(projection.naturalHeight),
+                            depth: 1
+                        )
+                    ),
+                    mipmapLevel: 0,
+                    withBytes: baseAddress,
+                    bytesPerRow: Int(projection.naturalWidth) * 4
+                )
+            }
+            referenceTexture = newTexture
+            currentReferenceKey = projection.sourceKey
+        }
+
+        guard referenceTexture != nil else {
+            uniforms.hasReference = 0
+            return
+        }
+        uniforms.referenceScreenOrigin = SIMD2<Float>(
+            projection.viewportRect.left,
+            projection.viewportRect.top
+        )
+        uniforms.referenceScreenSize = SIMD2<Float>(
+            projection.viewportRect.width,
+            projection.viewportRect.height
+        )
+        uniforms.referenceOpacity = projection.opacity
+        uniforms.referenceRotation = projection.rotation
+        uniforms.hasReference = 1
+    }
+
     /// Update the uniform buffer with current viewport state.
     func updateUniforms(
         canvasWidth: UInt32,
@@ -177,6 +251,7 @@ class PixelGridRenderer: NSObject, MTKViewDelegate {
         encoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 0)
         encoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 0)
         encoder.setFragmentTexture(texture, index: 0)
+        encoder.setFragmentTexture(referenceTexture, index: 1)
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
         encoder.endEncoding()
 
@@ -213,6 +288,7 @@ class PixelGridRenderer: NSObject, MTKViewDelegate {
         encoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 0)
         encoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 0)
         encoder.setFragmentTexture(texture, index: 0)
+        encoder.setFragmentTexture(referenceTexture, index: 1)
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
         encoder.endEncoding()
 

@@ -39,6 +39,91 @@
       "comment" : "Percent accessibility value for the split SV-square elements (issue 250).",
       "shouldTranslate" : false
     },
+    "%@ could not be decoded. Choose a valid PNG, JPEG, WebP, or GIF file." : {
+      "comment" : "Actionable Reference import error; %@ is the source file name.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ をデコードできませんでした。有効なPNG、JPEG、WebP、またはGIFファイルを選択してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 파일을 디코딩하지 못했습니다. 올바른 PNG, JPEG, WebP 또는 GIF 파일을 선택하세요."
+          }
+        }
+      }
+    },
+    "%@ could not be read. Check the file permission and try again." : {
+      "comment" : "Actionable Reference file-access error; %@ is the source file name.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ を読み込めませんでした。ファイルのアクセス権を確認して、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 파일을 읽지 못했습니다. 파일 권한을 확인하고 다시 시도하세요."
+          }
+        }
+      }
+    },
+    "%@ has too many pixels. Choose an image with no more than %lld pixels." : {
+      "comment" : "Actionable Reference decoded-size error; %@ is the file name and %lld is the maximum decoded pixel count.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ のピクセル数が多すぎます。%lldピクセル以下の画像を選択してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@의 픽셀 수가 너무 많습니다. %lld픽셀 이하의 이미지를 선택하세요."
+          }
+        }
+      }
+    },
+    "%@ is not a supported image. Choose a PNG, JPEG, WebP, or GIF file." : {
+      "comment" : "Actionable Reference format error; %@ is the source file name.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ は対応していない画像です。PNG、JPEG、WebP、またはGIFファイルを選択してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@은(는) 지원되는 이미지가 아닙니다. PNG, JPEG, WebP 또는 GIF 파일을 선택하세요."
+          }
+        }
+      }
+    },
+    "%@ is too large. Choose an image no larger than %lld MiB." : {
+      "comment" : "Actionable Reference size error; %@ is the file name and %lld is the MiB limit.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ は大きすぎます。%lld MiB以下の画像を選択してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 파일이 너무 큽니다. %lld MiB 이하의 이미지를 선택하세요."
+          }
+        }
+      }
+    },
     "Copy" : {
       "comment" : "Selection action bar Copy button. web: action_selectionCopy",
       "localizations" : {
@@ -222,6 +307,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "레이어 추가"
+          }
+        }
+      }
+    },
+    "Add reference image" : {
+      "comment" : "Timeline header button accessibility label for importing the singleton Reference underlay.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照画像を追加"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "참조 이미지 추가"
           }
         }
       }
@@ -995,6 +1097,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "최근 색상 %@"
+          }
+        }
+      }
+    },
+    "Reference" : {
+      "comment" : "Fallback name for an imported Reference layer when the source file has no display name.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "참조"
+          }
+        }
+      }
+    },
+    "Reference image" : {
+      "comment" : "Accessibility value identifying the fixed Reference Layer row in the Apple Timeline.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照画像"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "참조 이미지"
+          }
+        }
+      }
+    },
+    "Reference import failed" : {
+      "comment" : "Title for the actionable Reference image import error alert.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照画像を読み込めませんでした"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "참조 이미지를 가져오지 못했습니다"
           }
         }
       }

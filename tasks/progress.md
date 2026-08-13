@@ -2,19 +2,17 @@
 
 ## Currently Working On
 
-Apple catch-up Phase 5 — reference + selection + transforms
-([RFC](../issues/013-apple-native-catchup.md)); 11/16 sub-issues done
-(267–277). Selection + transforms are complete; Reference frontier: 278.
+None.
 
 ## Last Completed
 
-[277 — Apple UniFFI reference bindings](../issues/277-apple-uniffi-reference-bindings.md):
-Apple now has a validated native boundary for singleton Reference Layers,
-placement geometry, and what-you-see sampling. UI and persistence remain later slices.
+[278 — Apple reference import + underlay](../issues/278-apple-reference-import-underlay.md):
+Apple can import and render a singleton tracing underlay beneath Pixel Layers.
+Reference persistence remains intentionally deferred to 282.
 
 ## Next Up
 
-- [278 — Apple reference import + underlay](../issues/278-apple-reference-import-underlay.md) — Phase 5 frontier
+- [279 — Apple reference edit guards + sampling](../issues/279-apple-reference-edit-guards-sampling.md) — Phase 5 frontier
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Feedback link to Google Form

@@ -171,6 +171,144 @@ struct TabStateLayerTests {
 @Suite("TabState — layer add/remove")
 struct TabStateLayerAddRemoveTests {
 
+    @Test("setting a Reference Layer imports it bottom-most and makes the operation undoable")
+    func setReferenceLayerAddsBottomMostAndIsUndoable() throws {
+        let state = Workspace(width: 8, height: 4)
+        let pixelLayerId = state.activeTab.document.activeLayerId()
+        let source = ReferenceImageSource(
+            name: "guide.png",
+            rgba: Data([0xFF, 0, 0, 0xFF, 0, 0, 0xFF, 0xFF]),
+            width: 2,
+            height: 1
+        )
+
+        try state.activeTab.setReferenceLayer(source)
+
+        let layers = state.activeTab.document.layers()
+        #expect(layers.map(\.kind) == [.reference, .pixel])
+        #expect(layers[0].name == "guide.png")
+        #expect(state.activeTab.document.activeLayerId() == layers[0].id)
+        #expect(state.activeTab.layersInPanelOrder.map(\.id) == [pixelLayerId, layers[0].id])
+
+        state.activeTab.handleUndo()
+        #expect(state.activeTab.document.layers().map(\.id) == [pixelLayerId])
+        #expect(!state.activeTab.canUndo)
+    }
+
+    @Test("a second Reference import replaces the singleton and resets fit placement")
+    func secondReferenceImportReplacesAndResetsPlacement() throws {
+        let state = Workspace(width: 8, height: 4)
+        try state.activeTab.setReferenceLayer(ReferenceImageSource(
+            name: "first.png",
+            rgba: Data(repeating: 0x11, count: 2 * 2 * 4),
+            width: 2,
+            height: 2
+        ))
+        let firstId = state.activeTab.document.activeLayerId()
+        try state.activeTab.document.setReferencePlacement(
+            id: firstId,
+            placement: AppleReferencePlacementUpdate(x: 7, y: 9, scale: 3)
+        )
+
+        try state.activeTab.setReferenceLayer(ReferenceImageSource(
+            name: "second.png",
+            rgba: Data(repeating: 0x22, count: 4 * 1 * 4),
+            width: 4,
+            height: 1
+        ))
+
+        let layers = state.activeTab.document.layers()
+        #expect(layers.map(\.kind) == [.reference, .pixel])
+        #expect(layers[0].name == "second.png")
+        #expect(state.activeTab.document.layerSourcePixelsAt(stackIndex: 0) == Data(repeating: 0x22, count: 16))
+        #expect(state.activeTab.document.layerPlacementAt(stackIndex: 0) == AppleReferencePlacement(
+            x: 2,
+            y: 1.5,
+            scale: 1,
+            rotation: 0
+        ))
+
+        state.activeTab.handleUndo()
+        #expect(state.activeTab.document.layers()[0].name == "first.png")
+        #expect(state.activeTab.document.layerPlacementAt(stackIndex: 0) == AppleReferencePlacement(
+            x: 7,
+            y: 9,
+            scale: 3,
+            rotation: 0
+        ))
+    }
+
+    @Test("deleting the Reference removes its underlay and undo restores the row and source")
+    func deleteReferenceIsUndoable() throws {
+        let state = Workspace(width: 4, height: 4)
+        let source = Data([0x10, 0x20, 0x30, 0xFF])
+        try state.activeTab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png",
+            rgba: source,
+            width: 1,
+            height: 1
+        ))
+        let referenceId = state.activeTab.document.activeLayerId()
+
+        state.activeTab.removeLayer(id: referenceId)
+        #expect(state.activeTab.referenceLayerUnderlay == nil)
+        #expect(state.activeTab.document.layers().map(\.kind) == [.pixel])
+
+        state.activeTab.handleUndo()
+        #expect(state.activeTab.referenceLayerUnderlay?.sourceRgba == source)
+        #expect(state.activeTab.layersInPanelOrder.last?.id == referenceId)
+    }
+
+    @Test("deleting the Reference releases its cached source")
+    func deleteReferenceClearsSourceCache() throws {
+        let state = Workspace(width: 4, height: 4)
+        let originalSource = Data([0x10, 0x20, 0x30, 0xFF])
+        try state.activeTab.setReferenceLayer(ReferenceImageSource(
+            name: "original.png",
+            rgba: originalSource,
+            width: 1,
+            height: 1
+        ))
+        let referenceId = state.activeTab.document.activeLayerId()
+        #expect(state.activeTab.referenceLayerUnderlay?.sourceRgba == originalSource)
+
+        state.activeTab.removeLayer(id: referenceId)
+
+        // Reusing the id makes stale cache retention observable without
+        // exposing cache internals through TabState's production interface.
+        let replacementSource = Data([0x40, 0x50, 0x60, 0xFF])
+        try state.activeTab.document.addReferenceLayer(
+            newId: referenceId,
+            name: "replacement.png",
+            sourceRgba: replacementSource,
+            sourceWidth: 1,
+            sourceHeight: 1
+        )
+        #expect(state.activeTab.referenceLayerUnderlay?.sourceRgba == replacementSource)
+    }
+
+    @Test("the last Pixel Layer cannot be deleted while a Reference is present")
+    func finalPixelLayerCannotBeDeletedBehindReference() throws {
+        let state = Workspace(width: 4, height: 4)
+        let pixelLayerId = state.activeTab.document.activeLayerId()
+        try state.activeTab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png",
+            rgba: Data([0, 0, 0, 0xFF]),
+            width: 1,
+            height: 1
+        ))
+
+        #expect(!state.activeTab.canRemoveLayer(id: pixelLayerId))
+        state.activeTab.removeLayer(id: pixelLayerId)
+        #expect(state.activeTab.document.layers().map(\.kind) == [.reference, .pixel])
+        // The only history entry is still the Reference import: one undo
+        // removes it and restores the original Pixel-only stack. The rejected
+        // Pixel removal added no entry of its own.
+        state.activeTab.handleUndo()
+        #expect(state.activeTab.document.layers().map(\.kind) == [.pixel])
+        #expect(!state.activeTab.canUndo)
+    }
+
     @Test("addLayer inserts a transparent layer directly above the active layer and makes it active")
     func addLayerInsertsTransparentLayerAboveActiveAndActivates() throws {
         let state = Workspace(width: 8, height: 8)
@@ -325,15 +463,18 @@ struct TabStateLayerAddRemoveTests {
         #expect(state.activeTab.document.activeLayerId() == topId)
     }
 
-    @Test("canRemoveLayer reads the sole-layer guard — the panel's disabled-affordance predicate")
-    func canRemoveLayerReadsSoleLayerGuard() throws {
+    @Test("canRemoveLayer answers the panel affordance for the addressed row")
+    func canRemoveLayerReadsPerRowGuard() throws {
         let state = Workspace(width: 8, height: 8)
-        #expect(!state.activeTab.canRemoveLayer)
+        let bottomId = state.activeTab.document.activeLayerId()
+        #expect(!state.activeTab.canRemoveLayer(id: bottomId))
 
         state.activeTab.addLayer()
-        #expect(state.activeTab.canRemoveLayer)
+        let topId = state.activeTab.document.activeLayerId()
+        #expect(state.activeTab.canRemoveLayer(id: bottomId))
+        #expect(state.activeTab.canRemoveLayer(id: topId))
 
-        state.activeTab.removeLayer(id: state.activeTab.document.activeLayerId())
-        #expect(!state.activeTab.canRemoveLayer)
+        state.activeTab.removeLayer(id: topId)
+        #expect(!state.activeTab.canRemoveLayer(id: bottomId))
     }
 }

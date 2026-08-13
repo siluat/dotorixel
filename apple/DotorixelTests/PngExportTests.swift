@@ -38,6 +38,35 @@ struct PngExportTests {
         #expect(undrawnAlphas.allSatisfy { $0 == 0 })
     }
 
+    @Test("Reference visibility never changes exported PNG bytes")
+    func referenceIsExcludedWhetherVisibleOrHidden() throws {
+        let state = Workspace(width: 4, height: 4)
+        let tab = state.activeTab
+        try tab.document.setPixel(
+            x: 1,
+            y: 2,
+            color: Color(r: 0x12, g: 0x34, b: 0x56, a: 0xFF)
+        )
+        try tab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png",
+            rgba: Data((0..<(4 * 4)).flatMap { _ in [UInt8(0xFF), 0, 0, 0xFF] }),
+            width: 4,
+            height: 4
+        ))
+        let referenceId = tab.document.activeLayerId()
+
+        let visible = try tab.makePngExportDocument().data
+        tab.setLayerVisibility(id: referenceId, visible: false)
+        let hidden = try tab.makePngExportDocument().data
+
+        #expect(visible == hidden)
+        let rgba = try decodedRgbaPixels(png: visible, width: 4, height: 4)
+        let referenceOnlyOffset = rgbaByteOffset(x: 0, y: 0, width: 4)
+        let pixelLayerOffset = rgbaByteOffset(x: 1, y: 2, width: 4)
+        #expect(Array(rgba[referenceOnlyOffset..<(referenceOnlyOffset + 4)]) == [0, 0, 0, 0])
+        #expect(Array(rgba[pixelLayerOffset..<(pixelLayerOffset + 4)]) == [0x12, 0x34, 0x56, 0xFF])
+    }
+
     @Test("export projects pre-lift pixels while degraded recovery is pending")
     func exportPreservesPendingFloatingRecovery() throws {
         let state = Workspace(width: 4, height: 4)

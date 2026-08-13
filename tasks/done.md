@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 278 | [Apple reference import + underlay — image import, viewport underlay render, timeline row](../issues/278-apple-reference-import-underlay.md) | 2026-08-13 |
 | 277 | [Apple UniFFI reference bindings — singleton reference layer, placement, and sampling reads](../issues/277-apple-uniffi-reference-bindings.md) | 2026-08-13 |
 | 276 | [Apple marquee persistence — selection survives relaunch](../issues/276-apple-marquee-persistence.md) | 2026-08-12 |
 | 275 | [Apple selection action bar — idle and floating states with marquee transforms](../issues/275-apple-selection-action-bar.md) | 2026-08-12 |

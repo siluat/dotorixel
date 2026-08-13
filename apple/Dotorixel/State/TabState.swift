@@ -26,7 +26,11 @@ final class TabState {
 
     /// The Document being edited. The layer panel lists its stack, picks the
     /// drawing target, and adds, removes, and reorders layers.
-    var document: AppleDocument
+    var document: AppleDocument {
+        didSet {
+            referenceSourceCache.clear()
+        }
+    }
     var viewport: AppleViewport {
         // The viewport is persisted per tab, so a replacement that changes
         // its geometry marks dirty; an inert reclamp (same zoom/pan) leaves
@@ -82,6 +86,11 @@ final class TabState {
     /// tool restore at stroke end — injected for the same scope reason as
     /// `isConstrainHeldProvider`.
     private let pendingToolRestoreProvider: () -> EditorTool?
+
+    /// Reference source bytes are immutable for a Layer id. Keep their FFI
+    /// copy outside Observation so pixel-stroke updates only re-read placement
+    /// geometry and reuse the same Data storage.
+    @ObservationIgnored private let referenceSourceCache = ReferenceLayerSourceCache()
 
     var canUndo: Bool {
         // Read to register @Observable dependencies — History lives inside
@@ -651,12 +660,58 @@ final class TabState {
         return document.layers().reversed()
     }
 
+    /// Pixel rows in panel order. The singleton Reference row is fixed after
+    /// these rows and never participates in the Reorder Interaction.
+    var pixelLayersInPanelOrder: [AppleLayerMetadata] {
+        layersInPanelOrder.filter { $0.kind == .pixel }
+    }
+
     /// The drawing-target layer's id — the panel's active-row predicate.
     /// Reads `canvasVersion` to register the @Observable dependency (the
     /// pointer lives in the UniFFI object, invisible to observation).
     var activeLayerId: String {
         _ = canvasVersion
         return document.activeLayerId()
+    }
+
+    /// The visible singleton Reference Layer projected for the viewport
+    /// renderer, or nil when absent/hidden. All geometry comes from the core:
+    /// the shell only packages source reads with the canonical footprint.
+    var referenceLayerUnderlay: ReferenceLayerUnderlay? {
+        _ = canvasVersion
+        let layers = document.layers()
+        guard let referenceIndex = layers.firstIndex(where: { $0.kind == .reference }),
+              layers[referenceIndex].visible,
+              let placement = document.layerPlacementAt(stackIndex: UInt64(referenceIndex)),
+              let footprint = document.referenceLayerFootprintAt(stackIndex: UInt64(referenceIndex)) else {
+            return nil
+        }
+        let referenceId = layers[referenceIndex].id
+        guard let source = referenceSourceCache.source(for: referenceId, load: {
+            guard let rgba = document.layerSourcePixelsAt(stackIndex: UInt64(referenceIndex)),
+                  let dimensions = document.layerSourceDimensionsAt(stackIndex: UInt64(referenceIndex)) else {
+                return nil
+            }
+            return ReferenceLayerSource(
+                id: referenceId,
+                rgba: rgba,
+                width: dimensions.width,
+                height: dimensions.height
+            )
+        }) else {
+            return nil
+        }
+        return ReferenceLayerUnderlay(
+            sourceKey: source.id,
+            sourceRgba: source.rgba,
+            naturalWidth: source.width,
+            naturalHeight: source.height,
+            placement: placement,
+            footprint: footprint,
+            // Reference opacity UI is a later polish slice. The core's current
+            // import path creates it fully opaque, so pin that reachable value.
+            opacity: 1
+        )
     }
 
     /// Makes the layer with `id` the drawing target — the layer panel's
@@ -700,15 +755,60 @@ final class TabState {
         }
     }
 
-    /// Whether a layer can currently be removed — false only at the
-    /// sole-layer guard (a document always keeps at least one layer). The
-    /// panel renders remove buttons disabled while this is false, the UI
-    /// face of the guard `removeLayer` enforces. Reads `canvasVersion` to
-    /// register the @Observable dependency (the layer stack lives in the
-    /// UniFFI object, invisible to observation).
-    var canRemoveLayer: Bool {
+    /// Sets or replaces the singleton Reference Layer from an already decoded
+    /// native import. The core fixes it at the bottom of the stack, resets its
+    /// placement to fit the canvas, and makes it active. Replacement is one
+    /// undoable Edit, just like initial import.
+    ///
+    /// Decoding and file validation happen before this boundary, so any thrown
+    /// binding error leaves the Document unchanged and resolves the pending
+    /// baseline without an entry.
+    func setReferenceLayer(_ source: ReferenceImageSource) throws {
+        guard !isDrawing else { return }
+        var mutationError: Error?
+        let changed = performEdit {
+            do {
+                try document.addReferenceLayer(
+                    newId: UUID().uuidString,
+                    name: source.name,
+                    sourceRgba: source.rgba,
+                    sourceWidth: source.width,
+                    sourceHeight: source.height
+                )
+                return true
+            } catch {
+                mutationError = error
+                return false
+            }
+        }
+        if let mutationError {
+            throw mutationError
+        }
+        if changed {
+            canvasVersion += 1
+        }
+    }
+
+    /// Imports, validates, and decodes a native file before opening the
+    /// document Edit. Any file-boundary failure therefore leaves both the
+    /// document and its History untouched.
+    func importReference(at url: URL) throws {
+        let source = try ReferenceImageImporter.importFile(at: url)
+        try setReferenceLayer(source)
+    }
+
+    /// Per-row remove affordance. A Reference can be removed while a Pixel
+    /// Layer remains. The final Pixel Layer cannot be removed behind a
+    /// Reference: the temporary persistence projection for issue 278 must
+    /// always have a restorable Pixel document until issue 282 lands.
+    func canRemoveLayer(id: String) -> Bool {
         _ = canvasVersion
-        return document.layers().count > 1
+        let layers = document.layers()
+        guard let layer = layers.first(where: { $0.id == id }) else { return false }
+        if layer.kind == .reference {
+            return layers.count > 1
+        }
+        return layers.filter { $0.kind == .pixel }.count > 1
     }
 
     /// Removes the layer with `id` — the layer panel's per-row remove
@@ -721,7 +821,14 @@ final class TabState {
     /// a live stroke's target must not vanish mid-stroke).
     func removeLayer(id: String) {
         guard !isDrawing else { return }
+        guard canRemoveLayer(id: id) else { return }
+        let isRemovingReference = document.layers().contains {
+            $0.id == id && $0.kind == .reference
+        }
         if performEdit({ (try? document.removeLayer(id: id)) != nil }) {
+            if isRemovingReference {
+                referenceSourceCache.clear()
+            }
             canvasVersion += 1
         }
     }
@@ -733,7 +840,14 @@ final class TabState {
     /// invisible to observation).
     var canReorderLayers: Bool {
         _ = canvasVersion
-        return document.layers().count > 1
+        return document.layers().filter { $0.kind == .pixel }.count > 1
+    }
+
+    /// Per-row reorder affordance: only Pixel Layers participate, and at
+    /// least two Pixel rows must exist for a different target to be possible.
+    func canReorderLayer(id: String) -> Bool {
+        guard canReorderLayers else { return false }
+        return document.layers().contains { $0.id == id && $0.kind == .pixel }
     }
 
     /// Moves the layer with `id` to `toPanelIndex` in **panel order** (top of
@@ -752,6 +866,7 @@ final class TabState {
     /// live stroke's target would also replace its pending Edit Baseline.
     func reorderLayer(id: String, toPanelIndex: Int) {
         guard !isDrawing else { return }
+        guard canReorderLayer(id: id) else { return }
         let lastPanelIndex = document.layers().count - 1
         let stackIndex = lastPanelIndex - min(max(toPanelIndex, 0), lastPanelIndex)
         if performEdit({
@@ -887,18 +1002,24 @@ final class TabState {
     /// the hydration constructor consumes plus the tab-scoped presentation
     /// state.
     func toSnapshot() -> TabSnapshot {
-        TabSnapshot(
+        let layers = persistenceLayerSnapshots()
+        let projectedActiveLayerId = floatingSelection.snapshotActiveLayerId(
+            currentActiveLayerId: document.activeLayerId()
+        )
+        // Import makes the Reference active, but issue 278 deliberately omits
+        // it from persistence. Keep the stored pointer valid by falling back
+        // to the topmost Pixel Layer. Issue 282 removes this fallback when the
+        // Reference snapshot itself becomes durable.
+        let persistenceActiveLayerId = layers.contains { $0.id == projectedActiveLayerId }
+            ? projectedActiveLayerId
+            : layers.last?.id ?? projectedActiveLayerId
+        return TabSnapshot(
             id: documentId,
             name: name,
             width: document.width(),
             height: document.height(),
-            // `layerSnapshots` errors only on a Reference Layer, which the
-            // Apple shell has no creation path for yet — an impossible state
-            // here, not a boundary to guard.
-            layers: persistenceLayerSnapshots(),
-            activeLayerId: floatingSelection.snapshotActiveLayerId(
-                currentActiveLayerId: document.activeLayerId()
-            ),
+            layers: layers,
+            activeLayerId: persistenceActiveLayerId,
             nextLayerNumber: document.nextLayerNumber(),
             marquee: document.marquee(),
             timelinePanelCollapsed: isTimelinePanelCollapsed,
@@ -928,9 +1049,10 @@ final class TabState {
     /// transient preview mutation must not affect saves, export, or the
     /// tab-close blank-document guard.
     private func persistenceLayerSnapshots() -> [AppleLayerSnapshot] {
-        // `layerSnapshots` errors only on a Reference Layer (no Apple
-        // creation path yet) — the same impossible state as `toSnapshot`.
-        try! document.layerSnapshots().map { liveLayer in
+        // Known issue-282 gap: persist every Pixel Layer while deliberately
+        // omitting the Reference source and placement. A relaunch therefore
+        // loses the Reference, but auto-save never aborts or crashes.
+        document.pixelLayerSnapshots().map { liveLayer in
             var snapshotLayer = liveLayer
             snapshotLayer.pixels = floatingSelection.snapshotPixels(
                 for: liveLayer.id,

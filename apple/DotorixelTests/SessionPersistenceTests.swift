@@ -519,6 +519,36 @@ struct SessionPersistenceTests {
         #expect(pixels[(1 * 4 + 1) * 4 + 3] != 0)
     }
 
+    @Test("a saved-work thumbnail remains Pixel-only with a visible Reference")
+    func savedWorkThumbnailExcludesReference() async throws {
+        let persistence = try makeInMemoryPersistence()
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        try tab.document.setPixel(
+            x: 1,
+            y: 1,
+            color: Color(r: 0, g: 0xAA, b: 0, a: 0xFF)
+        )
+        let redReference = Data((0..<(4 * 4)).flatMap { _ in
+            [UInt8(0xFF), 0, 0, 0xFF]
+        })
+        try tab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png",
+            rgba: redReference,
+            width: 4,
+            height: 4
+        ))
+
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+        try await persistence.saveDocumentAs(id: tab.documentId, name: "Traced")
+
+        let summary = try #require(await persistence.savedDocumentSummaries().first)
+        let transparentOffset = (0 * 4 + 0) * 4
+        let drawnOffset = (1 * 4 + 1) * 4
+        #expect(Array(summary.pixels[transparentOffset..<(transparentOffset + 4)]) == [0, 0, 0, 0])
+        #expect(Array(summary.pixels[drawnOffset..<(drawnOffset + 4)]) == [0, 0xAA, 0, 0xFF])
+    }
+
     @Test("savedDocumentSnapshot returns the saved content with a reset viewport; nil for unsaved")
     func savedDocumentSnapshotResetsViewportAndGuardsUnsaved() async throws {
         let persistence = try makeInMemoryPersistence()

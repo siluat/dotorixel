@@ -916,6 +916,13 @@ impl AppleDocument {
         source_height: u32,
     ) -> Result<(), AppleError> {
         let id = parse_layer_id(&new_id)?;
+        if source_width == 0 || source_height == 0 {
+            return Err(AppleError::Document {
+                message: format!(
+                    "Reference source dimensions must both be at least 1, got {source_width}x{source_height}"
+                ),
+            });
+        }
         let mut document = self.inner.lock().unwrap();
         if document
             .layers()

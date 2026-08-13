@@ -457,6 +457,27 @@ struct DocumentBindingsTests {
 
         #expect(throws: AppleError.self) {
             try doc.addReferenceLayer(
+                newId: makeLayerId(),
+                name: "Zero-width reference",
+                sourceRgba: Data(),
+                sourceWidth: 0,
+                sourceHeight: 1
+            )
+        }
+        #expect(throws: AppleError.self) {
+            try doc.addReferenceLayer(
+                newId: makeLayerId(),
+                name: "Zero-height reference",
+                sourceRgba: Data(),
+                sourceWidth: 1,
+                sourceHeight: 0
+            )
+        }
+        #expect(doc.layers().map(\.id) == [secondReferenceId, pixelId])
+        #expect(doc.layerSourcePixelsAt(stackIndex: 0) == latestSource)
+
+        #expect(throws: AppleError.self) {
+            try doc.addReferenceLayer(
                 newId: pixelId,
                 name: "Conflicting reference",
                 sourceRgba: Data([0x00, 0x00, 0x00, 0x00]),

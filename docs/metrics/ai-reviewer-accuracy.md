@@ -10,14 +10,32 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 210 | 158 | 52 | 285 | 75% | 36% |
-| cubic-dev-ai[bot] | 317 | 247 | 70 | 214 | 78% | 54% |
-| coderabbitai[bot] | 321 | 229 | 92 | 228 | 71% | 50% |
+| greptile-apps[bot] | 212 | 159 | 53 | 293 | 75% | 35% |
+| cubic-dev-ai[bot] | 324 | 253 | 71 | 217 | 78% | 54% |
+| coderabbitai[bot] | 327 | 235 | 92 | 231 | 72% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #366 | greptile-apps[bot] | Accept | Compressed-byte validation did not bound decoded dimensions; the Apple importer now preflights a 64 MiB RGBA pixel cap with checked arithmetic before ImageIO materialization |
+| #366 | greptile-apps[bot] | Reject | Import intentionally activates the Reference per the core contract; active-Reference edit guards and the non-editable visual signal are the explicit scope of follow-up issue 279 |
+| #366 | coderabbitai[bot] | Accept | Partial: added the decoded-pixel cap and overflow-safe Apple allocation; declined expanding this Apple-only issue into the Web importer, whose analogous gap needs separate tracking |
+| #366 | coderabbitai[bot] | Accept | A failed Metal Reference texture allocation left the shader path enabled with an unbound texture; allocation failure now disables the path immediately |
+| #366 | coderabbitai[bot] | Accept | Every canvas update copied immutable Reference bytes through UniFFI; a Layer-id cache now reuses the source until replacement or document restoration invalidates it |
+| #366 | coderabbitai[bot] | Accept | VoiceOver announced only the Reference Layer name and not its kind; the row now exposes a localized Reference-image accessibility value |
+| #366 | coderabbitai[bot] | Accept | The PNG regression compared visible/hidden encodings without proving Pixel-only content; it now decodes the result and pins transparent Reference-only and retained Pixel locations |
+| #366 | coderabbitai[bot] | Accept | The rendering matrix implied frame-addressed playback/onion/export support on Apple; it now limits that capability to Core/Web and records Apple's single-frame state |
+| #366 | cubic-dev-ai[bot] | Accept | Same unbounded decoded-image allocation as Greptile/CodeRabbit (duplicate); the shared preflight pixel cap and checked RGBA layout cover it |
+| #366 | cubic-dev-ai[bot] | Accept | JPEG EXIF orientation was ignored before RGBA extraction; ImageIO now applies the transform and reports the oriented dimensions |
+| #366 | cubic-dev-ai[bot] | Accept | Same repeated immutable Reference-source copy as CodeRabbit (duplicate); the same Layer-id cache covers geometry-only render updates |
+| #366 | cubic-dev-ai[bot] | Reject | Requested viewport-wide Reference rendering contradicts the Web parity renderer's explicit canvas clip; “outside pixel buffers” describes storage/compositing ownership, not spatial overflow |
+| #366 | cubic-dev-ai[bot] | Accept | Straight-alpha recovery was tested only with opaque colors; a semi-transparent premultiplied PNG now pins the unpremultiply branch |
+| #366 | cubic-dev-ai[bot] | Accept | Same nil Metal Reference texture path as CodeRabbit (duplicate); the allocation guard covers both findings |
+| #366 | cubic-dev-ai[bot] | Accept | Removing the layer-predicate backlog lacked a durable rationale; issue 278 now records the paired per-row APIs and distinct aggregate predicate |
+| #366 | greptile-apps[bot] | Miss (×8) | Missed EXIF orientation, Metal nil handling, source caching, VoiceOver kind, decoded PNG content, alpha recovery, platform wording, and predicate-decision documentation |
+| #366 | coderabbitai[bot] | Miss (×3) | Missed EXIF orientation, semi-transparent alpha recovery, and predicate-decision documentation accepted from cubic |
+| #366 | cubic-dev-ai[bot] | Miss (×3) | Missed the VoiceOver kind, decoded PNG content, and platform wording findings accepted from CodeRabbit |
 | #365 | greptile-apps[bot] | Accept | Zero Reference source dimensions reached the core auto-fit assertion before fallible source validation; the Apple boundary now rejects them with an actionable error |
 | #365 | cubic-dev-ai[bot] | Accept | Same zero-dimension Reference import panic as Greptile (duplicate); the shared boundary guard covers both dimensions |
 | #365 | coderabbitai[bot] | Miss | APPROVED with no actionable findings and missed the zero-dimension Reference import panic accepted from Greptile and Cubic |

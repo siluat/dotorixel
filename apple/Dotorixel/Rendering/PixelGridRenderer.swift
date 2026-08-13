@@ -149,29 +149,36 @@ class PixelGridRenderer: NSObject, MTKViewDelegate {
                 mipmapped: false
             )
             descriptor.usage = .shaderRead
-            referenceTexture = device.makeTexture(descriptor: descriptor)
-            currentReferenceKey = projection.sourceKey
-
-            if let referenceTexture {
-                projection.sourceRgba.withUnsafeBytes { rawBuffer in
-                    guard let baseAddress = rawBuffer.baseAddress else { return }
-                    referenceTexture.replace(
-                        region: MTLRegion(
-                            origin: MTLOrigin(x: 0, y: 0, z: 0),
-                            size: MTLSize(
-                                width: Int(projection.naturalWidth),
-                                height: Int(projection.naturalHeight),
-                                depth: 1
-                            )
-                        ),
-                        mipmapLevel: 0,
-                        withBytes: baseAddress,
-                        bytesPerRow: Int(projection.naturalWidth) * 4
-                    )
-                }
+            guard let newTexture = device.makeTexture(descriptor: descriptor) else {
+                referenceTexture = nil
+                currentReferenceKey = nil
+                uniforms.hasReference = 0
+                return
             }
+            projection.sourceRgba.withUnsafeBytes { rawBuffer in
+                guard let baseAddress = rawBuffer.baseAddress else { return }
+                newTexture.replace(
+                    region: MTLRegion(
+                        origin: MTLOrigin(x: 0, y: 0, z: 0),
+                        size: MTLSize(
+                            width: Int(projection.naturalWidth),
+                            height: Int(projection.naturalHeight),
+                            depth: 1
+                        )
+                    ),
+                    mipmapLevel: 0,
+                    withBytes: baseAddress,
+                    bytesPerRow: Int(projection.naturalWidth) * 4
+                )
+            }
+            referenceTexture = newTexture
+            currentReferenceKey = projection.sourceKey
         }
 
+        guard referenceTexture != nil else {
+            uniforms.hasReference = 0
+            return
+        }
         uniforms.referenceScreenOrigin = SIMD2<Float>(
             projection.viewportRect.left,
             projection.viewportRect.top

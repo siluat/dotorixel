@@ -49,9 +49,9 @@ struct PngExportTests {
         )
         try tab.setReferenceLayer(ReferenceImageSource(
             name: "guide.png",
-            rgba: Data([0xFF, 0, 0, 0xFF]),
-            width: 1,
-            height: 1
+            rgba: Data((0..<(4 * 4)).flatMap { _ in [UInt8(0xFF), 0, 0, 0xFF] }),
+            width: 4,
+            height: 4
         ))
         let referenceId = tab.document.activeLayerId()
 
@@ -60,6 +60,11 @@ struct PngExportTests {
         let hidden = try tab.makePngExportDocument().data
 
         #expect(visible == hidden)
+        let rgba = try decodedRgbaPixels(png: visible, width: 4, height: 4)
+        let referenceOnlyOffset = rgbaByteOffset(x: 0, y: 0, width: 4)
+        let pixelLayerOffset = rgbaByteOffset(x: 1, y: 2, width: 4)
+        #expect(Array(rgba[referenceOnlyOffset..<(referenceOnlyOffset + 4)]) == [0, 0, 0, 0])
+        #expect(Array(rgba[pixelLayerOffset..<(pixelLayerOffset + 4)]) == [0x12, 0x34, 0x56, 0xFF])
     }
 
     @Test("export projects pre-lift pixels while degraded recovery is pending")

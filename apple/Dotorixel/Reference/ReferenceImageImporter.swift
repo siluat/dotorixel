@@ -16,6 +16,7 @@ struct ReferenceImageSource: Equatable {
 enum ReferenceImageImportError: Error, Equatable, LocalizedError {
     case unsupportedFormat(name: String)
     case tooLarge(name: String, maximumBytes: Int)
+    case decodedImageTooLarge(name: String, maximumPixels: Int)
     case decodeFailed(name: String)
     case fileReadFailed(name: String)
 
@@ -26,6 +27,8 @@ enum ReferenceImageImportError: Error, Equatable, LocalizedError {
         case let .tooLarge(name, maximumBytes):
             let maximumMiB = maximumBytes / 1_048_576
             return "\(name) is too large. Choose an image no larger than \(maximumMiB) MiB."
+        case let .decodedImageTooLarge(name, maximumPixels):
+            return "\(name) has too many pixels. Choose an image with no more than \(maximumPixels) pixels."
         case let .decodeFailed(name):
             return "\(name) could not be decoded. Choose a valid PNG, JPEG, WebP, or GIF file."
         case let .fileReadFailed(name):
@@ -43,7 +46,16 @@ enum ReferenceImageImportError: Error, Equatable, LocalizedError {
 /// core, Metal renderer, and later sampling slice share.
 enum ReferenceImageImporter {
     static let maximumFileSizeBytes = 10 * 1024 * 1024
+    /// A decoded Reference may use at most 64 MiB of tightly packed RGBA.
+    /// The compressed-file limit alone cannot bound attacker-controlled image
+    /// dimensions because formats such as PNG can encode huge uniform images.
+    static let maximumDecodedPixelCount = 64 * 1024 * 1024 / 4
     static let supportedContentTypes: [UTType] = [.png, .jpeg, .webP, .gif]
+
+    struct DecodedBufferLayout: Equatable {
+        let bytesPerRow: Int
+        let byteCount: Int
+    }
 
     static func validate(
         contentType: UTType?,
@@ -103,14 +115,38 @@ enum ReferenceImageImporter {
     ) throws -> ReferenceImageSource {
         try validate(contentType: contentType, fileSize: data.count, name: name)
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let encodedWidth = (properties[kCGImagePropertyPixelWidth] as? NSNumber)?.intValue,
+              let encodedHeight = (properties[kCGImagePropertyPixelHeight] as? NSNumber)?.intValue else {
+            throw ReferenceImageImportError.decodeFailed(name: name)
+        }
+        // Reject hostile dimensions before asking ImageIO to materialize the
+        // decoded image. Validate the transformed output again below because
+        // EXIF orientation may swap its axes.
+        _ = try decodedBufferLayout(width: encodedWidth, height: encodedHeight, name: name)
+
+        let thumbnailOptions: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: max(encodedWidth, encodedHeight),
+            kCGImageSourceShouldCacheImmediately: true,
+        ]
+        guard let image = CGImageSourceCreateThumbnailAtIndex(
+            source,
+            0,
+            thumbnailOptions as CFDictionary
+        ),
               let width = UInt32(exactly: image.width), width > 0,
               let height = UInt32(exactly: image.height), height > 0 else {
             throw ReferenceImageImportError.decodeFailed(name: name)
         }
 
-        let bytesPerRow = image.width * 4
-        var rgba = Data(count: bytesPerRow * image.height)
+        let bufferLayout = try decodedBufferLayout(
+            width: image.width,
+            height: image.height,
+            name: name
+        )
+        var rgba = Data(count: bufferLayout.byteCount)
         let drewImage = rgba.withUnsafeMutableBytes { bytes -> Bool in
             guard let baseAddress = bytes.baseAddress,
                   let context = CGContext(
@@ -118,7 +154,7 @@ enum ReferenceImageImporter {
                     width: image.width,
                     height: image.height,
                     bitsPerComponent: 8,
-                    bytesPerRow: bytesPerRow,
+                    bytesPerRow: bufferLayout.bytesPerRow,
                     space: CGColorSpaceCreateDeviceRGB(),
                     bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
                   ) else {
@@ -136,6 +172,35 @@ enum ReferenceImageImporter {
 
         unpremultiplyAlpha(in: &rgba)
         return ReferenceImageSource(name: name, rgba: rgba, width: width, height: height)
+    }
+
+    /// Validates decoded dimensions and returns an overflow-safe RGBA layout.
+    /// Kept separate from ImageIO so the allocation boundary can be tested
+    /// without first constructing a dangerously large raster.
+    static func decodedBufferLayout(
+        width: Int,
+        height: Int,
+        name: String
+    ) throws -> DecodedBufferLayout {
+        guard width > 0, height > 0 else {
+            throw ReferenceImageImportError.decodeFailed(name: name)
+        }
+        let (pixelCount, pixelCountOverflowed) = width.multipliedReportingOverflow(by: height)
+        guard !pixelCountOverflowed, pixelCount <= maximumDecodedPixelCount else {
+            throw ReferenceImageImportError.decodedImageTooLarge(
+                name: name,
+                maximumPixels: maximumDecodedPixelCount
+            )
+        }
+        let (bytesPerRow, rowOverflowed) = width.multipliedReportingOverflow(by: 4)
+        let (byteCount, byteCountOverflowed) = bytesPerRow.multipliedReportingOverflow(by: height)
+        guard !rowOverflowed, !byteCountOverflowed else {
+            throw ReferenceImageImportError.decodedImageTooLarge(
+                name: name,
+                maximumPixels: maximumDecodedPixelCount
+            )
+        }
+        return DecodedBufferLayout(bytesPerRow: bytesPerRow, byteCount: byteCount)
     }
 
     /// ImageIO renders through a premultiplied-alpha CGContext. The core's

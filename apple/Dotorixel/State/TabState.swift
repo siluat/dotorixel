@@ -26,7 +26,11 @@ final class TabState {
 
     /// The Document being edited. The layer panel lists its stack, picks the
     /// drawing target, and adds, removes, and reorders layers.
-    var document: AppleDocument
+    var document: AppleDocument {
+        didSet {
+            referenceSourceCache.clear()
+        }
+    }
     var viewport: AppleViewport {
         // The viewport is persisted per tab, so a replacement that changes
         // its geometry marks dirty; an inert reclamp (same zoom/pan) leaves
@@ -82,6 +86,11 @@ final class TabState {
     /// tool restore at stroke end — injected for the same scope reason as
     /// `isConstrainHeldProvider`.
     private let pendingToolRestoreProvider: () -> EditorTool?
+
+    /// Reference source bytes are immutable for a Layer id. Keep their FFI
+    /// copy outside Observation so pixel-stroke updates only re-read placement
+    /// geometry and reuse the same Data storage.
+    @ObservationIgnored private let referenceSourceCache = ReferenceLayerSourceCache()
 
     var canUndo: Bool {
         // Read to register @Observable dependencies — History lives inside
@@ -673,17 +682,30 @@ final class TabState {
         let layers = document.layers()
         guard let referenceIndex = layers.firstIndex(where: { $0.kind == .reference }),
               layers[referenceIndex].visible,
-              let sourceRgba = document.layerSourcePixelsAt(stackIndex: UInt64(referenceIndex)),
-              let dimensions = document.layerSourceDimensionsAt(stackIndex: UInt64(referenceIndex)),
               let placement = document.layerPlacementAt(stackIndex: UInt64(referenceIndex)),
               let footprint = document.referenceLayerFootprintAt(stackIndex: UInt64(referenceIndex)) else {
             return nil
         }
+        let referenceId = layers[referenceIndex].id
+        guard let source = referenceSourceCache.source(for: referenceId, load: {
+            guard let rgba = document.layerSourcePixelsAt(stackIndex: UInt64(referenceIndex)),
+                  let dimensions = document.layerSourceDimensionsAt(stackIndex: UInt64(referenceIndex)) else {
+                return nil
+            }
+            return ReferenceLayerSource(
+                id: referenceId,
+                rgba: rgba,
+                width: dimensions.width,
+                height: dimensions.height
+            )
+        }) else {
+            return nil
+        }
         return ReferenceLayerUnderlay(
-            sourceKey: layers[referenceIndex].id,
-            sourceRgba: sourceRgba,
-            naturalWidth: dimensions.width,
-            naturalHeight: dimensions.height,
+            sourceKey: source.id,
+            sourceRgba: source.rgba,
+            naturalWidth: source.width,
+            naturalHeight: source.height,
             placement: placement,
             footprint: footprint,
             // Reference opacity UI is a later polish slice. The core's current

@@ -68,7 +68,7 @@ row in the Timeline panel.
 
 | File | Description |
 |------|-------------|
-| `apple/Dotorixel/Reference/ReferenceImageImporter.swift` | Validates PNG/JPEG/WebP/GIF files through the inclusive 10 MiB limit and decodes straight RGBA with localized, actionable errors. |
+| `apple/Dotorixel/Reference/ReferenceImageImporter.swift` | Validates PNG/JPEG/WebP/GIF files through the inclusive 10 MiB compressed and 64 MiB decoded RGBA limits, applies source orientation, and reports localized actionable errors. |
 | `apple/Dotorixel/Reference/ReferenceLayerUnderlay.swift` | Projects the core-owned Reference footprint through the live viewport into one renderer-facing value. |
 | `apple/Dotorixel/Rendering/PixelCanvasView.swift` | Sends the visible Reference projection to Metal separately from the Pixel-only composite. |
 | `apple/Dotorixel/Rendering/PixelGridRenderer.swift` | Uploads and caches the original Reference source as a nearest-neighbor texture. |
@@ -84,6 +84,7 @@ row in the Timeline panel.
 - Kept file decoding and viewport rendering native to the Apple shell because both are platform-specific boundaries; the shared core remains authoritative for Reference identity, placement, history, and sampling geometry.
 - Passed one production render projection into Metal so tests exercise the same placement × viewport contract the shader consumes.
 - Preserved the issue-278 persistence boundary as an explicit Pixel-only projection: Reference imports never abort auto-save, while full Reference durability remains owned by issue 282.
+- Paired the panel's per-row removal and reorder predicates by Layer id; the aggregate reorder predicate remains plural because it answers a distinct stack-level question, resolving the prior naming backlog.
 
 ### Notes
 

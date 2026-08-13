@@ -21,6 +21,39 @@ struct ReferenceLayerRenderProjection: Equatable {
     let rotation: UInt32
 }
 
+/// Immutable source payload cached at the Swift boundary. Reference pixels do
+/// not change in place: import/replace creates a new Layer id, so identity is a
+/// complete invalidation key while placement and visibility remain live reads.
+struct ReferenceLayerSource: Equatable {
+    let id: String
+    let rgba: Data
+    let width: UInt32
+    let height: UInt32
+}
+
+/// Avoids repeating the UniFFI `Vec<u8>` → `Data` copy on every SwiftUI canvas
+/// update. Keeps only the current source; undo/redo or replacement naturally
+/// misses by Layer id, and whole-Document replacement clears it explicitly.
+final class ReferenceLayerSourceCache {
+    private var cachedSource: ReferenceLayerSource?
+
+    func source(
+        for id: String,
+        load: () -> ReferenceLayerSource?
+    ) -> ReferenceLayerSource? {
+        if cachedSource?.id == id {
+            return cachedSource
+        }
+        let source = load()
+        cachedSource = source
+        return source
+    }
+
+    func clear() {
+        cachedSource = nil
+    }
+}
+
 /// Shell-facing projection of the visible singleton Reference Layer. The
 /// source stays outside the Pixel composite and crosses into Metal as its own
 /// texture, preserving the original image for viewport rendering.

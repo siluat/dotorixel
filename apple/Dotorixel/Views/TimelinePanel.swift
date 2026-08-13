@@ -373,6 +373,7 @@ struct TimelinePanel: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(verbatim: layer.name))
+        .accessibilityValue(layer.kind == .reference ? Text("Reference image") : Text(verbatim: ""))
         .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 

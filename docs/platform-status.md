@@ -63,7 +63,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Pixel rendering | — | ✅ | ✅ | Canvas2D / Metal |
-| Multi-layer composite | ✅ | ✅ | ✅ | Visible Pixel Layers blend bottom-to-top; Reference renders separately below the composite on both shells. Frame-addressed reads support playback, onion skinning, and export |
+| Multi-layer composite | ✅ | ✅ | ✅ | Visible Pixel Layers blend bottom-to-top; Reference renders separately below them. Core/Web frame-addressed reads support playback, onion skinning, and export; Apple remains single-frame |
 | Checkerboard transparency | — | ✅ | ✅ | |
 | Grid overlay + toggle | — | ✅ | ✅ | Auto-hidden below 4px |
 

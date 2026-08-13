@@ -73,6 +73,23 @@
         }
       }
     },
+    "%@ has too many pixels. Choose an image with no more than %lld pixels." : {
+      "comment" : "Actionable Reference decoded-size error; %@ is the file name and %lld is the maximum decoded pixel count.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ のピクセル数が多すぎます。%lldピクセル以下の画像を選択してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@의 픽셀 수가 너무 많습니다. %lld픽셀 이하의 이미지를 선택하세요."
+          }
+        }
+      }
+    },
     "%@ is not a supported image. Choose a PNG, JPEG, WebP, or GIF file." : {
       "comment" : "Actionable Reference format error; %@ is the source file name.",
       "localizations" : {
@@ -1097,6 +1114,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "참조"
+          }
+        }
+      }
+    },
+    "Reference image" : {
+      "comment" : "Accessibility value identifying the fixed Reference Layer row in the Apple Timeline.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照画像"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "참조 이미지"
           }
         }
       }

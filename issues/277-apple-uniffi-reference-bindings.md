@@ -1,6 +1,6 @@
 ---
 title: Apple UniFFI reference bindings — singleton reference layer, placement, and sampling reads
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -65,3 +65,21 @@ persistence slice (282), not here.
 
 None — can start immediately (parallel with
 [267](267-apple-uniffi-selection-transform-bindings.md))
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/src/lib.rs` | Exposed validated Reference Layer import/replacement, placement geometry, source reads, footprint calculation, and sampling through UniFFI while preserving Pixel-only composites. |
+| `apple/DotorixelTests/DocumentBindingsTests.swift` | Added generated-binding coverage for singleton replacement, fixed stack order, placement validation, fit/footprint geometry, sampling precedence, and Pixel-only composites. |
+
+### Key Decisions
+
+- Kept the change expand-only: existing bindings and Apple shell consumers remain untouched.
+- Split complete placement reads from position-and-scale writes so the API does not imply that callers can change the core-preserved quarter-turn rotation.
+- Left Reference Layer persistence out of the snapshot contract for issue 282 and documented the current failure boundary explicitly.
+
+### Notes
+
+- Regenerated the ignored Swift UniFFI output and verified it compiles in the Xcode project.
+- `cargo test` passed 571 tests; the Apple binding suite passed 19 tests on the iPad simulator.

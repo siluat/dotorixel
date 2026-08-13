@@ -27,7 +27,7 @@ Phase 5 is decomposed below (issues 267–282); Phase 6 is decomposed
 
 ### Phase 5 — Reference + selection + transforms (issues 267–282)
 
-Reference track frontier: `{277}` (267–276 done; selection + transforms complete).
+Reference track frontier: `{278}` (267–277 done; selection + transforms complete).
 
 Selection + transforms track:
 
@@ -35,7 +35,6 @@ Selection + transforms track:
 
 Reference track:
 
-- [277 — UniFFI reference bindings (expand)](../issues/277-apple-uniffi-reference-bindings.md)
 - [278 — Reference import + underlay + timeline row](../issues/278-apple-reference-import-underlay.md)
 - [279 — Reference edit guards + sampling](../issues/279-apple-reference-edit-guards-sampling.md)
 - [280 — Reference placement overlay](../issues/280-apple-reference-placement-overlay.md)

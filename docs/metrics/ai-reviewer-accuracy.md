@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 209 | 157 | 52 | 285 | 75% | 36% |
-| cubic-dev-ai[bot] | 316 | 246 | 70 | 214 | 78% | 53% |
-| coderabbitai[bot] | 321 | 229 | 92 | 227 | 71% | 50% |
+| greptile-apps[bot] | 210 | 158 | 52 | 285 | 75% | 36% |
+| cubic-dev-ai[bot] | 317 | 247 | 70 | 214 | 78% | 54% |
+| coderabbitai[bot] | 321 | 229 | 92 | 228 | 71% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #365 | greptile-apps[bot] | Accept | Zero Reference source dimensions reached the core auto-fit assertion before fallible source validation; the Apple boundary now rejects them with an actionable error |
+| #365 | cubic-dev-ai[bot] | Accept | Same zero-dimension Reference import panic as Greptile (duplicate); the shared boundary guard covers both dimensions |
+| #365 | coderabbitai[bot] | Miss | APPROVED with no actionable findings and missed the zero-dimension Reference import panic accepted from Greptile and Cubic |
 | #363 | coderabbitai[bot] | Reject | Re-review treated supported Swift `Double`/`CGFloat` bridging into `CGRect` as a critical correctness failure; explicit round-trip conversions would not change behavior or precision on the 64-bit Apple targets |
 | #363 | coderabbitai[bot] | Accept | The action bar remained tappable during an active stroke although every command silently rejected mid-stroke; presentation now hides while the stroke owns editing |
 | #363 | coderabbitai[bot] | Accept | The transform status note implied Apple's current shell transformed every frame; it now distinguishes Core/Web multi-frame scope from Apple's current single frame |

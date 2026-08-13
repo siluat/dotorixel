@@ -7,7 +7,7 @@ use dotorixel_core::pixel_perfect::{FilterResult, TailState, pixel_perfect_filte
 use dotorixel_core::selection::MarqueeRegion;
 use dotorixel_core::tool::{ellipse_outline, interpolate_pixels, rectangle_outline};
 use dotorixel_core::viewport::{ScreenCanvasCoords, Viewport, ViewportSize};
-use dotorixel_core::{Document, Layer, ResizeAnchor};
+use dotorixel_core::{Document, Layer, ReferenceFootprint, ReferencePlacement, ResizeAnchor};
 use uuid::Uuid;
 
 // Re-export core types used directly in the UniFFI interface.
@@ -86,6 +86,22 @@ impl From<dotorixel_core::document::DocumentBuildError> for AppleError {
 
 impl From<dotorixel_core::document::CompositePatchError> for AppleError {
     fn from(e: dotorixel_core::document::CompositePatchError) -> Self {
+        Self::Document {
+            message: e.to_string(),
+        }
+    }
+}
+
+impl From<dotorixel_core::layer::ReferenceDataError> for AppleError {
+    fn from(e: dotorixel_core::layer::ReferenceDataError) -> Self {
+        Self::Document {
+            message: e.to_string(),
+        }
+    }
+}
+
+impl From<dotorixel_core::reference_placement::ReferencePlacementError> for AppleError {
+    fn from(e: dotorixel_core::reference_placement::ReferencePlacementError) -> Self {
         Self::Document {
             message: e.to_string(),
         }
@@ -424,6 +440,136 @@ fn apple_marquee_clip_to(
 // AppleDocument
 // ---------------------------------------------------------------------------
 
+/// A complete Reference Layer Placement value crossing the FFI boundary for
+/// reads and stateless geometry calculations. Swift may construct records
+/// field-wise, so [`AppleReferencePlacement::to_core`] validates every core
+/// invariant before using the value.
+#[derive(uniffi::Record, Clone, Copy, PartialEq)]
+pub struct AppleReferencePlacement {
+    pub x: f32,
+    pub y: f32,
+    pub scale: f32,
+    pub rotation: u8,
+}
+
+impl From<ReferencePlacement> for AppleReferencePlacement {
+    fn from(placement: ReferencePlacement) -> Self {
+        Self {
+            x: placement.x(),
+            y: placement.y(),
+            scale: placement.scale(),
+            rotation: placement.rotation(),
+        }
+    }
+}
+
+impl AppleReferencePlacement {
+    fn to_core(self) -> Result<ReferencePlacement, AppleError> {
+        if self.rotation > 3 {
+            return Err(AppleError::Document {
+                message: format!(
+                    "Reference placement rotation must be between 0 and 3 quarter-turns, got {}",
+                    self.rotation
+                ),
+            });
+        }
+        Ok(ReferencePlacement::new(self.x, self.y, self.scale)?.with_rotation(self.rotation))
+    }
+}
+
+/// The position-and-scale fields placement interaction may update. Rotation
+/// is deliberately absent because the core preserves the Reference Layer's
+/// existing quarter-turn during move and scale operations.
+#[derive(uniffi::Record, Clone, Copy, PartialEq)]
+pub struct AppleReferencePlacementUpdate {
+    pub x: f32,
+    pub y: f32,
+    pub scale: f32,
+}
+
+impl AppleReferencePlacementUpdate {
+    fn to_core(self) -> Result<ReferencePlacement, AppleError> {
+        Ok(ReferencePlacement::new(self.x, self.y, self.scale)?)
+    }
+}
+
+/// A Reference Layer's projected axis-aligned bounds in canvas coordinates.
+#[derive(uniffi::Record, Clone, Copy, PartialEq)]
+pub struct AppleReferenceFootprint {
+    pub min_x: f32,
+    pub min_y: f32,
+    pub max_x: f32,
+    pub max_y: f32,
+}
+
+impl From<ReferenceFootprint> for AppleReferenceFootprint {
+    fn from(footprint: ReferenceFootprint) -> Self {
+        Self {
+            min_x: footprint.min_x(),
+            min_y: footprint.min_y(),
+            max_x: footprint.max_x(),
+            max_y: footprint.max_y(),
+        }
+    }
+}
+
+/// Computes a Reference Layer footprint from a placement and natural source
+/// dimensions, including quarter-turn rotation. Errors when the placement is
+/// invalid or either natural dimension is zero.
+#[uniffi::export]
+fn apple_reference_footprint(
+    placement: AppleReferencePlacement,
+    natural_width: u32,
+    natural_height: u32,
+) -> Result<AppleReferenceFootprint, AppleError> {
+    if natural_width == 0 || natural_height == 0 {
+        return Err(AppleError::Document {
+            message: format!(
+                "Reference source dimensions must both be at least 1, got {natural_width}x{natural_height}"
+            ),
+        });
+    }
+
+    Ok(placement
+        .to_core()?
+        .footprint(natural_width, natural_height)
+        .into())
+}
+
+/// Computes a centered, aspect-preserving placement for a Reference Layer.
+/// Zero dimensions are rejected at the FFI boundary instead of reaching the
+/// core helper's internal non-zero precondition.
+#[uniffi::export]
+fn apple_reference_placement_fit_to_canvas(
+    canvas_width: u32,
+    canvas_height: u32,
+    natural_width: u32,
+    natural_height: u32,
+) -> Result<AppleReferencePlacement, AppleError> {
+    if canvas_width == 0 || canvas_height == 0 || natural_width == 0 || natural_height == 0 {
+        return Err(AppleError::Document {
+            message: format!(
+                "Reference fit dimensions must all be at least 1, got canvas {canvas_width}x{canvas_height} and source {natural_width}x{natural_height}"
+            ),
+        });
+    }
+
+    Ok(ReferencePlacement::fit_to_canvas(
+        canvas_width,
+        canvas_height,
+        natural_width,
+        natural_height,
+    )
+    .into())
+}
+
+/// Natural source dimensions for the Reference Layer at a stack index.
+#[derive(uniffi::Record, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct AppleReferenceDimensions {
+    pub width: u32,
+    pub height: u32,
+}
+
 /// One layer's shell-facing metadata, read in stack order via
 /// [`AppleDocument::layers`] — the id crosses the boundary as a lowercase
 /// UUID string (UniFFI has no UUID type).
@@ -591,9 +737,16 @@ impl AppleDocument {
         Ok(self.inner.lock().unwrap().get_pixel(x, y)?)
     }
 
+    /// Sampling-aware active-layer read. Pixel Layers return their color
+    /// inside document bounds; Reference Layers sample their projected source
+    /// and return `nil` outside its footprint.
+    fn try_get_pixel(&self, x: u32, y: u32) -> Option<Color> {
+        self.inner.lock().unwrap().try_get_pixel(x, y)
+    }
+
     /// RGBA row-major composite buffer (`width * height * 4` bytes) of every
-    /// visible layer's active-frame cel — the on-screen buffer the Metal
-    /// render path uploads.
+    /// visible Pixel Layer's active-frame cel. Reference Layers are excluded;
+    /// this is the Pixel-only buffer the Metal render path uploads.
     fn composite(&self) -> Vec<u8> {
         self.inner.lock().unwrap().composite()
     }
@@ -642,9 +795,9 @@ impl AppleDocument {
     /// Every layer's persistence snapshot in stack order — the per-layer
     /// fields session persistence stores (id, name, visibility, opacity, and
     /// the full pixel buffer, active or not). Errors when the stack contains
-    /// a Reference Layer: persistence snapshots cover Pixel Layers only, and
-    /// the Apple shell cannot create Reference Layers yet, so failing loudly
-    /// beats silently dropping a layer.
+    /// a Reference Layer: the current persistence snapshot contract covers
+    /// Pixel Layers only, so failing loudly beats silently dropping the
+    /// Reference until reference-aware persistence lands.
     fn layer_snapshots(&self) -> Result<Vec<AppleLayerSnapshot>, AppleError> {
         let document = self.inner.lock().unwrap();
         document
@@ -670,6 +823,49 @@ impl AppleDocument {
                 })
             })
             .collect()
+    }
+
+    /// A copy of the immutable RGBA source buffer for the Reference Layer at
+    /// `stack_index`; `nil` for a Pixel Layer or an out-of-range index.
+    fn layer_source_pixels_at(&self, stack_index: u64) -> Option<Vec<u8>> {
+        let index = usize::try_from(stack_index).ok()?;
+        self.inner
+            .lock()
+            .unwrap()
+            .layer_source_pixels_at(index)
+            .map(<[u8]>::to_vec)
+    }
+
+    /// Natural source dimensions for the Reference Layer at `stack_index`;
+    /// `nil` for a Pixel Layer or an out-of-range index.
+    fn layer_source_dimensions_at(&self, stack_index: u64) -> Option<AppleReferenceDimensions> {
+        let index = usize::try_from(stack_index).ok()?;
+        self.inner
+            .lock()
+            .unwrap()
+            .layer_source_dimensions_at(index)
+            .map(|(width, height)| AppleReferenceDimensions { width, height })
+    }
+
+    /// Current placement for the Reference Layer at `stack_index`; `nil` for
+    /// a Pixel Layer or an out-of-range index.
+    fn layer_placement_at(&self, stack_index: u64) -> Option<AppleReferencePlacement> {
+        let index = usize::try_from(stack_index).ok()?;
+        self.inner
+            .lock()
+            .unwrap()
+            .layer_placement_at(index)
+            .map(Into::into)
+    }
+
+    /// Projected footprint for the Reference Layer at `stack_index`; `nil`
+    /// for a Pixel Layer or an out-of-range index.
+    fn reference_layer_footprint_at(&self, stack_index: u64) -> Option<AppleReferenceFootprint> {
+        let index = usize::try_from(stack_index).ok()?;
+        let document = self.inner.lock().unwrap();
+        let placement = document.layer_placement_at(index)?;
+        let (natural_width, natural_height) = document.layer_source_dimensions_at(index)?;
+        Some(placement.footprint(natural_width, natural_height).into())
     }
 
     /// Whether the bottom-docked Timeline panel is collapsed to its header
@@ -704,6 +900,58 @@ impl AppleDocument {
             });
         }
         document.add_layer(id, name);
+        Ok(())
+    }
+
+    /// Sets the singleton Reference Layer, fixed at the bottom of the stack,
+    /// and makes it active. A later import replaces the existing Reference
+    /// Layer. Errors when the id belongs to an existing Pixel Layer or the
+    /// source dimensions and RGBA buffer are inconsistent.
+    fn add_reference_layer(
+        &self,
+        new_id: String,
+        name: String,
+        source_rgba: Vec<u8>,
+        source_width: u32,
+        source_height: u32,
+    ) -> Result<(), AppleError> {
+        let id = parse_layer_id(&new_id)?;
+        if source_width == 0 || source_height == 0 {
+            return Err(AppleError::Document {
+                message: format!(
+                    "Reference source dimensions must both be at least 1, got {source_width}x{source_height}"
+                ),
+            });
+        }
+        let mut document = self.inner.lock().unwrap();
+        if document
+            .layers()
+            .iter()
+            .any(|layer| layer.id == id && layer.kind.tag() == LayerKindTag::Pixel)
+        {
+            return Err(AppleError::Document {
+                message: format!("Pixel Layer with id {id} already exists"),
+            });
+        }
+        document.add_reference_layer(id, name, source_rgba, source_width, source_height)?;
+        Ok(())
+    }
+
+    /// Updates a Reference Layer's position and scale after validating the
+    /// record. The core preserves the layer's current quarter-turn rotation so
+    /// placement interaction cannot reset a rotation restored from an older
+    /// document.
+    fn set_reference_placement(
+        &self,
+        id: String,
+        placement: AppleReferencePlacementUpdate,
+    ) -> Result<(), AppleError> {
+        let layer_id = parse_layer_id(&id)?;
+        let placement = placement.to_core()?;
+        self.inner
+            .lock()
+            .unwrap()
+            .set_reference_placement(layer_id, placement)?;
         Ok(())
     }
 

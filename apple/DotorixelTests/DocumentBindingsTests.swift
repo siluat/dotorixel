@@ -406,4 +406,225 @@ struct DocumentBindingsTests {
             _ = try hydrate(layers: [snapshot(id: layerId, opacity: 1.5)], activeLayerId: layerId)
         }
     }
+
+    @Test("reference imports replace the singleton bottom layer with the latest source")
+    func referenceImportReplacesSingleton() throws {
+        let pixelId = makeLayerId()
+        let firstReferenceId = makeLayerId()
+        let secondReferenceId = makeLayerId()
+        let doc = try AppleDocument(
+            width: 4, height: 4, firstLayerId: pixelId, firstLayerName: "Layer 1")
+
+        try doc.addReferenceLayer(
+            newId: firstReferenceId,
+            name: "First reference",
+            sourceRgba: Data([0xFF, 0x00, 0x00, 0xFF]),
+            sourceWidth: 1,
+            sourceHeight: 1
+        )
+        #expect(doc.layers().map(\.id) == [firstReferenceId, pixelId])
+        #expect(doc.layers().map(\.kind) == [.reference, .pixel])
+
+        let latestSource = Data([
+            0x00, 0xFF, 0x00, 0xFF,
+            0x00, 0x00, 0xFF, 0xFF,
+        ])
+        try doc.addReferenceLayer(
+            newId: secondReferenceId,
+            name: "Latest reference",
+            sourceRgba: latestSource,
+            sourceWidth: 2,
+            sourceHeight: 1
+        )
+
+        #expect(doc.layers().map(\.id) == [secondReferenceId, pixelId])
+        #expect(doc.layers().map(\.kind) == [.reference, .pixel])
+        #expect(doc.activeLayerId() == secondReferenceId)
+        #expect(doc.layerSourcePixelsAt(stackIndex: 0) == latestSource)
+        #expect(doc.layerSourcePixelsAt(stackIndex: 1) == nil)
+
+        #expect(throws: AppleError.self) {
+            try doc.addReferenceLayer(
+                newId: makeLayerId(),
+                name: "Invalid reference",
+                sourceRgba: Data([0x00]),
+                sourceWidth: 1,
+                sourceHeight: 1
+            )
+        }
+        #expect(doc.layers().map(\.id) == [secondReferenceId, pixelId])
+        #expect(doc.layerSourcePixelsAt(stackIndex: 0) == latestSource)
+
+        #expect(throws: AppleError.self) {
+            try doc.addReferenceLayer(
+                newId: makeLayerId(),
+                name: "Zero-width reference",
+                sourceRgba: Data(),
+                sourceWidth: 0,
+                sourceHeight: 1
+            )
+        }
+        #expect(throws: AppleError.self) {
+            try doc.addReferenceLayer(
+                newId: makeLayerId(),
+                name: "Zero-height reference",
+                sourceRgba: Data(),
+                sourceWidth: 1,
+                sourceHeight: 0
+            )
+        }
+        #expect(doc.layers().map(\.id) == [secondReferenceId, pixelId])
+        #expect(doc.layerSourcePixelsAt(stackIndex: 0) == latestSource)
+
+        #expect(throws: AppleError.self) {
+            try doc.addReferenceLayer(
+                newId: pixelId,
+                name: "Conflicting reference",
+                sourceRgba: Data([0x00, 0x00, 0x00, 0x00]),
+                sourceWidth: 1,
+                sourceHeight: 1
+            )
+        }
+        #expect(doc.layers().map(\.id) == [secondReferenceId, pixelId])
+
+        try doc.reorderLayer(id: pixelId, newIndex: 0)
+        #expect(doc.layers().map(\.id) == [secondReferenceId, pixelId])
+        try doc.reorderLayer(id: secondReferenceId, newIndex: 1)
+        #expect(doc.layers().map(\.id) == [secondReferenceId, pixelId])
+    }
+
+    @Test("reference placement and natural dimensions round-trip with boundary validation")
+    func referencePlacementRoundTrip() throws {
+        let pixelId = makeLayerId()
+        let referenceId = makeLayerId()
+        let doc = try AppleDocument(
+            width: 4, height: 4, firstLayerId: pixelId, firstLayerName: "Layer 1")
+        try doc.addReferenceLayer(
+            newId: referenceId,
+            name: "Reference",
+            sourceRgba: Data([
+                0xFF, 0x00, 0x00, 0xFF,
+                0x00, 0xFF, 0x00, 0xFF,
+            ]),
+            sourceWidth: 2,
+            sourceHeight: 1
+        )
+
+        let placementUpdate = AppleReferencePlacementUpdate(
+            x: 1.5, y: -2.0, scale: 0.75)
+        try doc.setReferencePlacement(id: referenceId, placement: placementUpdate)
+
+        let expectedPlacement = AppleReferencePlacement(
+            x: 1.5, y: -2.0, scale: 0.75, rotation: 0)
+        #expect(doc.layerPlacementAt(stackIndex: 0) == expectedPlacement)
+        #expect(
+            doc.layerSourceDimensionsAt(stackIndex: 0)
+                == AppleReferenceDimensions(width: 2, height: 1))
+        #expect(doc.layerPlacementAt(stackIndex: 1) == nil)
+        #expect(doc.layerSourceDimensionsAt(stackIndex: 1) == nil)
+
+        #expect(throws: AppleError.self) {
+            try doc.setReferencePlacement(
+                id: referenceId,
+                placement: AppleReferencePlacementUpdate(x: .nan, y: 0, scale: 1))
+        }
+        #expect(throws: AppleError.self) {
+            try doc.setReferencePlacement(
+                id: referenceId,
+                placement: AppleReferencePlacementUpdate(x: 0, y: 0, scale: 0))
+        }
+        #expect(doc.layerPlacementAt(stackIndex: 0) == expectedPlacement)
+    }
+
+    @Test("reference footprint reads placement geometry including quarter-turn rotation")
+    func referenceFootprintRead() throws {
+        let pixelId = makeLayerId()
+        let referenceId = makeLayerId()
+        let doc = try AppleDocument(
+            width: 8, height: 8, firstLayerId: pixelId, firstLayerName: "Layer 1")
+        try doc.addReferenceLayer(
+            newId: referenceId,
+            name: "Reference",
+            sourceRgba: Data([
+                0xFF, 0x00, 0x00, 0xFF,
+                0x00, 0xFF, 0x00, 0xFF,
+            ]),
+            sourceWidth: 2,
+            sourceHeight: 1
+        )
+        try doc.setReferencePlacement(
+            id: referenceId,
+            placement: AppleReferencePlacementUpdate(x: 1, y: 2, scale: 2))
+
+        #expect(
+            doc.referenceLayerFootprintAt(stackIndex: 0)
+                == AppleReferenceFootprint(minX: 1, minY: 2, maxX: 5, maxY: 4))
+        #expect(doc.referenceLayerFootprintAt(stackIndex: 1) == nil)
+
+        #expect(
+            try appleReferenceFootprint(
+                placement: AppleReferencePlacement(x: 1, y: 2, scale: 2, rotation: 1),
+                naturalWidth: 2,
+                naturalHeight: 1
+            ) == AppleReferenceFootprint(minX: 1, minY: 2, maxX: 3, maxY: 6))
+        #expect(throws: AppleError.self) {
+            _ = try appleReferenceFootprint(
+                placement: AppleReferencePlacement(x: 0, y: 0, scale: 1, rotation: 4),
+                naturalWidth: 2,
+                naturalHeight: 1)
+        }
+    }
+
+    @Test("reference fit-to-canvas centers both upscaled and downscaled sources")
+    func referenceFitToCanvas() throws {
+        #expect(
+            try appleReferencePlacementFitToCanvas(
+                canvasWidth: 20, canvasHeight: 20, naturalWidth: 4, naturalHeight: 2)
+                == AppleReferencePlacement(x: 0, y: 5, scale: 5, rotation: 0))
+        #expect(
+            try appleReferencePlacementFitToCanvas(
+                canvasWidth: 10, canvasHeight: 20, naturalWidth: 20, naturalHeight: 5)
+                == AppleReferencePlacement(x: 0, y: 8.75, scale: 0.5, rotation: 0))
+        #expect(throws: AppleError.self) {
+            _ = try appleReferencePlacementFitToCanvas(
+                canvasWidth: 10, canvasHeight: 20, naturalWidth: 0, naturalHeight: 5)
+        }
+    }
+
+    @Test("reference sampling crosses the binding while document composites remain pixel-only")
+    func referenceSamplingAndPixelOnlyComposites() throws {
+        let pixelId = makeLayerId()
+        let referenceId = makeLayerId()
+        let doc = try AppleDocument(
+            width: 2, height: 2, firstLayerId: pixelId, firstLayerName: "Layer 1")
+        let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
+        let green = Color(r: 0x00, g: 0xFF, b: 0x00, a: 0xFF)
+        try doc.setPixel(x: 0, y: 0, color: red)
+
+        let compositeWithoutReference = doc.composite()
+        let exportWithoutReference = doc.compositeForExport()
+        try doc.addReferenceLayer(
+            newId: referenceId,
+            name: "Reference",
+            sourceRgba: Data([0x00, 0xFF, 0x00, 0xFF]),
+            sourceWidth: 1,
+            sourceHeight: 1
+        )
+        try doc.setReferencePlacement(
+            id: referenceId,
+            placement: AppleReferencePlacementUpdate(x: 0, y: 0, scale: 1))
+
+        #expect(doc.tryGetPixel(x: 0, y: 0) == green)
+        #expect(doc.tryGetPixel(x: 1, y: 1) == nil)
+        #expect(doc.composite() == compositeWithoutReference)
+        #expect(doc.compositeForExport() == exportWithoutReference)
+        #expect(doc.composite() == doc.compositeForExport())
+
+        try doc.setLayerVisibility(id: referenceId, visible: false)
+        #expect(doc.composite() == compositeWithoutReference)
+        #expect(doc.compositeForExport() == exportWithoutReference)
+
+        try doc.setActiveLayer(id: pixelId)
+        #expect(doc.tryGetPixel(x: 0, y: 0) == red)
+    }
 }

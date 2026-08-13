@@ -3,18 +3,18 @@
 ## Currently Working On
 
 Apple catch-up Phase 5 — reference + selection + transforms
-([RFC](../issues/013-apple-native-catchup.md)); 10/16 sub-issues done
-(267–276). Selection + transforms are complete; Reference frontier: 277.
+([RFC](../issues/013-apple-native-catchup.md)); 11/16 sub-issues done
+(267–277). Selection + transforms are complete; Reference frontier: 278.
 
 ## Last Completed
 
-[276 — Apple marquee persistence](../issues/276-apple-marquee-persistence.md):
-Apple Marquee state now survives relaunch, including legacy-store migration
-and safe handling of invalid stored bounds. Floating Selection remains transient.
+[277 — Apple UniFFI reference bindings](../issues/277-apple-uniffi-reference-bindings.md):
+Apple now has a validated native boundary for singleton Reference Layers,
+placement geometry, and what-you-see sampling. UI and persistence remain later slices.
 
 ## Next Up
 
-- [277 — Apple UniFFI reference bindings](../issues/277-apple-uniffi-reference-bindings.md) — Phase 5 frontier
+- [278 — Apple reference import + underlay](../issues/278-apple-reference-import-underlay.md) — Phase 5 frontier
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Feedback link to Google Form

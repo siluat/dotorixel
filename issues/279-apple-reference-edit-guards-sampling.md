@@ -82,11 +82,12 @@ trust the precondition):
 ### Key Decisions
 
 - Kept `isActiveLayerEditable` as the single Layer-kind authority at `TabState` entry boundaries; stroke sessions trust the admitted target.
-- Kept Reference pixels out of `Document.composite()` and composed sampling explicitly: visible Pixel art wins, then a visible active Reference supplies the fallback.
+- Kept Reference pixels out of `Document.composite()` and composed sampling explicitly: visible Pixel art wins, then the visible Reference supplies the fallback regardless of the active Layer.
 - Drove pointer and touch affordances from one view-facing presentation value; Eyedropper remains available on Reference Layers.
 - Used one `SamplingSurface` contract for both committed samples and the Loupe grid so preview and commit cannot diverge.
 
 ### Notes
 
 - Transparent and out-of-bounds samples remain non-committing.
+- Loupe neighborhoods cross the Apple binding as one batch so Reference-aware preview sampling acquires the Document lock once per pointer event.
 - The full Apple iOS test suite and macOS app build pass. The existing `AutoSave.defaultDebounce` actor-isolation warning is unrelated.

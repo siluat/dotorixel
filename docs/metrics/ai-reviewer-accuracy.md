@@ -10,14 +10,20 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 212 | 159 | 53 | 294 | 75% | 35% |
-| cubic-dev-ai[bot] | 325 | 254 | 71 | 217 | 78% | 54% |
-| coderabbitai[bot] | 328 | 235 | 93 | 232 | 72% | 50% |
+| greptile-apps[bot] | 213 | 160 | 53 | 296 | 75% | 35% |
+| cubic-dev-ai[bot] | 327 | 256 | 71 | 218 | 78% | 54% |
+| coderabbitai[bot] | 328 | 235 | 93 | 235 | 72% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #367 | cubic-dev-ai[bot] | Accept | Reference-aware Loupe sampling crossed UniFFI and acquired the Document mutex up to 81 times per pointer event; neighborhood reads now use one ordered batch |
+| #367 | cubic-dev-ai[bot] | Accept | The Selection/Marquee note claimed Web and Apple complete while Core/Web remained marked partial; all three completed columns now agree with the feature status |
+| #367 | greptile-apps[bot] | Accept | Sampling required the Reference Layer to stay active even though the underlay remains visible after switching to Pixel; visible Reference fallback is now independent of Layer activity |
+| #367 | greptile-apps[bot] | Miss (×2) | Missed the per-cell Loupe binding overhead and contradictory Selection/Marquee status accepted from cubic |
+| #367 | cubic-dev-ai[bot] | Miss | Missed the active-Layer gate that disabled visible Reference fallback after switching to a Pixel Layer |
+| #367 | coderabbitai[bot] | Miss (×3) | Approved with no actionable findings and missed the Loupe batching, platform-status contradiction, and active-Layer sampling gate |
 | #366 | cubic-dev-ai[bot] | Accept | Deleting a Reference retained its decoded RGBA source in the per-tab cache; successful Reference removal now clears the cached buffer immediately |
 | #366 | coderabbitai[bot] | Reject | Pixel reorder destinations at or below the fixed Reference row are already clamped above it by the authoritative Core contract |
 | #366 | greptile-apps[bot] | Miss | Missed the decoded Reference source retained after successful layer removal |

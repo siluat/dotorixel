@@ -599,6 +599,7 @@ struct DocumentBindingsTests {
             width: 2, height: 2, firstLayerId: pixelId, firstLayerName: "Layer 1")
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
         let green = Color(r: 0x00, g: 0xFF, b: 0x00, a: 0xFF)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
         try doc.setPixel(x: 0, y: 0, color: red)
 
         let compositeWithoutReference = doc.composite()
@@ -616,15 +617,25 @@ struct DocumentBindingsTests {
 
         #expect(doc.tryGetPixel(x: 0, y: 0) == green)
         #expect(doc.tryGetPixel(x: 1, y: 1) == nil)
+        #expect(doc.visibleReferencePixels(points: [
+            ScreenCanvasCoords(x: 0, y: 0),
+            ScreenCanvasCoords(x: 1, y: 1),
+            ScreenCanvasCoords(x: -1, y: 0),
+        ]) == [green, transparent, transparent])
         #expect(doc.composite() == compositeWithoutReference)
         #expect(doc.compositeForExport() == exportWithoutReference)
         #expect(doc.composite() == doc.compositeForExport())
 
+        try doc.setActiveLayer(id: pixelId)
+        #expect(doc.visibleReferencePixels(points: [ScreenCanvasCoords(x: 0, y: 0)]) == [green])
+
         try doc.setLayerVisibility(id: referenceId, visible: false)
+        #expect(doc.visibleReferencePixels(points: [ScreenCanvasCoords(x: 0, y: 0)]) == [
+            transparent,
+        ])
         #expect(doc.composite() == compositeWithoutReference)
         #expect(doc.compositeForExport() == exportWithoutReference)
 
-        try doc.setActiveLayer(id: pixelId)
         #expect(doc.tryGetPixel(x: 0, y: 0) == red)
     }
 }

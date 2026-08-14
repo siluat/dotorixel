@@ -24,6 +24,21 @@ private let mutationToolsRequiringEditableLayer: [EditorTool] = [
     .selection,
 ]
 
+private final class SamplingGridBatchSpy: SamplingSurface {
+    private(set) var pixelRequestCount = 0
+    private(set) var gridRequestCount = 0
+
+    func samplePixel(at coords: ScreenCanvasCoords) -> Color? {
+        pixelRequestCount += 1
+        return Color(r: 0, g: 0, b: 0, a: 0)
+    }
+
+    func sampleGrid(center: ScreenCanvasCoords, size: Int) -> [Color?] {
+        gridRequestCount += 1
+        return Array(repeating: Color(r: 0, g: 0, b: 0, a: 0), count: size * size)
+    }
+}
+
 private struct ReferenceActiveTestFixture {
     let notifier: ReferenceEditabilityDirtyRecorder
     let pixelLayerId: String
@@ -206,6 +221,21 @@ struct ReferenceEditabilityTests {
         #expect(fixture.notifier.markedDocumentIds.isEmpty)
     }
 
+    @Test("Loupe sampling delegates one neighborhood batch to its surface")
+    func loupeSamplingUsesOneBatch() {
+        let surface = SamplingGridBatchSpy()
+
+        let grid = sampleGrid(
+            surface: surface,
+            center: ScreenCanvasCoords(x: 2, y: 2),
+            size: LoupeGeometry.gridSize
+        )
+
+        #expect(grid.count == LoupeGeometry.gridSize * LoupeGeometry.gridSize)
+        #expect(surface.gridRequestCount == 1)
+        #expect(surface.pixelRequestCount == 0)
+    }
+
     @Test("Eyedropper and Loupe read Pixel art over a visible Reference underlay")
     func eyedropperAndLoupeReadWhatTheUserSees() throws {
         let workspace = Workspace(width: 4, height: 4)
@@ -230,6 +260,9 @@ struct ReferenceEditabilityTests {
         let referenceId = try #require(
             tab.document.layers().first(where: { $0.kind == .reference })?.id
         )
+        let pixelId = try #require(
+            tab.document.layers().first(where: { $0.kind == .pixel })?.id
+        )
         #expect(tab.document.activeLayerId() == referenceId)
         #expect(tab.document.tryGetPixel(x: 1, y: 1) == green)
         workspace.shared.activeTool = .eyedropper
@@ -245,6 +278,14 @@ struct ReferenceEditabilityTests {
         #expect(tab.samplingLoupe.grid[LoupeGeometry.centerIndex] == green)
         tab.endStroke()
         #expect(workspace.shared.backgroundColor == green)
+
+        tab.setActiveLayer(id: pixelId)
+        #expect(tab.document.activeLayerId() == pixelId)
+        workspace.shared.foregroundColor = black
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        #expect(tab.samplingLoupe.grid[LoupeGeometry.centerIndex] == green)
+        tab.endStroke()
+        #expect(workspace.shared.foregroundColor == green)
 
         workspace.shared.foregroundColor = black
         tab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))

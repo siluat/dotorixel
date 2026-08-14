@@ -13,7 +13,7 @@ use uuid::Uuid;
 // Re-export core types used directly in the UniFFI interface.
 // UniFFI discovers these via their cfg_attr derives in dotorixel-core.
 use dotorixel_core::color::Color;
-use dotorixel_core::layer::LayerKindTag;
+use dotorixel_core::layer::{LayerKind, LayerKindTag};
 use dotorixel_core::tool::ToolType;
 
 uniffi::setup_scaffolding!();
@@ -757,6 +757,43 @@ impl AppleDocument {
     /// and return `nil` outside its footprint.
     fn try_get_pixel(&self, x: u32, y: u32) -> Option<Color> {
         self.inner.lock().unwrap().try_get_pixel(x, y)
+    }
+
+    /// Samples the visible singleton Reference Layer at every document-space
+    /// point under one lock. The result preserves input order and length;
+    /// absent, hidden, out-of-bounds, and outside-footprint samples are
+    /// transparent so callers can merge the batch with the Pixel composite.
+    fn visible_reference_pixels(&self, points: Vec<ScreenCanvasCoords>) -> Vec<Color> {
+        let document = self.inner.lock().unwrap();
+        let width = document.width();
+        let height = document.height();
+        let reference = document.layers().iter().find_map(|layer| {
+            if !layer.visible {
+                return None;
+            }
+            match &layer.kind {
+                LayerKind::Reference(data) => Some(data),
+                LayerKind::Pixel(_) => None,
+            }
+        });
+
+        points
+            .into_iter()
+            .map(|point| {
+                let Ok(x) = u32::try_from(point.x) else {
+                    return Color::TRANSPARENT;
+                };
+                let Ok(y) = u32::try_from(point.y) else {
+                    return Color::TRANSPARENT;
+                };
+                if x >= width || y >= height {
+                    return Color::TRANSPARENT;
+                }
+                reference
+                    .and_then(|data| data.sample_at(x, y))
+                    .unwrap_or(Color::TRANSPARENT)
+            })
+            .collect()
     }
 
     /// RGBA row-major composite buffer (`width * height * 4` bytes) of every

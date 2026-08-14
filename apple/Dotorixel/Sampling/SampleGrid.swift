@@ -4,6 +4,15 @@ import Foundation
 /// It names what sampling sees without exposing drawing or Layer structure.
 protocol SamplingSurface {
     func samplePixel(at coords: ScreenCanvasCoords) -> Color?
+    func sampleGrid(center: ScreenCanvasCoords, size: Int) -> [Color?]
+}
+
+extension SamplingSurface {
+    func sampleGrid(center: ScreenCanvasCoords, size: Int) -> [Color?] {
+        mapSampleGrid(center: center, size: size) { coords in
+            samplePixel(at: coords)
+        }
+    }
 }
 
 /// Pixel-only sampling used by hosts that do not provide an editor underlay.
@@ -13,47 +22,59 @@ struct CompositeSamplingSurface: SamplingSurface {
     func samplePixel(at coords: ScreenCanvasCoords) -> Color? {
         compositeSample(surface: surface, x: coords.x, y: coords.y)
     }
+
+    func sampleGrid(center: ScreenCanvasCoords, size: Int) -> [Color?] {
+        sampleDrawingGrid(surface: surface, center: center, size: size)
+    }
 }
 
 /// What the Apple editor shows inside the Document bounds: Pixel artwork
-/// wins where it has content; otherwise a visible active Reference supplies
-/// the underlay color through the core's sampling-aware accessor.
+/// wins where it has content; otherwise the visible Reference supplies the
+/// underlay color regardless of which Layer is active.
 struct DocumentSamplingSurface: SamplingSurface {
     private let document: AppleDocument
     private let pixelComposite: Data
-    private let samplesActiveReference: Bool
+    private let width: Int32
+    private let height: Int32
 
     init(document: AppleDocument) {
         self.document = document
         self.pixelComposite = document.composite()
-        let activeLayerId = document.activeLayerId()
-        self.samplesActiveReference = document.layers().contains {
-            $0.id == activeLayerId && $0.kind == .reference && $0.visible
-        }
+        self.width = Int32(document.width())
+        self.height = Int32(document.height())
     }
 
     func samplePixel(at coords: ScreenCanvasCoords) -> Color? {
-        guard containsPixel(at: coords) else { return nil }
-        let pixelColor = colorAt(
-            pixelComposite,
-            width: Int32(document.width()),
-            x: coords.x,
-            y: coords.y
+        let referenceColor = document.visibleReferencePixels(points: [coords])[0]
+        return mergedColor(at: coords, referenceColor: referenceColor)
+    }
+
+    func sampleGrid(center: ScreenCanvasCoords, size: Int) -> [Color?] {
+        let points = mapSampleGrid(center: center, size: size) { $0 }
+        let referenceColors = document.visibleReferencePixels(points: points)
+        precondition(
+            referenceColors.count == points.count,
+            "Visible Reference sampling must preserve the requested point count"
         )
-        if pixelColor.a > 0 || !samplesActiveReference {
-            return pixelColor
+        return zip(points, referenceColors).map { point, referenceColor in
+            mergedColor(at: point, referenceColor: referenceColor)
         }
-        return document.tryGetPixel(
-            x: UInt32(coords.x),
-            y: UInt32(coords.y)
-        ) ?? pixelColor
+    }
+
+    private func mergedColor(
+        at coords: ScreenCanvasCoords,
+        referenceColor: Color
+    ) -> Color? {
+        guard containsPixel(at: coords) else { return nil }
+        let pixelColor = colorAt(pixelComposite, width: width, x: coords.x, y: coords.y)
+        return pixelColor.a > 0 ? pixelColor : referenceColor
     }
 
     private func containsPixel(at coords: ScreenCanvasCoords) -> Bool {
         coords.x >= 0
             && coords.y >= 0
-            && coords.x < Int32(document.width())
-            && coords.y < Int32(document.height())
+            && coords.x < width
+            && coords.y < height
     }
 }
 
@@ -62,9 +83,7 @@ func sampleGrid(
     center: ScreenCanvasCoords,
     size: Int
 ) -> [Color?] {
-    sampleGrid(center: center, size: size) { coords in
-        surface.samplePixel(at: coords)
-    }
+    surface.sampleGrid(center: center, size: size)
 }
 
 /// Samples the color the user sees at `(x, y)` — the composite of every
@@ -85,27 +104,35 @@ func compositeSample(surface: some DrawingSurface, x: Int32, y: Int32) -> Color?
 /// `size` is expected to be an odd positive integer; the center cell is at
 /// index `(size² - 1) / 2` in the returned array.
 func sampleGrid(surface: some DrawingSurface, center: ScreenCanvasCoords, size: Int) -> [Color?] {
+    sampleDrawingGrid(surface: surface, center: center, size: size)
+}
+
+private func sampleDrawingGrid(
+    surface: any DrawingSurface,
+    center: ScreenCanvasCoords,
+    size: Int
+) -> [Color?] {
     let width = Int32(surface.width())
     // One composite fetch for the whole grid — not one per cell.
     let composite = surface.composite()
-    return sampleGrid(center: center, size: size) { coords in
+    return mapSampleGrid(center: center, size: size) { coords in
         guard surface.containsPixel(x: coords.x, y: coords.y) else { return nil }
         return colorAt(composite, width: width, x: coords.x, y: coords.y)
     }
 }
 
 /// Owns the row-major neighborhood traversal shared by every sampling source.
-private func sampleGrid(
+private func mapSampleGrid<Value>(
     center: ScreenCanvasCoords,
     size: Int,
-    samplePixel: (ScreenCanvasCoords) -> Color?
-) -> [Color?] {
+    transform: (ScreenCanvasCoords) -> Value
+) -> [Value] {
     let half = Int32(size / 2)
-    var result: [Color?] = []
+    var result: [Value] = []
     result.reserveCapacity(size * size)
     for dy in -half...half {
         for dx in -half...half {
-            result.append(samplePixel(ScreenCanvasCoords(
+            result.append(transform(ScreenCanvasCoords(
                 x: center.x + dx,
                 y: center.y + dy
             )))

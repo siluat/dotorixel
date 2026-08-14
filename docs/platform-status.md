@@ -14,9 +14,9 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Rectangle | ✅ | ✅ | ✅ | Outline only, snapshot-restore preview |
 | Ellipse | ✅ | ✅ | ✅ | Outline only, snapshot-restore preview |
 | Flood fill | ✅ | ✅ | ✅ | BFS, 4-connectivity; one-shot tap fill on both shells |
-| Eyedropper | — | ✅ | ✅ | Drag-and-commit; releases to FG (left-click/touch) or BG (right-click); skips transparent and out-of-bounds samples; not undoable. Apple samples the composite; Web samples the active layer. Loupe overlay tracked in its own row |
+| Eyedropper | — | ✅ | ✅ | Drag-and-commit to FG/BG; skips transparent and out-of-bounds samples. Apple samples visible Pixel art, then the active Reference underlay; Web samples the active layer. |
 | Move | — | ✅ | ✅ | Drag shifts the whole canvas relative to the drag anchor (never cumulative); off-canvas pixels clipped on commit, vacated areas transparent |
-| Selection / Marquee | 🔧 | 🔧 | 🔧 | Web complete. Apple: Marquee/Floating, clipboard, keyboard operations, touch action bar, and relaunch persistence complete; Reference Layer integration pending. |
+| Selection / Marquee | 🔧 | 🔧 | ✅ | Web and Apple complete: Marquee/Floating, clipping, transforms, clipboard, keyboard/touch actions, persistence, and Reference-active hide/no-op semantics. |
 | Right-click background color | — | ✅ | ✅ | Supported paint tools draw with BG on right-click; eraser stays transparent. Apple: macOS right-click + iPadOS pointer secondary button; touch always FG |
 | Stroke interpolation | ✅ | ✅ | ✅ | Bresenham algorithm |
 | Pixel-perfect filter | ✅ | ✅ | ✅ | L-corner 3-window rule (Aseprite-style). Toggle default ON, disabled on non-freehand tools; persisted with the session on both shells |
@@ -121,7 +121,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Document/Layer model | 🔧 | 🔧 | 🔧 | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple: layer panel with select + visibility + add/remove/reorder (mid-stroke seals on all) |
 | Frame cel-grid | ✅ | ✅ | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: undoable add/duplicate/remove/reorder + set-active journal intents (undo restores frame+cel); multi-frame V7 persistence round-trips through the snapshot |
 | Per-frame duration | ✅ | ✅ | ⬜ | Each frame holds a display duration; default 100ms (10fps); identity unchanged when retimed. 1–60000ms clamp at the shell boundary (core trusts the value). Web complete: active-frame editor in the timeline corner (ms + derived fps), undoable, V7-persisted. Apple pending |
-| Reference Layer (timeline kind) | ✅ | ✅ | 🔧 | Singleton viewport underlay with Pixel-only composites. Apple: native import/render/row complete; editing, sampling, placement, navigation bounds, and persistence pending |
+| Reference Layer (timeline kind) | ✅ | ✅ | 🔧 | Singleton underlay with Pixel-only composites. Apple: import/render, edit guards, and Eyedropper/Loupe sampling complete; placement, navigation bounds, and persistence pending. |
 | Timeline panel | — | 🔧 | 🔧 | Web uses a bottom-docked Layer × Frame grid. Apple uses a layer sidebar with drag reorder, fixed bottom Reference row, and placeholder frame area; Web mobile row targets remain pending |
 | Playback (animation) | — | ✅ | ⬜ | Per-tab engine: transient Playhead + rAF clock holds each frame its `duration_ms` (carry → no drift), loops or stops at end. Previews committed art via `composite_at` — no Document mutation/history/dirty, never persisted; tab/document change stops it. Transport strip (Play/Pause · Loop · ▼ playhead) wired on docked + mobile |
 | Onion skinning | — | ✅ | ⬜ | Adjacent-frame ghosts while drawing (prev/next 1, clamped, no wrap): prev warm / next cool, dimmed, committed art on top; hidden during Playback; never in exports; per-tab persisted toggle in the transport strip |

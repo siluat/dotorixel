@@ -84,6 +84,13 @@ enum EditorTool: String, CaseIterable {
         }
     }
 
+    /// Whether starting this tool requires an editable active Pixel Layer.
+    /// The state boundary consults this once before opening a stroke session;
+    /// sessions can then trust that every mutation target owns Pixel data.
+    var requiresEditableLayer: Bool {
+        self != .eyedropper
+    }
+
     /// Whether this tool's strokes run through the pixel-perfect L-corner
     /// filter (web parity: freehand tools only). Drives the TopBar toggle's
     /// enabled state — shapes, fill, and other tools bypass the filter.

@@ -1,5 +1,72 @@
 import Foundation
 
+/// Read-only color surface shared by Eyedropper commit and Loupe preview.
+/// It names what sampling sees without exposing drawing or Layer structure.
+protocol SamplingSurface {
+    func samplePixel(at coords: ScreenCanvasCoords) -> Color?
+}
+
+/// Pixel-only sampling used by hosts that do not provide an editor underlay.
+struct CompositeSamplingSurface: SamplingSurface {
+    let surface: any DrawingSurface
+
+    func samplePixel(at coords: ScreenCanvasCoords) -> Color? {
+        compositeSample(surface: surface, x: coords.x, y: coords.y)
+    }
+}
+
+/// What the Apple editor shows inside the Document bounds: Pixel artwork
+/// wins where it has content; otherwise a visible active Reference supplies
+/// the underlay color through the core's sampling-aware accessor.
+struct DocumentSamplingSurface: SamplingSurface {
+    private let document: AppleDocument
+    private let pixelComposite: Data
+    private let samplesActiveReference: Bool
+
+    init(document: AppleDocument) {
+        self.document = document
+        self.pixelComposite = document.composite()
+        let activeLayerId = document.activeLayerId()
+        self.samplesActiveReference = document.layers().contains {
+            $0.id == activeLayerId && $0.kind == .reference && $0.visible
+        }
+    }
+
+    func samplePixel(at coords: ScreenCanvasCoords) -> Color? {
+        guard containsPixel(at: coords) else { return nil }
+        let pixelColor = colorAt(
+            pixelComposite,
+            width: Int32(document.width()),
+            x: coords.x,
+            y: coords.y
+        )
+        if pixelColor.a > 0 || !samplesActiveReference {
+            return pixelColor
+        }
+        return document.tryGetPixel(
+            x: UInt32(coords.x),
+            y: UInt32(coords.y)
+        ) ?? pixelColor
+    }
+
+    private func containsPixel(at coords: ScreenCanvasCoords) -> Bool {
+        coords.x >= 0
+            && coords.y >= 0
+            && coords.x < Int32(document.width())
+            && coords.y < Int32(document.height())
+    }
+}
+
+func sampleGrid(
+    surface: any SamplingSurface,
+    center: ScreenCanvasCoords,
+    size: Int
+) -> [Color?] {
+    sampleGrid(center: center, size: size) { coords in
+        surface.samplePixel(at: coords)
+    }
+}
+
 /// Samples the color the user sees at `(x, y)` — the composite of every
 /// visible layer, not any single layer's buffer. This is the web's sampling
 /// rule, carried by the seam so multi-layer sampling needs no rework.
@@ -21,18 +88,27 @@ func sampleGrid(surface: some DrawingSurface, center: ScreenCanvasCoords, size: 
     let width = Int32(surface.width())
     // One composite fetch for the whole grid — not one per cell.
     let composite = surface.composite()
+    return sampleGrid(center: center, size: size) { coords in
+        guard surface.containsPixel(x: coords.x, y: coords.y) else { return nil }
+        return colorAt(composite, width: width, x: coords.x, y: coords.y)
+    }
+}
+
+/// Owns the row-major neighborhood traversal shared by every sampling source.
+private func sampleGrid(
+    center: ScreenCanvasCoords,
+    size: Int,
+    samplePixel: (ScreenCanvasCoords) -> Color?
+) -> [Color?] {
     let half = Int32(size / 2)
     var result: [Color?] = []
     result.reserveCapacity(size * size)
     for dy in -half...half {
         for dx in -half...half {
-            let x = center.x + dx
-            let y = center.y + dy
-            guard surface.containsPixel(x: x, y: y) else {
-                result.append(nil)
-                continue
-            }
-            result.append(colorAt(composite, width: width, x: x, y: y))
+            result.append(samplePixel(ScreenCanvasCoords(
+                x: center.x + dx,
+                y: center.y + dy
+            )))
         }
     }
     return result

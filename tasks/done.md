@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 279 | [Apple reference edit guards + sampling — editability authority, eyedropper reads the underlay](../issues/279-apple-reference-edit-guards-sampling.md) | 2026-08-14 |
 | 278 | [Apple reference import + underlay — image import, viewport underlay render, timeline row](../issues/278-apple-reference-import-underlay.md) | 2026-08-13 |
 | 277 | [Apple UniFFI reference bindings — singleton reference layer, placement, and sampling reads](../issues/277-apple-uniffi-reference-bindings.md) | 2026-08-13 |
 | 276 | [Apple marquee persistence — selection survives relaunch](../issues/276-apple-marquee-persistence.md) | 2026-08-12 |

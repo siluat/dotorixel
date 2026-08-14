@@ -228,6 +228,12 @@ final class TabState {
     /// sample. The pointer button picks the stroke's draw color (primary →
     /// foreground, secondary → background); touch input is always primary.
     func beginStroke(at coords: ScreenCanvasCoords, button: PointerButton = .primary) {
+        // Editability is enforced once at the state boundary. Mutation
+        // sessions can trust their target is a Pixel Layer, while the
+        // Eyedropper remains available for what-you-see Reference sampling.
+        guard !shared.activeTool.requiresEditableLayer || isActiveLayerEditable else {
+            return
+        }
         // The pencil is touching down (or a finger stroke starting) — the
         // hover target gives way to the paint it was previewing.
         hoverPoint = nil
@@ -379,6 +385,7 @@ final class TabState {
     /// invisible to observation; strokes and undo/redo both bump the version).
     var marquee: AppleMarqueeRegion? {
         _ = canvasVersion
+        guard isActiveLayerEditable else { return nil }
         return floatingSelection.displayedMarquee(in: document)
     }
 
@@ -478,7 +485,7 @@ final class TabState {
     /// live Floating Selection follows the web policy: commit its move first,
     /// then clear the translated Marquee as a distinct Edit.
     func clearMarqueePixels() {
-        guard !isDrawing else { return }
+        guard !isDrawing, isActiveLayerEditable else { return }
         if performEdit({ document.clearMarqueePixels(); return true }) {
             canvasVersion += 1
         }
@@ -1146,6 +1153,9 @@ extension TabState: StrokeSessionHost {
     /// The document viewed through the `DrawingSurface` seam — sessions
     /// paint the active layer and read the composite, nothing structural.
     var drawingSurface: any DrawingSurface { document }
+    var samplingSurface: any SamplingSurface {
+        DocumentSamplingSurface(document: document)
+    }
 
     /// Stroke draw colors come from the workspace-shared slots.
     var foregroundColor: Color { shared.foregroundColor }

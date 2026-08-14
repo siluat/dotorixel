@@ -11,6 +11,7 @@ struct PixelCanvasView {
     let viewport: AppleViewport
     let showGrid: Bool
     var workspace: Workspace
+    var interactionPresentation: CanvasInteractionPresentation = .available
     /// Observed by SwiftUI to trigger re-renders when canvas pixels change.
     /// The value itself is unused — only its change matters for the diff.
     var canvasVersion: Int = 0
@@ -96,6 +97,7 @@ extension PixelCanvasView: NSViewRepresentable {
         let coordinator = context.coordinator
         coordinator.viewport = viewport
         coordinator.workspace = workspace
+        mtkView.isEditingBlocked = interactionPresentation == .editBlocked
 
         guard let renderer = coordinator.renderer else { return }
         configureRenderer(renderer, mtkView: mtkView)
@@ -177,6 +179,7 @@ extension PixelCanvasView: UIViewRepresentable {
         let coordinator = context.coordinator
         coordinator.viewport = viewport
         coordinator.workspace = workspace
+        mtkView.isEditingBlocked = interactionPresentation == .editBlocked
 
         // Reclaim key focus when the canvas-size fields release it —
         // `presses*` (hardware-keyboard shortcuts) only reach the canvas

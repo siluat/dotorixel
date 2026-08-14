@@ -1339,6 +1339,23 @@
         }
       }
     },
+    "Select a Pixel Layer to edit" : {
+      "comment" : "Canvas notice shown when a mutation tool targets the non-editable Reference Layer.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編集するにはピクセルレイヤーを選択してください"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "편집하려면 픽셀 레이어를 선택하세요"
+          }
+        }
+      }
+    },
     "Selection" : {
       "comment" : "Tool display name. web: tool_selection",
       "localizations" : {

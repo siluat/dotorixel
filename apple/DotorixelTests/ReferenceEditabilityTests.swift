@@ -243,8 +243,11 @@ struct ReferenceEditabilityTests {
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let green = Color(r: 0, g: 0xFF, b: 0, a: 0xFF)
         let black = Color(r: 0, g: 0, b: 0, a: 0xFF)
+        let translucentRed = Color(r: 0xFF, g: 0, b: 0, a: 0x80)
+        let translucentRedOverGreen = Color(r: 0x80, g: 0x7F, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
         try tab.document.setPixel(x: 0, y: 0, color: red)
+        try tab.document.setPixel(x: 0, y: 1, color: translucentRed)
         var referencePixels = Data()
         for index in 0..<16 {
             referencePixels.append(contentsOf: index == 15
@@ -286,6 +289,12 @@ struct ReferenceEditabilityTests {
         #expect(tab.samplingLoupe.grid[LoupeGeometry.centerIndex] == green)
         tab.endStroke()
         #expect(workspace.shared.foregroundColor == green)
+
+        workspace.shared.foregroundColor = black
+        tab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 1))
+        #expect(tab.samplingLoupe.grid[LoupeGeometry.centerIndex] == translucentRedOverGreen)
+        tab.endStroke()
+        #expect(workspace.shared.foregroundColor == translucentRedOverGreen)
 
         workspace.shared.foregroundColor = black
         tab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))

@@ -82,7 +82,7 @@ trust the precondition):
 ### Key Decisions
 
 - Kept `isActiveLayerEditable` as the single Layer-kind authority at `TabState` entry boundaries; stroke sessions trust the admitted target.
-- Kept Reference pixels out of `Document.composite()` and composed sampling explicitly: visible Pixel art wins, then the visible Reference supplies the fallback regardless of the active Layer.
+- Kept Reference pixels out of `Document.composite()` and composed sampling explicitly: the Pixel composite blends source-over the visible Reference regardless of the active Layer.
 - Drove pointer and touch affordances from one view-facing presentation value; Eyedropper remains available on Reference Layers.
 - Used one `SamplingSurface` contract for both committed samples and the Loupe grid so preview and commit cannot diverge.
 

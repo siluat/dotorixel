@@ -759,14 +759,15 @@ impl AppleDocument {
         self.inner.lock().unwrap().try_get_pixel(x, y)
     }
 
-    /// Samples the visible singleton Reference Layer at every document-space
-    /// point under one lock. The result preserves input order and length;
-    /// absent, hidden, out-of-bounds, and outside-footprint samples are
-    /// transparent so callers can merge the batch with the Pixel composite.
-    fn visible_reference_pixels(&self, points: Vec<ScreenCanvasCoords>) -> Vec<Color> {
+    /// Samples the visible artwork stack at every document-space point under
+    /// one lock: the Pixel composite source-over the visible Reference
+    /// underlay. The result preserves input order and length; out-of-bounds
+    /// points are transparent.
+    fn sample_visible_pixels(&self, points: Vec<ScreenCanvasCoords>) -> Vec<Color> {
         let document = self.inner.lock().unwrap();
         let width = document.width();
         let height = document.height();
+        let pixel_composite = document.composite();
         let reference = document.layers().iter().find_map(|layer| {
             if !layer.visible {
                 return None;
@@ -789,9 +790,17 @@ impl AppleDocument {
                 if x >= width || y >= height {
                     return Color::TRANSPARENT;
                 }
-                reference
+                let offset = (y as usize * width as usize + x as usize) * 4;
+                let pixel_color = Color::new(
+                    pixel_composite[offset],
+                    pixel_composite[offset + 1],
+                    pixel_composite[offset + 2],
+                    pixel_composite[offset + 3],
+                );
+                let reference_color = reference
                     .and_then(|data| data.sample_at(x, y))
-                    .unwrap_or(Color::TRANSPARENT)
+                    .unwrap_or(Color::TRANSPARENT);
+                pixel_color.source_over(reference_color)
             })
             .collect()
     }

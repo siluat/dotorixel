@@ -14,7 +14,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Rectangle | ✅ | ✅ | ✅ | Outline only, snapshot-restore preview |
 | Ellipse | ✅ | ✅ | ✅ | Outline only, snapshot-restore preview |
 | Flood fill | ✅ | ✅ | ✅ | BFS, 4-connectivity; one-shot tap fill on both shells |
-| Eyedropper | — | ✅ | ✅ | Drag-and-commit to FG/BG; skips transparent and out-of-bounds samples. Apple samples visible Pixel art, then the visible Reference underlay; Web samples the active layer. |
+| Eyedropper | — | ✅ | ✅ | Drag-and-commit to FG/BG; skips transparent and out-of-bounds samples. Apple samples the Pixel composite source-over the visible Reference; Web samples the active layer. |
 | Move | — | ✅ | ✅ | Drag shifts the whole canvas relative to the drag anchor (never cumulative); off-canvas pixels clipped on commit, vacated areas transparent |
 | Selection / Marquee | ✅ | ✅ | ✅ | Web and Apple: Marquee/Floating, clipping, transforms, clipboard, keyboard/touch actions, persistence, and Reference-active hide/no-op semantics. |
 | Right-click background color | — | ✅ | ✅ | Supported paint tools draw with BG on right-click; eraser stays transparent. Apple: macOS right-click + iPadOS pointer secondary button; touch always FG |

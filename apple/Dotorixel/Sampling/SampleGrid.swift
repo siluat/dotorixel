@@ -33,41 +33,30 @@ struct CompositeSamplingSurface: SamplingSurface {
 /// underlay color regardless of which Layer is active.
 struct DocumentSamplingSurface: SamplingSurface {
     private let document: AppleDocument
-    private let pixelComposite: Data
     private let width: Int32
     private let height: Int32
 
     init(document: AppleDocument) {
         self.document = document
-        self.pixelComposite = document.composite()
         self.width = Int32(document.width())
         self.height = Int32(document.height())
     }
 
     func samplePixel(at coords: ScreenCanvasCoords) -> Color? {
-        let referenceColor = document.visibleReferencePixels(points: [coords])[0]
-        return mergedColor(at: coords, referenceColor: referenceColor)
+        guard containsPixel(at: coords) else { return nil }
+        return document.sampleVisiblePixels(points: [coords])[0]
     }
 
     func sampleGrid(center: ScreenCanvasCoords, size: Int) -> [Color?] {
         let points = mapSampleGrid(center: center, size: size) { $0 }
-        let referenceColors = document.visibleReferencePixels(points: points)
+        let visibleColors = document.sampleVisiblePixels(points: points)
         precondition(
-            referenceColors.count == points.count,
-            "Visible Reference sampling must preserve the requested point count"
+            visibleColors.count == points.count,
+            "Visible artwork sampling must preserve the requested point count"
         )
-        return zip(points, referenceColors).map { point, referenceColor in
-            mergedColor(at: point, referenceColor: referenceColor)
+        return zip(points, visibleColors).map { point, visibleColor in
+            containsPixel(at: point) ? visibleColor : nil
         }
-    }
-
-    private func mergedColor(
-        at coords: ScreenCanvasCoords,
-        referenceColor: Color
-    ) -> Color? {
-        guard containsPixel(at: coords) else { return nil }
-        let pixelColor = colorAt(pixelComposite, width: width, x: coords.x, y: coords.y)
-        return pixelColor.a > 0 ? pixelColor : referenceColor
     }
 
     private func containsPixel(at coords: ScreenCanvasCoords) -> Bool {

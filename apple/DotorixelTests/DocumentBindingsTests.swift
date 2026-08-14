@@ -599,38 +599,45 @@ struct DocumentBindingsTests {
             width: 2, height: 2, firstLayerId: pixelId, firstLayerName: "Layer 1")
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
         let green = Color(r: 0x00, g: 0xFF, b: 0x00, a: 0xFF)
+        let translucentRed = Color(r: 0xFF, g: 0, b: 0, a: 0x80)
+        let translucentRedOverGreen = Color(r: 0x80, g: 0x7F, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
         try doc.setPixel(x: 0, y: 0, color: red)
+        try doc.setPixel(x: 0, y: 1, color: translucentRed)
 
         let compositeWithoutReference = doc.composite()
         let exportWithoutReference = doc.compositeForExport()
         try doc.addReferenceLayer(
             newId: referenceId,
             name: "Reference",
-            sourceRgba: Data([0x00, 0xFF, 0x00, 0xFF]),
-            sourceWidth: 1,
-            sourceHeight: 1
+            sourceRgba: Data([
+                0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF,
+                0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF,
+            ]),
+            sourceWidth: 2,
+            sourceHeight: 2
         )
         try doc.setReferencePlacement(
             id: referenceId,
             placement: AppleReferencePlacementUpdate(x: 0, y: 0, scale: 1))
 
         #expect(doc.tryGetPixel(x: 0, y: 0) == green)
-        #expect(doc.tryGetPixel(x: 1, y: 1) == nil)
-        #expect(doc.visibleReferencePixels(points: [
+        #expect(doc.tryGetPixel(x: 2, y: 1) == nil)
+        #expect(doc.sampleVisiblePixels(points: [
             ScreenCanvasCoords(x: 0, y: 0),
             ScreenCanvasCoords(x: 1, y: 1),
+            ScreenCanvasCoords(x: 0, y: 1),
             ScreenCanvasCoords(x: -1, y: 0),
-        ]) == [green, transparent, transparent])
+        ]) == [red, green, translucentRedOverGreen, transparent])
         #expect(doc.composite() == compositeWithoutReference)
         #expect(doc.compositeForExport() == exportWithoutReference)
         #expect(doc.composite() == doc.compositeForExport())
 
         try doc.setActiveLayer(id: pixelId)
-        #expect(doc.visibleReferencePixels(points: [ScreenCanvasCoords(x: 0, y: 0)]) == [green])
+        #expect(doc.sampleVisiblePixels(points: [ScreenCanvasCoords(x: 1, y: 1)]) == [green])
 
         try doc.setLayerVisibility(id: referenceId, visible: false)
-        #expect(doc.visibleReferencePixels(points: [ScreenCanvasCoords(x: 0, y: 0)]) == [
+        #expect(doc.sampleVisiblePixels(points: [ScreenCanvasCoords(x: 1, y: 1)]) == [
             transparent,
         ])
         #expect(doc.composite() == compositeWithoutReference)

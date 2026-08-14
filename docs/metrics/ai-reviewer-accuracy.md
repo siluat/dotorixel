@@ -10,14 +10,18 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 213 | 160 | 53 | 296 | 75% | 35% |
-| cubic-dev-ai[bot] | 327 | 256 | 71 | 218 | 78% | 54% |
-| coderabbitai[bot] | 328 | 235 | 93 | 235 | 72% | 50% |
+| greptile-apps[bot] | 214 | 161 | 53 | 296 | 75% | 35% |
+| cubic-dev-ai[bot] | 328 | 256 | 72 | 219 | 78% | 54% |
+| coderabbitai[bot] | 328 | 235 | 93 | 236 | 72% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #367 | greptile-apps[bot] | Accept | Any nonzero Pixel alpha bypassed the visible Reference instead of matching the renderer's source-over blend; batched samples now compose translucent Pixel artwork over the underlay |
+| #367 | cubic-dev-ai[bot] | Reject | Reference opacity below 1 is unreachable in the Apple shell: import, rendering, and the available UI all fix it at full opacity until a future opacity feature lands |
+| #367 | cubic-dev-ai[bot] | Miss | Missed the translucent-Pixel source-over mismatch accepted from Greptile |
+| #367 | coderabbitai[bot] | Miss | Re-reviewed the follow-up with no actionable findings and missed the translucent-Pixel source-over mismatch |
 | #367 | cubic-dev-ai[bot] | Accept | Reference-aware Loupe sampling crossed UniFFI and acquired the Document mutex up to 81 times per pointer event; neighborhood reads now use one ordered batch |
 | #367 | cubic-dev-ai[bot] | Accept | The Selection/Marquee note claimed Web and Apple complete while Core/Web remained marked partial; all three completed columns now agree with the feature status |
 | #367 | greptile-apps[bot] | Accept | Sampling required the Reference Layer to stay active even though the underlay remains visible after switching to Pixel; visible Reference fallback is now independent of Layer activity |

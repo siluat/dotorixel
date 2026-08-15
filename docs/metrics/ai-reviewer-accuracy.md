@@ -10,14 +10,21 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 216 | 163 | 53 | 300 | 75% | 35% |
-| cubic-dev-ai[bot] | 333 | 261 | 72 | 220 | 78% | 54% |
-| coderabbitai[bot] | 331 | 238 | 93 | 239 | 72% | 50% |
+| greptile-apps[bot] | 217 | 163 | 54 | 303 | 75% | 35% |
+| cubic-dev-ai[bot] | 336 | 264 | 72 | 220 | 79% | 55% |
+| coderabbitai[bot] | 332 | 239 | 93 | 241 | 72% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #368 | cubic-dev-ai[bot] | Accept | Gesture ownership was keyed on the corner a press resolved to rather than the grip pressed, so on a box under the touch minimum every update and release went unclaimed and the placement froze with the gesture stuck open |
+| #368 | cubic-dev-ai[bot] | Accept | The VoiceOver resize action skipped the minimum-projected-size floor the drag and pinch stop at, letting an adjust-gesture user shrink the box out of reach |
+| #368 | cubic-dev-ai[bot] | Accept | The new Korean accessibility label used 레퍼런스 이미지 where the catalog consistently says 참조 이미지, so VoiceOver announced two names for one concept |
+| #368 | coderabbitai[bot] | Accept | Same Korean terminology divergence reported independently |
+| #368 | greptile-apps[bot] | Reject | A drag resumed after a pinch commits a second entry only when the user actually scaled and then actually moved — two completed gestures under this issue's Edit contract. A resumed drag that does not move reopens with a fresh baseline, so its zero delta leaves the document unchanged and the Edit Baseline records nothing |
+| #368 | greptile-apps[bot] | Miss (×3) | Missed the ownership-key defect, the VoiceOver floor bypass, and the Korean terminology divergence |
+| #368 | coderabbitai[bot] | Miss (×2) | Missed the ownership-key defect and the VoiceOver floor bypass |
 | #368 | greptile-apps[bot] | Accept | A pinch ending before its underlying drag released the shared drag latch, so the still-live drag reopened and replayed its whole accumulated translation onto the just-committed placement |
 | #368 | coderabbitai[bot] | Accept | Same latch defect, plus the second failure mode it enabled: a grip pressed during a body drag fed that drag its own translation. Gesture ownership is now one role value the interaction enforces |
 | #368 | cubic-dev-ai[bot] | Accept | Same latch defect reported independently |

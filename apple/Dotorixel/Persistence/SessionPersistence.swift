@@ -378,8 +378,12 @@ actor SessionPersistence {
         pixelLayerIds: [String]
     ) -> AppleReferenceLayerSnapshot? {
         guard let stored,
-              UUID(uuidString: stored.id) != nil,
-              !pixelLayerIds.contains(stored.id),
+              let storedId = UUID(uuidString: stored.id),
+              // Compare parsed values, not strings: UUID equality ignores
+              // hex casing, exactly as the hydration parser does — a
+              // case-variant collision must fail here, not as a
+              // duplicate-id hydration error that costs the session.
+              !pixelLayerIds.contains(where: { UUID(uuidString: $0) == storedId }),
               let decoded = try? appleDecodeReferencePng(bytes: stored.sourcePng),
               stored.naturalWidth == Int(decoded.width),
               stored.naturalHeight == Int(decoded.height),

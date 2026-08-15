@@ -376,6 +376,33 @@ struct SessionPersistenceTests {
         #expect(restored.activeTab.document.activeLayerId() == pixelLayerId)
     }
 
+    @Test("a case-variant reference id collision is still dropped — hydration parses UUIDs case-insensitively")
+    func caseVariantReferenceIdCollisionDropsReferenceOnly() async throws {
+        let container = try makeInMemoryContainer()
+        let persistence = SessionPersistence(modelContainer: container)
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let pixelLayerId = tab.document.activeLayerId()
+        try tab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png", rgba: Data([0xFF, 0, 0, 0xFF]), width: 1, height: 1))
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        // The colliding id differs from the Pixel Layer's only by hex
+        // casing — the hydration parser treats them as the same UUID, so
+        // the boundary guard must too.
+        let context = ModelContext(container)
+        let record = try #require(
+            try context.fetch(FetchDescriptor<DocumentRecord>()).first)
+        record.reference?.id = pixelLayerId.uppercased()
+        try context.save()
+
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        #expect(storedSnapshot.tabs[0].reference == nil)
+        #expect(restored.activeTab.document.layers().map(\.kind) == [.pixel])
+    }
+
     @Test("a record without a stored Marquee restores selection-free with its pixels unchanged")
     func absentMarqueeRestoresSelectionFree() async throws {
         let persistence = try makeInMemoryPersistence()

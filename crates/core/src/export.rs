@@ -278,15 +278,25 @@ pub fn decode_rgba_png(bytes: &[u8], max_pixel_bytes: usize) -> Result<DecodedPn
             message: format!("expected 8-bit RGBA, got {:?}", reader.output_color_type()),
         });
     }
-    let output_len = reader.output_buffer_size();
-    if output_len > max_pixel_bytes {
-        return Err(PngDecodeError {
+    // Compute the RGBA output size from the header dimensions with checked
+    // math instead of trusting the decoder's `usize` arithmetic: the header
+    // is hostile input and usize is 32-bit on wasm32, so a wrapping product
+    // must become a deterministic error, never an under-sized allocation
+    // (same defense as `encode_spritesheet_png`). `u32 × u32` fits u64; only
+    // the `× 4` needs the checked step.
+    let (width, height) = {
+        let info = reader.info();
+        (info.width, info.height)
+    };
+    let output_len = (u64::from(width) * u64::from(height))
+        .checked_mul(4)
+        .filter(|&len| len <= max_pixel_bytes as u64)
+        .ok_or_else(|| PngDecodeError {
             message: format!(
-                "decoded buffer would be {output_len} bytes, exceeding the {max_pixel_bytes}-byte limit"
+                "decoded {width}x{height} RGBA exceeds the {max_pixel_bytes}-byte limit"
             ),
-        });
-    }
-    let mut pixels = vec![0u8; output_len];
+        })?;
+    let mut pixels = vec![0u8; output_len as usize];
     let frame = reader.next_frame(&mut pixels).map_err(map_err)?;
     pixels.truncate(frame.buffer_size());
     Ok(DecodedPng {
@@ -882,7 +892,7 @@ mod tests {
         let bytes = encode_rgba_png(3, 2, &[0u8; 3 * 2 * 4]).unwrap();
 
         let message = decode_rgba_png(&bytes, 8).unwrap_err().to_string();
-        assert!(message.contains("exceeding"), "actual error: {message}");
+        assert!(message.contains("exceeds"), "actual error: {message}");
 
         // The same stream decodes fine under a sufficient bound.
         assert!(decode_rgba_png(&bytes, 3 * 2 * 4).is_ok());

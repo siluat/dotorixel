@@ -27,7 +27,7 @@ Phase 5 is decomposed below (issues 267–282); Phase 6 is decomposed
 
 ### Phase 5 — Reference + selection + transforms (issues 267–282)
 
-Reference track frontier: `{280}` (267–279 done; selection + transforms complete).
+Reference track frontier: `{281}` (267–280 done; selection + transforms complete).
 
 Selection + transforms track:
 
@@ -35,7 +35,6 @@ Selection + transforms track:
 
 Reference track:
 
-- [280 — Reference placement overlay](../issues/280-apple-reference-placement-overlay.md)
 - [281 — Navigation bounds clamp](../issues/281-apple-reference-navigation-bounds.md)
 - [282 — Reference persistence](../issues/282-apple-reference-persistence.md)
 
@@ -66,7 +65,7 @@ Reference track:
 - Web pen priority — palm rejection + hover target cell, the web counterpart of the 252–254 Apple Pencil work. Pointer Events already report `pointerType: 'pen'` (Apple Pencil / S Pen / Surface pen), and the interaction machine already defers only `'touch'` begins and keeps pen out of the two-touch gesture check — but a pen begin is still blocked while any interaction is active, and a two-touch palm ends an in-flight pen stroke and enters pinching (isomorphic to the pre-252 Apple gap). Port the pen-priority semantics (CONTEXT.md: Originating Touch / Gesture Signal) to `canvas-interaction.svelte.ts`; hover preview arrives via pen hover pointer events (iPadOS 16.4+ Safari, S Pen, Windows stylus) with natural degradation. Whether to also admit mouse-hover target cell on desktop is a separate decision
 - TimelinePanel mobile touch targets — the header/row icon buttons (add-layer, add-reference, visibility, remove, reorder, fit-to-canvas) stay 24px on compact/medium, below the ≥44px touch guideline (`web-styling.md`) and the 187 spec §5 ("header actions ≥44px"). Pre-existing controls untouched by 191; enlarge to ≥44px on the mobile Timeline tab and coordinate with the 192 Frames action group.
 - Apple tab strip keyboard navigation — ArrowLeft/Right + Home/End roving focus for hardware keyboards (web `TabStrip.svelte` keydown parity); needs `FocusState`/`onKeyPress` plumbing. Deferred from the 264 PR review (cubic P3): not in the 264 acceptance scope, and an independent slice
-- Apple layer reorder — interrupted-drag recovery, OS-interruption residual. SwiftUI `DragGesture` has no cancel callback, so a drag whose `onEnded` never arrives leaves `TimelinePanel.reorderDrag` non-nil: row preview offsets stay applied and the body's `scrollDisabled` lock stays on until the next drag. The in-app orphan paths self-heal since PR #347 review (stack mutation mid-drag cancels via `onChange` of the panel-order ids; collapse cancels via `onDisappear`), so what remains is system-level teardown only — app backgrounded mid-drag, gesture preempted by the OS. The web clears the equivalent state on `pointerCancel`; a `scenePhase` reset is the candidate guard. Needs a hands-on read of whether teardown actually skips `onEnded` on device before adopting it (deferred from 260)
+- Apple layer reorder — interrupted-drag recovery, OS-interruption residual. SwiftUI `DragGesture` has no cancel callback, so a drag whose `onEnded` never arrives leaves `TimelinePanel.reorderDrag` non-nil: row preview offsets stay applied and the body's `scrollDisabled` lock stays on until the next drag. The in-app orphan paths self-heal since PR #347 review (stack mutation mid-drag cancels via `onChange` of the panel-order ids; collapse cancels via `onDisappear`), so what remains is system-level teardown only — app backgrounded mid-drag, gesture preempted by the OS. The web clears the equivalent state on `pointerCancel`; a `scenePhase` reset is the candidate guard. Needs a hands-on read of whether teardown actually skips `onEnded` on device before adopting it (deferred from 260). The Reference placement overlay (280) has the identical residual — a drag whose `onEnded` never arrives leaves its latch set and its placement draft applied — so adopt the guard for both surfaces at once
 - Apple bindings staleness guard — `build-rust.sh` bootstraps Swift bindings only when `apple/generated` is empty, so a workspace built before a binding-surface change compiles against stale bindings until regenerated manually; add an mtime-based regeneration guard (surfaced by greptile on PR #342; recurs as Phase 3 keeps growing the binding surface)
 - Apple auto-save failure surfacing — a failed SwiftData save restores the dirty state and retries silently, with no log or user-facing notice; the Apple sibling of the IndexedDB quota item above. Surface it (log, then notification) once the shell has a logging convention (noted in 265 review)
 - Flaky e2e: Reference Window reload persistence — `e2e/editor/reference-images.test.ts` "window position survives a page reload" failed once, then passed on solo and full re-runs (2026-07-04, surfaced during 205 verification). Timing-sensitive chain: drag via raw pointer events → reload → IndexedDB workspace restore. Investigate/stabilize if it recurs

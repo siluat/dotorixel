@@ -12,7 +12,9 @@ private final class FakeShortcutHost: KeyboardShortcutHost {
     private(set) var redoCount = 0
     private(set) var gridToggleCount = 0
     private(set) var swapColorsCount = 0
+    var isReferenceLayerPlacementActive = false
     private(set) var marqueeNudges: [FloatingSelectionOffset] = []
+    private(set) var referencePlacementNudges: [(dx: Int64, dy: Int64)] = []
     private(set) var marqueePixelClearCount = 0
     private(set) var marqueeDismissCount = 0
     private(set) var selectionCopyCount = 0
@@ -26,6 +28,9 @@ private final class FakeShortcutHost: KeyboardShortcutHost {
     func swapColors() { swapColorsCount += 1 }
     func nudgeMarquee(by delta: FloatingSelectionOffset) {
         marqueeNudges.append(delta)
+    }
+    func nudgeReferencePlacement(dx: Int64, dy: Int64) {
+        referencePlacementNudges.append((dx: dx, dy: dy))
     }
     func clearMarqueePixels() { marqueePixelClearCount += 1 }
     func clearMarqueeOrFloating() { marqueeDismissCount += 1 }
@@ -467,6 +472,37 @@ struct KeyboardShortcutControllerMarqueeNudgeTests {
                 FloatingSelectionOffset(dx: 0, dy: 1),
             ]
         )
+        #expect(host.referencePlacementNudges.isEmpty)
+    }
+
+    @Test("an active Reference Layer Placement takes the arrows instead of the Marquee")
+    func arrowsRouteToActiveReferencePlacement() {
+        let host = FakeShortcutHost()
+        host.isReferenceLayerPlacementActive = true
+        let controller = makeController(host: host)
+
+        #expect(controller.handleKeyDown(.arrowRight))
+        #expect(controller.handleKeyDown(.arrowUp, modifiers: .shift))
+
+        #expect(host.referencePlacementNudges.map(\.dx) == [1, 0])
+        #expect(host.referencePlacementNudges.map(\.dy) == [0, -10])
+        #expect(host.marqueeNudges.isEmpty)
+    }
+
+    @Test("a Reference-routed arrow still yields to the mid-stroke seal and text fields")
+    func referenceRoutedArrowsHonorTheSharedGuards() {
+        let host = FakeShortcutHost()
+        host.isReferenceLayerPlacementActive = true
+        host.isDrawing = true
+        let controller = makeController(host: host)
+
+        #expect(controller.handleKeyDown(.arrowRight))
+        #expect(host.referencePlacementNudges.isEmpty)
+
+        host.isDrawing = false
+        host.isTextInputFocused = true
+        #expect(!controller.handleKeyDown(.arrowRight))
+        #expect(host.referencePlacementNudges.isEmpty)
     }
 }
 

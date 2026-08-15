@@ -27,7 +27,7 @@ A Reference Layer's source-to-document geometry — the position and uniform sca
 _Avoid_: position, transform, geometry, viewport (all overloaded).
 
 **Reference Layer Placement Interaction**:
-The pointer- and keyboard-driven lifecycle for editing a Reference Layer Placement in the canvas viewport.
+The pointer-, touch-, and keyboard-driven lifecycle for editing a Reference Layer Placement in the canvas viewport — begin → live draft → commit, where the draft is what the overlay box and the rendered underlay both read until one completed gesture commits through the Edit Baseline as a single undoable edit (a gesture that ended where it started commits nothing). Owned per shell — the web's `createReferenceLayerPlacementInteraction`, the Apple shell's `ReferenceLayerPlacementInteraction` — because the gestures are platform input, not core geometry. Gestures: body drag (translate), corner-handle drag (uniform scale anchored on the opposite corner), arrow-key nudge, and fit-to-canvas; the Apple shell adds an in-overlay pinch that scales about the point under the fingers.
 _Avoid_: placement drag, overlay edit, transform interaction.
 
 **Reference Footprint**:

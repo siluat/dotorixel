@@ -1,6 +1,6 @@
 ---
 title: Apple reference placement overlay — drag to move, scale, fit to canvas
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -57,3 +57,91 @@ becomes directly manipulable.
 - [278 — Apple reference import + underlay](278-apple-reference-import-underlay.md)
 - [279 — Apple reference edit guards + sampling](279-apple-reference-edit-guards-sampling.md)
   (the paint no-op frees canvas gestures for placement)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Reference/ReferenceLayerPlacementInteraction.swift` | Added the framework-free begin → draft → commit gesture state, with move, opposite-corner scale, anchored pinch, and the minimum-projected-size floor. |
+| `apple/Dotorixel/Views/ReferenceLayerPlacementOverlay.swift` | Added the footprint→canvas-area projection, touch-minimum handle targets with nearest-corner resolution, and the dashed overlay that drives the gestures. |
+| `apple/Dotorixel/State/TabState.swift` | Added the placement-overlay subject, the gesture lifecycle, and the placement, nudge, and fit commands as single undoable Edits; the live draft now feeds both the overlay and the Metal underlay. |
+| `apple/Dotorixel/State/KeyboardShortcutController.swift` | Routed the arrow keys to an active Reference Layer Placement, falling back to the Marquee. |
+| `apple/Dotorixel/State/Workspace.swift` | Answered the routing read and forwarded placement nudges to the active tab. |
+| `apple/Dotorixel/Views/TimelinePanel.swift` | Added the active Reference row's fit-to-canvas affordance. |
+| `apple/Dotorixel/ContentView.swift` | Composed the placement overlay over the canvas, above the ants and below the transient aids. |
+| `apple/Dotorixel/Localizable.xcstrings` | Localized the fit-to-canvas label in Korean and Japanese. |
+| `apple/DotorixelTests/ReferenceLayerPlacementInteractionTests.swift` | Covered overlay visibility, each gesture's placement math, the live draft, and the commit contract (one gesture one undo, net-zero silent, boundary rejection, mid-stroke seal). |
+| `apple/DotorixelTests/ReferenceLayerPlacementOverlayTests.swift` | Covered the footprint↔screen projection and the handle targets' size and press resolution. |
+| `apple/DotorixelTests/DockedRegionSnapshotTests.swift` | Re-recorded the Reference row baseline, which now carries the fit affordance. |
+| `CONTEXT.md` | Brought the Reference Layer Placement Interaction definition up to date: the touch branch, the draft lifecycle, and its per-shell ownership. |
+| `docs/platform-status.md` | Marked Apple Reference placement complete, leaving navigation bounds and persistence pending. |
+
+### Key Decisions
+
+- Implemented the whole slice in the Swift shell: the core already owns the
+  placement invariant and the rotation-aware footprint, and the gestures are
+  platform input (points, translations, magnifications) whose FFI cost would
+  outweigh the duplication. The consequence is that the corner-drag diagonal
+  projection now exists in both shells; promote it to the core if that math
+  starts changing.
+- Dropped the Shift integer-scale snap this issue asked for. The web
+  implementation it cites has no such snap — Shift is the nudge multiplier
+  only — so parity won over the issue text. Approved with the user.
+- Committed the arrow nudge once per press rather than coalescing a burst.
+  Web parity, and a keyboard burst has no end signal to flush on without
+  inventing a timer; the Marquee nudge coalesces only because a Floating
+  Selection gives it a buffer.
+- Used the core's `fit_to_canvas` for the fit affordance (fills the canvas in
+  both directions), matching the web's `fitReferenceLayerToCanvas`, rather
+  than the import-time `auto_fit` (which caps at scale 1).
+- Scoped the touch pinch to the overlay box: viewport zoom keeps every pinch
+  outside it. Approved with the user.
+- Gated the overlay on one `TabState` projection read by the view, the
+  keyboard routing, and the renderer alike, derived from the existing
+  `isActiveLayerEditable` authority rather than a second Layer-kind test.
+- Gave the body only the box as its press target. Widening it to cover the
+  grips' overhang would have swallowed a touch-minimum ring of canvas all
+  around the box, where pan and zoom still belong; each grip carries its own
+  target instead, and a press re-resolves to the nearest corner so a box
+  narrower than the touch minimum stays usable.
+
+### Notes
+
+- Undo landing mid-drag from a hardware keyboard used to leave the draft
+  applied to the document that replaced it, and commit it on release.
+  Replacing the Document now cancels the draft.
+- Fixed two parity gaps found while auditing against the development guide:
+  the overlay type was missing the domain's "Layer" (web:
+  `ReferenceLayerPlacementOverlay`), and the corner grip was a fixed 12pt
+  where the web draws 16px for touch — now a macOS/iOS split.
+- The visual treatment was mirrored from the shipped web overlay (shared
+  accent/background tokens, 1px dash over a 3px wash); the `106 Reference
+  Layer` spec sheet in the `.pen` canvas was not opened directly.
+- The full Apple iOS test suite (602 tests) and the macOS app build pass.
+  Starting this task required regenerating both the `.xcodeproj` and
+  `apple/generated` — the stale-bindings backlog item reproduced exactly.
+
+## Deferred
+
+Out of this slice's scope, recorded so they are not rediscovered later.
+
+- **Gesture-interruption recovery.** SwiftUI `DragGesture` has no cancel
+  callback, so a drag whose `onEnded` never arrives (app backgrounded
+  mid-drag, gesture preempted by the OS) leaves the overlay's `isDragOpen`
+  latch set and its placement draft applied until the next gesture. The
+  in-app path is already closed — replacing the Document (undo/redo mid-drag)
+  cancels the draft in `TabState.document.didSet` — so what remains is
+  system-level teardown only. This is the same residual, with the same
+  candidate guard (a `scenePhase` reset), as the existing
+  "Apple layer reorder — interrupted-drag recovery" backlog item; the two
+  should be adopted together after a hands-on read of whether teardown
+  actually skips `onEnded` on device.
+- **macOS cursor over the placement box.** While a Reference Layer is active,
+  `InputMTKView` claims the whole canvas with an `operationNotAllowed` cursor
+  rect (issue 279). That still reads correctly for painting, but the overlay
+  box is now draggable underneath it, so the cursor denies an interaction
+  that works. macOS 14 has no `.pointerStyle`, so the fix is an
+  `onContinuousHover` + `NSCursor` push/pop on the overlay, whose push/pop
+  balance needs runtime verification (a missed pop leaves a stuck cursor).
+  Deferred rather than shipped unverified. The web sets `bodyCursor` on its
+  equivalent overlay, so this is also a parity gap.

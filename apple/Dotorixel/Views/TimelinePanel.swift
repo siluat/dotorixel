@@ -256,6 +256,9 @@ struct TimelinePanel: View {
                 referenceKindIcon
             }
             rowSelectButton(layer, isActive: isActive)
+            if layer.kind == .reference, isActive {
+                fitReferenceToCanvasButton(layer)
+            }
             removeLayerButton(layer)
             if layer.kind == .pixel {
                 reorderHandle(layer, panelIndex: panelIndex)
@@ -375,6 +378,19 @@ struct TimelinePanel: View {
         .accessibilityLabel(Text(verbatim: layer.name))
         .accessibilityValue(layer.kind == .reference ? Text("Reference image") : Text(verbatim: ""))
         .accessibilityAddTraits(isActive ? .isSelected : [])
+    }
+
+    /// The active Reference row's fit action: re-centers and re-fits the
+    /// placement to the canvas in one undoable step. Shown only on the active
+    /// row (web parity: `.fit-canvas-btn`), where the placement overlay is
+    /// live and the reset has a visible effect.
+    private func fitReferenceToCanvasButton(_ layer: AppleLayerMetadata) -> some View {
+        PanelIconButton(
+            systemName: "arrow.up.left.and.arrow.down.right",
+            accessibilityLabel: "Fit \(layer.name) to canvas",
+            tint: DesignTokens.textTertiary,
+            action: { tab.fitReferenceLayerToCanvas() }
+        )
     }
 
     /// The row's remove action. Disabled at the sole-layer guard — a

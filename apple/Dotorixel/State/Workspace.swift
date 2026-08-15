@@ -414,8 +414,18 @@ extension Workspace: KeyboardShortcutHost {
         activeTab.toggleGrid()
     }
 
+    /// The arrow keys address a Reference Layer Placement exactly while the
+    /// placement overlay is on screen — one projection answers both.
+    var isReferenceLayerPlacementActive: Bool {
+        activeTab.referencePlacementTarget != nil
+    }
+
     func nudgeMarquee(by delta: FloatingSelectionOffset) {
         activeTab.nudgeMarquee(by: delta)
+    }
+
+    func nudgeReferencePlacement(dx: Int64, dy: Int64) {
+        activeTab.nudgeReferencePlacement(dx: dx, dy: dy)
     }
 
     func clearMarqueePixels() {

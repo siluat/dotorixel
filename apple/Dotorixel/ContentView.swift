@@ -77,6 +77,16 @@ struct ContentView: View {
                                     displayScale: displayScale
                                 )
                             }
+                            // Reference Layer Placement Interaction: the
+                            // trace-positioning surface, above the ants (a
+                            // Reference-active tab shows no Marquee) and below
+                            // the transient aids.
+                            .overlay(alignment: .topLeading) {
+                                ReferenceLayerPlacementOverlay(
+                                    tab: tab,
+                                    displayScale: displayScale
+                                )
+                            }
                             // Reference Layers are trace-only. Pointer users
                             // receive a prohibited cursor from InputMTKView;
                             // this matching, non-interactive notice covers

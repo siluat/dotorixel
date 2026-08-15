@@ -638,6 +638,23 @@
         }
       }
     },
+    "Fit %@ to canvas" : {
+      "comment" : "Active Reference row's fit-to-canvas button accessibility label; %@ is the layer name. web: aria_fitReferenceLayerToCanvas",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@をキャンバスに合わせる"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@을(를) 캔버스에 맞추기"
+          }
+        }
+      }
+    },
     "Fit to view" : {
       "comment" : "Zoom controls accessibility label. web: action_fitToView",
       "localizations" : {

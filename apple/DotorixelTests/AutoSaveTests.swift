@@ -229,7 +229,8 @@ struct AutoSaveTests {
         #expect(savedTab.layers.map(\.id) == [pixelLayerId])
         #expect(savedTab.layers[0].pixels == tab.document.compositeForExport())
         // The Reference rides alongside the Pixel stack (the closed 278
-        // gap), keeping the reference-active pointer import left behind.
+        // gap), and the snapshot keeps the reference-active pointer that
+        // import left behind instead of falling back to a Pixel Layer.
         let reference = try #require(savedTab.reference)
         #expect(savedTab.activeLayerId == reference.id)
     }

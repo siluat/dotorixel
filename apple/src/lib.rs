@@ -595,13 +595,21 @@ fn apple_encode_reference_png(
     )?)
 }
 
+/// The largest decoded reference source the persistence codec will
+/// materialize — the same 64 MiB decoded-RGBA cap the import boundary
+/// enforces (`ReferenceImageImporter.maximumDecodedPixelCount`), so a
+/// stored blob can never admit more than an import could.
+const MAX_REFERENCE_SOURCE_BYTES: usize = 64 * 1024 * 1024;
+
 /// Decodes a stored reference PNG back into its RGBA source buffer — the
 /// lossless inverse of [`apple_encode_reference_png`]. Errors on malformed
-/// bytes or any other PNG layout, so a corrupt stored blob fails here, at
-/// the persistence boundary.
+/// bytes, any other PNG layout, or a header whose decoded size exceeds
+/// [`MAX_REFERENCE_SOURCE_BYTES`], so a corrupt stored blob fails here, at
+/// the persistence boundary — before its declared dimensions can drive an
+/// allocation.
 #[uniffi::export]
 fn apple_decode_reference_png(bytes: Vec<u8>) -> Result<AppleDecodedPng, AppleError> {
-    let decoded = dotorixel_core::export::decode_rgba_png(&bytes)?;
+    let decoded = dotorixel_core::export::decode_rgba_png(&bytes, MAX_REFERENCE_SOURCE_BYTES)?;
     Ok(AppleDecodedPng {
         width: decoded.width,
         height: decoded.height,

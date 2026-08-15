@@ -348,6 +348,34 @@ struct SessionPersistenceTests {
         #expect(restored.activeTab.document.layers().map(\.kind) == [.pixel])
     }
 
+    @Test("a stored reference id colliding with a Pixel Layer yields the document without its reference")
+    func collidingReferenceIdDropsReferenceOnly() async throws {
+        let container = try makeInMemoryContainer()
+        let persistence = SessionPersistence(modelContainer: container)
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let pixelLayerId = tab.document.activeLayerId()
+        try tab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png", rgba: Data([0xFF, 0, 0, 0xFF]), width: 1, height: 1))
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        // Corrupt the stored reference to reuse a Pixel Layer's id. The
+        // stored active pointer still names the reference's original id,
+        // which no surviving layer carries.
+        let context = ModelContext(container)
+        let record = try #require(
+            try context.fetch(FetchDescriptor<DocumentRecord>()).first)
+        record.reference?.id = pixelLayerId
+        try context.save()
+
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        #expect(storedSnapshot.tabs[0].reference == nil)
+        #expect(restored.activeTab.document.layers().map(\.kind) == [.pixel])
+        #expect(restored.activeTab.document.activeLayerId() == pixelLayerId)
+    }
+
     @Test("a record without a stored Marquee restores selection-free with its pixels unchanged")
     func absentMarqueeRestoresSelectionFree() async throws {
         let persistence = try makeInMemoryPersistence()

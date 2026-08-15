@@ -80,10 +80,12 @@ documented 278 gap where a reference vanishes on relaunch.
 - **PNG codec in core**, paired with the existing encoder: the lossless
   round-trip has one implementation, and ImageIO re-decoding (premultiplied
   alpha, rounding loss) is structurally excluded from the persistence path.
-- **Corruption blast radius**: a corrupt blob, invalid placement, or invalid
-  id drops the reference at the persistence boundary; a stored active pointer
-  naming the dropped reference remaps to the topmost Pixel Layer. Never a
-  lost session.
+- **Corruption blast radius**: a corrupt blob, invalid placement, invalid
+  id, or an id colliding with a Pixel Layer drops the reference at the
+  persistence boundary; after a drop, an active pointer left outside the
+  Pixel stack remaps to the topmost Pixel Layer. Never a lost session.
+  (Collision drop + decode allocation bound added in the PR #370 review
+  pass — greptile/cubic findings.)
 - **`rotation` is stored** (web schema parity; future rotate polish) and
   restored exactly, though nothing on this shell produces a non-zero value yet.
 - **Vocabulary alignment** (guide-compliance pass): the snapshot record uses
@@ -92,9 +94,9 @@ documented 278 gap where a reference vanishes on relaunch.
 
 ### Notes
 
-- A stored reference id colliding with a Pixel Layer id (pathological
-  corruption) still falls back to a fresh session — deliberate web parity
-  (the web builder fails its Document build the same way).
+- `decode_rgba_png` takes a caller-owned `max_pixel_bytes` bound (the Apple
+  binding passes the import boundary's 64 MiB decoded-RGBA cap) so a corrupt
+  header's declared dimensions cost an error, never an allocation abort.
 - An encode failure at save time (core-guaranteed not to occur) would drop
   the reference from that record rather than abort the auto-save.
 - Two tests pinning the 278 skip contract were rewritten to the new contract

@@ -319,13 +319,23 @@ actor SessionPersistence {
               let nextLayerNumber = UInt32(exactly: record.nextLayerNumber) else {
             throw CorruptRecord()
         }
-        let reference = referenceSnapshot(record.reference)
+        let reference = referenceSnapshot(
+            record.reference,
+            pixelLayerIds: record.layers.map(\.id)
+        )
         // A dropped reference can leave the stored active pointer naming a
-        // layer hydration will never see; remap it to the topmost Pixel
-        // Layer so the drop costs the reference, not the whole session.
+        // layer hydration will never see — under the reference's current id,
+        // or an original id a corrupt id field no longer preserves. Once the
+        // drop happened this layer can no longer tell those apart, so any
+        // pointer outside the Pixel stack remaps to the topmost Pixel Layer:
+        // the drop costs the reference, not the whole session. Dangling
+        // pointers with no dropped reference keep funneling to the core
+        // hydration fresh-session fallback (see `restore()`).
         let referenceWasDropped = reference == nil && record.reference != nil
-        let activeLayerId = referenceWasDropped
-            && record.activeLayerId == record.reference?.id
+        let activePointsAtPixelLayer = record.layers.contains {
+            $0.id == record.activeLayerId
+        }
+        let activeLayerId = referenceWasDropped && !activePointsAtPixelLayer
             ? record.layers.last?.id ?? record.activeLayerId
             : record.activeLayerId
         return TabSnapshot(
@@ -357,16 +367,19 @@ actor SessionPersistence {
 
     /// A stored reference that cannot be rebuilt — a corrupt PNG blob,
     /// stored natural dimensions disagreeing with the decoded stream, an
-    /// invalid id, or a placement that would fail hydration — yields the
-    /// document without its reference rather than discarding the session
-    /// (web parity: the v4 hydration drop). Values hydration would reject
-    /// are screened here because `fromLayers` failing throws the whole
-    /// document away, the wrong blast radius for one bad reference.
+    /// invalid id, an id colliding with a Pixel Layer, or a placement that
+    /// would fail hydration — yields the document without its reference
+    /// rather than discarding the session (web parity: the v4 hydration
+    /// drop). Values hydration would reject are screened here because
+    /// `fromLayers` failing throws the whole document away, the wrong blast
+    /// radius for one bad reference.
     private func referenceSnapshot(
-        _ stored: StoredReference?
+        _ stored: StoredReference?,
+        pixelLayerIds: [String]
     ) -> AppleReferenceLayerSnapshot? {
         guard let stored,
               UUID(uuidString: stored.id) != nil,
+              !pixelLayerIds.contains(stored.id),
               let decoded = try? appleDecodeReferencePng(bytes: stored.sourcePng),
               stored.naturalWidth == Int(decoded.width),
               stored.naturalHeight == Int(decoded.height),

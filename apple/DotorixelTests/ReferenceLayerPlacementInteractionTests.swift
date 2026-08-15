@@ -108,16 +108,17 @@ struct ReferencePlacementMoveTests {
     func bodyDragTranslatesPlacement() {
         let interaction = ReferenceLayerPlacementInteraction()
 
-        interaction.begin(on: unitTarget, handle: nil, at: .zero)
+        interaction.begin(on: unitTarget, from: .body, scalingAbout: nil, at: .zero)
         // 10pt per canvas pixel: a (30, -15)pt drag is +3, -1.5 canvas pixels.
         interaction.update(
             translation: CGSize(width: 30, height: -15),
             pointsPerCanvasPixel: 10,
-            from: .drag(nil)
+            from: .body
         )
 
         #expect(interaction.draft == AppleReferencePlacementUpdate(x: 5, y: 1.5, scale: 1))
-        #expect(interaction.commit(from: .drag(nil)) == AppleReferencePlacementUpdate(x: 5, y: 1.5, scale: 1))
+        #expect(interaction.commit(from: .body)
+            == AppleReferencePlacementUpdate(x: 5, y: 1.5, scale: 1))
         #expect(interaction.draft == nil)
     }
 }
@@ -144,22 +145,32 @@ struct ReferencePlacementScaleTests {
         // Pulling the bottom-right handle 25 canvas pixels outward along x
         // projects onto the corner's diagonal as scale 1.5; the top-left
         // corner is the anchor, so the origin does not move.
-        interaction.begin(on: scaleTarget, handle: .bottomRight, at: .zero)
+        interaction.begin(
+            on: scaleTarget,
+            from: .handle(.bottomRight),
+            scalingAbout: .bottomRight,
+            at: .zero
+        )
         interaction.update(
             translation: CGSize(width: 250, height: 0),
             pointsPerCanvasPixel: 10,
-            from: .drag(.bottomRight)
+            from: .handle(.bottomRight)
         )
         #expect(interaction.draft == AppleReferencePlacementUpdate(x: 2, y: 3, scale: 1.5))
         interaction.cancel()
 
         // The mirrored pull on the top-left handle reaches the same scale and
         // holds the bottom-right corner (42, 23) still instead.
-        interaction.begin(on: scaleTarget, handle: .topLeft, at: .zero)
+        interaction.begin(
+            on: scaleTarget,
+            from: .handle(.topLeft),
+            scalingAbout: .topLeft,
+            at: .zero
+        )
         interaction.update(
             translation: CGSize(width: -250, height: 0),
             pointsPerCanvasPixel: 10,
-            from: .drag(.topLeft)
+            from: .handle(.topLeft)
         )
         #expect(interaction.draft == AppleReferencePlacementUpdate(x: -18, y: -7, scale: 1.5))
     }
@@ -171,11 +182,16 @@ struct ReferencePlacementScaleTests {
         // grabbable, so it must never grow one the user has not dragged.
         let interaction = ReferenceLayerPlacementInteraction()
 
-        interaction.begin(on: unitTarget, handle: .bottomRight, at: .zero)
+        interaction.begin(
+            on: unitTarget,
+            from: .handle(.bottomRight),
+            scalingAbout: .bottomRight,
+            at: .zero
+        )
         interaction.update(
             translation: .zero,
             pointsPerCanvasPixel: 10,
-            from: .drag(.bottomRight)
+            from: .handle(.bottomRight)
         )
         #expect(interaction.draft == AppleReferencePlacementUpdate(x: 2, y: 3, scale: 1))
         interaction.cancel()
@@ -189,11 +205,16 @@ struct ReferencePlacementScaleTests {
     func scaleDragRespectsTheMinimumProjectedSize() {
         let interaction = ReferenceLayerPlacementInteraction()
 
-        interaction.begin(on: scaleTarget, handle: .bottomRight, at: .zero)
+        interaction.begin(
+            on: scaleTarget,
+            from: .handle(.bottomRight),
+            scalingAbout: .bottomRight,
+            at: .zero
+        )
         interaction.update(
             translation: CGSize(width: -100_000, height: -100_000),
             pointsPerCanvasPixel: 10,
-            from: .drag(.bottomRight)
+            from: .handle(.bottomRight)
         )
 
         // Web parity: the shorter axis reaches the 8-canvas-pixel floor first,
@@ -212,59 +233,94 @@ struct ReferencePlacementOwnershipTests {
     func nonOwnersAreIgnored() {
         let interaction = ReferenceLayerPlacementInteraction()
 
-        interaction.begin(on: scaleTarget, handle: nil, at: .zero)
-        #expect(interaction.isOpen(for: .drag(nil)))
-        #expect(!interaction.isOpen(for: .drag(.topLeft)))
+        interaction.begin(on: scaleTarget, from: .body, scalingAbout: nil, at: .zero)
+        #expect(interaction.isOpen(for: .body))
+        #expect(!interaction.isOpen(for: .handle(.topLeft)))
 
         // A finger landing on a grip while the body drag runs: its begin is
         // refused, and its translation must not move the body's gesture.
-        interaction.begin(on: scaleTarget, handle: .topLeft, at: .zero)
+        interaction.begin(
+            on: scaleTarget,
+            from: .handle(.topLeft),
+            scalingAbout: .topLeft,
+            at: .zero
+        )
         interaction.update(
             translation: CGSize(width: 250, height: 0),
             pointsPerCanvasPixel: 10,
-            from: .drag(.topLeft)
+            from: .handle(.topLeft)
         )
         #expect(interaction.draft == AppleReferencePlacementUpdate(x: 2, y: 3, scale: 1))
-        #expect(interaction.commit(from: .drag(.topLeft)) == nil)
+        #expect(interaction.commit(from: .handle(.topLeft)) == nil)
 
         // The owner still drives it, and only the owner's commit resolves it.
         interaction.update(
             translation: CGSize(width: 30, height: 10),
             pointsPerCanvasPixel: 10,
-            from: .drag(nil)
+            from: .body
         )
         #expect(interaction.draft == AppleReferencePlacementUpdate(x: 5, y: 4, scale: 1))
-        #expect(interaction.commit(from: .drag(nil))
+        #expect(interaction.commit(from: .body)
             == AppleReferencePlacementUpdate(x: 5, y: 4, scale: 1))
+    }
+
+    @Test("a grip whose press resolved to another corner still owns its gesture")
+    func remappedGripKeepsItsOwnIdentity() {
+        // On a box narrower than the touch minimum every grip's target covers
+        // every corner, so a press on one grip can resolve to scale about
+        // another. The grip that was pressed still owns the gesture — tying
+        // ownership to the resolved corner instead would leave every update
+        // and release unclaimed, freezing the placement.
+        let interaction = ReferenceLayerPlacementInteraction()
+
+        interaction.begin(
+            on: scaleTarget,
+            from: .handle(.topLeft),
+            scalingAbout: .bottomRight,
+            at: .zero
+        )
+        #expect(interaction.isOpen(for: .handle(.topLeft)))
+
+        interaction.update(
+            translation: CGSize(width: 250, height: 0),
+            pointsPerCanvasPixel: 10,
+            from: .handle(.topLeft)
+        )
+
+        // Scaled about the resolved corner — the bottom-right pull that holds
+        // the origin still — while owned by the grip actually pressed.
+        #expect(interaction.draft == AppleReferencePlacementUpdate(x: 2, y: 3, scale: 1.5))
+        #expect(interaction.commit(from: .handle(.topLeft))
+            == AppleReferencePlacementUpdate(x: 2, y: 3, scale: 1.5))
     }
 
     @Test("a pinch takes the placement over from a running drag")
     func pinchTakesOverFromDrag() {
         let interaction = ReferenceLayerPlacementInteraction()
 
-        interaction.begin(on: scaleTarget, handle: nil, at: .zero)
+        interaction.begin(on: scaleTarget, from: .body, scalingAbout: nil, at: .zero)
         interaction.update(
             translation: CGSize(width: 30, height: 0),
             pointsPerCanvasPixel: 10,
-            from: .drag(nil)
+            from: .body
         )
         // A second finger lands: the two-finger intent wins the placement.
         interaction.beginPinch(on: scaleTarget, anchor: CGPoint(x: 5, y: 3))
         #expect(interaction.isOpen(for: .pinch))
-        #expect(!interaction.isOpen(for: .drag(nil)))
+        #expect(!interaction.isOpen(for: .body))
 
         // The first finger keeps moving; the pinch owns the placement now.
         interaction.update(
             translation: CGSize(width: 900, height: 900),
             pointsPerCanvasPixel: 10,
-            from: .drag(nil)
+            from: .body
         )
         interaction.update(magnification: 2)
 
         // Anchored at (5, 3), doubling pushes the origin to 5 − (5 − 2) × 2.
         // The drag's 900pt translation left no trace.
         #expect(interaction.draft == AppleReferencePlacementUpdate(x: -1, y: 3, scale: 2))
-        #expect(interaction.commit(from: .drag(nil)) == nil)
+        #expect(interaction.commit(from: .body) == nil)
         #expect(interaction.commit(from: .pinch)
             == AppleReferencePlacementUpdate(x: -1, y: 3, scale: 2))
     }
@@ -273,11 +329,11 @@ struct ReferencePlacementOwnershipTests {
     func resumedDragDoesNotReplayItsTranslation() {
         let interaction = ReferenceLayerPlacementInteraction()
 
-        interaction.begin(on: scaleTarget, handle: nil, at: .zero)
+        interaction.begin(on: scaleTarget, from: .body, scalingAbout: nil, at: .zero)
         interaction.update(
             translation: CGSize(width: 30, height: 0),
             pointsPerCanvasPixel: 10,
-            from: .drag(nil)
+            from: .body
         )
         interaction.beginPinch(on: scaleTarget, anchor: CGPoint(x: 2, y: 3))
         interaction.update(magnification: 2)
@@ -295,18 +351,23 @@ struct ReferencePlacementOwnershipTests {
             footprint: AppleReferenceFootprint(minX: 2, minY: 3, maxX: 82, maxY: 43),
             opacity: 1
         )
-        interaction.begin(on: pinched, handle: nil, at: CGSize(width: 30, height: 0))
+        interaction.begin(
+            on: pinched,
+            from: .body,
+            scalingAbout: nil,
+            at: CGSize(width: 30, height: 0)
+        )
         interaction.update(
             translation: CGSize(width: 30, height: 0),
             pointsPerCanvasPixel: 10,
-            from: .drag(nil)
+            from: .body
         )
         #expect(interaction.draft == AppleReferencePlacementUpdate(x: 2, y: 3, scale: 2))
 
         interaction.update(
             translation: CGSize(width: 50, height: 0),
             pointsPerCanvasPixel: 10,
-            from: .drag(nil)
+            from: .body
         )
         #expect(interaction.draft == AppleReferencePlacementUpdate(x: 4, y: 3, scale: 2))
     }
@@ -357,11 +418,11 @@ struct ReferencePlacementDraftTests {
         let marksBeforeGesture = fixture.notifier.markedDocumentIds.count
         let canvasVersionBeforeGesture = tab.canvasVersion
 
-        tab.beginReferencePlacement(handle: nil, at: .zero)
+        tab.beginReferencePlacement(from: .body, scalingAbout: nil, at: .zero)
         tab.updateReferencePlacement(
             translation: CGSize(width: 40, height: 20),
             pointsPerCanvasPixel: 10,
-            from: .drag(nil)
+            from: .body
         )
 
         // Both surfaces read the draft: the overlay box and the Metal underlay
@@ -374,7 +435,7 @@ struct ReferencePlacementDraftTests {
         // The document and its History are untouched until the gesture ends.
         #expect(fixture.notifier.markedDocumentIds.count == marksBeforeGesture)
 
-        tab.commitReferencePlacement(from: .drag(nil))
+        tab.commitReferencePlacement(from: .body)
 
         #expect(try #require(tab.referencePlacementTarget).placement == previewed.placement)
         #expect(fixture.notifier.markedDocumentIds.count == marksBeforeGesture + 1)
@@ -390,11 +451,11 @@ struct ReferencePlacementDraftTests {
         let tab = fixture.tab
         tab.setReferencePlacement(AppleReferencePlacementUpdate(x: 5, y: 5, scale: 1))
 
-        tab.beginReferencePlacement(handle: nil, at: .zero)
+        tab.beginReferencePlacement(from: .body, scalingAbout: nil, at: .zero)
         tab.updateReferencePlacement(
             translation: CGSize(width: 100, height: 100),
             pointsPerCanvasPixel: 10,
-            from: .drag(nil)
+            from: .body
         )
         // Undo can land mid-drag from a hardware keyboard: it swaps the whole
         // document out from under the gesture, whose draft describes a
@@ -404,7 +465,7 @@ struct ReferencePlacementDraftTests {
         #expect(try #require(tab.referencePlacementTarget).placement
             == AppleReferencePlacement(x: 2, y: 3, scale: 1, rotation: 0))
 
-        tab.commitReferencePlacement(from: .drag(nil))
+        tab.commitReferencePlacement(from: .body)
 
         #expect(try #require(tab.referencePlacementTarget).placement
             == AppleReferencePlacement(x: 2, y: 3, scale: 1, rotation: 0))
@@ -416,11 +477,11 @@ struct ReferencePlacementDraftTests {
         let tab = fixture.tab
         let committed = try #require(tab.referencePlacementTarget).placement
 
-        tab.beginReferencePlacement(handle: nil, at: .zero)
+        tab.beginReferencePlacement(from: .body, scalingAbout: nil, at: .zero)
         tab.updateReferencePlacement(
             translation: CGSize(width: 40, height: 20),
             pointsPerCanvasPixel: 10,
-            from: .drag(nil)
+            from: .body
         )
         let drafted = try #require(tab.referencePlacementTarget).placement
         let marksMidGesture = fixture.notifier.markedDocumentIds.count
@@ -434,7 +495,7 @@ struct ReferencePlacementDraftTests {
         #expect(try #require(tab.referencePlacementTarget).placement == drafted)
         #expect(fixture.notifier.markedDocumentIds.count == marksMidGesture)
 
-        tab.commitReferencePlacement(from: .drag(nil))
+        tab.commitReferencePlacement(from: .body)
 
         #expect(try #require(tab.referencePlacementTarget).placement == drafted)
         tab.handleUndo()
@@ -447,11 +508,11 @@ struct ReferencePlacementDraftTests {
         let tab = fixture.tab
         let committed = try #require(tab.referencePlacementTarget).placement
 
-        tab.beginReferencePlacement(handle: nil, at: .zero)
+        tab.beginReferencePlacement(from: .body, scalingAbout: nil, at: .zero)
         tab.updateReferencePlacement(
             translation: CGSize(width: 40, height: 20),
             pointsPerCanvasPixel: 10,
-            from: .drag(nil)
+            from: .body
         )
         // Eyedropper stays available on a Reference Layer, so a pencil can open
         // a stroke while a finger drags the placement. The stroke owns the Edit
@@ -460,7 +521,7 @@ struct ReferencePlacementDraftTests {
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         let canvasVersionBeforeCommit = tab.canvasVersion
 
-        tab.commitReferencePlacement(from: .drag(nil))
+        tab.commitReferencePlacement(from: .body)
 
         #expect(try #require(tab.referencePlacementTarget).placement == committed)
         // The draft is gone, so the overlay and underlay must be told to redraw
@@ -474,11 +535,11 @@ struct ReferencePlacementDraftTests {
         let fixture = try makePlacementFixture(documentId: "placement-replaced-source")
         let tab = fixture.tab
 
-        tab.beginReferencePlacement(handle: nil, at: .zero)
+        tab.beginReferencePlacement(from: .body, scalingAbout: nil, at: .zero)
         tab.updateReferencePlacement(
             translation: CGSize(width: 40, height: 20),
             pointsPerCanvasPixel: 10,
-            from: .drag(nil)
+            from: .body
         )
         // An import replaces the Reference in place — same Layer slot, new
         // image and a fresh auto-fit placement the old gesture knows nothing of.
@@ -492,7 +553,7 @@ struct ReferencePlacementDraftTests {
 
         // The stale draft must not preview onto the new image...
         #expect(try #require(tab.referencePlacementTarget).placement == fitted)
-        tab.commitReferencePlacement(from: .drag(nil))
+        tab.commitReferencePlacement(from: .body)
         // ...nor overwrite its fitted placement on release.
         #expect(try #require(tab.referencePlacementTarget).placement == fitted)
     }
@@ -504,11 +565,15 @@ struct ReferencePlacementDraftTests {
         let committed = try #require(tab.referencePlacementTarget).placement
         let marksBeforeGesture = fixture.notifier.markedDocumentIds.count
 
-        tab.beginReferencePlacement(handle: .bottomRight, at: .zero)
+        tab.beginReferencePlacement(
+            from: .handle(.bottomRight),
+            scalingAbout: .bottomRight,
+            at: .zero
+        )
         tab.updateReferencePlacement(
             translation: CGSize(width: 400, height: 400),
             pointsPerCanvasPixel: 10,
-            from: .drag(.bottomRight)
+            from: .handle(.bottomRight)
         )
         tab.cancelReferencePlacement()
 
@@ -629,18 +694,27 @@ struct ReferencePlacementCommitTests {
             == AppleReferencePlacement(x: 2, y: 3, scale: 1, rotation: 0))
     }
 
-    @Test("a scale step cannot drive the placement to or past the core's zero floor")
-    func scaleStepStaysPositive() throws {
+    @Test("a scale step stops at the same minimum projected size a corner drag does")
+    func scaleStepRespectsTheGestureFloor() throws {
         let fixture = try makePlacementFixture(documentId: "placement-scale-floor")
         let tab = fixture.tab
+        // Grow past the floor first: the 4 × 2 source auto-fits at scale 1,
+        // already under the floor its own dimensions imply, and the floor never
+        // enlarges a placement it starts below.
+        for _ in 0..<20 {
+            tab.scaleReferencePlacement(by: 2)
+        }
 
         for _ in 0..<200 {
             tab.scaleReferencePlacement(by: 0.5)
         }
 
-        let scale = try #require(tab.referencePlacementTarget).placement.scale
-        #expect(scale > 0)
-        #expect(scale.isFinite)
+        // Shrinking settles on the scale where the shorter axis reaches 8
+        // canvas pixels — the same floor the corner drag and pinch stop at, so
+        // an adjust-gesture user cannot shrink the box out of reach.
+        let placement = try #require(tab.referencePlacementTarget).placement
+        #expect(placement.scale == 8.0 / 2.0)
+        #expect(placement.scale > 0)
     }
 
     @Test("nudging is inert without an active Reference Layer Placement")

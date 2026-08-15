@@ -898,13 +898,22 @@ final class TabState {
         placementInteraction.isOpen(for: role)
     }
 
-    /// Opens a placement gesture on the live overlay — a body drag when
-    /// `handle` is nil, a corner scale drag otherwise. Inert without an active
-    /// placement or while a stroke owns the pending Edit Baseline, and refused
-    /// while another pointer already owns the placement.
-    func beginReferencePlacement(handle: ReferencePlacementHandle?, at translation: CGSize) {
+    /// Opens a placement gesture on the live overlay for the surface `role`
+    /// names, scaling about `scalingAbout` when that surface is a grip. Inert
+    /// without an active placement or while a stroke owns the pending Edit
+    /// Baseline, and refused while another pointer already owns the placement.
+    func beginReferencePlacement(
+        from role: ReferencePlacementGestureRole,
+        scalingAbout handle: ReferencePlacementHandle?,
+        at translation: CGSize
+    ) {
         guard !isDrawing, let target = referencePlacementTarget else { return }
-        placementInteraction.begin(on: target, handle: handle, at: translation)
+        placementInteraction.begin(
+            on: target,
+            from: role,
+            scalingAbout: handle,
+            at: translation
+        )
     }
 
     /// Opens a pinch gesture on the overlay body. `anchor` is the canvas-space
@@ -985,12 +994,18 @@ final class TabState {
     /// pointer-free counterpart of a corner drag — VoiceOver's adjustable
     /// action reaches resizing through here.
     ///
-    /// Refuses a factor that would leave the core's `scale > 0` invariant, so
-    /// repeated shrink steps settle rather than collapse.
+    /// Stops at the same minimum projected size the drag and pinch gestures do,
+    /// so an adjust-gesture user cannot shrink the box out of reach, and
+    /// refuses a factor that would leave the core's `scale > 0` invariant.
     func scaleReferencePlacement(by factor: Float) {
         guard let target = referencePlacementTarget else { return }
-        let scale = target.placement.scale * factor
-        guard scale.isFinite, scale > 0 else { return }
+        let requested = target.placement.scale * factor
+        guard requested.isFinite else { return }
+        let scale = max(requested, referencePlacementMinimumScale(
+            footprint: target.footprint,
+            currentScale: target.placement.scale
+        ))
+        guard scale > 0 else { return }
         let footprint = target.footprint
         let center = (
             x: (footprint.minX + footprint.maxX) / 2,

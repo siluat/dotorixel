@@ -199,15 +199,19 @@ struct ReferenceLayerPlacementOverlay: View {
         dragGesture(handle: nil, target: nil, in: .zero)
     }
 
-    /// One drag for both roles: a body move when `handle` is nil, a corner
+    /// One drag for both surfaces: a body move when `handle` is nil, a corner
     /// scale otherwise. `minimumDistance: 0` so the press claims the box
     /// immediately, the way the Timeline's reorder handle claims its row.
+    ///
+    /// The role is this view's own identity, which never changes; the corner
+    /// the press resolved to travels separately, because overlapping grips can
+    /// send a press to a corner other than the one that received it.
     private func dragGesture(
         handle: ReferencePlacementHandle?,
         target: CGRect?,
         in box: CGRect
     ) -> some Gesture {
-        let role = ReferencePlacementGestureRole.drag(handle)
+        let role = handle.map(ReferencePlacementGestureRole.handle) ?? .body
         return DragGesture(minimumDistance: 0)
             .onChanged { value in
                 if !tab.isReferencePlacementOpen(for: role) {
@@ -215,7 +219,8 @@ struct ReferenceLayerPlacementOverlay: View {
                     // fresh once that gesture has resolved, so a drag the user
                     // never lifted resumes from the committed placement.
                     tab.beginReferencePlacement(
-                        handle: pressedHandle(
+                        from: role,
+                        scalingAbout: pressedHandle(
                             handle,
                             target: target,
                             in: box,

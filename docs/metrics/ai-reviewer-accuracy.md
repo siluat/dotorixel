@@ -10,14 +10,27 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 214 | 161 | 53 | 296 | 75% | 35% |
-| cubic-dev-ai[bot] | 328 | 256 | 72 | 219 | 78% | 54% |
-| coderabbitai[bot] | 328 | 235 | 93 | 236 | 72% | 50% |
+| greptile-apps[bot] | 216 | 163 | 53 | 300 | 75% | 35% |
+| cubic-dev-ai[bot] | 333 | 261 | 72 | 220 | 78% | 54% |
+| coderabbitai[bot] | 331 | 238 | 93 | 239 | 72% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #368 | greptile-apps[bot] | Accept | A pinch ending before its underlying drag released the shared drag latch, so the still-live drag reopened and replayed its whole accumulated translation onto the just-committed placement |
+| #368 | coderabbitai[bot] | Accept | Same latch defect, plus the second failure mode it enabled: a grip pressed during a body drag fed that drag its own translation. Gesture ownership is now one role value the interaction enforces |
+| #368 | cubic-dev-ai[bot] | Accept | Same latch defect reported independently |
+| #368 | greptile-apps[bot] | Accept | A placement commit the document refused mid-stroke discarded the draft without republishing, leaving the dropped preview on screen |
+| #368 | coderabbitai[bot] | Accept | An arrow nudge during a live gesture committed an Edit built on the draft that the gesture's own release then overwrote; non-gesture writes now pass a running-gesture seal |
+| #368 | cubic-dev-ai[bot] | Accept | Same nudge defect, and correctly extended it to fit-to-canvas — the seal covers both |
+| #368 | coderabbitai[bot] | Accept | The overlay carrying the only pointer path to move and scale was `accessibilityHidden`, leaving VoiceOver users on a touch-only iPad no way to place a Reference; the box now exposes move and adjustable-scale actions |
+| #368 | cubic-dev-ai[bot] | Accept | Same accessibility gap reported independently |
+| #368 | cubic-dev-ai[bot] | Accept | A draft could outlive the Reference it opened on, since in-place mutations do not replace the Document object; the interaction now records its target's source key and both preview and commit ignore a mismatch |
+| #368 | cubic-dev-ai[bot] | Accept | The minimum-projected-size floor enlarged a placement already below it, so merely touching a grip resized any small reference and recorded an Edit — reachable from the auto-fit of any source under 8 canvas pixels |
+| #368 | greptile-apps[bot] | Miss (×4) | Missed the nudge/fit seal, the accessibility gap, the stale-target draft, and the minimum-size floor |
+| #368 | coderabbitai[bot] | Miss (×3) | Missed the refused-commit republish, the stale-target draft, and the minimum-size floor |
+| #368 | cubic-dev-ai[bot] | Miss | Missed the refused-commit republish |
 | #367 | greptile-apps[bot] | Accept | Any nonzero Pixel alpha bypassed the visible Reference instead of matching the renderer's source-over blend; batched samples now compose translucent Pixel artwork over the underlay |
 | #367 | cubic-dev-ai[bot] | Reject | Reference opacity below 1 is unreachable in the Apple shell: import, rendering, and the available UI all fix it at full opacity until a future opacity feature lands |
 | #367 | cubic-dev-ai[bot] | Miss | Missed the translucent-Pixel source-over mismatch accepted from Greptile |

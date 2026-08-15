@@ -63,7 +63,7 @@ becomes directly manipulable.
 | File | Description |
 |------|-------------|
 | `apple/Dotorixel/Reference/ReferenceLayerPlacementInteraction.swift` | Added the framework-free begin → draft → commit gesture state, with move, opposite-corner scale, anchored pinch, and the minimum-projected-size floor. |
-| `apple/Dotorixel/Views/ReferenceLayerPlacementOverlay.swift` | Added the footprint→canvas-area projection, touch-minimum handle targets with nearest-corner resolution, and the dashed overlay that drives the gestures. |
+| `apple/Dotorixel/Views/ReferenceLayerPlacementOverlay.swift` | Added the footprint→canvas-area projection, touch-minimum handle targets with nearest-corner resolution, and the dashed overlay that drives the gestures and exposes them to VoiceOver. |
 | `apple/Dotorixel/State/TabState.swift` | Added the placement-overlay subject, the gesture lifecycle, and the placement, nudge, and fit commands as single undoable Edits; the live draft now feeds both the overlay and the Metal underlay. |
 | `apple/Dotorixel/State/KeyboardShortcutController.swift` | Routed the arrow keys to an active Reference Layer Placement, falling back to the Marquee. |
 | `apple/Dotorixel/State/Workspace.swift` | Answered the routing read and forwarded placement nudges to the active tab. |
@@ -121,17 +121,39 @@ becomes directly manipulable.
   Starting this task required regenerating both the `.xcodeproj` and
   `apple/generated` — the stale-bindings backlog item reproduced exactly.
 
+### Review follow-up (PR #368)
+
+Six findings from the AI reviewers were accepted and fixed on the branch.
+
+| Finding | Fix |
+|---------|-----|
+| Pinch end released a live drag's latch, so the drag reopened and replayed its whole accumulated translation | Gesture ownership moved into the interaction as a role (`body`, a specific grip, or the pinch). Non-owners cannot steer or resolve the placement, a pinch takes ownership over, and a reopened drag measures from a fresh baseline |
+| A grip pressed during a body drag steered that drag with its own translation | Same ownership rule |
+| An arrow nudge or a fit landing mid-gesture committed an Edit the gesture's release then overwrote | One running-gesture seal on `setReferencePlacement`, which every non-gesture write passes through |
+| A commit the document refused (mid-stroke) left the discarded draft on screen | The commit republishes whether or not the write lands |
+| A draft outlived the Reference it opened on (in-place replacement, deactivation, hiding) | The interaction records its target's source key; preview and commit both ignore a draft whose target no longer matches |
+| The minimum-projected-size floor enlarged a placement already under it, so merely touching a grip resized a small reference and recorded an Edit | The floor never rises above the gesture's starting scale |
+
+The accessibility gap two reviewers raised — the overlay was
+`accessibilityHidden`, leaving VoiceOver users on a touch-only iPad no way to
+move or scale — was in scope enough to fix here rather than defer: the box is
+now an accessibility element with move actions in four directions and an
+adjustable action for scale, routed through the same commands the gestures
+commit through. Scaling needed a new `scaleReferencePlacement(by:)` command
+(uniform about the footprint center, refusing any factor that would leave the
+core's `scale > 0` invariant).
+
 ## Deferred
 
 Out of this slice's scope, recorded so they are not rediscovered later.
 
 - **Gesture-interruption recovery.** SwiftUI `DragGesture` has no cancel
   callback, so a drag whose `onEnded` never arrives (app backgrounded
-  mid-drag, gesture preempted by the OS) leaves the overlay's `isDragOpen`
-  latch set and its placement draft applied until the next gesture. The
-  in-app path is already closed — replacing the Document (undo/redo mid-drag)
-  cancels the draft in `TabState.document.didSet` — so what remains is
-  system-level teardown only. This is the same residual, with the same
+  mid-drag, gesture preempted by the OS) leaves the interaction owning the
+  placement, with its draft applied, until something else resolves it. The
+  in-app paths are closed — replacing the Document cancels the draft, a pinch
+  takes ownership over, and a target that changed under the gesture drops it —
+  so what remains is system-level teardown only. This is the same residual, with the same
   candidate guard (a `scenePhase` reset), as the existing
   "Apple layer reorder — interrupted-drag recovery" backlog item; the two
   should be adopted together after a hands-on read of whether teardown

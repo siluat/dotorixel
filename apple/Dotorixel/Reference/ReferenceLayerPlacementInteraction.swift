@@ -25,6 +25,15 @@ enum ReferencePlacementHandle: CaseIterable {
 /// which would leave the box too small to grab again.
 private let minimumProjectedSize: Float = 8
 
+/// Which surface owns the running gesture. Every callback names its role so a
+/// second pointer — a grip pressed during a body drag, a finger still down
+/// after a pinch — cannot steer or resolve a gesture it does not own.
+enum ReferencePlacementGestureRole: Equatable {
+    /// A drag on the box body (`nil`) or on one corner grip.
+    case drag(ReferencePlacementHandle?)
+    case pinch
+}
+
 /// The Reference Layer Placement Interaction's gesture state — begin →
 /// live draft → commit, framework-free so the placement math is exercised
 /// without a view. The shell feeds it SwiftUI gesture values; the draft it
@@ -40,6 +49,12 @@ final class ReferenceLayerPlacementInteraction {
     /// Reference Layer's quarter-turn, which the core re-applies on commit.
     private(set) var draft: AppleReferencePlacementUpdate?
 
+    /// The source key of the Reference the running gesture opened on, or `nil`
+    /// when none is. Callers compare it against the current underlay before
+    /// trusting the draft: an import replaces the Reference in place, so the
+    /// Layer under a live gesture can become a different image.
+    var targetKey: String? { gesture?.sourceKey }
+
     private var gesture: Gesture?
 
     private enum Kind {
@@ -53,6 +68,8 @@ final class ReferenceLayerPlacementInteraction {
     }
 
     private struct Gesture {
+        let role: ReferencePlacementGestureRole
+        let sourceKey: String
         let start: AppleReferencePlacement
         let kind: Kind
         /// The committed footprint's extents divided by its scale — the
@@ -60,29 +77,68 @@ final class ReferenceLayerPlacementInteraction {
         /// rotation-aware footprint rather than the raw source dimensions, so
         /// a quarter-turned Reference scales about the corner the user sees.
         let unitExtent: (x: Float, y: Float)
+        /// The translation this gesture opened at, subtracted from every later
+        /// one. A drag resumed after a pinch took the placement over still
+        /// reports translation cumulative from its original touch-down;
+        /// replaying that whole delta would make the reference jump.
+        let baselineTranslation: CGSize
+    }
+
+    /// Whether `role` owns the running gesture — the view's cue that it should
+    /// open one rather than keep feeding an existing one.
+    func isOpen(for role: ReferencePlacementGestureRole) -> Bool {
+        gesture?.role == role
     }
 
     /// Opens a drag gesture against `target`'s committed placement. A `nil`
-    /// handle is a body drag (move); a handle is a corner scale drag.
-    func begin(on target: ReferenceLayerUnderlay, handle: ReferencePlacementHandle?) {
-        open(on: target, kind: handle.map(Kind.scale) ?? .move)
+    /// handle is a body drag (move); a handle is a corner scale drag. Refused
+    /// while any gesture is already open: the pointer that got there first
+    /// keeps the placement until it resolves.
+    ///
+    /// `translation` is the drag's translation at this moment, which later
+    /// updates are measured against — a drag that never lifted reports it
+    /// cumulative from its original touch-down, not from here.
+    func begin(
+        on target: ReferenceLayerUnderlay,
+        handle: ReferencePlacementHandle?,
+        at translation: CGSize
+    ) {
+        guard gesture == nil else { return }
+        open(
+            on: target,
+            role: .drag(handle),
+            kind: handle.map(Kind.scale) ?? .move,
+            baselineTranslation: translation
+        )
     }
 
     /// Opens a pinch gesture against `target`'s committed placement. `anchor`
     /// is the canvas-space point under the fingers, which the scaled placement
-    /// holds still.
+    /// holds still. Unlike `begin`, this takes the placement over from a
+    /// running drag — a second finger landing is an explicit change of intent.
     func beginPinch(on target: ReferenceLayerUnderlay, anchor: CGPoint) {
-        open(on: target, kind: .pinch(anchor: (x: Float(anchor.x), y: Float(anchor.y))))
+        open(
+            on: target,
+            role: .pinch,
+            kind: .pinch(anchor: (x: Float(anchor.x), y: Float(anchor.y))),
+            baselineTranslation: .zero
+        )
     }
 
     /// Advances the live draft for a drag translation, converted from points
     /// to canvas pixels by `pointsPerCanvasPixel` (the viewport's effective
-    /// pixel size in the space the overlay is laid out in). Inert for a pinch.
-    func update(translation: CGSize, pointsPerCanvasPixel: CGFloat) {
-        guard let gesture, pointsPerCanvasPixel > 0 else { return }
+    /// pixel size in the space the overlay is laid out in). Ignored unless
+    /// `role` owns the gesture.
+    func update(
+        translation: CGSize,
+        pointsPerCanvasPixel: CGFloat,
+        from role: ReferencePlacementGestureRole
+    ) {
+        guard let gesture, gesture.role == role, pointsPerCanvasPixel > 0 else { return }
+        let baseline = gesture.baselineTranslation
         let delta = (
-            x: Float(translation.width / pointsPerCanvasPixel),
-            y: Float(translation.height / pointsPerCanvasPixel)
+            x: Float((translation.width - baseline.width) / pointsPerCanvasPixel),
+            y: Float((translation.height - baseline.height) / pointsPerCanvasPixel)
         )
         switch gesture.kind {
         case .move:
@@ -102,8 +158,9 @@ final class ReferenceLayerPlacementInteraction {
     }
 
     /// Closes the gesture and yields the placement to commit, or `nil` when
-    /// none was open.
-    func commit() -> AppleReferencePlacementUpdate? {
+    /// `role` does not own one — a non-owner's release resolves nothing.
+    func commit(from role: ReferencePlacementGestureRole) -> AppleReferencePlacementUpdate? {
+        guard gesture?.role == role else { return nil }
         defer { cancel() }
         return draft
     }
@@ -115,16 +172,24 @@ final class ReferenceLayerPlacementInteraction {
         draft = nil
     }
 
-    private func open(on target: ReferenceLayerUnderlay, kind: Kind) {
+    private func open(
+        on target: ReferenceLayerUnderlay,
+        role: ReferencePlacementGestureRole,
+        kind: Kind,
+        baselineTranslation: CGSize
+    ) {
         let footprint = target.footprint
         let scale = target.placement.scale
         gesture = Gesture(
+            role: role,
+            sourceKey: target.sourceKey,
             start: target.placement,
             kind: kind,
             unitExtent: (
                 x: (footprint.maxX - footprint.minX) / scale,
                 y: (footprint.maxY - footprint.minY) / scale
-            )
+            ),
+            baselineTranslation: baselineTranslation
         )
         draft = AppleReferencePlacementUpdate(
             x: target.placement.x,
@@ -163,7 +228,7 @@ final class ReferenceLayerPlacementInteraction {
         )
         let projected = (dragged.x * basis.x + dragged.y * basis.y)
             / (basis.x * basis.x + basis.y * basis.y)
-        let scale = max(projected, minimumScale(for: gesture.unitExtent))
+        let scale = max(projected, minimumScale(for: gesture))
 
         let anchorRight = gesture.start.x + gesture.unitExtent.x * gesture.start.scale
         let anchorBottom = gesture.start.y + gesture.unitExtent.y * gesture.start.scale
@@ -182,10 +247,7 @@ final class ReferenceLayerPlacementInteraction {
         anchor: (x: Float, y: Float),
         by magnification: Float
     ) -> AppleReferencePlacementUpdate {
-        let scale = max(
-            gesture.start.scale * magnification,
-            minimumScale(for: gesture.unitExtent)
-        )
+        let scale = max(gesture.start.scale * magnification, minimumScale(for: gesture))
         let ratio = scale / gesture.start.scale
         return AppleReferencePlacementUpdate(
             x: anchor.x - (anchor.x - gesture.start.x) * ratio,
@@ -194,12 +256,16 @@ final class ReferenceLayerPlacementInteraction {
         )
     }
 
-    /// The scale at which the shorter projected axis reaches the minimum size —
-    /// the floor a collapsing gesture stops at.
-    private func minimumScale(for unitExtent: (x: Float, y: Float)) -> Float {
-        max(
-            minimumProjectedSize / unitExtent.x,
-            minimumProjectedSize / unitExtent.y
+    /// The floor a collapsing gesture stops at: the scale where the shorter
+    /// projected axis reaches the minimum size, but never above where the
+    /// gesture started. A source small enough that its auto-fit already sits
+    /// under the floor would otherwise be enlarged by merely touching a grip,
+    /// turning a stationary gesture into an edit.
+    private func minimumScale(for gesture: Gesture) -> Float {
+        let floor = max(
+            minimumProjectedSize / gesture.unitExtent.x,
+            minimumProjectedSize / gesture.unitExtent.y
         )
+        return min(floor, gesture.start.scale)
     }
 }

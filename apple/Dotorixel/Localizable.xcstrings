@@ -914,6 +914,74 @@
         }
       }
     },
+    "Move down" : {
+      "comment" : "VoiceOver action on the Reference placement overlay: nudge the placement one canvas pixel.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下に移動"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아래로 이동"
+          }
+        }
+      }
+    },
+    "Move left" : {
+      "comment" : "VoiceOver action on the Reference placement overlay: nudge the placement one canvas pixel.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左に移動"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "왼쪽으로 이동"
+          }
+        }
+      }
+    },
+    "Move right" : {
+      "comment" : "VoiceOver action on the Reference placement overlay: nudge the placement one canvas pixel.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右に移動"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오른쪽으로 이동"
+          }
+        }
+      }
+    },
+    "Move up" : {
+      "comment" : "VoiceOver action on the Reference placement overlay: nudge the placement one canvas pixel.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上に移動"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "위로 이동"
+          }
+        }
+      }
+    },
     "My Works" : {
       "comment" : "Saved-work browser title. web: browser_title",
       "localizations" : {
@@ -1148,6 +1216,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "참조 이미지"
+          }
+        }
+      }
+    },
+    "Reference image placement" : {
+      "comment" : "Accessibility label for the Reference Layer placement overlay on the canvas.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照画像の配置"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "레퍼런스 이미지 배치"
           }
         }
       }

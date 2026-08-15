@@ -93,10 +93,9 @@ struct ReferenceLayerPlacementOverlay: View {
     let tab: TabState
     let displayScale: CGFloat
 
-    /// Whether a drag has already opened a gesture — a pinch can replace it
-    /// mid-flight, so the drag must not reopen one on its next callback.
-    @State private var isDragOpen = false
-    @State private var isPinchOpen = false
+    // Gesture ownership is not view state: the interaction answers which role
+    // owns the placement, so a grip pressed during a body drag — or a finger
+    // still down after a pinch took over — cannot steer or resolve it.
 
     // Web parity (`.reference-placement-overlay`): a 1px accent dash over a
     // background wash, so the box reads on any traced color. Static rather
@@ -104,6 +103,10 @@ struct ReferenceLayerPlacementOverlay: View {
     private let washWidth: CGFloat = 3
     private let borderWidth: CGFloat = 1
     private let dashPattern: [CGFloat] = [4, 4]
+
+    /// One VoiceOver adjust step, chosen so a few gestures make a visible
+    /// difference without overshooting the canvas.
+    private let scaleStep: Float = 1.1
 
     var body: some View {
         if let target = tab.referencePlacementTarget {
@@ -137,7 +140,33 @@ struct ReferenceLayerPlacementOverlay: View {
                 // `overflow: hidden`).
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .clipped()
-                .accessibilityHidden(true)
+                .accessibilityElement()
+                .accessibilityLabel("Reference image placement")
+                // The drag and pinch gestures are unreachable without sighted
+                // pointing, and the arrow-key nudge needs a hardware keyboard.
+                // These give VoiceOver the same two capabilities through the
+                // commands the gestures commit through.
+                .accessibilityAction(named: "Move left") {
+                    tab.nudgeReferencePlacement(dx: -1, dy: 0)
+                }
+                .accessibilityAction(named: "Move right") {
+                    tab.nudgeReferencePlacement(dx: 1, dy: 0)
+                }
+                .accessibilityAction(named: "Move up") {
+                    tab.nudgeReferencePlacement(dx: 0, dy: -1)
+                }
+                .accessibilityAction(named: "Move down") {
+                    tab.nudgeReferencePlacement(dx: 0, dy: 1)
+                }
+                // Resizing is the rotor's adjust gesture, matching how the
+                // Timeline's reorder handle exposes its own drag-only action.
+                .accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment: tab.scaleReferencePlacement(by: scaleStep)
+                    case .decrement: tab.scaleReferencePlacement(by: 1 / scaleStep)
+                    @unknown default: break
+                    }
+                }
         }
     }
 
@@ -178,28 +207,31 @@ struct ReferenceLayerPlacementOverlay: View {
         target: CGRect?,
         in box: CGRect
     ) -> some Gesture {
-        DragGesture(minimumDistance: 0)
+        let role = ReferencePlacementGestureRole.drag(handle)
+        return DragGesture(minimumDistance: 0)
             .onChanged { value in
-                if !isDragOpen {
-                    isDragOpen = true
-                    tab.beginReferencePlacement(handle: pressedHandle(
-                        handle,
-                        target: target,
-                        in: box,
-                        startLocation: value.startLocation
-                    ))
+                if !tab.isReferencePlacementOpen(for: role) {
+                    // Refused while another pointer owns the placement; opens
+                    // fresh once that gesture has resolved, so a drag the user
+                    // never lifted resumes from the committed placement.
+                    tab.beginReferencePlacement(
+                        handle: pressedHandle(
+                            handle,
+                            target: target,
+                            in: box,
+                            startLocation: value.startLocation
+                        ),
+                        at: value.translation
+                    )
                 }
                 tab.updateReferencePlacement(
                     translation: value.translation,
-                    pointsPerCanvasPixel: pointsPerCanvasPixel
+                    pointsPerCanvasPixel: pointsPerCanvasPixel,
+                    from: role
                 )
             }
             .onEnded { _ in
-                isDragOpen = false
-                // A pinch that replaced this drag commits on its own end; the
-                // interaction has nothing left to hand back here.
-                guard !isPinchOpen else { return }
-                tab.commitReferencePlacement()
+                tab.commitReferencePlacement(from: role)
             }
     }
 
@@ -224,8 +256,9 @@ struct ReferenceLayerPlacementOverlay: View {
     private func pinchGesture(target: ReferenceLayerUnderlay) -> some Gesture {
         MagnifyGesture(minimumScaleDelta: 0)
             .onChanged { value in
-                if !isPinchOpen {
-                    isPinchOpen = true
+                if !tab.isReferencePlacementOpen(for: .pinch) {
+                    // Takes the placement over from any running drag — a
+                    // second finger landing is an explicit change of intent.
                     tab.beginReferencePlacementPinch(
                         anchor: canvasAnchor(value.startAnchor, in: target.footprint)
                     )
@@ -233,9 +266,7 @@ struct ReferenceLayerPlacementOverlay: View {
                 tab.updateReferencePlacement(magnification: value.magnification)
             }
             .onEnded { _ in
-                isPinchOpen = false
-                isDragOpen = false
-                tab.commitReferencePlacement()
+                tab.commitReferencePlacement(from: .pinch)
             }
     }
 

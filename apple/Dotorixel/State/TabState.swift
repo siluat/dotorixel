@@ -722,6 +722,7 @@ final class TabState {
         let previewed = previewedPlacement(
             committed: placement,
             footprint: footprint,
+            sourceKey: source.id,
             naturalWidth: source.width,
             naturalHeight: source.height
         )
@@ -745,10 +746,14 @@ final class TabState {
     private func previewedPlacement(
         committed: AppleReferencePlacement,
         footprint: AppleReferenceFootprint,
+        sourceKey: String,
         naturalWidth: UInt32,
         naturalHeight: UInt32
     ) -> (placement: AppleReferencePlacement, footprint: AppleReferenceFootprint) {
-        guard let draft = placementInteraction.draft else {
+        // A draft opened on a different image — an import replaces the
+        // Reference in place — describes geometry this source never had.
+        guard let draft = placementInteraction.draft,
+              placementInteraction.targetKey == sourceKey else {
             return (committed, footprint)
         }
         // Move and scale preserve the Layer's quarter-turn, which the core
@@ -865,11 +870,17 @@ final class TabState {
     /// net-zero gesture records nothing and never marks the document dirty.
     ///
     /// Silently inert while a stroke is drawing (the stroke owns the pending
-    /// baseline) or without a Reference Layer. Rejects a placement that
-    /// violates the core invariant — non-finite position, scale ≤ 0 — at the
-    /// binding boundary, leaving the document untouched.
+    /// baseline), while a placement gesture is running, or without a Reference
+    /// Layer. Rejects a placement that violates the core invariant —
+    /// non-finite position, scale ≤ 0 — at the binding boundary, leaving the
+    /// document untouched.
+    ///
+    /// The running-gesture seal is what keeps a keyboard nudge or a fit from
+    /// landing mid-drag: the gesture's own release would commit from its start
+    /// and silently overwrite that Edit. The gesture's commit path clears its
+    /// draft before writing, so it passes the seal.
     func setReferencePlacement(_ placement: AppleReferencePlacementUpdate) {
-        guard !isDrawing else { return }
+        guard !isDrawing, placementInteraction.draft == nil else { return }
         guard let referenceId = document.layers().first(where: { $0.kind == .reference })?.id
         else { return }
         if performEdit({
@@ -881,12 +892,19 @@ final class TabState {
 
     // MARK: - Reference Layer Placement Interaction
 
+    /// Whether `role` owns the running placement gesture — the overlay's cue
+    /// that it should open one rather than keep feeding an existing one.
+    func isReferencePlacementOpen(for role: ReferencePlacementGestureRole) -> Bool {
+        placementInteraction.isOpen(for: role)
+    }
+
     /// Opens a placement gesture on the live overlay — a body drag when
     /// `handle` is nil, a corner scale drag otherwise. Inert without an active
-    /// placement or while a stroke owns the pending Edit Baseline.
-    func beginReferencePlacement(handle: ReferencePlacementHandle?) {
+    /// placement or while a stroke owns the pending Edit Baseline, and refused
+    /// while another pointer already owns the placement.
+    func beginReferencePlacement(handle: ReferencePlacementHandle?, at translation: CGSize) {
         guard !isDrawing, let target = referencePlacementTarget else { return }
-        placementInteraction.begin(on: target, handle: handle)
+        placementInteraction.begin(on: target, handle: handle, at: translation)
     }
 
     /// Opens a pinch gesture on the overlay body. `anchor` is the canvas-space
@@ -897,11 +915,17 @@ final class TabState {
     }
 
     /// Advances a drag gesture's live draft. `pointsPerCanvasPixel` converts
-    /// the SwiftUI translation into canvas pixels.
-    func updateReferencePlacement(translation: CGSize, pointsPerCanvasPixel: CGFloat) {
+    /// the SwiftUI translation into canvas pixels; the update is ignored unless
+    /// `role` owns the gesture.
+    func updateReferencePlacement(
+        translation: CGSize,
+        pointsPerCanvasPixel: CGFloat,
+        from role: ReferencePlacementGestureRole
+    ) {
         placementInteraction.update(
             translation: translation,
-            pointsPerCanvasPixel: pointsPerCanvasPixel
+            pointsPerCanvasPixel: pointsPerCanvasPixel,
+            from: role
         )
         canvasVersion += 1
     }
@@ -912,11 +936,23 @@ final class TabState {
         canvasVersion += 1
     }
 
-    /// Ends the gesture and commits its draft as one undoable Edit. A gesture
-    /// that ended where it started resolves to a no-op Edit and records
-    /// nothing.
-    func commitReferencePlacement() {
-        guard let placement = placementInteraction.commit() else { return }
+    /// Ends `role`'s gesture and commits its draft as one undoable Edit. A
+    /// gesture that ended where it started resolves to a no-op Edit and
+    /// records nothing, and a non-owner's release resolves nothing at all.
+    ///
+    /// The draft is dropped before the write is attempted, so the re-render
+    /// fires either way: a write the document refuses (mid-stroke, or a target
+    /// that changed under the gesture) must not leave the discarded draft on
+    /// screen.
+    func commitReferencePlacement(from role: ReferencePlacementGestureRole) {
+        let key = placementInteraction.targetKey
+        guard let placement = placementInteraction.commit(from: role) else { return }
+        canvasVersion += 1
+        // The gesture described the Reference it opened on. If that Layer was
+        // replaced, hidden, or deactivated while the gesture ran, its draft
+        // describes geometry that no longer exists — drop it rather than write
+        // it onto whatever took its place.
+        guard key == referencePlacementTarget?.sourceKey else { return }
         setReferencePlacement(placement)
     }
 
@@ -941,6 +977,29 @@ final class TabState {
             x: target.placement.x + Float(dx),
             y: target.placement.y + Float(dy),
             scale: target.placement.scale
+        ))
+    }
+
+    /// Multiplies the active Reference Layer Placement's scale about the
+    /// footprint's center, committed like any other completed gesture. The
+    /// pointer-free counterpart of a corner drag — VoiceOver's adjustable
+    /// action reaches resizing through here.
+    ///
+    /// Refuses a factor that would leave the core's `scale > 0` invariant, so
+    /// repeated shrink steps settle rather than collapse.
+    func scaleReferencePlacement(by factor: Float) {
+        guard let target = referencePlacementTarget else { return }
+        let scale = target.placement.scale * factor
+        guard scale.isFinite, scale > 0 else { return }
+        let footprint = target.footprint
+        let center = (
+            x: (footprint.minX + footprint.maxX) / 2,
+            y: (footprint.minY + footprint.maxY) / 2
+        )
+        setReferencePlacement(AppleReferencePlacementUpdate(
+            x: center.x - (center.x - target.placement.x) * factor,
+            y: center.y - (center.y - target.placement.y) * factor,
+            scale: scale
         ))
     }
 

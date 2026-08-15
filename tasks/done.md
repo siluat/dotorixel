@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 281 | [Apple navigation bounds — pan/zoom clamped to canvas ∪ reference footprint](../issues/281-apple-reference-navigation-bounds.md) | 2026-08-15 |
 | 280 | [Apple reference placement overlay — drag to move, scale, fit to canvas](../issues/280-apple-reference-placement-overlay.md) | 2026-08-15 |
 | 279 | [Apple reference edit guards + sampling — editability authority, eyedropper reads the underlay](../issues/279-apple-reference-edit-guards-sampling.md) | 2026-08-14 |
 | 278 | [Apple reference import + underlay — image import, viewport underlay render, timeline row](../issues/278-apple-reference-import-underlay.md) | 2026-08-13 |

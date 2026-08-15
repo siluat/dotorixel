@@ -1451,6 +1451,28 @@ impl AppleViewport {
         })
     }
 
+    /// Clamps pan so an arbitrary document-space content rectangle stays
+    /// reachable — the Navigation Bounds sink (canvas ∪ Reference footprint,
+    /// unioned shell-side like the web).
+    fn clamp_pan_to_document_bounds(
+        &self,
+        min_x: f64,
+        min_y: f64,
+        max_x: f64,
+        max_y: f64,
+        viewport_size: ViewportSize,
+    ) -> Arc<AppleViewport> {
+        Arc::new(AppleViewport {
+            inner: self.inner.clamp_pan_to_document_bounds(
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+                viewport_size,
+            ),
+        })
+    }
+
     fn fit_to_viewport(
         &self,
         canvas_width: u32,

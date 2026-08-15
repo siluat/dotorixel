@@ -74,8 +74,8 @@ final class TabState {
     private(set) var historyVersion: Int = 0
 
     /// Current viewport dimensions in device pixels. Updated by the canvas
-    /// host view on appear and resize; used by zoom/pan handlers for
-    /// clamp_pan calculations.
+    /// host view on appear and resize; used by the viewport sinks for
+    /// Navigation Bounds clamping.
     var viewportSize = ViewportSize(width: 0, height: 0)
 
     /// Where this tab reports persistable mutations (web parity: the
@@ -652,11 +652,7 @@ final class TabState {
     /// exists — reclamp and re-check them like `resizeCanvas` does.
     private func applyRestoredDocument(_ restored: AppleDocument) {
         document = restored
-        viewport = viewport.clampPan(
-            canvasWidth: document.width(),
-            canvasHeight: document.height(),
-            viewportSize: viewportSize
-        )
+        reclampViewport()
         if let hoverPoint, !isInCanvasBounds(hoverPoint) {
             self.hoverPoint = nil
         }
@@ -799,6 +795,9 @@ final class TabState {
         guard resolveFloatingSelectionRecovery() else { return }
         guard !floatingSelection.isActive || commitFloatingSelection() else { return }
         guard (try? document.setActiveLayer(id: id)) != nil else { return }
+        // Leaving the Reference Layer shrinks Navigation Bounds back to the
+        // canvas — the pan must follow rather than rest out of reach.
+        reclampViewport()
         canvasVersion += 1
         // The active-layer pointer is persisted document state (web parity:
         // a persisted-UI mutation marks dirty without a History entry).
@@ -825,6 +824,9 @@ final class TabState {
         guard !isDrawing else { return }
         let name = String(localized: Self.defaultLayerName(number: document.nextLayerNumber()))
         if performEdit({ (try? document.addLayer(newId: UUID().uuidString, name: name)) != nil }) {
+            // The new layer becomes the drawing target, deactivating an
+            // active Reference — Navigation Bounds shrink to the canvas.
+            reclampViewport()
             canvasVersion += 1
         }
     }
@@ -859,6 +861,10 @@ final class TabState {
             throw mutationError
         }
         if changed {
+            // A replacement resets the placement to fit the canvas — a
+            // footprint that extended Navigation Bounds is gone, so the pan
+            // must come back inside the shrunk region.
+            reclampViewport()
             canvasVersion += 1
         }
     }
@@ -886,6 +892,9 @@ final class TabState {
         if performEdit({
             (try? document.setReferencePlacement(id: referenceId, placement: placement)) != nil
         }) {
+            // The edit can pull the footprint back toward the canvas —
+            // shrink Navigation Bounds and the pan must follow immediately.
+            reclampViewport()
             canvasVersion += 1
         }
     }
@@ -969,6 +978,9 @@ final class TabState {
     /// committed placement on the next render.
     func cancelReferencePlacement() {
         placementInteraction.cancel()
+        // The draft may have extended Navigation Bounds past the committed
+        // footprint — falling back shrinks them, and the pan must follow.
+        reclampViewport()
         canvasVersion += 1
     }
 
@@ -1091,6 +1103,9 @@ final class TabState {
         if performEdit({ (try? document.removeLayer(id: id)) != nil }) {
             if isRemovingReference {
                 referenceSourceCache.clear()
+                // Deleting the Reference shrinks Navigation Bounds back to
+                // the canvas — reclamp so the pan never rests out of reach.
+                reclampViewport()
             }
             canvasVersion += 1
         }
@@ -1149,6 +1164,9 @@ final class TabState {
     func setLayerVisibility(id: String, visible: Bool) {
         guard !isDrawing else { return }
         if performEdit({ (try? document.setLayerVisibility(id: id, visible: visible)) != nil }) {
+            // Hiding the active Reference removes its underlay footprint from
+            // Navigation Bounds — reclamp the pan against the shrunk region.
+            reclampViewport()
             canvasVersion += 1
         }
     }
@@ -1185,11 +1203,7 @@ final class TabState {
             (try? document.resize(newWidth: width, newHeight: height, anchor: .topLeft)) != nil
         }
         guard resized else { return }
-        viewport = viewport.clampPan(
-            canvasWidth: width,
-            canvasHeight: height,
-            viewportSize: viewportSize
-        )
+        reclampViewport()
         // The new canvas geometry can leave a published Hover Point out of
         // bounds, and no hover event fires while the pencil holds still — clear
         // it here so the overlay never marks a cell the resize deleted. The
@@ -1250,11 +1264,7 @@ final class TabState {
     /// marks a cell the rotation moved — reclamp the one and clear the other
     /// (the next hover event republishes against the new dimensions).
     private func reclampAfterCanvasRotation() {
-        viewport = viewport.clampPan(
-            canvasWidth: document.width(),
-            canvasHeight: document.height(),
-            viewportSize: viewportSize
-        )
+        reclampViewport()
         hoverPoint = nil
     }
 
@@ -1361,14 +1371,54 @@ final class TabState {
 
     // MARK: - Viewport
 
-    /// Applies clamp_pan and updates the viewport. No canvasVersion bump needed —
-    /// replacing the viewport reference triggers @Observable change detection.
-    func handleViewportChange(_ newViewport: AppleViewport) {
-        viewport = newViewport.clampPan(
+    /// The active Reference Layer's visible underlay footprint — the input
+    /// that widens Navigation Bounds past the canvas. `nil` while a Pixel
+    /// Layer is active or the Reference is hidden, so the bounds fall back to
+    /// the canvas alone (web parity: `#activeReferenceFootprint` in
+    /// `tab-state.svelte.ts`). Reads the placement-draft preview, so a running
+    /// gesture extends the reachable area live.
+    private var activeReferenceFootprint: AppleReferenceFootprint? {
+        referencePlacementTarget?.footprint
+    }
+
+    /// Clamps a viewport to the current Navigation Bounds — the union of the
+    /// canvas rect and the active Reference's footprint. Every viewport sink
+    /// funnels through here so the canvas (and an active Reference) can never
+    /// be panned or zoomed entirely out of reach.
+    private func clampedToNavigationBounds(_ unclamped: AppleViewport) -> AppleViewport {
+        let bounds = navigationBounds(
             canvasWidth: document.width(),
             canvasHeight: document.height(),
+            referenceFootprint: activeReferenceFootprint
+        )
+        return unclamped.clampPanToDocumentBounds(
+            minX: bounds.minX,
+            minY: bounds.minY,
+            maxX: bounds.maxX,
+            maxY: bounds.maxY,
             viewportSize: viewportSize
         )
+    }
+
+    /// Applies the Navigation Bounds clamp and updates the viewport. No
+    /// canvasVersion bump needed — replacing the viewport reference triggers
+    /// @Observable change detection.
+    func handleViewportChange(_ newViewport: AppleViewport) {
+        viewport = clampedToNavigationBounds(newViewport)
+    }
+
+    /// Re-clamps the current viewport after an event that can shrink
+    /// Navigation Bounds — a placement edit, Reference deactivation, removal,
+    /// or hiding, undo/redo, or a canvas geometry change — so the viewport
+    /// never rests outside the new clamp. Inert when pan is already within
+    /// bounds, leaving the viewport reference (and persisted state) untouched
+    /// (web parity: `TabViewport.reclamp`).
+    private func reclampViewport() {
+        let clamped = clampedToNavigationBounds(viewport)
+        guard clamped.panX() != viewport.panX() || clamped.panY() != viewport.panY() else {
+            return
+        }
+        viewport = clamped
     }
 
     func handleZoomIn() {
@@ -1394,12 +1444,15 @@ final class TabState {
         handleViewportChange(zoomed)
     }
 
+    /// Fits the canvas rect (web parity — the Reference never changes what
+    /// fit frames), then clamps like every other sink so an active Reference
+    /// stays reachable.
     func handleFit() {
-        viewport = viewport.fitToViewport(
+        viewport = clampedToNavigationBounds(viewport.fitToViewport(
             canvasWidth: document.width(),
             canvasHeight: document.height(),
             viewportSize: viewportSize
-        )
+        ))
     }
 }
 

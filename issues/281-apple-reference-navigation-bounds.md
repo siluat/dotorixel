@@ -1,6 +1,6 @@
 ---
 title: Apple navigation bounds — clamp pan/zoom to canvas ∪ reference footprint
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -47,3 +47,26 @@ it — today's canvas-only clamp would strand it off-screen.
 ## Blocked by
 
 - [280 — Apple reference placement overlay](280-apple-reference-placement-overlay.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/src/lib.rs` | `AppleViewport.clampPanToDocumentBounds` binding exposed — thin delegation to the core's existing rotation-agnostic document-bounds clamp (bindings regenerated) |
+| `apple/Dotorixel/State/NavigationBounds.swift` | Pure shell-side union (canvas ∪ footprint), mirroring the web's `navigation-bounds.ts`; footprint enters as an input so the reference-geometry consolidation seam stays open |
+| `apple/Dotorixel/State/TabState.swift` | Single clamp sink `clampedToNavigationBounds` fed by `activeReferenceFootprint` (placement-draft preview included, so a running gesture extends the bounds live); all five viewport sinks (pan/zoom via `handleViewportChange`, fit, undo/redo, resize, rotation) routed through it; `reclampViewport` (inert-when-pan-unmoved guard, web `TabViewport.reclamp` parity) called at every bounds-shrinking event — placement commit, gesture cancel, deactivation, `addLayer`, removal, hiding, and reference replacement |
+| `apple/DotorixelTests/NavigationBoundsTests.swift` | Union math unit tests (canvas-only / protruding / contained), mirroring the web suite |
+| `apple/DotorixelTests/TabStateNavigationBoundsTests.swift` | 15 behavior tests at the TabState seam: per-sink union clamp, Pixel-active canvas-only guard, live draft extension, and shrink-reclamp per event; hand-derived expected values documented per test |
+
+### Key Decisions
+
+- **Fit frames the canvas, not the union** — deviating from this issue's original acceptance criterion by user decision: the web's Fit targets the canvas rect and only *clamps* against the union, and Apple now matches that exactly rather than introducing a cross-shell divergence. When containment demands it the clamped fit still shifts pan so the whole union stays visible (same as the web's `zoomFit → apply` path).
+- **Union computed shell-side** (per the issue): the core owns the rotation-aware footprint and the document-bounds clamp; each shell unions canvas ∪ footprint itself — the same split the web chose in issue 160.
+- **Footprint source = `referencePlacementTarget?.footprint`**: active + visible Reference only, with the in-flight placement draft substituted — bounds extend live during a drag and shrink back on cancel/commit through explicit `reclampViewport` calls (Apple's mutations are imperative, unlike the web's journal-driven reclamp).
+
+### Notes
+
+- The canvas-only `clampPan` binding now has no callers in the Apple shell (production or tests) — a binding-surface shrink candidate for a later review pass (the web kept its counterpart because tests still use it).
+- The rejected-commit path after a mid-gesture Reference replacement needs no extra reclamp: `previewedPlacement`'s `targetKey == sourceKey` guard already stops the stale draft from feeding the footprint, and `setReferenceLayer`'s reclamp handles the shrink.
+- A blank symmetric document's rotation resolves to a no-op Edit and skips the rotation reclamp entirely — the rotation test paints one pixel to keep the path exercised.
+- Verified: cargo 571 passed · Apple 630 tests / 120 suites passed.

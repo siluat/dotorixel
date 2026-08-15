@@ -27,7 +27,7 @@ Phase 5 is decomposed below (issues 267–282); Phase 6 is decomposed
 
 ### Phase 5 — Reference + selection + transforms (issues 267–282)
 
-Reference track frontier: `{281}` (267–280 done; selection + transforms complete).
+Reference track frontier: `{282}` (267–281 done; selection + transforms complete).
 
 Selection + transforms track:
 
@@ -35,7 +35,6 @@ Selection + transforms track:
 
 Reference track:
 
-- [281 — Navigation bounds clamp](../issues/281-apple-reference-navigation-bounds.md)
 - [282 — Reference persistence](../issues/282-apple-reference-persistence.md)
 
 ### Phase 6 — roadmap (decompose when reached)

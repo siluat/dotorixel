@@ -1,6 +1,6 @@
 ---
 title: Apple reference persistence — reference layer survives relaunch
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -59,3 +59,44 @@ documented 278 gap where a reference vanishes on relaunch.
 - [280 — Apple reference placement overlay](280-apple-reference-placement-overlay.md)
   (placement values worth persisting exist once the overlay can change
   them; the schema itself only needs 278)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/export.rs` | `decode_rgba_png` — the lossless inverse of `encode_rgba_png` (now `pub`); rejects malformed bytes and any non-RGBA8 layout |
+| `apple/src/lib.rs` | `AppleReferenceLayerSnapshot` record, `reference_layer_snapshot()` read, `from_layers(…, reference:)` hydration (UniFFI default `nil` — expand-only), `appleEncode/DecodeReferencePng`; 278 temporary-boundary contracts retired |
+| `apple/Dotorixel/State/WorkspaceSnapshot.swift` | `TabSnapshot.reference` — the in-memory snapshot carries the reference alongside the Pixel stack |
+| `apple/Dotorixel/State/TabState.swift` | `toSnapshot()` includes the reference and drops the 278 active-pointer fallback; `init(restoring:)` hydrates through `fromLayers(reference:)` |
+| `apple/Dotorixel/Persistence/SessionStore.swift` | `StoredReference` / `StoredReferencePlacement`; optional `DocumentRecord.reference` (existing stores restore unchanged) |
+| `apple/Dotorixel/Persistence/SessionPersistence.swift` | Save PNG-encodes the source; restore decodes with corrupt-blob / invalid-placement drop and dangling active-pointer remap; saved-work summaries hydrate the reference while thumbnails stay Pixel-only |
+| `apple/DotorixelTests/*` | Binding round-trip/rejection/codec tests; workspace-snapshot round-trip + hidden-restore; reference-mutation dirty marks; persistence round-trip, delete, corrupt blob, invalid placement, legacy store; AutoSave flush contract rewritten to carry the reference |
+
+### Key Decisions
+
+- **Single hydration authority**: `fromLayers(reference:)` mirrors the wasm
+  builder; the core's `normalize_reference_underlay` performs the
+  bottom-most-singleton normalization. No shell-side rebuild sequence.
+- **PNG codec in core**, paired with the existing encoder: the lossless
+  round-trip has one implementation, and ImageIO re-decoding (premultiplied
+  alpha, rounding loss) is structurally excluded from the persistence path.
+- **Corruption blast radius**: a corrupt blob, invalid placement, or invalid
+  id drops the reference at the persistence boundary; a stored active pointer
+  naming the dropped reference remaps to the topmost Pixel Layer. Never a
+  lost session.
+- **`rotation` is stored** (web schema parity; future rotate polish) and
+  restored exactly, though nothing on this shell produces a non-zero value yet.
+- **Vocabulary alignment** (guide-compliance pass): the snapshot record uses
+  `naturalWidth`/`naturalHeight` (matching core, underlay, and the web
+  snapshot); the stored blob field is `sourcePng` (web `sourceBlob` parity).
+
+### Notes
+
+- A stored reference id colliding with a Pixel Layer id (pathological
+  corruption) still falls back to a fresh session — deliberate web parity
+  (the web builder fails its Document build the same way).
+- An encode failure at save time (core-guaranteed not to occur) would drop
+  the reference from that record rather than abort the auto-save.
+- Two tests pinning the 278 skip contract were rewritten to the new contract
+  (`WorkspaceSnapshotTests`, `AutoSaveTests`); they are replacements, not
+  lost coverage.

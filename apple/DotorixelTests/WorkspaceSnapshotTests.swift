@@ -93,8 +93,8 @@ struct WorkspaceSnapshotCaptureTests {
         #expect(pixel(in: try tab.renderPixels(), width: 4, x: 2, y: 1) == red)
     }
 
-    @Test("a Reference-carrying tab snapshots Pixel Layers and a valid active Pixel while omitting the 282 gap")
-    func referenceLayerIsSkippedAtSnapshotBoundary() throws {
+    @Test("a Reference-carrying tab round-trips: underlay, row, placement, and active pointer restore exactly")
+    func referenceLayerRoundTripsThroughSnapshotAndRestore() throws {
         let workspace = Workspace(width: 4, height: 4)
         let tab = workspace.activeTab
         let pixelLayerId = tab.document.activeLayerId()
@@ -103,29 +103,71 @@ struct WorkspaceSnapshotCaptureTests {
             y: 1,
             color: Color(r: 0x44, g: 0x55, b: 0x66, a: 0xFF)
         )
+        // A semi-transparent source byte — the value a lossy round-trip
+        // would corrupt.
+        let sourceRgba = Data([200, 100, 50, 7, 255, 0, 0, 255])
+        try tab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png",
+            rgba: sourceRgba,
+            width: 2,
+            height: 1
+        ))
+        tab.setReferencePlacement(
+            AppleReferencePlacementUpdate(x: 1.5, y: -2.0, scale: 3.0))
+
+        let snapshot = workspace.toSnapshot()
+        let tabSnapshot = snapshot.tabs[0]
+
+        // Pixel Layers persist exactly as before; the Reference rides
+        // alongside instead of being skipped (the closed 278 gap).
+        #expect(tabSnapshot.layers.map(\.id) == [pixelLayerId])
+        let reference = try #require(tabSnapshot.reference)
+        #expect(reference.name == "guide.png")
+        #expect(reference.visible)
+        #expect(reference.sourceRgba == sourceRgba)
+        #expect(reference.naturalWidth == 2)
+        #expect(reference.naturalHeight == 1)
+        #expect(reference.placement
+            == AppleReferencePlacement(x: 1.5, y: -2.0, scale: 3.0, rotation: 0))
+        // Import left the Reference active; the snapshot keeps that pointer
+        // (the 278 fallback to a Pixel Layer comes out).
+        #expect(tabSnapshot.activeLayerId == reference.id)
+
+        let restored = try Workspace(restoring: snapshot)
+        let restoredTab = restored.activeTab
+        #expect(restoredTab.document.layers().map(\.kind) == [.reference, .pixel])
+        #expect(restoredTab.document.activeLayerId() == reference.id)
+        #expect(restoredTab.document.composite() == tab.document.composite())
+        #expect(restoredTab.layersInPanelOrder.map(\.kind) == [.pixel, .reference])
+
+        let underlay = try #require(restoredTab.referenceLayerUnderlay)
+        #expect(underlay.sourceRgba == sourceRgba)
+        #expect(underlay.naturalWidth == 2)
+        #expect(underlay.naturalHeight == 1)
+        #expect(underlay.placement
+            == AppleReferencePlacement(x: 1.5, y: -2.0, scale: 3.0, rotation: 0))
+    }
+
+    @Test("a hidden Reference restores hidden — no underlay, visibility intact")
+    func hiddenReferenceRestoresHidden() throws {
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
         try tab.setReferenceLayer(ReferenceImageSource(
             name: "guide.png",
             rgba: Data([0xFF, 0, 0, 0xFF]),
             width: 1,
             height: 1
         ))
-        #expect(tab.document.layers().map(\.kind) == [.reference, .pixel])
-        #expect(tab.document.activeLayerId() != pixelLayerId)
+        let referenceId = tab.document.activeLayerId()
+        tab.setLayerVisibility(id: referenceId, visible: false)
 
-        let snapshot = workspace.toSnapshot()
+        let restored = try Workspace(restoring: workspace.toSnapshot())
+        let restoredTab = restored.activeTab
 
-        #expect(snapshot.tabs[0].layers.map(\.id) == [pixelLayerId])
-        #expect(snapshot.tabs[0].activeLayerId == pixelLayerId)
-        #expect(pixel(
-            in: snapshot.tabs[0].layers[0].pixels,
-            width: 4,
-            x: 2,
-            y: 1
-        ) == Color(r: 0x44, g: 0x55, b: 0x66, a: 0xFF))
-
-        let restored = try Workspace(restoring: snapshot)
-        #expect(restored.activeTab.document.layers().map(\.kind) == [.pixel])
-        #expect(restored.activeTab.document.composite() == tab.document.composite())
+        #expect(restoredTab.referenceLayerUnderlay == nil)
+        let referenceRow = try #require(
+            restoredTab.layersInPanelOrder.first { $0.kind == .reference })
+        #expect(!referenceRow.visible)
     }
 
     private func pixel(in pixels: Data, width: Int, x: Int, y: Int) -> Color {

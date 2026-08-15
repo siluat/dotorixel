@@ -13,7 +13,7 @@ use uuid::Uuid;
 // Re-export core types used directly in the UniFFI interface.
 // UniFFI discovers these via their cfg_attr derives in dotorixel-core.
 use dotorixel_core::color::Color;
-use dotorixel_core::layer::{LayerKind, LayerKindTag};
+use dotorixel_core::layer::{LayerKind, LayerKindTag, ReferenceData};
 use dotorixel_core::tool::ToolType;
 
 uniffi::setup_scaffolding!();
@@ -95,6 +95,14 @@ impl From<dotorixel_core::document::CompositePatchError> for AppleError {
 impl From<dotorixel_core::layer::ReferenceDataError> for AppleError {
     fn from(e: dotorixel_core::layer::ReferenceDataError) -> Self {
         Self::Document {
+            message: e.to_string(),
+        }
+    }
+}
+
+impl From<dotorixel_core::export::PngDecodeError> for AppleError {
+    fn from(e: dotorixel_core::export::PngDecodeError) -> Self {
+        Self::Export {
             message: e.to_string(),
         }
     }
@@ -563,6 +571,44 @@ fn apple_reference_placement_fit_to_canvas(
     .into())
 }
 
+/// A decoded reference PNG: the RGBA source buffer with the dimensions the
+/// stream itself declared.
+#[derive(uniffi::Record)]
+pub struct AppleDecodedPng {
+    pub width: u32,
+    pub height: u32,
+    /// Row-major RGBA buffer, `width * height * 4` bytes.
+    pub rgba: Vec<u8>,
+}
+
+/// Encodes a Reference Layer's RGBA source buffer as an RGBA 8-bit PNG —
+/// the compressed form session persistence stores. Errors when `rgba` is
+/// not a `width * height * 4` row-major buffer.
+#[uniffi::export]
+fn apple_encode_reference_png(
+    width: u32,
+    height: u32,
+    rgba: Vec<u8>,
+) -> Result<Vec<u8>, AppleError> {
+    Ok(dotorixel_core::export::encode_rgba_png(
+        width, height, &rgba,
+    )?)
+}
+
+/// Decodes a stored reference PNG back into its RGBA source buffer — the
+/// lossless inverse of [`apple_encode_reference_png`]. Errors on malformed
+/// bytes or any other PNG layout, so a corrupt stored blob fails here, at
+/// the persistence boundary.
+#[uniffi::export]
+fn apple_decode_reference_png(bytes: Vec<u8>) -> Result<AppleDecodedPng, AppleError> {
+    let decoded = dotorixel_core::export::decode_rgba_png(&bytes)?;
+    Ok(AppleDecodedPng {
+        width: decoded.width,
+        height: decoded.height,
+        rgba: decoded.pixels,
+    })
+}
+
 /// Natural source dimensions for the Reference Layer at a stack index.
 #[derive(uniffi::Record, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AppleReferenceDimensions {
@@ -583,7 +629,8 @@ pub struct AppleLayerMetadata {
 
 /// One Pixel Layer's full persistence snapshot — everything session
 /// persistence stores per layer, read in stack order via
-/// [`AppleDocument::layer_snapshots`] and fed back verbatim to the
+/// [`AppleDocument::pixel_layer_snapshots`] (or the Pixel-only
+/// [`AppleDocument::layer_snapshots`]) and fed back verbatim to the
 /// hydration constructor. `pixels` is the layer's RGBA row-major buffer
 /// (`width * height * 4` bytes); the id crosses the boundary as a lowercase
 /// UUID string, per the [`AppleLayerMetadata`] convention.
@@ -594,6 +641,57 @@ pub struct AppleLayerSnapshot {
     pub visible: bool,
     pub opacity: f32,
     pub pixels: Vec<u8>,
+}
+
+/// The singleton Reference Layer's full persistence snapshot — everything
+/// session persistence stores for the Reference: identity and display
+/// fields, the immutable RGBA source with its natural dimensions, and the
+/// placement. Read via [`AppleDocument::reference_layer_snapshot`] and fed
+/// back to [`AppleDocument::from_layers`] on hydration.
+#[derive(uniffi::Record)]
+pub struct AppleReferenceLayerSnapshot {
+    pub id: String,
+    pub name: String,
+    pub visible: bool,
+    pub opacity: f32,
+    /// Row-major RGBA source buffer (`natural_width * natural_height * 4`
+    /// bytes).
+    pub source_rgba: Vec<u8>,
+    pub natural_width: u32,
+    pub natural_height: u32,
+    pub placement: AppleReferencePlacement,
+}
+
+/// Rebuilds a Reference Layer from its persistence snapshot, validating
+/// every field the way [`AppleDocument::from_layers`] validates Pixel
+/// Layers: persisted data is an external input, so malformed values fail
+/// here, at the boundary.
+fn reference_layer_from_snapshot(
+    snapshot: AppleReferenceLayerSnapshot,
+) -> Result<Layer, AppleError> {
+    let id = parse_layer_id(&snapshot.id)?;
+    if !snapshot.opacity.is_finite() || !(0.0..=1.0).contains(&snapshot.opacity) {
+        return Err(AppleError::Document {
+            message: format!(
+                "Layer {id} opacity must be a finite value between 0.0 and 1.0, got {}",
+                snapshot.opacity
+            ),
+        });
+    }
+    let placement = snapshot.placement.to_core()?;
+    let data = ReferenceData::new(
+        snapshot.source_rgba,
+        snapshot.natural_width,
+        snapshot.natural_height,
+        placement,
+    )?;
+    Ok(Layer {
+        id,
+        name: snapshot.name,
+        visible: snapshot.visible,
+        opacity: snapshot.opacity,
+        kind: LayerKind::Reference(data),
+    })
 }
 
 fn pixel_layer_snapshot(
@@ -645,14 +743,17 @@ impl AppleDocument {
     }
 
     /// Rebuilds a document from persisted parts — the hydration counterpart
-    /// of [`Self::layer_snapshots`]: `layers` is the persisted stack in stack
-    /// order, restored verbatim (ids, names, visibility, opacity, pixels).
-    /// Errors when a layer id or `active_layer_id` is not a valid UUID
-    /// string, when a layer's opacity is not a finite value in `[0.0, 1.0]`,
-    /// when a pixel buffer's length is not `width * height * 4`, or when the
-    /// stack fails the core's build validation (empty stack, duplicate ids,
-    /// active layer not present).
-    #[uniffi::constructor]
+    /// of the persistence snapshot reads: `layers` is the persisted Pixel
+    /// stack in stack order, restored verbatim (ids, names, visibility,
+    /// opacity, pixels), and `reference` is the optional Reference Layer
+    /// snapshot, restored exactly (placement included) and normalized by the
+    /// core to the single bottom-most underlay. Errors when a layer id or
+    /// `active_layer_id` is not a valid UUID string, when a layer's opacity
+    /// is not a finite value in `[0.0, 1.0]`, when a pixel buffer's length is
+    /// not `width * height * 4`, when the reference's placement or source
+    /// buffer fails validation, or when the stack fails the core's build
+    /// validation (empty stack, duplicate ids, active layer not present).
+    #[uniffi::constructor(default(reference = None))]
     fn from_layers(
         width: u32,
         height: u32,
@@ -660,37 +761,39 @@ impl AppleDocument {
         active_layer_id: String,
         next_layer_number: u32,
         timeline_panel_collapsed: bool,
+        reference: Option<AppleReferenceLayerSnapshot>,
     ) -> Result<Arc<Self>, AppleError> {
-        let layers = layers
-            .into_iter()
-            .map(|snapshot| {
-                let id = parse_layer_id(&snapshot.id)?;
-                // Persisted data is an external input: a NaN opacity would
-                // slip past the compositor's clamp and render the layer
-                // transparent, so malformed values fail here, at the boundary.
-                if !snapshot.opacity.is_finite() || !(0.0..=1.0).contains(&snapshot.opacity) {
-                    return Err(AppleError::Document {
-                        message: format!(
-                            "Layer {id} opacity must be a finite value between 0.0 and 1.0, got {}",
-                            snapshot.opacity
-                        ),
-                    });
-                }
-                let canvas = PixelCanvas::from_pixels(width, height, snapshot.pixels)?;
-                Ok(Layer::from_pixel_canvas(
-                    id,
-                    snapshot.name,
-                    snapshot.visible,
-                    snapshot.opacity,
-                    canvas,
-                ))
-            })
-            .collect::<Result<Vec<_>, AppleError>>()?;
+        let mut stack: Vec<Layer> = Vec::with_capacity(layers.len() + 1);
+        if let Some(reference) = reference {
+            stack.push(reference_layer_from_snapshot(reference)?);
+        }
+        for snapshot in layers {
+            let id = parse_layer_id(&snapshot.id)?;
+            // Persisted data is an external input: a NaN opacity would
+            // slip past the compositor's clamp and render the layer
+            // transparent, so malformed values fail here, at the boundary.
+            if !snapshot.opacity.is_finite() || !(0.0..=1.0).contains(&snapshot.opacity) {
+                return Err(AppleError::Document {
+                    message: format!(
+                        "Layer {id} opacity must be a finite value between 0.0 and 1.0, got {}",
+                        snapshot.opacity
+                    ),
+                });
+            }
+            let canvas = PixelCanvas::from_pixels(width, height, snapshot.pixels)?;
+            stack.push(Layer::from_pixel_canvas(
+                id,
+                snapshot.name,
+                snapshot.visible,
+                snapshot.opacity,
+                canvas,
+            ));
+        }
         let active_id = parse_layer_id(&active_layer_id)?;
         let document = Document::from_layers(
             width,
             height,
-            layers,
+            stack,
             active_id,
             next_layer_number,
             timeline_panel_collapsed,
@@ -856,9 +959,9 @@ impl AppleDocument {
     /// Every layer's persistence snapshot in stack order — the per-layer
     /// fields session persistence stores (id, name, visibility, opacity, and
     /// the full pixel buffer, active or not). Errors when the stack contains
-    /// a Reference Layer: the current persistence snapshot contract covers
-    /// Pixel Layers only, so failing loudly beats silently dropping the
-    /// Reference until reference-aware persistence lands.
+    /// a Reference Layer: this read covers Pixel Layers only — a
+    /// reference-carrying stack reads through [`Self::pixel_layer_snapshots`]
+    /// plus [`Self::reference_layer_snapshot`] instead.
     fn layer_snapshots(&self) -> Result<Vec<AppleLayerSnapshot>, AppleError> {
         let document = self.inner.lock().unwrap();
         document
@@ -878,10 +981,9 @@ impl AppleDocument {
             .collect()
     }
 
-    /// Pixel-only persistence projection in stack order. This is the Apple
-    /// shell's temporary issue-278 boundary: auto-save remains healthy while
-    /// a Reference Layer is open by omitting that unsupported variant. Issue
-    /// 282 replaces this projection with a reference-aware snapshot schema.
+    /// Pixel-only persistence projection in stack order — the Pixel half of
+    /// the snapshot reads; [`Self::reference_layer_snapshot`] is the
+    /// Reference half.
     fn pixel_layer_snapshots(&self) -> Vec<AppleLayerSnapshot> {
         let document = self.inner.lock().unwrap();
         document
@@ -890,6 +992,30 @@ impl AppleDocument {
             .enumerate()
             .filter_map(|(index, layer)| pixel_layer_snapshot(&document, index, layer))
             .collect()
+    }
+
+    /// The singleton Reference Layer's persistence snapshot — source buffer,
+    /// natural dimensions, placement, and display fields; `nil` when the
+    /// stack holds no Reference. The read half of reference-aware
+    /// persistence; [`Self::from_layers`] is the hydration half.
+    fn reference_layer_snapshot(&self) -> Option<AppleReferenceLayerSnapshot> {
+        let document = self.inner.lock().unwrap();
+        document
+            .layers()
+            .iter()
+            .find_map(|layer| match &layer.kind {
+                LayerKind::Reference(data) => Some(AppleReferenceLayerSnapshot {
+                    id: layer.id.to_string(),
+                    name: layer.name.clone(),
+                    visible: layer.visible,
+                    opacity: layer.opacity,
+                    source_rgba: data.source_rgba().to_vec(),
+                    natural_width: data.natural_width(),
+                    natural_height: data.natural_height(),
+                    placement: data.placement().into(),
+                }),
+                LayerKind::Pixel(_) => None,
+            })
     }
 
     /// A copy of the immutable RGBA source buffer for the Reference Layer at

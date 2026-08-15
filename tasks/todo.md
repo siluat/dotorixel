@@ -21,21 +21,9 @@
 Phased catch-up to full parity with completed web editor features. See the RFC for
 the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish), Phase 2
 (full tool set + color + i18n, issues 230–242), Phase 3 (layer system, issues
-256–261), and Phase 4 (multi-tab + persistence, issues 262–266) are complete;
-Phase 5 is decomposed below (issues 267–282); Phase 6 is decomposed
-(`/to-tickets`) when reached.
-
-### Phase 5 — Reference + selection + transforms (issues 267–282)
-
-Reference track frontier: `{282}` (267–281 done; selection + transforms complete).
-
-Selection + transforms track:
-
-- Complete (issues 267–276).
-
-Reference track:
-
-- [282 — Reference persistence](../issues/282-apple-reference-persistence.md)
+256–261), Phase 4 (multi-tab + persistence, issues 262–266), and Phase 5
+(reference + selection + transforms, issues 267–282) are complete; Phase 6 is
+decomposed (`/to-tickets`) when reached.
 
 ### Phase 6 — roadmap (decompose when reached)
 

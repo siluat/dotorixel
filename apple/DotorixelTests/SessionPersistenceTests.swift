@@ -5,12 +5,15 @@ import Testing
 
 /// An in-memory store per test — the SwiftData analog of the web's fake
 /// storage in `session-persistence.test.ts`.
-private func makeInMemoryPersistence() throws -> SessionPersistence {
-    let container = try ModelContainer(
+private func makeInMemoryContainer() throws -> ModelContainer {
+    try ModelContainer(
         for: DocumentRecord.self, WorkspaceRecord.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
-    return SessionPersistence(modelContainer: container)
+}
+
+private func makeInMemoryPersistence() throws -> SessionPersistence {
+    SessionPersistence(modelContainer: try makeInMemoryContainer())
 }
 
 /// The exact pre-Marquee store shape. Keeping this as a separate SwiftData
@@ -233,6 +236,118 @@ struct SessionPersistenceTests {
         #expect(restored.activeTab.marquee == nil)
     }
 
+    @Test("a Reference Layer survives a store round-trip pixel-identically — placement, visibility, and active pointer included")
+    func referenceRoundTrips() async throws {
+        let persistence = try makeInMemoryPersistence()
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        // A semi-transparent source byte — lossy compression would corrupt it.
+        let sourceRgba = Data([200, 100, 50, 7, 255, 0, 0, 255])
+        try tab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png", rgba: sourceRgba, width: 2, height: 1))
+        tab.setReferencePlacement(
+            AppleReferencePlacementUpdate(x: 1.5, y: -2.0, scale: 3.0))
+
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+        let storedSnapshot = try #require(await persistence.restore())
+
+        let reference = try #require(storedSnapshot.tabs[0].reference)
+        #expect(reference.name == "guide.png")
+        #expect(reference.visible)
+        // Round-trip fidelity: the stored compression must be lossless.
+        #expect(reference.sourceRgba == sourceRgba)
+        #expect(reference.naturalWidth == 2)
+        #expect(reference.naturalHeight == 1)
+        #expect(reference.placement
+            == AppleReferencePlacement(x: 1.5, y: -2.0, scale: 3.0, rotation: 0))
+
+        let restored = try Workspace(restoring: storedSnapshot)
+        let restoredTab = restored.activeTab
+        #expect(restoredTab.document.layers().map(\.kind) == [.reference, .pixel])
+        #expect(restoredTab.document.activeLayerId() == reference.id)
+        let underlay = try #require(restoredTab.referenceLayerUnderlay)
+        #expect(underlay.sourceRgba == sourceRgba)
+        #expect(underlay.placement
+            == AppleReferencePlacement(x: 1.5, y: -2.0, scale: 3.0, rotation: 0))
+    }
+
+    @Test("deleting the Reference rewrites the stored record reference-free")
+    func deleteClearsStoredReference() async throws {
+        let persistence = try makeInMemoryPersistence()
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        try tab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png", rgba: Data([0xFF, 0, 0, 0xFF]), width: 1, height: 1))
+        let referenceId = tab.document.activeLayerId()
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        tab.removeLayer(id: referenceId)
+        try await persistence.save(
+            workspace.toSnapshot(), dirtyDocIds: [tab.documentId]
+        )
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        #expect(storedSnapshot.tabs[0].reference == nil)
+        #expect(restored.activeTab.document.layers().map(\.kind) == [.pixel])
+        #expect(restored.activeTab.referenceLayerUnderlay == nil)
+    }
+
+    @Test("a corrupt reference blob yields the document without its reference — never a lost session")
+    func corruptReferenceBlobDropsReferenceOnly() async throws {
+        let container = try makeInMemoryContainer()
+        let persistence = SessionPersistence(modelContainer: container)
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        try tab.document.setPixel(
+            x: 1, y: 1, color: Color(r: 0, g: 0xAA, b: 0, a: 0xFF))
+        let expectedPixels = tab.document.composite()
+        try tab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png", rgba: Data([0xFF, 0, 0, 0xFF]), width: 1, height: 1))
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        // Corrupt the stored PNG blob in place, as bit rot would.
+        let context = ModelContext(container)
+        let record = try #require(
+            try context.fetch(FetchDescriptor<DocumentRecord>()).first)
+        record.reference?.sourcePng = Data([1, 2, 3, 4])
+        try context.save()
+
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        #expect(storedSnapshot.tabs[0].reference == nil)
+        #expect(restored.activeTab.document.layers().map(\.kind) == [.pixel])
+        // The stored active pointer named the dropped reference; it remaps
+        // to the topmost Pixel Layer instead of failing hydration.
+        #expect(restored.activeTab.document.activeLayerId()
+            == storedSnapshot.tabs[0].layers.last?.id)
+        #expect(restored.activeTab.document.composite() == expectedPixels)
+    }
+
+    @Test("an invalid stored placement yields the document without its reference")
+    func invalidStoredPlacementDropsReferenceOnly() async throws {
+        let container = try makeInMemoryContainer()
+        let persistence = SessionPersistence(modelContainer: container)
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        try tab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png", rgba: Data([0xFF, 0, 0, 0xFF]), width: 1, height: 1))
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        let context = ModelContext(container)
+        let record = try #require(
+            try context.fetch(FetchDescriptor<DocumentRecord>()).first)
+        record.reference?.placement.scale = 0
+        try context.save()
+
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        #expect(storedSnapshot.tabs[0].reference == nil)
+        #expect(restored.activeTab.document.layers().map(\.kind) == [.pixel])
+    }
+
     @Test("a record without a stored Marquee restores selection-free with its pixels unchanged")
     func absentMarqueeRestoresSelectionFree() async throws {
         let persistence = try makeInMemoryPersistence()
@@ -281,6 +396,8 @@ struct SessionPersistenceTests {
         let restored = try Workspace(restoring: storedSnapshot)
 
         #expect(storedSnapshot.tabs[0].marquee == nil)
+        // The pre-reference record also restores reference-free.
+        #expect(storedSnapshot.tabs[0].reference == nil)
         #expect(restored.activeTab.marquee == nil)
         #expect(restored.activeTab.document.composite() == expectedPixels)
     }

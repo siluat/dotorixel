@@ -17,6 +17,34 @@ struct StoredLayer: Codable, Equatable {
     var pixels: Data
 }
 
+/// A Reference Layer Placement in stored form. `rotation` is the persisted
+/// quarter-turn count (`0...3`); nothing on this shell produces a non-zero
+/// value yet, but the field keeps rotated documents representable (web
+/// schema parity).
+struct StoredReferencePlacement: Codable, Equatable {
+    var x: Float
+    var y: Float
+    var scale: Float
+    var rotation: Int
+}
+
+/// The singleton Reference Layer's stored form: display fields, the
+/// PNG-compressed source with its natural dimensions (web parity: the
+/// blob approach), and the placement. Optional on `DocumentRecord`, so
+/// stores written before reference persistence restore reference-free.
+struct StoredReference: Codable, Equatable {
+    var id: String
+    var name: String
+    var visible: Bool
+    var opacity: Float
+    /// The RGBA source losslessly PNG-encoded (web parity: `sourceBlob`) —
+    /// decode must reproduce the imported buffer bit-for-bit.
+    var sourcePng: Data
+    var naturalWidth: Int
+    var naturalHeight: Int
+    var placement: StoredReferencePlacement
+}
+
 /// RGBA color in stored form.
 struct StoredColor: Codable, Equatable {
     var r: UInt8
@@ -76,8 +104,11 @@ final class DocumentRecord {
     var name: String
     var width: Int
     var height: Int
-    /// The layer stack in stack order (bottom first).
+    /// The Pixel Layer stack in stack order (bottom first).
     var layers: [StoredLayer]
+    /// The singleton Reference Layer; `nil` when the document carries none
+    /// (including every record written before reference persistence).
+    var reference: StoredReference?
     var activeLayerId: String
     var nextLayerNumber: Int
     var marquee: StoredMarquee?
@@ -92,6 +123,7 @@ final class DocumentRecord {
         width: Int,
         height: Int,
         layers: [StoredLayer],
+        reference: StoredReference? = nil,
         activeLayerId: String,
         nextLayerNumber: Int,
         marquee: StoredMarquee? = nil,
@@ -105,6 +137,7 @@ final class DocumentRecord {
         self.width = width
         self.height = height
         self.layers = layers
+        self.reference = reference
         self.activeLayerId = activeLayerId
         self.nextLayerNumber = nextLayerNumber
         self.marquee = marquee

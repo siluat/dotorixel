@@ -234,8 +234,57 @@ fn centisecond_delay(duration_ms: u32) -> u16 {
     centiseconds.clamp(1, u64::from(u16::MAX)) as u16
 }
 
+/// A decoded RGBA image returned by [`decode_rgba_png`].
+pub struct DecodedPng {
+    pub width: u32,
+    pub height: u32,
+    /// Row-major RGBA buffer, `width * height * 4` bytes.
+    pub pixels: Vec<u8>,
+}
+
+/// The bytes could not be decoded as the RGBA 8-bit PNG layout
+/// [`decode_rgba_png`] accepts.
+#[derive(Debug)]
+pub struct PngDecodeError {
+    message: String,
+}
+
+impl fmt::Display for PngDecodeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "PNG decoding failed: {}", self.message)
+    }
+}
+
+impl std::error::Error for PngDecodeError {}
+
+/// Decodes an RGBA 8-bit PNG produced by [`encode_rgba_png`] back into its
+/// row-major pixel buffer — the persistence codec's lossless inverse, not a
+/// general-purpose image importer. Errors on malformed bytes and on any
+/// other PNG layout (palette, grayscale, 16-bit) rather than converting.
+pub fn decode_rgba_png(bytes: &[u8]) -> Result<DecodedPng, PngDecodeError> {
+    let map_err = |e: png::DecodingError| PngDecodeError {
+        message: e.to_string(),
+    };
+    let decoder = png::Decoder::new(Cursor::new(bytes));
+    let mut reader = decoder.read_info().map_err(map_err)?;
+    if reader.output_color_type() != (png::ColorType::Rgba, png::BitDepth::Eight) {
+        return Err(PngDecodeError {
+            message: format!("expected 8-bit RGBA, got {:?}", reader.output_color_type()),
+        });
+    }
+    let mut pixels = vec![0u8; reader.output_buffer_size()];
+    let frame = reader.next_frame(&mut pixels).map_err(map_err)?;
+    pixels.truncate(frame.buffer_size());
+    Ok(DecodedPng {
+        width: frame.width,
+        height: frame.height,
+        pixels,
+    })
+}
+
 /// Shared raw-buffer PNG encoding: RGBA 8-bit, `pixels` in row-major order.
-fn encode_rgba_png(width: u32, height: u32, pixels: &[u8]) -> Result<Vec<u8>, ExportError> {
+/// [`decode_rgba_png`] is its lossless inverse.
+pub fn encode_rgba_png(width: u32, height: u32, pixels: &[u8]) -> Result<Vec<u8>, ExportError> {
     let mut buf: Vec<u8> = Vec::new();
     {
         let cursor = Cursor::new(&mut buf);
@@ -773,6 +822,38 @@ mod tests {
         reader.next_frame(&mut decoded).unwrap();
 
         assert_eq!(&decoded[..4], &[42, 128, 255, 200]);
+    }
+
+    #[test]
+    fn decode_rgba_png_round_trips_encode_rgba_png_losslessly() {
+        // Semi-transparent channel values are the lossy case for alpha
+        // premultiplication round-trips; a lossless codec must preserve them
+        // bit-for-bit. Non-square so width/height transposition would fail.
+        let pixels: Vec<u8> = vec![
+            200, 100, 50, 7, // semi-transparent
+            0, 0, 0, 0, // fully transparent
+            255, 255, 255, 255, // opaque white
+            1, 2, 3, 254, // near-opaque
+            42, 128, 255, 200, // mid-alpha
+            9, 8, 7, 6, // low everything
+        ];
+        let bytes = encode_rgba_png(3, 2, &pixels).unwrap();
+
+        let decoded = decode_rgba_png(&bytes).unwrap();
+
+        assert_eq!((decoded.width, decoded.height), (3, 2));
+        assert_eq!(decoded.pixels, pixels);
+    }
+
+    #[test]
+    fn decode_rgba_png_rejects_corrupt_bytes() {
+        // Not a PNG at all.
+        assert!(decode_rgba_png(&[1, 2, 3, 4]).is_err());
+
+        // A valid stream truncated mid-data: the header parses but the
+        // pixel payload cannot be read.
+        let bytes = encode_rgba_png(3, 2, &[0u8; 3 * 2 * 4]).unwrap();
+        assert!(decode_rgba_png(&bytes[..bytes.len() / 2]).is_err());
     }
 
     #[test]

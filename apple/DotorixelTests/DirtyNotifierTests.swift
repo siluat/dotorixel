@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Dotorixel
 
@@ -135,6 +136,31 @@ struct DirtyNotifierTests {
         notifier.reset()
         workspace.closeTab(1)
         #expect(notifier.removed == [added.documentId])
+    }
+
+    @Test("reference mutations — import, placement, visibility, delete — each mark their document dirty")
+    func referenceMutationsMarkDirty() throws {
+        let notifier = RecordingNotifier()
+        let workspace = Workspace(width: 4, height: 4, notifier: notifier)
+        let tab = workspace.activeTab
+        notifier.reset()
+
+        try tab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png", rgba: Data([0xFF, 0, 0, 0xFF]), width: 1, height: 1))
+        #expect(notifier.marked.contains(tab.documentId))
+        let referenceId = tab.document.activeLayerId()
+
+        notifier.reset()
+        tab.setReferencePlacement(AppleReferencePlacementUpdate(x: 2, y: 2, scale: 1))
+        #expect(notifier.marked.contains(tab.documentId))
+
+        notifier.reset()
+        tab.setLayerVisibility(id: referenceId, visible: false)
+        #expect(notifier.marked.contains(tab.documentId))
+
+        notifier.reset()
+        tab.removeLayer(id: referenceId)
+        #expect(notifier.marked.contains(tab.documentId))
     }
 
     @Test("restoring a workspace from a snapshot marks nothing dirty")

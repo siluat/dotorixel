@@ -3,22 +3,21 @@
 ## Currently Working On
 
 Apple Native: full web parity ([RFC](../issues/013-apple-native-catchup.md)) —
-Phase 5's reference track has 280 done; 281 and 282 remain, and both are now
-unblocked.
+Phase 5's reference track is down to its last item: 282 (reference
+persistence), unblocked and ready.
 
 ## Last Completed
 
-[280 — Apple reference placement overlay](../issues/280-apple-reference-placement-overlay.md):
-the Apple Reference Layer is now positioned directly on the canvas — drag,
-corner scale, in-overlay pinch, arrow nudge, and fit-to-canvas, each completed
-gesture one undoable Edit. Two follow-ups are recorded in the issue's Deferred
-section: gesture-interruption recovery (shares its residual, and its fix, with
-the Apple layer reorder backlog item) and the macOS cursor over the box.
+[281 — Apple navigation bounds](../issues/281-apple-reference-navigation-bounds.md):
+every Apple viewport sink now clamps to canvas ∪ active-Reference footprint
+through one sink, with reclamps at every bounds-shrinking event. Decision
+recorded in the issue: Fit keeps framing the canvas (web parity), amending the
+original acceptance criterion; the now-unused canvas-only `clampPan` binding is
+noted as a review-pass shrink candidate.
 
 ## Next Up
 
-- [281 — Apple navigation bounds clamp](../issues/281-apple-reference-navigation-bounds.md) — Phase 5 frontier
-- [282 — Apple reference persistence](../issues/282-apple-reference-persistence.md) — unblocked by 280
+- [282 — Apple reference persistence](../issues/282-apple-reference-persistence.md) — last Phase 5 item
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Feedback link to Google Form

@@ -44,7 +44,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Zoom | ✅ | ✅ | ✅ | Discrete levels + continuous |
 | Pan | ✅ | ✅ | ✅ | |
 | Fit to viewport | ✅ | ✅ | ✅ | |
-| Navigation Bounds clamp | 🔧 | ✅ | ⬜ | Clamp (pan/zoom/zoom-fit/resize) to canvas ∪ active-Reference footprint via one viewport sink. Rotation-aware footprint and clamp op are both core; the union is computed Web-side |
+| Navigation Bounds clamp | 🔧 | ✅ | ✅ | Clamp (pan/zoom/zoom-fit/resize/rotate) to canvas ∪ active-Reference footprint via one viewport sink per shell. Rotation-aware footprint and clamp op are both core; the union is computed shell-side. Fit frames the canvas on both shells |
 
 ## Color
 
@@ -121,7 +121,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Document/Layer model | 🔧 | 🔧 | 🔧 | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple: layer panel with select + visibility + add/remove/reorder (mid-stroke seals on all) |
 | Frame cel-grid | ✅ | ✅ | ⬜ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: undoable add/duplicate/remove/reorder + set-active journal intents (undo restores frame+cel); multi-frame V7 persistence round-trips through the snapshot |
 | Per-frame duration | ✅ | ✅ | ⬜ | Each frame holds a display duration; default 100ms (10fps); identity unchanged when retimed. 1–60000ms clamp at the shell boundary (core trusts the value). Web complete: active-frame editor in the timeline corner (ms + derived fps), undoable, V7-persisted. Apple pending |
-| Reference Layer (timeline kind) | ✅ | ✅ | 🔧 | Singleton underlay with Pixel-only composites. Apple: import/render, edit guards, sampling, and placement complete; navigation bounds and persistence pending |
+| Reference Layer (timeline kind) | ✅ | ✅ | 🔧 | Singleton underlay with Pixel-only composites. Apple: import/render, edit guards, sampling, placement, and navigation bounds complete; persistence pending |
 | Timeline panel | — | 🔧 | 🔧 | Web uses a bottom-docked Layer × Frame grid. Apple uses a layer sidebar with drag reorder, fixed bottom Reference row, and placeholder frame area; Web mobile row targets remain pending |
 | Playback (animation) | — | ✅ | ⬜ | Per-tab engine: transient Playhead + rAF clock holds each frame its `duration_ms` (carry → no drift), loops or stops at end. Previews committed art via `composite_at` — no Document mutation/history/dirty, never persisted; tab/document change stops it. Transport strip (Play/Pause · Loop · ▼ playhead) wired on docked + mobile |
 | Onion skinning | — | ✅ | ⬜ | Adjacent-frame ghosts while drawing (prev/next 1, clamped, no wrap): prev warm / next cool, dimmed, committed art on top; hidden during Playback; never in exports; per-tab persisted toggle in the transport strip |

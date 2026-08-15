@@ -10,14 +10,20 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 217 | 163 | 54 | 304 | 75% | 35% |
-| cubic-dev-ai[bot] | 338 | 266 | 72 | 220 | 79% | 55% |
-| coderabbitai[bot] | 333 | 240 | 93 | 241 | 72% | 50% |
+| greptile-apps[bot] | 219 | 164 | 55 | 304 | 75% | 35% |
+| cubic-dev-ai[bot] | 339 | 266 | 73 | 221 | 78% | 55% |
+| coderabbitai[bot] | 334 | 240 | 94 | 242 | 72% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #369 | greptile-apps[bot] | Accept | A placement commit arriving mid-Eyedropper-stroke dropped the draft while the refused write skipped the reclamp, stranding the viewport outside the committed bounds; the commit path now reclamps explicitly |
+| #369 | greptile-apps[bot] | Reject | Stale-bindings incremental build is a known build-infra limitation already backlogged as the mtime-based staleness guard (surfaced by this same finding on PR #342) |
+| #369 | coderabbitai[bot] | Reject | Wanted a reclamp on every live draft update; web parity reclamps only at draft resolution, a per-update reclamp would move the viewport mid-drag, and every viewport sink already clamps |
+| #369 | cubic-dev-ai[bot] | Reject | Wanted the visibility reclamp gated to the shrink case; the pan-unmoved guard inside reclampViewport already owns that contract, and the web reclamps unconditionally after document changes |
+| #369 | coderabbitai[bot] | Miss | Missed the refused-commit reclamp gap accepted from greptile |
+| #369 | cubic-dev-ai[bot] | Miss | Missed the refused-commit reclamp gap accepted from greptile |
 | #368 | cubic-dev-ai[bot] | Accept | At the minimum projected size the scale clamp held while the origin still moved by the requested factor, so repeated VoiceOver decrements walked the reference toward its center and recorded an Edit each time without resizing it |
 | #368 | cubic-dev-ai[bot] | Accept | Same origin-drift defect reported against the shared floor helper |
 | #368 | coderabbitai[bot] | Accept | Same origin-drift defect, and correctly noted the floor test only asserted the settled scale, never the origin that kept moving under it |

@@ -10,14 +10,18 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 217 | 163 | 54 | 303 | 75% | 35% |
-| cubic-dev-ai[bot] | 336 | 264 | 72 | 220 | 79% | 55% |
-| coderabbitai[bot] | 332 | 239 | 93 | 241 | 72% | 50% |
+| greptile-apps[bot] | 217 | 163 | 54 | 304 | 75% | 35% |
+| cubic-dev-ai[bot] | 338 | 266 | 72 | 220 | 79% | 55% |
+| coderabbitai[bot] | 333 | 240 | 93 | 241 | 72% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #368 | cubic-dev-ai[bot] | Accept | At the minimum projected size the scale clamp held while the origin still moved by the requested factor, so repeated VoiceOver decrements walked the reference toward its center and recorded an Edit each time without resizing it |
+| #368 | cubic-dev-ai[bot] | Accept | Same origin-drift defect reported against the shared floor helper |
+| #368 | coderabbitai[bot] | Accept | Same origin-drift defect, and correctly noted the floor test only asserted the settled scale, never the origin that kept moving under it |
+| #368 | greptile-apps[bot] | Miss | Missed the clamped-scale origin drift; withdrew its own earlier resumed-drag concern after the reply |
 | #368 | cubic-dev-ai[bot] | Accept | Gesture ownership was keyed on the corner a press resolved to rather than the grip pressed, so on a box under the touch minimum every update and release went unclaimed and the placement froze with the gesture stuck open |
 | #368 | cubic-dev-ai[bot] | Accept | The VoiceOver resize action skipped the minimum-projected-size floor the drag and pinch stop at, letting an adjust-gesture user shrink the box out of reach |
 | #368 | cubic-dev-ai[bot] | Accept | The new Korean accessibility label used 레퍼런스 이미지 where the catalog consistently says 참조 이미지, so VoiceOver announced two names for one concept |

@@ -19,8 +19,14 @@ protocol KeyboardShortcutHost: AnyObject {
     func toggleGrid()
     /// Swap foreground/background colors.
     func swapColors()
+    /// Whether an active Reference Layer Placement currently owns the arrow
+    /// keys — the routing read, not a Layer-kind test of its own: the host
+    /// answers from the same projection the placement overlay renders.
+    var isReferenceLayerPlacementActive: Bool { get }
     /// Translate the active Marquee or Floating Selection by canvas pixels.
     func nudgeMarquee(by delta: FloatingSelectionOffset)
+    /// Translate the active Reference Layer Placement by canvas pixels.
+    func nudgeReferencePlacement(dx: Int64, dy: Int64)
     /// Clear pixels inside the active Marquee, preserving the Marquee itself.
     func clearMarqueePixels()
     /// Cancel a Floating Selection, otherwise clear the idle Marquee.
@@ -191,6 +197,10 @@ final class KeyboardShortcutController {
             if !host.isDrawing {
                 host.nudgeMarquee(by: delta)
             }
+        case .nudgeReferencePlacement(let dx, let dy):
+            if !host.isDrawing {
+                host.nudgeReferencePlacement(dx: dx, dy: dy)
+            }
         case .clearMarqueePixels:
             if !isRepeat && !host.isDrawing {
                 host.clearMarqueePixels()
@@ -222,6 +232,7 @@ final class KeyboardShortcutController {
         case swapColors
         case activateTool(EditorTool)
         case nudgeMarquee(FloatingSelectionOffset)
+        case nudgeReferencePlacement(dx: Int64, dy: Int64)
         case clearMarqueePixels
         case clearMarqueeOrFloating
         case copySelection
@@ -241,15 +252,19 @@ final class KeyboardShortcutController {
         guard !host.isTextInputFocused else { return nil }
 
         if canHandleSelectionEditingKeys,
-           let delta = marqueeNudge(for: key),
+           let step = arrowStep(for: key),
            !modifiers.contains(.command),
            !modifiers.contains(.option),
            !modifiers.contains(.control) {
             let multiplier: Int64 = modifiers.contains(.shift) ? 10 : 1
-            return .nudgeMarquee(FloatingSelectionOffset(
-                dx: delta.dx * multiplier,
-                dy: delta.dy * multiplier
-            ))
+            let dx = step.dx * multiplier
+            let dy = step.dy * multiplier
+            // The arrows translate whichever feature is live. An active
+            // Reference Layer Placement takes them; otherwise they stay with
+            // the Marquee, which is what they address the rest of the time.
+            return host.isReferenceLayerPlacementActive
+                ? .nudgeReferencePlacement(dx: dx, dy: dy)
+                : .nudgeMarquee(FloatingSelectionOffset(dx: dx, dy: dy))
         }
 
         if canHandleSelectionEditingKeys,
@@ -295,12 +310,14 @@ final class KeyboardShortcutController {
         return nil
     }
 
-    private func marqueeNudge(for key: ShortcutKey) -> FloatingSelectionOffset? {
+    /// One arrow key's unmultiplied translation in canvas pixels, shared by
+    /// both nudge targets.
+    private func arrowStep(for key: ShortcutKey) -> (dx: Int64, dy: Int64)? {
         switch key {
-        case .arrowUp: FloatingSelectionOffset(dx: 0, dy: -1)
-        case .arrowDown: FloatingSelectionOffset(dx: 0, dy: 1)
-        case .arrowLeft: FloatingSelectionOffset(dx: -1, dy: 0)
-        case .arrowRight: FloatingSelectionOffset(dx: 1, dy: 0)
+        case .arrowUp: (dx: 0, dy: -1)
+        case .arrowDown: (dx: 0, dy: 1)
+        case .arrowLeft: (dx: -1, dy: 0)
+        case .arrowRight: (dx: 1, dy: 0)
         default: nil
         }
     }

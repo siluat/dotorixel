@@ -10,14 +10,38 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 214 | 161 | 53 | 296 | 75% | 35% |
-| cubic-dev-ai[bot] | 328 | 256 | 72 | 219 | 78% | 54% |
-| coderabbitai[bot] | 328 | 235 | 93 | 236 | 72% | 50% |
+| greptile-apps[bot] | 217 | 163 | 54 | 304 | 75% | 35% |
+| cubic-dev-ai[bot] | 338 | 266 | 72 | 220 | 79% | 55% |
+| coderabbitai[bot] | 333 | 240 | 93 | 241 | 72% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #368 | cubic-dev-ai[bot] | Accept | At the minimum projected size the scale clamp held while the origin still moved by the requested factor, so repeated VoiceOver decrements walked the reference toward its center and recorded an Edit each time without resizing it |
+| #368 | cubic-dev-ai[bot] | Accept | Same origin-drift defect reported against the shared floor helper |
+| #368 | coderabbitai[bot] | Accept | Same origin-drift defect, and correctly noted the floor test only asserted the settled scale, never the origin that kept moving under it |
+| #368 | greptile-apps[bot] | Miss | Missed the clamped-scale origin drift; withdrew its own earlier resumed-drag concern after the reply |
+| #368 | cubic-dev-ai[bot] | Accept | Gesture ownership was keyed on the corner a press resolved to rather than the grip pressed, so on a box under the touch minimum every update and release went unclaimed and the placement froze with the gesture stuck open |
+| #368 | cubic-dev-ai[bot] | Accept | The VoiceOver resize action skipped the minimum-projected-size floor the drag and pinch stop at, letting an adjust-gesture user shrink the box out of reach |
+| #368 | cubic-dev-ai[bot] | Accept | The new Korean accessibility label used 레퍼런스 이미지 where the catalog consistently says 참조 이미지, so VoiceOver announced two names for one concept |
+| #368 | coderabbitai[bot] | Accept | Same Korean terminology divergence reported independently |
+| #368 | greptile-apps[bot] | Reject | A drag resumed after a pinch commits a second entry only when the user actually scaled and then actually moved — two completed gestures under this issue's Edit contract. A resumed drag that does not move reopens with a fresh baseline, so its zero delta leaves the document unchanged and the Edit Baseline records nothing |
+| #368 | greptile-apps[bot] | Miss (×3) | Missed the ownership-key defect, the VoiceOver floor bypass, and the Korean terminology divergence |
+| #368 | coderabbitai[bot] | Miss (×2) | Missed the ownership-key defect and the VoiceOver floor bypass |
+| #368 | greptile-apps[bot] | Accept | A pinch ending before its underlying drag released the shared drag latch, so the still-live drag reopened and replayed its whole accumulated translation onto the just-committed placement |
+| #368 | coderabbitai[bot] | Accept | Same latch defect, plus the second failure mode it enabled: a grip pressed during a body drag fed that drag its own translation. Gesture ownership is now one role value the interaction enforces |
+| #368 | cubic-dev-ai[bot] | Accept | Same latch defect reported independently |
+| #368 | greptile-apps[bot] | Accept | A placement commit the document refused mid-stroke discarded the draft without republishing, leaving the dropped preview on screen |
+| #368 | coderabbitai[bot] | Accept | An arrow nudge during a live gesture committed an Edit built on the draft that the gesture's own release then overwrote; non-gesture writes now pass a running-gesture seal |
+| #368 | cubic-dev-ai[bot] | Accept | Same nudge defect, and correctly extended it to fit-to-canvas — the seal covers both |
+| #368 | coderabbitai[bot] | Accept | The overlay carrying the only pointer path to move and scale was `accessibilityHidden`, leaving VoiceOver users on a touch-only iPad no way to place a Reference; the box now exposes move and adjustable-scale actions |
+| #368 | cubic-dev-ai[bot] | Accept | Same accessibility gap reported independently |
+| #368 | cubic-dev-ai[bot] | Accept | A draft could outlive the Reference it opened on, since in-place mutations do not replace the Document object; the interaction now records its target's source key and both preview and commit ignore a mismatch |
+| #368 | cubic-dev-ai[bot] | Accept | The minimum-projected-size floor enlarged a placement already below it, so merely touching a grip resized any small reference and recorded an Edit — reachable from the auto-fit of any source under 8 canvas pixels |
+| #368 | greptile-apps[bot] | Miss (×4) | Missed the nudge/fit seal, the accessibility gap, the stale-target draft, and the minimum-size floor |
+| #368 | coderabbitai[bot] | Miss (×3) | Missed the refused-commit republish, the stale-target draft, and the minimum-size floor |
+| #368 | cubic-dev-ai[bot] | Miss | Missed the refused-commit republish |
 | #367 | greptile-apps[bot] | Accept | Any nonzero Pixel alpha bypassed the visible Reference instead of matching the renderer's source-over blend; batched samples now compose translucent Pixel artwork over the underlay |
 | #367 | cubic-dev-ai[bot] | Reject | Reference opacity below 1 is unreachable in the Apple shell: import, rendering, and the available UI all fix it at full opacity until a future opacity feature lands |
 | #367 | cubic-dev-ai[bot] | Miss | Missed the translucent-Pixel source-over mismatch accepted from Greptile |

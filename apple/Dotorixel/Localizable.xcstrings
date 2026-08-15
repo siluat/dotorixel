@@ -638,6 +638,23 @@
         }
       }
     },
+    "Fit %@ to canvas" : {
+      "comment" : "Active Reference row's fit-to-canvas button accessibility label; %@ is the layer name. web: aria_fitReferenceLayerToCanvas",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@をキャンバスに合わせる"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@을(를) 캔버스에 맞추기"
+          }
+        }
+      }
+    },
     "Fit to view" : {
       "comment" : "Zoom controls accessibility label. web: action_fitToView",
       "localizations" : {
@@ -897,6 +914,74 @@
         }
       }
     },
+    "Move down" : {
+      "comment" : "VoiceOver action on the Reference placement overlay: nudge the placement one canvas pixel.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下に移動"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아래로 이동"
+          }
+        }
+      }
+    },
+    "Move left" : {
+      "comment" : "VoiceOver action on the Reference placement overlay: nudge the placement one canvas pixel.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左に移動"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "왼쪽으로 이동"
+          }
+        }
+      }
+    },
+    "Move right" : {
+      "comment" : "VoiceOver action on the Reference placement overlay: nudge the placement one canvas pixel.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右に移動"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오른쪽으로 이동"
+          }
+        }
+      }
+    },
+    "Move up" : {
+      "comment" : "VoiceOver action on the Reference placement overlay: nudge the placement one canvas pixel.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上に移動"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "위로 이동"
+          }
+        }
+      }
+    },
     "My Works" : {
       "comment" : "Saved-work browser title. web: browser_title",
       "localizations" : {
@@ -1131,6 +1216,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "참조 이미지"
+          }
+        }
+      }
+    },
+    "Reference image placement" : {
+      "comment" : "Accessibility label for the Reference Layer placement overlay on the canvas.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照画像の配置"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "참조 이미지 배치"
           }
         }
       }

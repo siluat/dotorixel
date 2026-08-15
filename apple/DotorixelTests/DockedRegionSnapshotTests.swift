@@ -142,7 +142,9 @@ struct DockedRegionSnapshotTests {
     /// Content regression (issue 278): the Reference row is fixed at the
     /// bottom, carries its photo kind marker, visibility and delete actions,
     /// and has no trailing reorder handle. The header also exposes the native
-    /// Reference-import entry point beside Add Layer.
+    /// Reference-import entry point beside Add Layer. Import leaves the row
+    /// active, so the baseline also pins the fit-to-canvas affordance the
+    /// active Reference row carries (issue 280).
     @Test("TimelinePanel renders the fixed Reference underlay row")
     func timelinePanelReferenceRow() throws {
         let referenced = state()

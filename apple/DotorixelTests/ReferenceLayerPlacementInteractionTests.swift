@@ -712,9 +712,18 @@ struct ReferencePlacementCommitTests {
         // Shrinking settles on the scale where the shorter axis reaches 8
         // canvas pixels — the same floor the corner drag and pinch stop at, so
         // an adjust-gesture user cannot shrink the box out of reach.
-        let placement = try #require(tab.referencePlacementTarget).placement
-        #expect(placement.scale == 8.0 / 2.0)
-        #expect(placement.scale > 0)
+        let settled = try #require(tab.referencePlacementTarget).placement
+        #expect(settled.scale == 8.0 / 2.0)
+        #expect(settled.scale > 0)
+
+        // Once settled, a further decrement changes nothing at all. Moving the
+        // origin by the requested factor while the clamp held the scale would
+        // walk the reference toward its center, one recorded Edit per press.
+        let marksBeforeExtraStep = fixture.notifier.markedDocumentIds.count
+        tab.scaleReferencePlacement(by: 0.5)
+
+        #expect(try #require(tab.referencePlacementTarget).placement == settled)
+        #expect(fixture.notifier.markedDocumentIds.count == marksBeforeExtraStep)
     }
 
     @Test("nudging is inert without an active Reference Layer Placement")

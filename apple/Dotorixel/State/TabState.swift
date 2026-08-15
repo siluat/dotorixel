@@ -1006,14 +1006,19 @@ final class TabState {
             currentScale: target.placement.scale
         ))
         guard scale > 0 else { return }
+        // The origin follows the scale that was applied, not the one that was
+        // asked for: at the floor those differ, and moving the origin by the
+        // requested factor anyway would walk the reference toward its center
+        // without ever resizing it.
+        let appliedFactor = scale / target.placement.scale
         let footprint = target.footprint
         let center = (
             x: (footprint.minX + footprint.maxX) / 2,
             y: (footprint.minY + footprint.maxY) / 2
         )
         setReferencePlacement(AppleReferencePlacementUpdate(
-            x: center.x - (center.x - target.placement.x) * factor,
-            y: center.y - (center.y - target.placement.y) * factor,
+            x: center.x - (center.x - target.placement.x) * appliedFactor,
+            y: center.y - (center.y - target.placement.y) * appliedFactor,
             scale: scale
         ))
     }

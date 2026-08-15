@@ -972,6 +972,11 @@ final class TabState {
         // it onto whatever took its place.
         guard key == referencePlacementTarget?.sourceKey else { return }
         setReferencePlacement(placement)
+        // The write can be refused after the draft is already dropped (a
+        // stroke owns the pending Edit Baseline) — the draft's bounds
+        // extension is gone either way, so reclamp explicitly. A committed
+        // write has already reclamped, leaving this inert.
+        reclampViewport()
     }
 
     /// Abandons the gesture — the overlay and underlay fall back to the

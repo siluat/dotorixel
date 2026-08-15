@@ -275,6 +275,32 @@ struct TabStateNavigationBoundsTests {
         #expect(tab.viewport.panY() == 0)
     }
 
+    @Test("a commit refused mid-stroke still drops the draft's bounds extension")
+    func refusedCommitReclamps() throws {
+        let workspace = Workspace(width: 16, height: 16)
+        let tab = workspace.activeTab
+        tab.viewportSize = ViewportSize(width: 512, height: 512)
+        try tab.setReferenceLayer(makeReferenceSource(width: 16, height: 16))
+        tab.beginReferencePlacement(from: .body, scalingAbout: nil, at: .zero)
+        tab.updateReferencePlacement(
+            translation: CGSize(width: 24, height: 0),
+            pointsPerCanvasPixel: 1,
+            from: .body
+        )
+        tab.handleViewportChange(tab.viewport.pan(deltaX: -800, deltaY: 0))
+
+        // An Eyedropper stroke is legal on an active Reference and makes the
+        // commit's write refuse mid-stroke — but the draft is dropped either
+        // way, so its bounds extension must go with it.
+        workspace.shared.activeTool = .eyedropper
+        tab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
+        tab.commitReferencePlacement(from: .body)
+
+        #expect(tab.viewport.panX() == 0)
+        #expect(tab.viewport.panY() == 0)
+        tab.endStroke()
+    }
+
     @Test("replacing the Reference resets its footprint and reclamps")
     func replacementShrinksBoundsAndReclamps() throws {
         let workspace = Workspace(width: 16, height: 16)

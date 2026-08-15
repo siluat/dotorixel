@@ -10,14 +10,18 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 221 | 166 | 55 | 305 | 75% | 35% |
-| cubic-dev-ai[bot] | 344 | 269 | 75 | 221 | 78% | 55% |
+| greptile-apps[bot] | 222 | 167 | 55 | 306 | 75% | 35% |
+| cubic-dev-ai[bot] | 346 | 271 | 75 | 221 | 78% | 55% |
 | coderabbitai[bot] | 334 | 240 | 94 | 245 | 72% | 49% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #370 | greptile-apps[bot] | Accept | Round 2: the round-1 collision guard compared raw id strings while the hydration parser ignores hex casing, so a case-variant collision still failed hydration as a duplicate id and cost the session; the guard now compares parsed UUID values |
+| #370 | cubic-dev-ai[bot] | Accept | Same case-variant collision bypass (duplicate of greptile); same parsed-value comparison |
+| #370 | cubic-dev-ai[bot] | Accept | Round 2: the decode bound trusted the decoder's `usize` output-size arithmetic, which can wrap on 32-bit targets under a hostile header; the size now comes from checked u64 math over the header dimensions (the `encode_spritesheet_png` defense) |
+| #370 | greptile-apps[bot] | Miss | Round 2: flagged the casing bypass but missed the unchecked output-size arithmetic accepted from cubic. coderabbit did not re-review this round — no participation, no Miss |
 | #370 | greptile-apps[bot] | Accept | A stored reference reusing a Pixel Layer's UUID passed the boundary screen and failed combined-stack hydration on the duplicate id, costing the whole session; the collision now drops the reference and the post-drop active-pointer remap covers any pointer left outside the Pixel stack |
 | #370 | cubic-dev-ai[bot] | Accept | Same reference-id collision finding (duplicate of greptile); same boundary drop |
 | #370 | greptile-apps[bot] | Accept | `decode_rgba_png` allocated the header-derived output buffer before any payload validation, so a corrupt blob declaring huge dimensions could abort launch on allocation failure; the codec now takes a caller-owned byte bound checked pre-allocation (Apple passes the import boundary's 64 MiB cap) |

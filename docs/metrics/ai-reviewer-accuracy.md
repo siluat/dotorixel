@@ -10,14 +10,23 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 219 | 164 | 55 | 304 | 75% | 35% |
-| cubic-dev-ai[bot] | 339 | 266 | 73 | 221 | 78% | 55% |
-| coderabbitai[bot] | 334 | 240 | 94 | 242 | 72% | 50% |
+| greptile-apps[bot] | 221 | 166 | 55 | 305 | 75% | 35% |
+| cubic-dev-ai[bot] | 344 | 269 | 75 | 221 | 78% | 55% |
+| coderabbitai[bot] | 334 | 240 | 94 | 245 | 72% | 49% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #370 | greptile-apps[bot] | Accept | A stored reference reusing a Pixel Layer's UUID passed the boundary screen and failed combined-stack hydration on the duplicate id, costing the whole session; the collision now drops the reference and the post-drop active-pointer remap covers any pointer left outside the Pixel stack |
+| #370 | cubic-dev-ai[bot] | Accept | Same reference-id collision finding (duplicate of greptile); same boundary drop |
+| #370 | greptile-apps[bot] | Accept | `decode_rgba_png` allocated the header-derived output buffer before any payload validation, so a corrupt blob declaring huge dimensions could abort launch on allocation failure; the codec now takes a caller-owned byte bound checked pre-allocation (Apple passes the import boundary's 64 MiB cap) |
+| #370 | cubic-dev-ai[bot] | Accept | Same pre-validation output allocation finding (duplicate of greptile); same caller-owned bound |
+| #370 | cubic-dev-ai[bot] | Accept | The AutoSave flush test comment read as contradicting its own reference-active assertion; reworded to say the snapshot keeps the pointer import left behind instead of falling back to a Pixel Layer |
+| #370 | cubic-dev-ai[bot] | Reject | Wanted every dangling stored active pointer healed to the topmost Pixel Layer; the documented `restore()` contract screens only what this layer causes itself (the reference drop) plus what would trap — other value-level corruption deliberately funnels to the core-hydration fresh-session fallback, isomorphic on the web |
+| #370 | cubic-dev-ai[bot] | Reject | Wanted `isDocumentBlank` to count a persisted Reference as content in the close-tab prompt; blank guards user-drawn pixels, the web makes the same call, and prompting for reference-only documents is a cross-shell product decision outside this persistence slice |
+| #370 | greptile-apps[bot] | Miss | Missed the AutoSave test-comment contradiction accepted from cubic |
+| #370 | coderabbitai[bot] | Miss (×3) | APPROVED with no findings; missed the reference-id collision drop, the pre-validation decode allocation, and the test-comment wording accepted from greptile/cubic |
 | #369 | greptile-apps[bot] | Accept | A placement commit arriving mid-Eyedropper-stroke dropped the draft while the refused write skipped the reclamp, stranding the viewport outside the committed bounds; the commit path now reclamps explicitly |
 | #369 | greptile-apps[bot] | Reject | Stale-bindings incremental build is a known build-infra limitation already backlogged as the mtime-based staleness guard (surfaced by this same finding on PR #342) |
 | #369 | coderabbitai[bot] | Reject | Wanted a reclamp on every live draft update; web parity reclamps only at draft resolution, a per-update reclamp would move the viewport mid-drag, and every viewport sink already clamps |

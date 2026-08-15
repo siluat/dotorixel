@@ -124,6 +124,7 @@ protocol StrokeSessionHost: AnyObject {
     /// layer and read the composite but cannot reach layer structure or
     /// history.
     var drawingSurface: any DrawingSurface { get }
+    var samplingSurface: any SamplingSurface { get }
     var foregroundColor: Color { get }
     var backgroundColor: Color { get }
 
@@ -159,6 +160,12 @@ protocol StrokeSessionHost: AnyObject {
     /// stroke begins, and the host records eyedropper commits — sessions
     /// never call this directly.
     func recordRecentColor(_ color: Color)
+}
+
+extension StrokeSessionHost {
+    var samplingSurface: any SamplingSurface {
+        CompositeSamplingSurface(surface: drawingSurface)
+    }
 }
 
 /// The selection-specific editor surface: Marquee definition still uses the

@@ -13,7 +13,7 @@ use uuid::Uuid;
 // Re-export core types used directly in the UniFFI interface.
 // UniFFI discovers these via their cfg_attr derives in dotorixel-core.
 use dotorixel_core::color::Color;
-use dotorixel_core::layer::LayerKindTag;
+use dotorixel_core::layer::{LayerKind, LayerKindTag};
 use dotorixel_core::tool::ToolType;
 
 uniffi::setup_scaffolding!();
@@ -757,6 +757,52 @@ impl AppleDocument {
     /// and return `nil` outside its footprint.
     fn try_get_pixel(&self, x: u32, y: u32) -> Option<Color> {
         self.inner.lock().unwrap().try_get_pixel(x, y)
+    }
+
+    /// Samples the visible artwork stack at every document-space point under
+    /// one lock: the Pixel composite source-over the visible Reference
+    /// underlay. The result preserves input order and length; out-of-bounds
+    /// points are transparent.
+    fn sample_visible_pixels(&self, points: Vec<ScreenCanvasCoords>) -> Vec<Color> {
+        let document = self.inner.lock().unwrap();
+        let width = document.width();
+        let height = document.height();
+        let pixel_composite = document.composite();
+        let reference = document.layers().iter().find_map(|layer| {
+            if !layer.visible {
+                return None;
+            }
+            match &layer.kind {
+                LayerKind::Reference(data) => Some(data),
+                LayerKind::Pixel(_) => None,
+            }
+        });
+
+        points
+            .into_iter()
+            .map(|point| {
+                let Ok(x) = u32::try_from(point.x) else {
+                    return Color::TRANSPARENT;
+                };
+                let Ok(y) = u32::try_from(point.y) else {
+                    return Color::TRANSPARENT;
+                };
+                if x >= width || y >= height {
+                    return Color::TRANSPARENT;
+                }
+                let offset = (y as usize * width as usize + x as usize) * 4;
+                let pixel_color = Color::new(
+                    pixel_composite[offset],
+                    pixel_composite[offset + 1],
+                    pixel_composite[offset + 2],
+                    pixel_composite[offset + 3],
+                );
+                let reference_color = reference
+                    .and_then(|data| data.sample_at(x, y))
+                    .unwrap_or(Color::TRANSPARENT);
+                pixel_color.source_over(reference_color)
+            })
+            .collect()
     }
 
     /// RGBA row-major composite buffer (`width * height * 4` bytes) of every

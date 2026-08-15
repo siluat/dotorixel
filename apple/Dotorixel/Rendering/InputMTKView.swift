@@ -43,10 +43,31 @@ protocol CanvasInputDelegate: AnyObject {
 class InputMTKView: MTKView {
     weak var inputDelegate: CanvasInputDelegate?
 
+    /// Drives the platform pointer affordance only. Edit admission remains a
+    /// TabState responsibility so touch, Pencil, mouse, and keyboard paths all
+    /// share one authoritative guard.
+    var isEditingBlocked = false {
+        didSet {
+            guard isEditingBlocked != oldValue else { return }
+            #if os(macOS)
+            window?.invalidateCursorRects(for: self)
+            #else
+            editingBlockedPointerInteraction.invalidate()
+            #endif
+        }
+    }
+
     #if os(macOS)
 
     override var acceptsFirstResponder: Bool { true }
     override var isFlipped: Bool { true }
+
+    override func resetCursorRects() {
+        super.resetCursorRects()
+        if isEditingBlocked {
+            addCursorRect(bounds, cursor: .operationNotAllowed)
+        }
+    }
 
     /// Shift press/release while the canvas is first responder — the source
     /// that lets a stationary mid-stroke Shift change reshape the preview.
@@ -131,8 +152,13 @@ class InputMTKView: MTKView {
 
     override var canBecomeFirstResponder: Bool { true }
 
+    private lazy var editingBlockedPointerInteraction = UIPointerInteraction(delegate: self)
+
     override func didMoveToWindow() {
         super.didMoveToWindow()
+        if !interactions.contains(where: { $0 === editingBlockedPointerInteraction }) {
+            addInteraction(editingBlockedPointerInteraction)
+        }
         if window != nil {
             becomeFirstResponder()
         }
@@ -400,6 +426,59 @@ class InputMTKView: MTKView {
 }
 
 #if !os(macOS)
+extension InputMTKView: UIPointerInteractionDelegate {
+    func pointerInteraction(
+        _ interaction: UIPointerInteraction,
+        regionFor request: UIPointerRegionRequest,
+        defaultRegion: UIPointerRegion
+    ) -> UIPointerRegion? {
+        isEditingBlocked ? defaultRegion : nil
+    }
+
+    func pointerInteraction(
+        _ interaction: UIPointerInteraction,
+        styleFor region: UIPointerRegion
+    ) -> UIPointerStyle? {
+        guard isEditingBlocked else { return nil }
+        return makeProhibitedPointerStyle()
+    }
+
+    private func makeProhibitedPointerStyle() -> UIPointerStyle {
+        // iPadOS has no system "not allowed" pointer. Morph the pointer into
+        // the same circle-and-slash language used by the touch notice.
+        let pointerDiameter: CGFloat = 18
+        let ringWidth: CGFloat = 3
+        let slashThickness: CGFloat = 3
+        let slashRotation = -CGFloat.pi / 4
+        let pointerRadius = pointerDiameter / 2
+        let innerDiameter = pointerDiameter - ringWidth * 2
+        let innerRadius = innerDiameter / 2
+
+        let outerRing = UIBezierPath(ovalIn: CGRect(
+            x: -pointerRadius,
+            y: -pointerRadius,
+            width: pointerDiameter,
+            height: pointerDiameter
+        ))
+        outerRing.append(UIBezierPath(ovalIn: CGRect(
+            x: -innerRadius,
+            y: -innerRadius,
+            width: innerDiameter,
+            height: innerDiameter
+        )).reversing())
+        let slash = UIBezierPath(rect: CGRect(
+            x: -pointerRadius,
+            y: -slashThickness / 2,
+            width: pointerDiameter,
+            height: slashThickness
+        ))
+        slash.apply(CGAffineTransform(rotationAngle: slashRotation))
+        outerRing.append(slash)
+
+        return UIPointerStyle(shape: .path(outerRing))
+    }
+}
+
 extension TouchKind {
     /// Maps UIKit's touch species onto the router's platform-neutral kinds.
     /// `.indirect` (non-pointer indirect input) has no drawing semantics of

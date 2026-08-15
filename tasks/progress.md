@@ -6,13 +6,13 @@ None.
 
 ## Last Completed
 
-[278 — Apple reference import + underlay](../issues/278-apple-reference-import-underlay.md):
-Apple can import and render a singleton tracing underlay beneath Pixel Layers.
-Reference persistence remains intentionally deferred to 282.
+[279 — Apple reference edit guards + sampling](../issues/279-apple-reference-edit-guards-sampling.md):
+Reference Layers now reject paint and selection edits with platform feedback,
+while Eyedropper and Loupe sample the visible underlay consistently.
 
 ## Next Up
 
-- [279 — Apple reference edit guards + sampling](../issues/279-apple-reference-edit-guards-sampling.md) — Phase 5 frontier
+- [280 — Apple reference placement overlay](../issues/280-apple-reference-placement-overlay.md) — Phase 5 frontier
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)
 - Feedback link to Google Form

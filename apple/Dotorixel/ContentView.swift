@@ -28,6 +28,10 @@ struct ContentView: View {
         let showGrid = tab.showGrid
         let canvasVersion = tab.canvasVersion
         let isTextInputFocused = workspace.isTextInputFocused
+        let canvasInteraction = CanvasInteractionPresentation.resolve(
+            isActiveLayerEditable: tab.isActiveLayerEditable,
+            tool: workspace.shared.activeTool
+        )
 
         GeometryReader { rootGeo in
             let tier = LayoutTier.resolve(
@@ -49,6 +53,7 @@ struct ContentView: View {
                                 viewport: viewport,
                                 showGrid: showGrid,
                                 workspace: workspace,
+                                interactionPresentation: canvasInteraction,
                                 canvasVersion: canvasVersion,
                                 isTextInputFocused: isTextInputFocused
                             )
@@ -71,6 +76,13 @@ struct ContentView: View {
                                     tab: tab,
                                     displayScale: displayScale
                                 )
+                            }
+                            // Reference Layers are trace-only. Pointer users
+                            // receive a prohibited cursor from InputMTKView;
+                            // this matching, non-interactive notice covers
+                            // touch and Apple Pencil without blocking pan/zoom.
+                            .overlay(alignment: .bottom) {
+                                CanvasInteractionNotice(presentation: canvasInteraction)
                             }
                             // Pencil hover preview: highlights the target cell
                             // while the Apple Pencil hovers (issue 253). Below the

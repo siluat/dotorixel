@@ -1,6 +1,6 @@
 ---
 title: Apple reference edit guards + sampling — editability authority, eyedropper reads the underlay
-status: ready-for-agent
+status: done
 created: 2026-08-05
 ---
 
@@ -62,3 +62,32 @@ trust the precondition):
 - [269 — Apple marquee select tool](269-apple-marquee-select-tool.md) (the
   selection surfaces this slice guards; the Floating/clipboard/transform
   guards extend to those slices as they land)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/TabState.swift` | Centralized active-layer editability admission for mutation strokes and selection commands while preserving Marquee state. |
+| `apple/Dotorixel/Tools/EditorTool.swift` | Classified tools by whether they require an editable Pixel Layer. |
+| `apple/Dotorixel/Sampling/SampleGrid.swift` | Added the shared what-you-see sampling surface used by Reference-aware color reads and Loupe grids. |
+| `apple/Dotorixel/Tools/StrokeSession.swift` | Exposed the narrow sampling surface to stroke sessions with a Pixel-composite default adapter. |
+| `apple/Dotorixel/Tools/EyedropperStrokeSession.swift` | Routed Eyedropper commit and Loupe preview through the same sampling contract. |
+| `apple/Dotorixel/Rendering/InputMTKView.swift` | Added prohibited-pointer affordances for macOS and iPadOS. |
+| `apple/Dotorixel/Rendering/PixelCanvasView.swift` | Propagated canvas interaction presentation to the native input view. |
+| `apple/Dotorixel/Views/CanvasInteractionPresentation.swift` | Added the view-facing blocked-edit presentation and non-interactive touch notice. |
+| `apple/Dotorixel/ContentView.swift` | Displayed the Reference edit-block notice over the canvas. |
+| `apple/Dotorixel/Localizable.xcstrings` | Localized the edit-block notice in Korean and Japanese. |
+| `apple/DotorixelTests/ReferenceEditabilityTests.swift` | Covered every mutation tool, selection hide/restore, Marquee commands, mid-stroke sealing, pointer presentation, and Reference-aware sampling. |
+
+### Key Decisions
+
+- Kept `isActiveLayerEditable` as the single Layer-kind authority at `TabState` entry boundaries; stroke sessions trust the admitted target.
+- Kept Reference pixels out of `Document.composite()` and composed sampling explicitly: the Pixel composite blends source-over the visible Reference regardless of the active Layer.
+- Drove pointer and touch affordances from one view-facing presentation value; Eyedropper remains available on Reference Layers.
+- Used one `SamplingSurface` contract for both committed samples and the Loupe grid so preview and commit cannot diverge.
+
+### Notes
+
+- Transparent and out-of-bounds samples remain non-committing.
+- Loupe neighborhoods cross the Apple binding as one batch so Reference-aware preview sampling acquires the Document lock once per pointer event.
+- The full Apple iOS test suite and macOS app build pass. The existing `AutoSave.defaultDebounce` actor-isolation warning is unrelated.

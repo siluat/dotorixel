@@ -332,9 +332,14 @@ actor SessionPersistence {
         // pointers with no dropped reference keep funneling to the core
         // hydration fresh-session fallback (see `restore()`).
         let referenceWasDropped = reference == nil && record.reference != nil
-        let activePointsAtPixelLayer = record.layers.contains {
-            $0.id == record.activeLayerId
-        }
+        // Parsed-value comparison for the same reason as the collision
+        // guard in `referenceSnapshot`: this predicate answers "would
+        // hydration accept the pointer?", and the hydration parser ignores
+        // hex casing. An unparseable pointer stays `false` — after a drop
+        // it remaps like any other pointer hydration would reject.
+        let activeLayerIdValue = UUID(uuidString: record.activeLayerId)
+        let activePointsAtPixelLayer = activeLayerIdValue != nil
+            && record.layers.contains { UUID(uuidString: $0.id) == activeLayerIdValue }
         let activeLayerId = referenceWasDropped && !activePointsAtPixelLayer
             ? record.layers.last?.id ?? record.activeLayerId
             : record.activeLayerId

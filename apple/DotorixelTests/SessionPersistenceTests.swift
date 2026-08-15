@@ -403,6 +403,37 @@ struct SessionPersistenceTests {
         #expect(restored.activeTab.document.layers().map(\.kind) == [.pixel])
     }
 
+    @Test("after a reference drop, a case-variant active pointer at a Pixel Layer is kept, not remapped")
+    func caseVariantActivePointerSurvivesReferenceDrop() async throws {
+        let container = try makeInMemoryContainer()
+        let persistence = SessionPersistence(modelContainer: container)
+        let workspace = Workspace(width: 4, height: 4)
+        let tab = workspace.activeTab
+        let bottomPixelId = tab.document.activeLayerId()
+        tab.addLayer() // a second, topmost Pixel Layer
+        try tab.setReferenceLayer(ReferenceImageSource(
+            name: "guide.png", rgba: Data([0xFF, 0, 0, 0xFF]), width: 1, height: 1))
+        try tab.document.setActiveLayer(id: bottomPixelId)
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        // Double corruption: the reference becomes undroppable-invalid and
+        // the active pointer keeps its target but loses its canonical
+        // casing. Hydration would accept the case-variant pointer, so the
+        // post-drop remap must not move it to the topmost layer.
+        let context = ModelContext(container)
+        let record = try #require(
+            try context.fetch(FetchDescriptor<DocumentRecord>()).first)
+        record.reference?.placement.scale = 0
+        record.activeLayerId = bottomPixelId.uppercased()
+        try context.save()
+
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        #expect(storedSnapshot.tabs[0].reference == nil)
+        #expect(restored.activeTab.document.activeLayerId() == bottomPixelId)
+    }
+
     @Test("a record without a stored Marquee restores selection-free with its pixels unchanged")
     func absentMarqueeRestoresSelectionFree() async throws {
         let persistence = try makeInMemoryPersistence()

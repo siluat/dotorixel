@@ -1,6 +1,6 @@
 ---
 title: Apple frame operations — add, duplicate, and remove frames from the ruler
-status: ready-for-agent
+status: done
 created: 2026-08-16
 ---
 
@@ -67,3 +67,61 @@ multi-frame document, and this slice is what creates one:
 ## Blocked by
 
 - [284 — Apple frame ruler](284-apple-frame-ruler.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/src/lib.rs` | `is_cel_occupied(frame_id, layer_id)` — single-Cel occupancy read; extracted the shared `cel_is_occupied` predicate out of `occupied_layer_ids` |
+| `apple/Dotorixel/State/TabState.swift` | `addFrame` / `duplicateFrame` / `removeFrame(id:)` + `canRemoveFrame`, all undoable through `performEdit` and sealed mid-stroke; `liveStrokeCel` names the one Cel a live stroke can change |
+| `apple/Dotorixel/State/FrameProjection.swift` | `CelAddress`, `FrameColumn.settingOccupancy(of:to:)`, and the cache's live-stroke patch path |
+| `apple/Dotorixel/Views/TimelinePanel.swift` | Header frame-action group (`ViewThatFits`: labelled row ⇄ menu), horizontal frame-axis scroll with the ruler mirroring the grid's offset |
+| `apple/Dotorixel/Localizable.xcstrings` | `Frames`, `Add frame`, `Duplicate frame`, `Delete frame` (en/ko/ja) |
+| `apple/DotorixelTests/TabStateFrameTests.swift` | Add/duplicate/remove behavior, undo+redo across each, mid-stroke no-op, live-stroke occupancy (paint and erase) |
+| `apple/DotorixelTests/FrameProjectionCacheTests.swift` | Invalidation policy: a stroke sample re-probes one Cel; first-read and off-axis addresses fall back to a full scan |
+| `apple/DotorixelTests/FrameBindingsTests.swift` | `is_cel_occupied` across the `[layer × frame]` grid, erase, and both error branches |
+| `apple/DotorixelTests/DockedRegionSnapshotTests.swift` + `__Snapshots__/` | 7 TimelinePanel baselines re-recorded; overflowing-axis and narrow-column cases re-documented |
+| `apple/DotorixelTests/README.md` | Snapshot scope: the narrow-column image doubles as the frame-action menu form; horizontal scroll is outside what a static render can pin |
+
+### Key Decisions
+
+- **Frame actions collapse into a menu instead of always rendering three buttons.**
+  The header already seats three 44pt controls plus the `Layers` label; three more
+  overflow the 236pt narrowest supported canvas column, and ≥44pt is an acceptance
+  criterion. `ViewThatFits` keeps the web-parity labelled row wherever it fits and
+  falls back to one `Frames` menu carrying the same commands. The `Layers` label is
+  sized last, so it truncates rather than wrapping out of the fixed-height strip.
+- **One scroller, not two.** The frame grid owns the horizontal scroll and publishes
+  its offset; the pinned ruler band re-renders at that offset. Two synchronized
+  scrollers could drift an ordinal off its column — this cannot.
+- **Occupancy re-probe is scoped by the mid-stroke seal, not by a new dirty flag.**
+  Every frame/layer/History command already no-ops while a stroke runs, so the
+  stroke's own Cel is the only one whose occupancy can change between samples. The
+  cache patches that Cel from a single-Cel probe and reloads the axis for every
+  other version bump — safe by default, since only a named live-stroke Cel takes
+  the patch path.
+- **The patch also demands a cached read no older than the stroke** (cubic, PR
+  review). "Same document" is not "current projection": nothing reads the
+  projection while the Timeline is collapsed, so undo can drop frames in that gap
+  and the next read — if it lands mid-stroke — would patch one Cel into a stale
+  axis and render frames the document no longer has. `TabState` anchors the
+  stroke's start version at `isDrawing = true` rather than inferring it from the
+  counter, because a tool whose `begin` changes nothing bumps no version at all.
+- **The occupancy predicate stayed in the apple crate.** It is simple and stable, so
+  the Core Placement rule of thumb allows a native implementation, and reusing it
+  inside `occupied_layer_ids` added no cross-shell duplication. The web projection
+  still carries its `cel_is_empty` seam note if a core predicate is ever wanted.
+
+### Notes
+
+- **Binding surface changed** (`is_cel_occupied`), so a workspace built before this
+  commit compiles against stale Swift bindings until `apple/generated` is
+  regenerated — the "Apple bindings staleness guard" backlog item, hit again.
+- **Horizontal scrolling has no automated coverage.** Snapshots are static renders:
+  the overflowing-axis image pins the axis at rest, and that the remaining columns
+  are reachable is scroller behavior only a hands-on check (or XCUITest, deferred
+  repo-wide) can confirm.
+- Frame ops are still not persisted — a relaunch restores a single frame until 292.
+- The Apple header's frame-action group has no `.pen` spec of its own; the 187 Frame
+  Ruler spec shows the web's three-button row, and this slice's menu fallback is the
+  Apple adaptation of it.

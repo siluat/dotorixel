@@ -189,12 +189,14 @@ struct DockedRegionSnapshotTests {
         )
     }
 
-    /// Layout regression (PR #372 review): an axis wider than the frame pane
-    /// stops at the pane edge instead of drawing over the canvas beside the
-    /// panel — `frame` sizes but does not clip. Ten 44pt columns overflow the
-    /// 383pt pane this 640pt panel leaves beside the 256pt sidebar. Replaced by
-    /// horizontal scrolling in issue 285.
-    @Test("TimelinePanel clips a frame axis wider than the pane")
+    /// Layout regression (PR #372 review, issue 285): an axis wider than the
+    /// frame pane stops at the pane edge instead of drawing over the canvas
+    /// beside the panel — `frame` sizes but does not clip. Ten 44pt columns
+    /// overflow the 383pt pane this 640pt panel leaves beside the 256pt
+    /// sidebar. The image pins the axis at rest; that the remaining columns are
+    /// *reachable* is the scroller's own behavior, which a static render cannot
+    /// show.
+    @Test("TimelinePanel holds a frame axis wider than the pane at the pane edge")
     func timelinePanelOverflowingAxis() throws {
         let overflowing = state()
         for _ in 1..<10 {
@@ -214,6 +216,11 @@ struct DockedRegionSnapshotTests {
     /// Layout regression (issue 346 review): at the narrowest supported canvas
     /// column the sidebar can't hold its spec width — the row controls and the
     /// frame area must stay inside the panel rather than overflow it.
+    ///
+    /// Also the frame-action group's narrow form (issue 285): six touch-minimum
+    /// controls do not fit this header, so the three frame commands render as
+    /// the single menu button this image pins, and the `Layers` label — sized
+    /// after them — truncates instead of wrapping out of the strip.
     @Test("TimelinePanel keeps its content inside the narrowest supported canvas column")
     func timelinePanelNarrowColumn() {
         assertSnapshot(

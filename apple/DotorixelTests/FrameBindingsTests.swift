@@ -273,6 +273,46 @@ struct FrameBindingsTests {
         )
 
         #expect(try doc.occupiedLayerIds(frameId: doc.activeFrameId()) == [pixelId])
+        // The per-cel read agrees: a Reference Layer holds no cel to occupy,
+        // and says so rather than erroring.
+        #expect(
+            try doc.isCelOccupied(frameId: doc.activeFrameId(), layerId: referenceId) == false
+        )
+    }
+
+    @Test("is-cel-occupied answers for one cel what occupied-layer-ids answers for a column")
+    func isCelOccupiedReadsASingleCel() throws {
+        let doc = makeSingleLayerDocument(width: 2, height: 2)
+        let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
+
+        let bottomId = doc.activeLayerId()
+        let topId = makeLayerId()
+        try doc.addLayer(newId: topId, name: "Layer 2")
+
+        let firstId = doc.activeFrameId()
+        let secondId = makeFrameId()
+        try doc.addFrame(newId: secondId)
+
+        // Paint the top layer's second-frame cel only: of the four cels on this
+        // 2×2 grid of `[layer × frame]`, exactly one is occupied.
+        try doc.setPixel(x: 0, y: 0, color: red)
+
+        #expect(try doc.isCelOccupied(frameId: secondId, layerId: topId))
+        #expect(try !doc.isCelOccupied(frameId: secondId, layerId: bottomId))
+        #expect(try !doc.isCelOccupied(frameId: firstId, layerId: topId))
+        #expect(try !doc.isCelOccupied(frameId: firstId, layerId: bottomId))
+
+        // Erasing that pixel empties the cel again — occupancy is a read of the
+        // buffer, not a latch.
+        try doc.setPixel(x: 0, y: 0, color: Color(r: 0, g: 0, b: 0, a: 0))
+        #expect(try !doc.isCelOccupied(frameId: secondId, layerId: topId))
+
+        #expect(throws: AppleError.self) {
+            try doc.isCelOccupied(frameId: makeFrameId(), layerId: topId)
+        }
+        #expect(throws: AppleError.self) {
+            try doc.isCelOccupied(frameId: secondId, layerId: makeLayerId())
+        }
     }
 
     @Test("whole-document undo/redo restores frame structure and cel pixels")

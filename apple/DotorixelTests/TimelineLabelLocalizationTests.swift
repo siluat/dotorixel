@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Dotorixel
 
-/// Resolution guard for the Timeline frame labels (issue 284).
+/// Resolution guard for the Timeline frame labels (issues 284, 285).
 ///
 /// `StringCatalogCompletenessTests` proves every catalog entry carries ko and
 /// ja values; it cannot prove the code asks for the key those values are filed
@@ -51,5 +51,14 @@ struct TimelineLabelLocalizationTests {
             String(localized: "underlay — same under every frame", bundle: ko, locale: locale)
                 == "언더레이 — 모든 프레임에서 동일"
         )
+    }
+
+    @Test("the frame action group's labels resolve their Korean translations")
+    func frameActionLabelsResolve() throws {
+        let ko = try koreanBundle()
+        #expect(String(localized: "Frames", bundle: ko, locale: locale) == "프레임")
+        #expect(String(localized: "Add frame", bundle: ko, locale: locale) == "프레임 추가")
+        #expect(String(localized: "Duplicate frame", bundle: ko, locale: locale) == "프레임 복제")
+        #expect(String(localized: "Delete frame", bundle: ko, locale: locale) == "프레임 삭제")
     }
 }

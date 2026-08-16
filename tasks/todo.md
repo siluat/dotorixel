@@ -23,16 +23,15 @@ the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish), Phase 2
 (full tool set + color + i18n, issues 230–242), Phase 3 (layer system, issues
 256–261), Phase 4 (multi-tab + persistence, issues 262–266), and Phase 5
 (reference + selection + transforms, issues 267–282) are complete; Phase 6 is
-decomposed into issues 283–296 (two parallel tracks), of which 283–284 are done.
+decomposed into issues 283–296 (two parallel tracks), of which 283–285 are done.
 
 ### Phase 6 — Animation + extended export (issues 283–296)
 
 Animation track:
 
-- [285 — Frame operations (add/duplicate/remove)](../issues/285-apple-frame-operations.md)
-- [286 — Frame drag reorder](../issues/286-apple-frame-reorder.md) (blocked by 285)
-- [287 — Per-frame duration UI](../issues/287-apple-frame-duration.md) (∥ 285)
-- [288 — Playback controller](../issues/288-apple-playback-controller.md) (blocked by 285)
+- [286 — Frame drag reorder](../issues/286-apple-frame-reorder.md)
+- [287 — Per-frame duration UI](../issues/287-apple-frame-duration.md)
+- [288 — Playback controller](../issues/288-apple-playback-controller.md)
 - [289 — Transport strip UI](../issues/289-apple-transport-strip.md) (blocked by 288)
 - [290 — Onion skin state + neighbor selection](../issues/290-apple-onion-skin-state.md) (blocked by 288)
 - [291 — Onion skin render + toggle](../issues/291-apple-onion-skin-render.md) (blocked by 289, 290)

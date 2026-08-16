@@ -8,9 +8,9 @@ import SwiftUI
 /// of the web's 32px desktop rows.
 ///
 /// The ruler band is pinned above the scrolling rows, so scrolling a tall layer
-/// stack never takes the frame ordinals with it. Frames wider than the panel
-/// clip rather than scroll horizontally — the axis can hold only one frame
-/// until issue 285 lands the add/duplicate commands that grow it.
+/// stack never takes the frame ordinals with it, and an axis wider than the
+/// panel scrolls horizontally — the grid carries the scroller and the ruler
+/// mirrors its offset, so ordinal N stays over column N at any scroll position.
 struct TimelinePanel: View {
     let tab: TabState
 
@@ -20,6 +20,11 @@ struct TimelinePanel: View {
     @State private var reorderDrag: LayerReorderDrag?
     @State private var isReferenceImporterPresented = false
     @State private var referenceImportErrorMessage: String?
+
+    /// How far the frame grid is scrolled along the axis — zero at rest and
+    /// negative once scrolled, the leading edge's position in the scroller's
+    /// own space. The pinned ruler band offsets by this to follow the grid.
+    @State private var axisScrollOffset: CGFloat = 0
 
     /// Panel rows and the header strip share the touch-minimum height — the
     /// Apple stand-in for the web's `--row-height`, which drives both there too.
@@ -148,6 +153,11 @@ struct TimelinePanel: View {
             }
             headerLabel
             Spacer(minLength: 0)
+            if !isCollapsed {
+                // Sized before the flexible label and spacer, so a narrow panel
+                // truncates "Layers" rather than starving the frame commands.
+                frameActions.layoutPriority(1)
+            }
             collapseToggle
         }
         // The expanded header's inset comes from the add button's touch box;
@@ -174,6 +184,11 @@ struct TimelinePanel: View {
             Text("Layers")
                 .font(.system(size: DesignTokens.fontSize, weight: .semibold))
                 .foregroundStyle(DesignTokens.textPrimary)
+                // The frame group is sized first, so this is the label that
+                // gives way on a narrow panel — truncating rather than wrapping
+                // out of the fixed-height strip.
+                .lineLimit(1)
+                .truncationMode(.tail)
         }
     }
 
@@ -203,6 +218,87 @@ struct TimelinePanel: View {
             action: { isReferenceImporterPresented = true }
         )
     }
+
+    // MARK: - Frame actions
+
+    /// The header's frame commands, all acting on the Active Frame (web parity:
+    /// the header's right-hand `Frames` group).
+    ///
+    /// Three touch-minimum targets need room the panel does not always have —
+    /// at the narrowest supported canvas column six of them overflow the header
+    /// — so the same three commands collapse into one menu button when the row
+    /// cannot fit. The `Frames` label disambiguates the two `+` actions: the
+    /// left one adds a layer, this one adds a frame.
+    private var frameActions: some View {
+        ViewThatFits(in: .horizontal) {
+            frameActionRow
+            frameActionMenu
+        }
+    }
+
+    private var frameActionRow: some View {
+        HStack(spacing: DesignTokens.space2) {
+            Text("Frames")
+                .font(.system(size: DesignTokens.fontSize, weight: .semibold))
+                .foregroundStyle(DesignTokens.textPrimary)
+            PanelIconButton(
+                systemName: Self.addFrameSymbol,
+                accessibilityLabel: "Add frame",
+                action: tab.addFrame
+            )
+            PanelIconButton(
+                systemName: Self.duplicateFrameSymbol,
+                accessibilityLabel: "Duplicate frame",
+                action: tab.duplicateFrame
+            )
+            PanelIconButton(
+                systemName: Self.deleteFrameSymbol,
+                accessibilityLabel: "Delete frame",
+                tint: DesignTokens.textTertiary,
+                isEnabled: tab.canRemoveFrame,
+                action: removeActiveFrame
+            )
+        }
+        // Reports the row's uncompressed width, so `ViewThatFits` measures what
+        // the row actually needs instead of the width its label can shrink to.
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    /// The narrow-panel form of the group: one target carrying the same three
+    /// commands, each a full-width menu row.
+    private var frameActionMenu: some View {
+        Menu {
+            Button("Add frame", systemImage: Self.addFrameSymbol, action: tab.addFrame)
+            Button(
+                "Duplicate frame",
+                systemImage: Self.duplicateFrameSymbol,
+                action: tab.duplicateFrame
+            )
+            Button(
+                "Delete frame",
+                systemImage: Self.deleteFrameSymbol,
+                role: .destructive,
+                action: removeActiveFrame
+            )
+            .disabled(!tab.canRemoveFrame)
+        } label: {
+            PanelIconGlyph(systemName: "film")
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .accessibilityLabel("Frames")
+    }
+
+    /// Delete targets the Active Frame, and the last remaining frame is never
+    /// removable — a document always carries at least one (the command refuses
+    /// it too; the disabled affordance just keeps the dead action out of reach).
+    private func removeActiveFrame() {
+        tab.removeFrame(id: tab.activeFrameId)
+    }
+
+    private static let addFrameSymbol = "plus"
+    private static let duplicateFrameSymbol = "plus.square.on.square"
+    private static let deleteFrameSymbol = "trash"
 
     private func importReference(from result: Result<URL, Error>) {
         switch result {
@@ -238,9 +334,10 @@ struct TimelinePanel: View {
     private var rulerAndRows: some View {
         GeometryReader { proxy in
             let sidebarWidth = sidebarWidth(in: proxy.size.width)
+            let paneWidth = max(0, proxy.size.width - sidebarWidth - dividerThickness)
             VStack(spacing: 0) {
-                rulerBand(sidebarWidth: sidebarWidth)
-                panelBody(sidebarWidth: sidebarWidth)
+                rulerBand(sidebarWidth: sidebarWidth, paneWidth: paneWidth)
+                panelBody(sidebarWidth: sidebarWidth, paneWidth: paneWidth)
             }
         }
         .frame(height: rulerHeight + bodyHeight)
@@ -263,12 +360,12 @@ struct TimelinePanel: View {
     /// Sidebar and frame grid scroll as one unit so each layer row stays
     /// aligned with its frame column cell once the rows outgrow the panel
     /// (the alignment web `TimelinePanel` had to fix after splitting them).
-    private func panelBody(sidebarWidth: CGFloat) -> some View {
+    private func panelBody(sidebarWidth: CGFloat, paneWidth: CGFloat) -> some View {
         ScrollView(.vertical) {
             HStack(alignment: .top, spacing: 0) {
                 layerSidebar(width: sidebarWidth)
                 verticalDivider
-                frameGrid
+                frameGridScroller(paneWidth: paneWidth)
             }
             // Short layer stacks still fill the panel, so the divider and the
             // frame grid span the body instead of stopping at row one.
@@ -506,11 +603,11 @@ struct TimelinePanel: View {
 
     /// The band over the scrolling rows: the corner where the active frame's
     /// duration editor lands (issue 287), beside the ruler's ordinal headers.
-    private func rulerBand(sidebarWidth: CGFloat) -> some View {
+    private func rulerBand(sidebarWidth: CGFloat, paneWidth: CGFloat) -> some View {
         HStack(alignment: .top, spacing: 0) {
             durationCorner(width: sidebarWidth)
             verticalDivider
-            frameRuler
+            frameRuler(paneWidth: paneWidth)
         }
         .frame(height: rulerHeight)
         .background(DesignTokens.bgElevated)
@@ -527,17 +624,22 @@ struct TimelinePanel: View {
             .accessibilityHidden(true)
     }
 
-    private var frameRuler: some View {
+    /// The ordinal headers, pinned vertically and scrolled horizontally by the
+    /// grid below: the band carries no scroller of its own, it re-renders at
+    /// the grid's offset. One scroller drives both, so the ordinal and its
+    /// column can never drift apart the way two independent scrollers would.
+    private func frameRuler(paneWidth: CGFloat) -> some View {
         HStack(spacing: 0) {
             ForEach(Array(frameColumns.enumerated()), id: \.element.id) { index, frame in
                 rulerHeader(frame, ordinal: index + 1)
             }
         }
         .frame(width: frameAxisWidth, alignment: .leading)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        // `frame` sizes but does not clip, so an axis wider than the pane would
-        // draw its trailing headers over the canvas beside the panel. Until the
-        // axis scrolls (issue 285), overflow stops at the pane edge.
+        .offset(x: axisScrollOffset)
+        .frame(width: paneWidth, alignment: .leading)
+        // `frame` sizes but does not clip, and the scrolled-in headers on both
+        // sides of the pane would otherwise draw over the sidebar and over the
+        // canvas beside the panel.
         .clipped()
     }
 
@@ -589,20 +691,50 @@ struct TimelinePanel: View {
     /// Rows follow the reorder drag's preview offsets — unlike the placeholder
     /// column they replaced, these cells carry per-layer content, so holding
     /// them still would break the pairing mid-drag.
-    private var frameGrid: some View {
+    private func frameGrid(paneWidth: CGFloat) -> some View {
         VStack(spacing: 0) {
             ForEach(
                 Array(tab.layersInPanelOrder.enumerated()),
                 id: \.element.id
             ) { panelIndex, layer in
-                frameRow(layer, panelIndex: panelIndex)
+                frameRow(layer, panelIndex: panelIndex, paneWidth: paneWidth)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// The frame pane's scroller — the one place the axis position lives. It
+    /// publishes its offset so the pinned ruler above can follow, and locks
+    /// while a layer reorder previews, like the vertical scroll around it.
+    private func frameGridScroller(paneWidth: CGFloat) -> some View {
+        ScrollView(.horizontal) {
+            frameGrid(paneWidth: paneWidth)
+                .background(alignment: .leading) {
+                    GeometryReader { geo in
+                        SwiftUI.Color.clear.preference(
+                            key: FrameAxisOffsetKey.self,
+                            value: geo.frame(in: .named(Self.frameAxisSpace)).minX
+                        )
+                    }
+                }
+        }
+        .coordinateSpace(name: Self.frameAxisSpace)
+        .onPreferenceChange(FrameAxisOffsetKey.self) { offset in
+            axisScrollOffset = offset
+        }
+        .scrollDisabled(reorderDrag != nil)
+        .frame(width: paneWidth)
+    }
+
+    /// Names the scroller's own space, so the content's leading edge reads as
+    /// the scroll offset rather than a position on screen.
+    private static let frameAxisSpace = "timelineFrameAxis"
+
     @ViewBuilder
-    private func frameRow(_ layer: AppleLayerMetadata, panelIndex: Int) -> some View {
+    private func frameRow(
+        _ layer: AppleLayerMetadata,
+        panelIndex: Int,
+        paneWidth: CGFloat
+    ) -> some View {
         let isDragging = reorderDrag?.layerId == layer.id
         let reorderOffset = reorderDrag?.offset(forPanelIndex: panelIndex) ?? 0
         Group {
@@ -617,17 +749,12 @@ struct TimelinePanel: View {
                 // The active layer's tint spans the grid row too, so the active
                 // row reads continuously across both panes (web parity).
                 .background(tab.activeLayerId == layer.id ? DesignTokens.bgActive : .clear)
-                // Cel rows stop at the axis; the Reference band below spans the
-                // whole pane, so only this branch takes the axis width.
-                .frame(width: frameAxisWidth, alignment: .leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                // Overflow stops at the pane edge, like the ruler above. Clipped
-                // here rather than around the whole grid: the clip must land
-                // before `offset`, or a row's reorder preview would be cut off
-                // as it travels.
-                .clipped()
             }
         }
+        // An axis narrower than the pane still fills it, so the Reference band
+        // spans the panel instead of stopping at the last column; a wider one
+        // sets the scroller's content width.
+        .frame(width: max(frameAxisWidth, paneWidth), alignment: .leading)
         .frame(height: rowHeight)
         .offset(y: reorderOffset)
         .zIndex(rowDepth(isDragging: isDragging, reorderOffset: reorderOffset))
@@ -708,5 +835,14 @@ struct TimelinePanel: View {
             .fill(DesignTokens.borderSubtle)
             .frame(width: dividerThickness)
             .frame(maxHeight: .infinity)
+    }
+}
+
+/// Carries the frame grid's scroll offset up to the pinned ruler band.
+private struct FrameAxisOffsetKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }

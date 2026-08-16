@@ -61,11 +61,16 @@ sidebar's active/hidden row treatments and its enabled reorder handles — the
 sole-layer snapshot carries the disabled pair (remove and reorder). `TimelinePanel`
 on a two-frame axis (issue 284) baselines the frame ruler: ordinals in axis order,
 the active column's fill + accent bar, the occupancy dots, and the accent outline
-where the active layer crosses the active frame. These are
+where the active layer crosses the active frame. The narrowest-canvas-column
+snapshot doubles as the frame-action group's narrow form (issue 285): six
+touch-minimum controls do not fit that header, so the three frame commands render
+as one menu button there and as a labelled row everywhere else. These are
 state-dependent layouts the empty-state snapshots never exercise. The reorder
 drag's own preview has no baseline: its offsets are pinned as pure geometry by
 `LayerReorderDragTests`, and a mid-drag render would need the panel's gesture
-state injected from outside.
+state injected from outside. Neither does the frame axis's horizontal scroll: the
+overflowing-axis image pins the axis at rest, and reaching the columns past the
+pane edge is scroller behavior a static render cannot show.
 
 Five snapshots are **locale regressions** (issue 242): each leaf view rendered
 under `.environment(\.locale, ko)` — the four tier-driven views at `.wide`,

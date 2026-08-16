@@ -294,6 +294,23 @@
         }
       }
     },
+    "Add frame" : {
+      "comment" : "Frame action accessibility label: inserts an empty frame after the active one. web: aria_addFrame",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フレームを追加"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프레임 추가"
+          }
+        }
+      }
+    },
     "Add layer" : {
       "comment" : "Layers section add button accessibility label. web: aria_addLayer",
       "localizations" : {
@@ -443,6 +460,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 닫기"
+          }
+        }
+      }
+    },
+    "Delete frame" : {
+      "comment" : "Frame action accessibility label: removes the active frame. web: aria_removeFrame",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フレームを削除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프레임 삭제"
+          }
+        }
+      }
+    },
+    "Duplicate frame" : {
+      "comment" : "Frame action accessibility label: copies the active frame. web: aria_duplicateFrame",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フレームを複製"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프레임 복제"
+          }
+        }
+      }
+    },
+    "Frames" : {
+      "comment" : "Timeline header frame-action group label, mirroring the Layers label. web: timeline_frames_label",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フレーム"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프레임"
           }
         }
       }

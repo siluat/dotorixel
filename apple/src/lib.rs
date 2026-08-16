@@ -751,6 +751,16 @@ fn parse_frame_id(id: &str) -> Result<Uuid, AppleError> {
     })
 }
 
+/// Whether the cel at `[stack_index × frame_id]` holds any pixel with a
+/// non-zero alpha — the timeline grid's occupancy predicate, shared by the
+/// per-column and per-cel reads. A stack index that holds no cel at this frame
+/// (a Reference Layer, which is frame-independent) is not occupied.
+fn cel_is_occupied(document: &Document, stack_index: usize, frame_id: Uuid) -> bool {
+    document
+        .cel_pixels_at(stack_index, frame_id)
+        .is_some_and(|pixels| pixels.chunks_exact(4).any(|rgba| rgba[3] != 0))
+}
+
 /// One frame's shell-facing metadata, read in axis order via
 /// [`AppleDocument::frames`] — the frame-axis mirror of
 /// [`AppleLayerMetadata`]. A frame carries no name; the shell displays its
@@ -1526,13 +1536,39 @@ impl AppleDocument {
             .layers()
             .iter()
             .enumerate()
-            .filter(|(stack_index, _)| {
-                document
-                    .cel_pixels_at(*stack_index, id)
-                    .is_some_and(|pixels| pixels.chunks_exact(4).any(|rgba| rgba[3] != 0))
-            })
+            .filter(|(stack_index, _)| cel_is_occupied(&document, *stack_index, id))
             .map(|(_, layer)| layer.id.to_string())
             .collect())
+    }
+
+    /// Whether the single cel where `layer_id` crosses `frame_id` is
+    /// content-bearing — the same predicate `occupied_layer_ids` applies, read
+    /// one cel at a time.
+    ///
+    /// This is the shell's re-probe for a Cel it knows is the only one that
+    /// can have changed: while a stroke is live, its target cel. Reading the
+    /// whole column there would rescan every other Pixel Layer's buffer per
+    /// stroke sample.
+    ///
+    /// A layer that holds no cel at this frame — a Reference Layer, which is
+    /// frame-independent — reports `false` rather than erroring. Errors only
+    /// when either id is not a valid UUID string, no frame with `frame_id` is
+    /// on the axis, or no layer with `layer_id` is in the stack.
+    fn is_cel_occupied(&self, frame_id: String, layer_id: String) -> Result<bool, AppleError> {
+        let frame = parse_frame_id(&frame_id)?;
+        let layer = parse_layer_id(&layer_id)?;
+        let document = self.inner.lock().unwrap();
+        if !document.frames().iter().any(|f| f.id == frame) {
+            return Err(AppleError::Document {
+                message: format!("Frame with id {frame} not found"),
+            });
+        }
+        let Some(stack_index) = document.layers().iter().position(|l| l.id == layer) else {
+            return Err(AppleError::Document {
+                message: format!("Layer with id {layer} not found"),
+            });
+        };
+        Ok(cel_is_occupied(&document, stack_index, frame))
     }
 
     /// Inserts a transparent frame directly after the active frame, seeds a

@@ -1193,20 +1193,42 @@ final class TabState {
         let version = canvasVersion
         return frameProjectionCache.columns(
             for: document,
-            canvasVersion: version
-        ) {
-            document.frames().map { frame in
-                FrameColumn(
-                    id: frame.id,
-                    durationMs: frame.durationMs,
-                    occupiedLayerIds: Set(
-                        // The only error is an id absent from the axis, and
-                        // these ids came from that same axis one call ago.
-                        (try? document.occupiedLayerIds(frameId: frame.id)) ?? []
+            canvasVersion: version,
+            liveStrokeCel: liveStrokeCel,
+            load: {
+                document.frames().map { frame in
+                    FrameColumn(
+                        id: frame.id,
+                        durationMs: frame.durationMs,
+                        occupiedLayerIds: Set(
+                            // The only error is an id absent from the axis, and
+                            // these ids came from that same axis one call ago.
+                            (try? document.occupiedLayerIds(frameId: frame.id)) ?? []
+                        )
                     )
-                )
+                }
+            },
+            probe: { cel in
+                // Same trusted-id argument as above: the address is the
+                // document's own active pair, read one call ago.
+                (try? document.isCelOccupied(frameId: cel.frameId, layerId: cel.layerId)) ?? false
             }
-        }
+        )
+    }
+
+    /// The Cel a live stroke is painting into, or nil while no stroke runs.
+    ///
+    /// Every frame-axis, layer-stack, and History command no-ops while a stroke
+    /// is in progress (the mid-stroke seal), so this is the only Cel whose
+    /// occupancy can change between two samples of one stroke — which is what
+    /// lets the projection re-probe a single Cel instead of rescanning the axis
+    /// on the pointer path.
+    private var liveStrokeCel: CelAddress? {
+        guard isDrawing else { return nil }
+        return CelAddress(
+            frameId: document.activeFrameId(),
+            layerId: document.activeLayerId()
+        )
     }
 
     /// The drawing-target frame's id — the ruler's active-column predicate.
@@ -1238,6 +1260,62 @@ final class TabState {
         guard !floatingSelection.isActive || commitFloatingSelection() else { return }
         guard (try? document.setActiveFrame(id: id)) != nil else { return }
         canvasVersion += 1
+    }
+
+    /// Inserts an empty frame directly after the active one and makes it the
+    /// drawing target — the ruler's add action. Every Pixel Layer receives a
+    /// transparent Cel, so the new frame starts blank while the frame it was
+    /// added after keeps its pixels.
+    ///
+    /// One undoable Edit: the whole-document snapshot restores both the frame
+    /// structure and the Cels in a single undo. `performEdit` commits a pending
+    /// Floating Selection first, so its lifted pixels land on their origin Cel
+    /// rather than on the frame being created.
+    /// No-ops silently while a drawing stroke is in progress (web parity — a
+    /// live stroke's target must not move mid-stroke).
+    func addFrame() {
+        guard !isDrawing else { return }
+        if performEdit({ (try? document.addFrame(newId: UUID().uuidString)) != nil }) {
+            canvasVersion += 1
+        }
+    }
+
+    /// Inserts a copy of the active frame directly after it and makes the copy
+    /// the drawing target — the ruler's duplicate action. Every Pixel Layer's
+    /// active-frame Cel is cloned, so the copy carries the whole composited
+    /// moment, and editing it leaves the source frame untouched.
+    ///
+    /// Undoable and stroke-guarded exactly like `addFrame`.
+    func duplicateFrame() {
+        guard !isDrawing else { return }
+        if performEdit({ (try? document.duplicateFrame(newId: UUID().uuidString)) != nil }) {
+            canvasVersion += 1
+        }
+    }
+
+    /// Whether the axis has a frame to spare — false only while the document
+    /// holds a single frame, which can never be removed. The panel renders the
+    /// remove affordance disabled while this is false. Reads `canvasVersion` to
+    /// register the @Observable dependency (the axis lives in the UniFFI
+    /// object, invisible to observation).
+    var canRemoveFrame: Bool {
+        _ = canvasVersion
+        return document.frames().count > 1
+    }
+
+    /// Removes the frame with `id` and drops its Cel from every Pixel Layer —
+    /// the ruler's remove action. Removing the active frame moves the active
+    /// pointer to an adjacent frame (delegated to the core).
+    ///
+    /// The last remaining frame is never removed (surfaced in the UI as a
+    /// disabled affordance); that branch and an unknown id record no history
+    /// entry. Undoable and stroke-guarded exactly like `addFrame`.
+    func removeFrame(id: String) {
+        guard !isDrawing else { return }
+        guard canRemoveFrame else { return }
+        if performEdit({ (try? document.removeFrame(id: id)) != nil }) {
+            canvasVersion += 1
+        }
     }
 
     // MARK: - Canvas clear

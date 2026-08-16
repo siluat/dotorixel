@@ -96,11 +96,23 @@ Drag-to-reorder on the frame ruler, mirroring how the layer rows reorder
   resting chrome is pixel-identical, and all 689 tests pass unchanged.
 - **Frame order is still not persisted** — a relaunch restores a single frame until
   292, so a reorder survives only the session.
+- **A cancelled drag no longer falls through to selecting the frame** (PR #374
+  review, raised by greptile and cubic). `onEnded` reached its tap branch
+  whenever no drag was live, which conflated a press that never became a drag
+  with one whose drag an axis change had cancelled out from under it — so a
+  second finger adding a frame, or ⌘Z, turned the release into an Active Frame
+  switch and moved the drawing target. The branch now selects only below the
+  drag threshold. The layer sidebar never had this path: its `onEnded` has no
+  tap role to fall through to.
+- **A single-frame document no longer opens a drag preview** (PR #374 review,
+  cubic). The offset clamped to zero, so nothing moved, but the header still
+  took the dragging fill and both scrollers locked. `canReorderFrames` gates the
+  drag where the sidebar disables its handle outright — a ruler header cannot be
+  disabled without losing its select role.
 - **A single-frame document still exposes the header's adjustable action** (it
-  clamps to a no-op). The layer sidebar gates its equivalent behind
-  `canReorderLayer(id:)`, but the header cannot be disabled without losing its
-  select role; gating only the accessibility action would need a conditional
-  modifier. Left as a known asymmetry.
+  clamps to a no-op). Gating the drag does not gate this: suppressing the action
+  itself needs a conditional modifier, since the header stays a select target.
+  Left as a known asymmetry.
 - The system-level interrupted-drag residual (app backgrounded mid-drag, gesture
   preempted by the OS) is untouched here by design — the existing backlog item
   covering every drag surface owns it. The in-app orphan paths self-heal: a

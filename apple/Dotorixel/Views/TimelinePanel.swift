@@ -750,6 +750,15 @@ struct TimelinePanel: View {
         return isActive ? DesignTokens.accentSubtle : .clear
     }
 
+    /// Whether the axis has somewhere to reorder to — false only while the
+    /// document holds a single frame. The sidebar's mirror is
+    /// `TabState.canReorderLayers`, which disables the row handle outright; a
+    /// ruler header cannot be disabled without losing its select role, so the
+    /// drag is gated here instead of at the affordance.
+    private var canReorderFrames: Bool {
+        frameColumns.count > 1
+    }
+
     /// `minimumDistance: 0` so the press is tracked from touch-down: the header
     /// is its own tap target, and the travel that separates a tap from a drag is
     /// measured here rather than delegated to the gesture's own threshold, which
@@ -760,7 +769,7 @@ struct TimelinePanel: View {
                 let travel = value.translation.width
                 if frameDrag?.itemId == frame.id {
                     frameDrag?.translation = travel
-                } else if frameDrag == nil, abs(travel) > frameDragThreshold {
+                } else if frameDrag == nil, canReorderFrames, abs(travel) > frameDragThreshold {
                     frameDrag = ReorderDrag(
                         itemId: frame.id,
                         baseIndex: axisIndex,
@@ -775,14 +784,22 @@ struct TimelinePanel: View {
                 // second pointer from committing, clearing, or selecting.
             }
             .onEnded { value in
+                let travel = value.translation.width
                 guard var drag = frameDrag else {
-                    // The press never left tap range, so it reads as the
-                    // header's other role: selecting the Active Frame.
-                    tab.setActiveFrame(id: frame.id)
+                    // Two presses reach here with no drag to commit, and only
+                    // one of them is a tap. Below the threshold the press never
+                    // became a drag, so it reads as the header's other role:
+                    // selecting the Active Frame. Past it, a drag existed and
+                    // was cancelled out from under this gesture — an axis that
+                    // changed mid-drag — and a cancelled reorder must not fall
+                    // through to moving the drawing target.
+                    if abs(travel) <= frameDragThreshold {
+                        tab.setActiveFrame(id: frame.id)
+                    }
                     return
                 }
                 guard drag.itemId == frame.id else { return }
-                drag.translation = value.translation.width
+                drag.translation = travel
                 frameDrag = nil
                 tab.reorderFrame(id: frame.id, toIndex: drag.targetIndex)
             }

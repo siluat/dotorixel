@@ -42,7 +42,7 @@ geometry and the commit, not the drag), and frame order is unpersisted until 292
 - TimelinePanel mobile touch targets — frame + row icon buttons ≥44px on the mobile Timeline tab
 - Web pen priority — palm rejection + hover target cell (web counterpart of 252–254)
 - Apple tab strip keyboard navigation — ArrowLeft/Right + Home/End roving focus
-- Apple layer reorder — interrupted-drag recovery, shared with the 280 placement overlay
+- Apple drag interruption recovery — one `scenePhase` guard for all three drag surfaces (layer rows, frame ruler, 280 placement overlay)
 - Apple bindings staleness guard — regenerate Swift bindings on binding-surface change; hit again in 285
 - Apple auto-save failure surfacing — needs a shell logging convention first
 - Web hydration opacity validation — port the Apple `from_layers` opacity guard

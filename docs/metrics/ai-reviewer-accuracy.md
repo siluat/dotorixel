@@ -10,14 +10,21 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 223 | 168 | 55 | 311 | 75% | 35% |
-| cubic-dev-ai[bot] | 351 | 274 | 77 | 224 | 78% | 55% |
-| coderabbitai[bot] | 337 | 243 | 94 | 247 | 72% | 50% |
+| greptile-apps[bot] | 224 | 169 | 55 | 313 | 75% | 35% |
+| cubic-dev-ai[bot] | 353 | 276 | 77 | 225 | 78% | 55% |
+| coderabbitai[bot] | 338 | 244 | 94 | 249 | 72% | 49% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #374 | greptile-apps[bot] | Accept | The ruler header's `onEnded` reached its tap branch whenever no drag was live, conflating a press that never became a drag with one whose drag an axis change had cancelled out from under it — so a second finger adding a frame, or ⌘Z, turned the release into an Active Frame switch and silently moved the drawing target. The branch now selects only below the drag threshold. The layer sidebar never had the path: its `onEnded` has no tap role to fall through to |
+| #374 | cubic-dev-ai[bot] | Accept | Same cancelled-drag-becomes-selection defect (duplicate of greptile); same threshold guard on the tap branch |
+| #374 | cubic-dev-ai[bot] | Accept | A single-frame document still opened a drag preview once the press crossed 4pt: the offset clamped to zero so nothing moved, but the header took the dragging fill and both scrollers locked. `canReorderFrames` now gates the drag where the sidebar disables its row handle outright — a ruler header cannot be disabled without losing its select role |
+| #374 | coderabbitai[bot] | Accept | The interrupted-drag backlog item enumerated only the layer sidebar and the Reference placement overlay, but 286 scoped the system-level residual out on the premise that the item covered *every* drag surface; the ruler's `frameDrag` made that premise false. The item now names all three surfaces and is retitled to match |
+| #374 | greptile-apps[bot] | Miss (×2) | Missed the single-frame drag-preview gate accepted from cubic and the backlog-coverage gap accepted from coderabbit |
+| #374 | coderabbitai[bot] | Miss (×2) | Missed the cancelled-drag-becomes-selection defect accepted from greptile and cubic, and the single-frame drag-preview gate accepted from cubic |
+| #374 | cubic-dev-ai[bot] | Miss | Missed the backlog-coverage gap accepted from coderabbit |
 | #373 | cubic-dev-ai[bot] | Accept | The occupancy patch path only checked that the cached projection belonged to the same document, which is not the same as it being current — nothing reads the projection while the Timeline is collapsed, so undo can drop frames in that gap and a first read landing mid-stroke would patch one Cel into a stale axis, rendering frames the document no longer has. The patch now also demands a cached read no older than the stroke, whose start version is anchored where `isDrawing` is set (a tool whose `begin` changes nothing bumps no version, so the span cannot be inferred from the counter) |
 | #373 | coderabbitai[bot] | Accept | `toSnapshot()` carries no frame-axis data and `fromLayers()` accepts none, so frames added through the new commands are lost on relaunch — an escalation this slice creates, since the UI could not reach a second frame before it. Not fixed here: 292 owns the schema extension and is blocked by 286 (frame order) and 287 (durations), both fields the record must serialize, so pulling it forward means writing the schema twice; 292 also specifies the backward-compatible hydration this PR would have had to invent |
 | #373 | greptile-apps[bot] | Miss (×2) | Confidence 5/5 with no findings, explicitly calling the occupancy optimization's fallback safe; missed both the stale-projection patch accepted from cubic and the frame-persistence gap accepted from coderabbit |

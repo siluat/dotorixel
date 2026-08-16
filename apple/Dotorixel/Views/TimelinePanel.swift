@@ -1,14 +1,16 @@
 import SwiftUI
 
-/// Bottom-docked Timeline panel: a header strip over the layer sidebar and the
-/// frame area. Mirrors web `TimelinePanel.svelte` and the `092 — TimelinePanel
-/// Design Spec` for cross-shell parity, with SwiftUI-native controls sized to
-/// the HIG touch minimum instead of the web's 32px desktop rows.
+/// Bottom-docked Timeline panel: a header strip over the reserved transport
+/// slot, the frame ruler, and the `[layer row × frame column]` grid beside the
+/// layer sidebar. Mirrors web `TimelinePanel.svelte` and the `092 —
+/// TimelinePanel Design Spec` / `187 — Frame Ruler` specs for cross-shell
+/// parity, with SwiftUI-native controls sized to the HIG touch minimum instead
+/// of the web's 32px desktop rows.
 ///
-/// The frame area stays a placeholder — one dim column per layer plus a hint,
-/// exactly the spec's M3 treatment — so the frame ruler grows into reserved
-/// space when animation arrives (Phase 6). The layer sidebar is the panel's
-/// only live content today.
+/// The ruler band is pinned above the scrolling rows, so scrolling a tall layer
+/// stack never takes the frame ordinals with it. Frames wider than the panel
+/// clip rather than scroll horizontally — the axis can hold only one frame
+/// until issue 285 lands the add/duplicate commands that grow it.
 struct TimelinePanel: View {
     let tab: TabState
 
@@ -22,6 +24,26 @@ struct TimelinePanel: View {
     /// Panel rows and the header strip share the touch-minimum height — the
     /// Apple stand-in for the web's `--row-height`, which drives both there too.
     private let rowHeight = DesignTokens.btnSize
+
+    /// The frame ruler's band height and each frame column's width — the Apple
+    /// stand-in for the web's `--ruler-height` / `--frame-col-width`, both of
+    /// which derive from its row height. Squaring them at the touch minimum
+    /// keeps every ruler header a 44×44 target.
+    private let rulerHeight = DesignTokens.btnSize
+    private let frameColumnWidth = DesignTokens.btnSize
+
+    /// Reserved band above the ruler where the playback transport lands (issue
+    /// 289). Held at the height its controls will need, so filling it never
+    /// moves the ruler or the rows beneath.
+    private let transportSlotHeight = DesignTokens.btnSize
+
+    /// The occupancy dot marking a content-bearing Cel — web `--cel-dot-size`.
+    private let celDotSize: CGFloat = 6
+
+    /// The photo glyph marking the Reference Layer, drawn on both its sidebar
+    /// row and its grid band. Smaller than `DesignTokens.iconSize` on purpose:
+    /// it is a kind marker beside a name, not a control.
+    private let referenceGlyphSize: CGFloat = 12
 
     /// Web Timeline sidebar visual references (raw CSS, not tokens): the
     /// active row's leading accent bar is `--ds-border-width-thick` (2px) and
@@ -45,10 +67,14 @@ struct TimelinePanel: View {
     /// arbitrary rather than as the divider it makes room for.
     private let dividerThickness: CGFloat = 1
 
-    /// Height left for the sidebar and frame area once the header strip and
-    /// its divider are laid out.
+    /// Height left for the scrolling rows once the header strip, its divider,
+    /// and the two pinned bands above the rows are laid out.
     private var bodyHeight: CGFloat {
-        DesignTokens.timelinePanelHeight - rowHeight - dividerThickness
+        DesignTokens.timelinePanelHeight
+            - rowHeight
+            - dividerThickness
+            - transportSlotHeight
+            - rulerHeight
     }
 
     private var isCollapsed: Bool { tab.isTimelinePanelCollapsed }
@@ -61,7 +87,8 @@ struct TimelinePanel: View {
             // stays focusable behind a closed panel.
             if !isCollapsed {
                 divider
-                panelBody
+                transportSlot
+                rulerAndRows
             }
         }
         .frame(height: isCollapsed ? rowHeight : DesignTokens.timelinePanelHeight)
@@ -203,18 +230,48 @@ struct TimelinePanel: View {
 
     // MARK: - Body
 
-    /// Sidebar and frame area scroll as one unit so each layer row stays
+    /// The pinned ruler band and the scrolling rows beneath it. Both take their
+    /// sidebar width from one measurement, so the ruler's corner and the layer
+    /// sidebar end at the same x and ordinal N stays over column N — two bands
+    /// resolving their own flexible widths drift apart wherever the sidebar's
+    /// row controls out-measure the empty corner.
+    private var rulerAndRows: some View {
+        GeometryReader { proxy in
+            let sidebarWidth = sidebarWidth(in: proxy.size.width)
+            VStack(spacing: 0) {
+                rulerBand(sidebarWidth: sidebarWidth)
+                panelBody(sidebarWidth: sidebarWidth)
+            }
+        }
+        .frame(height: rulerHeight + bodyHeight)
+    }
+
+    /// The sidebar holds its spec width wherever the canvas column can seat it
+    /// and yields below that, always leaving room for the first frame column —
+    /// a hard `width` would push the header's add and collapse controls outside
+    /// the panel once the column drops under 256pt, which the macOS window's
+    /// 480pt floor reaches (480 − 44 toolbar − 200 right panel). The web
+    /// narrows its sidebar at the mobile tier for the same reason.
+    ///
+    /// Only the first column is reserved, not the whole axis: the sidebar must
+    /// not shrink every time a frame is added.
+    private func sidebarWidth(in availableWidth: CGFloat) -> CGFloat {
+        let seatable = availableWidth - dividerThickness - frameColumnWidth
+        return min(DesignTokens.timelineSidebarWidth, max(0, seatable))
+    }
+
+    /// Sidebar and frame grid scroll as one unit so each layer row stays
     /// aligned with its frame column cell once the rows outgrow the panel
     /// (the alignment web `TimelinePanel` had to fix after splitting them).
-    private var panelBody: some View {
+    private func panelBody(sidebarWidth: CGFloat) -> some View {
         ScrollView(.vertical) {
             HStack(alignment: .top, spacing: 0) {
-                layerSidebar
+                layerSidebar(width: sidebarWidth)
                 verticalDivider
-                frameArea
+                frameGrid
             }
             // Short layer stacks still fill the panel, so the divider and the
-            // frame placeholder span the body instead of stopping at row one.
+            // frame grid span the body instead of stopping at row one.
             .frame(minHeight: bodyHeight, alignment: .top)
         }
         .frame(height: bodyHeight)
@@ -228,12 +285,7 @@ struct TimelinePanel: View {
         .onDisappear { reorderDrag = nil }
     }
 
-    /// Holds the spec width wherever the canvas column can seat it, and yields
-    /// below that — a hard `width` would push the header's add and collapse
-    /// controls outside the panel once the column drops under 256pt, which the
-    /// macOS window's 480pt floor reaches (480 − 44 toolbar − 200 right panel).
-    /// The web narrows its sidebar at the mobile tier for the same reason.
-    private var layerSidebar: some View {
+    private func layerSidebar(width: CGFloat) -> some View {
         VStack(spacing: 0) {
             // Panel order: top of the stack renders at the top.
             ForEach(
@@ -243,7 +295,7 @@ struct TimelinePanel: View {
                 layerRow(layer, panelIndex: panelIndex)
             }
         }
-        .frame(maxWidth: DesignTokens.timelineSidebarWidth)
+        .frame(width: width)
     }
 
     private func layerRow(_ layer: AppleLayerMetadata, panelIndex: Int) -> some View {
@@ -419,55 +471,228 @@ struct TimelinePanel: View {
     /// fixed underlay role distinct without narrowing ordinary Pixel names.
     private var referenceKindIcon: some View {
         Image(systemName: "photo")
-            .font(.system(size: 12))
+            .font(.system(size: referenceGlyphSize))
             .foregroundStyle(DesignTokens.textTertiary)
             .frame(width: 14, height: 14)
             .accessibilityHidden(true)
     }
 
-    // MARK: - Frame area (placeholder until Phase 6)
+    // MARK: - Transport slot (reserved for issue 289)
 
-    /// One static column of cells — a row per layer — beside an empty axis.
-    /// The column reserves the frame ruler's width and pins the row-to-cell
-    /// alignment the ruler will inherit; the axis carries the hint that says
-    /// why the space is empty.
-    ///
-    /// The cells hold still during a reorder drag, where the web shifts its
-    /// frame rows with the sidebar: these placeholders are identical and carry
-    /// no layer identity, so shifting them would render no visible difference.
-    /// The ruler that replaces them (Phase 6) does carry per-layer content and
-    /// will need the row offsets.
-    private var frameArea: some View {
-        // Top-aligned so cell N sits beside sidebar row N — the alignment the
-        // frame ruler inherits when it replaces this column.
-        HStack(alignment: .top, spacing: 0) {
-            VStack(spacing: 0) {
-                ForEach(tab.layersInPanelOrder, id: \.id) { _ in
-                    placeholderFrameCell
-                }
+    /// The band the playback transport will occupy. Empty and dim on purpose:
+    /// it holds the space so 289's controls arrive without moving the ruler,
+    /// and it carries nothing for VoiceOver to announce until they do.
+    private var transportSlot: some View {
+        Rectangle()
+            .fill(DesignTokens.bgSurface)
+            .frame(height: transportSlotHeight)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(DesignTokens.borderSubtle)
+                    .frame(height: dividerThickness)
             }
-            emptyAxis
+            .accessibilityHidden(true)
+    }
+
+    // MARK: - Frame ruler
+
+    private var frameColumns: [FrameColumn] { tab.frameColumns }
+
+    /// Total width of the frame axis — what the ruler's headers and the grid's
+    /// cel rows are both pinned to, so ordinal N sits over column N.
+    private var frameAxisWidth: CGFloat {
+        frameColumnWidth * CGFloat(frameColumns.count)
+    }
+
+    /// The band over the scrolling rows: the corner where the active frame's
+    /// duration editor lands (issue 287), beside the ruler's ordinal headers.
+    private func rulerBand(sidebarWidth: CGFloat) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            durationCorner(width: sidebarWidth)
+            verticalDivider
+            frameRuler
+        }
+        .frame(height: rulerHeight)
+        .background(DesignTokens.bgElevated)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(DesignTokens.borderSubtle)
+                .frame(height: dividerThickness)
         }
     }
 
-    private var placeholderFrameCell: some View {
-        Rectangle()
-            .fill(DesignTokens.bgBase)
-            .frame(width: rowHeight, height: rowHeight)
-            .overlay(
-                Rectangle()
-                    .stroke(DesignTokens.borderSubtle, lineWidth: dividerThickness)
-            )
+    private func durationCorner(width: CGFloat) -> some View {
+        SwiftUI.Color.clear
+            .frame(width: width, height: rulerHeight)
+            .accessibilityHidden(true)
     }
 
-    private var emptyAxis: some View {
-        Text("Frames arrive with animation support")
-            .font(.system(size: DesignTokens.fontSizeSm))
-            .italic()
-            .foregroundStyle(DesignTokens.textTertiary)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, DesignTokens.space5)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    private var frameRuler: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(frameColumns.enumerated()), id: \.element.id) { index, frame in
+                rulerHeader(frame, ordinal: index + 1)
+            }
+        }
+        .frame(width: frameAxisWidth, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // `frame` sizes but does not clip, so an axis wider than the pane would
+        // draw its trailing headers over the canvas beside the panel. Until the
+        // axis scrolls (issue 285), overflow stops at the pane edge.
+        .clipped()
+    }
+
+    /// One frame's ordinal header — the tap target that makes it the Active
+    /// Frame. The active column carries two channels so it reads without hue
+    /// (web parity, matching the active-layer row): an accent-subtle fill and
+    /// a 2pt accent bar on the top edge, whose height is reserved on every
+    /// header so activating a column never nudges its ordinal.
+    private func rulerHeader(_ frame: FrameColumn, ordinal: Int) -> some View {
+        let isActive = frame.id == tab.activeFrameId
+        return Button {
+            tab.setActiveFrame(id: frame.id)
+        } label: {
+            Text(verbatim: "\(ordinal)")
+                .font(.system(
+                    size: DesignTokens.fontSizeSm,
+                    weight: isActive ? .bold : .medium
+                ))
+                .foregroundStyle(isActive ? DesignTokens.accentText : DesignTokens.textTertiary)
+                .frame(width: frameColumnWidth, height: rulerHeight)
+                .background(isActive ? DesignTokens.accentSubtle : .clear)
+                .overlay(alignment: .top) {
+                    Rectangle()
+                        .fill(isActive ? DesignTokens.accent : .clear)
+                        .frame(height: activeBarWidth)
+                }
+                .overlay(alignment: .trailing) {
+                    Rectangle()
+                        .fill(DesignTokens.borderSubtle)
+                        .frame(width: dividerThickness)
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(selectFrameLabel(ordinal: ordinal))
+        .accessibilityAddTraits(isActive ? .isSelected : [])
+    }
+
+    /// Web parity: `aria_selectFrame`. Int-cast so the catalog key stays a
+    /// stable "Select frame %lld".
+    private func selectFrameLabel(ordinal: Int) -> LocalizedStringResource {
+        "Select frame \(ordinal)"
+    }
+
+    // MARK: - Frame grid
+
+    /// The `[layer row × frame column]` cells, one row per sidebar row and in
+    /// the same panel order, so row N of the grid sits beside sidebar row N.
+    /// Rows follow the reorder drag's preview offsets — unlike the placeholder
+    /// column they replaced, these cells carry per-layer content, so holding
+    /// them still would break the pairing mid-drag.
+    private var frameGrid: some View {
+        VStack(spacing: 0) {
+            ForEach(
+                Array(tab.layersInPanelOrder.enumerated()),
+                id: \.element.id
+            ) { panelIndex, layer in
+                frameRow(layer, panelIndex: panelIndex)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func frameRow(_ layer: AppleLayerMetadata, panelIndex: Int) -> some View {
+        let isDragging = reorderDrag?.layerId == layer.id
+        let reorderOffset = reorderDrag?.offset(forPanelIndex: panelIndex) ?? 0
+        Group {
+            if layer.kind == .reference {
+                referenceSpan
+            } else {
+                HStack(spacing: 0) {
+                    ForEach(Array(frameColumns.enumerated()), id: \.element.id) { index, frame in
+                        frameCell(frame, layer: layer, ordinal: index + 1)
+                    }
+                }
+                // The active layer's tint spans the grid row too, so the active
+                // row reads continuously across both panes (web parity).
+                .background(tab.activeLayerId == layer.id ? DesignTokens.bgActive : .clear)
+                // Cel rows stop at the axis; the Reference band below spans the
+                // whole pane, so only this branch takes the axis width.
+                .frame(width: frameAxisWidth, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // Overflow stops at the pane edge, like the ruler above. Clipped
+                // here rather than around the whole grid: the clip must land
+                // before `offset`, or a row's reorder preview would be cut off
+                // as it travels.
+                .clipped()
+            }
+        }
+        .frame(height: rowHeight)
+        .offset(y: reorderOffset)
+        .zIndex(rowDepth(isDragging: isDragging, reorderOffset: reorderOffset))
+    }
+
+    /// A Reference Layer is frame-independent and holds no Cels, so its grid
+    /// row is one continuous muted band rather than a divided cel strip (web
+    /// parity: `.frame-reference-span`).
+    private var referenceSpan: some View {
+        HStack(spacing: DesignTokens.space3) {
+            Image(systemName: "photo")
+                .font(.system(size: referenceGlyphSize))
+                .foregroundStyle(DesignTokens.accentText)
+            Text("underlay — same under every frame")
+                .font(.system(size: DesignTokens.fontSizeSm, weight: .medium))
+                .foregroundStyle(DesignTokens.textTertiary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .padding(.horizontal, DesignTokens.space3)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: rowHeight)
+        .background(DesignTokens.bgHover)
+    }
+
+    /// One Cel's occupied/empty indicator. Non-interactive in this slice — the
+    /// ruler header above it is the Active Frame's tap target — so it is an
+    /// accessibility element that reads its own occupancy rather than a button.
+    private func frameCell(
+        _ frame: FrameColumn,
+        layer: AppleLayerMetadata,
+        ordinal: Int
+    ) -> some View {
+        let isActiveFrame = frame.id == tab.activeFrameId
+        let isActiveCel = isActiveFrame && layer.id == tab.activeLayerId
+        let isOccupied = frame.occupiedLayerIds.contains(layer.id)
+        return Circle()
+            .fill(isActiveCel ? DesignTokens.accent : DesignTokens.textSecondary)
+            .frame(width: celDotSize, height: celDotSize)
+            .opacity(isOccupied ? 1 : 0)
+            .frame(width: frameColumnWidth, height: rowHeight)
+            .background(isActiveFrame ? DesignTokens.accentSubtle : .clear)
+            // The active Cel (active layer ∩ active frame) adds an accent
+            // outline over the column's fill — the drawing target, marked at
+            // the crossing rather than by the column alone.
+            // `strokeBorder` keeps the line wholly inside the cell — a centered
+            // `stroke` would hang half its width past the axis, where the pane's
+            // clip now cuts it. Web parity too: the active Cel's outline is an
+            // `inset` box-shadow there.
+            .overlay {
+                Rectangle()
+                    .strokeBorder(
+                        isActiveCel ? DesignTokens.accent : DesignTokens.borderSubtle,
+                        lineWidth: dividerThickness
+                    )
+            }
+            .accessibilityElement()
+            .accessibilityLabel(celLabel(layer: layer, ordinal: ordinal))
+            .accessibilityValue(isOccupied ? Text("Has content") : Text("Empty"))
+    }
+
+    /// Web parity: `aria_selectCel`, without the "Select" verb — the cell is an
+    /// indicator here, not a command.
+    private func celLabel(layer: AppleLayerMetadata, ordinal: Int) -> LocalizedStringResource {
+        "\(layer.name), frame \(ordinal)"
     }
 
     // MARK: - Helpers

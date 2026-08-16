@@ -740,23 +740,6 @@
         }
       }
     },
-    "Frames arrive with animation support" : {
-      "comment" : "Timeline panel frame-area placeholder hint; the frame ruler grows here in Phase 6",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "フレームはアニメーション対応とともに追加されます"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "프레임은 애니메이션 지원과 함께 추가됩니다"
-          }
-        }
-      }
-    },
     "HSV" : {
       "comment" : "Right panel section title — acronym, same in every locale. web: section_hsv",
       "shouldTranslate" : false
@@ -1658,6 +1641,91 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "축소"
+          }
+        }
+      }
+    },
+    "Select frame %lld" : {
+      "comment" : "Frame ruler header accessibility label; %lld is the frame's 1-based ordinal. web: aria_selectFrame",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フレーム %lld を選択"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld번 프레임 선택"
+          }
+        }
+      }
+    },
+    "%@, frame %lld" : {
+      "comment" : "Timeline grid cel accessibility label; %@ is the layer name, %lld the frame's 1-based ordinal. web: aria_selectCel, without the verb — the Apple cell is an indicator, not a command",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@、フレーム %lld"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %lld번 프레임"
+          }
+        }
+      }
+    },
+    "Has content" : {
+      "comment" : "Timeline grid cel accessibility value for a content-bearing Cel — the spoken form of the occupancy dot",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内容あり"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내용 있음"
+          }
+        }
+      }
+    },
+    "Empty" : {
+      "comment" : "Timeline grid cel accessibility value for an empty Cel",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "비어 있음"
+          }
+        }
+      }
+    },
+    "underlay — same under every frame" : {
+      "comment" : "Timeline grid caption on the Reference Layer's frame-independent band. web: timeline_reference_span_caption",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アンダーレイ — すべてのフレームで共通"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "언더레이 — 모든 프레임에서 동일"
           }
         }
       }

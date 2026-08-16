@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 284 | [Apple frame ruler — frame axis in the Timeline panel + Active Frame switching](../issues/284-apple-frame-ruler.md) | 2026-08-16 |
 | 283 | [Apple UniFFI frame bindings — frame axis metadata, operations, and per-frame composite](../issues/283-apple-uniffi-frame-bindings.md) | 2026-08-16 |
 | 282 | [Apple reference persistence — reference layer survives relaunch](../issues/282-apple-reference-persistence.md) | 2026-08-15 |
 | 281 | [Apple navigation bounds — pan/zoom clamped to canvas ∪ reference footprint](../issues/281-apple-reference-navigation-bounds.md) | 2026-08-15 |

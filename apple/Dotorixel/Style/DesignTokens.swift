@@ -73,12 +73,16 @@ enum DesignTokens {
     // web nor the 092 spec varies it at the 1440 breakpoint, unlike the side
     // panels and bars below.
 
-    /// Timeline panel height while expanded. The 092 spec's desktop panel is
-    /// 180 (header 32 + ~4.5 rows of 32); the Apple rows are `btnSize` for
-    /// touch, so this keeps the header plus ~3.5 rows rather than scaling the
-    /// spec's row count and eating the canvas viewport. Collapsed, the panel
-    /// is `btnSize` — the header strip alone.
-    static let timelinePanelHeight: CGFloat = 200
+    /// Timeline panel height while expanded — the header strip, the reserved
+    /// transport slot, the frame ruler, and three layer rows, each `btnSize`
+    /// tall for touch, plus the header's divider (44 + 44 + 44 + 132 + 1).
+    ///
+    /// The web grew its own panel from 180 to 200 to seat the transport bar
+    /// above the ruler; this is the same growth at the Apple touch scale, and
+    /// three visible rows is the floor that keeps the sidebar readable without
+    /// eating more of the canvas viewport. Collapsed, the panel is `btnSize` —
+    /// the header strip alone.
+    static let timelinePanelHeight: CGFloat = 265
 
     /// Layer sidebar width within the Timeline panel — web TimelinePanel
     /// `--sidebar-width` / 092 spec: 256px.

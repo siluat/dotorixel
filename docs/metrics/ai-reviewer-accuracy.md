@@ -10,14 +10,22 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 223 | 168 | 55 | 306 | 75% | 35% |
-| cubic-dev-ai[bot] | 347 | 271 | 76 | 222 | 78% | 55% |
-| coderabbitai[bot] | 334 | 240 | 94 | 245 | 72% | 49% |
+| greptile-apps[bot] | 223 | 168 | 55 | 309 | 75% | 35% |
+| cubic-dev-ai[bot] | 350 | 273 | 77 | 223 | 78% | 55% |
+| coderabbitai[bot] | 336 | 242 | 94 | 246 | 72% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #372 | cubic-dev-ai[bot] | Accept | The cel accessibility label's catalog entry used positional specifiers (`%1$@, frame %2$lld`) while Swift's interpolation asks for `%@, frame %lld`, so its ko/ja values sat under a key no lookup reached and VoiceOver fell back to English; `StringCatalogCompletenessTests` cannot see this (the entry is complete, just unreachable), so the fix adds `TimelineLabelLocalizationTests`, resolving each new label through the compiled `ko.lproj` table |
+| #372 | coderabbitai[bot] | Accept | The frame ruler had no clipping boundary — `frame` sizes but does not clip — so an axis wider than the pane would draw its trailing headers over the canvas beside the panel; the Cel rows shared the defect, and their clip lands before the reorder offset so a drag preview still travels. Cell borders moved to `strokeBorder` (a centered stroke hangs half its width into the clip, and inset matches the web's box-shadow) |
+| #372 | cubic-dev-ai[bot] | Accept | Same missing ruler clip (duplicate of coderabbit); same `.clipped()` boundary |
+| #372 | coderabbitai[bot] | Accept | Occupancy is memoized on `canvasVersion`, which every stroke sample bumps, so a sample rescans every Pixel Layer's cel buffer on every frame — an O(layers × frames × pixels) scan on the pointer path. Not fixed in this slice: the UI can reach only one frame until 285, and the web ships the same characteristic. Recorded as a 285 acceptance criterion, where a multi-frame document first exists to measure against |
+| #372 | cubic-dev-ai[bot] | Reject | Wanted the frame-switch path to stop invalidating the occupancy cache; a ruler tap is a discrete user action, not a hot path, and decoupling it needs an invalidation model whose failure mode is stale occupancy dots. Also mischaracterized the memoization, which exists to collapse the O(rows) reads of `frameColumns` within one render pass rather than to survive across versions. The shared root is tracked on 285 via the stroke-path finding above |
+| #372 | greptile-apps[bot] | Miss (×3) | Confidence 5/5 with no findings; missed the unreachable catalog key, the missing clip boundary, and the stroke-path occupancy rescan accepted from cubic/coderabbit |
+| #372 | cubic-dev-ai[bot] | Miss | Missed the stroke-path occupancy rescan accepted from coderabbit, having flagged only the cheaper frame-switch case of the same root |
+| #372 | coderabbitai[bot] | Miss | Missed the positional-specifier catalog key accepted from cubic |
 | #371 | cubic-dev-ai[bot] | Reject | Wanted `parse_frame_id`/`parse_layer_id` merged behind a kind-parameterized parser; the two ids have different validity domains (the frame axis legitimately holds `Uuid::nil()` as `Frame::INITIAL`, layer ids never do), so the likeliest shared guard — nil rejection — would be correct for layers and a bug for frames. The `Uuid::parse_str` + `AppleError::Document` mapping is already common, and a `kind: &str` would trade a compiler-checked distinction for a stringly-typed one |
 | #370 | greptile-apps[bot] | Accept | Round 3: the post-drop active-pointer remap predicate still raw-string-compared what the hydration parser matches case-insensitively, so a drop paired with a case-variant pointer at a non-topmost Pixel Layer silently moved the active layer to the topmost one; now parses UUIDs like the collision guard |
 | #370 | cubic-dev-ai[bot] | Miss | Round 3: re-reviewed with no findings and missed the remap predicate's casing gap accepted from greptile. coderabbit did not re-review this round — no participation, no Miss |

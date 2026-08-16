@@ -103,6 +103,11 @@ final class TabState {
     /// Selection lifecycle beside it.
     @ObservationIgnored private let placementInteraction = ReferenceLayerPlacementInteraction()
 
+    /// Cel occupancy costs a full buffer scan per `[layer × frame]`. Keep the
+    /// projection's FFI copy outside Observation, memoized per canvas version,
+    /// so a live stroke's per-sample re-render reuses one read.
+    @ObservationIgnored private let frameProjectionCache = FrameProjectionCache()
+
     var canUndo: Bool {
         // Read to register @Observable dependencies — History lives inside
         // UniFFI while Floating lifecycle changes bump the canvas version.
@@ -1175,6 +1180,64 @@ final class TabState {
             reclampViewport()
             canvasVersion += 1
         }
+    }
+
+    // MARK: - Frames
+
+    /// The frame axis projected for the timeline ruler — one column per frame
+    /// in axis order, each carrying its playback duration and per-Cel
+    /// occupancy. Reads `canvasVersion` to register the @Observable dependency
+    /// (the axis lives in the UniFFI object, invisible to observation) and to
+    /// key the projection cache.
+    var frameColumns: [FrameColumn] {
+        let version = canvasVersion
+        return frameProjectionCache.columns(
+            for: document,
+            canvasVersion: version
+        ) {
+            document.frames().map { frame in
+                FrameColumn(
+                    id: frame.id,
+                    durationMs: frame.durationMs,
+                    occupiedLayerIds: Set(
+                        // The only error is an id absent from the axis, and
+                        // these ids came from that same axis one call ago.
+                        (try? document.occupiedLayerIds(frameId: frame.id)) ?? []
+                    )
+                )
+            }
+        }
+    }
+
+    /// The drawing-target frame's id — the ruler's active-column predicate.
+    /// Reads `canvasVersion` to register the @Observable dependency (the
+    /// pointer lives in the UniFFI object, invisible to observation).
+    var activeFrameId: String {
+        _ = canvasVersion
+        return document.activeFrameId()
+    }
+
+    /// Makes the frame with `id` the drawing target — the ruler header's tap
+    /// action, and the frame-axis mirror of `setActiveLayer`. Not undoable
+    /// (web parity: navigating the timeline never pollutes History) and a
+    /// silent no-op while a stroke is drawing — the stroke's target must not
+    /// switch mid-stroke — or for an unknown id.
+    ///
+    /// A live Floating Selection is committed first, so its lifted pixels land
+    /// on the Cel they came from instead of leaking into the frame being
+    /// switched to (web parity: the PRD 186 contract).
+    ///
+    /// Unlike `setActiveLayer` this marks nothing dirty: the frame axis has no
+    /// persistence projection until issue 292, so a switch changes no saved
+    /// state and a save it triggered would write the same record back.
+    func setActiveFrame(id: String) {
+        guard !isDrawing else { return }
+        guard id != document.activeFrameId() else { return }
+        guard document.frames().contains(where: { $0.id == id }) else { return }
+        guard resolveFloatingSelectionRecovery() else { return }
+        guard !floatingSelection.isActive || commitFloatingSelection() else { return }
+        guard (try? document.setActiveFrame(id: id)) != nil else { return }
+        canvasVersion += 1
     }
 
     // MARK: - Canvas clear

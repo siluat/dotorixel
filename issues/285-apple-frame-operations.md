@@ -33,6 +33,20 @@ panel's existing icon-button idiom):
 
 Drag reorder is a separate slice (286).
 
+**Carried over from 284** — both because 284 had no way to reach a
+multi-frame document, and this slice is what creates one:
+
+- The ruler and the Cel grid clip at the panel edge instead of scrolling
+  horizontally. The pinned ruler band and the scrolling grid need to
+  share one scroll offset.
+- Cel occupancy is memoized on `canvasVersion`, which every stroke sample
+  bumps, so each sample rescans every Pixel Layer's cel buffer on every
+  frame. Harmless at one frame; on a real axis it puts an
+  O(layers × frames × pixels) scan on the pointer path. Invalidate on
+  what actually changes a Cel's empty/content state instead — a stroke
+  touches only the active layer's active-frame Cel. Raised by
+  coderabbitai and cubic on PR #372.
+
 ## Acceptance criteria
 
 - Add yields a new active frame whose composite is fully transparent;
@@ -45,6 +59,10 @@ Drag reorder is a separate slice (286).
   pixels; redo reapplies it.
 - Touch targets ≥ 44 pt; new labels in the String Catalog (en/ko/ja);
   snapshot baselines updated.
+- An axis wider than the panel scrolls horizontally, the ruler ordinals
+  staying over their columns.
+- A stroke sample no longer rescans occupancy for frames and layers it
+  cannot have touched.
 
 ## Blocked by
 

@@ -1,6 +1,6 @@
 ---
 title: Apple frame ruler — frame axis in the Timeline panel + Active Frame switching
-status: ready-for-agent
+status: done
 created: 2026-08-16
 ---
 
@@ -60,3 +60,67 @@ bindings.
 ## Blocked by
 
 - [283 — Apple UniFFI frame bindings](283-apple-uniffi-frame-bindings.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/src/lib.rs` | `occupied_layer_ids(frame_id)` — the Pixel Layers whose Cel at that frame is content-bearing, in stack order, validated at the boundary like `composite_at` |
+| `apple/Dotorixel/State/FrameProjection.swift` | `FrameColumn` (id + duration + occupancy) and `FrameProjectionCache`, memoizing the projection per `(document, canvasVersion)` |
+| `apple/Dotorixel/State/TabState.swift` | `frameColumns` / `activeFrameId` projections and the `setActiveFrame(id:)` command — mid-stroke seal, unknown-id guard, Floating Selection commit, no History entry |
+| `apple/Dotorixel/Views/TimelinePanel.swift` | Placeholder frame area replaced by the pinned ruler band (ordinal headers, duration corner) over the `[layer row × frame column]` grid; reserved transport slot; single-measurement sidebar width |
+| `apple/Dotorixel/Style/DesignTokens.swift` | `timelinePanelHeight` 200 → 265 to seat the transport slot, the ruler, and three touch rows |
+| `apple/Dotorixel/Localizable.xcstrings` | `Select frame %lld`, `%1$@, frame %2$lld`, `Has content`, `Empty`, `underlay — same under every frame` (en/ko/ja); retired the placeholder hint |
+| `apple/DotorixelTests/TabStateFrameTests.swift` | 6 tests: drawing target switch, no-History + no-op guards, undo across draw-switch-draw, projection with occupancy, Floating Selection commit to its origin Cel, mid-stroke seal |
+| `apple/DotorixelTests/FrameBindingsTests.swift` | Occupancy across layers/frames incl. hidden layers, and the Reference Layer never reporting occupied |
+| `apple/DotorixelTests/DockedRegionSnapshotTests.swift` | New multi-frame ruler baseline; five TimelinePanel baselines re-recorded on the pinned host |
+
+### Key Decisions
+
+- **Occupancy is one call per frame, not one per cel.** The web reads
+  `cel_pixels_at` per `[layer × frame]` and scans alpha in TS; over
+  UniFFI that copies every cel buffer across the boundary. The Apple
+  binding returns just the occupied layer ids instead, so the scan stays
+  in Rust and only strings cross. A core `cel_is_empty` shared by both
+  shells was the considered alternative — deferred rather than rejected:
+  it widens the slice into the web path, and the alpha predicate is
+  trivial and stable enough that the duplication carries little risk.
+- **The panel grew 200 → 265pt.** The ruler header must be a 44×44 touch
+  target and the transport slot has to be reserved at the height 289's
+  controls need, which together leave 1.5 layer rows in the old budget.
+  Three visible rows is the floor that keeps the sidebar readable. The
+  web made the same trade (180 → 200) for the same reason, at its
+  desktop scale.
+- **Frame switching marks nothing dirty**, unlike `setActiveLayer`. The
+  frame axis has no persistence projection until 292, so a switch
+  changes no saved state and the save it triggered would rewrite the
+  same record. Revisit with 292.
+- **One measurement drives both bands' sidebar width.** Letting the
+  ruler band and the row band each resolve their own flexible width
+  drifts them apart wherever the sidebar's row controls out-measure the
+  empty corner — visibly so at the 236pt narrow column, where ordinal N
+  stopped sitting over column N. A `GeometryReader` above both now
+  computes the width once.
+- **Cells indicate, the header commands.** The web cell is also a
+  select-cel target; this slice keeps the ruler header as the only tap
+  target (what the acceptance criteria ask for) and exposes each cell to
+  VoiceOver as an element reading its own occupancy.
+
+### Notes
+
+- **Frame columns clip rather than scroll horizontally.** Sharing one
+  scroll offset between the pinned ruler and the scrolling grid is the
+  work that makes it real, and nothing can reach a wide axis until 285
+  lands add/duplicate. Fold it into 285 or 286.
+- `docs/agents/pencil-canvas.md` maps `187 — Frame Ruler (M4)` and an
+  `iPad Anim` mockup, but Pencil had no file open, so the layout came
+  from the web spec plus the Apple touch scale rather than the canvas.
+  Worth a look when 289 fills the transport slot.
+- The `Empty` catalog key is generic enough to collide with a future
+  unrelated "Empty" string; the entry's `comment` is the only
+  disambiguation the String Catalog offers, and it names the cel
+  context.
+- Adding a binding function again required regenerating
+  `apple/generated` by hand — `build-rust.sh` bootstraps only when the
+  directory is empty. The "Apple bindings staleness guard" backlog item
+  covers it.

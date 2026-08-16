@@ -10,14 +10,19 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 223 | 168 | 55 | 309 | 75% | 35% |
-| cubic-dev-ai[bot] | 350 | 273 | 77 | 223 | 78% | 55% |
-| coderabbitai[bot] | 336 | 242 | 94 | 246 | 72% | 50% |
+| greptile-apps[bot] | 223 | 168 | 55 | 311 | 75% | 35% |
+| cubic-dev-ai[bot] | 351 | 274 | 77 | 224 | 78% | 55% |
+| coderabbitai[bot] | 337 | 243 | 94 | 247 | 72% | 50% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #373 | cubic-dev-ai[bot] | Accept | The occupancy patch path only checked that the cached projection belonged to the same document, which is not the same as it being current — nothing reads the projection while the Timeline is collapsed, so undo can drop frames in that gap and a first read landing mid-stroke would patch one Cel into a stale axis, rendering frames the document no longer has. The patch now also demands a cached read no older than the stroke, whose start version is anchored where `isDrawing` is set (a tool whose `begin` changes nothing bumps no version, so the span cannot be inferred from the counter) |
+| #373 | coderabbitai[bot] | Accept | `toSnapshot()` carries no frame-axis data and `fromLayers()` accepts none, so frames added through the new commands are lost on relaunch — an escalation this slice creates, since the UI could not reach a second frame before it. Not fixed here: 292 owns the schema extension and is blocked by 286 (frame order) and 287 (durations), both fields the record must serialize, so pulling it forward means writing the schema twice; 292 also specifies the backward-compatible hydration this PR would have had to invent |
+| #373 | greptile-apps[bot] | Miss (×2) | Confidence 5/5 with no findings, explicitly calling the occupancy optimization's fallback safe; missed both the stale-projection patch accepted from cubic and the frame-persistence gap accepted from coderabbit |
+| #373 | coderabbitai[bot] | Miss | Missed the stale-projection patch accepted from cubic |
+| #373 | cubic-dev-ai[bot] | Miss | Missed the frame-persistence gap accepted from coderabbit |
 | #372 | cubic-dev-ai[bot] | Accept | The cel accessibility label's catalog entry used positional specifiers (`%1$@, frame %2$lld`) while Swift's interpolation asks for `%@, frame %lld`, so its ko/ja values sat under a key no lookup reached and VoiceOver fell back to English; `StringCatalogCompletenessTests` cannot see this (the entry is complete, just unreachable), so the fix adds `TimelineLabelLocalizationTests`, resolving each new label through the compiled `ko.lproj` table |
 | #372 | coderabbitai[bot] | Accept | The frame ruler had no clipping boundary — `frame` sizes but does not clip — so an axis wider than the pane would draw its trailing headers over the canvas beside the panel; the Cel rows shared the defect, and their clip lands before the reorder offset so a drag preview still travels. Cell borders moved to `strokeBorder` (a centered stroke hangs half its width into the clip, and inset matches the web's box-shadow) |
 | #372 | cubic-dev-ai[bot] | Accept | Same missing ruler clip (duplicate of coderabbit); same `.clipped()` boundary |

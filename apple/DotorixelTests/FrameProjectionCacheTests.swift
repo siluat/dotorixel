@@ -35,7 +35,7 @@ struct FrameProjectionCacheTests {
             _ = cache.columns(
                 for: document,
                 canvasVersion: 1,
-                liveStrokeCel: nil,
+                liveStroke: nil,
                 load: { loadCount += 1; return columns(occupied: false) },
                 probe: { _ in Issue.record("probed without a live stroke"); return false }
             )
@@ -54,7 +54,7 @@ struct FrameProjectionCacheTests {
         _ = cache.columns(
             for: document,
             canvasVersion: 1,
-            liveStrokeCel: nil,
+            liveStroke: nil,
             load: { loadCount += 1; return columns(occupied: false) },
             probe: { _ in false }
         )
@@ -67,7 +67,7 @@ struct FrameProjectionCacheTests {
             read = cache.columns(
                 for: document,
                 canvasVersion: version,
-                liveStrokeCel: strokeCel,
+                liveStroke: LiveStroke(cel: strokeCel, startedAtVersion: 1),
                 load: { loadCount += 1; return columns(occupied: true) },
                 probe: { cel in probedCels.append(cel); return true }
             )
@@ -88,7 +88,7 @@ struct FrameProjectionCacheTests {
         _ = cache.columns(
             for: document,
             canvasVersion: 1,
-            liveStrokeCel: nil,
+            liveStroke: nil,
             load: { columns(occupied: true) },
             probe: { _ in false }
         )
@@ -98,7 +98,10 @@ struct FrameProjectionCacheTests {
         let read = cache.columns(
             for: document,
             canvasVersion: 2,
-            liveStrokeCel: CelAddress(frameId: frameId, layerId: layerId),
+            liveStroke: LiveStroke(
+                cel: CelAddress(frameId: frameId, layerId: layerId),
+                startedAtVersion: 1
+            ),
             load: { Issue.record("rescanned the axis for a live stroke"); return [] },
             probe: { _ in false }
         )
@@ -114,13 +117,49 @@ struct FrameProjectionCacheTests {
         let read = cache.columns(
             for: document,
             canvasVersion: 1,
-            liveStrokeCel: CelAddress(frameId: frameId, layerId: layerId),
+            liveStroke: LiveStroke(
+                cel: CelAddress(frameId: frameId, layerId: layerId),
+                startedAtVersion: 1
+            ),
             load: { loadCount += 1; return columns(occupied: true) },
             probe: { _ in Issue.record("patched a projection that was never loaded"); return false }
         )
 
         #expect(loadCount == 1)
         #expect(read.count == 2)
+    }
+
+    @Test("a projection older than the stroke rescans: edits nobody was reading never survive into a patch")
+    func aProjectionOlderThanTheStrokeIsRescanned() {
+        let cache = FrameProjectionCache()
+        var loadCount = 0
+
+        _ = cache.columns(
+            for: document,
+            canvasVersion: 1,
+            liveStroke: nil,
+            load: { loadCount += 1; return columns(occupied: false) },
+            probe: { _ in false }
+        )
+
+        // Versions 2 and 3 changed the document while nothing read the
+        // projection — a collapsed Timeline panel renders no ruler and no grid,
+        // and undo can drop whole frames while it is closed. The stroke that
+        // begins at 3 is not what those versions did, so its patch would carry
+        // the stale axis forward.
+        let read = cache.columns(
+            for: document,
+            canvasVersion: 4,
+            liveStroke: LiveStroke(
+                cel: CelAddress(frameId: frameId, layerId: layerId),
+                startedAtVersion: 3
+            ),
+            load: { loadCount += 1; return columns(occupied: true) },
+            probe: { _ in Issue.record("patched a projection older than the stroke"); return false }
+        )
+
+        #expect(loadCount == 2)
+        #expect(read[0].occupiedLayerIds == [layerId])
     }
 
     @Test("a structural change rescans even under a live stroke's Cel address")
@@ -131,7 +170,7 @@ struct FrameProjectionCacheTests {
         _ = cache.columns(
             for: document,
             canvasVersion: 1,
-            liveStrokeCel: nil,
+            liveStroke: nil,
             load: { loadCount += 1; return columns(occupied: false) },
             probe: { _ in false }
         )
@@ -141,7 +180,10 @@ struct FrameProjectionCacheTests {
         _ = cache.columns(
             for: document,
             canvasVersion: 2,
-            liveStrokeCel: CelAddress(frameId: "frame-3", layerId: layerId),
+            liveStroke: LiveStroke(
+                cel: CelAddress(frameId: "frame-3", layerId: layerId),
+                startedAtVersion: 1
+            ),
             load: { loadCount += 1; return columns(occupied: false) },
             probe: { _ in Issue.record("patched a column that is not on the axis"); return false }
         )

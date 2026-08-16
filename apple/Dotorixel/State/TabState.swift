@@ -108,6 +108,11 @@ final class TabState {
     /// so a live stroke's per-sample re-render reuses one read.
     @ObservationIgnored private let frameProjectionCache = FrameProjectionCache()
 
+    /// The `canvasVersion` the live stroke began at — how far back the
+    /// projection's single-Cel patch stays sound. Meaningless while no stroke
+    /// runs; `liveStroke` only reads it under `isDrawing`.
+    @ObservationIgnored private var strokeStartVersion = 0
+
     var canUndo: Bool {
         // Read to register @Observable dependencies — History lives inside
         // UniFFI while Floating lifecycle changes bump the canvas version.
@@ -274,6 +279,10 @@ final class TabState {
             return
         }
         isDrawing = true
+        // Recorded before the first sample can bump: a tool whose `begin`
+        // changes nothing bumps no version at all, so the stroke's span has to
+        // be anchored here rather than inferred from the counter.
+        strokeStartVersion = canvasVersion
         if strokeEngine.begin(tool: shared.activeTool, host: self, button: button, at: coords) {
             canvasVersion += 1
         }
@@ -1194,7 +1203,7 @@ final class TabState {
         return frameProjectionCache.columns(
             for: document,
             canvasVersion: version,
-            liveStrokeCel: liveStrokeCel,
+            liveStroke: liveStroke,
             load: {
                 document.frames().map { frame in
                     FrameColumn(
@@ -1216,18 +1225,22 @@ final class TabState {
         )
     }
 
-    /// The Cel a live stroke is painting into, or nil while no stroke runs.
+    /// The stroke in progress, or nil while none is.
     ///
     /// Every frame-axis, layer-stack, and History command no-ops while a stroke
-    /// is in progress (the mid-stroke seal), so this is the only Cel whose
-    /// occupancy can change between two samples of one stroke — which is what
-    /// lets the projection re-probe a single Cel instead of rescanning the axis
-    /// on the pointer path.
-    private var liveStrokeCel: CelAddress? {
+    /// is in progress (the mid-stroke seal), so its target is the only Cel
+    /// whose occupancy can change between two samples of one stroke — which is
+    /// what lets the projection re-probe a single Cel instead of rescanning the
+    /// axis on the pointer path. That holds only back to where the stroke
+    /// began, so the version is carried alongside the address.
+    private var liveStroke: LiveStroke? {
         guard isDrawing else { return nil }
-        return CelAddress(
-            frameId: document.activeFrameId(),
-            layerId: document.activeLayerId()
+        return LiveStroke(
+            cel: CelAddress(
+                frameId: document.activeFrameId(),
+                layerId: document.activeLayerId()
+            ),
+            startedAtVersion: strokeStartVersion
         )
     }
 

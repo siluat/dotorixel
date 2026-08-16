@@ -100,6 +100,13 @@ multi-frame document, and this slice is what creates one:
   cache patches that Cel from a single-Cel probe and reloads the axis for every
   other version bump — safe by default, since only a named live-stroke Cel takes
   the patch path.
+- **The patch also demands a cached read no older than the stroke** (cubic, PR
+  review). "Same document" is not "current projection": nothing reads the
+  projection while the Timeline is collapsed, so undo can drop frames in that gap
+  and the next read — if it lands mid-stroke — would patch one Cel into a stale
+  axis and render frames the document no longer has. `TabState` anchors the
+  stroke's start version at `isDrawing = true` rather than inferring it from the
+  counter, because a tool whose `begin` changes nothing bumps no version at all.
 - **The occupancy predicate stayed in the apple crate.** It is simple and stable, so
   the Core Placement rule of thumb allows a native implementation, and reusing it
   inside `occupied_layer_ids` added no cross-shell duplication. The web projection

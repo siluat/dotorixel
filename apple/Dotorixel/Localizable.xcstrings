@@ -1662,19 +1662,19 @@
         }
       }
     },
-    "%1$@, frame %2$lld" : {
-      "comment" : "Timeline grid cel accessibility label; %1$@ is the layer name, %2$lld the frame's 1-based ordinal. web: aria_selectCel, without the verb — the Apple cell is an indicator, not a command",
+    "%@, frame %lld" : {
+      "comment" : "Timeline grid cel accessibility label; %@ is the layer name, %lld the frame's 1-based ordinal. web: aria_selectCel, without the verb — the Apple cell is an indicator, not a command",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@、フレーム %2$lld"
+            "value" : "%@、フレーム %lld"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@, %2$lld번 프레임"
+            "value" : "%@, %lld번 프레임"
           }
         }
       }

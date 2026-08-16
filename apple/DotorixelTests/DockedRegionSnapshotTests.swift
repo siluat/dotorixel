@@ -189,6 +189,23 @@ struct DockedRegionSnapshotTests {
         )
     }
 
+    /// Layout regression (PR #372 review): an axis wider than the frame pane
+    /// stops at the pane edge instead of drawing over the canvas beside the
+    /// panel — `frame` sizes but does not clip. Ten 44pt columns overflow the
+    /// 383pt pane this 640pt panel leaves beside the 256pt sidebar. Replaced by
+    /// horizontal scrolling in issue 285.
+    @Test("TimelinePanel clips a frame axis wider than the pane")
+    func timelinePanelOverflowingAxis() throws {
+        let overflowing = state()
+        for _ in 1..<10 {
+            try overflowing.activeTab.document.addFrame(newId: makeFrameId())
+        }
+        assertSnapshot(
+            of: TimelinePanel(tab: overflowing.activeTab).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
     /// The canvas column at the macOS window's 480pt floor: 480 minus the
     /// 44pt toolbar and 200pt right panel. Narrower than the sidebar's own
     /// 256pt spec width, so it is where the panel has to yield.

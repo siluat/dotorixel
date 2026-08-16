@@ -535,6 +535,10 @@ struct TimelinePanel: View {
         }
         .frame(width: frameAxisWidth, alignment: .leading)
         .frame(maxWidth: .infinity, alignment: .leading)
+        // `frame` sizes but does not clip, so an axis wider than the pane would
+        // draw its trailing headers over the canvas beside the panel. Until the
+        // axis scrolls (issue 285), overflow stops at the pane edge.
+        .clipped()
     }
 
     /// One frame's ordinal header — the tap target that makes it the Active
@@ -617,6 +621,11 @@ struct TimelinePanel: View {
                 // whole pane, so only this branch takes the axis width.
                 .frame(width: frameAxisWidth, alignment: .leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                // Overflow stops at the pane edge, like the ruler above. Clipped
+                // here rather than around the whole grid: the clip must land
+                // before `offset`, or a row's reorder preview would be cut off
+                // as it travels.
+                .clipped()
             }
         }
         .frame(height: rowHeight)
@@ -664,9 +673,13 @@ struct TimelinePanel: View {
             // The active Cel (active layer ∩ active frame) adds an accent
             // outline over the column's fill — the drawing target, marked at
             // the crossing rather than by the column alone.
+            // `strokeBorder` keeps the line wholly inside the cell — a centered
+            // `stroke` would hang half its width past the axis, where the pane's
+            // clip now cuts it. Web parity too: the active Cel's outline is an
+            // `inset` box-shadow there.
             .overlay {
                 Rectangle()
-                    .stroke(
+                    .strokeBorder(
                         isActiveCel ? DesignTokens.accent : DesignTokens.borderSubtle,
                         lineWidth: dividerThickness
                     )

@@ -29,8 +29,7 @@ decomposed into issues 283–296 (two parallel tracks).
 
 Animation track:
 
-- [283 — UniFFI frame bindings](../issues/283-apple-uniffi-frame-bindings.md)
-- [284 — Frame ruler + Active Frame](../issues/284-apple-frame-ruler.md) (blocked by 283)
+- [284 — Frame ruler + Active Frame](../issues/284-apple-frame-ruler.md)
 - [285 — Frame operations (add/duplicate/remove)](../issues/285-apple-frame-operations.md) (blocked by 284)
 - [286 — Frame drag reorder](../issues/286-apple-frame-reorder.md) (blocked by 285)
 - [287 — Per-frame duration UI](../issues/287-apple-frame-duration.md) (blocked by 284, ∥ 285)

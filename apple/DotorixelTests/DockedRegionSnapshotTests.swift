@@ -94,14 +94,14 @@ struct DockedRegionSnapshotTests {
         )
     }
 
-    // MARK: - TimelinePanel (height: 200 expanded / 44 collapsed)
+    // MARK: - TimelinePanel (height: 265 expanded / 44 collapsed)
 
     /// The panel's tier-independent sizing (issue 261): unlike the four
     /// tier-driven regions above, neither the web nor the 092 spec varies the
     /// bottom-docked panel at the 1440 breakpoint — the height these snapshots
     /// pin is the expanded/collapsed split, not a tier.
 
-    @Test("TimelinePanel renders expanded (200pt) with the sole-layer remove disabled")
+    @Test("TimelinePanel renders expanded (265pt) with the sole-layer remove disabled")
     func timelinePanelExpanded() {
         assertSnapshot(
             of: TimelinePanel(tab: state().activeTab).frame(width: barWidth),
@@ -156,6 +156,35 @@ struct DockedRegionSnapshotTests {
         ))
         assertSnapshot(
             of: TimelinePanel(tab: referenced.activeTab).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
+    /// Content regression (issue 284): the frame ruler on a multi-frame axis —
+    /// 1-based ordinals in axis order, the active column's two-channel
+    /// treatment (accent-subtle fill + accent top bar), the occupancy dots for
+    /// content-bearing Cels, and the accent outline on the active Cel where the
+    /// active layer crosses the active frame. Frame 2 active with paint on
+    /// frames 1 and 2 puts every cell state in one image.
+    @Test("TimelinePanel renders a multi-frame ruler with the active column and Cel occupancy")
+    func timelinePanelMultiFrameRuler() throws {
+        let animated = state()
+        let tab = animated.activeTab
+        try tab.document.addLayer(newId: makeLayerId(), name: "Layer 2")
+
+        // Frame 1 holds paint on the top layer…
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.endStroke()
+
+        // …frame 2 on the bottom layer, leaving two empty Cels on the diagonal.
+        let secondFrameId = makeFrameId()
+        try tab.document.addFrame(newId: secondFrameId)
+        tab.setActiveLayer(id: tab.document.layers()[0].id)
+        tab.beginStroke(at: ScreenCanvasCoords(x: 3, y: 3))
+        tab.endStroke()
+
+        assertSnapshot(
+            of: TimelinePanel(tab: tab).frame(width: barWidth),
             as: .image(layout: .sizeThatFits)
         )
     }

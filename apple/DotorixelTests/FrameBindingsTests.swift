@@ -224,6 +224,57 @@ struct FrameBindingsTests {
         #expect(try doc.getPixel(x: 0, y: 0) == transparent)
     }
 
+    @Test("occupied-layer-ids names the Pixel Layers whose cel at that frame holds content")
+    func occupiedLayerIds() throws {
+        let doc = makeSingleLayerDocument(width: 2, height: 2)
+        let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
+
+        let bottomId = doc.activeLayerId()
+        let topId = makeLayerId()
+        try doc.addLayer(newId: topId, name: "Layer 2")
+
+        let firstId = doc.activeFrameId()
+        let secondId = makeFrameId()
+        try doc.addFrame(newId: secondId)
+
+        // Paint the top layer's second-frame cel only.
+        try doc.setPixel(x: 0, y: 0, color: red)
+
+        #expect(try doc.occupiedLayerIds(frameId: secondId) == [topId])
+        #expect(try doc.occupiedLayerIds(frameId: firstId).isEmpty)
+
+        // Occupancy is content, not visibility: a hidden cel still holds pixels.
+        try doc.setLayerVisibility(id: topId, visible: false)
+        #expect(try doc.occupiedLayerIds(frameId: secondId) == [topId])
+
+        // Ids come back in stack order (bottom-first), matching `layers`.
+        try doc.setActiveLayer(id: bottomId)
+        try doc.setPixel(x: 1, y: 1, color: red)
+        #expect(try doc.occupiedLayerIds(frameId: secondId) == [bottomId, topId])
+
+        #expect(throws: AppleError.self) {
+            try doc.occupiedLayerIds(frameId: makeFrameId())
+        }
+    }
+
+    @Test("a Reference Layer is never occupied — it is frame-independent and holds no cels")
+    func referenceLayerIsNeverOccupied() throws {
+        let doc = makeSingleLayerDocument(width: 2, height: 2)
+        try doc.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        let pixelId = doc.activeLayerId()
+
+        let referenceId = makeLayerId()
+        try doc.addReferenceLayer(
+            newId: referenceId,
+            name: "Reference",
+            sourceRgba: Data([0xFF, 0xFF, 0xFF, 0xFF]),
+            sourceWidth: 1,
+            sourceHeight: 1
+        )
+
+        #expect(try doc.occupiedLayerIds(frameId: doc.activeFrameId()) == [pixelId])
+    }
+
     @Test("whole-document undo/redo restores frame structure and cel pixels")
     func historyAcrossAFrameOperation() throws {
         let doc = makeSingleLayerDocument(width: 2, height: 2)

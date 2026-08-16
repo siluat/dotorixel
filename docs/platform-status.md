@@ -63,7 +63,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Pixel rendering | — | ✅ | ✅ | Canvas2D / Metal |
-| Multi-layer composite | ✅ | ✅ | ✅ | Visible Pixel Layers blend bottom-to-top; Reference renders separately below them. Frame-addressed reads (for playback, onion skinning, export) exist on all three; the Apple shell still displays one frame |
+| Multi-layer composite | ✅ | ✅ | ✅ | Visible Pixel Layers blend bottom-to-top; Reference renders separately below them. Frame-addressed reads (for playback, onion skinning, export) exist on all three; both shells display the Active Frame |
 | Checkerboard transparency | — | ✅ | ✅ | |
 | Grid overlay + toggle | — | ✅ | ✅ | Auto-hidden below 4px |
 
@@ -119,10 +119,10 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Document/Layer model | 🔧 | 🔧 | 🔧 | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple: layer panel with select + visibility + add/remove/reorder (mid-stroke seals on all) |
-| Frame cel-grid | ✅ | ✅ | 🔧 | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: undoable add/duplicate/remove/reorder + set-active journal intents (undo restores frame+cel); multi-frame V7 persistence round-trips through the snapshot. Apple: binding surface ready (axis reads, ops, frame-addressed composite); ruler UI and multi-frame persistence pending |
+| Frame cel-grid | ✅ | ✅ | 🔧 | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Web: undoable add/duplicate/remove/reorder, multi-frame V7 persistence. Apple: ruler shows the axis and switches the Active Frame (no History entry, pending Floating Selection commits first); frame ops and multi-frame persistence pending |
 | Per-frame duration | ✅ | ✅ | 🔧 | Each frame holds a display duration; default 100ms (10fps); identity unchanged when retimed. 1–60000ms clamp at the shell boundary (core trusts the value). Web complete: active-frame editor in the timeline corner (ms + derived fps), undoable, V7-persisted. Apple: binding clamps and exposes the bounds; editor UI pending |
 | Reference Layer (timeline kind) | ✅ | ✅ | ✅ | Singleton underlay with Pixel-only composites. Apple: import/render, edit guards, sampling, placement, navigation bounds, and relaunch persistence complete |
-| Timeline panel | — | 🔧 | 🔧 | Web uses a bottom-docked Layer × Frame grid. Apple uses a layer sidebar with drag reorder, fixed bottom Reference row, and placeholder frame area; Web mobile row targets remain pending |
+| Timeline panel | — | 🔧 | 🔧 | Bottom-docked Layer × Frame grid on both. Apple: layer sidebar with drag reorder, fixed Reference band, frame ruler + Cel occupancy dots, transport slot reserved; frame columns clip instead of scrolling. Web mobile row targets pending |
 | Playback (animation) | — | ✅ | ⬜ | Per-tab engine: transient Playhead + rAF clock holds each frame its `duration_ms` (carry → no drift), loops or stops at end. Previews committed art via `composite_at` — no Document mutation/history/dirty, never persisted; tab/document change stops it. Transport strip (Play/Pause · Loop · ▼ playhead) wired on docked + mobile |
 | Onion skinning | — | ✅ | ⬜ | Adjacent-frame ghosts while drawing (prev/next 1, clamped, no wrap): prev warm / next cool, dimmed, committed art on top; hidden during Playback; never in exports; per-tab persisted toggle in the transport strip |
 

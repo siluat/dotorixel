@@ -33,6 +33,12 @@ panel's existing icon-button idiom):
 
 Drag reorder is a separate slice (286).
 
+**Carried over from 284**: the ruler and the Cel grid clip at the panel
+edge instead of scrolling horizontally. 284 could not reach a wide axis —
+the UI had no way to add a frame — so the shared scroll offset between
+the pinned ruler band and the scrolling grid was left for whichever slice
+first makes many frames reachable. That is this one.
+
 ## Acceptance criteria
 
 - Add yields a new active frame whose composite is fully transparent;
@@ -45,6 +51,8 @@ Drag reorder is a separate slice (286).
   pixels; redo reapplies it.
 - Touch targets ≥ 44 pt; new labels in the String Catalog (en/ko/ja);
   snapshot baselines updated.
+- An axis wider than the panel scrolls horizontally, the ruler ordinals
+  staying over their columns.
 
 ## Blocked by
 

@@ -1503,6 +1503,38 @@ impl AppleDocument {
         Ok(document.composite_at(id))
     }
 
+    /// The ids of the Pixel Layers whose cel at `frame_id` is content-bearing
+    /// (any pixel with a non-zero alpha), in stack order — the timeline grid's
+    /// occupied/empty indicator, read as one list per frame column rather than
+    /// one cel buffer per `[layer × frame]` cell.
+    ///
+    /// Occupancy is a property of the cel's pixels alone: a hidden Layer's cel
+    /// still reports occupied, and a Reference Layer never does (it is
+    /// frame-independent and holds no cels).
+    ///
+    /// Errors only when `frame_id` is not a valid UUID string or no frame with
+    /// that id is on the axis.
+    fn occupied_layer_ids(&self, frame_id: String) -> Result<Vec<String>, AppleError> {
+        let id = parse_frame_id(&frame_id)?;
+        let document = self.inner.lock().unwrap();
+        if !document.frames().iter().any(|f| f.id == id) {
+            return Err(AppleError::Document {
+                message: format!("Frame with id {id} not found"),
+            });
+        }
+        Ok(document
+            .layers()
+            .iter()
+            .enumerate()
+            .filter(|(stack_index, _)| {
+                document
+                    .cel_pixels_at(*stack_index, id)
+                    .is_some_and(|pixels| pixels.chunks_exact(4).any(|rgba| rgba[3] != 0))
+            })
+            .map(|(_, layer)| layer.id.to_string())
+            .collect())
+    }
+
     /// Inserts a transparent frame directly after the active frame, seeds a
     /// cel for it on every Pixel Layer, and makes it active. Errors when
     /// `new_id` is not a valid UUID string or a frame with the same id is

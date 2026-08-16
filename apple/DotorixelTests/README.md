@@ -38,7 +38,7 @@ tier-driven sizing actually renders:
 `TimelinePanel` and `TabStrip` are the docked regions with **no** tier-driven axis —
 neither the web nor the `092` design spec varies the bottom-docked panel at the 1440
 breakpoint, and the web `.tab-strip` renders 36px at both docked breakpoints.
-`TimelinePanel`'s snapshots pin the expanded (200pt) ⇄ collapsed (44pt header strip)
+`TimelinePanel`'s snapshots pin the expanded (265pt) ⇄ collapsed (44pt header strip)
 split instead, plus the layer sidebar's multi-layer content (panel order, active row,
 hidden row). `TabStrip`'s pin the 36pt height and the strip's content states — the
 sole tab with its close affordance disabled, and the active-tab treatment (elevated,
@@ -58,7 +58,10 @@ Some snapshots are **content regressions**, not tier sizing: `RightPanel` with a
 populated Recent row baselines the row's rendering (most-recent-first order, wrap
 past the panel width), and `TimelinePanel` with a three-layer stack baselines the
 sidebar's active/hidden row treatments and its enabled reorder handles — the
-sole-layer snapshot carries the disabled pair (remove and reorder). These are
+sole-layer snapshot carries the disabled pair (remove and reorder). `TimelinePanel`
+on a two-frame axis (issue 284) baselines the frame ruler: ordinals in axis order,
+the active column's fill + accent bar, the occupancy dots, and the accent outline
+where the active layer crosses the active frame. These are
 state-dependent layouts the empty-state snapshots never exercise. The reorder
 drag's own preview has no baseline: its offsets are pinned as pure geometry by
 `LayerReorderDragTests`, and a mid-drag render would need the panel's gesture

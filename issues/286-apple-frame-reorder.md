@@ -1,6 +1,6 @@
 ---
 title: Apple frame reorder — drag frame headers along the ruler
-status: ready-for-agent
+status: done
 created: 2026-08-16
 ---
 
@@ -44,3 +44,65 @@ Drag-to-reorder on the frame ruler, mirroring how the layer rows reorder
 ## Blocked by
 
 - [285 — Apple frame operations](285-apple-frame-operations.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Views/ReorderDrag.swift` | `LayerReorderDrag` generalized into the axis-neutral `ReorderDrag` (`itemId` / `itemCount` / `itemExtent` / `targetIndex` / `offset(forIndex:)`); the geometry is unchanged, both axes now share it |
+| `apple/Dotorixel/State/TabState.swift` | `reorderFrame(id:toIndex:)` — undoable through `performEdit`, sealed mid-stroke, clamped to the axis before the unsigned FFI boundary |
+| `apple/Dotorixel/Views/TimelinePanel.swift` | Ruler headers carry the reorder drag (tap-vs-drag inside one gesture), preview offsets + stacking, structural-change and collapse cancel guards, scroll lock across both axes; layer-side names made symmetric (`layerDrag`, `layerReorderGesture`) |
+| `apple/DotorixelTests/ReorderDragTests.swift` | Both axes' geometry in one suite: the frame ruler's horizontal snap/clamp/displacement, plus the layer-row cases migrated from `LayerReorderDragTests` |
+| `apple/DotorixelTests/TabStateFrameReorderTests.swift` | Drop commit: axis rearrangement with Cels following their frame, out-of-range clamp, Active Frame preserved by id, one undo entry + redo, no-op drop, mid-stroke seal |
+| `apple/DotorixelTests/README.md` | Snapshot scope: neither axis's drag preview has a baseline, and the ruler leaves no resting chrome to re-record |
+| `CONTEXT.md` | Reorder Interaction: the Apple counterpart now covers both axes, and trailing-click suppression is recorded as a web-only obligation |
+
+### Key Decisions
+
+- **The ruler header is the drag surface, and it stopped being a `Button`.** The
+  header already owns the Active Frame's select action, so a `Button` underneath a
+  drag gesture would fire that action on the release that ends a drag — the
+  trailing-click the web has to suppress with a sticky flag. One
+  `DragGesture(minimumDistance: 0)` resolves both roles instead: travel below the
+  4pt threshold reads as a tap and selects, above it a drag opens and the release
+  commits the reorder. The cost is the header's focus ring, a gap it now shares
+  with the layer rows' handles and one the deferred roving-focus work will close;
+  VoiceOver keeps both paths explicitly (default action selects, adjust action
+  steps the column).
+- **`LayerReorderDrag` was generalized rather than duplicated**, as the issue asked.
+  Its math was already axis-agnostic — only the names were vertical — so the change
+  is a rename to `ReorderDrag` plus updated docs, and the frame ruler feeds it
+  `translation.width` where the sidebar feeds `translation.height`. This is the
+  shape the web reached first (one interaction, two adapters).
+- **The frame seam takes an axis index, not a translated one.** Unlike
+  `reorderLayer`, which inverts panel order into stack order, the ruler renders the
+  axis in the order `frameColumns` returns it, so the index the drag reports is
+  already the core's index.
+- **The clamp lives in the shell.** The core clamps an out-of-range index silently,
+  but the UniFFI boundary is `u64`: a drag released left of the first column reports
+  a negative index that traps on conversion before the core ever sees it. Bounding
+  at the seam mirrors `reorderLayer` and keeps the crash out of reach.
+- **Only the ruler headers preview the move**, not the Cel columns beneath them
+  (web parity). The dragged header takes an opaque fill so it reads over the columns
+  it crosses; the layer rows' lift shadow is not carried over, matching the web's
+  own distinction between the two surfaces.
+
+### Notes
+
+- **The gesture itself has no automated coverage.** Both seams are pinned by unit
+  tests, but whether the drag feels right on device — preview tracking, the tap/drag
+  threshold under a real finger — is a hands-on check, the same boundary 285's
+  horizontal scrolling hit. Snapshot baselines needed no re-recording: the header's
+  resting chrome is pixel-identical, and all 689 tests pass unchanged.
+- **Frame order is still not persisted** — a relaunch restores a single frame until
+  292, so a reorder survives only the session.
+- **A single-frame document still exposes the header's adjustable action** (it
+  clamps to a no-op). The layer sidebar gates its equivalent behind
+  `canReorderLayer(id:)`, but the header cannot be disabled without losing its
+  select role; gating only the accessibility action would need a conditional
+  modifier. Left as a known asymmetry.
+- The system-level interrupted-drag residual (app backgrounded mid-drag, gesture
+  preempted by the OS) is untouched here by design — the existing backlog item
+  covering every drag surface owns it. The in-app orphan paths self-heal: a
+  structural change to the axis cancels the drag, as does collapsing the panel.
+- No binding surface changed: `reorder_frame` was already exposed by 283.

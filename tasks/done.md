@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 286 | [Apple frame reorder — drag frame headers along the ruler](../issues/286-apple-frame-reorder.md) | 2026-08-16 |
 | 285 | [Apple frame operations — add, duplicate, and remove frames from the ruler](../issues/285-apple-frame-operations.md) | 2026-08-16 |
 | 284 | [Apple frame ruler — frame axis in the Timeline panel + Active Frame switching](../issues/284-apple-frame-ruler.md) | 2026-08-16 |
 | 283 | [Apple UniFFI frame bindings — frame axis metadata, operations, and per-frame composite](../issues/283-apple-uniffi-frame-bindings.md) | 2026-08-16 |

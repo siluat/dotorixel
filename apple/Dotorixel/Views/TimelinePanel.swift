@@ -14,10 +14,15 @@ import SwiftUI
 struct TimelinePanel: View {
     let tab: TabState
 
-    /// The reorder drag currently under a handle, or nil while none is.
+    /// The layer reorder drag currently under a handle, or nil while none is.
     /// View-local by nature: it lives and dies with the gesture and never
     /// reaches the document until the drop commits.
-    @State private var reorderDrag: LayerReorderDrag?
+    @State private var layerDrag: ReorderDrag?
+
+    /// The frame reorder drag currently under a ruler header, or nil while none
+    /// is. Separate from `layerDrag` because the two axes are independent
+    /// surfaces: a live layer drag must not read as a frame drag's preview.
+    @State private var frameDrag: ReorderDrag?
     @State private var isReferenceImporterPresented = false
     @State private var referenceImportErrorMessage: String?
 
@@ -62,10 +67,17 @@ struct TimelinePanel: View {
     private let draggedRowShadowRadius: CGFloat = 14
     private let draggedRowShadowOffsetY: CGFloat = 4
 
-    /// Row stacking while a reorder previews — see `rowDepth`.
-    private let draggedRowDepth: Double = 2
-    private let shiftedRowDepth: Double = 1
-    private let restingRowDepth: Double = 0
+    /// Item stacking while a reorder previews — see `dragDepth`.
+    private let draggedItemDepth: Double = 2
+    private let shiftedItemDepth: Double = 1
+    private let restingItemDepth: Double = 0
+
+    /// Travel a ruler header's press must exceed before it reads as a reorder
+    /// drag rather than a tap (web parity: `FRAME_DRAG_THRESHOLD_PX`). The
+    /// header carries both roles, so below this the press selects the frame and
+    /// above it the press moves the frame — a distinction the layer sidebar
+    /// does not need, where a dedicated handle owns the drag.
+    private let frameDragThreshold: CGFloat = 4
 
     /// The panel's separator lines — web `--ds-border-width`: 1px. Named
     /// because `bodyHeight` subtracts it, where a bare `1` would read as
@@ -112,8 +124,15 @@ struct TimelinePanel: View {
         // state it leaves behind. The drop's own commit is exempt — it clears
         // the drag before mutating, so this fires with nothing to cancel.
         .onChange(of: layerIdsInPanelOrder) {
-            guard reorderDrag != nil else { return }
-            reorderDrag = nil
+            guard layerDrag != nil else { return }
+            layerDrag = nil
+        }
+        // The frame axis's own version of the same guard: a frame added or
+        // removed mid-drag — by a second finger, or by ⌘Z restoring another
+        // axis — invalidates the drag's captured column geometry.
+        .onChange(of: frameIdsInAxisOrder) {
+            guard frameDrag != nil else { return }
+            frameDrag = nil
         }
         .fileImporter(
             isPresented: $isReferenceImporterPresented,
@@ -141,6 +160,20 @@ struct TimelinePanel: View {
     /// changes. Visibility flips keep the same ids, so they don't cancel.
     private var layerIdsInPanelOrder: [String] {
         tab.layersInPanelOrder.map(\.id)
+    }
+
+    /// The axis's identity in column order — the frame-axis mirror of
+    /// `layerIdsInPanelOrder`. A duration edit keeps the same ids, so it
+    /// doesn't cancel a live drag.
+    private var frameIdsInAxisOrder: [String] {
+        frameColumns.map(\.id)
+    }
+
+    /// Whether either axis is previewing a reorder — what both scrollers lock
+    /// on, so the content cannot travel under a drag that captured its geometry
+    /// at press time.
+    private var isReorderPreviewing: Bool {
+        layerDrag != nil || frameDrag != nil
     }
 
     // MARK: - Header
@@ -341,6 +374,10 @@ struct TimelinePanel: View {
             }
         }
         .frame(height: rulerHeight + bodyHeight)
+        // Collapsing mid-drag takes the ruler with it, tearing the header's
+        // gesture down without `onEnded` — the frame-axis twin of the body's
+        // own guard below.
+        .onDisappear { frameDrag = nil }
     }
 
     /// The sidebar holds its spec width wherever the canvas column can seat it
@@ -372,14 +409,15 @@ struct TimelinePanel: View {
             .frame(minHeight: bodyHeight, alignment: .top)
         }
         .frame(height: bodyHeight)
-        // A reorder drag travels along the same axis this scrolls. The handle's
-        // gesture claims the press on touch-down (`minimumDistance: 0`), so the
-        // lock lands before any travel could be read as a scroll instead.
-        .scrollDisabled(reorderDrag != nil)
+        // A layer reorder drag travels along the same axis this scrolls. The
+        // handle's gesture claims the press on touch-down (`minimumDistance:
+        // 0`), so the lock lands before any travel could be read as a scroll
+        // instead.
+        .scrollDisabled(isReorderPreviewing)
         // Collapsing mid-drag removes the rows and tears their gestures down
         // without `onEnded` — drop the drag with the body so no preview offsets
         // or scroll lock survive into the next expand.
-        .onDisappear { reorderDrag = nil }
+        .onDisappear { layerDrag = nil }
     }
 
     private func layerSidebar(width: CGFloat) -> some View {
@@ -397,8 +435,8 @@ struct TimelinePanel: View {
 
     private func layerRow(_ layer: AppleLayerMetadata, panelIndex: Int) -> some View {
         let isActive = tab.activeLayerId == layer.id
-        let isDragging = reorderDrag?.layerId == layer.id
-        let reorderOffset = reorderDrag?.offset(forPanelIndex: panelIndex) ?? 0
+        let isDragging = layerDrag?.itemId == layer.id
+        let reorderOffset = layerDrag?.offset(forIndex: panelIndex) ?? 0
         return HStack(spacing: DesignTokens.space2) {
             visibilityToggle(layer)
             if layer.kind == .reference {
@@ -434,15 +472,17 @@ struct TimelinePanel: View {
             y: draggedRowShadowOffsetY
         )
         .offset(y: reorderOffset)
-        .zIndex(rowDepth(isDragging: isDragging, reorderOffset: reorderOffset))
+        .zIndex(dragDepth(isDragging: isDragging, reorderOffset: reorderOffset))
     }
 
-    /// Which rows draw over which while a reorder previews: the travelling row
-    /// over everything, a shifted row over the ones still at rest.
-    /// Web parity: `.row--dragging` z-index 2, `.row--drag-shifted` 1.
-    private func rowDepth(isDragging: Bool, reorderOffset: CGFloat) -> Double {
-        if isDragging { return draggedRowDepth }
-        return reorderOffset == 0 ? restingRowDepth : shiftedRowDepth
+    /// Which items draw over which while a reorder previews: the travelling one
+    /// over everything, a shifted one over those still at rest. Shared by both
+    /// axes — layer rows and ruler columns stack the same way. Web parity:
+    /// `.row--dragging` / `.frame-ruler-cell--dragging` z-index 2, their
+    /// `--drag-shifted` siblings 1.
+    private func dragDepth(isDragging: Bool, reorderOffset: CGFloat) -> Double {
+        if isDragging { return draggedItemDepth }
+        return reorderOffset == 0 ? restingItemDepth : shiftedItemDepth
     }
 
     /// The row's reorder affordance: a drag-only handle at the trailing edge
@@ -455,7 +495,7 @@ struct TimelinePanel: View {
             tint: DesignTokens.textTertiary,
             isEnabled: tab.canReorderLayer(id: layer.id)
         )
-        .gesture(reorderGesture(layer, panelIndex: panelIndex))
+        .gesture(layerReorderGesture(layer, panelIndex: panelIndex))
         .disabled(!tab.canReorderLayer(id: layer.id))
         .accessibilityLabel("Reorder \(layer.name)")
         // The pointer-free path to the same command: VoiceOver's adjust
@@ -475,17 +515,17 @@ struct TimelinePanel: View {
     /// `minimumDistance: 0` so the handle claims the press immediately rather
     /// than after a travel threshold — the row underneath is a select target,
     /// and a handoff mid-press would select instead of drag.
-    private func reorderGesture(_ layer: AppleLayerMetadata, panelIndex: Int) -> some Gesture {
+    private func layerReorderGesture(_ layer: AppleLayerMetadata, panelIndex: Int) -> some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
-                if reorderDrag?.layerId == layer.id {
-                    reorderDrag?.translation = value.translation.height
-                } else if reorderDrag == nil {
-                    reorderDrag = LayerReorderDrag(
-                        layerId: layer.id,
+                if layerDrag?.itemId == layer.id {
+                    layerDrag?.translation = value.translation.height
+                } else if layerDrag == nil {
+                    layerDrag = ReorderDrag(
+                        itemId: layer.id,
                         baseIndex: panelIndex,
-                        rowCount: tab.pixelLayersInPanelOrder.count,
-                        rowHeight: rowHeight,
+                        itemCount: tab.pixelLayersInPanelOrder.count,
+                        itemExtent: rowHeight,
                         translation: value.translation.height
                     )
                 }
@@ -495,10 +535,10 @@ struct TimelinePanel: View {
                 // second pointer from committing or clearing it.
             }
             .onEnded { value in
-                guard var drag = reorderDrag, drag.layerId == layer.id else { return }
+                guard var drag = layerDrag, drag.itemId == layer.id else { return }
                 drag.translation = value.translation.height
-                reorderDrag = nil
-                tab.reorderLayer(id: layer.id, toPanelIndex: drag.targetPanelIndex)
+                layerDrag = nil
+                tab.reorderLayer(id: layer.id, toPanelIndex: drag.targetIndex)
             }
     }
 
@@ -631,7 +671,7 @@ struct TimelinePanel: View {
     private func frameRuler(paneWidth: CGFloat) -> some View {
         HStack(spacing: 0) {
             ForEach(Array(frameColumns.enumerated()), id: \.element.id) { index, frame in
-                rulerHeader(frame, ordinal: index + 1)
+                rulerHeader(frame, axisIndex: index)
             }
         }
         .frame(width: frameAxisWidth, alignment: .leading)
@@ -643,39 +683,109 @@ struct TimelinePanel: View {
         .clipped()
     }
 
-    /// One frame's ordinal header — the tap target that makes it the Active
-    /// Frame. The active column carries two channels so it reads without hue
-    /// (web parity, matching the active-layer row): an accent-subtle fill and
-    /// a 2pt accent bar on the top edge, whose height is reserved on every
-    /// header so activating a column never nudges its ordinal.
-    private func rulerHeader(_ frame: FrameColumn, ordinal: Int) -> some View {
+    /// One frame's ordinal header — the target that makes it the Active Frame,
+    /// and the surface its reorder drag travels on. The active column carries
+    /// two channels so it reads without hue (web parity, matching the
+    /// active-layer row): an accent-subtle fill and a 2pt accent bar on the top
+    /// edge, whose height is reserved on every header so activating a column
+    /// never nudges its ordinal.
+    ///
+    /// One gesture serves both roles, so no `Button` sits underneath: a
+    /// `Button` would fire its select action on the release that ends a drag,
+    /// which is the trailing-click the web has to suppress. Losing it costs the
+    /// header its focus ring — a gap the Timeline shares with the layer rows'
+    /// handles, and the keyboard path the deferred roving-focus work will
+    /// close — so the pointer-free routes are spelled out below instead.
+    private func rulerHeader(_ frame: FrameColumn, axisIndex: Int) -> some View {
+        let ordinal = axisIndex + 1
         let isActive = frame.id == tab.activeFrameId
-        return Button {
-            tab.setActiveFrame(id: frame.id)
-        } label: {
-            Text(verbatim: "\(ordinal)")
-                .font(.system(
-                    size: DesignTokens.fontSizeSm,
-                    weight: isActive ? .bold : .medium
-                ))
-                .foregroundStyle(isActive ? DesignTokens.accentText : DesignTokens.textTertiary)
-                .frame(width: frameColumnWidth, height: rulerHeight)
-                .background(isActive ? DesignTokens.accentSubtle : .clear)
-                .overlay(alignment: .top) {
-                    Rectangle()
-                        .fill(isActive ? DesignTokens.accent : .clear)
-                        .frame(height: activeBarWidth)
+        let isDragging = frameDrag?.itemId == frame.id
+        let dragOffset = frameDrag?.offset(forIndex: axisIndex) ?? 0
+        return Text(verbatim: "\(ordinal)")
+            .font(.system(
+                size: DesignTokens.fontSizeSm,
+                weight: isActive ? .bold : .medium
+            ))
+            .foregroundStyle(isActive ? DesignTokens.accentText : DesignTokens.textTertiary)
+            .frame(width: frameColumnWidth, height: rulerHeight)
+            // The travelling header needs an opaque fill of its own: an
+            // inactive column is otherwise transparent, and it crosses the
+            // columns it passes (web parity: `.frame-ruler-cell--dragging`).
+            .background(headerBackground(isActive: isActive, isDragging: isDragging))
+            .overlay(alignment: .top) {
+                Rectangle()
+                    .fill(isActive ? DesignTokens.accent : .clear)
+                    .frame(height: activeBarWidth)
+            }
+            .overlay(alignment: .trailing) {
+                Rectangle()
+                    .fill(DesignTokens.borderSubtle)
+                    .frame(width: dividerThickness)
+            }
+            .contentShape(Rectangle())
+            .offset(x: dragOffset)
+            .zIndex(dragDepth(isDragging: isDragging, reorderOffset: dragOffset))
+            .gesture(frameReorderGesture(frame, axisIndex: axisIndex))
+            .accessibilityElement()
+            .accessibilityLabel(selectFrameLabel(ordinal: ordinal))
+            .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
+            .accessibilityAction { tab.setActiveFrame(id: frame.id) }
+            // The pointer-free path to the reorder, mirroring the layer row's
+            // handle: VoiceOver's adjust gesture (and the rotor) steps the
+            // column along the axis.
+            .accessibilityAdjustableAction { direction in
+                switch direction {
+                case .increment:
+                    tab.reorderFrame(id: frame.id, toIndex: axisIndex + 1)
+                case .decrement:
+                    tab.reorderFrame(id: frame.id, toIndex: axisIndex - 1)
+                @unknown default:
+                    break
                 }
-                .overlay(alignment: .trailing) {
-                    Rectangle()
-                        .fill(DesignTokens.borderSubtle)
-                        .frame(width: dividerThickness)
+            }
+    }
+
+    private func headerBackground(isActive: Bool, isDragging: Bool) -> SwiftUI.Color {
+        if isDragging { return DesignTokens.bgActive }
+        return isActive ? DesignTokens.accentSubtle : .clear
+    }
+
+    /// `minimumDistance: 0` so the press is tracked from touch-down: the header
+    /// is its own tap target, and the travel that separates a tap from a drag is
+    /// measured here rather than delegated to the gesture's own threshold, which
+    /// would swallow the presses below it.
+    private func frameReorderGesture(_ frame: FrameColumn, axisIndex: Int) -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                let travel = value.translation.width
+                if frameDrag?.itemId == frame.id {
+                    frameDrag?.translation = travel
+                } else if frameDrag == nil, abs(travel) > frameDragThreshold {
+                    frameDrag = ReorderDrag(
+                        itemId: frame.id,
+                        baseIndex: axisIndex,
+                        itemCount: frameColumns.count,
+                        itemExtent: frameColumnWidth,
+                        translation: travel
+                    )
                 }
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(selectFrameLabel(ordinal: ordinal))
-        .accessibilityAddTraits(isActive ? .isSelected : [])
+                // A header pressed while another column's drag is live falls
+                // through both branches: only the initiating pointer drives a
+                // drag (web parity), and `onEnded`'s guards below keep that
+                // second pointer from committing, clearing, or selecting.
+            }
+            .onEnded { value in
+                guard var drag = frameDrag else {
+                    // The press never left tap range, so it reads as the
+                    // header's other role: selecting the Active Frame.
+                    tab.setActiveFrame(id: frame.id)
+                    return
+                }
+                guard drag.itemId == frame.id else { return }
+                drag.translation = value.translation.width
+                frameDrag = nil
+                tab.reorderFrame(id: frame.id, toIndex: drag.targetIndex)
+            }
     }
 
     /// Web parity: `aria_selectFrame`. Int-cast so the catalog key stays a
@@ -721,7 +831,7 @@ struct TimelinePanel: View {
         .onPreferenceChange(FrameAxisOffsetKey.self) { offset in
             axisScrollOffset = offset
         }
-        .scrollDisabled(reorderDrag != nil)
+        .scrollDisabled(isReorderPreviewing)
         .frame(width: paneWidth)
     }
 
@@ -735,8 +845,8 @@ struct TimelinePanel: View {
         panelIndex: Int,
         paneWidth: CGFloat
     ) -> some View {
-        let isDragging = reorderDrag?.layerId == layer.id
-        let reorderOffset = reorderDrag?.offset(forPanelIndex: panelIndex) ?? 0
+        let isDragging = layerDrag?.itemId == layer.id
+        let reorderOffset = layerDrag?.offset(forIndex: panelIndex) ?? 0
         Group {
             if layer.kind == .reference {
                 referenceSpan
@@ -757,7 +867,7 @@ struct TimelinePanel: View {
         .frame(width: max(frameAxisWidth, paneWidth), alignment: .leading)
         .frame(height: rowHeight)
         .offset(y: reorderOffset)
-        .zIndex(rowDepth(isDragging: isDragging, reorderOffset: reorderOffset))
+        .zIndex(dragDepth(isDragging: isDragging, reorderOffset: reorderOffset))
     }
 
     /// A Reference Layer is frame-independent and holds no Cels, so its grid

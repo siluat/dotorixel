@@ -76,6 +76,14 @@ impl From<dotorixel_core::LayerError> for AppleError {
     }
 }
 
+impl From<dotorixel_core::document::FrameError> for AppleError {
+    fn from(e: dotorixel_core::document::FrameError) -> Self {
+        Self::Document {
+            message: e.to_string(),
+        }
+    }
+}
+
 impl From<dotorixel_core::document::DocumentBuildError> for AppleError {
     fn from(e: dotorixel_core::document::DocumentBuildError) -> Self {
         Self::Document {
@@ -190,6 +198,20 @@ fn canvas_presets() -> Vec<u32> {
 #[uniffi::export]
 fn canvas_is_valid_dimension(value: u32) -> bool {
     PixelCanvas::is_valid_dimension(value)
+}
+
+// --- Frame constants ---
+
+/// The bounds `AppleDocument::set_frame_duration` clamps to, exposed so the
+/// per-frame duration UI and the binding agree on one range.
+#[uniffi::export]
+fn frame_min_duration_ms() -> u32 {
+    AppleDocument::MIN_FRAME_DURATION_MS
+}
+
+#[uniffi::export]
+fn frame_max_duration_ms() -> u32 {
+    AppleDocument::MAX_FRAME_DURATION_MS
 }
 
 // --- Viewport static utilities ---
@@ -723,11 +745,38 @@ fn parse_layer_id(id: &str) -> Result<Uuid, AppleError> {
     })
 }
 
+fn parse_frame_id(id: &str) -> Result<Uuid, AppleError> {
+    Uuid::parse_str(id).map_err(|e| AppleError::Document {
+        message: format!("Invalid frame id {id:?}: {e}"),
+    })
+}
+
+/// One frame's shell-facing metadata, read in axis order via
+/// [`AppleDocument::frames`] — the frame-axis mirror of
+/// [`AppleLayerMetadata`]. A frame carries no name; the shell displays its
+/// 1-based ordinal. The id crosses the boundary as a lowercase UUID string
+/// (UniFFI has no UUID type).
+#[derive(uniffi::Record)]
+pub struct AppleFrameMetadata {
+    pub id: String,
+    /// The frame's display time in milliseconds during playback.
+    pub duration_ms: u32,
+}
+
 /// Document wrapper with interior mutability for thread-safe FFI access.
 /// See `docs/decisions/uniffi-mutex-interior-mutability.ko.md` for the design rationale.
 #[derive(uniffi::Object)]
 pub struct AppleDocument {
     inner: Mutex<Document>,
+}
+
+impl AppleDocument {
+    /// Smallest display duration a frame may hold (1 ms). The core trusts any
+    /// value; this shell binding owns the range and clamps to it, so a frame
+    /// is never zero-length. Read from Swift via `frame_min_duration_ms`.
+    const MIN_FRAME_DURATION_MS: u32 = 1;
+    /// Largest display duration a frame may hold (60_000 ms = 60 s).
+    const MAX_FRAME_DURATION_MS: u32 = 60_000;
 }
 
 #[uniffi::export]
@@ -1405,6 +1454,136 @@ impl AppleDocument {
             document.composite_for_export(),
         )?;
         Ok(canvas.encode_png()?)
+    }
+
+    // -- Frame axis --
+
+    /// Every frame's metadata in axis order — the first element is the first
+    /// frame, displayed as ordinal 1. The frame-axis mirror of `layers`.
+    fn frames(&self) -> Vec<AppleFrameMetadata> {
+        self.inner
+            .lock()
+            .unwrap()
+            .frames()
+            .iter()
+            .map(|frame| AppleFrameMetadata {
+                id: frame.id.to_string(),
+                duration_ms: frame.duration_ms,
+            })
+            .collect()
+    }
+
+    fn active_frame_id(&self) -> String {
+        self.inner.lock().unwrap().active_frame_id().to_string()
+    }
+
+    /// The number of frames on the axis — the ruler's extent, read without
+    /// marshalling every frame's metadata. `u64` because UniFFI has no
+    /// `usize`.
+    fn frame_count(&self) -> u64 {
+        self.inner.lock().unwrap().frames().len() as u64
+    }
+
+    /// RGBA row-major composite buffer (`width * height * 4` bytes) of the
+    /// frame identified by `frame_id`, without moving the active-frame
+    /// pointer — the read-only, frame-addressed sibling of `composite` that
+    /// playback, onion skin, and the export encoders read frame by frame.
+    ///
+    /// The core trusts a validated id, so this boundary confirms the frame
+    /// exists before delegating. Errors only when `frame_id` is not a valid
+    /// UUID string or no frame with that id is on the axis.
+    fn composite_at(&self, frame_id: String) -> Result<Vec<u8>, AppleError> {
+        let id = parse_frame_id(&frame_id)?;
+        let document = self.inner.lock().unwrap();
+        if !document.frames().iter().any(|f| f.id == id) {
+            return Err(AppleError::Document {
+                message: format!("Frame with id {id} not found"),
+            });
+        }
+        Ok(document.composite_at(id))
+    }
+
+    /// Inserts a transparent frame directly after the active frame, seeds a
+    /// cel for it on every Pixel Layer, and makes it active. Errors when
+    /// `new_id` is not a valid UUID string or a frame with the same id is
+    /// already on the axis.
+    fn add_frame(&self, new_id: String) -> Result<(), AppleError> {
+        let id = parse_frame_id(&new_id)?;
+        let mut document = self.inner.lock().unwrap();
+        if document.frames().iter().any(|f| f.id == id) {
+            return Err(AppleError::Document {
+                message: format!("Frame with id {id} already exists"),
+            });
+        }
+        document.add_frame(id);
+        Ok(())
+    }
+
+    /// Inserts a deep copy of the active frame directly after it — cloning
+    /// every Pixel Layer's active-frame cel and inheriting the source frame's
+    /// duration — and makes the copy active. Errors when `new_id` is not a
+    /// valid UUID string or is already on the axis.
+    fn duplicate_frame(&self, new_id: String) -> Result<(), AppleError> {
+        let id = parse_frame_id(&new_id)?;
+        let mut document = self.inner.lock().unwrap();
+        if document.frames().iter().any(|f| f.id == id) {
+            return Err(AppleError::Document {
+                message: format!("Frame with id {id} already exists"),
+            });
+        }
+        document.duplicate_frame(id);
+        Ok(())
+    }
+
+    /// Removes the frame with `id` and drops its cel from every Pixel Layer.
+    /// Errors when the frame is not on the axis or when removing it would
+    /// empty the axis (a document must always contain at least one frame).
+    /// When the removed frame was active, the active pointer moves to the
+    /// frame below it, falling back to the frame above when it was the first.
+    fn remove_frame(&self, id: String) -> Result<(), AppleError> {
+        let frame_id = parse_frame_id(&id)?;
+        Ok(self.inner.lock().unwrap().remove_frame(frame_id)?)
+    }
+
+    /// Moves the frame with `id` to `new_index` (0-based axis position),
+    /// silently clamped to the axis bounds. The active frame pointer is
+    /// preserved (tracked by id), and each Pixel Layer's cels stay keyed by
+    /// frame id, so cel contents follow their frame. Errors for an unknown id.
+    /// `new_index` is `u64` because UniFFI does not support `usize`.
+    fn reorder_frame(&self, id: String, new_index: u64) -> Result<(), AppleError> {
+        let frame_id = parse_frame_id(&id)?;
+        Ok(self
+            .inner
+            .lock()
+            .unwrap()
+            .reorder_frame(frame_id, new_index as usize)?)
+    }
+
+    /// Sets the active frame by id. Errors when no frame with `id` is on the
+    /// axis; the previous active frame is preserved on error.
+    fn set_active_frame(&self, id: String) -> Result<(), AppleError> {
+        let frame_id = parse_frame_id(&id)?;
+        Ok(self.inner.lock().unwrap().set_active_frame(frame_id)?)
+    }
+
+    /// Sets the display duration of the frame with `id`, clamped at this
+    /// boundary to `[frame_min_duration_ms, frame_max_duration_ms]` before
+    /// reaching the core — the core trusts whatever it is given, so the range
+    /// is the binding's to own. Clamping never errors; the call errors only
+    /// when `id` is not a valid UUID string or no frame with that id is on the
+    /// axis.
+    ///
+    /// Unlike the web binding, `duration_ms` arrives as a `u32` rather than a
+    /// float: Swift's type system already stops a negative or fractional value
+    /// at the call site, so the clamp has no wrap-around to defend against.
+    fn set_frame_duration(&self, id: String, duration_ms: u32) -> Result<(), AppleError> {
+        let frame_id = parse_frame_id(&id)?;
+        let clamped = duration_ms.clamp(Self::MIN_FRAME_DURATION_MS, Self::MAX_FRAME_DURATION_MS);
+        Ok(self
+            .inner
+            .lock()
+            .unwrap()
+            .set_frame_duration(frame_id, clamped)?)
     }
 }
 

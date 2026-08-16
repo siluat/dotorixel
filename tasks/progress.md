@@ -3,22 +3,22 @@
 ## Currently Working On
 
 Apple Native Phase 6 — Animation + extended export
-([RFC](../issues/013-apple-native-catchup.md)); decomposed 2026-08-16 into
-issues 283–296 (two tracks). Frontier: 283 (frame bindings) ∥ 293 (export
-encoder bindings).
+([RFC](../issues/013-apple-native-catchup.md)); 1 of 14 sub-issues done.
+The animation track's binding layer is in, so 284 (frame ruler) is
+unblocked; the export track still opens at 293.
 
 ## Last Completed
 
-[282 — Apple reference persistence](../issues/282-apple-reference-persistence.md):
-the Reference Layer joined the SwiftData schema (PNG-compressed source,
-optional field — old stores restore unchanged), closing Phase 5. Corruption
-drops only the reference, never the session; decision log covers the
-core-side PNG codec and the single `fromLayers(reference:)` hydration path.
+[283 — Apple UniFFI frame bindings](../issues/283-apple-uniffi-frame-bindings.md):
+the Apple binding now carries the whole frame axis — metadata, operations,
+per-frame duration, and frame-addressed composite — with no core change and
+no shell change. The duration clamp range stays binding-owned and duplicated
+with wasm on purpose; 287 is where that gets re-decided.
 
 ## Next Up
 
-- [283 — Apple UniFFI frame bindings](../issues/283-apple-uniffi-frame-bindings.md) — Phase 6 animation track opener
-- [293 — Apple UniFFI export encoder bindings](../issues/293-apple-uniffi-export-encoder-bindings.md) — Phase 6 export track opener (∥ 283)
+- [284 — Apple frame ruler + Active Frame](../issues/284-apple-frame-ruler.md) — Phase 6 animation track, unblocked by 283
+- [293 — Apple UniFFI export encoder bindings](../issues/293-apple-uniffi-export-encoder-bindings.md) — Phase 6 export track opener (∥ 284)
 - [255 — Apple Pencil device verification (HITL)](../issues/255-apple-pencil-device-verification.md)
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)

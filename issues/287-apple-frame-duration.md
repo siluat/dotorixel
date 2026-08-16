@@ -19,8 +19,20 @@ passes frame by frame:
 
 - **A duration editor for the active frame**, in milliseconds, using a
   draft-commit pattern: the field holds raw in-progress text while
-  editing and clamps to the binding-owned 1–60 000 ms range on commit
-  (the same bounds the 283 binding exposes).
+  editing and clamps to the binding-owned 1–60 000 ms range on commit —
+  read `frameMinDurationMs()` / `frameMaxDurationMs()` from the 283
+  binding rather than restating the numbers in the shell.
+  - This slice is the range's third consumer (wasm binding, Apple
+    binding, Apple UI), so **decide here whether it should be promoted
+    to a core constant**. 283 left it duplicated across the two
+    bindings deliberately: the core disowns the range (`Frame` —
+    "range clamping is a boundary concern handled by the shell
+    binding"), and the wasm copy is still private, so promoting now
+    would also drag a wasm API addition along for symmetry. Promote
+    only if a consumer outside the two bindings needs the numbers, or
+    if the core gains code that computes with them — the condition
+    that earns `Viewport::clamp_zoom` its place in core today.
+    Otherwise record that the range stays binding-owned.
 - **A derived fps read-out** (1000 / ms) beside the editor — display
   only, never an input; per-frame ms stays the single source of truth.
 - Committing a changed duration is **undoable** through the
@@ -36,7 +48,9 @@ passes frame by frame:
   frame's stored duration; switching frames shows each frame's own
   value.
 - Out-of-range and non-numeric input clamps/reverts on commit rather
-  than corrupting the value.
+  than corrupting the value, with the bounds read from the binding's
+  exported constants — the range's numbers never appear as literals in
+  shell code.
 - A committed change is undoable; an unchanged commit creates no
   history entry.
 - The fps read-out tracks the committed duration.

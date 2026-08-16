@@ -1,6 +1,6 @@
 ---
 title: Apple UniFFI frame bindings — frame axis metadata, operations, and per-frame composite
-status: ready-for-agent
+status: done
 created: 2026-08-16
 ---
 
@@ -74,3 +74,64 @@ and the frames-aware hydration path belongs to the persistence slice
 
 None — can start immediately (parallel with
 [293](293-apple-uniffi-export-encoder-bindings.md))
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/src/lib.rs` | `AppleFrameMetadata` record (id + `duration_ms`); `frames()` / `active_frame_id()` / `frame_count()` reads; `add_frame` / `duplicate_frame` / `remove_frame` / `reorder_frame` / `set_active_frame` operations; `set_frame_duration` with the binding-owned clamp; `composite_at` with frame-existence validation; `parse_frame_id`; `From<FrameError> for AppleError` |
+| `apple/src/lib.rs` (free functions) | `frame_min_duration_ms()` / `frame_max_duration_ms()` — the clamp bounds exposed so the 287 duration UI and the binding agree on one range (the `canvas_min_dimension` precedent) |
+| `apple/DotorixelTests/FrameBindingsTests.swift` | 10 tests covering every acceptance criterion: fresh-document axis, add/duplicate/remove/reorder policy, duplicate-id and unknown-id rejection, duration round-trip + clamp, `composite_at` isolation, drawing confined to the active layer's active-frame Cel, and whole-document undo/redo across a frame operation |
+| `apple/DotorixelTests/DocumentTestSupport.swift` | `makeFrameId()` — the frame-axis mirror of `makeLayerId()` |
+| `issues/287-apple-frame-duration.md` | Records the clamp-range consolidation decision point (see Key Decisions) as a build instruction plus an acceptance criterion |
+
+### Key Decisions
+
+- **Expand-only, no core changes.** The core frame axis was already
+  complete; this slice is binding surface plus regeneration. Every
+  existing binding, shell file, and shell behavior is untouched
+  (653 Apple tests green, including snapshot baselines).
+- **The clamp range stays binding-owned, duplicated with wasm.** The
+  core disowns it twice by name (`Frame::duration_ms` and
+  `set_frame_duration`: "range clamping is a boundary concern handled by
+  the shell binding"), so `[1, 60 000]` now lives in both binding
+  crates. `Viewport::clamp_zoom` looks like a counter-precedent but does
+  not transfer: core *computes* with the zoom range
+  (`compute_pinch_zoom`), while nothing in core computes with a
+  duration — a core constant no core code reads would misstate where
+  authority lives. Consolidating now would also pull in a wasm API
+  addition for symmetry (its copy is private) and break this slice's
+  expand-only guarantee. Re-evaluation is scheduled in 287, where the
+  range gains its third consumer; deliberately *not* filed in the review
+  backlog, where it would go stale.
+- **`duration_ms` crosses as `u32`, not the web's `f64`.** The web needs
+  a float because a JavaScript `-1` would wrap to `u32::MAX` and then
+  clamp to the *maximum*; Swift's type system stops a negative or
+  fractional value at the call site, so the clamp has no wrap-around to
+  defend against.
+- **`frames()`, not `frames_metadata()`.** Intra-shell consistency won:
+  the accessor mirrors this binding's own `layers()` /
+  `AppleLayerMetadata` pair. The concept names (Frame, metadata) match
+  the web; only the accessor follows each shell's sibling API.
+- **`composite_at` validates at the boundary.** The core panics on an
+  unknown frame id (it trusts the grid invariant), so the binding
+  confirms existence under the same lock before delegating — no TOCTOU
+  window. Its error text is byte-identical to the core's own
+  `FrameError::FrameNotFound`, so one condition reads as one message
+  whichever path produced it.
+
+### Notes
+
+- `frame_count()` is exposed alongside `frames()` so the frame ruler can
+  read the axis extent without marshalling every frame's metadata; the
+  layer axis has no equivalent because no consumer needed one.
+- `apple/scripts/build-rust.sh` fails silently when `apple/generated` is
+  deleted outright: `find` on the missing directory trips `pipefail`,
+  killing the `SWIFT_COUNT` assignment under `set -e` before the
+  bootstrap branch is reached. Clearing only the generated files works.
+  Same territory as the "Apple bindings staleness guard" backlog item;
+  not fixed here.
+- The frame surface brings `apple/src/lib.rs` to ~1800 lines. It is a
+  coherent, section-delimited block and a candidate for its own module,
+  but splitting the binding crate is out of scope for an expand-only
+  slice.

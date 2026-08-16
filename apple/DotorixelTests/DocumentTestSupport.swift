@@ -7,6 +7,12 @@ func makeLayerId() -> String {
     UUID().uuidString.lowercased()
 }
 
+/// A fresh frame id in the core's canonical form — the frame-axis mirror of
+/// `makeLayerId`.
+func makeFrameId() -> String {
+    UUID().uuidString.lowercased()
+}
+
 /// A single-layer document fixture mirroring the editor's own construction
 /// (web-parity "Layer 1" naming) — for tests that need a drawing surface
 /// without a full `Workspace`.

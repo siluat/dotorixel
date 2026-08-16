@@ -50,7 +50,7 @@ Drag-to-reorder on the frame ruler, mirroring how the layer rows reorder
 | File | Description |
 |------|-------------|
 | `apple/Dotorixel/Views/FrameReorderInteraction.swift` | The ruler press as a state machine: `track` / `release` / `axisChanged` / `reset`, resolving each release into `reorder` / `select` / `ignore`. Added in the PR #374 review, after three rounds of edge findings on logic the view held inline |
-| `apple/DotorixelTests/FrameReorderInteractionTests.swift` | 9 tests over that machine: tap vs drag, the sole-frame axis, a second pointer, cancellation and the release it silences, a cancelled press that must not reopen, cross-consumption between two pointers, latches for headers that left the axis, and teardown |
+| `apple/DotorixelTests/FrameReorderInteractionTests.swift` | 11 tests over that machine: tap vs drag, the sole-frame axis, a second pointer, cancellation and the release it silences, a cancelled press that must not reopen, cross-consumption between two pointers, two cancellations held at once, a cancelled release resolved while another drag is live, latches for headers that left the axis, and teardown |
 | `apple/Dotorixel/Views/ReorderDrag.swift` | `LayerReorderDrag` generalized into the axis-neutral `ReorderDrag` (`itemId` / `itemCount` / `itemExtent` / `targetIndex` / `offset(forIndex:)`); the geometry is unchanged, both axes now share it |
 | `apple/Dotorixel/State/TabState.swift` | `reorderFrame(id:toIndex:)` — undoable through `performEdit`, sealed mid-stroke, clamped to the axis before the unsigned FFI boundary |
 | `apple/Dotorixel/Views/TimelinePanel.swift` | Ruler headers carry the reorder drag (tap-vs-drag inside one gesture), preview offsets + stacking, structural-change and collapse cancel guards, scroll lock across both axes; layer-side names made symmetric (`layerDrag`, `layerReorderGesture`) |
@@ -124,6 +124,14 @@ Drag-to-reorder on the frame ruler, mirroring how the layer rows reorder
   driven from a test, so every one of these cases was previously verified only
   by reading. The layer sidebar's drag stays inline — it has one role, no
   threshold, and no cancellation to disambiguate.
+- **The cancellation is a set, and the release resolves it first.** A fourth
+  round found the two orderings a single optional could not carry (cubic): two
+  axis changes with two fingers down let the later cancellation overwrite the
+  earlier, and a cancelled press releasing while another header's drag was live
+  left through the drag-owner guard without spending its latch, swallowing that
+  header's next press. Keying by header in a `Set` and resolving the
+  cancellation ahead of any live drag closes both — and, unlike the previous
+  three rounds, these were caught as failing tests before the fix.
 - **A single-frame document no longer opens a drag preview** (PR #374 review,
   cubic). The offset clamped to zero, so nothing moved, but the header still
   took the dragging fill and both scrollers locked. `canReorderFrames` gates the

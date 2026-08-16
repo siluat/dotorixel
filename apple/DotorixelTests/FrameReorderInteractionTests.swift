@@ -145,7 +145,7 @@ struct FrameReorderInteractionTests {
         // gesture on it is torn down without ever releasing, so a latch kept
         // here would outlive everything that could clear it.
         interaction.axisChanged(to: ["second", "third"])
-        #expect(interaction.cancelledItemId == nil)
+        #expect(interaction.cancelledItemIds.isEmpty)
 
         // Undo brings that frame back: it drags like any other, rather than
         // spending its first press on a latch nothing consumed.
@@ -161,12 +161,54 @@ struct FrameReorderInteractionTests {
         // The first change cancels the drag while the header is still there,
         // so the latch is taken…
         interaction.axisChanged(to: ["first", "new", "second", "third"])
-        #expect(interaction.cancelledItemId == "first")
+        #expect(interaction.cancelledItemIds == ["first"])
 
         // …and the second removes that header, with the finger still down. No
         // release will arrive to spend the latch, so it goes with the header.
         interaction.axisChanged(to: ["new", "second", "third"])
-        #expect(interaction.cancelledItemId == nil)
+        #expect(interaction.cancelledItemIds.isEmpty)
+    }
+
+    @Test("a second axis change does not release the cancellation the first one took")
+    func twoAxisChangesHoldBothCancellations() {
+        var interaction = makeInteraction()
+
+        // One finger's drag is cancelled by the first change…
+        interaction.track(itemId: "first", axisIndex: 0, travel: columnWidth, axisCount: axis.count)
+        interaction.axisChanged(to: ["first", "new", "second", "third"])
+
+        // …another finger opens a drag of its own, and a second change
+        // cancels that one too. Both presses are now down with nothing behind
+        // them, so one cancellation cannot stand in for the other.
+        interaction.track(itemId: "third", axisIndex: 3, travel: columnWidth, axisCount: 4)
+        interaction.axisChanged(to: ["first", "new", "second", "third", "another"])
+
+        #expect(interaction.release(itemId: "third", travel: 1) == .ignore)
+        #expect(interaction.release(itemId: "first", travel: 1) == .ignore)
+    }
+
+    @Test("a cancelled press spends its own cancellation even while another header's drag is live")
+    func cancelledReleaseIsResolvedDuringAnotherDrag() {
+        var interaction = makeInteraction()
+        interaction.track(itemId: "first", axisIndex: 0, travel: columnWidth, axisCount: axis.count)
+        interaction.axisChanged(to: ["first", "new", "second", "third"])
+
+        // A second finger opens a drag while the cancelled press is still down.
+        interaction.track(itemId: "third", axisIndex: 3, travel: columnWidth, axisCount: 4)
+        #expect(interaction.drag?.itemId == "third")
+
+        // The cancelled press lifts first: it selects nothing, and this is the
+        // one release that can spend its cancellation — a live drag belonging
+        // to another header must not stand between the two.
+        #expect(interaction.release(itemId: "first", travel: 1) == .ignore)
+
+        // The live drag is untouched and still commits.
+        #expect(interaction.release(itemId: "third", travel: columnWidth) == .reorder(toIndex: 3))
+
+        // With nothing left over, that header's next press behaves normally
+        // rather than spending itself on a cancellation nobody consumed.
+        interaction.track(itemId: "first", axisIndex: 0, travel: 1, axisCount: 4)
+        #expect(interaction.release(itemId: "first", travel: 1) == .select)
     }
 
     @Test("tearing the ruler down drops both the drag and any cancellation waiting on a release")
@@ -184,7 +226,7 @@ struct FrameReorderInteractionTests {
         interaction.track(itemId: "first", axisIndex: 0, travel: columnWidth, axisCount: axis.count)
         interaction.axisChanged(to: ["first", "new", "second", "third"])
         interaction.reset()
-        #expect(interaction.cancelledItemId == nil)
+        #expect(interaction.cancelledItemIds.isEmpty)
         #expect(interaction.release(itemId: "first", travel: 1) == .select)
     }
 }

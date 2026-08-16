@@ -17,12 +17,17 @@ struct FrameReorderInteraction {
     /// The drag in flight, or nil while the press has not opened one.
     private(set) var drag: ReorderDrag?
 
-    /// The header whose drag an axis change cancelled while its gesture was
-    /// still down. That gesture keeps delivering events with nothing behind
-    /// them, and its travel cannot tell the two cases apart — a finger
+    /// The headers whose drags an axis change cancelled while their gestures
+    /// were still down. Such a gesture keeps delivering events with nothing
+    /// behind it, and its travel cannot tell the two cases apart — a finger
     /// returned near its origin looks exactly like a press that never left tap
     /// range — so the cancellation is recorded when it happens.
-    private(set) var cancelledItemId: String?
+    ///
+    /// A set, not one id: several presses can be down at once, and a later
+    /// cancellation replacing an earlier one would let the earlier press
+    /// release as a tap. Keyed by header so only the press it belongs to can
+    /// spend it.
+    private(set) var cancelledItemIds: Set<String> = []
 
     /// What a release resolved to.
     enum Release: Equatable {
@@ -45,7 +50,7 @@ struct FrameReorderInteraction {
             return
         }
         guard drag == nil,
-              cancelledItemId != itemId,
+              !cancelledItemIds.contains(itemId),
               axisCount > 1,
               abs(travel) > tapThreshold
         else { return }
@@ -61,14 +66,18 @@ struct FrameReorderInteraction {
     /// Resolves the release of the press on `itemId`, clearing whatever state
     /// that press was holding.
     mutating func release(itemId: String, travel: CGFloat) -> Release {
-        guard var releasing = drag else {
-            if cancelledItemId == itemId {
-                cancelledItemId = nil
-                return .ignore
-            }
-            return abs(travel) <= tapThreshold ? .select : .ignore
+        // A cancelled press means nothing whatever else is in flight, and this
+        // release is the only thing that can spend its cancellation — so it is
+        // resolved before any live drag, which may well belong to another
+        // header and would otherwise leave the cancellation behind.
+        if cancelledItemIds.remove(itemId) != nil { return .ignore }
+        guard var releasing = drag, releasing.itemId == itemId else {
+            // What is left is a press that opened no drag: a tap when it
+            // stayed in range, and nothing at all when it travelled without a
+            // drag to show for it (a sole-frame axis) or when another header's
+            // drag owns the interaction.
+            return drag == nil && abs(travel) <= tapThreshold ? .select : .ignore
         }
-        guard releasing.itemId == itemId else { return .ignore }
         releasing.translation = travel
         drag = nil
         return .reorder(toIndex: releasing.targetIndex)
@@ -83,12 +92,12 @@ struct FrameReorderInteraction {
     /// without a release — and a latch nothing can spend would cost that
     /// header its next press if the axis ever brought it back.
     mutating func axisChanged(to itemIds: [String]) {
-        if let cancelled = cancelledItemId, !itemIds.contains(cancelled) {
-            cancelledItemId = nil
-        }
+        cancelledItemIds.formIntersection(itemIds)
         guard let cancelling = drag else { return }
         drag = nil
-        cancelledItemId = itemIds.contains(cancelling.itemId) ? cancelling.itemId : nil
+        if itemIds.contains(cancelling.itemId) {
+            cancelledItemIds.insert(cancelling.itemId)
+        }
     }
 
     /// The ruler went away — the panel collapsed — taking every gesture on it
@@ -97,6 +106,6 @@ struct FrameReorderInteraction {
     /// expand.
     mutating func reset() {
         drag = nil
-        cancelledItemId = nil
+        cancelledItemIds.removeAll()
     }
 }

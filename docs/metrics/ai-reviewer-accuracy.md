@@ -10,14 +10,18 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 226 | 171 | 55 | 314 | 76% | 35% |
-| cubic-dev-ai[bot] | 355 | 278 | 77 | 226 | 78% | 55% |
+| greptile-apps[bot] | 226 | 171 | 55 | 313 | 76% | 35% |
+| cubic-dev-ai[bot] | 359 | 282 | 77 | 225 | 79% | 56% |
 | coderabbitai[bot] | 338 | 244 | 94 | 252 | 72% | 49% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #374 | cubic-dev-ai[bot] | Accept | Fourth round on the same state: a single optional latch tracks one cancellation, so two axis changes with two fingers down let the later one overwrite the earlier, and the first press released as a tap after all. The latch is now a set keyed by header |
+| #374 | cubic-dev-ai[bot] | Accept | The other ordering the suite had not composed: with another header's drag live, a cancelled press's release left through the `releasing.itemId == itemId` guard without spending its latch, so the leftover swallowed that header's next press. `release` now resolves the cancellation before any live drag, and the two orderings are pinned by tests |
+| #374 | cubic-dev-ai[bot] | Accept | Running Totals overstated greptile's Miss by one: the #374 rows carry 3 Accept and one `Miss (×2)`, so 311 + 2 = 313, not 314 |
+| #374 | cubic-dev-ai[bot] | Accept | Same arithmetic slip for its own row — 224 + 1 = 225, not 226. Both were introduced by the third-round totals update, where only Accept rows were added but Miss was incremented too |
 | #374 | greptile-apps[bot] | Accept | Third round, and the exact counterpart of cubic's finding below: a panel-wide cancellation flag is consumed by whichever release arrives first, so with two headers held through an axis change, the second finger lifting first spends the flag and lets the cancelled press select after all — reopening the very bug the second round closed. Keying the latch by frame id makes only the cancelled gesture's own release consume it |
 | #374 | cubic-dev-ai[bot] | Accept | The other half of the same boolean's failure: a drag whose own frame is removed leaves the latch set, because the ruler stays mounted and no `onDisappear` or release ever arrives to clear it, so the next unrelated tap is swallowed. `axisChanged` now declines to hold a latch for a header that is not on the axis, and drops one whose header has left it |
 | #374 | coderabbitai[bot] | Miss (×2) | Missed both halves of the panel-wide-flag failure accepted from greptile and cubic |

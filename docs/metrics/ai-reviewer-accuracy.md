@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 225 | 170 | 55 | 313 | 76% | 35% |
-| cubic-dev-ai[bot] | 354 | 277 | 77 | 225 | 78% | 55% |
-| coderabbitai[bot] | 338 | 244 | 94 | 250 | 72% | 49% |
+| greptile-apps[bot] | 226 | 171 | 55 | 314 | 76% | 35% |
+| cubic-dev-ai[bot] | 355 | 278 | 77 | 226 | 78% | 55% |
+| coderabbitai[bot] | 338 | 244 | 94 | 252 | 72% | 49% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #374 | greptile-apps[bot] | Accept | Third round, and the exact counterpart of cubic's finding below: a panel-wide cancellation flag is consumed by whichever release arrives first, so with two headers held through an axis change, the second finger lifting first spends the flag and lets the cancelled press select after all — reopening the very bug the second round closed. Keying the latch by frame id makes only the cancelled gesture's own release consume it |
+| #374 | cubic-dev-ai[bot] | Accept | The other half of the same boolean's failure: a drag whose own frame is removed leaves the latch set, because the ruler stays mounted and no `onDisappear` or release ever arrives to clear it, so the next unrelated tap is swallowed. `axisChanged` now declines to hold a latch for a header that is not on the axis, and drops one whose header has left it |
+| #374 | coderabbitai[bot] | Miss (×2) | Missed both halves of the panel-wide-flag failure accepted from greptile and cubic |
 | #374 | greptile-apps[bot] | Accept | Second round on the same branch: judging the release by final travel closed only the common case, since a finger that crossed the threshold and returned within 4pt before an axis change cancelled the drag still measured as a tap — and that tap moves the drawing target *and* commits a pending Floating Selection. The cancellation is now recorded when it happens and consumed by the release; the flag also stops the cancelled press from reopening a drag whose `baseIndex` would come from the new axis while its translation still measured from touch-down. The first round's fix was accepted with this residual explicitly judged harmless — it was not |
 | #374 | cubic-dev-ai[bot] | Accept | Same returned-drag-becomes-selection residual (duplicate of greptile); asked for the same sticky threshold-crossed tracking |
 | #374 | coderabbitai[bot] | Miss | Approved the first round's fix without flagging the returned-drag residual accepted from greptile and cubic |

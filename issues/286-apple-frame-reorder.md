@@ -49,6 +49,8 @@ Drag-to-reorder on the frame ruler, mirroring how the layer rows reorder
 
 | File | Description |
 |------|-------------|
+| `apple/Dotorixel/Views/FrameReorderInteraction.swift` | The ruler press as a state machine: `track` / `release` / `axisChanged` / `reset`, resolving each release into `reorder` / `select` / `ignore`. Added in the PR #374 review, after three rounds of edge findings on logic the view held inline |
+| `apple/DotorixelTests/FrameReorderInteractionTests.swift` | 9 tests over that machine: tap vs drag, the sole-frame axis, a second pointer, cancellation and the release it silences, a cancelled press that must not reopen, cross-consumption between two pointers, latches for headers that left the axis, and teardown |
 | `apple/Dotorixel/Views/ReorderDrag.swift` | `LayerReorderDrag` generalized into the axis-neutral `ReorderDrag` (`itemId` / `itemCount` / `itemExtent` / `targetIndex` / `offset(forIndex:)`); the geometry is unchanged, both axes now share it |
 | `apple/Dotorixel/State/TabState.swift` | `reorderFrame(id:toIndex:)` — undoable through `performEdit`, sealed mid-stroke, clamped to the axis before the unsigned FFI boundary |
 | `apple/Dotorixel/Views/TimelinePanel.swift` | Ruler headers carry the reorder drag (tap-vs-drag inside one gesture), preview offsets + stacking, structural-change and collapse cancel guards, scroll lock across both axes; layer-side names made symmetric (`layerDrag`, `layerReorderGesture`) |
@@ -89,11 +91,13 @@ Drag-to-reorder on the frame ruler, mirroring how the layer rows reorder
 
 ### Notes
 
-- **The gesture itself has no automated coverage.** Both seams are pinned by unit
-  tests, but whether the drag feels right on device — preview tracking, the tap/drag
-  threshold under a real finger — is a hands-on check, the same boundary 285's
-  horizontal scrolling hit. Snapshot baselines needed no re-recording: the header's
-  resting chrome is pixel-identical, and all 689 tests pass unchanged.
+- **The gesture's wiring still has no automated coverage**, though its logic now
+  does. What `FrameReorderInteraction` cannot pin is the SwiftUI half: that
+  `DragGesture` delivers the events the machine expects, and that the drag feels
+  right on device — preview tracking, the threshold under a real finger. That is
+  a hands-on check, the same boundary 285's horizontal scrolling hit. Snapshot
+  baselines needed no re-recording: the header's resting chrome is
+  pixel-identical, and every existing test passes unchanged.
 - **Frame order is still not persisted** — a relaunch restores a single frame until
   292, so a reorder survives only the session.
 - **A cancelled drag no longer falls through to selecting the frame** (PR #374
@@ -105,10 +109,21 @@ Drag-to-reorder on the frame ruler, mirroring how the layer rows reorder
   Floating Selection. Judging by final travel closed only the common case: a
   finger returned near its origin still read as a tap. The cancellation is now
   recorded when it happens (`wasFrameDragCancelled`) and consumed by the
-  release. The same flag stops the cancelled press from reopening a drag, whose
+  release. The same latch stops the cancelled press from reopening a drag, whose
   `baseIndex` would come from the new axis while its translation still measured
   from the original touch-down. The layer sidebar never had this path: its
   `onEnded` has no tap role to fall through to.
+- **The press became a testable state machine on the third review round.** A
+  panel-wide boolean failed both ways — another pointer's release consumed the
+  cancellation and let the cancelled press select (greptile), while a drag whose
+  own frame was removed left a latch nothing could spend (cubic). Keying the
+  latch by frame id fixes both, and `axisChanged` drops a latch whose header has
+  left the axis, since no release is coming for a torn-down gesture. Three
+  rounds of edges on view-held logic was the signal to extract
+  `FrameReorderInteraction`: SwiftUI gives a rendered gesture no way to be
+  driven from a test, so every one of these cases was previously verified only
+  by reading. The layer sidebar's drag stays inline — it has one role, no
+  threshold, and no cancellation to disambiguate.
 - **A single-frame document no longer opens a drag preview** (PR #374 review,
   cubic). The offset clamped to zero, so nothing moved, but the header still
   took the dragging fill and both scrollers locked. `canReorderFrames` gates the

@@ -19,23 +19,19 @@ struct TimelinePanel: View {
     /// reaches the document until the drop commits.
     @State private var layerDrag: ReorderDrag?
 
-    /// The frame reorder drag currently under a ruler header, or nil while none
-    /// is. Separate from `layerDrag` because the two axes are independent
+    /// The frame ruler's press, from touch-down to the release it resolves
+    /// into. Separate from `layerDrag` because the two axes are independent
     /// surfaces: a live layer drag must not read as a frame drag's preview.
-    @State private var frameDrag: ReorderDrag?
-
-    /// Set when an axis change cancels a live frame drag while its gesture is
-    /// still down. That gesture keeps delivering events with nothing behind
-    /// them, and its final travel cannot tell the two cases apart — a finger
-    /// returned near its origin looks exactly like a press that never left tap
-    /// range. So the fact is recorded when it happens: the release must not
-    /// fall back to selecting, and the same press must not reopen a drag
-    /// against geometry that has already moved. Consumed by that release.
-    ///
-    /// Deliberately not keyed by frame id: a gesture torn down without
-    /// `onEnded` would leave that id's header undraggable for good, where an
-    /// orphaned flag costs at most one ignored release.
-    @State private var wasFrameDragCancelled = false
+    /// Unlike the sidebar's bare drag, this one is a state machine — the
+    /// header carries two roles, and telling a tap from a drag (and either
+    /// from a press whose drag was cancelled) takes more than the drag alone.
+    @State private var frameInteraction = FrameReorderInteraction(
+        // The column extent and threshold the ruler renders at — `@State`
+        // initializers cannot read `frameColumnWidth` / `frameDragThreshold`,
+        // which resolve to these same values.
+        itemExtent: DesignTokens.btnSize,
+        tapThreshold: frameDragThreshold
+    )
     @State private var isReferenceImporterPresented = false
     @State private var referenceImportErrorMessage: String?
 
@@ -90,7 +86,7 @@ struct TimelinePanel: View {
     /// header carries both roles, so below this the press selects the frame and
     /// above it the press moves the frame — a distinction the layer sidebar
     /// does not need, where a dedicated handle owns the drag.
-    private let frameDragThreshold: CGFloat = 4
+    private static let frameDragThreshold: CGFloat = 4
 
     /// The panel's separator lines — web `--ds-border-width`: 1px. Named
     /// because `bodyHeight` subtracts it, where a bare `1` would read as
@@ -144,9 +140,7 @@ struct TimelinePanel: View {
         // removed mid-drag — by a second finger, or by ⌘Z restoring another
         // axis — invalidates the drag's captured column geometry.
         .onChange(of: frameIdsInAxisOrder) {
-            guard frameDrag != nil else { return }
-            frameDrag = nil
-            wasFrameDragCancelled = true
+            frameInteraction.axisChanged(to: frameIdsInAxisOrder)
         }
         .fileImporter(
             isPresented: $isReferenceImporterPresented,
@@ -187,7 +181,7 @@ struct TimelinePanel: View {
     /// on, so the content cannot travel under a drag that captured its geometry
     /// at press time.
     private var isReorderPreviewing: Bool {
-        layerDrag != nil || frameDrag != nil
+        layerDrag != nil || frameInteraction.drag != nil
     }
 
     // MARK: - Header
@@ -392,10 +386,7 @@ struct TimelinePanel: View {
         // gesture down without `onEnded` — the frame-axis twin of the body's
         // own guard below. The cancel flag goes with it: no release is coming
         // to consume it.
-        .onDisappear {
-            frameDrag = nil
-            wasFrameDragCancelled = false
-        }
+        .onDisappear { frameInteraction.reset() }
     }
 
     /// The sidebar holds its spec width wherever the canvas column can seat it
@@ -717,8 +708,8 @@ struct TimelinePanel: View {
     private func rulerHeader(_ frame: FrameColumn, axisIndex: Int) -> some View {
         let ordinal = axisIndex + 1
         let isActive = frame.id == tab.activeFrameId
-        let isDragging = frameDrag?.itemId == frame.id
-        let dragOffset = frameDrag?.offset(forIndex: axisIndex) ?? 0
+        let isDragging = frameInteraction.drag?.itemId == frame.id
+        let dragOffset = frameInteraction.drag?.offset(forIndex: axisIndex) ?? 0
         return Text(verbatim: "\(ordinal)")
             .font(.system(
                 size: DesignTokens.fontSizeSm,
@@ -768,64 +759,32 @@ struct TimelinePanel: View {
         return isActive ? DesignTokens.accentSubtle : .clear
     }
 
-    /// Whether the axis has somewhere to reorder to — false only while the
-    /// document holds a single frame. The sidebar's mirror is
-    /// `TabState.canReorderLayers`, which disables the row handle outright; a
-    /// ruler header cannot be disabled without losing its select role, so the
-    /// drag is gated here instead of at the affordance.
-    private var canReorderFrames: Bool {
-        frameColumns.count > 1
-    }
-
     /// `minimumDistance: 0` so the press is tracked from touch-down: the header
     /// is its own tap target, and the travel that separates a tap from a drag is
-    /// measured here rather than delegated to the gesture's own threshold, which
-    /// would swallow the presses below it.
+    /// measured by the interaction rather than delegated to the gesture's own
+    /// threshold, which would swallow the presses below it.
     private func frameReorderGesture(_ frame: FrameColumn, axisIndex: Int) -> some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
-                let travel = value.translation.width
-                if frameDrag?.itemId == frame.id {
-                    frameDrag?.translation = travel
-                } else if frameDrag == nil,
-                          !wasFrameDragCancelled,
-                          canReorderFrames,
-                          abs(travel) > frameDragThreshold {
-                    frameDrag = ReorderDrag(
-                        itemId: frame.id,
-                        baseIndex: axisIndex,
-                        itemCount: frameColumns.count,
-                        itemExtent: frameColumnWidth,
-                        translation: travel
-                    )
-                }
-                // A header pressed while another column's drag is live falls
-                // through both branches: only the initiating pointer drives a
-                // drag (web parity), and `onEnded`'s guards below keep that
-                // second pointer from committing, clearing, or selecting.
+                frameInteraction.track(
+                    itemId: frame.id,
+                    axisIndex: axisIndex,
+                    travel: value.translation.width,
+                    axisCount: frameColumns.count
+                )
             }
             .onEnded { value in
-                let travel = value.translation.width
-                guard var drag = frameDrag else {
-                    // Three presses reach here with no drag to commit, and only
-                    // one of them is a tap. A cancelled drag is the first: it
-                    // must not fall through to moving the drawing target, which
-                    // would also commit a pending Floating Selection. A press
-                    // past the threshold that never opened a drag is the second
-                    // (a single-frame axis has nowhere to reorder to). What is
-                    // left is a press that stayed in tap range, which reads as
-                    // the header's other role: selecting the Active Frame.
-                    if wasFrameDragCancelled {
-                        wasFrameDragCancelled = false
-                    } else if abs(travel) <= frameDragThreshold {
-                        tab.setActiveFrame(id: frame.id)
-                    }
-                    return
+                switch frameInteraction.release(
+                    itemId: frame.id,
+                    travel: value.translation.width
+                ) {
+                case let .reorder(toIndex):
+                    tab.reorderFrame(id: frame.id, toIndex: toIndex)
+                case .select:
+                    tab.setActiveFrame(id: frame.id)
+                case .ignore:
+                    break
                 }
-                guard drag.itemId == frame.id else { return }
-                drag.translation = travel
-                frameDrag = nil
-                tab.reorderFrame(id: frame.id, toIndex: drag.targetIndex)
             }
     }
 

@@ -23,11 +23,29 @@ the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish), Phase 2
 (full tool set + color + i18n, issues 230–242), Phase 3 (layer system, issues
 256–261), Phase 4 (multi-tab + persistence, issues 262–266), and Phase 5
 (reference + selection + transforms, issues 267–282) are complete; Phase 6 is
-decomposed (`/to-tickets`) when reached.
+decomposed into issues 283–296 (two parallel tracks).
 
-### Phase 6 — roadmap (decompose when reached)
+### Phase 6 — Animation + extended export (issues 283–296)
 
-- Phase 6 — Animation + extended export (frames/timeline/playback/onion skin, SVG/GIF/spritesheet)
+Animation track:
+
+- [283 — UniFFI frame bindings](../issues/283-apple-uniffi-frame-bindings.md)
+- [284 — Frame ruler + Active Frame](../issues/284-apple-frame-ruler.md) (blocked by 283)
+- [285 — Frame operations (add/duplicate/remove)](../issues/285-apple-frame-operations.md) (blocked by 284)
+- [286 — Frame drag reorder](../issues/286-apple-frame-reorder.md) (blocked by 285)
+- [287 — Per-frame duration UI](../issues/287-apple-frame-duration.md) (blocked by 284, ∥ 285)
+- [288 — Playback controller](../issues/288-apple-playback-controller.md) (blocked by 285)
+- [289 — Transport strip UI](../issues/289-apple-transport-strip.md) (blocked by 288)
+- [290 — Onion skin state + neighbor selection](../issues/290-apple-onion-skin-state.md) (blocked by 288)
+- [291 — Onion skin render + toggle](../issues/291-apple-onion-skin-render.md) (blocked by 289, 290)
+- [292 — Animation persistence](../issues/292-apple-animation-persistence.md) (blocked by 286, 287)
+
+Export track (parallel with the animation track):
+
+- [293 — UniFFI export encoder bindings](../issues/293-apple-uniffi-export-encoder-bindings.md)
+- [294 — Export format selection UI + SVG](../issues/294-apple-export-format-selection.md) (blocked by 293)
+- [295 — Spritesheet export](../issues/295-apple-spritesheet-export.md) (blocked by 294)
+- [296 — GIF export](../issues/296-apple-gif-export.md) (blocked by 294)
 
 ## Deferred
 

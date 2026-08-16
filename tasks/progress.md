@@ -2,8 +2,10 @@
 
 ## Currently Working On
 
-None — Apple Native parity Phase 5 is complete; Phase 6 (animation + extended
-export) awaits decomposition via `/to-tickets` when picked up.
+Apple Native Phase 6 — Animation + extended export
+([RFC](../issues/013-apple-native-catchup.md)); decomposed 2026-08-16 into
+issues 283–296 (two tracks). Frontier: 283 (frame bindings) ∥ 293 (export
+encoder bindings).
 
 ## Last Completed
 
@@ -15,7 +17,8 @@ core-side PNG codec and the single `fromLayers(reference:)` hydration path.
 
 ## Next Up
 
-- Apple Native Phase 6 — animation + extended export; decompose the RFC via `/to-tickets`
+- [283 — Apple UniFFI frame bindings](../issues/283-apple-uniffi-frame-bindings.md) — Phase 6 animation track opener
+- [293 — Apple UniFFI export encoder bindings](../issues/293-apple-uniffi-export-encoder-bindings.md) — Phase 6 export track opener (∥ 283)
 - [255 — Apple Pencil device verification (HITL)](../issues/255-apple-pencil-device-verification.md)
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)

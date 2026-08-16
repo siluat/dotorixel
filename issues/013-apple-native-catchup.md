@@ -314,3 +314,33 @@ docked structure, and enable features that require no UI design work.
   issues 053–062 + follow-ups) are missing from the 2026-07-09 gap table above
   and are deliberately excluded from Phase 5 (decision 2026-08-05); reaching
   full parity on that feature set needs its own scheduling decision.
+- **2026-08-16** — Phase 6 (Animation + extended export) decomposed into
+  ready-for-agent issues via `/to-tickets`, as two parallel tracks that each
+  open with an expand-only UniFFI issue (256/263/267/277 pattern). The core
+  already implements the full substance (cel grid + frame ops,
+  `composite_at`, per-frame duration, SVG/GIF/spritesheet encoders) — every
+  slice is shell + binding work.
+  Animation track:
+  [283 — UniFFI frame bindings](283-apple-uniffi-frame-bindings.md) →
+  [284 — frame ruler + Active Frame](284-apple-frame-ruler.md) →
+  [285 — frame add/duplicate/remove](285-apple-frame-operations.md) →
+  {[286 — frame drag reorder](286-apple-frame-reorder.md) ∥
+  [287 — per-frame duration UI](287-apple-frame-duration.md) (blocked by 284) ∥
+  [288 — playback controller](288-apple-playback-controller.md)} →
+  {[289 — transport strip UI](289-apple-transport-strip.md) ∥
+  [290 — onion skin state](290-apple-onion-skin-state.md)} →
+  [291 — onion skin render + toggle](291-apple-onion-skin-render.md);
+  {286, 287} → [292 — animation persistence](292-apple-animation-persistence.md).
+  Export track:
+  [293 — UniFFI export encoder bindings](293-apple-uniffi-export-encoder-bindings.md) →
+  [294 — export format selection UI + SVG](294-apple-export-format-selection.md) →
+  {[295 — spritesheet export](295-apple-spritesheet-export.md) ∥
+  [296 — GIF export](296-apple-gif-export.md)}.
+  Unlike the web's M4 cluster there are no leading `.pen` design slices —
+  the hybrid decision holds (web design is the reference, SwiftUI-native
+  controls). Frame-operation undo/redo rides the whole-document snapshot
+  history, so no journal-intent work is needed. The frames-aware
+  `fromLayers` hydration extension is deferred from 283 to 292 (the 282
+  precedent); the animation-state persistence (frames, cels, durations,
+  onion toggle) is one late slice with optional fields — old stores restore
+  unchanged.

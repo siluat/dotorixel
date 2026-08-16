@@ -199,8 +199,8 @@ struct AutoSaveTests {
         #expect(recorder.saves.isEmpty)
     }
 
-    @Test("flush succeeds with a Reference present by carrying only Pixel Layers to persistence")
-    func flushSkipsReferenceAndKeepsPixelDocument() async throws {
+    @Test("flush carries the Reference alongside the Pixel stack to persistence")
+    func flushCarriesReferenceToPersistence() async throws {
         let workspace = Workspace(width: 4, height: 4)
         let tab = workspace.activeTab
         let pixelLayerId = tab.document.activeLayerId()
@@ -227,8 +227,12 @@ struct AutoSaveTests {
 
         let savedTab = try #require(recorder.saves.first?.snapshot.tabs.first)
         #expect(savedTab.layers.map(\.id) == [pixelLayerId])
-        #expect(savedTab.activeLayerId == pixelLayerId)
         #expect(savedTab.layers[0].pixels == tab.document.compositeForExport())
+        // The Reference rides alongside the Pixel stack (the closed 278
+        // gap), and the snapshot keeps the reference-active pointer that
+        // import left behind instead of falling back to a Pixel Layer.
+        let reference = try #require(savedTab.reference)
+        #expect(savedTab.activeLayerId == reference.id)
     }
 
     @Test("a closed tab's document is dropped from the dirty set while the arrangement still saves")

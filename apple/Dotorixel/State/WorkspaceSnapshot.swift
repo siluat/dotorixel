@@ -32,8 +32,11 @@ struct TabSnapshot {
     let name: String
     let width: UInt32
     let height: UInt32
-    /// The layer stack in stack order (bottom first), pixels included.
+    /// The Pixel Layer stack in stack order (bottom first), pixels included.
     let layers: [AppleLayerSnapshot]
+    /// The singleton Reference Layer with its source buffer, placement, and
+    /// display state; `nil` when the document carries none.
+    let reference: AppleReferenceLayerSnapshot?
     let activeLayerId: String
     let nextLayerNumber: UInt32
     let marquee: AppleMarqueeRegion?

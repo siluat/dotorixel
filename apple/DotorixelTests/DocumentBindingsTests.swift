@@ -359,6 +359,113 @@ struct DocumentBindingsTests {
         #expect(hydrated.isTimelinePanelCollapsed())
     }
 
+    @Test("a reference-carrying document round-trips through the reference snapshot read and hydration")
+    func referenceSnapshotHydrationRoundTrip() throws {
+        let pixelId = makeLayerId()
+        let doc = try AppleDocument(
+            width: 4, height: 4, firstLayerId: pixelId, firstLayerName: "Layer 1")
+        #expect(doc.referenceLayerSnapshot() == nil)
+
+        // 2×1 source with a semi-transparent pixel — the case a lossy
+        // (premultiplying) round-trip would corrupt.
+        let sourceRgba = Data([200, 100, 50, 7, 255, 0, 0, 255])
+        let referenceId = makeLayerId()
+        try doc.addReferenceLayer(
+            newId: referenceId, name: "ref.png", sourceRgba: sourceRgba,
+            sourceWidth: 2, sourceHeight: 1)
+        try doc.setReferencePlacement(
+            id: referenceId,
+            placement: AppleReferencePlacementUpdate(x: 1.5, y: -2.0, scale: 3.0))
+        try doc.setLayerVisibility(id: referenceId, visible: false)
+
+        let snapshot = try #require(doc.referenceLayerSnapshot())
+        #expect(snapshot.id == referenceId)
+        #expect(snapshot.name == "ref.png")
+        #expect(snapshot.visible == false)
+        #expect(snapshot.opacity == 1.0)
+        #expect(snapshot.sourceRgba == sourceRgba)
+        #expect(snapshot.naturalWidth == 2)
+        #expect(snapshot.naturalHeight == 1)
+        #expect(snapshot.placement
+            == AppleReferencePlacement(x: 1.5, y: -2.0, scale: 3.0, rotation: 0))
+
+        // Hydrate with the reference active — the pointer state import leaves
+        // behind, which issue-278 persistence could not represent.
+        let hydrated = try AppleDocument.fromLayers(
+            width: doc.width(),
+            height: doc.height(),
+            layers: doc.pixelLayerSnapshots(),
+            activeLayerId: doc.activeLayerId(),
+            nextLayerNumber: doc.nextLayerNumber(),
+            timelinePanelCollapsed: false,
+            reference: snapshot
+        )
+
+        #expect(hydrated.layers().map(\.kind) == [.reference, .pixel])
+        #expect(hydrated.activeLayerId() == referenceId)
+        let rehydrated = try #require(hydrated.referenceLayerSnapshot())
+        #expect(rehydrated.id == referenceId)
+        #expect(rehydrated.name == "ref.png")
+        #expect(rehydrated.visible == false)
+        #expect(rehydrated.sourceRgba == sourceRgba)
+        #expect(rehydrated.placement == snapshot.placement)
+    }
+
+    @Test("hydration rejects a malformed reference snapshot instead of crashing")
+    func referenceHydrationBuildErrors() throws {
+        let pixelId = makeLayerId()
+        func hydrate(_ reference: AppleReferenceLayerSnapshot) throws -> AppleDocument {
+            try AppleDocument.fromLayers(
+                width: 2, height: 2,
+                layers: [AppleLayerSnapshot(
+                    id: pixelId, name: "Layer 1", visible: true, opacity: 1.0,
+                    pixels: Data(count: 2 * 2 * 4))],
+                activeLayerId: pixelId,
+                nextLayerNumber: 2,
+                timelinePanelCollapsed: false,
+                reference: reference
+            )
+        }
+        func snapshot(
+            scale: Float = 1.0,
+            rotation: UInt8 = 0,
+            sourceRgba: Data = Data(count: 2 * 1 * 4)
+        ) -> AppleReferenceLayerSnapshot {
+            AppleReferenceLayerSnapshot(
+                id: makeLayerId(), name: "ref.png", visible: true, opacity: 1.0,
+                sourceRgba: sourceRgba, naturalWidth: 2, naturalHeight: 1,
+                placement: AppleReferencePlacement(x: 0, y: 0, scale: scale, rotation: rotation)
+            )
+        }
+
+        // Non-positive scale violates the placement invariant.
+        #expect(throws: AppleError.self) { _ = try hydrate(snapshot(scale: 0)) }
+
+        // Rotation outside the quarter-turn range.
+        #expect(throws: AppleError.self) { _ = try hydrate(snapshot(rotation: 4)) }
+
+        // Source buffer inconsistent with the declared natural dimensions.
+        #expect(throws: AppleError.self) {
+            _ = try hydrate(snapshot(sourceRgba: Data(count: 3 * 3 * 4)))
+        }
+    }
+
+    @Test("reference PNG codec round-trips the source buffer losslessly and rejects corrupt bytes")
+    func referencePngCodec() throws {
+        // Semi-transparent channel values — the case a premultiplying codec
+        // would corrupt; persistence compression must be lossless.
+        let rgba = Data([200, 100, 50, 7, 255, 0, 0, 255])
+        let png = try appleEncodeReferencePng(width: 2, height: 1, rgba: rgba)
+        let decoded = try appleDecodeReferencePng(bytes: png)
+        #expect(decoded.width == 2)
+        #expect(decoded.height == 1)
+        #expect(decoded.rgba == rgba)
+
+        #expect(throws: AppleError.self) {
+            _ = try appleDecodeReferencePng(bytes: Data([1, 2, 3, 4]))
+        }
+    }
+
     @Test("hydration rejects malformed persisted parts instead of crashing")
     func hydrationBuildErrors() throws {
         let layerId = makeLayerId()

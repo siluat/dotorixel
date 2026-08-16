@@ -215,7 +215,8 @@ final class TabState {
                 layers: snapshot.layers,
                 activeLayerId: snapshot.activeLayerId,
                 nextLayerNumber: snapshot.nextLayerNumber,
-                timelinePanelCollapsed: snapshot.timelinePanelCollapsed
+                timelinePanelCollapsed: snapshot.timelinePanelCollapsed,
+                reference: snapshot.reference
             ),
             viewport: AppleViewport(
                 pixelSize: snapshot.viewport.pixelSize,
@@ -1280,24 +1281,16 @@ final class TabState {
     /// the hydration constructor consumes plus the tab-scoped presentation
     /// state.
     func toSnapshot() -> TabSnapshot {
-        let layers = persistenceLayerSnapshots()
-        let projectedActiveLayerId = floatingSelection.snapshotActiveLayerId(
-            currentActiveLayerId: document.activeLayerId()
-        )
-        // Import makes the Reference active, but issue 278 deliberately omits
-        // it from persistence. Keep the stored pointer valid by falling back
-        // to the topmost Pixel Layer. Issue 282 removes this fallback when the
-        // Reference snapshot itself becomes durable.
-        let persistenceActiveLayerId = layers.contains { $0.id == projectedActiveLayerId }
-            ? projectedActiveLayerId
-            : layers.last?.id ?? projectedActiveLayerId
         return TabSnapshot(
             id: documentId,
             name: name,
             width: document.width(),
             height: document.height(),
-            layers: layers,
-            activeLayerId: persistenceActiveLayerId,
+            layers: persistenceLayerSnapshots(),
+            reference: document.referenceLayerSnapshot(),
+            activeLayerId: floatingSelection.snapshotActiveLayerId(
+                currentActiveLayerId: document.activeLayerId()
+            ),
             nextLayerNumber: document.nextLayerNumber(),
             marquee: document.marquee(),
             timelinePanelCollapsed: isTimelinePanelCollapsed,
@@ -1327,9 +1320,6 @@ final class TabState {
     /// transient preview mutation must not affect saves, export, or the
     /// tab-close blank-document guard.
     private func persistenceLayerSnapshots() -> [AppleLayerSnapshot] {
-        // Known issue-282 gap: persist every Pixel Layer while deliberately
-        // omitting the Reference source and placement. A relaunch therefore
-        // loses the Reference, but auto-save never aborts or crashes.
         document.pixelLayerSnapshots().map { liveLayer in
             var snapshotLayer = liveLayer
             snapshotLayer.pixels = floatingSelection.snapshotPixels(

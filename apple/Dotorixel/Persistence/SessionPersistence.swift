@@ -125,7 +125,10 @@ actor SessionPersistence {
                       layers: snapshot.layers,
                       activeLayerId: snapshot.activeLayerId,
                       nextLayerNumber: snapshot.nextLayerNumber,
-                      timelinePanelCollapsed: snapshot.timelinePanelCollapsed
+                      timelinePanelCollapsed: snapshot.timelinePanelCollapsed,
+                      // Hydrated so a reference-active pointer stays valid;
+                      // the export composite keeps the thumbnail Pixel-only.
+                      reference: snapshot.reference
                   ) else { return nil }
             return SavedDocumentSummary(
                 id: record.id,
@@ -191,6 +194,7 @@ actor SessionPersistence {
             width: Int(tab.width),
             height: Int(tab.height),
             layers: tab.layers.map(storedLayer),
+            reference: storedReference(tab.reference),
             activeLayerId: tab.activeLayerId,
             nextLayerNumber: Int(tab.nextLayerNumber),
             marquee: storedMarquee(tab.marquee),
@@ -208,6 +212,7 @@ actor SessionPersistence {
         record.width = Int(tab.width)
         record.height = Int(tab.height)
         record.layers = tab.layers.map(storedLayer)
+        record.reference = storedReference(tab.reference)
         record.activeLayerId = tab.activeLayerId
         record.nextLayerNumber = Int(tab.nextLayerNumber)
         record.marquee = storedMarquee(tab.marquee)
@@ -222,6 +227,36 @@ actor SessionPersistence {
             visible: layer.visible,
             opacity: layer.opacity,
             pixels: layer.pixels
+        )
+    }
+
+    /// PNG-encodes the reference source for storage. Encoding fails only
+    /// when the buffer disagrees with its dimensions — a core-guaranteed
+    /// invariant — but if it ever does, the document saves without its
+    /// reference rather than aborting the whole auto-save.
+    private func storedReference(
+        _ reference: AppleReferenceLayerSnapshot?
+    ) -> StoredReference? {
+        guard let reference,
+              let sourcePng = try? appleEncodeReferencePng(
+                  width: reference.naturalWidth,
+                  height: reference.naturalHeight,
+                  rgba: reference.sourceRgba
+              ) else { return nil }
+        return StoredReference(
+            id: reference.id,
+            name: reference.name,
+            visible: reference.visible,
+            opacity: reference.opacity,
+            sourcePng: sourcePng,
+            naturalWidth: Int(reference.naturalWidth),
+            naturalHeight: Int(reference.naturalHeight),
+            placement: StoredReferencePlacement(
+                x: reference.placement.x,
+                y: reference.placement.y,
+                scale: reference.placement.scale,
+                rotation: Int(reference.placement.rotation)
+            )
         )
     }
 
@@ -284,6 +319,30 @@ actor SessionPersistence {
               let nextLayerNumber = UInt32(exactly: record.nextLayerNumber) else {
             throw CorruptRecord()
         }
+        let reference = referenceSnapshot(
+            record.reference,
+            pixelLayerIds: record.layers.map(\.id)
+        )
+        // A dropped reference can leave the stored active pointer naming a
+        // layer hydration will never see — under the reference's current id,
+        // or an original id a corrupt id field no longer preserves. Once the
+        // drop happened this layer can no longer tell those apart, so any
+        // pointer outside the Pixel stack remaps to the topmost Pixel Layer:
+        // the drop costs the reference, not the whole session. Dangling
+        // pointers with no dropped reference keep funneling to the core
+        // hydration fresh-session fallback (see `restore()`).
+        let referenceWasDropped = reference == nil && record.reference != nil
+        // Parsed-value comparison for the same reason as the collision
+        // guard in `referenceSnapshot`: this predicate answers "would
+        // hydration accept the pointer?", and the hydration parser ignores
+        // hex casing. An unparseable pointer stays `false` — after a drop
+        // it remaps like any other pointer hydration would reject.
+        let activeLayerIdValue = UUID(uuidString: record.activeLayerId)
+        let activePointsAtPixelLayer = activeLayerIdValue != nil
+            && record.layers.contains { UUID(uuidString: $0.id) == activeLayerIdValue }
+        let activeLayerId = referenceWasDropped && !activePointsAtPixelLayer
+            ? record.layers.last?.id ?? record.activeLayerId
+            : record.activeLayerId
         return TabSnapshot(
             id: record.id,
             name: record.name,
@@ -298,7 +357,8 @@ actor SessionPersistence {
                     pixels: layer.pixels
                 )
             },
-            activeLayerId: record.activeLayerId,
+            reference: reference,
+            activeLayerId: activeLayerId,
             nextLayerNumber: nextLayerNumber,
             marquee: marqueeSnapshot(
                 record.marquee,
@@ -307,6 +367,51 @@ actor SessionPersistence {
             ),
             timelinePanelCollapsed: record.timelinePanelCollapsed,
             viewport: viewportSnapshot(viewport)
+        )
+    }
+
+    /// A stored reference that cannot be rebuilt — a corrupt PNG blob,
+    /// stored natural dimensions disagreeing with the decoded stream, an
+    /// invalid id, an id colliding with a Pixel Layer, or a placement that
+    /// would fail hydration — yields the document without its reference
+    /// rather than discarding the session (web parity: the v4 hydration
+    /// drop). Values hydration would reject are screened here because
+    /// `fromLayers` failing throws the whole document away, the wrong blast
+    /// radius for one bad reference.
+    private func referenceSnapshot(
+        _ stored: StoredReference?,
+        pixelLayerIds: [String]
+    ) -> AppleReferenceLayerSnapshot? {
+        guard let stored,
+              let storedId = UUID(uuidString: stored.id),
+              // Compare parsed values, not strings: UUID equality ignores
+              // hex casing, exactly as the hydration parser does — a
+              // case-variant collision must fail here, not as a
+              // duplicate-id hydration error that costs the session.
+              !pixelLayerIds.contains(where: { UUID(uuidString: $0) == storedId }),
+              let decoded = try? appleDecodeReferencePng(bytes: stored.sourcePng),
+              stored.naturalWidth == Int(decoded.width),
+              stored.naturalHeight == Int(decoded.height),
+              let rotation = UInt8(exactly: stored.placement.rotation), rotation <= 3,
+              stored.placement.x.isFinite,
+              stored.placement.y.isFinite,
+              stored.placement.scale.isFinite, stored.placement.scale > 0,
+              stored.opacity.isFinite, (0.0...1.0).contains(stored.opacity)
+        else { return nil }
+        return AppleReferenceLayerSnapshot(
+            id: stored.id,
+            name: stored.name,
+            visible: stored.visible,
+            opacity: stored.opacity,
+            sourceRgba: decoded.rgba,
+            naturalWidth: decoded.width,
+            naturalHeight: decoded.height,
+            placement: AppleReferencePlacement(
+                x: stored.placement.x,
+                y: stored.placement.y,
+                scale: stored.placement.scale,
+                rotation: rotation
+            )
         )
     }
 

@@ -234,8 +234,81 @@ fn centisecond_delay(duration_ms: u32) -> u16 {
     centiseconds.clamp(1, u64::from(u16::MAX)) as u16
 }
 
+/// A decoded RGBA image returned by [`decode_rgba_png`].
+#[derive(Debug)]
+pub struct DecodedPng {
+    pub width: u32,
+    pub height: u32,
+    /// Row-major RGBA buffer, `width * height * 4` bytes.
+    pub pixels: Vec<u8>,
+}
+
+/// The bytes could not be decoded as the RGBA 8-bit PNG layout
+/// [`decode_rgba_png`] accepts.
+#[derive(Debug)]
+pub struct PngDecodeError {
+    message: String,
+}
+
+impl fmt::Display for PngDecodeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "PNG decoding failed: {}", self.message)
+    }
+}
+
+impl std::error::Error for PngDecodeError {}
+
+/// Decodes an RGBA 8-bit PNG produced by [`encode_rgba_png`] back into its
+/// row-major pixel buffer — the persistence codec's lossless inverse, not a
+/// general-purpose image importer. Errors on malformed bytes and on any
+/// other PNG layout (palette, grayscale, 16-bit) rather than converting.
+///
+/// `max_pixel_bytes` bounds the decoded output buffer: the header's declared
+/// dimensions are attacker-controllable input, so a stream whose decoded
+/// size would exceed the bound errors before any allocation happens —
+/// an absurd header must cost an error, never an allocation abort.
+pub fn decode_rgba_png(bytes: &[u8], max_pixel_bytes: usize) -> Result<DecodedPng, PngDecodeError> {
+    let map_err = |e: png::DecodingError| PngDecodeError {
+        message: e.to_string(),
+    };
+    let decoder = png::Decoder::new(Cursor::new(bytes));
+    let mut reader = decoder.read_info().map_err(map_err)?;
+    if reader.output_color_type() != (png::ColorType::Rgba, png::BitDepth::Eight) {
+        return Err(PngDecodeError {
+            message: format!("expected 8-bit RGBA, got {:?}", reader.output_color_type()),
+        });
+    }
+    // Compute the RGBA output size from the header dimensions with checked
+    // math instead of trusting the decoder's `usize` arithmetic: the header
+    // is hostile input and usize is 32-bit on wasm32, so a wrapping product
+    // must become a deterministic error, never an under-sized allocation
+    // (same defense as `encode_spritesheet_png`). `u32 × u32` fits u64; only
+    // the `× 4` needs the checked step.
+    let (width, height) = {
+        let info = reader.info();
+        (info.width, info.height)
+    };
+    let output_len = (u64::from(width) * u64::from(height))
+        .checked_mul(4)
+        .filter(|&len| len <= max_pixel_bytes as u64)
+        .ok_or_else(|| PngDecodeError {
+            message: format!(
+                "decoded {width}x{height} RGBA exceeds the {max_pixel_bytes}-byte limit"
+            ),
+        })?;
+    let mut pixels = vec![0u8; output_len as usize];
+    let frame = reader.next_frame(&mut pixels).map_err(map_err)?;
+    pixels.truncate(frame.buffer_size());
+    Ok(DecodedPng {
+        width: frame.width,
+        height: frame.height,
+        pixels,
+    })
+}
+
 /// Shared raw-buffer PNG encoding: RGBA 8-bit, `pixels` in row-major order.
-fn encode_rgba_png(width: u32, height: u32, pixels: &[u8]) -> Result<Vec<u8>, ExportError> {
+/// [`decode_rgba_png`] is its lossless inverse.
+pub fn encode_rgba_png(width: u32, height: u32, pixels: &[u8]) -> Result<Vec<u8>, ExportError> {
     let mut buf: Vec<u8> = Vec::new();
     {
         let cursor = Cursor::new(&mut buf);
@@ -773,6 +846,56 @@ mod tests {
         reader.next_frame(&mut decoded).unwrap();
 
         assert_eq!(&decoded[..4], &[42, 128, 255, 200]);
+    }
+
+    #[test]
+    fn decode_rgba_png_round_trips_encode_rgba_png_losslessly() {
+        // Semi-transparent channel values are the lossy case for alpha
+        // premultiplication round-trips; a lossless codec must preserve them
+        // bit-for-bit. Non-square so width/height transposition would fail.
+        let pixels: Vec<u8> = vec![
+            200, 100, 50, 7, // semi-transparent
+            0, 0, 0, 0, // fully transparent
+            255, 255, 255, 255, // opaque white
+            1, 2, 3, 254, // near-opaque
+            42, 128, 255, 200, // mid-alpha
+            9, 8, 7, 6, // low everything
+        ];
+        let bytes = encode_rgba_png(3, 2, &pixels).unwrap();
+
+        let decoded = decode_rgba_png(&bytes, 64 * 1024 * 1024).unwrap();
+
+        assert_eq!((decoded.width, decoded.height), (3, 2));
+        assert_eq!(decoded.pixels, pixels);
+    }
+
+    #[test]
+    fn decode_rgba_png_rejects_corrupt_bytes() {
+        let limit = 64 * 1024 * 1024;
+
+        // Not a PNG at all.
+        assert!(decode_rgba_png(&[1, 2, 3, 4], limit).is_err());
+
+        // A valid stream truncated mid-data: the header parses but the
+        // pixel payload cannot be read.
+        let bytes = encode_rgba_png(3, 2, &[0u8; 3 * 2 * 4]).unwrap();
+        assert!(decode_rgba_png(&bytes[..bytes.len() / 2], limit).is_err());
+    }
+
+    #[test]
+    fn decode_rgba_png_rejects_a_header_exceeding_the_output_bound_before_allocating() {
+        // The header's declared dimensions decide the output allocation, and
+        // a corrupt stream controls them — a hostile header could declare a
+        // multi-gigabyte buffer whose allocation aborts the process. The
+        // bound must reject the header up front; a 3×2 stream against an
+        // 8-byte bound exercises exactly that pre-allocation path.
+        let bytes = encode_rgba_png(3, 2, &[0u8; 3 * 2 * 4]).unwrap();
+
+        let message = decode_rgba_png(&bytes, 8).unwrap_err().to_string();
+        assert!(message.contains("exceeds"), "actual error: {message}");
+
+        // The same stream decodes fine under a sufficient bound.
+        assert!(decode_rgba_png(&bytes, 3 * 2 * 4).is_ok());
     }
 
     #[test]

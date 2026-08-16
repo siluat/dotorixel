@@ -10,14 +10,29 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 219 | 164 | 55 | 304 | 75% | 35% |
-| cubic-dev-ai[bot] | 339 | 266 | 73 | 221 | 78% | 55% |
-| coderabbitai[bot] | 334 | 240 | 94 | 242 | 72% | 50% |
+| greptile-apps[bot] | 223 | 168 | 55 | 306 | 75% | 35% |
+| cubic-dev-ai[bot] | 346 | 271 | 75 | 222 | 78% | 55% |
+| coderabbitai[bot] | 334 | 240 | 94 | 245 | 72% | 49% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #370 | greptile-apps[bot] | Accept | Round 3: the post-drop active-pointer remap predicate still raw-string-compared what the hydration parser matches case-insensitively, so a drop paired with a case-variant pointer at a non-topmost Pixel Layer silently moved the active layer to the topmost one; now parses UUIDs like the collision guard |
+| #370 | cubic-dev-ai[bot] | Miss | Round 3: re-reviewed with no findings and missed the remap predicate's casing gap accepted from greptile. coderabbit did not re-review this round — no participation, no Miss |
+| #370 | greptile-apps[bot] | Accept | Round 2: the round-1 collision guard compared raw id strings while the hydration parser ignores hex casing, so a case-variant collision still failed hydration as a duplicate id and cost the session; the guard now compares parsed UUID values |
+| #370 | cubic-dev-ai[bot] | Accept | Same case-variant collision bypass (duplicate of greptile); same parsed-value comparison |
+| #370 | cubic-dev-ai[bot] | Accept | Round 2: the decode bound trusted the decoder's `usize` output-size arithmetic, which can wrap on 32-bit targets under a hostile header; the size now comes from checked u64 math over the header dimensions (the `encode_spritesheet_png` defense) |
+| #370 | greptile-apps[bot] | Miss | Round 2: flagged the casing bypass but missed the unchecked output-size arithmetic accepted from cubic. coderabbit did not re-review this round — no participation, no Miss |
+| #370 | greptile-apps[bot] | Accept | A stored reference reusing a Pixel Layer's UUID passed the boundary screen and failed combined-stack hydration on the duplicate id, costing the whole session; the collision now drops the reference and the post-drop active-pointer remap covers any pointer left outside the Pixel stack |
+| #370 | cubic-dev-ai[bot] | Accept | Same reference-id collision finding (duplicate of greptile); same boundary drop |
+| #370 | greptile-apps[bot] | Accept | `decode_rgba_png` allocated the header-derived output buffer before any payload validation, so a corrupt blob declaring huge dimensions could abort launch on allocation failure; the codec now takes a caller-owned byte bound checked pre-allocation (Apple passes the import boundary's 64 MiB cap) |
+| #370 | cubic-dev-ai[bot] | Accept | Same pre-validation output allocation finding (duplicate of greptile); same caller-owned bound |
+| #370 | cubic-dev-ai[bot] | Accept | The AutoSave flush test comment read as contradicting its own reference-active assertion; reworded to say the snapshot keeps the pointer import left behind instead of falling back to a Pixel Layer |
+| #370 | cubic-dev-ai[bot] | Reject | Wanted every dangling stored active pointer healed to the topmost Pixel Layer; the documented `restore()` contract screens only what this layer causes itself (the reference drop) plus what would trap — other value-level corruption deliberately funnels to the core-hydration fresh-session fallback, isomorphic on the web |
+| #370 | cubic-dev-ai[bot] | Reject | Wanted `isDocumentBlank` to count a persisted Reference as content in the close-tab prompt; blank guards user-drawn pixels, the web makes the same call, and prompting for reference-only documents is a cross-shell product decision outside this persistence slice |
+| #370 | greptile-apps[bot] | Miss | Missed the AutoSave test-comment contradiction accepted from cubic |
+| #370 | coderabbitai[bot] | Miss (×3) | APPROVED with no findings; missed the reference-id collision drop, the pre-validation decode allocation, and the test-comment wording accepted from greptile/cubic |
 | #369 | greptile-apps[bot] | Accept | A placement commit arriving mid-Eyedropper-stroke dropped the draft while the refused write skipped the reclamp, stranding the viewport outside the committed bounds; the commit path now reclamps explicitly |
 | #369 | greptile-apps[bot] | Reject | Stale-bindings incremental build is a known build-infra limitation already backlogged as the mtime-based staleness guard (surfaced by this same finding on PR #342) |
 | #369 | coderabbitai[bot] | Reject | Wanted a reclamp on every live draft update; web parity reclamps only at draft resolution, a per-update reclamp would move the viewport mid-drag, and every viewport sink already clamps |

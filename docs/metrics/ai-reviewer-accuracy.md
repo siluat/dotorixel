@@ -11,13 +11,14 @@ only Miss rows may be grouped, with an explicit (×N) count.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 223 | 168 | 55 | 306 | 75% | 35% |
-| cubic-dev-ai[bot] | 346 | 271 | 75 | 222 | 78% | 55% |
+| cubic-dev-ai[bot] | 347 | 271 | 76 | 222 | 78% | 55% |
 | coderabbitai[bot] | 334 | 240 | 94 | 245 | 72% | 49% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #371 | cubic-dev-ai[bot] | Reject | Wanted `parse_frame_id`/`parse_layer_id` merged behind a kind-parameterized parser; the two ids have different validity domains (the frame axis legitimately holds `Uuid::nil()` as `Frame::INITIAL`, layer ids never do), so the likeliest shared guard — nil rejection — would be correct for layers and a bug for frames. The `Uuid::parse_str` + `AppleError::Document` mapping is already common, and a `kind: &str` would trade a compiler-checked distinction for a stringly-typed one |
 | #370 | greptile-apps[bot] | Accept | Round 3: the post-drop active-pointer remap predicate still raw-string-compared what the hydration parser matches case-insensitively, so a drop paired with a case-variant pointer at a non-topmost Pixel Layer silently moved the active layer to the topmost one; now parses UUIDs like the collision guard |
 | #370 | cubic-dev-ai[bot] | Miss | Round 3: re-reviewed with no findings and missed the remap predicate's casing gap accepted from greptile. coderabbit did not re-review this round — no participation, no Miss |
 | #370 | greptile-apps[bot] | Accept | Round 2: the round-1 collision guard compared raw id strings while the hydration parser ignores hex casing, so a case-variant collision still failed hydration as a duplicate id and cost the session; the guard now compares parsed UUID values |

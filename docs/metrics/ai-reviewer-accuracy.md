@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 224 | 169 | 55 | 313 | 75% | 35% |
-| cubic-dev-ai[bot] | 353 | 276 | 77 | 225 | 78% | 55% |
-| coderabbitai[bot] | 338 | 244 | 94 | 249 | 72% | 49% |
+| greptile-apps[bot] | 225 | 170 | 55 | 313 | 76% | 35% |
+| cubic-dev-ai[bot] | 354 | 277 | 77 | 225 | 78% | 55% |
+| coderabbitai[bot] | 338 | 244 | 94 | 250 | 72% | 49% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #374 | greptile-apps[bot] | Accept | Second round on the same branch: judging the release by final travel closed only the common case, since a finger that crossed the threshold and returned within 4pt before an axis change cancelled the drag still measured as a tap — and that tap moves the drawing target *and* commits a pending Floating Selection. The cancellation is now recorded when it happens and consumed by the release; the flag also stops the cancelled press from reopening a drag whose `baseIndex` would come from the new axis while its translation still measured from touch-down. The first round's fix was accepted with this residual explicitly judged harmless — it was not |
+| #374 | cubic-dev-ai[bot] | Accept | Same returned-drag-becomes-selection residual (duplicate of greptile); asked for the same sticky threshold-crossed tracking |
+| #374 | coderabbitai[bot] | Miss | Approved the first round's fix without flagging the returned-drag residual accepted from greptile and cubic |
 | #374 | greptile-apps[bot] | Accept | The ruler header's `onEnded` reached its tap branch whenever no drag was live, conflating a press that never became a drag with one whose drag an axis change had cancelled out from under it — so a second finger adding a frame, or ⌘Z, turned the release into an Active Frame switch and silently moved the drawing target. The branch now selects only below the drag threshold. The layer sidebar never had the path: its `onEnded` has no tap role to fall through to |
 | #374 | cubic-dev-ai[bot] | Accept | Same cancelled-drag-becomes-selection defect (duplicate of greptile); same threshold guard on the tap branch |
 | #374 | cubic-dev-ai[bot] | Accept | A single-frame document still opened a drag preview once the press crossed 4pt: the offset clamped to zero so nothing moved, but the header took the dragging fill and both scrollers locked. `canReorderFrames` now gates the drag where the sidebar disables its row handle outright — a ruler header cannot be disabled without losing its select role |

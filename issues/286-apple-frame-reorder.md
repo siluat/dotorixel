@@ -97,13 +97,18 @@ Drag-to-reorder on the frame ruler, mirroring how the layer rows reorder
 - **Frame order is still not persisted** — a relaunch restores a single frame until
   292, so a reorder survives only the session.
 - **A cancelled drag no longer falls through to selecting the frame** (PR #374
-  review, raised by greptile and cubic). `onEnded` reached its tap branch
-  whenever no drag was live, which conflated a press that never became a drag
-  with one whose drag an axis change had cancelled out from under it — so a
-  second finger adding a frame, or ⌘Z, turned the release into an Active Frame
-  switch and moved the drawing target. The branch now selects only below the
-  drag threshold. The layer sidebar never had this path: its `onEnded` has no
-  tap role to fall through to.
+  review, raised by greptile and cubic across two rounds). `onEnded` reached its
+  tap branch whenever no drag was live, which conflated a press that never
+  became a drag with one whose drag an axis change had cancelled out from under
+  it — so a second finger adding a frame, or ⌘Z, turned the release into an
+  Active Frame switch, moving the drawing target *and* committing any pending
+  Floating Selection. Judging by final travel closed only the common case: a
+  finger returned near its origin still read as a tap. The cancellation is now
+  recorded when it happens (`wasFrameDragCancelled`) and consumed by the
+  release. The same flag stops the cancelled press from reopening a drag, whose
+  `baseIndex` would come from the new axis while its translation still measured
+  from the original touch-down. The layer sidebar never had this path: its
+  `onEnded` has no tap role to fall through to.
 - **A single-frame document no longer opens a drag preview** (PR #374 review,
   cubic). The offset clamped to zero, so nothing moved, but the header still
   took the dragging fill and both scrollers locked. `canReorderFrames` gates the

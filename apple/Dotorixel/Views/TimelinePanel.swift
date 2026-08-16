@@ -23,6 +23,19 @@ struct TimelinePanel: View {
     /// is. Separate from `layerDrag` because the two axes are independent
     /// surfaces: a live layer drag must not read as a frame drag's preview.
     @State private var frameDrag: ReorderDrag?
+
+    /// Set when an axis change cancels a live frame drag while its gesture is
+    /// still down. That gesture keeps delivering events with nothing behind
+    /// them, and its final travel cannot tell the two cases apart — a finger
+    /// returned near its origin looks exactly like a press that never left tap
+    /// range. So the fact is recorded when it happens: the release must not
+    /// fall back to selecting, and the same press must not reopen a drag
+    /// against geometry that has already moved. Consumed by that release.
+    ///
+    /// Deliberately not keyed by frame id: a gesture torn down without
+    /// `onEnded` would leave that id's header undraggable for good, where an
+    /// orphaned flag costs at most one ignored release.
+    @State private var wasFrameDragCancelled = false
     @State private var isReferenceImporterPresented = false
     @State private var referenceImportErrorMessage: String?
 
@@ -133,6 +146,7 @@ struct TimelinePanel: View {
         .onChange(of: frameIdsInAxisOrder) {
             guard frameDrag != nil else { return }
             frameDrag = nil
+            wasFrameDragCancelled = true
         }
         .fileImporter(
             isPresented: $isReferenceImporterPresented,
@@ -376,8 +390,12 @@ struct TimelinePanel: View {
         .frame(height: rulerHeight + bodyHeight)
         // Collapsing mid-drag takes the ruler with it, tearing the header's
         // gesture down without `onEnded` — the frame-axis twin of the body's
-        // own guard below.
-        .onDisappear { frameDrag = nil }
+        // own guard below. The cancel flag goes with it: no release is coming
+        // to consume it.
+        .onDisappear {
+            frameDrag = nil
+            wasFrameDragCancelled = false
+        }
     }
 
     /// The sidebar holds its spec width wherever the canvas column can seat it
@@ -769,7 +787,10 @@ struct TimelinePanel: View {
                 let travel = value.translation.width
                 if frameDrag?.itemId == frame.id {
                     frameDrag?.translation = travel
-                } else if frameDrag == nil, canReorderFrames, abs(travel) > frameDragThreshold {
+                } else if frameDrag == nil,
+                          !wasFrameDragCancelled,
+                          canReorderFrames,
+                          abs(travel) > frameDragThreshold {
                     frameDrag = ReorderDrag(
                         itemId: frame.id,
                         baseIndex: axisIndex,
@@ -786,14 +807,17 @@ struct TimelinePanel: View {
             .onEnded { value in
                 let travel = value.translation.width
                 guard var drag = frameDrag else {
-                    // Two presses reach here with no drag to commit, and only
-                    // one of them is a tap. Below the threshold the press never
-                    // became a drag, so it reads as the header's other role:
-                    // selecting the Active Frame. Past it, a drag existed and
-                    // was cancelled out from under this gesture — an axis that
-                    // changed mid-drag — and a cancelled reorder must not fall
-                    // through to moving the drawing target.
-                    if abs(travel) <= frameDragThreshold {
+                    // Three presses reach here with no drag to commit, and only
+                    // one of them is a tap. A cancelled drag is the first: it
+                    // must not fall through to moving the drawing target, which
+                    // would also commit a pending Floating Selection. A press
+                    // past the threshold that never opened a drag is the second
+                    // (a single-frame axis has nowhere to reorder to). What is
+                    // left is a press that stayed in tap range, which reads as
+                    // the header's other role: selecting the Active Frame.
+                    if wasFrameDragCancelled {
+                        wasFrameDragCancelled = false
+                    } else if abs(travel) <= frameDragThreshold {
                         tab.setActiveFrame(id: frame.id)
                     }
                     return

@@ -217,7 +217,8 @@ final class Workspace {
             },
             consumePendingToolRestore: { [weak self] in
                 self?.keyboardShortcuts.consumePendingToolRestore()
-            }
+            },
+            frameScheduler: frameScheduler
         )
         tabs.append(tab)
         activeTabIndex = tabs.count - 1

@@ -47,6 +47,7 @@ smoothness check there.
 - Apple bindings staleness guard — regenerate Swift bindings on binding-surface change; hit again in 285
 - Apple auto-save failure surfacing — needs a shell logging convention first
 - Web hydration opacity validation — port the Apple `from_layers` opacity guard
+- Web playback edit-guard gaps mirrored from the 288 review — nudge/paste don't stop playback
 - Web session-save gaps mirrored from the 265 review — unstored-tab skip + shared-state document rewrite
 - Core/wasm `from_drag` span hardening — checked wide arithmetic if an unbounded coordinate source ever appears
 - Flaky e2e: Reference Window reload persistence — investigate if it recurs

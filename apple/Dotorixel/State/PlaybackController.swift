@@ -63,9 +63,14 @@ private final class PendingTick: NSObject {
 
     func arm() {
         #if os(macOS)
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: false) { [weak self] _ in
+        // Added to .common (not the scheduled default mode) so the tick keeps
+        // firing while the run loop is event-tracking (menu open, drag) — the
+        // same modes the iOS display link registers for.
+        let timer = Timer(timeInterval: 1.0 / 60.0, repeats: false) { [weak self] _ in
             self?.fire(CACurrentMediaTime() * 1000)
         }
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
         #else
         let link = CADisplayLink(target: self, selector: #selector(handleFire(_:)))
         link.add(to: .main, forMode: .common)

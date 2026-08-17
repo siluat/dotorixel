@@ -175,6 +175,43 @@ struct TabStatePlaybackTests {
         #expect(!tab.isPlaying)
     }
 
+    @Test("pasting during playback exits the preview so the pasted selection is visible")
+    func pasteDuringPlaybackStopsPlayback() throws {
+        let (tab, _, _, clock) = try makeTwoFrameTab()
+        tab.startPlayback()
+        clock.fireAt(1000)
+
+        let clipboard = try #require(SelectionClipboard(
+            pixels: Data([0xFF, 0x00, 0x00, 0xFF]),
+            width: 1,
+            height: 1
+        ))
+        tab.pasteSelectionClipboard(clipboard)
+
+        // Pasting is an edit action: it exits the preview so the Floating
+        // Selection it creates renders instead of hiding behind the playhead.
+        #expect(!tab.isPlaying)
+        #expect(tab.floatingSelectionOffset != nil)
+        #expect(try !tab.renderPixels().allSatisfy { $0 == 0 })
+    }
+
+    @Test("a keyboard nudge during playback exits the preview before lifting the Marquee")
+    func nudgeDuringPlaybackStopsPlayback() throws {
+        let (tab, _, _, clock) = try makeTwoFrameTab()
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        try tab.document.setPixel(x: 1, y: 1, color: red)
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        )
+        tab.startPlayback()
+        clock.fireAt(1000)
+
+        tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 0))
+
+        #expect(!tab.isPlaying)
+        #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 0))
+    }
+
     @Test("starting playback commits an in-flight Floating Selection")
     func startCommitsAnInFlightFloatingSelection() throws {
         let (tab, _, _, _) = try makeTwoFrameTab()
@@ -259,9 +296,11 @@ struct WorkspacePlaybackLifecycleTests {
         #expect(!clock.hasScheduled)
 
         tab.startPlayback()
+        // Switching TO the playing tab leaves its playback running — a switch
+        // stops only the outgoing tab.
         workspace.setActiveTab(0)
-        // Activating the playing tab's own index is not a switch — but the
-        // switch away that follows is.
+        #expect(tab.isPlaying)
+        // The switch away is what stops it.
         workspace.setActiveTab(1)
         #expect(!tab.isPlaying)
     }
@@ -279,6 +318,22 @@ struct WorkspacePlaybackLifecycleTests {
         #expect(!second.isPlaying)
         // A closed tab never keeps a clock running.
         #expect(!clock.hasScheduled)
+    }
+
+    @Test("a reopened tab's playback schedules on the workspace's injected clock")
+    func reopenedTabUsesTheInjectedClock() throws {
+        let source = Workspace(width: 4, height: 4)
+        let snapshot = source.toSnapshot().tabs[0]
+
+        let clock = FakeFrameScheduler()
+        let workspace = Workspace(width: 8, height: 8, frameScheduler: clock)
+        let reopened = try workspace.openSnapshot(snapshot)
+
+        reopened.startPlayback()
+
+        // The injection contract: the workspace forwards one scheduler to
+        // every tab it constructs, the reopen path included.
+        #expect(clock.hasScheduled)
     }
 }
 

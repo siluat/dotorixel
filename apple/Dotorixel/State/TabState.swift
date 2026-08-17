@@ -492,6 +492,10 @@ final class TabState {
     /// the Floating Selection is explicitly committed.
     func pasteSelectionClipboard(_ clipboard: SelectionClipboard) {
         guard !isDrawing, isActiveLayerEditable else { return }
+        // Pasting is an edit action — exit the playback preview first, or the
+        // Floating Selection it creates would hide behind the playhead
+        // composite while staying live (the `beginStroke` precedent).
+        playback.stop()
         guard resolveFloatingSelectionRecovery() else { return }
         if floatingSelection.isActive, !commitFloatingSelection() { return }
         guard let destination = pasteDestination(for: clipboard) else { return }
@@ -536,6 +540,9 @@ final class TabState {
     func nudgeMarquee(by delta: FloatingSelectionOffset) {
         guard !isDrawing, isActiveLayerEditable else { return }
         guard delta != .zero else { return }
+        // A nudge lifts (or moves) a Floating Selection — exit the playback
+        // preview first for the same reason as `pasteSelectionClipboard`.
+        playback.stop()
 
         if !floatingSelection.isActive {
             guard let marquee = document.marquee() else { return }
@@ -645,6 +652,9 @@ final class TabState {
     /// mid-stroke seal every frame-axis command shares) or when the commit
     /// fails; a no-op when already playing.
     func startPlayback() {
+        // Already playing: nothing to (re)start, and edit state must not be
+        // re-resolved for a start that changes nothing.
+        guard !isPlaying else { return }
         guard !isDrawing else { return }
         guard resolveFloatingSelectionRecovery() else { return }
         guard !floatingSelection.isActive || commitFloatingSelection() else { return }

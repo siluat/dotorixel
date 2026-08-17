@@ -152,8 +152,9 @@ When a view legitimately changes, regenerate its reference **on the pinned host*
 - Delete the affected PNG(s) under
   `apple/DotorixelTests/__Snapshots__/<suite name>/` and re-run — a missing
   reference is auto-recorded (and fails that run; re-run to verify). The
-  generated project lists the PNGs as build inputs, so run `xcodegen generate`
-  after deleting (the build fails on `CopyPNGFile` otherwise) and again after
+  generated project lists the PNGs as build inputs, so run
+  `xcodegen generate --spec apple/project.yml` (the `## Running` form) after
+  deleting (the build fails on `CopyPNGFile` otherwise) and again after
   recording so the recreated files are bundled, **or**
 - set the recording mode temporarily, e.g. `assertSnapshot(…, record: .all)` or wrap a
   run with `withSnapshotTesting(record: .all) { … }`.

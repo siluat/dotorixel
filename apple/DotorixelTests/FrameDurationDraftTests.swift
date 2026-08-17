@@ -16,9 +16,12 @@ struct FrameDurationDraftTests {
         #expect(FrameDurationDraft.resolveCommit(draft: "250", current: 100) == 250)
     }
 
-    @Test("surrounding whitespace does not invalidate the entry")
-    func whitespaceIsTrimmed() {
+    @Test("surrounding whitespace and newlines do not invalidate the entry")
+    func whitespaceAndNewlinesAreTrimmed() {
         #expect(FrameDurationDraft.resolveCommit(draft: " 250 ", current: 100) == 250)
+        // A pasted value can carry a line break; the web's `trim()` strips it.
+        #expect(FrameDurationDraft.resolveCommit(draft: "250\n", current: 100) == 250)
+        #expect(FrameDurationDraft.resolveCommit(draft: "\n 250", current: 100) == 250)
     }
 
     @Test(

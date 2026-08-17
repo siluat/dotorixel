@@ -114,7 +114,12 @@ struct ContentView: View {
                         // and its `onChange(of: geo.size)` re-presents the
                         // viewport whenever the panel collapses or expands —
                         // a fitted tab keeps its zoom, the pan reclamps.
-                        TimelinePanel(tab: tab)
+                        TimelinePanel(
+                            tab: tab,
+                            // The duration field must not feed the app-level
+                            // shortcut monitor (the canvas-size fields' contract).
+                            onTextInputFocusChange: { workspace.isTextInputFocused = $0 }
+                        )
                     }
 
                     RightPanel(workspace: workspace, tier: tier)

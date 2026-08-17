@@ -15,7 +15,9 @@ enum FrameDurationDraft {
     /// unchanged value — typed or reached by the clamp — never dispatches, so
     /// an unchanged commit records no history entry.
     static func resolveCommit(draft: String, current: UInt32) -> UInt32? {
-        let trimmed = draft.trimmingCharacters(in: .whitespaces)
+        // `.whitespacesAndNewlines` mirrors the web's `trim()`: a pasted
+        // value can carry a line break, which must not invalidate the entry.
+        let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard isIntegerLiteral(trimmed) else { return nil }
         let clamped = clampToBindingRange(trimmed)
         return clamped == current ? nil : clamped

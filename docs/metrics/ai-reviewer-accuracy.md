@@ -10,14 +10,21 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 226 | 171 | 55 | 313 | 76% | 35% |
-| cubic-dev-ai[bot] | 359 | 282 | 77 | 225 | 79% | 56% |
-| coderabbitai[bot] | 338 | 244 | 94 | 252 | 72% | 49% |
+| greptile-apps[bot] | 227 | 172 | 55 | 316 | 76% | 35% |
+| cubic-dev-ai[bot] | 363 | 286 | 77 | 225 | 79% | 56% |
+| coderabbitai[bot] | 338 | 244 | 94 | 256 | 72% | 49% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #375 | greptile-apps[bot] | Accept | The new duration field never published its focus through `Workspace.isTextInputFocused`, so the app-level shortcut monitor kept intercepting tool letters, G/X, and ⌘Z while the user typed into it — editor actions fired and the typed character was swallowed. The panel now publishes focus through a closure (the RightPanel size-field contract) and ContentView feeds the workspace flag |
+| #375 | cubic-dev-ai[bot] | Accept | Same text-focus gap (duplicate of greptile); also asked for RightPanel's clear-on-disappear, which the fix carries — collapsing the panel now commits the in-progress edit and releases the guard |
+| #375 | cubic-dev-ai[bot] | Accept | `resolveCommit` trimmed `.whitespaces` only, so a pasted draft carrying a line break reverted instead of committing — the web's `trim()` strips line terminators too. Now `.whitespacesAndNewlines`, with the pasted-newline cases pinned by tests |
+| #375 | cubic-dev-ai[bot] | Accept | The new re-record instruction said to run bare `xcodegen generate`, which fails from the repo root — the spec lives at `apple/project.yml`, as the README's own `## Running` section spells out. The instruction now references that same form |
+| #375 | cubic-dev-ai[bot] | Accept | The Per-frame duration row marked Apple ✅ while itself noting persistence pending, though the adjacent Frame cel-grid row stays 🔧 on exactly that ground. Realigned to 🔧 so both rows flip together when 292 lands |
+| #375 | greptile-apps[bot] | Miss (×3) | Missed the newline-trim, README spec-path, and status-consistency findings accepted from cubic |
+| #375 | coderabbitai[bot] | Miss (×4) | Approved with no findings; missed the text-focus guard accepted from greptile and cubic, and cubic's three other accepted findings |
 | #374 | cubic-dev-ai[bot] | Accept | Fourth round on the same state: a single optional latch tracks one cancellation, so two axis changes with two fingers down let the later one overwrite the earlier, and the first press released as a tap after all. The latch is now a set keyed by header |
 | #374 | cubic-dev-ai[bot] | Accept | The other ordering the suite had not composed: with another header's drag live, a cancelled press's release left through the `releasing.itemId == itemId` guard without spending its latch, so the leftover swallowed that header's next press. `release` now resolves the cancellation before any live drag, and the two orderings are pinned by tests |
 | #374 | cubic-dev-ai[bot] | Accept | Running Totals overstated greptile's Miss by one: the #374 rows carry 3 Accept and one `Miss (×2)`, so 311 + 2 = 313, not 314 |

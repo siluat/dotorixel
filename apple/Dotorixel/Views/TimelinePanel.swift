@@ -14,6 +14,13 @@ import SwiftUI
 struct TimelinePanel: View {
     let tab: TabState
 
+    /// Publishes the duration field's text focus so the workspace can pause
+    /// editor shortcuts while it receives typed characters (the
+    /// `KeyboardShortcutHost` guard RightPanel's size fields feed the same
+    /// way). A closure rather than the `Workspace` itself: the flag is the
+    /// panel's only workspace concern, and headless renders pass nothing.
+    var onTextInputFocusChange: (Bool) -> Void = { _ in }
+
     /// The layer reorder drag currently under a handle, or nil while none is.
     /// View-local by nature: it lives and dies with the gesture and never
     /// reaches the document until the drop commits.
@@ -774,7 +781,18 @@ struct TimelinePanel: View {
                 return .handled
             }
             .onChange(of: isDurationEditorFocused) { _, isFocused in
+                onTextInputFocusChange(isFocused)
                 if !isFocused { commitDurationDraft() }
+            }
+            // Collapsing the panel removes the field without a focus-change
+            // closure ever firing (RightPanel clears the same flag the same
+            // way), so commit the in-progress edit — the web's collapse blurs
+            // and commits — and release the shortcut guard on teardown.
+            .onDisappear {
+                if isDurationEditorFocused {
+                    commitDurationDraft()
+                    onTextInputFocusChange(false)
+                }
             }
             // One observation sees the frame switch and the same-frame store
             // change together, so the two are told apart without relying on

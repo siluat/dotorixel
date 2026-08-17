@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 227 | 172 | 55 | 316 | 76% | 35% |
-| cubic-dev-ai[bot] | 363 | 286 | 77 | 225 | 79% | 56% |
-| coderabbitai[bot] | 338 | 244 | 94 | 256 | 72% | 49% |
+| greptile-apps[bot] | 227 | 172 | 55 | 317 | 76% | 35% |
+| cubic-dev-ai[bot] | 364 | 287 | 77 | 225 | 79% | 56% |
+| coderabbitai[bot] | 338 | 244 | 94 | 257 | 72% | 49% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #375 | cubic-dev-ai[bot] | Accept | Second round: the collapse teardown cleared the workspace guard but left `isDurationEditorFocused` true, so reopening the panel could restore focus from the stale binding with no transition for `onChange` to publish — typed letters reached editor shortcuts while the field held focus. The fix goes further: SwiftUI's reset of a removed field's binding is not ordered against `onDisappear`, so the conditional also raced the other way (an early reset skipped the commit and left the guard stuck set); teardown now commits and resets unconditionally |
+| #375 | greptile-apps[bot] | Miss | Re-scanned the fix commit (confidence 4/5 → 5/5, "safe to merge") without flagging the teardown residual accepted from cubic |
+| #375 | coderabbitai[bot] | Miss | Refreshed its summary on the fix commit without flagging the teardown residual accepted from cubic |
 | #375 | greptile-apps[bot] | Accept | The new duration field never published its focus through `Workspace.isTextInputFocused`, so the app-level shortcut monitor kept intercepting tool letters, G/X, and ⌘Z while the user typed into it — editor actions fired and the typed character was swallowed. The panel now publishes focus through a closure (the RightPanel size-field contract) and ContentView feeds the workspace flag |
 | #375 | cubic-dev-ai[bot] | Accept | Same text-focus gap (duplicate of greptile); also asked for RightPanel's clear-on-disappear, which the fix carries — collapsing the panel now commits the in-progress edit and releases the guard |
 | #375 | cubic-dev-ai[bot] | Accept | `resolveCommit` trimmed `.whitespaces` only, so a pasted draft carrying a line break reverted instead of committing — the web's `trim()` strips line terminators too. Now `.whitespacesAndNewlines`, with the pasted-newline cases pinned by tests |

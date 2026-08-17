@@ -786,13 +786,19 @@ struct TimelinePanel: View {
             }
             // Collapsing the panel removes the field without a focus-change
             // closure ever firing (RightPanel clears the same flag the same
-            // way), so commit the in-progress edit — the web's collapse blurs
-            // and commits — and release the shortcut guard on teardown.
+            // way), so teardown commits the in-progress edit — the web's
+            // collapse blurs and commits — resets the focus state, and
+            // releases the shortcut guard. Unconditionally: SwiftUI's own
+            // reset of a removed field's focus binding is not ordered against
+            // this closure, so gating on the binding races it both ways — a
+            // stale true re-focuses the reopened field with the guard never
+            // published, and an early reset skips the commit and leaves the
+            // guard stuck set. A non-edited draft commits as a no-op and the
+            // resets are idempotent, so running all three is always safe.
             .onDisappear {
-                if isDurationEditorFocused {
-                    commitDurationDraft()
-                    onTextInputFocusChange(false)
-                }
+                commitDurationDraft()
+                isDurationEditorFocused = false
+                onTextInputFocusChange(false)
             }
             // One observation sees the frame switch and the same-frame store
             // change together, so the two are told apart without relying on

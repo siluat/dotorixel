@@ -20,6 +20,11 @@ final class Workspace {
     /// `wireSharedDirtyMarking()`; tab-scoped mutations mark from `TabState`.
     private let notifier: DirtyNotifier
 
+    /// The playback clock every tab's controller schedules against — injected
+    /// so tests drive ticks by hand (web parity: the workspace forwards one
+    /// `frameScheduler` to each tab).
+    private let frameScheduler: FrameScheduler
+
     var activeTab: TabState {
         tabs[activeTabIndex]
     }
@@ -83,9 +88,11 @@ final class Workspace {
 
     init(width: UInt32 = Workspace.defaultCanvasDimension,
          height: UInt32 = Workspace.defaultCanvasDimension,
-         notifier: DirtyNotifier = NoOpDirtyNotifier()) {
+         notifier: DirtyNotifier = NoOpDirtyNotifier(),
+         frameScheduler: FrameScheduler = DisplayLinkFrameScheduler()) {
         self.shared = SharedState()
         self.notifier = notifier
+        self.frameScheduler = frameScheduler
         // Two-phase: `tabs` starts empty so `createTab` — an instance method
         // whose closures capture `self` — can run once phase-1 init is done.
         self.tabs = []
@@ -101,13 +108,15 @@ final class Workspace {
     /// hydration validation; History starts empty (session-transient, web
     /// parity).
     init(restoring snapshot: WorkspaceSnapshot,
-         notifier: DirtyNotifier = NoOpDirtyNotifier()) throws {
+         notifier: DirtyNotifier = NoOpDirtyNotifier(),
+         frameScheduler: FrameScheduler = DisplayLinkFrameScheduler()) throws {
         // The workspace invariant is "never empty" (`activeTab` force-indexes)
         // — an empty snapshot must fail the restore, not produce a workspace
         // that crashes on first read.
         guard !snapshot.tabs.isEmpty else { throw WorkspaceRestoreError.emptySnapshot }
         self.shared = SharedState(restoring: snapshot.sharedState)
         self.notifier = notifier
+        self.frameScheduler = frameScheduler
         // Two-phase for the same reason as the designated fresh init: the
         // restore closures capture `self`.
         self.tabs = []
@@ -122,7 +131,8 @@ final class Workspace {
                 },
                 consumePendingToolRestore: { [weak self] in
                     self?.keyboardShortcuts.consumePendingToolRestore()
-                }
+                },
+                frameScheduler: frameScheduler
             )
         }
         // Clamped restore (web parity plus a low guard): a stored index that
@@ -235,6 +245,8 @@ final class Workspace {
     func closeTab(_ index: Int) {
         guard canCloseTab else { return }
         let removed = tabs.remove(at: index)
+        // Discard the closed tab's transient playback clock (web parity).
+        removed.stopPlayback()
         if index == activeTabIndex {
             activeTabIndex = min(index, tabs.count - 1)
         } else if index < activeTabIndex {
@@ -250,9 +262,14 @@ final class Workspace {
     /// defense beneath it, for pointer events already in flight when the
     /// switch lands. No-op when the active tab is unchanged.
     private func resolveOutgoingStroke(nextIndex: Int) {
-        if nextIndex != activeTabIndex && activeTab.isDrawing {
+        guard nextIndex != activeTabIndex else { return }
+        if activeTab.isDrawing {
             activeTab.endStroke()
         }
+        // A backgrounded tab never keeps a playback clock running — discard
+        // the outgoing tab's transient playhead alongside its stroke (web
+        // parity: `setActiveTab`).
+        activeTab.stopPlayback()
     }
 
     // MARK: - Canvas presentation
@@ -380,6 +397,7 @@ final class Workspace {
             consumePendingToolRestore: { [weak self] in
                 self?.keyboardShortcuts.consumePendingToolRestore()
             },
+            frameScheduler: frameScheduler,
             width: width,
             height: height
         )

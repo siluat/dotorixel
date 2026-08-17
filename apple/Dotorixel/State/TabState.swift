@@ -108,6 +108,13 @@ final class TabState {
     /// so a live stroke's per-sample re-render reuses one read.
     @ObservationIgnored private let frameProjectionCache = FrameProjectionCache()
 
+    /// The playback engine for this tab (issue 288) — the transient playhead
+    /// over the frame axis. `@ObservationIgnored` on the reference only: the
+    /// controller is itself `@Observable`, so views reading the delegated
+    /// playback properties register dependencies on its state directly.
+    /// Implicitly unwrapped for two-phase init — its deps close over `self`.
+    @ObservationIgnored private var playback: PlaybackController!
+
     /// The `canvasVersion` the live stroke began at — how far back the
     /// projection's single-Cel patch stays sound. Meaningless while no stroke
     /// runs; `liveStroke` only reads it under `isDrawing`.
@@ -157,6 +164,7 @@ final class TabState {
         notifier: DirtyNotifier = NoOpDirtyNotifier(),
         isConstrainHeld: @escaping () -> Bool,
         consumePendingToolRestore: @escaping () -> EditorTool?,
+        frameScheduler: FrameScheduler = DisplayLinkFrameScheduler(),
         document: AppleDocument,
         viewport: AppleViewport
     ) {
@@ -168,6 +176,22 @@ final class TabState {
         self.pendingToolRestoreProvider = consumePendingToolRestore
         self.document = document
         self.viewport = viewport
+        // Two-phase: the controller's deps close over `self`, so it is built
+        // once phase-1 initialization is complete.
+        self.playback = PlaybackController(deps: PlaybackControllerDeps(
+            getFrames: { [weak self] in
+                // Unreachable nil: the controller's lifetime is bound to this
+                // tab, and a scheduled tick's weak controller reference breaks
+                // first — the empty return only satisfies the weak-capture
+                // idiom and never violates the deps' never-empty contract.
+                guard let self else { return [] }
+                return self.document.frames().map {
+                    PlaybackFrame(id: $0.id, durationMs: $0.durationMs)
+                }
+            },
+            requestRender: { [weak self] in self?.canvasVersion += 1 },
+            frameScheduler: frameScheduler
+        ))
     }
 
     /// Opens a fresh transparent document of `width × height`.
@@ -178,6 +202,7 @@ final class TabState {
         notifier: DirtyNotifier = NoOpDirtyNotifier(),
         isConstrainHeld: @escaping () -> Bool,
         consumePendingToolRestore: @escaping () -> EditorTool?,
+        frameScheduler: FrameScheduler = DisplayLinkFrameScheduler(),
         width: UInt32,
         height: UInt32
     ) {
@@ -190,6 +215,7 @@ final class TabState {
             notifier: notifier,
             isConstrainHeld: isConstrainHeld,
             consumePendingToolRestore: consumePendingToolRestore,
+            frameScheduler: frameScheduler,
             document: try! AppleDocument(
                 width: width,
                 height: height,
@@ -210,7 +236,8 @@ final class TabState {
         shared: SharedState,
         notifier: DirtyNotifier = NoOpDirtyNotifier(),
         isConstrainHeld: @escaping () -> Bool,
-        consumePendingToolRestore: @escaping () -> EditorTool?
+        consumePendingToolRestore: @escaping () -> EditorTool?,
+        frameScheduler: FrameScheduler = DisplayLinkFrameScheduler()
     ) throws {
         self.init(
             shared: shared,
@@ -219,6 +246,7 @@ final class TabState {
             notifier: notifier,
             isConstrainHeld: isConstrainHeld,
             consumePendingToolRestore: consumePendingToolRestore,
+            frameScheduler: frameScheduler,
             document: try AppleDocument.fromLayers(
                 width: snapshot.width,
                 height: snapshot.height,
@@ -256,6 +284,12 @@ final class TabState {
         guard !shared.activeTool.requiresEditableLayer || isActiveLayerEditable else {
             return
         }
+        // A tool stroke edits the Active Frame's Cel — exit the playback
+        // preview first so the user draws on (and sees) the frame being
+        // edited, not the moving playhead. `performEdit` covers the undoable
+        // commands; this covers the incremental stroke path (web parity:
+        // `drawStart`).
+        playback.stop()
         // The pencil is touching down (or a finger stroke starting) — the
         // hover target gives way to the paint it was previewing.
         hoverPoint = nil
@@ -367,6 +401,11 @@ final class TabState {
     /// exist to prevent.
     @discardableResult
     private func performEdit(_ mutate: () -> Bool) -> Bool {
+        // A document edit exits the playback preview: a structural change
+        // (e.g. deleting the frame under the playhead) must not run against a
+        // moving playhead. Stopping first returns the display to the Active
+        // Frame (web parity: `#mutate`).
+        playback.stop()
         guard resolveFloatingSelectionRecovery() else { return false }
         // A Floating Selection is its own pending edit. Resolve it first so
         // this command receives a fresh baseline and a distinct undo step.
@@ -577,8 +616,50 @@ final class TabState {
 
     /// Renderer-facing pixel buffer: committed composite normally, or the
     /// non-mutating Floating Selection patch preview while one is active.
+    /// While playback runs, the playhead frame's committed composite overrides
+    /// both — playback previews committed art only, and `startPlayback`
+    /// resolves any Floating Selection before the playhead exists.
     func renderPixels() throws -> Data {
-        try floatingSelection.renderPixels(in: document)
+        if let playheadFrameId = playback.playheadFrameId {
+            return try document.compositeAt(frameId: playheadFrameId)
+        }
+        return try floatingSelection.renderPixels(in: document)
+    }
+
+    // MARK: - Playback
+
+    /// True while in-editor playback is running its transient playhead.
+    var isPlaying: Bool { playback.isPlaying }
+
+    /// True when playback wraps to the first frame at the end instead of
+    /// stopping.
+    var isPlaybackLooping: Bool { playback.isLooping }
+
+    /// The frame the playhead is showing, or `nil` while stopped. It is never
+    /// the Active Frame pointer — playback leaves the edit pointer untouched.
+    var playheadFrameId: String? { playback.playheadFrameId }
+
+    /// Starts playback from the first frame. Commits any in-flight Floating
+    /// Selection first so the preview shows the committed Document (the
+    /// active-frame-switch precedent). No-ops while a stroke is drawing (the
+    /// mid-stroke seal every frame-axis command shares) or when the commit
+    /// fails; a no-op when already playing.
+    func startPlayback() {
+        guard !isDrawing else { return }
+        guard resolveFloatingSelectionRecovery() else { return }
+        guard !floatingSelection.isActive || commitFloatingSelection() else { return }
+        playback.start()
+    }
+
+    /// Stops playback and discards the playhead, returning the display to the
+    /// Active Frame. No-op when already stopped.
+    func stopPlayback() {
+        playback.stop()
+    }
+
+    /// Toggles whether playback loops at the end of the sequence.
+    func togglePlaybackLoop() {
+        playback.toggleLoop()
     }
 
     // MARK: - Hover preview
@@ -626,6 +707,9 @@ final class TabState {
     /// Restores the previous document state from the history stack.
     /// No-ops silently while a drawing stroke is in progress.
     func handleUndo() {
+        // History moves the document under the display — exit the playback
+        // preview first (web parity: `undo`).
+        playback.stop()
         guard !isDrawing else { return }
         // A Floating Selection has not entered History yet. Undo first
         // cancels that transient operation, restoring its exact baseline
@@ -648,6 +732,8 @@ final class TabState {
     /// Restores the next document state from the history stack.
     /// No-ops silently while a drawing stroke is in progress.
     func handleRedo() {
+        // Same playback exit as Undo (web parity: `redo`).
+        playback.stop()
         // Replacing the Document while a Floating Selection owns references
         // into its Layer would orphan that transient state. A degraded
         // cancellation's recovery snapshot has the same replacement guard;

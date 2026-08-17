@@ -1,6 +1,6 @@
 ---
 title: Apple playback controller — transient playhead over the frame axis
-status: ready-for-agent
+status: done
 created: 2026-08-16
 ---
 
@@ -64,3 +64,49 @@ bindings).
 ## Blocked by
 
 - [285 — Apple frame operations](285-apple-frame-operations.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/PlaybackAdvance.swift` | Pure advance decision (port of the web's `playback-advance.ts`): per-frame holds, carry without drift, loop wrap / loop-off stop, single-frame no-op |
+| `apple/Dotorixel/State/PlaybackController.swift` | `FrameScheduler` protocol + production `DisplayLinkFrameScheduler` (iOS `CADisplayLink`, macOS 60 Hz one-shot Timer) + the `@Observable` playback engine with the 1000 ms resume-delta clamp |
+| `apple/Dotorixel/State/TabState.swift` | Playback surface (`startPlayback`/`stopPlayback`/`togglePlaybackLoop` + projections), `compositeAt` display-buffer override in `renderPixels()`, stop hooks (`performEdit`, `beginStroke`, `handleUndo`/`handleRedo`), scheduler injection |
+| `apple/Dotorixel/State/Workspace.swift` | `frameScheduler` injection; outgoing-tab playback stop on every activation change; closed-tab clock discard |
+| `apple/DotorixelTests/PlaybackAdvanceTests.swift` | Pure-advance matrix (6 tests, synthetic elapsed values) |
+| `apple/DotorixelTests/TabStatePlaybackTests.swift` | Integration through the real bindings (12 tests) + workspace lifecycle suite (2 tests) |
+| `apple/DotorixelTests/PlaybackTestSupport.swift` | Hand-driven `FakeFrameScheduler` (mirror of the web's fake) |
+
+### Key Decisions
+
+- **`advancePlayhead` is a Swift port, not a core promotion**: the function is
+  simple, stable since PRD 199, and the FFI overhead would be disproportionate
+  (Core Placement rule of thumb — the same reasoning family as 287's
+  binding-owned duration range).
+- **Start resolves edit state at the `TabState` boundary**, not inside the
+  controller like the web: the Apple Floating-Selection commit is failable, so
+  the guard chain lives where a failed commit can veto the start (the
+  `setActiveFrame` precedent). `startPlayback` is also stroke-guarded
+  (`!isDrawing`) — the web has no such guard, but every Apple frame-axis
+  command shares the mid-stroke seal.
+- **`PlayheadAdvance.stopped` keeps the web's field name** over the
+  boolean-question naming rule — 1:1 port correspondence chosen deliberately.
+- **macOS clock is a 60 Hz one-shot Timer**: macOS 14 has no standalone
+  `CADisplayLink` constructor (only view/screen-anchored ones). Revisit note
+  left in code if playback smoothness ever demands it.
+- **Stop-hook parity verified against the web's full set** (`#mutate`,
+  `drawStart`, `undo`, `redo`, workspace switch/close ↔ `performEdit`,
+  `beginStroke`, `handleUndo`/`handleRedo`, `resolveOutgoingStroke`/`closeTab`).
+  Active-frame switching and `nudgeMarquee` deliberately do **not** stop
+  playback on either shell.
+
+### Notes
+
+- `advancePlayhead`'s termination relies on durations ≥ 1 ms, guaranteed today
+  by the binding clamp (`MIN_FRAME_DURATION_MS = 1`). **When 292 persists
+  durations, the hydration boundary must uphold the same clamp** or the advance
+  loop's precondition breaks.
+- Playback state is transient by construction — nothing here for 292 to
+  persist (`isPlaying`/`isLooping`/playhead all reset per session).
+- Transport UI (289) and onion skin (290) build directly on this slice; the
+  macOS timer fallback wants a hands-on smoothness check alongside 289.

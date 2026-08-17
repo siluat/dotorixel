@@ -65,10 +65,13 @@ where the active layer crosses the active frame. The narrowest-canvas-column
 snapshot doubles as the frame-action group's narrow form (issue 285): six
 touch-minimum controls do not fit that header, so the three frame commands render
 as one menu button there and as a labelled row everywhere else. These are
-state-dependent layouts the empty-state snapshots never exercise. The reorder
-drag's own preview has no baseline: its offsets are pinned as pure geometry by
-`LayerReorderDragTests`, and a mid-drag render would need the panel's gesture
-state injected from outside. Neither does the frame axis's horizontal scroll: the
+state-dependent layouts the empty-state snapshots never exercise. Neither reorder
+drag's preview has a baseline: both axes' offsets are pinned as pure geometry by
+`ReorderDragTests`, and a mid-drag render would need the panel's gesture state
+injected from outside — the frame ruler's headers (issue 286) leave no resting
+chrome behind either, since the header itself is the drag surface and the columns
+render identically until a press travels. Neither does the frame axis's
+horizontal scroll: the
 overflowing-axis image pins the axis at rest, and reaching the columns past the
 pane edge is scroller behavior a static render cannot show.
 

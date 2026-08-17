@@ -1331,6 +1331,33 @@ final class TabState {
         }
     }
 
+    /// Moves the frame with `id` to `toIndex` on the axis (leftmost column =
+    /// 0) — the ruler drag's drop commit. Unlike the layer sidebar, the ruler
+    /// renders the axis in the order `frameColumns` returns it, so the index
+    /// the drag reports is already the axis index and needs no translation.
+    /// Cels stay keyed by frame id, so each frame's pixels travel with it.
+    ///
+    /// A `toIndex` past either end lands the frame at that end, mirroring the
+    /// core's own silent clamp — a drag released left of the first column
+    /// reports a negative index, which the unsigned FFI boundary cannot carry
+    /// and would trap on rather than wrap.
+    ///
+    /// A drop at the frame's current position leaves the document unchanged,
+    /// so it records no history entry (web parity); a real move records exactly
+    /// one. Silently ignores an unknown id, and no-ops while a drawing stroke
+    /// is in progress — rearranging the axis under a live stroke would also
+    /// replace its pending Edit Baseline.
+    func reorderFrame(id: String, toIndex: Int) {
+        guard !isDrawing else { return }
+        let lastIndex = max(document.frames().count - 1, 0)
+        let axisIndex = min(max(toIndex, 0), lastIndex)
+        if performEdit({
+            (try? document.reorderFrame(id: id, newIndex: UInt64(axisIndex))) != nil
+        }) {
+            canvasVersion += 1
+        }
+    }
+
     // MARK: - Canvas clear
 
     /// Erases every pixel of the active layer to transparent, holding the

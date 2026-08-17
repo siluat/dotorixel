@@ -3,26 +3,25 @@
 ## Currently Working On
 
 Apple Native Phase 6 — Animation + extended export
-([RFC](../issues/013-apple-native-catchup.md)); 3 of 14 sub-issues done.
-Multi-frame documents are now reachable from the UI, so the animation track
-opens wide — 286, 287, and 288 are all unblocked; the export track still
-opens at 293.
+([RFC](../issues/013-apple-native-catchup.md)); 4 of 14 sub-issues done.
+The animation track's structural half is finished, so 287 is now the only
+thing standing between the axis and persistence (292); 288 remains open and
+the export track still opens at 293.
 
 ## Last Completed
 
-[285 — Apple frame operations](../issues/285-apple-frame-operations.md): the
-Timeline header carries undoable add/duplicate/remove for the Active Frame, and
-the frame axis scrolls horizontally with the ruler pinned to the grid's offset.
-Occupancy no longer rescans the axis per stroke sample — the mid-stroke seal
-makes the stroke's own Cel the only one that can change, and the projection
-patches just that one. Horizontal scrolling itself has no automated coverage
-(static snapshots cannot show it), and frames are still not persisted until 292.
+[286 — Apple frame reorder](../issues/286-apple-frame-reorder.md): ruler headers
+are draggable, and the Apple shell now has one `ReorderDrag` serving both
+Timeline axes the way the web does. The header resolves tap-vs-drag inside a
+single gesture rather than suppressing a trailing select, which is why it is no
+longer a `Button` — it trades a focus ring for that, pending the deferred
+roving-focus work. The gesture's feel needs a hands-on check (unit tests pin the
+geometry and the commit, not the drag), and frame order is unpersisted until 292.
 
 ## Next Up
 
-- [286 — Apple frame drag reorder](../issues/286-apple-frame-reorder.md) — unblocked by 285
-- [287 — Apple per-frame duration UI](../issues/287-apple-frame-duration.md) — re-decides the binding-owned duration clamp
-- [288 — Apple playback controller](../issues/288-apple-playback-controller.md) — unblocked by 285; opens 289/290
+- [287 — Apple per-frame duration UI](../issues/287-apple-frame-duration.md) — re-decides the binding-owned duration clamp; the last blocker on 292
+- [288 — Apple playback controller](../issues/288-apple-playback-controller.md) — opens 289/290
 - [293 — Apple UniFFI export encoder bindings](../issues/293-apple-uniffi-export-encoder-bindings.md) — Phase 6 export track opener
 - [255 — Apple Pencil device verification (HITL)](../issues/255-apple-pencil-device-verification.md)
 - Project file format (JSON-based) + save/load
@@ -43,7 +42,7 @@ patches just that one. Horizontal scrolling itself has no automated coverage
 - TimelinePanel mobile touch targets — frame + row icon buttons ≥44px on the mobile Timeline tab
 - Web pen priority — palm rejection + hover target cell (web counterpart of 252–254)
 - Apple tab strip keyboard navigation — ArrowLeft/Right + Home/End roving focus
-- Apple layer reorder — interrupted-drag recovery, shared with the 280 placement overlay
+- Apple drag interruption recovery — one `scenePhase` guard for all three drag surfaces (layer rows, frame ruler, 280 placement overlay)
 - Apple bindings staleness guard — regenerate Swift bindings on binding-surface change; hit again in 285
 - Apple auto-save failure surfacing — needs a shell logging convention first
 - Web hydration opacity validation — port the Apple `from_layers` opacity guard

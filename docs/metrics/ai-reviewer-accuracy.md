@@ -10,14 +10,31 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 223 | 168 | 55 | 311 | 75% | 35% |
-| cubic-dev-ai[bot] | 351 | 274 | 77 | 224 | 78% | 55% |
-| coderabbitai[bot] | 337 | 243 | 94 | 247 | 72% | 50% |
+| greptile-apps[bot] | 226 | 171 | 55 | 313 | 76% | 35% |
+| cubic-dev-ai[bot] | 359 | 282 | 77 | 225 | 79% | 56% |
+| coderabbitai[bot] | 338 | 244 | 94 | 252 | 72% | 49% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #374 | cubic-dev-ai[bot] | Accept | Fourth round on the same state: a single optional latch tracks one cancellation, so two axis changes with two fingers down let the later one overwrite the earlier, and the first press released as a tap after all. The latch is now a set keyed by header |
+| #374 | cubic-dev-ai[bot] | Accept | The other ordering the suite had not composed: with another header's drag live, a cancelled press's release left through the `releasing.itemId == itemId` guard without spending its latch, so the leftover swallowed that header's next press. `release` now resolves the cancellation before any live drag, and the two orderings are pinned by tests |
+| #374 | cubic-dev-ai[bot] | Accept | Running Totals overstated greptile's Miss by one: the #374 rows carry 3 Accept and one `Miss (×2)`, so 311 + 2 = 313, not 314 |
+| #374 | cubic-dev-ai[bot] | Accept | Same arithmetic slip for its own row — 224 + 1 = 225, not 226. Both were introduced by the third-round totals update, where only Accept rows were added but Miss was incremented too |
+| #374 | greptile-apps[bot] | Accept | Third round, and the exact counterpart of cubic's finding below: a panel-wide cancellation flag is consumed by whichever release arrives first, so with two headers held through an axis change, the second finger lifting first spends the flag and lets the cancelled press select after all — reopening the very bug the second round closed. Keying the latch by frame id makes only the cancelled gesture's own release consume it |
+| #374 | cubic-dev-ai[bot] | Accept | The other half of the same boolean's failure: a drag whose own frame is removed leaves the latch set, because the ruler stays mounted and no `onDisappear` or release ever arrives to clear it, so the next unrelated tap is swallowed. `axisChanged` now declines to hold a latch for a header that is not on the axis, and drops one whose header has left it |
+| #374 | coderabbitai[bot] | Miss (×2) | Missed both halves of the panel-wide-flag failure accepted from greptile and cubic |
+| #374 | greptile-apps[bot] | Accept | Second round on the same branch: judging the release by final travel closed only the common case, since a finger that crossed the threshold and returned within 4pt before an axis change cancelled the drag still measured as a tap — and that tap moves the drawing target *and* commits a pending Floating Selection. The cancellation is now recorded when it happens and consumed by the release; the flag also stops the cancelled press from reopening a drag whose `baseIndex` would come from the new axis while its translation still measured from touch-down. The first round's fix was accepted with this residual explicitly judged harmless — it was not |
+| #374 | cubic-dev-ai[bot] | Accept | Same returned-drag-becomes-selection residual (duplicate of greptile); asked for the same sticky threshold-crossed tracking |
+| #374 | coderabbitai[bot] | Miss | Approved the first round's fix without flagging the returned-drag residual accepted from greptile and cubic |
+| #374 | greptile-apps[bot] | Accept | The ruler header's `onEnded` reached its tap branch whenever no drag was live, conflating a press that never became a drag with one whose drag an axis change had cancelled out from under it — so a second finger adding a frame, or ⌘Z, turned the release into an Active Frame switch and silently moved the drawing target. The branch now selects only below the drag threshold. The layer sidebar never had the path: its `onEnded` has no tap role to fall through to |
+| #374 | cubic-dev-ai[bot] | Accept | Same cancelled-drag-becomes-selection defect (duplicate of greptile); same threshold guard on the tap branch |
+| #374 | cubic-dev-ai[bot] | Accept | A single-frame document still opened a drag preview once the press crossed 4pt: the offset clamped to zero so nothing moved, but the header took the dragging fill and both scrollers locked. `canReorderFrames` now gates the drag where the sidebar disables its row handle outright — a ruler header cannot be disabled without losing its select role |
+| #374 | coderabbitai[bot] | Accept | The interrupted-drag backlog item enumerated only the layer sidebar and the Reference placement overlay, but 286 scoped the system-level residual out on the premise that the item covered *every* drag surface; the ruler's `frameDrag` made that premise false. The item now names all three surfaces and is retitled to match |
+| #374 | greptile-apps[bot] | Miss (×2) | Missed the single-frame drag-preview gate accepted from cubic and the backlog-coverage gap accepted from coderabbit |
+| #374 | coderabbitai[bot] | Miss (×2) | Missed the cancelled-drag-becomes-selection defect accepted from greptile and cubic, and the single-frame drag-preview gate accepted from cubic |
+| #374 | cubic-dev-ai[bot] | Miss | Missed the backlog-coverage gap accepted from coderabbit |
 | #373 | cubic-dev-ai[bot] | Accept | The occupancy patch path only checked that the cached projection belonged to the same document, which is not the same as it being current — nothing reads the projection while the Timeline is collapsed, so undo can drop frames in that gap and a first read landing mid-stroke would patch one Cel into a stale axis, rendering frames the document no longer has. The patch now also demands a cached read no older than the stroke, whose start version is anchored where `isDrawing` is set (a tool whose `begin` changes nothing bumps no version, so the span cannot be inferred from the counter) |
 | #373 | coderabbitai[bot] | Accept | `toSnapshot()` carries no frame-axis data and `fromLayers()` accepts none, so frames added through the new commands are lost on relaunch — an escalation this slice creates, since the UI could not reach a second frame before it. Not fixed here: 292 owns the schema extension and is blocked by 286 (frame order) and 287 (durations), both fields the record must serialize, so pulling it forward means writing the schema twice; 292 also specifies the backward-compatible hydration this PR would have had to invent |
 | #373 | greptile-apps[bot] | Miss (×2) | Confidence 5/5 with no findings, explicitly calling the occupancy optimization's fallback safe; missed both the stale-projection patch accepted from cubic and the frame-persistence gap accepted from coderabbit |

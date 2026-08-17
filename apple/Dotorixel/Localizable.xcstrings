@@ -498,6 +498,23 @@
         }
       }
     },
+    "Frame duration in milliseconds" : {
+      "comment" : "Duration editor field accessibility label in the Timeline's top-left corner. web: aria_frameDuration",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フレーム表示時間（ミリ秒）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프레임 지속 시간 (밀리초)"
+          }
+        }
+      }
+    },
     "Frames" : {
       "comment" : "Timeline header frame-action group label, mirroring the Layers label. web: timeline_frames_label",
       "localizations" : {

@@ -53,6 +53,15 @@ struct TimelineLabelLocalizationTests {
         )
     }
 
+    @Test("the duration editor's field label resolves its Korean translation")
+    func durationEditorLabelResolves() throws {
+        let ko = try koreanBundle()
+        #expect(
+            String(localized: "Frame duration in milliseconds", bundle: ko, locale: locale)
+                == "프레임 지속 시간 (밀리초)"
+        )
+    }
+
     @Test("the frame action group's labels resolve their Korean translations")
     func frameActionLabelsResolve() throws {
         let ko = try koreanBundle()

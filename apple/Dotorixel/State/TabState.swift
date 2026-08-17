@@ -1358,6 +1358,23 @@ final class TabState {
         }
     }
 
+    /// Sets the display duration of the frame with `id` — the duration
+    /// editor's commit. Durations are per-frame, so retiming one frame leaves
+    /// the others untouched. `durationMs` is clamped at the binding boundary
+    /// to `[frameMinDurationMs, frameMaxDurationMs]`; the shell never restates
+    /// the range.
+    ///
+    /// One retime is one undoable entry; a dispatch that leaves the stored
+    /// duration unchanged records nothing (web parity). Silently ignores an
+    /// unknown id, and no-ops while a drawing stroke is in progress —
+    /// stroke-guarded exactly like `addFrame`.
+    func setFrameDuration(id: String, durationMs: UInt32) {
+        guard !isDrawing else { return }
+        if performEdit({ (try? document.setFrameDuration(id: id, durationMs: durationMs)) != nil }) {
+            canvasVersion += 1
+        }
+    }
+
     // MARK: - Canvas clear
 
     /// Erases every pixel of the active layer to transparent, holding the

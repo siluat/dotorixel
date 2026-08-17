@@ -1,6 +1,6 @@
 ---
 title: Apple per-frame duration — timing editor on the timeline
-status: ready-for-agent
+status: done
 created: 2026-08-16
 ---
 
@@ -61,3 +61,46 @@ passes frame by frame:
 
 - [284 — Apple frame ruler](284-apple-frame-ruler.md)
   (parallel with [285](285-apple-frame-operations.md))
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/TabState.swift` | `setFrameDuration` — one undoable retime via `performEdit`; an unchanged dispatch records nothing; stroke-guarded; clamp inherited from the binding |
+| `apple/Dotorixel/Views/FrameDurationDraft.swift` | Draft-commit resolution: empty/non-numeric/fractional/unchanged → revert, out-of-range integers → clamp to `frameMinDurationMs()`/`frameMaxDurationMs()` |
+| `apple/Dotorixel/Views/TimelinePanel.swift` | Duration corner editor: 44pt field + `ms` unit + derived fps read-out; one sync key tells a frame switch from a same-frame store change |
+| `apple/Dotorixel/Localizable.xcstrings` | "Frame duration in milliseconds" field label (en/ko/ja) |
+| `apple/DotorixelTests/TabStateFrameDurationTests.swift` | 6 tests: per-frame isolation, undo/redo, unchanged no-entry, clamp pass-through, duplicate carries duration, stroke guard |
+| `apple/DotorixelTests/FrameDurationDraftTests.swift` | 7 tests pinning the draft-resolution semantics against the binding constants |
+| `apple/DotorixelTests/TimelineLabelLocalizationTests.swift` | ko resolution guard for the new label |
+| `apple/DotorixelTests/__Snapshots__/DockedRegionSnapshotTests/` | 7 TimelinePanel baselines re-recorded on the pinned host |
+| `apple/DotorixelTests/README.md` | Re-record procedure now covers the `xcodegen` regeneration the deleted-PNG flow requires |
+
+### Key Decisions
+
+- **The duration range stays binding-owned — no core promotion.** The third
+  consumer (the Apple UI) reads the constants the Apple binding already
+  exports rather than restating the range, so the promotion condition (a
+  consumer outside the two bindings, or core code computing with the bounds)
+  is still unmet. Revisit only when one of those appears.
+- **The Apple shell clamps in draft resolution, unlike the web.** The web
+  forwards raw integers for the WASM boundary to clamp; a `UInt32` dispatch
+  cannot carry negative or oversized entries, so `FrameDurationDraft`
+  resolves them to the binding-exported bounds before dispatching. Either
+  way the range's numbers never appear as shell literals.
+- **A mid-edit frame switch commits to the frame the edit was typed for.**
+  The web gets this free from blur-before-click ordering; SwiftUI taps
+  outside a TextField don't resign focus, so the editor observes
+  `(activeFrameId, storedMs)` as one `onChange` key and commits to the
+  frame being left — avoiding the ordering race two separate `onChange`
+  modifiers would have.
+
+### Notes
+
+- Input feel is unverified by tests: the numberPad keyboard, hardware-Escape
+  revert, and focus behavior on device want a hands-on pass (same class as
+  286's gesture check).
+- Durations are editor-local until [292](292-apple-animation-persistence.md)
+  persists the frame axis — this issue was 292's last blocker.
+- The fps read-out is display-only (rounded 1000/ms); per-frame ms stays the
+  single source of truth.

@@ -3,24 +3,24 @@
 ## Currently Working On
 
 Apple Native Phase 6 — Animation + extended export
-([RFC](../issues/013-apple-native-catchup.md)); 4 of 14 sub-issues done.
-The animation track's structural half is finished, so 287 is now the only
-thing standing between the axis and persistence (292); 288 remains open and
-the export track still opens at 293.
+([RFC](../issues/013-apple-native-catchup.md)); 5 of 14 sub-issues done.
+287 closed the duration editor, so the animation track now forks: 292
+(persistence) is unblocked, 288 opens the playback chain, and the export
+track still opens at 293.
 
 ## Last Completed
 
-[286 — Apple frame reorder](../issues/286-apple-frame-reorder.md): ruler headers
-are draggable, and the Apple shell now has one `ReorderDrag` serving both
-Timeline axes the way the web does. The header resolves tap-vs-drag inside a
-single gesture rather than suppressing a trailing select, which is why it is no
-longer a `Button` — it trades a focus ring for that, pending the deferred
-roving-focus work. The gesture's feel needs a hands-on check (unit tests pin the
-geometry and the commit, not the drag), and frame order is unpersisted until 292.
+[287 — Apple per-frame duration](../issues/287-apple-frame-duration.md): the
+Timeline corner edits the active frame's duration with the web's draft-commit
+semantics, and the 1–60 000 ms range stays binding-owned (core promotion
+declined — its condition is still unmet). A mid-edit frame switch commits to
+the frame the edit was typed for, which SwiftUI needs an explicit guard to
+match (the web gets it from blur ordering). Durations are unpersisted until
+292, and the field's input feel wants a hands-on pass alongside 286's gesture.
 
 ## Next Up
 
-- [287 — Apple per-frame duration UI](../issues/287-apple-frame-duration.md) — re-decides the binding-owned duration clamp; the last blocker on 292
+- [292 — Apple animation persistence](../issues/292-apple-animation-persistence.md) — persists the frame axis (order + durations); newly unblocked
 - [288 — Apple playback controller](../issues/288-apple-playback-controller.md) — opens 289/290
 - [293 — Apple UniFFI export encoder bindings](../issues/293-apple-uniffi-export-encoder-bindings.md) — Phase 6 export track opener
 - [255 — Apple Pencil device verification (HITL)](../issues/255-apple-pencil-device-verification.md)

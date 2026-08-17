@@ -678,7 +678,7 @@ struct WorkspaceKeyboardShortcutTests {
     @Test("shortcuts are ignored while a canvas-size field is focused")
     func textFieldFocusSuppressesShortcuts() {
         let state = Workspace(width: 16, height: 16)
-        state.isTextInputFocused = true
+        state.setTextInputFocus(owner: .canvasSizeFields, isFocused: true)
 
         state.keyboardShortcuts.handleKeyDown(EditorTool.eraser.shortcutKey)
 
@@ -696,12 +696,12 @@ struct WorkspaceKeyboardShortcutTests {
         // Moving focus into a size field means the Alt release may never
         // reach the canvas (iPad loses first responder) — the temporary
         // switch must end now instead of sticking.
-        state.isTextInputFocused = true
+        state.setTextInputFocus(owner: .canvasSizeFields, isFocused: true)
 
         #expect(state.shared.activeTool == .pencil)
 
         // The cleared held flag must not swallow the next real Alt press.
-        state.isTextInputFocused = false
+        state.setTextInputFocus(owner: .canvasSizeFields, isFocused: false)
         state.keyboardShortcuts.setAltHeld(true)
         #expect(state.shared.activeTool == .eyedropper)
     }

@@ -55,13 +55,12 @@ struct RightPanel: View {
         // Publish text focus so keyboard shortcuts pause while the size
         // fields receive typed letters (`KeyboardShortcutHost` guard).
         .onChange(of: focusedField) { _, newValue in
-            workspace.isTextInputFocused = newValue != nil
+            workspace.setTextInputFocus(owner: .canvasSizeFields, isFocused: newValue != nil)
         }
-        // The size fields are the only inputs feeding the flag, and no
-        // focus-change closure fires once the panel leaves the hierarchy —
-        // clear it on teardown so shortcuts can't stay suppressed.
+        // No focus-change closure fires once the panel leaves the hierarchy —
+        // release the claim on teardown so shortcuts can't stay suppressed.
         .onDisappear {
-            workspace.isTextInputFocused = false
+            workspace.setTextInputFocus(owner: .canvasSizeFields, isFocused: false)
         }
     }
 

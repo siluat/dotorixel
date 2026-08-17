@@ -118,7 +118,9 @@ struct ContentView: View {
                             tab: tab,
                             // The duration field must not feed the app-level
                             // shortcut monitor (the canvas-size fields' contract).
-                            onTextInputFocusChange: { workspace.isTextInputFocused = $0 }
+                            onTextInputFocusChange: {
+                                workspace.setTextInputFocus(owner: .frameDurationEditor, isFocused: $0)
+                            }
                         )
                     }
 
@@ -138,8 +140,8 @@ struct ContentView: View {
                     )
                     // The name field must not feed the app-level shortcut
                     // monitor (the canvas-size fields' contract).
-                    .onAppear { workspace.isTextInputFocused = true }
-                    .onDisappear { workspace.isTextInputFocused = false }
+                    .onAppear { workspace.setTextInputFocus(owner: .saveDialog, isFocused: true) }
+                    .onDisappear { workspace.setTextInputFocus(owner: .saveDialog, isFocused: false) }
                 }
             }
             .sheet(isPresented: isSavedWorkBrowserPresented) {

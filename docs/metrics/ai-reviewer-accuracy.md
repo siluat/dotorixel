@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 227 | 172 | 55 | 317 | 76% | 35% |
-| cubic-dev-ai[bot] | 364 | 287 | 77 | 225 | 79% | 56% |
-| coderabbitai[bot] | 338 | 244 | 94 | 257 | 72% | 49% |
+| greptile-apps[bot] | 227 | 172 | 55 | 318 | 76% | 35% |
+| cubic-dev-ai[bot] | 365 | 288 | 77 | 225 | 79% | 56% |
+| coderabbitai[bot] | 338 | 244 | 94 | 258 | 72% | 49% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #375 | cubic-dev-ai[bot] | Accept | Third round, on the second round's fix: the unconditional teardown released the shared `isTextInputFocused` flag even when the RightPanel size fields held it, so collapsing the Timeline mid-edit re-armed shortcuts under the size field's typing. Text-input focus is now per-owner claims on `Workspace` (OR-derived): each publisher touches only its own claim, which also closes the cross-field focus-move ordering hazard this PR's second concurrent publisher introduced — and turns the glue into a tested seam (four new Workspace tests) |
+| #375 | greptile-apps[bot] | Miss | Re-scanned the second fix commit without flagging the shared-flag clobber accepted from cubic |
+| #375 | coderabbitai[bot] | Miss | Refreshed its summary on the second fix commit without flagging the shared-flag clobber accepted from cubic |
 | #375 | cubic-dev-ai[bot] | Accept | Second round: the collapse teardown cleared the workspace guard but left `isDurationEditorFocused` true, so reopening the panel could restore focus from the stale binding with no transition for `onChange` to publish — typed letters reached editor shortcuts while the field held focus. The fix goes further: SwiftUI's reset of a removed field's binding is not ordered against `onDisappear`, so the conditional also raced the other way (an early reset skipped the commit and left the guard stuck set); teardown now commits and resets unconditionally |
 | #375 | greptile-apps[bot] | Miss | Re-scanned the fix commit (confidence 4/5 → 5/5, "safe to merge") without flagging the teardown residual accepted from cubic |
 | #375 | coderabbitai[bot] | Miss | Refreshed its summary on the fix commit without flagging the teardown residual accepted from cubic |

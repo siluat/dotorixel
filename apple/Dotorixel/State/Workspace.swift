@@ -37,18 +37,38 @@ final class Workspace {
         didSet { if isConstrainLatchOn != oldValue { activeTab.modifierStateChanged() } }
     }
 
-    /// Whether a text field (the canvas-size inputs) has keyboard focus —
-    /// the signal that suppresses editor shortcuts so typed letters stay in
-    /// the field. Set by the owning views on focus change.
-    ///
-    /// Entering text focus also clears held-key state: on iPad the canvas
-    /// loses first responder, so release events (e.g. the Alt that opened a
+    /// A view that can hold text-input focus and publishes it here. Focus is
+    /// tracked as per-owner claims because two publishers can overlap — the
+    /// Timeline's collapse teardown releases its editor's claim
+    /// unconditionally, and a focus move between two fields publishes in an
+    /// order SwiftUI does not define — so a shared Bool would let either
+    /// publisher's release clobber the other's live claim (PR #375 review).
+    enum TextInputFocusOwner {
+        case canvasSizeFields
+        case saveDialog
+        case frameDurationEditor
+    }
+
+    private var textInputFocusOwners: Set<TextInputFocusOwner> = []
+
+    /// Whether any text field has keyboard focus — the signal that suppresses
+    /// editor shortcuts so typed characters stay in the field.
+    var isTextInputFocused: Bool { !textInputFocusOwners.isEmpty }
+
+    /// Publishes one owner's text-input focus. Owners touch only their own
+    /// claim, so releasing never drops another field's. Entering text focus
+    /// (first claim) also clears held-key state: on iPad the canvas loses
+    /// first responder, so release events (e.g. the Alt that opened a
     /// temporary eyedropper) would never arrive.
-    var isTextInputFocused: Bool = false {
-        didSet {
-            if isTextInputFocused && !oldValue {
-                keyboardShortcuts.reset()
-            }
+    func setTextInputFocus(owner: TextInputFocusOwner, isFocused: Bool) {
+        let wasFocused = isTextInputFocused
+        if isFocused {
+            textInputFocusOwners.insert(owner)
+        } else {
+            textInputFocusOwners.remove(owner)
+        }
+        if isTextInputFocused && !wasFocused {
+            keyboardShortcuts.reset()
         }
     }
 

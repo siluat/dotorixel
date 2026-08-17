@@ -3,25 +3,26 @@
 ## Currently Working On
 
 Apple Native Phase 6 — Animation + extended export
-([RFC](../issues/013-apple-native-catchup.md)); 5 of 14 sub-issues done.
-287 closed the duration editor, so the animation track now forks: 292
-(persistence) is unblocked, 288 opens the playback chain, and the export
-track still opens at 293.
+([RFC](../issues/013-apple-native-catchup.md)); 6 of 14 sub-issues done.
+288 closed the playback engine, unblocking 289 (transport UI) and 290
+(onion skin state); 292 (persistence) stays open in parallel, and the
+export track still opens at 293.
 
 ## Last Completed
 
-[287 — Apple per-frame duration](../issues/287-apple-frame-duration.md): the
-Timeline corner edits the active frame's duration with the web's draft-commit
-semantics, and the 1–60 000 ms range stays binding-owned (core promotion
-declined — its condition is still unmet). A mid-edit frame switch commits to
-the frame the edit was typed for, which SwiftUI needs an explicit guard to
-match (the web gets it from blur ordering). Durations are unpersisted until
-292, and the field's input feel wants a hands-on pass alongside 286's gesture.
+[288 — Apple playback controller](../issues/288-apple-playback-controller.md):
+the per-tab engine previews committed art through the display-buffer seam
+without touching the Active Frame, History, or dirty state; stop-hook parity
+with the web is verified against its full set. The advance loop's termination
+relies on the ≥ 1 ms duration clamp — 292's hydration boundary must uphold it.
+Transport UI follows in 289; the macOS 60 Hz timer fallback wants a hands-on
+smoothness check there.
 
 ## Next Up
 
-- [292 — Apple animation persistence](../issues/292-apple-animation-persistence.md) — persists the frame axis (order + durations); newly unblocked
-- [288 — Apple playback controller](../issues/288-apple-playback-controller.md) — opens 289/290
+- [289 — Apple transport strip UI](../issues/289-apple-transport-strip.md) — newly unblocked; opens 291 with 290
+- [290 — Apple onion skin state](../issues/290-apple-onion-skin-state.md) — newly unblocked
+- [292 — Apple animation persistence](../issues/292-apple-animation-persistence.md) — persists the frame axis (order + durations)
 - [293 — Apple UniFFI export encoder bindings](../issues/293-apple-uniffi-export-encoder-bindings.md) — Phase 6 export track opener
 - [255 — Apple Pencil device verification (HITL)](../issues/255-apple-pencil-device-verification.md)
 - Project file format (JSON-based) + save/load
@@ -46,6 +47,7 @@ match (the web gets it from blur ordering). Durations are unpersisted until
 - Apple bindings staleness guard — regenerate Swift bindings on binding-surface change; hit again in 285
 - Apple auto-save failure surfacing — needs a shell logging convention first
 - Web hydration opacity validation — port the Apple `from_layers` opacity guard
+- Web playback edit-guard gaps mirrored from the 288 review — nudge/paste don't stop playback
 - Web session-save gaps mirrored from the 265 review — unstored-tab skip + shared-state document rewrite
 - Core/wasm `from_drag` span hardening — checked wide arithmetic if an unbounded coordinate source ever appears
 - Flaky e2e: Reference Window reload persistence — investigate if it recurs

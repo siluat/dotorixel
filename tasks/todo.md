@@ -23,15 +23,14 @@ the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish), Phase 2
 (full tool set + color + i18n, issues 230–242), Phase 3 (layer system, issues
 256–261), Phase 4 (multi-tab + persistence, issues 262–266), and Phase 5
 (reference + selection + transforms, issues 267–282) are complete; Phase 6 is
-decomposed into issues 283–296 (two parallel tracks), of which 283–287 are done.
+decomposed into issues 283–296 (two parallel tracks), of which 283–288 are done.
 
 ### Phase 6 — Animation + extended export (issues 283–296)
 
 Animation track:
 
-- [288 — Playback controller](../issues/288-apple-playback-controller.md)
-- [289 — Transport strip UI](../issues/289-apple-transport-strip.md) (blocked by 288)
-- [290 — Onion skin state + neighbor selection](../issues/290-apple-onion-skin-state.md) (blocked by 288)
+- [289 — Transport strip UI](../issues/289-apple-transport-strip.md)
+- [290 — Onion skin state + neighbor selection](../issues/290-apple-onion-skin-state.md)
 - [291 — Onion skin render + toggle](../issues/291-apple-onion-skin-render.md) (blocked by 289, 290)
 - [292 — Animation persistence](../issues/292-apple-animation-persistence.md)
 
@@ -70,6 +69,7 @@ Export track (parallel with the animation track):
 - Apple auto-save failure surfacing — a failed SwiftData save restores the dirty state and retries silently, with no log or user-facing notice; the Apple sibling of the IndexedDB quota item above. Surface it (log, then notification) once the shell has a logging convention (noted in 265 review)
 - Flaky e2e: Reference Window reload persistence — `e2e/editor/reference-images.test.ts` "window position survives a page reload" failed once, then passed on solo and full re-runs (2026-07-04, surfaced during 205 verification). Timing-sensitive chain: drag via raw pointer events → reload → IndexedDB workspace restore. Investigate/stabilize if it recurs
 - Web session-save gaps mirrored from the 265 review — two latent issues the Apple shell fixed in PR #351 that the web `SessionPersistence`/`AutoSave` share: (1) a fresh session whose first save happens after adding a second tab skips the never-stored first document (`dirtyDocIds` miss), persisting a tab order whose restore discards the whole workspace; (2) shared-state-only changes mark the active document dirty, rewriting its record (layers included) and stamping `updatedAt` for an edit that never touched it. Port the Apple fixes (write records missing from the store regardless of the dirty set; mark workspace-level dirt without a document id)
+- Web playback edit-guard gaps mirrored from the 288 review — `nudgeMarquee` and `pasteSelectionClipboard` in `tab-state.svelte.ts` create a Floating Selection without stopping playback, so it stays live but invisible behind the playhead composite until playback ends (the Apple shell added `playback.stop()` to both paths in PR #376). Port the same guards to the web
 - Web hydration opacity validation — the Apple binding rejects non-finite / out-of-`[0,1]` layer opacity at its `from_layers` boundary (PR #349 review); the web's `WasmDocumentBuilder.add_layer` still accepts any f32, an isomorphic gap (a persisted NaN slips past the compositor's clamp and renders the layer transparent). Port the same guard, or promote the opacity invariant into a core validating constructor (ReferencePlacement precedent), when the persistence surface next changes
 - Core/wasm `from_drag` span hardening — `MarqueeRegion::from_drag`'s `max − min + 1` is `i32` arithmetic, safe today because core and wasm callers pass shell-internal canvas coordinates (the Apple FFI validates spans at its own boundary since PR #353). If either path ever accepts unbounded external coordinates (file import, scripting), add a checked wide-arithmetic constructor in core and route all three boundaries through it (deferred from the #353 review)
 

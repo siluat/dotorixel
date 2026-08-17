@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 288 | [Apple playback controller — transient playhead over the frame axis](../issues/288-apple-playback-controller.md) | 2026-08-17 |
 | 287 | [Apple per-frame duration — timing editor on the timeline](../issues/287-apple-frame-duration.md) | 2026-08-17 |
 | 286 | [Apple frame reorder — drag frame headers along the ruler](../issues/286-apple-frame-reorder.md) | 2026-08-16 |
 | 285 | [Apple frame operations — add, duplicate, and remove frames from the ruler](../issues/285-apple-frame-operations.md) | 2026-08-16 |

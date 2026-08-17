@@ -10,14 +10,23 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 227 | 172 | 55 | 318 | 76% | 35% |
-| cubic-dev-ai[bot] | 365 | 288 | 77 | 225 | 79% | 56% |
-| coderabbitai[bot] | 338 | 244 | 94 | 258 | 72% | 49% |
+| greptile-apps[bot] | 228 | 173 | 55 | 321 | 76% | 35% |
+| cubic-dev-ai[bot] | 370 | 292 | 78 | 225 | 79% | 56% |
+| coderabbitai[bot] | 339 | 245 | 94 | 261 | 72% | 48% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #376 | greptile-apps[bot] | Accept | Pasting during playback created a live Floating Selection without stopping the preview: the playhead composite override hid it while it stayed active, ready to surface or commit unexpectedly after playback ended. Both edit paths now exit the preview first (the `beginStroke` precedent) |
+| #376 | cubic-dev-ai[bot] | Accept | Same paste gap, wider (duplicate of greptile): `nudgeMarquee` shares the invisible-Floating path, and `startPlayback` re-ran its edit-state resolution when already playing — now an explicit early guard |
+| #376 | coderabbitai[bot] | Accept | `openSnapshot` omitted the workspace's injected `frameScheduler`, so a reopened tab fell back to a private production clock — breaking the stated one-scheduler-per-workspace contract and leaving reopened tabs undriveable from tests. Now forwarded, pinned by a regression test |
+| #376 | cubic-dev-ai[bot] | Accept | Same `openSnapshot` scheduler omission (duplicate of coderabbit) |
+| #376 | cubic-dev-ai[bot] | Accept | The macOS fallback timer was scheduled on the run loop's default mode only, so playback would stall whenever a menu or drag ran the event-tracking mode; it now registers on `.common`, matching the iOS display link's mode set |
+| #376 | cubic-dev-ai[bot] | Accept | A test comment mischaracterized `setActiveTab(0)` as "not a switch" — it is a real 1→0 switch; the intended point (switching TO the playing tab does not stop it) is now asserted mid-test instead of narrated |
+| #376 | cubic-dev-ai[bot] | Reject | Claimed task-completion records must not ride the implementation PR; `/task-done` explicitly instructs committing implementation and task updates together, the commit-to-main rule for `tasks/*.md` is the non-code-task branch exception, and every prior Phase 6 slice merged the same way |
+| #376 | greptile-apps[bot] | Miss (×3) | Missed the `openSnapshot` scheduler omission accepted from coderabbit and cubic, and cubic's macOS timer-mode and test-comment findings |
+| #376 | coderabbitai[bot] | Miss (×3) | Missed the paste-during-playback gap accepted from greptile and cubic, and cubic's macOS timer-mode and test-comment findings |
 | #375 | cubic-dev-ai[bot] | Accept | Third round, on the second round's fix: the unconditional teardown released the shared `isTextInputFocused` flag even when the RightPanel size fields held it, so collapsing the Timeline mid-edit re-armed shortcuts under the size field's typing. Text-input focus is now per-owner claims on `Workspace` (OR-derived): each publisher touches only its own claim, which also closes the cross-field focus-move ordering hazard this PR's second concurrent publisher introduced — and turns the glue into a tested seam (four new Workspace tests) |
 | #375 | greptile-apps[bot] | Miss | Re-scanned the second fix commit without flagging the shared-flag clobber accepted from cubic |
 | #375 | coderabbitai[bot] | Miss | Refreshed its summary on the second fix commit without flagging the shared-flag clobber accepted from cubic |

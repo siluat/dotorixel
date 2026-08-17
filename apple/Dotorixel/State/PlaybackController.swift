@@ -46,6 +46,12 @@ final class DisplayLinkFrameScheduler: FrameScheduler {
     func cancel(_ handle: Int) {
         pending.removeValue(forKey: handle)?.disarm()
     }
+
+    deinit {
+        // The platform timer sources retain their PendingTick target, so an
+        // armed entry would outlive this scheduler unless disarmed here.
+        pending.values.forEach { $0.disarm() }
+    }
 }
 
 /// One armed one-shot clock fire, owning its platform timer source.

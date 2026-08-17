@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 228 | 173 | 55 | 321 | 76% | 35% |
-| cubic-dev-ai[bot] | 370 | 292 | 78 | 225 | 79% | 56% |
-| coderabbitai[bot] | 339 | 245 | 94 | 261 | 72% | 48% |
+| greptile-apps[bot] | 228 | 173 | 55 | 322 | 76% | 35% |
+| cubic-dev-ai[bot] | 370 | 292 | 78 | 226 | 79% | 56% |
+| coderabbitai[bot] | 340 | 246 | 94 | 261 | 72% | 49% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #376 | coderabbitai[bot] | Accept | Second round (a first-round nitpick folded inside the review body, missed by the line-comment sweep): the platform timer sources retain their `PendingTick` target, so a `DisplayLinkFrameScheduler` deallocated with an entry still armed leaves that tick alive for one more fire — bounded and harmless today (every capture past it is weak), but the resource's lifetime was implied rather than owned. An explicit `deinit` now disarms every pending entry |
+| #376 | greptile-apps[bot] | Miss | Missed the scheduler-teardown gap accepted from coderabbit |
+| #376 | cubic-dev-ai[bot] | Miss | Missed the scheduler-teardown gap accepted from coderabbit |
 | #376 | greptile-apps[bot] | Accept | Pasting during playback created a live Floating Selection without stopping the preview: the playhead composite override hid it while it stayed active, ready to surface or commit unexpectedly after playback ended. Both edit paths now exit the preview first (the `beginStroke` precedent) |
 | #376 | cubic-dev-ai[bot] | Accept | Same paste gap, wider (duplicate of greptile): `nudgeMarquee` shares the invisible-Floating path, and `startPlayback` re-ran its edit-state resolution when already playing — now an explicit early guard |
 | #376 | coderabbitai[bot] | Accept | `openSnapshot` omitted the workspace's injected `frameScheduler`, so a reopened tab fell back to a private production clock — breaking the stated one-scheduler-per-workspace contract and leaving reopened tabs undriveable from tests. Now forwarded, pinned by a regression test |

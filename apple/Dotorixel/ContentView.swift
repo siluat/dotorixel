@@ -114,7 +114,14 @@ struct ContentView: View {
                         // and its `onChange(of: geo.size)` re-presents the
                         // viewport whenever the panel collapses or expands —
                         // a fitted tab keeps its zoom, the pan reclamps.
-                        TimelinePanel(tab: tab)
+                        TimelinePanel(
+                            tab: tab,
+                            // The duration field must not feed the app-level
+                            // shortcut monitor (the canvas-size fields' contract).
+                            onTextInputFocusChange: {
+                                workspace.setTextInputFocus(owner: .frameDurationEditor, isFocused: $0)
+                            }
+                        )
                     }
 
                     RightPanel(workspace: workspace, tier: tier)
@@ -133,8 +140,8 @@ struct ContentView: View {
                     )
                     // The name field must not feed the app-level shortcut
                     // monitor (the canvas-size fields' contract).
-                    .onAppear { workspace.isTextInputFocused = true }
-                    .onDisappear { workspace.isTextInputFocused = false }
+                    .onAppear { workspace.setTextInputFocus(owner: .saveDialog, isFocused: true) }
+                    .onDisappear { workspace.setTextInputFocus(owner: .saveDialog, isFocused: false) }
                 }
             }
             .sheet(isPresented: isSavedWorkBrowserPresented) {

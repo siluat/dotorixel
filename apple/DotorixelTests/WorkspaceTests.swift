@@ -443,3 +443,63 @@ struct WorkspaceOpenSnapshotTests {
         #expect(workspace.activeTab.viewport.pixelSize() == fittedPixelSize)
     }
 }
+
+/// Text-input focus as per-owner claims (issue 287, PR #375 review): two
+/// fields can publish concurrently — the RightPanel size fields and the
+/// Timeline duration editor — so a single shared Bool would let either
+/// publisher's release clobber the other's live claim.
+@Suite("Workspace — text-input focus claims")
+struct WorkspaceTextInputFocusTests {
+
+    @Test("a claim pauses shortcuts and its release resumes them")
+    func claimAndReleaseToggleTheFlag() {
+        let workspace = Workspace(width: 8, height: 8)
+        #expect(!workspace.isTextInputFocused)
+
+        workspace.setTextInputFocus(owner: .canvasSizeFields, isFocused: true)
+        #expect(workspace.isTextInputFocused)
+
+        workspace.setTextInputFocus(owner: .canvasSizeFields, isFocused: false)
+        #expect(!workspace.isTextInputFocused)
+    }
+
+    @Test("one owner's release never drops another owner's claim")
+    func releaseNeverDropsAnotherOwnersClaim() {
+        // The Timeline collapse teardown releases the duration editor's
+        // claim unconditionally; a size field mid-edit must keep shortcuts
+        // paused through it.
+        let workspace = Workspace(width: 8, height: 8)
+        workspace.setTextInputFocus(owner: .canvasSizeFields, isFocused: true)
+
+        workspace.setTextInputFocus(owner: .frameDurationEditor, isFocused: false)
+        #expect(workspace.isTextInputFocused)
+    }
+
+    @Test("a focus move keeps shortcuts paused when the old owner releases last")
+    func focusMoveSurvivesEitherPublishOrder() {
+        // SwiftUI does not order the two fields' focus-change closures, so
+        // the old owner's release may land after the new owner's claim.
+        let workspace = Workspace(width: 8, height: 8)
+        workspace.setTextInputFocus(owner: .frameDurationEditor, isFocused: true)
+        workspace.setTextInputFocus(owner: .canvasSizeFields, isFocused: true)
+
+        workspace.setTextInputFocus(owner: .frameDurationEditor, isFocused: false)
+        #expect(workspace.isTextInputFocused)
+
+        workspace.setTextInputFocus(owner: .canvasSizeFields, isFocused: false)
+        #expect(!workspace.isTextInputFocused)
+    }
+
+    @Test("entering text focus restores a pending temporary Alt-eyedropper switch")
+    func enteringTextFocusResetsHeldKeyState() {
+        let workspace = Workspace(width: 8, height: 8)
+        workspace.keyboardShortcuts.setAltHeld(true)
+        #expect(workspace.shared.activeTool == .eyedropper)
+
+        // The Alt release will never reach a focused field, so the claim
+        // transition restores the prior tool now (the stored flag's didSet
+        // contract, carried over).
+        workspace.setTextInputFocus(owner: .saveDialog, isFocused: true)
+        #expect(workspace.shared.activeTool == .pencil)
+    }
+}

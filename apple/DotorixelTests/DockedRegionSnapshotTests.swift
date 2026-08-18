@@ -101,7 +101,10 @@ struct DockedRegionSnapshotTests {
     /// bottom-docked panel at the 1440 breakpoint — the height these snapshots
     /// pin is the expanded/collapsed split, not a tier.
 
-    @Test("TimelinePanel renders expanded (265pt) with the sole-layer remove disabled")
+    /// The default document is minimal — sole layer, single frame — so one
+    /// image pins every minimum-state disable at once: the layer row's
+    /// remove/reorder pair and the transport strip's two controls.
+    @Test("TimelinePanel renders expanded (265pt) with the minimal document's affordances disabled")
     func timelinePanelExpanded() {
         assertSnapshot(
             of: TimelinePanel(tab: state().activeTab).frame(width: barWidth),
@@ -204,6 +207,39 @@ struct DockedRegionSnapshotTests {
         }
         assertSnapshot(
             of: TimelinePanel(tab: overflowing.activeTab).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
+    /// Content regression (issue 289): the transport strip while playback
+    /// runs — the play button morphs to Pause, the readout follows the
+    /// Playhead, and the ruler carries both pointers' channels at once: the
+    /// Playhead's inset accent ring on column 1 beside the Active Frame's
+    /// fill + top bar on column 2 (playback starts at frame 1 and never moves
+    /// the edit pointer, parked on frame 2 by the add). The hand-driven clock
+    /// never ticks, so the render is deterministic.
+    @Test("TimelinePanel renders the playing transport with the playhead ring on the ruler")
+    func timelinePanelPlaying() throws {
+        let playing = Workspace(width: 16, height: 16, frameScheduler: FakeFrameScheduler())
+        let tab = playing.activeTab
+        try tab.document.addFrame(newId: makeFrameId())
+        tab.startPlayback()
+        assertSnapshot(
+            of: TimelinePanel(tab: tab).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
+    /// Content regression (issue 289): the Loop toggle's two-channel on-state
+    /// (accent-subtle fill + inset accent ring, accent-text icon) while
+    /// stopped — the default-state strips above only ever show it off.
+    @Test("TimelinePanel renders the loop toggle on")
+    func timelinePanelLoopOn() throws {
+        let looping = state()
+        try looping.activeTab.document.addFrame(newId: makeFrameId())
+        looping.activeTab.togglePlaybackLoop()
+        assertSnapshot(
+            of: TimelinePanel(tab: looping.activeTab).frame(width: barWidth),
             as: .image(layout: .sizeThatFits)
         )
     }

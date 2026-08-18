@@ -1,6 +1,6 @@
 ---
 title: Apple transport strip — play/pause, loop, and playhead indication
-status: ready-for-agent
+status: done
 created: 2026-08-16
 ---
 
@@ -47,3 +47,51 @@ own.
 ## Blocked by
 
 - [288 — Apple playback controller](288-apple-playback-controller.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Views/TimelinePanel.swift` | Transport strip replaces the reserved slot: Play/Pause (morphing-name action button, accent fill), Loop (`Toggle` + file-scope `TransportLoopToggleStyle` with the two-channel on-state), `n / N` readout (Playhead while playing, else Active Frame); Playhead indication as a 2pt inset accent ring on the ruler header |
+| `apple/Dotorixel/Localizable.xcstrings` | Playback / Play / Pause / Loop entries (en source + ko/ja), comments carry the web `aria_*` key provenance |
+| `apple/DotorixelTests/DockedRegionSnapshotTests.swift` | Two new baselines — playing (Pause icon, ring on col 1 beside the active col 2, readout follows the Playhead) and loop-on; expanded test renamed to the minimal-document phrasing |
+| `apple/DotorixelTests/TimelineLabelLocalizationTests.swift` | Transport labels' ko resolution guard (same catalog-reachability seam as the frame labels) |
+| `apple/DotorixelTests/README.md` | Pinned recording host re-pinned iOS 26.4 → 26.5 (with verification rationale); transport states added to the coverage description |
+| `apple/DotorixelTests/__Snapshots__/DockedRegionSnapshotTests/*.png` | 7 expanded-panel baselines re-recorded (strip replaces the empty slot) + 2 new state baselines |
+
+### Key Decisions
+
+- **Playhead indication is an inset accent ring on the ruler header**, not the
+  web's ▼ marker lane: the Apple panel's height budget is fixed with no lane to
+  spare, and the ring is a *shape* channel — distinguishable from the Active
+  Frame's fill + top bar even when the playhead crosses the active column
+  (user-approved over the ▼ glyph option).
+- **Play/Pause is a morphing-name action button; Loop is the real toggle** —
+  the web strip's documented pattern (pressed-state + changing name is a
+  conflicting accessibility pattern). Loop uses a genuine `Toggle` with a
+  custom `ToggleStyle` so on/off announces natively.
+- **No onion-skin toggle in this slice**: the web strip carries one, but that
+  control is 290/291 scope on Apple.
+- **No new keyboard shortcut plumbing**: the web has no playback shortcut
+  either (Space is reserved for pan), so native button/toggle keyboard focus
+  satisfies the "existing plumbing" criterion.
+- **Readout fallback matches the web literally**: a playhead id the axis no
+  longer carries reads as the Active Frame for the render before the next
+  tick's defensive stop lands.
+- **Snapshot pinned host re-pinned 26.4 → 26.5**: this machine has only the
+  26.5 runtime; all 27 existing 26.4-recorded baselines passed unchanged on
+  26.5 before anything was re-recorded, so the runtimes render these views
+  pixel-identically.
+
+### Notes
+
+- **Hands-on items left open**: the macOS 60 Hz timer fallback's playback
+  smoothness (carried from 288 — needs eyes on a real run via the new
+  transport), and a VoiceOver pass confirming the Loop toggle's on/off
+  announcement on device.
+- `build-rust.sh` dies **silently** (pipefail on the `SWIFT_COUNT` find) when
+  `apple/generated` is absent entirely — the bootstrap only handles
+  present-but-empty. Worked around with `mkdir`; recorded on the todo backlog's
+  bindings-staleness item.
+- xcstrings insertion order approximates Xcode's sort; a later Xcode save may
+  reorder entries once (cosmetic diff).

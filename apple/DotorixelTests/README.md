@@ -61,7 +61,12 @@ sidebar's active/hidden row treatments and its enabled reorder handles — the
 sole-layer snapshot carries the disabled pair (remove and reorder). `TimelinePanel`
 on a two-frame axis (issue 284) baselines the frame ruler: ordinals in axis order,
 the active column's fill + accent bar, the occupancy dots, and the accent outline
-where the active layer crosses the active frame. The narrowest-canvas-column
+where the active layer crosses the active frame. The transport strip (issue 289)
+adds three states on top of the sole-frame disabled pair the expanded snapshot
+carries: the enabled stopped strip on the two-frame ruler, playback running (the
+play button morphed to Pause, the readout following the Playhead, and the
+Playhead's inset accent ring beside the Active Frame's fill + top bar on the
+ruler), and the Loop toggle's two-channel on-state. The narrowest-canvas-column
 snapshot doubles as the frame-action group's narrow form (issue 285): six
 touch-minimum controls do not fit that header, so the three frame commands render
 as one menu button there and as a labelled row everywhere else. These are
@@ -123,8 +128,12 @@ Reference images are host-dependent (SF Symbols and system controls render diffe
 across OS versions and scales). Record and verify on **one** host:
 
 ```text
-iPad Pro 11-inch (M5) · iOS 26.4 simulator · @2x
+iPad Pro 11-inch (M5) · iOS 26.5 simulator · @2x
 ```
+
+(Re-pinned from iOS 26.4 during issue 289: every 26.4-recorded baseline passed
+unchanged on 26.5 before any was re-recorded, so the two runtimes render these
+views pixel-identically.)
 
 There is no macOS CI yet, so these snapshots are a **local gate**: references are
 committed as binary PNGs under `apple/DotorixelTests/__Snapshots__/` and diffed on each
@@ -140,10 +149,10 @@ xcodegen generate --spec apple/project.yml    # .xcodeproj is generated (git-ign
 xcodebuild test \
   -project apple/Dotorixel.xcodeproj \
   -scheme Dotorixel \
-  -destination 'platform=iOS Simulator,name=iPad Pro 11-inch (M5),OS=26.4'
+  -destination 'platform=iOS Simulator,name=iPad Pro 11-inch (M5),OS=26.5'
 ```
 
-(Requires the iOS 26.4 simulator runtime: `xcodebuild -downloadPlatform iOS`.)
+(Requires the iOS 26.5 simulator runtime: `xcodebuild -downloadPlatform iOS`.)
 
 ## Re-recording references
 

@@ -70,4 +70,13 @@ struct TimelineLabelLocalizationTests {
         #expect(String(localized: "Duplicate frame", bundle: ko, locale: locale) == "프레임 복제")
         #expect(String(localized: "Delete frame", bundle: ko, locale: locale) == "프레임 삭제")
     }
+
+    @Test("the transport strip's labels resolve their Korean translations")
+    func transportLabelsResolve() throws {
+        let ko = try koreanBundle()
+        #expect(String(localized: "Playback", bundle: ko, locale: locale) == "재생 컨트롤")
+        #expect(String(localized: "Play", bundle: ko, locale: locale) == "재생")
+        #expect(String(localized: "Pause", bundle: ko, locale: locale) == "일시정지")
+        #expect(String(localized: "Loop", bundle: ko, locale: locale) == "반복")
+    }
 }

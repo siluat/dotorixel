@@ -66,10 +66,13 @@ struct TimelinePanel: View {
     private let rulerHeight = DesignTokens.btnSize
     private let frameColumnWidth = DesignTokens.btnSize
 
-    /// Reserved band above the ruler where the playback transport lands (issue
-    /// 289). Held at the height its controls will need, so filling it never
-    /// moves the ruler or the rows beneath.
-    private let transportSlotHeight = DesignTokens.btnSize
+    /// The transport strip's band height above the ruler — its controls are
+    /// 44pt touch targets, so the band squares them at the touch minimum.
+    private let transportStripHeight = DesignTokens.btnSize
+
+    /// The transport glyphs' extent — the web strip renders its icons at 16px
+    /// (raw CSS, not a token).
+    private let transportIconSize: CGFloat = 16
 
     /// The occupancy dot marking a content-bearing Cel — web `--cel-dot-size`.
     private let celDotSize: CGFloat = 6
@@ -118,7 +121,7 @@ struct TimelinePanel: View {
         DesignTokens.timelinePanelHeight
             - rowHeight
             - dividerThickness
-            - transportSlotHeight
+            - transportStripHeight
             - rulerHeight
     }
 
@@ -132,7 +135,7 @@ struct TimelinePanel: View {
             // stays focusable behind a closed panel.
             if !isCollapsed {
                 divider
-                transportSlot
+                transportStrip
                 rulerAndRows
             }
         }
@@ -642,21 +645,86 @@ struct TimelinePanel: View {
             .accessibilityHidden(true)
     }
 
-    // MARK: - Transport slot (reserved for issue 289)
+    // MARK: - Transport strip (issue 289)
 
-    /// The band the playback transport will occupy. Empty and dim on purpose:
-    /// it holds the space so 289's controls arrive without moving the ruler,
-    /// and it carries nothing for VoiceOver to announce until they do.
-    private var transportSlot: some View {
-        Rectangle()
-            .fill(DesignTokens.bgSurface)
-            .frame(height: transportSlotHeight)
-            .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(DesignTokens.borderSubtle)
-                    .frame(height: dividerThickness)
-            }
-            .accessibilityHidden(true)
+    /// Whether the transport has anything to run — the strip's "needs 2+
+    /// frames" convention (web parity): a single frame leaves both controls
+    /// disabled, and playback can never be running here either (the
+    /// controller stops on the structural change that drops the count to one).
+    private var isTransportEnabled: Bool { frameColumns.count > 1 }
+
+    /// The readout's 1-based position: the Playhead while playing, else the
+    /// Active Frame (web parity: `transportPosition`, edge included — a
+    /// playhead id the axis no longer carries reads as the Active Frame for
+    /// the render before the next tick's defensive stop discards it).
+    private var transportPosition: Int {
+        if let playheadFrameId = tab.playheadFrameId,
+           let playheadIndex = frameColumns.firstIndex(where: { $0.id == playheadFrameId }) {
+            return playheadIndex + 1
+        }
+        return (frameColumns.firstIndex(where: { $0.id == tab.activeFrameId }) ?? 0) + 1
+    }
+
+    /// The playback transport in the band between the header and the ruler
+    /// (web parity: `TransportBar.svelte`): Play/Pause, the Loop toggle, and
+    /// the position readout. A thin view over the tab's playback commands —
+    /// no timing logic of its own.
+    private var transportStrip: some View {
+        HStack(spacing: DesignTokens.space4) {
+            playPauseButton
+            loopToggle
+            Spacer(minLength: 0)
+            Text(verbatim: "\(transportPosition) / \(frameColumns.count)")
+                .font(.system(size: DesignTokens.fontSize))
+                .monospacedDigit()
+                .foregroundStyle(DesignTokens.textTertiary)
+        }
+        .padding(.horizontal, DesignTokens.space4)
+        .frame(height: transportStripHeight)
+        .background(DesignTokens.bgElevated)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(DesignTokens.borderSubtle)
+                .frame(height: dividerThickness)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Playback")
+    }
+
+    /// Play⇄Pause: an action button whose accessible name morphs with the
+    /// state — not a toggle, which would pair a pressed flag with a changing
+    /// name (the conflicting pattern the web strip documents). Loop, with a
+    /// stable name, is the strip's real toggle.
+    private var playPauseButton: some View {
+        Button {
+            if tab.isPlaying { tab.stopPlayback() } else { tab.startPlayback() }
+        } label: {
+            Image(systemName: tab.isPlaying ? "pause.fill" : "play.fill")
+                .font(.system(size: transportIconSize))
+                // Web `.transport-btn--play`: accent fill under `#FFFFFF`
+                // (raw CSS, not a token); disabled drops to the strip's
+                // shared muted treatment.
+                .foregroundStyle(isTransportEnabled ? .white : DesignTokens.textTertiary)
+                .frame(width: DesignTokens.btnSize, height: DesignTokens.btnSize)
+                .background(isTransportEnabled ? DesignTokens.accent : DesignTokens.bgHover)
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusSm))
+        }
+        .buttonStyle(.plain)
+        .disabled(!isTransportEnabled)
+        .accessibilityLabel(tab.isPlaying ? "Pause" : "Play")
+    }
+
+    private var loopToggle: some View {
+        Toggle(isOn: Binding(
+            get: { tab.isPlaybackLooping },
+            set: { _ in tab.togglePlaybackLoop() }
+        )) {
+            Image(systemName: "repeat")
+                .font(.system(size: transportIconSize))
+        }
+        .toggleStyle(TransportLoopToggleStyle())
+        .disabled(!isTransportEnabled)
+        .accessibilityLabel("Loop")
     }
 
     // MARK: - Frame ruler
@@ -863,6 +931,7 @@ struct TimelinePanel: View {
     private func rulerHeader(_ frame: FrameColumn, axisIndex: Int) -> some View {
         let ordinal = axisIndex + 1
         let isActive = frame.id == tab.activeFrameId
+        let isPlayhead = frame.id == tab.playheadFrameId
         let isDragging = frameInteraction.drag?.itemId == frame.id
         let dragOffset = frameInteraction.drag?.offset(forIndex: axisIndex) ?? 0
         return Text(verbatim: "\(ordinal)")
@@ -885,6 +954,18 @@ struct TimelinePanel: View {
                 Rectangle()
                     .fill(DesignTokens.borderSubtle)
                     .frame(width: dividerThickness)
+            }
+            // The Playhead's own channel while playing (issue 289): an inset
+            // accent ring, distinct in shape from the Active Frame's fill +
+            // top bar (the edit pointer, which never moves during playback),
+            // so both stay readable when the playhead crosses the active
+            // column. The web parks a ▼ marker in a lane above the ruler; this
+            // fixed-height band has no lane, so the ring carries the sweep.
+            .overlay {
+                if isPlayhead {
+                    Rectangle()
+                        .strokeBorder(DesignTokens.accent, lineWidth: activeBarWidth)
+                }
             }
             .contentShape(Rectangle())
             .offset(x: dragOffset)
@@ -1109,5 +1190,46 @@ private struct FrameAxisOffsetKey: PreferenceKey {
 
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
+    }
+}
+
+/// The Loop toggle's chrome — web `.transport-btn--loop`: a quiet glyph off,
+/// the two-channel on-state (accent-subtle fill + inset accent ring, icon in
+/// accent-text) so on reads without relying on hue, and the strip's shared
+/// muted disabled treatment. A `ToggleStyle` rather than a styled `Button` so
+/// the control keeps genuine on/off toggle semantics for accessibility.
+private struct TransportLoopToggleStyle: ToggleStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    /// The on-state ring — web `box-shadow: inset 0 0 0 var(--ds-border-width)`.
+    private let ringWidth: CGFloat = 1
+
+    func makeBody(configuration: Configuration) -> some View {
+        Button {
+            configuration.isOn.toggle()
+        } label: {
+            configuration.label
+                .foregroundStyle(iconTint(isOn: configuration.isOn))
+                .frame(width: DesignTokens.btnSize, height: DesignTokens.btnSize)
+                .background(fill(isOn: configuration.isOn))
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusSm))
+                .overlay {
+                    if isEnabled && configuration.isOn {
+                        RoundedRectangle(cornerRadius: DesignTokens.radiusSm)
+                            .strokeBorder(DesignTokens.accent, lineWidth: ringWidth)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func iconTint(isOn: Bool) -> SwiftUI.Color {
+        if !isEnabled { return DesignTokens.textTertiary }
+        return isOn ? DesignTokens.accentText : DesignTokens.textSecondary
+    }
+
+    private func fill(isOn: Bool) -> SwiftUI.Color {
+        if !isEnabled { return DesignTokens.bgHover }
+        return isOn ? DesignTokens.accentSubtle : .clear
     }
 }

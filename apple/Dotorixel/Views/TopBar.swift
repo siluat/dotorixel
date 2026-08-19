@@ -11,7 +11,8 @@ struct TopBar: View {
     private var tab: TabState { workspace.activeTab }
     private var shared: SharedState { workspace.shared }
 
-    @State private var exportDocument: PngExportDocument?
+    @State private var exportDocument: ExportDocument?
+    @State private var exportFormat: ExportFormat = .png
     @State private var isExportPresented = false
     @State private var isExportErrorPresented = false
     @State private var exportErrorDescription = ""
@@ -186,13 +187,17 @@ struct TopBar: View {
 
     // MARK: - Export
 
+    /// Format-selecting export surface (issue 294) — the web export popover's
+    /// format list as a platform menu. New formats (295 spritesheet, 296 GIF)
+    /// slot in as `ExportFormat` cases without reshaping this surface.
     private var exportButton: some View {
-        Button {
-            do {
-                exportDocument = try tab.makePngExportDocument()
-                isExportPresented = true
-            } catch {
-                presentExportError(error)
+        Menu {
+            ForEach(ExportFormat.allCases, id: \.self) { format in
+                Button {
+                    beginExport(format)
+                } label: {
+                    Text(verbatim: format.label)
+                }
             }
         } label: {
             HStack(spacing: exportLabelSpacing) {
@@ -211,8 +216,8 @@ struct TopBar: View {
         .fileExporter(
             isPresented: $isExportPresented,
             document: exportDocument,
-            contentType: .png,
-            defaultFilename: tab.defaultExportFilename
+            contentType: exportFormat.contentType,
+            defaultFilename: tab.defaultExportFilename(for: exportFormat)
         ) { result in
             if case .failure(let error) = result {
                 presentExportError(error)
@@ -222,6 +227,19 @@ struct TopBar: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(exportErrorDescription)
+        }
+    }
+
+    /// Encodes the chosen format's document, then presents the file exporter.
+    /// A failed encode presents the error alert instead — the exporter never
+    /// opens without a document.
+    private func beginExport(_ format: ExportFormat) {
+        do {
+            exportDocument = try tab.makeExportDocument(format: format)
+            exportFormat = format
+            isExportPresented = true
+        } catch {
+            presentExportError(error)
         }
     }
 

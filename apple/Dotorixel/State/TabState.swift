@@ -1728,13 +1728,13 @@ final class TabState {
 
     // MARK: - Export
 
-    /// Encodes the document's export composite as a PNG export document at 1×
-    /// scale (one canvas pixel per image pixel), matching the web's export
+    /// Encodes the document's export output in the given format at 1× scale
+    /// (one canvas pixel per image/rect pixel), matching the web's export
     /// convention.
     ///
     /// - Throws: `AppleError` when a transient projection cannot be rebuilt or
-    ///   PNG encoding fails.
-    func makePngExportDocument() throws -> PngExportDocument {
+    ///   encoding fails.
+    func makeExportDocument(format: ExportFormat) throws -> ExportDocument {
         let exportDocument: AppleDocument
         if floatingSelection.isActive || floatingSelection.hasPendingRecovery {
             exportDocument = try AppleDocument.fromLayers(
@@ -1750,14 +1750,31 @@ final class TabState {
         } else {
             exportDocument = document
         }
-        return PngExportDocument(data: try exportDocument.encodeExportPng())
+        let data = switch format {
+        case .png: try exportDocument.encodeExportPng()
+        case .svg: Data(try exportDocument.encodeExportSvg().utf8)
+        }
+        return ExportDocument(data: data)
+    }
+
+    /// PNG export — the pre-294 single-format spelling, kept for the existing
+    /// PNG export contract.
+    func makePngExportDocument() throws -> ExportDocument {
+        try makeExportDocument(format: .png)
     }
 
     /// Default export filename following the web convention
-    /// (`generateExportFilename` in `src/lib/canvas/export.ts`).
-    /// The save flow offers it as the suggested name; the user may override it.
+    /// (`generateDefaultStem` in `src/lib/canvas/export.ts`) with the format's
+    /// extension. The save flow offers it as the suggested name; the user may
+    /// override it.
+    func defaultExportFilename(for format: ExportFormat) -> String {
+        "dotorixel-\(document.width())x\(document.height()).\(format.fileExtension)"
+    }
+
+    /// PNG default filename — the pre-294 single-format spelling, kept for the
+    /// existing PNG export contract.
     var defaultExportFilename: String {
-        "dotorixel-\(document.width())x\(document.height()).png"
+        defaultExportFilename(for: .png)
     }
 
     // MARK: - Viewport

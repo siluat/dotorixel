@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 293 | [Apple UniFFI export encoder bindings — SVG, GIF, and spritesheet](../issues/293-apple-uniffi-export-encoder-bindings.md) | 2026-08-19 |
 | 292 | [Apple animation persistence — frames, cels, and durations in the SwiftData schema](../issues/292-apple-animation-persistence.md) | 2026-08-19 |
 | 291 | [Apple onion skin render + toggle — tinted ghosts under the working frame](../issues/291-apple-onion-skin-render.md) | 2026-08-19 |
 | 290 | [Apple onion skin state — neighbor selection and ghost projection](../issues/290-apple-onion-skin-state.md) | 2026-08-19 |

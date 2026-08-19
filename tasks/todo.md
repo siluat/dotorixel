@@ -23,15 +23,15 @@ the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish), Phase 2
 (full tool set + color + i18n, issues 230–242), Phase 3 (layer system, issues
 256–261), Phase 4 (multi-tab + persistence, issues 262–266), and Phase 5
 (reference + selection + transforms, issues 267–282) are complete; Phase 6 is
-decomposed into issues 283–296 (two parallel tracks), of which 283–292 are done —
-the animation track is complete, only the export track remains.
+decomposed into issues 283–296 (two parallel tracks), of which 283–293 are done —
+the animation track and the export bindings are complete, only the export UI
+track (294–296) remains.
 
 ### Phase 6 — Animation + extended export (issues 283–296)
 
 Export track:
 
-- [293 — UniFFI export encoder bindings](../issues/293-apple-uniffi-export-encoder-bindings.md)
-- [294 — Export format selection UI + SVG](../issues/294-apple-export-format-selection.md) (blocked by 293)
+- [294 — Export format selection UI + SVG](../issues/294-apple-export-format-selection.md)
 - [295 — Spritesheet export](../issues/295-apple-spritesheet-export.md) (blocked by 294)
 - [296 — GIF export](../issues/296-apple-gif-export.md) (blocked by 294)
 

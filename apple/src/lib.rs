@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use dotorixel_core::canvas::PixelCanvas;
-use dotorixel_core::export::PngExport;
+use dotorixel_core::export::{GifExport, PngExport, SpritesheetExport, SvgExport};
 use dotorixel_core::history::DocumentHistory;
 use dotorixel_core::pixel_perfect::{FilterResult, TailState, pixel_perfect_filter};
 use dotorixel_core::selection::MarqueeRegion;
@@ -1559,6 +1559,42 @@ impl AppleDocument {
             document.composite_for_export(),
         )?;
         Ok(canvas.encode_png()?)
+    }
+
+    /// The export composite encoded as an SVG string — one `<rect>` per
+    /// non-transparent pixel, `viewBox`-only root with `crispEdges`
+    /// (web parity: `WasmCanvas::encode_svg` over the export composite).
+    fn encode_export_svg(&self) -> Result<String, AppleError> {
+        let document = self.inner.lock().unwrap();
+        let canvas = PixelCanvas::from_pixels(
+            document.width(),
+            document.height(),
+            document.composite_for_export(),
+        )?;
+        Ok(canvas.encode_svg()?)
+    }
+
+    /// Animated GIF of every frame's composite, encoded as a byte buffer —
+    /// the core `GifExport` contract: frames in axis order with quantized
+    /// per-frame delays, infinite looping, binary transparency, Reference
+    /// Layers and hidden layers excluded, the active frame untouched.
+    ///
+    /// Errors as [`AppleError::Export`] when the underlying GIF encoder
+    /// fails (core `ExportError::GifEncode`).
+    fn encode_gif(&self) -> Result<Vec<u8>, AppleError> {
+        Ok(self.inner.lock().unwrap().encode_gif()?)
+    }
+
+    /// Horizontal-strip spritesheet of every frame's composite, encoded as an
+    /// RGBA PNG byte buffer — the core `SpritesheetExport` contract: frames in
+    /// axis order, tile size exactly canvas width × height, Reference Layers
+    /// and hidden layers excluded, the active frame untouched.
+    ///
+    /// Errors as [`AppleError::Export`] when the sheet exceeds the encodable
+    /// size (core `ExportError::SheetTooLarge`) or PNG encoding fails
+    /// (core `ExportError::PngEncode`).
+    fn encode_spritesheet_png(&self) -> Result<Vec<u8>, AppleError> {
+        Ok(self.inner.lock().unwrap().encode_spritesheet_png()?)
     }
 
     // -- Frame axis --

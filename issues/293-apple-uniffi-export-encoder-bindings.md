@@ -1,6 +1,6 @@
 ---
 title: Apple UniFFI export encoder bindings — SVG, GIF, and spritesheet
-status: ready-for-agent
+status: done
 created: 2026-08-16
 ---
 
@@ -53,3 +53,41 @@ No new core logic; binding work plus regeneration.
 
 None — can start immediately (parallel with
 [283](283-apple-uniffi-frame-bindings.md))
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/src/lib.rs` | Three new `AppleDocument` methods — `encode_export_svg`, `encode_gif`, `encode_spritesheet_png` — thin delegates to the core encoders, with error-condition doc comments. Expand-only; existing bindings untouched |
+| `apple/DotorixelTests/ExportEncoderBindingsTests.swift` | New five-test suite (`DocumentBindingsTests` pattern) covering every acceptance criterion through the generated bindings |
+
+All five acceptance tests pass; full Apple suite (791 tests) and
+`cargo test` (581 tests) green; regenerated bindings compile in the
+Xcode project.
+
+### Key Decisions
+
+- **SVG exposed at document level** (`encode_export_svg`, following the
+  `encode_export_png` precedent), not the web's canvas-level
+  `encode_svg` — confirmed with the user. The issue's "document's
+  export composite" wording wins, and one binding call folds
+  composite → canvas → SVG so the shell cannot misassemble it. Web
+  parity holds semantically: the web shell performs the identical
+  composition in `TabState.exportableSnapshot()`.
+- **GIF delays asserted via `kCGImagePropertyGIFUnclampedDelayTime`** —
+  the raw on-wire centisecond field, immune to the clamped substitute
+  ImageIO reports for tiny delays.
+- **Error docs only where an error path is reachable**: `encode_gif`
+  (`GifEncode`) and `encode_spritesheet_png` (`SheetTooLarge`,
+  `PngEncode`) document their conditions; `encode_export_svg` has no
+  reachable failure beyond its signature, so none is stated.
+
+### Notes
+
+- The three methods surface in Swift as `throws -> Data` /
+  `throws -> String` (UniFFI maps `Vec<u8>` to `Data`).
+- `decodedRgbaPixels` is now duplicated between `PngExportTests` and
+  the new suite. `DocumentTestSupport.swift` is the natural shared
+  home, but promoting it would edit an existing test file against this
+  slice's expand-only guarantee — consolidation left for a later
+  touch of these suites.

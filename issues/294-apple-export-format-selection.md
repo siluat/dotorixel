@@ -1,6 +1,6 @@
 ---
 title: Apple export format selection — multi-format export UI + SVG
-status: ready-for-agent
+status: done
 created: 2026-08-16
 ---
 
@@ -47,3 +47,44 @@ SVG as the first new format:
 ## Blocked by
 
 - [293 — Apple UniFFI export encoder bindings](293-apple-uniffi-export-encoder-bindings.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Export/ExportFormat.swift` | New format registry enum — the web `availableFormats` counterpart: case order is menu order; label, extension, and `UTType` per case; 295/296 slot in as new cases |
+| `apple/Dotorixel/Export/ExportDocument.swift` | `PngExportDocument` generalized to one `FileDocument` for every format; `readableContentTypes` derived from the registry |
+| `apple/Dotorixel/Export/PngExportDocument.swift` | Removed (superseded by `ExportDocument`) |
+| `apple/Dotorixel/State/TabState.swift` | `makeExportDocument(format:)` — shared Floating Selection projection + per-format encoder dispatch; `defaultExportFilename(for:)`; PNG-named wrappers kept as delegating shims |
+| `apple/Dotorixel/Views/TopBar.swift` | Export button grown into a SwiftUI `Menu` (PNG/SVG); `fileExporter` content type and default filename follow the chosen format; encode failure routes to the existing alert before the exporter can open |
+| `apple/DotorixelTests/ExportFormatTests.swift` | 7 tests: registry shape/labels, per-format filename, SVG content match, Floating Selection projection, Reference exclusion, onion-skin byte-identity |
+
+### Key Decisions
+
+- **Registry as a Swift enum**, mirroring the web's declarative format list — the
+  export surface (menu, exporter, filename) reads the registry, so 295/296 add
+  cases without reshaping the UI.
+- **PNG contract untouched**: `makePngExportDocument()` / `defaultExportFilename`
+  remain as delegating wrappers so `PngExportTests` and `RenderPathTests` stay
+  byte-for-byte unchanged (acceptance criterion).
+- **No new String Catalog entries**: the "new labels in the String Catalog
+  (en/ko/ja)" acceptance criterion is satisfied vacuously — the surface
+  introduces zero new translatable strings. The only new visible labels are the
+  format acronyms (PNG/SVG), rendered verbatim exactly like the web registry's
+  untranslated labels; existing "Export" / "Export Failed" entries are reused.
+- **No filename input field**: the platform save flow (macOS save panel /
+  iPadOS Files picker) already edits the filename, so the web popover's input
+  has no Apple counterpart.
+
+### Notes
+
+- The "snapshot baselines updated" acceptance criterion required no re-record:
+  the `Menu` label renders pixel-identical to the previous button, so the
+  existing TopBar baselines remain valid (verified on the pinned host).
+- SVG visual check performed against the real surface output: a
+  known red/green/blue pattern exported via `makeExportDocument(format: .svg)`
+  rendered with correct orientation and crisp edges.
+- Touch targets: menu rows are system-sized (≥44 pt); the bar's 32 pt export
+  chrome is pre-existing web-parity styling, unchanged.
+- Spritesheet (295) and GIF (296) are now unblocked; each adds an
+  `ExportFormat` case plus its encoder dispatch arm.

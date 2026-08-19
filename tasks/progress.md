@@ -3,21 +3,22 @@
 ## Currently Working On
 
 Apple Native Phase 6 — Animation + extended export
-([RFC](../issues/013-apple-native-catchup.md)); 11 of 14 sub-issues done.
-293 delivered the export encoder bindings and unblocked 294; 295/296
-wait on 294.
+([RFC](../issues/013-apple-native-catchup.md)); 12 of 14 sub-issues done.
+294 delivered the format-selecting export surface, unblocking 295 and
+296 (each adds a format case to it).
 
 ## Last Completed
 
-[293 — Apple UniFFI export encoder bindings](../issues/293-apple-uniffi-export-encoder-bindings.md):
-`AppleDocument` now exposes the core SVG, animated GIF, and spritesheet
-encoders (expand-only), proven through generated-binding tests. SVG sits
-at the document level like the PNG precedent; the export UI arrives
-in 294.
+[294 — Apple export format selection — multi-format export UI + SVG](../issues/294-apple-export-format-selection.md):
+the TopBar export button is now a format menu (PNG/SVG) backed by an
+`ExportFormat` registry the remaining formats slot into; SVG ships
+through the platform save flow. PNG behavior and tests unchanged;
+snapshot baselines needed no re-record.
 
 ## Next Up
 
-- [294 — Apple export format selection UI + SVG](../issues/294-apple-export-format-selection.md) — Phase 6 export UI opener
+- [295 — Apple spritesheet export](../issues/295-apple-spritesheet-export.md) — adds a format case to the 294 surface
+- [296 — Apple GIF export](../issues/296-apple-gif-export.md) — adds a format case to the 294 surface
 - [255 — Apple Pencil device verification (HITL)](../issues/255-apple-pencil-device-verification.md)
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)

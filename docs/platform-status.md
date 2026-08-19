@@ -124,7 +124,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Reference Layer (timeline kind) | ✅ | ✅ | ✅ | Singleton underlay with Pixel-only composites. Apple: import/render, edit guards, sampling, placement, navigation bounds, and relaunch persistence complete |
 | Timeline panel | — | 🔧 | 🔧 | Bottom-docked Layer × Frame grid on both, with a horizontally scrolling frame axis under a pinned ruler. Apple: drag reorder on both axes (row handles, ruler headers), fixed Reference band, Cel occupancy dots, header frame actions (a menu where the row won't fit), transport strip. Web mobile row targets pending |
 | Playback (animation) | — | ✅ | ✅ | Per-tab engine + transport on both shells: transient Playhead holds each frame its duration (carry → no drift), loops or stops at end; previews committed art — no Document mutation/history/dirty, never persisted; tab/document change stops it. Controls disabled on a single frame; no keyboard shortcut on either shell |
-| Onion skinning | — | ✅ | ✅ | Adjacent-frame ghosts while drawing (prev/next 1, clamped, no wrap): prev warm / next cool, hidden during Playback, never in exports or thumbnails. Apple: toggle not yet persisted (rides 292) |
+| Onion skinning | — | ✅ | 🔧 | Adjacent-frame ghosts while drawing (prev/next 1, clamped, no wrap): prev warm / next cool, hidden during Playback, never in exports or thumbnails. Apple: render + toggle UI done; toggle persistence rides 292 |
 
 ## Reference Images
 

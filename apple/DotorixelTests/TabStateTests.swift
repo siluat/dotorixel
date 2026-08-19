@@ -62,6 +62,21 @@ struct TabStateBlankDetectionTests {
         // not be silently discarded by the tab-close flow.
         #expect(!tab.isDocumentBlank())
     }
+
+    @Test("painted content on an inactive frame still counts as non-blank")
+    func inactiveFramePaintCountsAsNonBlank() {
+        let state = Workspace(width: 4, height: 4)
+        let tab = state.activeTab
+
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.endStroke()
+        // The new frame is transparent and active — the paint lives on the
+        // now-inactive first frame's cel, which must not be silently
+        // discarded by the tab-close flow.
+        tab.addFrame()
+
+        #expect(!tab.isDocumentBlank())
+    }
 }
 
 @Suite("SharedState — FG/BG colors")

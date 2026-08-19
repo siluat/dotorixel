@@ -61,6 +61,28 @@ struct DirtyNotifierTests {
         #expect(notifier.marked.contains(tab.documentId))
     }
 
+    @Test("switching the active frame marks the document dirty; the no-op guards mark nothing")
+    func activeFrameSwitchMarksDirty() throws {
+        let notifier = RecordingNotifier()
+        let workspace = Workspace(width: 4, height: 4, notifier: notifier)
+        let tab = workspace.activeTab
+        let first = tab.activeFrameId
+        tab.addFrame() // the new second frame becomes active
+        notifier.reset()
+
+        // The active-frame pointer is persisted document state since 292 —
+        // a switch alone must reach the store (raised by greptile-apps and
+        // cubic-dev-ai on PR #381).
+        tab.setActiveFrame(id: first)
+        #expect(notifier.marked.contains(tab.documentId))
+
+        // Rejected switches change no saved state, so they mark nothing.
+        notifier.reset()
+        tab.setActiveFrame(id: first) // already active
+        tab.setActiveFrame(id: makeFrameId()) // unknown id
+        #expect(notifier.marked.isEmpty)
+    }
+
     @Test("defining, deselecting, and committing a moved Marquee mark the document dirty")
     func marqueeMutationsMarkDirty() {
         let notifier = RecordingNotifier()

@@ -13,7 +13,8 @@ use uuid::Uuid;
 // Re-export core types used directly in the UniFFI interface.
 // UniFFI discovers these via their cfg_attr derives in dotorixel-core.
 use dotorixel_core::color::Color;
-use dotorixel_core::layer::{LayerKind, LayerKindTag, ReferenceData};
+use dotorixel_core::frame::Frame;
+use dotorixel_core::layer::{Cels, LayerKind, LayerKindTag, ReferenceData};
 use dotorixel_core::tool::ToolType;
 
 uniffi::setup_scaffolding!();
@@ -657,13 +658,26 @@ pub struct AppleLayerMetadata {
     pub kind: LayerKindTag,
 }
 
+/// One Pixel Layer's pixel buffer for one Frame — the `[layer × frame]` grid
+/// cell in persistence form (web parity: the cel entry in
+/// `PixelLayerRecordV6`). `pixels` is the cel's RGBA row-major buffer
+/// (`width * height * 4` bytes); the frame id crosses the boundary as a
+/// lowercase UUID string, per the [`AppleFrameMetadata`] convention.
+#[derive(uniffi::Record)]
+pub struct AppleCelSnapshot {
+    pub frame_id: String,
+    pub pixels: Vec<u8>,
+}
+
 /// One Pixel Layer's full persistence snapshot — everything session
 /// persistence stores per layer, read in stack order via
 /// [`AppleDocument::pixel_layer_snapshots`] (or the Pixel-only
 /// [`AppleDocument::layer_snapshots`]) and fed back verbatim to the
-/// hydration constructor. `pixels` is the layer's RGBA row-major buffer
-/// (`width * height * 4` bytes); the id crosses the boundary as a lowercase
-/// UUID string, per the [`AppleLayerMetadata`] convention.
+/// hydration constructor. `pixels` is the active frame's cel buffer — the
+/// RGBA row-major buffer (`width * height * 4` bytes) single-frame consumers
+/// read — while `cels` carries one entry per Document frame in axis order
+/// (the grid invariant). The id crosses the boundary as a lowercase UUID
+/// string, per the [`AppleLayerMetadata`] convention.
 #[derive(uniffi::Record)]
 pub struct AppleLayerSnapshot {
     pub id: String,
@@ -671,6 +685,10 @@ pub struct AppleLayerSnapshot {
     pub visible: bool,
     pub opacity: f32,
     pub pixels: Vec<u8>,
+    /// Defaults to empty for legacy single-frame construction, where `pixels`
+    /// alone carries the sole cel; frames-aware hydration reads only `cels`.
+    #[uniffi(default = [])]
+    pub cels: Vec<AppleCelSnapshot>,
 }
 
 /// The singleton Reference Layer's full persistence snapshot — everything
@@ -730,12 +748,22 @@ fn pixel_layer_snapshot(
     layer: &Layer,
 ) -> Option<AppleLayerSnapshot> {
     let pixels = document.layer_pixels_at(stack_index)?;
+    // `layer_pixels_at` succeeding proves a Pixel Layer, and the grid
+    // invariant gives it one cel per frame — the per-frame `?` is total.
+    let mut cels = Vec::with_capacity(document.frames().len());
+    for frame in document.frames() {
+        cels.push(AppleCelSnapshot {
+            frame_id: frame.id.to_string(),
+            pixels: document.cel_pixels_at(stack_index, frame.id)?.to_vec(),
+        });
+    }
     Some(AppleLayerSnapshot {
         id: layer.id.to_string(),
         name: layer.name.clone(),
         visible: layer.visible,
         opacity: layer.opacity,
         pixels: pixels.to_vec(),
+        cels,
     })
 }
 
@@ -814,13 +842,25 @@ impl AppleDocument {
     /// stack in stack order, restored verbatim (ids, names, visibility,
     /// opacity, pixels), and `reference` is the optional Reference Layer
     /// snapshot, restored exactly (placement included) and normalized by the
-    /// core to the single bottom-most underlay. Errors when a layer id or
-    /// `active_layer_id` is not a valid UUID string, when a layer's opacity
-    /// is not a finite value in `[0.0, 1.0]`, when a pixel buffer's length is
-    /// not `width * height * 4`, when the reference's placement or source
-    /// buffer fails validation, or when the stack fails the core's build
-    /// validation (empty stack, duplicate ids, active layer not present).
-    #[uniffi::constructor(default(reference = None))]
+    /// core to the single bottom-most underlay.
+    ///
+    /// `frames` and `active_frame_id` restore the frame axis in one validated
+    /// step: when both are supplied, each layer's cels are rebuilt from its
+    /// `cels` entries (`pixels` is ignored) and durations clamp to the
+    /// binding-owned range, exactly as `set_frame_duration` clamps. When both
+    /// are omitted (a pre-animation record), the document is single-frame with
+    /// `pixels` as each layer's sole cel.
+    ///
+    /// Errors when a layer id, frame id, or either active id is not a valid
+    /// UUID string, when a layer's opacity is not a finite value in
+    /// `[0.0, 1.0]`, when a pixel buffer's length is not
+    /// `width * height * 4`, when the reference's placement or source buffer
+    /// fails validation, when `frames` and `active_frame_id` are not supplied
+    /// together, or when the parts fail the core's build validation (empty
+    /// stack or axis, duplicate ids, an active pointer not present, cel keys
+    /// not matching the frame ids).
+    #[uniffi::constructor(default(reference = None, frames = None, active_frame_id = None))]
+    #[allow(clippy::too_many_arguments)]
     fn from_layers(
         width: u32,
         height: u32,
@@ -829,7 +869,21 @@ impl AppleDocument {
         next_layer_number: u32,
         timeline_panel_collapsed: bool,
         reference: Option<AppleReferenceLayerSnapshot>,
+        frames: Option<Vec<AppleFrameMetadata>>,
+        active_frame_id: Option<String>,
     ) -> Result<Arc<Self>, AppleError> {
+        // The frame axis and its active pointer only make sense together —
+        // an inconsistent call is a programming error surfaced at the
+        // boundary, not silently defaulted.
+        let frame_axis = match (frames, active_frame_id) {
+            (Some(frames), Some(active_frame_id)) => Some((frames, active_frame_id)),
+            (None, None) => None,
+            _ => {
+                return Err(AppleError::Document {
+                    message: "frames and activeFrameId must be supplied together".to_string(),
+                });
+            }
+        };
         let mut stack: Vec<Layer> = Vec::with_capacity(layers.len() + 1);
         if let Some(reference) = reference {
             stack.push(reference_layer_from_snapshot(reference)?);
@@ -847,24 +901,65 @@ impl AppleDocument {
                     ),
                 });
             }
-            let canvas = PixelCanvas::from_pixels(width, height, snapshot.pixels)?;
-            stack.push(Layer::from_pixel_canvas(
-                id,
-                snapshot.name,
-                snapshot.visible,
-                snapshot.opacity,
-                canvas,
-            ));
+            let layer = if frame_axis.is_some() {
+                let mut entries = Vec::with_capacity(snapshot.cels.len());
+                for cel in snapshot.cels {
+                    entries.push((
+                        parse_frame_id(&cel.frame_id)?,
+                        PixelCanvas::from_pixels(width, height, cel.pixels)?,
+                    ));
+                }
+                Layer::from_cels(
+                    id,
+                    snapshot.name,
+                    snapshot.visible,
+                    snapshot.opacity,
+                    Cels::from_entries(entries),
+                )
+            } else {
+                Layer::from_pixel_canvas(
+                    id,
+                    snapshot.name,
+                    snapshot.visible,
+                    snapshot.opacity,
+                    PixelCanvas::from_pixels(width, height, snapshot.pixels)?,
+                )
+            };
+            stack.push(layer);
         }
         let active_id = parse_layer_id(&active_layer_id)?;
-        let document = Document::from_layers(
-            width,
-            height,
-            stack,
-            active_id,
-            next_layer_number,
-            timeline_panel_collapsed,
-        )?;
+        let document = match frame_axis {
+            Some((frames, active_frame_id)) => {
+                let mut axis = Vec::with_capacity(frames.len());
+                for frame in frames {
+                    axis.push(Frame {
+                        id: parse_frame_id(&frame.id)?,
+                        duration_ms: frame
+                            .duration_ms
+                            .clamp(Self::MIN_FRAME_DURATION_MS, Self::MAX_FRAME_DURATION_MS),
+                    });
+                }
+                let active_frame = parse_frame_id(&active_frame_id)?;
+                Document::from_grid(
+                    width,
+                    height,
+                    stack,
+                    active_id,
+                    axis,
+                    active_frame,
+                    next_layer_number,
+                    timeline_panel_collapsed,
+                )?
+            }
+            None => Document::from_layers(
+                width,
+                height,
+                stack,
+                active_id,
+                next_layer_number,
+                timeline_panel_collapsed,
+            )?,
+        };
         Ok(Arc::new(Self {
             inner: Mutex::new(document),
         }))

@@ -111,12 +111,14 @@ pub enum DocumentBuildError {
         actual: (u32, u32),
     },
     UnknownActiveLayer(Uuid),
-    MissingInitialFrameCel {
+    /// A Pixel Layer's cel keys don't equal the supplied frame ids exactly —
+    /// a missing cel, an extra cel, or an empty `Cels` (the grid invariant).
+    CelGridMismatch {
         layer_id: Uuid,
     },
-    MultiFramePixelLayer {
-        layer_id: Uuid,
-    },
+    EmptyFrames,
+    DuplicateFrameId(Uuid),
+    UnknownActiveFrame(Uuid),
 }
 
 impl fmt::Display for DocumentBuildError {
@@ -147,16 +149,25 @@ impl fmt::Display for DocumentBuildError {
                     "Active layer id {id} is not present in the supplied layer stack."
                 )
             }
-            Self::MissingInitialFrameCel { layer_id } => {
+            Self::CelGridMismatch { layer_id } => {
                 write!(
                     f,
-                    "Pixel layer {layer_id} has no cel for the document's initial frame; every Pixel Layer must hold one cel per frame."
+                    "Pixel layer {layer_id}'s cel keys do not match the document's frame ids; every Pixel Layer must hold exactly one cel per frame."
                 )
             }
-            Self::MultiFramePixelLayer { layer_id } => {
+            Self::EmptyFrames => {
+                write!(f, "Document must contain at least one frame.")
+            }
+            Self::DuplicateFrameId(id) => {
                 write!(
                     f,
-                    "Pixel layer {layer_id} carries more than one cel; from_layers reconstructs a single-frame document, so each Pixel Layer must hold exactly one cel."
+                    "Frame id {id} appears more than once in the supplied frame axis."
+                )
+            }
+            Self::UnknownActiveFrame(id) => {
+                write!(
+                    f,
+                    "Active frame id {id} is not present in the supplied frame axis."
                 )
             }
         }
@@ -276,8 +287,9 @@ impl Document {
     /// or when `active_layer_id` is not present in the supplied stack.
     ///
     /// The reconstructed document has a single [initial frame](Frame::INITIAL)
-    /// marked active, with each Pixel Layer's sole cel keyed to it.
-    /// Multi-frame reconstruction is a later persistence concern.
+    /// marked active, with each Pixel Layer's sole cel keyed to it. Multi-frame
+    /// reconstruction goes through [`from_grid`](Self::from_grid), which this
+    /// delegates to.
     pub fn from_layers(
         width: u32,
         height: u32,
@@ -286,26 +298,65 @@ impl Document {
         next_layer_number: u32,
         timeline_panel_collapsed: bool,
     ) -> Result<Self, DocumentBuildError> {
+        Self::from_grid(
+            width,
+            height,
+            layers,
+            active_layer_id,
+            vec![Frame::INITIAL],
+            Frame::INITIAL.id,
+            next_layer_number,
+            timeline_panel_collapsed,
+        )
+    }
+
+    /// Constructs a document from a full Layer × Frame grid: the layer stack
+    /// (each Pixel Layer carrying one cel per supplied frame), the frame axis
+    /// in order with per-frame durations, and both active pointers. This is
+    /// the multi-frame hydration authority — persistence restores in one
+    /// validated step, never by replaying frame operations.
+    ///
+    /// Returns [`DocumentBuildError`] when the stack fails the
+    /// [`from_layers`](Self::from_layers) validations, when `frames` is empty
+    /// or contains duplicate ids, when `active_frame_id` is not present in
+    /// `frames`, or when a Pixel Layer's cel keys don't equal the frame ids
+    /// exactly (the grid invariant).
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_grid(
+        width: u32,
+        height: u32,
+        layers: Vec<Layer>,
+        active_layer_id: Uuid,
+        frames: Vec<Frame>,
+        active_frame_id: Uuid,
+        next_layer_number: u32,
+        timeline_panel_collapsed: bool,
+    ) -> Result<Self, DocumentBuildError> {
         if layers.is_empty() {
             return Err(DocumentBuildError::EmptyLayers);
+        }
+        if frames.is_empty() {
+            return Err(DocumentBuildError::EmptyFrames);
+        }
+        for (i, frame) in frames.iter().enumerate() {
+            if frames[..i].iter().any(|prior| prior.id == frame.id) {
+                return Err(DocumentBuildError::DuplicateFrameId(frame.id));
+            }
+        }
+        if !frames.iter().any(|f| f.id == active_frame_id) {
+            return Err(DocumentBuildError::UnknownActiveFrame(active_frame_id));
         }
         for (i, layer) in layers.iter().enumerate() {
             if layers[..i].iter().any(|prior| prior.id == layer.id) {
                 return Err(DocumentBuildError::DuplicateLayerId(layer.id));
             }
             if let LayerKind::Pixel(cels) = &layer.kind {
-                // The reconstructed document has a single initial frame, so every
-                // Pixel Layer must carry a cel keyed to it — otherwise the
-                // document would build successfully but panic on the first
-                // active-frame access. Also rejects an empty `Cels`.
-                if cels.get(Frame::INITIAL.id).is_none() {
-                    return Err(DocumentBuildError::MissingInitialFrameCel { layer_id: layer.id });
-                }
-                // The initial cel is present; any additional cels would key to
-                // frames this single-frame document does not have, violating the
-                // grid invariant (cel keys == frame ids, no extra).
-                if cels.len() != 1 {
-                    return Err(DocumentBuildError::MultiFramePixelLayer { layer_id: layer.id });
+                // The grid invariant: cel keys equal the frame ids exactly. A
+                // missing cel would panic on that frame's first access; frame
+                // ids are unique (checked above), so a full cover at equal
+                // count leaves no room for an extra cel.
+                if cels.len() != frames.len() || frames.iter().any(|f| cels.get(f.id).is_none()) {
+                    return Err(DocumentBuildError::CelGridMismatch { layer_id: layer.id });
                 }
                 for canvas in cels.canvases() {
                     let actual = (canvas.width(), canvas.height());
@@ -328,8 +379,8 @@ impl Document {
             height,
             layers,
             active_layer_id,
-            frames: vec![Frame::INITIAL],
-            active_frame_id: Frame::INITIAL.id,
+            frames,
+            active_frame_id,
             marquee: None,
             next_layer_number,
             timeline_panel_collapsed,
@@ -2752,7 +2803,7 @@ mod tests {
         let result = Document::from_layers(4, 4, vec![layer], a, 2, false);
         assert_eq!(
             result.unwrap_err(),
-            DocumentBuildError::MissingInitialFrameCel { layer_id: a }
+            DocumentBuildError::CelGridMismatch { layer_id: a }
         );
     }
 
@@ -2774,7 +2825,7 @@ mod tests {
         let result = Document::from_layers(4, 4, vec![layer], a, 2, false);
         assert_eq!(
             result.unwrap_err(),
-            DocumentBuildError::MultiFramePixelLayer { layer_id: a }
+            DocumentBuildError::CelGridMismatch { layer_id: a }
         );
     }
 
@@ -2935,6 +2986,202 @@ mod tests {
         assert_eq!(doc.active_layer_id(), b);
         assert_eq!(doc.next_layer_number(), 7);
         assert!(doc.is_timeline_panel_collapsed());
+    }
+
+    #[test]
+    fn from_grid_constructs_multi_frame_document() {
+        use crate::color::Color;
+
+        let a = Uuid::new_v4();
+        let f0 = Uuid::new_v4();
+        let f1 = Uuid::new_v4();
+        let red = Color::new(255, 0, 0, 255);
+        let green = Color::new(0, 255, 0, 255);
+        let layer = Layer {
+            id: a,
+            name: "A".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Pixel(Cels::from_entries([
+                (f0, PixelCanvas::with_color(1, 1, red).unwrap()),
+                (f1, PixelCanvas::with_color(1, 1, green).unwrap()),
+            ])),
+        };
+        let frames = vec![
+            Frame {
+                id: f0,
+                duration_ms: 80,
+            },
+            Frame {
+                id: f1,
+                duration_ms: 250,
+            },
+        ];
+
+        let doc = Document::from_grid(1, 1, vec![layer], a, frames, f1, 5, true).unwrap();
+
+        assert_eq!(
+            doc.frames()
+                .iter()
+                .map(|f| (f.id, f.duration_ms))
+                .collect::<Vec<_>>(),
+            vec![(f0, 80), (f1, 250)]
+        );
+        assert_eq!(doc.active_frame_id(), f1);
+        assert_eq!(doc.cel_pixels_at(0, f0), Some([255, 0, 0, 255].as_slice()));
+        assert_eq!(doc.cel_pixels_at(0, f1), Some([0, 255, 0, 255].as_slice()));
+        assert_eq!(doc.active_layer_id(), a);
+        assert_eq!(doc.next_layer_number(), 5);
+        assert!(doc.is_timeline_panel_collapsed());
+    }
+
+    #[test]
+    fn from_grid_rejects_empty_frame_axis() {
+        let a = Uuid::new_v4();
+        let layers = vec![Layer::new(a, "A".to_string(), 4, 4).unwrap()];
+        let result = Document::from_grid(4, 4, layers, a, vec![], Uuid::new_v4(), 2, false);
+        assert_eq!(result.unwrap_err(), DocumentBuildError::EmptyFrames);
+    }
+
+    #[test]
+    fn from_grid_rejects_duplicate_frame_ids() {
+        let a = Uuid::new_v4();
+        let dup = Uuid::new_v4();
+        let layer = Layer {
+            id: a,
+            name: "A".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Pixel(Cels::single(dup, PixelCanvas::new(4, 4).unwrap())),
+        };
+        let frames = vec![
+            Frame {
+                id: dup,
+                duration_ms: 100,
+            },
+            Frame {
+                id: dup,
+                duration_ms: 200,
+            },
+        ];
+        let result = Document::from_grid(4, 4, vec![layer], a, frames, dup, 2, false);
+        assert_eq!(
+            result.unwrap_err(),
+            DocumentBuildError::DuplicateFrameId(dup)
+        );
+    }
+
+    #[test]
+    fn from_grid_rejects_active_frame_not_present_in_axis() {
+        let a = Uuid::new_v4();
+        let f0 = Uuid::new_v4();
+        let stranger = Uuid::new_v4();
+        let layer = Layer {
+            id: a,
+            name: "A".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Pixel(Cels::single(f0, PixelCanvas::new(4, 4).unwrap())),
+        };
+        let frames = vec![Frame {
+            id: f0,
+            duration_ms: 100,
+        }];
+        let result = Document::from_grid(4, 4, vec![layer], a, frames, stranger, 2, false);
+        assert_eq!(
+            result.unwrap_err(),
+            DocumentBuildError::UnknownActiveFrame(stranger)
+        );
+    }
+
+    #[test]
+    fn from_grid_rejects_a_pixel_layer_missing_a_cel_for_a_frame() {
+        let a = Uuid::new_v4();
+        let f0 = Uuid::new_v4();
+        let f1 = Uuid::new_v4();
+        let layer = Layer {
+            id: a,
+            name: "A".to_string(),
+            visible: true,
+            opacity: 1.0,
+            // One cel for a two-frame axis — a missing cel for `f1`.
+            kind: LayerKind::Pixel(Cels::single(f0, PixelCanvas::new(4, 4).unwrap())),
+        };
+        let frames = vec![
+            Frame {
+                id: f0,
+                duration_ms: 100,
+            },
+            Frame {
+                id: f1,
+                duration_ms: 100,
+            },
+        ];
+        let result = Document::from_grid(4, 4, vec![layer], a, frames, f0, 2, false);
+        assert_eq!(
+            result.unwrap_err(),
+            DocumentBuildError::CelGridMismatch { layer_id: a }
+        );
+    }
+
+    #[test]
+    fn from_grid_rejects_a_pixel_layer_with_a_cel_for_an_unknown_frame() {
+        let a = Uuid::new_v4();
+        let f0 = Uuid::new_v4();
+        let stray = Uuid::new_v4();
+        let layer = Layer {
+            id: a,
+            name: "A".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Pixel(Cels::transparent(&[f0, stray], 4, 4).unwrap()),
+        };
+        let frames = vec![Frame {
+            id: f0,
+            duration_ms: 100,
+        }];
+        let result = Document::from_grid(4, 4, vec![layer], a, frames, f0, 2, false);
+        assert_eq!(
+            result.unwrap_err(),
+            DocumentBuildError::CelGridMismatch { layer_id: a }
+        );
+    }
+
+    #[test]
+    fn from_grid_rejects_a_cel_with_mismatched_dimensions() {
+        let a = Uuid::new_v4();
+        let f0 = Uuid::new_v4();
+        let f1 = Uuid::new_v4();
+        let layer = Layer {
+            id: a,
+            name: "A".to_string(),
+            visible: true,
+            opacity: 1.0,
+            kind: LayerKind::Pixel(Cels::from_entries([
+                (f0, PixelCanvas::new(4, 4).unwrap()),
+                // The second frame's cel has the wrong size for a 4x4 document.
+                (f1, PixelCanvas::new(2, 2).unwrap()),
+            ])),
+        };
+        let frames = vec![
+            Frame {
+                id: f0,
+                duration_ms: 100,
+            },
+            Frame {
+                id: f1,
+                duration_ms: 100,
+            },
+        ];
+        let result = Document::from_grid(4, 4, vec![layer], a, frames, f0, 2, false);
+        assert_eq!(
+            result.unwrap_err(),
+            DocumentBuildError::LayerDimensionsMismatch {
+                layer_id: a,
+                expected: (4, 4),
+                actual: (2, 2),
+            }
+        );
     }
 
     #[test]

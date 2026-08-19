@@ -27,7 +27,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 |---------|------|-----|-------|-------|
 | Create / resize | ✅ | ✅ | ✅ | 1–256px, presets available; resize undoable on both shells (restores pixels + dimensions + Marquee); an active Marquee follows the anchor, then clips to the new bounds or clears without overlap. Anchor: 9-position selector (Web), top-left fixed (Apple) |
 | Clear | ✅ | ✅ | ✅ | History-integrated, no confirm dialog; clears the active Pixel Layer on both shells. Web: RightPanel (docked) + Settings tab (mobile); Apple: RightPanel |
-| Flip / transform | ✅ | ✅ | ✅ | Core/Web Canvas transforms all Pixel Layers and frames; Apple applies them to its current single frame. Marquee transforms only the selected region; Reference Layers stay fixed. |
+| Flip / transform | ✅ | ✅ | ✅ | Canvas transforms map every Pixel Layer's every Cel (all frames) on both shells; Marquee transforms only the selected region; Reference Layers stay fixed. |
 
 ## History
 
@@ -109,9 +109,9 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Tab management (Workspace) | — | ✅ | ✅ | Add/switch/close tab strip on both shells; tool/colors shared across tabs, document/history/viewport per tab; close routes via the save dialog on both |
-| Session persistence | — | ✅ | ✅ | Web: IndexedDB V7 multi-frame restore. Apple: SwiftData single-frame restore incl. the Reference Layer (lossless PNG source; corruption drops only the reference). Both recover corrupt stores to a fresh session |
+| Session persistence | — | ✅ | ✅ | Multi-frame restore on both (Web: IndexedDB V7; Apple: SwiftData optional fields — pre-animation stores restore as one frame). Corrupt animation data degrades to a consistent document; both recover corrupt stores to a fresh session |
 | Save dialog on tab close | — | ✅ | ✅ | Blank canvas detection (hidden layers count as content), save/delete/cancel; saved tabs close without prompting. Web: focus-trapped modal; Apple: native sheet |
-| Saved work browser (desktop) | — | ✅ | ✅ | Browse/open/delete; open tabs excluded; reopening resets the viewport. Cards use Pixel-only composite thumbnails; Apple remains single-frame until Phase 6 |
+| Saved work browser (desktop) | — | ✅ | ✅ | Browse/open/delete; open tabs excluded; reopening resets the viewport (onion skin included). Cards use Pixel-only composite thumbnails of the active frame; multi-frame reopen on both shells |
 | Saved work browser (mobile) | — | ✅ | — | Bottom sheet; opens full Document snapshots while cards use composite thumbnails |
 
 ## Layers
@@ -119,12 +119,12 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Document/Layer model | 🔧 | 🔧 | 🔧 | Pixel Layer stack with active layer, visibility, opacity, Timeline collapse state, and Pixel-only composite. Apple: layer panel with select + visibility + add/remove/reorder (mid-stroke seals on all) |
-| Frame cel-grid | ✅ | ✅ | 🔧 | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Undoable add/duplicate/remove on both shells; switching the Active Frame is never a History entry and commits a pending Floating Selection first. Drag reorder on both shells, preserving the Active Frame by id. Web: multi-frame V7 persistence. Apple: multi-frame persistence pending |
-| Per-frame duration | ✅ | ✅ | 🔧 | Default 100ms (10fps); 1–60000ms clamp at the shell boundary (core trusts the value). Both shells: undoable active-frame corner editor (ms + derived fps), invalid entries revert. Web persisted (V7); Apple editor complete, persistence pending |
+| Frame cel-grid | ✅ | ✅ | ✅ | One Cel per Pixel Layer per frame (grid invariant); Reference frame-independent. Undoable add/duplicate/remove on both shells; switching the Active Frame is never a History entry and commits a pending Floating Selection first. Drag reorder on both shells, preserving the Active Frame by id. Multi-frame persistence on both (Web V7; Apple SwiftData) |
+| Per-frame duration | ✅ | ✅ | ✅ | Default 100ms (10fps); 1–60000ms clamp at the shell boundary (core trusts the value). Both shells: undoable active-frame corner editor (ms + derived fps), invalid entries revert. Persisted on both, clamped again at restore |
 | Reference Layer (timeline kind) | ✅ | ✅ | ✅ | Singleton underlay with Pixel-only composites. Apple: import/render, edit guards, sampling, placement, navigation bounds, and relaunch persistence complete |
 | Timeline panel | — | 🔧 | 🔧 | Bottom-docked Layer × Frame grid on both, with a horizontally scrolling frame axis under a pinned ruler. Apple: drag reorder on both axes (row handles, ruler headers), fixed Reference band, Cel occupancy dots, header frame actions (a menu where the row won't fit), transport strip. Web mobile row targets pending |
 | Playback (animation) | — | ✅ | ✅ | Per-tab engine + transport on both shells: transient Playhead holds each frame its duration (carry → no drift), loops or stops at end; previews committed art — no Document mutation/history/dirty, never persisted; tab/document change stops it. Controls disabled on a single frame; no keyboard shortcut on either shell |
-| Onion skinning | — | ✅ | 🔧 | Adjacent-frame ghosts while drawing (prev/next 1, clamped, no wrap): prev warm / next cool, hidden during Playback, never in exports or thumbnails. Apple: render + toggle UI done; toggle persistence rides 292 |
+| Onion skinning | — | ✅ | ✅ | Adjacent-frame ghosts while drawing (prev/next 1, clamped, no wrap): prev warm / next cool, hidden during Playback, never in exports or thumbnails. Toggle persists per tab on both shells and resets on saved-document reopen |
 
 ## Reference Images
 

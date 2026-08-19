@@ -1,6 +1,6 @@
 ---
 title: Apple animation persistence — frames, cels, and durations in the SwiftData schema
-status: ready-for-agent
+status: done
 created: 2026-08-16
 ---
 
@@ -57,3 +57,58 @@ optional-field pattern the reference persistence slice (282) established:
 
 - [286 — Apple frame reorder](286-apple-frame-reorder.md)
 - [287 — Apple per-frame duration](287-apple-frame-duration.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `crates/core/src/document.rs` | `Document::from_grid` — frames-aware hydration constructor rebuilding the Layer × Frame grid in one validated step (`from_layers` now delegates with `Frame::INITIAL`); `CelGridMismatch` generalizes the two single-frame cel errors, plus `EmptyFrames` / `DuplicateFrameId` / `UnknownActiveFrame` |
+| `crates/core/src/layer.rs` | `Cels::from_entries`; `Layer::from_cels` — the multi-frame sibling of `from_pixel_canvas`, keeping cel keying out of binding code |
+| `apple/src/lib.rs` | `AppleCelSnapshot` record; `AppleLayerSnapshot.cels` (UniFFI default `[]` — expand-only); snapshot reads fill one cel per frame in axis order; `fromLayers(frames:activeFrameId:)` optional params (default `nil` = legacy single-frame path) with the binding-owned duration clamp applied at hydration |
+| `apple/Dotorixel/State/WorkspaceSnapshot.swift` | `TabSnapshot.frames` / `activeFrameId` (optional — `nil` marks a pre-animation record); `TabViewportSnapshot.showOnionSkin` |
+| `apple/Dotorixel/State/TabState.swift` | Snapshot/restore carry the frame axis + onion-skin flag; Floating Selection projection covers the active-frame cel; `isDocumentBlank` scans every cel; `toggleOnionSkin` marks the workspace dirty |
+| `apple/Dotorixel/Persistence/SessionStore.swift` | `StoredFrame` / `StoredCel`; optional `DocumentRecord.frames` / `activeFrameId`, `StoredLayer.cels`, `StoredViewport.showOnionSkin` — old stores decode unchanged |
+| `apple/Dotorixel/Persistence/SessionPersistence.swift` | Save writes the full cel grid + frame axis; restore screens animation data (degrade + remap, overflow-checked byte math); saved-work summaries hydrate frames-aware so thumbnails composite the active frame |
+| `apple/DotorixelTests/*` | Binding round-trip/clamp/rejection; snapshot capture/restore; store round-trip, per-tab onion skin, three corruption degrades, legacy store restore, multi-frame thumbnail + reopen (onion-skin reset); 290's dirty contract rewritten; inactive-frame blank detection |
+
+### Key Decisions
+
+- **One validated hydration step in core** (`Document::from_grid`), not the
+  web's post-build replay (`hydrateFrames`) — extends the 282 "single
+  hydration authority" decision. `from_layers` delegates, so wasm and every
+  existing caller are untouched.
+- **Degrade policy** (the 282 reference-drop precedent): a grid hydration
+  would reject — missing/extra/duplicate cels, unparseable frame ids, a
+  non-round-trippable duration — drops the frame axis and restores a
+  one-frame document from each layer's active-frame `pixels`; an unknown
+  active frame pointer alone remaps to the first frame with the axis kept.
+  Never a lost session.
+- **`pixels` stays the active frame's cel** (one buffer of deliberate
+  storage duplication): it preserves the pre-292 field meaning and is the
+  degrade fallback's data source. `cels` is authoritative when present.
+- **`frames` / `activeFrameId` cross as two optional params**, not a
+  combined record — web `HydrationSource` parity (`frames?` /
+  `activeFrameId?`) and core-signature symmetry won over making the
+  supplied-together invariant structural; the inconsistent call errors at
+  the boundary, test-pinned.
+- **Onion-skin toggle marks the workspace**, not the document — the flag
+  lives in the workspace record's viewports, and naming the document would
+  rewrite its layers and stamp `updatedAt` (the PR #351 reasoning).
+  `toggleGrid`'s document mark is the same mismatch; filed in the review
+  backlog rather than widened here.
+- 290's "toggle never dirty" contract test was **rewritten to the 292
+  contract** (replacement, not lost coverage — the 282 precedent).
+
+### Notes
+
+- `isDocumentBlank` now scans every cel, so paint on an inactive frame
+  blocks the tab-close flow from silently discarding it — an adjacent-scope
+  fix the multi-frame schema made necessary, test-pinned.
+- The animation screen's `width * height * 4` uses overflow-checked
+  multiplication, honoring the `CorruptRecord` no-trap principle for
+  store-sourced numbers.
+- `CelGridMismatch` replaced `MissingInitialFrameCel` /
+  `MultiFramePixelLayer` (no external users; no test pinned the old wasm
+  message strings).
+- The saved-document reopen path resets the onion skin with the rest of the
+  viewport (the CONTEXT.md Onion Skin contract), pinned by the reopen test.

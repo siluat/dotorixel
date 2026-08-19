@@ -94,6 +94,21 @@ impl Layer {
             kind: LayerKind::Pixel(Cels::single(Frame::INITIAL.id, canvas)),
         }
     }
+
+    /// Builds a Pixel Layer wrapping caller-supplied `cels`, with
+    /// caller-supplied display state — the multi-frame sibling of
+    /// [`Layer::from_pixel_canvas`], used by frames-aware persistence
+    /// hydration ([`Document::from_grid`](crate::Document::from_grid)) where
+    /// every cel of every frame is restored verbatim.
+    pub fn from_cels(id: Uuid, name: String, visible: bool, opacity: f32, cels: Cels) -> Self {
+        Self {
+            id,
+            name,
+            visible,
+            opacity,
+            kind: LayerKind::Pixel(cels),
+        }
+    }
 }
 
 /// The cels of a single Pixel Layer — exactly one [`PixelCanvas`] (a **Cel**)
@@ -131,6 +146,16 @@ impl Cels {
         let mut by_frame = HashMap::with_capacity(1);
         by_frame.insert(frame_id, canvas);
         Self { by_frame }
+    }
+
+    /// Collects `(frame_id, canvas)` pairs into a `Cels`. Used by grid
+    /// hydration ([`Document::from_grid`](crate::Document::from_grid)), where
+    /// every cel of every frame is restored verbatim. A duplicate frame id
+    /// keeps the last pair — callers validate the frame axis, not `Cels`.
+    pub fn from_entries(entries: impl IntoIterator<Item = (Uuid, PixelCanvas)>) -> Self {
+        Self {
+            by_frame: entries.into_iter().collect(),
+        }
     }
 
     /// The cel for `frame_id`, or `None` when this layer holds no cel for that

@@ -97,8 +97,8 @@ struct TabStateOnionSkinTests {
         #expect(tab.onionSkinProjection.first?.pixels == committed)
     }
 
-    @Test("toggling and projecting push no history and mark nothing dirty")
-    func togglingAndProjectingPushNoHistoryAndMarkNothingDirty() throws {
+    @Test("toggling marks the workspace dirty; projecting pushes no history and marks nothing")
+    func togglingMarksWorkspaceDirtyAndProjectingMarksNothing() throws {
         let recorder = OnionSkinDirtyRecorder()
         let workspace = Workspace(width: 8, height: 8, notifier: recorder)
         let tab = workspace.activeTab
@@ -111,8 +111,13 @@ struct TabStateOnionSkinTests {
         _ = tab.onionSkinProjection
 
         #expect(!tab.canUndo)
+        // The toggle is per-tab persisted state living in the workspace
+        // record's viewports (issue 292) — it marks the workspace, never a
+        // document: naming the document would rewrite its layers and stamp
+        // `updatedAt` for an edit that never touched it (the PR #351
+        // reasoning). The projection reads mark nothing.
         #expect(recorder.markedDocumentIds.isEmpty)
-        #expect(recorder.workspaceMarkCount == 0)
+        #expect(recorder.workspaceMarkCount == 2)
     }
 
     @Test("ghost buffers respect layer visibility and exclude the Reference Layer")

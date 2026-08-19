@@ -76,3 +76,10 @@ Add the spritesheet format to the 294 export surface:
   private to the bindings tests (single user).
 - TopBar snapshot baselines needed no re-record — menu content only renders when
   opened.
+- PR #384 review (coderabbit + greptile, both accepted): the Floating Selection
+  export projection called `fromLayers` without `frames`/`activeFrameId`,
+  collapsing the projected document to a single frame — the first frame-axis
+  encoder (spritesheet) turned that latent gap into a one-tile sheet. The frame
+  axis is now passed through (matching the restore and saved-browser call
+  sites), pinned by a multi-frame Floating Selection regression test. GIF (296)
+  rides the same fix.

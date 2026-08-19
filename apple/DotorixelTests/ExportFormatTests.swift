@@ -155,6 +155,41 @@ struct ExportFormatTests {
         #expect(Array(sheet[destination..<destination + 4]) == transparent)
     }
 
+    @Test("Spritesheet export keeps every frame while a Floating Selection is active")
+    func spritesheetExportKeepsFrameAxisDuringFloatingSelection() throws {
+        let state = Workspace(width: 4, height: 4)
+        let tab = state.activeTab
+        let red: [UInt8] = [0xFF, 0x00, 0x00, 0xFF]
+        let green: [UInt8] = [0x00, 0xFF, 0x00, 0xFF]
+        let transparent: [UInt8] = [0x00, 0x00, 0x00, 0x00]
+        try tab.document.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
+        try tab.document.addFrame(newId: UUID().uuidString) // second frame, active and empty
+        try tab.document.setPixel(x: 1, y: 1, color: Color(r: 0, g: 0xFF, b: 0, a: 0xFF))
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        )
+        state.activateTool(.selection)
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
+        tab.endStroke()
+        #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 0))
+
+        let document = try tab.makeExportDocument(format: .spritesheet)
+
+        // Both frames survive the projection — a two-tile sheet, not a
+        // collapsed single-frame document.
+        let sheet = try decodedRgbaPixels(png: document.data, width: 8, height: 4)
+        let firstTile = tilePixels(sheet: sheet, sheetWidth: 8, tileWidth: 4, height: 4, index: 0)
+        let inactiveFramePixel = rgbaByteOffset(x: 0, y: 0, width: 4)
+        #expect(Array(firstTile[inactiveFramePixel..<inactiveFramePixel + 4]) == red)
+        // The active frame's tile carries the pre-lift projection.
+        let secondTile = tilePixels(sheet: sheet, sheetWidth: 8, tileWidth: 4, height: 4, index: 1)
+        let source = rgbaByteOffset(x: 1, y: 1, width: 4)
+        let destination = rgbaByteOffset(x: 2, y: 1, width: 4)
+        #expect(Array(secondTile[source..<source + 4]) == green)
+        #expect(Array(secondTile[destination..<destination + 4]) == transparent)
+    }
+
     @Test("SVG export is byte-identical with onion skin on and off")
     func onionSkinNeverReachesSvgExport() throws {
         let state = Workspace(width: 2, height: 2)

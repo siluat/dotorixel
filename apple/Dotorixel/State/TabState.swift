@@ -1745,7 +1745,12 @@ final class TabState {
                     currentActiveLayerId: document.activeLayerId()
                 ),
                 nextLayerNumber: document.nextLayerNumber(),
-                timelinePanelCollapsed: isTimelinePanelCollapsed
+                timelinePanelCollapsed: isTimelinePanelCollapsed,
+                // Frames-aware so frame-axis encoders (spritesheet, GIF)
+                // keep every frame; omitting these collapses the projection
+                // to a single-frame document.
+                frames: document.frames(),
+                activeFrameId: document.activeFrameId()
             )
         } else {
             exportDocument = document

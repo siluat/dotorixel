@@ -10,7 +10,7 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 230 | 175 | 55 | 327 | 76% | 35% |
+| greptile-apps[bot] | 231 | 175 | 56 | 327 | 76% | 35% |
 | cubic-dev-ai[bot] | 378 | 299 | 79 | 226 | 79% | 57% |
 | coderabbitai[bot] | 341 | 247 | 94 | 267 | 72% | 48% |
 
@@ -18,6 +18,7 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #382 | greptile-apps[bot] | Reject | Flagged stale generated bindings breaking compilation for workspaces built before the branch — factually right about the behavior, but it is `build-rust.sh`'s known empty-dir-only bootstrap, tracked since PR #342 as the "Apple bindings staleness guard" backlog item; out of scope for an expand-only binding slice. Recurrence (285, 382) recorded on the backlog entry |
 | #381 | greptile-apps[bot] | Accept | `setActiveFrame` still skipped dirty marking — a deliberate pre-292 omission its own doc comment justified by "no persistence projection", stale the moment 292 persisted `activeFrameId`: a frame switch alone never reached the store, so relaunch restored the previously saved frame. Now marks the document dirty after the guard chain (the `setActiveLayer` reasoning), pinned by a DirtyNotifier test covering the no-op guards too |
 | #381 | cubic-dev-ai[bot] | Accept | Same active-frame dirty gap (duplicate of greptile) |
 | #381 | cubic-dev-ai[bot] | Accept | A new test was declared `throws` with no throwing call, diverging from its non-throwing suite peers; annotation dropped |

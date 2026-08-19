@@ -38,7 +38,7 @@ in 294.
 - Web pen priority — palm rejection + hover target cell (web counterpart of 252–254)
 - Apple tab strip keyboard navigation — ArrowLeft/Right + Home/End roving focus
 - Apple drag interruption recovery — one `scenePhase` guard for all three drag surfaces (layer rows, frame ruler, 280 placement overlay)
-- Apple bindings staleness guard — regenerate Swift bindings on binding-surface change; hit again in 285
+- Apple bindings staleness guard — regenerate Swift bindings on binding-surface change; hit again in 285 and 382
 - Apple auto-save failure surfacing — needs a shell logging convention first
 - Apple toggleGrid dirty marking — align with the 292 onion-skin toggle's workspace mark; check the web siblings
 - Web hydration opacity validation — port the Apple `from_layers` opacity guard

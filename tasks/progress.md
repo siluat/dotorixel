@@ -3,25 +3,23 @@
 ## Currently Working On
 
 Apple Native Phase 6 — Animation + extended export
-([RFC](../issues/013-apple-native-catchup.md)); 6 of 14 sub-issues done.
-288 closed the playback engine, unblocking 289 (transport UI) and 290
-(onion skin state); 292 (persistence) stays open in parallel, and the
+([RFC](../issues/013-apple-native-catchup.md)); 7 of 14 sub-issues done.
+289 closed the transport UI, so 291 (onion skin render) now waits only on
+290 (onion skin state); 292 (persistence) stays open in parallel, and the
 export track still opens at 293.
 
 ## Last Completed
 
-[288 — Apple playback controller](../issues/288-apple-playback-controller.md):
-the per-tab engine previews committed art through the display-buffer seam
-without touching the Active Frame, History, or dirty state; stop-hook parity
-with the web is verified against its full set. The advance loop's termination
-relies on the ≥ 1 ms duration clamp — 292's hydration boundary must uphold it.
-Transport UI follows in 289; the macOS 60 Hz timer fallback wants a hands-on
-smoothness check there.
+[289 — Apple transport strip](../issues/289-apple-transport-strip.md):
+Play/Pause, Loop, and the playhead indication (in-header ▼ + n/N readout)
+fill the slot 288 reserved, as a thin view over the playback engine. No
+playback keyboard shortcut exists on either shell — deliberate, recorded in
+the issue. The macOS 60 Hz timer smoothness check (HITL) is still pending:
+press Play on macOS hardware before/at merge.
 
 ## Next Up
 
-- [289 — Apple transport strip UI](../issues/289-apple-transport-strip.md) — newly unblocked; opens 291 with 290
-- [290 — Apple onion skin state](../issues/290-apple-onion-skin-state.md) — newly unblocked
+- [290 — Apple onion skin state](../issues/290-apple-onion-skin-state.md) — last blocker of 291
 - [292 — Apple animation persistence](../issues/292-apple-animation-persistence.md) — persists the frame axis (order + durations)
 - [293 — Apple UniFFI export encoder bindings](../issues/293-apple-uniffi-export-encoder-bindings.md) — Phase 6 export track opener
 - [255 — Apple Pencil device verification (HITL)](../issues/255-apple-pencil-device-verification.md)

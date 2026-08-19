@@ -1,6 +1,6 @@
 ---
 title: Apple transport strip — play/pause, loop, and playhead indication
-status: ready-for-agent
+status: done
 created: 2026-08-16
 ---
 
@@ -47,3 +47,50 @@ own.
 ## Blocked by
 
 - [288 — Apple playback controller](288-apple-playback-controller.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Views/TransportStrip.swift` | New: `TransportStripPresentation` (axis-derived read model — enable rule, n/N readout ordinal with stale-playhead fallback) + the strip view (Play/Pause, Loop, readout) driving `TabState` |
+| `apple/Dotorixel/Views/TimelinePanel.swift` | Transport slot filled by the strip at its reserved height; in-header playhead ▼ marker on the ruler (accent, `accessibilityHidden`) |
+| `apple/Dotorixel/State/TabState.swift` | `togglePlayback()` — Play/Pause dispatch on the 288 playback seam (web `handleTogglePlay` parity) |
+| `apple/Dotorixel/Localizable.xcstrings` | `Playback` / `Play` / `Pause` / `Loop` with ko·ja translations (values mirror the web's `aria_*` messages) |
+| `apple/DotorixelTests/TransportStripPresentationTests.swift` | New: presentation unit tests (single-frame disable, readout ordinal resolution, stale-playhead fallback) |
+| `apple/DotorixelTests/TabStatePlaybackTests.swift` | `togglePlayback` flip test |
+| `apple/DotorixelTests/TimelineLabelLocalizationTests.swift` | ko resolution guard for the four transport labels |
+| `apple/DotorixelTests/DockedRegionSnapshotTests.swift` + `__Snapshots__/` | Two new baselines (playing transport with ▼ vs active column; Loop on) + 7 expanded-panel baselines re-recorded on the pinned host |
+
+### Key Decisions
+
+- **Presentation extraction follows the `SelectionActionBarPresentation`
+  precedent**, scoped to the decisions that need the frame axis (enable rule,
+  readout ordinal). Chrome that mirrors a single flag (Play⇄Pause form, Loop
+  on-state) reads `TabState` directly — extracting those too would be
+  speculative.
+- **`togglePlayback()` lives on `TabState`**, keeping the strip a branch-free
+  thin view; the web makes the same `isPlaying ? stop : start` decision in its
+  editor page handler.
+- **Playhead indication is an in-header ▼ + "n / N" readout**, not the web's
+  separate marker lane — the band heights 288 reserved stay untouched, and the
+  readout doubles as the accessible account of the decorative marker.
+- **Play/Pause is a morphing-name action button; Loop is the real toggle**
+  (`accessibilityValue` On/Off, the TopBar convention) — the web's pattern: a
+  changing name plus a toggle value would conflict.
+- **Disabled treatment mirrors the web's `:disabled` rule over both variants**
+  (muted `bgHover` fill + tertiary glyph), including the Loop button.
+
+### Notes
+
+- **No playback keyboard shortcut was added**: the web has none (Space owns
+  panning), so there is no parity entry for the shortcut plumbing to carry.
+  The criterion's "where the shell's existing shortcut plumbing reaches" is
+  met by using real SwiftUI `Button`s — focusable/activatable via macOS
+  keyboard navigation — unlike the gesture-only ruler headers.
+- **macOS 60 Hz timer fallback smoothness check (HITL) is still pending** —
+  flagged by 288; press Play on macOS hardware before/at merge.
+- Post-review cleanups applied in-branch: unused `resolve` parameter removed,
+  redundant `?? 0` guard dropped (Active Frame axis-membership invariant
+  trusted), marker offset named, Loop disabled parity fixed.
+- 290/291 add the Onion Skin toggle as this strip's third control (web
+  parity); the strip's layout already leaves room in the leading cluster.

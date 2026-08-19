@@ -667,6 +667,16 @@ final class TabState {
         playback.stop()
     }
 
+    /// The transport's Play/Pause action: stops a running playback, starts a
+    /// stopped one (web parity: `handleTogglePlay` in the editor page).
+    func togglePlayback() {
+        if isPlaying {
+            stopPlayback()
+        } else {
+            startPlayback()
+        }
+    }
+
     /// Toggles whether playback loops at the end of the sequence.
     func togglePlaybackLoop() {
         playback.toggleLoop()

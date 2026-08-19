@@ -107,6 +107,89 @@ struct RenderPathTests {
         #expect(spy.uploadedPixels?.allSatisfy { $0 == 0 } == true)
     }
 
+    /// A two-frame workspace with a red pixel committed at (0,0) of the
+    /// *second* frame and the first frame active — the neighbor a next ghost
+    /// projects from.
+    @MainActor
+    private func makeTwoFrameWorkspace() throws -> (state: Workspace, clock: FakeFrameScheduler) {
+        let clock = FakeFrameScheduler()
+        let state = Workspace(width: 2, height: 2, frameScheduler: clock)
+        let tab = state.activeTab
+        let first = tab.document.activeFrameId()
+        try tab.document.addFrame(newId: makeFrameId())
+        try tab.document.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        try tab.document.setActiveFrame(id: first)
+        return (state, clock)
+    }
+
+    @MainActor
+    @Test("with the toggle on, the canvas texture layers the neighbor's tinted ghost under the Active Frame")
+    func onionSkinGhostReachesUploadedBuffer() throws {
+        let (state, _) = try makeTwoFrameWorkspace()
+        let mtkView = MTKView()
+        let spy = try makeSpy(view: mtkView)
+        let view = PixelCanvasView(
+            tab: state.activeTab,
+            viewport: state.activeTab.viewport,
+            showGrid: false,
+            workspace: state
+        )
+
+        // Toggle off: the plain committed composite — no ghost bleed.
+        view.configureRenderer(spy, mtkView: mtkView)
+        #expect(try #require(spy.uploadedPixels).allSatisfy { $0 == 0 })
+
+        state.activeTab.toggleOnionSkin()
+        view.configureRenderer(spy, mtkView: mtkView)
+
+        // The next neighbor's red pixel arrives cool-tinted at ghost alpha
+        // (the 218 treatment's worked example: 0.6·#3B82F6 + 0.4·red at
+        // α 0.4); everywhere else stays transparent.
+        let pixels = try #require(spy.uploadedPixels)
+        #expect(Array(pixels[0..<4]) == [137, 78, 148, 102])
+        #expect(pixels[4...].allSatisfy { $0 == 0 })
+    }
+
+    @MainActor
+    @Test("ghosts leave the canvas texture while Playback runs and return when it stops")
+    func onionSkinGhostsSuppressedDuringPlayback() throws {
+        let (state, clock) = try makeTwoFrameWorkspace()
+        state.activeTab.toggleOnionSkin()
+        let mtkView = MTKView()
+        let spy = try makeSpy(view: mtkView)
+        let view = PixelCanvasView(
+            tab: state.activeTab,
+            viewport: state.activeTab.viewport,
+            showGrid: false,
+            workspace: state
+        )
+
+        state.activeTab.startPlayback()
+        clock.fireAt(0)
+        view.configureRenderer(spy, mtkView: mtkView)
+
+        // Playback previews committed frames full-strength — the playhead
+        // opens on the first frame, whose committed composite is blank.
+        #expect(try #require(spy.uploadedPixels).allSatisfy { $0 == 0 })
+
+        state.activeTab.stopPlayback()
+        view.configureRenderer(spy, mtkView: mtkView)
+
+        #expect(Array(try #require(spy.uploadedPixels)[0..<4]) == [137, 78, 148, 102])
+    }
+
+    @MainActor
+    @Test("PNG export of the active frame is byte-identical with the toggle on and off")
+    func onionSkinNeverReachesPngExport() throws {
+        let (state, _) = try makeTwoFrameWorkspace()
+
+        let exportedOff = try state.activeTab.makePngExportDocument().data
+        state.activeTab.toggleOnionSkin()
+        let exportedOn = try state.activeTab.makePngExportDocument().data
+
+        #expect(exportedOn == exportedOff)
+    }
+
     @MainActor
     @Test("the canvas texture receives the Floating Selection patch preview")
     func floatingSelectionPreviewReachesUploadedBuffer() throws {

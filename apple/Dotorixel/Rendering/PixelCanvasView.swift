@@ -48,7 +48,16 @@ extension PixelCanvasView {
         let panX = Float(viewport.panX())
         let panY = Float(viewport.panY())
 
-        renderer.updateCanvasTexture(pixels: pixels, width: width, height: height)
+        // Onion Skin ghosts layer beneath the working pixels in the same
+        // texture — above the Reference underlay by the shader's ordering.
+        // The projection is empty while the toggle is off or Playback runs,
+        // so the composite is the identity on every ghost-free path.
+        let renderedPixels = onionSkinRenderPixels(
+            activePixels: pixels,
+            ghosts: tab.onionSkinProjection
+        )
+
+        renderer.updateCanvasTexture(pixels: renderedPixels, width: width, height: height)
         renderer.updateReferenceUnderlay(tab.referenceLayerUnderlay?.projectForRendering(
             effectivePixelSize: eps,
             panX: panX,

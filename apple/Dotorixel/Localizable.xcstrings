@@ -1169,6 +1169,23 @@
         }
       }
     },
+    "Onion skin" : {
+      "comment" : "Transport onion skin toggle accessibility label. web: aria_toggleOnionSkin",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オニオンスキン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "어니언 스킨"
+          }
+        }
+      }
+    },
     "Palette" : {
       "comment" : "Right panel section title. web: section_palette",
       "localizations" : {

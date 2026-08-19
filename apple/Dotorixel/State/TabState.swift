@@ -1377,10 +1377,6 @@ final class TabState {
     /// A live Floating Selection is committed first, so its lifted pixels land
     /// on the Cel they came from instead of leaking into the frame being
     /// switched to (web parity: the PRD 186 contract).
-    ///
-    /// Unlike `setActiveLayer` this marks nothing dirty: the frame axis has no
-    /// persistence projection until issue 292, so a switch changes no saved
-    /// state and a save it triggered would write the same record back.
     func setActiveFrame(id: String) {
         guard !isDrawing else { return }
         guard id != document.activeFrameId() else { return }
@@ -1389,6 +1385,10 @@ final class TabState {
         guard !floatingSelection.isActive || commitFloatingSelection() else { return }
         guard (try? document.setActiveFrame(id: id)) != nil else { return }
         canvasVersion += 1
+        // The active-frame pointer is persisted document state since 292
+        // (web parity: a persisted-UI mutation marks dirty without a History
+        // entry — the `setActiveLayer` reasoning).
+        notifier.markDirty(documentId: documentId)
     }
 
     /// Inserts an empty frame directly after the active one and makes it the

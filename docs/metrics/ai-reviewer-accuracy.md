@@ -10,14 +10,20 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 229 | 174 | 55 | 326 | 76% | 35% |
-| cubic-dev-ai[bot] | 375 | 297 | 78 | 226 | 79% | 57% |
-| coderabbitai[bot] | 341 | 247 | 94 | 265 | 72% | 48% |
+| greptile-apps[bot] | 230 | 175 | 55 | 327 | 76% | 35% |
+| cubic-dev-ai[bot] | 378 | 299 | 79 | 226 | 79% | 57% |
+| coderabbitai[bot] | 341 | 247 | 94 | 267 | 72% | 48% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #381 | greptile-apps[bot] | Accept | `setActiveFrame` still skipped dirty marking — a deliberate pre-292 omission its own doc comment justified by "no persistence projection", stale the moment 292 persisted `activeFrameId`: a frame switch alone never reached the store, so relaunch restored the previously saved frame. Now marks the document dirty after the guard chain (the `setActiveLayer` reasoning), pinned by a DirtyNotifier test covering the no-op guards too |
+| #381 | cubic-dev-ai[bot] | Accept | Same active-frame dirty gap (duplicate of greptile) |
+| #381 | cubic-dev-ai[bot] | Accept | A new test was declared `throws` with no throwing call, diverging from its non-throwing suite peers; annotation dropped |
+| #381 | cubic-dev-ai[bot] | Reject | Proposed a `HashSet` for `from_grid`'s duplicate-frame-id scan (O(F²)) — the scan deliberately mirrors the adjacent duplicate-layer-id idiom, runs once per restore, and frame counts are small; switching one axis alone would diverge from its sibling |
+| #381 | greptile-apps[bot] | Miss | Missed the unnecessary-`throws` cleanup accepted from cubic |
+| #381 | coderabbitai[bot] | Miss (×2) | APPROVED with no findings; missed the active-frame dirty gap accepted from greptile/cubic and cubic's `throws` cleanup |
 | #380 | greptile-apps[bot] | Accept | Flipping the Onion Skin toggle changed only `isOnionSkinEnabled`, which ContentView neither read nor passed to the canvas representable, so the update pass never re-ran and ghosts stayed stale until the next canvas-invalidating change; the flag now flows through ContentView like `isTextInputFocused`. The upload-seam tests call `configureRenderer` directly, so the observation-graph gap was outside their reach |
 | #380 | cubic-dev-ai[bot] | Accept | Same stale-toggle observation gap (duplicate of greptile); same explicit read-and-pass fix |
 | #380 | cubic-dev-ai[bot] | Accept | The platform matrix marked Apple onion skinning ✅ while its own note said the toggle is not yet persisted — the web column's ✅ includes persistence, so per the legend Apple stays 🔧 until 292 lands |

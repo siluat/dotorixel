@@ -64,7 +64,7 @@ struct TabStateBlankDetectionTests {
     }
 
     @Test("painted content on an inactive frame still counts as non-blank")
-    func inactiveFramePaintCountsAsNonBlank() throws {
+    func inactiveFramePaintCountsAsNonBlank() {
         let state = Workspace(width: 4, height: 4)
         let tab = state.activeTab
 

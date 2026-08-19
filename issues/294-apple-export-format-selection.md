@@ -67,8 +67,10 @@ SVG as the first new format:
 - **PNG contract untouched**: `makePngExportDocument()` / `defaultExportFilename`
   remain as delegating wrappers so `PngExportTests` and `RenderPathTests` stay
   byte-for-byte unchanged (acceptance criterion).
-- **No new String Catalog entries**: the only new visible labels are the format
-  acronyms (PNG/SVG), rendered verbatim exactly like the web registry's
+- **No new String Catalog entries**: the "new labels in the String Catalog
+  (en/ko/ja)" acceptance criterion is satisfied vacuously — the surface
+  introduces zero new translatable strings. The only new visible labels are the
+  format acronyms (PNG/SVG), rendered verbatim exactly like the web registry's
   untranslated labels; existing "Export" / "Export Failed" entries are reused.
 - **No filename input field**: the platform save flow (macOS save panel /
   iPadOS Files picker) already edits the filename, so the web popover's input
@@ -76,8 +78,9 @@ SVG as the first new format:
 
 ### Notes
 
-- TopBar snapshot baselines needed no re-record: the `Menu` label renders
-  pixel-identical to the previous button (verified on the pinned host).
+- The "snapshot baselines updated" acceptance criterion required no re-record:
+  the `Menu` label renders pixel-identical to the previous button, so the
+  existing TopBar baselines remain valid (verified on the pinned host).
 - SVG visual check performed against the real surface output: a
   known red/green/blue pattern exported via `makeExportDocument(format: .svg)`
   rendered with correct orientation and crisp edges.

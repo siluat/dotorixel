@@ -9,22 +9,6 @@ import Testing
 @Suite("TabState — playback")
 struct TabStatePlaybackTests {
 
-    /// A tab whose document carries a second frame, with the first frame
-    /// re-activated so tests start at ordinal 1, plus the hand-driven clock
-    /// its playback controller schedules against.
-    private func makeTwoFrameTab() throws -> (
-        tab: TabState, first: String, second: String, clock: FakeFrameScheduler
-    ) {
-        let clock = FakeFrameScheduler()
-        let workspace = Workspace(width: 8, height: 8, frameScheduler: clock)
-        let tab = workspace.activeTab
-        let first = tab.document.activeFrameId()
-        let second = makeFrameId()
-        try tab.document.addFrame(newId: second)
-        try tab.document.setActiveFrame(id: first)
-        return (tab, first, second, clock)
-    }
-
     @Test("starting playback shows the first frame's composite; the Active Frame stays untouched")
     func startExposesPlayheadCompositeWithoutMovingTheActiveFrame() throws {
         let (tab, first, second, _) = try makeTwoFrameTab()

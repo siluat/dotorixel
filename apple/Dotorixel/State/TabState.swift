@@ -1517,8 +1517,13 @@ final class TabState {
         // a full per-ghost composite, and the projection is re-read on every
         // render — one memoized entry per (document, version) makes edits,
         // undo/redo, and frame switches refresh ghosts without recompositing
-        // on every read.
-        let version = canvasVersion
+        // on every read. A live stroke edits only the Active Frame's Cel (the
+        // mid-stroke seal keeps every other mutator out), so the neighbors'
+        // composites cannot change while one runs — the stroke's start
+        // version keys the whole stroke, sparing a full ghost recomposite per
+        // pointer sample (the `FrameProjectionCache` patch reasoning; raised
+        // by cubic-dev-ai on PR #379).
+        let version = isDrawing ? strokeStartVersion : canvasVersion
         let key = ObjectIdentifier(document)
         if let cached = onionSkinCache, cached.document == key, cached.canvasVersion == version {
             return cached.read

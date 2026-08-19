@@ -77,4 +77,22 @@ struct OnionSkinGhostsTests {
             OnionSkinGhostDescriptor(frameId: "e", kind: .next, distance: 3)
         ])
     }
+
+    @Test("an extreme config clamps to the axis — terminating, no overflow")
+    func extremeConfigClampsToTheAxis() {
+        // Int.max counts must degrade to the same result as any
+        // larger-than-axis config: the clamp is the loop bound, so the
+        // selection neither iterates past the axis nor overflows the
+        // index arithmetic.
+        let ghosts = onionSkinGhosts(
+            frameIds: ["a", "b", "c"],
+            activeFrameId: "b",
+            config: OnionSkinConfig(previousCount: Int.max, nextCount: Int.max)
+        )
+
+        #expect(ghosts == [
+            OnionSkinGhostDescriptor(frameId: "a", kind: .previous, distance: 1),
+            OnionSkinGhostDescriptor(frameId: "c", kind: .next, distance: 1)
+        ])
+    }
 }

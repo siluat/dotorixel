@@ -53,22 +53,21 @@ func onionSkinGhosts(
     config: OnionSkinConfig
 ) -> [OnionSkinGhostDescriptor] {
     guard let activeIndex = frameIds.firstIndex(of: activeFrameId) else { return [] }
+    // The axis-end clamp is the loop bound itself, so an oversized count does
+    // O(ghosts) work rather than O(count) and the index arithmetic can never
+    // overflow (raised by coderabbitai and cubic-dev-ai on PR #379).
+    let previousCount = min(max(config.previousCount, 0), activeIndex)
+    let nextCount = min(max(config.nextCount, 0), frameIds.count - 1 - activeIndex)
     var ghosts: [OnionSkinGhostDescriptor] = []
-    for distance in stride(from: config.previousCount, through: 1, by: -1) {
-        let index = activeIndex - distance
-        if index >= 0 {
-            ghosts.append(OnionSkinGhostDescriptor(
-                frameId: frameIds[index], kind: .previous, distance: distance
-            ))
-        }
+    for distance in stride(from: previousCount, through: 1, by: -1) {
+        ghosts.append(OnionSkinGhostDescriptor(
+            frameId: frameIds[activeIndex - distance], kind: .previous, distance: distance
+        ))
     }
-    for distance in stride(from: 1, through: config.nextCount, by: 1) {
-        let index = activeIndex + distance
-        if index < frameIds.count {
-            ghosts.append(OnionSkinGhostDescriptor(
-                frameId: frameIds[index], kind: .next, distance: distance
-            ))
-        }
+    for distance in stride(from: 1, through: nextCount, by: 1) {
+        ghosts.append(OnionSkinGhostDescriptor(
+            frameId: frameIds[activeIndex + distance], kind: .next, distance: distance
+        ))
     }
     return ghosts
 }

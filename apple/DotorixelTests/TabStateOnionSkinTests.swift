@@ -9,22 +9,6 @@ import Testing
 @Suite("TabState — onion skin")
 struct TabStateOnionSkinTests {
 
-    /// A tab whose document carries a second frame, with the first frame
-    /// re-activated so tests start at ordinal 1 (the playback tests' fixture
-    /// shape), plus the hand-driven clock for the playback interplay tests.
-    private func makeTwoFrameTab() throws -> (
-        tab: TabState, first: String, second: String, clock: FakeFrameScheduler
-    ) {
-        let clock = FakeFrameScheduler()
-        let workspace = Workspace(width: 8, height: 8, frameScheduler: clock)
-        let tab = workspace.activeTab
-        let first = tab.document.activeFrameId()
-        let second = makeFrameId()
-        try tab.document.addFrame(newId: second)
-        try tab.document.setActiveFrame(id: first)
-        return (tab, first, second, clock)
-    }
-
     @Test("toggling on projects the neighbor's committed composite; the toggle starts off")
     func toggleOnProjectsTheNeighborsCommittedComposite() throws {
         let (tab, first, second, _) = try makeTwoFrameTab()
@@ -90,6 +74,27 @@ struct TabStateOnionSkinTests {
         tab.handleUndo()
 
         #expect(tab.onionSkinProjection.first?.pixels == painted)
+    }
+
+    @Test("ghost buffers hold the neighbors' committed composites across live stroke samples")
+    func ghostBuffersHoldSteadyAcrossLiveStrokeSamples() throws {
+        let (tab, first, second, _) = try makeTwoFrameTab()
+        tab.setActiveFrame(id: second)
+        tab.beginStroke(at: ScreenCanvasCoords(x: 2, y: 2))
+        tab.endStroke()
+        tab.setActiveFrame(id: first)
+        tab.toggleOnionSkin()
+        let committed = try #require(tab.onionSkinProjection.first?.pixels)
+
+        // A stroke can only touch the Active Frame's Cel (the mid-stroke
+        // seal), so mid-stroke reads keep serving the neighbor's committed
+        // composite unchanged.
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 3, y: 3))
+        #expect(tab.onionSkinProjection.first?.pixels == committed)
+        tab.endStroke()
+
+        #expect(tab.onionSkinProjection.first?.pixels == committed)
     }
 
     @Test("toggling and projecting push no history and mark nothing dirty")

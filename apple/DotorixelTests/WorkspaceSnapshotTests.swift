@@ -58,6 +58,35 @@ struct WorkspaceSnapshotCaptureTests {
         #expect(firstTab.viewport.pixelSize == first.viewport.pixelSize())
     }
 
+    @Test("toSnapshot captures the frame axis, per-frame cels, and the onion-skin flag")
+    func snapshotCapturesFrameAxis() throws {
+        let workspace = Workspace(width: 2, height: 2)
+        let tab = workspace.activeTab
+        tab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+        tab.endStroke()
+        tab.addFrame() // the new second frame becomes active
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.endStroke()
+        let frames = tab.document.frames()
+        tab.setFrameDuration(id: frames[0].id, durationMs: 80)
+        tab.toggleOnionSkin()
+
+        let tabSnapshot = workspace.toSnapshot().tabs[0]
+
+        #expect(tabSnapshot.frames == tab.document.frames())
+        #expect(tabSnapshot.frames?.map(\.durationMs) == [80, 100])
+        #expect(tabSnapshot.activeFrameId == tab.document.activeFrameId())
+        #expect(tabSnapshot.viewport.showOnionSkin)
+        // One cel per frame in axis order; the active (second) frame's cel is
+        // the buffer `pixels` carries for single-frame consumers.
+        let layer = tabSnapshot.layers[0]
+        #expect(layer.cels.map(\.frameId) == frames.map(\.id))
+        #expect(layer.cels[1].pixels == layer.pixels)
+        // The two frames hold distinct content: each stroke landed on its own
+        // frame's cel.
+        #expect(layer.cels[0].pixels != layer.cels[1].pixels)
+    }
+
     @Test("a live Floating Selection snapshots pre-lift source pixels without resolving it")
     func floatingSelectionSnapshotUsesPreLiftPixels() throws {
         let workspace = Workspace(width: 4, height: 4)
@@ -228,6 +257,38 @@ struct WorkspaceSnapshotRestoreTests {
         // with empty undo/redo stacks.
         #expect(!restoredFirst.canUndo)
         #expect(!restoredFirst.canRedo)
+    }
+
+    @Test("a multi-frame tab round-trips: axis, durations, cels, active frame, and onion skin restore; playback opens stopped")
+    func multiFrameTabRoundTripsThroughRestore() throws {
+        let workspace = Workspace(width: 2, height: 2)
+        let tab = workspace.activeTab
+        tab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+        tab.endStroke()
+        tab.addFrame() // the new second frame becomes active
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.endStroke()
+        let frames = tab.document.frames()
+        tab.setFrameDuration(id: frames[1].id, durationMs: 250)
+        // A non-first active frame — the round-trip acceptance criterion.
+        tab.setActiveFrame(id: frames[1].id)
+        tab.toggleOnionSkin()
+
+        let restored = try Workspace(restoring: workspace.toSnapshot())
+        let restoredTab = restored.tabs[0]
+
+        #expect(restoredTab.document.frames() == tab.document.frames())
+        #expect(restoredTab.document.frames().map(\.durationMs) == [100, 250])
+        #expect(restoredTab.document.activeFrameId() == frames[1].id)
+        // Per-frame composite parity — distinct content per frame.
+        for frame in frames {
+            #expect(
+                try restoredTab.document.compositeAt(frameId: frame.id)
+                    == tab.document.compositeAt(frameId: frame.id))
+        }
+        #expect(restoredTab.isOnionSkinEnabled)
+        // Playback state never persists — a document always opens stopped.
+        #expect(!restoredTab.isPlaying)
     }
 
     @Test("a restored tab keeps its persisted zoom on first presentation instead of refitting")

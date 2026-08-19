@@ -128,7 +128,12 @@ actor SessionPersistence {
                       timelinePanelCollapsed: snapshot.timelinePanelCollapsed,
                       // Hydrated so a reference-active pointer stays valid;
                       // the export composite keeps the thumbnail Pixel-only.
-                      reference: snapshot.reference
+                      reference: snapshot.reference,
+                      // Frames-aware so the thumbnail composites the active
+                      // frame (ghost-free by construction — ghosts are a
+                      // render-only pre-composite).
+                      frames: snapshot.frames,
+                      activeFrameId: snapshot.activeFrameId
                   ) else { return nil }
             return SavedDocumentSummary(
                 id: record.id,
@@ -197,6 +202,8 @@ actor SessionPersistence {
             reference: storedReference(tab.reference),
             activeLayerId: tab.activeLayerId,
             nextLayerNumber: Int(tab.nextLayerNumber),
+            frames: storedFrames(tab.frames),
+            activeFrameId: tab.activeFrameId,
             marquee: storedMarquee(tab.marquee),
             timelinePanelCollapsed: tab.timelinePanelCollapsed,
             // `saved` gains meaning with the save dialog (issue 266); until
@@ -215,6 +222,8 @@ actor SessionPersistence {
         record.reference = storedReference(tab.reference)
         record.activeLayerId = tab.activeLayerId
         record.nextLayerNumber = Int(tab.nextLayerNumber)
+        record.frames = storedFrames(tab.frames)
+        record.activeFrameId = tab.activeFrameId
         record.marquee = storedMarquee(tab.marquee)
         record.timelinePanelCollapsed = tab.timelinePanelCollapsed
         record.updatedAt = now
@@ -226,8 +235,13 @@ actor SessionPersistence {
             name: layer.name,
             visible: layer.visible,
             opacity: layer.opacity,
-            pixels: layer.pixels
+            pixels: layer.pixels,
+            cels: layer.cels.map { StoredCel(frameId: $0.frameId, pixels: $0.pixels) }
         )
+    }
+
+    private func storedFrames(_ frames: [AppleFrameMetadata]?) -> [StoredFrame]? {
+        frames?.map { StoredFrame(id: $0.id, durationMs: Int($0.durationMs)) }
     }
 
     /// PNG-encodes the reference source for storage. Encoding fails only
@@ -292,7 +306,8 @@ actor SessionPersistence {
                 zoom: tab.viewport.zoom,
                 panX: tab.viewport.panX,
                 panY: tab.viewport.panY,
-                showGrid: tab.viewport.showGrid
+                showGrid: tab.viewport.showGrid,
+                showOnionSkin: tab.viewport.showOnionSkin
             ))
         })
     }
@@ -308,7 +323,8 @@ actor SessionPersistence {
     /// The viewport a record restores with when the workspace record holds
     /// none for it — or a corrupt one (web parity: `DEFAULT_VIEWPORT`).
     private static let defaultViewport = TabViewportSnapshot(
-        pixelSize: 32, zoom: 1.0, panX: 0, panY: 0, showGrid: true
+        pixelSize: 32, zoom: 1.0, panX: 0, panY: 0,
+        showGrid: true, showOnionSkin: false
     )
 
     private func tabSnapshot(
@@ -343,6 +359,7 @@ actor SessionPersistence {
         let activeLayerId = referenceWasDropped && !activePointsAtPixelLayer
             ? record.layers.last?.id ?? record.activeLayerId
             : record.activeLayerId
+        let animation = animationSnapshot(record, canvasWidth: width, canvasHeight: height)
         return TabSnapshot(
             id: record.id,
             name: record.name,
@@ -354,9 +371,18 @@ actor SessionPersistence {
                     name: layer.name,
                     visible: layer.visible,
                     opacity: layer.opacity,
-                    pixels: layer.pixels
+                    pixels: layer.pixels,
+                    // On the degrade path the cels are dropped with the frame
+                    // axis — a one-frame document hydrates from `pixels`.
+                    cels: animation == nil
+                        ? []
+                        : (layer.cels ?? []).map {
+                            AppleCelSnapshot(frameId: $0.frameId, pixels: $0.pixels)
+                        }
                 )
             },
+            frames: animation?.frames,
+            activeFrameId: animation?.activeFrameId,
             reference: reference,
             activeLayerId: activeLayerId,
             nextLayerNumber: nextLayerNumber,
@@ -368,6 +394,71 @@ actor SessionPersistence {
             timelinePanelCollapsed: record.timelinePanelCollapsed,
             viewport: viewportSnapshot(viewport)
         )
+    }
+
+    /// The frame axis and active pointer a record restores with, after
+    /// screening.
+    private struct ScreenedAnimation {
+        var frames: [AppleFrameMetadata]
+        var activeFrameId: String
+    }
+
+    /// The screened frame axis a record restores with, `nil` for a
+    /// pre-animation record *and* whenever stored animation data would fail
+    /// hydration — unparseable or duplicate frame ids, a non-round-trippable
+    /// duration, or a Pixel Layer whose cels don't cover the axis exactly
+    /// with `width * height * 4`-byte buffers. Values hydration would reject
+    /// are screened here because `fromLayers` failing throws the whole
+    /// document away, the wrong blast radius for corrupt animation data (the
+    /// 282 reference-drop precedent): the degrade costs the frame axis, and
+    /// each layer's active-frame `pixels` buffer restores a consistent
+    /// one-frame document.
+    ///
+    /// An active frame pointer absent from an otherwise valid axis remaps to
+    /// the first frame — only the pointer was corrupt, so the axis survives
+    /// whole.
+    private func animationSnapshot(
+        _ record: DocumentRecord,
+        canvasWidth: UInt32,
+        canvasHeight: UInt32
+    ) -> ScreenedAnimation? {
+        guard let storedFrames = record.frames, !storedFrames.isEmpty else { return nil }
+        var frames: [AppleFrameMetadata] = []
+        var frameIds: Set<UUID> = []
+        for stored in storedFrames {
+            guard let id = UUID(uuidString: stored.id),
+                  frameIds.insert(id).inserted,
+                  let duration = UInt32(exactly: stored.durationMs) else { return nil }
+            frames.append(AppleFrameMetadata(id: stored.id, durationMs: duration))
+        }
+        // Parsed-value comparisons throughout, for the same reason as the
+        // reference collision guard: this predicate answers "would hydration
+        // accept the grid?", and the hydration parser ignores hex casing.
+        //
+        // Overflow-checked like the `CorruptRecord` conversions above: the
+        // dimensions come from the store, and a plain `*` on corrupt values
+        // would trap outside Swift error handling and crash launch.
+        let (area, areaOverflows) =
+            Int(canvasWidth).multipliedReportingOverflow(by: Int(canvasHeight))
+        guard !areaOverflows else { return nil }
+        let (expectedCelBytes, bytesOverflow) = area.multipliedReportingOverflow(by: 4)
+        guard !bytesOverflow else { return nil }
+        for layer in record.layers {
+            guard let cels = layer.cels, cels.count == storedFrames.count else { return nil }
+            var celIds: Set<UUID> = []
+            for cel in cels {
+                guard let id = UUID(uuidString: cel.frameId),
+                      celIds.insert(id).inserted,
+                      frameIds.contains(id),
+                      cel.pixels.count == expectedCelBytes else { return nil }
+            }
+        }
+        if let stored = record.activeFrameId,
+           let id = UUID(uuidString: stored),
+           frameIds.contains(id) {
+            return ScreenedAnimation(frames: frames, activeFrameId: stored)
+        }
+        return ScreenedAnimation(frames: frames, activeFrameId: frames[0].id)
     }
 
     /// A stored reference that cannot be rebuilt — a corrupt PNG blob,
@@ -453,7 +544,10 @@ actor SessionPersistence {
             zoom: stored.zoom,
             panX: stored.panX,
             panY: stored.panY,
-            showGrid: stored.showGrid
+            showGrid: stored.showGrid,
+            // A viewport record written before the onion-skin flag existed
+            // reads as off (web parity).
+            showOnionSkin: stored.showOnionSkin ?? false
         )
     }
 

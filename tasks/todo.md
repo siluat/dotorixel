@@ -23,15 +23,12 @@ the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish), Phase 2
 (full tool set + color + i18n, issues 230–242), Phase 3 (layer system, issues
 256–261), Phase 4 (multi-tab + persistence, issues 262–266), and Phase 5
 (reference + selection + transforms, issues 267–282) are complete; Phase 6 is
-decomposed into issues 283–296 (two parallel tracks), of which 283–291 are done.
+decomposed into issues 283–296 (two parallel tracks), of which 283–292 are done —
+the animation track is complete, only the export track remains.
 
 ### Phase 6 — Animation + extended export (issues 283–296)
 
-Animation track:
-
-- [292 — Animation persistence](../issues/292-apple-animation-persistence.md)
-
-Export track (parallel with the animation track):
+Export track:
 
 - [293 — UniFFI export encoder bindings](../issues/293-apple-uniffi-export-encoder-bindings.md)
 - [294 — Export format selection UI + SVG](../issues/294-apple-export-format-selection.md) (blocked by 293)
@@ -64,6 +61,7 @@ Export track (parallel with the animation track):
 - Apple drag interruption recovery — OS-interruption residual across every drag surface. SwiftUI `DragGesture` has no cancel callback, so a drag whose `onEnded` never arrives leaves its state applied until the next drag. The in-app orphan paths self-heal (structure mutation mid-drag cancels via `onChange`; collapse cancels via `onDisappear`, since PR #347 review), so what remains is system-level teardown only — app backgrounded mid-drag, gesture preempted by the OS. The web clears the equivalent state on `pointerCancel`; a `scenePhase` reset is the candidate guard. Needs a hands-on read of whether teardown actually skips `onEnded` on device before adopting it (deferred from 260). Three surfaces carry the identical residual, so adopt the guard for all of them at once: the layer sidebar's row handles (`TimelinePanel.layerDrag` — preview offsets stay applied and the body's `scrollDisabled` lock stays on), the frame ruler's headers (`TimelinePanel.frameDrag`, added in 286 — same residual on the horizontal axis, raised by coderabbitai on PR #374), and the Reference placement overlay (280 — its latch stays set and its placement draft applied)
 - Apple bindings staleness guard — `build-rust.sh` bootstraps Swift bindings only when `apple/generated` is empty, so a workspace built before a binding-surface change compiles against stale bindings until regenerated manually; add an mtime-based regeneration guard (surfaced by greptile on PR #342; recurs as Phase 3 keeps growing the binding surface)
 - Apple auto-save failure surfacing — a failed SwiftData save restores the dirty state and retries silently, with no log or user-facing notice; the Apple sibling of the IndexedDB quota item above. Surface it (log, then notification) once the shell has a logging convention (noted in 265 review)
+- Apple toggleGrid dirty marking — `toggleGrid` marks the *document* dirty for a flag stored in the workspace record's viewports, rewriting the document record and stamping `updatedAt` for an edit that never touched it; the 292 onion-skin toggle marks the workspace instead (the PR #351 reasoning). Align `toggleGrid`, and check whether the web's grid/onion-skin toggles carry the same mismatch
 - Flaky e2e: Reference Window reload persistence — `e2e/editor/reference-images.test.ts` "window position survives a page reload" failed once, then passed on solo and full re-runs (2026-07-04, surfaced during 205 verification). Timing-sensitive chain: drag via raw pointer events → reload → IndexedDB workspace restore. Investigate/stabilize if it recurs
 - Web session-save gaps mirrored from the 265 review — two latent issues the Apple shell fixed in PR #351 that the web `SessionPersistence`/`AutoSave` share: (1) a fresh session whose first save happens after adding a second tab skips the never-stored first document (`dirtyDocIds` miss), persisting a tab order whose restore discards the whole workspace; (2) shared-state-only changes mark the active document dirty, rewriting its record (layers included) and stamping `updatedAt` for an edit that never touched it. Port the Apple fixes (write records missing from the store regardless of the dirty set; mark workspace-level dirt without a document id)
 - Web playback edit-guard gaps mirrored from the 288 review — `nudgeMarquee` and `pasteSelectionClipboard` in `tab-state.svelte.ts` create a Floating Selection without stopping playback, so it stays live but invisible behind the playhead composite until playback ends (the Apple shell added `playback.stop()` to both paths in PR #376). Port the same guards to the web

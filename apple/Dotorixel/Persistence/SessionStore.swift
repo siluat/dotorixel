@@ -7,14 +7,33 @@ import SwiftData
 // snapshot types so the stored format can only change deliberately: a field
 // added to a snapshot type does not silently change what is on disk.
 
+/// One frame of the stored frame axis: identity plus its display duration in
+/// milliseconds (web parity: `FrameRecord`).
+struct StoredFrame: Codable, Equatable {
+    var id: String
+    var durationMs: Int
+}
+
+/// One Pixel Layer's pixel buffer for one Frame — the `[layer × frame]` grid
+/// cell in stored form (web parity: the cel entry in `PixelLayerRecordV6`).
+struct StoredCel: Codable, Equatable {
+    var frameId: String
+    var pixels: Data
+}
+
 /// One Pixel Layer's stored form: the `AppleLayerSnapshot` fields with the
-/// pixel buffer as `Data`.
+/// pixel buffer as `Data`. `pixels` holds the active frame's cel — the sole
+/// buffer of a pre-animation record, and the consistent-state fallback when
+/// stored animation data cannot be restored. `cels` (one per frame, axis
+/// order) is optional so records written before animation persistence decode
+/// unchanged.
 struct StoredLayer: Codable, Equatable {
     var id: String
     var name: String
     var visible: Bool
     var opacity: Float
     var pixels: Data
+    var cels: [StoredCel]?
 }
 
 /// A Reference Layer Placement in stored form. `rotation` is the persisted
@@ -53,13 +72,17 @@ struct StoredColor: Codable, Equatable {
     var a: UInt8
 }
 
-/// A tab's persisted viewport in stored form.
+/// A tab's persisted viewport in stored form. `showOnionSkin` is optional so
+/// viewport records written before the onion-skin flag existed decode
+/// unchanged and read as off (web parity: `showOnionSkin` on the viewport
+/// record).
 struct StoredViewport: Codable, Equatable {
     var pixelSize: Int
     var zoom: Double
     var panX: Double
     var panY: Double
     var showGrid: Bool
+    var showOnionSkin: Bool?
 }
 
 /// A Document's persisted Marquee. Optional on `DocumentRecord` so stores
@@ -111,6 +134,11 @@ final class DocumentRecord {
     var reference: StoredReference?
     var activeLayerId: String
     var nextLayerNumber: Int
+    /// The frame axis in order; `nil` on every record written before
+    /// animation persistence, which restores as a one-frame document.
+    var frames: [StoredFrame]?
+    /// The active frame's id; `nil` alongside a `nil` frame axis.
+    var activeFrameId: String?
     var marquee: StoredMarquee?
     var timelinePanelCollapsed: Bool
     var saved: Bool
@@ -126,6 +154,8 @@ final class DocumentRecord {
         reference: StoredReference? = nil,
         activeLayerId: String,
         nextLayerNumber: Int,
+        frames: [StoredFrame]? = nil,
+        activeFrameId: String? = nil,
         marquee: StoredMarquee? = nil,
         timelinePanelCollapsed: Bool,
         saved: Bool,
@@ -140,6 +170,8 @@ final class DocumentRecord {
         self.reference = reference
         self.activeLayerId = activeLayerId
         self.nextLayerNumber = nextLayerNumber
+        self.frames = frames
+        self.activeFrameId = activeFrameId
         self.marquee = marquee
         self.timelinePanelCollapsed = timelinePanelCollapsed
         self.saved = saved

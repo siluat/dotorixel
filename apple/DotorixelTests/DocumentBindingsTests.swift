@@ -450,6 +450,142 @@ struct DocumentBindingsTests {
         }
     }
 
+    @Test("a multi-frame document round-trips through cel snapshots and frames-aware hydration")
+    func multiFrameSnapshotHydrationRoundTrip() throws {
+        let layerId = makeLayerId()
+        let doc = try AppleDocument(
+            width: 2, height: 2, firstLayerId: layerId, firstLayerName: "Layer 1")
+        try doc.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        let secondFrameId = makeFrameId()
+        try doc.addFrame(newId: secondFrameId) // activates the new frame
+        try doc.setPixel(x: 1, y: 1, color: Color(r: 0x00, g: 0xFF, b: 0x00, a: 0xFF))
+        let firstFrameId = doc.frames()[0].id
+        try doc.setFrameDuration(id: firstFrameId, durationMs: 80)
+        try doc.setFrameDuration(id: secondFrameId, durationMs: 250)
+
+        // The snapshot read carries one cel per frame in axis order; `pixels`
+        // keeps its active-frame meaning for the single-frame consumers.
+        let snapshots = doc.pixelLayerSnapshots()
+        #expect(snapshots.count == 1)
+        #expect(snapshots[0].cels.map(\.frameId) == [firstFrameId, secondFrameId])
+        #expect(snapshots[0].cels[1].pixels == snapshots[0].pixels)
+
+        let hydrated = try AppleDocument.fromLayers(
+            width: doc.width(),
+            height: doc.height(),
+            layers: snapshots,
+            activeLayerId: doc.activeLayerId(),
+            nextLayerNumber: doc.nextLayerNumber(),
+            timelinePanelCollapsed: false,
+            frames: doc.frames(),
+            activeFrameId: doc.activeFrameId()
+        )
+
+        #expect(hydrated.frames() == doc.frames())
+        #expect(hydrated.frames().map(\.durationMs) == [80, 250])
+        #expect(hydrated.activeFrameId() == secondFrameId)
+        // Per-frame composite parity — the round-trip acceptance criterion.
+        for frame in doc.frames() {
+            #expect(
+                try hydrated.compositeAt(frameId: frame.id)
+                    == doc.compositeAt(frameId: frame.id))
+        }
+    }
+
+    @Test("frames-aware hydration clamps persisted durations to the binding-owned range")
+    func framesAwareHydrationClampsDurations() throws {
+        let layerId = makeLayerId()
+        let f0 = makeFrameId()
+        let f1 = makeFrameId()
+        func cel(_ frameId: String) -> AppleCelSnapshot {
+            AppleCelSnapshot(frameId: frameId, pixels: Data(count: 1 * 1 * 4))
+        }
+        let hydrated = try AppleDocument.fromLayers(
+            width: 1, height: 1,
+            layers: [AppleLayerSnapshot(
+                id: layerId, name: "Layer 1", visible: true, opacity: 1.0,
+                pixels: Data(count: 1 * 1 * 4), cels: [cel(f0), cel(f1)])],
+            activeLayerId: layerId,
+            nextLayerNumber: 2,
+            timelinePanelCollapsed: false,
+            frames: [
+                AppleFrameMetadata(id: f0, durationMs: 0),
+                AppleFrameMetadata(id: f1, durationMs: 100_000),
+            ],
+            activeFrameId: f0
+        )
+        #expect(hydrated.frames().map(\.durationMs)
+            == [frameMinDurationMs(), frameMaxDurationMs()])
+    }
+
+    @Test("frames-aware hydration rejects inconsistent animation data instead of crashing")
+    func framesAwareHydrationBuildErrors() throws {
+        let layerId = makeLayerId()
+        let f0 = makeFrameId()
+        let f1 = makeFrameId()
+        func cel(_ frameId: String, pixels: Data = Data(count: 1 * 1 * 4)) -> AppleCelSnapshot {
+            AppleCelSnapshot(frameId: frameId, pixels: pixels)
+        }
+        func hydrate(
+            cels: [AppleCelSnapshot],
+            frames: [AppleFrameMetadata],
+            activeFrameId: String?
+        ) throws -> AppleDocument {
+            try AppleDocument.fromLayers(
+                width: 1, height: 1,
+                layers: [AppleLayerSnapshot(
+                    id: layerId, name: "Layer 1", visible: true, opacity: 1.0,
+                    pixels: Data(count: 1 * 1 * 4), cels: cels)],
+                activeLayerId: layerId,
+                nextLayerNumber: 2,
+                timelinePanelCollapsed: false,
+                frames: frames,
+                activeFrameId: activeFrameId
+            )
+        }
+        func frame(_ id: String) -> AppleFrameMetadata {
+            AppleFrameMetadata(id: id, durationMs: 100)
+        }
+
+        // A cel missing for a frame on the axis (the grid invariant).
+        #expect(throws: AppleError.self) {
+            _ = try hydrate(cels: [cel(f0)], frames: [frame(f0), frame(f1)], activeFrameId: f0)
+        }
+
+        // A cel keyed to a frame the axis does not carry.
+        #expect(throws: AppleError.self) {
+            _ = try hydrate(cels: [cel(f0), cel(f1)], frames: [frame(f0)], activeFrameId: f0)
+        }
+
+        // An active frame id absent from the axis.
+        #expect(throws: AppleError.self) {
+            _ = try hydrate(cels: [cel(f0)], frames: [frame(f0)], activeFrameId: makeFrameId())
+        }
+
+        // An empty frame axis.
+        #expect(throws: AppleError.self) {
+            _ = try hydrate(cels: [], frames: [], activeFrameId: f0)
+        }
+
+        // A cel id that is not a valid UUID string.
+        #expect(throws: AppleError.self) {
+            _ = try hydrate(
+                cels: [cel("not-a-uuid")], frames: [frame(f0)], activeFrameId: f0)
+        }
+
+        // A cel buffer inconsistent with the document dimensions.
+        #expect(throws: AppleError.self) {
+            _ = try hydrate(
+                cels: [cel(f0, pixels: Data(count: 2 * 2 * 4))],
+                frames: [frame(f0)], activeFrameId: f0)
+        }
+
+        // A frame axis without an active frame id (inconsistent call).
+        #expect(throws: AppleError.self) {
+            _ = try hydrate(cels: [cel(f0)], frames: [frame(f0)], activeFrameId: nil)
+        }
+    }
+
     @Test("reference PNG codec round-trips the source buffer losslessly and rejects corrupt bytes")
     func referencePngCodec() throws {
         // Semi-transparent channel values — the case a premultiplying codec

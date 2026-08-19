@@ -261,7 +261,9 @@ final class TabState {
                 activeLayerId: snapshot.activeLayerId,
                 nextLayerNumber: snapshot.nextLayerNumber,
                 timelinePanelCollapsed: snapshot.timelinePanelCollapsed,
-                reference: snapshot.reference
+                reference: snapshot.reference,
+                frames: snapshot.frames,
+                activeFrameId: snapshot.activeFrameId
             ),
             viewport: AppleViewport(
                 pixelSize: snapshot.viewport.pixelSize,
@@ -272,6 +274,7 @@ final class TabState {
         )
         self.isTimelinePanelCollapsed = snapshot.timelinePanelCollapsed
         self.showGrid = snapshot.viewport.showGrid
+        self.isOnionSkinEnabled = snapshot.viewport.showOnionSkin
         try document.setMarquee(region: snapshot.marquee)
     }
 
@@ -1491,14 +1494,17 @@ final class TabState {
     // MARK: - Onion skin
 
     /// Whether the Onion Skin projects neighbor ghosts for this tab.
-    /// Tab-scoped and in-memory for this slice; persistence rides issue 292
-    /// with the rest of the animation state.
+    /// Persisted per tab beside the grid flag in the viewport record (web
+    /// parity: `showOnionSkin`).
     private(set) var isOnionSkinEnabled = false
 
-    /// Flips the Onion Skin on or off. Not undoable and never dirty in this
-    /// slice — the flag has no persistence projection until issue 292.
+    /// Flips the Onion Skin on or off. Not undoable, but persisted: the flag
+    /// lives in the workspace record's per-tab viewports, so it marks the
+    /// workspace — naming the document would rewrite its layers and stamp
+    /// `updatedAt` for an edit that never touched it (the PR #351 reasoning).
     func toggleOnionSkin() {
         isOnionSkinEnabled.toggle()
+        notifier.markWorkspaceDirty()
     }
 
     /// Projects the Onion Skin ghosts for the current Active Frame — each
@@ -1660,6 +1666,8 @@ final class TabState {
             width: document.width(),
             height: document.height(),
             layers: persistenceLayerSnapshots(),
+            frames: document.frames(),
+            activeFrameId: document.activeFrameId(),
             reference: document.referenceLayerSnapshot(),
             activeLayerId: floatingSelection.snapshotActiveLayerId(
                 currentActiveLayerId: document.activeLayerId()
@@ -1672,33 +1680,48 @@ final class TabState {
                 zoom: viewport.zoom(),
                 panX: viewport.panX(),
                 panY: viewport.panY(),
-                showGrid: showGrid
+                showGrid: showGrid,
+                showOnionSkin: isOnionSkinEnabled
             )
         )
     }
 
-    /// True when every layer's pixel buffer is fully transparent (web
-    /// parity: `isDocumentBlank`). Iterates every layer — hidden ones
-    /// included, unlike the composite — so painted-then-hidden content
-    /// still counts as non-blank and the tab-close save prompt won't
-    /// silently discard it.
+    /// True when every cel of every layer is fully transparent (web parity:
+    /// `isDocumentBlank`). Iterates every layer and frame — hidden layers
+    /// and inactive frames included, unlike the composite — so
+    /// painted-then-hidden content and content on another frame still count
+    /// as non-blank and the tab-close save prompt won't silently discard
+    /// them.
     func isDocumentBlank() -> Bool {
         persistenceLayerSnapshots().allSatisfy { layer in
-            layer.pixels.allSatisfy { $0 == 0 }
+            layer.cels.allSatisfy { cel in
+                cel.pixels.allSatisfy { $0 == 0 }
+            }
         }
     }
 
     /// Persistence-facing Layers project a live Floating Selection — or a
     /// pending degraded recovery — back onto its baseline Layer pixels. Any
     /// transient preview mutation must not affect saves, export, or the
-    /// tab-close blank-document guard.
+    /// tab-close blank-document guard. A Floating Selection lives on the
+    /// active layer's active-frame cel, so the projection covers both the
+    /// active-frame `pixels` buffer and that cel's entry.
     private func persistenceLayerSnapshots() -> [AppleLayerSnapshot] {
-        document.pixelLayerSnapshots().map { liveLayer in
+        let activeFrameId = document.activeFrameId()
+        return document.pixelLayerSnapshots().map { liveLayer in
             var snapshotLayer = liveLayer
-            snapshotLayer.pixels = floatingSelection.snapshotPixels(
+            let projected = floatingSelection.snapshotPixels(
                 for: liveLayer.id,
                 currentPixels: liveLayer.pixels
             )
+            snapshotLayer.pixels = projected
+            snapshotLayer.cels = liveLayer.cels.map { cel in
+                var cel = cel
+                if cel.frameId == activeFrameId {
+                    cel.pixels = projected
+                }
+                return cel
+            }
             return snapshotLayer
         }
     }

@@ -486,6 +486,142 @@ struct SessionPersistenceTests {
         #expect(storedSnapshot.tabs[0].reference == nil)
         #expect(restored.activeTab.marquee == nil)
         #expect(restored.activeTab.document.composite() == expectedPixels)
+        // The pre-animation record restores as a one-frame document with the
+        // default duration and the onion skin off — no pixel loss, no
+        // migration pass.
+        #expect(storedSnapshot.tabs[0].frames == nil)
+        let restoredFrames = restored.activeTab.document.frames()
+        #expect(restoredFrames.count == 1)
+        #expect(restoredFrames[0].durationMs == 100)
+        #expect(!restored.activeTab.isOnionSkinEnabled)
+    }
+
+    @Test("a multi-frame document round-trips through the store: order, durations, cels, and the active frame")
+    func multiFrameDocumentRoundTrips() async throws {
+        let persistence = try makeInMemoryPersistence()
+        let workspace = Workspace(width: 2, height: 2)
+        let tab = workspace.activeTab
+        tab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+        tab.endStroke()
+        tab.addFrame() // the new second frame becomes active
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.endStroke()
+        let frames = tab.document.frames()
+        tab.setFrameDuration(id: frames[1].id, durationMs: 250)
+        // A non-first active frame — the round-trip acceptance criterion.
+        tab.setActiveFrame(id: frames[1].id)
+
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+        let restoredTab = restored.activeTab
+
+        #expect(restoredTab.document.frames() == tab.document.frames())
+        #expect(restoredTab.document.frames().map(\.durationMs) == [100, 250])
+        #expect(restoredTab.document.activeFrameId() == frames[1].id)
+        // Per-frame composite parity: each frame's distinct content survives
+        // byte-identically.
+        for frame in frames {
+            #expect(
+                try restoredTab.document.compositeAt(frameId: frame.id)
+                    == tab.document.compositeAt(frameId: frame.id))
+        }
+    }
+
+    @Test("the onion-skin toggle persists per tab")
+    func onionSkinTogglePersistsPerTab() async throws {
+        let persistence = try makeInMemoryPersistence()
+        let workspace = Workspace(width: 4, height: 4)
+        workspace.activeTab.toggleOnionSkin()
+        workspace.addTab() // second tab keeps the toggle off
+
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        #expect(storedSnapshot.tabs.map(\.viewport.showOnionSkin) == [true, false])
+        #expect(restored.tabs.map(\.isOnionSkinEnabled) == [true, false])
+    }
+
+    @Test("a stored layer missing a cel for a frame degrades to a one-frame document — never a lost session")
+    func celFrameMismatchDegradesToSingleFrame() async throws {
+        let container = try makeInMemoryContainer()
+        let persistence = SessionPersistence(modelContainer: container)
+        let workspace = Workspace(width: 2, height: 2)
+        let tab = workspace.activeTab
+        tab.addFrame()
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.endStroke()
+        // What the user last saw: the active (second) frame's content.
+        let expectedPixels = tab.document.composite()
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        // Corrupt the store: drop one cel so the grid no longer covers the
+        // frame axis.
+        let context = ModelContext(container)
+        let record = try #require(
+            try context.fetch(FetchDescriptor<DocumentRecord>()).first)
+        var layers = record.layers
+        layers[0].cels?.removeFirst()
+        record.layers = layers
+        try context.save()
+
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        // The frame axis is dropped; the active frame's stored buffer
+        // becomes the one-frame document's content.
+        #expect(storedSnapshot.tabs[0].frames == nil)
+        #expect(restored.activeTab.document.frames().count == 1)
+        #expect(restored.activeTab.document.composite() == expectedPixels)
+    }
+
+    @Test("a stored active frame id absent from the axis remaps to the first frame, keeping the axis")
+    func unknownActiveFrameIdRemapsToFirst() async throws {
+        let container = try makeInMemoryContainer()
+        let persistence = SessionPersistence(modelContainer: container)
+        let workspace = Workspace(width: 2, height: 2)
+        let tab = workspace.activeTab
+        tab.addFrame()
+        let frames = tab.document.frames()
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        let context = ModelContext(container)
+        let record = try #require(
+            try context.fetch(FetchDescriptor<DocumentRecord>()).first)
+        record.activeFrameId = UUID().uuidString.lowercased()
+        try context.save()
+
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        // Only the pointer was corrupt — the axis survives whole.
+        #expect(restored.activeTab.document.frames() == frames)
+        #expect(restored.activeTab.document.activeFrameId() == frames[0].id)
+    }
+
+    @Test("a stored frame with a non-round-trippable duration degrades to a one-frame document")
+    func corruptFrameDurationDegradesToSingleFrame() async throws {
+        let container = try makeInMemoryContainer()
+        let persistence = SessionPersistence(modelContainer: container)
+        let workspace = Workspace(width: 2, height: 2)
+        let tab = workspace.activeTab
+        tab.addFrame()
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+
+        let context = ModelContext(container)
+        let record = try #require(
+            try context.fetch(FetchDescriptor<DocumentRecord>()).first)
+        var frames = try #require(record.frames)
+        frames[0].durationMs = -1
+        record.frames = frames
+        try context.save()
+
+        let storedSnapshot = try #require(await persistence.restore())
+        let restored = try Workspace(restoring: storedSnapshot)
+
+        #expect(storedSnapshot.tabs[0].frames == nil)
+        #expect(restored.activeTab.document.frames().count == 1)
     }
 
     @Test("saving during a Floating Selection restores baseline pixels and the source Marquee")
@@ -652,7 +788,9 @@ struct SessionPersistenceTests {
         // tab restores with the default viewport.
         let restored = try #require(await persistence.restore())
         #expect(restored.tabs[0].viewport ==
-            TabViewportSnapshot(pixelSize: 32, zoom: 1.0, panX: 0, panY: 0, showGrid: true))
+            TabViewportSnapshot(
+                pixelSize: 32, zoom: 1.0, panX: 0, panY: 0,
+                showGrid: true, showOnionSkin: false))
     }
 
     @Test("saveDocumentAs marks the document saved under the chosen name")
@@ -773,7 +911,44 @@ struct SessionPersistenceTests {
         #expect(snapshot.layers == workspace.toSnapshot().tabs[0].layers)
         // Reopening resets the view (web parity: `DEFAULT_VIEWPORT`).
         #expect(snapshot.viewport ==
-            TabViewportSnapshot(pixelSize: 32, zoom: 1.0, panX: 0, panY: 0, showGrid: true))
+            TabViewportSnapshot(
+                pixelSize: 32, zoom: 1.0, panX: 0, panY: 0,
+                showGrid: true, showOnionSkin: false))
+    }
+
+    @Test("a saved multi-frame document's thumbnail shows the active frame's composite, and reopen restores every frame")
+    func savedMultiFrameDocumentThumbnailAndReopen() async throws {
+        let persistence = try makeInMemoryPersistence()
+        let workspace = Workspace(width: 2, height: 2)
+        let tab = workspace.activeTab
+        tab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
+        tab.endStroke()
+        tab.addFrame() // the new second frame becomes active
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.endStroke()
+        let frames = tab.document.frames()
+        tab.toggleOnionSkin()
+        try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
+        try await persistence.saveDocumentAs(id: tab.documentId, name: "Anim")
+
+        // The thumbnail is the active frame's composite — the frames hold
+        // distinct content, so the wrong frame would show.
+        let summary = try #require(await persistence.savedDocumentSummaries().first)
+        #expect(try summary.pixels == tab.document.compositeAt(frameId: frames[1].id))
+        #expect(try summary.pixels != tab.document.compositeAt(frameId: frames[0].id))
+
+        // The reopen flow restores the whole frame axis, and — like the rest
+        // of the viewport — resets the onion skin to off (the reopen
+        // reset-view contract).
+        let snapshot = try #require(await persistence.savedDocumentSnapshot(id: tab.documentId))
+        let reopened = try workspace.openSnapshot(snapshot)
+        #expect(reopened.document.frames() == frames)
+        for frame in frames {
+            #expect(
+                try reopened.document.compositeAt(frameId: frame.id)
+                    == tab.document.compositeAt(frameId: frame.id))
+        }
+        #expect(!reopened.isOnionSkinEnabled)
     }
 
     @Test("closing a tab deletes its unsaved document from the store on the next save")

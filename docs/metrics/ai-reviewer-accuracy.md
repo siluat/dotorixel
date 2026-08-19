@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 231 | 175 | 56 | 327 | 76% | 35% |
-| cubic-dev-ai[bot] | 378 | 299 | 79 | 226 | 79% | 57% |
-| coderabbitai[bot] | 341 | 247 | 94 | 267 | 72% | 48% |
+| greptile-apps[bot] | 231 | 175 | 56 | 328 | 76% | 35% |
+| cubic-dev-ai[bot] | 379 | 300 | 79 | 226 | 79% | 57% |
+| coderabbitai[bot] | 341 | 247 | 94 | 268 | 72% | 48% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #383 | cubic-dev-ai[bot] | Accept | The done record's Key Decisions/Notes documented the String Catalog and snapshot-baseline outcomes without naming the acceptance criteria they satisfy, so the unmodified criteria read as unmet against the notes; each note now cites its criterion and states the vacuous satisfaction (zero new translatable strings; pixel-identical render, baselines still valid) |
+| #383 | greptile-apps[bot] | Miss | Confidence 5/5 with no findings; missed the criteria-traceability gap accepted from cubic |
+| #383 | coderabbitai[bot] | Miss | APPROVED with no findings; missed the criteria-traceability gap accepted from cubic |
 | #382 | greptile-apps[bot] | Reject | Flagged stale generated bindings breaking compilation for workspaces built before the branch — factually right about the behavior, but it is `build-rust.sh`'s known empty-dir-only bootstrap, tracked since PR #342 as the "Apple bindings staleness guard" backlog item; out of scope for an expand-only binding slice. Recurrence (285, 382) recorded on the backlog entry |
 | #381 | greptile-apps[bot] | Accept | `setActiveFrame` still skipped dirty marking — a deliberate pre-292 omission its own doc comment justified by "no persistence projection", stale the moment 292 persisted `activeFrameId`: a frame switch alone never reached the store, so relaunch restored the previously saved frame. Now marks the document dirty after the guard chain (the `setActiveLayer` reasoning), pinned by a DirtyNotifier test covering the no-op guards too |
 | #381 | cubic-dev-ai[bot] | Accept | Same active-frame dirty gap (duplicate of greptile) |

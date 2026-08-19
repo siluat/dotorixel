@@ -2,11 +2,12 @@ import UniformTypeIdentifiers
 
 /// An export format the TopBar's export surface offers — the Apple
 /// counterpart of the web's `availableFormats` registry
-/// (`src/lib/canvas/export.ts`). Case order is menu order; the GIF (296)
-/// format slots in as a new case.
+/// (`src/lib/canvas/export.ts`). Case order is menu order, mirroring the
+/// web registry.
 enum ExportFormat: CaseIterable {
     case png
     case svg
+    case gif
     case spritesheet
 
     /// Menu display name — format acronyms stay untranslated like the web
@@ -16,6 +17,7 @@ enum ExportFormat: CaseIterable {
         switch self {
         case .png: "PNG"
         case .svg: "SVG"
+        case .gif: "GIF"
         case .spritesheet:
             String(
                 localized: "Spritesheet",
@@ -29,7 +31,7 @@ enum ExportFormat: CaseIterable {
     /// `src/lib/canvas/export.ts` marks the sheet vs the still PNG).
     var stemSuffix: String {
         switch self {
-        case .png, .svg: ""
+        case .png, .svg, .gif: ""
         case .spritesheet: "-sheet"
         }
     }
@@ -39,6 +41,7 @@ enum ExportFormat: CaseIterable {
         switch self {
         case .png, .spritesheet: "png"
         case .svg: "svg"
+        case .gif: "gif"
         }
     }
 
@@ -47,6 +50,7 @@ enum ExportFormat: CaseIterable {
         switch self {
         case .png, .spritesheet: .png
         case .svg: .svg
+        case .gif: .gif
         }
     }
 }

@@ -132,15 +132,4 @@ struct ExportEncoderBindingsTests {
         #expect(doc.composite() == compositeBefore)
     }
 
-    /// Reads a GIF frame's raw (unclamped) delay in seconds — the on-wire
-    /// centisecond field, unlike the clamped variant viewers substitute for
-    /// tiny delays.
-    private func gifUnclampedDelaySeconds(source: CGImageSource, frame: Int) throws -> Double {
-        let properties = try #require(
-            CGImageSourceCopyPropertiesAtIndex(source, frame, nil) as? [CFString: Any]
-        )
-        let gif = try #require(properties[kCGImagePropertyGIFDictionary] as? [CFString: Any])
-        return try #require(gif[kCGImagePropertyGIFUnclampedDelayTime] as? Double)
-    }
-
 }

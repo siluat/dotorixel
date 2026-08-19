@@ -2,21 +2,18 @@
 
 ## Currently Working On
 
-Apple Native Phase 6 — Animation + extended export
-([RFC](../issues/013-apple-native-catchup.md)); 13 of 14 sub-issues done.
-Only 296 (the GIF format case on the 294 surface) remains.
+None
 
 ## Last Completed
 
-[295 — Apple spritesheet export — horizontal-strip PNG of every frame](../issues/295-apple-spritesheet-export.md):
-the spritesheet format joined the 294 export menu — all-frames
-horizontal-strip PNG through the platform save flow, with a sheet-marked
-default filename and a localized menu label (web parity on both). Shared
-PNG-decoding test helpers were extracted into a test-support file.
+[296 — Apple GIF export](../issues/296-apple-gif-export.md): the animated
+GIF format joined the 294 export menu, closing Phase 6 — and with it the
+whole [013 RFC](../issues/013-apple-native-catchup.md): the Apple shell is
+at full web parity. No new String Catalog labels were needed ("GIF" stays
+an untranslated acronym, web parity).
 
 ## Next Up
 
-- [296 — Apple GIF export](../issues/296-apple-gif-export.md) — adds a format case to the 294 surface
 - [255 — Apple Pencil device verification (HITL)](../issues/255-apple-pencil-device-verification.md)
 - Project file format (JSON-based) + save/load
 - Feature guide page (basic usage instructions)

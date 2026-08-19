@@ -1,6 +1,6 @@
 ---
 title: Apple native catch-up — phased strategy to reach full web parity
-status: open
+status: done
 created: 2026-04-06
 ---
 

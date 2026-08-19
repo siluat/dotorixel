@@ -1,6 +1,6 @@
 ---
 title: Apple GIF export — animated GIF honoring per-frame durations
-status: ready-for-agent
+status: done
 created: 2026-08-16
 ---
 
@@ -38,3 +38,33 @@ Add the animated-GIF format to the 294 export surface:
 ## Blocked by
 
 - [294 — Apple export format selection](294-apple-export-format-selection.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Export/ExportFormat.swift` | `.gif` case — label "GIF", `gif` extension, `UTType.gif`, no stem suffix; case order mirrors the web registry's menu order (PNG → SVG → GIF → Spritesheet) |
+| `apple/Dotorixel/State/TabState.swift` | `makeExportDocument` routes `.gif` to the 293 `encodeGif()` binding; the frames-aware Floating Selection projection applies unchanged |
+| `apple/Dotorixel/Views/TopBar.swift` | Comment refresh only — the 294 surface consumes `allCases`, so the menu entry, save flow, and error alert picked the format up with no code change |
+| `apple/DotorixelTests/ExportFormatTests.swift` | Format-surface assertions extended to `.gif`; new behavior tests: authored per-frame timing + infinite loop, single-frame GIF, frame-axis preservation during a Floating Selection |
+| `apple/DotorixelTests/ImageDecodingTestSupport.swift` | GIF delay / loop-count decode helpers, shared with the encoder binding tests |
+| `apple/DotorixelTests/ExportEncoderBindingsTests.swift` | Its private GIF delay helper moved to the shared support file |
+
+### Key Decisions
+
+- "GIF" stays an untranslated acronym like the web registry's label
+  (`() => 'GIF'`), so the "new String Catalog labels" acceptance criterion
+  turned out vacuous — no localizable strings were added (unlike 295's
+  "Spritesheet").
+- Hidden/Reference-layer exclusion, ghosting prevention (disposal),
+  centisecond quantization, and encode purity were not re-tested at the
+  shell seam — the core (`export.rs`) and the 293 FFI binding tests
+  already cover them.
+
+### Notes
+
+- `ExportDocument.readableContentTypes` derives from
+  `ExportFormat.allCases`, so `.gif` joined the writable content types
+  automatically — no export-flow code was touched.
+- This closes Phase 6 and with it the whole 013 RFC: the Apple shell is
+  at full web parity.

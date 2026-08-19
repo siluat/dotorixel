@@ -188,8 +188,8 @@ struct TopBar: View {
     // MARK: - Export
 
     /// Format-selecting export surface (issue 294) — the web export popover's
-    /// format list as a platform menu. New formats (295 spritesheet, 296 GIF)
-    /// slot in as `ExportFormat` cases without reshaping this surface.
+    /// format list as a platform menu. New formats slot in as `ExportFormat`
+    /// cases without reshaping this surface (295 spritesheet and 296 GIF did).
     private var exportButton: some View {
         Menu {
             ForEach(ExportFormat.allCases, id: \.self) { format in

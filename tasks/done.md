@@ -2,6 +2,8 @@
 
 | # | Task | Date |
 |---|------|------|
+| 296 | [Apple GIF export — animated GIF honoring per-frame durations](../issues/296-apple-gif-export.md) | 2026-08-20 |
+| 013 | [Apple native catch-up — phased strategy to reach full web parity](../issues/013-apple-native-catchup.md) | 2026-08-20 |
 | 295 | [Apple spritesheet export — horizontal-strip PNG of every frame](../issues/295-apple-spritesheet-export.md) | 2026-08-19 |
 | 294 | [Apple export format selection — multi-format export UI + SVG](../issues/294-apple-export-format-selection.md) | 2026-08-19 |
 | 293 | [Apple UniFFI export encoder bindings — SVG, GIF, and spritesheet](../issues/293-apple-uniffi-export-encoder-bindings.md) | 2026-08-19 |

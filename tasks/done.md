@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 290 | [Apple onion skin state — neighbor selection and ghost projection](../issues/290-apple-onion-skin-state.md) | 2026-08-19 |
 | 289 | [Apple transport strip — play/pause, loop, and playhead indication](../issues/289-apple-transport-strip.md) | 2026-08-19 |
 | 288 | [Apple playback controller — transient playhead over the frame axis](../issues/288-apple-playback-controller.md) | 2026-08-17 |
 | 287 | [Apple per-frame duration — timing editor on the timeline](../issues/287-apple-frame-duration.md) | 2026-08-17 |

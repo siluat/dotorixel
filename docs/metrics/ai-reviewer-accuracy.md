@@ -10,14 +10,20 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 228 | 173 | 55 | 322 | 76% | 35% |
-| cubic-dev-ai[bot] | 370 | 292 | 78 | 226 | 79% | 56% |
-| coderabbitai[bot] | 340 | 246 | 94 | 261 | 72% | 49% |
+| greptile-apps[bot] | 228 | 173 | 55 | 325 | 76% | 35% |
+| cubic-dev-ai[bot] | 373 | 295 | 78 | 226 | 79% | 57% |
+| coderabbitai[bot] | 341 | 247 | 94 | 263 | 72% | 48% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #379 | coderabbitai[bot] | Accept | `onionSkinGhosts` iterated the raw config counts, so an oversized count (e.g. `Int.max`) did O(count) work and eventually trapped on index overflow — unreachable today (production passes only the fixed 1/1 default), but the clamp-to-available-neighbors is the documented axis-end contract as the loop bound itself, and it retires the in-loop index guards. Pinned by an `Int.max` regression test |
+| #379 | cubic-dev-ai[bot] | Accept | Same count clamp (duplicate of coderabbit), with the concrete clamp expressions the fix adopted |
+| #379 | cubic-dev-ai[bot] | Accept | With Onion Skin on, every live-stroke sample bumped `canvasVersion` and recomposited every neighbor at pointer frequency, though the mid-stroke seal means a stroke can only touch the Active Frame's Cel — the neighbors' composites cannot change. The cache is now keyed to the stroke's start version while drawing (the `FrameProjectionCache` single-Cel reasoning the bot's learning cited), pinned by a mid-stroke stability test |
+| #379 | cubic-dev-ai[bot] | Accept | `makeTwoFrameTab` was duplicated byte-for-byte across the playback and onion-skin suites; extracted to `PlaybackTestSupport` beside the `FakeFrameScheduler` it returns — the same shared-the-moment-two-suites-need-it precedent |
+| #379 | greptile-apps[bot] | Miss (×3) | Reviewed at confidence 5/5 with no findings; missed the count clamp accepted from coderabbit and cubic, and cubic's stroke-cache-key and fixture-duplication findings |
+| #379 | coderabbitai[bot] | Miss (×2) | Missed cubic's stroke-cache-key and fixture-duplication findings |
 | #376 | coderabbitai[bot] | Accept | Second round (a first-round nitpick folded inside the review body, missed by the line-comment sweep): the platform timer sources retain their `PendingTick` target, so a `DisplayLinkFrameScheduler` deallocated with an entry still armed leaves that tick alive for one more fire — bounded and harmless today (every capture past it is weak), but the resource's lifetime was implied rather than owned. An explicit `deinit` now disarms every pending entry |
 | #376 | greptile-apps[bot] | Miss | Missed the scheduler-teardown gap accepted from coderabbit |
 | #376 | cubic-dev-ai[bot] | Miss | Missed the scheduler-teardown gap accepted from coderabbit |

@@ -1,6 +1,23 @@
 import Foundation
 @testable import Dotorixel
 
+/// A tab whose document carries a second frame, with the first frame
+/// re-activated so tests start at ordinal 1, plus the hand-driven clock its
+/// playback controller schedules against — the shared fixture of the
+/// playback and onion-skin suites.
+func makeTwoFrameTab() throws -> (
+    tab: TabState, first: String, second: String, clock: FakeFrameScheduler
+) {
+    let clock = FakeFrameScheduler()
+    let workspace = Workspace(width: 8, height: 8, frameScheduler: clock)
+    let tab = workspace.activeTab
+    let first = tab.document.activeFrameId()
+    let second = makeFrameId()
+    try tab.document.addFrame(newId: second)
+    try tab.document.setActiveFrame(id: first)
+    return (tab, first, second, clock)
+}
+
 /// A hand-driven stand-in for the display-linked playback clock (web parity:
 /// `fake-frame-scheduler.ts`): it records the pending callback so a test can
 /// fire ticks at chosen timestamps, making the playback clock deterministic.

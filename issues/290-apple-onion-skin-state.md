@@ -1,6 +1,6 @@
 ---
 title: Apple onion skin state — neighbor selection and ghost projection
-status: ready-for-agent
+status: done
 created: 2026-08-16
 ---
 
@@ -47,3 +47,40 @@ to Swift) — everything except pixels on screen, which 291 renders:
 ## Blocked by
 
 - [288 — Apple playback controller](288-apple-playback-controller.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/State/OnionSkin.swift` | New: `OnionSkinConfig` (+ `.default` = previous 1 / next 1), `OnionSkinGhostKind` / `OnionSkinGhostDescriptor` / `OnionSkinGhostRead`, and the pure `onionSkinGhosts` neighbor selection (web `onion-skin.ts` parity — clamped at the axis ends, never wrapping) |
+| `apple/Dotorixel/State/TabState.swift` | `isOnionSkinEnabled` + `toggleOnionSkin()` (in-memory, never dirty); `onionSkinProjection` — descriptor + neighbor `compositeAt` buffer per ghost, memoized per `(document, canvasVersion)` beside the other FFI-read caches, empty while the toggle is off or Playback runs |
+| `apple/DotorixelTests/OnionSkinGhostsTests.swift` | New: 5 neighbor-selection tests (middle / first / last / single frame, larger-config clamp at both ends) |
+| `apple/DotorixelTests/TabStateOnionSkinTests.swift` | New: 6 projection tests through the real bindings (committed-composite match, playback empties/returns, edit + undo refresh, no history / no dirty, visibility respected + Reference excluded, layer opacity applied) |
+
+### Key Decisions
+
+- **The toggle lives on `TabState` in-memory** (the Apple `showGrid`
+  precedent), marking nothing dirty — the persistence record shape and the
+  dirty rule ride 292 with the rest of the animation state.
+- **The projection is memoized per `(document, canvasVersion)`** — web
+  parity (`#onionSkinProjectionCache`) and the `FrameProjectionCache`
+  precedent: `compositeAt` is a full per-ghost composite while the panel
+  re-reads the projection every render, and the version key is exactly the
+  existing render-invalidation path the issue asked for.
+- **Neighbor selection is a shell-native pure free function** (the
+  `advancePlayhead` precedent), per this issue's port-to-Swift scoping —
+  simple, stable logic where binding friction would be disproportionate.
+- **A missing `activeFrameId` projects no ghosts**: Swift's `firstIndex`
+  Optional forces total handling, so the guard returns empty — stricter than
+  the web, whose documented precondition is unchecked.
+
+### Notes
+
+- **Layer opacity has no runtime setter** (it enters via hydration only), so
+  the opacity acceptance test proves it through a `fromLayers` fixture; the
+  expected buffer is the straight-alpha worked example `(255, 0, 0, 128)`
+  derived from the core blend rule, not a recomputation.
+- Ghost pixels on screen and the transport-strip toggle are 291's slice —
+  289 already left room for the toggle in the strip's leading cluster.
+- The web keeps the flag in per-tab viewport state and persists it; Apple
+  reaches that parity when 292 adds the animation persistence projection.

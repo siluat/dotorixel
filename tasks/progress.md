@@ -3,23 +3,23 @@
 ## Currently Working On
 
 Apple Native Phase 6 — Animation + extended export
-([RFC](../issues/013-apple-native-catchup.md)); 7 of 14 sub-issues done.
-289 closed the transport UI, so 291 (onion skin render) now waits only on
-290 (onion skin state); 292 (persistence) stays open in parallel, and the
-export track still opens at 293.
+([RFC](../issues/013-apple-native-catchup.md)); 8 of 14 sub-issues done.
+290 unblocked 291 (onion skin render + toggle, the animation track's last
+UI slice); 292 (persistence) stays open in parallel, and the export track
+still opens at 293.
 
 ## Last Completed
 
-[289 — Apple transport strip](../issues/289-apple-transport-strip.md):
-Play/Pause, Loop, and the playhead indication (in-header ▼ + n/N readout)
-fill the slot 288 reserved, as a thin view over the playback engine. No
-playback keyboard shortcut exists on either shell — deliberate, recorded in
-the issue. The macOS 60 Hz timer smoothness check (HITL) is still pending:
-press Play on macOS hardware before/at merge.
+[290 — Apple onion skin state](../issues/290-apple-onion-skin-state.md):
+pure neighbor selection plus the per-tab toggle and ghost projection over
+the neighbors' committed composites, proven through the real bindings to be
+a pure read (no history, no dirty, no Active-Frame moves) that empties
+during Playback. The toggle is in-memory by design — persistence rides 292;
+pixels on screen ride 291.
 
 ## Next Up
 
-- [290 — Apple onion skin state](../issues/290-apple-onion-skin-state.md) — last blocker of 291
+- [291 — Apple onion skin render + toggle](../issues/291-apple-onion-skin-render.md) — render + transport toggle over the 290 state
 - [292 — Apple animation persistence](../issues/292-apple-animation-persistence.md) — persists the frame axis (order + durations)
 - [293 — Apple UniFFI export encoder bindings](../issues/293-apple-uniffi-export-encoder-bindings.md) — Phase 6 export track opener
 - [255 — Apple Pencil device verification (HITL)](../issues/255-apple-pencil-device-verification.md)

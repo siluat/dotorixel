@@ -108,6 +108,13 @@ final class TabState {
     /// so a live stroke's per-sample re-render reuses one read.
     @ObservationIgnored private let frameProjectionCache = FrameProjectionCache()
 
+    /// The Onion Skin projection's memoized read — see `onionSkinProjection`.
+    /// Outside Observation like the other FFI-read caches: `canvasVersion` is
+    /// what republishes the projection.
+    @ObservationIgnored private var onionSkinCache: (
+        document: ObjectIdentifier, canvasVersion: Int, read: [OnionSkinGhostRead]
+    )?
+
     /// The playback engine for this tab (issue 288) — the transient playhead
     /// over the frame axis. `@ObservationIgnored` on the reference only: the
     /// controller is itself `@Observable`, so views reading the delegated
@@ -1479,6 +1486,63 @@ final class TabState {
         if performEdit({ (try? document.setFrameDuration(id: id, durationMs: durationMs)) != nil }) {
             canvasVersion += 1
         }
+    }
+
+    // MARK: - Onion skin
+
+    /// Whether the Onion Skin projects neighbor ghosts for this tab.
+    /// Tab-scoped and in-memory for this slice; persistence rides issue 292
+    /// with the rest of the animation state.
+    private(set) var isOnionSkinEnabled = false
+
+    /// Flips the Onion Skin on or off. Not undoable and never dirty in this
+    /// slice — the flag has no persistence projection until issue 292.
+    func toggleOnionSkin() {
+        isOnionSkinEnabled.toggle()
+    }
+
+    /// Projects the Onion Skin ghosts for the current Active Frame — each
+    /// neighbor's descriptor plus its committed `compositeAt` buffer, in axis
+    /// order. Empty while the toggle is off, while Playback runs, or on a side
+    /// with no neighbor. Computing it never mutates the document, never moves
+    /// the Active Frame, and never pushes History.
+    var onionSkinProjection: [OnionSkinGhostRead] {
+        guard isOnionSkinEnabled else { return [] }
+        // Playback previews committed frames full-strength; ghosts would
+        // contradict the moving playhead (web parity: the `playheadFrameId`
+        // guard in `onionSkinProjection`).
+        guard playback.playheadFrameId == nil else { return [] }
+        // Keyed by the render-invalidation path (web parity: the
+        // `renderVersion`-keyed `#onionSkinProjectionCache`): `compositeAt` is
+        // a full per-ghost composite, and the projection is re-read on every
+        // render — one memoized entry per (document, version) makes edits,
+        // undo/redo, and frame switches refresh ghosts without recompositing
+        // on every read.
+        let version = canvasVersion
+        let key = ObjectIdentifier(document)
+        if let cached = onionSkinCache, cached.document == key, cached.canvasVersion == version {
+            return cached.read
+        }
+        let read = onionSkinGhosts(
+            frameIds: document.frames().map(\.id),
+            activeFrameId: document.activeFrameId(),
+            config: .default
+        ).compactMap { ghost -> OnionSkinGhostRead? in
+            // The only error is an id absent from the axis, and these ids came
+            // from that same axis one call ago (the frame projection's
+            // trusted-id precedent).
+            guard let pixels = try? document.compositeAt(frameId: ghost.frameId) else {
+                return nil
+            }
+            return OnionSkinGhostRead(
+                frameId: ghost.frameId,
+                kind: ghost.kind,
+                distance: ghost.distance,
+                pixels: pixels
+            )
+        }
+        onionSkinCache = (key, version, read)
+        return read
     }
 
     // MARK: - Canvas clear

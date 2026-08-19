@@ -1753,6 +1753,7 @@ final class TabState {
         let data = switch format {
         case .png: try exportDocument.encodeExportPng()
         case .svg: Data(try exportDocument.encodeExportSvg().utf8)
+        case .spritesheet: try exportDocument.encodeSpritesheetPng()
         }
         return ExportDocument(data: data)
     }
@@ -1768,7 +1769,7 @@ final class TabState {
     /// extension. The save flow offers it as the suggested name; the user may
     /// override it.
     func defaultExportFilename(for format: ExportFormat) -> String {
-        "dotorixel-\(document.width())x\(document.height()).\(format.fileExtension)"
+        "dotorixel-\(document.width())x\(document.height())\(format.stemSuffix).\(format.fileExtension)"
     }
 
     /// PNG default filename — the pre-294 single-format spelling, kept for the

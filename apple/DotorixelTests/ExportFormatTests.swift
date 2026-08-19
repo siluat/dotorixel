@@ -8,19 +8,22 @@ import UniformTypeIdentifiers
 @Suite("Export format selection")
 struct ExportFormatTests {
 
-    @Test("The export surface offers PNG and SVG, each declaring its file extension and content type")
-    func offersPngAndSvgWithExtensionAndContentType() {
-        #expect(ExportFormat.allCases == [.png, .svg])
+    @Test("The export surface offers PNG, SVG, and spritesheet, each declaring its file extension and content type")
+    func offersEveryFormatWithExtensionAndContentType() {
+        #expect(ExportFormat.allCases == [.png, .svg, .spritesheet])
         #expect(ExportFormat.png.fileExtension == "png")
         #expect(ExportFormat.png.contentType == .png)
         #expect(ExportFormat.svg.fileExtension == "svg")
         #expect(ExportFormat.svg.contentType == .svg)
+        #expect(ExportFormat.spritesheet.fileExtension == "png")
+        #expect(ExportFormat.spritesheet.contentType == .png)
     }
 
     @Test("Format labels match the web registry's display names")
     func formatLabelsMatchWebRegistry() {
         #expect(ExportFormat.png.label == "PNG")
         #expect(ExportFormat.svg.label == "SVG")
+        #expect(ExportFormat.spritesheet.label == "Spritesheet")
     }
 
     @Test("Default export filename keeps the web convention dotorixel-{width}x{height} per format")
@@ -29,6 +32,10 @@ struct ExportFormatTests {
 
         #expect(state.activeTab.defaultExportFilename(for: .png) == "dotorixel-32x24.png")
         #expect(state.activeTab.defaultExportFilename(for: .svg) == "dotorixel-32x24.svg")
+        // The sheet-marked stem keeps the spritesheet distinct from the still PNG.
+        #expect(
+            state.activeTab.defaultExportFilename(for: .spritesheet) == "dotorixel-32x24-sheet.png"
+        )
     }
 
     @Test("SVG export document is UTF-8 SVG matching the canvas content")
@@ -87,6 +94,65 @@ struct ExportFormatTests {
         #expect(svg.contains("#ff0000"))
         #expect(!svg.contains("#0000ff"))
         #expect(svg.components(separatedBy: "<rect").count - 1 == 1)
+    }
+
+    @Test("Spritesheet export of a multi-frame document tiles every frame's composite in axis order")
+    func spritesheetExportTilesEveryFrameComposite() throws {
+        let state = Workspace(width: 2, height: 2)
+        let tab = state.activeTab
+        try tab.document.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        try tab.document.addFrame(newId: UUID().uuidString) // second frame, active and empty
+        try tab.document.setPixel(x: 1, y: 1, color: Color(r: 0x00, g: 0xFF, b: 0x00, a: 0xFF))
+
+        let document = try tab.makeExportDocument(format: .spritesheet)
+
+        let sheet = try decodedRgbaPixels(png: document.data, width: 4, height: 2)
+        for (tile, frame) in tab.document.frames().enumerated() {
+            #expect(
+                tilePixels(sheet: sheet, sheetWidth: 4, tileWidth: 2, height: 2, index: tile)
+                    == Array(try tab.document.compositeAt(frameId: frame.id)),
+                "tile \(tile) matches its frame's composite"
+            )
+        }
+    }
+
+    @Test("A single-frame document exports a one-tile sheet identical to its frame composite")
+    func singleFrameDocumentExportsOneTileSheet() throws {
+        let state = Workspace(width: 3, height: 2)
+        let tab = state.activeTab
+        try tab.document.setPixel(x: 2, y: 1, color: Color(r: 0x00, g: 0x00, b: 0xFF, a: 0xFF))
+
+        let document = try tab.makeExportDocument(format: .spritesheet)
+
+        let sheet = try decodedRgbaPixels(png: document.data, width: 3, height: 2)
+        #expect(sheet == Array(tab.document.composite()))
+    }
+
+    @Test("Spritesheet export projects pre-lift pixels while a Floating Selection is active")
+    func spritesheetExportPreservesLiveFloatingSelection() throws {
+        let state = Workspace(width: 4, height: 4)
+        let tab = state.activeTab
+        let red: [UInt8] = [0xFF, 0x00, 0x00, 0xFF]
+        let transparent: [UInt8] = [0x00, 0x00, 0x00, 0x00]
+        try tab.document.setPixel(x: 1, y: 1, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        )
+        state.activateTool(.selection)
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
+        tab.endStroke()
+        #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 0))
+
+        let document = try tab.makeExportDocument(format: .spritesheet)
+
+        let sheet = try decodedRgbaPixels(png: document.data, width: 4, height: 4)
+        // The lifted pixel stays at its pre-lift source; the uncommitted
+        // destination stays transparent.
+        let source = rgbaByteOffset(x: 1, y: 1, width: 4)
+        let destination = rgbaByteOffset(x: 2, y: 1, width: 4)
+        #expect(Array(sheet[source..<source + 4]) == red)
+        #expect(Array(sheet[destination..<destination + 4]) == transparent)
     }
 
     @Test("SVG export is byte-identical with onion skin on and off")

@@ -1,6 +1,6 @@
 ---
 title: Apple spritesheet export — horizontal-strip PNG of every frame
-status: ready-for-agent
+status: done
 created: 2026-08-16
 ---
 
@@ -37,3 +37,42 @@ Add the spritesheet format to the 294 export surface:
 ## Blocked by
 
 - [294 — Apple export format selection](294-apple-export-format-selection.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Export/ExportFormat.swift` | `.spritesheet` case — localized label, `png` extension/content type, and a new `stemSuffix` property (`"-sheet"`) mirroring the web `defaultStem` override |
+| `apple/Dotorixel/State/TabState.swift` | `makeExportDocument` routes `.spritesheet` to `encodeSpritesheetPng()`; `defaultExportFilename(for:)` appends the format's stem suffix |
+| `apple/Dotorixel/Localizable.xcstrings` | "Spritesheet" entry (ko: 스프라이트 시트 / ja: スプライトシート — matching web `format_spritesheet`) |
+| `apple/DotorixelTests/ExportFormatTests.swift` | Registry/label/filename assertions extended; new multi-frame tiling, single-frame one-tile, and Floating Selection projection tests |
+| `apple/DotorixelTests/ImageDecodingTestSupport.swift` | New shared PNG→RGBA decoding helpers (`decodedRgbaPixels`, `rgbaPixels`, `rgbaByteOffset`, `tilePixels`) |
+| `apple/DotorixelTests/PngExportTests.swift`, `apple/DotorixelTests/ExportEncoderBindingsTests.swift` | Private decoding-helper copies removed in favor of the shared test support |
+
+### Key Decisions
+
+- **`stemSuffix` on `ExportFormat`**: the web registry lets a format override its
+  default filename stem (`spritesheetDefaultStem` → `-sheet`); the Apple registry
+  mirrors that as a declared property so `TabState`'s filename builder stays
+  format-agnostic and GIF (296) slots in without touching it.
+- **Label localization split**: PNG/SVG stay untranslated acronyms (294 decision);
+  "Spritesheet" is a word and localizes via the String Catalog, matching the web's
+  localized `format_spritesheet`. The `String(localized:)` comment matches the
+  catalog comment so build-time extraction stays stable.
+- **`SheetTooLarge` needs no new code**: the 294 error alert already presents
+  `AppleError`'s `LocalizedError` description, which carries the core's actionable
+  message; the core notes the branch is unreachable through the public API (canvas
+  dimensions are capped), so no shell-side test constructs it.
+
+### Notes
+
+- Encoder correctness (tile order, hidden/Reference exclusion, pure-query
+  encoding) was already pinned by `ExportEncoderBindingsTests` (issue 293); the
+  new tests cover the `TabState` routing layer, including the Floating Selection
+  projection branch.
+- The `decodedRgbaPixels` helper had reached three private copies (rule of
+  three), so it was extracted to `ImageDecodingTestSupport.swift` following the
+  existing `*TestSupport.swift` convention. `gifUnclampedDelaySeconds` stays
+  private to the bindings tests (single user).
+- TopBar snapshot baselines needed no re-record — menu content only renders when
+  opened.

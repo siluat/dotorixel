@@ -23,15 +23,14 @@ the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish), Phase 2
 (full tool set + color + i18n, issues 230–242), Phase 3 (layer system, issues
 256–261), Phase 4 (multi-tab + persistence, issues 262–266), and Phase 5
 (reference + selection + transforms, issues 267–282) are complete; Phase 6 is
-decomposed into issues 283–296 (two parallel tracks), of which 283–294 are done —
-the animation track and the format-selecting export surface are complete, only
-the spritesheet and GIF formats (295–296) remain.
+decomposed into issues 283–296 (two parallel tracks), of which 283–295 are done —
+the animation track, the format-selecting export surface, and the spritesheet
+format are complete; only the GIF format (296) remains.
 
 ### Phase 6 — Animation + extended export (issues 283–296)
 
 Export track:
 
-- [295 — Spritesheet export](../issues/295-apple-spritesheet-export.md)
 - [296 — GIF export](../issues/296-apple-gif-export.md)
 
 ## Deferred

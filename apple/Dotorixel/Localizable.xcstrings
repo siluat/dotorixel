@@ -1577,6 +1577,23 @@
         }
       }
     },
+    "Spritesheet" : {
+      "comment" : "Export menu label for the all-frames horizontal-strip PNG format. web: format_spritesheet",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スプライトシート"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "스프라이트 시트"
+          }
+        }
+      }
+    },
     "Swap colors" : {
       "comment" : "FG/BG swap button accessibility label. web: color_swap",
       "localizations" : {

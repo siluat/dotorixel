@@ -15,6 +15,11 @@ struct PixelCanvasView {
     /// Observed by SwiftUI to trigger re-renders when canvas pixels change.
     /// The value itself is unused — only its change matters for the diff.
     var canvasVersion: Int = 0
+    /// Observed by SwiftUI so flipping the Onion Skin toggle re-runs the
+    /// update pass — `configureRenderer` reads the projection itself; like
+    /// `canvasVersion`, only the change matters for the diff (raised by
+    /// greptile-apps and cubic-dev-ai on PR #380).
+    var isOnionSkinEnabled: Bool = false
     /// Whether the canvas-size fields hold keyboard focus. Passed as a
     /// stored property (read at ContentView scope, like `canvasVersion`) so
     /// its change re-runs the update pass — the iPad first-responder
@@ -48,7 +53,16 @@ extension PixelCanvasView {
         let panX = Float(viewport.panX())
         let panY = Float(viewport.panY())
 
-        renderer.updateCanvasTexture(pixels: pixels, width: width, height: height)
+        // Onion Skin ghosts layer beneath the working pixels in the same
+        // texture — above the Reference underlay by the shader's ordering.
+        // The projection is empty while the toggle is off or Playback runs,
+        // so the composite is the identity on every ghost-free path.
+        let renderedPixels = onionSkinRenderPixels(
+            activePixels: pixels,
+            ghosts: tab.onionSkinProjection
+        )
+
+        renderer.updateCanvasTexture(pixels: renderedPixels, width: width, height: height)
         renderer.updateReferenceUnderlay(tab.referenceLayerUnderlay?.projectForRendering(
             effectivePixelSize: eps,
             panX: panX,

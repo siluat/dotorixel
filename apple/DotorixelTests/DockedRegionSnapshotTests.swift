@@ -223,6 +223,21 @@ struct DockedRegionSnapshotTests {
         )
     }
 
+    /// Content regression (issue 291): the Onion Skin toggle's on-state —
+    /// the same two-channel treatment as Loop, third in the leading cluster.
+    /// The ghost pixels themselves render on the Metal canvas, outside this
+    /// panel; the image pins the toggle's pressed chrome.
+    @Test("TimelinePanel renders the Onion Skin toggle on")
+    func timelinePanelOnionSkinOn() throws {
+        let ghosted = state()
+        try ghosted.activeTab.document.addFrame(newId: makeFrameId())
+        ghosted.activeTab.toggleOnionSkin()
+        assertSnapshot(
+            of: TimelinePanel(tab: ghosted.activeTab).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
     /// Layout regression (PR #372 review, issue 285): an axis wider than the
     /// frame pane stops at the pane edge instead of drawing over the canvas
     /// beside the panel — `frame` sizes but does not clip. Ten 44pt columns

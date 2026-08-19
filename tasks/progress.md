@@ -3,23 +3,20 @@
 ## Currently Working On
 
 Apple Native Phase 6 — Animation + extended export
-([RFC](../issues/013-apple-native-catchup.md)); 8 of 14 sub-issues done.
-290 unblocked 291 (onion skin render + toggle, the animation track's last
-UI slice); 292 (persistence) stays open in parallel, and the export track
-still opens at 293.
+([RFC](../issues/013-apple-native-catchup.md)); 9 of 14 sub-issues done.
+291 finished the animation track's UI — only 292 (persistence) remains on
+that track, and the export track still opens at 293.
 
 ## Last Completed
 
-[290 — Apple onion skin state](../issues/290-apple-onion-skin-state.md):
-pure neighbor selection plus the per-tab toggle and ghost projection over
-the neighbors' committed composites, proven through the real bindings to be
-a pure read (no history, no dirty, no Active-Frame moves) that empties
-during Playback. The toggle is in-memory by design — persistence rides 292;
-pixels on screen ride 291.
+[291 — Apple onion skin render + toggle](../issues/291-apple-onion-skin-render.md):
+tinted ghosts on the Metal canvas (CPU pre-composite into the single canvas
+texture, so exports and thumbnails stay ghost-free by construction) plus the
+transport-strip toggle. Toggle persistence rides 292 with the rest of the
+animation state.
 
 ## Next Up
 
-- [291 — Apple onion skin render + toggle](../issues/291-apple-onion-skin-render.md) — render + transport toggle over the 290 state
 - [292 — Apple animation persistence](../issues/292-apple-animation-persistence.md) — persists the frame axis (order + durations)
 - [293 — Apple UniFFI export encoder bindings](../issues/293-apple-uniffi-export-encoder-bindings.md) — Phase 6 export track opener
 - [255 — Apple Pencil device verification (HITL)](../issues/255-apple-pencil-device-verification.md)

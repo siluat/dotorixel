@@ -1,6 +1,6 @@
 ---
 title: Apple onion skin render + toggle — tinted ghosts under the working frame
-status: ready-for-agent
+status: done
 created: 2026-08-16
 ---
 
@@ -50,3 +50,45 @@ PRD 217's render contract, adapted to the Metal render path):
 
 - [289 — Apple transport strip](289-apple-transport-strip.md)
 - [290 — Apple onion skin state](290-apple-onion-skin-state.md)
+
+## Results
+
+| File | Description |
+|------|-------------|
+| `apple/Dotorixel/Rendering/OnionSkinRender.swift` | New: `onionSkinRenderPixels` — pure CPU pre-composite of the 290 projection beneath the Active Frame's pixels (60 % kind tint over the ghost's own color, 40 % ghost alpha, farthest first / nearest last, premultiplied-float accumulation rounded once); empty projection is the identity |
+| `apple/Dotorixel/Rendering/PixelCanvasView.swift` | `configureRenderer` feeds the composite to the single canvas texture — above Reference and below nothing extra by the shader's existing ordering; Playback suppression falls out of the projection emptying |
+| `apple/Dotorixel/Views/TransportStrip.swift` | Onion Skin toggle third in the leading cluster; Loop's two-channel on-state generalized into a shared `toggleButton` helper (44 pt target, disabled on a single frame, `accessibilityValue` On/Off) |
+| `apple/Dotorixel/Localizable.xcstrings` | "Onion skin" entry (ko 어니언 스킨 / ja オニオンスキン — the web `aria_toggleOnionSkin` values) |
+| `apple/DotorixelTests/OnionSkinRenderTests.swift` | New: 6 worked-example compositor tests (both tints, transparency preserved, active-over-ghost, semi-transparent alpha scaling, farthest-first stable order, identity) |
+| `apple/DotorixelTests/RenderPathTests.swift` | +3 upload-seam tests: tinted ghost reaches the canvas texture, ghosts leave during Playback and return on stop, PNG export byte-identical with the toggle on/off |
+| `apple/DotorixelTests/DockedRegionSnapshotTests.swift` | +1 Onion-Skin-on snapshot; 9 TimelinePanel baselines re-recorded on the pinned host for the strip's third control |
+
+### Key Decisions
+
+- **CPU pre-composite over a Metal-pass tint** (the issue left it open): a pure
+  function testable without Metal, no shader/uniform surgery, and trivial cost
+  at pixel-art canvas sizes. Export (`encodeExportPng`) and saved-work
+  thumbnails (`compositeForExport`) read the document, not the renderer buffer,
+  so ghosts cannot leak into them by construction.
+- **Tint/alpha constants live in the compositor file** mirroring the web
+  `--ds-onion-prev` / `--ds-onion-next` tokens — the same convention as the web
+  `renderer.ts` literals, since `DesignTokens` holds SwiftUI colors while the
+  compositor needs byte math.
+- **The toggle reuses Loop's chrome via a shared `toggleButton` helper** —
+  pressed-state semantics follow the strip's existing convention
+  (`accessibilityLabel` + `accessibilityValue` On/Off) rather than a new
+  pattern.
+- **`square.2.layers.3d` stands in for the web's lucide Ghost** — SF Symbols
+  carries no ghost glyph; the two-offset-layers metaphor reads as adjacent
+  frames.
+
+### Notes
+
+- Frame switches refresh ghosts because `setActiveFrame` bumps
+  `canvasVersion`, the projection's memo key — verified, not newly built.
+- The tint math now exists on both platforms (web Canvas2D ops, Apple buffer
+  math) — a deliberate shell-native placement per the 290 precedent; the 218
+  spec values are the shared contract.
+- Expected test values are worked examples derived from the 218 blend rule,
+  not recomputations through the implementation.
+- Toggle persistence rides 292 with the rest of the animation state.

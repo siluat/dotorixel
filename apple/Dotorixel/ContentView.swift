@@ -27,6 +27,7 @@ struct ContentView: View {
         let viewport = tab.viewport
         let showGrid = tab.showGrid
         let canvasVersion = tab.canvasVersion
+        let isOnionSkinEnabled = tab.isOnionSkinEnabled
         let isTextInputFocused = workspace.isTextInputFocused
         let canvasInteraction = CanvasInteractionPresentation.resolve(
             isActiveLayerEditable: tab.isActiveLayerEditable,
@@ -55,6 +56,7 @@ struct ContentView: View {
                                 workspace: workspace,
                                 interactionPresentation: canvasInteraction,
                                 canvasVersion: canvasVersion,
+                                isOnionSkinEnabled: isOnionSkinEnabled,
                                 isTextInputFocused: isTextInputFocused
                             )
                             .onAppear { presentActiveTab(in: geo.size) }

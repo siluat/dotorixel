@@ -42,13 +42,15 @@ struct TransportStripPresentation {
 }
 
 /// The playback transport in the Timeline panel's band above the frame ruler
-/// (issue 289; web parity: `TransportBar.svelte`): Play/Pause, Loop, and the
-/// position readout, driving the 288 playback controller through `TabState`.
+/// (issues 289, 291; web parity: `TransportBar.svelte`): Play/Pause, Loop, the
+/// Onion Skin toggle, and the position readout, driving the 288 playback
+/// controller and the 290 onion skin state through `TabState`.
 ///
 /// Play/Pause is an action button whose accessible name flips Play⇄Pause — not
 /// a toggle, so no on/off value (a changing name plus a toggle value would be
-/// conflicting patterns); the morphing name conveys state. Loop, with a stable
-/// name, is the real toggle and announces On/Off (the TopBar convention).
+/// conflicting patterns); the morphing name conveys state. Loop and Onion
+/// Skin, with stable names, are the real toggles and announce On/Off (the
+/// TopBar convention).
 struct TransportStrip: View {
     let tab: TabState
 
@@ -60,8 +62,8 @@ struct TransportStrip: View {
     /// Control glyph extent — the web transport icons (`size={16}`).
     private let controlIconSize: CGFloat = 16
 
-    /// The Loop on-state's outline — web `--ds-border-width` inset shadow.
-    private let loopOnBorderWidth: CGFloat = 1
+    /// The toggles' on-state outline — web `--ds-border-width` inset shadow.
+    private let toggleOnBorderWidth: CGFloat = 1
 
     private var presentation: TransportStripPresentation {
         TransportStripPresentation.resolve(
@@ -77,6 +79,7 @@ struct TransportStrip: View {
         HStack(spacing: DesignTokens.space3) {
             playPauseButton(presentation)
             loopToggle(presentation)
+            onionSkinToggle(presentation)
             Spacer(minLength: 0)
             positionReadout(presentation)
         }
@@ -109,19 +112,54 @@ struct TransportStrip: View {
     }
 
     private func loopToggle(_ presentation: TransportStripPresentation) -> some View {
+        toggleButton(
+            systemName: "repeat",
+            isOn: tab.isPlaybackLooping,
+            isEnabled: presentation.isEnabled
+        ) {
+            tab.togglePlaybackLoop()
+        }
+        .accessibilityLabel("Loop")
+        .accessibilityValue(tab.isPlaybackLooping ? "On" : "Off")
+    }
+
+    /// The Onion Skin toggle, third in the strip's leading cluster (218
+    /// design): ghosts of adjacent frames on the canvas. A single frame has no
+    /// neighbors to ghost, so it shares the strip's disabled convention. The
+    /// two-layer glyph stands in for the web's lucide Ghost — SF Symbols
+    /// carries no ghost.
+    private func onionSkinToggle(_ presentation: TransportStripPresentation) -> some View {
+        toggleButton(
+            systemName: "square.2.layers.3d",
+            isOn: tab.isOnionSkinEnabled,
+            isEnabled: presentation.isEnabled
+        ) {
+            tab.toggleOnionSkin()
+        }
+        .accessibilityLabel("Onion skin")
+        .accessibilityValue(tab.isOnionSkinEnabled ? "On" : "Off")
+    }
+
+    /// One transport toggle's chrome — Loop set the pattern and the Onion
+    /// Skin toggle mirrors it (web parity: `.transport-btn--loop` /
+    /// `--loop-on` / `--onion-skin(-on)` / `:disabled`).
+    private func toggleButton(
+        systemName: String,
+        isOn: Bool,
+        isEnabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
         // The on-state renders only while actionable (web parity: `:disabled`
         // overrides the on-variant) — the flag itself survives disabling.
-        let showsOn = tab.isPlaybackLooping && presentation.isEnabled
-        return Button {
-            tab.togglePlaybackLoop()
-        } label: {
-            Image(systemName: "repeat")
+        let showsOn = isOn && isEnabled
+        return Button(action: action) {
+            Image(systemName: systemName)
                 .font(.system(size: controlIconSize))
-                .foregroundStyle(loopTint(showsOn: showsOn, isEnabled: presentation.isEnabled))
+                .foregroundStyle(toggleTint(showsOn: showsOn, isEnabled: isEnabled))
                 .frame(width: controlChromeSize, height: controlChromeSize)
                 // Disabled drops to the same muted fill as the play button —
-                // the web's `:disabled` treatment covers both variants.
-                .background(loopFill(showsOn: showsOn, isEnabled: presentation.isEnabled))
+                // the web's `:disabled` treatment covers every variant.
+                .background(toggleFill(showsOn: showsOn, isEnabled: isEnabled))
                 .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusSm))
                 // Two-channel on-state (color-blind safe, web parity): the
                 // accent-subtle fill plus an accent outline.
@@ -129,27 +167,24 @@ struct TransportStrip: View {
                     RoundedRectangle(cornerRadius: DesignTokens.radiusSm)
                         .strokeBorder(
                             showsOn ? DesignTokens.accent : .clear,
-                            lineWidth: loopOnBorderWidth
+                            lineWidth: toggleOnBorderWidth
                         )
                 }
                 .frame(width: DesignTokens.btnSize, height: DesignTokens.btnSize)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(!presentation.isEnabled)
-        .accessibilityLabel("Loop")
-        .accessibilityValue(tab.isPlaybackLooping ? "On" : "Off")
+        .disabled(!isEnabled)
     }
 
-    /// The Loop glyph's tint across its three states (web parity:
-    /// `.transport-btn--loop` / `--loop-on` / `:disabled`).
-    private func loopTint(showsOn: Bool, isEnabled: Bool) -> SwiftUI.Color {
+    /// A toggle glyph's tint across its three states.
+    private func toggleTint(showsOn: Bool, isEnabled: Bool) -> SwiftUI.Color {
         if showsOn { return DesignTokens.accentText }
         return isEnabled ? DesignTokens.textSecondary : DesignTokens.textTertiary
     }
 
-    /// The Loop chrome's fill across the same three states.
-    private func loopFill(showsOn: Bool, isEnabled: Bool) -> SwiftUI.Color {
+    /// A toggle chrome's fill across the same three states.
+    private func toggleFill(showsOn: Bool, isEnabled: Bool) -> SwiftUI.Color {
         if showsOn { return DesignTokens.accentSubtle }
         return isEnabled ? .clear : DesignTokens.bgHover
     }

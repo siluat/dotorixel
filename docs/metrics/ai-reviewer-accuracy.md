@@ -10,14 +10,19 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 228 | 173 | 55 | 325 | 76% | 35% |
-| cubic-dev-ai[bot] | 373 | 295 | 78 | 226 | 79% | 57% |
-| coderabbitai[bot] | 341 | 247 | 94 | 263 | 72% | 48% |
+| greptile-apps[bot] | 229 | 174 | 55 | 326 | 76% | 35% |
+| cubic-dev-ai[bot] | 375 | 297 | 78 | 226 | 79% | 57% |
+| coderabbitai[bot] | 341 | 247 | 94 | 265 | 72% | 48% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #380 | greptile-apps[bot] | Accept | Flipping the Onion Skin toggle changed only `isOnionSkinEnabled`, which ContentView neither read nor passed to the canvas representable, so the update pass never re-ran and ghosts stayed stale until the next canvas-invalidating change; the flag now flows through ContentView like `isTextInputFocused`. The upload-seam tests call `configureRenderer` directly, so the observation-graph gap was outside their reach |
+| #380 | cubic-dev-ai[bot] | Accept | Same stale-toggle observation gap (duplicate of greptile); same explicit read-and-pass fix |
+| #380 | cubic-dev-ai[bot] | Accept | The platform matrix marked Apple onion skinning ✅ while its own note said the toggle is not yet persisted — the web column's ✅ includes persistence, so per the legend Apple stays 🔧 until 292 lands |
+| #380 | greptile-apps[bot] | Miss | Missed the status-marker/legend contradiction accepted from cubic |
+| #380 | coderabbitai[bot] | Miss (×2) | APPROVED with no findings; missed the stale-toggle observation gap accepted from greptile/cubic and cubic's status-marker contradiction |
 | #379 | coderabbitai[bot] | Accept | `onionSkinGhosts` iterated the raw config counts, so an oversized count (e.g. `Int.max`) did O(count) work and eventually trapped on index overflow — unreachable today (production passes only the fixed 1/1 default), but the clamp-to-available-neighbors is the documented axis-end contract as the loop bound itself, and it retires the in-loop index guards. Pinned by an `Int.max` regression test |
 | #379 | cubic-dev-ai[bot] | Accept | Same count clamp (duplicate of coderabbit), with the concrete clamp expressions the fix adopted |
 | #379 | cubic-dev-ai[bot] | Accept | With Onion Skin on, every live-stroke sample bumped `canvasVersion` and recomposited every neighbor at pointer frequency, though the mid-stroke seal means a stroke can only touch the Active Frame's Cel — the neighbors' composites cannot change. The cache is now keyed to the stroke's start version while drawing (the `FrameProjectionCache` single-Cel reasoning the bot's learning cited), pinned by a mid-stroke stability test |

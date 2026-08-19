@@ -189,6 +189,40 @@ struct DockedRegionSnapshotTests {
         )
     }
 
+    /// Content regression (issue 289): the transport strip mid-playback — the
+    /// play button in its Pause form, the ▼ playhead marker on column 1 while
+    /// the Active-Frame highlight stays on column 2 (the two indications must
+    /// read as distinct), and the position readout following the Playhead
+    /// ("1 / 2"). Playback is started against the tests' hand-driven clock, so
+    /// the render is static.
+    @Test("TimelinePanel renders the playing transport with the playhead marker distinct from the active column")
+    func timelinePanelPlayingTransport() throws {
+        let playing = Workspace(width: 16, height: 16, frameScheduler: FakeFrameScheduler())
+        let tab = playing.activeTab
+        let secondFrameId = makeFrameId()
+        try tab.document.addFrame(newId: secondFrameId)
+        tab.setActiveFrame(id: secondFrameId)
+        tab.startPlayback()
+        assertSnapshot(
+            of: TimelinePanel(tab: tab).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
+    /// Content regression (issue 289): the Loop toggle's on-state — the
+    /// two-channel treatment (accent-subtle fill + accent outline) beside the
+    /// stopped play button, with the readout on the Active Frame.
+    @Test("TimelinePanel renders the Loop toggle on")
+    func timelinePanelLoopOn() throws {
+        let looping = state()
+        try looping.activeTab.document.addFrame(newId: makeFrameId())
+        looping.activeTab.togglePlaybackLoop()
+        assertSnapshot(
+            of: TimelinePanel(tab: looping.activeTab).frame(width: barWidth),
+            as: .image(layout: .sizeThatFits)
+        )
+    }
+
     /// Layout regression (PR #372 review, issue 285): an axis wider than the
     /// frame pane stops at the pane edge instead of drawing over the canvas
     /// beside the panel — `frame` sizes but does not clip. Ten 44pt columns

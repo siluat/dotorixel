@@ -1814,6 +1814,74 @@
           }
         }
       }
+    },
+    "Playback" : {
+      "comment" : "Transport strip container accessibility label. web: aria_playbackToolbar",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生コントロール"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "재생 컨트롤"
+          }
+        }
+      }
+    },
+    "Play" : {
+      "comment" : "Transport play button accessibility label while stopped. web: aria_play",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "재생"
+          }
+        }
+      }
+    },
+    "Pause" : {
+      "comment" : "Transport play button accessibility label while playing. web: aria_pause",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一時停止"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "일시정지"
+          }
+        }
+      }
+    },
+    "Loop" : {
+      "comment" : "Transport loop toggle accessibility label. web: aria_toggleLoop",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ループ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "반복"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

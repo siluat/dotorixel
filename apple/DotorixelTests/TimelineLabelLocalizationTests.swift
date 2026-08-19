@@ -62,6 +62,15 @@ struct TimelineLabelLocalizationTests {
         )
     }
 
+    @Test("the transport strip's labels resolve their Korean translations")
+    func transportLabelsResolve() throws {
+        let ko = try koreanBundle()
+        #expect(String(localized: "Playback", bundle: ko, locale: locale) == "재생 컨트롤")
+        #expect(String(localized: "Play", bundle: ko, locale: locale) == "재생")
+        #expect(String(localized: "Pause", bundle: ko, locale: locale) == "일시정지")
+        #expect(String(localized: "Loop", bundle: ko, locale: locale) == "반복")
+    }
+
     @Test("the frame action group's labels resolve their Korean translations")
     func frameActionLabelsResolve() throws {
         let ko = try koreanBundle()

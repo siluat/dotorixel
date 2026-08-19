@@ -74,6 +74,16 @@ struct TimelinePanel: View {
     /// The occupancy dot marking a content-bearing Cel — web `--cel-dot-size`.
     private let celDotSize: CGFloat = 6
 
+    /// The playhead ▼ marker's glyph size, one step under the ruler ordinals
+    /// (web parity: marker `--ds-font-size-sm` 11 vs ordinal 10, kept in-header
+    /// here so it reads over the 44pt column without crowding the ordinal).
+    private let playheadMarkerSize: CGFloat = 8
+
+    /// The marker's inset from the header's top edge: past the band every
+    /// header reserves for the active accent bar, plus a 1pt gap so the glyph
+    /// never touches the bar itself.
+    private var playheadMarkerTopInset: CGFloat { activeBarWidth + 1 }
+
     /// The duration editor field's width — the web's mobile sizing for this
     /// control (64px), whose height the 44pt ruler band already provides.
     private let durationFieldWidth: CGFloat = 64
@@ -642,21 +652,19 @@ struct TimelinePanel: View {
             .accessibilityHidden(true)
     }
 
-    // MARK: - Transport slot (reserved for issue 289)
+    // MARK: - Transport slot
 
-    /// The band the playback transport will occupy. Empty and dim on purpose:
-    /// it holds the space so 289's controls arrive without moving the ruler,
-    /// and it carries nothing for VoiceOver to announce until they do.
+    /// The playback transport (issue 289) in the band 288 reserved for it —
+    /// the strip fills the slot at its held height, so its arrival moved
+    /// neither the ruler nor the rows beneath.
     private var transportSlot: some View {
-        Rectangle()
-            .fill(DesignTokens.bgSurface)
+        TransportStrip(tab: tab)
             .frame(height: transportSlotHeight)
             .overlay(alignment: .bottom) {
                 Rectangle()
                     .fill(DesignTokens.borderSubtle)
                     .frame(height: dividerThickness)
             }
-            .accessibilityHidden(true)
     }
 
     // MARK: - Frame ruler
@@ -863,6 +871,13 @@ struct TimelinePanel: View {
     private func rulerHeader(_ frame: FrameColumn, axisIndex: Int) -> some View {
         let ordinal = axisIndex + 1
         let isActive = frame.id == tab.activeFrameId
+        // The Playhead's column while playing (issue 289): a ▼ marker at the
+        // header's top edge, sweeping along the axis as playback advances —
+        // web parity for the marker lane, drawn in-header so the band heights
+        // 288 reserved stay untouched. Distinct from the Active-Frame
+        // highlight (fill + top bar + bold ordinal), which never moves during
+        // playback.
+        let isPlayhead = tab.isPlaying && frame.id == tab.playheadFrameId
         let isDragging = frameInteraction.drag?.itemId == frame.id
         let dragOffset = frameInteraction.drag?.offset(forIndex: axisIndex) ?? 0
         return Text(verbatim: "\(ordinal)")
@@ -880,6 +895,17 @@ struct TimelinePanel: View {
                 Rectangle()
                     .fill(isActive ? DesignTokens.accent : .clear)
                     .frame(height: activeBarWidth)
+            }
+            .overlay(alignment: .top) {
+                if isPlayhead {
+                    // Decorative like the web's marker lane (aria-hidden): the
+                    // strip's position readout is the accessible account.
+                    Text(verbatim: "▼")
+                        .font(.system(size: playheadMarkerSize))
+                        .foregroundStyle(DesignTokens.accent)
+                        .padding(.top, playheadMarkerTopInset)
+                        .accessibilityHidden(true)
+                }
             }
             .overlay(alignment: .trailing) {
                 Rectangle()

@@ -232,6 +232,19 @@ struct TabStatePlaybackTests {
         #expect(try tab.document.getPixel(x: 2, y: 1) == red)
     }
 
+    @Test("togglePlayback flips between the started and stopped states")
+    func togglePlaybackFlipsPlayState() throws {
+        let (tab, first, _, _) = try makeTwoFrameTab()
+
+        tab.togglePlayback()
+        #expect(tab.isPlaying)
+        #expect(tab.playheadFrameId == first)
+
+        tab.togglePlayback()
+        #expect(!tab.isPlaying)
+        #expect(tab.playheadFrameId == nil)
+    }
+
     @Test("no playback action pushes history or marks the document dirty")
     func playbackActionsPushNoHistoryAndMarkNothingDirty() throws {
         let clock = FakeFrameScheduler()

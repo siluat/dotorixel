@@ -3,21 +3,19 @@
 ## Currently Working On
 
 Apple Native Phase 6 — Animation + extended export
-([RFC](../issues/013-apple-native-catchup.md)); 12 of 14 sub-issues done.
-294 delivered the format-selecting export surface, unblocking 295 and
-296 (each adds a format case to it).
+([RFC](../issues/013-apple-native-catchup.md)); 13 of 14 sub-issues done.
+Only 296 (the GIF format case on the 294 surface) remains.
 
 ## Last Completed
 
-[294 — Apple export format selection — multi-format export UI + SVG](../issues/294-apple-export-format-selection.md):
-the TopBar export button is now a format menu (PNG/SVG) backed by an
-`ExportFormat` registry the remaining formats slot into; SVG ships
-through the platform save flow. PNG behavior and tests unchanged;
-snapshot baselines needed no re-record.
+[295 — Apple spritesheet export — horizontal-strip PNG of every frame](../issues/295-apple-spritesheet-export.md):
+the spritesheet format joined the 294 export menu — all-frames
+horizontal-strip PNG through the platform save flow, with a sheet-marked
+default filename and a localized menu label (web parity on both). Shared
+PNG-decoding test helpers were extracted into a test-support file.
 
 ## Next Up
 
-- [295 — Apple spritesheet export](../issues/295-apple-spritesheet-export.md) — adds a format case to the 294 surface
 - [296 — Apple GIF export](../issues/296-apple-gif-export.md) — adds a format case to the 294 surface
 - [255 — Apple Pencil device verification (HITL)](../issues/255-apple-pencil-device-verification.md)
 - Project file format (JSON-based) + save/load

@@ -74,8 +74,8 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | PNG | ✅ | ✅ | ✅ | 1× scale, default filename `dotorixel-{w}x{h}.png` on both shells; Apple: system save flow (macOS save panel / iPadOS Files picker) |
 | SVG | ✅ | ✅ | ✅ | Active-frame still; one rect per drawn pixel, transparent pixels omitted, crispEdges |
 | GIF (animated) | ✅ | ✅ | 🔧 | Timeline order, per-frame durations (centisecond quantization), infinite loop, binary transparency (α≥128), exact colors within palette limit; hidden/Reference layers excluded; Apple: bindings ready, UI not wired |
-| Spritesheet (PNG) | ✅ | ✅ | 🔧 | Horizontal strip, tile = canvas size, frames in Timeline order, full RGBA; hidden/Reference layers excluded; sheet-marked default filename; Apple: bindings ready, UI not wired |
-| Export UI — desktop | — | ✅ | 🔧 | Web popover: format selector, filename input, confirmation; Apple: format menu (PNG/SVG; spritesheet/GIF pending), filename edited in the system save dialog |
+| Spritesheet (PNG) | ✅ | ✅ | ✅ | Horizontal strip, tile = canvas size, frames in Timeline order, full RGBA; hidden/Reference layers excluded; sheet-marked default filename (`-sheet`) on both shells |
+| Export UI — desktop | — | ✅ | 🔧 | Web popover: format selector, filename input, confirmation; Apple: format menu (PNG/SVG/spritesheet; GIF pending), filename edited in the system save dialog |
 | Export UI — mobile | — | ✅ | — | Bottom sheet (vaul-svelte); format selector, filename input, export button |
 
 ## Input

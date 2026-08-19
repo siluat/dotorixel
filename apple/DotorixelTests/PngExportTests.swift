@@ -134,35 +134,10 @@ struct PngExportTests {
         #expect(try tab.document.getPixel(x: 2, y: 1) == transparent)
     }
 
-    /// Byte offset of pixel (x, y) in a row-major RGBA8 buffer.
-    private func rgbaByteOffset(x: Int, y: Int, width: Int) -> Int {
-        (y * width + x) * 4
-    }
-
     @Test("default export filename follows the web convention dotorixel-{width}x{height}.png")
     func defaultExportFilenameFollowsWebConvention() {
         let state = Workspace(width: 32, height: 24)
 
         #expect(state.activeTab.defaultExportFilename == "dotorixel-32x24.png")
-    }
-
-    /// Decodes a PNG into a flat RGBA8 buffer (row-major, top-left origin).
-    private func decodedRgbaPixels(png data: Data, width: Int, height: Int) throws -> [UInt8] {
-        let source = try #require(CGImageSourceCreateWithData(data as CFData, nil))
-        let image = try #require(CGImageSourceCreateImageAtIndex(source, 0, nil))
-        var buffer = [UInt8](repeating: 0, count: width * height * 4)
-        try buffer.withUnsafeMutableBytes { bytes in
-            let context = try #require(CGContext(
-                data: bytes.baseAddress,
-                width: width,
-                height: height,
-                bitsPerComponent: 8,
-                bytesPerRow: width * 4,
-                space: CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-            ))
-            context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-        }
-        return buffer
     }
 }

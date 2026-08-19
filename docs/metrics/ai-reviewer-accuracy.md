@@ -10,14 +10,16 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 231 | 175 | 56 | 328 | 76% | 35% |
+| greptile-apps[bot] | 232 | 176 | 56 | 328 | 76% | 35% |
 | cubic-dev-ai[bot] | 379 | 300 | 79 | 226 | 79% | 57% |
-| coderabbitai[bot] | 341 | 247 | 94 | 268 | 72% | 48% |
+| coderabbitai[bot] | 342 | 248 | 94 | 268 | 73% | 48% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #384 | coderabbitai[bot] | Accept | The export projection called `fromLayers` without `frames`/`activeFrameId`, so the frames-optional hydration collapsed the projected document to a single frame — a spritesheet export during a live Floating Selection silently dropped every other frame's tile. Harmless while only the still PNG/SVG encoders used the path; surfaced by the first frame-axis encoder. Frame axis now passed through like the restore/saved-browser call sites, pinned by a multi-frame Floating Selection regression test |
+| #384 | greptile-apps[bot] | Accept | Same collapsed frame-axis projection (duplicate of coderabbit), P1 with the precise single-frame-overload mechanism |
 | #383 | cubic-dev-ai[bot] | Accept | The done record's Key Decisions/Notes documented the String Catalog and snapshot-baseline outcomes without naming the acceptance criteria they satisfy, so the unmodified criteria read as unmet against the notes; each note now cites its criterion and states the vacuous satisfaction (zero new translatable strings; pixel-identical render, baselines still valid) |
 | #383 | greptile-apps[bot] | Miss | Confidence 5/5 with no findings; missed the criteria-traceability gap accepted from cubic |
 | #383 | coderabbitai[bot] | Miss | APPROVED with no findings; missed the criteria-traceability gap accepted from cubic |

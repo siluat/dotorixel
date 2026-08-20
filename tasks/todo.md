@@ -16,23 +16,6 @@
 - Editor for Game Developers (Milestone 5)
 - Beyond the Editor (Milestone 6)
 
-## Apple Native: full web parity — [RFC](../issues/013-apple-native-catchup.md)
-
-Phased catch-up to full parity with completed web editor features. See the RFC for
-the 6-phase roadmap and sequencing rationale. Phase 1 (layout finish), Phase 2
-(full tool set + color + i18n, issues 230–242), Phase 3 (layer system, issues
-256–261), Phase 4 (multi-tab + persistence, issues 262–266), and Phase 5
-(reference + selection + transforms, issues 267–282) are complete; Phase 6 is
-decomposed into issues 283–296 (two parallel tracks), of which 283–295 are done —
-the animation track, the format-selecting export surface, and the spritesheet
-format are complete; only the GIF format (296) remains.
-
-### Phase 6 — Animation + extended export (issues 283–296)
-
-Export track:
-
-- [296 — GIF export](../issues/296-apple-gif-export.md)
-
 ## Deferred
 
 - Dual Shell PoC — Platform Comparison (native development deferred)

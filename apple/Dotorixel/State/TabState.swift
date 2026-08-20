@@ -1758,6 +1758,7 @@ final class TabState {
         let data = switch format {
         case .png: try exportDocument.encodeExportPng()
         case .svg: Data(try exportDocument.encodeExportSvg().utf8)
+        case .gif: try exportDocument.encodeGif()
         case .spritesheet: try exportDocument.encodeSpritesheetPng()
         }
         return ExportDocument(data: data)

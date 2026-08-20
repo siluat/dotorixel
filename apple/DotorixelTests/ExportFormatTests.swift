@@ -1,4 +1,5 @@
 import Foundation
+import ImageIO
 import Testing
 import UniformTypeIdentifiers
 @testable import Dotorixel
@@ -8,13 +9,16 @@ import UniformTypeIdentifiers
 @Suite("Export format selection")
 struct ExportFormatTests {
 
-    @Test("The export surface offers PNG, SVG, and spritesheet, each declaring its file extension and content type")
+    @Test("The export surface offers PNG, SVG, GIF, and spritesheet, each declaring its file extension and content type")
     func offersEveryFormatWithExtensionAndContentType() {
-        #expect(ExportFormat.allCases == [.png, .svg, .spritesheet])
+        // Menu order mirrors the web registry (`availableFormats`).
+        #expect(ExportFormat.allCases == [.png, .svg, .gif, .spritesheet])
         #expect(ExportFormat.png.fileExtension == "png")
         #expect(ExportFormat.png.contentType == .png)
         #expect(ExportFormat.svg.fileExtension == "svg")
         #expect(ExportFormat.svg.contentType == .svg)
+        #expect(ExportFormat.gif.fileExtension == "gif")
+        #expect(ExportFormat.gif.contentType == .gif)
         #expect(ExportFormat.spritesheet.fileExtension == "png")
         #expect(ExportFormat.spritesheet.contentType == .png)
     }
@@ -23,6 +27,7 @@ struct ExportFormatTests {
     func formatLabelsMatchWebRegistry() {
         #expect(ExportFormat.png.label == "PNG")
         #expect(ExportFormat.svg.label == "SVG")
+        #expect(ExportFormat.gif.label == "GIF")
         #expect(ExportFormat.spritesheet.label == "Spritesheet")
     }
 
@@ -32,6 +37,7 @@ struct ExportFormatTests {
 
         #expect(state.activeTab.defaultExportFilename(for: .png) == "dotorixel-32x24.png")
         #expect(state.activeTab.defaultExportFilename(for: .svg) == "dotorixel-32x24.svg")
+        #expect(state.activeTab.defaultExportFilename(for: .gif) == "dotorixel-32x24.gif")
         // The sheet-marked stem keeps the spritesheet distinct from the still PNG.
         #expect(
             state.activeTab.defaultExportFilename(for: .spritesheet) == "dotorixel-32x24-sheet.png"
@@ -188,6 +194,83 @@ struct ExportFormatTests {
         let destination = rgbaByteOffset(x: 2, y: 1, width: 4)
         #expect(Array(secondTile[source..<source + 4]) == green)
         #expect(Array(secondTile[destination..<destination + 4]) == transparent)
+    }
+
+    @Test("GIF export of a multi-frame document animates with the authored per-frame timing and loops forever")
+    func gifExportHonorsPerFrameTimingAndLoops() throws {
+        let state = Workspace(width: 2, height: 2)
+        let tab = state.activeTab
+        try tab.document.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        try tab.document.addFrame(newId: UUID().uuidString) // second frame, active and empty
+        try tab.document.setPixel(x: 1, y: 1, color: Color(r: 0x00, g: 0xFF, b: 0x00, a: 0xFF))
+        let frames = tab.document.frames()
+        // The retimed second frame visibly holds five times longer.
+        try tab.document.setFrameDuration(id: frames[0].id, durationMs: 100)
+        try tab.document.setFrameDuration(id: frames[1].id, durationMs: 500)
+
+        let document = try tab.makeExportDocument(format: .gif)
+
+        let source = try #require(CGImageSourceCreateWithData(document.data as CFData, nil))
+        #expect(CGImageSourceGetType(source) == UTType.gif.identifier as CFString)
+        #expect(CGImageSourceGetCount(source) == 2)
+        #expect(try gifUnclampedDelaySeconds(source: source, frame: 0) == 0.10)
+        #expect(try gifUnclampedDelaySeconds(source: source, frame: 1) == 0.50)
+        // 0 is the NETSCAPE looping extension's loop-forever value.
+        #expect(try gifLoopCount(source: source) == 0)
+    }
+
+    @Test("A single-frame document exports a valid single-frame GIF matching its composite")
+    func singleFrameDocumentExportsSingleFrameGif() throws {
+        let state = Workspace(width: 3, height: 2)
+        let tab = state.activeTab
+        try tab.document.setPixel(x: 2, y: 1, color: Color(r: 0x00, g: 0x00, b: 0xFF, a: 0xFF))
+
+        let document = try tab.makeExportDocument(format: .gif)
+
+        let source = try #require(CGImageSourceCreateWithData(document.data as CFData, nil))
+        #expect(CGImageSourceGetType(source) == UTType.gif.identifier as CFString)
+        #expect(CGImageSourceGetCount(source) == 1)
+        let image = try #require(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        #expect(try rgbaPixels(image: image, width: 3, height: 2) == Array(tab.document.composite()))
+    }
+
+    @Test("GIF export keeps every frame while a Floating Selection is active")
+    func gifExportKeepsFrameAxisDuringFloatingSelection() throws {
+        let state = Workspace(width: 4, height: 4)
+        let tab = state.activeTab
+        let red: [UInt8] = [0xFF, 0x00, 0x00, 0xFF]
+        let green: [UInt8] = [0x00, 0xFF, 0x00, 0xFF]
+        let transparent: [UInt8] = [0x00, 0x00, 0x00, 0x00]
+        try tab.document.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
+        try tab.document.addFrame(newId: UUID().uuidString) // second frame, active and empty
+        try tab.document.setPixel(x: 1, y: 1, color: Color(r: 0, g: 0xFF, b: 0, a: 0xFF))
+        try tab.document.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        )
+        state.activateTool(.selection)
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
+        tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
+        tab.endStroke()
+        #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 0))
+
+        let document = try tab.makeExportDocument(format: .gif)
+
+        // Both frames survive the projection — a two-frame GIF, not a
+        // collapsed single-frame document.
+        let source = try #require(CGImageSourceCreateWithData(document.data as CFData, nil))
+        #expect(CGImageSourceGetCount(source) == 2)
+        let firstFrame = try #require(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        let firstPixels = try rgbaPixels(image: firstFrame, width: 4, height: 4)
+        let inactiveFramePixel = rgbaByteOffset(x: 0, y: 0, width: 4)
+        #expect(Array(firstPixels[inactiveFramePixel..<inactiveFramePixel + 4]) == red)
+        // The active frame carries the pre-lift projection: the lifted pixel
+        // stays at its source; the uncommitted destination stays transparent.
+        let secondFrame = try #require(CGImageSourceCreateImageAtIndex(source, 1, nil))
+        let secondPixels = try rgbaPixels(image: secondFrame, width: 4, height: 4)
+        let sourcePixel = rgbaByteOffset(x: 1, y: 1, width: 4)
+        let destination = rgbaByteOffset(x: 2, y: 1, width: 4)
+        #expect(Array(secondPixels[sourcePixel..<sourcePixel + 4]) == green)
+        #expect(Array(secondPixels[destination..<destination + 4]) == transparent)
     }
 
     @Test("SVG export is byte-identical with onion skin on and off")

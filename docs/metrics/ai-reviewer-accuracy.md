@@ -11,13 +11,15 @@ only Miss rows may be grouped, with an explicit (×N) count.
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
 | greptile-apps[bot] | 232 | 176 | 56 | 334 | 76% | 35% |
-| cubic-dev-ai[bot] | 388 | 306 | 82 | 226 | 79% | 58% |
-| coderabbitai[bot] | 343 | 248 | 95 | 274 | 72% | 48% |
+| cubic-dev-ai[bot] | 389 | 306 | 83 | 226 | 79% | 58% |
+| coderabbitai[bot] | 344 | 248 | 96 | 274 | 72% | 48% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #387 | coderabbitai[bot] | Reject | The document-input initializer leaves tab presentation at defaults on main too; restoring persisted presentation belongs to the TabSnapshot initializer, which already restores both shell and core collapse values. Seeding the shell flag here would change existing behavior. |
+| #387 | cubic-dev-ai[bot] | Reject | Same proposal to seed shell collapse from the document-input initializer; rejected because content import and persisted tab restoration retain distinct existing presentation behavior. |
 | #387 | cubic-dev-ai[bot] | Accept | Re-review: preserve the persisted Timeline collapse flag when hydrating the owned Document; the shell restored it, but the core binding silently defaulted to false. Pass it through the existing restoration closure without a second Document construction. |
 | #387 | coderabbitai[bot] | Miss | Missed the dropped Timeline collapse hydration argument on re-review. |
 | #387 | greptile-apps[bot] | Miss | Missed the dropped Timeline collapse hydration argument on re-review. |

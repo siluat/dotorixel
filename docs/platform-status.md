@@ -109,7 +109,7 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | Tab management (Workspace) | — | ✅ | ✅ | Add/switch/close tab strip on both shells; tool/colors shared across tabs, document/history/viewport per tab; close routes via the save dialog on both |
-| Session persistence | — | ✅ | ✅ | Multi-frame restore on both (Web: IndexedDB V7; Apple: SwiftData optional fields — pre-animation stores restore as one frame). Corrupt animation data degrades to a consistent document; both recover corrupt stores to a fresh session |
+| Session persistence | — | ✅ | ✅ | Multi-frame sessions; legacy stores reopen as one frame. Apple separates document content from tab presentation; partial corruption recovery preserves readable pixels. |
 | Save dialog on tab close | — | ✅ | ✅ | Blank canvas detection (hidden layers count as content), save/delete/cancel; saved tabs close without prompting. Web: focus-trapped modal; Apple: native sheet |
 | Saved work browser (desktop) | — | ✅ | ✅ | Browse/open/delete; open tabs excluded; reopening resets the viewport (onion skin included). Cards use Pixel-only composite thumbnails of the active frame; multi-frame reopen on both shells |
 | Saved work browser (mobile) | — | ✅ | — | Bottom sheet; opens full Document snapshots while cards use composite thumbnails |

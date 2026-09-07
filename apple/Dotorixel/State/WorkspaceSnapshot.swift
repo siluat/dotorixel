@@ -2,8 +2,8 @@
 // `WorkspaceSnapshot` / `TabSnapshot` in `workspace-snapshot.ts`).
 // "Snapshot" here is the persistence vocabulary — the full state a session
 // store writes and restores — distinct from the History `Snapshot` (the
-// undo/redo value type). Layers reuse the UniFFI `AppleLayerSnapshot`
-// record, the same shape the hydration constructor consumes.
+// undo/redo value type). DocumentSnapshot owns the document content;
+// these values add only the workspace and tab presentation around it.
 
 /// A tab's persisted viewport — zoom/pan geometry plus the grid and onion
 /// skin flags (web parity: the per-tab viewport record in the workspace
@@ -27,29 +27,11 @@ struct SharedStateSnapshot {
     let pixelPerfect: Bool
 }
 
-/// One tab's full persistence record — the document parts the hydration
-/// constructor consumes plus the tab-scoped presentation state.
+/// One tab's persistence record — preserved Document content plus tab state.
 struct TabSnapshot {
     let id: String
     let name: String
-    let width: UInt32
-    let height: UInt32
-    /// The Pixel Layer stack in stack order (bottom first), each layer
-    /// carrying one Cel per frame (and its active-frame buffer in `pixels`).
-    let layers: [AppleLayerSnapshot]
-    /// The frame axis in order (id + display duration) with its active
-    /// pointer. `nil` when the stored record predates animation persistence —
-    /// hydration then restores a one-frame document from each layer's
-    /// `pixels`. Reuses the UniFFI `AppleFrameMetadata` record, the shape the
-    /// hydration constructor consumes (the `AppleLayerSnapshot` precedent).
-    let frames: [AppleFrameMetadata]?
-    let activeFrameId: String?
-    /// The singleton Reference Layer with its source buffer, placement, and
-    /// display state; `nil` when the document carries none.
-    let reference: AppleReferenceLayerSnapshot?
-    let activeLayerId: String
-    let nextLayerNumber: UInt32
-    let marquee: AppleMarqueeRegion?
+    let document: DocumentSnapshot
     let timelinePanelCollapsed: Bool
     let viewport: TabViewportSnapshot
 }

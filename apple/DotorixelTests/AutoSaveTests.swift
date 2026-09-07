@@ -100,7 +100,7 @@ struct AutoSaveTests {
         autoSave.markDirty(tab.documentId)
         await autoSave.flush()
 
-        let savedPixels = try #require(recorder.saves.first?.snapshot.tabs[0].layers[0].pixels)
+        let savedPixels = try #require(recorder.saves.first?.snapshot.tabs[0].document.layers[0].pixels)
         let sourceOffset = (1 * 4 + 1) * 4
         #expect(Array(savedPixels[sourceOffset..<(sourceOffset + 4)]) == [0xFF, 0, 0, 0xFF])
         #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 0))
@@ -154,16 +154,16 @@ struct AutoSaveTests {
 
         let savedTab = try #require(recorder.saves.first?.snapshot.tabs[0])
         let savedSource = try #require(
-            savedTab.layers.first { $0.id == sourceLayerId }
+            savedTab.document.layers.first { $0.id == sourceLayerId }
         )
         let savedOther = try #require(
-            savedTab.layers.first { $0.id == otherLayerId }
+            savedTab.document.layers.first { $0.id == otherLayerId }
         )
         #expect(
             Array(savedSource.pixels[sourceOffset..<(sourceOffset + 4)])
                 == [0xFF, 0, 0, 0xFF]
         )
-        #expect(savedTab.activeLayerId == otherLayerId)
+        #expect(savedTab.document.activeLayerId == otherLayerId)
         #expect(savedOther.name == "Other")
         #expect(savedOther.visible)
         #expect(savedOther.opacity == 1.0)
@@ -226,13 +226,13 @@ struct AutoSaveTests {
         await autoSave.flush()
 
         let savedTab = try #require(recorder.saves.first?.snapshot.tabs.first)
-        #expect(savedTab.layers.map(\.id) == [pixelLayerId])
-        #expect(savedTab.layers[0].pixels == tab.document.compositeForExport())
+        #expect(savedTab.document.layers.map(\.id) == [pixelLayerId])
+        #expect(savedTab.document.layers[0].pixels == tab.document.compositeForExport())
         // The Reference rides alongside the Pixel stack (the closed 278
         // gap), and the snapshot keeps the reference-active pointer that
         // import left behind instead of falling back to a Pixel Layer.
-        let reference = try #require(savedTab.reference)
-        #expect(savedTab.activeLayerId == reference.id)
+        let reference = try #require(savedTab.document.reference)
+        #expect(savedTab.document.activeLayerId == reference.id)
     }
 
     @Test("a closed tab's document is dropped from the dirty set while the arrangement still saves")

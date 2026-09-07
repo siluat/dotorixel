@@ -119,27 +119,12 @@ actor SessionPersistence {
         guard let records = try? modelContext.fetch(descriptor) else { return [] }
         return records.compactMap { record in
             guard let snapshot = try? tabSnapshot(from: record, viewport: nil),
-                  let document = try? AppleDocument.fromLayers(
-                      width: snapshot.width,
-                      height: snapshot.height,
-                      layers: snapshot.layers,
-                      activeLayerId: snapshot.activeLayerId,
-                      nextLayerNumber: snapshot.nextLayerNumber,
-                      timelinePanelCollapsed: snapshot.timelinePanelCollapsed,
-                      // Hydrated so a reference-active pointer stays valid;
-                      // the export composite keeps the thumbnail Pixel-only.
-                      reference: snapshot.reference,
-                      // Frames-aware so the thumbnail composites the active
-                      // frame (ghost-free by construction — ghosts are a
-                      // render-only pre-composite).
-                      frames: snapshot.frames,
-                      activeFrameId: snapshot.activeFrameId
-                  ) else { return nil }
+                  let document = try? snapshot.document.makeDocument() else { return nil }
             return SavedDocumentSummary(
                 id: record.id,
                 name: record.name,
-                width: snapshot.width,
-                height: snapshot.height,
+                width: snapshot.document.width,
+                height: snapshot.document.height,
                 pixels: document.compositeForExport(),
                 updatedAt: record.updatedAt
             )
@@ -196,15 +181,15 @@ actor SessionPersistence {
         DocumentRecord(
             id: tab.id,
             name: tab.name,
-            width: Int(tab.width),
-            height: Int(tab.height),
-            layers: tab.layers.map(storedLayer),
-            reference: storedReference(tab.reference),
-            activeLayerId: tab.activeLayerId,
-            nextLayerNumber: Int(tab.nextLayerNumber),
-            frames: storedFrames(tab.frames),
-            activeFrameId: tab.activeFrameId,
-            marquee: storedMarquee(tab.marquee),
+            width: Int(tab.document.width),
+            height: Int(tab.document.height),
+            layers: tab.document.layers.map(storedLayer),
+            reference: storedReference(tab.document.reference),
+            activeLayerId: tab.document.activeLayerId,
+            nextLayerNumber: Int(tab.document.nextLayerNumber),
+            frames: storedFrames(tab.document.frames),
+            activeFrameId: tab.document.activeFrameId,
+            marquee: storedMarquee(tab.document.marquee),
             timelinePanelCollapsed: tab.timelinePanelCollapsed,
             // `saved` gains meaning with the save dialog (issue 266); until
             // then every auto-saved document is unsaved working state.
@@ -216,15 +201,15 @@ actor SessionPersistence {
 
     private func update(_ record: DocumentRecord, from tab: TabSnapshot, at now: Date) {
         record.name = tab.name
-        record.width = Int(tab.width)
-        record.height = Int(tab.height)
-        record.layers = tab.layers.map(storedLayer)
-        record.reference = storedReference(tab.reference)
-        record.activeLayerId = tab.activeLayerId
-        record.nextLayerNumber = Int(tab.nextLayerNumber)
-        record.frames = storedFrames(tab.frames)
-        record.activeFrameId = tab.activeFrameId
-        record.marquee = storedMarquee(tab.marquee)
+        record.width = Int(tab.document.width)
+        record.height = Int(tab.document.height)
+        record.layers = tab.document.layers.map(storedLayer)
+        record.reference = storedReference(tab.document.reference)
+        record.activeLayerId = tab.document.activeLayerId
+        record.nextLayerNumber = Int(tab.document.nextLayerNumber)
+        record.frames = storedFrames(tab.document.frames)
+        record.activeFrameId = tab.document.activeFrameId
+        record.marquee = storedMarquee(tab.document.marquee)
         record.timelinePanelCollapsed = tab.timelinePanelCollapsed
         record.updatedAt = now
     }
@@ -363,33 +348,35 @@ actor SessionPersistence {
         return TabSnapshot(
             id: record.id,
             name: record.name,
-            width: width,
-            height: height,
-            layers: record.layers.map { layer in
-                AppleLayerSnapshot(
-                    id: layer.id,
-                    name: layer.name,
-                    visible: layer.visible,
-                    opacity: layer.opacity,
-                    pixels: layer.pixels,
-                    // On the degrade path the cels are dropped with the frame
-                    // axis — a one-frame document hydrates from `pixels`.
-                    cels: animation == nil
-                        ? []
-                        : (layer.cels ?? []).map {
-                            AppleCelSnapshot(frameId: $0.frameId, pixels: $0.pixels)
-                        }
+            document: DocumentSnapshot(
+                width: width,
+                height: height,
+                layers: record.layers.map { layer in
+                    AppleLayerSnapshot(
+                        id: layer.id,
+                        name: layer.name,
+                        visible: layer.visible,
+                        opacity: layer.opacity,
+                        pixels: layer.pixels,
+                        // On the degrade path the cels are dropped with the frame
+                        // axis — a one-frame document hydrates from `pixels`.
+                        cels: animation == nil
+                            ? []
+                            : (layer.cels ?? []).map {
+                                AppleCelSnapshot(frameId: $0.frameId, pixels: $0.pixels)
+                            }
+                    )
+                },
+                frames: animation?.frames,
+                activeFrameId: animation?.activeFrameId,
+                reference: reference,
+                activeLayerId: activeLayerId,
+                nextLayerNumber: nextLayerNumber,
+                marquee: marqueeSnapshot(
+                    record.marquee,
+                    canvasWidth: width,
+                    canvasHeight: height
                 )
-            },
-            frames: animation?.frames,
-            activeFrameId: animation?.activeFrameId,
-            reference: reference,
-            activeLayerId: activeLayerId,
-            nextLayerNumber: nextLayerNumber,
-            marquee: marqueeSnapshot(
-                record.marquee,
-                canvasWidth: width,
-                canvasHeight: height
             ),
             timelinePanelCollapsed: record.timelinePanelCollapsed,
             viewport: viewportSnapshot(viewport)

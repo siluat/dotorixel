@@ -254,16 +254,8 @@ final class TabState {
             isConstrainHeld: isConstrainHeld,
             consumePendingToolRestore: consumePendingToolRestore,
             frameScheduler: frameScheduler,
-            document: try AppleDocument.fromLayers(
-                width: snapshot.width,
-                height: snapshot.height,
-                layers: snapshot.layers,
-                activeLayerId: snapshot.activeLayerId,
-                nextLayerNumber: snapshot.nextLayerNumber,
-                timelinePanelCollapsed: snapshot.timelinePanelCollapsed,
-                reference: snapshot.reference,
-                frames: snapshot.frames,
-                activeFrameId: snapshot.activeFrameId
+            document: try snapshot.document.makeDocument(
+                timelinePanelCollapsed: snapshot.timelinePanelCollapsed
             ),
             viewport: AppleViewport(
                 pixelSize: snapshot.viewport.pixelSize,
@@ -275,7 +267,6 @@ final class TabState {
         self.isTimelinePanelCollapsed = snapshot.timelinePanelCollapsed
         self.showGrid = snapshot.viewport.showGrid
         self.isOnionSkinEnabled = snapshot.viewport.showOnionSkin
-        try document.setMarquee(region: snapshot.marquee)
     }
 
     // MARK: - Stroke lifecycle
@@ -1655,25 +1646,12 @@ final class TabState {
 
     // MARK: - Persistence
 
-    /// Captures this tab's full persistence record (web parity:
-    /// `TabState.toSnapshot` in `tab-state.svelte.ts`) — the document parts
-    /// the hydration constructor consumes plus the tab-scoped presentation
-    /// state.
+    /// Captures preserved Document content plus tab identity and presentation.
     func toSnapshot() -> TabSnapshot {
         return TabSnapshot(
             id: documentId,
             name: name,
-            width: document.width(),
-            height: document.height(),
-            layers: persistenceLayerSnapshots(),
-            frames: document.frames(),
-            activeFrameId: document.activeFrameId(),
-            reference: document.referenceLayerSnapshot(),
-            activeLayerId: floatingSelection.snapshotActiveLayerId(
-                currentActiveLayerId: document.activeLayerId()
-            ),
-            nextLayerNumber: document.nextLayerNumber(),
-            marquee: document.marquee(),
+            document: DocumentSnapshot.capture(document, floatingSelection: floatingSelection),
             timelinePanelCollapsed: isTimelinePanelCollapsed,
             viewport: TabViewportSnapshot(
                 pixelSize: viewport.pixelSize(),
@@ -1693,37 +1671,7 @@ final class TabState {
     /// as non-blank and the tab-close save prompt won't silently discard
     /// them.
     func isDocumentBlank() -> Bool {
-        persistenceLayerSnapshots().allSatisfy { layer in
-            layer.cels.allSatisfy { cel in
-                cel.pixels.allSatisfy { $0 == 0 }
-            }
-        }
-    }
-
-    /// Persistence-facing Layers project a live Floating Selection — or a
-    /// pending degraded recovery — back onto its baseline Layer pixels. Any
-    /// transient preview mutation must not affect saves, export, or the
-    /// tab-close blank-document guard. A Floating Selection lives on the
-    /// active layer's active-frame cel, so the projection covers both the
-    /// active-frame `pixels` buffer and that cel's entry.
-    private func persistenceLayerSnapshots() -> [AppleLayerSnapshot] {
-        let activeFrameId = document.activeFrameId()
-        return document.pixelLayerSnapshots().map { liveLayer in
-            var snapshotLayer = liveLayer
-            let projected = floatingSelection.snapshotPixels(
-                for: liveLayer.id,
-                currentPixels: liveLayer.pixels
-            )
-            snapshotLayer.pixels = projected
-            snapshotLayer.cels = liveLayer.cels.map { cel in
-                var cel = cel
-                if cel.frameId == activeFrameId {
-                    cel.pixels = projected
-                }
-                return cel
-            }
-            return snapshotLayer
-        }
+        DocumentSnapshot.isDocumentBlank(document, floatingSelection: floatingSelection)
     }
 
     // MARK: - Export
@@ -1737,21 +1685,9 @@ final class TabState {
     func makeExportDocument(format: ExportFormat) throws -> ExportDocument {
         let exportDocument: AppleDocument
         if floatingSelection.isActive || floatingSelection.hasPendingRecovery {
-            exportDocument = try AppleDocument.fromLayers(
-                width: document.width(),
-                height: document.height(),
-                layers: persistenceLayerSnapshots(),
-                activeLayerId: floatingSelection.snapshotActiveLayerId(
-                    currentActiveLayerId: document.activeLayerId()
-                ),
-                nextLayerNumber: document.nextLayerNumber(),
-                timelinePanelCollapsed: isTimelinePanelCollapsed,
-                // Frames-aware so frame-axis encoders (spritesheet, GIF)
-                // keep every frame; omitting these collapses the projection
-                // to a single-frame document.
-                frames: document.frames(),
-                activeFrameId: document.activeFrameId()
-            )
+            exportDocument = try DocumentSnapshot.capture(
+                document, floatingSelection: floatingSelection
+            ).makeDocument()
         } else {
             exportDocument = document
         }

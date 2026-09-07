@@ -200,12 +200,14 @@ struct SelectionStrokeSessionTests {
 
     @Test("Shift locks a Floating drag to its dominant axis and re-resolves live")
     func shiftLocksFloatingDragToDominantAxis() throws {
-        let state = Workspace(width: 8, height: 8)
-        let tab = state.activeTab
-        state.shared.activeTool = .selection
-        try tab.document.setMarquee(
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        preparedShared.activeTool = .selection
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = state.activeTab
 
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 4, y: 3))

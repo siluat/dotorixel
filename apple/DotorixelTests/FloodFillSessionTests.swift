@@ -11,11 +11,13 @@ struct FloodFillSessionTests {
 
     @Test("a tap fills the 4-connected same-color region under it, stopping at other colors")
     func tapFillsEnclosedRegion() throws {
-        let state = Workspace(width: 8, height: 8)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
         // A red vertical wall at x=3 splits the canvas into two transparent regions.
         for y in 0..<8 {
-            try state.activeTab.document.setPixel(x: 3, y: UInt32(y), color: red)
+            try preparedDocument.setPixel(x: 3, y: UInt32(y), color: red)
         }
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .floodFill
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 4))
@@ -33,12 +35,14 @@ struct FloodFillSessionTests {
 
     @Test("dragging after the tap fills nothing further (one-shot)")
     func dragAfterTapFillsNothingFurther() throws {
-        let state = Workspace(width: 8, height: 8)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
         // A red vertical wall at x=3: the drag crosses from the tapped left
         // region into the right one, which must stay untouched.
         for y in 0..<8 {
-            try state.activeTab.document.setPixel(x: 3, y: UInt32(y), color: red)
+            try preparedDocument.setPixel(x: 3, y: UInt32(y), color: red)
         }
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .floodFill
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 4))
@@ -72,11 +76,13 @@ struct FloodFillSessionTests {
 
     @Test("filling a region with its own color is a visual no-op that doesn't corrupt state")
     func sameColorFillIsNoOp() throws {
-        let state = Workspace(width: 8, height: 8)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
         // Foreground-colored art: tapping it refills with the same color.
-        let fg = state.shared.foregroundColor
-        try state.activeTab.document.setPixel(x: 2, y: 2, color: fg)
-        try state.activeTab.document.setPixel(x: 2, y: 3, color: fg)
+        let fg = preparedShared.foregroundColor
+        try preparedDocument.setPixel(x: 2, y: 2, color: fg)
+        try preparedDocument.setPixel(x: 2, y: 3, color: fg)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .floodFill
         let pixelsBefore = state.activeTab.document.composite()
         let versionBefore = state.activeTab.canvasVersion
@@ -114,9 +120,11 @@ struct FloodFillSessionTests {
 
     @Test("one undo reverts the entire fill; redo re-applies it")
     func oneUndoRevertsWholeFill() throws {
-        let state = Workspace(width: 8, height: 8)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
         // Pre-existing art the fill floods around (different color = region boundary).
-        try state.activeTab.document.setPixel(x: 5, y: 5, color: red)
+        try preparedDocument.setPixel(x: 5, y: 5, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .floodFill
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))

@@ -89,17 +89,19 @@ struct WorkspaceSnapshotCaptureTests {
 
     @Test("a live Floating Selection snapshots pre-lift source pixels without resolving it")
     func floatingSelectionSnapshotUsesPreLiftPixels() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let blue = Color(r: 0, g: 0, b: 0xFF, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setPixel(x: 2, y: 1, color: blue)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setPixel(x: 2, y: 1, color: blue)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         workspace.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -124,14 +126,16 @@ struct WorkspaceSnapshotCaptureTests {
 
     @Test("a Reference-carrying tab round-trips: underlay, row, placement, and active pointer restore exactly")
     func referenceLayerRoundTripsThroughSnapshotAndRestore() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
-        let pixelLayerId = tab.document.activeLayerId()
-        try tab.document.setPixel(
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
+        let pixelLayerId = preparedDocument.activeLayerId()
+        try preparedDocument.setPixel(
             x: 2,
             y: 1,
             color: Color(r: 0x44, g: 0x55, b: 0x66, a: 0xFF)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         // A semi-transparent source byte — the value a lossy round-trip
         // would corrupt.
         let sourceRgba = Data([200, 100, 50, 7, 255, 0, 0, 255])

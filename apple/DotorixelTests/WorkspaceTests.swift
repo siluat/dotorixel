@@ -148,13 +148,15 @@ struct WorkspaceTabLifecycleTests {
 
     @Test("tab switching ends the gesture but preserves its tab-local Floating Selection")
     func tabSwitchPreservesFloatingSelection() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tabA = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
-        try tabA.document.setPixel(x: 1, y: 1, color: red)
-        try tabA.document.setMarquee(
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tabA = workspace.activeTab
         workspace.addTab()
         workspace.setActiveTab(0)
         workspace.activateTool(.selection)
@@ -182,15 +184,17 @@ struct WorkspaceTabLifecycleTests {
 
     @Test("drawing on a revisited tab commits its Floating Selection first")
     func drawingOnRevisitedTabCommitsFloatingSelectionFirst() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tabA = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
 
-        try tabA.document.setPixel(x: 1, y: 1, color: red)
-        try tabA.document.setMarquee(
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tabA = workspace.activeTab
         workspace.activateTool(.selection)
         tabA.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tabA.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))

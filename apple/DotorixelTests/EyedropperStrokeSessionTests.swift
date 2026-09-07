@@ -11,8 +11,10 @@ struct EyedropperStrokeSessionTests {
 
     @Test("releasing over an opaque pixel commits its color to the foreground")
     func releaseOverOpaquePixelCommitsForeground() throws {
-        let state = Workspace(width: 8, height: 8)
-        try state.activeTab.document.setPixel(x: 5, y: 5, color: red)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 5, y: 5, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .eyedropper
 
         // Press over an empty pixel, drag onto the red one, release there:
@@ -26,11 +28,13 @@ struct EyedropperStrokeSessionTests {
 
     @Test("sampling reads the composite — a lower layer's color shows through the active layer's transparent pixels")
     func samplesCompositeNotActiveLayer() throws {
-        let state = Workspace(width: 8, height: 8)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
         // Paint the base layer, then stack a transparent layer on top as the
         // active one: what the user sees at (5, 5) is still the base red.
-        try state.activeTab.document.setPixel(x: 5, y: 5, color: red)
-        try state.activeTab.document.addLayer(newId: UUID().uuidString, name: "Layer 2")
+        try preparedDocument.setPixel(x: 5, y: 5, color: red)
+        try preparedDocument.addLayer(newId: UUID().uuidString, name: "Layer 2")
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .eyedropper
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 5, y: 5))
@@ -53,8 +57,10 @@ struct EyedropperStrokeSessionTests {
 
     @Test("a secondary-button release commits to the background color")
     func secondaryButtonCommitsBackground() throws {
-        let state = Workspace(width: 8, height: 8)
-        try state.activeTab.document.setPixel(x: 3, y: 3, color: red)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 3, y: 3, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .eyedropper
         let initialForeground = state.shared.foregroundColor
 
@@ -67,9 +73,11 @@ struct EyedropperStrokeSessionTests {
 
     @Test("releasing outside the canvas commits nothing")
     func releaseOutOfBoundsCommitsNothing() throws {
-        let state = Workspace(width: 8, height: 8)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
         // Pressed over an opaque pixel — only the release position matters.
-        try state.activeTab.document.setPixel(x: 0, y: 0, color: red)
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .eyedropper
         let initialForeground = state.shared.foregroundColor
 
@@ -104,8 +112,10 @@ struct EyedropperStrokeSessionTests {
 
     @Test("a canceled stroke discards the pending sample without committing")
     func cancelDiscardsPendingSample() throws {
-        let state = Workspace(width: 8, height: 8)
-        try state.activeTab.document.setPixel(x: 4, y: 4, color: red)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 4, y: 4, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .eyedropper
         let initialForeground = state.shared.foregroundColor
 

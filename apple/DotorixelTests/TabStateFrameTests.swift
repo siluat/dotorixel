@@ -10,13 +10,16 @@ struct TabStateFrameTests {
 
     /// A tab whose document carries a second frame, with the first frame
     /// re-activated so tests start at ordinal 1.
-    private func makeTwoFrameTab() throws -> (tab: TabState, first: String, second: String) {
-        let state = Workspace(width: 8, height: 8)
-        let tab = state.activeTab
-        let first = tab.document.activeFrameId()
+    private func makeTwoFrameTab(prepare: (AppleDocument) throws -> Void = { _ in }) throws -> (tab: TabState, first: String, second: String) {
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        let first = preparedDocument.activeFrameId()
         let second = makeFrameId()
-        try tab.document.addFrame(newId: second)
-        try tab.document.setActiveFrame(id: first)
+        try preparedDocument.addFrame(newId: second)
+        try preparedDocument.setActiveFrame(id: first)
+        try prepare(preparedDocument)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = state.activeTab
         return (tab, first, second)
     }
 
@@ -111,13 +114,14 @@ struct TabStateFrameTests {
 
     @Test("switching frames commits an in-flight Floating Selection to the Cel it was lifted from")
     func setActiveFrameCommitsFloatingSelectionToItsOriginCel() throws {
-        let (tab, first, second) = try makeTwoFrameTab()
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
+        let (tab, first, second) = try makeTwoFrameTab { document in
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(
-            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
-        )
+            try document.setPixel(x: 1, y: 1, color: red)
+            try document.setMarquee(
+                region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+            )
+        }
         tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 2, dy: 0))
         #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 2, dy: 0))
 
@@ -158,7 +162,7 @@ struct TabStateFrameTests {
     @Test("duplicate clones the active frame's whole composited moment into a new active frame")
     func duplicateFrameClonesTheActiveFrame() throws {
         let tab = Workspace(width: 8, height: 8).activeTab
-        try tab.document.addLayer(newId: makeLayerId(), name: "Layer 2")
+        tab.addLayer()
         let source = tab.activeFrameId
 
         // Paint on both layers, so the clone has to carry the whole moment
@@ -273,13 +277,12 @@ struct TabStateFrameTests {
 
     @Test("a live stroke's occupancy dot appears on its own Cel while every other Cel keeps its own")
     func liveStrokeUpdatesOnlyItsOwnCelOccupancy() throws {
-        let (tab, first, second) = try makeTwoFrameTab()
-        try tab.document.addLayer(newId: makeLayerId(), name: "Layer 2")
+        let (tab, first, second) = try makeTwoFrameTab { document in
+            try document.addLayer(newId: makeLayerId(), name: "Layer 2")
+        }
         let bottom = tab.document.layers()[0].id
-        let top = tab.document.activeLayerId()
-
-        // Frame 2 carries paint on the bottom layer, so the axis starts with
-        // an occupancy the stroke below must neither lose nor duplicate.
+        let top = tab.activeLayerId
+        // Frame 2 carries paint on the bottom layer before the next stroke.
         tab.setActiveFrame(id: second)
         tab.setActiveLayer(id: bottom)
         tab.beginStroke(at: ScreenCanvasCoords(x: 6, y: 6))

@@ -20,10 +20,12 @@ struct TabStateLayerTests {
 
     @Test("setActiveLayer switches the drawing target: a stroke lands on the tapped layer and nowhere else")
     func setActiveLayerSwitchesDrawingTarget() throws {
-        let state = Workspace(width: 8, height: 8)
-        let bottomId = state.activeTab.document.activeLayerId()
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        let bottomId = preparedDocument.activeLayerId()
         let topId = makeLayerId()
-        try state.activeTab.document.addLayer(newId: topId, name: "Layer 2")
+        try preparedDocument.addLayer(newId: topId, name: "Layer 2")
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         #expect(state.activeTab.document.activeLayerId() == topId)
 
         state.activeTab.setActiveLayer(id: bottomId)
@@ -42,9 +44,11 @@ struct TabStateLayerTests {
 
     @Test("set-active records no history entry and no-ops on the already-active row")
     func setActiveRecordsNoHistoryAndNoOpsOnActiveRow() throws {
-        let state = Workspace(width: 8, height: 8)
-        let bottomId = state.activeTab.document.activeLayerId()
-        try state.activeTab.document.addLayer(newId: makeLayerId(), name: "Layer 2")
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        let bottomId = preparedDocument.activeLayerId()
+        try preparedDocument.addLayer(newId: makeLayerId(), name: "Layer 2")
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
 
         state.activeTab.setActiveLayer(id: bottomId)
 
@@ -59,10 +63,12 @@ struct TabStateLayerTests {
 
     @Test("set-active no-ops while a stroke is drawing: the stroke's target never switches mid-stroke")
     func setActiveNoOpsWhileDrawing() throws {
-        let state = Workspace(width: 8, height: 8)
-        let bottomId = state.activeTab.document.activeLayerId()
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        let bottomId = preparedDocument.activeLayerId()
         let topId = makeLayerId()
-        try state.activeTab.document.addLayer(newId: topId, name: "Layer 2")
+        try preparedDocument.addLayer(newId: topId, name: "Layer 2")
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         state.activeTab.setActiveLayer(id: bottomId)
@@ -137,9 +143,11 @@ struct TabStateLayerTests {
 
     @Test("a hidden layer stays selectable and drawable")
     func hiddenLayerStaysSelectableAndDrawable() throws {
-        let state = Workspace(width: 8, height: 8)
-        let bottomId = state.activeTab.document.activeLayerId()
-        try state.activeTab.document.addLayer(newId: makeLayerId(), name: "Layer 2")
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        let bottomId = preparedDocument.activeLayerId()
+        try preparedDocument.addLayer(newId: makeLayerId(), name: "Layer 2")
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
 
         state.activeTab.setLayerVisibility(id: bottomId, visible: false)
         state.activeTab.setActiveLayer(id: bottomId)
@@ -156,9 +164,11 @@ struct TabStateLayerTests {
 
     @Test("layersInPanelOrder lists the stack top-first — the order the panel renders")
     func layersInPanelOrderListsStackTopFirst() throws {
-        let state = Workspace(width: 8, height: 8)
-        try state.activeTab.document.addLayer(newId: makeLayerId(), name: "Layer 2")
-        try state.activeTab.document.addLayer(newId: makeLayerId(), name: "Layer 3")
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        try preparedDocument.addLayer(newId: makeLayerId(), name: "Layer 2")
+        try preparedDocument.addLayer(newId: makeLayerId(), name: "Layer 3")
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
 
         // `layers()` is stack order (bottom-first); the panel shows the
         // top of the stack at the top of the list.
@@ -204,11 +214,7 @@ struct TabStateLayerAddRemoveTests {
             width: 2,
             height: 2
         ))
-        let firstId = state.activeTab.document.activeLayerId()
-        try state.activeTab.document.setReferencePlacement(
-            id: firstId,
-            placement: AppleReferencePlacementUpdate(x: 7, y: 9, scale: 3)
-        )
+        state.activeTab.setReferencePlacement(AppleReferencePlacementUpdate(x: 7, y: 9, scale: 3))
 
         try state.activeTab.setReferenceLayer(ReferenceImageSource(
             name: "second.png",
@@ -259,8 +265,8 @@ struct TabStateLayerAddRemoveTests {
         #expect(state.activeTab.layersInPanelOrder.last?.id == referenceId)
     }
 
-    @Test("deleting the Reference releases its cached source")
-    func deleteReferenceClearsSourceCache() throws {
+    @Test("Reference source reads follow deletion, Undo, and replacement")
+    func referenceSourceFollowsDeletionUndoAndReplacement() throws {
         let state = Workspace(width: 4, height: 4)
         let originalSource = Data([0x10, 0x20, 0x30, 0xFF])
         try state.activeTab.setReferenceLayer(ReferenceImageSource(
@@ -274,16 +280,13 @@ struct TabStateLayerAddRemoveTests {
 
         state.activeTab.removeLayer(id: referenceId)
 
-        // Reusing the id makes stale cache retention observable without
-        // exposing cache internals through TabState's production interface.
+        #expect(state.activeTab.referenceLayerUnderlay == nil)
+        state.activeTab.handleUndo()
+        #expect(state.activeTab.referenceLayerUnderlay?.sourceRgba == originalSource)
         let replacementSource = Data([0x40, 0x50, 0x60, 0xFF])
-        try state.activeTab.document.addReferenceLayer(
-            newId: referenceId,
-            name: "replacement.png",
-            sourceRgba: replacementSource,
-            sourceWidth: 1,
-            sourceHeight: 1
-        )
+        try state.activeTab.setReferenceLayer(ReferenceImageSource(
+            name: "replacement.png", rgba: replacementSource, width: 1, height: 1
+        ))
         #expect(state.activeTab.referenceLayerUnderlay?.sourceRgba == replacementSource)
     }
 
@@ -375,7 +378,7 @@ struct TabStateLayerAddRemoveTests {
 
         // Web parity: the document's layer counter never decrements, so
         // names stay unique across the document's lifetime.
-        try state.activeTab.document.removeLayer(id: secondId)
+        state.activeTab.removeLayer(id: secondId)
         state.activeTab.addLayer()
         #expect(state.activeTab.document.layers().map(\.name) == ["Layer 1", "Layer 3"])
     }

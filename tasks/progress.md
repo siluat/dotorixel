@@ -2,14 +2,14 @@
 
 ## Currently Working On
 
-None
+None.
 
 ## Last Completed
 
-[297 — Apple Document Snapshot](../issues/297-apple-document-snapshot.md):
-Centralized Apple Document capture and reconstruction, separating content from
-tab presentation. Preserved the existing storage format, corruption recovery,
-and export results.
+[298 — Apple Edit lifecycle](../issues/298-apple-edit-lifecycle.md):
+Centralized editing ownership and transition policy while preserving existing
+behavior. Mutable content access is closed; all 816 Apple tests and the macOS
+build passed.
 
 ## Next Up
 
@@ -32,6 +32,7 @@ and export results.
 - TimelinePanel mobile touch targets — frame + row icon buttons ≥44px on the mobile Timeline tab
 - Web pen priority — palm rejection + hover target cell (web counterpart of 252–254)
 - Apple tab strip keyboard navigation — ArrowLeft/Right + Home/End roving focus
+- Apple Reference placement deactivation cleanup — cancel retained drafts when leaving the Reference Layer
 - Apple drag interruption recovery — first reproduce residual state after interruption on a physical device
 - Apple bindings staleness guard — regenerate Swift bindings on binding-surface change; hit again in 285 and 382
 - Apple toggleGrid dirty marking — align with the 292 onion-skin toggle's workspace mark; check the web siblings

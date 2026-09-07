@@ -32,10 +32,12 @@ struct ShapeStrokeSessionTests {
 
     @Test("shrinking the drag restores pixels the larger preview painted")
     func dragShrinkRestoresPreviousPreview() throws {
-        let state = Workspace(width: 16, height: 16)
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
         // Pre-existing art on the larger preview's path but not the smaller's.
-        try state.activeTab.document.setPixel(x: 5, y: 1, color: red)
+        try preparedDocument.setPixel(x: 5, y: 1, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .rectangle
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
@@ -66,10 +68,12 @@ struct ShapeStrokeSessionTests {
 
     @Test("one undo removes the whole committed shape, restoring pixels under it")
     func oneUndoRemovesCommittedShape() throws {
-        let state = Workspace(width: 16, height: 16)
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
         // Pre-existing art on the outline path, painted over by the shape.
-        try state.activeTab.document.setPixel(x: 2, y: 1, color: red)
+        try preparedDocument.setPixel(x: 2, y: 1, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .rectangle
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
@@ -120,9 +124,11 @@ struct ShapeStrokeSessionTests {
 
     @Test("cancel restores the canvas to its pre-stroke state and leaves no undo entry")
     func cancelRestoresPreStrokeCanvas() throws {
-        let state = Workspace(width: 16, height: 16)
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
-        try state.activeTab.document.setPixel(x: 2, y: 1, color: red)
+        try preparedDocument.setPixel(x: 2, y: 1, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .rectangle
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))

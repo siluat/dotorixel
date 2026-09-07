@@ -34,8 +34,8 @@ Feature implementation status across Core (Rust), Web (SvelteKit + Canvas2D), an
 | Feature | Core | Web | Apple | Notes |
 |---------|------|-----|-------|-------|
 | PixelCanvas History (single-canvas) | ✅ | ⬜ | ⬜ | Dimension-aware snapshots (pixels + W/H). Core-only species — no shell consumes it since Apple moved onto Document History |
-| Document History | ✅ | ✅ | ✅ | Whole-`Document` snapshots (layer stack + Marquee + counters); both shells' undo path. Its own species — never mixed with the PixelCanvas path (unrepresentable, not runtime-guarded) |
-| Edit Baseline (no-op discard) | ✅ | ✅ | ✅ | Commits at an Edit's end only if state changed (Apple: pixels, Web: whole Document); no-op Edits — strokes and commands alike — preserve redo. Core-owned comparison, and the only way to record: no eager push exists |
+| Document History | ✅ | ✅ | ✅ | Whole-Document Undo/Redo on both shells. Apple editing state has one owner; consumers receive value-only reads and request semantic edits. |
+| Edit Baseline (no-op discard) | ✅ | ✅ | ✅ | Core comparison commits changed content at Edit end. No-op strokes and commands preserve redo; Floating Selection resolution retains its own Undo step. |
 
 ## Viewport
 

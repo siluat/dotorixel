@@ -8,9 +8,11 @@ struct TabStateCanvasTransformTests {
 
     @Test("flipCanvasHorizontal mirrors the pixels as one undoable edit")
     func flipHorizontalMirrorsAndUndoRestores() throws {
-        let state = Workspace(width: 4, height: 4)
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 0, y: 1, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         let tab = state.activeTab
-        try tab.document.setPixel(x: 0, y: 1, color: red)
 
         tab.flipCanvasHorizontal()
 
@@ -24,9 +26,11 @@ struct TabStateCanvasTransformTests {
 
     @Test("flipCanvasVertical mirrors the pixels top↔bottom as one undoable edit")
     func flipVerticalMirrorsAndUndoRestores() throws {
-        let state = Workspace(width: 4, height: 4)
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 1, y: 0, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         let tab = state.activeTab
-        try tab.document.setPixel(x: 1, y: 0, color: red)
 
         tab.flipCanvasVertical()
 
@@ -40,10 +44,12 @@ struct TabStateCanvasTransformTests {
 
     @Test("rotateCanvasCw turns the pixels and swaps W↔H; undo restores both")
     func rotateCwTurnsAndSwapsDimensions() throws {
-        let state = Workspace(width: 4, height: 2)
-        let tab = state.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 2)
+        let preparedShared = SharedState()
         // Top-left corner lands at the top-right corner after a CW turn.
-        try tab.document.setPixel(x: 0, y: 0, color: red)
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = state.activeTab
 
         tab.rotateCanvasCw()
 
@@ -65,10 +71,12 @@ struct TabStateCanvasTransformTests {
 
     @Test("rotateCanvasCcw turns the pixels the other way and swaps W↔H")
     func rotateCcwTurnsAndSwapsDimensions() throws {
-        let state = Workspace(width: 4, height: 2)
-        let tab = state.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 2)
+        let preparedShared = SharedState()
         // Top-left corner lands at the bottom-left corner after a CCW turn.
-        try tab.document.setPixel(x: 0, y: 0, color: red)
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = state.activeTab
 
         tab.rotateCanvasCcw()
 
@@ -104,51 +112,61 @@ struct TabStateCanvasTransformTests {
 
     @Test("flip mirrors every layer together so multi-layer artwork stays aligned")
     func flipMirrorsEveryLayer() throws {
-        let state = Workspace(width: 4, height: 4)
-        let tab = state.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let blue = Color(r: 0x00, g: 0x00, b: 0xFF, a: 0xFF)
-        let bottomLayerId = tab.document.activeLayerId()
-        try tab.document.setPixel(x: 0, y: 0, color: red)
+        let bottomLayerId = preparedDocument.activeLayerId()
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = state.activeTab
         tab.addLayer()
-        try tab.document.setPixel(x: 1, y: 0, color: blue)
+        state.shared.foregroundColor = blue
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 0))
+        tab.endStroke()
 
         tab.flipCanvasHorizontal()
 
         // Both layers mirrored around the same axis — adjacent cells stay adjacent.
-        try tab.document.setActiveLayer(id: bottomLayerId)
+        tab.setActiveLayer(id: bottomLayerId)
         #expect(try tab.document.getPixel(x: 3, y: 0) == red)
         let layers = tab.document.layers()
-        try tab.document.setActiveLayer(id: layers[1].id)
+        tab.setActiveLayer(id: layers[1].id)
         #expect(try tab.document.getPixel(x: 2, y: 0) == blue)
     }
 
     @Test("rotate turns every layer together so multi-layer artwork stays aligned")
     func rotateTurnsEveryLayer() throws {
-        let state = Workspace(width: 4, height: 2)
-        let tab = state.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 2)
+        let preparedShared = SharedState()
         let blue = Color(r: 0x00, g: 0x00, b: 0xFF, a: 0xFF)
-        let bottomLayerId = tab.document.activeLayerId()
-        try tab.document.setPixel(x: 0, y: 0, color: red)
+        let bottomLayerId = preparedDocument.activeLayerId()
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = state.activeTab
         tab.addLayer()
-        try tab.document.setPixel(x: 1, y: 0, color: blue)
+        state.shared.foregroundColor = blue
+        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 0))
+        tab.endStroke()
 
         tab.rotateCanvasCw()
 
         // Both layers turned around the same pivot — adjacent cells stay adjacent.
-        try tab.document.setActiveLayer(id: bottomLayerId)
+        tab.setActiveLayer(id: bottomLayerId)
         #expect(try tab.document.getPixel(x: 1, y: 0) == red)
         let layers = tab.document.layers()
-        try tab.document.setActiveLayer(id: layers[1].id)
+        tab.setActiveLayer(id: layers[1].id)
         #expect(try tab.document.getPixel(x: 1, y: 1) == blue)
     }
 
     @Test("an active Marquee is co-transformed and restored by undo")
     func marqueeIsCoTransformedAndRestoredByUndo() throws {
-        let state = Workspace(width: 8, height: 4)
-        let tab = state.activeTab
-        try tab.document.setPixel(x: 0, y: 0, color: red)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 4)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
         let marquee = AppleMarqueeRegion(x: 0, y: 0, width: 2, height: 1)
-        try tab.document.setMarquee(region: marquee)
+        try preparedDocument.setMarquee(region: marquee)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = state.activeTab
 
         tab.flipCanvasHorizontal()
 
@@ -162,9 +180,11 @@ struct TabStateCanvasTransformTests {
 
     @Test("transforms are no-ops while a drawing stroke is in progress")
     func transformsAreNoopsWhileDrawing() throws {
-        let state = Workspace(width: 4, height: 2)
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 2)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         let tab = state.activeTab
-        try tab.document.setPixel(x: 0, y: 0, color: red)
         tab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 1))
 
         tab.flipCanvasHorizontal()

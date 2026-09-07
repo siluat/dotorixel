@@ -9,6 +9,7 @@ private final class ReferenceEditabilityDirtyRecorder: DirtyNotifier {
         markedDocumentIds.append(documentId)
     }
 
+    func reset() { markedDocumentIds.removeAll() }
     func markWorkspaceDirty() {}
     func notifyTabRemoved(documentId: String) {}
 }
@@ -43,7 +44,7 @@ private struct ReferenceActiveTestFixture {
     let notifier: ReferenceEditabilityDirtyRecorder
     let pixelLayerId: String
     let referenceLayerId: String
-    let document: AppleDocument
+    var document: DocumentRead { tab.document }
     let tab: TabState
 }
 
@@ -83,7 +84,6 @@ private func makeReferenceActiveFixture(
         notifier: notifier,
         pixelLayerId: pixelLayerId,
         referenceLayerId: referenceLayerId,
-        document: document,
         tab: tab
     )
 }
@@ -180,7 +180,8 @@ struct ReferenceEditabilityTests {
         )
         let document = fixture.document
         let tab = fixture.tab
-        try document.setActiveLayer(id: fixture.pixelLayerId)
+        tab.setActiveLayer(id: fixture.pixelLayerId)
+        fixture.notifier.reset()
 
         tab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
         tab.setActiveLayer(id: fixture.referenceLayerId)
@@ -238,16 +239,18 @@ struct ReferenceEditabilityTests {
 
     @Test("Eyedropper and Loupe read Pixel art over a visible Reference underlay")
     func eyedropperAndLoupeReadWhatTheUserSees() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let green = Color(r: 0, g: 0xFF, b: 0, a: 0xFF)
         let black = Color(r: 0, g: 0, b: 0, a: 0xFF)
         let translucentRed = Color(r: 0xFF, g: 0, b: 0, a: 0x80)
         let translucentRedOverGreen = Color(r: 0x80, g: 0x7F, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
-        try tab.document.setPixel(x: 0, y: 0, color: red)
-        try tab.document.setPixel(x: 0, y: 1, color: translucentRed)
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        try preparedDocument.setPixel(x: 0, y: 1, color: translucentRed)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         var referencePixels = Data()
         for index in 0..<16 {
             referencePixels.append(contentsOf: index == 15

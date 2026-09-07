@@ -38,9 +38,11 @@ struct RenderPathTests {
     @MainActor
     @Test("the canvas texture receives the composite — a hidden layer's pixels are absent")
     func hiddenLayerDisappearsFromUploadedBuffer() throws {
-        let state = Workspace(width: 2, height: 2)
+        let preparedDocument = makeSingleLayerDocument(width: 2, height: 2)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
-        try state.activeTab.document.setPixel(x: 0, y: 0, color: red)
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         let layerId = state.activeTab.document.layers()[0].id
 
         let mtkView = MTKView()
@@ -60,7 +62,7 @@ struct RenderPathTests {
 
         // The layer's paint survives untouched — only its composite
         // contribution disappears with the visibility flag.
-        try state.activeTab.document.setLayerVisibility(id: layerId, visible: false)
+        state.activeTab.setLayerVisibility(id: layerId, visible: false)
         view.configureRenderer(spy, mtkView: mtkView)
         let hiddenPixels = try #require(spy.uploadedPixels)
         #expect(hiddenPixels.allSatisfy { $0 == 0 })
@@ -113,12 +115,14 @@ struct RenderPathTests {
     @MainActor
     private func makeTwoFrameWorkspace() throws -> (state: Workspace, clock: FakeFrameScheduler) {
         let clock = FakeFrameScheduler()
-        let state = Workspace(width: 2, height: 2, frameScheduler: clock)
+        let preparedDocument = makeSingleLayerDocument(width: 2, height: 2)
+        let preparedShared = SharedState()
+        let first = preparedDocument.activeFrameId()
+        try preparedDocument.addFrame(newId: makeFrameId())
+        try preparedDocument.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        try preparedDocument.setActiveFrame(id: first)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared, frameScheduler: clock)
         let tab = state.activeTab
-        let first = tab.document.activeFrameId()
-        try tab.document.addFrame(newId: makeFrameId())
-        try tab.document.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
-        try tab.document.setActiveFrame(id: first)
         return (state, clock)
     }
 
@@ -193,16 +197,18 @@ struct RenderPathTests {
     @MainActor
     @Test("the canvas texture receives the Floating Selection patch preview")
     func floatingSelectionPreviewReachesUploadedBuffer() throws {
-        let state = Workspace(width: 3, height: 1)
-        let tab = state.activeTab
-        try tab.document.setPixel(
+        let preparedDocument = makeSingleLayerDocument(width: 3, height: 1)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(
             x: 0,
             y: 0,
             color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         )
-        try tab.document.setMarquee(
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 0, y: 0, width: 1, height: 1)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = state.activeTab
         state.shared.activeTool = .selection
         tab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
         tab.continueStroke(to: ScreenCanvasCoords(x: 1, y: 0))

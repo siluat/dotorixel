@@ -77,20 +77,22 @@ struct AutoSaveTests {
 
     @Test("flush snapshots pre-lift pixels without resolving a live Floating Selection")
     func flushPreservesLiveFloatingSelection() async throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let recorder = SaveRecorder()
+        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
+
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         let autoSave = makeAutoSave(
             workspace: workspace,
             recorder: recorder,
             debounce: .seconds(60)
-        )
-        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
-        let transparent = Color(r: 0, g: 0, b: 0, a: 0)
-
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(
-            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
         workspace.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
@@ -112,80 +114,34 @@ struct AutoSaveTests {
 
     @Test("flush persists the pre-lift source after a degraded Floating cancel")
     func flushPreservesPendingFloatingRecovery() async throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let (edit, faults) = try makeRecoveryEdit()
+        #expect(!edit.cancelFloatingSelection())
+        #expect(try edit.content.getPixel(x: 1, y: 1).a == 0)
+        let template = Workspace(width: 4, height: 4).toSnapshot()
+        let tab = template.tabs[0]
         let recorder = SaveRecorder()
-        let autoSave = makeAutoSave(
-            workspace: workspace,
-            recorder: recorder,
+        let autoSave = AutoSave(
+            save: { recorder.record($0, $1) },
+            getSnapshot: {
+                WorkspaceSnapshot(tabs: [TabSnapshot(
+                    id: tab.id, name: tab.name, document: edit.documentSnapshot(),
+                    timelinePanelCollapsed: tab.timelinePanelCollapsed, viewport: tab.viewport
+                )], activeTabIndex: 0, sharedState: template.sharedState)
+            },
             debounce: .seconds(60)
         )
-        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
-        let sourceLayerId = tab.document.activeLayerId()
-        let sourceOffset = (1 * Int(tab.document.width()) + 1) * 4
-
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(
-            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
-        )
-        workspace.activateTool(.selection)
-        tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
-        tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
-        tab.endStroke()
-
-        // Fault-inject the otherwise-guarded source-Layer mismatch through the
-        // core object: production layer actions commit Floating state first.
-        try tab.document.addLayer(newId: UUID().uuidString, name: "Other")
-        let otherLayerId = tab.document.activeLayerId()
-
-        #expect(!tab.cancelFloatingSelection())
-        let liveSource = try #require(
-            try tab.document.layerSnapshots().first { $0.id == sourceLayerId }
-        )
-        #expect(
-            Array(liveSource.pixels[sourceOffset..<(sourceOffset + 4)])
-                == [0, 0, 0, 0]
-        )
-        #expect(tab.document.activeLayerId() == otherLayerId)
-        #expect(!tab.isDocumentBlank())
-
-        autoSave.markDirty(tab.documentId)
+        autoSave.markDirty(tab.id)
         await autoSave.flush()
 
-        let savedTab = try #require(recorder.saves.first?.snapshot.tabs[0])
-        let savedSource = try #require(
-            savedTab.document.layers.first { $0.id == sourceLayerId }
-        )
-        let savedOther = try #require(
-            savedTab.document.layers.first { $0.id == otherLayerId }
-        )
-        #expect(
-            Array(savedSource.pixels[sourceOffset..<(sourceOffset + 4)])
-                == [0xFF, 0, 0, 0xFF]
-        )
-        #expect(savedTab.document.activeLayerId == otherLayerId)
-        #expect(savedOther.name == "Other")
-        #expect(savedOther.visible)
-        #expect(savedOther.opacity == 1.0)
-        #expect(Array(savedOther.pixels[0..<4]) == [0, 0, 0, 0])
-
-        tab.handleUndo()
-
-        let recoveredLayers = try tab.document.layerSnapshots()
-        let recoveredSource = try #require(
-            recoveredLayers.first { $0.id == sourceLayerId }
-        )
-        let recoveredOther = try #require(
-            recoveredLayers.first { $0.id == otherLayerId }
-        )
-        #expect(
-            Array(recoveredSource.pixels[sourceOffset..<(sourceOffset + 4)])
-                == [0xFF, 0, 0, 0xFF]
-        )
-        #expect(Array(recoveredOther.pixels[0..<4]) == [0, 0, 0, 0])
-        #expect(tab.document.activeLayerId() == otherLayerId)
-        #expect(!tab.canUndo)
-        #expect(!tab.documentHistory.canUndo())
+        let saved = try #require(recorder.saves.first?.snapshot.tabs.first)
+        let restored = try saved.document.makeDocument()
+        #expect(try restored.getPixel(x: 1, y: 1) == Color(r: 255, g: 0, b: 0, a: 255))
+        #expect(try restored.getPixel(x: 2, y: 1).a == 0)
+        #expect(!edit.hasUndoableEdit)
+        faults.refusesPixelRestore = false
+        edit.handleUndo()
+        #expect(try edit.content.getPixel(x: 1, y: 1) == Color(r: 255, g: 0, b: 0, a: 255))
+        #expect(!edit.canUndo)
     }
 
     @Test("flush with nothing dirty performs no save")
@@ -201,14 +157,16 @@ struct AutoSaveTests {
 
     @Test("flush carries the Reference alongside the Pixel stack to persistence")
     func flushCarriesReferenceToPersistence() async throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
-        let pixelLayerId = tab.document.activeLayerId()
-        try tab.document.setPixel(
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
+        let pixelLayerId = preparedDocument.activeLayerId()
+        try preparedDocument.setPixel(
             x: 1,
             y: 1,
             color: Color(r: 0, g: 0xAA, b: 0, a: 0xFF)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         try tab.setReferenceLayer(ReferenceImageSource(
             name: "guide.png",
             rgba: Data([0xFF, 0, 0, 0xFF]),

@@ -17,15 +17,17 @@ struct SelectionClipboardWorkspaceTests {
 
     @Test("Copy stores the active Marquee pixels without mutating the document")
     func copyStoresMarqueePixelsWithoutDocumentMutation() throws {
-        let workspace = Workspace(width: 3, height: 2)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 3, height: 2)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let green = Color(r: 0, g: 0xFF, b: 0, a: 0xFF)
         let marquee = AppleMarqueeRegion(x: 1, y: 0, width: 2, height: 1)
 
-        try tab.document.setPixel(x: 1, y: 0, color: red)
-        try tab.document.setPixel(x: 2, y: 0, color: green)
-        try tab.document.setMarquee(region: marquee)
+        try preparedDocument.setPixel(x: 1, y: 0, color: red)
+        try preparedDocument.setPixel(x: 2, y: 0, color: green)
+        try preparedDocument.setMarquee(region: marquee)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
 
         workspace.copySelection()
 
@@ -45,17 +47,19 @@ struct SelectionClipboardWorkspaceTests {
 
     @Test("Copy reads a live Floating Selection without committing it")
     func copyReadsLiveFloatingSelectionWithoutCommit() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let green = Color(r: 0, g: 0xFF, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setPixel(x: 2, y: 1, color: green)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setPixel(x: 2, y: 1, color: green)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 2, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 1))
 
         workspace.copySelection()
@@ -70,21 +74,23 @@ struct SelectionClipboardWorkspaceTests {
         )
         #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 1))
         #expect(try tab.document.getPixel(x: 1, y: 1) == transparent)
-        #expect(!tab.documentHistory.canUndo())
+        #expect(!tab.hasUndoableEdit)
     }
 
     @Test("Cut copies and clears the Marquee as one undoable edit")
     func cutCopiesAndClearsAsOneUndoableEdit() throws {
-        let workspace = Workspace(width: 3, height: 2)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 3, height: 2)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let green = Color(r: 0, g: 0xFF, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
         let marquee = AppleMarqueeRegion(x: 1, y: 0, width: 2, height: 1)
 
-        try tab.document.setPixel(x: 1, y: 0, color: red)
-        try tab.document.setPixel(x: 2, y: 0, color: green)
-        try tab.document.setMarquee(region: marquee)
+        try preparedDocument.setPixel(x: 1, y: 0, color: red)
+        try preparedDocument.setPixel(x: 2, y: 0, color: green)
+        try preparedDocument.setMarquee(region: marquee)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
 
         workspace.cutSelection()
 
@@ -113,17 +119,19 @@ struct SelectionClipboardWorkspaceTests {
 
     @Test("Cut then Paste round-trips the exact pixels through a Floating Selection")
     func cutThenPasteRoundTripsPixels() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let green = Color(r: 0, g: 0xFF, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
 
-        try tab.document.setPixel(x: 0, y: 0, color: red)
-        try tab.document.setPixel(x: 1, y: 0, color: green)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        try preparedDocument.setPixel(x: 1, y: 0, color: green)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 0, y: 0, width: 2, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
 
         workspace.cutSelection()
         workspace.pasteSelectionClipboard()
@@ -140,25 +148,31 @@ struct SelectionClipboardWorkspaceTests {
 
     @Test("Paste centers a Floating Selection in the visible canvas area")
     func pasteCentersFloatingSelectionInVisibleCanvasArea() throws {
-        let workspace = Workspace(width: 8, height: 8)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let green = Color(r: 0, g: 0xFF, b: 0, a: 0xFF)
         let blue = Color(r: 0, g: 0, b: 0xFF, a: 0xFF)
         let yellow = Color(r: 0xFF, g: 0xFF, b: 0, a: 0xFF)
 
-        try tab.document.setPixel(x: 0, y: 0, color: red)
-        try tab.document.setPixel(x: 1, y: 0, color: green)
-        try tab.document.setPixel(x: 0, y: 1, color: blue)
-        try tab.document.setPixel(x: 1, y: 1, color: yellow)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        try preparedDocument.setPixel(x: 1, y: 0, color: green)
+        try preparedDocument.setPixel(x: 0, y: 1, color: blue)
+        try preparedDocument.setPixel(x: 1, y: 1, color: yellow)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 0, y: 0, width: 2, height: 2)
         )
-        workspace.copySelection()
-        tab.document.clear()
-        try tab.document.setMarquee(
+        let sourceMarquee = try #require(preparedDocument.marquee())
+        let clipboard = try #require(SelectionClipboard(
+            pixels: preparedDocument.liftMarqueePixels(),
+            width: sourceMarquee.width, height: sourceMarquee.height
+        ))
+        preparedDocument.clear()
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 7, y: 7, width: 1, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared, clipboard: clipboard)
+        let tab = workspace.activeTab
         tab.viewportSize = ViewportSize(width: 40, height: 40)
         tab.viewport = AppleViewport(
             pixelSize: 10,
@@ -176,21 +190,27 @@ struct SelectionClipboardWorkspaceTests {
         #expect(pixel(in: try tab.renderPixels(), width: 8, x: 4, y: 2) == green)
         #expect(pixel(in: try tab.renderPixels(), width: 8, x: 3, y: 3) == blue)
         #expect(pixel(in: try tab.renderPixels(), width: 8, x: 4, y: 3) == yellow)
-        #expect(!tab.documentHistory.canUndo())
+        #expect(!tab.hasUndoableEdit)
     }
 
     @Test("Paste falls back to the canvas center when none of it is visible")
     func pasteFallsBackToCanvasCenter() throws {
-        let workspace = Workspace(width: 8, height: 8)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
 
-        try tab.document.setPixel(x: 0, y: 0, color: red)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 0, y: 0, width: 2, height: 2)
         )
-        workspace.copySelection()
-        tab.document.clear()
+        let sourceMarquee = try #require(preparedDocument.marquee())
+        let clipboard = try #require(SelectionClipboard(
+            pixels: preparedDocument.liftMarqueePixels(),
+            width: sourceMarquee.width, height: sourceMarquee.height
+        ))
+        preparedDocument.clear()
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared, clipboard: clipboard)
+        let tab = workspace.activeTab
         tab.viewportSize = ViewportSize(width: 40, height: 40)
         tab.viewport = AppleViewport(
             pixelSize: 10,
@@ -204,27 +224,33 @@ struct SelectionClipboardWorkspaceTests {
         #expect(tab.floatingSelectionOffset == .zero)
         #expect(tab.marquee == AppleMarqueeRegion(x: 3, y: 3, width: 2, height: 2))
         #expect(pixel(in: try tab.renderPixels(), width: 8, x: 3, y: 3) == red)
-        #expect(!tab.documentHistory.canUndo())
+        #expect(!tab.hasUndoableEdit)
     }
 
     @Test("Committing a Paste is one undo step that restores the previous Marquee")
     func committingPasteIsOneUndoStep() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let green = Color(r: 0, g: 0xFF, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
         let previousMarquee = AppleMarqueeRegion(x: 3, y: 3, width: 1, height: 1)
 
-        try tab.document.setPixel(x: 0, y: 0, color: red)
-        try tab.document.setPixel(x: 1, y: 0, color: green)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        try preparedDocument.setPixel(x: 1, y: 0, color: green)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 0, y: 0, width: 2, height: 1)
         )
-        workspace.copySelection()
-        tab.document.clear()
-        try tab.document.setMarquee(region: previousMarquee)
+        let sourceMarquee = try #require(preparedDocument.marquee())
+        let clipboard = try #require(SelectionClipboard(
+            pixels: preparedDocument.liftMarqueePixels(),
+            width: sourceMarquee.width, height: sourceMarquee.height
+        ))
+        preparedDocument.clear()
+        try preparedDocument.setMarquee(region: previousMarquee)
 
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared, clipboard: clipboard)
+        let tab = workspace.activeTab
         workspace.pasteSelectionClipboard()
         #expect(tab.commitFloatingSelection())
 
@@ -232,7 +258,7 @@ struct SelectionClipboardWorkspaceTests {
         #expect(try tab.document.getPixel(x: 1, y: 1) == red)
         #expect(try tab.document.getPixel(x: 2, y: 1) == green)
         #expect(tab.document.marquee() == destination)
-        #expect(tab.documentHistory.canUndo())
+        #expect(tab.hasUndoableEdit)
 
         tab.handleUndo()
 
@@ -247,23 +273,29 @@ struct SelectionClipboardWorkspaceTests {
 
     @Test("Paste commits an existing Floating Selection before starting a new one")
     func pasteCommitsExistingFloatingSelectionFirst() throws {
-        let workspace = Workspace(width: 6, height: 6)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 6, height: 6)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let blue = Color(r: 0, g: 0, b: 0xFF, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
 
-        try tab.document.setPixel(x: 0, y: 0, color: red)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 0, y: 0, width: 1, height: 1)
         )
-        workspace.copySelection()
-        tab.document.clear()
+        let sourceMarquee = try #require(preparedDocument.marquee())
+        let clipboard = try #require(SelectionClipboard(
+            pixels: preparedDocument.liftMarqueePixels(),
+            width: sourceMarquee.width, height: sourceMarquee.height
+        ))
+        preparedDocument.clear()
 
-        try tab.document.setPixel(x: 4, y: 4, color: blue)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 4, y: 4, color: blue)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 4, y: 4, width: 1, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared, clipboard: clipboard)
+        let tab = workspace.activeTab
         tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 0))
 
         workspace.pasteSelectionClipboard()
@@ -273,13 +305,13 @@ struct SelectionClipboardWorkspaceTests {
         #expect(tab.marquee == AppleMarqueeRegion(x: 2, y: 2, width: 1, height: 1))
         #expect(try tab.document.getPixel(x: 2, y: 2) == transparent)
         #expect(pixel(in: try tab.renderPixels(), width: 6, x: 2, y: 2) == red)
-        #expect(tab.documentHistory.canUndo())
+        #expect(tab.hasUndoableEdit)
 
         tab.handleUndo()
 
         #expect(tab.marquee == AppleMarqueeRegion(x: 5, y: 4, width: 1, height: 1))
         #expect(try tab.document.getPixel(x: 5, y: 4) == blue)
-        #expect(tab.documentHistory.canUndo())
+        #expect(tab.hasUndoableEdit)
 
         tab.handleUndo()
 
@@ -290,19 +322,25 @@ struct SelectionClipboardWorkspaceTests {
 
     @Test("Escape cancels a pasted Floating Selection without entering History")
     func escapeCancelsPastedFloatingSelectionExactly() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let previousMarquee = AppleMarqueeRegion(x: 3, y: 3, width: 1, height: 1)
 
-        try tab.document.setPixel(x: 0, y: 0, color: red)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 0, y: 0, width: 1, height: 1)
         )
-        workspace.copySelection()
-        tab.document.clear()
-        try tab.document.setMarquee(region: previousMarquee)
+        let sourceMarquee = try #require(preparedDocument.marquee())
+        let clipboard = try #require(SelectionClipboard(
+            pixels: preparedDocument.liftMarqueePixels(),
+            width: sourceMarquee.width, height: sourceMarquee.height
+        ))
+        preparedDocument.clear()
+        try preparedDocument.setMarquee(region: previousMarquee)
 
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared, clipboard: clipboard)
+        let tab = workspace.activeTab
         workspace.pasteSelectionClipboard()
         tab.clearMarqueeOrFloating()
 
@@ -314,14 +352,16 @@ struct SelectionClipboardWorkspaceTests {
 
     @Test("Selection Clipboard is shared across tabs in one Workspace")
     func selectionClipboardIsSharedAcrossTabs() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let sourceTab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
 
-        try sourceTab.document.setPixel(x: 1, y: 1, color: red)
-        try sourceTab.document.setMarquee(
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let sourceTab = workspace.activeTab
         workspace.copySelection()
 
         let destinationTab = workspace.addTab()
@@ -353,15 +393,17 @@ struct SelectionClipboardWorkspaceTests {
         #expect(emptyTab.floatingSelectionOffset == nil)
         #expect(!emptyTab.canUndo)
 
-        let seededWorkspace = Workspace(width: 3, height: 3)
-        let seededTab = seededWorkspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 3, height: 3)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
-        try seededTab.document.setPixel(x: 0, y: 0, color: red)
-        try seededTab.document.setMarquee(
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 0, y: 0, width: 1, height: 1)
         )
-        seededWorkspace.copySelection()
-        try seededTab.document.setMarquee(region: nil)
+        let clipboard = try #require(SelectionClipboard(pixels: preparedDocument.liftMarqueePixels(), width: 1, height: 1))
+        try preparedDocument.setMarquee(region: nil)
+        let seededWorkspace = workspaceWithDocument(preparedDocument, shared: preparedShared, clipboard: clipboard)
+        let seededTab = seededWorkspace.activeTab
         let clipboardBeforeNoOps = seededWorkspace.selectionClipboard
 
         seededWorkspace.copySelection()
@@ -372,55 +414,29 @@ struct SelectionClipboardWorkspaceTests {
         #expect(!seededTab.canUndo)
     }
 
-    @Test("Copy preserves the workspace clipboard while Floating recovery is pending")
+    @Test("Copy supplies no replacement clipboard while Floating recovery is pending")
     func copyNoOpsWhileFloatingRecoveryIsPending() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
-        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
-        let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
-
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(region: source)
-        workspace.copySelection()
-        let clipboardBeforeRecovery = try #require(workspace.selectionClipboard)
-
-        tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 0))
-        try tab.document.addLayer(newId: UUID().uuidString, name: "Other")
-        #expect(!tab.cancelFloatingSelection())
-
-        workspace.copySelection()
-
-        #expect(workspace.selectionClipboard == clipboardBeforeRecovery)
+        let (edit, _) = try makeRecoveryEdit()
+        #expect(!edit.cancelFloatingSelection())
+        #expect(edit.selectionClipboardSnapshot() == nil)
+        #expect(!edit.hasUndoableEdit)
     }
 
-    @Test("Cut preserves the workspace clipboard when Floating recovery fails")
+    @Test("Cut supplies no replacement clipboard when Floating recovery fails")
     func cutNoOpsWhenFloatingRecoveryFails() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
-        let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
-        let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
-
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(region: source)
-        workspace.copySelection()
-        let clipboardBeforeRecovery = try #require(workspace.selectionClipboard)
-
-        tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 0))
-        let sourceLayerId = tab.document.activeLayerId()
-        try tab.document.addLayer(newId: UUID().uuidString, name: "Other")
-        try tab.document.removeLayer(id: sourceLayerId)
-        #expect(!tab.cancelFloatingSelection())
-        let activeLayerPixelsBeforeCut = try tab.document.activeLayerPixels()
-
-        workspace.cutSelection()
-
-        #expect(workspace.selectionClipboard == clipboardBeforeRecovery)
-        #expect(try tab.document.activeLayerPixels() == activeLayerPixelsBeforeCut)
+        let (edit, _) = try makeRecoveryEdit()
+        #expect(!edit.cancelFloatingSelection())
+        let pixelsBefore = try edit.content.activeLayerPixels()
+        #expect(edit.cutSelection() == nil)
+        #expect(try edit.content.activeLayerPixels() == pixelsBefore)
+        #expect(!edit.hasUndoableEdit)
     }
 
     @Test("Reference-active tabs reject Copy, Cut, and Paste without side effects")
     func referenceActiveTabRejectsClipboardCommands() throws {
-        let document = ReferenceActiveClipboardDocument()
+        let document = makeSingleLayerDocument(width: 4, height: 4)
+        try document.addReferenceLayer(newId: makeLayerId(), name: "Reference",
+                                       sourceRgba: Data([0, 255, 0, 255]), sourceWidth: 1, sourceHeight: 1)
         let tab = TabState(
             shared: SharedState(),
             documentId: "reference-clipboard",
@@ -440,80 +456,32 @@ struct SelectionClipboardWorkspaceTests {
         #expect(tab.cutSelection() == nil)
         tab.pasteSelectionClipboard(clipboard)
 
-        #expect(document.marqueeReadCount == 0)
-        #expect(document.clipboardReadCount == 0)
-        #expect(document.layerPixelsReadCount == 0)
-        #expect(document.pixelClearCount == 0)
+        #expect(tab.document.composite().allSatisfy { $0 == 0 })
+        #expect(tab.document.marquee() == nil)
+        #expect(!tab.isActiveLayerEditable)
         #expect(tab.floatingSelectionOffset == nil)
         #expect(!tab.canUndo)
     }
 
 }
 
-private final class ReferenceActiveClipboardDocument: AppleDocument, @unchecked Sendable {
-    private let referenceLayerId = "reference-layer"
 
-    private(set) var marqueeReadCount = 0
-    private(set) var clipboardReadCount = 0
-    private(set) var layerPixelsReadCount = 0
-    private(set) var pixelClearCount = 0
-
-    init() {
-        super.init(noHandle: AppleDocument.NoHandle())
-    }
-
-    required init(unsafeFromHandle handle: UInt64) {
-        super.init(unsafeFromHandle: handle)
-    }
-
-    override func activeLayerId() -> String {
-        referenceLayerId
-    }
-
-    override func layers() -> [AppleLayerMetadata] {
-        [
-            AppleLayerMetadata(
-                id: referenceLayerId,
-                name: "Reference",
-                visible: true,
-                kind: .reference
-            ),
-        ]
-    }
-
-    override func marquee() -> AppleMarqueeRegion? {
-        marqueeReadCount += 1
-        return AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
-    }
-
-    override func liftMarqueePixels() -> Data {
-        clipboardReadCount += 1
-        return Data([0xFF, 0, 0, 0xFF])
-    }
-
-    override func activeLayerPixels() throws -> Data {
-        layerPixelsReadCount += 1
-        return Data(repeating: 0, count: 4 * 4 * 4)
-    }
-
-    override func clearMarqueePixels() {
-        pixelClearCount += 1
-    }
-}
 
 @Suite("Floating Selection — lift, preview, and release")
 struct FloatingSelectionTests {
 
     @Test("dragging inside the Marquee lifts pixels into a persistent non-mutating preview")
     func insideDragLiftsIntoPersistentPreview() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
         let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(region: source)
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(region: source)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         workspace.shared.activeTool = .selection
 
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
@@ -526,27 +494,29 @@ struct FloatingSelectionTests {
         #expect(tab.document.marquee() == source)
         #expect(tab.marquee == AppleMarqueeRegion(x: 2, y: 1, width: 1, height: 1))
         #expect(tab.canUndo)
-        #expect(!tab.documentHistory.canUndo())
+        #expect(!tab.hasUndoableEdit)
 
         tab.endStroke()
 
         #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 0))
         #expect(pixel(in: try tab.renderPixels(), width: 4, x: 2, y: 1) == red)
         #expect(tab.canUndo)
-        #expect(!tab.documentHistory.canUndo())
+        #expect(!tab.hasUndoableEdit)
     }
 
     @Test("a pointer-down outside the Floating Selection commits it immediately")
     func outsidePointerDownCommitsFloatingSelection() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         workspace.shared.activeTool = .selection
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -570,15 +540,17 @@ struct FloatingSelectionTests {
 
     @Test("commit is one undoable edit for source, destination, and Marquee")
     func commitIsOneUndoableEdit() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
         let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         let destination = AppleMarqueeRegion(x: 2, y: 1, width: 1, height: 1)
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(region: source)
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(region: source)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         workspace.shared.activeTool = .selection
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -610,18 +582,21 @@ struct FloatingSelectionTests {
     @Test("returning to the source discards the edit and preserves redo")
     func netZeroCommitPreservesRedoAndDoesNotMarkDirty() throws {
         let notifier = FloatingSelectionDirtyRecorder()
-        let workspace = Workspace(width: 4, height: 4, notifier: notifier)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(region: source)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared, notifier: notifier)
+        let tab = workspace.activeTab
 
         tab.addLayer()
         tab.handleUndo()
         #expect(tab.layersInPanelOrder.count == 1)
         #expect(tab.canRedo)
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(region: source)
         workspace.shared.activeTool = .selection
         notifier.reset()
 
@@ -649,15 +624,18 @@ struct FloatingSelectionTests {
     @Test("net-zero commit preserves transparent RGB bytes exactly")
     func netZeroCommitPreservesTransparentRgb() throws {
         let notifier = FloatingSelectionDirtyRecorder()
-        let workspace = Workspace(width: 4, height: 4, notifier: notifier)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let transparentRed = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0x00)
         let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
 
+        try preparedDocument.setPixel(x: 1, y: 1, color: transparentRed)
+        try preparedDocument.setMarquee(region: source)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared, notifier: notifier)
+        let tab = workspace.activeTab
+
         tab.addLayer()
         tab.handleUndo()
-        try tab.document.setPixel(x: 1, y: 1, color: transparentRed)
-        try tab.document.setMarquee(region: source)
         workspace.activateTool(.selection)
         notifier.reset()
 
@@ -670,7 +648,7 @@ struct FloatingSelectionTests {
 
         #expect(tab.commitFloatingSelection())
         #expect(try tab.document.getPixel(x: 1, y: 1) == transparentRed)
-        #expect(!tab.documentHistory.canUndo())
+        #expect(!tab.hasUndoableEdit)
         #expect(tab.canRedo)
         #expect(notifier.marked.isEmpty)
     }
@@ -678,14 +656,16 @@ struct FloatingSelectionTests {
     @Test("cancelling the active lift restores the pre-lift document")
     func cancelDuringLiftRestoresSource() throws {
         let notifier = FloatingSelectionDirtyRecorder()
-        let workspace = Workspace(width: 4, height: 4, notifier: notifier)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
         let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(region: source)
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(region: source)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared, notifier: notifier)
+        let tab = workspace.activeTab
         workspace.shared.activeTool = .selection
         notifier.reset()
 
@@ -703,16 +683,20 @@ struct FloatingSelectionTests {
 
     @Test("Undo cancels a live Floating Selection before moving History")
     func undoCancelsFloatingSelectionFirst() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
 
-        tab.addLayer()
-        #expect(tab.layersInPanelOrder.count == 2)
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
+        let sourceLayerId = tab.activeLayerId
+        tab.addLayer()
+        #expect(tab.layersInPanelOrder.count == 2)
+        tab.setActiveLayer(id: sourceLayerId)
         workspace.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -731,18 +715,21 @@ struct FloatingSelectionTests {
 
     @Test("Redo is ignored while a Floating Selection is live")
     func redoIsIgnoredDuringFloatingSelection() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
+
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(
+            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
 
         tab.addLayer()
         tab.handleUndo()
         #expect(tab.layersInPanelOrder.count == 1)
         #expect(tab.canRedo)
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(
-            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
-        )
         workspace.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -763,17 +750,19 @@ struct FloatingSelectionTests {
 
     @Test("off-canvas commit clips pixels but keeps the translated Marquee")
     func offCanvasCommitClipsPixels() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let blue = Color(r: 0, g: 0, b: 0xFF, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
 
-        try tab.document.setPixel(x: 0, y: 1, color: red)
-        try tab.document.setPixel(x: 1, y: 1, color: blue)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 0, y: 1, color: red)
+        try preparedDocument.setPixel(x: 1, y: 1, color: blue)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 0, y: 1, width: 2, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         workspace.shared.activeTool = .selection
         tab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: -1, y: 1))
@@ -790,16 +779,18 @@ struct FloatingSelectionTests {
 
     @Test("an invalid extreme drag preserves the last valid Floating destination")
     func extremeDragPreservesLastValidDestination() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let blue = Color(r: 0, g: 0, b: 0xFF, a: 0xFF)
 
-        try tab.document.setPixel(x: 0, y: 1, color: red)
-        try tab.document.setPixel(x: 1, y: 1, color: blue)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 0, y: 1, color: red)
+        try preparedDocument.setPixel(x: 1, y: 1, color: blue)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 0, y: 1, width: 2, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         workspace.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 1, y: 1))
@@ -817,14 +808,16 @@ struct FloatingSelectionTests {
 
     @Test("a live Floating Selection still counts as document content")
     func liveFloatingSelectionIsNotBlank() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         workspace.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -836,14 +829,16 @@ struct FloatingSelectionTests {
 
     @Test("switching tools commits the Floating Selection first")
     func toolSwitchCommitsFloatingSelection() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         workspace.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -859,14 +854,16 @@ struct FloatingSelectionTests {
 
     @Test("a keyboard tool shortcut commits the Floating Selection first")
     func keyboardToolSwitchCommitsFloatingSelection() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         workspace.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -882,14 +879,16 @@ struct FloatingSelectionTests {
 
     @Test("toolbar tool changes are ignored during a Floating drag")
     func toolbarToolChangeIsIgnoredDuringFloatingDrag() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         workspace.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -901,20 +900,22 @@ struct FloatingSelectionTests {
         tab.endStroke()
         #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 2, dy: 0))
         #expect(pixel(in: try tab.renderPixels(), width: 4, x: 3, y: 1) == red)
-        #expect(!tab.documentHistory.canUndo())
+        #expect(!tab.hasUndoableEdit)
     }
 
     @Test("Clear commits the Floating Selection before its own edit")
     func clearCommitsFloatingSelectionFirst() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
         let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         let destination = AppleMarqueeRegion(x: 2, y: 1, width: 1, height: 1)
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(region: source)
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(region: source)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         workspace.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -940,18 +941,20 @@ struct FloatingSelectionTests {
 
     @Test("switching the active Layer commits against the source Layer first")
     func activeLayerSwitchCommitsSourceLayerFirst() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
-        let bottomId = tab.document.activeLayerId()
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
+        let bottomId = preparedDocument.activeLayerId()
         let requestedSourceLayerId = UUID().uuidString
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
 
-        try tab.document.addLayer(newId: requestedSourceLayerId, name: "Source")
-        let sourceLayerId = tab.document.activeLayerId()
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(
+        try preparedDocument.addLayer(newId: requestedSourceLayerId, name: "Source")
+        let sourceLayerId = preparedDocument.activeLayerId()
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         workspace.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -970,18 +973,20 @@ struct FloatingSelectionTests {
 
     @Test("removing the source Layer commits it before removal")
     func sourceLayerRemovalCommitsFirst() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let requestedSourceLayerId = UUID().uuidString
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
 
-        try tab.document.addLayer(newId: requestedSourceLayerId, name: "Source")
-        let sourceLayerId = tab.document.activeLayerId()
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(
+        try preparedDocument.addLayer(newId: requestedSourceLayerId, name: "Source")
+        let sourceLayerId = preparedDocument.activeLayerId()
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         workspace.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -1010,15 +1015,17 @@ struct FloatingSelectionTests {
 
     @Test("a canvas transform commits the Floating Selection before transforming")
     func canvasTransformCommitsFirst() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
 
-        try tab.document.setPixel(x: 0, y: 1, color: red)
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 0, y: 1, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 0, y: 1, width: 1, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         workspace.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 1, y: 1))
@@ -1047,20 +1054,22 @@ struct SelectionKeyboardOperationTests {
 
     @Test("repeated nudges accumulate in one Floating Selection and commit as one undo step")
     func repeatedNudgesCommitAsOneUndoStep() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
         let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(region: source)
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(region: source)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
 
         tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 0))
         tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 0, dy: 1))
 
         #expect(tab.floatingSelectionOffset == FloatingSelectionOffset(dx: 1, dy: 1))
-        #expect(!tab.documentHistory.canUndo())
+        #expect(!tab.hasUndoableEdit)
         #expect(tab.commitFloatingSelection())
         #expect(try tab.document.getPixel(x: 1, y: 1) == transparent)
         #expect(try tab.document.getPixel(x: 2, y: 2) == red)
@@ -1075,14 +1084,16 @@ struct SelectionKeyboardOperationTests {
 
     @Test("Delete clears Marquee pixels as one undoable edit")
     func deleteClearsMarqueePixelsAndUndoes() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
         let marquee = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(region: marquee)
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(region: marquee)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
 
         tab.clearMarqueePixels()
 
@@ -1099,15 +1110,17 @@ struct SelectionKeyboardOperationTests {
 
     @Test("Delete commits a Floating nudge before clearing it as a distinct edit")
     func deleteCommitsFloatingSelectionBeforeClear() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
         let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         let destination = AppleMarqueeRegion(x: 2, y: 1, width: 1, height: 1)
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(region: source)
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(region: source)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 0))
 
         tab.clearMarqueePixels()
@@ -1134,14 +1147,16 @@ struct SelectionKeyboardOperationTests {
 
     @Test("Escape cancels a Floating Selection without recording History")
     func escapeCancelsFloatingSelection() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
         let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
 
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setMarquee(region: source)
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setMarquee(region: source)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         tab.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 0))
 
         tab.clearMarqueeOrFloating()
@@ -1155,10 +1170,12 @@ struct SelectionKeyboardOperationTests {
 
     @Test("Escape deselects an idle Marquee and Undo restores it")
     func escapeDeselectsIdleMarquee() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let marquee = AppleMarqueeRegion(x: 1, y: 1, width: 2, height: 2)
-        try tab.document.setMarquee(region: marquee)
+        try preparedDocument.setMarquee(region: marquee)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
 
         tab.clearMarqueeOrFloating()
 

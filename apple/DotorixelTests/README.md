@@ -3,6 +3,19 @@
 Unit and view-layer tests for the Apple shell, written with
 [Swift Testing](https://developer.apple.com/documentation/testing) (`@Test`/`@Suite`).
 
+## Edit lifecycle testing
+
+`EditLifecycleTests` and `EditLifecyclePlaybackTests` exercise transition policy
+through semantic editing operations and value-only content reads, with real Rust
+Document and History bindings. TabState and Workspace suites retain integration
+coverage for display, viewport, persistence, tools, and per-tab behavior.
+
+Prepare raw Documents before constructing the editor. The editor hydrates its own
+content from a Document Snapshot, so subsequent fixture mutations cannot change
+the live editing Document. Use editing commands for changes after construction.
+`EditBindingFaults` injects binding failures without giving tests access to the
+owned Document; `FakeFrameScheduler` controls Playback deterministically.
+
 ## View snapshot testing (docked region views)
 
 `DockedRegionSnapshotTests` uses

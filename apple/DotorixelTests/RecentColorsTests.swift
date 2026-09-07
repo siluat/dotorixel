@@ -37,9 +37,11 @@ struct RecentColorsTests {
 
     @Test("an eyedropper commit records the sampled color")
     func eyedropperCommitRecordsSampledColor() throws {
-        let state = Workspace(width: 16, height: 16)
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
         let sampled = Color(r: 0xB0, g: 0x7A, b: 0x30, a: 0xFF)
-        try state.activeTab.document.setPixel(x: 5, y: 5, color: sampled)
+        try preparedDocument.setPixel(x: 5, y: 5, color: sampled)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .eyedropper
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 5, y: 5))

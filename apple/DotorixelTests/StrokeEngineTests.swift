@@ -62,8 +62,8 @@ private final class FakeStrokeSessionHost: StrokeSessionHost {
     let samplingLoupe = SamplingLoupeState()
     private(set) var undoSnapshotCount = 0
 
-    init() {
-        self.drawingSurface = makeSingleLayerDocument(width: 4, height: 4)
+    init(document: AppleDocument = makeSingleLayerDocument(width: 4, height: 4)) {
+        self.drawingSurface = document
         self.foregroundColor = Color(r: 0x2D, g: 0x2D, b: 0x2D, a: 0xFF)
         self.backgroundColor = Color(r: 0xFF, g: 0xFF, b: 0xFF, a: 0xFF)
     }
@@ -86,6 +86,26 @@ private final class FakeStrokeSessionHost: StrokeSessionHost {
 
 @Suite("StrokeEngine — lifecycle")
 struct StrokeEngineLifecycleTests {
+
+    @Test("the engine captures the Marquee at begin for the entire real pencil session")
+    func strokeKeepsBeginMarqueeSnapshot() throws {
+        let document = makeSingleLayerDocument(width: 4, height: 4)
+        try document.setMarquee(region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1))
+        let host = FakeStrokeSessionHost(document: document)
+        host.isPixelPerfectEnabled = false
+        let engine = StrokeEngine()
+        engine.begin(tool: .pencil, host: host, at: ScreenCanvasCoords(x: 1, y: 1))
+
+        // The engine owns begin-time capture even when its lower-level host
+        // changes the surface; the Edit owner prevents such external writes.
+        try document.setMarquee(region: AppleMarqueeRegion(x: 3, y: 1, width: 1, height: 1))
+        engine.sample(at: ScreenCanvasCoords(x: 3, y: 1))
+        engine.end()
+
+        #expect(try document.getPixel(x: 1, y: 1) == host.foregroundColor)
+        #expect(try document.getPixel(x: 2, y: 1).a == 0)
+        #expect(try document.getPixel(x: 3, y: 1).a == 0)
+    }
 
     @Test("begin starts the session, then draws the first sample with no previous")
     func beginStartsThenDrawsFirstSample() {

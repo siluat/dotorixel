@@ -178,12 +178,14 @@ struct TabStateNavigationBoundsTests {
 
     @Test("canvas rotation reclamps against the union, not the canvas alone")
     func rotationReclampsAgainstUnion() throws {
-        let workspace = Workspace(width: 16, height: 16)
-        let tab = workspace.activeTab
-        tab.viewportSize = ViewportSize(width: 512, height: 512)
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
         // An asymmetric pixel, so the rotation really changes the document —
         // a blank canvas would resolve to a no-op Edit and skip the reclamp.
-        try tab.document.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
+        try preparedDocument.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
+        tab.viewportSize = ViewportSize(width: 512, height: 512)
         try tab.setReferenceLayer(makeReferenceSource(width: 16, height: 16))
         tab.setReferencePlacement(AppleReferencePlacementUpdate(x: 24, y: 0, scale: 1))
         tab.handleViewportChange(tab.viewport.pan(deltaX: -800, deltaY: 0))

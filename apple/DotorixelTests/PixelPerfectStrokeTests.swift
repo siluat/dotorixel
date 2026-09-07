@@ -69,14 +69,16 @@ struct PixelPerfectStrokeTests {
 
     @Test("an eraser L-corner reverts the tip to its pre-stroke color, not transparency")
     func eraserRevertRestoresPreStrokeColor() throws {
-        let state = Workspace(width: 8, height: 8)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
         // Solid red art the eraser cuts through.
         for y in 0..<3 {
             for x in 0..<3 {
-                try state.activeTab.document.setPixel(x: UInt32(x), y: UInt32(y), color: red)
+                try preparedDocument.setPixel(x: UInt32(x), y: UInt32(y), color: red)
             }
         }
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .eraser
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
@@ -93,9 +95,11 @@ struct PixelPerfectStrokeTests {
 
     @Test("a pixel repainted later in the stroke reverts to its pre-stroke color, not an intra-stroke intermediate")
     func revertRestoresFirstTouchColor() throws {
-        let state = Workspace(width: 8, height: 8)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
-        try state.activeTab.document.setPixel(x: 1, y: 0, color: red)
+        try preparedDocument.setPixel(x: 1, y: 0, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .pencil
         let fg = state.shared.foregroundColor
 

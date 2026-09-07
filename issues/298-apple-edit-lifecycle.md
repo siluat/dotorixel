@@ -258,9 +258,10 @@ The transition regression matrix must cover the following observable outcomes:
   semantic operations and executes synchronous display, persistence, hover,
   and viewport effects in their existing order.
 - Added `DocumentRead`, which resolves value-only reads against the current
-  owned Document, including after Undo/Redo replacement. Construction uses
+  owned Document, including after Undo/Redo replacement. External content uses
   Document Snapshot values to prevent retained fixture aliases from mutating
-  live content. Internal tool hosts retain access to drawing surfaces.
+  live content; fresh Documents are created inside the owner. Internal tool
+  hosts retain access to drawing surfaces.
 - Migrated fixture setup before ownership and moved Playback transition tests
   to the Edit interface. Added interface coverage for failed Floating commits,
   recovery vetoes, effect distinctions, and Document replacement. Failure
@@ -320,3 +321,22 @@ The transition regression matrix must cover the following observable outcomes:
   were corrected during validation; the final test run had no crashes.
 - Physical-device Pencil verification and the separately tracked Playback,
   grid dirty-marking, and auto-save follow-ups remain outside this task.
+
+
+## PR Review Follow-up
+
+- Fresh tabs now create their Document once inside the Edit owner; restored
+  tabs pass their existing Snapshot directly to that owner. Externally
+  prepared Documents still cross a value boundary to prevent mutable aliases.
+- Clipboard fixture setup suppresses persistence events until handoff, with
+  a regression covering both silent preparation and subsequent delivery.
+- Begin-time Marquee capture is tested through a real StrokeEngine and pencil
+  session. Reference-source tests describe observable refresh, and Playback
+  factories share their initial two-frame Document preparation.
+- Reference placement draft retention on layer deactivation was already
+  present on main. It is tracked separately in the backlog to preserve this
+  refactor's behavior contract.
+- Review follow-up validation: **816 tests in 141 suites passed** on the
+  pinned iOS simulator without crashes; macOS arm64 build, Markdown lint, and
+  diff checks passed. The added fixture regression also passed in the focused
+  nine-test DirtyNotifier suite.

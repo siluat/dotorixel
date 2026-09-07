@@ -70,23 +70,6 @@ struct MarqueeClippingTests {
         #expect(try state.activeTab.document.getPixel(x: 1, y: 1) == state.shared.foregroundColor)
     }
 
-    @Test("a stroke keeps the Marquee captured at begin")
-    func strokeKeepsBeginMarqueeSnapshot() throws {
-        let document = makeSingleLayerDocument(width: 8, height: 8)
-        let original = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
-        try document.setMarquee(region: original)
-        let surface = MarqueeClippedDrawingSurface(base: document, marquee: original)
-        let black = Color(r: 0, g: 0, b: 0, a: 255)
-        _ = surface.applyTool(x: 1, y: 1, tool: .pencil, foregroundColor: black)
-        try document.setMarquee(region: AppleMarqueeRegion(x: 3, y: 1, width: 1, height: 1))
-        _ = surface.applyTool(x: 2, y: 1, tool: .pencil, foregroundColor: black)
-        _ = surface.applyTool(x: 3, y: 1, tool: .pencil, foregroundColor: black)
-
-        #expect(try surface.getPixel(x: 1, y: 1) == black)
-        #expect(try surface.getPixel(x: 2, y: 1) == transparent)
-        #expect(try surface.getPixel(x: 3, y: 1) == transparent)
-    }
-
     @Test("a fully clipped stroke records no History entry and preserves redo")
     func fullyClippedStrokePreservesHistory() throws {
         let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)

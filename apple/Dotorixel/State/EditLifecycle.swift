@@ -56,7 +56,7 @@ final class EditLifecycle {
 
     /// Reconstructs owned content from a value; the caller cannot retain a
     /// mutable alias to the editing Document. Hydration never emits effects.
-    init(
+    convenience init(
         shared: SharedState,
         snapshot: DocumentSnapshot,
         isConstrainHeld: @escaping () -> Bool = { false },
@@ -66,7 +66,49 @@ final class EditLifecycle {
         restoreDocument: (DocumentSnapshot) throws -> AppleDocument = { try $0.makeDocument() },
         reportFailure: @escaping (String) -> Void = { assertionFailure($0) }
     ) throws {
-        self.document = try restoreDocument(snapshot)
+        self.init(
+            shared: shared, document: try restoreDocument(snapshot),
+            isConstrainHeld: isConstrainHeld,
+            consumePendingToolRestore: consumePendingToolRestore,
+            frameScheduler: frameScheduler, effects: effects, reportFailure: reportFailure
+        )
+    }
+
+    /// Creates fresh content inside its owner without a capture/restore round trip.
+    convenience init(
+        shared: SharedState,
+        width: UInt32,
+        height: UInt32,
+        isConstrainHeld: @escaping () -> Bool = { false },
+        consumePendingToolRestore: @escaping () -> EditorTool? = { nil },
+        frameScheduler: FrameScheduler = DisplayLinkFrameScheduler(),
+        effects: @escaping (EditEffect) -> Void = { _ in }
+    ) {
+        self.init(
+            shared: shared,
+            document: try! AppleDocument(
+                width: width, height: height, firstLayerId: UUID().uuidString,
+                firstLayerName: "Layer 1"
+            ),
+            isConstrainHeld: isConstrainHeld,
+            consumePendingToolRestore: consumePendingToolRestore,
+            frameScheduler: frameScheduler, effects: effects,
+            reportFailure: { assertionFailure($0) }
+        )
+    }
+
+    // Only this owner may pass a newly created binding directly. External
+    // constructors use values so their callers cannot retain a mutable alias.
+    private init(
+        shared: SharedState,
+        document: AppleDocument,
+        isConstrainHeld: @escaping () -> Bool,
+        consumePendingToolRestore: @escaping () -> EditorTool?,
+        frameScheduler: FrameScheduler,
+        effects: @escaping (EditEffect) -> Void,
+        reportFailure: @escaping (String) -> Void
+    ) {
+        self.document = document
         self.reportFailure = reportFailure
         self.shared = shared
         self.isConstrainHeldProvider = isConstrainHeld
@@ -81,21 +123,6 @@ final class EditLifecycle {
             requestRender: { [weak self] in self?.canvasVersion += 1 },
             frameScheduler: frameScheduler
         ))
-    }
-
-    convenience init(
-        shared: SharedState,
-        width: UInt32,
-        height: UInt32,
-        frameScheduler: FrameScheduler = DisplayLinkFrameScheduler(),
-        effects: @escaping (EditEffect) -> Void = { _ in }
-    ) {
-        let document = try! AppleDocument(
-            width: width, height: height, firstLayerId: UUID().uuidString,
-            firstLayerName: "Layer 1"
-        )
-        try! self.init(shared: shared, snapshot: DocumentSnapshot.capture(document),
-                       frameScheduler: frameScheduler, effects: effects)
     }
 
     /// Captures preservation pixels without committing a live Floating Selection.

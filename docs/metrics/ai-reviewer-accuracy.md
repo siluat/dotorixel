@@ -10,14 +10,25 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 232 | 176 | 56 | 328 | 76% | 35% |
-| cubic-dev-ai[bot] | 379 | 300 | 79 | 226 | 79% | 57% |
-| coderabbitai[bot] | 342 | 248 | 94 | 268 | 73% | 48% |
+| greptile-apps[bot] | 232 | 176 | 56 | 333 | 76% | 35% |
+| cubic-dev-ai[bot] | 387 | 305 | 82 | 226 | 79% | 57% |
+| coderabbitai[bot] | 343 | 248 | 95 | 273 | 72% | 48% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #387 | cubic-dev-ai[bot] | Accept | Clipboard fixture construction emitted persistence events; connect its test notifier only after setup and verify later events still flow. |
+| #387 | cubic-dev-ai[bot] | Reject | Removing the Reference-active Paste guard changes existing admission and Playback behavior; the comment incorrectly identifies this as a clearMarqueePixels path. |
+| #387 | cubic-dev-ai[bot] | Reject | Reference placement drafts survive layer deactivation on main too; track cleanup separately because this refactor explicitly preserves gesture behavior. |
+| #387 | cubic-dev-ai[bot] | Accept | The migrated Marquee capture test bypassed StrokeEngine; restore begin-time capture coverage through a real engine, pencil session, and Document. |
+| #387 | cubic-dev-ai[bot] | Accept | Partial: rename the source-cache test to describe deletion/Undo/replacement reads; it cannot prove eviction, and the proposed Undo read already exists. |
+| #387 | cubic-dev-ai[bot] | Accept | Share two-frame Document preparation between Edit and Tab fixtures to keep their initial state consistent. |
+| #387 | cubic-dev-ai[bot] | Reject | The PRD explicitly scopes its no-implementation statement to the architecture review at publication; subsequent results do not contradict it. |
+| #387 | cubic-dev-ai[bot] | Accept | Avoid duplicate Document creation on fresh and restored tabs while retaining the value-based ownership boundary. |
+| #387 | coderabbitai[bot] | Reject | The generic 80% docstring warning is not a repository requirement; document meaningful contracts rather than duplicating obvious forwarding methods and tests. |
+| #387 | coderabbitai[bot] | Miss (×5) | Missed fixture notification leakage, reduced Marquee engine coverage, the cache-test naming mismatch, duplicated frame fixture setup, and duplicate Document construction. |
+| #387 | greptile-apps[bot] | Miss (×5) | Missed fixture notification leakage, reduced Marquee engine coverage, the cache-test naming mismatch, duplicated frame fixture setup, and duplicate Document construction. |
 | #384 | coderabbitai[bot] | Accept | The export projection called `fromLayers` without `frames`/`activeFrameId`, so the frames-optional hydration collapsed the projected document to a single frame — a spritesheet export during a live Floating Selection silently dropped every other frame's tile. Harmless while only the still PNG/SVG encoders used the path; surfaced by the first frame-axis encoder. Frame axis now passed through like the restore/saved-browser call sites, pinned by a multi-frame Floating Selection regression test |
 | #384 | greptile-apps[bot] | Accept | Same collapsed frame-axis projection (duplicate of coderabbit), P1 with the precise single-frame-overload mechanism |
 | #383 | cubic-dev-ai[bot] | Accept | The done record's Key Decisions/Notes documented the String Catalog and snapshot-baseline outcomes without naming the acceptance criteria they satisfy, so the unmodified criteria read as unmet against the notes; each note now cites its criterion and states the vacuous satisfaction (zero new translatable strings; pixel-identical render, baselines still valid) |

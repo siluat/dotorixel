@@ -22,6 +22,32 @@ private final class RecordingNotifier: DirtyNotifier {
 @Suite("Dirty notification — user mutations mark the workspace dirty")
 struct DirtyNotifierTests {
 
+    @Test("clipboard fixture setup stays silent, then forwards document and workspace events")
+    func clipboardFixtureDoesNotNotifyDuringSetup() throws {
+        let notifier = RecordingNotifier()
+        let clipboard = try #require(SelectionClipboard(
+            pixels: Data([255, 0, 0, 255]), width: 1, height: 1
+        ))
+        let workspace = workspaceWithDocument(
+            makeSingleLayerDocument(width: 4, height: 4),
+            notifier: notifier, clipboard: clipboard
+        )
+        #expect(workspace.selectionClipboard == clipboard)
+        #expect(notifier.marked.isEmpty)
+        #expect(notifier.removed.isEmpty)
+        #expect(notifier.workspaceMarks == 0)
+
+        workspace.activeTab.addLayer()
+        #expect(!notifier.marked.isEmpty)
+        #expect(notifier.marked.allSatisfy { $0 == workspace.activeTab.documentId })
+        workspace.activeTab.toggleOnionSkin()
+        #expect(notifier.workspaceMarks == 1)
+        workspace.addTab()
+        let closedId = workspace.activeTab.documentId
+        workspace.closeTab(workspace.activeTabIndex)
+        #expect(notifier.removed == [closedId])
+    }
+
     @Test("a committed stroke, undo, and a layer edit each mark their document dirty")
     func documentEditsMarkDirty() {
         let notifier = RecordingNotifier()

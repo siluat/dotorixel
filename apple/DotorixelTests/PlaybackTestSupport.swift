@@ -9,12 +9,7 @@ func makeTwoFrameTab(prepare: (AppleDocument) throws -> Void = { _ in }) throws 
     tab: TabState, first: String, second: String, clock: FakeFrameScheduler
 ) {
     let clock = FakeFrameScheduler()
-    let document = makeSingleLayerDocument(width: 8, height: 8)
-    let first = document.activeFrameId()
-    let second = makeFrameId()
-    try document.addFrame(newId: second)
-    try document.setActiveFrame(id: first)
-    try prepare(document)
+    let (document, first, second) = try makeTwoFrameDocument(prepare: prepare)
     let tab = workspaceWithDocument(document, frameScheduler: clock).activeTab
     return (tab, first, second, clock)
 }
@@ -59,14 +54,20 @@ final class FakeFrameScheduler: FrameScheduler {
 
 func makeTwoFrameEdit(prepare: (AppleDocument) throws -> Void = { _ in }) throws
     -> (edit: EditLifecycle, first: String, second: String, clock: FakeFrameScheduler) {
+    let (document, first, second) = try makeTwoFrameDocument(prepare: prepare)
+    let clock = FakeFrameScheduler()
+    let edit = try EditLifecycle(shared: SharedState(), snapshot: DocumentSnapshot.capture(document),
+                                 frameScheduler: clock)
+    return (edit, first, second, clock)
+}
+
+private func makeTwoFrameDocument(prepare: (AppleDocument) throws -> Void) throws
+    -> (document: AppleDocument, first: String, second: String) {
     let document = makeSingleLayerDocument(width: 8, height: 8)
     let first = document.activeFrameId()
     let second = makeFrameId()
     try document.addFrame(newId: second)
     try document.setActiveFrame(id: first)
     try prepare(document)
-    let clock = FakeFrameScheduler()
-    let edit = try EditLifecycle(shared: SharedState(), snapshot: DocumentSnapshot.capture(document),
-                                 frameScheduler: clock)
-    return (edit, first, second, clock)
+    return (document, first, second)
 }

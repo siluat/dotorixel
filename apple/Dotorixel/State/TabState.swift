@@ -36,7 +36,48 @@ final class TabState {
             }
         }
     }
-    init(
+    private enum InitialContent {
+        case fresh(width: UInt32, height: UInt32)
+        case snapshot(DocumentSnapshot)
+    }
+
+    private init(
+        shared: SharedState,
+        documentId: String,
+        name: String,
+        notifier: DirtyNotifier,
+        isConstrainHeld: @escaping () -> Bool,
+        consumePendingToolRestore: @escaping () -> EditorTool?,
+        frameScheduler: FrameScheduler,
+        content: InitialContent,
+        viewport: AppleViewport
+    ) throws {
+        self.shared = shared
+        self.documentId = documentId
+        self.name = name
+        self.notifier = notifier
+        self.viewport = viewport
+        let effects: (EditEffect) -> Void = { [weak self] effect in self?.apply(effect) }
+        switch content {
+        case let .fresh(width, height):
+            self.edit = EditLifecycle(
+                shared: shared, width: width, height: height,
+                isConstrainHeld: isConstrainHeld,
+                consumePendingToolRestore: consumePendingToolRestore,
+                frameScheduler: frameScheduler, effects: effects
+            )
+        case let .snapshot(snapshot):
+            self.edit = try EditLifecycle(
+                shared: shared, snapshot: snapshot,
+                isConstrainHeld: isConstrainHeld,
+                consumePendingToolRestore: consumePendingToolRestore,
+                frameScheduler: frameScheduler, effects: effects
+            )
+        }
+    }
+
+    /// Copies externally prepared content through a value before ownership begins.
+    convenience init(
         shared: SharedState,
         documentId: String,
         name: String,
@@ -47,20 +88,12 @@ final class TabState {
         document: AppleDocument,
         viewport: AppleViewport
     ) {
-        self.shared = shared
-        self.documentId = documentId
-        self.name = name
-        self.notifier = notifier
-        self.viewport = viewport
-        // The input binding is converted to a value before ownership begins.
-        // Only the lifecycle's independently hydrated Document may be edited.
-        self.edit = try! EditLifecycle(
-            shared: shared,
-            snapshot: DocumentSnapshot.capture(document),
+        try! self.init(
+            shared: shared, documentId: documentId, name: name, notifier: notifier,
             isConstrainHeld: isConstrainHeld,
             consumePendingToolRestore: consumePendingToolRestore,
             frameScheduler: frameScheduler,
-            effects: { [weak self] effect in self?.apply(effect) }
+            content: .snapshot(DocumentSnapshot.capture(document)), viewport: viewport
         )
     }
 
@@ -78,7 +111,7 @@ final class TabState {
     ) {
         // The first layer follows the web's naming convention ("Layer 1") —
         // the name the layer panel row displays.
-        self.init(
+        try! self.init(
             shared: shared,
             documentId: documentId,
             name: name,
@@ -86,12 +119,7 @@ final class TabState {
             isConstrainHeld: isConstrainHeld,
             consumePendingToolRestore: consumePendingToolRestore,
             frameScheduler: frameScheduler,
-            document: try! AppleDocument(
-                width: width,
-                height: height,
-                firstLayerId: UUID().uuidString,
-                firstLayerName: "Layer 1"
-            ),
+            content: .fresh(width: width, height: height),
             viewport: AppleViewport.forCanvas(canvasWidth: width, canvasHeight: height)
         )
     }
@@ -109,7 +137,7 @@ final class TabState {
         consumePendingToolRestore: @escaping () -> EditorTool?,
         frameScheduler: FrameScheduler = DisplayLinkFrameScheduler()
     ) throws {
-        self.init(
+        try self.init(
             shared: shared,
             documentId: snapshot.id,
             name: snapshot.name,
@@ -117,9 +145,7 @@ final class TabState {
             isConstrainHeld: isConstrainHeld,
             consumePendingToolRestore: consumePendingToolRestore,
             frameScheduler: frameScheduler,
-            document: try snapshot.document.makeDocument(
-                timelinePanelCollapsed: snapshot.timelinePanelCollapsed
-            ),
+            content: .snapshot(snapshot.document),
             viewport: AppleViewport(
                 pixelSize: snapshot.viewport.pixelSize,
                 zoom: snapshot.viewport.zoom,

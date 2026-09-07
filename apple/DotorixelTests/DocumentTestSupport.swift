@@ -42,6 +42,7 @@ func workspaceWithDocument(
     clipboard: SelectionClipboard? = nil
 ) -> Workspace {
     let viewport = AppleViewport.forCanvas(canvasWidth: document.width(), canvasHeight: document.height())
+    let fixtureNotifier = FixtureDirtyNotifier()
     let workspace = try! Workspace(restoring: WorkspaceSnapshot(
         tabs: [TabSnapshot(
             id: "doc-\(UUID().uuidString)", name: "Untitled 1",
@@ -57,7 +58,7 @@ func workspaceWithDocument(
             backgroundColor: shared.backgroundColor, recentColors: shared.recentColors,
             pixelPerfect: shared.pixelPerfect
         )
-    ), notifier: notifier, frameScheduler: frameScheduler)
+    ), notifier: fixtureNotifier, frameScheduler: frameScheduler)
     if let clipboard {
         let source = makeSingleLayerDocument(width: clipboard.width, height: clipboard.height)
         try! source.restoreActiveLayerPixels(data: clipboard.pixels)
@@ -73,6 +74,7 @@ func workspaceWithDocument(
         workspace.copySelection()
         workspace.closeTab(workspace.activeTabIndex)
     }
+    fixtureNotifier.destination = notifier
     return workspace
 }
 
@@ -121,4 +123,13 @@ func makeRecoveryEdit(effects: @escaping (EditEffect) -> Void = { _ in }) throws
     edit.nudgeMarquee(by: FloatingSelectionOffset(dx: 1, dy: 0))
     faults.refusesPixelRestore = true
     return (edit, faults)
+}
+
+/// Fixture construction is silent; only operations after handoff reach the recorder.
+private final class FixtureDirtyNotifier: DirtyNotifier {
+    var destination: (any DirtyNotifier)?
+
+    func markDirty(documentId: String) { destination?.markDirty(documentId: documentId) }
+    func markWorkspaceDirty() { destination?.markWorkspaceDirty() }
+    func notifyTabRemoved(documentId: String) { destination?.notifyTabRemoved(documentId: documentId) }
 }

@@ -265,8 +265,8 @@ struct TabStateLayerAddRemoveTests {
         #expect(state.activeTab.layersInPanelOrder.last?.id == referenceId)
     }
 
-    @Test("deleting the Reference releases its cached source")
-    func deleteReferenceClearsSourceCache() throws {
+    @Test("Reference source reads follow deletion, Undo, and replacement")
+    func referenceSourceFollowsDeletionUndoAndReplacement() throws {
         let state = Workspace(width: 4, height: 4)
         let originalSource = Data([0x10, 0x20, 0x30, 0xFF])
         try state.activeTab.setReferenceLayer(ReferenceImageSource(

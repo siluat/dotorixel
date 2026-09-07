@@ -100,9 +100,11 @@ struct TabStateOnionSkinTests {
     @Test("toggling marks the workspace dirty; projecting pushes no history and marks nothing")
     func togglingMarksWorkspaceDirtyAndProjectingMarksNothing() throws {
         let recorder = OnionSkinDirtyRecorder()
-        let workspace = Workspace(width: 8, height: 8, notifier: recorder)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        try preparedDocument.addFrame(newId: makeFrameId())
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared, notifier: recorder)
         let tab = workspace.activeTab
-        try tab.document.addFrame(newId: makeFrameId())
         recorder.reset()
 
         tab.toggleOnionSkin()
@@ -175,10 +177,10 @@ struct TabStateOnionSkinTests {
             document: document,
             viewport: AppleViewport.forCanvas(canvasWidth: 2, canvasHeight: 2)
         )
-        let first = document.activeFrameId()
+        let first = tab.activeFrameId
         // The added frame becomes active, making the painted frame a
         // previous-side neighbor.
-        try document.addFrame(newId: makeFrameId())
+        tab.addFrame()
         tab.toggleOnionSkin()
 
         let ghost = try #require(tab.onionSkinProjection.first)

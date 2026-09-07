@@ -9,10 +9,12 @@ struct MarqueeClippingTests {
 
     @Test("a pencil stroke crossing the Marquee paints only inside it")
     func pencilCrossingMarqueePaintsOnlyInside() throws {
-        let state = Workspace(width: 8, height: 8)
-        try state.activeTab.document.setMarquee(
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 2, y: 2, width: 3, height: 3)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .pencil
         state.shared.pixelPerfect = false
 
@@ -28,10 +30,12 @@ struct MarqueeClippingTests {
 
     @Test("flood fill from inside the Marquee stops at its edges")
     func floodFillStopsAtMarqueeEdges() throws {
-        let state = Workspace(width: 8, height: 8)
-        try state.activeTab.document.setMarquee(
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 2, y: 2, width: 3, height: 3)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .floodFill
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 3, y: 3))
@@ -45,12 +49,14 @@ struct MarqueeClippingTests {
 
     @Test("Marquee clipping sees pixel-perfect filtered output")
     func clippingFollowsPixelPerfectFiltering() throws {
-        let state = Workspace(width: 8, height: 8)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
         // The Marquee excludes the L's first point. Filtering must still see
         // the full path before clipping, so the corner tip at (1,0) reverts.
-        try state.activeTab.document.setMarquee(
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 0, width: 1, height: 2)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .pencil
         state.shared.pixelPerfect = true
 
@@ -66,31 +72,29 @@ struct MarqueeClippingTests {
 
     @Test("a stroke keeps the Marquee captured at begin")
     func strokeKeepsBeginMarqueeSnapshot() throws {
-        let state = Workspace(width: 8, height: 8)
-        try state.activeTab.document.setMarquee(
-            region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
-        )
-        state.shared.activeTool = .pencil
-        state.shared.pixelPerfect = false
+        let document = makeSingleLayerDocument(width: 8, height: 8)
+        let original = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
+        try document.setMarquee(region: original)
+        let surface = MarqueeClippedDrawingSurface(base: document, marquee: original)
+        let black = Color(r: 0, g: 0, b: 0, a: 255)
+        _ = surface.applyTool(x: 1, y: 1, tool: .pencil, foregroundColor: black)
+        try document.setMarquee(region: AppleMarqueeRegion(x: 3, y: 1, width: 1, height: 1))
+        _ = surface.applyTool(x: 2, y: 1, tool: .pencil, foregroundColor: black)
+        _ = surface.applyTool(x: 3, y: 1, tool: .pencil, foregroundColor: black)
 
-        state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
-        try state.activeTab.document.setMarquee(
-            region: AppleMarqueeRegion(x: 3, y: 1, width: 1, height: 1)
-        )
-        state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 3, y: 1))
-        state.activeTab.endStroke()
-
-        #expect(try state.activeTab.document.getPixel(x: 1, y: 1) == state.shared.foregroundColor)
-        #expect(try state.activeTab.document.getPixel(x: 2, y: 1) == transparent)
-        #expect(try state.activeTab.document.getPixel(x: 3, y: 1) == transparent)
+        #expect(try surface.getPixel(x: 1, y: 1) == black)
+        #expect(try surface.getPixel(x: 2, y: 1) == transparent)
+        #expect(try surface.getPixel(x: 3, y: 1) == transparent)
     }
 
     @Test("a fully clipped stroke records no History entry and preserves redo")
     func fullyClippedStrokePreservesHistory() throws {
-        let state = Workspace(width: 8, height: 8)
-        try state.activeTab.document.setMarquee(
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 4, y: 4, width: 2, height: 2)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .pencil
         state.shared.pixelPerfect = false
 
@@ -116,9 +120,11 @@ struct MarqueeClippingTests {
         arguments: [EditorTool.line, .rectangle, .ellipse]
     )
     func shapeOutputIsClipped(tool: EditorTool) throws {
-        let state = Workspace(width: 8, height: 8)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
         let marquee = AppleMarqueeRegion(x: 2, y: 1, width: 3, height: 3)
-        try state.activeTab.document.setMarquee(region: marquee)
+        try preparedDocument.setMarquee(region: marquee)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = tool
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
@@ -134,14 +140,16 @@ struct MarqueeClippingTests {
 
     @Test("an eraser stroke crossing the Marquee clears only inside it")
     func eraserCrossingMarqueeClearsOnlyInside() throws {
-        let state = Workspace(width: 8, height: 8)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         for x in 1...5 {
-            try state.activeTab.document.setPixel(x: UInt32(x), y: 3, color: red)
+            try preparedDocument.setPixel(x: UInt32(x), y: 3, color: red)
         }
-        try state.activeTab.document.setMarquee(
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 2, y: 3, width: 3, height: 1)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .eraser
         state.shared.pixelPerfect = false
 
@@ -157,10 +165,12 @@ struct MarqueeClippingTests {
 
     @Test("flood fill seeded outside the Marquee is a no-op")
     func floodFillSeededOutsideIsNoOp() throws {
-        let state = Workspace(width: 8, height: 8)
-        try state.activeTab.document.setMarquee(
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 2, y: 2, width: 3, height: 3)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .floodFill
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 3))
@@ -188,10 +198,12 @@ struct MarqueeClippingTests {
 
     @Test("a Marquee cropped away by resize does not disable drawing")
     func fullyCroppedMarqueeDoesNotDisableDrawing() throws {
-        let state = Workspace(width: 16, height: 16)
-        try state.activeTab.document.setMarquee(
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 10, y: 10, width: 2, height: 2)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .pencil
         state.shared.pixelPerfect = false
 
@@ -209,12 +221,14 @@ struct MarqueeClippingTests {
 
     @Test("Move translates the whole layer despite an active Marquee")
     func moveIgnoresMarquee() throws {
-        let state = Workspace(width: 8, height: 8)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
-        try state.activeTab.document.setPixel(x: 0, y: 0, color: red)
-        try state.activeTab.document.setMarquee(
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 4, y: 4, width: 2, height: 2)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .move
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
@@ -228,12 +242,14 @@ struct MarqueeClippingTests {
 
     @Test("Eyedropper samples outside an active Marquee")
     func eyedropperIgnoresMarquee() throws {
-        let state = Workspace(width: 8, height: 8)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
-        try state.activeTab.document.setPixel(x: 0, y: 0, color: red)
-        try state.activeTab.document.setMarquee(
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 4, y: 4, width: 2, height: 2)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .eyedropper
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))

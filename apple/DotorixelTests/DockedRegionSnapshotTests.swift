@@ -128,9 +128,9 @@ struct DockedRegionSnapshotTests {
     func timelinePanelMultiLayerRows() throws {
         let layered = state()
         let bottomId = layered.activeTab.document.activeLayerId()
-        let middleId = makeLayerId()
-        try layered.activeTab.document.addLayer(newId: middleId, name: "Layer 2")
-        try layered.activeTab.document.addLayer(newId: makeLayerId(), name: "Layer 3")
+        layered.activeTab.addLayer()
+        let middleId = layered.activeTab.activeLayerId
+        layered.activeTab.addLayer()
         layered.activeTab.setLayerVisibility(id: middleId, visible: false)
         layered.activeTab.setActiveLayer(id: bottomId)
         assertSnapshot(
@@ -170,15 +170,14 @@ struct DockedRegionSnapshotTests {
     func timelinePanelMultiFrameRuler() throws {
         let animated = state()
         let tab = animated.activeTab
-        try tab.document.addLayer(newId: makeLayerId(), name: "Layer 2")
+        tab.addLayer()
 
         // Frame 1 holds paint on the top layer…
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.endStroke()
 
         // …frame 2 on the bottom layer, leaving two empty Cels on the diagonal.
-        let secondFrameId = makeFrameId()
-        try tab.document.addFrame(newId: secondFrameId)
+        tab.addFrame()
         tab.setActiveLayer(id: tab.document.layers()[0].id)
         tab.beginStroke(at: ScreenCanvasCoords(x: 3, y: 3))
         tab.endStroke()
@@ -197,10 +196,12 @@ struct DockedRegionSnapshotTests {
     /// the render is static.
     @Test("TimelinePanel renders the playing transport with the playhead marker distinct from the active column")
     func timelinePanelPlayingTransport() throws {
-        let playing = Workspace(width: 16, height: 16, frameScheduler: FakeFrameScheduler())
-        let tab = playing.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
         let secondFrameId = makeFrameId()
-        try tab.document.addFrame(newId: secondFrameId)
+        try preparedDocument.addFrame(newId: secondFrameId)
+        let playing = workspaceWithDocument(preparedDocument, shared: preparedShared, frameScheduler: FakeFrameScheduler())
+        let tab = playing.activeTab
         tab.setActiveFrame(id: secondFrameId)
         tab.startPlayback()
         assertSnapshot(
@@ -215,7 +216,7 @@ struct DockedRegionSnapshotTests {
     @Test("TimelinePanel renders the Loop toggle on")
     func timelinePanelLoopOn() throws {
         let looping = state()
-        try looping.activeTab.document.addFrame(newId: makeFrameId())
+        looping.activeTab.addFrame()
         looping.activeTab.togglePlaybackLoop()
         assertSnapshot(
             of: TimelinePanel(tab: looping.activeTab).frame(width: barWidth),
@@ -230,7 +231,7 @@ struct DockedRegionSnapshotTests {
     @Test("TimelinePanel renders the Onion Skin toggle on")
     func timelinePanelOnionSkinOn() throws {
         let ghosted = state()
-        try ghosted.activeTab.document.addFrame(newId: makeFrameId())
+        ghosted.activeTab.addFrame()
         ghosted.activeTab.toggleOnionSkin()
         assertSnapshot(
             of: TimelinePanel(tab: ghosted.activeTab).frame(width: barWidth),
@@ -249,7 +250,7 @@ struct DockedRegionSnapshotTests {
     func timelinePanelOverflowingAxis() throws {
         let overflowing = state()
         for _ in 1..<10 {
-            try overflowing.activeTab.document.addFrame(newId: makeFrameId())
+            overflowing.activeTab.addFrame()
         }
         assertSnapshot(
             of: TimelinePanel(tab: overflowing.activeTab).frame(width: barWidth),

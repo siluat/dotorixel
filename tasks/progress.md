@@ -2,14 +2,14 @@
 
 ## Currently Working On
 
-None
+None.
 
 ## Last Completed
 
-[297 — Apple Document Snapshot](../issues/297-apple-document-snapshot.md):
-Centralized Apple Document capture and reconstruction, separating content from
-tab presentation. Preserved the existing storage format, corruption recovery,
-and export results.
+[298 — Apple Edit lifecycle](../issues/298-apple-edit-lifecycle.md):
+Centralized editing ownership and transition policy while preserving existing
+behavior. Mutable content access is closed; all 815 Apple tests and the macOS
+build passed.
 
 ## Next Up
 

@@ -16,14 +16,16 @@ struct TabStateMarqueeTransformTests {
 
     @Test("flipMarqueeHorizontal mirrors only the Marquee as one undoable Edit")
     func flipHorizontalMirrorsAndUndoRestores() throws {
-        let workspace = Workspace(width: 4, height: 2)
-        let tab = workspace.activeTab
-        try tab.document.setPixel(x: 0, y: 0, color: red)
-        try tab.document.setPixel(x: 1, y: 0, color: green)
-        try tab.document.setPixel(x: 3, y: 1, color: red)
-        try tab.document.setMarquee(
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 2)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        try preparedDocument.setPixel(x: 1, y: 0, color: green)
+        try preparedDocument.setPixel(x: 3, y: 1, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 0, y: 0, width: 2, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
 
         tab.flipMarqueeHorizontal()
 
@@ -41,14 +43,16 @@ struct TabStateMarqueeTransformTests {
 
     @Test("flipMarqueeVertical mirrors only the Marquee as one undoable Edit")
     func flipVerticalMirrorsAndUndoRestores() throws {
-        let workspace = Workspace(width: 3, height: 4)
-        let tab = workspace.activeTab
-        try tab.document.setPixel(x: 1, y: 0, color: red)
-        try tab.document.setPixel(x: 1, y: 1, color: green)
-        try tab.document.setPixel(x: 2, y: 3, color: red)
-        try tab.document.setMarquee(
+        let preparedDocument = makeSingleLayerDocument(width: 3, height: 4)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 1, y: 0, color: red)
+        try preparedDocument.setPixel(x: 1, y: 1, color: green)
+        try preparedDocument.setPixel(x: 2, y: 3, color: red)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 0, width: 1, height: 2)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
 
         tab.flipMarqueeVertical()
 
@@ -66,13 +70,15 @@ struct TabStateMarqueeTransformTests {
 
     @Test("rotateMarqueeCw turns only the Marquee and its bounds as one undoable Edit")
     func rotateCwTurnsAndUndoRestores() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let originalMarquee = AppleMarqueeRegion(x: 1, y: 1, width: 2, height: 1)
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setPixel(x: 2, y: 1, color: green)
-        try tab.document.setPixel(x: 3, y: 3, color: red)
-        try tab.document.setMarquee(region: originalMarquee)
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setPixel(x: 2, y: 1, color: green)
+        try preparedDocument.setPixel(x: 3, y: 3, color: red)
+        try preparedDocument.setMarquee(region: originalMarquee)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
 
         tab.rotateMarqueeCw()
 
@@ -92,13 +98,15 @@ struct TabStateMarqueeTransformTests {
 
     @Test("rotateMarqueeCcw turns only the Marquee and its bounds as one undoable Edit")
     func rotateCcwTurnsAndUndoRestores() throws {
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let originalMarquee = AppleMarqueeRegion(x: 1, y: 1, width: 2, height: 1)
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setPixel(x: 2, y: 1, color: green)
-        try tab.document.setPixel(x: 3, y: 3, color: red)
-        try tab.document.setMarquee(region: originalMarquee)
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setPixel(x: 2, y: 1, color: green)
+        try preparedDocument.setPixel(x: 3, y: 3, color: red)
+        try preparedDocument.setMarquee(region: originalMarquee)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
 
         tab.rotateMarqueeCcw()
 
@@ -118,9 +126,11 @@ struct TabStateMarqueeTransformTests {
 
     @Test("all transforms are History-neutral without a Marquee")
     func transformsNoOpWithoutMarquee() throws {
-        let workspace = Workspace(width: 2, height: 2)
+        let preparedDocument = makeSingleLayerDocument(width: 2, height: 2)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
         let tab = workspace.activeTab
-        try tab.document.setPixel(x: 0, y: 0, color: red)
         let pixelsBefore = tab.document.composite()
         let versionBefore = tab.canvasVersion
 
@@ -133,13 +143,15 @@ struct TabStateMarqueeTransformTests {
 
     @Test("all transforms ignore an active stroke")
     func transformsNoOpDuringStroke() throws {
-        let workspace = Workspace(width: 2, height: 1)
-        let tab = workspace.activeTab
-        try tab.document.setPixel(x: 0, y: 0, color: red)
-        try tab.document.setPixel(x: 1, y: 0, color: green)
-        try tab.document.setMarquee(
+        let preparedDocument = makeSingleLayerDocument(width: 2, height: 1)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 0, y: 0, color: red)
+        try preparedDocument.setPixel(x: 1, y: 0, color: green)
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 0, y: 0, width: 2, height: 1)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         tab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
         let pixelsDuringStroke = tab.document.composite()
         let marqueeDuringStroke = tab.marquee

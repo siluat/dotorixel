@@ -46,10 +46,12 @@ struct ExportFormatTests {
 
     @Test("SVG export document is UTF-8 SVG matching the canvas content")
     func svgExportDocumentMatchesCanvasContent() throws {
-        let state = Workspace(width: 16, height: 16)
-        try state.activeTab.document.setPixel(
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(
             x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
 
         let document = try state.activeTab.makeExportDocument(format: .svg)
 
@@ -62,12 +64,14 @@ struct ExportFormatTests {
 
     @Test("SVG export projects pre-lift pixels while a Floating Selection is active")
     func svgExportPreservesLiveFloatingSelection() throws {
-        let state = Workspace(width: 4, height: 4)
-        let tab = state.activeTab
-        try tab.document.setPixel(x: 1, y: 1, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
-        try tab.document.setMarquee(
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 1, y: 1, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = state.activeTab
         state.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -84,9 +88,11 @@ struct ExportFormatTests {
 
     @Test("A visible Reference Layer never appears in the exported SVG")
     func svgExportExcludesReferenceLayer() throws {
-        let state = Workspace(width: 4, height: 4)
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 1, y: 2, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         let tab = state.activeTab
-        try tab.document.setPixel(x: 1, y: 2, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
         try tab.setReferenceLayer(ReferenceImageSource(
             name: "guide.png",
             rgba: Data((0..<(4 * 4)).flatMap { _ in [UInt8(0), 0, 0xFF, 0xFF] }),
@@ -104,11 +110,13 @@ struct ExportFormatTests {
 
     @Test("Spritesheet export of a multi-frame document tiles every frame's composite in axis order")
     func spritesheetExportTilesEveryFrameComposite() throws {
-        let state = Workspace(width: 2, height: 2)
+        let preparedDocument = makeSingleLayerDocument(width: 2, height: 2)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        try preparedDocument.addFrame(newId: UUID().uuidString) // second frame, active and empty
+        try preparedDocument.setPixel(x: 1, y: 1, color: Color(r: 0x00, g: 0xFF, b: 0x00, a: 0xFF))
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         let tab = state.activeTab
-        try tab.document.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
-        try tab.document.addFrame(newId: UUID().uuidString) // second frame, active and empty
-        try tab.document.setPixel(x: 1, y: 1, color: Color(r: 0x00, g: 0xFF, b: 0x00, a: 0xFF))
 
         let document = try tab.makeExportDocument(format: .spritesheet)
 
@@ -124,9 +132,11 @@ struct ExportFormatTests {
 
     @Test("A single-frame document exports a one-tile sheet identical to its frame composite")
     func singleFrameDocumentExportsOneTileSheet() throws {
-        let state = Workspace(width: 3, height: 2)
+        let preparedDocument = makeSingleLayerDocument(width: 3, height: 2)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 2, y: 1, color: Color(r: 0x00, g: 0x00, b: 0xFF, a: 0xFF))
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         let tab = state.activeTab
-        try tab.document.setPixel(x: 2, y: 1, color: Color(r: 0x00, g: 0x00, b: 0xFF, a: 0xFF))
 
         let document = try tab.makeExportDocument(format: .spritesheet)
 
@@ -136,14 +146,16 @@ struct ExportFormatTests {
 
     @Test("Spritesheet export projects pre-lift pixels while a Floating Selection is active")
     func spritesheetExportPreservesLiveFloatingSelection() throws {
-        let state = Workspace(width: 4, height: 4)
-        let tab = state.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red: [UInt8] = [0xFF, 0x00, 0x00, 0xFF]
         let transparent: [UInt8] = [0x00, 0x00, 0x00, 0x00]
-        try tab.document.setPixel(x: 1, y: 1, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 1, y: 1, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = state.activeTab
         state.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -163,17 +175,19 @@ struct ExportFormatTests {
 
     @Test("Spritesheet export keeps every frame while a Floating Selection is active")
     func spritesheetExportKeepsFrameAxisDuringFloatingSelection() throws {
-        let state = Workspace(width: 4, height: 4)
-        let tab = state.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red: [UInt8] = [0xFF, 0x00, 0x00, 0xFF]
         let green: [UInt8] = [0x00, 0xFF, 0x00, 0xFF]
         let transparent: [UInt8] = [0x00, 0x00, 0x00, 0x00]
-        try tab.document.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
-        try tab.document.addFrame(newId: UUID().uuidString) // second frame, active and empty
-        try tab.document.setPixel(x: 1, y: 1, color: Color(r: 0, g: 0xFF, b: 0, a: 0xFF))
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
+        try preparedDocument.addFrame(newId: UUID().uuidString) // second frame, active and empty
+        try preparedDocument.setPixel(x: 1, y: 1, color: Color(r: 0, g: 0xFF, b: 0, a: 0xFF))
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = state.activeTab
         state.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -198,15 +212,17 @@ struct ExportFormatTests {
 
     @Test("GIF export of a multi-frame document animates with the authored per-frame timing and loops forever")
     func gifExportHonorsPerFrameTimingAndLoops() throws {
-        let state = Workspace(width: 2, height: 2)
-        let tab = state.activeTab
-        try tab.document.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
-        try tab.document.addFrame(newId: UUID().uuidString) // second frame, active and empty
-        try tab.document.setPixel(x: 1, y: 1, color: Color(r: 0x00, g: 0xFF, b: 0x00, a: 0xFF))
-        let frames = tab.document.frames()
+        let preparedDocument = makeSingleLayerDocument(width: 2, height: 2)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        try preparedDocument.addFrame(newId: UUID().uuidString) // second frame, active and empty
+        try preparedDocument.setPixel(x: 1, y: 1, color: Color(r: 0x00, g: 0xFF, b: 0x00, a: 0xFF))
+        let frames = preparedDocument.frames()
         // The retimed second frame visibly holds five times longer.
-        try tab.document.setFrameDuration(id: frames[0].id, durationMs: 100)
-        try tab.document.setFrameDuration(id: frames[1].id, durationMs: 500)
+        try preparedDocument.setFrameDuration(id: frames[0].id, durationMs: 100)
+        try preparedDocument.setFrameDuration(id: frames[1].id, durationMs: 500)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = state.activeTab
 
         let document = try tab.makeExportDocument(format: .gif)
 
@@ -221,9 +237,11 @@ struct ExportFormatTests {
 
     @Test("A single-frame document exports a valid single-frame GIF matching its composite")
     func singleFrameDocumentExportsSingleFrameGif() throws {
-        let state = Workspace(width: 3, height: 2)
+        let preparedDocument = makeSingleLayerDocument(width: 3, height: 2)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 2, y: 1, color: Color(r: 0x00, g: 0x00, b: 0xFF, a: 0xFF))
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         let tab = state.activeTab
-        try tab.document.setPixel(x: 2, y: 1, color: Color(r: 0x00, g: 0x00, b: 0xFF, a: 0xFF))
 
         let document = try tab.makeExportDocument(format: .gif)
 
@@ -236,17 +254,19 @@ struct ExportFormatTests {
 
     @Test("GIF export keeps every frame while a Floating Selection is active")
     func gifExportKeepsFrameAxisDuringFloatingSelection() throws {
-        let state = Workspace(width: 4, height: 4)
-        let tab = state.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red: [UInt8] = [0xFF, 0x00, 0x00, 0xFF]
         let green: [UInt8] = [0x00, 0xFF, 0x00, 0xFF]
         let transparent: [UInt8] = [0x00, 0x00, 0x00, 0x00]
-        try tab.document.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
-        try tab.document.addFrame(newId: UUID().uuidString) // second frame, active and empty
-        try tab.document.setPixel(x: 1, y: 1, color: Color(r: 0, g: 0xFF, b: 0, a: 0xFF))
-        try tab.document.setMarquee(
+        try preparedDocument.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
+        try preparedDocument.addFrame(newId: UUID().uuidString) // second frame, active and empty
+        try preparedDocument.setPixel(x: 1, y: 1, color: Color(r: 0, g: 0xFF, b: 0, a: 0xFF))
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = state.activeTab
         state.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -275,10 +295,12 @@ struct ExportFormatTests {
 
     @Test("SVG export is byte-identical with onion skin on and off")
     func onionSkinNeverReachesSvgExport() throws {
-        let state = Workspace(width: 2, height: 2)
+        let preparedDocument = makeSingleLayerDocument(width: 2, height: 2)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
+        try preparedDocument.addFrame(newId: UUID().uuidString)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         let tab = state.activeTab
-        try tab.document.setPixel(x: 0, y: 0, color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF))
-        try tab.document.addFrame(newId: UUID().uuidString)
 
         let exportedOff = try tab.makeExportDocument(format: .svg).data
         tab.toggleOnionSkin()

@@ -129,9 +129,11 @@ struct SharedStateColorTests {
 
     @Test("a secondary-button eraser stroke still erases to transparent")
     func secondaryButtonEraserStillErases() throws {
-        let state = Workspace(width: 16, height: 16)
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
-        try state.activeTab.document.setPixel(x: 5, y: 5, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        try preparedDocument.setPixel(x: 5, y: 5, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .eraser
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 5, y: 5), button: .secondary)
@@ -185,9 +187,11 @@ struct TabStateStrokeTests {
 
     @Test("retracing pixels with their own color is a no-op stroke — no undo entry")
     func sameColorRetraceLeavesNoUndoEntry() throws {
-        let state = Workspace(width: 16, height: 16)
-        try state.activeTab.document.setPixel(x: 3, y: 4, color: state.shared.foregroundColor)
-        try state.activeTab.document.setPixel(x: 4, y: 4, color: state.shared.foregroundColor)
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 3, y: 4, color: preparedShared.foregroundColor)
+        try preparedDocument.setPixel(x: 4, y: 4, color: preparedShared.foregroundColor)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 3, y: 4))
         state.activeTab.continueStroke(to: ScreenCanvasCoords(x: 4, y: 4))
@@ -250,9 +254,11 @@ struct TabStateStrokeTests {
 
     @Test("eraser strokes erase to transparent")
     func eraserErasesToTransparent() throws {
-        let state = Workspace(width: 16, height: 16)
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
         let transparent = Color(r: 0, g: 0, b: 0, a: 0)
-        try state.activeTab.document.setPixel(x: 5, y: 5, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        try preparedDocument.setPixel(x: 5, y: 5, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .eraser
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 5, y: 5))
@@ -424,11 +430,13 @@ struct TabStateResizeCanvasTests {
 
     @Test("resize commits an undoable edit; undo and redo restore both pixels and dimensions")
     func resizeIsUndoableAndRedoable() throws {
-        let state = Workspace(width: 16, height: 16)
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
         // A pixel the 8×8 shrink crops away — only a whole-document restore
         // can bring it back.
-        try state.activeTab.document.setPixel(x: 10, y: 10, color: red)
+        try preparedDocument.setPixel(x: 10, y: 10, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
 
         state.activeTab.resizeCanvas(width: 8, height: 8)
         #expect(state.activeTab.canUndo)
@@ -445,9 +453,11 @@ struct TabStateResizeCanvasTests {
 
     @Test("resize clips a partially cropped Marquee and undo restores it")
     func resizeClipsMarqueeAndUndoRestoresIt() throws {
-        let state = Workspace(width: 16, height: 16)
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
         let marquee = AppleMarqueeRegion(x: 6, y: 6, width: 4, height: 4)
-        try state.activeTab.document.setMarquee(region: marquee)
+        try preparedDocument.setMarquee(region: marquee)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
 
         state.activeTab.resizeCanvas(width: 8, height: 8)
 
@@ -474,9 +484,11 @@ struct TabStateResizeCanvasTests {
 
     @Test("resize clears a Marquee fully outside the new canvas")
     func resizeClearsFullyCroppedMarquee() throws {
-        let state = Workspace(width: 16, height: 16)
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
         let marquee = AppleMarqueeRegion(x: 10, y: 10, width: 2, height: 2)
-        try state.activeTab.document.setMarquee(region: marquee)
+        try preparedDocument.setMarquee(region: marquee)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
 
         state.activeTab.resizeCanvas(width: 8, height: 8)
 
@@ -521,8 +533,10 @@ struct TabStateClearCanvasTests {
 
     @Test("clear erases all pixels to transparent")
     func clearErasesAllPixels() throws {
-        let state = Workspace(width: 16, height: 16)
-        try state.activeTab.document.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
 
         state.activeTab.handleClearCanvas()
 
@@ -531,8 +545,10 @@ struct TabStateClearCanvasTests {
 
     @Test("clear bumps canvasVersion to trigger re-render")
     func clearBumpsCanvasVersion() throws {
-        let state = Workspace(width: 16, height: 16)
-        try state.activeTab.document.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         let before = state.activeTab.canvasVersion
 
         state.activeTab.handleClearCanvas()
@@ -566,9 +582,11 @@ struct TabStateClearCanvasTests {
 
     @Test("undo after clear restores the pre-clear pixels")
     func undoAfterClearRestoresPixels() throws {
-        let state = Workspace(width: 16, height: 16)
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
-        try state.activeTab.document.setPixel(x: 3, y: 4, color: red)
+        try preparedDocument.setPixel(x: 3, y: 4, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
 
         state.activeTab.handleClearCanvas()
         state.activeTab.handleUndo()
@@ -578,8 +596,10 @@ struct TabStateClearCanvasTests {
 
     @Test("redo after undo re-applies the clear")
     func redoReappliesClear() throws {
-        let state = Workspace(width: 16, height: 16)
-        try state.activeTab.document.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 3, y: 4, color: Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF))
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.activeTab.handleClearCanvas()
         state.activeTab.handleUndo()
 
@@ -590,9 +610,11 @@ struct TabStateClearCanvasTests {
 
     @Test("clear is a no-op while a drawing stroke is in progress")
     func clearIsNoopWhileDrawing() throws {
-        let state = Workspace(width: 16, height: 16)
+        let preparedDocument = makeSingleLayerDocument(width: 16, height: 16)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0x00, b: 0x00, a: 0xFF)
-        try state.activeTab.document.setPixel(x: 3, y: 4, color: red)
+        try preparedDocument.setPixel(x: 3, y: 4, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 0, y: 0))
         let canvasVersionBefore = state.activeTab.canvasVersion
         let historyVersionBefore = state.activeTab.historyVersion

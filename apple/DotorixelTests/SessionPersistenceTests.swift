@@ -297,10 +297,12 @@ struct SessionPersistenceTests {
     func corruptReferenceBlobDropsReferenceOnly() async throws {
         let container = try makeInMemoryContainer()
         let persistence = SessionPersistence(modelContainer: container)
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
-        try tab.document.setPixel(
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(
             x: 1, y: 1, color: Color(r: 0, g: 0xAA, b: 0, a: 0xFF))
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         let expectedPixels = tab.document.composite()
         try tab.setReferenceLayer(ReferenceImageSource(
             name: "guide.png", rgba: Data([0xFF, 0, 0, 0xFF]), width: 1, height: 1))
@@ -413,7 +415,7 @@ struct SessionPersistenceTests {
         tab.addLayer() // a second, topmost Pixel Layer
         try tab.setReferenceLayer(ReferenceImageSource(
             name: "guide.png", rgba: Data([0xFF, 0, 0, 0xFF]), width: 1, height: 1))
-        try tab.document.setActiveLayer(id: bottomPixelId)
+        tab.setActiveLayer(id: bottomPixelId)
         try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
 
         // Double corruption: the reference becomes undroppable-invalid and
@@ -627,14 +629,16 @@ struct SessionPersistenceTests {
     @Test("saving during a Floating Selection restores baseline pixels and the source Marquee")
     func floatingSelectionSaveRestoresBaseline() async throws {
         let persistence = try makeInMemoryPersistence()
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
         let red = Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         let blue = Color(r: 0, g: 0, b: 0xFF, a: 0xFF)
         let source = AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
-        try tab.document.setPixel(x: 1, y: 1, color: red)
-        try tab.document.setPixel(x: 2, y: 1, color: blue)
-        try tab.document.setMarquee(region: source)
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        try preparedDocument.setPixel(x: 2, y: 1, color: blue)
+        try preparedDocument.setMarquee(region: source)
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         workspace.activateTool(.selection)
         tab.beginStroke(at: ScreenCanvasCoords(x: 1, y: 1))
         tab.continueStroke(to: ScreenCanvasCoords(x: 2, y: 1))
@@ -863,13 +867,15 @@ struct SessionPersistenceTests {
     @Test("a saved-work thumbnail remains Pixel-only with a visible Reference")
     func savedWorkThumbnailExcludesReference() async throws {
         let persistence = try makeInMemoryPersistence()
-        let workspace = Workspace(width: 4, height: 4)
-        let tab = workspace.activeTab
-        try tab.document.setPixel(
+        let preparedDocument = makeSingleLayerDocument(width: 4, height: 4)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(
             x: 1,
             y: 1,
             color: Color(r: 0, g: 0xAA, b: 0, a: 0xFF)
         )
+        let workspace = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = workspace.activeTab
         let redReference = Data((0..<(4 * 4)).flatMap { _ in
             [UInt8(0xFF), 0, 0, 0xFF]
         })

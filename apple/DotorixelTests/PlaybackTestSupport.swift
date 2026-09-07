@@ -5,16 +5,17 @@ import Foundation
 /// re-activated so tests start at ordinal 1, plus the hand-driven clock its
 /// playback controller schedules against — the shared fixture of the
 /// playback and onion-skin suites.
-func makeTwoFrameTab() throws -> (
+func makeTwoFrameTab(prepare: (AppleDocument) throws -> Void = { _ in }) throws -> (
     tab: TabState, first: String, second: String, clock: FakeFrameScheduler
 ) {
     let clock = FakeFrameScheduler()
-    let workspace = Workspace(width: 8, height: 8, frameScheduler: clock)
-    let tab = workspace.activeTab
-    let first = tab.document.activeFrameId()
+    let document = makeSingleLayerDocument(width: 8, height: 8)
+    let first = document.activeFrameId()
     let second = makeFrameId()
-    try tab.document.addFrame(newId: second)
-    try tab.document.setActiveFrame(id: first)
+    try document.addFrame(newId: second)
+    try document.setActiveFrame(id: first)
+    try prepare(document)
+    let tab = workspaceWithDocument(document, frameScheduler: clock).activeTab
     return (tab, first, second, clock)
 }
 
@@ -53,4 +54,19 @@ final class FakeFrameScheduler: FrameScheduler {
         scheduled = nil
         callback(timestampMs)
     }
+}
+
+
+func makeTwoFrameEdit(prepare: (AppleDocument) throws -> Void = { _ in }) throws
+    -> (edit: EditLifecycle, first: String, second: String, clock: FakeFrameScheduler) {
+    let document = makeSingleLayerDocument(width: 8, height: 8)
+    let first = document.activeFrameId()
+    let second = makeFrameId()
+    try document.addFrame(newId: second)
+    try document.setActiveFrame(id: first)
+    try prepare(document)
+    let clock = FakeFrameScheduler()
+    let edit = try EditLifecycle(shared: SharedState(), snapshot: DocumentSnapshot.capture(document),
+                                 frameScheduler: clock)
+    return (edit, first, second, clock)
 }

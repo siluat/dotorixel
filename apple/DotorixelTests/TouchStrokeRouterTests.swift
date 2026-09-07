@@ -7,7 +7,8 @@ import Testing
 /// sequences. Mirrors the production wiring: the view feeds touch events to
 /// the router and executes the returned commands against the editor.
 private final class RoutedEditor {
-    let state = Workspace(width: 16, height: 16)
+    let state: Workspace
+    init(state: Workspace = Workspace(width: 16, height: 16)) { self.state = state }
     private var router = TouchStrokeRouter<Int>()
 
     func fingerDown(_ id: Int, x: Int, y: Int) {
@@ -102,7 +103,7 @@ struct TouchStrokeRouterFloatingSelectionTests {
                 == FloatingSelectionOffset(dx: 1, dy: 0)
         )
         #expect(editor.state.activeTab.canUndo)
-        #expect(!editor.state.activeTab.documentHistory.canUndo())
+        #expect(!editor.state.activeTab.hasUndoableEdit)
         #expect(try previewPixel(editor, x: 2, y: 1) == [0xFF, 0, 0, 0xFF])
     }
 
@@ -121,7 +122,7 @@ struct TouchStrokeRouterFloatingSelectionTests {
                 == FloatingSelectionOffset(dx: 1, dy: 0)
         )
         #expect(editor.state.activeTab.canUndo)
-        #expect(!editor.state.activeTab.documentHistory.canUndo())
+        #expect(!editor.state.activeTab.hasUndoableEdit)
         #expect(try previewPixel(editor, x: 2, y: 1) == [0xFF, 0, 0, 0xFF])
     }
 
@@ -141,7 +142,7 @@ struct TouchStrokeRouterFloatingSelectionTests {
                 == FloatingSelectionOffset(dx: 2, dy: 0)
         )
         #expect(editor.state.activeTab.canUndo)
-        #expect(!editor.state.activeTab.documentHistory.canUndo())
+        #expect(!editor.state.activeTab.hasUndoableEdit)
         #expect(try previewPixel(editor, x: 3, y: 1) == [0xFF, 0, 0, 0xFF])
     }
 
@@ -160,22 +161,22 @@ struct TouchStrokeRouterFloatingSelectionTests {
         #expect(try tab.document.getPixel(x: 1, y: 1) == red)
         #expect(try tab.document.getPixel(x: 2, y: 1).a == 0)
         #expect(tab.document.marquee() == source)
-        #expect(!tab.documentHistory.canUndo())
+        #expect(!tab.hasUndoableEdit)
         #expect(!tab.canUndo)
         #expect(!tab.isDrawing)
     }
 
     private func makeSelectionEditor() throws -> RoutedEditor {
-        let editor = RoutedEditor()
-        let tab = editor.state.activeTab
-        try tab.document.setPixel(
+        let document = makeSingleLayerDocument(width: 16, height: 16)
+        try document.setPixel(
             x: 1,
             y: 1,
             color: Color(r: 0xFF, g: 0, b: 0, a: 0xFF)
         )
-        try tab.document.setMarquee(
+        try document.setMarquee(
             region: AppleMarqueeRegion(x: 1, y: 1, width: 1, height: 1)
         )
+        let editor = RoutedEditor(state: workspaceWithDocument(document))
         editor.state.activateTool(.selection)
         return editor
     }

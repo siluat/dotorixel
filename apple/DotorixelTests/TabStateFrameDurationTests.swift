@@ -10,13 +10,16 @@ struct TabStateFrameDurationTests {
 
     /// A tab whose document carries a second frame, with the first frame
     /// re-activated so tests start at ordinal 1.
-    private func makeTwoFrameTab() throws -> (tab: TabState, first: String, second: String) {
-        let state = Workspace(width: 8, height: 8)
-        let tab = state.activeTab
-        let first = tab.document.activeFrameId()
+    private func makeTwoFrameTab(prepare: (AppleDocument) throws -> Void = { _ in }) throws -> (tab: TabState, first: String, second: String) {
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        let first = preparedDocument.activeFrameId()
         let second = makeFrameId()
-        try tab.document.addFrame(newId: second)
-        try tab.document.setActiveFrame(id: first)
+        try preparedDocument.addFrame(newId: second)
+        try preparedDocument.setActiveFrame(id: first)
+        try prepare(preparedDocument)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = state.activeTab
         return (tab, first, second)
     }
 

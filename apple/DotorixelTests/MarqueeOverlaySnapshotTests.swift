@@ -16,11 +16,13 @@ struct MarqueeOverlaySnapshotTests {
 
     @Test("an edge Marquee's ants clip at the canvas-area bounds")
     func edgeMarqueeClipsAtBounds() throws {
-        let state = Workspace(width: 8, height: 8)
-        let tab = state.activeTab
-        try tab.document.setMarquee(
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        try preparedDocument.setMarquee(
             region: AppleMarqueeRegion(x: 5, y: 5, width: 3, height: 3)
         )
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
+        let tab = state.activeTab
         // Pan pushes the Marquee's display rect (160…220pt) past the 200pt
         // frame — the reference image must show the ants cut at the edge.
         tab.viewport = AppleViewport(pixelSize: 20, zoom: 1.0, panX: 60, panY: 60)

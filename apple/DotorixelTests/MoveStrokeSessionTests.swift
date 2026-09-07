@@ -98,8 +98,10 @@ struct MoveStrokeSessionTests {
 
     @Test("a drag translates the whole drawing and release commits it")
     func dragTranslatesAndCommits() throws {
-        let state = Workspace(width: 8, height: 8)
-        try state.activeTab.document.setPixel(x: 2, y: 2, color: red)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 2, y: 2, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .move
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))
@@ -112,8 +114,10 @@ struct MoveStrokeSessionTests {
 
     @Test("reversing a drag back to the anchor restores the original positions")
     func reversedDragRestoresOriginalPositions() throws {
-        let state = Workspace(width: 8, height: 8)
-        try state.activeTab.document.setPixel(x: 2, y: 2, color: red)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 2, y: 2, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .move
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))
@@ -129,9 +133,11 @@ struct MoveStrokeSessionTests {
 
     @Test("pixels dragged off-canvas are clipped and vacated areas stay transparent")
     func offCanvasPixelsAreClippedOnCommit() throws {
-        let state = Workspace(width: 8, height: 8)
-        try state.activeTab.document.setPixel(x: 6, y: 6, color: red)
-        try state.activeTab.document.setPixel(x: 1, y: 1, color: red)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 6, y: 6, color: red)
+        try preparedDocument.setPixel(x: 1, y: 1, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .move
 
         // +3,+3: (6,6) lands past the edge and is clipped; (1,1) → (4,4).
@@ -153,8 +159,10 @@ struct MoveStrokeSessionTests {
 
     @Test("one undo restores the pre-move canvas; redo re-applies the move")
     func undoRestoresAndRedoReapplies() throws {
-        let state = Workspace(width: 8, height: 8)
-        try state.activeTab.document.setPixel(x: 2, y: 2, color: red)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 2, y: 2, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .move
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))
@@ -172,8 +180,10 @@ struct MoveStrokeSessionTests {
 
     @Test("cancel restores the pre-stroke pixels and leaves no undo entry")
     func cancelRestoresPreStrokePixels() throws {
-        let state = Workspace(width: 8, height: 8)
-        try state.activeTab.document.setPixel(x: 2, y: 2, color: red)
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        try preparedDocument.setPixel(x: 2, y: 2, color: red)
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.shared.activeTool = .move
 
         state.activeTab.beginStroke(at: ScreenCanvasCoords(x: 4, y: 4))

@@ -116,12 +116,14 @@ struct TabStateLayerReorderTests {
 
     @Test("reordering never changes which layer is active — including when the moved row is the active one")
     func reorderPreservesTheActiveLayer() throws {
-        let state = Workspace(width: 8, height: 8)
-        let bottomId = state.activeTab.document.activeLayerId()
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        let bottomId = preparedDocument.activeLayerId()
         let middleId = makeLayerId()
-        try state.activeTab.document.addLayer(newId: middleId, name: "Layer 2")
+        try preparedDocument.addLayer(newId: middleId, name: "Layer 2")
         let topId = makeLayerId()
-        try state.activeTab.document.addLayer(newId: topId, name: "Layer 3")
+        try preparedDocument.addLayer(newId: topId, name: "Layer 3")
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
         state.activeTab.setActiveLayer(id: middleId)
 
         // Moving another row leaves the active pointer where it was…
@@ -156,12 +158,14 @@ struct TabStateLayerReorderTests {
 
     @Test("a panel index past either end lands at that end — the core's silent clamp, mirrored")
     func outOfRangePanelIndexClampsToTheStackEnds() throws {
-        let state = Workspace(width: 8, height: 8)
-        let bottomId = state.activeTab.document.activeLayerId()
+        let preparedDocument = makeSingleLayerDocument(width: 8, height: 8)
+        let preparedShared = SharedState()
+        let bottomId = preparedDocument.activeLayerId()
         let middleId = makeLayerId()
-        try state.activeTab.document.addLayer(newId: middleId, name: "Layer 2")
+        try preparedDocument.addLayer(newId: middleId, name: "Layer 2")
         let topId = makeLayerId()
-        try state.activeTab.document.addLayer(newId: topId, name: "Layer 3")
+        try preparedDocument.addLayer(newId: topId, name: "Layer 3")
+        let state = workspaceWithDocument(preparedDocument, shared: preparedShared)
 
         // A drag released below the last row reports an index past the end;
         // the row lands at the panel's bottom rather than trapping on the

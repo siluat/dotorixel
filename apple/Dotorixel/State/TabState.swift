@@ -38,7 +38,7 @@ final class TabState {
     }
     private enum InitialContent {
         case fresh(width: UInt32, height: UInt32)
-        case snapshot(DocumentSnapshot)
+        case snapshot(DocumentSnapshot, timelinePanelCollapsed: Bool)
     }
 
     private init(
@@ -66,12 +66,13 @@ final class TabState {
                 consumePendingToolRestore: consumePendingToolRestore,
                 frameScheduler: frameScheduler, effects: effects
             )
-        case let .snapshot(snapshot):
+        case let .snapshot(snapshot, timelinePanelCollapsed):
             self.edit = try EditLifecycle(
                 shared: shared, snapshot: snapshot,
                 isConstrainHeld: isConstrainHeld,
                 consumePendingToolRestore: consumePendingToolRestore,
-                frameScheduler: frameScheduler, effects: effects
+                frameScheduler: frameScheduler, effects: effects,
+                restoreDocument: { try $0.makeDocument(timelinePanelCollapsed: timelinePanelCollapsed) }
             )
         }
     }
@@ -93,7 +94,11 @@ final class TabState {
             isConstrainHeld: isConstrainHeld,
             consumePendingToolRestore: consumePendingToolRestore,
             frameScheduler: frameScheduler,
-            content: .snapshot(DocumentSnapshot.capture(document)), viewport: viewport
+            content: .snapshot(
+                DocumentSnapshot.capture(document),
+                timelinePanelCollapsed: document.isTimelinePanelCollapsed()
+            ),
+            viewport: viewport
         )
     }
 
@@ -145,7 +150,7 @@ final class TabState {
             isConstrainHeld: isConstrainHeld,
             consumePendingToolRestore: consumePendingToolRestore,
             frameScheduler: frameScheduler,
-            content: .snapshot(snapshot.document),
+            content: .snapshot(snapshot.document, timelinePanelCollapsed: snapshot.timelinePanelCollapsed),
             viewport: AppleViewport(
                 pixelSize: snapshot.viewport.pixelSize,
                 zoom: snapshot.viewport.zoom,

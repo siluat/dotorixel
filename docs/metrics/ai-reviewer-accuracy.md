@@ -10,14 +10,17 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 232 | 176 | 56 | 333 | 76% | 35% |
-| cubic-dev-ai[bot] | 387 | 305 | 82 | 226 | 79% | 57% |
-| coderabbitai[bot] | 343 | 248 | 95 | 273 | 72% | 48% |
+| greptile-apps[bot] | 232 | 176 | 56 | 334 | 76% | 35% |
+| cubic-dev-ai[bot] | 388 | 306 | 82 | 226 | 79% | 58% |
+| coderabbitai[bot] | 343 | 248 | 95 | 274 | 72% | 48% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #387 | cubic-dev-ai[bot] | Accept | Re-review: preserve the persisted Timeline collapse flag when hydrating the owned Document; the shell restored it, but the core binding silently defaulted to false. Pass it through the existing restoration closure without a second Document construction. |
+| #387 | coderabbitai[bot] | Miss | Missed the dropped Timeline collapse hydration argument on re-review. |
+| #387 | greptile-apps[bot] | Miss | Missed the dropped Timeline collapse hydration argument on re-review. |
 | #387 | cubic-dev-ai[bot] | Accept | Clipboard fixture construction emitted persistence events; connect its test notifier only after setup and verify later events still flow. |
 | #387 | cubic-dev-ai[bot] | Reject | Removing the Reference-active Paste guard changes existing admission and Playback behavior; the comment incorrectly identifies this as a clearMarqueePixels path. |
 | #387 | cubic-dev-ai[bot] | Reject | Reference placement drafts survive layer deactivation on main too; track cleanup separately because this refactor explicitly preserves gesture behavior. |

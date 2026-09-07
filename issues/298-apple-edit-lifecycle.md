@@ -340,3 +340,10 @@ The transition regression matrix must cover the following observable outcomes:
   pinned iOS simulator without crashes; macOS arm64 build, Markdown lint, and
   diff checks passed. The added fixture regression also passed in the focused
   nine-test DirtyNotifier suite.
+- A second review identified that the owned Document defaulted the persisted
+  Timeline collapse flag to false. Tab restoration now carries that flag into
+  the existing hydration closure, preserving the binding contract without a
+  second Document construction. The externally prepared Document initializer
+  also preserves its binding flag when copying content across the value boundary.
+- Collapse hydration follow-up validation: all **816 tests in 141 suites**
+  passed without crashes on the pinned iOS simulator; macOS arm64 build passed.

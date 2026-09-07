@@ -27,14 +27,14 @@ struct WorkspaceSnapshotCaptureTests {
 
         let firstTab = snapshot.tabs[0]
         #expect(firstTab.name == "Untitled 1")
-        #expect(firstTab.width == 4)
-        #expect(firstTab.height == 4)
-        #expect(firstTab.activeLayerId == first.document.activeLayerId())
-        #expect(firstTab.nextLayerNumber == first.document.nextLayerNumber())
+        #expect(firstTab.document.width == 4)
+        #expect(firstTab.document.height == 4)
+        #expect(firstTab.document.activeLayerId == first.document.activeLayerId())
+        #expect(firstTab.document.nextLayerNumber == first.document.nextLayerNumber())
         #expect(firstTab.timelinePanelCollapsed)
         // The stroke landed at (1, 2): its RGBA slot in the row-major layer
         // buffer must hold the drawn foreground color (opaque black).
-        let pixels = firstTab.layers[0].pixels
+        let pixels = firstTab.document.layers[0].pixels
         let drawnOffset = (2 * 4 + 1) * 4
         #expect(Array(pixels[drawnOffset..<(drawnOffset + 4)]) == [0, 0, 0, 255])
 
@@ -73,13 +73,13 @@ struct WorkspaceSnapshotCaptureTests {
 
         let tabSnapshot = workspace.toSnapshot().tabs[0]
 
-        #expect(tabSnapshot.frames == tab.document.frames())
-        #expect(tabSnapshot.frames?.map(\.durationMs) == [80, 100])
-        #expect(tabSnapshot.activeFrameId == tab.document.activeFrameId())
+        #expect(tabSnapshot.document.frames == tab.document.frames())
+        #expect(tabSnapshot.document.frames?.map(\.durationMs) == [80, 100])
+        #expect(tabSnapshot.document.activeFrameId == tab.document.activeFrameId())
         #expect(tabSnapshot.viewport.showOnionSkin)
         // One cel per frame in axis order; the active (second) frame's cel is
         // the buffer `pixels` carries for single-frame consumers.
-        let layer = tabSnapshot.layers[0]
+        let layer = tabSnapshot.document.layers[0]
         #expect(layer.cels.map(\.frameId) == frames.map(\.id))
         #expect(layer.cels[1].pixels == layer.pixels)
         // The two frames hold distinct content: each stroke landed on its own
@@ -107,7 +107,7 @@ struct WorkspaceSnapshotCaptureTests {
 
         let snapshot = workspace.toSnapshot()
         let pixels = try #require(
-            snapshot.tabs[0].layers.first {
+            snapshot.tabs[0].document.layers.first {
                 $0.id == tab.document.activeLayerId()
             }
         ).pixels
@@ -149,8 +149,8 @@ struct WorkspaceSnapshotCaptureTests {
 
         // Pixel Layers persist exactly as before; the Reference rides
         // alongside instead of being skipped (the closed 278 gap).
-        #expect(tabSnapshot.layers.map(\.id) == [pixelLayerId])
-        let reference = try #require(tabSnapshot.reference)
+        #expect(tabSnapshot.document.layers.map(\.id) == [pixelLayerId])
+        let reference = try #require(tabSnapshot.document.reference)
         #expect(reference.name == "guide.png")
         #expect(reference.visible)
         #expect(reference.sourceRgba == sourceRgba)
@@ -160,7 +160,7 @@ struct WorkspaceSnapshotCaptureTests {
             == AppleReferencePlacement(x: 1.5, y: -2.0, scale: 3.0, rotation: 0))
         // Import left the Reference active; the snapshot keeps that pointer
         // (the 278 fallback to a Pixel Layer comes out).
-        #expect(tabSnapshot.activeLayerId == reference.id)
+        #expect(tabSnapshot.document.activeLayerId == reference.id)
 
         let restored = try Workspace(restoring: snapshot)
         let restoredTab = restored.activeTab

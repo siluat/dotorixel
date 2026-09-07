@@ -6,11 +6,10 @@ None
 
 ## Last Completed
 
-[296 — Apple GIF export](../issues/296-apple-gif-export.md): the animated
-GIF format joined the 294 export menu, closing Phase 6 — and with it the
-whole [013 RFC](../issues/013-apple-native-catchup.md): the Apple shell is
-at full web parity. No new String Catalog labels were needed ("GIF" stays
-an untranslated acronym, web parity).
+[297 — Apple Document Snapshot](../issues/297-apple-document-snapshot.md):
+Centralized Apple Document capture and reconstruction, separating content from
+tab presentation. Preserved the existing storage format, corruption recovery,
+and export results.
 
 ## Next Up
 
@@ -33,12 +32,9 @@ an untranslated acronym, web parity).
 - TimelinePanel mobile touch targets — frame + row icon buttons ≥44px on the mobile Timeline tab
 - Web pen priority — palm rejection + hover target cell (web counterpart of 252–254)
 - Apple tab strip keyboard navigation — ArrowLeft/Right + Home/End roving focus
-- Apple drag interruption recovery — one `scenePhase` guard for all three drag surfaces (layer rows, frame ruler, 280 placement overlay)
+- Apple drag interruption recovery — first reproduce residual state after interruption on a physical device
 - Apple bindings staleness guard — regenerate Swift bindings on binding-surface change; hit again in 285 and 382
-- Apple auto-save failure surfacing — needs a shell logging convention first
 - Apple toggleGrid dirty marking — align with the 292 onion-skin toggle's workspace mark; check the web siblings
 - Web hydration opacity validation — port the Apple `from_layers` opacity guard
 - Web playback edit-guard gaps mirrored from the 288 review — nudge/paste don't stop playback
 - Web session-save gaps mirrored from the 265 review — unstored-tab skip + shared-state document rewrite
-- Core/wasm `from_drag` span hardening — checked wide arithmetic if an unbounded coordinate source ever appears
-- Flaky e2e: Reference Window reload persistence — investigate if it recurs

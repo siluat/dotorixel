@@ -43,9 +43,9 @@ private enum LegacySessionSchema: VersionedSchema {
         init(from tab: TabSnapshot, at now: Date) {
             id = tab.id
             name = tab.name
-            width = Int(tab.width)
-            height = Int(tab.height)
-            layers = tab.layers.map {
+            width = Int(tab.document.width)
+            height = Int(tab.document.height)
+            layers = tab.document.layers.map {
                 StoredLayer(
                     id: $0.id,
                     name: $0.name,
@@ -54,8 +54,8 @@ private enum LegacySessionSchema: VersionedSchema {
                     pixels: $0.pixels
                 )
             }
-            activeLayerId = tab.activeLayerId
-            nextLayerNumber = Int(tab.nextLayerNumber)
+            activeLayerId = tab.document.activeLayerId
+            nextLayerNumber = Int(tab.document.nextLayerNumber)
             timelinePanelCollapsed = tab.timelinePanelCollapsed
             saved = false
             createdAt = now
@@ -147,11 +147,11 @@ struct SessionPersistenceTests {
 
         let restoredFirst = restored.tabs[0]
         let originalFirst = snapshot.tabs[0]
-        #expect(restoredFirst.width == 4)
-        #expect(restoredFirst.height == 4)
-        #expect(restoredFirst.layers == originalFirst.layers)
-        #expect(restoredFirst.activeLayerId == originalFirst.activeLayerId)
-        #expect(restoredFirst.nextLayerNumber == originalFirst.nextLayerNumber)
+        #expect(restoredFirst.document.width == 4)
+        #expect(restoredFirst.document.height == 4)
+        #expect(restoredFirst.document.layers == originalFirst.document.layers)
+        #expect(restoredFirst.document.activeLayerId == originalFirst.document.activeLayerId)
+        #expect(restoredFirst.document.nextLayerNumber == originalFirst.document.nextLayerNumber)
         #expect(restoredFirst.timelinePanelCollapsed)
         #expect(restoredFirst.viewport == originalFirst.viewport)
 
@@ -251,7 +251,7 @@ struct SessionPersistenceTests {
         try await persistence.save(workspace.toSnapshot(), dirtyDocIds: nil)
         let storedSnapshot = try #require(await persistence.restore())
 
-        let reference = try #require(storedSnapshot.tabs[0].reference)
+        let reference = try #require(storedSnapshot.tabs[0].document.reference)
         #expect(reference.name == "guide.png")
         #expect(reference.visible)
         // Round-trip fidelity: the stored compression must be lossless.
@@ -288,7 +288,7 @@ struct SessionPersistenceTests {
         let storedSnapshot = try #require(await persistence.restore())
         let restored = try Workspace(restoring: storedSnapshot)
 
-        #expect(storedSnapshot.tabs[0].reference == nil)
+        #expect(storedSnapshot.tabs[0].document.reference == nil)
         #expect(restored.activeTab.document.layers().map(\.kind) == [.pixel])
         #expect(restored.activeTab.referenceLayerUnderlay == nil)
     }
@@ -316,12 +316,12 @@ struct SessionPersistenceTests {
         let storedSnapshot = try #require(await persistence.restore())
         let restored = try Workspace(restoring: storedSnapshot)
 
-        #expect(storedSnapshot.tabs[0].reference == nil)
+        #expect(storedSnapshot.tabs[0].document.reference == nil)
         #expect(restored.activeTab.document.layers().map(\.kind) == [.pixel])
         // The stored active pointer named the dropped reference; it remaps
         // to the topmost Pixel Layer instead of failing hydration.
         #expect(restored.activeTab.document.activeLayerId()
-            == storedSnapshot.tabs[0].layers.last?.id)
+            == storedSnapshot.tabs[0].document.layers.last?.id)
         #expect(restored.activeTab.document.composite() == expectedPixels)
     }
 
@@ -344,7 +344,7 @@ struct SessionPersistenceTests {
         let storedSnapshot = try #require(await persistence.restore())
         let restored = try Workspace(restoring: storedSnapshot)
 
-        #expect(storedSnapshot.tabs[0].reference == nil)
+        #expect(storedSnapshot.tabs[0].document.reference == nil)
         #expect(restored.activeTab.document.layers().map(\.kind) == [.pixel])
     }
 
@@ -371,7 +371,7 @@ struct SessionPersistenceTests {
         let storedSnapshot = try #require(await persistence.restore())
         let restored = try Workspace(restoring: storedSnapshot)
 
-        #expect(storedSnapshot.tabs[0].reference == nil)
+        #expect(storedSnapshot.tabs[0].document.reference == nil)
         #expect(restored.activeTab.document.layers().map(\.kind) == [.pixel])
         #expect(restored.activeTab.document.activeLayerId() == pixelLayerId)
     }
@@ -399,7 +399,7 @@ struct SessionPersistenceTests {
         let storedSnapshot = try #require(await persistence.restore())
         let restored = try Workspace(restoring: storedSnapshot)
 
-        #expect(storedSnapshot.tabs[0].reference == nil)
+        #expect(storedSnapshot.tabs[0].document.reference == nil)
         #expect(restored.activeTab.document.layers().map(\.kind) == [.pixel])
     }
 
@@ -430,7 +430,7 @@ struct SessionPersistenceTests {
         let storedSnapshot = try #require(await persistence.restore())
         let restored = try Workspace(restoring: storedSnapshot)
 
-        #expect(storedSnapshot.tabs[0].reference == nil)
+        #expect(storedSnapshot.tabs[0].document.reference == nil)
         #expect(restored.activeTab.document.activeLayerId() == bottomPixelId)
     }
 
@@ -447,7 +447,7 @@ struct SessionPersistenceTests {
         let storedSnapshot = try #require(await persistence.restore())
         let restored = try Workspace(restoring: storedSnapshot)
 
-        #expect(storedSnapshot.tabs[0].marquee == nil)
+        #expect(storedSnapshot.tabs[0].document.marquee == nil)
         #expect(restored.activeTab.marquee == nil)
         #expect(restored.activeTab.document.composite() == expectedPixels)
     }
@@ -481,15 +481,15 @@ struct SessionPersistenceTests {
         let storedSnapshot = try #require(await persistence.restore())
         let restored = try Workspace(restoring: storedSnapshot)
 
-        #expect(storedSnapshot.tabs[0].marquee == nil)
+        #expect(storedSnapshot.tabs[0].document.marquee == nil)
         // The pre-reference record also restores reference-free.
-        #expect(storedSnapshot.tabs[0].reference == nil)
+        #expect(storedSnapshot.tabs[0].document.reference == nil)
         #expect(restored.activeTab.marquee == nil)
         #expect(restored.activeTab.document.composite() == expectedPixels)
         // The pre-animation record restores as a one-frame document with the
         // default duration and the onion skin off — no pixel loss, no
         // migration pass.
-        #expect(storedSnapshot.tabs[0].frames == nil)
+        #expect(storedSnapshot.tabs[0].document.frames == nil)
         let restoredFrames = restored.activeTab.document.frames()
         #expect(restoredFrames.count == 1)
         #expect(restoredFrames[0].durationMs == 100)
@@ -571,7 +571,7 @@ struct SessionPersistenceTests {
 
         // The frame axis is dropped; the active frame's stored buffer
         // becomes the one-frame document's content.
-        #expect(storedSnapshot.tabs[0].frames == nil)
+        #expect(storedSnapshot.tabs[0].document.frames == nil)
         #expect(restored.activeTab.document.frames().count == 1)
         #expect(restored.activeTab.document.composite() == expectedPixels)
     }
@@ -620,7 +620,7 @@ struct SessionPersistenceTests {
         let storedSnapshot = try #require(await persistence.restore())
         let restored = try Workspace(restoring: storedSnapshot)
 
-        #expect(storedSnapshot.tabs[0].frames == nil)
+        #expect(storedSnapshot.tabs[0].document.frames == nil)
         #expect(restored.activeTab.document.frames().count == 1)
     }
 
@@ -908,7 +908,7 @@ struct SessionPersistenceTests {
         let snapshot = try #require(await persistence.savedDocumentSnapshot(id: tab.documentId))
 
         #expect(snapshot.id == tab.documentId)
-        #expect(snapshot.layers == workspace.toSnapshot().tabs[0].layers)
+        #expect(snapshot.document.layers == workspace.toSnapshot().tabs[0].document.layers)
         // Reopening resets the view (web parity: `DEFAULT_VIEWPORT`).
         #expect(snapshot.viewport ==
             TabViewportSnapshot(

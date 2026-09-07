@@ -10,6 +10,10 @@ DOTORIXEL is a pixel art editor with a Svelte web shell, an Apple SwiftUI shell,
 The artifact a user edits and saves — one piece of pixel art with its own canvas dimensions, layer stack, and active-layer pointer.
 _Avoid_: artwork (too vague — also used for portfolio sharing), composition (overlaps with the rendering term), image (used for reference images and exports).
 
+**Document Snapshot**:
+A preservation-oriented value of a Document's content and editing pointers, including its Layers, Frames, Cels, Reference Layer, and Marquee, with a Floating Selection represented by its pre-commit pixels rather than its transient preview. It excludes tab identity, naming, viewport and panel presentation, Playback, and History; it is neither an undo entry nor an encoded project file.
+_Avoid_: Snapshot alone (ambiguous with History), Tab Snapshot (also includes tab state), export image (contains only rendered pixel output).
+
 **Layer**:
 A named slot inside a Document — exactly one of Pixel Layer or Reference Layer — carrying its own visibility and opacity.
 _Avoid_: tile, slice, stack (the *collection* of layers; an individual entry is a Layer). Not a synonym for **Frame** — Layer (space) and Frame (time) are orthogonal axes; a Pixel Layer spans every frame, holding one Cel per frame.

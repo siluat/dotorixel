@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 297 | [Apple Document Snapshot — centralize capture/reconstruction and separate tab state](../issues/297-apple-document-snapshot.md) | 2026-09-07 |
 | 296 | [Apple GIF export — animated GIF honoring per-frame durations](../issues/296-apple-gif-export.md) | 2026-08-20 |
 | 013 | [Apple native catch-up — phased strategy to reach full web parity](../issues/013-apple-native-catchup.md) | 2026-08-20 |
 | 295 | [Apple spritesheet export — horizontal-strip PNG of every frame](../issues/295-apple-spritesheet-export.md) | 2026-08-19 |

@@ -6,10 +6,9 @@ None.
 
 ## Last Completed
 
-[298 — Apple Edit lifecycle](../issues/298-apple-edit-lifecycle.md):
-Centralized editing ownership and transition policy while preserving existing
-behavior. Mutable content access is closed; all 816 Apple tests and the macOS
-build passed.
+[299 — Apple Frame Duration Draft lifecycle](../issues/299-apple-frame-duration-draft-lifecycle.md):
+Duration input stays with its originating tab and Frame across transitions;
+stale focus events preserve Undo/Redo. Physical keyboard verification remains open.
 
 ## Next Up
 
@@ -39,3 +38,6 @@ build passed.
 - Web hydration opacity validation — port the Apple `from_layers` opacity guard
 - Web playback edit-guard gaps mirrored from the 288 review — nudge/paste don't stop playback
 - Web session-save gaps mirrored from the 265 review — unstored-tab skip + shared-state document rewrite
+- Dual Shell comparison — input latency from event to pixel update on both shells
+- Dual Shell comparison — native app and web bundle sizes
+- Dual Shell comparison — implementation effort per feature

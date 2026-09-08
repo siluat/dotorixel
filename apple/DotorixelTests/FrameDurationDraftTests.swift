@@ -1,64 +1,56 @@
-import Foundation
 import Testing
 @testable import Dotorixel
 
-/// Draft-commit resolution for the Timeline's duration editor (issue 287):
-/// how the field's raw in-progress text resolves on commit — a value to
-/// dispatch, or `nil` to revert the draft to the stored duration. Web parity
-/// (`commitFrameDuration` in `TimelinePanel.svelte`), except that the web
-/// forwards out-of-range integers for the WASM boundary to clamp; the Swift
-/// shell resolves them here because a `UInt32` dispatch cannot carry them.
-@Suite("Frame duration draft resolution")
+/// Input validation exercised through the same lifecycle as the Timeline,
+/// including actual Edit admission, stored-value reconciliation, and History.
+@Suite("Frame Duration Draft — input validation through the lifecycle")
 struct FrameDurationDraftTests {
+    private static let inputCases: [(String, UInt32, UInt32)] = [
+        ("250", UInt32(100), UInt32(250)),
+        (" 250 ", 100, 250),
+        ("250\n", 100, 250),
+        ("\n 250", 100, 250),
+        ("", 100, 100),
+        ("   ", 100, 100),
+        ("abc", 100, 100),
+        ("100.5", 100, 100),
+        ("12a", 100, 100),
+        ("1e3", 100, 100),
+        ("100", 100, 100),
+        ("0", 100, frameMinDurationMs()),
+        ("-5", 100, frameMinDurationMs()),
+        (String(UInt64(frameMaxDurationMs()) + 1), 100, frameMaxDurationMs()),
+        ("99999999999999999999", 100, frameMaxDurationMs()),
+        ("-5", frameMinDurationMs(), frameMinDurationMs()),
+        ("99999999999999999999", frameMaxDurationMs(), frameMaxDurationMs())
+    ]
 
-    @Test("a changed in-range integer resolves to its value")
-    func changedInRangeIntegerResolves() {
-        #expect(FrameDurationDraft.resolveCommit(draft: "250", current: 100) == 250)
-    }
+    @Test("confirmation clamps or reverts input without destroying a no-op's redo future", arguments: inputCases)
+    func confirmInput(inputCase: (input: String, initial: UInt32, expected: UInt32)) throws {
+        let (input, initial, expected) = inputCase
+        let prepared = makeSingleLayerDocument(width: 8, height: 8)
+        try prepared.setFrameDuration(id: prepared.activeFrameId(), durationMs: initial)
+        let tab = workspaceWithDocument(prepared).activeTab
+        tab.setFrameDuration(id: tab.activeFrameId, durationMs: 500)
+        tab.handleUndo()
+        #expect(tab.canRedo)
 
-    @Test("surrounding whitespace and newlines do not invalidate the entry")
-    func whitespaceAndNewlinesAreTrimmed() {
-        #expect(FrameDurationDraft.resolveCommit(draft: " 250 ", current: 100) == 250)
-        // A pasted value can carry a line break; the web's `trim()` strips it.
-        #expect(FrameDurationDraft.resolveCommit(draft: "250\n", current: 100) == 250)
-        #expect(FrameDurationDraft.resolveCommit(draft: "\n 250", current: 100) == 250)
-    }
-
-    @Test(
-        "empty, non-numeric, and fractional entries revert — duration is integer ms",
-        arguments: ["", "   ", "abc", "100.5", "12a", "1e3"]
-    )
-    func invalidEntriesRevert(draft: String) {
-        #expect(FrameDurationDraft.resolveCommit(draft: draft, current: 250) == nil)
-    }
-
-    @Test("committing the stored value reverts without dispatching")
-    func unchangedCommitReverts() {
-        #expect(FrameDurationDraft.resolveCommit(draft: "250", current: 250) == nil)
-    }
-
-    @Test("an entry above the range resolves to the binding-owned maximum")
-    func aboveRangeClampsToTheBindingMaximum() {
-        let overMax = String(UInt64(frameMaxDurationMs()) + 1)
-        #expect(FrameDurationDraft.resolveCommit(draft: overMax, current: 100) == frameMaxDurationMs())
-        // Far past what a UInt32 dispatch could even carry — still the maximum.
-        #expect(
-            FrameDurationDraft.resolveCommit(draft: "99999999999999999999", current: 100)
-                == frameMaxDurationMs()
-        )
-    }
-
-    @Test("a zero or negative entry resolves to the binding-owned minimum")
-    func zeroOrNegativeClampsToTheBindingMinimum() {
-        #expect(FrameDurationDraft.resolveCommit(draft: "0", current: 100) == frameMinDurationMs())
-        #expect(FrameDurationDraft.resolveCommit(draft: "-5", current: 100) == frameMinDurationMs())
-    }
-
-    @Test("a clamp that lands on the stored value reverts without dispatching")
-    func clampLandingOnTheStoredValueReverts() {
-        let overMax = String(UInt64(frameMaxDurationMs()) + 1)
-        #expect(
-            FrameDurationDraft.resolveCommit(draft: overMax, current: frameMaxDurationMs()) == nil
-        )
+        let draft = FrameDurationDraft(tab: tab)
+        draft.focusChanged(isFocused: true)
+        draft.text = input
+        draft.confirm()
+        #expect(draft.text == String(expected))
+        #expect(tab.frameColumns[0].durationMs == expected)
+        if expected == initial {
+            #expect(!tab.canUndo)
+            #expect(tab.canRedo)
+            tab.handleRedo()
+            #expect(tab.frameColumns[0].durationMs == 500)
+        } else {
+            #expect(!tab.canRedo)
+            tab.handleUndo()
+            #expect(tab.frameColumns[0].durationMs == initial)
+            #expect(!tab.canUndo)
+        }
     }
 }

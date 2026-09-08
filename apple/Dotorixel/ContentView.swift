@@ -120,8 +120,8 @@ struct ContentView: View {
                             tab: tab,
                             // The duration field must not feed the app-level
                             // shortcut monitor (the canvas-size fields' contract).
-                            onTextInputFocusChange: {
-                                workspace.setTextInputFocus(owner: .frameDurationEditor, isFocused: $0)
+                            onTextInputFocusChange: { ownerId, isFocused in
+                                workspace.setTextInputFocus(owner: .frameDurationEditor(ownerId), isFocused: isFocused)
                             }
                         )
                     }

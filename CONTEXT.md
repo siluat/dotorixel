@@ -66,6 +66,10 @@ _Avoid_: ghosting (the GIF-export disposal artifact), tracing (Reference Layer v
 
 ### Timeline
 
+**Frame Duration Draft**:
+The transient, uncommitted text for a Frame's display duration, belonging to the tab and Frame where the input began rather than whichever target is currently active. Switching Frames resolves it against the Frame being left; switching tabs resolves it against its originating tab and Frame and ends that draft, while the destination displays its own stored duration.
+_Avoid_: duration (the committed Frame metadata), pending Edit (no Edit Baseline is open merely because text is being entered), global draft (the input belongs to one tab and Frame).
+
 **Reorder Interaction**:
 The pointer- and keyboard-driven lifecycle for reordering items along one visual axis — begin → clamped preview (allowed-target snap + displacement translate) → drop commit, including tap-vs-drag discrimination and trailing-click suppression when the item doubles as a select target. Owned per shell, one implementation each with two adapters: the web's covers the Timeline's Layer rows (vertical) and Frame ruler cells (horizontal); the Apple shell's SwiftUI counterpart (`ReorderDrag`) covers the same two axes, driven from a per-row handle for Layer rows and from the ordinal header itself — which doubles as the Active Frame's select target — for Frame columns. Trailing-click suppression is a web-only obligation: SwiftUI resolves tap-vs-drag inside the one gesture that owns both roles, so no select action fires behind a completed drag to suppress.
 _Avoid_: drag reorder (names only the pointer species), drag & drop (implies data transfer), sort (a data operation, not an interaction).

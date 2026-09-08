@@ -16,6 +16,22 @@ the live editing Document. Use editing commands for changes after construction.
 `EditBindingFaults` injects binding failures without giving tests access to the
 owned Document; `FakeFrameScheduler` controls Playback deterministically.
 
+## Frame Duration Draft testing
+
+`FrameDurationLifecycleTests` and `FrameDurationDraftTests` use the same draft
+interface as the Timeline, backed by real TabState, Edit, and core History.
+They cover target ownership, completion and cancellation, stored-value
+reconciliation, rejected edits, input validation, and preservation of the redo
+future. Parsing is private implementation, not a separate test surface.
+
+`FrameDurationInputTests` hosts the actual SwiftUI Timeline on the iOS simulator
+and feeds its native text field. It verifies Frame and tab observation, separate
+input lifetimes for tabs sharing a Frame ID, completion/focus-loss wiring,
+collapse/reopen behavior, and shortcut focus release. It restores the previous
+key window after each check. These tests do not synthesize physical keyboard
+keys: hardware Return/Escape and device keyboard ergonomics still need a
+hands-on pass. Existing Timeline snapshots continue to guard rendered layout.
+
 ## View snapshot testing (docked region views)
 
 `DockedRegionSnapshotTests` uses

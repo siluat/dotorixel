@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Dotorixel
 
@@ -454,6 +455,7 @@ struct WorkspaceOpenSnapshotTests {
 /// publisher's release clobber the other's live claim.
 @Suite("Workspace — text-input focus claims")
 struct WorkspaceTextInputFocusTests {
+    private let durationFocusOwnerId = UUID()
 
     @Test("a claim pauses shortcuts and its release resumes them")
     func claimAndReleaseToggleTheFlag() {
@@ -475,7 +477,7 @@ struct WorkspaceTextInputFocusTests {
         let workspace = Workspace(width: 8, height: 8)
         workspace.setTextInputFocus(owner: .canvasSizeFields, isFocused: true)
 
-        workspace.setTextInputFocus(owner: .frameDurationEditor, isFocused: false)
+        workspace.setTextInputFocus(owner: .frameDurationEditor(durationFocusOwnerId), isFocused: false)
         #expect(workspace.isTextInputFocused)
     }
 
@@ -484,10 +486,10 @@ struct WorkspaceTextInputFocusTests {
         // SwiftUI does not order the two fields' focus-change closures, so
         // the old owner's release may land after the new owner's claim.
         let workspace = Workspace(width: 8, height: 8)
-        workspace.setTextInputFocus(owner: .frameDurationEditor, isFocused: true)
+        workspace.setTextInputFocus(owner: .frameDurationEditor(durationFocusOwnerId), isFocused: true)
         workspace.setTextInputFocus(owner: .canvasSizeFields, isFocused: true)
 
-        workspace.setTextInputFocus(owner: .frameDurationEditor, isFocused: false)
+        workspace.setTextInputFocus(owner: .frameDurationEditor(durationFocusOwnerId), isFocused: false)
         #expect(workspace.isTextInputFocused)
 
         workspace.setTextInputFocus(owner: .canvasSizeFields, isFocused: false)

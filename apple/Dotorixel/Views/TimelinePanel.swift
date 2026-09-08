@@ -19,7 +19,7 @@ struct TimelinePanel: View {
     /// `KeyboardShortcutHost` guard RightPanel's size fields feed the same
     /// way). A closure rather than the `Workspace` itself: the flag is the
     /// panel's only workspace concern, and headless renders pass nothing.
-    var onTextInputFocusChange: (Bool) -> Void = { _ in }
+    var onTextInputFocusChange: (UUID, Bool) -> Void = { _, _ in }
 
     /// The layer reorder drag currently under a handle, or nil while none is.
     /// View-local by nature: it lives and dies with the gesture and never
@@ -41,14 +41,6 @@ struct TimelinePanel: View {
     )
     @State private var isReferenceImporterPresented = false
     @State private var referenceImportErrorMessage: String?
-
-    /// Controlled draft for the duration editor: it mirrors the active frame's
-    /// stored duration but holds the user's raw in-progress text while editing
-    /// (web parity). Typing only mutates the draft; the stored value re-seeds
-    /// it on frame switch, undo, or the post-commit clamp round-trip — the
-    /// paths where the draft would otherwise show a stale number.
-    @State private var durationDraft = ""
-    @FocusState private var isDurationEditorFocused: Bool
 
     /// How far the frame grid is scrolled along the axis — zero at rest and
     /// negative once scrolled, the leading edge's position in the scroller's
@@ -83,10 +75,6 @@ struct TimelinePanel: View {
     /// header reserves for the active accent bar, plus a 1pt gap so the glyph
     /// never touches the bar itself.
     private var playheadMarkerTopInset: CGFloat { activeBarWidth + 1 }
-
-    /// The duration editor field's width — the web's mobile sizing for this
-    /// control (64px), whose height the 44pt ruler band already provides.
-    private let durationFieldWidth: CGFloat = 64
 
     /// The photo glyph marking the Reference Layer, drawn on both its sidebar
     /// row and its grid band. Smaller than `DesignTokens.iconSize` on purpose:
@@ -707,28 +695,6 @@ struct TimelinePanel: View {
         activeFrameDurationMs > 0 ? Int((1000 / Double(activeFrameDurationMs)).rounded()) : 0
     }
 
-    /// Commits the draft on submit / focus loss: a resolved value dispatches
-    /// one undoable retime, and the field reconciles to the stored truth
-    /// either way — reverting an invalid or unchanged entry, snapping a
-    /// clamped one to the bound it landed on.
-    ///
-    /// `frameId` names the frame the edit belongs to and defaults to the
-    /// active one; the mid-edit frame switch passes the frame being left,
-    /// because by the time it can commit the switch has already happened (on
-    /// the web the field blurs *before* the click switches frames, so its
-    /// commit lands on the old frame for free).
-    private func commitDurationDraft(to frameId: String? = nil) {
-        let targetId = frameId ?? tab.activeFrameId
-        // A vanished target (its frame undone away mid-edit) resolves against
-        // 0 and dispatches; the binding refuses the unknown id and records
-        // nothing, so the commit degrades to the revert below.
-        let stored = frameColumns.first(where: { $0.id == targetId })?.durationMs ?? 0
-        if let value = FrameDurationDraft.resolveCommit(draft: durationDraft, current: stored) {
-            tab.setFrameDuration(id: targetId, durationMs: value)
-        }
-        durationDraft = String(activeFrameDurationMs)
-    }
-
     /// The top-left corner doubles as the active frame's duration editor (194
     /// design, issue 287): aligned with the ruler, it edits whichever frame is
     /// active, beside the read-only fps helper. The field spans the ruler's
@@ -736,7 +702,8 @@ struct TimelinePanel: View {
     /// sizing for this same control).
     private func durationCorner(width: CGFloat) -> some View {
         HStack(spacing: DesignTokens.space2) {
-            durationField
+            FrameDurationField(tab: tab, onFocusChange: onTextInputFocusChange)
+                .id(ObjectIdentifier(tab))
             Text(verbatim: "ms")
                 .font(.system(size: DesignTokens.fontSizeSm))
                 .foregroundStyle(DesignTokens.textSecondary)
@@ -749,91 +716,6 @@ struct TimelinePanel: View {
         }
         .padding(.horizontal, DesignTokens.space3)
         .frame(width: width, height: rulerHeight)
-    }
-
-    /// What the duration editor's sync observes as one value: the active
-    /// frame and its stored duration. See the `onChange` on `durationField`.
-    private struct DurationEditorSyncKey: Equatable {
-        let frameId: String
-        let storedMs: UInt32
-    }
-
-    private var durationField: some View {
-        TextField("", text: $durationDraft)
-            .textFieldStyle(.plain)
-            .multilineTextAlignment(.center)
-            .font(.system(size: DesignTokens.fontSizeSm))
-            .foregroundStyle(DesignTokens.textPrimary)
-            .frame(width: durationFieldWidth)
-            .frame(maxHeight: .infinity)
-            .background(DesignTokens.bgSurface)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusSm))
-            .overlay {
-                RoundedRectangle(cornerRadius: DesignTokens.radiusSm)
-                    .strokeBorder(
-                        isDurationEditorFocused ? DesignTokens.accent : DesignTokens.borderSubtle
-                    )
-            }
-            .focused($isDurationEditorFocused)
-            #if os(iOS)
-            .keyboardType(.numberPad)
-            #endif
-            .accessibilityLabel(Text("Frame duration in milliseconds"))
-            // Submit commits in place (web parity: Enter never forces a blur,
-            // which would fire a second, stale commit); Escape discards the
-            // in-progress edit and restores the stored value.
-            .onSubmit { commitDurationDraft() }
-            .onKeyPress(.escape) {
-                durationDraft = String(activeFrameDurationMs)
-                isDurationEditorFocused = false
-                return .handled
-            }
-            .onChange(of: isDurationEditorFocused) { _, isFocused in
-                onTextInputFocusChange(isFocused)
-                if !isFocused { commitDurationDraft() }
-            }
-            // Collapsing the panel removes the field without a focus-change
-            // closure ever firing (RightPanel clears the same flag the same
-            // way), so teardown commits the in-progress edit — the web's
-            // collapse blurs and commits — resets the focus state, and
-            // releases the shortcut guard. Unconditionally: SwiftUI's own
-            // reset of a removed field's focus binding is not ordered against
-            // this closure, so gating on the binding races it both ways — a
-            // stale true re-focuses the reopened field with the guard never
-            // published, and an early reset skips the commit and leaves the
-            // guard stuck set. A non-edited draft commits as a no-op and the
-            // resets are idempotent, so running all three is always safe.
-            .onDisappear {
-                commitDurationDraft()
-                isDurationEditorFocused = false
-                onTextInputFocusChange(false)
-            }
-            // One observation sees the frame switch and the same-frame store
-            // change together, so the two are told apart without relying on
-            // the ordering of separate `onChange` modifiers.
-            .onChange(of: DurationEditorSyncKey(
-                frameId: tab.activeFrameId,
-                storedMs: activeFrameDurationMs
-            )) { previous, current in
-                if current.frameId != previous.frameId {
-                    // A ruler tap switches frames without resigning the
-                    // field's focus (SwiftUI taps outside a TextField don't),
-                    // so a mid-edit switch commits the in-progress edit to the
-                    // frame it was typed for — the frame being left — rather
-                    // than leaking it onto the new frame or losing it. (The
-                    // web gets this for free: its field blurs before the
-                    // click switches frames.)
-                    if isDurationEditorFocused {
-                        commitDurationDraft(to: previous.frameId)
-                    }
-                    durationDraft = String(activeFrameDurationMs)
-                } else {
-                    // Same frame, stored value changed — undo, redo, or the
-                    // post-commit clamp round-trip: re-sync the draft.
-                    durationDraft = String(current.storedMs)
-                }
-            }
-            .onAppear { durationDraft = String(activeFrameDurationMs) }
     }
 
     /// The ordinal headers, pinned vertically and scrolled horizontally by the

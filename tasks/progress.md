@@ -6,10 +6,9 @@ None.
 
 ## Last Completed
 
-[298 — Apple Edit lifecycle](../issues/298-apple-edit-lifecycle.md):
-Centralized editing ownership and transition policy while preserving existing
-behavior. Mutable content access is closed; all 816 Apple tests and the macOS
-build passed.
+[299 — Apple Frame Duration Draft lifecycle](../issues/299-apple-frame-duration-draft-lifecycle.md):
+Duration input stays with its originating tab and Frame across transitions;
+stale focus events preserve Undo/Redo. Physical keyboard verification remains open.
 
 ## Next Up
 

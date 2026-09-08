@@ -48,10 +48,12 @@ final class Workspace {
     /// unconditionally, and a focus move between two fields publishes in an
     /// order SwiftUI does not define — so a shared Bool would let either
     /// publisher's release clobber the other's live claim (PR #375 review).
-    enum TextInputFocusOwner {
+    enum TextInputFocusOwner: Hashable {
         case canvasSizeFields
         case saveDialog
-        case frameDurationEditor
+        /// Per-mounted-input identity keeps late teardown from releasing a
+        /// different tab's or a reopened duration field's claim.
+        case frameDurationEditor(UUID)
     }
 
     private var textInputFocusOwners: Set<TextInputFocusOwner> = []

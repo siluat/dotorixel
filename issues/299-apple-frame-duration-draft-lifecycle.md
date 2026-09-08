@@ -268,3 +268,12 @@ task, following the user's explicit request to proceed directly from this PRD.
   Markdown lint passed.
 - Physical keyboard Return/Escape and device keyboard ergonomics remain a
   hands-on verification limit, as documented above.
+
+### PR Review Follow-up
+
+- Accepted cubic's documentation findings on PR #388: keep the Dual Shell
+  comparison deferred rather than promoting its subtasks into Next Up, and
+  restore the platform-status description of integer clamping and invalid
+  input reverting to the stored duration.
+- Declined CodeRabbit's blanket 80% docstring threshold: the lifecycle API
+  already documents its contracts, consistent with the development guide.

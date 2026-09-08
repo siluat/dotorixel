@@ -10,14 +10,19 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 232 | 176 | 56 | 334 | 76% | 35% |
-| cubic-dev-ai[bot] | 389 | 306 | 83 | 226 | 79% | 58% |
-| coderabbitai[bot] | 344 | 248 | 96 | 274 | 72% | 48% |
+| greptile-apps[bot] | 232 | 176 | 56 | 336 | 76% | 34% |
+| cubic-dev-ai[bot] | 391 | 308 | 83 | 226 | 79% | 58% |
+| coderabbitai[bot] | 345 | 248 | 97 | 276 | 72% | 47% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #388 | cubic-dev-ai[bot] | Accept | Remove the three Dual Shell comparison entries from Next Up; their source task remains Deferred in todo.md. |
+| #388 | cubic-dev-ai[bot] | Accept | Restore the platform-status row's out-of-range integer clamp and invalid-input reversion semantics alongside the new Apple draft lifecycle behavior. |
+| #388 | coderabbitai[bot] | Reject | The lifecycle API already documents its consumer-facing contracts; a blanket 80% docstring threshold across helpers and tests is not a repository requirement. |
+| #388 | coderabbitai[bot] | Miss (×2) | Missed the deferred-task promotion and dropped input-behavior documentation accepted from cubic. |
+| #388 | greptile-apps[bot] | Miss (×2) | Missed the deferred-task promotion and dropped input-behavior documentation accepted from cubic. |
 | #387 | coderabbitai[bot] | Reject | The document-input initializer leaves tab presentation at defaults on main too; restoring persisted presentation belongs to the TabSnapshot initializer, which already restores both shell and core collapse values. Seeding the shell flag here would change existing behavior. |
 | #387 | cubic-dev-ai[bot] | Reject | Same proposal to seed shell collapse from the document-input initializer; rejected because content import and persisted tab restoration retain distinct existing presentation behavior. |
 | #387 | cubic-dev-ai[bot] | Accept | Re-review: preserve the persisted Timeline collapse flag when hydrating the owned Document; the shell restored it, but the core binding silently defaulted to false. Pass it through the existing restoration closure without a second Document construction. |

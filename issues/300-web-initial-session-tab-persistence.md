@@ -65,7 +65,7 @@ dirty sets supplied by other callers, browser GUI testing, and Apple behavior.
 - The lower-level save method still relies on its caller's dirty set. Keep possible
   hardening separate from a proven current user-flow defect.
 
-### Validation
+### Validation (2026-10-20)
 
 - `bun run test src/lib/session/session.test.ts`: 8 passed (includes WASM build).
 - Mutation run of the new test: expected assertion failure; source restored.

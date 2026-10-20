@@ -10,14 +10,16 @@ only Miss rows may be grouped, with an explicit (×N) count.
 
 | Reviewer | Total | Accept | Reject | Miss | Accept % | Recall |
 |----------|-------|--------|--------|------|----------|--------|
-| greptile-apps[bot] | 232 | 176 | 56 | 336 | 76% | 34% |
-| cubic-dev-ai[bot] | 391 | 308 | 83 | 226 | 79% | 58% |
+| greptile-apps[bot] | 232 | 176 | 56 | 337 | 76% | 34% |
+| cubic-dev-ai[bot] | 392 | 309 | 83 | 226 | 79% | 58% |
 | coderabbitai[bot] | 345 | 248 | 97 | 276 | 72% | 47% |
 
 ## Log
 
 | PR | Reviewer | Verdict | Summary |
 |----|----------|---------|---------|
+| #389 | cubic-dev-ai[bot] | Accept | Partial: date the issue's validation results; omit the PR-preparation rerun disclaimer because the PR body already records it and the existing results remain valid. |
+| #389 | greptile-apps[bot] | Miss | Missed the optional validation-date clarification accepted from cubic; CodeRabbit explicitly skipped review and is not counted as a reviewing participant. |
 | #388 | cubic-dev-ai[bot] | Accept | Remove the three Dual Shell comparison entries from Next Up; their source task remains Deferred in todo.md. |
 | #388 | cubic-dev-ai[bot] | Accept | Restore the platform-status row's out-of-range integer clamp and invalid-input reversion semantics alongside the new Apple draft lifecycle behavior. |
 | #388 | coderabbitai[bot] | Reject | The lifecycle API already documents its consumer-facing contracts; a blanket 80% docstring threshold across helpers and tests is not a repository requirement. |

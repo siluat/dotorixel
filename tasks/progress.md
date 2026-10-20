@@ -6,9 +6,9 @@ None.
 
 ## Last Completed
 
-[299 — Apple Frame Duration Draft lifecycle](../issues/299-apple-frame-duration-draft-lifecycle.md):
-Duration input stays with its originating tab and Frame across transitions;
-stale focus events preserve Undo/Redo. Physical keyboard verification remains open.
+[300 — Web initial session tab persistence verification](../issues/300-web-initial-session-tab-persistence.md):
+Two untouched tabs survive the first save and reopen without manual dirty
+notifications. Production code unchanged; shared-state document rewrites remain open.
 
 ## Next Up
 
@@ -37,4 +37,4 @@ stale focus events preserve Undo/Redo. Physical keyboard verification remains op
 - Apple toggleGrid dirty marking — align with the 292 onion-skin toggle's workspace mark; check the web siblings
 - Web hydration opacity validation — port the Apple `from_layers` opacity guard
 - Web playback edit-guard gaps mirrored from the 288 review — nudge/paste don't stop playback
-- Web session-save gaps mirrored from the 265 review — unstored-tab skip + shared-state document rewrite
+- Web shared-state document rewrite — avoid document writes for workspace-only changes

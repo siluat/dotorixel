@@ -31,6 +31,34 @@ describe('openSession', () => {
 		session.dispose();
 	});
 
+	it('restores both untouched tabs when a second tab is added before the first save', async () => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		try {
+			const { workspace, session } = await openSession({});
+			const firstDocumentId = workspace.activeTab.documentId;
+			let secondDocumentId: string;
+			try {
+				secondDocumentId = workspace.addTab().documentId;
+				await session.flush();
+			} finally {
+				session.dispose();
+			}
+
+			const { workspace: restored, session: restoredSession } = await openSession({});
+			try {
+				expect(restored.tabs.map((tab) => tab.documentId)).toEqual([
+					firstDocumentId,
+					secondDocumentId
+				]);
+				expect(restored.activeTab.documentId).toBe(secondDocumentId);
+			} finally {
+				restoredSession.dispose();
+			}
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	it('preserves pixel data across save and restore', async () => {
 		const { workspace, session } = await openSession({
 			gridColor: '#ECE5D9'

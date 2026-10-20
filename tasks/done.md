@@ -2,6 +2,7 @@
 
 | # | Task | Date |
 |---|------|------|
+| 300 | [Web initial session tab persistence verification](../issues/300-web-initial-session-tab-persistence.md) | 2026-10-20 |
 | 299 | [Apple Frame Duration Draft lifecycle — own input transitions and commit targeting](../issues/299-apple-frame-duration-draft-lifecycle.md) | 2026-09-08 |
 | 298 | [Apple Edit lifecycle — centralize state ownership and transition policy](../issues/298-apple-edit-lifecycle.md) | 2026-09-07 |
 | 297 | [Apple Document Snapshot — centralize capture/reconstruction and separate tab state](../issues/297-apple-document-snapshot.md) | 2026-09-07 |
